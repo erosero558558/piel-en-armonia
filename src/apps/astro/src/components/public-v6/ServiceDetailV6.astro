@@ -133,11 +133,16 @@ const relatedCta = normalizeText(ui.relatedCta);
 const faqPrefix = normalizeText(ui.faqPrefix);
 const railTitle = normalizeText(railUi.title);
 const railAria = normalizeText(railUi.aria);
+const heroSummaryLabel = locale === 'en' ? 'Clinical route' : 'Ruta clinica';
+const heroPanelTitle =
+    locale === 'en' ? 'What this route organizes first' : 'Lo que esta ruta ordena primero';
+const heroJumpLabel = locale === 'en' ? 'Jump to' : 'Ir a';
 const glanceCards = [
     normalizeText(glanceUi.routeType) && serviceCategory ? { label: normalizeText(glanceUi.routeType), value: serviceCategory } : null,
     normalizeText(glanceUi.checkpoints) ? { label: normalizeText(glanceUi.checkpoints), value: String(checkpoints.length) } : null,
     normalizeText(glanceUi.processStages) ? { label: normalizeText(glanceUi.processStages), value: String(processSteps.length) } : null,
 ].filter(Boolean);
+const heroMenuItems = sectionMenuItems.slice(0, 3);
 ---
 
 <PageHeadV6
@@ -153,8 +158,46 @@ const glanceCards = [
 
 {
     serviceHeroImage ? (
-        <section class="v6-page-hero-media is-internal" data-v6-internal-hero>
-            <img src={serviceHeroImage} alt={serviceHeroAlt} loading="eager" fetchpriority="high" />
+        <section class="v6-page-hero-media is-internal v6-page-hero-media--service" data-v6-internal-hero>
+            <div class="v6-service-hero-shell">
+                <figure class="v6-service-hero-shell__media">
+                    <img src={serviceHeroImage} alt={serviceHeroAlt} loading="eager" fetchpriority="high" />
+                </figure>
+                <aside class="v6-service-hero-shell__panel">
+                    <p class="v6-service-hero-shell__eyebrow">{heroSummaryLabel}</p>
+                    <h2>{heroPanelTitle}</h2>
+                    {serviceCategory ? <strong class="v6-service-hero-shell__category">{serviceCategory}</strong> : null}
+                    {serviceSummary ? <p>{serviceSummary}</p> : null}
+                    {
+                        glanceCards.length ? (
+                            <div class="v6-service-hero-shell__stats" aria-hidden="true">
+                                {
+                                    glanceCards.map((item) => (
+                                        <article>
+                                            <span>{item.label}</span>
+                                            <strong>{item.value}</strong>
+                                        </article>
+                                    ))
+                                }
+                            </div>
+                        ) : null
+                    }
+                    {
+                        heroMenuItems.length ? (
+                            <div class="v6-service-hero-shell__links">
+                                <span>{heroJumpLabel}</span>
+                                <div>
+                                    {
+                                        heroMenuItems.map((item) => (
+                                            <a href={item.href}>{item.label}</a>
+                                        ))
+                                    }
+                                </div>
+                            </div>
+                        ) : null
+                    }
+                </aside>
+            </div>
         </section>
     ) : null
 }
@@ -315,4 +358,170 @@ const glanceCards = [
     status={bookingStatus}
     sectionId="v6-booking-status"
 />
+
+<style>
+    .v6-page-hero-media--service {
+        background:
+            radial-gradient(circle at top left, rgba(130, 161, 214, 0.18), transparent 30%),
+            linear-gradient(180deg, #eff3f9 0%, #f7f9fc 100%);
+        padding: 20px clamp(18px, 3vw, 28px) 8px;
+    }
+
+    .v6-service-hero-shell {
+        max-width: 1320px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+        gap: clamp(18px, 2vw, 26px);
+        align-items: center;
+    }
+
+    .v6-service-hero-shell__media {
+        margin: 0;
+        overflow: hidden;
+        border-radius: 24px;
+        border: 1px solid rgba(186, 196, 214, 0.68);
+        background: #dce3ef;
+        box-shadow: 0 28px 58px rgba(18, 28, 48, 0.12);
+    }
+
+    .v6-service-hero-shell__media img {
+        display: block;
+        width: 100%;
+        height: clamp(320px, 31vw, 470px);
+        object-fit: cover;
+        object-position: center;
+    }
+
+    .v6-service-hero-shell__panel {
+        border-radius: 24px;
+        border: 1px solid rgba(181, 190, 207, 0.8);
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 24px 48px rgba(12, 21, 38, 0.1);
+        padding: clamp(22px, 2.1vw, 30px);
+        display: grid;
+        gap: 14px;
+    }
+
+    .v6-service-hero-shell__eyebrow,
+    .v6-service-hero-shell__panel h2,
+    .v6-service-hero-shell__category,
+    .v6-service-hero-shell__panel > p,
+    .v6-service-hero-shell__stats span,
+    .v6-service-hero-shell__stats strong,
+    .v6-service-hero-shell__links span {
+        margin: 0;
+    }
+
+    .v6-service-hero-shell__eyebrow,
+    .v6-service-hero-shell__links span,
+    .v6-service-hero-shell__stats span {
+        color: #66748b;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .v6-service-hero-shell__panel h2 {
+        color: #1f2a3b;
+        font-size: clamp(30px, 2.45vw, 40px);
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+    }
+
+    .v6-service-hero-shell__category {
+        color: #334764;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .v6-service-hero-shell__panel > p {
+        color: #4f5d74;
+        font-size: clamp(16px, 1.12vw, 19px);
+        line-height: 1.55;
+    }
+
+    .v6-service-hero-shell__stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .v6-service-hero-shell__stats article {
+        border-radius: 16px;
+        background: #f3f6fb;
+        border: 1px solid rgba(184, 194, 214, 0.72);
+        padding: 12px 13px 13px;
+        display: grid;
+        gap: 6px;
+        min-height: 88px;
+    }
+
+    .v6-service-hero-shell__stats strong {
+        color: #203049;
+        font-size: clamp(17px, 1.45vw, 24px);
+        line-height: 1.16;
+    }
+
+    .v6-service-hero-shell__links {
+        display: grid;
+        gap: 8px;
+        padding-top: 2px;
+    }
+
+    .v6-service-hero-shell__links div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .v6-service-hero-shell__links a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(78, 100, 138, 0.18);
+        background: #ffffff;
+        color: #2a3a54;
+        font-size: 13px;
+        line-height: 1.3;
+    }
+
+    .v6-service-hero-shell__links a:hover,
+    .v6-service-hero-shell__links a:focus-visible {
+        border-color: rgba(53, 79, 123, 0.42);
+        background: #eef3fb;
+    }
+
+    @media (max-width: 1100px) {
+        .v6-service-hero-shell {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 720px) {
+        .v6-page-hero-media--service {
+            padding: 14px 16px 0;
+        }
+
+        .v6-service-hero-shell__media,
+        .v6-service-hero-shell__panel {
+            border-radius: 20px;
+        }
+
+        .v6-service-hero-shell__media img {
+            height: 300px;
+        }
+
+        .v6-service-hero-shell__panel {
+            padding: 18px 16px;
+        }
+
+        .v6-service-hero-shell__stats {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 

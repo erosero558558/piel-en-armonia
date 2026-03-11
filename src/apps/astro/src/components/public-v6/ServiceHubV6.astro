@@ -71,6 +71,24 @@ const heroImageSrcSet = normalizeText(page?.heroImage?.srcset);
 const heroImageAlt = normalizeText(page?.heroImage?.alt) || normalizeText(page.heading);
 const introTitle = normalizeText(page.introTitle);
 const introDeck = normalizeText(page.introDeck);
+const totalRoutes = safeSections.reduce((total, section) => total + section.cards.length, 0);
+const heroSummaryLabel = locale === 'en' ? 'Clinical map' : 'Mapa clinico';
+const hubStats = [
+    {
+        label: locale === 'en' ? 'Active routes' : 'Rutas activas',
+        value: String(totalRoutes).padStart(2, '0'),
+    },
+    {
+        label: locale === 'en' ? 'Clinical blocks' : 'Bloques clinicos',
+        value: String(safeSections.length).padStart(2, '0'),
+    },
+    safeFeatured[0]
+        ? {
+              label: locale === 'en' ? 'Suggested start' : 'Entrada sugerida',
+              value: safeFeatured[0].title,
+          }
+        : null,
+].filter(Boolean);
 ---
 
 <PageHeadV6
@@ -86,14 +104,41 @@ const introDeck = normalizeText(page.introDeck);
 
 {
     heroImageSrc ? (
-        <section class="v6-page-hero-media">
-            <img src={heroImageSrc} srcset={heroImageSrcSet || undefined} sizes="100vw" alt={heroImageAlt} loading="eager" fetchpriority="high" />
+        <section class="v6-page-hero-media v6-page-hero-media--hub">
+            <div class="v6-hub-hero-shell">
+                <figure class="v6-hub-hero-shell__media">
+                    <img src={heroImageSrc} srcset={heroImageSrcSet || undefined} sizes="100vw" alt={heroImageAlt} loading="eager" fetchpriority="high" />
+                </figure>
+                {
+                    introTitle || introDeck || hubStats.length ? (
+                        <div class="v6-hub-hero-shell__summary">
+                            <p class="v6-hub-hero-shell__eyebrow">{heroSummaryLabel}</p>
+                            {introTitle ? <h2>{introTitle}</h2> : null}
+                            {introDeck ? <p>{introDeck}</p> : null}
+                            {
+                                hubStats.length ? (
+                                    <div class="v6-hub-hero-shell__stats" aria-hidden="true">
+                                        {
+                                            hubStats.map((item) => (
+                                                <article class="v6-hub-hero-shell__stat">
+                                                    <span>{item.label}</span>
+                                                    <strong>{item.value}</strong>
+                                                </article>
+                                            ))
+                                        }
+                                    </div>
+                                ) : null
+                            }
+                        </div>
+                    ) : null
+                }
+            </div>
         </section>
     ) : null
 }
 
 {
-    introTitle || introDeck ? (
+    (introTitle || introDeck) && !heroImageSrc ? (
         <section class="v6-page-intro">
             {introTitle ? <h2>{introTitle}</h2> : null}
             {introDeck ? <p>{introDeck}</p> : null}
@@ -229,3 +274,148 @@ const introDeck = normalizeText(page.introDeck);
 }
 
 <BookingStatusV6 status={page.bookingStatus} locale={locale} sectionId="v6-booking-status" />
+
+<style>
+    .v6-page-hero-media--hub {
+        background:
+            radial-gradient(circle at top left, rgba(143, 184, 255, 0.18), transparent 32%),
+            linear-gradient(180deg, #08101d 0%, #0d1a2e 100%);
+        padding: 24px clamp(18px, 3vw, 32px) 34px;
+    }
+
+    .v6-hub-hero-shell {
+        max-width: 1480px;
+        margin: 0 auto;
+        position: relative;
+    }
+
+    .v6-hub-hero-shell__media {
+        margin: 0;
+        overflow: hidden;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 30px 70px rgba(3, 8, 20, 0.34);
+        background: rgba(6, 15, 28, 0.7);
+    }
+
+    .v6-hub-hero-shell__media img {
+        display: block;
+        width: 100%;
+        height: clamp(360px, 44vw, 640px);
+        object-fit: cover;
+        object-position: center 36%;
+    }
+
+    .v6-hub-hero-shell__summary {
+        position: absolute;
+        right: clamp(20px, 4vw, 44px);
+        bottom: clamp(20px, 4vw, 40px);
+        width: min(380px, calc(100% - 40px));
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(248, 250, 255, 0.98), rgba(235, 241, 250, 0.94));
+        border: 1px solid rgba(143, 158, 186, 0.28);
+        box-shadow: 0 24px 52px rgba(4, 15, 34, 0.2);
+        padding: clamp(20px, 2.2vw, 30px);
+        display: grid;
+        gap: 16px;
+        backdrop-filter: blur(16px);
+    }
+
+    .v6-hub-hero-shell__eyebrow,
+    .v6-hub-hero-shell__summary h2,
+    .v6-hub-hero-shell__summary > p:last-of-type,
+    .v6-hub-hero-shell__stat span,
+    .v6-hub-hero-shell__stat strong {
+        margin: 0;
+    }
+
+    .v6-hub-hero-shell__eyebrow {
+        color: #5b6b87;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .v6-hub-hero-shell__summary h2 {
+        color: #202b3d;
+        font-size: clamp(34px, 3vw, 46px);
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+    }
+
+    .v6-hub-hero-shell__summary > p:last-of-type {
+        color: #4e5d75;
+        font-size: clamp(16px, 1.18vw, 20px);
+        line-height: 1.55;
+    }
+
+    .v6-hub-hero-shell__stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .v6-hub-hero-shell__stat {
+        min-height: 106px;
+        border-radius: 18px;
+        border: 1px solid rgba(139, 155, 185, 0.2);
+        background: rgba(255, 255, 255, 0.74);
+        padding: 14px 15px 16px;
+        display: grid;
+        align-content: start;
+        gap: 8px;
+    }
+
+    .v6-hub-hero-shell__stat span {
+        color: #66758d;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .v6-hub-hero-shell__stat strong {
+        color: #213049;
+        font-size: clamp(20px, 1.85vw, 28px);
+        line-height: 1.14;
+        letter-spacing: -0.02em;
+    }
+
+    @media (max-width: 1100px) {
+        .v6-hub-hero-shell__summary {
+            width: min(360px, calc(100% - 32px));
+        }
+
+        .v6-hub-hero-shell__stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 720px) {
+        .v6-page-hero-media--hub {
+            padding: 16px 16px 24px;
+        }
+
+        .v6-hub-hero-shell__media {
+            border-radius: 18px;
+        }
+
+        .v6-hub-hero-shell__media img {
+            height: 280px;
+        }
+
+        .v6-hub-hero-shell__summary {
+            position: static;
+            width: 100%;
+            margin-top: 14px;
+            border-radius: 20px;
+            padding: 18px 16px;
+            backdrop-filter: none;
+        }
+
+        .v6-hub-hero-shell__stats {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

@@ -98,6 +98,18 @@ const kpiCards = [
 const blockCtaLabel = normalizeText(ui.blockCtaLabel);
 const initiativesCtaLabel = normalizeText(initiativesUi.ctaLabel);
 const initiativesAria = normalizeText(initiativesUi.aria);
+const heroSummaryLabel = locale === 'en' ? 'Hybrid access' : 'Acceso hibrido';
+const heroSummaryTitle =
+    locale === 'en'
+        ? 'Remote care with clear clinical thresholds'
+        : 'Atencion remota con umbrales clinicos claros';
+const heroBookingLabel =
+    normalizeText(bookingStatus.ctaLabel) && normalizeHref(bookingStatus.ctaHref)
+        ? {
+              label: normalizeText(bookingStatus.ctaLabel),
+              href: normalizeHref(bookingStatus.ctaHref),
+          }
+        : null;
 ---
 
 <PageHeadV6
@@ -113,8 +125,40 @@ const initiativesAria = normalizeText(initiativesUi.aria);
 
 {
     heroImageSrc ? (
-        <section class="v6-page-hero-media is-internal" data-v6-internal-hero>
-            <img src={heroImageSrc} srcset={heroImageSrcSet || undefined} alt={heroImageAlt} sizes="100vw" loading="eager" fetchpriority="high" />
+        <section class="v6-page-hero-media is-internal v6-page-hero-media--tele" data-v6-internal-hero>
+            <div class="v6-tele-hero-shell">
+                <figure class="v6-tele-hero-shell__media">
+                    <img src={heroImageSrc} srcset={heroImageSrcSet || undefined} alt={heroImageAlt} sizes="100vw" loading="eager" fetchpriority="high" />
+                </figure>
+                <aside class="v6-tele-hero-shell__panel">
+                    <p class="v6-tele-hero-shell__eyebrow">{heroSummaryLabel}</p>
+                    <h2>{heroSummaryTitle}</h2>
+                    {lead ? <p>{lead}</p> : null}
+                    {internalDescription ? <p class="v6-tele-hero-shell__support">{internalDescription}</p> : null}
+                    {
+                        kpiCards.length ? (
+                            <div class="v6-tele-hero-shell__chips" aria-hidden="true">
+                                {
+                                    kpiCards.map((item) => (
+                                        <article>
+                                            <span>{item.label}</span>
+                                            <strong>{item.value}</strong>
+                                        </article>
+                                    ))
+                                }
+                            </div>
+                        ) : null
+                    }
+                    {
+                        heroBookingLabel ? (
+                            <a class="v6-tele-hero-shell__cta" href={heroBookingLabel.href}>
+                                {heroBookingLabel.label}
+                                <span aria-hidden="true">></span>
+                            </a>
+                        ) : null
+                    }
+                </aside>
+            </div>
         </section>
     ) : null
 }
@@ -235,4 +279,158 @@ const initiativesAria = normalizeText(initiativesUi.aria);
 </div>
 
 <BookingStatusV6 status={page.bookingStatus} sectionId="v6-booking-status" />
+
+<style>
+    .v6-page-hero-media--tele {
+        background:
+            radial-gradient(circle at top left, rgba(114, 170, 222, 0.18), transparent 28%),
+            linear-gradient(180deg, #eef3f8 0%, #f7f9fc 100%);
+        padding: 20px clamp(18px, 3vw, 28px) 8px;
+    }
+
+    .v6-tele-hero-shell {
+        max-width: 1320px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+        gap: clamp(18px, 2vw, 26px);
+        align-items: center;
+    }
+
+    .v6-tele-hero-shell__media {
+        margin: 0;
+        overflow: hidden;
+        border-radius: 24px;
+        border: 1px solid rgba(184, 194, 212, 0.72);
+        background: #dce4ee;
+        box-shadow: 0 28px 58px rgba(15, 25, 46, 0.12);
+    }
+
+    .v6-tele-hero-shell__media img {
+        display: block;
+        width: 100%;
+        height: clamp(320px, 31vw, 480px);
+        object-fit: cover;
+        object-position: center;
+    }
+
+    .v6-tele-hero-shell__panel {
+        border-radius: 24px;
+        border: 1px solid rgba(183, 191, 208, 0.78);
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 24px 46px rgba(12, 21, 38, 0.1);
+        padding: clamp(22px, 2.1vw, 30px);
+        display: grid;
+        gap: 14px;
+    }
+
+    .v6-tele-hero-shell__eyebrow,
+    .v6-tele-hero-shell__panel h2,
+    .v6-tele-hero-shell__panel > p,
+    .v6-tele-hero-shell__support,
+    .v6-tele-hero-shell__chips span,
+    .v6-tele-hero-shell__chips strong {
+        margin: 0;
+    }
+
+    .v6-tele-hero-shell__eyebrow,
+    .v6-tele-hero-shell__chips span {
+        color: #65758d;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .v6-tele-hero-shell__panel h2 {
+        color: #202c3e;
+        font-size: clamp(30px, 2.5vw, 41px);
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+    }
+
+    .v6-tele-hero-shell__panel > p,
+    .v6-tele-hero-shell__support {
+        color: #4e5d74;
+        font-size: clamp(16px, 1.12vw, 19px);
+        line-height: 1.56;
+    }
+
+    .v6-tele-hero-shell__support {
+        color: #637089;
+    }
+
+    .v6-tele-hero-shell__chips {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .v6-tele-hero-shell__chips article {
+        min-height: 86px;
+        border-radius: 16px;
+        background: #f3f6fb;
+        border: 1px solid rgba(184, 194, 214, 0.72);
+        padding: 12px 13px 13px;
+        display: grid;
+        gap: 6px;
+    }
+
+    .v6-tele-hero-shell__chips strong {
+        color: #203049;
+        font-size: clamp(17px, 1.45vw, 24px);
+        line-height: 1.15;
+    }
+
+    .v6-tele-hero-shell__cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 44px;
+        width: fit-content;
+        padding: 0 18px;
+        border-radius: 999px;
+        background: #152844;
+        color: #f5f8ff;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        box-shadow: 0 14px 28px rgba(16, 31, 59, 0.18);
+    }
+
+    .v6-tele-hero-shell__cta:hover,
+    .v6-tele-hero-shell__cta:focus-visible {
+        background: #1d3559;
+    }
+
+    @media (max-width: 1100px) {
+        .v6-tele-hero-shell {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 720px) {
+        .v6-page-hero-media--tele {
+            padding: 14px 16px 0;
+        }
+
+        .v6-tele-hero-shell__media,
+        .v6-tele-hero-shell__panel {
+            border-radius: 20px;
+        }
+
+        .v6-tele-hero-shell__media img {
+            height: 300px;
+        }
+
+        .v6-tele-hero-shell__panel {
+            padding: 18px 16px;
+        }
+
+        .v6-tele-hero-shell__chips {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 

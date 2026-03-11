@@ -133,7 +133,7 @@
                     "category": "Pediatria",
                     "title": "Dermatologia pediatrica",
                     "copy": "Atencion pediatrica con indicaciones claras para cuidadores, escuela y rutina diaria.",
-                    "image": "/images/optimized/v6-clinic-clinic-environment.webp",
+                    "image": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
                     "href": "/es/servicios/dermatologia-pediatrica/"
                 },
                 {
@@ -141,7 +141,7 @@
                     "category": "Integral",
                     "title": "Piel, cabello y unas",
                     "copy": "Ruta integral para sintomas combinados que requieren una lectura clinica coordinada.",
-                    "image": "/images/optimized/v6-clinic-diagnostico-integral.webp",
+                    "image": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
                     "href": "/es/servicios/piel-cabello-unas/"
                 },
                 {
@@ -174,7 +174,7 @@
             "category": "Pediatria",
             "title": "Decision familiar guiada",
             "copy": "Un plan claro para casa con senales de alarma y pasos que la familia puede seguir.",
-            "image": "/images/optimized/v6-clinic-clinic-environment.webp",
+            "image": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
             "href": "/es/servicios/dermatologia-pediatrica/"
         },
         {
@@ -202,7 +202,7 @@
             "category": "Legal",
             "title": "Consentimiento en lenguaje claro",
             "copy": "Derechos y responsabilidades explicados con claridad, sin complejidad innecesaria.",
-            "image": "/images/optimized/v6-clinic-brand-hero-wide.webp",
+            "image": "/images/optimized/v6-clinic-consent-trust.webp",
             "href": "/es/legal/terminos/"
         },
         {

@@ -28,9 +28,9 @@
                 "category": "Tratamientos",
                 "title": "La tecnologia entra solo cuando mejora la decision y el resultado.",
                 "description": "Laser, peeling y bioestimulacion se indican por fototipo, objetivo clinico y seguridad de seguimiento, nunca por impulso.",
-                "image": "/images/optimized/v6-clinic-peeling-quimico.webp",
-                "srcset": "/images/optimized/v6-clinic-peeling-quimico-640.webp 640w, /images/optimized/v6-clinic-peeling-quimico-900.webp 900w, /images/optimized/v6-clinic-peeling-quimico.webp 1200w",
-                "alt": "Procedimiento dermatologico guiado",
+                "image": "/images/optimized/v6-clinic-laser-dermatologico.webp",
+                "srcset": "/images/optimized/v6-clinic-laser-dermatologico-640.webp 640w, /images/optimized/v6-clinic-laser-dermatologico-900.webp 900w, /images/optimized/v6-clinic-laser-dermatologico.webp 1200w",
+                "alt": "Plataforma laser dermatologica con parametros medicos",
                 "href": "/es/servicios/laser-dermatologico/"
             },
             {
@@ -48,9 +48,9 @@
                 "category": "Seguimiento",
                 "title": "El seguimiento convierte mejoria inicial en estabilidad real.",
                 "description": "Cada control compara evolucion, ajusta indicaciones y mantiene decisiones medicas trazables para usted.",
-                "image": "/images/optimized/v6-clinic-clinic-environment.webp",
-                "srcset": "/images/optimized/v6-clinic-clinic-environment-640.webp 640w, /images/optimized/v6-clinic-clinic-environment-800.webp 800w, /images/optimized/v6-clinic-clinic-environment.webp 1200w",
-                "alt": "Control dermatologico presencial",
+                "image": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
+                "srcset": "/images/optimized/v6-clinic-piel-cabello-unas-640.webp 640w, /images/optimized/v6-clinic-piel-cabello-unas-800.webp 800w, /images/optimized/v6-clinic-piel-cabello-unas.webp 1200w",
+                "alt": "Seguimiento integral de piel, cabello y unas",
                 "href": "/es/servicios/piel-cabello-unas/"
             },
             {
@@ -133,8 +133,8 @@
                 "title": "Pediatria con lenguaje claro para la familia",
                 "copy": "Traducimos cada indicacion medica en pasos simples para casa, escuela y seguimiento con cuidadores.",
                 "href": "/es/servicios/dermatologia-pediatrica/",
-                "image": "/images/optimized/v6-clinic-clinic-environment.webp",
-                "alt": "Atencion dermatologica pediatrica"
+                "image": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
+                "alt": "Consulta dermatologica pediatrica con acompanamiento familiar"
             },
             {
                 "id": "c6",
@@ -144,8 +144,8 @@
                 "title": "Seguimiento que demuestra avance real",
                 "copy": "Comparamos sintomas, imagenes y tolerancia entre controles para ajustar su tratamiento con precision sostenida.",
                 "href": "/es/servicios/piel-cabello-unas/",
-                "image": "/images/optimized/v6-clinic-doctor-narvaez.webp",
-                "alt": "Direccion medica dermatologica"
+                "image": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
+                "alt": "Seguimiento dermatologico integral"
             }
         ]
     },

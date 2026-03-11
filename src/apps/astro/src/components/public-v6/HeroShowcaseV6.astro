@@ -17,6 +17,7 @@ const slides = (Array.isArray(hero.slides) ? hero.slides : [])
     .map((slide) => ({
         ...slide,
         alt: slide.alt || slide.title,
+        imageKind: slide.image.includes('/v6-clinic-doctor-') ? 'portrait' : 'scene',
     }));
 const autoplayMs = Number(hero.autoplayMs || 7000);
 const safeAutoplay = Number.isFinite(autoplayMs) && autoplayMs > 1000 ? autoplayMs : 7000;
@@ -41,6 +42,7 @@ const hasHero = Boolean(
         safeLabels.openRoute &&
         safeLabels.indicators
 );
+const totalSlides = String(slides.length).padStart(2, '0');
 
 const buildIndicatorLabel = (slide, index) => {
     const base = [indicatorPrefix, String(index + 1)].filter(Boolean).join(' ');
@@ -66,7 +68,7 @@ const buildIndicatorLabel = (slide, index) => {
                     {
                         slides.map((slide, index) => (
                             <article
-                                class:list={['v6-hero__slide', index === 0 && 'is-active']}
+                                class:list={['v6-hero__slide', `is-${slide.imageKind}`, index === 0 && 'is-active']}
                                 data-v6-slide
                                 data-v6-index={index}
                                 data-v6-category={slide.category}
@@ -88,6 +90,7 @@ const buildIndicatorLabel = (slide, index) => {
                                 <div class="v6-hero__card-caption" aria-hidden="true">
                                     {slide.category ? <p>{slide.category}</p> : null}
                                     <h2>{slide.title}</h2>
+                                    <span>{String(index + 1).padStart(2, '0')} / {totalSlides}</span>
                                 </div>
                             </article>
                         ))
@@ -141,3 +144,37 @@ const buildIndicatorLabel = (slide, index) => {
         </section>
     ) : null
 }
+
+<style>
+    .v6-hero__slide.is-scene img {
+        object-position: center 34%;
+    }
+
+    .v6-hero__slide.is-portrait img {
+        object-fit: contain;
+        object-position: center top;
+        padding: 26px 18px 0;
+        background:
+            radial-gradient(circle at top center, rgba(126, 186, 255, 0.2), transparent 34%),
+            linear-gradient(180deg, rgba(10, 20, 37, 0.9), rgba(16, 30, 52, 0.88));
+    }
+
+    .v6-hero__card-caption {
+        display: grid;
+        gap: 6px;
+    }
+
+    .v6-hero__card-caption span {
+        color: rgba(223, 232, 247, 0.72);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    @media (max-width: 900px) {
+        .v6-hero__slide.is-portrait img {
+            padding: 18px 12px 0;
+        }
+    }
+</style>

@@ -6,8 +6,8 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 479
-  updated_at: 2026-03-10
+  revision: 483
+  updated_at: 2026-03-11
 
 tasks:
   - id: AG-001
@@ -7077,3 +7077,79 @@ tasks:
     prompt: "Polish software product chrome density"
     created_at: 2026-03-10
     updated_at: 2026-03-10
+
+  - id: AG-182
+    title: "Public V6 page integration pass 6"
+    owner: ernes
+    executor: codex
+    status: done
+    status_since_at: "2026-03-11T05:50:53.071Z"
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    files: ["src/apps/astro/src/components/public-v6/HeroShowcaseV6.astro", "src/apps/astro/src/components/public-v6/ServiceHubV6.astro", "src/apps/astro/src/components/public-v6/ServiceDetailV6.astro", "src/apps/astro/src/components/public-v6/TelemedicinePageV6.astro", "content/public-v6/es/home.json", "content/public-v6/en/home.json", "content/public-v6/es/hub.json", "content/public-v6/en/hub.json", "content/public-v6/es/telemedicine.json", "content/public-v6/en/telemedicine.json"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-11T05:50:53.071Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Public V6 page integration pass 6"
+    acceptance_ref: "verification/agent-runs/AG-182.md"
+    evidence_ref: "verification/agent-runs/AG-182.md"
+    depends_on: ["AG-178"]
+    prompt: "Public V6 page integration pass 6"
+    created_at: 2026-03-11
+    updated_at: 2026-03-11
+
+  - id: AG-183
+    title: "Operator auth backend with OpenClaw ChatGPT"
+    owner: ernes
+    executor: codex
+    status: in_progress
+    status_since_at: "2026-03-11T05:39:50.512Z"
+    risk: high
+    scope: auth
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: ["admin-auth.php", "api.php", "lib/ApiKernel.php", "lib/auth.php", "controllers/OperatorAuthController.php", "lib/routes.php", "env.example.php", "tests/CriticalFlowsE2ETest.php"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: "lease_AG-183_20260311053950512_e0b9cc"
+    lease_owner: "ernes"
+    lease_created_at: "2026-03-11T05:39:50.512Z"
+    heartbeat_at: "2026-03-11T05:39:50.512Z"
+    lease_expires_at: "2026-03-11T09:39:50.512Z"
+    lease_reason: "board_write"
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Operator auth backend with OpenClaw ChatGPT"
+    acceptance_ref: ""
+    evidence_ref: ""
+    depends_on: []
+    prompt: "Operator auth backend with OpenClaw ChatGPT"
+    created_at: 2026-03-11
+    updated_at: 2026-03-11

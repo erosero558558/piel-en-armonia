@@ -28,9 +28,9 @@
                 "category": "Treatments",
                 "title": "Technology enters only when it improves the decision and the outcome.",
                 "description": "Laser, peels, and biostimulation are chosen by phototype, clinical objective, and follow-up safety, never by impulse.",
-                "image": "/images/optimized/v6-clinic-peeling-quimico.webp",
-                "srcset": "/images/optimized/v6-clinic-peeling-quimico-640.webp 640w, /images/optimized/v6-clinic-peeling-quimico-900.webp 900w, /images/optimized/v6-clinic-peeling-quimico.webp 1200w",
-                "alt": "Clinically guided dermatology procedure",
+                "image": "/images/optimized/v6-clinic-laser-dermatologico.webp",
+                "srcset": "/images/optimized/v6-clinic-laser-dermatologico-640.webp 640w, /images/optimized/v6-clinic-laser-dermatologico-900.webp 900w, /images/optimized/v6-clinic-laser-dermatologico.webp 1200w",
+                "alt": "Dermatology laser platform with medical settings",
                 "href": "/en/services/laser-dermatologico/"
             },
             {
@@ -48,9 +48,9 @@
                 "category": "Follow-up",
                 "title": "Follow-up turns early improvement into real stability.",
                 "description": "Every review compares progression, adjusts recommendations, and keeps medical decisions traceable over time.",
-                "image": "/images/optimized/v6-clinic-clinic-environment.webp",
-                "srcset": "/images/optimized/v6-clinic-clinic-environment-640.webp 640w, /images/optimized/v6-clinic-clinic-environment-800.webp 800w, /images/optimized/v6-clinic-clinic-environment.webp 1200w",
-                "alt": "In-clinic dermatology follow-up",
+                "image": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
+                "srcset": "/images/optimized/v6-clinic-piel-cabello-unas-640.webp 640w, /images/optimized/v6-clinic-piel-cabello-unas-800.webp 800w, /images/optimized/v6-clinic-piel-cabello-unas.webp 1200w",
+                "alt": "Integrated skin, hair, and nails follow-up",
                 "href": "/en/services/piel-cabello-unas/"
             },
             {
@@ -133,8 +133,8 @@
                 "title": "Pediatric care families can understand",
                 "copy": "Medical instructions are translated into practical steps for home routines, school days, and caregiver follow-through.",
                 "href": "/en/services/dermatologia-pediatrica/",
-                "image": "/images/optimized/v6-clinic-clinic-environment.webp",
-                "alt": "Pediatric dermatology care"
+                "image": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
+                "alt": "Pediatric dermatology consultation with family support"
             },
             {
                 "id": "c6",
@@ -144,8 +144,8 @@
                 "title": "Follow-up that proves real progress",
                 "copy": "Symptoms, images, and tolerance are compared between visits to keep treatment accurate and durable.",
                 "href": "/en/services/piel-cabello-unas/",
-                "image": "/images/optimized/v6-clinic-doctor-narvaez.webp",
-                "alt": "Dermatology medical direction"
+                "image": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
+                "alt": "Integrated dermatology follow-up"
             }
         ]
     },
