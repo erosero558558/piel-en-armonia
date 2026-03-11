@@ -73,6 +73,9 @@ const sectionDefs = [
         : null,
     hasFinalCta ? { id: 'v6-suite-surface-final', label: finalCta.title || page.heading || '' } : null,
 ].filter((item) => item && item.label);
+const sectionIndexById = Object.fromEntries(
+    sectionDefs.map((item, index) => [item.id, String(index + 1).padStart(2, '0')])
+);
 
 const menuItems = sectionDefs.map((item) => ({
     label: item.label,
@@ -358,14 +361,24 @@ const actionClass = (variant = 'secondary') => [
             hasShowcase ? (
                 <section
                     id="v6-suite-surface-demo"
-                    class:list={['v6-suite-showcase', `is-${showcaseKind}`]}
+                    class:list={[
+                        'v6-suite-showcase',
+                        'v6-suite-surface-block',
+                        'is-showcase',
+                        `is-${showcaseKind}`,
+                    ]}
                     data-v6-suite-showcase
+                    data-v6-suite-surface-section="showcase"
+                    data-v6-suite-surface-section-order={sectionIndexById['v6-suite-surface-demo'] || ''}
                     data-v6-suite-surface-kind={showcaseKind}
                 >
                     <div class="v6-suite-showcase__stage">
                         <SoftwareMockupV6 mockup={mockup} />
                     </div>
                     <article class:list={['v6-suite-card', 'v6-suite-card--copy', `is-${showcaseKind}`]}>
+                        <div class="v6-suite-surface-section-tag" data-v6-suite-surface-section-tag aria-hidden="true">
+                            <span>{sectionIndexById['v6-suite-surface-demo'] || ''}</span>
+                        </div>
                         {mockup.eyebrow ? <p>{mockup.eyebrow}</p> : null}
                         <h3>{mockup.title || page.heading}</h3>
                         {mockup.footer ? <span>{mockup.footer}</span> : null}
@@ -381,18 +394,25 @@ const actionClass = (variant = 'secondary') => [
                     class:list={[
                         'v6-suite-section',
                         'is-tight',
+                        'v6-suite-surface-block',
+                        'is-steps',
                         'is-surface-steps',
                         `is-page-${surfacePageKey}`,
                     ]}
+                    data-v6-suite-surface-section="steps"
+                    data-v6-suite-surface-section-order={sectionIndexById['v6-suite-surface-steps'] || ''}
                 >
                     <header class="v6-suite-section__head">
+                        <div class="v6-suite-surface-section-tag" data-v6-suite-surface-section-tag aria-hidden="true">
+                            <span>{sectionIndexById['v6-suite-surface-steps'] || ''}</span>
+                        </div>
                         {steps.eyebrow ? <p>{steps.eyebrow}</p> : null}
                         <h2>{steps.title}</h2>
                     </header>
 
-                    <div class:list={['v6-suite-steps', `is-page-${surfacePageKey}`]}>
+                    <div class:list={['v6-suite-steps', 'v6-suite-steps--surface', `is-page-${surfacePageKey}`]}>
                         {stepItems.map((item, index) => (
-                            <article class:list={['v6-suite-step', `is-page-${surfacePageKey}`]}>
+                            <article class:list={['v6-suite-step', 'v6-suite-surface-step', `is-page-${surfacePageKey}`]}>
                                 <strong>{String(index + 1).padStart(2, '0')}</strong>
                                 <p>{item}</p>
                             </article>
@@ -409,11 +429,18 @@ const actionClass = (variant = 'secondary') => [
                     class:list={[
                         'v6-suite-section',
                         'is-tight',
+                        'v6-suite-surface-block',
+                        'is-advantages',
                         'is-surface-advantages',
                         `is-page-${surfacePageKey}`,
                     ]}
+                    data-v6-suite-surface-section="advantages"
+                    data-v6-suite-surface-section-order={sectionIndexById['v6-suite-surface-advantages'] || ''}
                 >
                     <header class="v6-suite-section__head">
+                        <div class="v6-suite-surface-section-tag" data-v6-suite-surface-section-tag aria-hidden="true">
+                            <span>{sectionIndexById['v6-suite-surface-advantages'] || ''}</span>
+                        </div>
                         {advantages.eyebrow ? <p>{advantages.eyebrow}</p> : null}
                         <h2>{advantages.title}</h2>
                     </header>
@@ -422,6 +449,7 @@ const actionClass = (variant = 'secondary') => [
                         class:list={[
                             'v6-suite-grid',
                             'v6-suite-grid--three',
+                            'v6-suite-surface-proof-grid',
                             'is-surface-advantages-grid',
                             `is-page-${surfacePageKey}`,
                         ]}
@@ -430,6 +458,7 @@ const actionClass = (variant = 'secondary') => [
                             <article
                                 class:list={[
                                     'v6-suite-card',
+                                    'v6-suite-surface-proof',
                                     'v6-suite-surface-advantage',
                                     `is-page-${surfacePageKey}`,
                                 ]}
@@ -451,11 +480,18 @@ const actionClass = (variant = 'secondary') => [
                         'v6-suite-section',
                         'is-tight',
                         'is-slate',
+                        'v6-suite-surface-block',
+                        'is-connections',
                         'is-surface-connections',
                         `is-page-${surfacePageKey}`,
                     ]}
+                    data-v6-suite-surface-section="connections"
+                    data-v6-suite-surface-section-order={sectionIndexById['v6-suite-surface-connections'] || ''}
                 >
                     <header class="v6-suite-section__head">
+                        <div class="v6-suite-surface-section-tag" data-v6-suite-surface-section-tag aria-hidden="true">
+                            <span>{sectionIndexById['v6-suite-surface-connections'] || ''}</span>
+                        </div>
                         {connections.eyebrow ? <p>{connections.eyebrow}</p> : null}
                         <h2>{connections.title}</h2>
                     </header>
@@ -463,6 +499,7 @@ const actionClass = (variant = 'secondary') => [
                     <div
                         class:list={[
                             'v6-suite-list-grid',
+                            'v6-suite-list-grid--surface',
                             'is-surface-connections-grid',
                             `is-page-${surfacePageKey}`,
                         ]}
@@ -471,6 +508,7 @@ const actionClass = (variant = 'secondary') => [
                             <article
                                 class:list={[
                                     'v6-suite-list-item',
+                                    'v6-suite-surface-link',
                                     'v6-suite-surface-connection',
                                     `is-page-${surfacePageKey}`,
                                 ]}
@@ -491,18 +529,25 @@ const actionClass = (variant = 'secondary') => [
                     class:list={[
                         'v6-suite-final',
                         'is-inline',
+                        'v6-suite-surface-block',
+                        'is-final',
                         'is-surface-final',
                         `is-page-${surfacePageKey}`,
                     ]}
+                    data-v6-suite-surface-section="final"
+                    data-v6-suite-surface-section-order={sectionIndexById['v6-suite-surface-final'] || ''}
                 >
                     <div class:list={['v6-suite-final__shell', `is-page-${surfacePageKey}`]}>
                         <div>
+                            <div class="v6-suite-surface-section-tag" data-v6-suite-surface-section-tag aria-hidden="true">
+                                <span>{sectionIndexById['v6-suite-surface-final'] || ''}</span>
+                            </div>
                             {finalCta.title ? <h2>{finalCta.title}</h2> : null}
                             {finalCta.deck ? <p>{finalCta.deck}</p> : null}
                         </div>
                         {
                             finalActions.length ? (
-                                <div class="v6-suite-actions">
+                                <div class="v6-suite-actions v6-suite-actions--final">
                                     {finalActions.map((action) => (
                                         <a class:list={actionClass(action.variant)} href={action.href}>
                                             {action.label}

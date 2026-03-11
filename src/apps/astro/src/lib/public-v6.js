@@ -478,6 +478,7 @@ function sanitizeSoftwareModuleCard(card) {
         title,
         copy: normalizeText(card?.copy),
         bullets: sanitizeTextList(card?.bullets),
+        featured: Boolean(card?.featured),
     };
 }
 
@@ -491,6 +492,25 @@ function sanitizeSoftwareJourneyLane(lane) {
         eyebrow: normalizeText(lane?.eyebrow),
         title,
         steps,
+    };
+}
+
+function sanitizeSoftwareFocusCard(card) {
+    const title = normalizeText(card?.title);
+    const href = normalizeHref(card?.href);
+    const ctaLabel = normalizeText(card?.ctaLabel);
+    const items = sanitizeTextList(card?.items);
+    if (!title || !href || !ctaLabel || !items.length) {
+        return null;
+    }
+    return {
+        eyebrow: normalizeText(card?.eyebrow),
+        title,
+        copy: normalizeText(card?.copy),
+        items,
+        href,
+        ctaLabel,
+        highlight: Boolean(card?.highlight),
     };
 }
 
@@ -810,6 +830,9 @@ function assertSoftwareLandingContract(locale, page = {}, routeMap = new Map()) 
     if (!Array.isArray(page?.hero?.actions) || page.hero.actions.length < 2) {
         failSoftwareContract(`${safeLocale}.landing.hero requires at least 2 actions`);
     }
+    if (!Array.isArray(page?.focus?.cards) || page.focus.cards.length < 3) {
+        failSoftwareContract(`${safeLocale}.landing.focus requires at least 3 cards`);
+    }
     if (!Array.isArray(page?.modules?.cards) || page.modules.cards.length < 3) {
         failSoftwareContract(`${safeLocale}.landing.modules requires at least 3 cards`);
     }
@@ -978,6 +1001,7 @@ function sanitizeSoftwareFinalCta(finalCta) {
 
 function sanitizeSoftwareLandingPage(page) {
     const source = isObject(page) ? page : {};
+    const focus = isObject(source.focus) ? source.focus : {};
     const modules = isObject(source.modules) ? source.modules : {};
     const journeys = isObject(source.journeys) ? source.journeys : {};
     const surfaces = isObject(source.surfaces) ? source.surfaces : {};
@@ -991,6 +1015,14 @@ function sanitizeSoftwareLandingPage(page) {
         breadcrumb: sanitizeBreadcrumb(source.breadcrumb),
         heading: normalizeText(source.heading),
         hero: sanitizeSoftwareHero(source.hero),
+        focus: {
+            eyebrow: normalizeText(focus.eyebrow),
+            title: normalizeText(focus.title),
+            deck: normalizeText(focus.deck),
+            cards: Array.isArray(focus.cards)
+                ? focus.cards.map(sanitizeSoftwareFocusCard).filter(Boolean)
+                : [],
+        },
         modules: {
             eyebrow: normalizeText(modules.eyebrow),
             title: normalizeText(modules.title),

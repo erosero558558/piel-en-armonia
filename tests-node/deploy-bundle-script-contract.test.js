@@ -100,9 +100,12 @@ test('bundle deploy conserva wrappers root y tooling canonico ejecutable', (t) =
     const zipPath = path.join(outputRoot, `${stageName}.zip`);
 
     const requiredPaths = [
+        'styles.css',
+        'styles-deferred.css',
         path.join('es', 'index.html'),
         path.join('en', 'index.html'),
         '_astro',
+        'script.js',
         path.join('fonts', 'plus-jakarta-sans.woff2'),
         path.join('fonts', 'fraunces.woff2'),
         path.join('images', 'optimized'),
@@ -111,6 +114,9 @@ test('bundle deploy conserva wrappers root y tooling canonico ejecutable', (t) =
         path.join('content', 'index.json'),
         path.join('content', 'es.json'),
         path.join('content', 'en.json'),
+        path.join('js', 'engines', 'ui-bundle.js'),
+        path.join('js', 'engines', 'booking-engine.js'),
+        path.join('js', 'engines', 'data-bundle.js'),
         path.join('js', 'public-v6-shell.js'),
         path.join('js', 'admin-preboot-shortcuts.js'),
         path.join('js', 'admin-runtime.js'),
@@ -152,19 +158,47 @@ test('bundle deploy conserva wrappers root y tooling canonico ejecutable', (t) =
     }
 
     const adminChunksDir = path.join(stageRoot, 'js', 'admin-chunks');
+    const publicChunksDir = path.join(stageRoot, 'js', 'chunks');
+    const publicEnginesDir = path.join(stageRoot, 'js', 'engines');
     const adminChunkEntries = fs.existsSync(adminChunksDir)
         ? fs.readdirSync(adminChunksDir)
+        : [];
+    const publicChunkEntries = fs.existsSync(publicChunksDir)
+        ? fs.readdirSync(publicChunksDir)
+        : [];
+    const publicEngineEntries = fs.existsSync(publicEnginesDir)
+        ? fs.readdirSync(publicEnginesDir)
         : [];
     assert.equal(
         adminChunkEntries.some((entry) => /^index-.*\.js$/.test(entry)),
         true,
         'el bundle debe incluir el chunk activo del admin en js/admin-chunks/'
     );
+    assert.equal(
+        publicChunkEntries.some((entry) => /^shell-.*\.js$/.test(entry)),
+        true,
+        'el bundle debe incluir el shell activo del runtime publico en js/chunks/'
+    );
+    assert.equal(
+        publicEngineEntries.length >= 3,
+        true,
+        'el bundle debe incluir engines publicos activos en js/engines/'
+    );
 
     assert.equal(
         fs.existsSync(path.join(stageRoot, 'admin.css')),
         false,
         'el bundle no debe reintroducir admin.css legacy'
+    );
+    assert.equal(
+        fs.existsSync(path.join(stageRoot, 'booking-engine.js')),
+        false,
+        'el bundle no debe reintroducir booking-engine.js root legacy'
+    );
+    assert.equal(
+        fs.existsSync(path.join(stageRoot, 'utils.js')),
+        false,
+        'el bundle no debe reintroducir utils.js root legacy'
     );
     assert.equal(
         fs.existsSync(path.join(stageRoot, 'index.html')),
@@ -196,6 +230,31 @@ test('bundle deploy conserva wrappers root y tooling canonico ejecutable', (t) =
         manifestRaw.includes('js/public-v6-shell.js'),
         true,
         'manifest debe incluir el runtime publico V6'
+    );
+    assert.equal(
+        manifestRaw.includes('script.js'),
+        true,
+        'manifest debe incluir script.js como runtime versionado del gateway publico'
+    );
+    assert.equal(
+        manifestRaw.includes('styles.css'),
+        true,
+        'manifest debe incluir styles.css como soporte del gateway publico'
+    );
+    assert.equal(
+        manifestRaw.includes('styles-deferred.css'),
+        true,
+        'manifest debe incluir styles-deferred.css como soporte del gateway publico'
+    );
+    assert.equal(
+        manifestRaw.includes('js/chunks/'),
+        true,
+        'manifest debe incluir los chunks activos del runtime publico'
+    );
+    assert.equal(
+        manifestRaw.includes('js/engines/'),
+        true,
+        'manifest debe incluir los engines activos del runtime publico'
     );
     assert.equal(
         manifestRaw.includes('js/admin-chunks/'),

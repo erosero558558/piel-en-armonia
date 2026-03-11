@@ -58,6 +58,15 @@ test('clean-local-artifacts dry-run reporta sin borrar artefactos locales', () =
         writeFile(resolve(sandbox, '.php-cs-fixer.cache'), '{}\n');
         writeFile(resolve(sandbox, '.phpunit.cache', 'test-results'), '{}\n');
         writeFile(resolve(sandbox, 'coverage.xml'), '<coverage />\n');
+        writeFile(resolve(sandbox, '.tmp-calendar-write-report.json'), '{}\n');
+        writeFile(resolve(sandbox, '.codex-public-paths.txt'), 'es/\nen/\n');
+        writeFile(resolve(sandbox, 'build_analysis.txt'), 'build log\n');
+        writeFile(resolve(sandbox, 'conflict_branches.txt'), 'branch list\n');
+        writeFile(resolve(sandbox, 'stats.html'), '<html></html>\n');
+        writeFile(resolve(sandbox, 'styles.min.css'), 'body{}\n');
+        writeFile(resolve(sandbox, 'styles.optimized.css'), 'body{}\n');
+        writeFile(resolve(sandbox, 'styles-critical.min.css'), 'body{}\n');
+        writeFile(resolve(sandbox, 'styles-deferred.min.css'), 'body{}\n');
 
         const result = runCleaner(sandbox, ['--dry-run']);
         assert.equal(
@@ -110,9 +119,54 @@ test('clean-local-artifacts dry-run reporta sin borrar artefactos locales', () =
             true,
             'dry-run no debe borrar coverage.xml'
         );
+        assert.equal(
+            existsSync(resolve(sandbox, '.tmp-calendar-write-report.json')),
+            true,
+            'dry-run no debe borrar .tmp-calendar-write-report.json'
+        );
+        assert.equal(
+            existsSync(resolve(sandbox, '.codex-public-paths.txt')),
+            true,
+            'dry-run no debe borrar .codex-public-paths.txt'
+        );
+        assert.equal(
+            existsSync(resolve(sandbox, 'build_analysis.txt')),
+            true,
+            'dry-run no debe borrar build_analysis.txt'
+        );
+        assert.equal(
+            existsSync(resolve(sandbox, 'conflict_branches.txt')),
+            true,
+            'dry-run no debe borrar conflict_branches.txt'
+        );
+        assert.equal(
+            existsSync(resolve(sandbox, 'stats.html')),
+            true,
+            'dry-run no debe borrar stats.html'
+        );
+        assert.equal(
+            existsSync(resolve(sandbox, 'styles.min.css')),
+            true,
+            'dry-run no debe borrar styles.min.css'
+        );
+        assert.equal(
+            existsSync(resolve(sandbox, 'styles.optimized.css')),
+            true,
+            'dry-run no debe borrar styles.optimized.css'
+        );
+        assert.equal(
+            existsSync(resolve(sandbox, 'styles-critical.min.css')),
+            true,
+            'dry-run no debe borrar styles-critical.min.css'
+        );
+        assert.equal(
+            existsSync(resolve(sandbox, 'styles-deferred.min.css')),
+            true,
+            'dry-run no debe borrar styles-deferred.min.css'
+        );
         assert.match(
             result.stdout,
-            /DRY RUN.*cookies\.txt.*\.lighthouseci\/.*_deploy_bundle\/.*playwright-report\/.*test-results\/.*php_server\.log.*\.php-cs-fixer\.cache.*\.phpunit\.cache\/.*coverage\.xml/s,
+            /DRY RUN.*cookies\.txt.*\.lighthouseci\/.*_deploy_bundle\/.*playwright-report\/.*test-results\/.*php_server\.log.*\.php-cs-fixer\.cache.*\.phpunit\.cache\/.*coverage\.xml.*\.tmp-calendar-write-report\.json.*\.codex-public-paths\.txt.*build_analysis\.txt.*conflict_branches\.txt.*stats\.html.*styles\.min\.css.*styles\.optimized\.css.*styles-critical\.min\.css.*styles-deferred\.min\.css/s,
             'dry-run debe reportar los artefactos detectados'
         );
     } finally {
@@ -148,6 +202,15 @@ test('clean-local-artifacts elimina solo artefactos efimeros permitidos', () => 
             '<html></html>\n'
         );
         writeFile(resolve(sandbox, 'coverage.xml'), '<coverage />\n');
+        writeFile(resolve(sandbox, '.tmp-calendar-write-report.json'), '{}\n');
+        writeFile(resolve(sandbox, '.codex-public-paths.txt'), 'es/\nen/\n');
+        writeFile(resolve(sandbox, 'build_analysis.txt'), 'build log\n');
+        writeFile(resolve(sandbox, 'conflict_branches.txt'), 'branch list\n');
+        writeFile(resolve(sandbox, 'stats.html'), '<html></html>\n');
+        writeFile(resolve(sandbox, 'styles.min.css'), 'body{}\n');
+        writeFile(resolve(sandbox, 'styles.optimized.css'), 'body{}\n');
+        writeFile(resolve(sandbox, 'styles-critical.min.css'), 'body{}\n');
+        writeFile(resolve(sandbox, 'styles-deferred.min.css'), 'body{}\n');
         writeFile(resolve(sandbox, 'verification', 'keep.txt'), 'keep\n');
         writeFile(resolve(sandbox, 'notes.txt'), 'keep\n');
 
@@ -169,6 +232,15 @@ test('clean-local-artifacts elimina solo artefactos efimeros permitidos', () => 
             '.php-cs-fixer.cache',
             '.phpunit.cache',
             'coverage.xml',
+            '.tmp-calendar-write-report.json',
+            '.codex-public-paths.txt',
+            'build_analysis.txt',
+            'conflict_branches.txt',
+            'stats.html',
+            'styles.min.css',
+            'styles.optimized.css',
+            'styles-critical.min.css',
+            'styles-deferred.min.css',
         ]) {
             assert.equal(
                 existsSync(resolve(sandbox, target)),

@@ -41,6 +41,49 @@ It also writes:
 
 - `verification/public-v6-canonical/build-report.json`
 
+## Versioned public gateway runtime
+
+These paths also stay versioned because the root public gateway publishes from git-sync, but they are generated runtime artifacts and must not be edited by hand:
+
+- `styles.css`
+- `styles-deferred.css`
+- `script.js`
+- `js/chunks/**`
+- `js/engines/**`
+
+The gateway no longer accepts root legacy runtime files such as
+`booking-engine.js` or `utils.js`. Historical residues live only in
+`js/archive/root-legacy/**`.
+
+Canonical runtime flow:
+
+1. `npm run build`
+2. `npm run check:public:runtime:artifacts`
+3. Commit artifacts to `main`
+
+`check:public:runtime:artifacts` is the canonical verifier. It enforces:
+
+- `styles.css` and `styles-deferred.css` are present for the root gateway support layer
+- exactly one active `shell-*.js` chunk reachable from `script.js`
+- no stale chunks left in `js/chunks/**`
+- any engine file referenced from `script.js` exists in `js/engines/**`
+- no merge markers in active runtime assets
+
+It writes:
+
+- `verification/public-v6-canonical/runtime-artifacts-report.json`
+
+## Root singleton public artifacts
+
+These root files remain versioned because hosting and SEO contracts expect
+them exactly there:
+
+- `favicon.ico`
+- `sitemap.xml`
+
+They are active public artifacts, unlike archived legacy root media such as
+`images/archive/root-legacy/hero-woman.webp`.
+
 ## Redirect-only legacy routes
 
 These legacy entrypoints remain public, but only as redirects:
@@ -78,6 +121,7 @@ A public V6 release is green only if these pass:
 
 - `npm run build:public:v6`
 - `npm run check:public:v6:artifacts`
+- `npm run check:public:runtime:artifacts`
 - `npm run test:frontend:qa:v6`
 - `npm run audit:public:v6:copy`
 - `npm run audit:public:v6:visual-contract`
@@ -105,3 +149,11 @@ These are no longer public authoring inputs:
 - `servicios/**`
 - `ninos/**`
 - `src/apps/astro/scripts/serve-public-v3.mjs`
+- `script.js`
+- `js/chunks/**`
+- `js/engines/**`
+- `styles.css`
+- `styles-deferred.css`
+- `booking-engine.js`
+- `utils.js`
+- root `*-engine.js` snapshots outside `js/engines/**`

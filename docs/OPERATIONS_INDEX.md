@@ -6,8 +6,9 @@ El material historico y los one-offs desplazados desde la raiz viven en
 `docs/archive/root-history/` y `scripts/archive/`.
 Los scripts operativos activos viven en `scripts/ops/**`; los `.ps1` de raiz
 se conservan como wrappers compatibles.
-La frontera de markdowns que todavia permanecen en raiz se documenta en
-`docs/ROOT_SURFACES.md`.
+La frontera de markdowns, runtime, archivos de control, dotfiles,
+singletones especiales y directorios que todavia permanecen en raiz se
+documenta en `docs/ROOT_SURFACES.md`.
 
 Host local canonico para validaciones con backend: `http://127.0.0.1:8011`.
 La shell publica vive bajo `/`, `/es/` y `/en/`; no usar `/index.html` como
@@ -35,7 +36,7 @@ Overrides:
 - Plan de estabilidad: `docs/STABILITY_14_DAYS_PLAN.md`
 - Auditoria de seguridad: `docs/SECURITY_AUDIT.md`
 - Runbooks operativos: `docs/RUNBOOKS.md`
-- Frontera de markdowns en raiz: `docs/ROOT_SURFACES.md`
+- Frontera de superficies permitidas en raiz: `docs/ROOT_SURFACES.md`
 - Gobernanza de agentes: `AGENTS.md`
 
 ## Higiene local
@@ -47,8 +48,9 @@ Comandos:
 
 Notas:
 
-- Limpia solo artefactos locales efimeros: `cookies.txt`, `.lighthouseci/`, `lhci_reports/`, `_deploy_bundle/`, `playwright-report/`, `test-results/`, `php_server.log`, `.php-cs-fixer.cache`, `.phpunit.cache/` y `coverage.xml`.
+- Limpia solo artefactos locales efimeros: `cookies.txt`, `.lighthouseci/`, `lhci_reports/`, `_deploy_bundle/`, `playwright-report/`, `test-results/`, `php_server.log`, `.php-cs-fixer.cache`, `.phpunit.cache/`, `coverage.xml`, `.tmp-calendar-write-report.json`, `.codex-public-paths.txt`, `build_analysis.txt`, `conflict_branches.txt`, `stats.html`, `styles.min.css`, `styles.optimized.css`, `styles-critical.min.css` y `styles-deferred.min.css`.
 - No toca `verification/agent-runs/` ni otros artefactos canonicos de evidencia.
+- Los snapshots historicos equivalentes viven bajo `docs/archive/root-history/**`.
 
 ## Que quieres hacer
 
@@ -64,6 +66,7 @@ Comandos:
 
 - `npm run build:public:v6`
 - `npm run check:public:v6:artifacts`
+- `npm run check:public:runtime:artifacts`
 - `npm run chunks:public:check`
 - `npm run chunks:public:prune`
 - `npm run benchmark:local`
@@ -79,6 +82,7 @@ Comandos:
 Notas:
 
 - Los audits y baselines V6 aceptan `TEST_BASE_URL` o `--base-url`.
+- `check:public:runtime:artifacts` valida el runtime versionado del gateway publico (`styles.css`, `styles-deferred.css`, `script.js`, `js/chunks/**`, `js/engines/**`) y escribe `verification/public-v6-canonical/runtime-artifacts-report.json`.
 - `chunks:public:prune` elimina chunks huerfanos en `js/chunks/**` que ya no son alcanzables desde `script.js`.
 - `npm run test:frontend:lighthouse:premium` usa `LIGHTHOUSE_BASE_URL` o el host local canonico; `LIGHTHOUSE_LOCAL_SERVER_PORT` manda sobre `TEST_LOCAL_SERVER_PORT` si necesitas separarlo.
 - `npm run benchmark:local` reutiliza `TEST_BASE_URL` o levanta `127.0.0.1:8011`.

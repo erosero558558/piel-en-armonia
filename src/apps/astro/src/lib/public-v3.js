@@ -209,9 +209,9 @@ function groupServicesByFamily(locale) {
 
 function serviceMediaForFamily(family) {
     if (family === 'aesthetic')
-        return '/images/optimized/service-rejuvenecimiento.webp';
-    if (family === 'children') return '/images/optimized/showcase-clinic.webp';
-    return '/images/optimized/showcase-diagnostic.webp';
+        return '/images/optimized/v6-clinic-bioestimuladores-colageno.webp';
+    if (family === 'children') return '/images/optimized/v6-clinic-clinic-environment.webp';
+    return '/images/optimized/v6-clinic-diagnostico-integral.webp';
 }
 
 function serviceMediaAltForLocale(service, locale) {

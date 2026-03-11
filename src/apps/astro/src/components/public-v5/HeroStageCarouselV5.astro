@@ -88,7 +88,7 @@ const fallbackSlides = [
                 ? ['Clinical route', 'Medical priority', 'Continuity']
                 : ['Ruta clinica', 'Prioridad medica', 'Continuidad'],
         mediaMeta: null,
-        media: '/images/optimized/showcase-diagnostic.webp',
+        media: '/images/optimized/v6-clinic-diagnostico-integral.webp',
         primary: {
             href: bookingHref,
             label: locale === 'en' ? 'Book assessment' : 'Reservar valoracion',
@@ -136,7 +136,7 @@ const playLabel = locale === 'en' ? 'Resume autoplay' : 'Reanudar reproduccion';
                 >
                     <ResponsiveMediaImageV5
                         media={slide.mediaMeta || slide.media}
-                        fallbackSrc={slide.media || '/images/optimized/showcase-diagnostic.webp'}
+                        fallbackSrc={slide.media || '/images/optimized/v6-clinic-diagnostico-integral.webp'}
                         fallbackAlt={slide.title}
                         loading={index === 0 ? 'eager' : 'lazy'}
                         fetchpriority={index === 0 ? 'high' : 'low'}

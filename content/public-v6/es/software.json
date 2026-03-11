@@ -162,8 +162,8 @@
             "heading": "Turnero para clinicas con kiosco, TV, recepcion y agenda web",
             "hero": {
                 "eyebrow": "Software para clinicas",
-                "title": "Ordena la sala, libera recepcion y haga visible el flujo completo.",
-                "deck": "La suite une kiosco, pantalla de llamados, panel de recepcion y agenda web bajo una misma lectura operativa. El paciente entiende por donde entrar, el equipo sabe que hacer y gerencia por fin puede medir.",
+                "title": "Recepcion ordenada hoy, paciente orientado y gerencia con numeros para decidir.",
+                "deck": "La suite conecta kiosco, pantalla de llamados, panel operativo y agenda web bajo un mismo estado. Se implementa rapido, baja preguntas repetidas y convierte la operacion diaria en una lectura clara para quien compra.",
                 "pills": [
                     "1 a 5 sedes",
                     "QR + WhatsApp + SMS",
@@ -177,8 +177,8 @@
                         "variant": "primary"
                     },
                     {
-                        "label": "Ver precios",
-                        "href": "#v6-suite-pricing",
+                        "label": "Ver operacion de recepcion",
+                        "href": "#v6-suite-modules",
                         "variant": "secondary"
                     },
                     {
@@ -187,60 +187,115 @@
                         "variant": "ghost"
                     },
                     {
-                        "label": "Ver operacion recepcion",
-                        "href": "#v6-suite-modules",
+                        "label": "Ver dashboard de sede",
+                        "href": "/es/software/turnero-clinicas/dashboard/",
                         "variant": "ghost"
                     }
                 ],
                 "metrics": [
                     {
-                        "value": "4",
-                        "label": "modulos conectados",
-                        "detail": "Kiosco, TV sala, recepcion y agenda web sobre el mismo estado."
+                        "value": "Recepcion",
+                        "label": "opera desde un solo panel",
+                        "detail": "Llama, reimprime, cierra y ve el estado sin saltar entre herramientas."
                     },
                     {
-                        "value": "90 min",
-                        "label": "arranque inicial",
-                        "detail": "Provisionamiento ligero para una sede piloto sin hardware especial."
+                        "value": "Paciente",
+                        "label": "entiende llegada y espera",
+                        "detail": "QR, kiosco y estado del turno cuentan la misma historia."
                     },
                     {
-                        "value": "1-5",
-                        "label": "sedes ideales",
-                        "detail": "Pensado para clinicas con operacion mediana, no para hospital enterprise."
+                        "value": "Gerencia",
+                        "label": "mide sin pedir otro reporte",
+                        "detail": "Espera, no-show y carga por consultorio en una vista clara."
                     }
                 ],
                 "panels": [
                     {
-                        "eyebrow": "Kiosco",
-                        "title": "Check-in con cita o walk-in",
-                        "copy": "Paciente elige flujo, imprime ticket o sigue desde QR."
+                        "eyebrow": "Recepcion / Admin",
+                        "title": "Llamar, reimprimir y cerrar sin perderse",
+                        "copy": "Operacion diaria pensada para consultorios reales y personal no tecnico."
                     },
                     {
-                        "eyebrow": "TV sala",
-                        "title": "Llamado con privacidad visible",
-                        "copy": "Pantalla clara con ticket, iniciales y consultorio."
+                        "eyebrow": "Paciente",
+                        "title": "Check-in y turno visibles desde QR o WhatsApp",
+                        "copy": "Llega mejor orientado y pregunta menos en mostrador."
                     },
                     {
-                        "eyebrow": "Recepcion",
-                        "title": "Llamar, reimprimir, cerrar, medir",
-                        "copy": "Operacion por estacion y atajos seguros para consultorio."
+                        "eyebrow": "Sala",
+                        "title": "Llamados claros con privacidad",
+                        "copy": "Ticket, iniciales y consultorio en una TV que la sala entiende."
                     },
                     {
-                        "eyebrow": "Agenda web",
-                        "title": "Reservas y recordatorios conectados",
-                        "copy": "Web, QR, WhatsApp y estado del turno bajo la misma cola."
+                        "eyebrow": "Gerencia",
+                        "title": "Espera, no-show y carga por consultorio",
+                        "copy": "La experiencia diaria termina en indicadores que si sirven para decidir."
+                    }
+                ]
+            },
+            "focus": {
+                "eyebrow": "Que gana cada perfil",
+                "title": "Tres lecturas del mismo producto para que la venta sea mas facil de explicar.",
+                "deck": "No hay que prometer un sistema distinto a cada persona. La misma base resuelve la operacion diaria, mejora la experiencia paciente y deja numeros claros.",
+                "cards": [
+                    {
+                        "eyebrow": "Recepcion / Admin",
+                        "title": "Opera sin cambiar de contexto",
+                        "copy": "Todo lo critico ocurre sobre el mismo estado: llegadas, llamados, reimpresion, cierres y trazabilidad.",
+                        "items": [
+                            "Menos pasos mentales en horas pico",
+                            "Atajos y control por consultorio o estacion",
+                            "Panel claro para recepcion activa"
+                        ],
+                        "href": "#v6-suite-modules",
+                        "ctaLabel": "Ver operacion",
+                        "highlight": true
+                    },
+                    {
+                        "eyebrow": "Paciente",
+                        "title": "Entiende llegada y espera",
+                        "copy": "Confirma si viene con cita, sigue su turno y sabe que hacer sin depender del mostrador.",
+                        "items": [
+                            "QR, kiosco y movil sobre la misma cola",
+                            "Menos preguntas repetidas en sala",
+                            "Mas claridad antes de entrar al consultorio"
+                        ],
+                        "href": "/es/software/turnero-clinicas/demo/",
+                        "ctaLabel": "Ver flujo paciente"
+                    },
+                    {
+                        "eyebrow": "Gerencia",
+                        "title": "Ve por que vale renovarlo",
+                        "copy": "La operacion deja huella util: espera, no-show y carga por consultorio para decidir con contexto.",
+                        "items": [
+                            "Dashboard listo para dueno o gerente",
+                            "Lectura por sede, franja y consultorio",
+                            "Argumento claro para ampliar la suite"
+                        ],
+                        "href": "/es/software/turnero-clinicas/dashboard/",
+                        "ctaLabel": "Ver dashboard"
                     }
                 ]
             },
             "modules": {
-                "eyebrow": "Modulos visibles",
-                "title": "No es un kiosco aislado: es una capa operativa ligera para toda la experiencia de sala.",
-                "deck": "Cada modulo cumple un papel claro, pero todos comparten el mismo estado para que paciente, recepcion y direccion trabajen sobre la misma verdad.",
+                "eyebrow": "Operacion diaria",
+                "title": "Empiece por el panel que mas se usa: recepcion y coordinacion de sala.",
+                "deck": "La venta se vuelve concreta cuando recepcion gana control inmediato. Kiosco, TV y agenda dejan de ser piezas sueltas y pasan a apoyar ese mismo trabajo.",
                 "cards": [
+                    {
+                        "eyebrow": "Recepcion / Admin",
+                        "title": "Operacion de cola para consultorios reales",
+                        "copy": "Llamar, reimprimir, completar, marcar no-show y mover la sala desde un panel pensado para recepcion activa.",
+                        "bullets": [
+                            "Bloqueo por consultorio o estacion",
+                            "Atajos numpad y bulk actions",
+                            "Vista clara de sincronizacion y pendientes"
+                        ],
+                        "featured": true
+                    },
                     {
                         "eyebrow": "Kiosco",
                         "title": "Check-in guiado en sala",
-                        "copy": "Para pacientes con cita y sin cita, con ayuda rapida, lectura grande y soporte de recepcion en un clic.",
+                        "copy": "Para pacientes con cita y sin cita, con ayuda rapida, lectura grande y soporte visible si recepcion debe intervenir.",
                         "bullets": [
                             "Flujo Tengo cita / No tengo cita",
                             "Modo senior-first con voz guia",
@@ -258,16 +313,6 @@
                         ]
                     },
                     {
-                        "eyebrow": "Recepcion / Admin",
-                        "title": "Operacion de cola para consultorios reales",
-                        "copy": "Llamar, reimprimir, completar, marcar no-show y controlar estaciones desde un panel pensado para recepcion activa.",
-                        "bullets": [
-                            "Bloqueo por consultorio o estacion",
-                            "Atajos numpad y bulk actions",
-                            "Trazabilidad y estado de sincronizacion"
-                        ]
-                    },
-                    {
                         "eyebrow": "Agenda web",
                         "title": "Reservas y recordatorios conectados al turnero",
                         "copy": "La web deja de ser una pagina aparte y pasa a ser la entrada digital del mismo flujo operativo.",
@@ -280,48 +325,48 @@
                 ]
             },
             "journeys": {
-                "eyebrow": "Como fluye",
-                "title": "La historia cambia segun quien entra, pero el sistema nunca se divide.",
-                "deck": "Paciente, recepcion y gerencia leen etapas distintas del mismo flujo. Esa continuidad es la que convierte una herramienta operativa en un producto serio.",
+                "eyebrow": "Tres lecturas del mismo flujo",
+                "title": "La misma operacion responde preguntas distintas segun quien esta mirando.",
+                "deck": "Eso reduce friccion comercial: recepcion entiende el uso diario, el paciente siente el orden y gerencia ve el resultado.",
                 "lanes": [
                     {
-                        "eyebrow": "Paciente con cita",
-                        "title": "Confirma por QR o movil y entra directo a la cola",
+                        "eyebrow": "Recepcion / Admin",
+                        "title": "Coordina llegadas, llamados y cierres desde el mismo estado",
                         "steps": [
-                            "Recibe recordatorio por WhatsApp o SMS.",
-                            "Abre su enlace, confirma asistencia y ve tiempo estimado.",
-                            "Si llega a sala, el kiosco reconoce el mismo flujo."
+                            "Recibe pacientes desde kiosco, agenda web o check-in movil sin rehacer el caso.",
+                            "Llama, reimprime, completa y marca no-show con trazabilidad visible.",
+                            "Deja listo el dato que despues alimenta el dashboard de sede."
                         ]
                     },
                     {
-                        "eyebrow": "Paciente sin cita",
-                        "title": "Walk-in ordenado sin llenar recepcion de preguntas repetidas",
+                        "eyebrow": "Paciente",
+                        "title": "Confirma llegada, sigue su turno y sabe a donde ir",
                         "steps": [
-                            "El kiosco genera turno rapido con iniciales y soporte visible.",
-                            "La TV informa quien esta siendo llamado sin exponer telefono ni nombre completo.",
-                            "Recepcion puede reimprimir o ajustar el ticket sin rehacer el caso."
+                            "Recibe recordatorio por WhatsApp o SMS y entra desde su enlace o QR.",
+                            "Si llega a sala, el kiosco reconoce el mismo flujo y evita repetir preguntas.",
+                            "La vista de estado del turno reduce ansiedad mientras espera."
                         ]
                     },
                     {
                         "eyebrow": "Gerencia",
-                        "title": "Lee tiempos de espera, no-show y carga por consultorio",
+                        "title": "Lee espera, no-show y carga sin pedir un reporte aparte",
                         "steps": [
-                            "Un dashboard resume tickets atendidos, SLA y no-show.",
-                            "La sede identifica horas pico y cuellos de botella.",
-                            "La operacion mejora sin perseguir un EMR enterprise."
+                            "El dashboard resume espera media, tickets atendidos y no-show.",
+                            "La sede ve cuellos de botella por horario o consultorio.",
+                            "La conversacion pasa de la intuicion a una mejora medible."
                         ]
                     }
                 ]
             },
             "surfaces": {
-                "eyebrow": "Superficies nuevas",
-                "title": "Cuatro momentos, una sola venta bien contada",
-                "deck": "La landing presenta la promesa. El check-in la vuelve tangible. El estado del turno reduce friccion. El dashboard le da duenio presupuestario.",
+                "eyebrow": "Recorrido comercial",
+                "title": "La landing vende la promesa en el orden correcto.",
+                "deck": "Primero se entiende la operacion. Luego se prueba la experiencia paciente. Al final aparece el dashboard que ayuda a cerrar presupuesto.",
                 "cards": [
                     {
                         "eyebrow": "Check-in movil",
                         "title": "Paciente confirma desde QR o enlace",
-                        "copy": "Un flujo simple para confirmar cita, elegir llegada y pasar al estado del turno sin depender del mostrador.",
+                        "copy": "Es la primera demostracion tangible de que la llegada puede ocurrir sin cargar mas a recepcion.",
                         "href": "/es/software/turnero-clinicas/demo/",
                         "ctaLabel": "Probar flujo paciente",
                         "mockup": {
@@ -356,7 +401,7 @@
                     {
                         "eyebrow": "Estado del turno",
                         "title": "El paciente sigue su avance desde el celular",
-                        "copy": "No solo mira una TV. Tambien puede abrir una vista privada con el llamado actual, siguientes tickets y tiempo estimado.",
+                        "copy": "La espera deja de sentirse ciega porque el paciente tambien entiende que esta pasando.",
                         "href": "/es/software/turnero-clinicas/estado-turno/",
                         "ctaLabel": "Ver estado del turno",
                         "mockup": {
@@ -391,7 +436,7 @@
                     {
                         "eyebrow": "Dashboard",
                         "title": "KPIs de sede para quien decide renovar",
-                        "copy": "La compra no se queda en la recepcion. Muestra a gerencia cuanto se atiende, donde se atasca la cola y cuantas citas se recuperan.",
+                        "copy": "La compra deja de quedarse en recepcion cuando gerencia puede ver espera, no-show y volumen.",
                         "href": "/es/software/turnero-clinicas/dashboard/",
                         "ctaLabel": "Ver dashboard de sede",
                         "mockup": {
@@ -560,8 +605,8 @@
                 ]
             },
             "finalCta": {
-                "title": "Recorra la suite en el orden en que se gana la venta",
-                "deck": "Primero ve la promesa completa. Luego vive el check-in. Despues entiende la espera desde el celular. Al final aparece el dashboard que justifica presupuesto y renovacion.",
+                "title": "Si recepcion lo adopta rapido, el paciente lo entiende y gerencia lo puede medir, la suite ya tiene historia de compra.",
+                "deck": "Empiece por la operacion diaria, pruebe el flujo paciente y cierre con el dashboard de sede cuando llegue la conversacion de presupuesto.",
                 "actions": [
                     {
                         "label": "Agendar demo",

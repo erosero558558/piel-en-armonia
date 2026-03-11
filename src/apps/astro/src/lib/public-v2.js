@@ -17,16 +17,16 @@ import {
 } from './content.js';
 
 const IMAGE_MAP = {
-    heroMain: '/images/optimized/showcase-hero.webp',
-    heroAlt: '/images/optimized/hero-woman.webp',
-    clinical: '/images/optimized/showcase-diagnostic.webp',
-    aesthetic: '/images/optimized/showcase-treatment.webp',
-    clinic: '/images/optimized/showcase-clinic.webp',
-    telemedicine: '/images/optimized/service-telemedicina.webp',
-    consult: '/images/optimized/service-consulta.webp',
-    rejuvenation: '/images/optimized/service-rejuvenecimiento.webp',
-    doctorRosero: '/images/optimized/team-rosero.webp',
-    doctorNarvaez: '/images/optimized/team-narvaez.webp',
+    heroMain: '/images/optimized/v6-clinic-brand-hero-wide.webp',
+    heroAlt: '/images/optimized/v6-clinic-brand-hero-wide.webp',
+    clinical: '/images/optimized/v6-clinic-diagnostico-integral.webp',
+    aesthetic: '/images/optimized/v6-clinic-peeling-quimico.webp',
+    clinic: '/images/optimized/v6-clinic-clinic-environment.webp',
+    telemedicine: '/images/optimized/v6-clinic-consent-trust.webp',
+    consult: '/images/optimized/v6-clinic-diagnostico-integral.webp',
+    rejuvenation: '/images/optimized/v6-clinic-bioestimuladores-colageno.webp',
+    doctorRosero: '/images/optimized/v6-clinic-doctor-rosero.webp',
+    doctorNarvaez: '/images/optimized/v6-clinic-doctor-narvaez.webp',
 };
 
 const FAMILY_ORDER = ['clinical', 'aesthetic', 'children'];

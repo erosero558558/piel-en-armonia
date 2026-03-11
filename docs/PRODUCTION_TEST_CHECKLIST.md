@@ -12,9 +12,14 @@ Fecha de ejecucion sugerida: completar al desplegar.
 
 - `index.php`
 - `.htaccess`
+- `styles.css`
+- `styles-deferred.css`
 - `es/`
 - `en/`
 - `_astro/`
+- `script.js`
+- `js/chunks/`
+- `js/engines/`
 - `js/public-v6-shell.js`
 - `fonts/`
 - `images/optimized/`
@@ -48,9 +53,12 @@ Fecha de ejecucion sugerida: completar al desplegar.
 
 Compatibilidad opcional:
 
-- `styles.css`, `styles-deferred.css`, `script.js` y rutas HTML legacy como
-  `telemedicina.html`, `terminos.html` o `servicios/*.html` pueden seguir
-  publicadas por compatibilidad, pero no son el set minimo V6.
+- Las rutas HTML legacy como `telemedicina.html`, `terminos.html` o
+  `servicios/*.html` pueden seguir publicadas por compatibilidad, pero no son
+  el set minimo V6.
+- `styles.css`, `styles-deferred.css`, `script.js`, `js/chunks/**` y
+  `js/engines/**` si forman parte del runtime versionado del gateway publico
+  raiz y deben existir cuando `/` depende de ese flujo.
 
 2. Verifica variables de entorno:
 

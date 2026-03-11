@@ -28,8 +28,18 @@ vendor/
 .php-cs-fixer.cache
 .phpunit.cache/
 coverage.xml
+.tmp-calendar-write-report.json
+.codex-public-paths.txt
+build_analysis.txt
+conflict_branches.txt
+stats.html
+styles.min.css
+styles.optimized.css
+styles-critical.min.css
+styles-deferred.min.css
 
 # Sistema
 .DS_Store
 Thumbs.db
 php_server.log
+%TEMP%/

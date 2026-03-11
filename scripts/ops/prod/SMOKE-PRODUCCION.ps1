@@ -145,7 +145,7 @@ $rescheduleGatewayLocalRaw = if (Test-Path 'reschedule-gateway-engine.js') { Get
 $chatEngineRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'chat-engine.js'
 $chatEngineAssetUrl = if ($chatEngineRef -ne '') {
     Get-Url -Base $base -Ref $chatEngineRef
-} elseif ((Test-Path 'chat-engine.js') -or (Test-Path 'js/engines/chat-engine.js')) {
+} elseif (Test-Path 'js/engines/chat-engine.js') {
     "$base/js/engines/chat-engine.js"
 } else {
     ''
@@ -179,7 +179,7 @@ $translationsEnAssetUrl = if ($translationsEnRef -ne '') {
 $bookingEngineRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'booking-engine.js'
 $bookingEngineAssetUrl = if ($bookingEngineRef -ne '') {
     Get-Url -Base $base -Ref $bookingEngineRef
-} elseif ((Test-Path 'booking-engine.js') -or (Test-Path 'js/engines/booking-engine.js')) {
+} elseif (Test-Path 'js/engines/booking-engine.js') {
     "$base/js/engines/booking-engine.js"
 } else {
     ''
@@ -191,7 +191,7 @@ if ($rescheduleEngineRef -eq '') {
 }
 $rescheduleEngineAssetUrl = if ($rescheduleEngineRef -ne '') {
     Get-Url -Base $base -Ref $rescheduleEngineRef
-} elseif ((Test-Path 'reschedule-engine.js') -or (Test-Path 'js/engines/reschedule-engine.js')) {
+} elseif (Test-Path 'js/engines/reschedule-engine.js') {
     "$base/js/engines/reschedule-engine.js"
 } else {
     ''
@@ -200,7 +200,7 @@ $rescheduleEngineAssetUrl = if ($rescheduleEngineRef -ne '') {
 $bookingUiRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'booking-ui.js'
 $bookingUiAssetUrl = if ($bookingUiRef -ne '') {
     Get-Url -Base $base -Ref $bookingUiRef
-} elseif ((Test-Path 'booking-ui.js') -or (Test-Path 'js/engines/booking-ui.js')) {
+} elseif (Test-Path 'js/engines/booking-ui.js') {
     "$base/js/engines/booking-ui.js"
 } else {
     ''
@@ -209,7 +209,7 @@ $bookingUiAssetUrl = if ($bookingUiRef -ne '') {
 $chatBookingEngineRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'chat-booking-engine.js'
 $chatBookingEngineAssetUrl = if ($chatBookingEngineRef -ne '') {
     Get-Url -Base $base -Ref $chatBookingEngineRef
-} elseif ((Test-Path 'chat-booking-engine.js') -or (Test-Path 'js/engines/chat-booking-engine.js')) {
+} elseif (Test-Path 'js/engines/chat-booking-engine.js') {
     "$base/js/engines/chat-booking-engine.js"
 } else {
     ''
@@ -218,7 +218,7 @@ $chatBookingEngineAssetUrl = if ($chatBookingEngineRef -ne '') {
 $successModalEngineRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'success-modal-engine.js'
 $successModalEngineAssetUrl = if ($successModalEngineRef -ne '') {
     Get-Url -Base $base -Ref $successModalEngineRef
-} elseif ((Test-Path 'success-modal-engine.js') -or (Test-Path 'js/engines/success-modal-engine.js')) {
+} elseif (Test-Path 'js/engines/success-modal-engine.js') {
     "$base/js/engines/success-modal-engine.js"
 } else {
     ''
@@ -227,7 +227,7 @@ $successModalEngineAssetUrl = if ($successModalEngineRef -ne '') {
 $engagementFormsEngineRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'engagement-forms-engine.js'
 $engagementFormsEngineAssetUrl = if ($engagementFormsEngineRef -ne '') {
     Get-Url -Base $base -Ref $engagementFormsEngineRef
-} elseif ((Test-Path 'engagement-forms-engine.js') -or (Test-Path 'js/engines/engagement-forms-engine.js')) {
+} elseif (Test-Path 'js/engines/engagement-forms-engine.js') {
     "$base/js/engines/engagement-forms-engine.js"
 } else {
     ''
@@ -236,7 +236,7 @@ $engagementFormsEngineAssetUrl = if ($engagementFormsEngineRef -ne '') {
 $modalUxEngineRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'modal-ux-engine.js'
 $modalUxEngineAssetUrl = if ($modalUxEngineRef -ne '') {
     Get-Url -Base $base -Ref $modalUxEngineRef
-} elseif ((Test-Path 'modal-ux-engine.js') -or (Test-Path 'js/engines/modal-ux-engine.js')) {
+} elseif (Test-Path 'js/engines/modal-ux-engine.js') {
     "$base/js/engines/modal-ux-engine.js"
 } else {
     ''
@@ -245,7 +245,7 @@ $modalUxEngineAssetUrl = if ($modalUxEngineRef -ne '') {
 $uiEffectsRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'ui-effects.js'
 $uiEffectsAssetUrl = if ($uiEffectsRef -ne '') {
     Get-Url -Base $base -Ref $uiEffectsRef
-} elseif ((Test-Path 'ui-effects.js') -or (Test-Path 'js/engines/ui-effects.js')) {
+} elseif (Test-Path 'js/engines/ui-effects.js') {
     "$base/js/engines/ui-effects.js"
 } else {
     ''
@@ -254,7 +254,7 @@ $uiEffectsAssetUrl = if ($uiEffectsRef -ne '') {
 $galleryInteractionsRef = Get-ScriptVersionedRef -ScriptText $scriptLocalRaw -FileName 'gallery-interactions.js'
 $galleryInteractionsAssetUrl = if ($galleryInteractionsRef -ne '') {
     Get-Url -Base $base -Ref $galleryInteractionsRef
-} elseif ((Test-Path 'gallery-interactions.js') -or (Test-Path 'js/engines/gallery-interactions.js')) {
+} elseif (Test-Path 'js/engines/gallery-interactions.js') {
     "$base/js/engines/gallery-interactions.js"
 } else {
     ''

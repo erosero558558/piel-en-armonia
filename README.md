@@ -66,7 +66,12 @@ Higiene local:
 - `npm run clean:local:artifacts`
 - Limpia `cookies.txt`, `.lighthouseci/`, `lhci_reports/`, `_deploy_bundle/`,
   `playwright-report/`, `test-results/`, `php_server.log`,
-  `.php-cs-fixer.cache`, `.phpunit.cache/` y `coverage.xml`.
+  `.php-cs-fixer.cache`, `.phpunit.cache/`, `coverage.xml`,
+  `.tmp-calendar-write-report.json`, `.codex-public-paths.txt`,
+  `build_analysis.txt` y
+  `conflict_branches.txt`, `stats.html`, `styles.min.css`,
+  `styles.optimized.css`, `styles-critical.min.css` y
+  `styles-deferred.min.css`.
 - No toca `verification/agent-runs/` ni evidencia canonica.
 
 ## Flujos rapidos
@@ -75,13 +80,16 @@ Higiene local:
 
 - `npm run build:public:v6`
 - `npm run check:public:v6:artifacts`
+- `npm run check:public:runtime:artifacts`
 - `npm run chunks:public:check`
 - `npm run chunks:public:prune`
 - `npm run benchmark:local`
 - `npm run test:frontend:performance:gate`
 - `npm run test:frontend:qa:v6`
 - `npm run gate:public:v6:canonical-publish`
+- `check:public:runtime:artifacts` valida `styles.css`, `styles-deferred.css`, `script.js`, `js/chunks/**` y `js/engines/**`, exige un solo shell activo y escribe `verification/public-v6-canonical/runtime-artifacts-report.json`.
 - `chunks:public:prune` limpia `js/chunks/*.js` que ya no cuelgan del grafo activo de `script.js`.
+- Los snapshots legacy `booking-engine.js` y `utils.js` ya no viven en raiz activa; quedaron archivados en `js/archive/root-legacy/**`.
 
 ### Admin
 
@@ -133,18 +141,23 @@ Higiene local:
 - `admin.js`: bundle admin generado
 - `controllers/**`, `lib/**`: backend y servicios
 - `scripts/ops/**`: scripts operativos canónicos
+- `js/archive/root-legacy/**`: snapshots JS legacy fuera del runtime activo
 - `verification/**`: reportes, auditorias y evidencia
 
 ## Reglas practicas
 
-- No editar a mano `es/**`, `en/**` ni `_astro/**`; son artefactos de deploy.
+- No editar a mano `es/**`, `en/**`, `_astro/**`, `styles.css`, `styles-deferred.css`, `script.js`, `js/chunks/**` ni `js/engines/**`; son artefactos versionados de deploy/runtime.
 - No reactivar `legacy` ni `sony_v2` en admin; el rollback es `revert + deploy`.
 - Si tocas orquestacion o board, sigue `AGENTS.md` y valida con `npm run agent:gate`.
 - Si dudas que comando usar, revisa `docs/OPERATIONS_INDEX.md`.
 - Si operas el piloto comercial interno, revisa `docs/LEADOPS_OPENCLAW.md`.
 - Material historico y one-offs archivados viven en `docs/archive/root-history/` y `scripts/archive/`.
 - La frontera de markdowns permitidos en raiz vive en `docs/ROOT_SURFACES.md`.
+- La misma guia fija tambien las allowlists de `.js`, `.html`, `.css`, `.php`, `.ps1`, `.json`, `.yaml`, `.yml`, `.txt`, `.toml`, dotfiles, singletones especiales y directorios permitidos en raiz.
 - Los shims markdown de raiz existen solo para compatibilidad humana; runtime y tooling deben consumir `docs/**`.
+- Los CSS minificados/optimizados legacy ya no viven en la raiz activa; quedaron en `styles/archive/public-legacy/**`.
+- `hero-woman.webp` ya no vive en la raiz activa; quedo archivado en `images/archive/root-legacy/**`.
+- `components/` y `servicios/` ya no forman parte del source raiz activo; sus residuos legacy quedaron en `src/archive/root-legacy/**` y `scripts/archive/`.
 - `SERVIDOR-LOCAL.md`, `DESPLIEGUE-PIELARMONIA.md`, `CONTRIBUTING.md`,
   `GITHUB-ACTIONS-DEPLOY.md`, `CHECKLIST-PRUEBAS-PRODUCCION.md`,
   `CALENDAR-CUTOVER.md`, `ESTADO_PRODUCTO_OPERATIVO.md`,
