@@ -2082,6 +2082,12 @@ function getOpsLogSourceLabel(source) {
     if (value === 'next_turns') {
         return 'Próximos turnos';
     }
+    if (value === 'master_sequence') {
+        return 'Ronda maestra';
+    }
+    if (value === 'blockers') {
+        return 'Bloqueos';
+    }
     return 'Manual';
 }
 
@@ -2104,6 +2110,8 @@ function filterOpsLogItems(items, filter) {
                 'dispatch',
                 'ticket_simulation',
                 'next_turns',
+                'master_sequence',
+                'blockers',
             ].includes(item.source)
         );
     }
@@ -7952,6 +7960,547 @@ function renderQueueNextTurnsPanel(manifest, detectedPlatform) {
     );
 }
 
+function getQueueMasterSequenceActionWeight(actionLabel) {
+    const value = String(actionLabel || '')
+        .trim()
+        .toLowerCase();
+    if (value.startsWith('completar')) {
+        return 0;
+    }
+    if (value.startsWith('llamar')) {
+        return 1;
+    }
+    if (value.startsWith('asignar') || value.startsWith('traer')) {
+        return 2;
+    }
+    if (value.startsWith('preparar')) {
+        return 3;
+    }
+    if (value.startsWith('abrir operador')) {
+        return 4;
+    }
+    return 5;
+}
+
+function buildQueueMasterSequencePanel(manifest, detectedPlatform) {
+    const nextTurns = buildQueueNextTurnsPanel(manifest, detectedPlatform);
+    const selectedLookup = getQueueTicketLookupTerm();
+    const laneWeight = {
+        c1: 0,
+        c2: 1,
+        general: 2,
+    };
+    const stateWeight = {
+        active: 0,
+        ready: 1,
+        suggested: 2,
+        warning: 3,
+        idle: 4,
+    };
+    const items = nextTurns.cards
+        .flatMap((card) =>
+            card.steps.map((step, index) => ({
+                id: `${card.laneKey}_${index}`,
+                laneKey: card.laneKey,
+                laneLabel: card.laneLabel,
+                cardState: card.state,
+                cardBadge: card.badge,
+                actionLabel: step.actionLabel,
+                support: step.support,
+                pivot: step.pivot,
+                selected:
+                    selectedLookup === String(step.pivot?.ticketCode || ''),
+                score:
+                    (stateWeight[step.state] ?? 5) * 100 +
+                    getQueueMasterSequenceActionWeight(step.actionLabel) * 10 +
+                    (laneWeight[card.laneKey] ?? 9) +
+                    index,
+            }))
+        )
+        .sort((left, right) => left.score - right.score)
+        .slice(0, 5);
+
+    const top = items[0] || null;
+    return {
+        title: 'Ronda maestra',
+        summary: top
+            ? `${top.actionLabel} abre la siguiente jugada con más impacto ahora. ${top.support}`
+            : 'No hay una secuencia global pendiente; la cola está bajo control inmediato.',
+        statusLabel: top
+            ? `${items.length} paso(s) priorizados`
+            : 'Sin secuencia urgente',
+        statusState: top ? top.cardState : 'idle',
+        items,
+    };
+}
+
+function copyQueueMasterSequenceReport(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Ronda maestra - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map(
+                  (item, index) =>
+                      `${index + 1}. [${item.laneLabel}] ${item.actionLabel} - ${item.support}`
+              )
+            : ['Sin pasos priorizados.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Ronda copiada', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar la ronda', 'error');
+        });
+}
+
+function renderQueueMasterSequencePanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueMasterSequence');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueMasterSequencePanel(manifest, detectedPlatform);
+    setHtml(
+        '#queueMasterSequence',
+        `
+            <section class="queue-master-sequence__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-master-sequence__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Secuencia global</p>
+                        <h5 id="queueMasterSequenceTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueMasterSequenceSummary" class="queue-master-sequence__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-master-sequence__meta">
+                        <span
+                            id="queueMasterSequenceStatus"
+                            class="queue-master-sequence__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueMasterSequenceCopyBtn"
+                            type="button"
+                            class="queue-master-sequence__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar ronda
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueMasterSequenceItems" class="queue-master-sequence__list" role="list" aria-label="Ronda maestra del turno">
+                                ${panel.items
+                                    .map(
+                                        (item, index) => `
+                                            <article
+                                                id="queueMasterSequenceItem_${index}"
+                                                class="queue-master-sequence__item"
+                                                data-state="${escapeHtml(item.cardState)}"
+                                                data-selected="${item.selected ? 'true' : 'false'}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-master-sequence__item-copy">
+                                                    <span class="queue-master-sequence__item-index">${index + 1}</span>
+                                                    <div>
+                                                        <div class="queue-master-sequence__item-headline">
+                                                            <span class="queue-master-sequence__lane">${escapeHtml(
+                                                                item.laneLabel
+                                                            )}</span>
+                                                            <strong id="queueMasterSequenceAction_${index}">${escapeHtml(
+                                                                item.actionLabel
+                                                            )}</strong>
+                                                        </div>
+                                                        <p id="queueMasterSequenceSupport_${index}">${escapeHtml(
+                                                            item.support
+                                                        )}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="queue-master-sequence__item-actions">
+                                                    <span class="queue-master-sequence__badge">${escapeHtml(
+                                                        item.cardBadge
+                                                    )}</span>
+                                                    <button
+                                                        id="queueMasterSequenceLoad_${index}"
+                                                        type="button"
+                                                        class="queue-master-sequence__load"
+                                                        data-queue-master-ticket="${escapeHtml(
+                                                            item.pivot
+                                                                ?.ticketCode ||
+                                                                ''
+                                                        )}"
+                                                        data-queue-master-action="${escapeHtml(
+                                                            item.actionLabel
+                                                        )}"
+                                                        ${item.pivot ? '' : 'disabled'}
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.pivot?.label ||
+                                                                'Sin ticket'
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueMasterSequenceEmpty" class="queue-master-sequence__empty">
+                                <strong>Sin ronda urgente</strong>
+                                <p>Los próximos movimientos ya están despejados y no hay una cadena crítica inmediata.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById('queueMasterSequenceCopyBtn');
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueMasterSequenceReport(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-master-ticket]').forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+        button.onclick = () => {
+            const ticketCode = String(
+                button.dataset.queueMasterTicket || ''
+            ).trim();
+            const actionLabel = String(
+                button.dataset.queueMasterAction || ''
+            ).trim();
+            if (!ticketCode) {
+                return;
+            }
+            persistQueueTicketLookupTerm(ticketCode);
+            appendOpsLogEntry({
+                source: 'master_sequence',
+                tone: 'info',
+                title: 'Ronda maestra: ticket cargado',
+                summary: `${ticketCode} quedó cargado desde la secuencia global (${actionLabel || 'sin acción visible'}).`,
+            });
+            rerenderQueueOpsHub(manifest, detectedPlatform);
+        };
+    });
+}
+
+function getQueueBlockerWeight(item) {
+    const action = String(item?.actionLabel || '')
+        .trim()
+        .toLowerCase();
+    const state = String(item?.state || '')
+        .trim()
+        .toLowerCase();
+    let weight = 90;
+    if (action.startsWith('completar')) {
+        weight = 0;
+    } else if (action.startsWith('confirmar')) {
+        weight = 1;
+    } else if (action.startsWith('abrir operador')) {
+        weight = 2;
+    } else if (action.startsWith('preparar')) {
+        weight = 3;
+    }
+    if (state === 'warning') {
+        weight += 10;
+    } else if (state === 'alert') {
+        weight -= 1;
+    } else if (state === 'active') {
+        weight -= 2;
+    }
+    return weight;
+}
+
+function buildQueueBlockersPanel(manifest, detectedPlatform) {
+    const nextTurns = buildQueueNextTurnsPanel(manifest, detectedPlatform);
+    const pendingAction = getState().queue.pendingSensitiveAction;
+    const items = [];
+
+    if (pendingAction) {
+        const pendingTicket = getQueueTicketById(
+            Number(pendingAction.ticketId || 0)
+        );
+        const pendingCopy = getQueuePendingActionCopy(
+            pendingAction,
+            pendingTicket || null
+        );
+        if (pendingTicket && pendingCopy) {
+            items.push({
+                laneLabel: 'Sensible',
+                state: 'alert',
+                badge: 'Confirma o cancela',
+                headline: `${pendingTicket.ticketCode} sostiene una confirmación pendiente`,
+                actionLabel: `Confirmar ${pendingCopy}`,
+                support:
+                    'Mientras esta confirmación siga viva, el flujo rápido del hub y el numpad quedan condicionados por esta acción.',
+                pivot: buildQueueTicketRoutePivot(
+                    pendingTicket,
+                    `Cargar ${pendingTicket.ticketCode}`,
+                    'Es el ticket que hoy retiene una acción sensible pendiente.'
+                ),
+            });
+        }
+    }
+
+    nextTurns.cards.forEach((card) => {
+        const firstStep = card.steps[0] || null;
+        if (!firstStep) {
+            return;
+        }
+        const action = String(firstStep.actionLabel || '')
+            .trim()
+            .toLowerCase();
+        let headline = '';
+        let badge = '';
+        let include = false;
+
+        if (action.startsWith('completar')) {
+            include = true;
+            badge = 'Consulta bloquea siguiente paso';
+            headline = `${card.laneLabel} no avanza hasta cerrar el ticket actual`;
+        } else if (action.startsWith('abrir operador')) {
+            include = true;
+            badge = 'Falta operador';
+            headline = `${card.laneLabel} tiene ticket, pero sin operador listo`;
+        } else if (action.startsWith('preparar')) {
+            include = true;
+            badge = 'Preparación pendiente';
+            headline = `${card.laneLabel} necesita preparar el siguiente movimiento`;
+        }
+
+        if (!include) {
+            return;
+        }
+
+        items.push({
+            laneLabel: card.laneLabel,
+            state: firstStep.state,
+            badge,
+            headline,
+            actionLabel: firstStep.actionLabel,
+            support: firstStep.support,
+            pivot: firstStep.pivot,
+        });
+    });
+
+    const sortedItems = items
+        .sort((left, right) => {
+            const weightDelta =
+                getQueueBlockerWeight(left) - getQueueBlockerWeight(right);
+            if (weightDelta !== 0) {
+                return weightDelta;
+            }
+            return String(left.laneLabel).localeCompare(
+                String(right.laneLabel)
+            );
+        })
+        .slice(0, 4);
+
+    const top = sortedItems[0] || null;
+    return {
+        title: 'Bloqueos vivos',
+        summary: top
+            ? `${top.headline}. ${top.support}`
+            : 'No hay bloqueos críticos ahora mismo; la siguiente ronda puede ejecutarse sin cuellos inmediatos.',
+        statusLabel: top
+            ? `${sortedItems.length} bloqueo(s) visibles`
+            : 'Sin bloqueos críticos',
+        statusState: top ? top.state : 'idle',
+        items: sortedItems,
+    };
+}
+
+function copyQueueBlockersReport(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Bloqueos vivos - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map(
+                  (item, index) =>
+                      `${index + 1}. [${item.laneLabel}] ${item.actionLabel} - ${item.support}`
+              )
+            : ['Sin bloqueos críticos visibles.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Bloqueos copiados', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar el reporte de bloqueos', 'error');
+        });
+}
+
+function renderQueueBlockersPanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueBlockers');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueBlockersPanel(manifest, detectedPlatform);
+    setHtml(
+        '#queueBlockers',
+        `
+            <section class="queue-blockers__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-blockers__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Cadena de desbloqueo</p>
+                        <h5 id="queueBlockersTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueBlockersSummary" class="queue-blockers__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-blockers__meta">
+                        <span
+                            id="queueBlockersStatus"
+                            class="queue-blockers__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueBlockersCopyBtn"
+                            type="button"
+                            class="queue-blockers__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar bloqueos
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueBlockersItems" class="queue-blockers__list" role="list" aria-label="Bloqueos vivos del turno">
+                                ${panel.items
+                                    .map(
+                                        (item, index) => `
+                                            <article
+                                                id="queueBlockersItem_${index}"
+                                                class="queue-blockers__item"
+                                                data-state="${escapeHtml(item.state)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-blockers__copy">
+                                                    <div class="queue-blockers__headline">
+                                                        <span class="queue-blockers__lane">${escapeHtml(
+                                                            item.laneLabel
+                                                        )}</span>
+                                                        <strong id="queueBlockersHeadline_${index}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                    <p id="queueBlockersAction_${index}" class="queue-blockers__action-copy">${escapeHtml(
+                                                        item.actionLabel
+                                                    )}</p>
+                                                    <p id="queueBlockersSupport_${index}" class="queue-blockers__support">${escapeHtml(
+                                                        item.support
+                                                    )}</p>
+                                                </div>
+                                                <div class="queue-blockers__actions">
+                                                    <span class="queue-blockers__badge">${escapeHtml(
+                                                        item.badge
+                                                    )}</span>
+                                                    <button
+                                                        id="queueBlockersLoad_${index}"
+                                                        type="button"
+                                                        class="queue-blockers__load"
+                                                        data-queue-blocker-ticket="${escapeHtml(
+                                                            item.pivot
+                                                                ?.ticketCode ||
+                                                                ''
+                                                        )}"
+                                                        data-queue-blocker-action="${escapeHtml(
+                                                            item.actionLabel
+                                                        )}"
+                                                        ${item.pivot ? '' : 'disabled'}
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.pivot?.label ||
+                                                                'Sin ticket'
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueBlockersEmpty" class="queue-blockers__empty">
+                                <strong>Sin bloqueos críticos</strong>
+                                <p>La siguiente ronda no tiene cuellos urgentes; puedes seguir con la secuencia priorizada.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById('queueBlockersCopyBtn');
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueBlockersReport(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-blocker-ticket]').forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+        button.onclick = () => {
+            const ticketCode = String(
+                button.dataset.queueBlockerTicket || ''
+            ).trim();
+            const actionLabel = String(
+                button.dataset.queueBlockerAction || ''
+            ).trim();
+            if (!ticketCode) {
+                return;
+            }
+            persistQueueTicketLookupTerm(ticketCode);
+            appendOpsLogEntry({
+                source: 'blockers',
+                tone: 'warning',
+                title: 'Bloqueos vivos: ticket cargado',
+                summary: `${ticketCode} quedó cargado desde la cadena de desbloqueo (${actionLabel || 'sin acción visible'}).`,
+            });
+            rerenderQueueOpsHub(manifest, detectedPlatform);
+        };
+    });
+}
+
 function buildQueueWaitRadarSeverity({ ageSec, backlog, operatorReady }) {
     const safeBacklog = Math.max(0, Number(backlog || 0));
     const safeAgeSec = Number.isFinite(Number(ageSec)) ? Number(ageSec) : null;
@@ -12361,6 +12910,8 @@ function rerenderQueueOpsHub(manifest, detectedPlatform) {
     renderQueueTicketRoute(manifest, detectedPlatform);
     renderQueueTicketSimulation(manifest, detectedPlatform);
     renderQueueNextTurnsPanel(manifest, detectedPlatform);
+    renderQueueMasterSequencePanel(manifest, detectedPlatform);
+    renderQueueBlockersPanel(manifest, detectedPlatform);
     renderQueueWaitRadar(manifest, detectedPlatform);
     renderQueueLoadBalance(manifest, detectedPlatform);
     renderQueuePriorityLane(manifest, detectedPlatform);
@@ -12779,6 +13330,8 @@ export function renderQueueInstallHub(options = {}) {
     renderQueueTicketRoute(manifest, platform);
     renderQueueTicketSimulation(manifest, platform);
     renderQueueNextTurnsPanel(manifest, platform);
+    renderQueueMasterSequencePanel(manifest, platform);
+    renderQueueBlockersPanel(manifest, platform);
     renderQueueWaitRadar(manifest, platform);
     renderQueueLoadBalance(manifest, platform);
     renderQueuePriorityLane(manifest, platform);

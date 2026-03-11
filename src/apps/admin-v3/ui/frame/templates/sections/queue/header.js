@@ -46,6 +46,8 @@ export function renderQueueAppsHub() {
             <div id="queueTicketRoute" class="queue-ticket-route" data-focus-match="operations incidents closing"></div>
             <div id="queueTicketSimulation" class="queue-ticket-simulation" data-focus-match="operations incidents closing"></div>
             <div id="queueNextTurns" class="queue-next-turns" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueMasterSequence" class="queue-master-sequence" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueBlockers" class="queue-blockers" data-focus-match="opening operations incidents closing"></div>
             <div id="queueWaitRadar" class="queue-wait-radar" data-focus-match="opening operations incidents closing"></div>
             <div id="queueLoadBalance" class="queue-load-balance" data-focus-match="opening operations incidents closing"></div>
             <div id="queuePriorityLane" class="queue-priority-lane" data-focus-match="opening operations incidents closing"></div>
