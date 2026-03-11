@@ -149,8 +149,9 @@ if ($IncludeTooling) {
         'BENCH-API-PRODUCCION.ps1',
         'GATE-POSTDEPLOY.ps1',
         'CONFIGURAR-TELEGRAM-WEBHOOK.ps1',
-        'DESPLIEGUE-PIELARMONIA.md',
-        'CHECKLIST-PRUEBAS-PRODUCCION.md'
+        'docs/DEPLOYMENT.md',
+        'docs/DEPLOY_HOSTING_PLAYBOOK.md',
+        'docs/PRODUCTION_TEST_CHECKLIST.md'
     )
     $directories += @(
         'bin/powershell',

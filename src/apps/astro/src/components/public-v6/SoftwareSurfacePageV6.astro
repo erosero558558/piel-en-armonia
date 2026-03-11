@@ -89,26 +89,6 @@ const normalizePath = (value) => {
     if (!raw) return '';
     return raw.endsWith('/') ? raw : `${raw}/`;
 };
-const normalizedMockupRows = Array.isArray(mockup?.rows)
-    ? mockup.rows
-          .map((row) => {
-              const label = normalizeText(row?.label);
-              const value = normalizeText(row?.value);
-              if (!label || !value) {
-                  return null;
-              }
-              return {
-                  label,
-                  value,
-                  meta: normalizeText(row?.meta),
-              };
-          })
-          .filter(Boolean)
-    : [];
-const normalizedMockupChips = Array.isArray(mockup?.chips)
-    ? mockup.chips.map(normalizeText).filter(Boolean)
-    : [];
-const normalizedStepItems = stepItems.map(normalizeText).filter(Boolean);
 const suiteMapItems = Array.isArray(page?.suiteMap)
     ? page.suiteMap
           .map((item) => {
@@ -133,27 +113,13 @@ const showcaseKind =
     ['phone', 'status', 'dashboard'].includes(normalizeText(mockup?.kind))
         ? normalizeText(mockup?.kind)
         : 'status';
-const surfacePageKeyRaw = normalizeText(page?.pageKey);
-const surfacePageKey =
-    ['demo', 'status', 'dashboard'].includes(surfacePageKeyRaw)
-        ? surfacePageKeyRaw
-        : showcaseKind === 'phone'
-            ? 'demo'
-            : showcaseKind === 'dashboard'
-                ? 'dashboard'
-                : 'status';
-const surfaceSupportLabel =
-    surfacePageKey === 'dashboard'
-        ? normalizeText(advantages?.eyebrow) || normalizeText(hero?.eyebrow) || normalizeText(mockup?.eyebrow)
-        : surfacePageKey === 'status'
-            ? normalizeText(connections?.eyebrow) || normalizeText(hero?.eyebrow) || normalizeText(mockup?.eyebrow)
-            : normalizeText(hero?.eyebrow) || normalizeText(mockup?.eyebrow) || normalizeText(steps?.eyebrow);
-const copyClusterItems =
-    surfacePageKey === 'demo'
-        ? normalizedStepItems.slice(0, 3)
-        : surfacePageKey === 'status'
-            ? heroMetrics.slice(0, 3)
-            : normalizedMockupRows.slice(0, 3);
+const surfacePageKey = ['demo', 'status', 'dashboard'].includes(
+    normalizeText(page?.pageKey)
+)
+    ? normalizeText(page.pageKey)
+    : showcaseKind;
+const stageIndex = String(suiteStory.currentIndex || 1).padStart(2, '0');
+const stageTotal = String(suiteStory.total || 0).padStart(2, '0');
 
 const actionClass = (variant = 'secondary') => [
     'v6-suite-action',
@@ -176,42 +142,118 @@ const actionClass = (variant = 'secondary') => [
     copy={pageHeadUi}
 />
 
-<section class="v6-suite-surface-hero">
-    <div class="v6-suite-shell v6-suite-surface-hero__shell">
-        <div class="v6-suite-surface-hero__copy">
-            {hero.eyebrow ? <p class="v6-suite-eyebrow">{hero.eyebrow}</p> : null}
-            {hero.title ? <h2>{hero.title}</h2> : null}
-            {hero.deck ? <p class="v6-suite-lead">{hero.deck}</p> : null}
+<div
+    class:list={['v6-suite-surface-page', `is-${surfacePageKey}`, `kind-${showcaseKind}`]}
+    data-v6-suite-surface-page={surfacePageKey}
+    data-v6-suite-surface-kind={showcaseKind}
+>
+    <section class="v6-suite-surface-hero">
+        <div class="v6-suite-shell v6-suite-surface-hero__shell">
+            <div class="v6-suite-surface-hero__copy">
+                {hero.eyebrow ? <p class="v6-suite-eyebrow">{hero.eyebrow}</p> : null}
+                {hero.title ? <h2>{hero.title}</h2> : null}
+                {hero.deck ? <p class="v6-suite-lead">{hero.deck}</p> : null}
+                {
+                    heroActions.length ? (
+                        <div class="v6-suite-actions">
+                            {heroActions.map((action) => (
+                                <a class:list={actionClass(action.variant)} href={action.href}>
+                                    {action.label}
+                                </a>
+                            ))}
+                        </div>
+                    ) : null
+                }
+            </div>
+
             {
-                heroActions.length ? (
-                    <div class="v6-suite-actions">
-                        {heroActions.map((action) => (
-                            <a class:list={actionClass(action.variant)} href={action.href}>
-                                {action.label}
-                            </a>
-                        ))}
-                    </div>
+                heroMetrics.length || hasSuiteStory ? (
+                    <aside
+                        class="v6-suite-hero__board v6-suite-hero__board--surface v6-suite-surface-scene"
+                        data-v6-suite-surface-scene
+                    >
+                        <article class="v6-suite-surface-scene__headline">
+                            <p>{suiteStoryLabels.progress || hero.eyebrow || page.heading}</p>
+                            <div class="v6-suite-surface-scene__counter">
+                                <strong>{stageIndex}</strong>
+                                <span>/ {stageTotal}</span>
+                            </div>
+                            <h3>{suiteStoryCurrent?.label || page.heading}</h3>
+                            {mockup.footer || suiteStoryCurrent?.deck ? (
+                                <span>{mockup.footer || suiteStoryCurrent?.deck}</span>
+                            ) : null}
+                        </article>
+
+                        {
+                            hasSuiteStory ? (
+                                <div class="v6-suite-surface-flow" data-v6-suite-surface-flow>
+                                    {
+                                        suiteStoryPrevious ? (
+                                            <a
+                                                class="v6-suite-surface-flow__node is-previous"
+                                                href={suiteStoryPrevious.href}
+                                                data-v6-suite-surface-flow-node="previous"
+                                            >
+                                                {suiteStoryLabels.previous ? (
+                                                    <p>{suiteStoryLabels.previous}</p>
+                                                ) : null}
+                                                <strong>{suiteStoryPrevious.label}</strong>
+                                                {suiteStoryPrevious.deck ? (
+                                                    <span>{suiteStoryPrevious.deck}</span>
+                                                ) : null}
+                                            </a>
+                                        ) : null
+                                    }
+
+                                    <article
+                                        class="v6-suite-surface-flow__node is-current"
+                                        data-v6-suite-surface-flow-current
+                                        data-v6-suite-surface-flow-node="current"
+                                    >
+                                        <p>{suiteStoryCurrent?.pageKey || surfacePageKey}</p>
+                                        <strong>{mockup.title || suiteStoryCurrent?.label || page.heading}</strong>
+                                        {suiteStoryCurrent?.deck || hero.deck ? (
+                                            <span>{suiteStoryCurrent?.deck || hero.deck}</span>
+                                        ) : null}
+                                    </article>
+
+                                    {
+                                        suiteStoryNext ? (
+                                            <a
+                                                class="v6-suite-surface-flow__node is-next"
+                                                href={suiteStoryNext.href}
+                                                data-v6-suite-surface-flow-node="next"
+                                            >
+                                                {suiteStoryLabels.next ? (
+                                                    <p>{suiteStoryLabels.next}</p>
+                                                ) : null}
+                                                <strong>{suiteStoryNext.label}</strong>
+                                                {suiteStoryNext.deck ? <span>{suiteStoryNext.deck}</span> : null}
+                                            </a>
+                                        ) : null
+                                    }
+                                </div>
+                            ) : null
+                        }
+
+                        {
+                            heroMetrics.length ? (
+                                <div class="v6-suite-metrics v6-suite-metrics--surface">
+                                    {heroMetrics.map((metric) => (
+                                        <article class="v6-suite-metric">
+                                            <strong>{metric.value}</strong>
+                                            <h3>{metric.label}</h3>
+                                            {metric.detail ? <p>{metric.detail}</p> : null}
+                                        </article>
+                                    ))}
+                                </div>
+                            ) : null
+                        }
+                    </aside>
                 ) : null
             }
         </div>
-
-        {
-            heroMetrics.length ? (
-                <div class="v6-suite-hero__board v6-suite-hero__board--surface">
-                    <div class="v6-suite-metrics v6-suite-metrics--surface">
-                        {heroMetrics.map((metric) => (
-                            <article class="v6-suite-metric">
-                                <strong>{metric.value}</strong>
-                                <h3>{metric.label}</h3>
-                                {metric.detail ? <p>{metric.detail}</p> : null}
-                            </article>
-                        ))}
-                    </div>
-                </div>
-            ) : null
-        }
-    </div>
-</section>
+    </section>
 
 {
     suiteMapItems.length ? (
@@ -271,8 +313,8 @@ const actionClass = (variant = 'secondary') => [
                             <p class="v6-suite-progress__eyebrow">{suiteStoryLabels.progress}</p>
                         ) : null}
                         <div class="v6-suite-progress__stage">
-                            <strong>{String(suiteStory.currentIndex || 1).padStart(2, '0')}</strong>
-                            <span>/ {String(suiteStory.total || 0).padStart(2, '0')}</span>
+                            <strong>{stageIndex}</strong>
+                            <span>/ {stageTotal}</span>
                         </div>
                         <h2>{suiteStoryCurrent.label}</h2>
                         {suiteStoryCurrent.deck ? <span>{suiteStoryCurrent.deck}</span> : null}
@@ -316,134 +358,17 @@ const actionClass = (variant = 'secondary') => [
             hasShowcase ? (
                 <section
                     id="v6-suite-surface-demo"
-                    class:list={[
-                        'v6-suite-showcase',
-                        `is-${showcaseKind}`,
-                        `is-page-${surfacePageKey}`,
-                    ]}
+                    class:list={['v6-suite-showcase', `is-${showcaseKind}`]}
                     data-v6-suite-showcase
                     data-v6-suite-surface-kind={showcaseKind}
                 >
-                    <div
-                        class:list={[
-                            'v6-suite-showcase__stage',
-                            `is-page-${surfacePageKey}`,
-                        ]}
-                    >
-                        <div class="v6-suite-showcase__media">
-                            <SoftwareMockupV6 mockup={mockup} />
-                        </div>
-                        {
-                            surfacePageKey === 'demo' ? (
-                                <aside class="v6-suite-showcase__support is-demo">
-                                    {surfaceSupportLabel ? (
-                                        <p class="v6-suite-showcase__support-label">
-                                            {surfaceSupportLabel}
-                                        </p>
-                                    ) : null}
-                                    {
-                                        normalizedMockupChips.length ? (
-                                            <ul class="v6-suite-showcase__chipline">
-                                                {normalizedMockupChips.map((chip) => <li>{chip}</li>)}
-                                            </ul>
-                                        ) : null
-                                    }
-                                    <div class="v6-suite-showcase__metric-stack is-demo">
-                                        {heroMetrics.map((metric) => (
-                                            <article class="v6-suite-showcase__metric-card">
-                                                <strong>{metric.value}</strong>
-                                                <h3>{metric.label}</h3>
-                                                {metric.detail ? <span>{metric.detail}</span> : null}
-                                            </article>
-                                        ))}
-                                    </div>
-                                </aside>
-                            ) : surfacePageKey === 'status' ? (
-                                <aside class="v6-suite-showcase__support is-status">
-                                    {surfaceSupportLabel ? (
-                                        <p class="v6-suite-showcase__support-label">
-                                            {surfaceSupportLabel}
-                                        </p>
-                                    ) : null}
-                                    <div class="v6-suite-showcase__feed">
-                                        {normalizedMockupRows.map((row, index) => (
-                                            <article
-                                                class:list={[
-                                                    'v6-suite-showcase__feed-item',
-                                                    index === 0 && 'is-active',
-                                                ]}
-                                            >
-                                                <p>{row.label}</p>
-                                                <strong>{row.value}</strong>
-                                                {row.meta ? <span>{row.meta}</span> : null}
-                                            </article>
-                                        ))}
-                                    </div>
-                                </aside>
-                            ) : (
-                                <aside class="v6-suite-showcase__support is-dashboard">
-                                    {surfaceSupportLabel ? (
-                                        <p class="v6-suite-showcase__support-label">
-                                            {surfaceSupportLabel}
-                                        </p>
-                                    ) : null}
-                                    <div class="v6-suite-showcase__insight-grid">
-                                        {normalizedMockupRows.map((row) => (
-                                            <article class="v6-suite-showcase__insight">
-                                                <p>{row.label}</p>
-                                                <strong>{row.value}</strong>
-                                                {row.meta ? <span>{row.meta}</span> : null}
-                                            </article>
-                                        ))}
-                                    </div>
-                                </aside>
-                            )
-                        }
+                    <div class="v6-suite-showcase__stage">
+                        <SoftwareMockupV6 mockup={mockup} />
                     </div>
-                    <article
-                        class:list={[
-                            'v6-suite-card',
-                            'v6-suite-card--copy',
-                            `is-${showcaseKind}`,
-                            `is-page-${surfacePageKey}`,
-                        ]}
-                    >
+                    <article class:list={['v6-suite-card', 'v6-suite-card--copy', `is-${showcaseKind}`]}>
                         {mockup.eyebrow ? <p>{mockup.eyebrow}</p> : null}
                         <h3>{mockup.title || page.heading}</h3>
                         {mockup.footer ? <span>{mockup.footer}</span> : null}
-                        {
-                            copyClusterItems.length ? (
-                                surfacePageKey === 'demo' ? (
-                                    <ol class="v6-suite-copy-cluster is-demo">
-                                        {copyClusterItems.map((item, index) => (
-                                            <li class="v6-suite-copy-step">
-                                                <strong>{String(index + 1).padStart(2, '0')}</strong>
-                                                <span>{item}</span>
-                                            </li>
-                                        ))}
-                                    </ol>
-                                ) : surfacePageKey === 'status' ? (
-                                    <div class="v6-suite-copy-cluster is-status">
-                                        {copyClusterItems.map((item) => (
-                                            <article class="v6-suite-copy-stat">
-                                                <strong>{item.value}</strong>
-                                                <span>{item.label}</span>
-                                            </article>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div class="v6-suite-copy-cluster is-dashboard">
-                                        {copyClusterItems.map((item) => (
-                                            <article class="v6-suite-copy-stat is-dashboard">
-                                                <p>{item.label}</p>
-                                                <strong>{item.value}</strong>
-                                                {item.meta ? <span>{item.meta}</span> : null}
-                                            </article>
-                                        ))}
-                                    </div>
-                                )
-                            ) : null
-                        }
                     </article>
                 </section>
             ) : null
@@ -533,4 +458,5 @@ const actionClass = (variant = 'secondary') => [
             ) : null
         }
     </div>
+</div>
 </div>

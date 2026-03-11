@@ -65,6 +65,10 @@ test.describe('Public V6 software suite', () => {
 
         await expect(page.locator('[data-v6-page-head]').first()).toBeVisible();
         await expect(
+            page.locator('[data-v6-suite-surface-page="status"]').first()
+        ).toBeVisible();
+        await expect(page.locator('[data-v6-suite-surface-scene]').first()).toBeVisible();
+        await expect(
             page.locator('[data-v6-suite-map="surface"] [data-v6-suite-map-link]')
         ).toHaveCount(4);
         await expect(
@@ -82,6 +86,71 @@ test.describe('Public V6 software suite', () => {
             page,
             '.v6-suite-surface-hero, .v6-suite-surface-shell, .v6-suite-final'
         );
+    });
+
+    test('software surfaces expose distinct visual tokens by stage', async ({
+        page,
+    }) => {
+        const surfaces = [
+            {
+                pageKey: 'demo',
+                href: '/en/software/clinic-flow-suite/demo/',
+            },
+            {
+                pageKey: 'status',
+                href: '/en/software/clinic-flow-suite/queue-status/',
+            },
+            {
+                pageKey: 'dashboard',
+                href: '/en/software/clinic-flow-suite/dashboard/',
+            },
+        ];
+
+        const tokens = [];
+
+        for (const surface of surfaces) {
+            await gotoPublicRoute(page, surface.href);
+
+            await expect(
+                page.locator(
+                    `[data-v6-suite-surface-page="${surface.pageKey}"]`
+                ).first()
+            ).toBeVisible();
+            await expect(
+                page.locator('[data-v6-suite-surface-flow-current]').first()
+            ).toBeVisible();
+
+            const token = await page.evaluate(() => {
+                const surfacePage = document.querySelector(
+                    '[data-v6-suite-surface-page]'
+                );
+                if (!surfacePage) {
+                    return null;
+                }
+
+                const styles = getComputedStyle(surfacePage);
+                return {
+                    pageKey:
+                        surfacePage.getAttribute('data-v6-suite-surface-page') ||
+                        '',
+                    accent: styles.getPropertyValue('--v6-surface-accent').trim(),
+                    panelStrong: styles
+                        .getPropertyValue('--v6-surface-panel-strong')
+                        .trim(),
+                };
+            });
+
+            expect(token).not.toBeNull();
+            tokens.push(token);
+        }
+
+        expect(tokens.map((token) => token.pageKey)).toEqual([
+            'demo',
+            'status',
+            'dashboard',
+        ]);
+        expect(new Set(tokens.map((token) => token.accent)).size).toBe(3);
+        expect(new Set(tokens.map((token) => token.panelStrong)).size).toBe(3);
     });
 
     test('software locale switch preserves the active surface', async ({ page }) => {

@@ -556,6 +556,114 @@ test('scripts activos de prod delegan a implementaciones canonicas fuera de la r
     );
 });
 
+test('runtime publico y bundle de deploy consumen docs canonicos, no shims markdown de raiz', () => {
+    const chatEngine = readRepoFile('src/apps/chat/engine.js');
+    const chatShell = readRepoFile('src/apps/chat/shell.js');
+    const scriptBundle = readRepoFile('script.js');
+    const deployBundle = readRepoFile(
+        'scripts/ops/deploy/PREPARAR-PAQUETE-DESPLIEGUE.ps1'
+    );
+    const deployReadme = readRepoFile('scripts/ops/deploy/README.md');
+    const rootSurfaces = readRepoFile('docs/ROOT_SURFACES.md');
+    const shellChunks = Array.from(
+        new Set(
+            Array.from(
+                scriptBundle.matchAll(/\.\/js\/chunks\/(shell-[^"']+\.js)/g),
+                ([, chunk]) => chunk
+            )
+        )
+    );
+
+    assert.equal(
+        chatEngine.includes('docs/LOCAL_SERVER.md'),
+        true,
+        'src/apps/chat/engine.js debe apuntar a docs/LOCAL_SERVER.md'
+    );
+    assert.equal(
+        chatEngine.includes('SERVIDOR-LOCAL.md'),
+        false,
+        'src/apps/chat/engine.js no debe depender del shim SERVIDOR-LOCAL.md'
+    );
+    assert.equal(
+        chatShell.includes('docs/LOCAL_SERVER.md'),
+        true,
+        'src/apps/chat/shell.js debe apuntar a docs/LOCAL_SERVER.md'
+    );
+    assert.equal(
+        chatShell.includes('SERVIDOR-LOCAL.md'),
+        false,
+        'src/apps/chat/shell.js no debe depender del shim SERVIDOR-LOCAL.md'
+    );
+
+    assert.equal(
+        shellChunks.length > 0,
+        true,
+        'script.js debe seguir referenciando al menos un shell chunk activo'
+    );
+
+    for (const chunk of shellChunks) {
+        const raw = readRepoFile(`js/chunks/${chunk}`);
+        assert.equal(
+            raw.includes('docs/LOCAL_SERVER.md'),
+            true,
+            `${chunk} debe apuntar a docs/LOCAL_SERVER.md`
+        );
+        assert.equal(
+            raw.includes('SERVIDOR-LOCAL.md'),
+            false,
+            `${chunk} no debe depender del shim SERVIDOR-LOCAL.md`
+        );
+    }
+
+    const requiredDeployDocs = [
+        "'docs/DEPLOYMENT.md'",
+        "'docs/DEPLOY_HOSTING_PLAYBOOK.md'",
+        "'docs/PRODUCTION_TEST_CHECKLIST.md'",
+    ];
+    for (const entry of requiredDeployDocs) {
+        assert.equal(
+            deployBundle.includes(entry),
+            true,
+            `bundle de deploy debe incluir ${entry}`
+        );
+    }
+
+    const forbiddenRootShims = [
+        "'DESPLIEGUE-PIELARMONIA.md'",
+        "'CHECKLIST-PRUEBAS-PRODUCCION.md'",
+    ];
+    for (const entry of forbiddenRootShims) {
+        assert.equal(
+            deployBundle.includes(entry),
+            false,
+            `bundle de deploy no debe depender del shim ${entry}`
+        );
+    }
+
+    assert.equal(
+        deployReadme.includes('docs/DEPLOYMENT.md'),
+        true,
+        'scripts/ops/deploy/README.md debe documentar docs/DEPLOYMENT.md'
+    );
+    assert.equal(
+        deployReadme.includes('docs/DEPLOY_HOSTING_PLAYBOOK.md'),
+        true,
+        'scripts/ops/deploy/README.md debe documentar docs/DEPLOY_HOSTING_PLAYBOOK.md'
+    );
+    assert.equal(
+        deployReadme.includes('docs/PRODUCTION_TEST_CHECKLIST.md'),
+        true,
+        'scripts/ops/deploy/README.md debe documentar docs/PRODUCTION_TEST_CHECKLIST.md'
+    );
+    assert.equal(
+        rootSurfaces.includes(
+            'Los shims de raiz existen solo para compatibilidad humana; runtime, tooling'
+        ),
+        true,
+        'docs/ROOT_SURFACES.md debe fijar que runtime y tooling no dependan de shims de raiz'
+    );
+});
+
 test('gate postdeploy canonico invoca siblings de prod sin reentrar por wrappers root', () => {
     const raw = readRepoFile('scripts/ops/prod/GATE-POSTDEPLOY.ps1');
     const requiredEntries = [

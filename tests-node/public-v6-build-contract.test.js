@@ -9,6 +9,81 @@ function read(relativePath) {
     return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
+function parseModuleSpecifiers(source) {
+    const specifiers = [];
+    const patterns = [
+        /\bimport\s*\(\s*(['"`])([^'"`]+)\1\s*\)/g,
+        /\bfrom\s*(['"`])([^'"`]+)\1/g,
+        /\bimport\s*(['"`])([^'"`]+)\1/g,
+    ];
+
+    for (const pattern of patterns) {
+        let match = pattern.exec(source);
+        while (match) {
+            const value = String(match[2] || '').trim();
+            if (value) {
+                specifiers.push(value);
+            }
+            match = pattern.exec(source);
+        }
+    }
+
+    return specifiers;
+}
+
+function toChunkFilename(specifier) {
+    const cleanValue = String(specifier || '')
+        .split('?')[0]
+        .split('#')[0];
+    if (!cleanValue) return '';
+
+    if (cleanValue.includes('js/chunks/')) {
+        return cleanValue.slice(cleanValue.lastIndexOf('/') + 1);
+    }
+
+    if (cleanValue.startsWith('./') && !cleanValue.slice(2).includes('/')) {
+        return cleanValue.slice(2);
+    }
+
+    return '';
+}
+
+function collectReachablePublicChunks() {
+    const entryPath = path.join(repoRoot, 'script.js');
+    const chunksDir = path.join(repoRoot, 'js', 'chunks');
+    const reachable = new Set();
+    const pendingFiles = [entryPath];
+    const visited = new Set();
+
+    while (pendingFiles.length > 0) {
+        const current = pendingFiles.shift();
+        if (!current || visited.has(current) || !fs.existsSync(current)) {
+            continue;
+        }
+
+        visited.add(current);
+
+        const source = fs.readFileSync(current, 'utf8');
+        const specifiers = parseModuleSpecifiers(source);
+
+        for (const specifier of specifiers) {
+            const chunkFilename = toChunkFilename(specifier);
+            if (!chunkFilename || !chunkFilename.endsWith('.js')) {
+                continue;
+            }
+
+            reachable.add(chunkFilename);
+
+            const nextChunkPath = path.join(chunksDir, chunkFilename);
+            if (fs.existsSync(nextChunkPath) && !visited.has(nextChunkPath)) {
+                pendingFiles.push(nextChunkPath);
+            }
+        }
+    }
+
+    return reachable;
+}
+
 test('build:public:v6 uses the dedicated Node runner instead of shell chaining', () => {
     const packageJson = JSON.parse(read('package.json'));
     const buildScript = String(packageJson.scripts['build:public:v6'] || '');
@@ -22,6 +97,37 @@ test('build:public:v6 uses the dedicated Node runner instead of shell chaining',
         buildScript,
         /&&/u,
         'build:public:v6 must not rely on shell chaining'
+    );
+});
+
+test('canonical build wires public chunk pruning after rollup', () => {
+    const packageJson = JSON.parse(read('package.json'));
+    const buildScript = String(packageJson.scripts.build || '');
+
+    assert.equal(
+        packageJson.scripts['chunks:public:check'],
+        'node bin/clean-public-chunks.js --dry-run --strict',
+        'package.json debe exponer chunks:public:check'
+    );
+    assert.equal(
+        packageJson.scripts['chunks:public:prune'],
+        'node bin/clean-public-chunks.js',
+        'package.json debe exponer chunks:public:prune'
+    );
+    assert.match(
+        buildScript,
+        /rollup -c/u,
+        'build debe seguir compilando los bundles publicos con rollup'
+    );
+    assert.match(
+        buildScript,
+        /npm run chunks:public:prune/u,
+        'build debe podar chunks publicos huerfanos despues de rollup'
+    );
+    assert.match(
+        buildScript,
+        /npm run chunks:admin:prune/u,
+        'build debe seguir podando chunks admin huerfanos'
     );
 });
 
@@ -53,6 +159,26 @@ test('build-public-v6 runner preserves canonical sequence and report output', ()
         runner,
         /--skip-build/u,
         'runner must call artifact drift check without rebuilding twice'
+    );
+});
+
+test('astro sync recreates canonical targets before copying dist contents', () => {
+    const syncScript = read(path.join('src', 'apps', 'astro', 'scripts', 'sync-dist.mjs'));
+
+    assert.match(
+        syncScript,
+        /ensureEmptyDirectory/u,
+        'sync-dist must normalize target directories explicitly before copying'
+    );
+    assert.match(
+        syncScript,
+        /fs\.mkdirSync\(targetDir, \{ recursive: true \}\)/u,
+        'sync-dist must recreate canonical targets after cleanup'
+    );
+    assert.match(
+        syncScript,
+        /for \(const entry of fs\.readdirSync\(sourceDir\)\)/u,
+        'sync-dist must copy dist contents entry-by-entry'
     );
 });
 
@@ -121,5 +247,32 @@ test('public V6 audits reuse the canonical local helper and avoid hardcoded 8000
         baselineCapture,
         /127\.0\.0\.1:8092|php -S/u,
         'baseline capture must not keep a bespoke fixed-port PHP server'
+    );
+});
+
+test('script.js deja solo chunks publicos alcanzables y un shell activo', () => {
+    const chunksDir = path.join(repoRoot, 'js', 'chunks');
+    const allChunks = fs
+        .readdirSync(chunksDir)
+        .filter((entry) => entry.endsWith('.js'))
+        .sort();
+    const reachable = Array.from(collectReachablePublicChunks()).sort();
+    const stale = allChunks.filter((entry) => !reachable.includes(entry));
+    const activeShells = reachable.filter((entry) => entry.startsWith('shell-'));
+
+    assert.deepEqual(
+        stale,
+        [],
+        `js/chunks no debe conservar chunks huerfanos: ${stale.join(', ')}`
+    );
+    assert.equal(
+        activeShells.length,
+        1,
+        'script.js debe dejar exactamente un shell chunk activo'
+    );
+    assert.match(
+        read('script.js'),
+        new RegExp(activeShells[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'),
+        'script.js debe apuntar al shell chunk activo'
     );
 });

@@ -75,10 +75,13 @@ Higiene local:
 
 - `npm run build:public:v6`
 - `npm run check:public:v6:artifacts`
+- `npm run chunks:public:check`
+- `npm run chunks:public:prune`
 - `npm run benchmark:local`
 - `npm run test:frontend:performance:gate`
 - `npm run test:frontend:qa:v6`
 - `npm run gate:public:v6:canonical-publish`
+- `chunks:public:prune` limpia `js/chunks/*.js` que ya no cuelgan del grafo activo de `script.js`.
 
 ### Admin
 
@@ -141,6 +144,7 @@ Higiene local:
 - Si operas el piloto comercial interno, revisa `docs/LEADOPS_OPENCLAW.md`.
 - Material historico y one-offs archivados viven en `docs/archive/root-history/` y `scripts/archive/`.
 - La frontera de markdowns permitidos en raiz vive en `docs/ROOT_SURFACES.md`.
+- Los shims markdown de raiz existen solo para compatibilidad humana; runtime y tooling deben consumir `docs/**`.
 - `SERVIDOR-LOCAL.md`, `DESPLIEGUE-PIELARMONIA.md`, `CONTRIBUTING.md`,
   `GITHUB-ACTIONS-DEPLOY.md`, `CHECKLIST-PRUEBAS-PRODUCCION.md`,
   `CALENDAR-CUTOVER.md`, `ESTADO_PRODUCTO_OPERATIVO.md`,

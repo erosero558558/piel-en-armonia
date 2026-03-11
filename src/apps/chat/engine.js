@@ -1124,7 +1124,7 @@ function checkServerEnvironment() {
     if (window.location.protocol === 'file:') {
         setTimeout(() => {
             showToast(
-                'Para usar funciones online, abre el sitio en un servidor local. Ver SERVIDOR-LOCAL.md',
+                'Para usar funciones online, abre el sitio en un servidor local. Ver docs/LOCAL_SERVER.md',
                 'warning',
                 'Servidor requerido'
             );

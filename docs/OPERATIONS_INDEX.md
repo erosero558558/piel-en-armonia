@@ -64,6 +64,8 @@ Comandos:
 
 - `npm run build:public:v6`
 - `npm run check:public:v6:artifacts`
+- `npm run chunks:public:check`
+- `npm run chunks:public:prune`
 - `npm run benchmark:local`
 - `npm run test:frontend:performance:gate`
 - `npm run test:frontend:qa:v6`
@@ -77,6 +79,7 @@ Comandos:
 Notas:
 
 - Los audits y baselines V6 aceptan `TEST_BASE_URL` o `--base-url`.
+- `chunks:public:prune` elimina chunks huerfanos en `js/chunks/**` que ya no son alcanzables desde `script.js`.
 - `npm run test:frontend:lighthouse:premium` usa `LIGHTHOUSE_BASE_URL` o el host local canonico; `LIGHTHOUSE_LOCAL_SERVER_PORT` manda sobre `TEST_LOCAL_SERVER_PORT` si necesitas separarlo.
 - `npm run benchmark:local` reutiliza `TEST_BASE_URL` o levanta `127.0.0.1:8011`.
 - `npm run test:frontend:performance:gate` usa `TEST_BASE_URL` o el host local canonico si no se pasa uno.

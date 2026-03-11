@@ -51,6 +51,8 @@ compatibles; la fuente de verdad real vive en `docs/**`:
 
 - Si aparece un markdown nuevo en la raiz, debe existir una razon explicita de
   politica, CI o compatibilidad.
+- Los shims de raiz existen solo para compatibilidad humana; runtime, tooling
+  y bundles operativos deben consumir `docs/**`.
 - Si una guia activa deja de necesitar ruta en raiz, debe converger a `docs/**`
   y la raiz debe quedar como shim temporal o vaciarse por completo.
 - El contrato que protege esta frontera vive en
