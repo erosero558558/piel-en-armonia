@@ -6,8 +6,9 @@ El material historico y los one-offs desplazados desde la raiz viven en
 `docs/archive/root-history/` y `scripts/archive/`.
 Los scripts operativos activos viven en `scripts/ops/**`; los `.ps1` de raiz
 se conservan como wrappers compatibles.
-La frontera de markdowns, runtime y archivos de control que todavia permanecen
-en raiz se documenta en `docs/ROOT_SURFACES.md`.
+La frontera de markdowns, runtime, archivos de control, dotfiles,
+singletones especiales y directorios que todavia permanecen en raiz se
+documenta en `docs/ROOT_SURFACES.md`.
 
 Host local canonico para validaciones con backend: `http://127.0.0.1:8011`.
 La shell publica vive bajo `/`, `/es/` y `/en/`; no usar `/index.html` como
@@ -47,7 +48,7 @@ Comandos:
 
 Notas:
 
-- Limpia solo artefactos locales efimeros: `cookies.txt`, `.lighthouseci/`, `lhci_reports/`, `_deploy_bundle/`, `playwright-report/`, `test-results/`, `php_server.log`, `.php-cs-fixer.cache`, `.phpunit.cache/`, `coverage.xml`, `.tmp-calendar-write-report.json`, `build_analysis.txt`, `conflict_branches.txt`, `stats.html`, `styles.min.css`, `styles.optimized.css`, `styles-critical.min.css` y `styles-deferred.min.css`.
+- Limpia solo artefactos locales efimeros: `cookies.txt`, `.lighthouseci/`, `lhci_reports/`, `_deploy_bundle/`, `playwright-report/`, `test-results/`, `php_server.log`, `.php-cs-fixer.cache`, `.phpunit.cache/`, `coverage.xml`, `.tmp-calendar-write-report.json`, `.codex-public-paths.txt`, `build_analysis.txt`, `conflict_branches.txt`, `stats.html`, `styles.min.css`, `styles.optimized.css`, `styles-critical.min.css` y `styles-deferred.min.css`.
 - No toca `verification/agent-runs/` ni otros artefactos canonicos de evidencia.
 - Los snapshots historicos equivalentes viven bajo `docs/archive/root-history/**`.
 

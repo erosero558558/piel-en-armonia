@@ -29,6 +29,7 @@ vendor/
 .phpunit.cache/
 coverage.xml
 .tmp-calendar-write-report.json
+.codex-public-paths.txt
 build_analysis.txt
 conflict_branches.txt
 stats.html
@@ -41,3 +42,4 @@ styles-deferred.min.css
 .DS_Store
 Thumbs.db
 php_server.log
+%TEMP%/

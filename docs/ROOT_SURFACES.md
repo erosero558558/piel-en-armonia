@@ -226,6 +226,55 @@ Lista aprobada actual:
 - `nginx-pielarmonia.conf`
 - `favicon.ico`
 
+## Directorios permitidos en raiz
+
+Los directorios trackeados de raiz solo pueden permanecer si son parte del
+runtime publicado, del arbol fuente activo, de la operacion/infra o del
+tooling del repo.
+
+Lista aprobada actual:
+
+- `_astro`
+- `.claude`
+- `.github`
+- `.husky`
+- `.vscode`
+- `app-downloads`
+- `bin`
+- `content`
+- `controllers`
+- `docs`
+- `en`
+- `es`
+- `fonts`
+- `grafana`
+- `images`
+- `js`
+- `k8s`
+- `lib`
+- `scripts`
+- `src`
+- `styles`
+- `templates`
+- `tests`
+- `tests-node`
+- `tools`
+- `uploads`
+- `vendor`
+- `verification`
+
+## Directorios locales o fuera del front door
+
+Estos directorios no forman parte de la superficie activa del repo y deben
+permanecer ignorados o claramente fuera del carril versionado:
+
+- `.git/`
+- `node_modules/`
+- `.phpunit.cache/`
+- `data/`
+- `test-results/`
+- `%TEMP%/`
+
 ## JS retirado o no permitido en raiz
 
 - `jules-dispatch.js` y `kimi-run.js`: tombstones ejecutables retirados; viven
@@ -246,11 +295,19 @@ Lista aprobada actual:
 - `hero-woman.webp`: asset legacy fuera del runtime V6; vive en
   `images/archive/root-legacy/**`.
 
+## Source root retirado o no permitido en raiz
+
+- `components/ComponentLoader.js`: helper legacy fuera del source activo; vive
+  en `src/archive/root-legacy/**`.
+- `servicios/generate-premium-pages.js`: generador legacy de
+  `/servicios/*.html`; vive en `scripts/archive/generate-premium-pages.js`.
+
 ## Residuos generados no permitidos en raiz
 
-- `.tmp-calendar-write-report.json`, `build_analysis.txt` y
-  `conflict_branches.txt`: reportes/snapshots generados. Si se conservan por
-  referencia historica, viven en `docs/archive/root-history/**`.
+- `.tmp-calendar-write-report.json`, `.codex-public-paths.txt`,
+  `build_analysis.txt` y `conflict_branches.txt`: reportes/snapshots
+  generados. Si se conservan por referencia historica, viven en
+  `docs/archive/root-history/**`.
 - Si reaparecen como salidas locales, deben quedar ignorados y salir con
   `npm run clean:local:artifacts`.
 
@@ -270,6 +327,8 @@ Lista aprobada actual:
   allowlists anteriores o salir del front door.
 - Los dotfiles, `.xml`, binary assets singleton y config especiales de raiz
   tambien deben caer en las allowlists anteriores o salir del front door.
+- Los directorios trackeados de raiz deben caer en la allowlist anterior; los
+  directorios locales/scratch deben quedar ignorados o fuera del carril activo.
 - Los reportes y snapshots generados no son superficies activas; no deben
   permanecer versionados en raiz.
 - Si aparece un `.js` nuevo en raiz fuera de la allowlist anterior, debe

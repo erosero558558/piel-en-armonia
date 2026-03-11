@@ -73,6 +73,17 @@ It writes:
 
 - `verification/public-v6-canonical/runtime-artifacts-report.json`
 
+## Root singleton public artifacts
+
+These root files remain versioned because hosting and SEO contracts expect
+them exactly there:
+
+- `favicon.ico`
+- `sitemap.xml`
+
+They are active public artifacts, unlike archived legacy root media such as
+`images/archive/root-legacy/hero-woman.webp`.
+
 ## Redirect-only legacy routes
 
 These legacy entrypoints remain public, but only as redirects:

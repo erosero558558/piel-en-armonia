@@ -44,8 +44,8 @@ Si el despliegue automatico falla, se puede subir manualmente.
     `.lighthouseci/`, `lhci_reports/`, `playwright-report/`,
     `test-results/`, `php_server.log`, `.php-cs-fixer.cache`,
     `.phpunit.cache/`, `coverage.xml`, `cookies.txt`,
-    `.tmp-calendar-write-report.json`, `build_analysis.txt` y
-    `conflict_branches.txt`, `stats.html`, `styles.min.css`,
+    `.tmp-calendar-write-report.json`, `.codex-public-paths.txt`,
+    `build_analysis.txt` y `conflict_branches.txt`, `stats.html`, `styles.min.css`,
     `styles.optimized.css`, `styles-critical.min.css` y
     `styles-deferred.min.css`.
 

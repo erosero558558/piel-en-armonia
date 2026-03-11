@@ -4,12 +4,38 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { existsSync, readFileSync, readdirSync } = require('fs');
+const { execFileSync } = require('child_process');
 const { resolve } = require('path');
 
 const REPO_ROOT = resolve(__dirname, '..');
 
 function readRepoFile(relativePath) {
     return readFileSync(resolve(REPO_ROOT, relativePath), 'utf8');
+}
+
+function listTrackedRepoPaths() {
+    return execFileSync('git', ['ls-files', '-z'], {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+    })
+        .split('\0')
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+        .sort();
+}
+
+function listTrackedRootFiles() {
+    return listTrackedRepoPaths().filter((entry) => !entry.includes('/')).sort();
+}
+
+function listTrackedRootDirectories() {
+    return Array.from(
+        new Set(
+            listTrackedRepoPaths()
+                .filter((entry) => entry.includes('/'))
+                .map((entry) => entry.split('/')[0])
+        )
+    ).sort();
 }
 
 test('gitignore incluye caches locales de PHP y cobertura', () => {
@@ -19,6 +45,7 @@ test('gitignore incluye caches locales de PHP y cobertura', () => {
         '.phpunit.cache/',
         'coverage.xml',
         '.tmp-calendar-write-report.json',
+        '.codex-public-paths.txt',
         'build_analysis.txt',
         'conflict_branches.txt',
         'stats.html',
@@ -461,19 +488,20 @@ test('frontera de json yaml yml txt y toml en raiz queda explicita y limitada', 
     const rootSurfaces = readRepoFile('docs/ROOT_SURFACES.md');
     const readme = readRepoFile('README.md');
     const operationsIndex = readRepoFile('docs/OPERATIONS_INDEX.md');
-    const currentRootJson = readdirSync(REPO_ROOT)
+    const trackedRootFiles = listTrackedRootFiles();
+    const currentRootJson = trackedRootFiles
         .filter((entry) => entry.endsWith('.json'))
         .sort();
-    const currentRootYaml = readdirSync(REPO_ROOT)
+    const currentRootYaml = trackedRootFiles
         .filter((entry) => entry.endsWith('.yaml'))
         .sort();
-    const currentRootYml = readdirSync(REPO_ROOT)
+    const currentRootYml = trackedRootFiles
         .filter((entry) => entry.endsWith('.yml'))
         .sort();
-    const currentRootTxt = readdirSync(REPO_ROOT)
+    const currentRootTxt = trackedRootFiles
         .filter((entry) => entry.endsWith('.txt'))
         .sort();
-    const currentRootToml = readdirSync(REPO_ROOT)
+    const currentRootToml = trackedRootFiles
         .filter((entry) => entry.endsWith('.toml'))
         .sort();
     const expectedRootJson = [
@@ -532,6 +560,7 @@ test('frontera de json yaml yml txt y toml en raiz queda explicita y limitada', 
         ...expectedRootYml,
         ...expectedRootTxt,
         'No hay `.toml` aprobados hoy en la raiz.',
+        '.codex-public-paths.txt',
     ]) {
         assert.equal(
             rootSurfaces.includes(entry),
@@ -549,6 +578,188 @@ test('frontera de json yaml yml txt y toml en raiz queda explicita y limitada', 
         operationsIndex.includes('superficies permitidas en raiz'),
         true,
         'OPERATIONS_INDEX debe tratar docs/ROOT_SURFACES.md como frontera general del front door'
+    );
+});
+
+test('frontera de dotfiles y singletones especiales en raiz queda explicita y limitada', () => {
+    const rootSurfaces = readRepoFile('docs/ROOT_SURFACES.md');
+    const readme = readRepoFile('README.md');
+    const operationsIndex = readRepoFile('docs/OPERATIONS_INDEX.md');
+    const publicCanonicalSource = readRepoFile(
+        'docs/public-v6-canonical-source.md'
+    );
+    const trackedRootFiles = listTrackedRootFiles();
+    const currentRootDotfiles = trackedRootFiles
+        .filter((entry) => entry.startsWith('.'))
+        .sort();
+    const expectedRootDotfiles = [
+        '.editorconfig',
+        '.gitattributes',
+        '.gitignore',
+        '.htaccess',
+        '.lighthouserc.json',
+        '.php-cs-fixer.dist.php',
+        '.prettierignore',
+        '.prettierrc',
+    ].sort();
+    const currentRootXml = trackedRootFiles.filter((entry) =>
+        ['phpunit.xml', 'psalm.xml', 'sitemap.xml'].includes(entry)
+    );
+    const currentRootSpecialSingletons = trackedRootFiles.filter((entry) =>
+        [
+            'Dockerfile',
+            'composer.lock',
+            'rollup.config.mjs',
+            'nginx-pielarmonia.conf',
+            'favicon.ico',
+        ].includes(entry)
+    );
+
+    assert.deepEqual(
+        currentRootDotfiles,
+        expectedRootDotfiles,
+        'la raiz debe quedar limitada a dotfiles aprobados'
+    );
+    assert.deepEqual(
+        currentRootXml.sort(),
+        ['phpunit.xml', 'psalm.xml', 'sitemap.xml'].sort(),
+        'la raiz debe quedar limitada a XML activos aprobados'
+    );
+    assert.deepEqual(
+        currentRootSpecialSingletons.sort(),
+        [
+            'Dockerfile',
+            'composer.lock',
+            'rollup.config.mjs',
+            'nginx-pielarmonia.conf',
+            'favicon.ico',
+        ].sort(),
+        'la raiz debe quedar limitada a singletones especiales aprobados'
+    );
+
+    for (const entry of [
+        ...expectedRootDotfiles,
+        'phpunit.xml',
+        'psalm.xml',
+        'sitemap.xml',
+        'Dockerfile',
+        'composer.lock',
+        'rollup.config.mjs',
+        'nginx-pielarmonia.conf',
+        'favicon.ico',
+        'images/archive/root-legacy/**',
+        'hero-woman.webp',
+    ]) {
+        assert.equal(
+            rootSurfaces.includes(entry),
+            true,
+            `docs/ROOT_SURFACES.md debe documentar ${entry}`
+        );
+    }
+
+    assert.equal(
+        readme.includes('dotfiles') && readme.includes('singletones especiales'),
+        true,
+        'README.md debe documentar que ROOT_SURFACES cubre tambien dotfiles y singletones especiales'
+    );
+    assert.equal(
+        readme.includes('images/archive/root-legacy/**'),
+        true,
+        'README.md debe documentar el archivo root-legacy de imagenes'
+    );
+    assert.equal(
+        operationsIndex.includes('dotfiles') &&
+            operationsIndex.includes('singletones especiales'),
+        true,
+        'OPERATIONS_INDEX debe tratar docs/ROOT_SURFACES.md como frontera de dotfiles y singletones'
+    );
+    assert.equal(
+        publicCanonicalSource.includes('favicon.ico'),
+        true,
+        'docs/public-v6-canonical-source.md debe documentar favicon.ico'
+    );
+    assert.equal(
+        publicCanonicalSource.includes('sitemap.xml'),
+        true,
+        'docs/public-v6-canonical-source.md debe documentar sitemap.xml'
+    );
+});
+
+test('frontera de directorios en raiz queda explicita y limitada', () => {
+    const rootSurfaces = readRepoFile('docs/ROOT_SURFACES.md');
+    const readme = readRepoFile('README.md');
+    const operationsIndex = readRepoFile('docs/OPERATIONS_INDEX.md');
+    const gitignore = readRepoFile('.gitignore');
+    const trackedRootDirectories = listTrackedRootDirectories();
+    const expectedTrackedRootDirectories = [
+        '_astro',
+        '.claude',
+        '.github',
+        '.husky',
+        '.vscode',
+        'app-downloads',
+        'bin',
+        'components',
+        'content',
+        'controllers',
+        'docs',
+        'en',
+        'es',
+        'fonts',
+        'grafana',
+        'images',
+        'js',
+        'k8s',
+        'lib',
+        'scripts',
+        'servicios',
+        'src',
+        'styles',
+        'templates',
+        'tests',
+        'tests-node',
+        'tools',
+        'uploads',
+        'vendor',
+        'verification',
+    ].sort();
+
+    assert.deepEqual(
+        trackedRootDirectories,
+        expectedTrackedRootDirectories,
+        'la raiz debe quedar limitada a directorios trackeados aprobados'
+    );
+
+    for (const entry of [
+        ...expectedTrackedRootDirectories,
+        '.git/',
+        'node_modules/',
+        '.phpunit.cache/',
+        'data/',
+        'test-results/',
+        '%TEMP%/',
+    ]) {
+        assert.equal(
+            rootSurfaces.includes(entry),
+            true,
+            `docs/ROOT_SURFACES.md debe documentar ${entry}`
+        );
+    }
+
+    assert.equal(
+        readme.includes('directorios permitidos en raiz'),
+        true,
+        'README.md debe documentar que ROOT_SURFACES cubre tambien directorios'
+    );
+    assert.equal(
+        operationsIndex.includes('directorios que todavia permanecen en raiz'),
+        true,
+        'OPERATIONS_INDEX debe tratar docs/ROOT_SURFACES.md como frontera tambien de directorios'
+    );
+    assert.equal(
+        gitignore.includes('%TEMP%/'),
+        true,
+        '.gitignore debe ignorar %TEMP%/ como scratch local'
     );
 });
 
@@ -835,6 +1046,40 @@ test('historicos de raiz y one-offs archivados salen del front door del repo', (
         scriptsIndex.includes('No forman parte del carril diario recomendado.'),
         true,
         'falta aclaracion de scripts legacy en scripts/archive/README.md'
+    );
+});
+
+test('media legacy de raiz sale del front door y queda archivada fuera del runtime activo', () => {
+    const rootSurfaces = readRepoFile('docs/ROOT_SURFACES.md');
+    const archiveReadme = readRepoFile('images/archive/root-legacy/README.md');
+
+    assert.equal(
+        existsSync(resolve(REPO_ROOT, 'hero-woman.webp')),
+        false,
+        'hero-woman.webp no debe seguir en la raiz activa'
+    );
+    assert.equal(
+        existsSync(
+            resolve(
+                REPO_ROOT,
+                'images',
+                'archive',
+                'root-legacy',
+                'hero-woman.webp'
+            )
+        ),
+        true,
+        'falta hero-woman.webp archivado'
+    );
+    assert.equal(
+        archiveReadme.includes('No son parte del gateway publico V6 ni del shell admin.'),
+        true,
+        'images/archive/root-legacy/README.md debe aclarar que el archivo es historico'
+    );
+    assert.equal(
+        rootSurfaces.includes('images/archive/root-legacy/**'),
+        true,
+        'docs/ROOT_SURFACES.md debe documentar el archivo root-legacy de imagenes'
     );
 });
 
@@ -1996,6 +2241,7 @@ test('artefactos locales efimeros salen del repo activo y tienen limpieza canoni
         '.phpunit.cache/',
         'coverage.xml',
         '.tmp-calendar-write-report.json',
+        '.codex-public-paths.txt',
         'build_analysis.txt',
         'conflict_branches.txt',
         'stats.html',
@@ -2034,6 +2280,7 @@ test('artefactos locales efimeros salen del repo activo y tienen limpieza canoni
         '.phpunit.cache',
         'coverage.xml',
         '.tmp-calendar-write-report.json',
+        '.codex-public-paths.txt',
         'build_analysis.txt',
         'conflict_branches.txt',
         'stats.html',
@@ -2111,6 +2358,11 @@ test('artefactos locales efimeros salen del repo activo y tienen limpieza canoni
         'README.md debe incluir .tmp-calendar-write-report.json en la limpieza local'
     );
     assert.equal(
+        readme.includes('.codex-public-paths.txt'),
+        true,
+        'README.md debe incluir .codex-public-paths.txt en la limpieza local'
+    );
+    assert.equal(
         readme.includes('build_analysis.txt'),
         true,
         'README.md debe incluir build_analysis.txt en la limpieza local'
@@ -2179,6 +2431,11 @@ test('artefactos locales efimeros salen del repo activo y tienen limpieza canoni
         operationsIndex.includes('.tmp-calendar-write-report.json'),
         true,
         'OPERATIONS_INDEX debe incluir .tmp-calendar-write-report.json en la limpieza local'
+    );
+    assert.equal(
+        operationsIndex.includes('.codex-public-paths.txt'),
+        true,
+        'OPERATIONS_INDEX debe incluir .codex-public-paths.txt en la limpieza local'
     );
     assert.equal(
         operationsIndex.includes('build_analysis.txt'),
@@ -2254,6 +2511,11 @@ test('artefactos locales efimeros salen del repo activo y tienen limpieza canoni
         runbooks.includes('.tmp-calendar-write-report.json'),
         true,
         'RUNBOOKS debe incluir .tmp-calendar-write-report.json en la limpieza local'
+    );
+    assert.equal(
+        runbooks.includes('.codex-public-paths.txt'),
+        true,
+        'RUNBOOKS debe incluir .codex-public-paths.txt en la limpieza local'
     );
     assert.equal(
         runbooks.includes('build_analysis.txt'),

@@ -67,7 +67,8 @@ Higiene local:
 - Limpia `cookies.txt`, `.lighthouseci/`, `lhci_reports/`, `_deploy_bundle/`,
   `playwright-report/`, `test-results/`, `php_server.log`,
   `.php-cs-fixer.cache`, `.phpunit.cache/`, `coverage.xml`,
-  `.tmp-calendar-write-report.json`, `build_analysis.txt` y
+  `.tmp-calendar-write-report.json`, `.codex-public-paths.txt`,
+  `build_analysis.txt` y
   `conflict_branches.txt`, `stats.html`, `styles.min.css`,
   `styles.optimized.css`, `styles-critical.min.css` y
   `styles-deferred.min.css`.
@@ -152,9 +153,11 @@ Higiene local:
 - Si operas el piloto comercial interno, revisa `docs/LEADOPS_OPENCLAW.md`.
 - Material historico y one-offs archivados viven en `docs/archive/root-history/` y `scripts/archive/`.
 - La frontera de markdowns permitidos en raiz vive en `docs/ROOT_SURFACES.md`.
-- La misma guia fija tambien las allowlists de `.js`, `.html`, `.css`, `.php`, `.ps1`, `.json`, `.yaml`, `.yml`, `.txt` y `.toml` permitidos en raiz.
+- La misma guia fija tambien las allowlists de `.js`, `.html`, `.css`, `.php`, `.ps1`, `.json`, `.yaml`, `.yml`, `.txt`, `.toml`, dotfiles, singletones especiales y directorios permitidos en raiz.
 - Los shims markdown de raiz existen solo para compatibilidad humana; runtime y tooling deben consumir `docs/**`.
 - Los CSS minificados/optimizados legacy ya no viven en la raiz activa; quedaron en `styles/archive/public-legacy/**`.
+- `hero-woman.webp` ya no vive en la raiz activa; quedo archivado en `images/archive/root-legacy/**`.
+- `components/` y `servicios/` ya no forman parte del source raiz activo; sus residuos legacy quedaron en `src/archive/root-legacy/**` y `scripts/archive/`.
 - `SERVIDOR-LOCAL.md`, `DESPLIEGUE-PIELARMONIA.md`, `CONTRIBUTING.md`,
   `GITHUB-ACTIONS-DEPLOY.md`, `CHECKLIST-PRUEBAS-PRODUCCION.md`,
   `CALENDAR-CUTOVER.md`, `ESTADO_PRODUCTO_OPERATIVO.md`,
