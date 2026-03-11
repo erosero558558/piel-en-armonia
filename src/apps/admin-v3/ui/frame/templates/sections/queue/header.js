@@ -28,13 +28,20 @@ export function renderQueueAppsHub() {
                         control para separar cada equipo por uso.
                     </p>
                 </div>
-                <span id="queueAppsPlatformChip" class="queue-apps-platform-chip">
-                    Plataforma detectada
-                </span>
+                <div class="queue-apps-hub__header-meta">
+                    <span id="queueAppsPlatformChip" class="queue-apps-platform-chip">
+                        Plataforma detectada
+                    </span>
+                    <span id="queueAppsRefreshShieldChip" class="queue-apps-refresh-shield-chip" data-state="idle">
+                        Refresh sin bloqueo
+                    </span>
+                </div>
             </div>
             <div id="queueFocusMode" class="queue-focus-mode" data-focus-match="opening operations incidents closing"></div>
             <div id="queueNumpadGuide" class="queue-numpad-guide" data-focus-match="opening operations incidents"></div>
             <div id="queueConsultorioBoard" class="queue-consultorio-board" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueWaitRadar" class="queue-wait-radar" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueDispatchDeck" class="queue-dispatch-deck" data-focus-match="opening operations incidents"></div>
             <div id="queueQuickConsole" class="queue-quick-console" data-focus-match="opening operations incidents closing"></div>
             <div id="queuePlaybook" class="queue-playbook" data-focus-match="opening operations incidents closing"></div>
             <div id="queueOpsPilot" class="queue-ops-pilot" data-focus-match="opening operations incidents"></div>

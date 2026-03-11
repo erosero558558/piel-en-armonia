@@ -1757,6 +1757,391 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('0');
     });
 
+    test('despacho sugerido reasigna ticket general y luego permite llamarlo', async ({
+        page,
+    }) => {
+        let queueTickets = [
+            {
+                id: 1202,
+                ticketCode: 'A-1202',
+                queueType: 'walk_in',
+                patientInitials: 'LM',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: new Date(Date.now() - 11 * 60 * 1000).toISOString(),
+            },
+        ];
+        let queueState = buildQueueStateFromTickets(queueTickets);
+
+        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
+            json(route, {
+                ok: true,
+                authenticated: true,
+                csrfToken: 'csrf_queue_dispatch',
+            })
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const request = route.request();
+            const url = new URL(request.url());
+            const resource = url.searchParams.get('resource') || '';
+            if (resource === 'features') {
+                return json(route, {
+                    ok: true,
+                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
+                });
+            }
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: new Date().toISOString(),
+                        },
+                        queue_tickets: queueTickets,
+                        queueMeta: buildQueueMetaFromState(queueState),
+                        queueSurfaceStatus: {
+                            operator: {
+                                surface: 'operator',
+                                label: 'Operador',
+                                status: 'ready',
+                                updatedAt: new Date().toISOString(),
+                                ageSec: 4,
+                                stale: false,
+                                summary: 'Equipo listo para operar en C1 fijo.',
+                                latest: {
+                                    deviceLabel: 'Operador C1 fijo',
+                                    appMode: 'desktop',
+                                    ageSec: 4,
+                                    details: {
+                                        station: 'c1',
+                                        stationMode: 'locked',
+                                        oneTap: false,
+                                        numpadSeen: true,
+                                    },
+                                },
+                                instances: [],
+                            },
+                            kiosk: {
+                                surface: 'kiosk',
+                                label: 'Kiosco',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                            display: {
+                                surface: 'display',
+                                label: 'Sala TV',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                        },
+                    },
+                });
+            }
+
+            if (resource === 'queue-ticket' && request.method() === 'PATCH') {
+                const body = JSON.parse(request.postData() || '{}');
+                const ticketId = Number(body.id || 0);
+                const consultorio = Number(body.consultorio || 0);
+                queueTickets = queueTickets.map((ticket) =>
+                    Number(ticket.id || 0) === ticketId
+                        ? {
+                              ...ticket,
+                              assignedConsultorio: consultorio,
+                          }
+                        : ticket
+                );
+                queueState = buildQueueStateFromTickets(queueTickets);
+                return json(route, {
+                    ok: true,
+                    data: {
+                        ticket: queueTickets.find(
+                            (ticket) => Number(ticket.id || 0) === ticketId
+                        ),
+                        queueState,
+                    },
+                });
+            }
+
+            if (resource === 'queue-call-next' && request.method() === 'POST') {
+                const body = JSON.parse(request.postData() || '{}');
+                const consultorio = Number(body.consultorio || 0);
+                const candidate = queueTickets.find(
+                    (ticket) =>
+                        ticket.status === 'waiting' &&
+                        Number(ticket.assignedConsultorio || 0) === consultorio
+                );
+                if (!candidate) {
+                    return json(
+                        route,
+                        { ok: false, error: 'Sin turnos asignados' },
+                        409
+                    );
+                }
+                queueTickets = queueTickets.map((ticket) =>
+                    ticket.id === candidate.id
+                        ? {
+                              ...ticket,
+                              status: 'called',
+                              assignedConsultorio: consultorio,
+                              calledAt: new Date().toISOString(),
+                          }
+                        : ticket
+                );
+                queueState = buildQueueStateFromTickets(queueTickets);
+                return json(route, {
+                    ok: true,
+                    data: {
+                        ticket: queueTickets.find(
+                            (ticket) => ticket.id === candidate.id
+                        ),
+                        queueState,
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await expect(page.locator('#queueDispatchDeck')).toBeVisible();
+        await expect(page.locator('#queueDispatchDeckStatus')).toContainText(
+            '1 acción'
+        );
+        await expect(page.locator('#queueDispatchHeadline_c1')).toContainText(
+            'puede absorber A-1202'
+        );
+        await expect(page.locator('#queueDispatchPrimary_c1')).toContainText(
+            'Asignar A-1202'
+        );
+
+        await page.locator('#queueDispatchPrimary_c1').click();
+
+        await expect(page.locator('#queueDispatchPrimary_c1')).toContainText(
+            'Llamar A-1202'
+        );
+        await expect(page.locator('#queueDispatchTarget_c1')).toContainText(
+            'A-1202'
+        );
+
+        await page.locator('#queueDispatchPrimary_c1').click();
+
+        await expect(page.locator('#queueC1Now')).toContainText('A-1202');
+        await expect(page.locator('#queueDispatchCard_c1')).toContainText(
+            'En atención'
+        );
+    });
+
+    test('radar de espera prioriza cola general antigua y mueve el siguiente foco', async ({
+        page,
+    }) => {
+        let queueTickets = [
+            {
+                id: 1301,
+                ticketCode: 'A-1301',
+                queueType: 'walk_in',
+                patientInitials: 'MR',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: new Date(Date.now() - 16 * 60 * 1000).toISOString(),
+            },
+            {
+                id: 1302,
+                ticketCode: 'A-1302',
+                queueType: 'walk_in',
+                patientInitials: 'QL',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
+            },
+        ];
+        let queueState = buildQueueStateFromTickets(queueTickets);
+
+        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
+            json(route, {
+                ok: true,
+                authenticated: true,
+                csrfToken: 'csrf_queue_wait_radar',
+            })
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const request = route.request();
+            const url = new URL(request.url());
+            const resource = url.searchParams.get('resource') || '';
+            if (resource === 'features') {
+                return json(route, {
+                    ok: true,
+                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
+                });
+            }
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: new Date().toISOString(),
+                        },
+                        queue_tickets: queueTickets,
+                        queueMeta: buildQueueMetaFromState(queueState),
+                        queueSurfaceStatus: {
+                            operator: {
+                                surface: 'operator',
+                                label: 'Operador',
+                                status: 'ready',
+                                updatedAt: new Date().toISOString(),
+                                ageSec: 5,
+                                stale: false,
+                                summary: 'Equipo listo para operar en C1 fijo.',
+                                latest: {
+                                    deviceLabel: 'Operador C1 fijo',
+                                    appMode: 'desktop',
+                                    ageSec: 5,
+                                    details: {
+                                        station: 'c1',
+                                        stationMode: 'locked',
+                                        oneTap: false,
+                                        numpadSeen: true,
+                                    },
+                                },
+                                instances: [],
+                            },
+                            kiosk: {
+                                surface: 'kiosk',
+                                label: 'Kiosco',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                            display: {
+                                surface: 'display',
+                                label: 'Sala TV',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                        },
+                    },
+                });
+            }
+
+            if (resource === 'queue-ticket' && request.method() === 'PATCH') {
+                const body = JSON.parse(request.postData() || '{}');
+                const ticketId = Number(body.id || 0);
+                const consultorio = Number(body.consultorio || 0);
+                queueTickets = queueTickets.map((ticket) =>
+                    Number(ticket.id || 0) === ticketId
+                        ? {
+                              ...ticket,
+                              assignedConsultorio: consultorio,
+                          }
+                        : ticket
+                );
+                queueState = buildQueueStateFromTickets(queueTickets);
+                return json(route, {
+                    ok: true,
+                    data: {
+                        ticket: queueTickets.find(
+                            (ticket) => Number(ticket.id || 0) === ticketId
+                        ),
+                        queueState,
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('.nav-item[data-section="queue"]').click();
+
+        await expect(page.locator('#queueWaitRadar')).toBeVisible();
+        await expect(page.locator('#queueWaitRadarStatus')).toContainText(
+            'en rojo'
+        );
+        await expect(
+            page.locator('#queueWaitRadarHeadline_general')
+        ).toContainText('A-1301');
+        await expect(
+            page.locator('#queueWaitRadarOldest_general')
+        ).toContainText('A-1301');
+        await expect(
+            page.locator('#queueWaitRadarPrimary_general')
+        ).toContainText('Asignar A-1301 a C1');
+
+        await page.locator('#queueWaitRadarPrimary_general').click();
+
+        await expect(
+            page.locator('#queueWaitRadarOldest_general')
+        ).toContainText('A-1302');
+        await expect(page.locator('#queueWaitRadarPrimary_c1')).toContainText(
+            'Llamar A-1301'
+        );
+        await expect(page.locator('#queueWaitRadarPressure_c1')).toContainText(
+            'Propios 1'
+        );
+    });
+
     test('numpad por estacion provisionada mantiene lock y persiste tras recarga', async ({
         page,
     }) => {
@@ -3780,6 +4165,28 @@ test.describe('Admin turnero sala', () => {
             'data-queue-focus',
             'opening'
         );
+        await expect(page.locator('#queueAppsRefreshShieldChip')).toContainText(
+            'Refresh sin bloqueo'
+        );
+        await page.locator('#queueInstallSurfaceSelect').focus();
+        await expect(
+            page.locator('#queueAppsRefreshShieldChip')
+        ).toHaveAttribute('data-state', 'active');
+        await expect(page.locator('#queueAppsRefreshShieldChip')).toContainText(
+            'Protegiendo interacción'
+        );
+        await page.locator('#refreshAdminDataBtn').click();
+        await expect(
+            page.locator('#queueAppsRefreshShieldChip')
+        ).toHaveAttribute('data-state', 'deferred');
+        await expect(page.locator('#queueAppsRefreshShieldChip')).toContainText(
+            'Refresh en espera'
+        );
+        await expect(
+            page.locator('#queueAppsRefreshShieldChip')
+        ).toHaveAttribute('data-state', 'idle', {
+            timeout: 2500,
+        });
         await expect(page.locator('#queueNumpadGuide')).toBeVisible();
         await expect(page.locator('#queueNumpadGuideTitle')).toContainText(
             'Numpad en vivo'
@@ -3829,6 +4236,30 @@ test.describe('Admin turnero sala', () => {
         );
         await expect(
             page.locator('#queueConsultorioOpenOperator_c2')
+        ).toHaveAttribute('href', /operador-turnos\.html\?station=c2&lock=1/);
+        await expect(page.locator('#queueWaitRadar')).toBeVisible();
+        await expect(page.locator('#queueWaitRadarTitle')).toContainText(
+            'Radar de espera'
+        );
+        await expect(page.locator('#queueWaitRadarCards')).toBeVisible();
+        await expect(page.locator('#queueDispatchDeck')).toBeVisible();
+        await expect(page.locator('#queueDispatchDeckTitle')).toContainText(
+            'Despacho sugerido'
+        );
+        await expect(page.locator('#queueDispatchDeckStatus')).toContainText(
+            '1 bloqueo'
+        );
+        await expect(page.locator('#queueDispatchCard_c1')).toContainText(
+            'preparado para el próximo ticket'
+        );
+        await expect(page.locator('#queueDispatchHeadline_c2')).toContainText(
+            'sin operador dedicado'
+        );
+        await expect(page.locator('#queueDispatchPrimary_c2')).toContainText(
+            'Abrir Operador C2'
+        );
+        await expect(
+            page.locator('#queueDispatchOpenOperator_c2')
         ).toHaveAttribute('href', /operador-turnos\.html\?station=c2&lock=1/);
         await page.locator('#queueNumpadGuideToggleOneTap').click();
         await expect(page.locator('#queueNumpadGuideChipOneTap')).toContainText(

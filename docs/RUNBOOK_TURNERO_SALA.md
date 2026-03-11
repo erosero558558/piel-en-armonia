@@ -186,12 +186,15 @@ Para separar operación por equipo:
 - Las superficies `Operador`, `Kiosco` y `Sala TV` ahora envían heartbeat al backend por `queue-surface-heartbeat`, y `admin.html#queue` muestra ese estado en `Equipos en vivo`.
 - Mientras la sección `Turnero Sala` esté abierta y visible, `Equipos en vivo` se auto-refresca solo; si la pestaña queda oculta, el panel muestra `Auto-refresh en pausa` para evitar falsa sensación de congelamiento.
 - Si una operación reciente del numpad (`completar`, `llamar siguiente`, `1 tecla`) coincide con un auto-refresh, el admin preserva primero la cola local más nueva y lo deja indicado en `Equipos en vivo`.
+- Si estás interactuando con el hub (`Modo foco`, instalador, despacho o checklist), el header muestra `Protegiendo interacción` o `Refresh en espera` y difiere el repaint del hub unos instantes para no soltar botones ni mover el foco mientras haces clic.
 - El panel superior del hub ahora resume `qué falta`, `qué ya está validado` y `cuál es la siguiente acción`, para que recepción no tenga que recorrer manualmente todo el dashboard.
 - El hub `Apps operativas` ahora incluye un asistente para preparar `Operador`, `Kiosco` o `Sala TV` con la descarga y la ruta exacta de cada equipo.
 - El asistente también incluye presets rápidos (`Operador C1`, `Operador C2`, `Operador libre`, `Kiosco`, `Sala TV`) y recuerda el último perfil en `queueInstallPresetV1`.
 - El hub ahora también muestra `Prioridad viva`: un panel de alertas activas por cola/equipo que se puede marcar como revisado sin ocultar la incidencia, usando `queueOpsAlertsV1`.
 - El hub ahora también muestra `Numpad en vivo`: resume la estación real del admin, lo que reporta el Operador y qué harán `Enter`, `.`, `-`, `+` y `1/2` antes de pulsarlos.
 - El hub ahora también muestra una `Mesa por consultorio`: dos tarjetas `C1/C2` con ticket actual, siguiente en espera, operador esperado y accesos directos para llamar, liberar o abrir el operador correcto.
+- El hub ahora también muestra un `Radar de espera`: tres carriles (`General`, `C1`, `C2`) ordenados por antigüedad/presión, para que recepción vea primero cuál ticket está envejeciendo y ejecute la siguiente jugada sin bajar a la tabla.
+- El hub ahora también muestra `Despacho sugerido`: dos tarjetas `C1/C2` con la próxima jugada útil por consultorio para llamar o reasignar tickets sin bajar a la tabla completa.
 - `admin.html#queue` también incluye un checklist de apertura diaria asistido: lee heartbeat de `Operador`, `Kiosco` y `Sala TV`, sugiere pasos ya validados y permite confirmarlos en bloque.
 - `admin.html#queue` también incluye un panel de `Cierre y relevo`: valida que la cola quedó limpia, deja visibles los pasos por equipo y permite copiar un resumen textual del relevo del día.
 - `admin.html#queue` también incluye una `bitácora operativa del día`: registra apertura asistida, ajustes de perfil, incidencias y relevo para que el siguiente turno no dependa de memoria informal.

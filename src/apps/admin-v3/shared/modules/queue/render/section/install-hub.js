@@ -124,6 +124,7 @@ const QUEUE_OPS_ALERTS_STORAGE_KEY = 'queueOpsAlertsV1';
 const QUEUE_OPS_FOCUS_MODE_STORAGE_KEY = 'queueOpsFocusModeV1';
 const QUEUE_OPS_PLAYBOOK_STORAGE_KEY = 'queueOpsPlaybookV1';
 const QUEUE_OPS_LOG_MAX_ITEMS = 24;
+const QUEUE_OPS_INTERACTION_HOLD_MS = 900;
 const OPENING_CHECKLIST_STEP_IDS = Object.freeze([
     'operator_ready',
     'kiosk_ready',
@@ -145,6 +146,13 @@ let opsLogFilter = null;
 let opsAlertsState = null;
 let opsFocusMode = null;
 let opsPlaybookState = null;
+let queueOpsInteraction = {
+    lastAt: 0,
+    timerId: 0,
+    settleTimerId: 0,
+    pendingManifest: null,
+    pendingPlatform: '',
+};
 
 function detectPlatform() {
     const platform =
@@ -152,6 +160,172 @@ function detectPlatform() {
     if (platform.includes('mac')) return 'mac';
     if (platform.includes('win')) return 'win';
     return 'other';
+}
+
+function getQueueAppsHubRoot() {
+    const root = document.getElementById('queueAppsHub');
+    return root instanceof HTMLElement ? root : null;
+}
+
+function getQueueAppsRefreshShieldChip() {
+    const chip = document.getElementById('queueAppsRefreshShieldChip');
+    return chip instanceof HTMLElement ? chip : null;
+}
+
+function resolveQueueOpsInteractionMeta() {
+    if (queueOpsInteraction.pendingManifest) {
+        return {
+            state: 'deferred',
+            label: 'Refresh en espera',
+            detail: 'Se mantiene el hub estable hasta que termine la interacción actual.',
+        };
+    }
+    if (hasActiveQueueOpsInteraction()) {
+        return {
+            state: 'active',
+            label: 'Protegiendo interacción',
+            detail: 'El hub aplaza repaints breves mientras estás usando sus controles.',
+        };
+    }
+    return {
+        state: 'idle',
+        label: 'Refresh sin bloqueo',
+        detail: 'El hub puede repintarse cuando llegue información nueva.',
+    };
+}
+
+function syncQueueOpsInteractionIndicator() {
+    const meta = resolveQueueOpsInteractionMeta();
+    const root = getQueueAppsHubRoot();
+    const chip = getQueueAppsRefreshShieldChip();
+    if (root) {
+        root.dataset.queueInteractionState = meta.state;
+    }
+    if (chip) {
+        chip.dataset.state = meta.state;
+        chip.textContent = meta.label;
+        chip.title = meta.detail;
+        chip.setAttribute('aria-label', meta.detail);
+    }
+}
+
+function clearQueueOpsInteractionSettleTimer() {
+    if (queueOpsInteraction.settleTimerId) {
+        window.clearTimeout(queueOpsInteraction.settleTimerId);
+        queueOpsInteraction.settleTimerId = 0;
+    }
+}
+
+function scheduleQueueOpsInteractionSettle() {
+    clearQueueOpsInteractionSettleTimer();
+    if (queueOpsInteraction.pendingManifest) {
+        syncQueueOpsInteractionIndicator();
+        return;
+    }
+    if (!hasActiveQueueOpsInteraction()) {
+        syncQueueOpsInteractionIndicator();
+        return;
+    }
+    const waitMs = Math.max(
+        80,
+        QUEUE_OPS_INTERACTION_HOLD_MS - getQueueOpsInteractionAgeMs()
+    );
+    queueOpsInteraction.settleTimerId = window.setTimeout(() => {
+        queueOpsInteraction.settleTimerId = 0;
+        if (queueOpsInteraction.pendingManifest) {
+            syncQueueOpsInteractionIndicator();
+            return;
+        }
+        if (hasActiveQueueOpsInteraction()) {
+            scheduleQueueOpsInteractionSettle();
+            return;
+        }
+        syncQueueOpsInteractionIndicator();
+    }, waitMs);
+}
+
+function markQueueOpsInteraction() {
+    queueOpsInteraction.lastAt = Date.now();
+    syncQueueOpsInteractionIndicator();
+    scheduleQueueOpsInteractionSettle();
+}
+
+function getQueueOpsInteractionAgeMs() {
+    if (!queueOpsInteraction.lastAt) {
+        return Number.POSITIVE_INFINITY;
+    }
+    return Math.max(0, Date.now() - queueOpsInteraction.lastAt);
+}
+
+function hasActiveQueueOpsInteraction() {
+    return getQueueOpsInteractionAgeMs() < QUEUE_OPS_INTERACTION_HOLD_MS;
+}
+
+function bindQueueOpsInteraction(root) {
+    if (
+        !(root instanceof HTMLElement) ||
+        root.dataset.queueInteractionBound === 'true'
+    ) {
+        return;
+    }
+
+    const signalInteraction = () => {
+        markQueueOpsInteraction();
+    };
+
+    root.addEventListener('pointerdown', signalInteraction, true);
+    root.addEventListener('keydown', signalInteraction, true);
+    root.addEventListener('focusin', signalInteraction, true);
+    root.addEventListener('input', signalInteraction, true);
+    root.addEventListener('change', signalInteraction, true);
+    root.dataset.queueInteractionBound = 'true';
+}
+
+function clearDeferredQueueOpsInteraction() {
+    if (queueOpsInteraction.timerId) {
+        window.clearTimeout(queueOpsInteraction.timerId);
+        queueOpsInteraction.timerId = 0;
+    }
+    queueOpsInteraction.pendingManifest = null;
+    queueOpsInteraction.pendingPlatform = '';
+    syncQueueOpsInteractionIndicator();
+    scheduleQueueOpsInteractionSettle();
+}
+
+function flushDeferredQueueOpsHubRender() {
+    const manifest = queueOpsInteraction.pendingManifest;
+    const platform = queueOpsInteraction.pendingPlatform;
+    queueOpsInteraction.timerId = 0;
+    if (!manifest) {
+        clearDeferredQueueOpsInteraction();
+        return;
+    }
+    if (hasActiveQueueOpsInteraction()) {
+        scheduleDeferredQueueOpsHubRender(manifest, platform);
+        return;
+    }
+    renderQueueInstallHub({
+        allowDuringInteraction: true,
+        manifestOverride: manifest,
+        platformOverride: platform,
+    });
+}
+
+function scheduleDeferredQueueOpsHubRender(manifest, detectedPlatform) {
+    queueOpsInteraction.pendingManifest = manifest;
+    queueOpsInteraction.pendingPlatform = detectedPlatform;
+    if (queueOpsInteraction.timerId) {
+        window.clearTimeout(queueOpsInteraction.timerId);
+    }
+    clearQueueOpsInteractionSettleTimer();
+    syncQueueOpsInteractionIndicator();
+    const waitMs = Math.max(
+        80,
+        QUEUE_OPS_INTERACTION_HOLD_MS - getQueueOpsInteractionAgeMs()
+    );
+    queueOpsInteraction.timerId = window.setTimeout(() => {
+        flushDeferredQueueOpsHubRender();
+    }, waitMs);
 }
 
 function absoluteUrl(url) {
@@ -1791,6 +1965,9 @@ function getOpsLogSourceLabel(source) {
     if (value === 'status') {
         return 'Estado';
     }
+    if (value === 'dispatch') {
+        return 'Despacho';
+    }
     return 'Manual';
 }
 
@@ -1806,7 +1983,7 @@ function filterOpsLogItems(items, filter) {
     }
     if (filter === 'changes') {
         return list.filter((item) =>
-            ['config', 'opening', 'handoff'].includes(item.source)
+            ['config', 'opening', 'handoff', 'dispatch'].includes(item.source)
         );
     }
     if (filter === 'status') {
@@ -3590,11 +3767,7 @@ function renderQueueNumpadGuide(manifest, detectedPlatform) {
 }
 
 function formatQueueTicketAgeLabel(ticket, mode) {
-    const rawTimestamp =
-        mode === 'called'
-            ? ticket?.calledAt || ticket?.called_at
-            : ticket?.createdAt || ticket?.created_at;
-    const timestampMs = Date.parse(String(rawTimestamp || ''));
+    const timestampMs = getQueueTicketTimestampMs(ticket, mode);
     if (!Number.isFinite(timestampMs)) {
         return mode === 'called'
             ? 'sin marca de llamado'
@@ -3607,11 +3780,59 @@ function formatQueueTicketAgeLabel(ticket, mode) {
         : `espera hace ${formatHeartbeatAge(ageSec)}`;
 }
 
-function buildConsultorioBoardCard(manifest, detectedPlatform, consultorio) {
+function getQueueTicketAgeSec(ticket, mode = 'waiting') {
+    const timestampMs = getQueueTicketTimestampMs(ticket, mode);
+    if (!Number.isFinite(timestampMs)) {
+        return null;
+    }
+    return Math.max(0, Math.round((Date.now() - timestampMs) / 1000));
+}
+
+function getQueueTicketTimestampMs(ticket, mode = 'waiting') {
+    const rawTimestamp =
+        mode === 'called' ? ticket?.calledAt : ticket?.createdAt;
+    return Date.parse(String(rawTimestamp || ''));
+}
+
+function getSortedWaitingTickets() {
+    return getQueueSource()
+        .queueTickets.filter((ticket) => ticket.status === 'waiting')
+        .sort((left, right) => {
+            const leftMs = getQueueTicketTimestampMs(left, 'waiting');
+            const rightMs = getQueueTicketTimestampMs(right, 'waiting');
+            if (Number.isFinite(leftMs) && Number.isFinite(rightMs)) {
+                return leftMs - rightMs;
+            }
+            if (Number.isFinite(leftMs)) {
+                return -1;
+            }
+            if (Number.isFinite(rightMs)) {
+                return 1;
+            }
+            return Number(left.id || 0) - Number(right.id || 0);
+        });
+}
+
+function getUnassignedWaitingTickets() {
+    return getSortedWaitingTickets().filter(
+        (ticket) => !Number(ticket.assignedConsultorio || 0)
+    );
+}
+
+function getAssignedWaitingTickets(consultorio) {
+    const target = Number(consultorio || 0) === 2 ? 2 : 1;
+    return getSortedWaitingTickets().filter(
+        (ticket) => Number(ticket.assignedConsultorio || 0) === target
+    );
+}
+
+function buildConsultorioOperatorContext(
+    manifest,
+    detectedPlatform,
+    consultorio
+) {
     const slot = Number(consultorio || 0) === 2 ? 2 : 1;
     const slotKey = `c${slot}`;
-    const currentTicket = getCalledTicketForConsultorio(slot);
-    const nextTicket = getWaitingForConsultorio(slot);
     const operator = getLatestSurfaceDetails('operator');
     const operatorStation = String(operator.details.station || '')
         .trim()
@@ -3642,18 +3863,47 @@ function buildConsultorioBoardCard(manifest, detectedPlatform, consultorio) {
             lock: true,
         }
     );
-    const oneTapLabel = operatorAssigned
-        ? `1 tecla ${operator.details.oneTap ? 'ON' : 'OFF'}`
-        : '1 tecla sin validar';
-    const numpadLabel = operatorAssigned
-        ? operator.details.numpadSeen
-            ? 'Numpad listo'
-            : 'Numpad pendiente'
-        : 'Numpad sin señal';
-    const heartbeatLabel = buildSignalAgeLabel(
-        operator.latest,
-        'Sin heartbeat'
+    return {
+        slot,
+        slotKey,
+        operator,
+        operatorStation,
+        operatorLocked,
+        operatorAssigned,
+        operatorLive,
+        operatorLabel,
+        operatorUrl,
+        oneTapLabel: operatorAssigned
+            ? `1 tecla ${operator.details.oneTap ? 'ON' : 'OFF'}`
+            : '1 tecla sin validar',
+        numpadLabel: operatorAssigned
+            ? operator.details.numpadSeen
+                ? 'Numpad listo'
+                : 'Numpad pendiente'
+            : 'Numpad sin señal',
+        heartbeatLabel: buildSignalAgeLabel(operator.latest, 'Sin heartbeat'),
+    };
+}
+
+function buildConsultorioBoardCard(manifest, detectedPlatform, consultorio) {
+    const operatorContext = buildConsultorioOperatorContext(
+        manifest,
+        detectedPlatform,
+        consultorio
     );
+    const {
+        slot,
+        slotKey,
+        operatorAssigned,
+        operatorLive,
+        operatorLabel,
+        operatorUrl,
+        oneTapLabel,
+        numpadLabel,
+        heartbeatLabel,
+    } = operatorContext;
+    const currentTicket = getCalledTicketForConsultorio(slot);
+    const nextTicket = getWaitingForConsultorio(slot);
 
     let state = 'idle';
     let badge = 'Sin cola';
@@ -3963,6 +4213,880 @@ function renderConsultorioBoard(manifest, detectedPlatform) {
                 }
             };
         }
+    });
+}
+
+function buildQueueWaitRadarSeverity({ ageSec, backlog, operatorReady }) {
+    const safeBacklog = Math.max(0, Number(backlog || 0));
+    const safeAgeSec = Number.isFinite(Number(ageSec)) ? Number(ageSec) : null;
+
+    if (safeBacklog <= 0) {
+        return {
+            state: 'idle',
+            badge: 'Sin cola',
+            support: 'Sin presión de espera por ahora.',
+        };
+    }
+
+    if (
+        (safeAgeSec !== null && safeAgeSec >= 15 * 60) ||
+        safeBacklog >= 4 ||
+        (!operatorReady && safeAgeSec !== null && safeAgeSec >= 8 * 60)
+    ) {
+        return {
+            state: 'alert',
+            badge: 'Atender ya',
+            support:
+                safeAgeSec !== null
+                    ? `Espera máxima ${formatHeartbeatAge(safeAgeSec)}.`
+                    : 'Hay demasiada presión acumulada.',
+        };
+    }
+
+    if (
+        (safeAgeSec !== null && safeAgeSec >= 8 * 60) ||
+        safeBacklog >= 2 ||
+        !operatorReady
+    ) {
+        return {
+            state: 'warning',
+            badge: 'Vigilar',
+            support:
+                safeAgeSec !== null
+                    ? `Espera máxima ${formatHeartbeatAge(safeAgeSec)}.`
+                    : 'Hace falta vigilar esta línea.',
+        };
+    }
+
+    return {
+        state: 'ready',
+        badge: 'Bajo control',
+        support:
+            safeAgeSec !== null
+                ? `Espera máxima ${formatHeartbeatAge(safeAgeSec)}.`
+                : 'Cola controlada.',
+    };
+}
+
+function buildQueueWaitRadarLaneCard(manifest, detectedPlatform, laneKey) {
+    if (laneKey === 'general') {
+        const generalWaiting = getUnassignedWaitingTickets();
+        const oldestGeneral = generalWaiting[0] || null;
+        const c1Dispatch = buildQueueDispatchCard(
+            manifest,
+            detectedPlatform,
+            1
+        );
+        const c2Dispatch = buildQueueDispatchCard(
+            manifest,
+            detectedPlatform,
+            2
+        );
+        const assignOptions = [c1Dispatch, c2Dispatch].filter(
+            (card) =>
+                card.primaryAction === 'assign' &&
+                card.targetTicketId === Number(oldestGeneral?.id || 0)
+        );
+        const preferredAssign =
+            assignOptions.sort((left, right) => left.slot - right.slot)[0] ||
+            null;
+        const fallbackOpen = [c1Dispatch, c2Dispatch].find(
+            (card) => card.primaryAction === 'open'
+        );
+        const severity = buildQueueWaitRadarSeverity({
+            ageSec: getQueueTicketAgeSec(oldestGeneral, 'waiting'),
+            backlog: generalWaiting.length,
+            operatorReady: Boolean(preferredAssign),
+        });
+
+        if (!oldestGeneral) {
+            return {
+                laneKey: 'general',
+                laneLabel: 'General',
+                state: 'idle',
+                badge: 'Sin cola',
+                headline: 'Cola general al día',
+                detail: 'No hay tickets sin consultorio esperando despacho en este momento.',
+                oldestLabel: 'Sin ticket pendiente',
+                pressureLabel: 'General 0 · C1 0 · C2 0',
+                recommendationLabel: 'Sin movimiento urgente',
+                chips: ['Sin consultorio 0', 'Operación estable'],
+                primaryLabel: 'Sin acción',
+                actionCard: null,
+            };
+        }
+
+        let detail =
+            'Es el ticket más antiguo sin consultorio y merece la próxima revisión del turno.';
+        let recommendationLabel = 'Abrir cola admin';
+        let actionCard = null;
+        const chips = [`Sin consultorio ${generalWaiting.length}`];
+
+        if (preferredAssign) {
+            detail = `${preferredAssign.slotKey.toUpperCase()} está en mejor posición para absorber este ticket sin bajar a la tabla completa.`;
+            recommendationLabel = `Asignar ${oldestGeneral.ticketCode} a ${preferredAssign.slotKey.toUpperCase()}`;
+            actionCard = {
+                ...preferredAssign,
+                primaryLabel: recommendationLabel,
+            };
+            chips.push(`Recomendado ${preferredAssign.slotKey.toUpperCase()}`);
+        } else if (fallbackOpen) {
+            detail = `La cola general ya tiene presión, pero todavía falta dejar listo el operador recomendado antes de reasignar con confianza.`;
+            recommendationLabel = `Abrir Operador ${fallbackOpen.slotKey.toUpperCase()}`;
+            actionCard = {
+                ...fallbackOpen,
+                primaryLabel: recommendationLabel,
+            };
+            chips.push(`Falta ${fallbackOpen.slotKey.toUpperCase()}`);
+        } else {
+            chips.push('Sin operador listo');
+        }
+
+        chips.push(severity.support);
+
+        return {
+            laneKey: 'general',
+            laneLabel: 'General',
+            state: severity.state,
+            badge: severity.badge,
+            headline: `${oldestGeneral.ticketCode} lidera la cola general`,
+            detail,
+            oldestLabel: `${oldestGeneral.ticketCode} · ${formatQueueTicketAgeLabel(
+                oldestGeneral,
+                'waiting'
+            )}`,
+            pressureLabel: `General ${generalWaiting.length} · C1 ${
+                getAssignedWaitingTickets(1).length
+            } · C2 ${getAssignedWaitingTickets(2).length}`,
+            recommendationLabel,
+            chips,
+            primaryLabel: actionCard ? actionCard.primaryLabel : 'Sin acción',
+            actionCard,
+        };
+    }
+
+    const slot = laneKey === 'c2' ? 2 : 1;
+    const operatorContext = buildConsultorioOperatorContext(
+        manifest,
+        detectedPlatform,
+        slot
+    );
+    const dispatchCard = buildQueueDispatchCard(
+        manifest,
+        detectedPlatform,
+        slot
+    );
+    const ownWaiting = getAssignedWaitingTickets(slot);
+    const generalWaiting = getUnassignedWaitingTickets();
+    const currentTicket = getCalledTicketForConsultorio(slot);
+    const candidateTicket =
+        ownWaiting[0] ||
+        ((dispatchCard.primaryAction === 'assign' ||
+            dispatchCard.primaryAction === 'rebalance') &&
+        dispatchCard.targetTicketId > 0
+            ? getQueueTicketById(dispatchCard.targetTicketId)
+            : null);
+    const demandCount = ownWaiting.length
+        ? ownWaiting.length
+        : dispatchCard.primaryAction === 'assign'
+          ? generalWaiting.length
+          : dispatchCard.primaryAction === 'rebalance'
+            ? getAssignedWaitingTickets(slot === 2 ? 1 : 2).length
+            : 0;
+
+    if (!candidateTicket && currentTicket) {
+        return {
+            laneKey,
+            laneLabel: laneKey.toUpperCase(),
+            state: 'active',
+            badge: 'En atención',
+            headline: `${currentTicket.ticketCode} está en consulta`,
+            detail: `No hay espera nueva para ${laneKey.toUpperCase()}, pero el consultorio sigue ocupado y listo para retomar el siguiente turno desde el mismo hub.`,
+            oldestLabel: `${currentTicket.ticketCode} · ${formatQueueTicketAgeLabel(
+                currentTicket,
+                'called'
+            )}`,
+            pressureLabel: `Propios ${ownWaiting.length} · General ${generalWaiting.length}`,
+            recommendationLabel: dispatchCard.primaryLabel,
+            chips: [
+                operatorContext.operatorLabel,
+                operatorContext.oneTapLabel,
+                operatorContext.heartbeatLabel,
+            ],
+            primaryLabel: dispatchCard.primaryLabel,
+            actionCard:
+                dispatchCard.primaryAction === 'none' ? null : dispatchCard,
+        };
+    }
+
+    if (!candidateTicket) {
+        return {
+            laneKey,
+            laneLabel: laneKey.toUpperCase(),
+            state:
+                operatorContext.operatorAssigned && operatorContext.operatorLive
+                    ? 'ready'
+                    : 'idle',
+            badge:
+                operatorContext.operatorAssigned && operatorContext.operatorLive
+                    ? 'Listo'
+                    : 'Sin cola',
+            headline:
+                operatorContext.operatorAssigned && operatorContext.operatorLive
+                    ? `${laneKey.toUpperCase()} listo para absorber demanda`
+                    : `${laneKey.toUpperCase()} sin espera propia`,
+            detail:
+                operatorContext.operatorAssigned && operatorContext.operatorLive
+                    ? `No hay tickets esperando ahora, pero ${laneKey.toUpperCase()} ya tiene operador y heartbeat para responder al siguiente ingreso.`
+                    : `No hay presión visible en ${laneKey.toUpperCase()} y todavía no hace falta una acción rápida desde el radar.`,
+            oldestLabel: 'Sin ticket pendiente',
+            pressureLabel: `Propios ${ownWaiting.length} · General ${generalWaiting.length}`,
+            recommendationLabel: dispatchCard.primaryLabel,
+            chips: [
+                operatorContext.operatorLabel,
+                operatorContext.oneTapLabel,
+                operatorContext.heartbeatLabel,
+            ],
+            primaryLabel:
+                dispatchCard.primaryAction === 'none'
+                    ? 'Sin acción'
+                    : dispatchCard.primaryLabel,
+            actionCard:
+                dispatchCard.primaryAction === 'none' ? null : dispatchCard,
+        };
+    }
+
+    const severity = buildQueueWaitRadarSeverity({
+        ageSec: getQueueTicketAgeSec(candidateTicket, 'waiting'),
+        backlog: demandCount,
+        operatorReady:
+            dispatchCard.primaryAction !== 'open' &&
+            dispatchCard.primaryAction !== 'none',
+    });
+    const badge =
+        dispatchCard.primaryAction === 'open'
+            ? 'Falta operador'
+            : severity.badge;
+
+    return {
+        laneKey,
+        laneLabel: laneKey.toUpperCase(),
+        state:
+            dispatchCard.primaryAction === 'open' && severity.state === 'ready'
+                ? 'warning'
+                : severity.state,
+        badge,
+        headline: `${candidateTicket.ticketCode} presiona ${laneKey.toUpperCase()}`,
+        detail: dispatchCard.detail,
+        oldestLabel: `${candidateTicket.ticketCode} · ${formatQueueTicketAgeLabel(
+            candidateTicket,
+            'waiting'
+        )}`,
+        pressureLabel: `Propios ${ownWaiting.length} · General ${generalWaiting.length}`,
+        recommendationLabel: dispatchCard.primaryLabel,
+        chips: [
+            operatorContext.operatorLabel,
+            operatorContext.oneTapLabel,
+            severity.support,
+        ],
+        primaryLabel: dispatchCard.primaryLabel,
+        actionCard: dispatchCard.primaryAction === 'none' ? null : dispatchCard,
+    };
+}
+
+function buildQueueWaitRadar(manifest, detectedPlatform) {
+    const cards = ['general', 'c1', 'c2'].map((laneKey) =>
+        buildQueueWaitRadarLaneCard(manifest, detectedPlatform, laneKey)
+    );
+    const alertCount = cards.filter((card) => card.state === 'alert').length;
+    const warningCount = cards.filter(
+        (card) => card.state === 'warning'
+    ).length;
+    const actionableCount = cards.filter((card) => card.actionCard).length;
+    const oldestAgeSec = getSortedWaitingTickets().reduce((maxAge, ticket) => {
+        const ageSec = getQueueTicketAgeSec(ticket, 'waiting');
+        return ageSec !== null ? Math.max(maxAge, ageSec) : maxAge;
+    }, 0);
+
+    return {
+        title:
+            alertCount > 0
+                ? 'Radar de espera en rojo'
+                : warningCount > 0
+                  ? 'Radar de espera con presión'
+                  : 'Radar de espera bajo control',
+        summary:
+            alertCount > 0
+                ? 'La cola ya muestra una espera que conviene atender antes de seguir navegando por otras tarjetas del hub.'
+                : warningCount > 0
+                  ? 'El radar agrupa la línea más vieja por cola general y consultorio para que recepción vea primero dónde está subiendo la presión.'
+                  : 'No hay presión visible: la cola general y ambos consultorios están bajo control por ahora.',
+        statusLabel:
+            alertCount > 0
+                ? `${alertCount} en rojo`
+                : warningCount > 0
+                  ? `${warningCount} por vigilar`
+                  : 'Sin espera crítica',
+        statusState:
+            alertCount > 0 ? 'alert' : warningCount > 0 ? 'warning' : 'ready',
+        chips: [
+            `Acciones ${actionableCount}`,
+            `Alertas ${alertCount}`,
+            oldestAgeSec > 0
+                ? `Espera máxima ${formatHeartbeatAge(oldestAgeSec)}`
+                : 'Espera máxima 0s',
+        ],
+        cards,
+    };
+}
+
+async function runQueueWaitRadarAction(card, manifest, detectedPlatform) {
+    if (!card?.actionCard) {
+        return;
+    }
+    await runQueueDispatchAction(card.actionCard, manifest, detectedPlatform);
+}
+
+function renderQueueWaitRadar(manifest, detectedPlatform) {
+    const root = document.getElementById('queueWaitRadar');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const radar = buildQueueWaitRadar(manifest, detectedPlatform);
+    setHtml(
+        '#queueWaitRadar',
+        `
+            <section class="queue-wait-radar__shell" data-state="${escapeHtml(
+                radar.statusState
+            )}">
+                <div class="queue-wait-radar__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Radar de espera</p>
+                        <h5 id="queueWaitRadarTitle" class="queue-app-card__title">${escapeHtml(
+                            radar.title
+                        )}</h5>
+                        <p id="queueWaitRadarSummary" class="queue-wait-radar__summary">${escapeHtml(
+                            radar.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-wait-radar__meta">
+                        <span
+                            id="queueWaitRadarStatus"
+                            class="queue-wait-radar__status"
+                            data-state="${escapeHtml(radar.statusState)}"
+                        >
+                            ${escapeHtml(radar.statusLabel)}
+                        </span>
+                        <div class="queue-wait-radar__chips">
+                            ${radar.chips
+                                .map(
+                                    (chip) =>
+                                        `<span class="queue-wait-radar__chip">${escapeHtml(
+                                            chip
+                                        )}</span>`
+                                )
+                                .join('')}
+                        </div>
+                    </div>
+                </div>
+                <div id="queueWaitRadarCards" class="queue-wait-radar__grid" role="list" aria-label="Radar de espera por línea">
+                    ${radar.cards
+                        .map(
+                            (card) => `
+                                <article
+                                    id="queueWaitRadarCard_${escapeHtml(card.laneKey)}"
+                                    class="queue-wait-radar__card"
+                                    data-state="${escapeHtml(card.state)}"
+                                    role="listitem"
+                                >
+                                    <div class="queue-wait-radar__card-header">
+                                        <div>
+                                            <strong>${escapeHtml(
+                                                card.laneLabel
+                                            )}</strong>
+                                            <p id="queueWaitRadarHeadline_${escapeHtml(
+                                                card.laneKey
+                                            )}" class="queue-wait-radar__headline">${escapeHtml(
+                                                card.headline
+                                            )}</p>
+                                        </div>
+                                        <span class="queue-wait-radar__badge">${escapeHtml(
+                                            card.badge
+                                        )}</span>
+                                    </div>
+                                    <p class="queue-wait-radar__detail">${escapeHtml(
+                                        card.detail
+                                    )}</p>
+                                    <div class="queue-wait-radar__facts">
+                                        <div class="queue-wait-radar__fact">
+                                            <span>Ticket crítico</span>
+                                            <strong id="queueWaitRadarOldest_${escapeHtml(
+                                                card.laneKey
+                                            )}">${escapeHtml(card.oldestLabel)}</strong>
+                                        </div>
+                                        <div class="queue-wait-radar__fact">
+                                            <span>Presión</span>
+                                            <strong id="queueWaitRadarPressure_${escapeHtml(
+                                                card.laneKey
+                                            )}">${escapeHtml(card.pressureLabel)}</strong>
+                                        </div>
+                                        <div class="queue-wait-radar__fact">
+                                            <span>Siguiente jugada</span>
+                                            <strong id="queueWaitRadarRecommendation_${escapeHtml(
+                                                card.laneKey
+                                            )}">${escapeHtml(
+                                                card.recommendationLabel
+                                            )}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="queue-wait-radar__lane-chips">
+                                        ${card.chips
+                                            .map(
+                                                (chip) =>
+                                                    `<span class="queue-wait-radar__lane-chip">${escapeHtml(
+                                                        chip
+                                                    )}</span>`
+                                            )
+                                            .join('')}
+                                    </div>
+                                    <div class="queue-wait-radar__actions">
+                                        <button
+                                            id="queueWaitRadarPrimary_${escapeHtml(
+                                                card.laneKey
+                                            )}"
+                                            type="button"
+                                            class="queue-wait-radar__action queue-wait-radar__action--primary"
+                                            ${card.actionCard ? '' : 'disabled'}
+                                        >
+                                            ${escapeHtml(card.primaryLabel)}
+                                        </button>
+                                    </div>
+                                </article>
+                            `
+                        )
+                        .join('')}
+                </div>
+            </section>
+        `
+    );
+
+    radar.cards.forEach((card) => {
+        const button = document.getElementById(
+            `queueWaitRadarPrimary_${card.laneKey}`
+        );
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+        button.onclick = async () => {
+            button.disabled = true;
+            await runQueueWaitRadarAction(card, manifest, detectedPlatform);
+        };
+    });
+}
+
+function buildQueueDispatchCard(manifest, detectedPlatform, consultorio) {
+    const operatorContext = buildConsultorioOperatorContext(
+        manifest,
+        detectedPlatform,
+        consultorio
+    );
+    const {
+        slot,
+        slotKey,
+        operatorAssigned,
+        operatorLive,
+        operatorLabel,
+        operatorUrl,
+        oneTapLabel,
+        numpadLabel,
+        heartbeatLabel,
+    } = operatorContext;
+    const otherSlot = slot === 2 ? 1 : 2;
+    const currentTicket = getCalledTicketForConsultorio(slot);
+    const ownWaitingTickets = getAssignedWaitingTickets(slot);
+    const otherWaitingTickets = getAssignedWaitingTickets(otherSlot);
+    const generalWaitingTickets = getUnassignedWaitingTickets();
+    const nextAssignedTicket = ownWaitingTickets[0] || null;
+    const nextGeneralTicket = generalWaitingTickets[0] || null;
+    const rebalanceTicket =
+        ownWaitingTickets.length === 0 && otherWaitingTickets.length >= 2
+            ? otherWaitingTickets[1]
+            : null;
+    const ownBacklog = ownWaitingTickets.length;
+    const otherBacklog = otherWaitingTickets.length;
+    const generalBacklog = generalWaitingTickets.length;
+
+    let state = 'idle';
+    let badge = 'Sin acción inmediata';
+    let headline = `${slotKey.toUpperCase()} sin movimiento urgente`;
+    let detail =
+        'No hay ticket listo para mover o llamar desde este consultorio en este momento.';
+    let primaryAction = 'none';
+    let primaryLabel = 'Sin acción';
+    let targetTicket = null;
+    let targetLabel = 'Sin ticket pendiente';
+
+    if (currentTicket) {
+        state = 'active';
+        badge = 'En atención';
+        headline = `${currentTicket.ticketCode} sigue en atención`;
+        detail = `${slotKey.toUpperCase()} está ocupado ahora. Deja visible el operador y prepara el siguiente paso sin cambiar de tarjeta.`;
+        primaryAction = 'open';
+        primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
+        targetTicket = currentTicket;
+        targetLabel = `${currentTicket.ticketCode} · ${formatQueueTicketAgeLabel(
+            currentTicket,
+            'called'
+        )}`;
+    } else if (nextAssignedTicket && operatorAssigned && operatorLive) {
+        state = 'ready';
+        badge = 'Llamar ahora';
+        headline = `${nextAssignedTicket.ticketCode} listo para ${slotKey.toUpperCase()}`;
+        detail = `El ticket ya está alineado a ${slotKey.toUpperCase()} y el operador correcto está arriba. Puedes llamarlo sin bajar a la tabla.`;
+        primaryAction = 'call';
+        primaryLabel = `Llamar ${nextAssignedTicket.ticketCode}`;
+        targetTicket = nextAssignedTicket;
+        targetLabel = `${nextAssignedTicket.ticketCode} · ${formatQueueTicketAgeLabel(
+            nextAssignedTicket,
+            'waiting'
+        )}`;
+    } else if (nextGeneralTicket && operatorAssigned && operatorLive) {
+        state = 'suggested';
+        badge = 'Tomar de cola general';
+        headline = `${slotKey.toUpperCase()} puede absorber ${nextGeneralTicket.ticketCode}`;
+        detail = `Hay ${generalBacklog} ticket(s) sin consultorio. Reasigna el más antiguo a ${slotKey.toUpperCase()} para destrabar recepción antes del siguiente pico.`;
+        primaryAction = 'assign';
+        primaryLabel = `Asignar ${nextGeneralTicket.ticketCode}`;
+        targetTicket = nextGeneralTicket;
+        targetLabel = `${nextGeneralTicket.ticketCode} · ${formatQueueTicketAgeLabel(
+            nextGeneralTicket,
+            'waiting'
+        )}`;
+    } else if (rebalanceTicket && operatorAssigned && operatorLive) {
+        state = 'warning';
+        badge = 'Rebalancear cola';
+        headline = `${slotKey.toUpperCase()} puede ayudar a C${otherSlot}`;
+        detail = `C${otherSlot} ya acumula ${otherBacklog} en espera. Mueve ${rebalanceTicket.ticketCode} a ${slotKey.toUpperCase()} para repartir mejor la carga.`;
+        primaryAction = 'rebalance';
+        primaryLabel = `Mover ${rebalanceTicket.ticketCode}`;
+        targetTicket = rebalanceTicket;
+        targetLabel = `${rebalanceTicket.ticketCode} · ${formatQueueTicketAgeLabel(
+            rebalanceTicket,
+            'waiting'
+        )}`;
+    } else if (nextAssignedTicket || nextGeneralTicket || rebalanceTicket) {
+        state = 'warning';
+        badge = 'Falta operador';
+        headline = `Prepara Operador ${slotKey.toUpperCase()}`;
+        detail = `Hay ticket pendiente para ${slotKey.toUpperCase()}, pero todavía no coincide el operador reportado. Abre la app correcta antes de despachar desde aquí.`;
+        primaryAction = 'open';
+        primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
+        targetTicket =
+            nextAssignedTicket || nextGeneralTicket || rebalanceTicket;
+        targetLabel = targetTicket
+            ? `${targetTicket.ticketCode} · ${formatQueueTicketAgeLabel(
+                  targetTicket,
+                  'waiting'
+              )}`
+            : 'Sin ticket pendiente';
+    } else if (!operatorAssigned && operatorLive) {
+        state = 'warning';
+        badge = 'Operador en otra estación';
+        headline = `${slotKey.toUpperCase()} sin operador dedicado`;
+        detail = `El operador vivo no coincide con ${slotKey.toUpperCase()}. Deja abierto el consultorio correcto antes de que vuelva a entrar cola.`;
+        primaryAction = 'open';
+        primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
+    } else if (operatorAssigned && operatorLive) {
+        state = 'ready';
+        badge = 'Equipo listo';
+        headline = `${slotKey.toUpperCase()} preparado para el próximo ticket`;
+        detail = `No hay turno esperando ahora, pero ${slotKey.toUpperCase()} ya tiene operador, numpad y heartbeat listos para absorber el siguiente ingreso.`;
+        primaryAction = 'open';
+        primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
+    }
+
+    return {
+        slot,
+        slotKey,
+        state,
+        badge,
+        headline,
+        detail,
+        targetTicketId: Number(targetTicket?.id || 0),
+        targetTicketCode: String(targetTicket?.ticketCode || ''),
+        targetLabel,
+        primaryAction,
+        primaryLabel,
+        operatorUrl,
+        queueMixLabel: `${slotKey.toUpperCase()} ${ownBacklog} · General ${generalBacklog}`,
+        backlogLabel: `C${otherSlot} ${otherBacklog} · Heartbeat ${heartbeatLabel}`,
+        chips: [operatorLabel, oneTapLabel, numpadLabel],
+    };
+}
+
+function buildQueueDispatchDeck(manifest, detectedPlatform) {
+    const cards = [1, 2].map((consultorio) =>
+        buildQueueDispatchCard(manifest, detectedPlatform, consultorio)
+    );
+    const actionableCount = cards.filter((card) =>
+        ['call', 'assign', 'rebalance'].includes(card.primaryAction)
+    ).length;
+    const blockedCount = cards.filter(
+        (card) => card.state === 'warning' && card.primaryAction === 'open'
+    ).length;
+    const waitingGeneralCount = getUnassignedWaitingTickets().length;
+
+    return {
+        title:
+            actionableCount > 0
+                ? 'Despacho sugerido listo'
+                : blockedCount > 0
+                  ? 'Despacho sugerido con bloqueos'
+                  : 'Despacho sugerido estable',
+        summary:
+            actionableCount > 0
+                ? 'Aquí aparece la siguiente jugada útil por consultorio para llamar o mover tickets sin revisar toda la tabla.'
+                : blockedCount > 0
+                  ? 'El hub detectó tickets movibles, pero aún falta operador o contexto para despacharlos con confianza.'
+                  : 'No hay movimiento urgente: ambos consultorios están balanceados o sin cola pendiente.',
+        statusLabel:
+            actionableCount > 0
+                ? `${actionableCount} acción(es) recomendada(s)`
+                : blockedCount > 0
+                  ? `${blockedCount} bloqueo(s) operativos`
+                  : 'Sin movimiento urgente',
+        statusState:
+            actionableCount > 0
+                ? 'ready'
+                : blockedCount > 0
+                  ? 'warning'
+                  : 'idle',
+        chips: [
+            `Generales ${waitingGeneralCount}`,
+            `Acciones ${actionableCount}`,
+            `Bloqueos ${blockedCount}`,
+        ],
+        cards,
+    };
+}
+
+function describeDispatchAction(card) {
+    if (card.primaryAction === 'call') {
+        return {
+            title: `Despacho ${card.slotKey.toUpperCase()}: llamado rápido`,
+            summary: `${card.targetTicketCode} se llamó desde la tarjeta de despacho sugerido.`,
+        };
+    }
+    if (card.primaryAction === 'assign') {
+        return {
+            title: `Despacho ${card.slotKey.toUpperCase()}: ticket tomado de cola general`,
+            summary: `${card.targetTicketCode} se reasignó a ${card.slotKey.toUpperCase()} desde el hub.`,
+        };
+    }
+    if (card.primaryAction === 'rebalance') {
+        return {
+            title: `Despacho ${card.slotKey.toUpperCase()}: rebalanceo aplicado`,
+            summary: `${card.targetTicketCode} se movió a ${card.slotKey.toUpperCase()} para repartir la carga del turno.`,
+        };
+    }
+    return {
+        title: `Despacho ${card.slotKey.toUpperCase()}: operador abierto`,
+        summary: `Se abrió la ruta preparada de Operador ${card.slotKey.toUpperCase()} desde el hub.`,
+    };
+}
+
+async function runQueueDispatchAction(card, manifest, detectedPlatform) {
+    if (!card || card.primaryAction === 'none') {
+        return;
+    }
+
+    try {
+        const { callNextForConsultorio, runQueueTicketAction } =
+            await import('../../actions.js');
+        if (card.primaryAction === 'call') {
+            await callNextForConsultorio(card.slot);
+        } else if (
+            (card.primaryAction === 'assign' ||
+                card.primaryAction === 'rebalance') &&
+            card.targetTicketId > 0
+        ) {
+            await runQueueTicketAction(
+                card.targetTicketId,
+                'reasignar',
+                card.slot
+            );
+        } else if (card.primaryAction === 'open') {
+            window.open(card.operatorUrl, '_blank', 'noopener');
+        }
+
+        appendOpsLogEntry({
+            tone: card.primaryAction === 'rebalance' ? 'warning' : 'info',
+            source: 'dispatch',
+            ...describeDispatchAction(card),
+        });
+    } catch (_error) {
+        createToast('No se pudo ejecutar el despacho sugerido', 'error');
+    } finally {
+        rerenderQueueOpsHub(manifest, detectedPlatform);
+    }
+}
+
+function renderQueueDispatchDeck(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDispatchDeck');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const deck = buildQueueDispatchDeck(manifest, detectedPlatform);
+    setHtml(
+        '#queueDispatchDeck',
+        `
+            <section class="queue-dispatch-deck__shell" data-state="${escapeHtml(
+                deck.statusState
+            )}">
+                <div class="queue-dispatch-deck__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Despacho sugerido</p>
+                        <h5 id="queueDispatchDeckTitle" class="queue-app-card__title">${escapeHtml(
+                            deck.title
+                        )}</h5>
+                        <p id="queueDispatchDeckSummary" class="queue-dispatch-deck__summary">${escapeHtml(
+                            deck.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-dispatch-deck__meta">
+                        <span
+                            id="queueDispatchDeckStatus"
+                            class="queue-dispatch-deck__status"
+                            data-state="${escapeHtml(deck.statusState)}"
+                        >
+                            ${escapeHtml(deck.statusLabel)}
+                        </span>
+                        <div class="queue-dispatch-deck__chips">
+                            ${deck.chips
+                                .map(
+                                    (chip) =>
+                                        `<span class="queue-dispatch-deck__chip">${escapeHtml(
+                                            chip
+                                        )}</span>`
+                                )
+                                .join('')}
+                        </div>
+                    </div>
+                </div>
+                <div id="queueDispatchDeckCards" class="queue-dispatch-deck__grid" role="list" aria-label="Despacho sugerido por consultorio">
+                    ${deck.cards
+                        .map(
+                            (card) => `
+                                <article
+                                    id="queueDispatchCard_${escapeHtml(card.slotKey)}"
+                                    class="queue-dispatch-card"
+                                    data-state="${escapeHtml(card.state)}"
+                                    role="listitem"
+                                >
+                                    <div class="queue-dispatch-card__header">
+                                        <div>
+                                            <strong>${escapeHtml(
+                                                card.slotKey.toUpperCase()
+                                            )}</strong>
+                                            <p id="queueDispatchHeadline_${escapeHtml(
+                                                card.slotKey
+                                            )}" class="queue-dispatch-card__headline">${escapeHtml(
+                                                card.headline
+                                            )}</p>
+                                        </div>
+                                        <span class="queue-dispatch-card__badge">${escapeHtml(
+                                            card.badge
+                                        )}</span>
+                                    </div>
+                                    <p id="queueDispatchDetail_${escapeHtml(
+                                        card.slotKey
+                                    )}" class="queue-dispatch-card__detail">${escapeHtml(
+                                        card.detail
+                                    )}</p>
+                                    <div class="queue-dispatch-card__facts">
+                                        <div class="queue-dispatch-card__fact">
+                                            <span>Ticket objetivo</span>
+                                            <strong id="queueDispatchTarget_${escapeHtml(
+                                                card.slotKey
+                                            )}">${escapeHtml(card.targetLabel)}</strong>
+                                        </div>
+                                        <div class="queue-dispatch-card__fact">
+                                            <span>Mix de cola</span>
+                                            <strong id="queueDispatchQueue_${escapeHtml(
+                                                card.slotKey
+                                            )}">${escapeHtml(card.queueMixLabel)}</strong>
+                                        </div>
+                                        <div class="queue-dispatch-card__fact">
+                                            <span>Contexto</span>
+                                            <strong id="queueDispatchBacklog_${escapeHtml(
+                                                card.slotKey
+                                            )}">${escapeHtml(card.backlogLabel)}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="queue-dispatch-card__chips">
+                                        ${card.chips
+                                            .map(
+                                                (chip) =>
+                                                    `<span class="queue-dispatch-card__chip">${escapeHtml(
+                                                        chip
+                                                    )}</span>`
+                                            )
+                                            .join('')}
+                                    </div>
+                                    <div class="queue-dispatch-card__actions">
+                                        <button
+                                            id="queueDispatchPrimary_${escapeHtml(
+                                                card.slotKey
+                                            )}"
+                                            type="button"
+                                            class="queue-dispatch-card__action queue-dispatch-card__action--primary"
+                                            data-queue-dispatch-action="${escapeHtml(
+                                                card.primaryAction
+                                            )}"
+                                            data-queue-consultorio="${escapeHtml(
+                                                String(card.slot)
+                                            )}"
+                                            data-queue-ticket-id="${escapeHtml(
+                                                String(card.targetTicketId)
+                                            )}"
+                                            ${card.primaryAction === 'none' ? 'disabled' : ''}
+                                        >
+                                            ${escapeHtml(card.primaryLabel)}
+                                        </button>
+                                        <a
+                                            id="queueDispatchOpenOperator_${escapeHtml(
+                                                card.slotKey
+                                            )}"
+                                            href="${escapeHtml(card.operatorUrl)}"
+                                            class="queue-dispatch-card__action"
+                                            target="_blank"
+                                            rel="noopener"
+                                        >
+                                            Operador ${escapeHtml(card.slotKey.toUpperCase())}
+                                        </a>
+                                    </div>
+                                </article>
+                            `
+                        )
+                        .join('')}
+                </div>
+            </section>
+        `
+    );
+
+    deck.cards.forEach((card) => {
+        const button = document.getElementById(
+            `queueDispatchPrimary_${card.slotKey}`
+        );
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+        button.onclick = async () => {
+            button.disabled = true;
+            await runQueueDispatchAction(card, manifest, detectedPlatform);
+        };
     });
 }
 
@@ -5708,6 +6832,8 @@ function rerenderQueueOpsHub(manifest, detectedPlatform) {
     renderQueueFocusMode(manifest, detectedPlatform);
     renderQueueNumpadGuide(manifest, detectedPlatform);
     renderConsultorioBoard(manifest, detectedPlatform);
+    renderQueueWaitRadar(manifest, detectedPlatform);
+    renderQueueDispatchDeck(manifest, detectedPlatform);
     renderQueueQuickConsole(manifest, detectedPlatform);
     renderQueuePlaybook(manifest, detectedPlatform);
     renderQueueOpsPilot(manifest, detectedPlatform);
@@ -5718,6 +6844,8 @@ function rerenderQueueOpsHub(manifest, detectedPlatform) {
     renderShiftHandoff(manifest, detectedPlatform);
     renderQueueOpsLog(manifest, detectedPlatform);
     renderInstallConfigurator(manifest, detectedPlatform);
+    syncQueueOpsInteractionIndicator();
+    scheduleQueueOpsInteractionSettle();
 }
 
 function renderInstallConfigurator(manifest, detectedPlatform) {
@@ -6052,13 +7180,27 @@ function renderInstallConfigurator(manifest, detectedPlatform) {
     }
 }
 
-export function renderQueueInstallHub() {
+export function renderQueueInstallHub(options = {}) {
+    const {
+        allowDuringInteraction = false,
+        manifestOverride = null,
+        platformOverride = '',
+    } = options || {};
     const cardsRoot = document.getElementById('queueAppDownloadsCards');
     if (!(cardsRoot instanceof HTMLElement)) {
         return;
     }
+    const hubRoot = getQueueAppsHubRoot();
+    if (hubRoot) {
+        bindQueueOpsInteraction(hubRoot);
+    }
 
-    const platform = detectPlatform();
+    const platform =
+        platformOverride === 'mac' ||
+        platformOverride === 'win' ||
+        platformOverride === 'other'
+            ? platformOverride
+            : detectPlatform();
     const platformChip = document.getElementById('queueAppsPlatformChip');
     const platformLabel =
         platform === 'mac'
@@ -6071,7 +7213,21 @@ export function renderQueueInstallHub() {
         platformChip.setAttribute('data-platform', platform);
     }
 
-    const manifest = mergeManifest();
+    const manifest =
+        manifestOverride && typeof manifestOverride === 'object'
+            ? manifestOverride
+            : mergeManifest();
+    if (
+        !allowDuringInteraction &&
+        hubRoot &&
+        hubRoot.dataset.queueHubReady === 'true' &&
+        hasActiveQueueOpsInteraction()
+    ) {
+        scheduleDeferredQueueOpsHubRender(manifest, platform);
+        return;
+    }
+
+    clearDeferredQueueOpsInteraction();
     setHtml(
         '#queueAppDownloadsCards',
         [
@@ -6083,6 +7239,8 @@ export function renderQueueInstallHub() {
     renderQueueFocusMode(manifest, platform);
     renderQueueNumpadGuide(manifest, platform);
     renderConsultorioBoard(manifest, platform);
+    renderQueueWaitRadar(manifest, platform);
+    renderQueueDispatchDeck(manifest, platform);
     renderQueueQuickConsole(manifest, platform);
     renderQueuePlaybook(manifest, platform);
     renderQueueOpsPilot(manifest, platform);
@@ -6093,4 +7251,9 @@ export function renderQueueInstallHub() {
     renderShiftHandoff(manifest, platform);
     renderQueueOpsLog(manifest, platform);
     renderInstallConfigurator(manifest, platform);
+    if (hubRoot) {
+        hubRoot.dataset.queueHubReady = 'true';
+    }
+    syncQueueOpsInteractionIndicator();
+    scheduleQueueOpsInteractionSettle();
 }
