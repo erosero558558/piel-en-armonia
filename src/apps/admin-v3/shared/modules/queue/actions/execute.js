@@ -57,6 +57,9 @@ export async function executeTicketAction({ ticketId, action, consultorio }) {
         },
     });
 
-    applyQueueStateResponse(payload, { syncMode: 'live' });
+    applyQueueStateResponse(payload, {
+        syncMode: 'live',
+        bumpRuntimeRevision: true,
+    });
     appendActivity(`Accion ${targetAction} ticket ${targetId}`);
 }

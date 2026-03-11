@@ -70,6 +70,8 @@ const initialState = {
         captureCallKeyMode: false,
         stationMode: 'free',
         stationConsultorio: 1,
+        runtimeRevision: 0,
+        lastRuntimeMutationAt: 0,
         selected: [],
         fallbackPartial: false,
         syncMode: 'live',

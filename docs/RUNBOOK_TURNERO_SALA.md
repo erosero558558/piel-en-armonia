@@ -185,9 +185,21 @@ Para separar operación por equipo:
 - `admin.html#queue` queda como hub de descargas, configuración y fallback operativo.
 - Las superficies `Operador`, `Kiosco` y `Sala TV` ahora envían heartbeat al backend por `queue-surface-heartbeat`, y `admin.html#queue` muestra ese estado en `Equipos en vivo`.
 - Mientras la sección `Turnero Sala` esté abierta y visible, `Equipos en vivo` se auto-refresca solo; si la pestaña queda oculta, el panel muestra `Auto-refresh en pausa` para evitar falsa sensación de congelamiento.
+- Si una operación reciente del numpad (`completar`, `llamar siguiente`, `1 tecla`) coincide con un auto-refresh, el admin preserva primero la cola local más nueva y lo deja indicado en `Equipos en vivo`.
 - El panel superior del hub ahora resume `qué falta`, `qué ya está validado` y `cuál es la siguiente acción`, para que recepción no tenga que recorrer manualmente todo el dashboard.
 - El hub `Apps operativas` ahora incluye un asistente para preparar `Operador`, `Kiosco` o `Sala TV` con la descarga y la ruta exacta de cada equipo.
+- El asistente también incluye presets rápidos (`Operador C1`, `Operador C2`, `Operador libre`, `Kiosco`, `Sala TV`) y recuerda el último perfil en `queueInstallPresetV1`.
+- El hub ahora también muestra `Prioridad viva`: un panel de alertas activas por cola/equipo que se puede marcar como revisado sin ocultar la incidencia, usando `queueOpsAlertsV1`.
+- El hub ahora también muestra `Numpad en vivo`: resume la estación real del admin, lo que reporta el Operador y qué harán `Enter`, `.`, `-`, `+` y `1/2` antes de pulsarlos.
+- El hub ahora también muestra una `Mesa por consultorio`: dos tarjetas `C1/C2` con ticket actual, siguiente en espera, operador esperado y accesos directos para llamar, liberar o abrir el operador correcto.
 - `admin.html#queue` también incluye un checklist de apertura diaria asistido: lee heartbeat de `Operador`, `Kiosco` y `Sala TV`, sugiere pasos ya validados y permite confirmarlos en bloque.
+- `admin.html#queue` también incluye un panel de `Cierre y relevo`: valida que la cola quedó limpia, deja visibles los pasos por equipo y permite copiar un resumen textual del relevo del día.
+- `admin.html#queue` también incluye una `bitácora operativa del día`: registra apertura asistida, ajustes de perfil, incidencias y relevo para que el siguiente turno no dependa de memoria informal.
+- La bitácora del admin puede filtrarse por `Todo`, `Incidencias`, `Cambios` y `Estados`, para revisar rápido solo fallas o solo ajustes del turno.
+- `admin.html#queue` también incluye un `Modo foco` con vistas `Auto`, `Apertura`, `Operación`, `Incidencias` y `Cierre`, para bajar ruido visual y mantener a la vista solo los bloques relevantes del momento.
+- Debajo del `Modo foco`, el admin ahora muestra una `Consola rápida` que adapta botones al momento del turno: apertura, operación, incidencias o cierre, para evitar bajar a varias tarjetas antes de actuar.
+- Debajo de la consola, el admin ahora muestra un `Playbook activo` por foco, con pasos cortos y confirmables para apertura, operación, incidencias o cierre; sirve como rutina guiada rápida dentro del mismo hub.
+- El `Playbook activo` ahora también marca pasos `sugeridos` por telemetría o estado reciente y permite confirmarlos en bloque cuando el sistema ya detectó que están listos.
 - `admin.html#queue` también incluye un deck de `contingencia rápida` para resolver `numpad`, `térmica`, `campanilla TV` y `fallback/realtime` sin salir del admin.
 - En `Turnero Operador`, el primer arranque abre una configuración guiada para dejar el equipo en `C1 fijo`, `C2 fijo` o `modo libre`; luego puede reabrirse con `F10` o `Ctrl/Cmd + ,`.
 - `/app-downloads/` expone el mismo catálogo de apps para instalar fuera del admin con presets por equipo.

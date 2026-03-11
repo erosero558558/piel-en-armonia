@@ -51,6 +51,7 @@ export function applyQueueStateResponse(payload, options = {}) {
         setQueueStateWithTickets(fullTickets, normalizedMeta, {
             fallbackPartial: false,
             syncMode,
+            bumpRuntimeRevision: Boolean(options.bumpRuntimeRevision),
         });
         return;
     }
@@ -66,6 +67,7 @@ export function applyQueueStateResponse(payload, options = {}) {
         {
             fallbackPartial,
             syncMode,
+            bumpRuntimeRevision: Boolean(options.bumpRuntimeRevision),
         }
     );
 }

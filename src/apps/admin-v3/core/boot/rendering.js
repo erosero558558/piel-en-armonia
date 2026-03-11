@@ -41,9 +41,12 @@ export function renderAllSections() {
 }
 
 export async function refreshDataAndRender(showToast = false) {
-    const ok = await refreshAdminData();
+    const result = await refreshAdminData();
+    const ok = Boolean(result?.ok);
     syncAvailabilityFromData();
-    await hydrateQueueFromData();
+    if (!result?.preservedQueueData) {
+        await hydrateQueueFromData();
+    }
     renderAllSections();
     if (showToast) {
         createToast(

@@ -32,12 +32,20 @@ export function renderQueueAppsHub() {
                     Plataforma detectada
                 </span>
             </div>
-            <div id="queueOpsPilot" class="queue-ops-pilot"></div>
-            <div id="queueAppDownloadsCards" class="queue-apps-grid"></div>
-            <div id="queueSurfaceTelemetry" class="queue-surface-telemetry"></div>
-            <div id="queueOpeningChecklist" class="queue-opening-checklist"></div>
-            <div id="queueContingencyDeck" class="queue-contingency-deck"></div>
-            <div id="queueInstallConfigurator" class="queue-install-configurator"></div>
+            <div id="queueFocusMode" class="queue-focus-mode" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueNumpadGuide" class="queue-numpad-guide" data-focus-match="opening operations incidents"></div>
+            <div id="queueConsultorioBoard" class="queue-consultorio-board" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueQuickConsole" class="queue-quick-console" data-focus-match="opening operations incidents closing"></div>
+            <div id="queuePlaybook" class="queue-playbook" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueOpsPilot" class="queue-ops-pilot" data-focus-match="opening operations incidents"></div>
+            <div id="queueAppDownloadsCards" class="queue-apps-grid" data-focus-match="opening operations"></div>
+            <div id="queueSurfaceTelemetry" class="queue-surface-telemetry" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueOpsAlerts" class="queue-ops-alerts" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueOpeningChecklist" class="queue-opening-checklist" data-focus-match="opening"></div>
+            <div id="queueShiftHandoff" class="queue-shift-handoff" data-focus-match="closing"></div>
+            <div id="queueOpsLog" class="queue-ops-log" data-focus-match="operations incidents closing"></div>
+            <div id="queueContingencyDeck" class="queue-contingency-deck" data-focus-match="incidents operations"></div>
+            <div id="queueInstallConfigurator" class="queue-install-configurator" data-focus-match="opening operations"></div>
         </div>
     `;
 }

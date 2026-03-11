@@ -39,6 +39,8 @@ export function setQueueStateWithTickets(
                   ? 'live'
                   : 'fallback'
               : 'live';
+    const bumpRuntimeRevision = Boolean(options.bumpRuntimeRevision);
+    const runtimeMutationAt = bumpRuntimeRevision ? Date.now() : 0;
 
     updateState((state) => ({
         ...state,
@@ -53,6 +55,12 @@ export function setQueueStateWithTickets(
                 state.queue.selected || [],
                 normalized
             ),
+            runtimeRevision: bumpRuntimeRevision
+                ? Number(state.queue.runtimeRevision || 0) + 1
+                : Number(state.queue.runtimeRevision || 0),
+            lastRuntimeMutationAt: bumpRuntimeRevision
+                ? runtimeMutationAt
+                : Number(state.queue.lastRuntimeMutationAt || 0),
             fallbackPartial,
             syncMode,
         },
@@ -79,5 +87,6 @@ export function mutateTicketLocal(ticketId, updater) {
     setQueueStateWithTickets(nextTickets, buildQueueMeta(nextTickets), {
         fallbackPartial: false,
         syncMode: 'live',
+        bumpRuntimeRevision: true,
     });
 }

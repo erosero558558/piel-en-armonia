@@ -65,11 +65,19 @@ This document freezes the active admin frontend contract after the total cutover
 - `#availabilitySelectionSummary`, `#availabilityDraftStatus`, `#availabilitySyncStatus`, `#availabilityDayActions`, `#availabilityDayActionsStatus`, `#availabilitySaveDraftBtn`, `#availabilityDiscardDraftBtn`
 - `#queue`, `#queueWaitingCountAdmin`, `#queueCalledCountAdmin`, `#queueC1Now`, `#queueC2Now`, `#queueSyncStatus`, `#queueNextAdminList`, `#queueTriageToolbar`, `#queueTriageSummary`, `#queueTableBody`, `#queueActivityPanel`, `#queueActivityList`
 - `#queueAppsHub`, `#queueAppsPlatformChip`, `#queueAppDownloadsCards`
+- `#queueFocusMode`, `#queueFocusModeTitle`, `#queueFocusModeSummary`, `#queueFocusModeChip`, `#queueFocusModePrimary`, `#queueFocusModeAuto`, `#queueFocusModeOpening`, `#queueFocusModeOperations`, `#queueFocusModeIncidents`, `#queueFocusModeClosing`
+- `#queueNumpadGuide`, `#queueNumpadGuideTitle`, `#queueNumpadGuideSummary`, `#queueNumpadGuideChipStation`, `#queueNumpadGuideChipOperator`, `#queueNumpadGuideChipOneTap`, `#queueNumpadGuideChipBinding`, `#queueNumpadGuideActions`, `#queueNumpadGuideToggleOneTap`, `#queueNumpadGuideCaptureKey`, `#queueNumpadGuideOpenOperator`, `#queueNumpadGuideKeys`, `#queueNumpadGuideKey_enter`, `#queueNumpadGuideKey_station`
+- `#queueConsultorioBoard`, `#queueConsultorioBoardTitle`, `#queueConsultorioBoardSummary`, `#queueConsultorioBoardStatus`, `#queueConsultorioBoardCards`, `#queueConsultorioCard_c1`, `#queueConsultorioCurrent_c1`, `#queueConsultorioNext_c1`, `#queueConsultorioPrimary_c1`, `#queueConsultorioRelease_c1`, `#queueConsultorioOpenOperator_c1`, `#queueConsultorioCard_c2`, `#queueConsultorioCurrent_c2`, `#queueConsultorioNext_c2`, `#queueConsultorioPrimary_c2`, `#queueConsultorioRelease_c2`, `#queueConsultorioOpenOperator_c2`
+- `#queueQuickConsole`, `#queueQuickConsoleTitle`, `#queueQuickConsoleSummary`, `#queueQuickConsoleChip`, `#queueQuickConsoleActions`, `#queueQuickConsoleAction_opening_apply`, `#queueQuickConsoleAction_incident_log`, `#queueQuickConsoleAction_closing_apply`, `#queueQuickConsoleAction_copy_handoff`
+- `#queuePlaybook`, `#queuePlaybookTitle`, `#queuePlaybookSummary`, `#queuePlaybookChip`, `#queuePlaybookAssistChip`, `#queuePlaybookApplyBtn`, `#queuePlaybookAssistBtn`, `#queuePlaybookCopyBtn`, `#queuePlaybookResetBtn`, `#queuePlaybookSteps`, `#queuePlaybookToggle_opening_operator`
 - `#queueOpsPilot`, `#queueOpsPilotTitle`, `#queueOpsPilotSummary`, `#queueOpsPilotProgressValue`, `#queueOpsPilotChipConfirmed`, `#queueOpsPilotChipSuggested`, `#queueOpsPilotChipEquipment`, `#queueOpsPilotChipIssues`
 - `#queueSurfaceTelemetry`, `#queueSurfaceTelemetryTitle`, `#queueSurfaceTelemetrySummary`, `#queueSurfaceTelemetryAutoMeta`, `#queueSurfaceTelemetryAutoState`, `#queueSurfaceTelemetryStatus`, `#queueSurfaceTelemetryCards`
+- `#queueOpsAlerts`, `#queueOpsAlertsTitle`, `#queueOpsAlertsSummary`, `#queueOpsAlertsChipTotal`, `#queueOpsAlertsChipPending`, `#queueOpsAlertsChipReviewed`, `#queueOpsAlertsApplyBtn`, `#queueOpsAlertsItems`, `#queueOpsAlert_kiosk_printer_pending`, `#queueOpsAlertReview_kiosk_printer_pending`
 - `#queueOpeningChecklist`, `#queueOpeningChecklistTitle`, `#queueOpeningChecklistSummary`, `#queueOpeningChecklistAssistChip`, `#queueOpeningChecklistApplyBtn`, `#queueOpeningChecklistResetBtn`, `#queueOpeningChecklistSteps`, `#queueOpeningToggle_operator_ready`
+- `#queueShiftHandoff`, `#queueShiftHandoffTitle`, `#queueShiftHandoffSummary`, `#queueShiftHandoffAssistChip`, `#queueShiftHandoffCopyBtn`, `#queueShiftHandoffApplyBtn`, `#queueShiftHandoffResetBtn`, `#queueShiftHandoffPreview`, `#queueShiftHandoffSteps`, `#queueShiftToggle_queue_clear`
+- `#queueOpsLog`, `#queueOpsLogTitle`, `#queueOpsLogSummary`, `#queueOpsLogChip`, `#queueOpsLogFilterAll`, `#queueOpsLogFilterIncidents`, `#queueOpsLogFilterChanges`, `#queueOpsLogFilterStatus`, `#queueOpsLogStatusBtn`, `#queueOpsLogIncidentBtn`, `#queueOpsLogCopyBtn`, `#queueOpsLogClearBtn`, `#queueOpsLogItems`
 - `#queueContingencyDeck`, `#queueContingencyTitle`, `#queueContingencySummary`, `#queueContingencyCards`, `#queueContingencySyncCard`
-- `#queueInstallConfigurator`, `#queueInstallSurfaceSelect`
+- `#queueInstallConfigurator`, `#queueInstallSurfaceSelect`, `#queueInstallProfileSelect`, `#queueInstallPlatformSelect`, `#queueInstallPreset_operator_c1_locked`, `#queueInstallPreset_operator_c2_locked`, `#queueInstallPreset_operator_free`, `#queueInstallPreset_kiosk`, `#queueInstallPreset_sala_tv`
 - `#queueStationBadge`, `#queueStationModeBadge`, `#queuePracticeModeBadge`, `#queueShortcutPanel`, `#queueSensitiveConfirmDialog`, `#queueReleaseC1`, `#queueSelectVisibleBtn`, `#queueClearSelectionBtn`, `#queueSelectionChip`, `#queueSelectedCount`
 - `#toastContainer`
 
@@ -104,6 +112,13 @@ This document freezes the active admin frontend contract after the total cutover
     - `queueCallKeyBindingV1`
     - `queueNumpadHelpOpen`
     - `queueOpeningChecklistV1`
+    - `queueShiftHandoffV1`
+    - `queueOpsLogV1`
+    - `queueOpsLogFilterV1`
+    - `queueOpsAlertsV1`
+    - `queueOpsFocusModeV1`
+    - `queueOpsPlaybookV1`
+    - `queueInstallPresetV1`
 - Retired compatibility key:
     - `adminUiVariant` (historical only; not read or cleaned by runtime)
 

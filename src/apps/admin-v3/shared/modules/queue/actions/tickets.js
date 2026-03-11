@@ -49,7 +49,10 @@ export async function callNextForConsultorio(consultorio) {
             method: 'POST',
             body: { consultorio: target },
         });
-        applyQueueStateResponse(payload, { syncMode: 'live' });
+        applyQueueStateResponse(payload, {
+            syncMode: 'live',
+            bumpRuntimeRevision: true,
+        });
         appendActivity(`Llamado C${target} ejecutado`);
     } catch (_error) {
         appendActivity(`Error llamando siguiente en C${target}`);
