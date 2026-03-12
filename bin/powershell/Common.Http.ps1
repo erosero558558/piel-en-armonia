@@ -162,6 +162,267 @@ function Invoke-TextGet {
     }
 }
 
+function Invoke-GitHubIssuesGet {
+    param(
+        [string]$Repo,
+        [string]$State = 'open',
+        [string]$Labels = 'production-alert',
+        [int]$PerPage = 30,
+        [int]$TimeoutSec = 20,
+        [string]$ApiBase = 'https://api.github.com',
+        [string]$UserAgent = 'PielArmoniaHttp/1.0',
+        [int]$JsonDepth = 20
+    )
+
+    $safeApiBase = ([string]$ApiBase).TrimEnd('/')
+    $safePerPage = [Math]::Min([Math]::Max($PerPage, 1), 100)
+    $query = @(
+        "state=$([System.Uri]::EscapeDataString($State))"
+        "labels=$([System.Uri]::EscapeDataString($Labels))"
+        "per_page=$safePerPage"
+    ) -join '&'
+    $url = "$safeApiBase/repos/$Repo/issues?$query"
+
+    try {
+        $resp = Invoke-WebRequest -Uri $url -Method GET -TimeoutSec $TimeoutSec -UseBasicParsing -Headers @{
+            'Accept' = 'application/vnd.github+json'
+            'Cache-Control' = 'no-cache'
+            'User-Agent' = $UserAgent
+            'X-GitHub-Api-Version' = '2022-11-28'
+        }
+        $status = [int]$resp.StatusCode
+        $body = [string]$resp.Content
+        if ($status -lt 200 -or $status -ge 300) {
+            return [pscustomobject]@{
+                Name = 'github-issues'
+                Ok = $false
+                StatusCode = $status
+                Error = "HTTP $status"
+                Json = $null
+                Body = $body
+                Url = $url
+            }
+        }
+
+        $json = Parse-JsonBody -Body $body -Depth $JsonDepth
+        if ($null -eq $json) {
+            return [pscustomobject]@{
+                Name = 'github-issues'
+                Ok = $false
+                StatusCode = $status
+                Error = 'JSON invalido'
+                Json = $null
+                Body = $body
+                Url = $url
+            }
+        }
+
+        return [pscustomobject]@{
+            Name = 'github-issues'
+            Ok = $true
+            StatusCode = $status
+            Error = ''
+            Json = $json
+            Body = $body
+            Url = $url
+        }
+    } catch {
+        return [pscustomobject]@{
+            Name = 'github-issues'
+            Ok = $false
+            StatusCode = 0
+            Error = $_.Exception.Message
+            Json = $null
+            Body = ''
+            Url = $url
+        }
+    }
+}
+
+function Get-GitHubProductionAlertSummary {
+    param(
+        [string]$Repo,
+        [string]$ApiBase = 'https://api.github.com',
+        [int]$TimeoutSec = 20,
+        [int]$IssueLimit = 30,
+        [string]$UserAgent = 'PielArmoniaHttp/1.0'
+    )
+
+    $summary = [ordered]@{
+        enabled = $true
+        repo = $Repo
+        apiBase = $ApiBase
+        apiUrl = ''
+        fetchOk = $false
+        error = ''
+        issueCount = 0
+        relevantCount = 0
+        issueNumbers = @()
+        issueUrls = @()
+        issueRefs = @()
+        issues = @()
+        transportCount = 0
+        connectivityCount = 0
+        repairGitSyncCount = 0
+        selfHostedRunnerCount = 0
+        hasTransportBlock = $false
+        hasConnectivityBlock = $false
+        hasRepairGitSyncBlock = $false
+        hasSelfHostedRunnerBlock = $false
+        issueNumbersLabel = 'none'
+        issueRefsLabel = 'none'
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Repo)) {
+        $summary.error = 'repo_missing'
+        return [pscustomobject]$summary
+    }
+
+    $issuesResult = Invoke-GitHubIssuesGet `
+        -Repo $Repo `
+        -State 'open' `
+        -Labels 'production-alert' `
+        -PerPage $IssueLimit `
+        -TimeoutSec $TimeoutSec `
+        -ApiBase $ApiBase `
+        -UserAgent $UserAgent
+
+    $summary.apiUrl = [string]$issuesResult.Url
+    if (-not $issuesResult.Ok -or $null -eq $issuesResult.Json) {
+        $summary.error = [string]$issuesResult.Error
+        return [pscustomobject]$summary
+    }
+
+    $summary.fetchOk = $true
+    $issueRows = New-Object System.Collections.Generic.List[object]
+
+    foreach ($issue in @($issuesResult.Json)) {
+        if ($null -eq $issue) {
+            continue
+        }
+
+        $hasPullRequest = $false
+        try {
+            if ($null -ne $issue.pull_request) {
+                $hasPullRequest = $true
+            }
+        } catch {
+            $hasPullRequest = $false
+        }
+        if ($hasPullRequest) {
+            continue
+        }
+
+        $labelNames = New-Object System.Collections.Generic.List[string]
+        try {
+            foreach ($label in @($issue.labels)) {
+                $labelName = ''
+                try {
+                    $labelName = [string]$label.name
+                } catch {
+                    try {
+                        $labelName = [string]$label
+                    } catch {
+                        $labelName = ''
+                    }
+                }
+
+                if (-not [string]::IsNullOrWhiteSpace($labelName) -and -not $labelNames.Contains($labelName)) {
+                    $labelNames.Add($labelName) | Out-Null
+                }
+            }
+        } catch {
+        }
+
+        $labelValues = @($labelNames.ToArray())
+        $isDeployRelevant = (
+            $labelValues -contains 'deploy-hosting' -or
+            $labelValues -contains 'transport-preflight' -or
+            $labelValues -contains 'diagnose-host-connectivity' -or
+            $labelValues -contains 'deploy-connectivity' -or
+            $labelValues -contains 'repair-git-sync' -or
+            $labelValues -contains 'self-hosted-runner'
+        )
+        if (-not $isDeployRelevant) {
+            continue
+        }
+
+        $issueNumber = 0
+        $issueTitle = ''
+        $issueUrl = ''
+        try { $issueNumber = [int]$issue.number } catch { $issueNumber = 0 }
+        try { $issueTitle = [string]$issue.title } catch { $issueTitle = '' }
+        try { $issueUrl = [string]$issue.html_url } catch { $issueUrl = '' }
+
+        $categories = New-Object System.Collections.Generic.List[string]
+        if ($labelValues -contains 'deploy-hosting' -or $labelValues -contains 'transport-preflight') {
+            $categories.Add('transport') | Out-Null
+            $summary.transportCount++
+        }
+        if ($labelValues -contains 'diagnose-host-connectivity' -or $labelValues -contains 'deploy-connectivity') {
+            $categories.Add('connectivity') | Out-Null
+            $summary.connectivityCount++
+        }
+        if ($labelValues -contains 'repair-git-sync') {
+            $categories.Add('repair-git-sync') | Out-Null
+            $summary.repairGitSyncCount++
+        }
+        if ($labelValues -contains 'self-hosted-runner') {
+            $categories.Add('self-hosted-runner') | Out-Null
+            $summary.selfHostedRunnerCount++
+        }
+
+        $categoryLabel = 'deploy'
+        if ($categories.Count -gt 0) {
+            $categoryLabel = (@($categories.ToArray()) -join '+')
+        }
+
+        $issueRows.Add([ordered]@{
+            number = $issueNumber
+            title = $issueTitle
+            url = $issueUrl
+            labels = @($labelValues)
+            categories = @($categories.ToArray())
+            categoryLabel = $categoryLabel
+        }) | Out-Null
+    }
+
+    $issueNumbers = @($issueRows | ForEach-Object { [int]$_.number })
+    $issueUrls = @($issueRows | ForEach-Object { [string]$_.url })
+    $issueRefs = @(
+        $issueRows | ForEach-Object {
+            $refTitle = [string]$_.title
+            if ([string]::IsNullOrWhiteSpace($refTitle)) {
+                $refTitle = 'sin_titulo'
+            }
+            "#$($_.number) [$($_.categoryLabel)] $refTitle"
+        }
+    )
+
+    $summary.issueCount = $issueRows.Count
+    $summary.relevantCount = $issueRows.Count
+    $summary.issueNumbers = @($issueNumbers)
+    $summary.issueUrls = @($issueUrls)
+    $summary.issueRefs = @($issueRefs)
+    $summary.issues = @($issueRows.ToArray())
+    $summary.hasTransportBlock = [bool]($summary.transportCount -gt 0)
+    $summary.hasConnectivityBlock = [bool]($summary.connectivityCount -gt 0)
+    $summary.hasRepairGitSyncBlock = [bool]($summary.repairGitSyncCount -gt 0)
+    $summary.hasSelfHostedRunnerBlock = [bool]($summary.selfHostedRunnerCount -gt 0)
+    $summary.issueNumbersLabel = if ($issueNumbers.Count -eq 0) {
+        'none'
+    } else {
+        (@($issueNumbers | ForEach-Object { "#$_" }) -join ', ')
+    }
+    $summary.issueRefsLabel = if ($issueRefs.Count -eq 0) {
+        'none'
+    } else {
+        (@($issueRefs) -join ' | ')
+    }
+
+    return [pscustomobject]$summary
+}
+
 function Invoke-EndpointCheck {
     param(
         [string]$Name,
@@ -761,22 +1022,42 @@ function Test-AssetCacheHeaders {
                 continue
             }
 
-            $assetResp = Invoke-WebRequest -Uri $assetCheck.Url -Method GET -TimeoutSec 20 -UseBasicParsing -Headers @{
-                'Cache-Control' = 'no-cache'
-                'User-Agent' = 'PielArmoniaDeployCheck/1.0'
-            }
-            $cacheHeader = [string]$assetResp.Headers['Cache-Control']
-            if ([string]::IsNullOrWhiteSpace($cacheHeader) -or $cacheHeader -notmatch 'max-age') {
-                Write-Host "[FAIL] asset sin Cache-Control con max-age: $($assetCheck.Name)"
+            try {
+                $assetResp = Invoke-WebRequest -Uri $assetCheck.Url -Method GET -TimeoutSec 20 -UseBasicParsing -Headers @{
+                    'Cache-Control' = 'no-cache'
+                    'User-Agent' = 'PielArmoniaDeployCheck/1.0'
+                }
+                $cacheHeader = [string]$assetResp.Headers['Cache-Control']
+                if ([string]::IsNullOrWhiteSpace($cacheHeader) -or $cacheHeader -notmatch 'max-age') {
+                    Write-Host "[FAIL] asset sin Cache-Control con max-age: $($assetCheck.Name)"
+                    Write-Host "       Url          : $($assetCheck.Url)"
+                    Write-Host "       Cache-Control: $(if ($cacheHeader) { $cacheHeader } else { 'missing' })"
+                    $results += [pscustomobject]@{
+                        Asset = "cache-header:$($assetCheck.Name)"
+                        Match = $false
+                        LocalHash = 'max-age'
+                        RemoteHash = if ($cacheHeader) { $cacheHeader } else { 'missing' }
+                        RemoteUrl = $assetCheck.Url
+                    }
+                } else {
+                    Write-Host "[OK]  cache header correcto en: $($assetCheck.Name)"
+                }
+            } catch {
+                $errorSummary = ([string]$_.Exception.Message).Trim()
+                if ([string]::IsNullOrWhiteSpace($errorSummary)) {
+                    $errorSummary = 'unknown_request_error'
+                }
+                $errorSummary = ($errorSummary -replace '\s+', ' ')
+                Write-Host "[FAIL] No se pudo validar Cache-Control del asset: $($assetCheck.Name)"
+                Write-Host "       Url          : $($assetCheck.Url)"
+                Write-Host "       Error        : $errorSummary"
                 $results += [pscustomobject]@{
                     Asset = "cache-header:$($assetCheck.Name)"
                     Match = $false
                     LocalHash = 'max-age'
-                    RemoteHash = if ($cacheHeader) { $cacheHeader } else { 'missing' }
+                    RemoteHash = "request_error:$errorSummary"
                     RemoteUrl = $assetCheck.Url
                 }
-            } else {
-                Write-Host "[OK]  cache header correcto en: $($assetCheck.Name)"
             }
         }
     } catch {

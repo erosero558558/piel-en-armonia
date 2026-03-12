@@ -165,8 +165,8 @@ $remoteStyleRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern $primaryS
 $remoteDeferredStyleRef = Get-RefFromIndex -IndexHtml $remoteIndexRaw -Pattern $deferredStyleRefPattern
 $remoteHasInlineCriticalCss = [regex]::IsMatch($remoteIndexRaw, '<style\b[^>]*>[\s\S]*?</style>', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 $appScriptRemoteUrl = Get-Url -Base $base -Ref $remoteScriptRef
-$criticalCssRemoteUrl = Get-Url -Base $base -Ref $localStyleRef
-$indexDeferredStylesRemoteUrl = Get-Url -Base $base -Ref $localDeferredStyleRef
+$criticalCssRemoteUrl = Get-Url -Base $base -Ref $remoteStyleRef
+$indexDeferredStylesRemoteUrl = Get-Url -Base $base -Ref $remoteDeferredStyleRef
 $deployAssetVersion = ''
 $deployVersionMatch = [regex]::Match($remoteScriptRef, '[?&]v=([^&]+)')
 if ($deployVersionMatch.Success) {

@@ -22,6 +22,7 @@ const VERIFY_PATH = resolve(
     'VERIFICAR-DESPLIEGUE.ps1'
 );
 const README_PATH = resolve(REPO_ROOT, 'scripts', 'ops', 'prod', 'README.md');
+const COMMON_HTTP_PATH = resolve(REPO_ROOT, 'bin', 'powershell', 'Common.Http.ps1');
 
 function load(filePath) {
     return readFileSync(filePath, 'utf8');
@@ -91,6 +92,27 @@ test('prod ops readme documenta triage de publicSync', () => {
             raw.includes(snippet),
             true,
             `falta snippet de documentacion publicSync en scripts/ops/prod/README.md: ${snippet}`
+        );
+    }
+});
+
+test('prod verify expone diagnostico por asset cuando falla cache-header', () => {
+    const raw = load(COMMON_HTTP_PATH);
+    const requiredSnippets = [
+        'Write-Host "[FAIL] No se pudo validar Cache-Control del asset: $($assetCheck.Name)"',
+        'Write-Host "       Url          : $($assetCheck.Url)"',
+        'Write-Host "       Error        : $errorSummary"',
+        '$errorSummary = ([string]$_.Exception.Message).Trim()',
+        "$errorSummary = 'unknown_request_error'",
+        '$errorSummary = ($errorSummary -replace \'\\s+\', \' \')',
+        'RemoteHash = "request_error:$errorSummary"',
+    ];
+
+    for (const snippet of requiredSnippets) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta diagnostico por asset en Common.Http.ps1: ${snippet}`
         );
     }
 });
