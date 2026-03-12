@@ -635,6 +635,74 @@ test('repair-git-sync evalua y gestiona incidente dedicado de telemedicina post-
     }
 });
 
+test('repair-git-sync resincroniza el wrapper canonico del cron host y publica su estado', () => {
+    const { raw, parsed } = loadWorkflow(REPAIR_WORKFLOW_PATH);
+    const steps = parsed?.jobs?.repair?.steps || [];
+    const stepNames = steps.map((step) => String(step?.name || ''));
+
+    for (const expectedStepName of [
+        'Instalar sshpass para repair SSH',
+        'Forzar sincronizacion git remota',
+    ]) {
+        assert.equal(
+            stepNames.includes(expectedStepName),
+            true,
+            `falta step para resincronizar el wrapper canonico del cron host: ${expectedStepName}`
+        );
+    }
+
+    for (const snippet of [
+        'PUBLIC_SYNC_HOST_WRAPPER_PATH: /root/sync-pielarmonia.sh',
+        'PUBLIC_SYNC_REPO_WRAPPER_RELATIVE_PATH: bin/deploy-public-v3-cron-sync.sh',
+        'HOST_CRON_WRAPPER_SYNC_STATE: not_evaluated',
+        'HOST_CRON_WRAPPER_SYNC_REASON: not_evaluated',
+        'if command -v sshpass >/dev/null 2>&1; then',
+        'sudo apt-get install -y sshpass',
+        'sshpass -p "$SSH_PASSWORD" ssh',
+        '-o PreferredAuthentications=password',
+        '-o PubkeyAuthentication=no',
+        'HOST_WRAPPER_PATH="${PUBLIC_SYNC_HOST_WRAPPER_PATH:-/root/sync-pielarmonia.sh}"',
+        'REPO_WRAPPER_RELATIVE_PATH="${PUBLIC_SYNC_REPO_WRAPPER_RELATIVE_PATH:-bin/deploy-public-v3-cron-sync.sh}"',
+        'WRAPPER_SYNC_STATE="already_aligned"',
+        'WRAPPER_SYNC_REASON="host_wrapper_matches_repo"',
+        'WRAPPER_SYNC_REASON="host_wrapper_replaced_from_repo"',
+        'WRAPPER_SYNC_REASON="host_wrapper_created_from_repo"',
+        'WRAPPER_SYNC_REASON="repo_wrapper_missing"',
+        'install -m 0755 "$REPO_WRAPPER_PATH" "$HOST_WRAPPER_PATH"',
+        'Wrapper cron host sincronizado: $HOST_WRAPPER_PATH <- $REPO_WRAPPER_PATH ($WRAPPER_SYNC_STATE)',
+        "printf '__REPAIR_META__ host_cron_wrapper_sync_state=%s\\n' \"$WRAPPER_SYNC_STATE\"",
+        "printf '__REPAIR_META__ host_cron_wrapper_sync_reason=%s\\n' \"$WRAPPER_SYNC_REASON\"",
+        "printf '__REPAIR_META__ host_cron_wrapper_path=%s\\n' \"$HOST_WRAPPER_PATH\"",
+        "printf '__REPAIR_META__ host_cron_wrapper_source=%s\\n' \"$REPO_WRAPPER_PATH\"",
+        "host_cron_wrapper_sync_reason='ssh_stdout_unavailable'",
+        "host_cron_wrapper_sync_reason='not_reported'",
+        'echo "host_cron_wrapper_sync_state=$host_cron_wrapper_sync_state"',
+        'echo "host_cron_wrapper_sync_reason=$host_cron_wrapper_sync_reason"',
+        'echo "host_cron_wrapper_path=$host_cron_wrapper_path"',
+        'echo "host_cron_wrapper_source=$host_cron_wrapper_source"',
+        'echo "HOST_CRON_WRAPPER_SYNC_STATE=$host_cron_wrapper_sync_state"',
+        'echo "HOST_CRON_WRAPPER_SYNC_REASON=$host_cron_wrapper_sync_reason"',
+        'echo "HOST_CRON_WRAPPER_PATH=$host_cron_wrapper_path"',
+        'echo "HOST_CRON_WRAPPER_SOURCE=$host_cron_wrapper_source"',
+        'host_cron_wrapper_sync_state: \\`${HOST_CRON_WRAPPER_SYNC_STATE}\\`',
+        'host_cron_wrapper_sync_reason: \\`${HOST_CRON_WRAPPER_SYNC_REASON}\\`',
+        'host_cron_wrapper_path: \\`${HOST_CRON_WRAPPER_PATH}\\`',
+        'host_cron_wrapper_source: \\`${HOST_CRON_WRAPPER_SOURCE}\\`',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta resincronizacion canonica del wrapper host en repair-git-sync: ${snippet}`
+        );
+    }
+
+    assert.equal(
+        raw.includes('uses: appleboy/ssh-action@v1.2.0'),
+        false,
+        'repair-git-sync ya no debe depender de appleboy/ssh-action para capturar el estado del wrapper'
+    );
+});
+
 test('repair-git-sync gestiona incidente dedicado cuando el fallback self-hosted queda sin runner', () => {
     const { raw, parsed } = loadWorkflow(REPAIR_WORKFLOW_PATH);
     const steps = parsed?.jobs?.repair?.steps || [];

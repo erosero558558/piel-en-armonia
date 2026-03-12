@@ -82,7 +82,7 @@ Triage the canonical `publicSync` signals before touching the host:
 
 - `failureReason=working_tree_dirty` is the canonical first-pass classification for tracked repo drift on the VPS.
 - `headDrift=true` means `currentHead` and `remoteHead` diverge, so the host repo is behind or detached from the intended `main` commit.
-- `telemetryGap=true` means the cron failed without exposing `currentHead`, `remoteHead`, or dirty tracked paths; treat it as incomplete host runtime telemetry until the updated wrapper is deployed.
+- `telemetryGap=true` means the cron failed without exposing `currentHead`, `remoteHead`, or dirty tracked paths; treat it first as incomplete host runtime telemetry from a stale `/root/sync-pielarmonia.sh` wrapper or other legacy host entrypoint until the updated wrapper is deployed.
 - `failureReason=working_tree_dirty` with `telemetryGap=false` means the cron had enough telemetry and `dirtyPathsCount` / `dirtyPathsSample` should identify the tracked drift to clean up.
 
 Triage the GitHub-side deploy corroboration in the same pass:
@@ -151,6 +151,18 @@ the pattern is consistent with a stale host rather than a total outage:
 
 This keeps the emergency transport fallback conservative. Generic verify
 failures without the stale-host signature do not auto-dispatch transport.
+
+During a successful SSH repair, the workflow now also re-installs the canonical
+host wrapper:
+
+```bash
+install -m 0755 /var/www/figo/bin/deploy-public-v3-cron-sync.sh /root/sync-pielarmonia.sh
+```
+
+Read the repair summary for `host_cron_wrapper_sync_state`,
+`host_cron_wrapper_sync_reason`, `host_cron_wrapper_path`, and
+`host_cron_wrapper_source` before assuming the cron is still running the latest
+wrapper.
 
 If you also want the repair workflow to try the Windows runner path, opt into
 the self-hosted fallback from the same repair dispatch:
@@ -253,4 +265,3 @@ If the emergency VPS publish path needs a different Nginx-served local verify
 host, use `LOCAL_VERIFY_BASE_URL=...` with `deploy-public-v3-live.sh`.
 `TEST_BASE_URL` remains for local QA/audits and should not be mixed with the
 VPS live verify target.
-

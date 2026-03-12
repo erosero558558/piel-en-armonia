@@ -59,6 +59,12 @@ jobs:
             SSH_PASSWORD: ${{ secrets.SSH_PASSWORD || vars.SSH_PASSWORD || secrets.FTP_PASSWORD || vars.FTP_PASSWORD || '' }}
             SSH_REPO_DIR: ${{ github.event.inputs.repo_dir || vars.SSH_REPO_DIR || '/var/www/figo' }}
             REPO_GIT_URL: https://github.com/erosero558558/piel-en-armonia.git
+            PUBLIC_SYNC_HOST_WRAPPER_PATH: /root/sync-pielarmonia.sh
+            PUBLIC_SYNC_REPO_WRAPPER_RELATIVE_PATH: bin/deploy-public-v3-cron-sync.sh
+            HOST_CRON_WRAPPER_SYNC_STATE: not_evaluated
+            HOST_CRON_WRAPPER_SYNC_REASON: not_evaluated
+            HOST_CRON_WRAPPER_PATH: /root/sync-pielarmonia.sh
+            HOST_CRON_WRAPPER_SOURCE: ''
             TELEMEDICINE_REPAIR_STATUS: unknown
             TELEMEDICINE_REPAIR_REASON: not_evaluated
             TELEMEDICINE_REPAIR_FAILURES: -1
@@ -102,88 +108,209 @@ jobs:
                     exit 1
                   fi
 
+            - name: Instalar sshpass para repair SSH
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if command -v sshpass >/dev/null 2>&1; then
+                    echo "sshpass ya disponible."
+                    exit 0
+                  fi
+                  sudo apt-get update
+                  sudo apt-get install -y sshpass
+
             - name: Forzar sincronizacion git remota
               id: ssh_repair
               continue-on-error: true
-              uses: appleboy/ssh-action@v1.2.0
-              with:
-                  host: ${{ env.SSH_HOST }}
-                  username: ${{ env.SSH_USERNAME }}
-                  password: ${{ env.SSH_PASSWORD }}
-                  port: ${{ env.SSH_PORT }}
-                  script_stop: true
-                  timeout: 120s
-                  command_timeout: 15m
-                  script: |
-                      set -eu
-                      BRANCH="${TARGET_BRANCH}"
-                      REPO_URL="${REPO_GIT_URL}"
-                      REPO_HINT="${SSH_REPO_DIR}"
-                      TARGET_REPO=""
+              shell: bash
+              run: |
+                  set -euo pipefail
 
-                      normalize_url() {
-                        echo "$1" | sed -e 's#^git@github.com:#https://github.com/#' -e 's#\.git$##'
-                      }
+                  ssh_stdout_file="$(mktemp)"
+                  ssh_stderr_file="$(mktemp)"
+                  remote_script_file="$(mktemp)"
 
-                      matches_repo() {
-                        candidate="$1"
-                        remote_url="$(git -C "$candidate" remote get-url origin 2>/dev/null || true)"
-                        if [ -z "$remote_url" ]; then
-                          return 1
+                  cleanup() {
+                    rm -f "$ssh_stdout_file" "$ssh_stderr_file" "$remote_script_file"
+                  }
+
+                  trap cleanup EXIT
+
+                  cat > "$remote_script_file" <<'REMOTE'
+                  set -eu
+                  BRANCH="${TARGET_BRANCH}"
+                  REPO_URL="${REPO_GIT_URL}"
+                  REPO_HINT="${SSH_REPO_DIR}"
+                  TARGET_REPO=""
+                  HOST_WRAPPER_PATH="${PUBLIC_SYNC_HOST_WRAPPER_PATH:-/root/sync-pielarmonia.sh}"
+                  REPO_WRAPPER_RELATIVE_PATH="${PUBLIC_SYNC_REPO_WRAPPER_RELATIVE_PATH:-bin/deploy-public-v3-cron-sync.sh}"
+                  REPO_WRAPPER_PATH=""
+                  WRAPPER_SYNC_STATE="not_evaluated"
+                  WRAPPER_SYNC_REASON="not_evaluated"
+
+                  normalize_url() {
+                    echo "$1" | sed -e 's#^git@github.com:#https://github.com/#' -e 's#\.git$##'
+                  }
+
+                  matches_repo() {
+                    candidate="$1"
+                    remote_url="$(git -C "$candidate" remote get-url origin 2>/dev/null || true)"
+                    if [ -z "$remote_url" ]; then
+                      return 1
+                    fi
+                    n1="$(normalize_url "$remote_url")"
+                    n2="$(normalize_url "$REPO_URL")"
+                    [ "$n1" = "$n2" ]
+                  }
+
+                  if [ -n "$REPO_HINT" ] && [ -d "$REPO_HINT/.git" ]; then
+                    if matches_repo "$REPO_HINT"; then
+                      TARGET_REPO="$REPO_HINT"
+                    fi
+                  fi
+
+                  if [ -z "$TARGET_REPO" ]; then
+                    SEARCH_BASES="$HOME /var/www /srv /opt /www /home"
+                    for base in $SEARCH_BASES; do
+                      [ -d "$base" ] || continue
+                      for gitdir in $(find "$base" -maxdepth 6 -type d -name .git 2>/dev/null || true); do
+                        candidate="${gitdir%/.git}"
+                        if matches_repo "$candidate"; then
+                          TARGET_REPO="$candidate"
+                          break 2
                         fi
-                        n1="$(normalize_url "$remote_url")"
-                        n2="$(normalize_url "$REPO_URL")"
-                        [ "$n1" = "$n2" ]
-                      }
+                      done
+                    done
+                  fi
 
-                      if [ -n "$REPO_HINT" ] && [ -d "$REPO_HINT/.git" ]; then
-                        if matches_repo "$REPO_HINT"; then
-                          TARGET_REPO="$REPO_HINT"
-                        fi
-                      fi
+                  if [ -z "$TARGET_REPO" ]; then
+                    echo "No se encontro repo objetivo en el servidor."
+                    exit 2
+                  fi
 
-                      if [ -z "$TARGET_REPO" ]; then
-                        SEARCH_BASES="$HOME /var/www /srv /opt /www /home"
-                        for base in $SEARCH_BASES; do
-                          [ -d "$base" ] || continue
-                          for gitdir in $(find "$base" -maxdepth 6 -type d -name .git 2>/dev/null || true); do
-                            candidate="${gitdir%/.git}"
-                            if matches_repo "$candidate"; then
-                              TARGET_REPO="$candidate"
-                              break 2
-                            fi
-                          done
-                        done
+                  echo "Repo detectado: $TARGET_REPO"
+                  git -C "$TARGET_REPO" remote -v
+                  git -C "$TARGET_REPO" fetch --prune origin
+                  git -C "$TARGET_REPO" checkout -f "$BRANCH"
+                  git -C "$TARGET_REPO" reset --hard "origin/$BRANCH"
+                  git -C "$TARGET_REPO" clean -fd \
+                    -e vendor/ \
+                    -e data/ \
+                    -e uploads/ \
+                    -e env.php \
+                    -e .env \
+                    -e '*.log'
+                  if [ ! -f "$TARGET_REPO/vendor/autoload.php" ]; then
+                    if command -v composer >/dev/null 2>&1; then
+                      echo "vendor/autoload.php ausente: ejecutando composer install..."
+                      composer -d "$TARGET_REPO" install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+                    else
+                      echo "WARN: composer no disponible y vendor/autoload.php ausente."
+                    fi
+                  fi
+                  REPO_WRAPPER_PATH="$TARGET_REPO/$REPO_WRAPPER_RELATIVE_PATH"
+                  if [ -f "$REPO_WRAPPER_PATH" ]; then
+                    mkdir -p "$(dirname "$HOST_WRAPPER_PATH")"
+                    if [ -f "$HOST_WRAPPER_PATH" ]; then
+                      if cmp -s "$REPO_WRAPPER_PATH" "$HOST_WRAPPER_PATH"; then
+                        WRAPPER_SYNC_STATE="already_aligned"
+                        WRAPPER_SYNC_REASON="host_wrapper_matches_repo"
+                      else
+                        WRAPPER_SYNC_STATE="updated"
+                        WRAPPER_SYNC_REASON="host_wrapper_replaced_from_repo"
                       fi
+                    else
+                      WRAPPER_SYNC_STATE="created"
+                      WRAPPER_SYNC_REASON="host_wrapper_created_from_repo"
+                    fi
+                    install -m 0755 "$REPO_WRAPPER_PATH" "$HOST_WRAPPER_PATH"
+                    echo "Wrapper cron host sincronizado: $HOST_WRAPPER_PATH <- $REPO_WRAPPER_PATH ($WRAPPER_SYNC_STATE)"
+                  else
+                    WRAPPER_SYNC_STATE="source_missing"
+                    WRAPPER_SYNC_REASON="repo_wrapper_missing"
+                    echo "WARN: wrapper canonico ausente en repo: $REPO_WRAPPER_PATH"
+                  fi
+                  echo "HEAD remoto sincronizado:"
+                  git -C "$TARGET_REPO" rev-parse --short HEAD
+                  git -C "$TARGET_REPO" log -1 --format="%h %ci %s"
+                  printf '__REPAIR_META__ host_cron_wrapper_sync_state=%s\n' "$WRAPPER_SYNC_STATE"
+                  printf '__REPAIR_META__ host_cron_wrapper_sync_reason=%s\n' "$WRAPPER_SYNC_REASON"
+                  printf '__REPAIR_META__ host_cron_wrapper_path=%s\n' "$HOST_WRAPPER_PATH"
+                  printf '__REPAIR_META__ host_cron_wrapper_source=%s\n' "$REPO_WRAPPER_PATH"
+                  REMOTE
 
-                      if [ -z "$TARGET_REPO" ]; then
-                        echo "No se encontro repo objetivo en el servidor."
-                        exit 2
-                      fi
+                  remote_command="$(
+                    printf 'TARGET_BRANCH=%q REPO_GIT_URL=%q SSH_REPO_DIR=%q PUBLIC_SYNC_HOST_WRAPPER_PATH=%q PUBLIC_SYNC_REPO_WRAPPER_RELATIVE_PATH=%q bash -s' \
+                      "$TARGET_BRANCH" \
+                      "$REPO_GIT_URL" \
+                      "$SSH_REPO_DIR" \
+                      "$PUBLIC_SYNC_HOST_WRAPPER_PATH" \
+                      "$PUBLIC_SYNC_REPO_WRAPPER_RELATIVE_PATH"
+                  )"
 
-                      echo "Repo detectado: $TARGET_REPO"
-                      git -C "$TARGET_REPO" remote -v
-                      git -C "$TARGET_REPO" fetch --prune origin
-                      git -C "$TARGET_REPO" checkout -f "$BRANCH"
-                      git -C "$TARGET_REPO" reset --hard "origin/$BRANCH"
-                      git -C "$TARGET_REPO" clean -fd \
-                        -e vendor/ \
-                        -e data/ \
-                        -e uploads/ \
-                        -e env.php \
-                        -e .env \
-                        -e '*.log'
-                      if [ ! -f "$TARGET_REPO/vendor/autoload.php" ]; then
-                        if command -v composer >/dev/null 2>&1; then
-                          echo "vendor/autoload.php ausente: ejecutando composer install..."
-                          composer -d "$TARGET_REPO" install --no-dev --prefer-dist --optimize-autoloader --no-interaction
-                        else
-                          echo "WARN: composer no disponible y vendor/autoload.php ausente."
-                        fi
-                      fi
-                      echo "HEAD remoto sincronizado:"
-                      git -C "$TARGET_REPO" rev-parse --short HEAD
-                      git -C "$TARGET_REPO" log -1 --format="%h %ci %s"
+                  set +e
+                  sshpass -p "$SSH_PASSWORD" ssh \
+                    -o StrictHostKeyChecking=no \
+                    -o UserKnownHostsFile=/dev/null \
+                    -o PreferredAuthentications=password \
+                    -o PubkeyAuthentication=no \
+                    -o ConnectTimeout=120 \
+                    -p "$SSH_PORT" \
+                    "$SSH_USERNAME@$SSH_HOST" \
+                    "$remote_command" \
+                    < "$remote_script_file" \
+                    > "$ssh_stdout_file" \
+                    2> "$ssh_stderr_file"
+                  ssh_rc=$?
+                  set -e
+
+                  cat "$ssh_stdout_file"
+                  if [ -s "$ssh_stderr_file" ]; then
+                    cat "$ssh_stderr_file" >&2
+                  fi
+
+                  host_cron_wrapper_sync_state='unknown'
+                  host_cron_wrapper_sync_reason='ssh_stdout_unavailable'
+                  host_cron_wrapper_path="$PUBLIC_SYNC_HOST_WRAPPER_PATH"
+                  host_cron_wrapper_source=''
+                  if [ -s "$ssh_stdout_file" ]; then
+                    host_cron_wrapper_sync_reason='not_reported'
+                  fi
+
+                  while IFS= read -r line; do
+                    case "$line" in
+                      '__REPAIR_META__ host_cron_wrapper_sync_state='*)
+                        host_cron_wrapper_sync_state="${line#*=}"
+                        ;;
+                      '__REPAIR_META__ host_cron_wrapper_sync_reason='*)
+                        host_cron_wrapper_sync_reason="${line#*=}"
+                        ;;
+                      '__REPAIR_META__ host_cron_wrapper_path='*)
+                        host_cron_wrapper_path="${line#*=}"
+                        ;;
+                      '__REPAIR_META__ host_cron_wrapper_source='*)
+                        host_cron_wrapper_source="${line#*=}"
+                        ;;
+                    esac
+                  done < "$ssh_stdout_file"
+
+                  {
+                    echo "host_cron_wrapper_sync_state=$host_cron_wrapper_sync_state"
+                    echo "host_cron_wrapper_sync_reason=$host_cron_wrapper_sync_reason"
+                    echo "host_cron_wrapper_path=$host_cron_wrapper_path"
+                    echo "host_cron_wrapper_source=$host_cron_wrapper_source"
+                  } >> "$GITHUB_OUTPUT"
+
+                  {
+                    echo "HOST_CRON_WRAPPER_SYNC_STATE=$host_cron_wrapper_sync_state"
+                    echo "HOST_CRON_WRAPPER_SYNC_REASON=$host_cron_wrapper_sync_reason"
+                    echo "HOST_CRON_WRAPPER_PATH=$host_cron_wrapper_path"
+                    echo "HOST_CRON_WRAPPER_SOURCE=$host_cron_wrapper_source"
+                  } >> "$GITHUB_ENV"
+
+                  if [ "$ssh_rc" -ne 0 ]; then
+                    exit "$ssh_rc"
+                  fi
 
             - name: Reportar estado del repair SSH
               if: ${{ always() }}
@@ -1253,6 +1380,10 @@ jobs:
                     echo "- target_domain: \`${TARGET_DOMAIN}\`";
                     echo "- trigger: \`${{ github.event_name }}\`";
                     echo "- ssh_repair_outcome: \`${{ steps.ssh_repair.outcome }}\`";
+                    echo "- host_cron_wrapper_sync_state: \`${HOST_CRON_WRAPPER_SYNC_STATE}\`";
+                    echo "- host_cron_wrapper_sync_reason: \`${HOST_CRON_WRAPPER_SYNC_REASON}\`";
+                    echo "- host_cron_wrapper_path: \`${HOST_CRON_WRAPPER_PATH}\`";
+                    echo "- host_cron_wrapper_source: \`${HOST_CRON_WRAPPER_SOURCE}\`";
                     echo "- verify_after_repair_outcome: \`${{ steps.verify_after_repair.outcome }}\`";
                     echo "- smoke_post_repair_outcome: \`${{ steps.smoke_post_repair.outcome }}\`";
                     echo "- telemedicine_repair_status: \`${TELEMEDICINE_REPAIR_STATUS}\`";
