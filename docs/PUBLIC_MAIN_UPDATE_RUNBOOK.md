@@ -72,6 +72,12 @@ The same monitor now also resolves open GitHub `production-alert` issues for
 `self-hosted-runner`. Expect a `github.deployAlerts` line with live issue
 numbers whenever the deploy path is blocked outside the host itself.
 
+`VERIFICAR-DESPLIEGUE.ps1 -RequireCronReady` and
+`SMOKE-PRODUCCION.ps1 -RequireCronReady` now resolve the same GitHub deploy
+alerts and fail by default while those incidents remain open. Use
+`-AllowOpenGitHubDeployAlerts` only for observation runs where you need the
+rest of the runtime evidence without muting the live GitHub incident.
+
 Triage the canonical `publicSync` signals before touching the host:
 
 - `failureReason=working_tree_dirty` is the canonical first-pass classification for tracked repo drift on the VPS.
@@ -86,6 +92,7 @@ Triage the GitHub-side deploy corroboration in the same pass:
 - `github.deployAlerts self-hosted runner blocked` means the Windows fallback path is queued or otherwise unavailable, so the repo-side fallback is waiting on runner capacity.
 - `github.deployAlerts repair git sync blocked` means repair still recommends the self-hosted fallback path and the incident remains open.
 - `REPORTE-SEMANAL-PRODUCCION.ps1` persists the same GitHub deploy alert state in markdown/JSON as `githubDeployAlerts`, with warning codes `github_deploy_*`.
+- `VERIFICAR-DESPLIEGUE.ps1` persists the same incident state as failed assets `github-deploy-*`, so `verification/last-deploy-verify.json` now captures deploy-route blockers outside the host too.
 
 ## Success criteria
 
@@ -97,6 +104,7 @@ Triage the GitHub-side deploy corroboration in the same pass:
 - `checks.publicSync.failureReason=""`
 - `checks.publicSync.headDrift=false`
 - `checks.publicSync.telemetryGap=false`
+- `github.deployAlerts relevantCount=0`
 
 ## Transport fallback
 

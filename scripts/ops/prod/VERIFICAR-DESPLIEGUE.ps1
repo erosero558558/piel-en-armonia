@@ -18,7 +18,12 @@ param(
     [int]$AssetHashRetryDelaySec = 4,
     [switch]$SkipAssetHashChecks,
     [switch]$ForceAssetHashChecks,
-    [string]$ReportPath = 'verification/last-deploy-verify.json'
+    [string]$ReportPath = 'verification/last-deploy-verify.json',
+    [string]$GitHubRepo = 'erosero558558/piel-en-armonia',
+    [string]$GitHubApiBase = 'https://api.github.com',
+    [int]$GitHubAlertsTimeoutSec = 15,
+    [int]$GitHubAlertsIssueLimit = 30,
+    [switch]$AllowOpenGitHubDeployAlerts
 )
 
 $ErrorActionPreference = 'Stop'
@@ -1144,6 +1149,109 @@ try {
         }
     }
 
+    $githubDeployAlerts = Get-GitHubProductionAlertSummary `
+        -Repo $GitHubRepo `
+        -ApiBase $GitHubApiBase `
+        -TimeoutSec $GitHubAlertsTimeoutSec `
+        -IssueLimit $GitHubAlertsIssueLimit `
+        -UserAgent 'PielArmoniaDeployCheck/1.0'
+    $githubDeployAlertsFetchOk = $false
+    $githubDeployAlertsRelevantCount = 0
+    $githubDeployAlertsTransportCount = 0
+    $githubDeployAlertsConnectivityCount = 0
+    $githubDeployAlertsRepairGitSyncCount = 0
+    $githubDeployAlertsSelfHostedRunnerCount = 0
+    $githubDeployAlertsIssueNumbersLabel = 'none'
+    $githubDeployAlertsIssueRefsLabel = 'none'
+    $githubDeployAlertsApiUrl = ''
+    $githubDeployAlertsError = ''
+    $githubDeployAlertsHasTransportBlock = $false
+    $githubDeployAlertsHasConnectivityBlock = $false
+    $githubDeployAlertsHasRepairGitSyncBlock = $false
+    $githubDeployAlertsHasSelfHostedRunnerBlock = $false
+    try { $githubDeployAlertsFetchOk = [bool]$githubDeployAlerts.fetchOk } catch { $githubDeployAlertsFetchOk = $false }
+    try { $githubDeployAlertsRelevantCount = [int]$githubDeployAlerts.relevantCount } catch { $githubDeployAlertsRelevantCount = 0 }
+    try { $githubDeployAlertsTransportCount = [int]$githubDeployAlerts.transportCount } catch { $githubDeployAlertsTransportCount = 0 }
+    try { $githubDeployAlertsConnectivityCount = [int]$githubDeployAlerts.connectivityCount } catch { $githubDeployAlertsConnectivityCount = 0 }
+    try { $githubDeployAlertsRepairGitSyncCount = [int]$githubDeployAlerts.repairGitSyncCount } catch { $githubDeployAlertsRepairGitSyncCount = 0 }
+    try { $githubDeployAlertsSelfHostedRunnerCount = [int]$githubDeployAlerts.selfHostedRunnerCount } catch { $githubDeployAlertsSelfHostedRunnerCount = 0 }
+    try { $githubDeployAlertsIssueNumbersLabel = [string]$githubDeployAlerts.issueNumbersLabel } catch { $githubDeployAlertsIssueNumbersLabel = 'none' }
+    try { $githubDeployAlertsIssueRefsLabel = [string]$githubDeployAlerts.issueRefsLabel } catch { $githubDeployAlertsIssueRefsLabel = 'none' }
+    try { $githubDeployAlertsApiUrl = [string]$githubDeployAlerts.apiUrl } catch { $githubDeployAlertsApiUrl = '' }
+    try { $githubDeployAlertsError = [string]$githubDeployAlerts.error } catch { $githubDeployAlertsError = '' }
+    try { $githubDeployAlertsHasTransportBlock = [bool]$githubDeployAlerts.hasTransportBlock } catch { $githubDeployAlertsHasTransportBlock = $false }
+    try { $githubDeployAlertsHasConnectivityBlock = [bool]$githubDeployAlerts.hasConnectivityBlock } catch { $githubDeployAlertsHasConnectivityBlock = $false }
+    try { $githubDeployAlertsHasRepairGitSyncBlock = [bool]$githubDeployAlerts.hasRepairGitSyncBlock } catch { $githubDeployAlertsHasRepairGitSyncBlock = $false }
+    try { $githubDeployAlertsHasSelfHostedRunnerBlock = [bool]$githubDeployAlerts.hasSelfHostedRunnerBlock } catch { $githubDeployAlertsHasSelfHostedRunnerBlock = $false }
+
+    Write-Host "[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel"
+    if (-not $githubDeployAlertsFetchOk) {
+        Write-Host "[WARN] github.deployAlerts unreachable (repo=$GitHubRepo error=$githubDeployAlertsError)"
+    } elseif ($githubDeployAlertsRelevantCount -gt 0) {
+        $githubDeployAlertsSeverity = if ($AllowOpenGitHubDeployAlerts) { 'WARN' } else { 'FAIL' }
+        Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts open production alerts (count=$githubDeployAlertsRelevantCount issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+        if ($githubDeployAlertsHasTransportBlock) {
+            Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts transport blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+        }
+        if ($githubDeployAlertsHasConnectivityBlock) {
+            Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts deploy connectivity blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+        }
+        if ($githubDeployAlertsHasRepairGitSyncBlock) {
+            Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts repair git sync blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+        }
+        if ($githubDeployAlertsHasSelfHostedRunnerBlock) {
+            Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts self-hosted runner blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+        }
+
+        if (-not $AllowOpenGitHubDeployAlerts) {
+            $results += [PSCustomObject]@{
+                Asset = 'github-deploy-alerts-open'
+                Match = $false
+                LocalHash = '0'
+                RemoteHash = [string]$githubDeployAlertsRelevantCount
+                RemoteUrl = $githubDeployAlertsApiUrl
+            }
+            if ($githubDeployAlertsHasTransportBlock) {
+                $results += [PSCustomObject]@{
+                    Asset = 'github-deploy-transport-blocked'
+                    Match = $false
+                    LocalHash = 'false'
+                    RemoteHash = [string]$githubDeployAlertsTransportCount
+                    RemoteUrl = $githubDeployAlertsApiUrl
+                }
+            }
+            if ($githubDeployAlertsHasConnectivityBlock) {
+                $results += [PSCustomObject]@{
+                    Asset = 'github-deploy-connectivity-blocked'
+                    Match = $false
+                    LocalHash = 'false'
+                    RemoteHash = [string]$githubDeployAlertsConnectivityCount
+                    RemoteUrl = $githubDeployAlertsApiUrl
+                }
+            }
+            if ($githubDeployAlertsHasRepairGitSyncBlock) {
+                $results += [PSCustomObject]@{
+                    Asset = 'github-deploy-repair-git-sync-blocked'
+                    Match = $false
+                    LocalHash = 'false'
+                    RemoteHash = [string]$githubDeployAlertsRepairGitSyncCount
+                    RemoteUrl = $githubDeployAlertsApiUrl
+                }
+            }
+            if ($githubDeployAlertsHasSelfHostedRunnerBlock) {
+                $results += [PSCustomObject]@{
+                    Asset = 'github-deploy-self-hosted-runner-blocked'
+                    Match = $false
+                    LocalHash = 'false'
+                    RemoteHash = [string]$githubDeployAlertsSelfHostedRunnerCount
+                    RemoteUrl = $githubDeployAlertsApiUrl
+                }
+            }
+        }
+    } else {
+        Write-Host '[OK]  github.deployAlerts sin incidentes abiertos'
+    }
+
     $storeCountsNode = $null
     try {
         $storeCountsNode = $healthResp.Json.checks.storeCounts
@@ -1509,7 +1617,19 @@ try {
 if ($RunSmoke) {
     Write-Host ""
     Write-Host "Ejecutando smoke..."
-    & $smokeScriptPath -Domain $base -TestFigoPost -AllowDegradedFigo:$AllowDegradedFigo -AllowRecursiveFigo:$AllowRecursiveFigo -AllowMetaCspFallback:$AllowMetaCspFallback -RequireWebhookSecret:$RequireWebhookSecret
+    & $smokeScriptPath `
+        -Domain $base `
+        -TestFigoPost `
+        -AllowDegradedFigo:$AllowDegradedFigo `
+        -AllowRecursiveFigo:$AllowRecursiveFigo `
+        -AllowMetaCspFallback:$AllowMetaCspFallback `
+        -RequireWebhookSecret:$RequireWebhookSecret `
+        -RequireCronReady:$RequireCronReady `
+        -GitHubRepo $GitHubRepo `
+        -GitHubApiBase $GitHubApiBase `
+        -GitHubAlertsTimeoutSec $GitHubAlertsTimeoutSec `
+        -GitHubAlertsIssueLimit $GitHubAlertsIssueLimit `
+        -AllowOpenGitHubDeployAlerts:$AllowOpenGitHubDeployAlerts
 }
 
 $failed = @($results | Where-Object { $_.Match -ne $true }).Count

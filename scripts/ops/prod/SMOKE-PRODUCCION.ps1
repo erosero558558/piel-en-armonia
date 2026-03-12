@@ -11,11 +11,19 @@ param(
     [switch]$RequireTelemedicineReady,
     [int]$MaxHealthTimingMs = 2000,
     [int]$FigoPostRetries = 3,
-    [int]$FigoPostRetryDelaySec = 2
+    [int]$FigoPostRetryDelaySec = 2,
+    [string]$GitHubRepo = 'erosero558558/piel-en-armonia',
+    [string]$GitHubApiBase = 'https://api.github.com',
+    [int]$GitHubAlertsTimeoutSec = 15,
+    [int]$GitHubAlertsIssueLimit = 30,
+    [switch]$AllowOpenGitHubDeployAlerts
 )
 
 $ErrorActionPreference = 'Stop'
 $base = $Domain.TrimEnd('/')
+$repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+$commonHttpPath = Join-Path $repoRoot 'bin/powershell/Common.Http.ps1'
+. $commonHttpPath
 $tmpRoot = [string]$env:TEMP
 if ([string]::IsNullOrWhiteSpace($tmpRoot)) {
     $tmpRoot = [string]$env:TMPDIR
@@ -721,6 +729,65 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
                     Write-Host "[FAIL] checks.publicSync failed sin telemetria runtime suficiente (currentHead/remoteHead/dirtyPathsCount ausentes)"
                     $contractFailures += 1
                 }
+            }
+
+            $githubDeployAlerts = Get-GitHubProductionAlertSummary `
+                -Repo $GitHubRepo `
+                -ApiBase $GitHubApiBase `
+                -TimeoutSec $GitHubAlertsTimeoutSec `
+                -IssueLimit $GitHubAlertsIssueLimit `
+                -UserAgent 'PielArmoniaSmoke/1.0'
+            $githubDeployAlertsFetchOk = $false
+            $githubDeployAlertsRelevantCount = 0
+            $githubDeployAlertsTransportCount = 0
+            $githubDeployAlertsConnectivityCount = 0
+            $githubDeployAlertsRepairGitSyncCount = 0
+            $githubDeployAlertsSelfHostedRunnerCount = 0
+            $githubDeployAlertsIssueNumbersLabel = 'none'
+            $githubDeployAlertsIssueRefsLabel = 'none'
+            $githubDeployAlertsError = ''
+            $githubDeployAlertsHasTransportBlock = $false
+            $githubDeployAlertsHasConnectivityBlock = $false
+            $githubDeployAlertsHasRepairGitSyncBlock = $false
+            $githubDeployAlertsHasSelfHostedRunnerBlock = $false
+            try { $githubDeployAlertsFetchOk = [bool]$githubDeployAlerts.fetchOk } catch { $githubDeployAlertsFetchOk = $false }
+            try { $githubDeployAlertsRelevantCount = [int]$githubDeployAlerts.relevantCount } catch { $githubDeployAlertsRelevantCount = 0 }
+            try { $githubDeployAlertsTransportCount = [int]$githubDeployAlerts.transportCount } catch { $githubDeployAlertsTransportCount = 0 }
+            try { $githubDeployAlertsConnectivityCount = [int]$githubDeployAlerts.connectivityCount } catch { $githubDeployAlertsConnectivityCount = 0 }
+            try { $githubDeployAlertsRepairGitSyncCount = [int]$githubDeployAlerts.repairGitSyncCount } catch { $githubDeployAlertsRepairGitSyncCount = 0 }
+            try { $githubDeployAlertsSelfHostedRunnerCount = [int]$githubDeployAlerts.selfHostedRunnerCount } catch { $githubDeployAlertsSelfHostedRunnerCount = 0 }
+            try { $githubDeployAlertsIssueNumbersLabel = [string]$githubDeployAlerts.issueNumbersLabel } catch { $githubDeployAlertsIssueNumbersLabel = 'none' }
+            try { $githubDeployAlertsIssueRefsLabel = [string]$githubDeployAlerts.issueRefsLabel } catch { $githubDeployAlertsIssueRefsLabel = 'none' }
+            try { $githubDeployAlertsError = [string]$githubDeployAlerts.error } catch { $githubDeployAlertsError = '' }
+            try { $githubDeployAlertsHasTransportBlock = [bool]$githubDeployAlerts.hasTransportBlock } catch { $githubDeployAlertsHasTransportBlock = $false }
+            try { $githubDeployAlertsHasConnectivityBlock = [bool]$githubDeployAlerts.hasConnectivityBlock } catch { $githubDeployAlertsHasConnectivityBlock = $false }
+            try { $githubDeployAlertsHasRepairGitSyncBlock = [bool]$githubDeployAlerts.hasRepairGitSyncBlock } catch { $githubDeployAlertsHasRepairGitSyncBlock = $false }
+            try { $githubDeployAlertsHasSelfHostedRunnerBlock = [bool]$githubDeployAlerts.hasSelfHostedRunnerBlock } catch { $githubDeployAlertsHasSelfHostedRunnerBlock = $false }
+
+            Write-Host "[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel"
+            if (-not $githubDeployAlertsFetchOk) {
+                Write-Host "[WARN] github.deployAlerts unreachable (repo=$GitHubRepo error=$githubDeployAlertsError)"
+            } elseif ($githubDeployAlertsRelevantCount -gt 0) {
+                $githubDeployAlertsSeverity = if ($AllowOpenGitHubDeployAlerts) { 'WARN' } else { 'FAIL' }
+                Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts open production alerts (count=$githubDeployAlertsRelevantCount issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+                if ($githubDeployAlertsHasTransportBlock) {
+                    Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts transport blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+                }
+                if ($githubDeployAlertsHasConnectivityBlock) {
+                    Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts deploy connectivity blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+                }
+                if ($githubDeployAlertsHasRepairGitSyncBlock) {
+                    Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts repair git sync blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+                }
+                if ($githubDeployAlertsHasSelfHostedRunnerBlock) {
+                    Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts self-hosted runner blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+                }
+
+                if (-not $AllowOpenGitHubDeployAlerts) {
+                    $contractFailures += 1
+                }
+            } else {
+                Write-Host '[OK]  github.deployAlerts sin incidentes abiertos'
             }
         }
 

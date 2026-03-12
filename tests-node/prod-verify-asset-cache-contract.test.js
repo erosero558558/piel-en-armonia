@@ -40,3 +40,20 @@ test('prod verify usa refs remotas para cache-header de estilos publicados', () 
         );
     }
 });
+
+test('prod verify agrega assets GitHub de deploy para incidentes de transporte y conectividad', () => {
+    for (const snippet of [
+        '$githubDeployAlerts = Get-GitHubProductionAlertSummary',
+        "Asset = 'github-deploy-alerts-open'",
+        "Asset = 'github-deploy-transport-blocked'",
+        "Asset = 'github-deploy-connectivity-blocked'",
+        "Asset = 'github-deploy-repair-git-sync-blocked'",
+        "Asset = 'github-deploy-self-hosted-runner-blocked'",
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring GitHub deploy alerts en VERIFICAR-DESPLIEGUE.ps1: ${snippet}`
+        );
+    }
+});

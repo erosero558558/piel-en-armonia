@@ -31,6 +31,8 @@ function load(filePath) {
 test('prod smoke expone telemetria rica de publicSync', () => {
     const raw = load(SMOKE_PATH);
     const requiredSnippets = [
+        "$commonHttpPath = Join-Path $repoRoot 'bin/powershell/Common.Http.ps1'",
+        '. $commonHttpPath',
         "$lastErrorMessage = ''",
         "$currentHead = ''",
         "$remoteHead = ''",
@@ -47,6 +49,28 @@ test('prod smoke expone telemetria rica de publicSync', () => {
             raw.includes(snippet),
             true,
             `falta snippet publicSync en SMOKE-PRODUCCION.ps1: ${snippet}`
+        );
+    }
+});
+
+test('prod smoke integra github.deployAlerts en el gate cron manual', () => {
+    const raw = load(SMOKE_PATH);
+    const requiredSnippets = [
+        "[string]$GitHubRepo = 'erosero558558/piel-en-armonia'",
+        '[switch]$AllowOpenGitHubDeployAlerts',
+        '$githubDeployAlerts = Get-GitHubProductionAlertSummary',
+        "$githubDeployAlertsSeverity = if ($AllowOpenGitHubDeployAlerts) { 'WARN' } else { 'FAIL' }",
+        '[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel',
+        '[WARN] github.deployAlerts unreachable (repo=$GitHubRepo error=$githubDeployAlertsError)',
+        '[$githubDeployAlertsSeverity] github.deployAlerts open production alerts (count=$githubDeployAlertsRelevantCount issueNumbers=$githubDeployAlertsIssueNumbersLabel)',
+        '[$githubDeployAlertsSeverity] github.deployAlerts self-hosted runner blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)',
+    ];
+
+    for (const snippet of requiredSnippets) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta snippet github.deployAlerts en SMOKE-PRODUCCION.ps1: ${snippet}`
         );
     }
 });
@@ -75,6 +99,29 @@ test('prod verify propaga telemetria de publicSync a resultados y consola', () =
     }
 });
 
+test('prod verify integra github.deployAlerts y propaga el override al smoke', () => {
+    const raw = load(VERIFY_PATH);
+    const requiredSnippets = [
+        "[string]$GitHubRepo = 'erosero558558/piel-en-armonia'",
+        '[switch]$AllowOpenGitHubDeployAlerts',
+        '$githubDeployAlerts = Get-GitHubProductionAlertSummary',
+        "[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel",
+        "Asset = 'github-deploy-alerts-open'",
+        "Asset = 'github-deploy-transport-blocked'",
+        "Asset = 'github-deploy-connectivity-blocked'",
+        '-GitHubRepo $GitHubRepo',
+        '-AllowOpenGitHubDeployAlerts:$AllowOpenGitHubDeployAlerts',
+    ];
+
+    for (const snippet of requiredSnippets) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta snippet github.deployAlerts en VERIFICAR-DESPLIEGUE.ps1: ${snippet}`
+        );
+    }
+});
+
 test('prod ops readme documenta triage de publicSync', () => {
     const raw = load(README_PATH);
     const requiredSnippets = [
@@ -85,6 +132,8 @@ test('prod ops readme documenta triage de publicSync', () => {
         'public_main_sync',
         'dirtyPathsCount',
         'dirtyPathsSample',
+        'github.deployAlerts',
+        'AllowOpenGitHubDeployAlerts',
     ];
 
     for (const snippet of requiredSnippets) {
