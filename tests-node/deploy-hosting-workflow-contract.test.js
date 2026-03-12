@@ -155,6 +155,7 @@ test('deploy-hosting clasifica bloqueos de conectividad del runner en el preflig
         'bin/write-admin-rollout-placeholder-report.js',
         'Hydrate admin rollout report placeholder (deploy-hosting)',
         "hashFiles('verification/last-admin-ui-rollout-gate-deploy-hosting.json') == ''",
+        'include-hidden-files: true',
         'transport_preflight_reason: \\`${TRANSPORT_PREFLIGHT_REASON}\\`',
         'transport_preflight_target: \\`${TRANSPORT_PREFLIGHT_TARGET}\\`',
         'transport_preflight_artifact: \\`.public-cutover/transport-preflight.json\\`',
