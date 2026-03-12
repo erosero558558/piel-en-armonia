@@ -401,15 +401,28 @@ test('repair-git-sync evalua y gestiona incidente dedicado de telemedicina post-
     const steps = parsed?.jobs?.repair?.steps || [];
     const stepNames = steps.map((step) => String(step?.name || ''));
     const permissions = parsed?.permissions || {};
+    const inputs = parsed?.on?.workflow_dispatch?.inputs || {};
 
     assert.equal(
         permissions.issues,
         'write',
         'repair-git-sync debe mantener issues: write para incidentes automaticos'
     );
+    assert.equal(
+        permissions.actions,
+        'write',
+        'repair-git-sync debe tener actions: write para disparar deploy-hosting'
+    );
+    assert.equal(
+        typeof inputs.dispatch_transport_fallback === 'object',
+        true,
+        'repair-git-sync debe exponer input dispatch_transport_fallback'
+    );
 
     for (const expectedStepName of [
         'Evaluar estado telemedicina post-repair',
+        'Evaluar fallback de transporte post-repair',
+        'Disparar transport fallback desde repair',
         'Crear/actualizar incidente telemedicina de repair',
         'Cerrar incidente telemedicina de repair al recuperar',
         'Repair summary',
@@ -436,6 +449,24 @@ test('repair-git-sync evalua y gestiona incidente dedicado de telemedicina post-
         'telemedicine_repair_non_tele_failures: \\`${TELEMEDICINE_REPAIR_NON_TELE_FAILURES}\\`',
         "telemedicine_repair_non_tele_failures: ${process.env.TELEMEDICINE_REPAIR_NON_TELE_FAILURES || '-1'}",
         'telemedicine_repair_step_outcome: \\`${{ steps.telemedicine_repair.outcome }}\\`',
+        'AUTO_TRANSPORT_FALLBACK_AUTOMATION',
+        'DISPATCH_TRANSPORT_FALLBACK_INPUT',
+        "workflow_id: 'deploy-hosting.yml'",
+        "force_transport_deploy: 'true'",
+        "allow_prod_without_staging: 'true'",
+        "run_postdeploy_fast: 'false'",
+        "run_postdeploy_gate: 'false'",
+        "skip_public_conversion_smoke: 'true'",
+        'transport_fallback_dispatch_ready',
+        'transport_fallback_recommended',
+        'transport_fallback_reason',
+        'transport_fallback_failure_assets',
+        'deploy-freshness',
+        'health-public-sync-working-tree-dirty',
+        'health-public-sync-telemetry-gap',
+        'index-ref:script-entry',
+        'index-asset-refs:style-entry',
+        'transport_fallback_dispatched: \\`${{ steps.transport_fallback.outputs.transport_fallback_dispatch_ready }}\\`',
         "reason.includes('diagnostics_critical')",
         "reason.includes('hard_failures:')",
         "reason.includes('hard_failures_invalid')",

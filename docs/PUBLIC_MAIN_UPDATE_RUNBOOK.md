@@ -106,6 +106,43 @@ Use this only to unblock transport. It does not change the canonical public sour
 2. V6 artifacts stay canonical
 3. git-sync stays the preferred publish path
 
+## Repair workflow escalation
+
+If the GitHub runner cannot reach SSH/22 but the site is still serving traffic,
+prefer the repair workflow first:
+
+```bash
+gh workflow run repair-git-sync.yml --ref main \
+  -f dispatch_transport_fallback=true
+```
+
+`repair-git-sync.yml` now evaluates `verification/last-deploy-verify.json`
+before escalating. It only dispatches `deploy-hosting.yml` automatically when
+the pattern is consistent with a stale host rather than a total outage:
+
+- `ssh_repair_outcome != success`
+- `verify_after_repair_outcome = failure`
+- `smoke_post_repair_outcome = success`
+- the verify report includes stale-host signals such as `deploy-freshness`,
+  `index-ref:*`, `index-asset-refs:*`,
+  `health-public-sync-working-tree-dirty`, or
+  `health-public-sync-telemetry-gap`
+
+This keeps the emergency transport fallback conservative. Generic verify
+failures without the stale-host signature do not auto-dispatch transport.
+
+If you need to skip repair and update the page immediately, dispatch
+`deploy-hosting.yml` directly with the transport fallback command above.
+
+After a transport fallback publish, verify both layers explicitly:
+
+1. Page freshness via `pwsh -File scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1`
+2. Host cron health via `node agent-orchestrator.js jobs verify public_main_sync --json`
+
+The page can be current even while `public_main_sync` remains unhealthy. In
+that case, the remaining debt is host-side cron/SSH recovery, not public asset
+publication.
+
 ## Historical wrappers
 
 The repo still contains `deploy-public-v3-live.sh` and `deploy-public-v3-cron-sync.sh` because the server wrapper naming is historical.

@@ -24,6 +24,11 @@ on:
                 required: false
                 default: 'main'
                 type: string
+            dispatch_transport_fallback:
+                description: 'Disparar deploy-hosting por transporte si el repair detecta host vivo pero desactualizado'
+                required: false
+                default: false
+                type: boolean
 
 concurrency:
     group: repair-git-sync-main
@@ -31,6 +36,7 @@ concurrency:
 
 permissions:
     contents: read
+    actions: write
     issues: write
 
 jobs:
@@ -52,6 +58,8 @@ jobs:
             TELEMEDICINE_REPAIR_REASON: not_evaluated
             TELEMEDICINE_REPAIR_FAILURES: -1
             TELEMEDICINE_REPAIR_NON_TELE_FAILURES: -1
+            DISPATCH_TRANSPORT_FALLBACK_INPUT: ${{ github.event.inputs.dispatch_transport_fallback || 'false' }}
+            AUTO_TRANSPORT_FALLBACK_AUTOMATION: ${{ vars.AUTO_TRANSPORT_FALLBACK_FROM_REPAIR || 'false' }}
 
         steps:
             - name: Checkout
@@ -338,6 +346,210 @@ jobs:
                     });
                   }
                   NODE
+
+            - name: Evaluar fallback de transporte post-repair
+              if: ${{ always() }}
+              id: transport_fallback
+              shell: bash
+              env:
+                  VERIFY_REPORT_PATH: verification/last-deploy-verify.json
+                  SSH_REPAIR_OUTCOME: ${{ steps.ssh_repair.outcome }}
+                  VERIFY_OUTCOME: ${{ steps.verify_after_repair.outcome }}
+                  SMOKE_OUTCOME: ${{ steps.smoke_post_repair.outcome }}
+                  DISPATCH_EVENT_NAME: ${{ github.event_name }}
+                  DISPATCH_TRANSPORT_FALLBACK_INPUT: ${{ env.DISPATCH_TRANSPORT_FALLBACK_INPUT }}
+                  AUTO_TRANSPORT_FALLBACK_AUTOMATION: ${{ env.AUTO_TRANSPORT_FALLBACK_AUTOMATION }}
+              run: |
+                  set -euo pipefail
+
+                  normalize_bool() {
+                    case "$(echo "${1:-false}" | tr '[:upper:]' '[:lower:]')" in
+                      1|true|yes|y|on) echo "true" ;;
+                      *) echo "false" ;;
+                    esac
+                  }
+
+                  dispatch_requested='false'
+                  if [ "${DISPATCH_EVENT_NAME}" = "workflow_dispatch" ]; then
+                    dispatch_requested="$(normalize_bool "${DISPATCH_TRANSPORT_FALLBACK_INPUT}")"
+                  else
+                    dispatch_requested="$(normalize_bool "${AUTO_TRANSPORT_FALLBACK_AUTOMATION}")"
+                  fi
+
+                  TRANSPORT_FALLBACK_DISPATCH_REQUESTED="${dispatch_requested}" node <<'NODE'
+                  const fs = require('node:fs');
+
+                  const outputPath = process.env.GITHUB_OUTPUT;
+                  const envPath = process.env.GITHUB_ENV;
+                  const reportPath =
+                    process.env.VERIFY_REPORT_PATH || 'verification/last-deploy-verify.json';
+
+                  function append(path, key, value) {
+                    if (!path) return;
+                    fs.appendFileSync(path, `${key}=${String(value)}\n`);
+                  }
+
+                  function normalizeOutcome(value) {
+                    return String(value || '').trim().toLowerCase();
+                  }
+
+                  function normalizeBool(value) {
+                    const normalized = String(value || '').trim().toLowerCase();
+                    return ['1', 'true', 'yes', 'y', 'on'].includes(normalized);
+                  }
+
+                  function readFailureAssets(filePath) {
+                    try {
+                      const raw = fs.readFileSync(filePath, 'utf8');
+                      const parsed = JSON.parse(raw);
+                      const failures = Array.isArray(parsed?.failures) ? parsed.failures : [];
+                      return failures
+                        .map((item) =>
+                          String(item?.Asset || item?.asset || item?.name || '').trim()
+                        )
+                        .filter(Boolean);
+                    } catch {
+                      return [];
+                    }
+                  }
+
+                  const failureAssets = readFailureAssets(reportPath);
+                  const failureSet = new Set(failureAssets);
+                  const sshRepairOutcome = normalizeOutcome(process.env.SSH_REPAIR_OUTCOME);
+                  const verifyOutcome = normalizeOutcome(process.env.VERIFY_OUTCOME);
+                  const smokeOutcome = normalizeOutcome(process.env.SMOKE_OUTCOME);
+                  const dispatchRequested = normalizeBool(
+                    process.env.TRANSPORT_FALLBACK_DISPATCH_REQUESTED
+                  );
+
+                  const indexRefDrift = failureAssets.some((asset) =>
+                    [
+                      'index-ref:script-entry',
+                      'index-asset-refs:script-entry',
+                      'index-ref:style-entry',
+                      'index-asset-refs:style-entry',
+                    ].includes(asset)
+                  );
+                  const publicSyncBlocked = failureAssets.some((asset) =>
+                    [
+                      'health-public-sync-healthy',
+                      'health-public-sync-working-tree-dirty',
+                      'health-public-sync-telemetry-gap',
+                      'health-public-sync-head-drift',
+                    ].includes(asset)
+                  );
+                  const deployFreshnessBlocked = failureSet.has('deploy-freshness');
+                  const hostStaleSignals = [];
+
+                  if (deployFreshnessBlocked) {
+                    hostStaleSignals.push('deploy-freshness');
+                  }
+                  if (indexRefDrift) {
+                    hostStaleSignals.push('index-ref-drift');
+                  }
+                  if (publicSyncBlocked) {
+                    hostStaleSignals.push('public-sync-blocked');
+                  }
+
+                  const sshRepairFailed =
+                    sshRepairOutcome !== '' &&
+                    sshRepairOutcome !== 'success' &&
+                    sshRepairOutcome !== 'skipped';
+                  const verifyFailed = verifyOutcome === 'failure';
+                  const smokeSucceeded = smokeOutcome === 'success';
+                  const recommended =
+                    verifyFailed && smokeSucceeded && (hostStaleSignals.length > 0 || sshRepairFailed);
+                  const dispatchReady = recommended && dispatchRequested;
+
+                  const reasonTokens = [];
+                  if (sshRepairFailed) {
+                    reasonTokens.push(`ssh:${sshRepairOutcome}`);
+                  }
+                  if (verifyFailed) {
+                    reasonTokens.push('verify:failure');
+                  }
+                  if (smokeSucceeded) {
+                    reasonTokens.push('smoke:success');
+                  }
+                  for (const signal of hostStaleSignals) {
+                    reasonTokens.push(signal);
+                  }
+                  if (failureAssets.length > 0) {
+                    reasonTokens.push(`failure_assets:${failureAssets.join(',')}`);
+                  }
+                  const reason = reasonTokens.join(';') || 'not_applicable';
+                  const failureAssetsCsv = failureAssets.join(',');
+
+                  append(
+                    outputPath,
+                    'transport_fallback_recommended',
+                    recommended ? 'true' : 'false'
+                  );
+                  append(
+                    outputPath,
+                    'transport_fallback_dispatch_requested',
+                    dispatchRequested ? 'true' : 'false'
+                  );
+                  append(
+                    outputPath,
+                    'transport_fallback_dispatch_ready',
+                    dispatchReady ? 'true' : 'false'
+                  );
+                  append(outputPath, 'transport_fallback_reason', reason);
+                  append(outputPath, 'transport_fallback_failure_assets', failureAssetsCsv);
+
+                  append(
+                    envPath,
+                    'TRANSPORT_FALLBACK_RECOMMENDED',
+                    recommended ? 'true' : 'false'
+                  );
+                  append(
+                    envPath,
+                    'TRANSPORT_FALLBACK_DISPATCH_REQUESTED',
+                    dispatchRequested ? 'true' : 'false'
+                  );
+                  append(
+                    envPath,
+                    'TRANSPORT_FALLBACK_DISPATCH_READY',
+                    dispatchReady ? 'true' : 'false'
+                  );
+                  append(envPath, 'TRANSPORT_FALLBACK_REASON', reason);
+                  append(envPath, 'TRANSPORT_FALLBACK_FAILURE_ASSETS', failureAssetsCsv);
+                  NODE
+
+            - name: Disparar transport fallback desde repair
+              if: ${{ always() && steps.transport_fallback.outputs.transport_fallback_dispatch_ready == 'true' }}
+              uses: actions/github-script@v7
+              env:
+                  TRANSPORT_FALLBACK_REASON: ${{ steps.transport_fallback.outputs.transport_fallback_reason }}
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const ref =
+                        context.payload.workflow_run?.head_branch ||
+                        (context.ref || '').replace('refs/heads/', '') ||
+                        'main';
+
+                      await github.rest.actions.createWorkflowDispatch({
+                        owner,
+                        repo,
+                        workflow_id: 'deploy-hosting.yml',
+                        ref,
+                        inputs: {
+                          force_transport_deploy: 'true',
+                          protocol: 'ftps',
+                          require_staging_canary: 'false',
+                          allow_prod_without_staging: 'true',
+                          run_postdeploy_fast: 'false',
+                          run_postdeploy_gate: 'false',
+                          skip_public_conversion_smoke: 'true',
+                        },
+                      });
+
+                      core.info(
+                        `Workflow deploy-hosting.yml disparado desde repair (ref=${ref}, reason=${process.env.TRANSPORT_FALLBACK_REASON || 'n/a'}).`
+                      );
 
             - name: Crear/actualizar incidente telemedicina de repair
               if: ${{ always() && github.event_name != 'workflow_dispatch' && (env.TELEMEDICINE_REPAIR_STATUS == 'degraded' || env.TELEMEDICINE_REPAIR_STATUS == 'unknown') }}
@@ -635,5 +847,10 @@ jobs:
                     echo "- telemedicine_repair_failures: \`${TELEMEDICINE_REPAIR_FAILURES}\`";
                     echo "- telemedicine_repair_non_tele_failures: \`${TELEMEDICINE_REPAIR_NON_TELE_FAILURES}\`";
                     echo "- telemedicine_repair_step_outcome: \`${{ steps.telemedicine_repair.outcome }}\`";
+                    echo "- transport_fallback_requested: \`${{ steps.transport_fallback.outputs.transport_fallback_dispatch_requested }}\`";
+                    echo "- transport_fallback_recommended: \`${{ steps.transport_fallback.outputs.transport_fallback_recommended }}\`";
+                    echo "- transport_fallback_dispatched: \`${{ steps.transport_fallback.outputs.transport_fallback_dispatch_ready }}\`";
+                    echo "- transport_fallback_reason: \`${{ steps.transport_fallback.outputs.transport_fallback_reason }}\`";
+                    echo "- transport_fallback_failure_assets: \`${{ steps.transport_fallback.outputs.transport_fallback_failure_assets }}\`";
                     echo "- result: \`${{ job.status }}\`";
                   } >> "$GITHUB_STEP_SUMMARY"
