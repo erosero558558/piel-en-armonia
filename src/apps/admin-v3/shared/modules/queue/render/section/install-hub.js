@@ -73,6 +73,8 @@ const QUEUE_OPS_LOG_MAX_ITEMS = 24;
 const QUEUE_OPS_INTERACTION_HOLD_MS = 900;
 const QUEUE_ATTENTION_RECALL_SEC = 2 * 60;
 const QUEUE_ATTENTION_ALERT_SEC = 6 * 60;
+const QUEUE_ESTIMATED_SERVICE_MINUTES = 8;
+const QUEUE_SHORT_WAIT_THRESHOLD_MINUTES = 10;
 const OPENING_CHECKLIST_STEP_IDS = Object.freeze([
     'operator_ready',
     'kiosk_ready',
@@ -1712,6 +1714,21 @@ function getOpsLogSourceLabel(source) {
     if (value === 'reception_lights') {
         return 'Semáforo';
     }
+    if (value === 'window_eta') {
+        return 'Ventana';
+    }
+    if (value === 'desk_reply') {
+        return 'Mostrador';
+    }
+    if (value === 'desk_fallback') {
+        return 'Plan B';
+    }
+    if (value === 'desk_objection') {
+        return 'Objeciones';
+    }
+    if (value === 'desk_close') {
+        return 'Cierre';
+    }
     if (value === 'blockers') {
         return 'Bloqueos';
     }
@@ -1750,6 +1767,11 @@ function filterOpsLogItems(items, filter) {
                 'reception_script',
                 'reception_collision',
                 'reception_lights',
+                'window_eta',
+                'desk_reply',
+                'desk_fallback',
+                'desk_objection',
+                'desk_close',
                 'blockers',
                 'sla_live',
             ].includes(item.source)
@@ -10458,6 +10480,1386 @@ function renderQueueReceptionLights(manifest, detectedPlatform) {
     );
 }
 
+function formatQueueEstimatedWindow(minutes) {
+    const safeMinutes = Math.max(0, Number(minutes || 0));
+    if (safeMinutes <= 0) {
+        return 'ahora';
+    }
+    if (safeMinutes <= 1) {
+        return '~1m';
+    }
+    return `~${safeMinutes}m`;
+}
+
+function getQueueEstimatedWindowMinutes(ticket, waitingCount) {
+    const queueDepth = Math.max(0, Number(waitingCount || 0));
+    if (!ticket) {
+        return queueDepth * QUEUE_ESTIMATED_SERVICE_MINUTES;
+    }
+    const elapsedMinutes = Math.max(
+        0,
+        Math.round(getQueueTicketAgeSec(ticket, 'called') / 60)
+    );
+    const remainingMinutes = Math.max(
+        1,
+        QUEUE_ESTIMATED_SERVICE_MINUTES - elapsedMinutes
+    );
+    return remainingMinutes + queueDepth * QUEUE_ESTIMATED_SERVICE_MINUTES;
+}
+
+function buildQueueWindowDeck(manifest, detectedPlatform) {
+    const guidance = buildQueueGeneralGuidance(manifest, detectedPlatform);
+    const projectedTickets = Array.isArray(guidance?.projectedTickets)
+        ? guidance.projectedTickets
+        : getQueueSource().queueTickets;
+    const appointmentCandidates = buildQueueScenarioCandidates(
+        manifest,
+        detectedPlatform,
+        projectedTickets,
+        'appointment'
+    );
+    const walkInCandidates = buildQueueScenarioCandidates(
+        manifest,
+        detectedPlatform,
+        projectedTickets,
+        'walk_in'
+    );
+
+    const cards = [1, 2].map((slot) => {
+        const slotKey = `c${slot}`;
+        const operatorContext = buildConsultorioOperatorContext(
+            manifest,
+            detectedPlatform,
+            slot
+        );
+        const currentTicket = getCalledTicketForConsultorio(slot);
+        const waitingTickets = getAssignedWaitingTickets(slot);
+        const waitingCount = waitingTickets.length;
+        const etaMinutes = getQueueEstimatedWindowMinutes(
+            currentTicket,
+            waitingCount
+        );
+        const appointmentRank =
+            appointmentCandidates.findIndex(
+                (candidate) => Number(candidate.slot || 0) === slot
+            ) + 1;
+        const walkInRank =
+            walkInCandidates.findIndex(
+                (candidate) => Number(candidate.slot || 0) === slot
+            ) + 1;
+        const etaLabel = formatQueueEstimatedWindow(etaMinutes);
+
+        let tone = 'warning';
+        let badge = etaLabel;
+        let headline = `${slotKey.toUpperCase()} abre ventana en ${etaLabel}`;
+        let detail =
+            'Es la estimación visible para un ingreso nuevo si lo mandas a este carril ahora.';
+
+        if (etaMinutes <= 2) {
+            tone = operatorContext.operatorAssigned ? 'ready' : 'warning';
+            detail =
+                'Queda una ventana muy corta; recepción puede usar este carril casi de inmediato.';
+        } else if (etaMinutes <= QUEUE_ESTIMATED_SERVICE_MINUTES) {
+            tone = operatorContext.operatorAssigned ? 'suggested' : 'warning';
+            detail =
+                'El carril mantiene una ventana razonable para el siguiente ingreso si decides usarlo.';
+        }
+
+        return {
+            slot,
+            slotKey,
+            tone,
+            badge,
+            headline,
+            detail,
+            appointmentLabel:
+                appointmentRank === 1
+                    ? `Cita: ${etaLabel} · preferido`
+                    : `Cita: ${etaLabel} · respaldo`,
+            walkInLabel:
+                walkInRank === 1
+                    ? `Sin cita: ${etaLabel} · preferido`
+                    : `Sin cita: ${etaLabel} · mejor el otro`,
+            supportLabel: currentTicket
+                ? `Actual ${currentTicket.ticketCode}; ${waitingCount} esperando detrás.`
+                : `${waitingCount} esperando y sin paciente llamado ahora.`,
+            actionLabel: operatorContext.operatorAssigned
+                ? `Abrir ${slotKey.toUpperCase()}`
+                : `Preparar ${slotKey.toUpperCase()}`,
+            actionUrl: operatorContext.operatorUrl,
+            appointmentRank,
+            walkInRank,
+            etaMinutes,
+        };
+    });
+
+    const appointmentBest = cards.slice().sort((left, right) => {
+        if (left.appointmentRank !== right.appointmentRank) {
+            return left.appointmentRank - right.appointmentRank;
+        }
+        return left.etaMinutes - right.etaMinutes;
+    })[0];
+    const walkInBest = cards.slice().sort((left, right) => {
+        if (left.walkInRank !== right.walkInRank) {
+            return left.walkInRank - right.walkInRank;
+        }
+        return left.etaMinutes - right.etaMinutes;
+    })[0];
+    const top =
+        cards.find((card) => card.tone === 'warning') ||
+        cards.find((card) => card.tone === 'suggested') ||
+        cards.find((card) => card.tone === 'ready') ||
+        null;
+
+    return {
+        title: 'Ventana estimada',
+        summary:
+            appointmentBest && walkInBest
+                ? `Si preguntan ahora: cita -> ${appointmentBest.slotKey.toUpperCase()} (${formatQueueEstimatedWindow(
+                      appointmentBest.etaMinutes
+                  )}), sin cita -> ${walkInBest.slotKey.toUpperCase()} (${formatQueueEstimatedWindow(
+                      walkInBest.etaMinutes
+                  )}).`
+                : 'No hay lectura suficiente para estimar la próxima ventana por consultorio.',
+        statusLabel: `${QUEUE_ESTIMATED_SERVICE_MINUTES}m por paso · 2 carriles estimados`,
+        statusState: top ? top.tone : 'idle',
+        cards,
+    };
+}
+
+function copyQueueWindowDeck(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Ventana estimada - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...panel.cards.flatMap((card) => [
+            `${card.slotKey.toUpperCase()} - ${card.badge}`,
+            card.headline,
+            `${card.appointmentLabel} · ${card.walkInLabel}`,
+            card.supportLabel,
+            '',
+        ]),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Ventana estimada copiada', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar la ventana estimada', 'error');
+        });
+}
+
+function renderQueueWindowDeck(manifest, detectedPlatform) {
+    const root = document.getElementById('queueWindowDeck');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueWindowDeck(manifest, detectedPlatform);
+    setHtml(
+        '#queueWindowDeck',
+        `
+            <section class="queue-window-deck__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-window-deck__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Tiempo visible por consultorio</p>
+                        <h5 id="queueWindowDeckTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueWindowDeckSummary" class="queue-window-deck__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-window-deck__meta">
+                        <span
+                            id="queueWindowDeckStatus"
+                            class="queue-window-deck__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueWindowDeckCopyBtn"
+                            type="button"
+                            class="queue-window-deck__action"
+                            ${panel.cards.length ? '' : 'disabled'}
+                        >
+                            Copiar ventana
+                        </button>
+                    </div>
+                </div>
+                <div id="queueWindowDeckCards" class="queue-window-deck__grid" role="list" aria-label="Ventana estimada por consultorio">
+                    ${panel.cards
+                        .map(
+                            (card) => `
+                                <article
+                                    id="queueWindowCard_${escapeHtml(
+                                        card.slotKey
+                                    )}"
+                                    class="queue-window-card"
+                                    data-state="${escapeHtml(card.tone)}"
+                                    role="listitem"
+                                >
+                                    <div class="queue-window-card__head">
+                                        <div>
+                                            <p class="queue-window-card__lane">${escapeHtml(
+                                                card.slotKey.toUpperCase()
+                                            )}</p>
+                                            <strong id="queueWindowHeadline_${escapeHtml(
+                                                card.slotKey
+                                            )}">${escapeHtml(card.headline)}</strong>
+                                        </div>
+                                        <span id="queueWindowBadge_${escapeHtml(
+                                            card.slotKey
+                                        )}" class="queue-window-card__badge">${escapeHtml(
+                                            card.badge
+                                        )}</span>
+                                    </div>
+                                    <p id="queueWindowDetail_${escapeHtml(
+                                        card.slotKey
+                                    )}" class="queue-window-card__detail">${escapeHtml(
+                                        card.detail
+                                    )}</p>
+                                    <p id="queueWindowRules_${escapeHtml(
+                                        card.slotKey
+                                    )}" class="queue-window-card__rules">${escapeHtml(
+                                        `${card.appointmentLabel} · ${card.walkInLabel}`
+                                    )}</p>
+                                    <p id="queueWindowSupport_${escapeHtml(
+                                        card.slotKey
+                                    )}" class="queue-window-card__support">${escapeHtml(
+                                        card.supportLabel
+                                    )}</p>
+                                    <div class="queue-window-card__actions">
+                                        <a
+                                            id="queueWindowOpen_${escapeHtml(
+                                                card.slotKey
+                                            )}"
+                                            href="${escapeHtml(card.actionUrl)}"
+                                            class="queue-window-card__open"
+                                            data-queue-window-label="${escapeHtml(
+                                                card.slotKey
+                                            )}"
+                                            target="_blank"
+                                            rel="noopener"
+                                        >
+                                            ${escapeHtml(card.actionLabel)}
+                                        </a>
+                                    </div>
+                                </article>
+                            `
+                        )
+                        .join('')}
+                </div>
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById('queueWindowDeckCopyBtn');
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueWindowDeck(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-window-label]').forEach((link) => {
+        if (!(link instanceof HTMLAnchorElement)) {
+            return;
+        }
+        link.onclick = () => {
+            const label = String(link.dataset.queueWindowLabel || '').trim();
+            appendOpsLogEntry({
+                source: 'window_eta',
+                tone: 'info',
+                title: 'Ventana estimada: operador abierto',
+                summary: `${label || 'Carril'} quedó abierto desde la lectura de ventana estimada.`,
+            });
+        };
+    });
+}
+
+function buildQueueDeskReplyPanel(manifest, detectedPlatform) {
+    const scenarios = buildQueueScenarioDeck(manifest, detectedPlatform);
+    const collision = buildQueueReceptionCollisionPlan(
+        manifest,
+        detectedPlatform
+    );
+    const windows = buildQueueWindowDeck(manifest, detectedPlatform);
+    const windowBySlot = new Map(
+        (windows.cards || []).map((card) => [card.slotKey, card])
+    );
+    const appointmentCard =
+        Array.isArray(scenarios.cards) &&
+        scenarios.cards.find((card) => card.badge === 'Con cita');
+    const walkInCard =
+        Array.isArray(scenarios.cards) &&
+        scenarios.cards.find((card) => card.badge === 'Sin cita');
+    const appointmentWindow = appointmentCard
+        ? windowBySlot.get(appointmentCard.slotKey)
+        : null;
+    const walkInWindow = walkInCard
+        ? windowBySlot.get(walkInCard.slotKey)
+        : null;
+    const collisionAppointment =
+        Array.isArray(collision.items) &&
+        collision.items.find((item) => item.key === 'appointment');
+    const collisionWalkIn =
+        Array.isArray(collision.items) &&
+        collision.items.find((item) => item.key === 'walkin');
+
+    const items = [];
+
+    if (appointmentCard && appointmentWindow) {
+        items.push({
+            key: 'appointment',
+            tone: appointmentCard.operatorReady ? 'ready' : 'warning',
+            label: 'Con cita',
+            headline: `Con cita -> ${appointmentCard.slotKey.toUpperCase()}`,
+            phrase: `Le paso por ${appointmentCard.slotKey.toUpperCase()}; la ventana visible está en ${formatQueueEstimatedWindow(
+                appointmentWindow.etaMinutes
+            )}.`,
+            support: appointmentCard.reason,
+            actionLabel: appointmentCard.operatorReady
+                ? `Abrir ${appointmentCard.slotKey.toUpperCase()}`
+                : `Preparar ${appointmentCard.slotKey.toUpperCase()}`,
+            actionUrl: appointmentCard.operatorUrl,
+        });
+    }
+
+    if (walkInCard && walkInWindow) {
+        items.push({
+            key: 'walkin',
+            tone: walkInCard.operatorReady ? 'suggested' : 'warning',
+            label: 'Sin cita',
+            headline: `Sin cita -> ${walkInCard.slotKey.toUpperCase()}`,
+            phrase: `Le ubico por ${walkInCard.slotKey.toUpperCase()}; la siguiente ventana visible está en ${formatQueueEstimatedWindow(
+                walkInWindow.etaMinutes
+            )}.`,
+            support: walkInCard.reason,
+            actionLabel: walkInCard.operatorReady
+                ? `Abrir ${walkInCard.slotKey.toUpperCase()}`
+                : `Preparar ${walkInCard.slotKey.toUpperCase()}`,
+            actionUrl: walkInCard.operatorUrl,
+        });
+    }
+
+    if (collisionAppointment && collisionWalkIn) {
+        items.push({
+            key: 'collision',
+            tone:
+                collisionAppointment.tone === 'warning' ||
+                collisionWalkIn.tone === 'warning'
+                    ? 'warning'
+                    : 'ready',
+            label: 'Llegan dos',
+            headline: 'Llegada doble',
+            phrase: `Si llegan dos juntas: con cita por ${String(
+                collisionAppointment.headline || ''
+            )
+                .split('->')
+                .pop()
+                .trim()} y sin cita por ${String(collisionWalkIn.headline || '')
+                .split('->')
+                .pop()
+                .trim()}.`,
+            support: collision.forcedSplit
+                ? 'Separa ambos flujos para que no choquen en el mismo carril.'
+                : 'Mantén la división sugerida por tipo para no mezclar el ingreso.',
+            actionLabel: collisionAppointment.actionLabel,
+            actionUrl: collisionAppointment.actionUrl,
+        });
+    }
+
+    const top =
+        items.find((item) => item.tone === 'warning') ||
+        items.find((item) => item.tone === 'suggested') ||
+        items[0] ||
+        null;
+
+    return {
+        title: 'Respuesta de mostrador',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay frase rápida disponible ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} respuesta(s) listas`
+            : 'Sin respuesta rápida',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function copyQueueDeskReplyPanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Respuesta de mostrador - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin respuesta rápida disponible.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Respuesta de mostrador copiada', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar la respuesta', 'error');
+        });
+}
+
+function renderQueueDeskReplyPanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskReply');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskReplyPanel(manifest, detectedPlatform);
+    setHtml(
+        '#queueDeskReply',
+        `
+            <section class="queue-desk-reply__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-reply__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Frases listas para recepción</p>
+                        <h5 id="queueDeskReplyTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskReplySummary" class="queue-desk-reply__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-reply__meta">
+                        <span
+                            id="queueDeskReplyStatus"
+                            class="queue-desk-reply__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskReplyCopyBtn"
+                            type="button"
+                            class="queue-desk-reply__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar respuesta
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskReplyItems" class="queue-desk-reply__grid" role="list" aria-label="Respuestas rápidas de mostrador">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskReplyItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-reply__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-reply__head">
+                                                    <div>
+                                                        <p class="queue-desk-reply__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskReplyHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskReplyPhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-reply__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskReplySupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-reply__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-reply__actions">
+                                                    <a
+                                                        id="queueDeskReplyOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-reply__open"
+                                                        data-queue-desk-reply-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskReplyEmpty" class="queue-desk-reply__empty">
+                                <strong>Sin frase visible</strong>
+                                <p>Hace falta más contexto de cola para preparar una respuesta rápida de mostrador.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById('queueDeskReplyCopyBtn');
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskReplyPanel(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-desk-reply-label]').forEach((link) => {
+        if (!(link instanceof HTMLAnchorElement)) {
+            return;
+        }
+        link.onclick = () => {
+            const label = String(link.dataset.queueDeskReplyLabel || '').trim();
+            appendOpsLogEntry({
+                source: 'desk_reply',
+                tone: 'info',
+                title: 'Respuesta de mostrador: operador abierto',
+                summary: `${label || 'Mostrador'} quedó abierto desde las frases rápidas.`,
+            });
+        };
+    });
+}
+
+function getQueueDeskFallbackWindowLabel(card) {
+    const etaMinutes = Number(card?.etaMinutes);
+    return Number.isFinite(etaMinutes)
+        ? formatQueueEstimatedWindow(etaMinutes)
+        : 'sin ventana visible';
+}
+
+function buildQueueDeskFallbackItem(label, key, candidates, windowBySlot) {
+    const rankedCandidates = Array.isArray(candidates) ? candidates : [];
+    const primary = rankedCandidates[0] || null;
+    if (!primary) {
+        return null;
+    }
+
+    const fallback =
+        rankedCandidates.find(
+            (candidate) =>
+                String(candidate?.slotKey || '') !==
+                String(primary.slotKey || '')
+        ) ||
+        rankedCandidates[1] ||
+        null;
+    const primaryWindow = windowBySlot.get(primary.slotKey) || null;
+    const fallbackWindow = fallback
+        ? windowBySlot.get(fallback.slotKey) || null
+        : null;
+    const primaryEtaLabel = getQueueDeskFallbackWindowLabel(primaryWindow);
+    const fallbackEtaLabel = getQueueDeskFallbackWindowLabel(fallbackWindow);
+    const primarySlotLabel = String(primary.slotKey || '').toUpperCase();
+    const fallbackSlotLabel = String(fallback?.slotKey || '').toUpperCase();
+    const phrase = fallback
+        ? `Primero le ofrecería ${primarySlotLabel} (${primaryEtaLabel}). Si no le sirve, la alternativa visible es ${fallbackSlotLabel} (${fallbackEtaLabel}).`
+        : `Primero le ofrecería ${primarySlotLabel} (${primaryEtaLabel}). Si no le sirve, no hay carril alterno visible ahora.`;
+    const support = fallback
+        ? `Plan A: ${primary.reason} Plan B: ${fallback.reason}`
+        : `Plan A: ${primary.reason} Plan B: sin carril alterno visible ahora.`;
+
+    return {
+        key,
+        tone:
+            primary.operatorReady &&
+            (!fallback || Boolean(fallback.operatorReady))
+                ? 'ready'
+                : 'warning',
+        label,
+        headline: fallback
+            ? `${label} -> ${primarySlotLabel} con respaldo ${fallbackSlotLabel}`
+            : `${label} -> ${primarySlotLabel}`,
+        phrase,
+        support,
+        actionLabel: primary.operatorReady
+            ? `Abrir ${primarySlotLabel}`
+            : `Preparar ${primarySlotLabel}`,
+        actionUrl: primary.operatorUrl,
+    };
+}
+
+function buildQueueDeskFallbackPanel(manifest, detectedPlatform) {
+    const guidance = buildQueueGeneralGuidance(manifest, detectedPlatform);
+    const projectedTickets = Array.isArray(guidance?.projectedTickets)
+        ? guidance.projectedTickets
+        : getQueueSource().queueTickets;
+    const appointmentCandidates = buildQueueScenarioCandidates(
+        manifest,
+        detectedPlatform,
+        projectedTickets,
+        'appointment'
+    );
+    const walkInCandidates = buildQueueScenarioCandidates(
+        manifest,
+        detectedPlatform,
+        projectedTickets,
+        'walk_in'
+    );
+    const windows = buildQueueWindowDeck(manifest, detectedPlatform);
+    const windowBySlot = new Map(
+        (windows.cards || []).map((card) => [card.slotKey, card])
+    );
+    const items = [
+        buildQueueDeskFallbackItem(
+            'Con cita',
+            'appointment',
+            appointmentCandidates,
+            windowBySlot
+        ),
+        buildQueueDeskFallbackItem(
+            'Sin cita',
+            'walkin',
+            walkInCandidates,
+            windowBySlot
+        ),
+    ].filter(Boolean);
+    const top =
+        items.find((item) => item.tone === 'warning') || items[0] || null;
+
+    return {
+        title: 'Plan B de recepción',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay plan B visible ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} plan(es) B listos`
+            : 'Sin plan B visible',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function copyQueueDeskFallbackPanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Plan B de recepción - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin plan B visible.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Plan B copiado', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar el plan B', 'error');
+        });
+}
+
+function renderQueueDeskFallbackPanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskFallback');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskFallbackPanel(manifest, detectedPlatform);
+    setHtml(
+        '#queueDeskFallback',
+        `
+            <section class="queue-desk-fallback__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-fallback__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Si el paciente no toma la primera opción</p>
+                        <h5 id="queueDeskFallbackTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskFallbackSummary" class="queue-desk-fallback__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-fallback__meta">
+                        <span
+                            id="queueDeskFallbackStatus"
+                            class="queue-desk-fallback__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskFallbackCopyBtn"
+                            type="button"
+                            class="queue-desk-fallback__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar plan B
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskFallbackItems" class="queue-desk-fallback__grid" role="list" aria-label="Planes B de recepción">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskFallbackItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-fallback__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-fallback__head">
+                                                    <div>
+                                                        <p class="queue-desk-fallback__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskFallbackHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskFallbackPhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-fallback__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskFallbackSupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-fallback__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-fallback__actions">
+                                                    <a
+                                                        id="queueDeskFallbackOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-fallback__open"
+                                                        data-queue-desk-fallback-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskFallbackEmpty" class="queue-desk-fallback__empty">
+                                <strong>Sin plan B visible</strong>
+                                <p>Hace falta más contexto de cola para preparar una alternativa de mostrador.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById('queueDeskFallbackCopyBtn');
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskFallbackPanel(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-desk-fallback-label]').forEach(
+        (link) => {
+            if (!(link instanceof HTMLAnchorElement)) {
+                return;
+            }
+            link.onclick = () => {
+                const label = String(
+                    link.dataset.queueDeskFallbackLabel || ''
+                ).trim();
+                appendOpsLogEntry({
+                    source: 'desk_fallback',
+                    tone: 'info',
+                    title: 'Plan B de recepción: operador abierto',
+                    summary: `${label || 'Mostrador'} quedó abierto desde el plan B operativo.`,
+                });
+            };
+        }
+    );
+}
+
+function buildQueueDeskObjectionsPanel(manifest, detectedPlatform) {
+    const windows = buildQueueWindowDeck(manifest, detectedPlatform);
+    const rankedCards = [...(windows.cards || [])].sort((left, right) => {
+        const leftEta = Number(left?.etaMinutes || Number.POSITIVE_INFINITY);
+        const rightEta = Number(right?.etaMinutes || Number.POSITIVE_INFINITY);
+        if (leftEta !== rightEta) {
+            return leftEta - rightEta;
+        }
+        return Number(left?.slot || 0) - Number(right?.slot || 0);
+    });
+    const fastest = rankedCards[0] || null;
+    const alternate = rankedCards[1] || null;
+    const fastestSlotLabel = String(fastest?.slotKey || '').toUpperCase();
+    const alternateSlotLabel = String(alternate?.slotKey || '').toUpperCase();
+    const fastestEtaLabel = getQueueDeskFallbackWindowLabel(fastest);
+    const alternateEtaLabel = getQueueDeskFallbackWindowLabel(alternate);
+    const shortWaitAvailable =
+        fastest &&
+        Number(fastest.etaMinutes || 0) <= QUEUE_SHORT_WAIT_THRESHOLD_MINUTES;
+
+    const items = [];
+
+    if (fastest) {
+        items.push({
+            key: 'first_available',
+            tone:
+                Number(fastest.etaMinutes || 0) <= 2
+                    ? 'ready'
+                    : Number(fastest.etaMinutes || 0) <=
+                        QUEUE_SHORT_WAIT_THRESHOLD_MINUTES
+                      ? 'suggested'
+                      : 'warning',
+            label: 'Lo más rápido',
+            headline: `Si pide lo más rápido -> ${fastestSlotLabel}`,
+            phrase: `Lo más rápido visible ahora es ${fastestSlotLabel} (${fastestEtaLabel}).`,
+            support: fastest.supportLabel,
+            actionLabel: fastest.actionLabel,
+            actionUrl: fastest.actionUrl,
+        });
+
+        items.push({
+            key: 'short_wait',
+            tone: shortWaitAvailable ? 'ready' : 'warning',
+            label: 'Espera corta',
+            headline: shortWaitAvailable
+                ? `Sí hay espera corta por ${fastestSlotLabel}`
+                : `No hay carril corto ahora mismo`,
+            phrase: shortWaitAvailable
+                ? `Sí le puedo ofrecer una espera corta por ${fastestSlotLabel} (${fastestEtaLabel}).`
+                : `No hay un carril por debajo de ~${QUEUE_SHORT_WAIT_THRESHOLD_MINUTES}m; lo más corto visible ahora es ${fastestSlotLabel} (${fastestEtaLabel}).`,
+            support: alternate
+                ? `Alternativa visible: ${alternateSlotLabel} (${alternateEtaLabel}).`
+                : 'No hay otro carril visible para acortar más la espera.',
+            actionLabel: fastest.actionLabel,
+            actionUrl: fastest.actionUrl,
+        });
+    }
+
+    if (alternate) {
+        items.push({
+            key: 'other_lane',
+            tone:
+                Number(alternate.etaMinutes || 0) <=
+                QUEUE_SHORT_WAIT_THRESHOLD_MINUTES
+                    ? 'suggested'
+                    : 'warning',
+            label: 'La otra opción',
+            headline: `Si pide el otro carril -> ${alternateSlotLabel}`,
+            phrase: `Si quiere la otra opción, hoy el carril alterno visible es ${alternateSlotLabel} (${alternateEtaLabel}).`,
+            support: `La opción principal sigue siendo ${fastestSlotLabel} (${fastestEtaLabel}). ${alternate.supportLabel}`,
+            actionLabel: alternate.actionLabel,
+            actionUrl: alternate.actionUrl,
+        });
+    }
+
+    const top =
+        items.find((item) => item.tone === 'warning') ||
+        items.find((item) => item.tone === 'suggested') ||
+        items[0] ||
+        null;
+
+    return {
+        title: 'Objeciones rápidas',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay respuestas de objeción visibles ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} respuesta(s) a objeciones`
+            : 'Sin objeciones preparadas',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function copyQueueDeskObjectionsPanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Objeciones rápidas - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin respuestas de objeción visibles.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Objeciones copiadas', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudieron copiar las objeciones', 'error');
+        });
+}
+
+function renderQueueDeskObjectionsPanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskObjections');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskObjectionsPanel(manifest, detectedPlatform);
+    setHtml(
+        '#queueDeskObjections',
+        `
+            <section class="queue-desk-objections__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-objections__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Si el paciente insiste en otra opción</p>
+                        <h5 id="queueDeskObjectionsTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskObjectionsSummary" class="queue-desk-objections__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-objections__meta">
+                        <span
+                            id="queueDeskObjectionsStatus"
+                            class="queue-desk-objections__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskObjectionsCopyBtn"
+                            type="button"
+                            class="queue-desk-objections__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar objeciones
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskObjectionsItems" class="queue-desk-objections__grid" role="list" aria-label="Objeciones rápidas de recepción">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskObjectionsItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-objections__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-objections__head">
+                                                    <div>
+                                                        <p class="queue-desk-objections__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskObjectionsHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskObjectionsPhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-objections__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskObjectionsSupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-objections__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-objections__actions">
+                                                    <a
+                                                        id="queueDeskObjectionsOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-objections__open"
+                                                        data-queue-desk-objection-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskObjectionsEmpty" class="queue-desk-objections__empty">
+                                <strong>Sin objeciones visibles</strong>
+                                <p>Hace falta más contexto de cola para preparar respuestas rápidas a objeciones del paciente.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById('queueDeskObjectionsCopyBtn');
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskObjectionsPanel(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-desk-objection-label]').forEach(
+        (link) => {
+            if (!(link instanceof HTMLAnchorElement)) {
+                return;
+            }
+            link.onclick = () => {
+                const label = String(
+                    link.dataset.queueDeskObjectionLabel || ''
+                ).trim();
+                appendOpsLogEntry({
+                    source: 'desk_objection',
+                    tone: 'info',
+                    title: 'Objeciones rápidas: operador abierto',
+                    summary: `${label || 'Mostrador'} quedó abierto desde las respuestas de objeción.`,
+                });
+            };
+        }
+    );
+}
+
+function buildQueueDeskCloseoutPanel(manifest, detectedPlatform) {
+    const windows = buildQueueWindowDeck(manifest, detectedPlatform);
+    const windowBySlot = new Map(
+        (windows.cards || []).map((card) => [card.slotKey, card])
+    );
+    const scenarios = buildQueueScenarioDeck(manifest, detectedPlatform);
+    const appointmentCard =
+        Array.isArray(scenarios.cards) &&
+        scenarios.cards.find((card) => card.badge === 'Con cita');
+    const walkInCard =
+        Array.isArray(scenarios.cards) &&
+        scenarios.cards.find((card) => card.badge === 'Sin cita');
+    const rankedCards = [...(windows.cards || [])].sort((left, right) => {
+        const leftEta = Number(left?.etaMinutes || Number.POSITIVE_INFINITY);
+        const rightEta = Number(right?.etaMinutes || Number.POSITIVE_INFINITY);
+        if (leftEta !== rightEta) {
+            return leftEta - rightEta;
+        }
+        return Number(left?.slot || 0) - Number(right?.slot || 0);
+    });
+    const firstVisible = rankedCards[0] || null;
+    const secondVisible = rankedCards[1] || null;
+    const items = [];
+
+    if (appointmentCard) {
+        const appointmentWindow =
+            windowBySlot.get(appointmentCard.slotKey) || null;
+        const appointmentEtaLabel =
+            getQueueDeskFallbackWindowLabel(appointmentWindow);
+        items.push({
+            key: 'appointment',
+            tone: appointmentCard.operatorReady ? 'ready' : 'warning',
+            label: 'Con cita',
+            headline: `Cierre con cita -> ${appointmentCard.slotKey.toUpperCase()}`,
+            phrase: `Le dejo por ${appointmentCard.slotKey.toUpperCase()}; conserve su ticket y esté atento a la TV o campanilla. Si pasa más de ${appointmentEtaLabel} sin llamado, me avisa.`,
+            support: appointmentCard.reason,
+            actionLabel: appointmentCard.operatorReady
+                ? `Abrir ${appointmentCard.slotKey.toUpperCase()}`
+                : `Preparar ${appointmentCard.slotKey.toUpperCase()}`,
+            actionUrl: appointmentCard.operatorUrl,
+        });
+    }
+
+    if (walkInCard) {
+        const walkInWindow = windowBySlot.get(walkInCard.slotKey) || null;
+        const walkInEtaLabel = getQueueDeskFallbackWindowLabel(walkInWindow);
+        items.push({
+            key: 'walkin',
+            tone: walkInCard.operatorReady ? 'suggested' : 'warning',
+            label: 'Sin cita',
+            headline: `Cierre sin cita -> ${walkInCard.slotKey.toUpperCase()}`,
+            phrase: `Le dejo por ${walkInCard.slotKey.toUpperCase()}; conserve su ticket y esté atento a la TV o campanilla. Si pasa más de ${walkInEtaLabel} sin llamado, me avisa.`,
+            support: walkInCard.reason,
+            actionLabel: walkInCard.operatorReady
+                ? `Abrir ${walkInCard.slotKey.toUpperCase()}`
+                : `Preparar ${walkInCard.slotKey.toUpperCase()}`,
+            actionUrl: walkInCard.operatorUrl,
+        });
+    }
+
+    if (firstVisible) {
+        const firstEtaLabel = getQueueDeskFallbackWindowLabel(firstVisible);
+        const secondEtaLabel = getQueueDeskFallbackWindowLabel(secondVisible);
+        const secondSlotLabel = String(
+            secondVisible?.slotKey || ''
+        ).toUpperCase();
+        items.push({
+            key: 'if_not_called',
+            tone:
+                secondVisible && Number(secondVisible.etaMinutes || 0) <= 20
+                    ? 'suggested'
+                    : 'warning',
+            label: 'Si no lo llaman',
+            headline: `Revalidar después de ${firstEtaLabel}`,
+            phrase: `Si no lo llaman dentro de ${firstEtaLabel}, vuelva a mostrador y revalidamos el carril sin perder el turno.`,
+            support: secondVisible
+                ? `Respaldo visible: ${secondSlotLabel} (${secondEtaLabel}) si hace falta moverlo.`
+                : 'No hay otro carril visible ahora; revalidamos sobre la misma cola.',
+            actionLabel: firstVisible.actionLabel,
+            actionUrl: firstVisible.actionUrl,
+        });
+    }
+
+    const top =
+        items.find((item) => item.tone === 'warning') ||
+        items.find((item) => item.tone === 'suggested') ||
+        items[0] ||
+        null;
+
+    return {
+        title: 'Cierre de mostrador',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay cierre de mostrador visible ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} cierre(s) listos`
+            : 'Sin cierre visible',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function copyQueueDeskCloseoutPanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Cierre de mostrador - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin cierres visibles.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Cierre de mostrador copiado', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar el cierre de mostrador', 'error');
+        });
+}
+
+function renderQueueDeskCloseoutPanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskCloseout');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskCloseoutPanel(manifest, detectedPlatform);
+    setHtml(
+        '#queueDeskCloseout',
+        `
+            <section class="queue-desk-closeout__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-closeout__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Cómo cerrar la conversación</p>
+                        <h5 id="queueDeskCloseoutTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskCloseoutSummary" class="queue-desk-closeout__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-closeout__meta">
+                        <span
+                            id="queueDeskCloseoutStatus"
+                            class="queue-desk-closeout__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskCloseoutCopyBtn"
+                            type="button"
+                            class="queue-desk-closeout__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar cierre
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskCloseoutItems" class="queue-desk-closeout__grid" role="list" aria-label="Cierre de mostrador por tipo">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskCloseoutItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-closeout__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-closeout__head">
+                                                    <div>
+                                                        <p class="queue-desk-closeout__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskCloseoutHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskCloseoutPhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskCloseoutSupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-closeout__actions">
+                                                    <a
+                                                        id="queueDeskCloseoutOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-closeout__open"
+                                                        data-queue-desk-close-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskCloseoutEmpty" class="queue-desk-closeout__empty">
+                                <strong>Sin cierre visible</strong>
+                                <p>Hace falta más contexto de cola para preparar el cierre de mostrador.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById('queueDeskCloseoutCopyBtn');
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskCloseoutPanel(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-desk-close-label]').forEach((link) => {
+        if (!(link instanceof HTMLAnchorElement)) {
+            return;
+        }
+        link.onclick = () => {
+            const label = String(link.dataset.queueDeskCloseLabel || '').trim();
+            appendOpsLogEntry({
+                source: 'desk_close',
+                tone: 'info',
+                title: 'Cierre de mostrador: operador abierto',
+                summary: `${label || 'Mostrador'} quedó abierto desde el cierre operativo.`,
+            });
+        };
+    });
+}
+
 function getQueueBlockerWeight(item) {
     const action = String(item?.actionLabel || '')
         .trim()
@@ -14771,6 +16173,11 @@ function rerenderQueueOpsHub(manifest, detectedPlatform) {
     renderQueueReceptionScript(manifest, detectedPlatform);
     renderQueueReceptionCollision(manifest, detectedPlatform);
     renderQueueReceptionLights(manifest, detectedPlatform);
+    renderQueueWindowDeck(manifest, detectedPlatform);
+    renderQueueDeskReplyPanel(manifest, detectedPlatform);
+    renderQueueDeskFallbackPanel(manifest, detectedPlatform);
+    renderQueueDeskObjectionsPanel(manifest, detectedPlatform);
+    renderQueueDeskCloseoutPanel(manifest, detectedPlatform);
     renderQueueBlockersPanel(manifest, detectedPlatform);
     renderQueueSlaDeck(manifest, detectedPlatform);
     renderQueueWaitRadar(manifest, detectedPlatform);
@@ -15212,6 +16619,11 @@ export function renderQueueInstallHub(options = {}) {
     renderQueueReceptionScript(manifest, platform);
     renderQueueReceptionCollision(manifest, platform);
     renderQueueReceptionLights(manifest, platform);
+    renderQueueWindowDeck(manifest, platform);
+    renderQueueDeskReplyPanel(manifest, platform);
+    renderQueueDeskFallbackPanel(manifest, platform);
+    renderQueueDeskObjectionsPanel(manifest, platform);
+    renderQueueDeskCloseoutPanel(manifest, platform);
     renderQueueBlockersPanel(manifest, platform);
     renderQueueSlaDeck(manifest, platform);
     renderQueueWaitRadar(manifest, platform);

@@ -209,6 +209,11 @@ Para separar operación por equipo:
 - El hub ahora también muestra `Guion de recepción`: compacta cola general, con cita, sin cita y próximo ingreso en un guion corto para mostrador.
 - El hub ahora también muestra `Recepción simultánea`: resuelve cuándo llegan dos personas juntas y divide `con cita` y `sin cita` para no chocar en el mismo carril.
 - El hub ahora también muestra `Semáforo de recepción`: marca por carril si recepción debe dejarlo `abierto`, `solo citas` o `contener` sin leer varios panels a la vez.
+- El hub ahora también muestra `Ventana estimada`: calcula una ventana visible por consultorio para decir en mostrador cuánto tardaría en abrirse el siguiente espacio útil.
+- El hub ahora también muestra `Respuesta de mostrador`: convierte la lectura operativa en frases listas para decirle al paciente sin traducir manualmente los panels.
+- El hub ahora también muestra `Plan B de recepción`: deja lista una segunda ruta por `con cita` y `sin cita` si el paciente no acepta la primera sugerencia visible.
+- El hub ahora también muestra `Objeciones rápidas`: responde en un clic a “quiero lo más rápido”, “necesito una espera corta” o “prefiero la otra opción” usando la misma ventana viva del turno.
+- El hub ahora también muestra `Cierre de mostrador`: deja la frase final para despedir al paciente, con ventana estimada y una regla clara de qué hacer si no lo llaman a tiempo.
 - El hub ahora también muestra `Bloqueos vivos`: detecta los cuellos que frenan la ronda inmediata, por ejemplo un ticket llamado que bloquea el siguiente paso o un consultorio con ticket pero sin operador listo, y deja el ticket cargable al lookup para destrabarlo rápido.
 - El hub ahora también muestra `SLA vivo`: lista los tickets que ya cayeron o están por caer en ventana de riesgo, con etiqueta de `vence en` o `vencido hace`, para intervenir antes de que esa presión se convierta en bloqueo operativo.
 - El hub ahora también muestra un `Radar de espera`: tres carriles (`General`, `C1`, `C2`) ordenados por antigüedad/presión, para que recepción vea primero cuál ticket está envejeciendo y ejecute la siguiente jugada sin bajar a la tabla.
