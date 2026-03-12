@@ -184,7 +184,7 @@ Read the repair summary before re-running anything manually:
 
 - `connectivity_diagnose_dispatch_mode=diagnose_only` means repair only escalated the network probe and left deploy fallbacks untouched.
 - `connectivity_diagnose_dispatch_mode=with_fallback` means the same repair run also requested at least one deploy fallback path.
-- `connectivity_diagnose_run_status` tells you whether the network probe was observed; repair now retries that lookup once more before writing the final summary.
+- `connectivity_diagnose_run_status` tells you whether the network probe was observed; repair now retries that lookup once more before writing the final summary and prefers the same `headSha` while still falling back to the closest dispatch-window run if `main` advanced in the meantime.
 - `self_hosted_fallback_state=queued` means the self-hosted runner is not available yet; the fallback is waiting for runner capacity, not blocked by repo logic.
 - `self_hosted_fallback_state=started` means the Windows runner picked up the job.
 - `self_hosted_fallback_state=dispatched_not_observed` means GitHub accepted the dispatch but the repair workflow could not observe the downstream run quickly enough.
@@ -226,7 +226,9 @@ When that transport preflight fails, `deploy-hosting.yml` now also dispatches
 `diagnose-host-connectivity.yml` automatically and records
 `connectivity_diagnose_run_status` plus `connectivity_diagnose_run_url` in both
 the workflow summary and the transport incident. `deploy-hosting.yml` now also
-retries that lookup once before the final summary; if the status still ends as
+retries that lookup once before the final summary, preferring the same
+`headSha` but falling back to the closest dispatch-window run if `main`
+advanced; if the status still ends as
 `dispatched_not_observed`, GitHub accepted the dispatch but the downstream
 diagnostic run never became observable during the parent workflow retry window.
 

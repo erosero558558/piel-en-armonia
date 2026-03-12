@@ -620,12 +620,62 @@ jobs:
                         '';
                       const workflowId = 'diagnose-host-connectivity.yml';
                       const dispatchStartedAt = Date.now();
+                      const dispatchStartedAtIso = new Date(dispatchStartedAt).toISOString();
 
                       function wait(ms) {
                         return new Promise((resolve) => setTimeout(resolve, ms));
                       }
 
-                      async function findDispatchedRun() {
+                      function parseTimestamp(value) {
+                        const parsed = Date.parse(String(value || ''));
+                        return Number.isFinite(parsed) ? parsed : NaN;
+                      }
+
+                      function selectBestDispatchedRun(runs, dispatchTimestamp) {
+                        const dispatchStartedAtMs = parseTimestamp(dispatchTimestamp);
+                        const fallbackLowerBoundMs = Date.now() - 15 * 60 * 1000;
+                        const lowerBoundMs = Number.isFinite(dispatchStartedAtMs)
+                          ? dispatchStartedAtMs - 15_000
+                          : fallbackLowerBoundMs;
+                        const upperBoundMs = Date.now() + 5_000;
+                        const candidates = runs
+                          .map((run) => {
+                            const createdAtMs = Date.parse(run.created_at || '');
+                            if (!Number.isFinite(createdAtMs)) {
+                              return null;
+                            }
+                            if (createdAtMs < lowerBoundMs || createdAtMs > upperBoundMs) {
+                              return null;
+                            }
+                            return {
+                              run,
+                              createdAtMs,
+                              exactHeadSha: Boolean(headSha && run.head_sha && run.head_sha === headSha),
+                              createdAfterDispatch: Number.isFinite(dispatchStartedAtMs)
+                                ? createdAtMs >= dispatchStartedAtMs - 1_000
+                                : true,
+                              deltaMs: Number.isFinite(dispatchStartedAtMs)
+                                ? Math.abs(createdAtMs - dispatchStartedAtMs)
+                                : Math.abs(Date.now() - createdAtMs),
+                            };
+                          })
+                          .filter(Boolean)
+                          .sort((left, right) => {
+                            if (left.exactHeadSha !== right.exactHeadSha) {
+                              return left.exactHeadSha ? -1 : 1;
+                            }
+                            if (left.createdAfterDispatch !== right.createdAfterDispatch) {
+                              return left.createdAfterDispatch ? -1 : 1;
+                            }
+                            if (left.deltaMs !== right.deltaMs) {
+                              return left.deltaMs - right.deltaMs;
+                            }
+                            return left.createdAtMs - right.createdAtMs;
+                          });
+                        return candidates[0]?.run || null;
+                      }
+
+                      async function findDispatchedRun(dispatchTimestamp = dispatchStartedAtIso) {
                         const runs = await github.paginate(
                           github.rest.actions.listWorkflowRunsForWorkflow,
                           {
@@ -637,21 +687,7 @@ jobs:
                             per_page: 20,
                           }
                         );
-                        return (
-                          runs.find((run) => {
-                            const createdAtMs = Date.parse(run.created_at || '');
-                            if (!Number.isFinite(createdAtMs)) {
-                              return false;
-                            }
-                            if (createdAtMs < dispatchStartedAt - 60_000) {
-                              return false;
-                            }
-                            if (headSha && run.head_sha && run.head_sha !== headSha) {
-                              return false;
-                            }
-                            return true;
-                          }) || null
-                        );
+                        return selectBestDispatchedRun(runs, dispatchTimestamp);
                       }
 
                       await github.rest.actions.createWorkflowDispatch({
@@ -686,10 +722,14 @@ jobs:
                         'connectivity_diagnose_run_conclusion',
                         observedRun?.conclusion || ''
                       );
+                      core.setOutput(
+                        'connectivity_diagnose_dispatched_at',
+                        dispatchStartedAtIso
+                      );
 
                       core.info(
                         observedRun
-                          ? `Workflow ${workflowId} disparado desde deploy-hosting (run_id=${observedRun.id}, status=${observedRun.status}, url=${observedRun.html_url}).`
+                          ? `Workflow ${workflowId} disparado desde deploy-hosting (run_id=${observedRun.id}, status=${observedRun.status}, match=${observedRun.head_sha === headSha ? 'head_sha' : 'dispatch_window'}, url=${observedRun.html_url}).`
                           : `Workflow ${workflowId} disparado desde deploy-hosting (run no observado aun).`
                       );
 
@@ -703,6 +743,7 @@ jobs:
                   CONNECTIVITY_DIAGNOSE_RUN_URL_INPUT: ${{ steps.connectivity_diagnose_dispatch.outputs.connectivity_diagnose_run_url }}
                   CONNECTIVITY_DIAGNOSE_RUN_STATUS_INPUT: ${{ steps.connectivity_diagnose_dispatch.outputs.connectivity_diagnose_run_status }}
                   CONNECTIVITY_DIAGNOSE_RUN_CONCLUSION_INPUT: ${{ steps.connectivity_diagnose_dispatch.outputs.connectivity_diagnose_run_conclusion }}
+                  CONNECTIVITY_DIAGNOSE_DISPATCHED_AT_INPUT: ${{ steps.connectivity_diagnose_dispatch.outputs.connectivity_diagnose_dispatched_at }}
               with:
                   script: |
                       const reason = String(process.env.TRANSPORT_PREFLIGHT_REASON || 'not_evaluated');
@@ -723,11 +764,60 @@ jobs:
                         return String(value || '').trim();
                       }
 
+                      function parseTimestamp(value) {
+                        const parsed = Date.parse(normalizeRun(value));
+                        return Number.isFinite(parsed) ? parsed : NaN;
+                      }
+
                       function wait(ms) {
                         return new Promise((resolve) => setTimeout(resolve, ms));
                       }
 
-                      async function findDispatchedRun() {
+                      function selectBestDispatchedRun(runs, dispatchTimestamp) {
+                        const dispatchStartedAtMs = parseTimestamp(dispatchTimestamp);
+                        const fallbackLowerBoundMs = Date.now() - 15 * 60 * 1000;
+                        const lowerBoundMs = Number.isFinite(dispatchStartedAtMs)
+                          ? dispatchStartedAtMs - 15_000
+                          : fallbackLowerBoundMs;
+                        const upperBoundMs = Date.now() + 5_000;
+                        const candidates = runs
+                          .map((run) => {
+                            const createdAtMs = Date.parse(run.created_at || '');
+                            if (!Number.isFinite(createdAtMs)) {
+                              return null;
+                            }
+                            if (createdAtMs < lowerBoundMs || createdAtMs > upperBoundMs) {
+                              return null;
+                            }
+                            return {
+                              run,
+                              createdAtMs,
+                              exactHeadSha: Boolean(headSha && run.head_sha && run.head_sha === headSha),
+                              createdAfterDispatch: Number.isFinite(dispatchStartedAtMs)
+                                ? createdAtMs >= dispatchStartedAtMs - 1_000
+                                : true,
+                              deltaMs: Number.isFinite(dispatchStartedAtMs)
+                                ? Math.abs(createdAtMs - dispatchStartedAtMs)
+                                : Math.abs(Date.now() - createdAtMs),
+                            };
+                          })
+                          .filter(Boolean)
+                          .sort((left, right) => {
+                            if (left.exactHeadSha !== right.exactHeadSha) {
+                              return left.exactHeadSha ? -1 : 1;
+                            }
+                            if (left.createdAfterDispatch !== right.createdAfterDispatch) {
+                              return left.createdAfterDispatch ? -1 : 1;
+                            }
+                            if (left.deltaMs !== right.deltaMs) {
+                              return left.deltaMs - right.deltaMs;
+                            }
+                            return left.createdAtMs - right.createdAtMs;
+                          });
+                        return candidates[0]?.run || null;
+                      }
+
+                      async function findDispatchedRun(dispatchTimestamp = '') {
                         const runs = await github.paginate(
                           github.rest.actions.listWorkflowRunsForWorkflow,
                           {
@@ -739,19 +829,7 @@ jobs:
                             per_page: 20,
                           }
                         );
-                        const cutoffMs = Date.now() - 15 * 60 * 1000;
-                        return (
-                          runs.find((run) => {
-                            const createdAtMs = Date.parse(run.created_at || '');
-                            if (!Number.isFinite(createdAtMs) || createdAtMs < cutoffMs) {
-                              return false;
-                            }
-                            if (headSha && run.head_sha && run.head_sha !== headSha) {
-                              return false;
-                            }
-                            return true;
-                          }) || null
-                        );
+                        return selectBestDispatchedRun(runs, dispatchTimestamp);
                       }
 
                       let runId = shouldExpose
@@ -766,12 +844,15 @@ jobs:
                       let runConclusion = shouldExpose
                         ? normalizeRun(process.env.CONNECTIVITY_DIAGNOSE_RUN_CONCLUSION_INPUT)
                         : '';
+                      const dispatchTimestamp = normalizeRun(
+                        process.env.CONNECTIVITY_DIAGNOSE_DISPATCHED_AT_INPUT
+                      );
 
                       if (shouldExpose && (!runId || runStatus === 'dispatched_not_observed')) {
                         let observedRun = null;
                         for (let attempt = 0; attempt < 6; attempt += 1) {
                           await wait(attempt === 0 ? 2000 : 4000);
-                          observedRun = await findDispatchedRun();
+                          observedRun = await findDispatchedRun(dispatchTimestamp);
                           if (observedRun) {
                             break;
                           }
@@ -782,7 +863,7 @@ jobs:
                           runStatus = String(observedRun.status || '') || runStatus;
                           runConclusion = String(observedRun.conclusion || '');
                           core.info(
-                            `Hydrated late ${workflowId} run from deploy-hosting (run_id=${runId}, status=${runStatus}, url=${runUrl}).`
+                            `Hydrated late ${workflowId} run from deploy-hosting (run_id=${runId}, status=${runStatus}, match=${observedRun.head_sha === headSha ? 'head_sha' : 'dispatch_window'}, url=${runUrl}).`
                           );
                         } else {
                           core.info(
