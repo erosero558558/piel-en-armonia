@@ -717,6 +717,7 @@ test('repair-git-sync gestiona incidente dedicado cuando el fallback self-hosted
     const stepNames = steps.map((step) => String(step?.name || ''));
 
     for (const expectedStepName of [
+        'Reconciliar cola self-hosted fallback desde repair',
         'Crear/actualizar incidente self-hosted fallback de repair',
         'Cerrar incidente self-hosted fallback de repair al recuperar',
     ]) {
@@ -728,6 +729,17 @@ test('repair-git-sync gestiona incidente dedicado cuando el fallback self-hosted
     }
 
     for (const snippet of [
+        "if: ${{ always() && (steps.transport_fallback.outputs.self_hosted_fallback_recommended != 'true' || steps.transport_fallback.outputs.self_hosted_fallback_dispatch_ready == 'true') }}",
+        "const currentRun = await github.rest.actions.getWorkflowRun({",
+        "const queuedRuns = runs",
+        ".filter((run) => run.status === 'queued')",
+        'let keepRunId = \'\';',
+        'const staleQueuedRuns = queuedRuns.filter((run) => {',
+        'await github.rest.actions.cancelWorkflowRun({',
+        "core.setOutput(\n                        'self_hosted_queue_cancelled_count',",
+        "core.setOutput('self_hosted_queue_kept_run_url', keepRunUrl);",
+        "core.setOutput('self_hosted_queue_state', queueState);",
+        'Self-hosted queue reconcile: state=',
         "if: ${{ always() && steps.transport_fallback.outputs.self_hosted_fallback_dispatch_ready == 'true' && (steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state == 'queued' || steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state == 'dispatched_not_observed') }}",
         "if: ${{ always() && (steps.transport_fallback.outputs.transport_fallback_recommended != 'true' || (steps.transport_fallback.outputs.self_hosted_fallback_dispatch_ready == 'true' && steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state != 'queued' && steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state != 'dispatched_not_observed')) }}",
         "const title = '[ALERTA PROD] Repair git sync self-hosted fallback sin runner';",
@@ -736,6 +748,10 @@ test('repair-git-sync gestiona incidente dedicado cuando el fallback self-hosted
         "`- self_hosted_fallback_state: ${process.env.SELF_HOSTED_FALLBACK_STATE || 'unknown'}`",
         "`- self_hosted_fallback_run_status: ${process.env.SELF_HOSTED_FALLBACK_RUN_STATUS || 'unknown'}`",
         "`- self_hosted_fallback_run_url: ${process.env.SELF_HOSTED_FALLBACK_RUN_URL || ''}`",
+        "`- self_hosted_queue_state: ${process.env.SELF_HOSTED_QUEUE_STATE || 'not_evaluated'}`",
+        "`- self_hosted_queue_cancelled_count: ${process.env.SELF_HOSTED_QUEUE_CANCELLED_COUNT || '0'}`",
+        "`- self_hosted_queue_cancelled_ids: ${process.env.SELF_HOSTED_QUEUE_CANCELLED_IDS || ''}`",
+        "`- self_hosted_queue_kept_run_url: ${process.env.SELF_HOSTED_QUEUE_KEPT_RUN_URL || ''}`",
         "`- transport_fallback_reason: ${process.env.TRANSPORT_FALLBACK_REASON || 'unknown'}`",
         "const baseLabels = ['production-alert', 'repair-git-sync', 'self-hosted-runner', 'severity:warning'];",
         'Issue repair-git-sync self-hosted fallback ya refleja la misma senal',
@@ -745,11 +761,57 @@ test('repair-git-sync gestiona incidente dedicado cuando el fallback self-hosted
         'SELF_HOSTED_FALLBACK_STATE: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state }}',
         'SELF_HOSTED_FALLBACK_RUN_STATUS: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_run_status }}',
         'SELF_HOSTED_FALLBACK_RUN_URL: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_run_url }}',
+        'SELF_HOSTED_QUEUE_CANCELLED_COUNT: ${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_cancelled_count }}',
+        'SELF_HOSTED_QUEUE_CANCELLED_IDS: ${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_cancelled_ids }}',
+        'SELF_HOSTED_QUEUE_KEPT_RUN_URL: ${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_kept_run_url }}',
+        'SELF_HOSTED_QUEUE_STATE: ${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_state }}',
+        'self_hosted_queue_state: \\`${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_state || \'not_evaluated\' }}\\`',
+        'self_hosted_queue_cancelled_count: \\`${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_cancelled_count || \'0\' }}\\`',
+        'self_hosted_queue_cancelled_ids: \\`${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_cancelled_ids || \'\' }}\\`',
+        'self_hosted_queue_kept_run_url: \\`${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_kept_run_url || \'\' }}\\`',
     ]) {
         assert.equal(
             raw.includes(snippet),
             true,
             `falta wiring de incidente self-hosted fallback en repair-git-sync: ${snippet}`
+        );
+    }
+});
+
+test('repair-git-sync clasifica blockers github-deploy y favorece self-hosted cuando GitHub-hosted esta bloqueado', () => {
+    const { raw } = loadWorkflow(REPAIR_WORKFLOW_PATH);
+
+    for (const snippet of [
+        "const githubDeployAlertsOpen = failureSet.has('github-deploy-alerts-open');",
+        "const githubTransportBlocked = failureSet.has('github-deploy-transport-blocked');",
+        "const githubConnectivityBlocked = failureSet.has('github-deploy-connectivity-blocked');",
+        "const githubRepairBlocked = failureSet.has('github-deploy-repair-git-sync-blocked');",
+        "const githubSelfHostedRunnerBlocked = failureSet.has(",
+        "'github-deploy-self-hosted-runner-blocked'",
+        'const githubDeployBlockingSignals = [];',
+        "githubDeployBlockingSignals.push('github-transport-blocked');",
+        "githubDeployBlockingSignals.push('github-connectivity-blocked');",
+        "githubDeployBlockingSignals.push('github-repair-git-sync-blocked');",
+        "githubDeployBlockingSignals.push('github-self-hosted-runner-blocked');",
+        'const githubTransportPathBlocked =',
+        'const hostFallbackCandidate =',
+        'const transportRecommended =',
+        'const selfHostedRecommended =',
+        "reasonTokens.push('transport:blocked_by_github_route');",
+        "reasonTokens.push('transport:recommended');",
+        "reasonTokens.push('self-hosted:recommended');",
+        "reasonTokens.push('self-hosted:blocked_by_github_runner');",
+        "'self_hosted_fallback_recommended'",
+        "'transport_fallback_github_blockers'",
+        'SELF_HOSTED_FALLBACK_RECOMMENDED',
+        'TRANSPORT_FALLBACK_GITHUB_BLOCKERS',
+        'transport_fallback_github_blockers: \\`${{ steps.transport_fallback.outputs.transport_fallback_github_blockers }}\\`',
+        'self_hosted_fallback_recommended: \\`${{ steps.transport_fallback.outputs.self_hosted_fallback_recommended }}\\`',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta clasificacion github-deploy en repair-git-sync: ${snippet}`
         );
     }
 });

@@ -165,6 +165,16 @@ Read the repair summary for `host_cron_wrapper_sync_state`,
 `host_cron_wrapper_source` before assuming the cron is still running the latest
 wrapper.
 
+`repair-git-sync.yml` now also parses the GitHub-side verify assets
+`github-deploy-*`. When `github-deploy-transport-blocked`,
+`github-deploy-connectivity-blocked`, or
+`github-deploy-repair-git-sync-blocked` appear in
+`verification/last-deploy-verify.json`, the workflow no longer recommends the
+GitHub-hosted transport fallback path. Instead it records those blockers in
+`transport_fallback_github_blockers` and can still recommend the self-hosted
+fallback path when `dispatch_self_hosted_fallback=true` and no
+`github-deploy-self-hosted-runner-blocked` signal is present.
+
 If you also want the repair workflow to try the Windows runner path, opt into
 the self-hosted fallback from the same repair dispatch:
 
@@ -180,14 +190,26 @@ With the same stale-host signature, `repair-git-sync.yml` now behaves like this:
 2. It dispatches `deploy-hosting.yml` only if `dispatch_transport_fallback=true` or the repo automation enables that fallback.
 3. It dispatches `deploy-frontend-selfhosted.yml` only if `dispatch_self_hosted_fallback=true` or the repo automation enables that fallback.
 
+When GitHub-hosted transport is already corroborated as blocked, expect this
+split instead:
+
+1. `transport_fallback_recommended=false`
+2. `transport_fallback_github_blockers=...`
+3. `self_hosted_fallback_recommended=true` if the Windows runner path is still viable
+
 Read the repair summary before re-running anything manually:
 
 - `connectivity_diagnose_dispatch_mode=diagnose_only` means repair only escalated the network probe and left deploy fallbacks untouched.
 - `connectivity_diagnose_dispatch_mode=with_fallback` means the same repair run also requested at least one deploy fallback path.
 - `connectivity_diagnose_run_status` tells you whether the network probe was observed.
+- `transport_fallback_github_blockers` lists the active GitHub-side blockers that suppressed the GitHub-hosted transport path.
+- `self_hosted_fallback_recommended=true` means repair judged the Windows/self-hosted route as the next viable lane even if `transport_fallback_recommended=false`.
 - `self_hosted_fallback_state=queued` means the self-hosted runner is not available yet; the fallback is waiting for runner capacity, not blocked by repo logic.
 - `self_hosted_fallback_state=started` means the Windows runner picked up the job.
 - `self_hosted_fallback_state=dispatched_not_observed` means GitHub accepted the dispatch but the repair workflow could not observe the downstream run quickly enough.
+- `self_hosted_queue_state` now tells you whether repair kept the current queued fallback (`kept_current_queue`), cancelled stale queued runs after recovery (`cancelled_stale_after_recovery`), or cancelled older duplicates while preserving the newest candidate (`cancelled_duplicates_keep_current`).
+- `self_hosted_queue_cancelled_count` and `self_hosted_queue_cancelled_ids` show how many stale `deploy-frontend-selfhosted.yml` runs were cancelled so an old queued deploy cannot publish a stale commit later.
+- `self_hosted_queue_kept_run_url` points to the single queued self-hosted run that repair intentionally preserved when runner capacity is still missing.
 
 `diagnose-host-connectivity.yml` now publishes both `connectivity-report.txt`
 and `connectivity-report.json`. When every configured host origin finishes
@@ -238,7 +260,9 @@ infrastructure action from fixing the host network path.
 dispatches `deploy-frontend-selfhosted.yml` and the downstream run stays
 `queued` or `dispatched_not_observed`. The incident closes automatically once
 the self-hosted fallback is observed running/completed, or when repair no
-longer recommends that fallback path.
+longer recommends that fallback path. During that same recovery path, repair
+now cancels stale queued `deploy-frontend-selfhosted.yml` runs from older
+attempts so a late Windows runner does not execute an obsolete fallback commit.
 
 In that case, inspect `.public-cutover/transport-preflight.json` from the run
 artifact and move to a manual host-side publish path:

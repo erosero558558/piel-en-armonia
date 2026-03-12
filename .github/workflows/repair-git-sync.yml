@@ -587,7 +587,15 @@ jobs:
                     ].includes(asset)
                   );
                   const deployFreshnessBlocked = failureSet.has('deploy-freshness');
+                  const githubDeployAlertsOpen = failureSet.has('github-deploy-alerts-open');
+                  const githubTransportBlocked = failureSet.has('github-deploy-transport-blocked');
+                  const githubConnectivityBlocked = failureSet.has('github-deploy-connectivity-blocked');
+                  const githubRepairBlocked = failureSet.has('github-deploy-repair-git-sync-blocked');
+                  const githubSelfHostedRunnerBlocked = failureSet.has(
+                    'github-deploy-self-hosted-runner-blocked'
+                  );
                   const hostStaleSignals = [];
+                  const githubDeployBlockingSignals = [];
 
                   if (deployFreshnessBlocked) {
                     hostStaleSignals.push('deploy-freshness');
@@ -598,6 +606,21 @@ jobs:
                   if (publicSyncBlocked) {
                     hostStaleSignals.push('public-sync-blocked');
                   }
+                  if (githubDeployAlertsOpen) {
+                    githubDeployBlockingSignals.push('github-deploy-alerts-open');
+                  }
+                  if (githubTransportBlocked) {
+                    githubDeployBlockingSignals.push('github-transport-blocked');
+                  }
+                  if (githubConnectivityBlocked) {
+                    githubDeployBlockingSignals.push('github-connectivity-blocked');
+                  }
+                  if (githubRepairBlocked) {
+                    githubDeployBlockingSignals.push('github-repair-git-sync-blocked');
+                  }
+                  if (githubSelfHostedRunnerBlocked) {
+                    githubDeployBlockingSignals.push('github-self-hosted-runner-blocked');
+                  }
 
                   const sshRepairFailed =
                     sshRepairOutcome !== '' &&
@@ -605,13 +628,24 @@ jobs:
                     sshRepairOutcome !== 'skipped';
                   const verifyFailed = verifyOutcome === 'failure';
                   const smokeSucceeded = smokeOutcome === 'success';
-                  const recommended =
+                  const githubTransportPathBlocked =
+                    githubTransportBlocked || githubConnectivityBlocked || githubRepairBlocked;
+                  const hostFallbackCandidate =
                     verifyFailed && smokeSucceeded && (hostStaleSignals.length > 0 || sshRepairFailed);
-                  const dispatchReady = recommended && dispatchRequested;
+                  const transportRecommended =
+                    hostFallbackCandidate && !githubTransportPathBlocked;
+                  const selfHostedRecommended =
+                    !githubSelfHostedRunnerBlocked &&
+                    (hostFallbackCandidate || (verifyFailed && githubTransportPathBlocked));
+                  const dispatchReady = transportRecommended && dispatchRequested;
                   const selfHostedDispatchReady =
-                    recommended && selfHostedDispatchRequested;
-                  const connectivityDiagnoseDispatchReady = recommended;
-                  const connectivityDiagnoseDispatchMode = !recommended
+                    selfHostedRecommended && selfHostedDispatchRequested;
+                  const connectivityDiagnoseSignal =
+                    transportRecommended ||
+                    selfHostedRecommended ||
+                    (verifyFailed && githubTransportPathBlocked);
+                  const connectivityDiagnoseDispatchReady = connectivityDiagnoseSignal;
+                  const connectivityDiagnoseDispatchMode = !connectivityDiagnoseSignal
                     ? 'not_required'
                     : dispatchRequested || selfHostedDispatchRequested
                       ? 'with_fallback'
@@ -630,16 +664,32 @@ jobs:
                   for (const signal of hostStaleSignals) {
                     reasonTokens.push(signal);
                   }
+                  for (const signal of githubDeployBlockingSignals) {
+                    reasonTokens.push(signal);
+                  }
+                  if (githubTransportPathBlocked) {
+                    reasonTokens.push('transport:blocked_by_github_route');
+                  }
+                  if (transportRecommended) {
+                    reasonTokens.push('transport:recommended');
+                  }
+                  if (selfHostedRecommended) {
+                    reasonTokens.push('self-hosted:recommended');
+                  }
+                  if (githubSelfHostedRunnerBlocked) {
+                    reasonTokens.push('self-hosted:blocked_by_github_runner');
+                  }
                   if (failureAssets.length > 0) {
                     reasonTokens.push(`failure_assets:${failureAssets.join(',')}`);
                   }
                   const reason = reasonTokens.join(';') || 'not_applicable';
                   const failureAssetsCsv = failureAssets.join(',');
+                  const githubDeployBlockingSignalsCsv = githubDeployBlockingSignals.join(',');
 
                   append(
                     outputPath,
                     'transport_fallback_recommended',
-                    recommended ? 'true' : 'false'
+                    transportRecommended ? 'true' : 'false'
                   );
                   append(
                     outputPath,
@@ -658,6 +708,11 @@ jobs:
                   );
                   append(
                     outputPath,
+                    'self_hosted_fallback_recommended',
+                    selfHostedRecommended ? 'true' : 'false'
+                  );
+                  append(
+                    outputPath,
                     'self_hosted_fallback_dispatch_ready',
                     selfHostedDispatchReady ? 'true' : 'false'
                   );
@@ -673,11 +728,16 @@ jobs:
                   );
                   append(outputPath, 'transport_fallback_reason', reason);
                   append(outputPath, 'transport_fallback_failure_assets', failureAssetsCsv);
+                  append(
+                    outputPath,
+                    'transport_fallback_github_blockers',
+                    githubDeployBlockingSignalsCsv
+                  );
 
                   append(
                     envPath,
                     'TRANSPORT_FALLBACK_RECOMMENDED',
-                    recommended ? 'true' : 'false'
+                    transportRecommended ? 'true' : 'false'
                   );
                   append(
                     envPath,
@@ -696,6 +756,11 @@ jobs:
                   );
                   append(
                     envPath,
+                    'SELF_HOSTED_FALLBACK_RECOMMENDED',
+                    selfHostedRecommended ? 'true' : 'false'
+                  );
+                  append(
+                    envPath,
                     'SELF_HOSTED_FALLBACK_DISPATCH_READY',
                     selfHostedDispatchReady ? 'true' : 'false'
                   );
@@ -711,6 +776,11 @@ jobs:
                   );
                   append(envPath, 'TRANSPORT_FALLBACK_REASON', reason);
                   append(envPath, 'TRANSPORT_FALLBACK_FAILURE_ASSETS', failureAssetsCsv);
+                  append(
+                    envPath,
+                    'TRANSPORT_FALLBACK_GITHUB_BLOCKERS',
+                    githubDeployBlockingSignalsCsv
+                  );
                   NODE
 
             - name: Disparar diagnostico de conectividad desde repair
@@ -947,6 +1017,180 @@ jobs:
                           : `Workflow ${workflowId} disparado desde repair (run no observado aun, reason=${process.env.TRANSPORT_FALLBACK_REASON || 'n/a'}).`
                       );
 
+            - name: Reconciliar cola self-hosted fallback desde repair
+              id: self_hosted_queue_reconcile
+              if: ${{ always() && (steps.transport_fallback.outputs.self_hosted_fallback_recommended != 'true' || steps.transport_fallback.outputs.self_hosted_fallback_dispatch_ready == 'true') }}
+              uses: actions/github-script@v7
+              env:
+                  SELF_HOSTED_FALLBACK_RECOMMENDED: ${{ steps.transport_fallback.outputs.self_hosted_fallback_recommended }}
+                  SELF_HOSTED_FALLBACK_DISPATCH_READY: ${{ steps.transport_fallback.outputs.self_hosted_fallback_dispatch_ready }}
+                  SELF_HOSTED_FALLBACK_STATE: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state }}
+                  SELF_HOSTED_FALLBACK_RUN_ID: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_run_id }}
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const ref =
+                        context.payload.workflow_run?.head_branch ||
+                        (context.ref || '').replace('refs/heads/', '') ||
+                        'main';
+                      const headSha =
+                        context.payload.workflow_run?.head_sha ||
+                        context.sha ||
+                        '';
+                      const workflowId = 'deploy-frontend-selfhosted.yml';
+                      const recommended =
+                        String(process.env.SELF_HOSTED_FALLBACK_RECOMMENDED || 'false') === 'true';
+                      const dispatchReady =
+                        String(process.env.SELF_HOSTED_FALLBACK_DISPATCH_READY || 'false') === 'true';
+                      const state = String(process.env.SELF_HOSTED_FALLBACK_STATE || '').trim();
+                      const observedRunId = Number(process.env.SELF_HOSTED_FALLBACK_RUN_ID || 0);
+
+                      const currentRun = await github.rest.actions.getWorkflowRun({
+                        owner,
+                        repo,
+                        run_id: context.runId,
+                      });
+                      const currentRunCreatedAtMs = Date.parse(
+                        currentRun?.data?.created_at || ''
+                      );
+
+                      const runs = await github.paginate(
+                        github.rest.actions.listWorkflowRunsForWorkflow,
+                        {
+                          owner,
+                          repo,
+                          workflow_id: workflowId,
+                          branch: ref,
+                          event: 'workflow_dispatch',
+                          per_page: 30,
+                        }
+                      );
+
+                      const queuedRuns = runs
+                        .filter((run) => run.status === 'queued')
+                        .sort(
+                          (a, b) =>
+                            Date.parse(b.created_at || '') - Date.parse(a.created_at || '')
+                        );
+
+                      let keepRunId = '';
+                      let keepRunUrl = '';
+                      if (
+                        recommended &&
+                        dispatchReady &&
+                        (state === 'queued' || state === 'dispatched_not_observed')
+                      ) {
+                        if (Number.isFinite(observedRunId) && observedRunId > 0) {
+                          keepRunId = String(observedRunId);
+                        } else {
+                          const inferredKeepRun =
+                            queuedRuns.find((run) => {
+                              const createdAtMs = Date.parse(run.created_at || '');
+                              if (!Number.isFinite(createdAtMs)) {
+                                return false;
+                              }
+                              if (
+                                Number.isFinite(currentRunCreatedAtMs) &&
+                                createdAtMs < currentRunCreatedAtMs - 120000
+                              ) {
+                                return false;
+                              }
+                              if (headSha && run.head_sha && run.head_sha !== headSha) {
+                                return false;
+                              }
+                              return true;
+                            }) || queuedRuns[0] || null;
+                          if (inferredKeepRun) {
+                            keepRunId = String(inferredKeepRun.id);
+                          }
+                        }
+                      }
+
+                      if (keepRunId) {
+                        const keepRun = queuedRuns.find((run) => String(run.id) === keepRunId);
+                        keepRunUrl = keepRun?.html_url || '';
+                      }
+
+                      const staleQueuedRuns = queuedRuns.filter((run) => {
+                        const runId = String(run.id);
+                        if (keepRunId && runId === keepRunId) {
+                          return false;
+                        }
+                        const createdAtMs = Date.parse(run.created_at || '');
+                        if (
+                          Number.isFinite(currentRunCreatedAtMs) &&
+                          Number.isFinite(createdAtMs) &&
+                          createdAtMs > currentRunCreatedAtMs + 60000
+                        ) {
+                          return false;
+                        }
+                        return !recommended || (recommended && dispatchReady);
+                      });
+
+                      const cancelledRuns = [];
+                      const cancelErrors = [];
+
+                      for (const run of staleQueuedRuns) {
+                        try {
+                          await github.rest.actions.cancelWorkflowRun({
+                            owner,
+                            repo,
+                            run_id: run.id,
+                          });
+                          cancelledRuns.push(run);
+                        } catch (error) {
+                          cancelErrors.push(
+                            `${run.id}:${error && error.status ? error.status : 'error'}`
+                          );
+                        }
+                      }
+
+                      let queueState = 'no_action';
+                      if (!recommended) {
+                        queueState =
+                          cancelledRuns.length > 0 ? 'cancelled_stale_after_recovery' : 'recovered';
+                      } else if (dispatchReady && keepRunId) {
+                        queueState =
+                          cancelledRuns.length > 0
+                            ? 'cancelled_duplicates_keep_current'
+                            : 'kept_current_queue';
+                      } else if (dispatchReady) {
+                        queueState =
+                          cancelledRuns.length > 0 ? 'cancelled_duplicates' : 'dispatch_pending';
+                      }
+
+                      core.setOutput(
+                        'self_hosted_queue_cancelled_count',
+                        String(cancelledRuns.length)
+                      );
+                      core.setOutput(
+                        'self_hosted_queue_cancelled_ids',
+                        cancelledRuns.map((run) => String(run.id)).join(',')
+                      );
+                      core.setOutput(
+                        'self_hosted_queue_cancelled_urls',
+                        cancelledRuns
+                          .map((run) => String(run.html_url || '').trim())
+                          .filter(Boolean)
+                          .join(',')
+                      );
+                      core.setOutput(
+                        'self_hosted_queue_cancel_error_count',
+                        String(cancelErrors.length)
+                      );
+                      core.setOutput(
+                        'self_hosted_queue_cancel_errors',
+                        cancelErrors.join(',')
+                      );
+                      core.setOutput('self_hosted_queue_kept_run_id', keepRunId);
+                      core.setOutput('self_hosted_queue_kept_run_url', keepRunUrl);
+                      core.setOutput('self_hosted_queue_state', queueState);
+
+                      core.info(
+                        `Self-hosted queue reconcile: state=${queueState} queued=${queuedRuns.length} cancelled=${cancelledRuns.length} keep_run_id=${keepRunId || 'none'}`
+                      );
+
             - name: Crear/actualizar incidente self-hosted fallback de repair
               if: ${{ always() && steps.transport_fallback.outputs.self_hosted_fallback_dispatch_ready == 'true' && (steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state == 'queued' || steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state == 'dispatched_not_observed') }}
               uses: actions/github-script@v7
@@ -955,6 +1199,10 @@ jobs:
                   SELF_HOSTED_FALLBACK_STATE: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state }}
                   SELF_HOSTED_FALLBACK_RUN_STATUS: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_run_status }}
                   SELF_HOSTED_FALLBACK_RUN_URL: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_run_url }}
+                  SELF_HOSTED_QUEUE_CANCELLED_COUNT: ${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_cancelled_count }}
+                  SELF_HOSTED_QUEUE_CANCELLED_IDS: ${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_cancelled_ids }}
+                  SELF_HOSTED_QUEUE_KEPT_RUN_URL: ${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_kept_run_url }}
+                  SELF_HOSTED_QUEUE_STATE: ${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_state }}
               with:
                   script: |
                       const owner = context.repo.owner;
@@ -990,6 +1238,10 @@ jobs:
                         `- self_hosted_fallback_state: ${process.env.SELF_HOSTED_FALLBACK_STATE || 'unknown'}`,
                         `- self_hosted_fallback_run_status: ${process.env.SELF_HOSTED_FALLBACK_RUN_STATUS || 'unknown'}`,
                         `- self_hosted_fallback_run_url: ${process.env.SELF_HOSTED_FALLBACK_RUN_URL || ''}`,
+                        `- self_hosted_queue_state: ${process.env.SELF_HOSTED_QUEUE_STATE || 'not_evaluated'}`,
+                        `- self_hosted_queue_cancelled_count: ${process.env.SELF_HOSTED_QUEUE_CANCELLED_COUNT || '0'}`,
+                        `- self_hosted_queue_cancelled_ids: ${process.env.SELF_HOSTED_QUEUE_CANCELLED_IDS || ''}`,
+                        `- self_hosted_queue_kept_run_url: ${process.env.SELF_HOSTED_QUEUE_KEPT_RUN_URL || ''}`,
                         `- transport_fallback_reason: ${process.env.TRANSPORT_FALLBACK_REASON || 'unknown'}`,
                         '',
                         signalMarker
@@ -1039,6 +1291,10 @@ jobs:
                             `- self_hosted_fallback_state: ${process.env.SELF_HOSTED_FALLBACK_STATE || 'unknown'}`,
                             `- self_hosted_fallback_run_status: ${process.env.SELF_HOSTED_FALLBACK_RUN_STATUS || 'unknown'}`,
                             `- self_hosted_fallback_run_url: ${process.env.SELF_HOSTED_FALLBACK_RUN_URL || ''}`,
+                            `- self_hosted_queue_state: ${process.env.SELF_HOSTED_QUEUE_STATE || 'not_evaluated'}`,
+                            `- self_hosted_queue_cancelled_count: ${process.env.SELF_HOSTED_QUEUE_CANCELLED_COUNT || '0'}`,
+                            `- self_hosted_queue_cancelled_ids: ${process.env.SELF_HOSTED_QUEUE_CANCELLED_IDS || ''}`,
+                            `- self_hosted_queue_kept_run_url: ${process.env.SELF_HOSTED_QUEUE_KEPT_RUN_URL || ''}`,
                             `- transport_fallback_reason: ${process.env.TRANSPORT_FALLBACK_REASON || 'unknown'}`
                           ].join('\n')
                         });
@@ -1062,6 +1318,10 @@ jobs:
                   SELF_HOSTED_FALLBACK_STATE: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state }}
                   SELF_HOSTED_FALLBACK_RUN_STATUS: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_run_status }}
                   SELF_HOSTED_FALLBACK_RUN_URL: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_run_url }}
+                  SELF_HOSTED_QUEUE_CANCELLED_COUNT: ${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_cancelled_count }}
+                  SELF_HOSTED_QUEUE_CANCELLED_IDS: ${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_cancelled_ids }}
+                  SELF_HOSTED_QUEUE_KEPT_RUN_URL: ${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_kept_run_url }}
+                  SELF_HOSTED_QUEUE_STATE: ${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_state }}
               with:
                   script: |
                       const owner = context.repo.owner;
@@ -1095,7 +1355,11 @@ jobs:
                           `- transport_fallback_recommended: ${process.env.TRANSPORT_FALLBACK_RECOMMENDED || 'false'}`,
                           `- self_hosted_fallback_state: ${process.env.SELF_HOSTED_FALLBACK_STATE || 'not_required'}`,
                           `- self_hosted_fallback_run_status: ${process.env.SELF_HOSTED_FALLBACK_RUN_STATUS || 'n/a'}`,
-                          `- self_hosted_fallback_run_url: ${process.env.SELF_HOSTED_FALLBACK_RUN_URL || ''}`
+                          `- self_hosted_fallback_run_url: ${process.env.SELF_HOSTED_FALLBACK_RUN_URL || ''}`,
+                          `- self_hosted_queue_state: ${process.env.SELF_HOSTED_QUEUE_STATE || 'not_evaluated'}`,
+                          `- self_hosted_queue_cancelled_count: ${process.env.SELF_HOSTED_QUEUE_CANCELLED_COUNT || '0'}`,
+                          `- self_hosted_queue_cancelled_ids: ${process.env.SELF_HOSTED_QUEUE_CANCELLED_IDS || ''}`,
+                          `- self_hosted_queue_kept_run_url: ${process.env.SELF_HOSTED_QUEUE_KEPT_RUN_URL || ''}`
                         ].join('\n')
                       });
 
@@ -1416,9 +1680,15 @@ jobs:
                     echo "- transport_fallback_dispatched: \`${{ steps.transport_fallback.outputs.transport_fallback_dispatch_ready }}\`";
                     echo "- transport_fallback_reason: \`${{ steps.transport_fallback.outputs.transport_fallback_reason }}\`";
                     echo "- transport_fallback_failure_assets: \`${{ steps.transport_fallback.outputs.transport_fallback_failure_assets }}\`";
+                    echo "- transport_fallback_github_blockers: \`${{ steps.transport_fallback.outputs.transport_fallback_github_blockers }}\`";
                     echo "- self_hosted_fallback_requested: \`${{ steps.transport_fallback.outputs.self_hosted_fallback_dispatch_requested }}\`";
+                    echo "- self_hosted_fallback_recommended: \`${{ steps.transport_fallback.outputs.self_hosted_fallback_recommended }}\`";
                     echo "- self_hosted_fallback_dispatched: \`${{ steps.transport_fallback.outputs.self_hosted_fallback_dispatch_ready }}\`";
                     echo "- self_hosted_fallback_state: \`${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state }}\`";
                     echo "- self_hosted_fallback_run_url: \`${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_run_url }}\`";
+                    echo "- self_hosted_queue_state: \`${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_state || 'not_evaluated' }}\`";
+                    echo "- self_hosted_queue_cancelled_count: \`${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_cancelled_count || '0' }}\`";
+                    echo "- self_hosted_queue_cancelled_ids: \`${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_cancelled_ids || '' }}\`";
+                    echo "- self_hosted_queue_kept_run_url: \`${{ steps.self_hosted_queue_reconcile.outputs.self_hosted_queue_kept_run_url || '' }}\`";
                     echo "- result: \`${{ job.status }}\`";
                   } >> "$GITHUB_STEP_SUMMARY"

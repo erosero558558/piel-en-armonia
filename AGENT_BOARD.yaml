@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 594
+  revision: 600
   updated_at: 2026-03-12
 
 tasks:
@@ -8443,5 +8443,81 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-217.md"
     depends_on: []
     prompt: "Propagate GitHub deploy alerts into deploy verify and smoke gates"
+    created_at: 2026-03-12
+    updated_at: 2026-03-12
+
+  - id: AG-218
+    title: "Teach repair-git-sync to classify GitHub deploy blockers and prefer self-hosted fallback"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-12T07:02:21.494Z"
+    risk: high
+    scope: deploy
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: [".github/workflows/repair-git-sync.yml", "tests-node/deploy-hosting-workflow-contract.test.js", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-12T07:02:21.494Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Teach repair-git-sync to classify GitHub deploy blockers and prefer self-hosted fallback"
+    acceptance_ref: "verification/agent-runs/AG-218.md"
+    evidence_ref: "verification/agent-runs/AG-218.md"
+    depends_on: []
+    prompt: "Teach repair-git-sync to classify GitHub deploy blockers and prefer self-hosted fallback"
+    created_at: 2026-03-12
+    updated_at: 2026-03-12
+
+  - id: AG-219
+    title: "Cancel stale self-hosted fallback queue on repair recovery"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-12T07:13:16.470Z"
+    risk: medium
+    scope: deploy
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: [".github/workflows/repair-git-sync.yml", "tests-node/deploy-hosting-workflow-contract.test.js", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-12T07:13:16.470Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Cancel stale self-hosted fallback queue on repair recovery"
+    acceptance_ref: "verification/agent-runs/AG-219.md"
+    evidence_ref: "verification/agent-runs/AG-219.md"
+    depends_on: []
+    prompt: "Cancel stale self-hosted fallback queue on repair recovery"
     created_at: 2026-03-12
     updated_at: 2026-03-12
