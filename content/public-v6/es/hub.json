@@ -13,9 +13,9 @@
     ],
     "heading": "Servicios dermatologicos",
     "heroImage": {
-        "src": "/images/optimized/v6-clinic-brand-hero-wide.webp",
-        "srcset": "/images/optimized/v6-clinic-brand-hero-wide-640.webp 640w, /images/optimized/v6-clinic-brand-hero-wide-1024.webp 1024w, /images/optimized/v6-clinic-brand-hero-wide-1400.webp 1400w",
-        "alt": "Equipo dermatologico y tecnologia clinica"
+        "src": "/images/optimized/v6-clinic-hub-editorial-map.webp",
+        "srcset": "/images/optimized/v6-clinic-hub-editorial-map-400.webp 400w, /images/optimized/v6-clinic-hub-editorial-map-640.webp 640w, /images/optimized/v6-clinic-hub-editorial-map-800.webp 800w, /images/optimized/v6-clinic-hub-editorial-map-1024.webp 1024w, /images/optimized/v6-clinic-hub-editorial-map-1200.webp 1200w, /images/optimized/v6-clinic-hub-editorial-map-1344.webp 1344w, /images/optimized/v6-clinic-hub-editorial-map.webp 1400w",
+        "alt": "Mapa editorial de rutas dermatologicas y decisiones clinicas"
     },
     "introTitle": "Encuentre el servicio que mejor describe lo que su piel necesita hoy",
     "introDeck": "Cada servicio resume tiempos, alcance y seguimiento para que usted entienda el plan antes de decidir.",
@@ -42,21 +42,21 @@
             "category": "Diagnostico",
             "title": "Diagnostico integral",
             "copy": "Una primera lectura completa para ordenar prioridades y salir de la consulta con un plan claro.",
-            "image": "/images/optimized/v6-clinic-diagnostico-integral.webp",
+            "image": "/images/optimized/v6-clinic-statement-clinical-direction.webp",
             "href": "/es/servicios/diagnostico-integral/"
         },
         {
             "category": "Tecnologia",
             "title": "Laser dermatologico segun su caso",
             "copy": "Elegimos tecnologia por fototipo, objetivo y recuperacion esperada, con parametros revisados en cada control.",
-            "image": "/images/optimized/v6-clinic-laser-dermatologico.webp",
+            "image": "/images/optimized/v6-clinic-statement-procedure-guidance.webp",
             "href": "/es/servicios/laser-dermatologico/"
         },
         {
             "category": "Telemedicina",
             "title": "Telemedicina con paso a presencial bien cuidado",
             "copy": "La atencion remota ayuda a decidir si basta seguir a distancia o si conviene verle pronto en el consultorio.",
-            "image": "/images/optimized/v6-clinic-consent-trust.webp",
+            "image": "/images/optimized/v6-clinic-telemedicine-intake.webp",
             "href": "/es/telemedicina/"
         }
     ],
@@ -133,7 +133,7 @@
                     "category": "Pediatria",
                     "title": "Dermatologia pediatrica",
                     "copy": "Atencion pediatrica con indicaciones claras para cuidadores, escuela y rutina diaria.",
-                    "image": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
+                    "image": "/images/optimized/v6-clinic-statement-family-support.webp",
                     "href": "/es/servicios/dermatologia-pediatrica/"
                 },
                 {
@@ -141,7 +141,7 @@
                     "category": "Integral",
                     "title": "Piel, cabello y unas",
                     "copy": "Consulta integral para sintomas combinados que requieren una lectura clinica coordinada.",
-                    "image": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
+                    "image": "/images/optimized/v6-clinic-home-followup.webp",
                     "href": "/es/servicios/piel-cabello-unas/"
                 },
                 {
@@ -149,7 +149,7 @@
                     "category": "Telemedicina",
                     "title": "Telemedicina",
                     "copy": "Orientacion remota para decidir si basta seguir online o si conviene pasar al consultorio.",
-                    "image": "/images/optimized/v6-clinic-consent-trust.webp",
+                    "image": "/images/optimized/v6-clinic-telemedicine-review.webp",
                     "href": "/es/telemedicina/"
                 }
             ]
@@ -160,7 +160,7 @@
             "category": "Seguimiento",
             "title": "Fotos clinicas comparables",
             "copy": "Comparamos imagenes tomadas en condiciones parecidas para leer cambios con mas precision.",
-            "image": "/images/optimized/v6-clinic-diagnostico-integral.webp",
+            "image": "/images/optimized/v6-clinic-home-followup.webp",
             "href": "/es/servicios/diagnostico-integral/"
         },
         {
@@ -174,7 +174,7 @@
             "category": "Pediatria",
             "title": "Decisiones en familia",
             "copy": "Un plan claro para casa, con senales de alarma y pasos que la familia puede sostener.",
-            "image": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
+            "image": "/images/optimized/v6-clinic-statement-family-support.webp",
             "href": "/es/servicios/dermatologia-pediatrica/"
         },
         {
@@ -188,28 +188,28 @@
             "category": "Tecnologia",
             "title": "Calibracion por fototipo",
             "copy": "Energia, frecuencia y recuperacion se ajustan segun la respuesta real de su piel.",
-            "image": "/images/optimized/v6-clinic-laser-dermatologico.webp",
+            "image": "/images/optimized/v6-clinic-clinic-environment.webp",
             "href": "/es/servicios/laser-dermatologico/"
         },
         {
             "category": "Rejuvenecimiento",
             "title": "Cuidado cutaneo por etapas",
             "copy": "Combinamos sesiones con expectativas honestas para mejorar textura, firmeza y calidad de piel.",
-            "image": "/images/optimized/v6-clinic-bioestimuladores-colageno.webp",
+            "image": "/images/optimized/v6-clinic-statement-procedure-guidance.webp",
             "href": "/es/servicios/bioestimuladores-colageno/"
         },
         {
             "category": "Legal",
             "title": "Consentimiento en lenguaje claro",
             "copy": "Derechos y responsabilidades explicados con claridad, sin complejidad innecesaria.",
-            "image": "/images/optimized/v6-clinic-consent-trust.webp",
+            "image": "/images/optimized/v6-clinic-legal-governance.webp",
             "href": "/es/legal/terminos/"
         },
         {
             "category": "Telemedicina",
             "title": "Paso a consulta a tiempo",
             "copy": "La atencion remota mantiene senales claras para pasar al consultorio cuando hace falta.",
-            "image": "/images/optimized/v6-clinic-consent-trust.webp",
+            "image": "/images/optimized/v6-clinic-hub-editorial-map.webp",
             "href": "/es/telemedicina/"
         }
     ],

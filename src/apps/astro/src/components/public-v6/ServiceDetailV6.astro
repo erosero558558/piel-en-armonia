@@ -42,6 +42,8 @@ const serviceSummary = normalizeText(service.summary);
 const serviceLead = normalizeText(service.lead);
 const serviceHeroImage = normalizeText(service.heroImage);
 const serviceHeroAlt = normalizeText(service.heroAlt) || serviceTitle;
+const serviceStatementImage = normalizeText(service.statementImage);
+const serviceStatementAlt = normalizeText(service.statementAlt);
 const checkpoints = Array.isArray(service.bullets) ? service.bullets.map(normalizeText).filter(Boolean) : [];
 const processSteps = Array.isArray(service.process) ? service.process.map(normalizeText).filter(Boolean) : [];
 const faqItems = Array.isArray(service.faq) ? service.faq : [];
@@ -56,10 +58,11 @@ const safeRelated = (Array.isArray(related) ? related : [])
     .map((item) => {
         const title = normalizeText(item?.title);
         const href = normalizeHref(item?.href);
-        const heroImage = normalizeText(item?.heroImage);
+        const heroImage = normalizeText(item?.cardImage || item?.heroImage);
+        const heroAlt = normalizeText(item?.cardAlt) || title;
         const category = normalizeText(item?.category);
         const summary = normalizeText(item?.summary);
-        return title && href && heroImage ? { title, href, heroImage, category, summary } : null;
+        return title && href && heroImage ? { title, href, heroImage, heroAlt, category, summary } : null;
     })
     .filter(Boolean);
 const hasGlance = Boolean(serviceCategory || checkpoints.length || processSteps.length);
@@ -126,8 +129,8 @@ const statement = {
     title: statementTitleTemplate.replace('{service}', serviceTitle),
     body: serviceLead,
     signature: normalizeText(statementUi.signature),
-    image: normalizeText(statementUi.image),
-    alt: normalizeText(statementUi.alt),
+    image: serviceStatementImage || normalizeText(statementUi.image),
+    alt: serviceStatementAlt || normalizeText(statementUi.alt),
 };
 const relatedCta = normalizeText(ui.relatedCta);
 const faqPrefix = normalizeText(ui.faqPrefix);

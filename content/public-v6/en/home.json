@@ -18,9 +18,9 @@
                 "category": "Diagnosis",
                 "title": "A strong diagnosis at the start changes the whole course.",
                 "description": "We listen first, examine skin, hair, and nails, then shape a plan you can understand from the first consultation.",
-                "image": "/images/optimized/v6-clinic-diagnostico-integral.webp",
-                "srcset": "/images/optimized/v6-clinic-diagnostico-integral-640.webp 640w, /images/optimized/v6-clinic-diagnostico-integral-800.webp 800w, /images/optimized/v6-clinic-diagnostico-integral.webp 1200w",
-                "alt": "Comprehensive dermatology assessment",
+                "image": "/images/optimized/v6-clinic-statement-clinical-direction.webp",
+                "srcset": "/images/optimized/v6-clinic-statement-clinical-direction-400.webp 400w, /images/optimized/v6-clinic-statement-clinical-direction-640.webp 640w, /images/optimized/v6-clinic-statement-clinical-direction-800.webp 800w, /images/optimized/v6-clinic-statement-clinical-direction-900.webp 900w, /images/optimized/v6-clinic-statement-clinical-direction-1200.webp 1200w, /images/optimized/v6-clinic-statement-clinical-direction.webp 1400w",
+                "alt": "Clinical dermatology direction with a structured read",
                 "href": "/en/services/diagnostico-integral/"
             },
             {
@@ -28,9 +28,9 @@
                 "category": "Treatments",
                 "title": "Technology enters only when it improves the decision and the outcome.",
                 "description": "Laser, peels, and biostimulation are chosen by phototype, clinical objective, and follow-up safety, never by impulse.",
-                "image": "/images/optimized/v6-clinic-laser-dermatologico.webp",
-                "srcset": "/images/optimized/v6-clinic-laser-dermatologico-640.webp 640w, /images/optimized/v6-clinic-laser-dermatologico-900.webp 900w, /images/optimized/v6-clinic-laser-dermatologico.webp 1200w",
-                "alt": "Dermatology laser platform with medical settings",
+                "image": "/images/optimized/v6-clinic-statement-procedure-guidance.webp",
+                "srcset": "/images/optimized/v6-clinic-statement-procedure-guidance-400.webp 400w, /images/optimized/v6-clinic-statement-procedure-guidance-640.webp 640w, /images/optimized/v6-clinic-statement-procedure-guidance-800.webp 800w, /images/optimized/v6-clinic-statement-procedure-guidance-900.webp 900w, /images/optimized/v6-clinic-statement-procedure-guidance-1200.webp 1200w, /images/optimized/v6-clinic-statement-procedure-guidance.webp 1400w",
+                "alt": "Dermatology guidance for indicated procedures",
                 "href": "/en/services/laser-dermatologico/"
             },
             {
@@ -38,9 +38,9 @@
                 "category": "Telemedicine",
                 "title": "Telemedicine to move early, without deciding blind.",
                 "description": "We resolve first guidance remotely and move into clinic in Quito when the case demands direct examination.",
-                "image": "/images/optimized/v6-clinic-consent-trust.webp",
-                "srcset": "/images/optimized/v6-clinic-consent-trust-400.webp 400w, /images/optimized/v6-clinic-consent-trust.webp 900w",
-                "alt": "Remote dermatology consultation",
+                "image": "/images/optimized/v6-clinic-telemedicine-intake.webp",
+                "srcset": "/images/optimized/v6-clinic-telemedicine-intake-400.webp 400w, /images/optimized/v6-clinic-telemedicine-intake-640.webp 640w, /images/optimized/v6-clinic-telemedicine-intake-800.webp 800w, /images/optimized/v6-clinic-telemedicine-intake-900.webp 900w, /images/optimized/v6-clinic-telemedicine-intake-1200.webp 1200w, /images/optimized/v6-clinic-telemedicine-intake.webp 1400w",
+                "alt": "Telemedicine intake with clinical context and imaging",
                 "href": "/en/telemedicine/"
             },
             {
@@ -48,9 +48,9 @@
                 "category": "Follow-up",
                 "title": "Follow-up turns early improvement into real stability.",
                 "description": "Every review compares progression, adjusts recommendations, and keeps medical decisions traceable over time.",
-                "image": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
-                "srcset": "/images/optimized/v6-clinic-piel-cabello-unas-640.webp 640w, /images/optimized/v6-clinic-piel-cabello-unas-800.webp 800w, /images/optimized/v6-clinic-piel-cabello-unas.webp 1200w",
-                "alt": "Integrated skin, hair, and nails follow-up",
+                "image": "/images/optimized/v6-clinic-home-followup.webp",
+                "srcset": "/images/optimized/v6-clinic-home-followup-400.webp 400w, /images/optimized/v6-clinic-home-followup-640.webp 640w, /images/optimized/v6-clinic-home-followup-800.webp 800w, /images/optimized/v6-clinic-home-followup-900.webp 900w, /images/optimized/v6-clinic-home-followup-1200.webp 1200w, /images/optimized/v6-clinic-home-followup.webp 1400w",
+                "alt": "Dermatology follow-up with progress comparison and adjustments",
                 "href": "/en/services/piel-cabello-unas/"
             },
             {
@@ -58,9 +58,9 @@
                 "category": "Team",
                 "title": "A team that explains each decision without fog.",
                 "description": "You receive an up-to-date dermatology read, close guidance, and a plan that stays clear at every stage.",
-                "image": "/images/optimized/v6-clinic-doctor-rosero.webp",
-                "srcset": "/images/optimized/v6-clinic-doctor-rosero-500.webp 500w, /images/optimized/v6-clinic-doctor-rosero.webp 900w",
-                "alt": "Piel en Armonia dermatology team",
+                "image": "/images/optimized/v6-clinic-team-roundtable.webp",
+                "srcset": "/images/optimized/v6-clinic-team-roundtable-400.webp 400w, /images/optimized/v6-clinic-team-roundtable-640.webp 640w, /images/optimized/v6-clinic-team-roundtable-800.webp 800w, /images/optimized/v6-clinic-team-roundtable-900.webp 900w, /images/optimized/v6-clinic-team-roundtable-1200.webp 1200w, /images/optimized/v6-clinic-team-roundtable.webp 1400w",
+                "alt": "Dermatology team reviewing decisions together",
                 "href": "/en/services/"
             }
         ]
@@ -71,7 +71,7 @@
         "href": "/en/services/",
         "expandLabel": "Expand",
         "collapseLabel": "Collapse",
-        "detail": "Start with telemedicine if you need early guidance, or open the service that feels closest to what is going on.",
+        "detail": "Start with telemedicine or open the consultation path that feels closest to what is going on.",
         "ctaLabel": "See services",
         "localeAria": "Language switch"
     },
@@ -89,8 +89,9 @@
                 "title": "From first consultation to a full plan",
                 "copy": "When skin changes in a recent way, we start by sorting findings and priorities so you leave with a plan that makes sense.",
                 "href": "/en/services/diagnostico-integral/",
-                "image": "/images/optimized/v6-clinic-diagnostico-integral.webp",
-                "alt": "Comprehensive dermatology consultation"
+                "image": "/images/optimized/v6-clinic-statement-clinical-direction.webp",
+                "alt": "Clinical dermatology direction with a structured read",
+                "srcset": "/images/optimized/v6-clinic-statement-clinical-direction-400.webp 400w, /images/optimized/v6-clinic-statement-clinical-direction-640.webp 640w, /images/optimized/v6-clinic-statement-clinical-direction-800.webp 800w, /images/optimized/v6-clinic-statement-clinical-direction-900.webp 900w, /images/optimized/v6-clinic-statement-clinical-direction-1200.webp 1200w, /images/optimized/v6-clinic-statement-clinical-direction.webp 1400w"
             },
             {
                 "id": "c2",
@@ -101,7 +102,8 @@
                 "copy": "We control flares and sensitivity through timely adjustments based on how your skin is actually responding.",
                 "href": "/en/services/acne-rosacea/",
                 "image": "/images/optimized/v6-clinic-acne-rosacea.webp",
-                "alt": "Medical care for acne and rosacea"
+                "alt": "Dermatology follow-up for inflammation and skin sensitivity",
+                "srcset": "/images/optimized/v6-clinic-acne-rosacea-400.webp 400w, /images/optimized/v6-clinic-acne-rosacea-640.webp 640w, /images/optimized/v6-clinic-acne-rosacea-800.webp 800w, /images/optimized/v6-clinic-acne-rosacea-900.webp 900w, /images/optimized/v6-clinic-acne-rosacea-1200.webp 1200w, /images/optimized/v6-clinic-acne-rosacea.webp 1400w"
             },
             {
                 "id": "c3",
@@ -112,7 +114,8 @@
                 "copy": "Energy and frequency are set by phototype, lesion profile, and tolerance so skin stays protected throughout the process.",
                 "href": "/en/services/laser-dermatologico/",
                 "image": "/images/optimized/v6-clinic-laser-dermatologico.webp",
-                "alt": "Dermatology laser platform"
+                "alt": "Dermatology laser platform with controlled settings",
+                "srcset": "/images/optimized/v6-clinic-laser-dermatologico-400.webp 400w, /images/optimized/v6-clinic-laser-dermatologico-640.webp 640w, /images/optimized/v6-clinic-laser-dermatologico-800.webp 800w, /images/optimized/v6-clinic-laser-dermatologico-900.webp 900w, /images/optimized/v6-clinic-laser-dermatologico-1200.webp 1200w, /images/optimized/v6-clinic-laser-dermatologico.webp 1400w"
             },
             {
                 "id": "c4",
@@ -122,8 +125,9 @@
                 "title": "Telemedicine when timing matters",
                 "copy": "You get early guidance without waiting longer than needed, and if an in-person exam matters, we coordinate the move into clinic.",
                 "href": "/en/telemedicine/",
-                "image": "/images/optimized/v6-clinic-consent-trust.webp",
-                "alt": "Dermatology telemedicine"
+                "image": "/images/optimized/v6-clinic-telemedicine-review.webp",
+                "alt": "Remote dermatology review with follow-up and adjustment",
+                "srcset": "/images/optimized/v6-clinic-telemedicine-review-400.webp 400w, /images/optimized/v6-clinic-telemedicine-review-640.webp 640w, /images/optimized/v6-clinic-telemedicine-review-800.webp 800w, /images/optimized/v6-clinic-telemedicine-review-900.webp 900w, /images/optimized/v6-clinic-telemedicine-review-1200.webp 1200w, /images/optimized/v6-clinic-telemedicine-review.webp 1400w"
             },
             {
                 "id": "c5",
@@ -134,7 +138,8 @@
                 "copy": "We turn medical instructions into practical steps for home routines, school days, and caregiver follow-through.",
                 "href": "/en/services/dermatologia-pediatrica/",
                 "image": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
-                "alt": "Pediatric dermatology consultation with family support"
+                "alt": "Pediatric dermatology consultation with family support",
+                "srcset": "/images/optimized/v6-clinic-dermatologia-pediatrica-400.webp 400w, /images/optimized/v6-clinic-dermatologia-pediatrica-640.webp 640w, /images/optimized/v6-clinic-dermatologia-pediatrica-800.webp 800w, /images/optimized/v6-clinic-dermatologia-pediatrica-900.webp 900w, /images/optimized/v6-clinic-dermatologia-pediatrica-1200.webp 1200w, /images/optimized/v6-clinic-dermatologia-pediatrica.webp 1400w"
             },
             {
                 "id": "c6",
@@ -144,8 +149,9 @@
                 "title": "Follow-up that lets us see real progress",
                 "copy": "Symptoms, images, and tolerance are compared between visits so treatment can be adjusted with more precision.",
                 "href": "/en/services/piel-cabello-unas/",
-                "image": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
-                "alt": "Integrated dermatology follow-up"
+                "image": "/images/optimized/v6-clinic-home-followup.webp",
+                "alt": "Dermatology follow-up with progress comparison and adjustments",
+                "srcset": "/images/optimized/v6-clinic-home-followup-400.webp 400w, /images/optimized/v6-clinic-home-followup-640.webp 640w, /images/optimized/v6-clinic-home-followup-800.webp 800w, /images/optimized/v6-clinic-home-followup-900.webp 900w, /images/optimized/v6-clinic-home-followup-1200.webp 1200w, /images/optimized/v6-clinic-home-followup.webp 1400w"
             }
         ]
     },
@@ -162,7 +168,8 @@
                 "copy": "A complete first read that puts priorities, risk, and follow-up timing on the table from the start.",
                 "href": "/en/services/diagnostico-integral/",
                 "image": "/images/optimized/v6-clinic-diagnostico-integral.webp",
-                "alt": "Comprehensive diagnosis"
+                "alt": "Comprehensive dermatology consultation with structured first review",
+                "srcset": "/images/optimized/v6-clinic-diagnostico-integral-400.webp 400w, /images/optimized/v6-clinic-diagnostico-integral-640.webp 640w, /images/optimized/v6-clinic-diagnostico-integral-800.webp 800w, /images/optimized/v6-clinic-diagnostico-integral-900.webp 900w, /images/optimized/v6-clinic-diagnostico-integral-1200.webp 1200w, /images/optimized/v6-clinic-diagnostico-integral.webp 1400w"
             },
             {
                 "id": "m2",
@@ -171,7 +178,8 @@
                 "copy": "Phase-based care to calm flares, ease sensitivity, and avoid unnecessary relapse.",
                 "href": "/en/services/acne-rosacea/",
                 "image": "/images/optimized/v6-clinic-acne-rosacea.webp",
-                "alt": "Acne and rosacea"
+                "alt": "Dermatology follow-up for inflammation and skin sensitivity",
+                "srcset": "/images/optimized/v6-clinic-acne-rosacea-400.webp 400w, /images/optimized/v6-clinic-acne-rosacea-640.webp 640w, /images/optimized/v6-clinic-acne-rosacea-800.webp 800w, /images/optimized/v6-clinic-acne-rosacea-900.webp 900w, /images/optimized/v6-clinic-acne-rosacea-1200.webp 1200w, /images/optimized/v6-clinic-acne-rosacea.webp 1400w"
             },
             {
                 "id": "m3",
@@ -180,7 +188,8 @@
                 "copy": "Laser is chosen by phototype, treatment goal, and skin response, with adjustments at every session.",
                 "href": "/en/services/laser-dermatologico/",
                 "image": "/images/optimized/v6-clinic-laser-dermatologico.webp",
-                "alt": "Laser platform"
+                "alt": "Dermatology laser platform with controlled settings",
+                "srcset": "/images/optimized/v6-clinic-laser-dermatologico-400.webp 400w, /images/optimized/v6-clinic-laser-dermatologico-640.webp 640w, /images/optimized/v6-clinic-laser-dermatologico-800.webp 800w, /images/optimized/v6-clinic-laser-dermatologico-900.webp 900w, /images/optimized/v6-clinic-laser-dermatologico-1200.webp 1200w, /images/optimized/v6-clinic-laser-dermatologico.webp 1400w"
             },
             {
                 "id": "m4",
@@ -189,7 +198,8 @@
                 "copy": "Changing lesions are reviewed early so decisions happen on time and follow-up stays well documented.",
                 "href": "/en/services/cancer-piel/",
                 "image": "/images/optimized/v6-clinic-cancer-piel.webp",
-                "alt": "Lesion screening"
+                "alt": "Dermatoscopy and lesion review with warning criteria",
+                "srcset": "/images/optimized/v6-clinic-cancer-piel-400.webp 400w, /images/optimized/v6-clinic-cancer-piel-640.webp 640w, /images/optimized/v6-clinic-cancer-piel-800.webp 800w, /images/optimized/v6-clinic-cancer-piel-900.webp 900w, /images/optimized/v6-clinic-cancer-piel-1200.webp 1200w, /images/optimized/v6-clinic-cancer-piel.webp 1400w"
             },
             {
                 "id": "m5",
@@ -197,8 +207,9 @@
                 "title": "Telemedicine and clinic handoff",
                 "copy": "Remote guidance helps decide when follow-up at a distance is enough and when it is worth seeing you soon in Quito.",
                 "href": "/en/telemedicine/",
-                "image": "/images/optimized/v6-clinic-consent-trust.webp",
-                "alt": "Remote handoff into clinic"
+                "image": "/images/optimized/v6-clinic-telemedicine-intake.webp",
+                "alt": "Telemedicine intake with clinical context and imaging",
+                "srcset": "/images/optimized/v6-clinic-telemedicine-intake-400.webp 400w, /images/optimized/v6-clinic-telemedicine-intake-640.webp 640w, /images/optimized/v6-clinic-telemedicine-intake-800.webp 800w, /images/optimized/v6-clinic-telemedicine-intake-900.webp 900w, /images/optimized/v6-clinic-telemedicine-intake-1200.webp 1200w, /images/optimized/v6-clinic-telemedicine-intake.webp 1400w"
             },
             {
                 "id": "m6",
@@ -207,7 +218,8 @@
                 "copy": "Medical protocols for texture and firmness with realistic timelines and steady follow-up.",
                 "href": "/en/services/bioestimuladores-colageno/",
                 "image": "/images/optimized/v6-clinic-bioestimuladores-colageno.webp",
-                "alt": "Dermoaesthetic support"
+                "alt": "Firmness and skin quality support with a medical approach",
+                "srcset": "/images/optimized/v6-clinic-bioestimuladores-colageno-400.webp 400w, /images/optimized/v6-clinic-bioestimuladores-colageno-640.webp 640w, /images/optimized/v6-clinic-bioestimuladores-colageno-800.webp 800w, /images/optimized/v6-clinic-bioestimuladores-colageno-900.webp 900w, /images/optimized/v6-clinic-bioestimuladores-colageno-1200.webp 1200w, /images/optimized/v6-clinic-bioestimuladores-colageno.webp 1400w"
             }
         ]
     },

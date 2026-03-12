@@ -7,6 +7,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 const SRC_DIR = path.join(ROOT, 'images', 'src');
 const OPTIMIZED_DIR = path.join(ROOT, 'images', 'optimized');
+const MANIFEST_PATH = path.join(
+    ROOT,
+    'content',
+    'public-v6',
+    'assets-manifest.json'
+);
 
 const KIND_SPECS = {
     wide: {
@@ -26,6 +32,12 @@ const KIND_SPECS = {
     },
 };
 
+const KIND_DEFAULT_SIZES = {
+    wide: '(max-width: 900px) 100vw, 48vw',
+    card: '(max-width: 900px) 100vw, 33vw',
+    portrait: '(max-width: 900px) 100vw, 40vw',
+};
+
 const ASSETS = [
     {
         id: 'v6-clinic-brand-hero-wide',
@@ -35,6 +47,33 @@ const ASSETS = [
         accent: '#7fd1ff',
         altEs: 'Panoramica editorial del entorno clinico dermatologico',
         altEn: 'Editorial panorama of the dermatology clinical environment',
+    },
+    {
+        id: 'v6-clinic-home-followup',
+        kind: 'card',
+        scene: 'consultation',
+        palette: ['#111d2d', '#345871', '#9bd5cf', '#f1ddd1'],
+        accent: '#8fe3b2',
+        altEs: 'Seguimiento dermatologico con comparacion de avance y ajustes',
+        altEn: 'Dermatology follow-up with progress comparison and adjustments',
+    },
+    {
+        id: 'v6-clinic-team-roundtable',
+        kind: 'card',
+        scene: 'brand',
+        palette: ['#0d1524', '#28425f', '#88c6ff', '#f2ddd1'],
+        accent: '#9ae6d0',
+        altEs: 'Equipo dermatologico revisando decisiones de forma conjunta',
+        altEn: 'Dermatology team reviewing decisions together',
+    },
+    {
+        id: 'v6-clinic-hub-editorial-map',
+        kind: 'wide',
+        scene: 'tri-panel',
+        palette: ['#0d1623', '#284764', '#93cfff', '#f4dfd2'],
+        accent: '#86d7ff',
+        altEs: 'Mapa editorial de rutas dermatologicas y decisiones clinicas',
+        altEn: 'Editorial map of dermatology routes and clinical decisions',
     },
     {
         id: 'v6-clinic-clinic-environment',
@@ -53,6 +92,60 @@ const ASSETS = [
         accent: '#ffb49a',
         altEs: 'Acompanamiento clinico con explicacion y consentimiento claro',
         altEn: 'Clinical guidance with clear explanation and consent',
+    },
+    {
+        id: 'v6-clinic-telemedicine-intake',
+        kind: 'card',
+        scene: 'consent',
+        palette: ['#121926', '#325073', '#a9d9ff', '#f8d9c7'],
+        accent: '#ffba9f',
+        altEs: 'Inicio de telemedicina con contexto clinico e imagenes',
+        altEn: 'Telemedicine intake with clinical context and imaging',
+    },
+    {
+        id: 'v6-clinic-telemedicine-review',
+        kind: 'card',
+        scene: 'macro-study',
+        palette: ['#111a27', '#2f4b67', '#8ec2ff', '#f3ddd0'],
+        accent: '#7fe0d5',
+        altEs: 'Revision dermatologica remota con seguimiento y ajuste',
+        altEn: 'Remote dermatology review with follow-up and adjustment',
+    },
+    {
+        id: 'v6-clinic-legal-governance',
+        kind: 'card',
+        scene: 'clinic',
+        palette: ['#131925', '#384a5d', '#b8d0ff', '#efe0d4'],
+        accent: '#f7c77f',
+        altEs: 'Privacidad, consentimiento y reglas del sitio en un marco claro',
+        altEn: 'Privacy, consent, and site rules framed with clarity',
+    },
+    {
+        id: 'v6-clinic-statement-clinical-direction',
+        kind: 'card',
+        scene: 'consultation',
+        palette: ['#101a28', '#2f4f73', '#9cd2ff', '#f0dbcf'],
+        accent: '#9fe3ff',
+        altEs: 'Direccion clinica dermatologica con lectura estructurada',
+        altEn: 'Clinical dermatology direction with a structured read',
+    },
+    {
+        id: 'v6-clinic-statement-procedure-guidance',
+        kind: 'card',
+        scene: 'precision-procedure',
+        palette: ['#151827', '#415066', '#b6c8ff', '#f1ddd2'],
+        accent: '#8ed5ff',
+        altEs: 'Guia dermatologica para procedimientos indicados',
+        altEn: 'Dermatology guidance for indicated procedures',
+    },
+    {
+        id: 'v6-clinic-statement-family-support',
+        kind: 'card',
+        scene: 'family',
+        palette: ['#14202c', '#37536a', '#a6d7f4', '#f6e0ce'],
+        accent: '#ffd47d',
+        altEs: 'Acompanamiento dermatologico familiar y seguimiento compartido',
+        altEn: 'Family dermatology support and shared follow-up',
     },
     {
         id: 'v6-clinic-diagnostico-integral',
@@ -218,8 +311,13 @@ function round(value) {
 
 function svgNode(tag, attrs, body = '') {
     const serialized = Object.entries(attrs)
-        .filter(([, value]) => value !== undefined && value !== null && value !== '')
-        .map(([key, value]) => `${key}="${String(value).replace(/"/g, '&quot;')}"`)
+        .filter(
+            ([, value]) => value !== undefined && value !== null && value !== ''
+        )
+        .map(
+            ([key, value]) =>
+                `${key}="${String(value).replace(/"/g, '&quot;')}"`
+        )
         .join(' ');
     return `<${tag}${serialized ? ` ${serialized}` : ''}>${body}</${tag}>`;
 }
@@ -282,7 +380,16 @@ function pathNode(d, fill, extra = {}) {
     });
 }
 
-function lineNode(x1, y1, x2, y2, stroke, strokeWidth, opacity = 1, extra = {}) {
+function lineNode(
+    x1,
+    y1,
+    x2,
+    y2,
+    stroke,
+    strokeWidth,
+    opacity = 1,
+    extra = {}
+) {
     return svgNode('line', {
         x1,
         y1,
@@ -338,17 +445,38 @@ function buildBackdrop(width, height, asset) {
                 fill: `url(#bg-${asset.id})`,
             }),
             shapes.join(''),
-            rect(width * 0.05, height * 0.1, width * 0.9, height * 0.82, 'rgba(255,255,255,0.05)', {
-                rx: 40,
-                stroke: 'rgba(255,255,255,0.12)',
-                strokeWidth: 1.8,
-            }),
-            rect(width * 0.12, height * 0.16, width * 0.76, height * 0.68, `url(#panel-${asset.id})`, {
-                rx: 34,
-                stroke: 'rgba(255,255,255,0.08)',
-                strokeWidth: 1.2,
-            }),
-            lineNode(width * 0.12, height * 0.76, width * 0.88, height * 0.76, 'rgba(255,255,255,0.05)', 2),
+            rect(
+                width * 0.05,
+                height * 0.1,
+                width * 0.9,
+                height * 0.82,
+                'rgba(255,255,255,0.05)',
+                {
+                    rx: 40,
+                    stroke: 'rgba(255,255,255,0.12)',
+                    strokeWidth: 1.8,
+                }
+            ),
+            rect(
+                width * 0.12,
+                height * 0.16,
+                width * 0.76,
+                height * 0.68,
+                `url(#panel-${asset.id})`,
+                {
+                    rx: 34,
+                    stroke: 'rgba(255,255,255,0.08)',
+                    strokeWidth: 1.2,
+                }
+            ),
+            lineNode(
+                width * 0.12,
+                height * 0.76,
+                width * 0.88,
+                height * 0.76,
+                'rgba(255,255,255,0.05)',
+                2
+            ),
             svgNode(
                 'rect',
                 {
@@ -365,12 +493,19 @@ function buildBackdrop(width, height, asset) {
 function buildRoom(width, height, palette, accent, random) {
     const [, mid, light, skin] = palette;
     return [
-        rect(width * 0.14, height * 0.22, width * 0.72, height * 0.5, '#12243b', {
-            rx: 32,
-            opacity: 0.92,
-            stroke: 'rgba(255,255,255,0.08)',
-            strokeWidth: 1.2,
-        }),
+        rect(
+            width * 0.14,
+            height * 0.22,
+            width * 0.72,
+            height * 0.5,
+            '#12243b',
+            {
+                rx: 32,
+                opacity: 0.92,
+                stroke: 'rgba(255,255,255,0.08)',
+                strokeWidth: 1.2,
+            }
+        ),
         rect(width * 0.18, height * 0.28, width * 0.24, height * 0.18, light, {
             rx: 24,
             opacity: 0.24,
@@ -389,15 +524,42 @@ function buildRoom(width, height, palette, accent, random) {
             rx: 22,
             opacity: 0.58,
         }),
-        circle(width * (0.25 + random() * 0.5), height * 0.2, width * 0.022, '#fff5ef', 0.34),
-        rect(width * 0.24, height * 0.36, width * 0.14, height * 0.02, '#ffffff', {
-            rx: 6,
-            opacity: 0.22,
-        }),
-        rect(width * 0.66, height * 0.46, width * 0.09, height * 0.16, 'rgba(255,255,255,0.12)', {
-            rx: 14,
-        }),
-        lineNode(width * 0.18, height * 0.74, width * 0.82, height * 0.74, 'rgba(255,255,255,0.06)', 2),
+        circle(
+            width * (0.25 + random() * 0.5),
+            height * 0.2,
+            width * 0.022,
+            '#fff5ef',
+            0.34
+        ),
+        rect(
+            width * 0.24,
+            height * 0.36,
+            width * 0.14,
+            height * 0.02,
+            '#ffffff',
+            {
+                rx: 6,
+                opacity: 0.22,
+            }
+        ),
+        rect(
+            width * 0.66,
+            height * 0.46,
+            width * 0.09,
+            height * 0.16,
+            'rgba(255,255,255,0.12)',
+            {
+                rx: 14,
+            }
+        ),
+        lineNode(
+            width * 0.18,
+            height * 0.74,
+            width * 0.82,
+            height * 0.74,
+            'rgba(255,255,255,0.06)',
+            2
+        ),
     ].join('');
 }
 
@@ -426,20 +588,41 @@ function buildFigure(x, y, scale, colors, variant = 'adult') {
         'g',
         { transform: `translate(${round(x)} ${round(y)}) scale(${scale})` },
         [
-            rect(-round(neckWidth / 2), round(head * 0.82), neckWidth, neckHeight, skin, {
-                rx: 8,
-                opacity: 0.94,
-            }),
-            rect(-round(shoulders * 0.8), torsoTop + 24, armWidth, armHeight, coat, {
-                rx: 14,
-                opacity: 0.9,
-                transform: `rotate(-8 ${-round(shoulders * 0.7)} ${torsoTop + 52})`,
-            }),
-            rect(round(shoulders * 0.56), torsoTop + 22, armWidth, armHeight, coat, {
-                rx: 14,
-                opacity: 0.9,
-                transform: `rotate(8 ${round(shoulders * 0.66)} ${torsoTop + 50})`,
-            }),
+            rect(
+                -round(neckWidth / 2),
+                round(head * 0.82),
+                neckWidth,
+                neckHeight,
+                skin,
+                {
+                    rx: 8,
+                    opacity: 0.94,
+                }
+            ),
+            rect(
+                -round(shoulders * 0.8),
+                torsoTop + 24,
+                armWidth,
+                armHeight,
+                coat,
+                {
+                    rx: 14,
+                    opacity: 0.9,
+                    transform: `rotate(-8 ${-round(shoulders * 0.7)} ${torsoTop + 52})`,
+                }
+            ),
+            rect(
+                round(shoulders * 0.56),
+                torsoTop + 22,
+                armWidth,
+                armHeight,
+                coat,
+                {
+                    rx: 14,
+                    opacity: 0.9,
+                    transform: `rotate(8 ${round(shoulders * 0.66)} ${torsoTop + 50})`,
+                }
+            ),
             pathNode(
                 `M ${-shoulders} ${bodyHeight} C ${-round(shoulders * 0.78)} ${round(
                     bodyHeight * 0.34
@@ -453,16 +636,24 @@ function buildFigure(x, y, scale, colors, variant = 'adult') {
                 rx: 12,
                 opacity: 0.18,
             }),
-            pathNode(`M -${round(shoulders * 0.22)} ${torsoTop + 12} L -6 ${torsoTop + 56} L -${round(
-                shoulders * 0.28
-            )} ${torsoTop + 74} Z`, 'rgba(255,255,255,0.9)', {
-                opacity: 0.88,
-            }),
-            pathNode(`M ${round(shoulders * 0.22)} ${torsoTop + 12} L 6 ${torsoTop + 56} L ${round(
-                shoulders * 0.28
-            )} ${torsoTop + 74} Z`, 'rgba(255,255,255,0.9)', {
-                opacity: 0.88,
-            }),
+            pathNode(
+                `M -${round(shoulders * 0.22)} ${torsoTop + 12} L -6 ${torsoTop + 56} L -${round(
+                    shoulders * 0.28
+                )} ${torsoTop + 74} Z`,
+                'rgba(255,255,255,0.9)',
+                {
+                    opacity: 0.88,
+                }
+            ),
+            pathNode(
+                `M ${round(shoulders * 0.22)} ${torsoTop + 12} L 6 ${torsoTop + 56} L ${round(
+                    shoulders * 0.28
+                )} ${torsoTop + 74} Z`,
+                'rgba(255,255,255,0.9)',
+                {
+                    opacity: 0.88,
+                }
+            ),
             rect(round(shoulders * 0.24), torsoTop + 44, 14, 18, accent, {
                 rx: 8,
                 opacity: 0.16,
@@ -471,17 +662,49 @@ function buildFigure(x, y, scale, colors, variant = 'adult') {
             pathNode(hairShape, hair, {
                 opacity: 0.96,
             }),
-            lineNode(-round(head * 0.4), -round(head * 0.08), -round(head * 0.14), -round(head * 0.08), 'rgba(34,41,56,0.42)', 2.2),
-            lineNode(round(head * 0.14), -round(head * 0.08), round(head * 0.4), -round(head * 0.08), 'rgba(34,41,56,0.42)', 2.2),
-            lineNode(-round(head * 0.44), -round(head * 0.24), -round(head * 0.12), -round(head * 0.2), 'rgba(34,41,56,0.24)', 1.8),
-            lineNode(round(head * 0.12), -round(head * 0.2), round(head * 0.44), -round(head * 0.24), 'rgba(34,41,56,0.24)', 1.8),
-            pathNode(`M -${round(head * 0.16)} ${round(head * 0.42)} Q 0 ${round(head * 0.54)} ${round(
-                head * 0.16
-            )} ${round(head * 0.42)}`, 'transparent', {
-                stroke: 'rgba(74,58,56,0.32)',
-                strokeWidth: 2.4,
-                strokeLinecap: 'round',
-            }),
+            lineNode(
+                -round(head * 0.4),
+                -round(head * 0.08),
+                -round(head * 0.14),
+                -round(head * 0.08),
+                'rgba(34,41,56,0.42)',
+                2.2
+            ),
+            lineNode(
+                round(head * 0.14),
+                -round(head * 0.08),
+                round(head * 0.4),
+                -round(head * 0.08),
+                'rgba(34,41,56,0.42)',
+                2.2
+            ),
+            lineNode(
+                -round(head * 0.44),
+                -round(head * 0.24),
+                -round(head * 0.12),
+                -round(head * 0.2),
+                'rgba(34,41,56,0.24)',
+                1.8
+            ),
+            lineNode(
+                round(head * 0.12),
+                -round(head * 0.2),
+                round(head * 0.44),
+                -round(head * 0.24),
+                'rgba(34,41,56,0.24)',
+                1.8
+            ),
+            pathNode(
+                `M -${round(head * 0.16)} ${round(head * 0.42)} Q 0 ${round(head * 0.54)} ${round(
+                    head * 0.16
+                )} ${round(head * 0.42)}`,
+                'transparent',
+                {
+                    stroke: 'rgba(74,58,56,0.32)',
+                    strokeWidth: 2.4,
+                    strokeLinecap: 'round',
+                }
+            ),
         ].join('')
     );
 }
@@ -496,10 +719,17 @@ function buildProcedureProp(x, y, width, height, accent, glow) {
                 stroke: 'rgba(255,255,255,0.08)',
                 strokeWidth: 1.2,
             }),
-            rect(width * 0.12, height * 0.12, width * 0.76, height * 0.18, accent, {
-                rx: 12,
-                opacity: 0.16,
-            }),
+            rect(
+                width * 0.12,
+                height * 0.12,
+                width * 0.76,
+                height * 0.18,
+                accent,
+                {
+                    rx: 12,
+                    opacity: 0.16,
+                }
+            ),
             rect(width * 0.2, height * 0.4, width * 0.22, height * 0.08, glow, {
                 rx: 8,
                 opacity: 0.2,
@@ -508,7 +738,14 @@ function buildProcedureProp(x, y, width, height, accent, glow) {
                 rx: 8,
                 opacity: 0.12,
             }),
-            lineNode(width * 0.2, height * 0.66, width * 0.8, height * 0.66, 'rgba(255,255,255,0.12)', 3),
+            lineNode(
+                width * 0.2,
+                height * 0.66,
+                width * 0.8,
+                height * 0.66,
+                'rgba(255,255,255,0.12)',
+                3
+            ),
         ].join('')
     );
 }
@@ -527,15 +764,36 @@ function buildMacroPanel(x, y, width, height, palette, accent) {
             circle(width * 0.5, height * 0.46, width * 0.22, '#f6d5df', 0.98),
             circle(width * 0.42, height * 0.38, width * 0.032, accent, 0.36),
             circle(width * 0.58, height * 0.52, width * 0.024, '#ffffff', 0.22),
-            rect(width * 0.18, height * 0.18, width * 0.18, height * 0.12, palette[2], {
-                rx: 12,
-                opacity: 0.16,
-            }),
-            rect(width * 0.64, height * 0.28, width * 0.1, height * 0.24, palette[1], {
-                rx: 12,
-                opacity: 0.18,
-            }),
-            lineNode(width * 0.2, height * 0.76, width * 0.8, height * 0.76, 'rgba(255,255,255,0.12)', 3),
+            rect(
+                width * 0.18,
+                height * 0.18,
+                width * 0.18,
+                height * 0.12,
+                palette[2],
+                {
+                    rx: 12,
+                    opacity: 0.16,
+                }
+            ),
+            rect(
+                width * 0.64,
+                height * 0.28,
+                width * 0.1,
+                height * 0.24,
+                palette[1],
+                {
+                    rx: 12,
+                    opacity: 0.18,
+                }
+            ),
+            lineNode(
+                width * 0.2,
+                height * 0.76,
+                width * 0.8,
+                height * 0.76,
+                'rgba(255,255,255,0.12)',
+                3
+            ),
         ].join('')
     );
 }
@@ -579,10 +837,17 @@ function buildTexturePanel(x, y, width, height, palette, accent) {
                 palette[3],
                 { opacity: 0.98 }
             ),
-            rect(width * 0.18, height * 0.2, width * 0.16, height * 0.08, accent, {
-                rx: 10,
-                opacity: 0.16,
-            }),
+            rect(
+                width * 0.18,
+                height * 0.2,
+                width * 0.16,
+                height * 0.08,
+                accent,
+                {
+                    rx: 10,
+                    opacity: 0.16,
+                }
+            ),
             dots.join(''),
         ].join('')
     );
@@ -593,21 +858,49 @@ function buildRepairPanel(x, y, width, height, palette, accent) {
     for (let index = 0; index < 3; index += 1) {
         const cellX = width * (0.08 + index * 0.29);
         cells.push(
-            rect(cellX, height * 0.18, width * 0.2, height * 0.58, 'rgba(255,255,255,0.05)', {
-                rx: 18,
-            })
+            rect(
+                cellX,
+                height * 0.18,
+                width * 0.2,
+                height * 0.58,
+                'rgba(255,255,255,0.05)',
+                {
+                    rx: 18,
+                }
+            )
         );
         cells.push(
-            rect(cellX + width * 0.04, height * 0.26, width * 0.12, height * 0.08, index === 1 ? accent : palette[2], {
-                rx: 10,
-                opacity: 0.22,
-            })
+            rect(
+                cellX + width * 0.04,
+                height * 0.26,
+                width * 0.12,
+                height * 0.08,
+                index === 1 ? accent : palette[2],
+                {
+                    rx: 10,
+                    opacity: 0.22,
+                }
+            )
         );
         cells.push(
-            lineNode(cellX + width * 0.04, height * 0.48, cellX + width * 0.16, height * 0.48, 'rgba(255,255,255,0.16)', 4)
+            lineNode(
+                cellX + width * 0.04,
+                height * 0.48,
+                cellX + width * 0.16,
+                height * 0.48,
+                'rgba(255,255,255,0.16)',
+                4
+            )
         );
         cells.push(
-            lineNode(cellX + width * 0.04, height * 0.62, cellX + width * 0.14, height * 0.62, 'rgba(255,255,255,0.12)', 4)
+            lineNode(
+                cellX + width * 0.04,
+                height * 0.62,
+                cellX + width * 0.14,
+                height * 0.62,
+                'rgba(255,255,255,0.12)',
+                4
+            )
         );
     }
 
@@ -650,14 +943,34 @@ function buildDermatoscopyPanel(x, y, width, height, palette, accent) {
                 strokeWidth: 1.2,
             }),
             circle(width * 0.38, height * 0.52, width * 0.14, '#edd1bf', 1),
-            circle(width * 0.38, height * 0.52, width * 0.032, 'rgba(91,57,44,0.5)', 1),
+            circle(
+                width * 0.38,
+                height * 0.52,
+                width * 0.032,
+                'rgba(91,57,44,0.5)',
+                1
+            ),
             circle(width * 0.3, height * 0.44, width * 0.018, accent, 0.26),
             circle(width * 0.46, height * 0.6, width * 0.016, palette[2], 0.28),
-            circle(width * 0.68, height * 0.38, width * 0.12, 'transparent', 1, {
-                stroke: 'rgba(255,255,255,0.5)',
-                strokeWidth: 8,
-            }),
-            lineNode(width * 0.76, height * 0.48, width * 0.88, height * 0.64, 'rgba(255,255,255,0.5)', 8),
+            circle(
+                width * 0.68,
+                height * 0.38,
+                width * 0.12,
+                'transparent',
+                1,
+                {
+                    stroke: 'rgba(255,255,255,0.5)',
+                    strokeWidth: 8,
+                }
+            ),
+            lineNode(
+                width * 0.76,
+                height * 0.48,
+                width * 0.88,
+                height * 0.64,
+                'rgba(255,255,255,0.5)',
+                8
+            ),
         ].join('')
     );
 }
@@ -673,7 +986,14 @@ function buildRenewalPanel(x, y, width, height, palette, accent) {
                 stroke: 'rgba(255,255,255,0.08)',
                 strokeWidth: 1.2,
             }),
-            ellipse(width * 0.34, height * 0.48, width * 0.12, height * 0.18, palette[3], 0.98),
+            ellipse(
+                width * 0.34,
+                height * 0.48,
+                width * 0.12,
+                height * 0.18,
+                palette[3],
+                0.98
+            ),
             pathNode(
                 `M ${round(width * 0.58)} ${round(height * 0.24)} C ${round(width * 0.52)} ${round(
                     height * 0.4
@@ -685,10 +1005,17 @@ function buildRenewalPanel(x, y, width, height, palette, accent) {
                 accent,
                 { opacity: 0.26 }
             ),
-            rect(width * 0.22, height * 0.72, width * 0.22, height * 0.08, palette[2], {
-                rx: 12,
-                opacity: 0.14,
-            }),
+            rect(
+                width * 0.22,
+                height * 0.72,
+                width * 0.22,
+                height * 0.08,
+                palette[2],
+                {
+                    rx: 12,
+                    opacity: 0.14,
+                }
+            ),
         ].join('')
     );
 }
@@ -717,17 +1044,38 @@ function buildBottlePanel(x, y, width, height, palette, accent) {
                 stroke: 'rgba(255,255,255,0.08)',
                 strokeWidth: 1.2,
             }),
-            rect(width * 0.26, height * 0.2, width * 0.16, height * 0.1, palette[2], {
-                rx: 10,
-                opacity: 0.22,
-            }),
-            rect(width * 0.3, height * 0.28, width * 0.08, height * 0.38, 'rgba(255,247,241,0.94)', {
-                rx: 16,
-            }),
-            rect(width * 0.28, height * 0.42, width * 0.12, height * 0.12, accent, {
-                rx: 12,
-                opacity: 0.18,
-            }),
+            rect(
+                width * 0.26,
+                height * 0.2,
+                width * 0.16,
+                height * 0.1,
+                palette[2],
+                {
+                    rx: 10,
+                    opacity: 0.22,
+                }
+            ),
+            rect(
+                width * 0.3,
+                height * 0.28,
+                width * 0.08,
+                height * 0.38,
+                'rgba(255,247,241,0.94)',
+                {
+                    rx: 16,
+                }
+            ),
+            rect(
+                width * 0.28,
+                height * 0.42,
+                width * 0.12,
+                height * 0.12,
+                accent,
+                {
+                    rx: 12,
+                    opacity: 0.18,
+                }
+            ),
             bubbles.join(''),
         ].join('')
     );
@@ -744,14 +1092,36 @@ function buildLaserPanel(x, y, width, height, palette, accent) {
                 stroke: 'rgba(255,255,255,0.08)',
                 strokeWidth: 1.2,
             }),
-            rect(width * 0.16, height * 0.22, width * 0.14, height * 0.42, 'rgba(241,247,255,0.9)', {
-                rx: 18,
-            }),
-            rect(width * 0.19, height * 0.32, width * 0.08, height * 0.1, accent, {
-                rx: 10,
-                opacity: 0.18,
-            }),
-            lineNode(width * 0.3, height * 0.46, width * 0.72, height * 0.34, accent, 8, 0.36),
+            rect(
+                width * 0.16,
+                height * 0.22,
+                width * 0.14,
+                height * 0.42,
+                'rgba(241,247,255,0.9)',
+                {
+                    rx: 18,
+                }
+            ),
+            rect(
+                width * 0.19,
+                height * 0.32,
+                width * 0.08,
+                height * 0.1,
+                accent,
+                {
+                    rx: 10,
+                    opacity: 0.18,
+                }
+            ),
+            lineNode(
+                width * 0.3,
+                height * 0.46,
+                width * 0.72,
+                height * 0.34,
+                accent,
+                8,
+                0.36
+            ),
             circle(width * 0.78, height * 0.32, width * 0.08, palette[2], 0.18),
             circle(width * 0.78, height * 0.32, width * 0.03, accent, 0.34),
         ].join('')
@@ -769,17 +1139,45 @@ function buildPrecisionFacePanel(x, y, width, height, palette, accent) {
                 stroke: 'rgba(255,255,255,0.08)',
                 strokeWidth: 1.2,
             }),
-            ellipse(width * 0.38, height * 0.48, width * 0.12, height * 0.18, palette[3], 1),
+            ellipse(
+                width * 0.38,
+                height * 0.48,
+                width * 0.12,
+                height * 0.18,
+                palette[3],
+                1
+            ),
             circle(width * 0.38, height * 0.32, width * 0.014, accent, 0.34),
             circle(width * 0.3, height * 0.48, width * 0.014, accent, 0.34),
             circle(width * 0.46, height * 0.48, width * 0.014, accent, 0.34),
             circle(width * 0.38, height * 0.62, width * 0.014, accent, 0.34),
-            lineNode(width * 0.38, height * 0.32, width * 0.38, height * 0.62, 'rgba(255,255,255,0.16)', 3),
-            lineNode(width * 0.3, height * 0.48, width * 0.46, height * 0.48, 'rgba(255,255,255,0.16)', 3),
-            rect(width * 0.62, height * 0.24, width * 0.16, height * 0.08, palette[2], {
-                rx: 10,
-                opacity: 0.14,
-            }),
+            lineNode(
+                width * 0.38,
+                height * 0.32,
+                width * 0.38,
+                height * 0.62,
+                'rgba(255,255,255,0.16)',
+                3
+            ),
+            lineNode(
+                width * 0.3,
+                height * 0.48,
+                width * 0.46,
+                height * 0.48,
+                'rgba(255,255,255,0.16)',
+                3
+            ),
+            rect(
+                width * 0.62,
+                height * 0.24,
+                width * 0.16,
+                height * 0.08,
+                palette[2],
+                {
+                    rx: 10,
+                    opacity: 0.14,
+                }
+            ),
         ].join('')
     );
 }
@@ -816,7 +1214,13 @@ function buildCollagenPanel(x, y, width, height, palette, accent) {
             }),
             bands.join(''),
             circle(width * 0.74, height * 0.34, width * 0.02, accent, 0.3),
-            circle(width * 0.66, height * 0.58, width * 0.016, palette[2], 0.28),
+            circle(
+                width * 0.66,
+                height * 0.58,
+                width * 0.016,
+                palette[2],
+                0.28
+            ),
         ].join('')
     );
 }
@@ -832,16 +1236,45 @@ function buildTriptychPanel(x, y, width, height, palette, accent) {
                 stroke: 'rgba(255,255,255,0.08)',
                 strokeWidth: 1.2,
             }),
-            rect(width * 0.1, height * 0.18, width * 0.16, height * 0.58, 'rgba(255,255,255,0.05)', {
-                rx: 18,
-            }),
-            rect(width * 0.42, height * 0.18, width * 0.16, height * 0.58, 'rgba(255,255,255,0.05)', {
-                rx: 18,
-            }),
-            rect(width * 0.74, height * 0.18, width * 0.16, height * 0.58, 'rgba(255,255,255,0.05)', {
-                rx: 18,
-            }),
-            lineNode(width * 0.18, height * 0.28, width * 0.18, height * 0.68, accent, 6, 0.32),
+            rect(
+                width * 0.1,
+                height * 0.18,
+                width * 0.16,
+                height * 0.58,
+                'rgba(255,255,255,0.05)',
+                {
+                    rx: 18,
+                }
+            ),
+            rect(
+                width * 0.42,
+                height * 0.18,
+                width * 0.16,
+                height * 0.58,
+                'rgba(255,255,255,0.05)',
+                {
+                    rx: 18,
+                }
+            ),
+            rect(
+                width * 0.74,
+                height * 0.18,
+                width * 0.16,
+                height * 0.58,
+                'rgba(255,255,255,0.05)',
+                {
+                    rx: 18,
+                }
+            ),
+            lineNode(
+                width * 0.18,
+                height * 0.28,
+                width * 0.18,
+                height * 0.68,
+                accent,
+                6,
+                0.32
+            ),
             pathNode(
                 `M ${round(width * 0.5)} ${round(height * 0.28)} C ${round(width * 0.44)} ${round(
                     height * 0.42
@@ -894,9 +1327,13 @@ function buildPortraitBust(x, y, scale, colors) {
                 rx: 18,
                 opacity: 0.12,
             }),
-            pathNode('M -70 78 L -20 130 L -72 150 Z', 'rgba(255,255,255,0.88)', {
-                opacity: 0.92,
-            }),
+            pathNode(
+                'M -70 78 L -20 130 L -72 150 Z',
+                'rgba(255,255,255,0.88)',
+                {
+                    opacity: 0.92,
+                }
+            ),
             pathNode('M 70 78 L 20 130 L 72 150 Z', 'rgba(255,255,255,0.88)', {
                 opacity: 0.92,
             }),
@@ -938,7 +1375,9 @@ function buildScene(width, height, asset) {
     switch (asset.scene) {
         case 'brand':
             body.push(buildRoom(width, height, palette, accent, random));
-            body.push(buildFigure(width * 0.32, height * 0.44, 1.12, colors, 'adult'));
+            body.push(
+                buildFigure(width * 0.32, height * 0.44, 1.12, colors, 'adult')
+            );
             body.push(
                 buildFigure(width * 0.62, height * 0.46, 0.96, {
                     ...colors,
@@ -947,109 +1386,334 @@ function buildScene(width, height, asset) {
                     accent: palette[2],
                 })
             );
-            body.push(buildProcedureProp(width * 0.68, height * 0.24, width * 0.14, height * 0.16, accent, palette[2]));
+            body.push(
+                buildProcedureProp(
+                    width * 0.68,
+                    height * 0.24,
+                    width * 0.14,
+                    height * 0.16,
+                    accent,
+                    palette[2]
+                )
+            );
             break;
         case 'clinic':
             body.push(buildRoom(width, height, palette, accent, random));
             body.push(buildFigure(width * 0.28, height * 0.46, 1.02, colors));
-            body.push(buildProcedureProp(width * 0.62, height * 0.3, width * 0.14, height * 0.16, accent, palette[2]));
-            body.push(rect(width * 0.72, height * 0.36, width * 0.06, height * 0.22, palette[2], { rx: 14, opacity: 0.1 }));
+            body.push(
+                buildProcedureProp(
+                    width * 0.62,
+                    height * 0.3,
+                    width * 0.14,
+                    height * 0.16,
+                    accent,
+                    palette[2]
+                )
+            );
+            body.push(
+                rect(
+                    width * 0.72,
+                    height * 0.36,
+                    width * 0.06,
+                    height * 0.22,
+                    palette[2],
+                    { rx: 14, opacity: 0.1 }
+                )
+            );
             break;
         case 'consent':
             body.push(buildRoom(width, height, palette, accent, random));
             body.push(buildFigure(width * 0.26, height * 0.48, 0.96, colors));
-            body.push(buildFigure(width * 0.56, height * 0.54, 0.88, { ...colors, hair: palette[2], accent: palette[2] }));
-            body.push(rect(width * 0.4, height * 0.42, width * 0.18, height * 0.12, '#fff4ea', { rx: 18, opacity: 0.92, transform: `rotate(-10 ${round(width * 0.49)} ${round(height * 0.48)})` }));
+            body.push(
+                buildFigure(width * 0.56, height * 0.54, 0.88, {
+                    ...colors,
+                    hair: palette[2],
+                    accent: palette[2],
+                })
+            );
+            body.push(
+                rect(
+                    width * 0.4,
+                    height * 0.42,
+                    width * 0.18,
+                    height * 0.12,
+                    '#fff4ea',
+                    {
+                        rx: 18,
+                        opacity: 0.92,
+                        transform: `rotate(-10 ${round(width * 0.49)} ${round(height * 0.48)})`,
+                    }
+                )
+            );
             break;
         case 'consultation':
             body.push(buildRoom(width, height, palette, accent, random));
             body.push(buildFigure(width * 0.28, height * 0.46, 1.04, colors));
-            body.push(buildFigure(width * 0.56, height * 0.58, 0.82, { ...colors, coat: 'rgba(241,229,219,0.74)', accent: palette[2] }));
-            body.push(buildProcedureProp(width * 0.64, height * 0.24, width * 0.14, height * 0.14, accent, palette[2]));
+            body.push(
+                buildFigure(width * 0.56, height * 0.58, 0.82, {
+                    ...colors,
+                    coat: 'rgba(241,229,219,0.74)',
+                    accent: palette[2],
+                })
+            );
+            body.push(
+                buildProcedureProp(
+                    width * 0.64,
+                    height * 0.24,
+                    width * 0.14,
+                    height * 0.14,
+                    accent,
+                    palette[2]
+                )
+            );
             break;
         case 'macro-study':
             body.push(buildRoom(width, height, palette, accent, random));
-            body.push(buildMacroPanel(width * 0.26, height * 0.24, width * 0.5, height * 0.4, palette, accent));
+            body.push(
+                buildMacroPanel(
+                    width * 0.26,
+                    height * 0.24,
+                    width * 0.5,
+                    height * 0.4,
+                    palette,
+                    accent
+                )
+            );
             body.push(buildFigure(width * 0.2, height * 0.58, 0.68, colors));
             break;
         case 'precision-procedure':
             body.push(buildRoom(width, height, palette, accent, random));
             body.push(buildFigure(width * 0.28, height * 0.46, 1.02, colors));
-            body.push(buildFigure(width * 0.58, height * 0.58, 0.8, { ...colors, coat: 'rgba(240,224,214,0.82)', accent: palette[2] }));
-            body.push(buildProcedureProp(width * 0.66, height * 0.24, width * 0.14, height * 0.16, accent, palette[2]));
-            body.push(pathNode(`M ${round(width * 0.55)} ${round(height * 0.47)} Q ${round(width * 0.64)} ${round(height * 0.38)}, ${round(width * 0.7)} ${round(height * 0.52)}`, accent, {
-                opacity: 0.32,
-                stroke: accent,
-                strokeWidth: 6,
-                strokeLinecap: 'round',
-            }));
+            body.push(
+                buildFigure(width * 0.58, height * 0.58, 0.8, {
+                    ...colors,
+                    coat: 'rgba(240,224,214,0.82)',
+                    accent: palette[2],
+                })
+            );
+            body.push(
+                buildProcedureProp(
+                    width * 0.66,
+                    height * 0.24,
+                    width * 0.14,
+                    height * 0.16,
+                    accent,
+                    palette[2]
+                )
+            );
+            body.push(
+                pathNode(
+                    `M ${round(width * 0.55)} ${round(height * 0.47)} Q ${round(width * 0.64)} ${round(height * 0.38)}, ${round(width * 0.7)} ${round(height * 0.52)}`,
+                    accent,
+                    {
+                        opacity: 0.32,
+                        stroke: accent,
+                        strokeWidth: 6,
+                        strokeLinecap: 'round',
+                    }
+                )
+            );
             break;
         case 'laser':
             body.push(buildRoom(width, height, palette, accent, random));
-            body.push(buildLaserPanel(width * 0.28, height * 0.26, width * 0.46, height * 0.34, palette, accent));
+            body.push(
+                buildLaserPanel(
+                    width * 0.28,
+                    height * 0.26,
+                    width * 0.46,
+                    height * 0.34,
+                    palette,
+                    accent
+                )
+            );
             body.push(buildFigure(width * 0.24, height * 0.58, 0.78, colors));
-            body.push(buildFigure(width * 0.6, height * 0.62, 0.64, { ...colors, coat: 'rgba(240,224,214,0.82)', accent: palette[2] }));
+            body.push(
+                buildFigure(width * 0.6, height * 0.62, 0.64, {
+                    ...colors,
+                    coat: 'rgba(240,224,214,0.82)',
+                    accent: palette[2],
+                })
+            );
             break;
         case 'micro-protocol':
             body.push(buildRoom(width, height, palette, accent, random));
-            body.push(buildBottlePanel(width * 0.3, height * 0.26, width * 0.42, height * 0.34, palette, accent));
+            body.push(
+                buildBottlePanel(
+                    width * 0.3,
+                    height * 0.26,
+                    width * 0.42,
+                    height * 0.34,
+                    palette,
+                    accent
+                )
+            );
             body.push(buildFigure(width * 0.22, height * 0.58, 0.7, colors));
             break;
         case 'renewal':
             body.push(buildRoom(width, height, palette, accent, random));
-            body.push(buildRenewalPanel(width * 0.3, height * 0.26, width * 0.42, height * 0.34, palette, accent));
+            body.push(
+                buildRenewalPanel(
+                    width * 0.3,
+                    height * 0.26,
+                    width * 0.42,
+                    height * 0.34,
+                    palette,
+                    accent
+                )
+            );
             body.push(buildFigure(width * 0.22, height * 0.58, 0.7, colors));
             break;
         case 'precision-face':
             body.push(buildRoom(width, height, palette, accent, random));
-            body.push(buildPrecisionFacePanel(width * 0.3, height * 0.26, width * 0.42, height * 0.34, palette, accent));
+            body.push(
+                buildPrecisionFacePanel(
+                    width * 0.3,
+                    height * 0.26,
+                    width * 0.42,
+                    height * 0.34,
+                    palette,
+                    accent
+                )
+            );
             body.push(buildFigure(width * 0.22, height * 0.58, 0.7, colors));
             break;
         case 'collagen':
             body.push(buildRoom(width, height, palette, accent, random));
-            body.push(buildCollagenPanel(width * 0.3, height * 0.26, width * 0.42, height * 0.34, palette, accent));
+            body.push(
+                buildCollagenPanel(
+                    width * 0.3,
+                    height * 0.26,
+                    width * 0.42,
+                    height * 0.34,
+                    palette,
+                    accent
+                )
+            );
             body.push(buildFigure(width * 0.22, height * 0.58, 0.7, colors));
             break;
         case 'texture-study':
             body.push(buildRoom(width, height, palette, accent, random));
-            body.push(buildTexturePanel(width * 0.26, height * 0.26, width * 0.48, height * 0.34, palette, accent));
+            body.push(
+                buildTexturePanel(
+                    width * 0.26,
+                    height * 0.26,
+                    width * 0.48,
+                    height * 0.34,
+                    palette,
+                    accent
+                )
+            );
             body.push(buildFigure(width * 0.22, height * 0.58, 0.66, colors));
             break;
         case 'repair-grid':
             body.push(buildRoom(width, height, palette, accent, random));
-            body.push(buildRepairPanel(width * 0.24, height * 0.26, width * 0.5, height * 0.34, palette, accent));
+            body.push(
+                buildRepairPanel(
+                    width * 0.24,
+                    height * 0.26,
+                    width * 0.5,
+                    height * 0.34,
+                    palette,
+                    accent
+                )
+            );
             body.push(buildFigure(width * 0.22, height * 0.58, 0.66, colors));
             break;
         case 'dermatoscopy':
             body.push(buildRoom(width, height, palette, accent, random));
-            body.push(buildDermatoscopyPanel(width * 0.24, height * 0.26, width * 0.5, height * 0.34, palette, accent));
+            body.push(
+                buildDermatoscopyPanel(
+                    width * 0.24,
+                    height * 0.26,
+                    width * 0.5,
+                    height * 0.34,
+                    palette,
+                    accent
+                )
+            );
             body.push(buildFigure(width * 0.22, height * 0.58, 0.66, colors));
             break;
         case 'tri-panel':
             body.push(buildRoom(width, height, palette, accent, random));
-            body.push(buildTriptychPanel(width * 0.3, height * 0.26, width * 0.42, height * 0.34, palette, accent));
+            body.push(
+                buildTriptychPanel(
+                    width * 0.3,
+                    height * 0.26,
+                    width * 0.42,
+                    height * 0.34,
+                    palette,
+                    accent
+                )
+            );
             body.push(buildFigure(width * 0.22, height * 0.58, 0.66, colors));
             break;
         case 'family':
             body.push(buildRoom(width, height, palette, accent, random));
             body.push(buildFigure(width * 0.26, height * 0.46, 0.98, colors));
-            body.push(buildFigure(width * 0.54, height * 0.54, 0.64, { ...colors, coat: 'rgba(243,229,214,0.8)', accent: palette[2] }, 'child'));
-            body.push(buildProcedureProp(width * 0.64, height * 0.26, width * 0.14, height * 0.14, accent, palette[2]));
-            body.push(rect(width * 0.46, height * 0.34, width * 0.16, height * 0.12, '#fff4ea', { rx: 16, opacity: 0.9, transform: `rotate(-8 ${round(width * 0.54)} ${round(height * 0.4)})` }));
+            body.push(
+                buildFigure(
+                    width * 0.54,
+                    height * 0.54,
+                    0.64,
+                    {
+                        ...colors,
+                        coat: 'rgba(243,229,214,0.8)',
+                        accent: palette[2],
+                    },
+                    'child'
+                )
+            );
+            body.push(
+                buildProcedureProp(
+                    width * 0.64,
+                    height * 0.26,
+                    width * 0.14,
+                    height * 0.14,
+                    accent,
+                    palette[2]
+                )
+            );
+            body.push(
+                rect(
+                    width * 0.46,
+                    height * 0.34,
+                    width * 0.16,
+                    height * 0.12,
+                    '#fff4ea',
+                    {
+                        rx: 16,
+                        opacity: 0.9,
+                        transform: `rotate(-8 ${round(width * 0.54)} ${round(height * 0.4)})`,
+                    }
+                )
+            );
             break;
         case 'portrait-a':
         case 'portrait-b': {
             const isB = asset.scene === 'portrait-b';
             body.push(
-                rect(width * 0.14, height * 0.08, width * 0.72, height * 0.84, '#122033', {
-                    rx: 40,
-                    opacity: 0.96,
-                    stroke: 'rgba(255,255,255,0.08)',
-                    strokeWidth: 1.2,
-                })
+                rect(
+                    width * 0.14,
+                    height * 0.08,
+                    width * 0.72,
+                    height * 0.84,
+                    '#122033',
+                    {
+                        rx: 40,
+                        opacity: 0.96,
+                        stroke: 'rgba(255,255,255,0.08)',
+                        strokeWidth: 1.2,
+                    }
+                )
             );
             body.push(
-                circle(width * 0.5, height * 0.24, width * 0.2, palette[2], 0.12)
+                circle(
+                    width * 0.5,
+                    height * 0.24,
+                    width * 0.2,
+                    palette[2],
+                    0.12
+                )
             );
             body.push(
                 buildPortraitBust(width * 0.5, height * 0.32, 1, {
@@ -1148,6 +1812,37 @@ function baseName(assetId) {
     return assetId;
 }
 
+function buildManifestSrcSet(asset) {
+    const spec = KIND_SPECS[asset.kind];
+    return spec.sizes
+        .map((size, index) => {
+            const filename =
+                index === spec.sizes.length - 1
+                    ? `${baseName(asset.id)}.webp`
+                    : `${baseName(asset.id)}-${size}.webp`;
+            const width =
+                index === spec.sizes.length - 1 ? spec.sizes[index] : size;
+            return `/images/optimized/${filename} ${width}w`;
+        })
+        .join(', ');
+}
+
+function buildManifest() {
+    return {
+        version: '2026.03-v6-image-relaunch',
+        updated_at: new Date().toISOString().slice(0, 10),
+        assets: ASSETS.map((asset) => ({
+            id: asset.id,
+            kind: asset.kind,
+            src: `/images/optimized/${baseName(asset.id)}.webp`,
+            srcset: buildManifestSrcSet(asset),
+            sizes: KIND_DEFAULT_SIZES[asset.kind] || KIND_DEFAULT_SIZES.card,
+            alt_es: asset.altEs,
+            alt_en: asset.altEn,
+        })),
+    };
+}
+
 async function generateAsset(browser, asset) {
     const spec = KIND_SPECS[asset.kind];
     if (!spec) {
@@ -1157,7 +1852,11 @@ async function generateAsset(browser, asset) {
     const largestWidth = spec.sizes[spec.sizes.length - 1];
     const largestHeight = round(largestWidth * spec.aspect);
     const masterSvg = buildSvg(asset, largestWidth, largestHeight);
-    fs.writeFileSync(path.join(SRC_DIR, `${baseName(asset.id)}.svg`), masterSvg, 'utf8');
+    fs.writeFileSync(
+        path.join(SRC_DIR, `${baseName(asset.id)}.svg`),
+        masterSvg,
+        'utf8'
+    );
 
     for (const size of spec.sizes) {
         const width = size;
@@ -1166,15 +1865,30 @@ async function generateAsset(browser, asset) {
         const jpg = await rasterize(browser, sizedSvg, width, height, 'jpg');
         const webp = await rasterize(browser, sizedSvg, width, height, 'webp');
 
-        writeBuffer(path.join(OPTIMIZED_DIR, `${baseName(asset.id)}-${size}.jpg`), jpg);
-        writeBuffer(path.join(OPTIMIZED_DIR, `${baseName(asset.id)}-${size}.webp`), webp);
+        writeBuffer(
+            path.join(OPTIMIZED_DIR, `${baseName(asset.id)}-${size}.jpg`),
+            jpg
+        );
+        writeBuffer(
+            path.join(OPTIMIZED_DIR, `${baseName(asset.id)}-${size}.webp`),
+            webp
+        );
     }
 
     const lqipWidth = spec.lqip;
     const lqipHeight = round(lqipWidth * spec.aspect);
     const lqipSvg = buildSvg(asset, lqipWidth, lqipHeight);
-    const lqipJpg = await rasterize(browser, lqipSvg, lqipWidth, lqipHeight, 'jpg');
-    writeBuffer(path.join(OPTIMIZED_DIR, `${baseName(asset.id)}-lqip.jpg`), lqipJpg);
+    const lqipJpg = await rasterize(
+        browser,
+        lqipSvg,
+        lqipWidth,
+        lqipHeight,
+        'jpg'
+    );
+    writeBuffer(
+        path.join(OPTIMIZED_DIR, `${baseName(asset.id)}-lqip.jpg`),
+        lqipJpg
+    );
 
     const baseSize = spec.sizes[spec.sizes.length - 1];
     fs.copyFileSync(
@@ -1201,13 +1915,24 @@ async function main() {
         await browser.close();
     }
 
+    fs.writeFileSync(
+        MANIFEST_PATH,
+        `${JSON.stringify(buildManifest(), null, 4)}\n`,
+        'utf8'
+    );
+
     process.stdout.write(
         `${JSON.stringify(
             {
                 ok: true,
                 assets: ASSETS.length,
                 srcDir: path.relative(ROOT, SRC_DIR).replace(/\\/g, '/'),
-                optimizedDir: path.relative(ROOT, OPTIMIZED_DIR).replace(/\\/g, '/'),
+                optimizedDir: path
+                    .relative(ROOT, OPTIMIZED_DIR)
+                    .replace(/\\/g, '/'),
+                manifest: path
+                    .relative(ROOT, MANIFEST_PATH)
+                    .replace(/\\/g, '/'),
             },
             null,
             2

@@ -10,6 +10,89 @@ function read(relativePath) {
     return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
+function readJson(relativePath) {
+    return JSON.parse(read(relativePath));
+}
+
+function normalizeAssetBasePath(value) {
+    return String(value || '')
+        .trim()
+        .split(/\s+/u)[0]
+        .replace(
+            /-(400|500|640|800|900|1024|1200|1344|1400|lqip)(?=\.(webp|jpg)$)/u,
+            ''
+        );
+}
+
+function collectPrimaryImageRefs(value, counts) {
+    if (!value || typeof value === 'string') {
+        return;
+    }
+
+    if (Array.isArray(value)) {
+        value.forEach((item) => collectPrimaryImageRefs(item, counts));
+        return;
+    }
+
+    if (typeof value === 'object') {
+        for (const [key, item] of Object.entries(value)) {
+            if (
+                (key === 'src' || key === 'image' || key === 'heroImage') &&
+                typeof item === 'string' &&
+                item.startsWith('/images/optimized/')
+            ) {
+                const normalized = normalizeAssetBasePath(item);
+                counts.set(normalized, (counts.get(normalized) || 0) + 1);
+            }
+            collectPrimaryImageRefs(item, counts);
+        }
+    }
+}
+
+function collectUniqueSectionImages(items, field = 'image') {
+    return Array.isArray(items)
+        ? items
+              .map((item) =>
+                  normalizeAssetBasePath(
+                      item && typeof item === 'object' ? item[field] : ''
+                  )
+              )
+              .filter(Boolean)
+        : [];
+}
+
+function assertUniqueAssetRefs(items, label, field = 'image') {
+    const refs = collectUniqueSectionImages(items, field);
+    const unique = new Set(refs);
+    assert.equal(
+        unique.size,
+        refs.length,
+        `${label} must not repeat image refs inside the same section`
+    );
+}
+
+function extractMetaContent(html, property) {
+    const escaped = property.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+    const pattern = new RegExp(
+        `<meta[^>]+property="${escaped}"[^>]+content="([^"]+)"`,
+        'u'
+    );
+    const match = html.match(pattern);
+    return match ? match[1] : '';
+}
+
+function toOgImageUrl(relativePath) {
+    const normalized = String(relativePath || '')
+        .trim()
+        .replace(/\.webp$/u, '.jpg');
+    return normalized.startsWith('http')
+        ? normalized
+        : `https://pielarmonia.com${normalized}`;
+}
+
+const LEGACY_PUBLIC_IMAGE_PATTERN =
+    /\/(?:showcase-|service-|team-)[a-z0-9-]+\.(?:webp|jpg|avif|png)|hero-woman/u;
+
 function parseModuleSpecifiers(source) {
     const specifiers = [];
     const patterns = [
@@ -412,4 +495,183 @@ test('script.js deja solo chunks publicos alcanzables y un shell activo', () => 
         new RegExp(activeShells[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'),
         'script.js debe apuntar al shell chunk activo'
     );
+});
+
+test('public V6 manifest includes the relaunch image family', () => {
+    const manifest = readJson(
+        path.join('content', 'public-v6', 'assets-manifest.json')
+    );
+    const assetIds = new Set(
+        Array.isArray(manifest.assets)
+            ? manifest.assets.map((asset) => asset.id)
+            : []
+    );
+    const requiredIds = [
+        'v6-clinic-home-followup',
+        'v6-clinic-team-roundtable',
+        'v6-clinic-hub-editorial-map',
+        'v6-clinic-telemedicine-intake',
+        'v6-clinic-telemedicine-review',
+        'v6-clinic-legal-governance',
+        'v6-clinic-statement-clinical-direction',
+        'v6-clinic-statement-procedure-guidance',
+        'v6-clinic-statement-family-support',
+    ];
+
+    requiredIds.forEach((assetId) => {
+        assert.equal(
+            assetIds.has(assetId),
+            true,
+            `assets-manifest must include ${assetId}`
+        );
+    });
+});
+
+test('public V6 content caps primary asset reuse and keeps section-level image sets unique', () => {
+    const contentFiles = [
+        path.join('content', 'public-v6', 'es', 'home.json'),
+        path.join('content', 'public-v6', 'es', 'hub.json'),
+        path.join('content', 'public-v6', 'es', 'service.json'),
+        path.join('content', 'public-v6', 'es', 'telemedicine.json'),
+        path.join('content', 'public-v6', 'es', 'legal.json'),
+        path.join('content', 'public-v6', 'en', 'home.json'),
+        path.join('content', 'public-v6', 'en', 'hub.json'),
+        path.join('content', 'public-v6', 'en', 'service.json'),
+        path.join('content', 'public-v6', 'en', 'telemedicine.json'),
+        path.join('content', 'public-v6', 'en', 'legal.json'),
+    ];
+    const counts = new Map();
+
+    contentFiles.forEach((file) => {
+        collectPrimaryImageRefs(readJson(file), counts);
+    });
+
+    const overLimit = Array.from(counts.entries()).filter(
+        ([, count]) => count > 10
+    );
+    assert.deepEqual(
+        overLimit,
+        [],
+        `primary image refs must stay at or below 10: ${JSON.stringify(
+            overLimit
+        )}`
+    );
+
+    ['es', 'en'].forEach((locale) => {
+        const home = readJson(
+            path.join('content', 'public-v6', locale, 'home.json')
+        );
+        const hub = readJson(
+            path.join('content', 'public-v6', locale, 'hub.json')
+        );
+        const telemedicine = readJson(
+            path.join('content', 'public-v6', locale, 'telemedicine.json')
+        );
+
+        assertUniqueAssetRefs(home?.hero?.slides, `${locale} home hero`);
+        assertUniqueAssetRefs(
+            home?.editorial?.cards,
+            `${locale} home editorial`
+        );
+        assertUniqueAssetRefs(
+            home?.corporateMatrix?.cards,
+            `${locale} home corporate matrix`
+        );
+        assertUniqueAssetRefs(hub?.featured, `${locale} hub featured`);
+        assertUniqueAssetRefs(hub?.initiatives, `${locale} hub initiatives`);
+        assertUniqueAssetRefs(
+            telemedicine?.initiatives,
+            `${locale} telemedicine initiatives`
+        );
+        (Array.isArray(hub?.sections) ? hub.sections : []).forEach(
+            (section) => {
+                assertUniqueAssetRefs(
+                    section?.cards,
+                    `${locale} hub section ${section?.id || 'unknown'}`
+                );
+            }
+        );
+    });
+});
+
+test('public V6 root HTML publishes route-specific og:image values and strips legacy image refs', () => {
+    const routes = [
+        {
+            html: path.join('es', 'index.html'),
+            expectedImage: readJson(
+                path.join('content', 'public-v6', 'es', 'home.json')
+            ).hero.slides[0].image,
+        },
+        {
+            html: path.join('en', 'index.html'),
+            expectedImage: readJson(
+                path.join('content', 'public-v6', 'en', 'home.json')
+            ).hero.slides[0].image,
+        },
+        {
+            html: path.join(
+                'es',
+                'servicios',
+                'diagnostico-integral',
+                'index.html'
+            ),
+            expectedImage: readJson(
+                path.join('content', 'public-v6', 'es', 'service.json')
+            ).services.find(
+                (service) => service.slug === 'diagnostico-integral'
+            ).heroImage,
+        },
+        {
+            html: path.join('es', 'telemedicina', 'index.html'),
+            expectedImage: readJson(
+                path.join('content', 'public-v6', 'es', 'telemedicine.json')
+            ).heroImage.src,
+        },
+        {
+            html: path.join('es', 'legal', 'terminos', 'index.html'),
+            expectedImage: readJson(
+                path.join('content', 'public-v6', 'es', 'legal.json')
+            ).pages.terminos.heroImage,
+        },
+        {
+            html: path.join(
+                'en',
+                'services',
+                'diagnostico-integral',
+                'index.html'
+            ),
+            expectedImage: readJson(
+                path.join('content', 'public-v6', 'en', 'service.json')
+            ).services.find(
+                (service) => service.slug === 'diagnostico-integral'
+            ).heroImage,
+        },
+        {
+            html: path.join('en', 'telemedicine', 'index.html'),
+            expectedImage: readJson(
+                path.join('content', 'public-v6', 'en', 'telemedicine.json')
+            ).heroImage.src,
+        },
+        {
+            html: path.join('en', 'legal', 'terms', 'index.html'),
+            expectedImage: readJson(
+                path.join('content', 'public-v6', 'en', 'legal.json')
+            ).pages.terms.heroImage,
+        },
+    ];
+
+    routes.forEach(({ html, expectedImage }) => {
+        const pageHtml = read(html);
+        const ogImage = extractMetaContent(pageHtml, 'og:image');
+        assert.equal(
+            ogImage,
+            toOgImageUrl(expectedImage),
+            `${html} must publish the route hero as og:image`
+        );
+        assert.doesNotMatch(
+            pageHtml,
+            LEGACY_PUBLIC_IMAGE_PATTERN,
+            `${html} must not keep legacy public image refs`
+        );
+    });
 });

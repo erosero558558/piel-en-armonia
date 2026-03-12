@@ -42,8 +42,8 @@
             "eyebrow": "Plain language",
             "title": "Legal information should still be easy to understand",
             "signature": "Compliance and policy",
-            "image": "/images/optimized/v6-clinic-doctor-rosero.webp",
-            "alt": "Legal information at Piel en Armonia"
+            "image": "/images/optimized/v6-clinic-legal-governance.webp",
+            "alt": "Privacy, consent, and site rules framed with clarity"
         },
         "internalMessage": {
             "description": "These pages organize privacy, consent, and responsible use of digital channels."
@@ -56,7 +56,7 @@
         "terms": {
             "heading": "Terms and conditions",
             "summary": "Conditions for using public content, remote guidance, and official contact channels.",
-            "heroImage": "/images/optimized/v6-clinic-brand-hero-wide.webp",
+            "heroImage": "/images/optimized/v6-clinic-legal-governance.webp",
             "sections": [
                 {
                     "title": "Using the site",
@@ -102,7 +102,7 @@
         "cookies": {
             "heading": "Cookie policy",
             "summary": "Cookies are used for technical functions, aggregate measurement, and basic browsing preferences.",
-            "heroImage": "/images/optimized/v6-clinic-diagnostico-integral.webp",
+            "heroImage": "/images/optimized/v6-clinic-telemedicine-review.webp",
             "sections": [
                 {
                     "title": "Types of cookies",
@@ -125,7 +125,7 @@
         "medical-disclaimer": {
             "heading": "Medical disclaimer",
             "summary": "Site content can inform, but it does not replace a personalized diagnosis or direct consultation.",
-            "heroImage": "/images/optimized/v6-clinic-diagnostico-integral.webp",
+            "heroImage": "/images/optimized/v6-clinic-statement-clinical-direction.webp",
             "sections": [
                 {
                     "title": "Limits of digital guidance",

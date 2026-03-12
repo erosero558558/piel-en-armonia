@@ -42,8 +42,8 @@
             "eyebrow": "Lenguaje claro",
             "title": "Lo legal tambien debe poder entenderse a la primera",
             "signature": "Cumplimiento y politica",
-            "image": "/images/optimized/v6-clinic-doctor-rosero.webp",
-            "alt": "Informacion legal de Piel en Armonia"
+            "image": "/images/optimized/v6-clinic-legal-governance.webp",
+            "alt": "Privacidad, consentimiento y reglas del sitio en un marco claro"
         },
         "internalMessage": {
             "description": "Estas paginas ordenan privacidad, consentimiento y uso responsable de los canales digitales."
@@ -56,7 +56,7 @@
         "terminos": {
             "heading": "Terminos y condiciones",
             "summary": "Condiciones para usar el contenido publico, la orientacion remota y los canales oficiales de contacto.",
-            "heroImage": "/images/optimized/v6-clinic-brand-hero-wide.webp",
+            "heroImage": "/images/optimized/v6-clinic-legal-governance.webp",
             "sections": [
                 {
                     "title": "Uso del sitio",
@@ -102,7 +102,7 @@
         "cookies": {
             "heading": "Politica de cookies",
             "summary": "Uso de cookies para funciones tecnicas, medicion agregada y preferencias basicas de navegacion.",
-            "heroImage": "/images/optimized/v6-clinic-diagnostico-integral.webp",
+            "heroImage": "/images/optimized/v6-clinic-telemedicine-review.webp",
             "sections": [
                 {
                     "title": "Tipos de cookies",
@@ -125,7 +125,7 @@
         "aviso-medico": {
             "heading": "Aviso medico",
             "summary": "El contenido del sitio orienta, pero no sustituye un diagnostico personalizado ni una consulta directa.",
-            "heroImage": "/images/optimized/v6-clinic-diagnostico-integral.webp",
+            "heroImage": "/images/optimized/v6-clinic-statement-clinical-direction.webp",
             "sections": [
                 {
                     "title": "Limites de la orientacion digital",

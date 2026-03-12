@@ -24,8 +24,8 @@
             "eyebrow": "Medical read",
             "titleTemplate": "{service} is recommended after a careful review of your case",
             "signature": "Clinical team, Quito",
-            "image": "/images/optimized/v6-clinic-doctor-rosero.webp",
-            "alt": "Clinical team at Piel en Armonia"
+            "image": "/images/optimized/v6-clinic-statement-clinical-direction.webp",
+            "alt": "Clinical dermatology direction with a structured read"
         },
         "internalMessageFallback": "Your final plan is confirmed in consultation, with clear medical explanation and no shortcuts.",
         "rail": {
@@ -85,7 +85,11 @@
                 "Bring your current medications, allergy history, previous treatments, and recent photos. That baseline lets us decide faster and with better context.",
                 "Only when they add a concrete decision point. If needed, tests are requested after the initial clinical evaluation.",
                 "First follow-up is commonly set between weeks 3 and 6, or sooner if warning signs such as pain, bleeding, or rapid worsening appear."
-            ]
+            ],
+            "cardAssetId": "v6-clinic-diagnostico-integral",
+            "cardAlt": "Comprehensive dermatology consultation with structured first review",
+            "statementAssetId": "v6-clinic-statement-clinical-direction",
+            "statementAlt": "Clinical dermatology direction with a structured read"
         },
         {
             "slug": "acne-rosacea",
@@ -117,7 +121,11 @@
                 "Most patients see less inflammation between weeks 4 and 8 when the routine is followed consistently.",
                 "Yes, once the skin barrier is stable and phototype evaluation supports safe parameter selection.",
                 "Pause irritants, keep gentle cleansing, and request medical adjustment within 48 to 72 hours."
-            ]
+            ],
+            "cardAssetId": "v6-clinic-acne-rosacea",
+            "cardAlt": "Dermatology follow-up for inflammation and skin sensitivity",
+            "statementAssetId": "v6-clinic-statement-clinical-direction",
+            "statementAlt": "Clinical dermatology direction with a structured read"
         },
         {
             "slug": "verrugas",
@@ -149,7 +157,11 @@
                 "Many warts respond in 1 to 3 sessions, while deeper plantar lesions may need extra controls.",
                 "Short discomfort can occur. We adjust technique and timing to keep treatment controlled and tolerable.",
                 "Recurrence is possible, but risk falls when follow-up is completed and hygiene measures are maintained."
-            ]
+            ],
+            "cardAssetId": "v6-clinic-verrugas",
+            "cardAlt": "Precision dermatology procedure for localized lesions",
+            "statementAssetId": "v6-clinic-statement-procedure-guidance",
+            "statementAlt": "Dermatology guidance for indicated procedures"
         },
         {
             "slug": "granitos-brazos-piernas",
@@ -181,7 +193,11 @@
                 "Keratosis pilaris is common, but we also evaluate eczema, folliculitis, and other inflammatory causes.",
                 "With daily consistency, texture often improves between week 6 and week 10.",
                 "Avoid harsh exfoliants, strong fragrance products, and drying cleansers that disrupt barrier balance."
-            ]
+            ],
+            "cardAssetId": "v6-clinic-granitos-brazos-piernas",
+            "cardAlt": "Skin texture evaluation and barrier care control",
+            "statementAssetId": "v6-clinic-statement-clinical-direction",
+            "statementAlt": "Clinical dermatology direction with a structured read"
         },
         {
             "slug": "cicatrices",
@@ -213,7 +229,11 @@
                 "No. Response changes with scar type, lesion age, phototype, and adherence to the planned sequence.",
                 "Plans often include 3 to 6 sessions, with reassessment at every stage to adjust intensity.",
                 "Daily photoprotection, barrier hydration, and friction control are essential to protect improvement."
-            ]
+            ],
+            "cardAssetId": "v6-clinic-cicatrices",
+            "cardAlt": "Dermatology route for visible texture, tone, and repair",
+            "statementAssetId": "v6-clinic-statement-procedure-guidance",
+            "statementAlt": "Dermatology guidance for indicated procedures"
         },
         {
             "slug": "cancer-piel",
@@ -240,12 +260,16 @@
                 "Which signs require urgent consultation?",
                 "Can this start through telemedicine?"
             ],
-            "related": ["diagnostico-integral", "telemedicina"],
+            "related": ["diagnostico-integral", "piel-cabello-unas"],
             "faqAnswers": [
                 "In higher-risk profiles, checks are usually every 6 to 12 months, then personalized by findings.",
                 "Seek prompt review for asymmetry, irregular borders, fast color change, or non-healing bleeding lesions.",
                 "Yes for first triage. If risk signs are detected, we prioritize in-clinic evaluation without delay."
-            ]
+            ],
+            "cardAssetId": "v6-clinic-cancer-piel",
+            "cardAlt": "Dermatoscopy and lesion review with warning criteria",
+            "statementAssetId": "v6-clinic-statement-clinical-direction",
+            "statementAlt": "Clinical dermatology direction with a structured read"
         },
         {
             "slug": "peeling-quimico",
@@ -277,7 +301,11 @@
                 "Recovery usually lasts 3 to 7 days depending on peel depth and individual sensitivity.",
                 "Yes, but only in medically sequenced timing windows that prevent cumulative irritation on sensitive skin.",
                 "Pregnancy, active irritation, poor sun-protection adherence, or high sensitivity can delay indication."
-            ]
+            ],
+            "cardAssetId": "v6-clinic-peeling-quimico",
+            "cardAlt": "Dermatology preparation for controlled skin renewal",
+            "statementAssetId": "v6-clinic-statement-procedure-guidance",
+            "statementAlt": "Dermatology guidance for indicated procedures"
         },
         {
             "slug": "mesoterapia",
@@ -309,7 +337,11 @@
                 "Mild redness may appear for 24 to 48 hours, then most patients return to routine.",
                 "A common plan is 3 to 5 sessions spaced every 3 to 4 weeks.",
                 "It often pairs well with medical hydration, gentle peels, or biostimulators once skin is stable."
-            ]
+            ],
+            "cardAssetId": "v6-clinic-mesoterapia",
+            "cardAlt": "Dermoaesthetic protocol for deep support and hydration",
+            "statementAssetId": "v6-clinic-statement-procedure-guidance",
+            "statementAlt": "Dermatology guidance for indicated procedures"
         },
         {
             "slug": "laser-dermatologico",
@@ -341,7 +373,11 @@
                 "Yes, with parameters adjusted by phototype and goal to reduce post-inflammatory pigmentation risk.",
                 "It varies by indication: pigment, vascular concerns, texture, scars, or medical hair reduction.",
                 "Strict photoprotection and early control are mandatory; first review is often set in 2 to 4 weeks."
-            ]
+            ],
+            "cardAssetId": "v6-clinic-laser-dermatologico",
+            "cardAlt": "Dermatology laser platform with controlled settings",
+            "statementAssetId": "v6-clinic-statement-procedure-guidance",
+            "statementAlt": "Dermatology guidance for indicated procedures"
         },
         {
             "slug": "botox",
@@ -373,7 +409,11 @@
                 "Initial softening appears around days 3 to 5, with full effect commonly seen by days 10 to 14.",
                 "Average duration is 3 to 4 months, varying with metabolism, area, and dosing strategy.",
                 "Avoid intense massage and strenuous training for 24 hours, and follow all aftercare instructions."
-            ]
+            ],
+            "cardAssetId": "v6-clinic-botox",
+            "cardAlt": "Facial harmony evaluation with dermatology judgment",
+            "statementAssetId": "v6-clinic-statement-procedure-guidance",
+            "statementAlt": "Dermatology guidance for indicated procedures"
         },
         {
             "slug": "bioestimuladores-colageno",
@@ -405,7 +445,11 @@
                 "Change is progressive, often starting around week 6 and consolidating over 3 to 6 months.",
                 "Most plans use 2 or 3 sessions, defined by laxity level, treated zones, and tissue response.",
                 "Yes, it combines well within an integrated facial plan with clear timing and supervision."
-            ]
+            ],
+            "cardAssetId": "v6-clinic-bioestimuladores-colageno",
+            "cardAlt": "Firmness and skin quality support with a medical approach",
+            "statementAssetId": "v6-clinic-statement-procedure-guidance",
+            "statementAlt": "Dermatology guidance for indicated procedures"
         },
         {
             "slug": "piel-cabello-unas",
@@ -437,7 +481,11 @@
                 "This service includes mixed cases: hair shedding, nail changes, and skin symptoms appearing together.",
                 "Yes. Telemedicine works as first triage and defines when direct in-clinic examination is needed.",
                 "First follow-up is commonly planned in 4 to 8 weeks based on findings and early response."
-            ]
+            ],
+            "cardAssetId": "v6-clinic-piel-cabello-unas",
+            "cardAlt": "Integrated skin, hair, and nails route with coordinated review",
+            "statementAssetId": "v6-clinic-statement-clinical-direction",
+            "statementAlt": "Clinical dermatology direction with a structured read"
         },
         {
             "slug": "dermatologia-pediatrica",
@@ -469,7 +517,11 @@
                 "Bring a symptom timeline, previous treatments, allergy history, and recent photos to speed clinical reading.",
                 "We explain the plan in plain language with practical steps for home, school, and daily routine.",
                 "Yes, it works well for interim questions and follow-up when no warning signs are present."
-            ]
+            ],
+            "cardAssetId": "v6-clinic-dermatologia-pediatrica",
+            "cardAlt": "Pediatric dermatology consultation with family support",
+            "statementAssetId": "v6-clinic-statement-family-support",
+            "statementAlt": "Family dermatology support and shared follow-up"
         }
     ]
 }

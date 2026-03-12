@@ -12,6 +12,7 @@ const {
     pathname = '/es/',
     navModel = {},
     templateId = 'public_v6',
+    ogImageSrc = '',
     preloadImageSrc = '',
     preloadImageSrcSet = '',
     preloadImageSizes = '',
@@ -36,11 +37,25 @@ const canonical = new URL(normalizePath(canonicalPath, safeLocale === 'en' ? '/e
 const alternate = new URL(normalizePath(alternatePath, safeLocale === 'en' ? '/es/' : '/en/'), origin).toString();
 const safePathname = normalizePath(pathname, safeLocale === 'en' ? '/en/' : '/es/');
 const xDefault = safeLocale === 'en' ? alternate : canonical;
+const toOgImageUrl = (value) => {
+    const raw = normalizeText(value);
+    const fallback = '/images/optimized/v6-clinic-brand-hero-wide.jpg';
+    if (!raw) {
+        return new URL(fallback, origin).toString();
+    }
+    if (/^https?:\/\//i.test(raw)) {
+        return raw;
+    }
+    const normalized = raw.startsWith('/') ? raw : `/${raw}`;
+    const jpgPath = normalized.replace(/\.webp$/i, '.jpg');
+    return new URL(jpgPath, origin).toString();
+};
 
 const preloadHref = normalizeText(preloadImageSrc);
 const preloadSrcSet = normalizeText(preloadImageSrcSet);
 const preloadSizes = normalizeText(preloadImageSizes);
 const preloadType = normalizeText(preloadImageType);
+const ogImage = toOgImageUrl(ogImageSrc);
 const shellUi = navModel?.ui?.shell && typeof navModel.ui.shell === 'object' ? navModel.ui.shell : {};
 const skipToContent = normalizeText(shellUi.skipToContent);
 const backToTop = normalizeText(shellUi.backToTop);
@@ -71,7 +86,7 @@ const flagsJson = JSON.stringify(flags);
         <meta property="og:title" content={safeTitle} />
         <meta property="og:description" content={safeDescription} />
         <meta property="og:url" content={canonical} />
-        <meta property="og:image" content="https://pielarmonia.com/images/optimized/v6-clinic-brand-hero-wide.jpg" />
+        <meta property="og:image" content={ogImage} />
         <meta name="theme-color" content="#0b0b0d" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         {

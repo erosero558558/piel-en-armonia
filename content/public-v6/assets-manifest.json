@@ -1,73 +1,235 @@
 {
-    "version": "2026.03-v6",
-    "updated_at": "2026-03-03",
+    "version": "2026.03-v6-image-relaunch",
+    "updated_at": "2026-03-12",
     "assets": [
         {
-            "id": "hero-main",
+            "id": "v6-clinic-brand-hero-wide",
+            "kind": "wide",
             "src": "/images/optimized/v6-clinic-brand-hero-wide.webp",
-            "srcset": "/images/optimized/v6-clinic-brand-hero-wide-640.webp 640w, /images/optimized/v6-clinic-brand-hero-wide-1024.webp 1024w, /images/optimized/v6-clinic-brand-hero-wide-1400.webp 1400w",
-            "sizes": "(max-width: 900px) 100vw, 38vw",
-            "alt_es": "Equipo dermatologico analizando imagenes clinicas para decisiones de precision",
-            "alt_en": "Dermatology team reviewing clinical imaging for precision decisions"
-        },
-        {
-            "id": "hero-diagnostic",
-            "src": "/images/optimized/v6-clinic-diagnostico-integral.webp",
-            "srcset": "/images/optimized/v6-clinic-diagnostico-integral-640.webp 640w, /images/optimized/v6-clinic-diagnostico-integral-800.webp 800w, /images/optimized/v6-clinic-diagnostico-integral.webp 1200w",
-            "sizes": "(max-width: 900px) 100vw, 32vw",
-            "alt_es": "Lectura diagnostica dermatologica en consultorio",
-            "alt_en": "Dermatology diagnostic review in clinic"
-        },
-        {
-            "id": "hero-treatment",
-            "src": "/images/optimized/v6-clinic-peeling-quimico.webp",
-            "srcset": "/images/optimized/v6-clinic-peeling-quimico-640.webp 640w, /images/optimized/v6-clinic-peeling-quimico-900.webp 900w, /images/optimized/v6-clinic-peeling-quimico.webp 1200w",
-            "sizes": "(max-width: 900px) 100vw, 32vw",
-            "alt_es": "Procedimiento dermatologico con protocolo controlado",
-            "alt_en": "Dermatology procedure under controlled protocol"
-        },
-        {
-            "id": "hero-tele",
-            "src": "/images/optimized/v6-clinic-consent-trust.webp",
-            "srcset": "/images/optimized/v6-clinic-consent-trust-400.webp 400w, /images/optimized/v6-clinic-consent-trust.webp 900w",
-            "sizes": "(max-width: 900px) 100vw, 32vw",
-            "alt_es": "Consulta remota para continuidad clinica",
-            "alt_en": "Remote consultation for clinical continuity"
-        },
-        {
-            "id": "grid-clinic",
-            "src": "/images/optimized/v6-clinic-clinic-environment.webp",
-            "srcset": "/images/optimized/v6-clinic-clinic-environment-640.webp 640w, /images/optimized/v6-clinic-clinic-environment-800.webp 800w, /images/optimized/v6-clinic-clinic-environment.webp 1200w",
+            "srcset": "/images/optimized/v6-clinic-brand-hero-wide-400.webp 400w, /images/optimized/v6-clinic-brand-hero-wide-640.webp 640w, /images/optimized/v6-clinic-brand-hero-wide-800.webp 800w, /images/optimized/v6-clinic-brand-hero-wide-1024.webp 1024w, /images/optimized/v6-clinic-brand-hero-wide-1200.webp 1200w, /images/optimized/v6-clinic-brand-hero-wide-1344.webp 1344w, /images/optimized/v6-clinic-brand-hero-wide.webp 1400w",
             "sizes": "(max-width: 900px) 100vw, 48vw",
-            "alt_es": "Area clinica preparada para evaluacion dermatologica",
-            "alt_en": "Clinical area prepared for dermatology assessment"
+            "alt_es": "Panoramica editorial del entorno clinico dermatologico",
+            "alt_en": "Editorial panorama of the dermatology clinical environment"
+        },
+        {
+            "id": "v6-clinic-home-followup",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-home-followup.webp",
+            "srcset": "/images/optimized/v6-clinic-home-followup-400.webp 400w, /images/optimized/v6-clinic-home-followup-640.webp 640w, /images/optimized/v6-clinic-home-followup-800.webp 800w, /images/optimized/v6-clinic-home-followup-900.webp 900w, /images/optimized/v6-clinic-home-followup-1200.webp 1200w, /images/optimized/v6-clinic-home-followup.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Seguimiento dermatologico con comparacion de avance y ajustes",
+            "alt_en": "Dermatology follow-up with progress comparison and adjustments"
+        },
+        {
+            "id": "v6-clinic-team-roundtable",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-team-roundtable.webp",
+            "srcset": "/images/optimized/v6-clinic-team-roundtable-400.webp 400w, /images/optimized/v6-clinic-team-roundtable-640.webp 640w, /images/optimized/v6-clinic-team-roundtable-800.webp 800w, /images/optimized/v6-clinic-team-roundtable-900.webp 900w, /images/optimized/v6-clinic-team-roundtable-1200.webp 1200w, /images/optimized/v6-clinic-team-roundtable.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Equipo dermatologico revisando decisiones de forma conjunta",
+            "alt_en": "Dermatology team reviewing decisions together"
+        },
+        {
+            "id": "v6-clinic-hub-editorial-map",
+            "kind": "wide",
+            "src": "/images/optimized/v6-clinic-hub-editorial-map.webp",
+            "srcset": "/images/optimized/v6-clinic-hub-editorial-map-400.webp 400w, /images/optimized/v6-clinic-hub-editorial-map-640.webp 640w, /images/optimized/v6-clinic-hub-editorial-map-800.webp 800w, /images/optimized/v6-clinic-hub-editorial-map-1024.webp 1024w, /images/optimized/v6-clinic-hub-editorial-map-1200.webp 1200w, /images/optimized/v6-clinic-hub-editorial-map-1344.webp 1344w, /images/optimized/v6-clinic-hub-editorial-map.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 48vw",
+            "alt_es": "Mapa editorial de rutas dermatologicas y decisiones clinicas",
+            "alt_en": "Editorial map of dermatology routes and clinical decisions"
+        },
+        {
+            "id": "v6-clinic-clinic-environment",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-clinic-environment.webp",
+            "srcset": "/images/optimized/v6-clinic-clinic-environment-400.webp 400w, /images/optimized/v6-clinic-clinic-environment-640.webp 640w, /images/optimized/v6-clinic-clinic-environment-800.webp 800w, /images/optimized/v6-clinic-clinic-environment-900.webp 900w, /images/optimized/v6-clinic-clinic-environment-1200.webp 1200w, /images/optimized/v6-clinic-clinic-environment.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Consultorio dermatologico preparado para una evaluacion tranquila",
+            "alt_en": "Dermatology clinic prepared for a calm evaluation"
+        },
+        {
+            "id": "v6-clinic-consent-trust",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-consent-trust.webp",
+            "srcset": "/images/optimized/v6-clinic-consent-trust-400.webp 400w, /images/optimized/v6-clinic-consent-trust-640.webp 640w, /images/optimized/v6-clinic-consent-trust-800.webp 800w, /images/optimized/v6-clinic-consent-trust-900.webp 900w, /images/optimized/v6-clinic-consent-trust-1200.webp 1200w, /images/optimized/v6-clinic-consent-trust.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Acompanamiento clinico con explicacion y consentimiento claro",
+            "alt_en": "Clinical guidance with clear explanation and consent"
+        },
+        {
+            "id": "v6-clinic-telemedicine-intake",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-telemedicine-intake.webp",
+            "srcset": "/images/optimized/v6-clinic-telemedicine-intake-400.webp 400w, /images/optimized/v6-clinic-telemedicine-intake-640.webp 640w, /images/optimized/v6-clinic-telemedicine-intake-800.webp 800w, /images/optimized/v6-clinic-telemedicine-intake-900.webp 900w, /images/optimized/v6-clinic-telemedicine-intake-1200.webp 1200w, /images/optimized/v6-clinic-telemedicine-intake.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Inicio de telemedicina con contexto clinico e imagenes",
+            "alt_en": "Telemedicine intake with clinical context and imaging"
+        },
+        {
+            "id": "v6-clinic-telemedicine-review",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-telemedicine-review.webp",
+            "srcset": "/images/optimized/v6-clinic-telemedicine-review-400.webp 400w, /images/optimized/v6-clinic-telemedicine-review-640.webp 640w, /images/optimized/v6-clinic-telemedicine-review-800.webp 800w, /images/optimized/v6-clinic-telemedicine-review-900.webp 900w, /images/optimized/v6-clinic-telemedicine-review-1200.webp 1200w, /images/optimized/v6-clinic-telemedicine-review.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Revision dermatologica remota con seguimiento y ajuste",
+            "alt_en": "Remote dermatology review with follow-up and adjustment"
+        },
+        {
+            "id": "v6-clinic-legal-governance",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-legal-governance.webp",
+            "srcset": "/images/optimized/v6-clinic-legal-governance-400.webp 400w, /images/optimized/v6-clinic-legal-governance-640.webp 640w, /images/optimized/v6-clinic-legal-governance-800.webp 800w, /images/optimized/v6-clinic-legal-governance-900.webp 900w, /images/optimized/v6-clinic-legal-governance-1200.webp 1200w, /images/optimized/v6-clinic-legal-governance.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Privacidad, consentimiento y reglas del sitio en un marco claro",
+            "alt_en": "Privacy, consent, and site rules framed with clarity"
+        },
+        {
+            "id": "v6-clinic-statement-clinical-direction",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-statement-clinical-direction.webp",
+            "srcset": "/images/optimized/v6-clinic-statement-clinical-direction-400.webp 400w, /images/optimized/v6-clinic-statement-clinical-direction-640.webp 640w, /images/optimized/v6-clinic-statement-clinical-direction-800.webp 800w, /images/optimized/v6-clinic-statement-clinical-direction-900.webp 900w, /images/optimized/v6-clinic-statement-clinical-direction-1200.webp 1200w, /images/optimized/v6-clinic-statement-clinical-direction.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Direccion clinica dermatologica con lectura estructurada",
+            "alt_en": "Clinical dermatology direction with a structured read"
+        },
+        {
+            "id": "v6-clinic-statement-procedure-guidance",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-statement-procedure-guidance.webp",
+            "srcset": "/images/optimized/v6-clinic-statement-procedure-guidance-400.webp 400w, /images/optimized/v6-clinic-statement-procedure-guidance-640.webp 640w, /images/optimized/v6-clinic-statement-procedure-guidance-800.webp 800w, /images/optimized/v6-clinic-statement-procedure-guidance-900.webp 900w, /images/optimized/v6-clinic-statement-procedure-guidance-1200.webp 1200w, /images/optimized/v6-clinic-statement-procedure-guidance.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Guia dermatologica para procedimientos indicados",
+            "alt_en": "Dermatology guidance for indicated procedures"
+        },
+        {
+            "id": "v6-clinic-statement-family-support",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-statement-family-support.webp",
+            "srcset": "/images/optimized/v6-clinic-statement-family-support-400.webp 400w, /images/optimized/v6-clinic-statement-family-support-640.webp 640w, /images/optimized/v6-clinic-statement-family-support-800.webp 800w, /images/optimized/v6-clinic-statement-family-support-900.webp 900w, /images/optimized/v6-clinic-statement-family-support-1200.webp 1200w, /images/optimized/v6-clinic-statement-family-support.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Acompanamiento dermatologico familiar y seguimiento compartido",
+            "alt_en": "Family dermatology support and shared follow-up"
         },
         {
             "id": "v6-clinic-diagnostico-integral",
+            "kind": "card",
             "src": "/images/optimized/v6-clinic-diagnostico-integral.webp",
-            "srcset": "/images/optimized/v6-clinic-diagnostico-integral-400.webp 400w, /images/optimized/v6-clinic-diagnostico-integral.webp 900w",
+            "srcset": "/images/optimized/v6-clinic-diagnostico-integral-400.webp 400w, /images/optimized/v6-clinic-diagnostico-integral-640.webp 640w, /images/optimized/v6-clinic-diagnostico-integral-800.webp 800w, /images/optimized/v6-clinic-diagnostico-integral-900.webp 900w, /images/optimized/v6-clinic-diagnostico-integral-1200.webp 1200w, /images/optimized/v6-clinic-diagnostico-integral.webp 1400w",
             "sizes": "(max-width: 900px) 100vw, 33vw",
-            "alt_es": "Consulta integral de piel cabello y unas",
-            "alt_en": "Comprehensive skin hair and nail consultation"
+            "alt_es": "Consulta dermatologica integral con lectura inicial estructurada",
+            "alt_en": "Comprehensive dermatology consultation with structured first review"
         },
         {
             "id": "v6-clinic-acne-rosacea",
+            "kind": "card",
             "src": "/images/optimized/v6-clinic-acne-rosacea.webp",
-            "srcset": "/images/optimized/v6-clinic-acne-rosacea-400.webp 400w, /images/optimized/v6-clinic-acne-rosacea.webp 900w",
+            "srcset": "/images/optimized/v6-clinic-acne-rosacea-400.webp 400w, /images/optimized/v6-clinic-acne-rosacea-640.webp 640w, /images/optimized/v6-clinic-acne-rosacea-800.webp 800w, /images/optimized/v6-clinic-acne-rosacea-900.webp 900w, /images/optimized/v6-clinic-acne-rosacea-1200.webp 1200w, /images/optimized/v6-clinic-acne-rosacea.webp 1400w",
             "sizes": "(max-width: 900px) 100vw, 33vw",
-            "alt_es": "Control de acne y rosacea con seguimiento",
-            "alt_en": "Acne and rosacea control with follow-up"
+            "alt_es": "Seguimiento dermatologico de inflamacion y sensibilidad cutanea",
+            "alt_en": "Dermatology follow-up for inflammation and skin sensitivity"
+        },
+        {
+            "id": "v6-clinic-verrugas",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-verrugas.webp",
+            "srcset": "/images/optimized/v6-clinic-verrugas-400.webp 400w, /images/optimized/v6-clinic-verrugas-640.webp 640w, /images/optimized/v6-clinic-verrugas-800.webp 800w, /images/optimized/v6-clinic-verrugas-900.webp 900w, /images/optimized/v6-clinic-verrugas-1200.webp 1200w, /images/optimized/v6-clinic-verrugas.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Procedimiento dermatologico de precision para lesiones localizadas",
+            "alt_en": "Precision dermatology procedure for localized lesions"
+        },
+        {
+            "id": "v6-clinic-granitos-brazos-piernas",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-granitos-brazos-piernas.webp",
+            "srcset": "/images/optimized/v6-clinic-granitos-brazos-piernas-400.webp 400w, /images/optimized/v6-clinic-granitos-brazos-piernas-640.webp 640w, /images/optimized/v6-clinic-granitos-brazos-piernas-800.webp 800w, /images/optimized/v6-clinic-granitos-brazos-piernas-900.webp 900w, /images/optimized/v6-clinic-granitos-brazos-piernas-1200.webp 1200w, /images/optimized/v6-clinic-granitos-brazos-piernas.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Evaluacion de textura cutanea y control de barrera",
+            "alt_en": "Skin texture evaluation and barrier care control"
+        },
+        {
+            "id": "v6-clinic-cicatrices",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-cicatrices.webp",
+            "srcset": "/images/optimized/v6-clinic-cicatrices-400.webp 400w, /images/optimized/v6-clinic-cicatrices-640.webp 640w, /images/optimized/v6-clinic-cicatrices-800.webp 800w, /images/optimized/v6-clinic-cicatrices-900.webp 900w, /images/optimized/v6-clinic-cicatrices-1200.webp 1200w, /images/optimized/v6-clinic-cicatrices.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Ruta dermatologica para relieve, tono y reparacion visible",
+            "alt_en": "Dermatology route for visible texture, tone, and repair"
+        },
+        {
+            "id": "v6-clinic-cancer-piel",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-cancer-piel.webp",
+            "srcset": "/images/optimized/v6-clinic-cancer-piel-400.webp 400w, /images/optimized/v6-clinic-cancer-piel-640.webp 640w, /images/optimized/v6-clinic-cancer-piel-800.webp 800w, /images/optimized/v6-clinic-cancer-piel-900.webp 900w, /images/optimized/v6-clinic-cancer-piel-1200.webp 1200w, /images/optimized/v6-clinic-cancer-piel.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Dermatoscopia y lectura de lesiones con criterios de alarma",
+            "alt_en": "Dermatoscopy and lesion review with warning criteria"
+        },
+        {
+            "id": "v6-clinic-peeling-quimico",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-peeling-quimico.webp",
+            "srcset": "/images/optimized/v6-clinic-peeling-quimico-400.webp 400w, /images/optimized/v6-clinic-peeling-quimico-640.webp 640w, /images/optimized/v6-clinic-peeling-quimico-800.webp 800w, /images/optimized/v6-clinic-peeling-quimico-900.webp 900w, /images/optimized/v6-clinic-peeling-quimico-1200.webp 1200w, /images/optimized/v6-clinic-peeling-quimico.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Preparacion dermatologica para renovacion cutanea controlada",
+            "alt_en": "Dermatology preparation for controlled skin renewal"
+        },
+        {
+            "id": "v6-clinic-mesoterapia",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-mesoterapia.webp",
+            "srcset": "/images/optimized/v6-clinic-mesoterapia-400.webp 400w, /images/optimized/v6-clinic-mesoterapia-640.webp 640w, /images/optimized/v6-clinic-mesoterapia-800.webp 800w, /images/optimized/v6-clinic-mesoterapia-900.webp 900w, /images/optimized/v6-clinic-mesoterapia-1200.webp 1200w, /images/optimized/v6-clinic-mesoterapia.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Protocolo dermoestetico de soporte e hidratacion profunda",
+            "alt_en": "Dermoaesthetic protocol for deep support and hydration"
         },
         {
             "id": "v6-clinic-laser-dermatologico",
+            "kind": "card",
             "src": "/images/optimized/v6-clinic-laser-dermatologico.webp",
-            "srcset": "/images/optimized/v6-clinic-laser-dermatologico-400.webp 400w, /images/optimized/v6-clinic-laser-dermatologico.webp 900w",
+            "srcset": "/images/optimized/v6-clinic-laser-dermatologico-400.webp 400w, /images/optimized/v6-clinic-laser-dermatologico-640.webp 640w, /images/optimized/v6-clinic-laser-dermatologico-800.webp 800w, /images/optimized/v6-clinic-laser-dermatologico-900.webp 900w, /images/optimized/v6-clinic-laser-dermatologico-1200.webp 1200w, /images/optimized/v6-clinic-laser-dermatologico.webp 1400w",
             "sizes": "(max-width: 900px) 100vw, 33vw",
-            "alt_es": "Plataforma laser dermatologica medica",
-            "alt_en": "Medical dermatology laser platform"
+            "alt_es": "Plataforma laser dermatologica con parametros controlados",
+            "alt_en": "Dermatology laser platform with controlled settings"
         },
         {
-            "id": "doctor-rosero",
+            "id": "v6-clinic-botox",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-botox.webp",
+            "srcset": "/images/optimized/v6-clinic-botox-400.webp 400w, /images/optimized/v6-clinic-botox-640.webp 640w, /images/optimized/v6-clinic-botox-800.webp 800w, /images/optimized/v6-clinic-botox-900.webp 900w, /images/optimized/v6-clinic-botox-1200.webp 1200w, /images/optimized/v6-clinic-botox.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Evaluacion de armonia facial con criterio dermatologico",
+            "alt_en": "Facial harmony evaluation with dermatology judgment"
+        },
+        {
+            "id": "v6-clinic-bioestimuladores-colageno",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-bioestimuladores-colageno.webp",
+            "srcset": "/images/optimized/v6-clinic-bioestimuladores-colageno-400.webp 400w, /images/optimized/v6-clinic-bioestimuladores-colageno-640.webp 640w, /images/optimized/v6-clinic-bioestimuladores-colageno-800.webp 800w, /images/optimized/v6-clinic-bioestimuladores-colageno-900.webp 900w, /images/optimized/v6-clinic-bioestimuladores-colageno-1200.webp 1200w, /images/optimized/v6-clinic-bioestimuladores-colageno.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Soporte de firmeza y calidad cutanea con enfoque medico",
+            "alt_en": "Firmness and skin quality support with a medical approach"
+        },
+        {
+            "id": "v6-clinic-piel-cabello-unas",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
+            "srcset": "/images/optimized/v6-clinic-piel-cabello-unas-400.webp 400w, /images/optimized/v6-clinic-piel-cabello-unas-640.webp 640w, /images/optimized/v6-clinic-piel-cabello-unas-800.webp 800w, /images/optimized/v6-clinic-piel-cabello-unas-900.webp 900w, /images/optimized/v6-clinic-piel-cabello-unas-1200.webp 1200w, /images/optimized/v6-clinic-piel-cabello-unas.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Ruta integral para piel, cabello y unas con lectura coordinada",
+            "alt_en": "Integrated skin, hair, and nails route with coordinated review"
+        },
+        {
+            "id": "v6-clinic-dermatologia-pediatrica",
+            "kind": "card",
+            "src": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
+            "srcset": "/images/optimized/v6-clinic-dermatologia-pediatrica-400.webp 400w, /images/optimized/v6-clinic-dermatologia-pediatrica-640.webp 640w, /images/optimized/v6-clinic-dermatologia-pediatrica-800.webp 800w, /images/optimized/v6-clinic-dermatologia-pediatrica-900.webp 900w, /images/optimized/v6-clinic-dermatologia-pediatrica-1200.webp 1200w, /images/optimized/v6-clinic-dermatologia-pediatrica.webp 1400w",
+            "sizes": "(max-width: 900px) 100vw, 33vw",
+            "alt_es": "Consulta dermatologica pediatrica con acompanamiento familiar",
+            "alt_en": "Pediatric dermatology consultation with family support"
+        },
+        {
+            "id": "v6-clinic-doctor-rosero",
+            "kind": "portrait",
             "src": "/images/optimized/v6-clinic-doctor-rosero.webp",
             "srcset": "/images/optimized/v6-clinic-doctor-rosero-500.webp 500w, /images/optimized/v6-clinic-doctor-rosero.webp 900w",
             "sizes": "(max-width: 900px) 100vw, 40vw",
@@ -75,7 +237,8 @@
             "alt_en": "Clinical dermatology leadership"
         },
         {
-            "id": "doctor-narvaez",
+            "id": "v6-clinic-doctor-narvaez",
+            "kind": "portrait",
             "src": "/images/optimized/v6-clinic-doctor-narvaez.webp",
             "srcset": "/images/optimized/v6-clinic-doctor-narvaez-500.webp 500w, /images/optimized/v6-clinic-doctor-narvaez.webp 900w",
             "sizes": "(max-width: 900px) 100vw, 40vw",

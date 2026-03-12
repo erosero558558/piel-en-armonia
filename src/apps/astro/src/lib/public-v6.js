@@ -1721,6 +1721,38 @@ export function getV6ServiceData(locale) {
     return readLocaleJson(normalizeLocale(locale), 'service.json');
 }
 
+function hydrateV6ServiceMedia(service, locale) {
+    const safeLocale = normalizeLocale(locale);
+    const statementAsset = getV6AssetById(
+        normalizeText(service?.statementAssetId)
+    );
+    const cardAsset = getV6AssetById(normalizeText(service?.cardAssetId));
+    const statementAlt =
+        normalizeText(service?.statementAlt) ||
+        normalizeText(
+            safeLocale === 'en'
+                ? statementAsset?.alt_en
+                : statementAsset?.alt_es
+        );
+    const cardAlt =
+        normalizeText(service?.cardAlt) ||
+        normalizeText(
+            safeLocale === 'en' ? cardAsset?.alt_en : cardAsset?.alt_es
+        ) ||
+        normalizeText(service?.title);
+
+    return {
+        ...service,
+        statementImage:
+            normalizeText(service?.statementImage) ||
+            normalizeText(statementAsset?.src),
+        statementAlt,
+        cardImage:
+            normalizeText(service?.cardImage) || normalizeText(cardAsset?.src),
+        cardAlt,
+    };
+}
+
 export function getV6SoftwareData(locale) {
     return sanitizeSoftwareData(
         normalizeLocale(locale),
@@ -1910,7 +1942,11 @@ export function getV6SoftwareNavigationModel(locale, pathname = '/') {
 
 export function getV6Services(locale) {
     const payload = getV6ServiceData(locale);
-    return Array.isArray(payload.services) ? payload.services : [];
+    return Array.isArray(payload.services)
+        ? payload.services.map((service) =>
+              hydrateV6ServiceMedia(service, locale)
+          )
+        : [];
 }
 
 export function getV6ServiceBySlug(locale, slug) {

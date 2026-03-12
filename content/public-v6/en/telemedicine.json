@@ -13,9 +13,9 @@
     ],
     "heading": "Dermatology telemedicine in Quito",
     "heroImage": {
-        "src": "/images/optimized/v6-clinic-consent-trust.webp",
-        "srcset": "/images/optimized/v6-clinic-consent-trust-400.webp 400w, /images/optimized/v6-clinic-consent-trust.webp 900w",
-        "alt": "Remote dermatology consultation"
+        "src": "/images/optimized/v6-clinic-telemedicine-intake.webp",
+        "srcset": "/images/optimized/v6-clinic-telemedicine-intake-400.webp 400w, /images/optimized/v6-clinic-telemedicine-intake-640.webp 640w, /images/optimized/v6-clinic-telemedicine-intake-800.webp 800w, /images/optimized/v6-clinic-telemedicine-intake-900.webp 900w, /images/optimized/v6-clinic-telemedicine-intake-1200.webp 1200w, /images/optimized/v6-clinic-telemedicine-intake.webp 1400w",
+        "alt": "Telemedicine intake with clinical context and imaging"
     },
     "lead": "Telemedicine works best when it helps you move sooner without losing medical oversight or clarity about what comes next.",
     "ui": {
@@ -32,8 +32,8 @@
             "eyebrow": "Remote review",
             "title": "Useful telemedicine, with clear limits and medical oversight",
             "signature": "Hybrid model, Quito",
-            "image": "/images/optimized/v6-clinic-doctor-narvaez.webp",
-            "alt": "Telemedicine clinical team"
+            "image": "/images/optimized/v6-clinic-telemedicine-review.webp",
+            "alt": "Remote dermatology review with follow-up and adjustment"
         },
         "internalMessage": {
             "description": "We review context, risk, and progression to decide whether remote follow-up is enough or whether an in-person exam is already the better move."
@@ -87,13 +87,13 @@
         {
             "title": "Visual triage",
             "copy": "A first read through clinical photos to prioritize risk and response timing.",
-            "image": "/images/optimized/v6-clinic-diagnostico-integral.webp",
+            "image": "/images/optimized/v6-clinic-telemedicine-review.webp",
             "href": "#v6-tele-block-1"
         },
         {
             "title": "Flare control",
             "copy": "Remote adjustments that help contain flares between reviews and keep care moving.",
-            "image": "/images/optimized/v6-clinic-acne-rosacea.webp",
+            "image": "/images/optimized/v6-clinic-home-followup.webp",
             "href": "#v6-tele-block-2"
         },
         {
@@ -105,7 +105,7 @@
         {
             "title": "Hybrid follow-up in Quito",
             "copy": "A model built for Quito, combining remote follow-up with timely in-clinic review.",
-            "image": "/images/optimized/v6-clinic-doctor-rosero.webp",
+            "image": "/images/optimized/v6-clinic-legal-governance.webp",
             "href": "#v6-booking-status"
         }
     ],
