@@ -333,10 +333,6 @@ test('prod-monitor workflow expone inputs de gate rollout V4', () => {
     const requiredInputs = [
         'enable_public_v4_rollout_monitor',
         'public_v4_rollout_stage',
-        'public_v4_rollout_surface_test',
-        'public_v4_rollout_surface_control',
-        'public_v4_rollout_min_view_booking',
-        'public_v4_rollout_min_start_checkout',
         'public_v4_rollout_max_confirmed_drop_pp',
         'public_v4_rollout_min_confirmed_rate_pct',
         'public_v4_rollout_allow_missing_control',
@@ -349,6 +345,16 @@ test('prod-monitor workflow expone inputs de gate rollout V4', () => {
             `falta input workflow_dispatch: ${inputKey}`
         );
     }
+});
+
+test('prod-monitor workflow_dispatch se mantiene dentro del limite de inputs de GitHub', () => {
+    const { parsed } = loadWorkflow();
+    const inputs = parsed?.on?.workflow_dispatch?.inputs || {};
+    assert.equal(
+        Object.keys(inputs).length <= 25,
+        true,
+        `workflow_dispatch supera el limite de 25 inputs: ${Object.keys(inputs).length}`
+    );
 });
 
 test('prod-monitor workflow cablea script y artefacto de gate rollout V4', () => {
