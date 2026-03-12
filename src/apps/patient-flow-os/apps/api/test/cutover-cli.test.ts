@@ -2122,3 +2122,442 @@ test("verify-backup-drill fails when the encrypted dump artifact is missing", as
     );
   });
 });
+
+test("backup-escrow-packet writes external escrow evidence without requiring DATABASE_URL", async () => {
+  await withTempDir(async (dir) => {
+    const now = new Date();
+    const uploadStartedAt = new Date(now.getTime() - 2 * 60 * 1000).toISOString();
+    const uploadFinishedAt = new Date(now.getTime() - 60 * 1000).toISOString();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const manifestPath = join(dir, "backup-escrow-manifest.json");
+    const backupDrillPacketPath = join(dir, "backup-drill-packet.json");
+    const encryptedDumpPath = join(dir, "patient-flow-os.dump.gpg");
+    const encryptedDumpShaPath = join(dir, "patient-flow-os.dump.gpg.sha256");
+    const putObjectResponsePath = join(dir, "put-object-response.json");
+    const headObjectPath = join(dir, "head-object.json");
+    const objectTaggingPath = join(dir, "object-tagging.json");
+    const outputDir = join(dir, "backup-escrow-artifacts");
+
+    await writeFile(encryptedDumpPath, "encrypted backup drill bytes", "utf8");
+    await writeFile(encryptedDumpShaPath, `${"f".repeat(64)}  patient-flow-os.dump.gpg\n`, "utf8");
+    await writeFile(
+      backupDrillPacketPath,
+      `${JSON.stringify(
+        {
+          ok: true,
+          generatedAt: now.toISOString(),
+          label: "patient-flow-os-production-backup-drill",
+          sourceEnvironment: "production",
+          backupMode: "logical_pg_dump",
+          restoreTarget: "drill",
+          archiveDestination: "github_artifact_encrypted",
+          summary: {
+            sourceSmokeOk: true,
+            restoreSmokeOk: true,
+            totalsMatch: true,
+            measuredRtoSeconds: 120,
+            estimatedRpoSeconds: 60,
+            maxRtoSeconds: 900,
+            maxRpoSeconds: 600,
+            dumpBytes: 1024,
+            encryptedDumpReady: true,
+            encryptedDumpBytes: 512,
+            retentionDays: 30,
+            expiresAt,
+            sourceTotals: null,
+            restoredTotals: null
+          },
+          evidence: {
+            backupManifestPath: "backup-drill-manifest.json",
+            dumpPath: "patient-flow-os.dump",
+            dumpSha256Path: "patient-flow-os.dump.sha256",
+            dumpSha256: "a".repeat(64),
+            encryptedDumpPath,
+            encryptedDumpSha256Path: encryptedDumpShaPath,
+            encryptedDumpSha256: "f".repeat(64),
+            encryptionMode: "gpg_symmetric",
+            encryptionKeyRef: "github_secret:PATIENT_FLOW_OS_BACKUP_ENCRYPTION_PASSPHRASE",
+            sourceSmokePath: "source-smoke.json",
+            sourceInspectPath: "source-inspect.json",
+            restoreSmokePath: "restore-smoke.json",
+            restoreInspectPath: "restore-inspect.json"
+          },
+          automatedChecks: [
+            {
+              id: "dump_present",
+              title: "pg_dump backup artifact existed during the drill",
+              status: "passed",
+              message: "Logical backup was created with non-zero size."
+            }
+          ],
+          manualChecks: []
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
+    await writeFile(
+      putObjectResponsePath,
+      `${JSON.stringify(
+        {
+          ETag: "\"etag-123\"",
+          VersionId: "version-1",
+          ServerSideEncryption: "AES256"
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
+    await writeFile(
+      headObjectPath,
+      `${JSON.stringify(
+        {
+          ETag: "\"etag-123\"",
+          VersionId: "version-1",
+          LastModified: uploadFinishedAt,
+          ServerSideEncryption: "AES256",
+          Metadata: {
+            source_environment: "production",
+            retention_days: "30",
+            expires_at: expiresAt,
+            backup_mode: "logical_pg_dump",
+            encryption_mode: "gpg_symmetric",
+            lifecycle_policy_ref: "patient-flow-os-backup-retention"
+          }
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
+    await writeFile(
+      objectTaggingPath,
+      `${JSON.stringify(
+        {
+          TagSet: [
+            { Key: "source_environment", Value: "production" },
+            { Key: "retention_days", Value: "30" },
+            { Key: "expires_at", Value: expiresAt },
+            { Key: "backup_mode", Value: "logical_pg_dump" },
+            { Key: "lifecycle_policy_ref", Value: "patient-flow-os-backup-retention" }
+          ]
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
+    await writeFile(
+      manifestPath,
+      `${JSON.stringify(
+        {
+          generatedAt: now.toISOString(),
+          sourceEnvironment: "production",
+          escrowProvider: "aws_s3",
+          archiveDestination: "aws_s3_encrypted",
+          bucket: "patient-flow-os-backups",
+          key: "production/backup-drill/patient-flow-os.dump.gpg",
+          region: "us-east-1",
+          lifecyclePolicyRef: "patient-flow-os-backup-retention",
+          backupMode: "logical_pg_dump",
+          encryptionMode: "gpg_symmetric",
+          encryptionKeyRef: "github_secret:PATIENT_FLOW_OS_BACKUP_ENCRYPTION_PASSPHRASE",
+          encryptedDumpPath,
+          encryptedDumpSha256Path: encryptedDumpShaPath,
+          backupDrillPacketPath,
+          putObjectResponsePath,
+          headObjectPath,
+          objectTaggingPath,
+          retentionDays: 30,
+          expiresAt,
+          uploadStartedAt,
+          uploadFinishedAt
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
+
+    const capture = createIoCapture();
+    const exitCode = await runCutoverCli(
+      [
+        "backup-escrow-packet",
+        "--input",
+        manifestPath,
+        "--artifacts-dir",
+        outputDir,
+        "--source-environment",
+        "production",
+        "--max-object-age-hours",
+        "24",
+        "--label",
+        "patient-flow-os-production-backup-escrow",
+        "--json"
+      ],
+      {
+        io: capture.io,
+        cwd: dir
+      }
+    );
+
+    assert.equal(exitCode, 0);
+    const payload = JSON.parse(capture.stdout()) as {
+      command: string;
+      outputPath: string;
+      backupEscrowPacket: {
+        ok: boolean;
+        escrowProvider: string;
+        archiveDestination: string;
+        summary: {
+          sourceBackupDrillReady: boolean;
+          objectUploaded: boolean;
+          metadataAligned: boolean;
+          tagsAligned: boolean;
+          retentionDays: number;
+        };
+        escrowObject: {
+          bucket: string;
+          key: string;
+          eTag: string | null;
+        };
+        evidence: {
+          encryptedDumpSha256: string | null;
+        };
+      };
+    };
+    assert.equal(payload.command, "backup-escrow-packet");
+    assert.equal(payload.backupEscrowPacket.ok, true);
+    assert.equal(payload.backupEscrowPacket.escrowProvider, "aws_s3");
+    assert.equal(payload.backupEscrowPacket.archiveDestination, "aws_s3_encrypted");
+    assert.equal(payload.backupEscrowPacket.summary.sourceBackupDrillReady, true);
+    assert.equal(payload.backupEscrowPacket.summary.objectUploaded, true);
+    assert.equal(payload.backupEscrowPacket.summary.metadataAligned, true);
+    assert.equal(payload.backupEscrowPacket.summary.tagsAligned, true);
+    assert.equal(payload.backupEscrowPacket.summary.retentionDays, 30);
+    assert.equal(payload.backupEscrowPacket.escrowObject.bucket, "patient-flow-os-backups");
+    assert.equal(
+      payload.backupEscrowPacket.escrowObject.key,
+      "production/backup-drill/patient-flow-os.dump.gpg"
+    );
+    assert.equal(payload.backupEscrowPacket.escrowObject.eTag, "etag-123");
+    assert.equal(payload.backupEscrowPacket.evidence.encryptedDumpSha256, "f".repeat(64));
+    assert.equal(payload.outputPath, join(outputDir, "backup-escrow-packet.json"));
+    assert.ok(
+      (await readFile(join(outputDir, "backup-escrow-checklist.json"), "utf8")).includes("review_bucket_lifecycle")
+    );
+  });
+});
+
+test("verify-backup-escrow passes for a valid external escrow packet", async () => {
+  await withTempDir(async (dir) => {
+    const now = new Date();
+    const generatedAt = now.toISOString();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const manifestPath = join(dir, "backup-escrow-manifest.json");
+    const backupDrillPacketPath = join(dir, "backup-drill-packet.json");
+    const headObjectPath = join(dir, "head-object.json");
+    const objectTaggingPath = join(dir, "object-tagging.json");
+    const packetPath = join(dir, "backup-escrow-packet.json");
+
+    await writeFile(manifestPath, "{}\n", "utf8");
+    await writeFile(backupDrillPacketPath, "{}\n", "utf8");
+    await writeFile(headObjectPath, "{}\n", "utf8");
+    await writeFile(objectTaggingPath, "{}\n", "utf8");
+
+    await writeFile(
+      packetPath,
+      `${JSON.stringify(
+        {
+          ok: true,
+          generatedAt,
+          label: "patient-flow-os-production-backup-escrow",
+          sourceEnvironment: "production",
+          escrowProvider: "aws_s3",
+          archiveDestination: "aws_s3_encrypted",
+          summary: {
+            sourceBackupDrillReady: true,
+            objectUploaded: true,
+            metadataAligned: true,
+            tagsAligned: true,
+            retentionDays: 30,
+            expiresAt,
+            uploadDurationSeconds: 60,
+            objectAgeHours: 0.1,
+            maxObjectAgeHours: 24
+          },
+          escrowObject: {
+            bucket: "patient-flow-os-backups",
+            key: "production/backup-drill/patient-flow-os.dump.gpg",
+            region: "us-east-1",
+            versionId: "version-1",
+            eTag: "etag-123",
+            lastModified: generatedAt,
+            serverSideEncryption: "AES256",
+            lifecyclePolicyRef: "patient-flow-os-backup-retention"
+          },
+          evidence: {
+            backupEscrowManifestPath: manifestPath,
+            backupDrillPacketPath,
+            encryptedDumpPath: "patient-flow-os.dump.gpg",
+            encryptedDumpSha256Path: "patient-flow-os.dump.gpg.sha256",
+            encryptedDumpSha256: "f".repeat(64),
+            putObjectResponsePath: "put-object-response.json",
+            headObjectPath,
+            objectTaggingPath
+          },
+          automatedChecks: [
+            {
+              id: "escrow_upload_recorded",
+              title: "External escrow upload recorded bucket, key and etag",
+              status: "passed",
+              message: "Escrow upload recorded the external object coordinates."
+            }
+          ],
+          manualChecks: []
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
+
+    const capture = createIoCapture();
+    const exitCode = await runCutoverCli(
+      [
+        "verify-backup-escrow",
+        "--input",
+        packetPath,
+        "--source-environment",
+        "production",
+        "--max-object-age-hours",
+        "24",
+        "--json"
+      ],
+      {
+        io: capture.io,
+        cwd: dir
+      }
+    );
+
+    assert.equal(exitCode, 0);
+    const payload = JSON.parse(capture.stdout()) as {
+      command: string;
+      backupEscrowVerification: { ok: boolean; checks: Array<{ id: string; ok: boolean }> };
+    };
+    assert.equal(payload.command, "verify-backup-escrow");
+    assert.equal(payload.backupEscrowVerification.ok, true);
+    assert.ok(payload.backupEscrowVerification.checks.every((check) => check.ok));
+  });
+});
+
+test("verify-backup-escrow fails when the external object age exceeds the configured budget", async () => {
+  await withTempDir(async (dir) => {
+    const now = new Date();
+    const generatedAt = now.toISOString();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const manifestPath = join(dir, "backup-escrow-manifest.json");
+    const backupDrillPacketPath = join(dir, "backup-drill-packet.json");
+    const headObjectPath = join(dir, "head-object.json");
+    const objectTaggingPath = join(dir, "object-tagging.json");
+    const packetPath = join(dir, "backup-escrow-packet.json");
+
+    await writeFile(manifestPath, "{}\n", "utf8");
+    await writeFile(backupDrillPacketPath, "{}\n", "utf8");
+    await writeFile(headObjectPath, "{}\n", "utf8");
+    await writeFile(objectTaggingPath, "{}\n", "utf8");
+
+    await writeFile(
+      packetPath,
+      `${JSON.stringify(
+        {
+          ok: true,
+          generatedAt,
+          label: "patient-flow-os-production-backup-escrow",
+          sourceEnvironment: "production",
+          escrowProvider: "aws_s3",
+          archiveDestination: "aws_s3_encrypted",
+          summary: {
+            sourceBackupDrillReady: true,
+            objectUploaded: true,
+            metadataAligned: true,
+            tagsAligned: true,
+            retentionDays: 30,
+            expiresAt,
+            uploadDurationSeconds: 60,
+            objectAgeHours: 72,
+            maxObjectAgeHours: 24
+          },
+          escrowObject: {
+            bucket: "patient-flow-os-backups",
+            key: "production/backup-drill/patient-flow-os.dump.gpg",
+            region: "us-east-1",
+            versionId: "version-1",
+            eTag: "etag-123",
+            lastModified: generatedAt,
+            serverSideEncryption: "AES256",
+            lifecyclePolicyRef: "patient-flow-os-backup-retention"
+          },
+          evidence: {
+            backupEscrowManifestPath: manifestPath,
+            backupDrillPacketPath,
+            encryptedDumpPath: "patient-flow-os.dump.gpg",
+            encryptedDumpSha256Path: "patient-flow-os.dump.gpg.sha256",
+            encryptedDumpSha256: "f".repeat(64),
+            putObjectResponsePath: "put-object-response.json",
+            headObjectPath,
+            objectTaggingPath
+          },
+          automatedChecks: [
+            {
+              id: "escrow_age_within_budget",
+              title: "Escrow object age stays within the configured budget",
+              status: "failed",
+              message: "Escrow object age 72h exceeded 24h."
+            }
+          ],
+          manualChecks: []
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
+
+    const capture = createIoCapture();
+    const exitCode = await runCutoverCli(
+      [
+        "verify-backup-escrow",
+        "--input",
+        packetPath,
+        "--source-environment",
+        "production",
+        "--max-object-age-hours",
+        "24",
+        "--json"
+      ],
+      {
+        io: capture.io,
+        cwd: dir
+      }
+    );
+
+    assert.equal(exitCode, 1);
+    const payload = JSON.parse(capture.stdout()) as {
+      error: string;
+      backupEscrowVerification: {
+        ok: boolean;
+        checks: Array<{ id: string; ok: boolean }>;
+      };
+    };
+    assert.match(payload.error, /backup escrow packet failed verification/);
+    assert.equal(payload.backupEscrowVerification.ok, false);
+    assert.ok(
+      payload.backupEscrowVerification.checks.some(
+        (check) => check.id === "packet.summary.object_age_within_budget" && check.ok === false
+      )
+    );
+  });
+});

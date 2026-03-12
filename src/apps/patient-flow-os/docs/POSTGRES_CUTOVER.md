@@ -86,6 +86,12 @@ Verificar que un `backup-drill-packet.json` cumple los budgets de `RTO/RPO`:
 npm run cutover -- verify-backup-drill --input .\artifacts\backup-drill\backup-drill-packet.json --source-environment production --max-rto-seconds 900 --max-rpo-seconds 3600 --json
 ```
 
+Verificar que un `backup-escrow-packet.json` cumple la política del escrow externo:
+
+```powershell
+npm run cutover -- verify-backup-escrow --input .\artifacts\backup-drill\backup-escrow-packet.json --source-environment production --max-object-age-hours 24 --json
+```
+
 Construir un promotion packet desde `workflow-manifest.json` y los artifacts post-cutover:
 
 ```powershell
@@ -102,6 +108,12 @@ Construir un backup drill packet desde `backup-drill-manifest.json`:
 
 ```powershell
 npm run cutover -- backup-drill-packet --input .\artifacts\backup-drill\backup-drill-manifest.json --artifacts-dir .\artifacts\backup-drill --source-environment production --max-rto-seconds 900 --max-rpo-seconds 3600 --json
+```
+
+Construir un backup escrow packet desde `backup-escrow-manifest.json`:
+
+```powershell
+npm run cutover -- backup-escrow-packet --input .\artifacts\backup-drill\backup-escrow-manifest.json --artifacts-dir .\artifacts\backup-drill --source-environment production --max-object-age-hours 24 --json
 ```
 
 ## Guardrails
@@ -121,6 +133,8 @@ npm run cutover -- backup-drill-packet --input .\artifacts\backup-drill\backup-d
 - `verify-backup-drill` falla si el packet no cumple smoke, integridad de restore o budgets de `RTO/RPO`.
 - `backup-drill-packet` falla si la evidencia de `pg_dump/pg_restore` no deja un drill verificable.
 - `backup-drill-packet` y `verify-backup-drill` exigen evidencia de dump cifrado, checksum cifrado y metadatos de retención/expiración.
+- `backup-escrow-packet` falla si la evidencia del escrow externo no deja bucket/key/tags/metadata trazables.
+- `verify-backup-escrow` falla si el objeto externo no existe en evidencia local, si deriva de un drill no verde o si excede el budget de edad configurado.
 
 ## Workflow manual en GitHub Actions
 
@@ -244,15 +258,25 @@ Objetivo:
 - ejecutar `pg_dump` sobre `PATIENT_FLOW_OS_DATABASE_URL`,
 - restaurar el dump en `PATIENT_FLOW_OS_DRILL_DATABASE_URL`,
 - cifrar el dump con `gpg --symmetric` antes de retener artifacts,
+- publicar el dump cifrado a un escrow externo S3-compatible con tags y metadata de retención,
 - correr smoke/inspect en source y restore,
 - calcular evidencia explícita de `RTO/RPO`,
-- emitir `backup-drill-packet.json` y su verificación.
+- emitir `backup-drill-packet.json`, `backup-escrow-packet.json` y sus verificaciones.
 
 Secrets requeridos por environment:
 
 - `PATIENT_FLOW_OS_DATABASE_URL`
 - `PATIENT_FLOW_OS_DRILL_DATABASE_URL`
 - `PATIENT_FLOW_OS_BACKUP_ENCRYPTION_PASSPHRASE`
+- `PATIENT_FLOW_OS_BACKUP_ESCROW_AWS_ACCESS_KEY_ID`
+- `PATIENT_FLOW_OS_BACKUP_ESCROW_AWS_SECRET_ACCESS_KEY`
+- `PATIENT_FLOW_OS_BACKUP_ESCROW_AWS_REGION`
+- `PATIENT_FLOW_OS_BACKUP_ESCROW_BUCKET`
+
+Variables recomendadas por environment:
+
+- `PATIENT_FLOW_OS_BACKUP_ESCROW_PREFIX`
+- `PATIENT_FLOW_OS_BACKUP_ESCROW_LIFECYCLE_POLICY_REF`
 
 Inputs principales:
 
@@ -260,6 +284,7 @@ Inputs principales:
 - `max_rto_seconds`: budget máximo de restore time objective.
 - `max_rpo_seconds`: budget máximo de recovery point objective.
 - `retention_days`: días de retención del dump cifrado y del artifact publicado.
+- `max_escrow_age_hours`: edad máxima aceptada para el objeto subido al escrow externo al momento de verificarlo.
 - `confirm_drill_reset`: debe ser `true` para resetear el drill database antes del restore.
 
 Artifacts de backup drill:
@@ -279,12 +304,24 @@ Artifacts de backup drill:
 - `backup-drill-checklist.json`
 - `backup-drill-checklist.md`
 - `backup-drill-verification.json`
+- `backup-escrow-manifest.json`
+- `escrow-put-object-response.json`
+- `escrow-head-object.json`
+- `escrow-object-tagging.json`
+- `backup-escrow-packet-command.json`
+- `backup-escrow-packet.json`
+- `backup-escrow-packet.md`
+- `backup-escrow-checklist.json`
+- `backup-escrow-checklist.md`
+- `backup-escrow-verification.json`
 
 Notas operativas:
 
 - El dump plano se usa solo dentro del runner efímero para `pg_restore`; el artifact retenido es `patient-flow-os.dump.gpg`.
 - El manifest registra `archiveDestination=github_artifact_encrypted`, `encryptionMode=gpg_symmetric`, `encryptionKeyRef`, `retentionDays` y `expiresAt`.
 - `verify-backup-drill` ahora bloquea si falta el dump cifrado, su checksum o la ventana auditable de expiración.
+- El escrow externo publica el dump cifrado en S3 con `archiveDestination=aws_s3_encrypted`, metadata (`source_environment`, `retention_days`, `expires_at`, `backup_mode`, `lifecycle_policy_ref`) y tags equivalentes.
+- `verify-backup-escrow` bloquea si el escrow no deriva de un `backup-drill-packet` verde, si el objeto excede `max_escrow_age_hours` o si tags/metadata no reflejan la política de retención.
 
 ## Flujo recomendado
 
@@ -301,4 +338,6 @@ Notas operativas:
 11. `verify-rollback-packet` para bloquear un restore cuando el packet no es seguro o incompleto.
 12. `backup-drill-packet` para convertir evidencia de `pg_dump/pg_restore` en un packet con métricas de `RTO/RPO`, cifrado y expiración auditable.
 13. `verify-backup-drill` para bloquear un drill cuando no cumple budgets, cuando el restore no conserva el estado canónico o cuando falta la evidencia de cifrado/retención.
-14. En CI, usar el workflow `Patient Flow OS Cutover` para generar el packet de staging, `Patient Flow OS Promote` para consumir ese packet y ejecutar el replay en `patient-flow-os-production`, `Patient Flow OS Rollback` para rehearsal/restore simétricos y `Patient Flow OS Backup Drill` para validar backup físico real sobre un drill DB aislado.
+14. `backup-escrow-packet` para convertir la publicación del dump cifrado a S3 en un packet de escrow auditable con bucket/key/tags/metadata.
+15. `verify-backup-escrow` para bloquear un escrow cuando el objeto externo no respeta la política declarada o cuando su evidencia local es incompleta.
+16. En CI, usar el workflow `Patient Flow OS Cutover` para generar el packet de staging, `Patient Flow OS Promote` para consumir ese packet y ejecutar el replay en `patient-flow-os-production`, `Patient Flow OS Rollback` para rehearsal/restore simétricos y `Patient Flow OS Backup Drill` para validar backup físico real y escrow externo sobre un drill DB aislado.
