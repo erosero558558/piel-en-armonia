@@ -62,7 +62,9 @@ function normalizeWhatsappOpenclawOps(rawSnapshot) {
         configured: snapshot.configured === true,
         configuredMode: String(snapshot.configuredMode || 'disabled'),
         bridgeConfigured: snapshot.bridgeConfigured === true,
-        bridgeMode: String(snapshot.bridgeMode || (available ? 'pending' : 'offline')),
+        bridgeMode: String(
+            snapshot.bridgeMode || (available ? 'pending' : 'offline')
+        ),
         bridgeStatus:
             snapshot.bridgeStatus && typeof snapshot.bridgeStatus === 'object'
                 ? snapshot.bridgeStatus
@@ -74,7 +76,9 @@ function normalizeWhatsappOpenclawOps(rawSnapshot) {
         paymentsStarted: normalizeNumber(snapshot.paymentsStarted),
         paymentsCompleted: normalizeNumber(snapshot.paymentsCompleted),
         deliveryFailures: normalizeNumber(snapshot.deliveryFailures),
-        automationSuccessRate: Number.isFinite(Number(snapshot.automationSuccessRate))
+        automationSuccessRate: Number.isFinite(
+            Number(snapshot.automationSuccessRate)
+        )
             ? Number(snapshot.automationSuccessRate)
             : 0,
         lastInboundAt: String(snapshot.lastInboundAt || ''),
@@ -165,13 +169,15 @@ function normalizeClinicalHistoryMeta(rawSnapshot) {
             ? summarySource.events
             : {};
     const diagnosticsSource =
-        summarySource.diagnostics && typeof summarySource.diagnostics === 'object'
+        summarySource.diagnostics &&
+        typeof summarySource.diagnostics === 'object'
             ? summarySource.diagnostics
             : snapshot.diagnostics && typeof snapshot.diagnostics === 'object'
               ? snapshot.diagnostics
               : {};
     const diagnosticsSummarySource =
-        diagnosticsSource.summary && typeof diagnosticsSource.summary === 'object'
+        diagnosticsSource.summary &&
+        typeof diagnosticsSource.summary === 'object'
             ? diagnosticsSource.summary
             : {};
 
@@ -186,7 +192,9 @@ function normalizeClinicalHistoryMeta(rawSnapshot) {
                 total: normalizeNumber(draftsSource.total),
                 byReviewStatus: normalizeMap(draftsSource.byReviewStatus),
                 pendingAiCount: normalizeNumber(draftsSource.pendingAiCount),
-                reviewQueueCount: normalizeNumber(draftsSource.reviewQueueCount),
+                reviewQueueCount: normalizeNumber(
+                    draftsSource.reviewQueueCount
+                ),
             },
             events: {
                 total: normalizeNumber(eventsSource.total),
@@ -203,18 +211,26 @@ function normalizeClinicalHistoryMeta(rawSnapshot) {
                 status: normalizeString(diagnosticsSource.status || 'unknown'),
                 healthy: diagnosticsSource.healthy === true,
                 summary: {
-                    critical: normalizeNumber(diagnosticsSummarySource.critical),
+                    critical: normalizeNumber(
+                        diagnosticsSummarySource.critical
+                    ),
                     warning: normalizeNumber(diagnosticsSummarySource.warning),
                     info: normalizeNumber(diagnosticsSummarySource.info),
-                    totalChecks: normalizeNumber(diagnosticsSummarySource.totalChecks),
-                    totalIssues: normalizeNumber(diagnosticsSummarySource.totalIssues),
+                    totalChecks: normalizeNumber(
+                        diagnosticsSummarySource.totalChecks
+                    ),
+                    totalIssues: normalizeNumber(
+                        diagnosticsSummarySource.totalIssues
+                    ),
                 },
             },
         },
         reviewQueue: normalizeList(snapshot.reviewQueue).map(
             normalizeClinicalHistoryReviewItem
         ),
-        events: normalizeList(snapshot.events).map(normalizeClinicalHistoryEventItem),
+        events: normalizeList(snapshot.events).map(
+            normalizeClinicalHistoryEventItem
+        ),
         diagnostics: {
             status: normalizeString(diagnosticsSource.status || 'unknown'),
             healthy: diagnosticsSource.healthy === true,
@@ -222,8 +238,12 @@ function normalizeClinicalHistoryMeta(rawSnapshot) {
                 critical: normalizeNumber(diagnosticsSummarySource.critical),
                 warning: normalizeNumber(diagnosticsSummarySource.warning),
                 info: normalizeNumber(diagnosticsSummarySource.info),
-                totalChecks: normalizeNumber(diagnosticsSummarySource.totalChecks),
-                totalIssues: normalizeNumber(diagnosticsSummarySource.totalIssues),
+                totalChecks: normalizeNumber(
+                    diagnosticsSummarySource.totalChecks
+                ),
+                totalIssues: normalizeNumber(
+                    diagnosticsSummarySource.totalIssues
+                ),
             },
         },
     };
@@ -298,42 +318,12 @@ async function executeWhatsappOpsAction(button) {
     }
 }
 
-function buildClinicalHistoryReviewUrl(sessionId) {
-    const safeSessionId = normalizeString(sessionId);
-    if (!safeSessionId) {
-        return '';
-    }
-
-    const currentUrl = new URL(window.location.href);
-    const reviewUrl = new URL('/api.php', currentUrl.origin);
-    reviewUrl.searchParams.set('resource', 'clinical-history-review');
-    reviewUrl.searchParams.set('sessionId', safeSessionId);
-    return reviewUrl.toString();
-}
-
-function executeClinicalHistoryAction(button) {
-    const action = normalizeString(button.dataset.clinicalHistoryAction);
-    if (action !== 'open-review') {
-        return;
-    }
-
-    const reviewUrl = buildClinicalHistoryReviewUrl(
-        button.dataset.clinicalHistorySessionId
-    );
-    if (!reviewUrl) {
-        createToast('No se encontro el caso clinico para abrir.', 'error');
-        return;
-    }
-
-    const newWindow = window.open(reviewUrl, '_blank', 'noopener,noreferrer');
-    if (!newWindow) {
-        window.location.assign(reviewUrl);
-    }
-}
-
 function bindWhatsappOpsActions() {
     const root = document.getElementById('dashboard');
-    if (!(root instanceof HTMLElement) || root.dataset.whatsappOpsBound === 'true') {
+    if (
+        !(root instanceof HTMLElement) ||
+        root.dataset.whatsappOpsBound === 'true'
+    ) {
         return;
     }
 
@@ -351,28 +341,6 @@ function bindWhatsappOpsActions() {
     });
 
     root.dataset.whatsappOpsBound = 'true';
-}
-
-function bindClinicalHistoryActions() {
-    const root = document.getElementById('dashboard');
-    if (!(root instanceof HTMLElement) || root.dataset.clinicalHistoryBound === 'true') {
-        return;
-    }
-
-    root.addEventListener('click', (event) => {
-        const target =
-            event.target instanceof Element
-                ? event.target.closest('[data-clinical-history-action]')
-                : null;
-        if (!(target instanceof HTMLButtonElement)) {
-            return;
-        }
-
-        event.preventDefault();
-        executeClinicalHistoryAction(target);
-    });
-
-    root.dataset.clinicalHistoryBound = 'true';
 }
 
 export function renderDashboard(state) {
@@ -413,5 +381,4 @@ export function renderDashboard(state) {
     setHtml('#dashboardAttentionList', buildAttentionItems(dashboardState));
     setFunnelMetrics(dashboardState.funnel);
     bindWhatsappOpsActions();
-    bindClinicalHistoryActions();
 }

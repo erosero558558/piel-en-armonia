@@ -5,6 +5,7 @@ import {
 import { getState, updateState } from '../../../shared/core/store.js';
 import { renderAdminChrome, setActiveSection } from '../../../ui/frame.js';
 import { hasPendingAvailabilityChanges } from '../../../sections/availability.js';
+import { openClinicalHistorySession } from '../../../sections/clinical-history.js';
 import {
     refreshQueueState,
     syncQueueAutoRefresh,
@@ -59,6 +60,9 @@ export async function navigateToSection(section, options = {}) {
         shouldRefreshQueueOnSectionEnter()
     ) {
         await refreshQueueState();
+    }
+    if (normalized === 'clinical-history') {
+        await openClinicalHistorySession();
     }
 
     return true;

@@ -56,7 +56,9 @@ function truncateSnippet(value, limit = 72) {
 
 function buildOpsAttrs(attributes = {}) {
     return Object.entries(attributes)
-        .filter(([, value]) => value !== undefined && value !== null && value !== '')
+        .filter(
+            ([, value]) => value !== undefined && value !== null && value !== ''
+        )
         .map(
             ([key, value]) =>
                 ` data-whatsapp-ops-${escapeHtml(key)}="${escapeHtml(String(value))}"`
@@ -149,16 +151,11 @@ export function buildWhatsappOpsActions(snapshot) {
         );
     } else if (hold?.id) {
         actions.push(
-            opsActionItem(
-                'release_hold',
-                'Liberar hold',
-                describeHold(hold),
-                {
-                    'hold-id': hold.id,
-                    reason: 'admin_dashboard',
-                    notify: '0',
-                }
-            )
+            opsActionItem('release_hold', 'Liberar hold', describeHold(hold), {
+                'hold-id': hold.id,
+                reason: 'admin_dashboard',
+                notify: '0',
+            })
         );
     }
 
@@ -166,7 +163,8 @@ export function buildWhatsappOpsActions(snapshot) {
         opsActionItem(
             'sweep_stale',
             'Barrer stale',
-            snapshot.deliveryFailures > 0 || snapshot.pendingCheckouts.length > 0
+            snapshot.deliveryFailures > 0 ||
+                snapshot.pendingCheckouts.length > 0
                 ? `${snapshot.deliveryFailures} fallo(s), ${snapshot.pendingCheckouts.length} checkout(s)`
                 : 'Revisa vencidos y limpia residuos del bridge',
             { limit: '25' }
@@ -229,7 +227,11 @@ function normalizeStringList(value) {
 }
 
 function formatClinicalReviewStatus(status) {
-    switch (String(status || '').trim().toLowerCase()) {
+    switch (
+        String(status || '')
+            .trim()
+            .toLowerCase()
+    ) {
         case 'review_required':
             return 'Revision requerida';
         case 'pending_review':
@@ -246,7 +248,11 @@ function formatClinicalReviewStatus(status) {
 }
 
 function formatClinicalPendingAiStatus(status) {
-    switch (String(status || '').trim().toLowerCase()) {
+    switch (
+        String(status || '')
+            .trim()
+            .toLowerCase()
+    ) {
         case 'queued':
             return 'IA en cola';
         case 'processing':
@@ -261,7 +267,11 @@ function formatClinicalPendingAiStatus(status) {
 }
 
 function formatClinicalSeverity(severity) {
-    switch (String(severity || '').trim().toLowerCase()) {
+    switch (
+        String(severity || '')
+            .trim()
+            .toLowerCase()
+    ) {
         case 'critical':
             return 'Critico';
         case 'warning':
@@ -274,21 +284,35 @@ function formatClinicalSeverity(severity) {
 }
 
 function resolveClinicalTone(reviewStatus, pendingAiStatus, severity) {
-    if (String(severity || '').trim().toLowerCase() === 'critical') {
+    if (
+        String(severity || '')
+            .trim()
+            .toLowerCase() === 'critical'
+    ) {
         return 'danger';
     }
-    if (String(severity || '').trim().toLowerCase() === 'warning') {
+    if (
+        String(severity || '')
+            .trim()
+            .toLowerCase() === 'warning'
+    ) {
         return 'warning';
     }
     if (String(pendingAiStatus || '').trim() !== '') {
         return 'warning';
     }
-    if (String(reviewStatus || '').trim().toLowerCase() === 'ready_for_review') {
+    if (
+        String(reviewStatus || '')
+            .trim()
+            .toLowerCase() === 'ready_for_review'
+    ) {
         return 'success';
     }
     if (
         ['review_required', 'pending_review'].includes(
-            String(reviewStatus || '').trim().toLowerCase()
+            String(reviewStatus || '')
+                .trim()
+                .toLowerCase()
         )
     ) {
         return 'warning';
@@ -308,10 +332,12 @@ function formatClinicalConfidence(value) {
 
 function clinicalActionAttrs(attributes = {}) {
     return Object.entries(attributes)
-        .filter(([, value]) => value !== undefined && value !== null && value !== '')
+        .filter(
+            ([, value]) => value !== undefined && value !== null && value !== ''
+        )
         .map(
             ([key, value]) =>
-                ` data-clinical-history-${escapeHtml(key)}="${escapeHtml(String(value))}"`
+                ` data-${escapeHtml(key)}="${escapeHtml(String(value))}"`
         )
         .join('');
 }
@@ -321,7 +347,7 @@ function clinicalActionItem(action, label, meta, attributes = {}) {
         <button
             type="button"
             class="operations-action-item"
-            data-clinical-history-action="${escapeHtml(action)}"${clinicalActionAttrs(attributes)}
+            data-action="${escapeHtml(action)}"${clinicalActionAttrs(attributes)}
         >
             <span>${escapeHtml(label)}</span>
             <small>${escapeHtml(meta)}</small>
@@ -390,7 +416,7 @@ export function buildClinicalHistoryActions(snapshot) {
 
         actions.push(
             clinicalActionItem(
-                'open-review',
+                'context-open-clinical-history',
                 clinicalActionLabel(
                     item,
                     index === 0 ? 'Abrir borrador' : 'Abrir siguiente'
@@ -408,7 +434,7 @@ export function buildClinicalHistoryActions(snapshot) {
         if (firstEventWithSession?.sessionId) {
             actions.push(
                 clinicalActionItem(
-                    'open-review',
+                    'context-open-clinical-history',
                     'Abrir ultimo evento',
                     describeClinicalEventItem(firstEventWithSession),
                     { 'session-id': firstEventWithSession.sessionId }
@@ -451,15 +477,20 @@ export function buildClinicalHistoryQueueItems(snapshot) {
     return reviewQueue
         .slice(0, 3)
         .map((item) => {
-            const label = String(item?.patientName || item?.caseId || 'Caso clinico').trim();
-            const reviewStatus = String(item?.reviewStatus || item?.sessionStatus || '').trim();
+            const label = String(
+                item?.patientName || item?.caseId || 'Caso clinico'
+            ).trim();
+            const reviewStatus = String(
+                item?.reviewStatus || item?.sessionStatus || ''
+            ).trim();
             const pendingAiStatus = String(item?.pendingAiStatus || '').trim();
             return attentionItem(
                 label || 'Caso clinico',
                 pendingAiStatus
                     ? formatClinicalPendingAiStatus(pendingAiStatus)
                     : formatClinicalReviewStatus(reviewStatus),
-                describeClinicalQueueItem(item) || 'Sin detalles clinicos adicionales.',
+                describeClinicalQueueItem(item) ||
+                    'Sin detalles clinicos adicionales.',
                 resolveClinicalTone(reviewStatus, pendingAiStatus, '')
             );
         })
@@ -482,10 +513,12 @@ export function buildClinicalHistoryEventItems(snapshot) {
         .slice(0, 3)
         .map((item) =>
             attentionItem(
-                String(item?.title || item?.patientName || 'Evento clinico').trim() ||
-                    'Evento clinico',
+                String(
+                    item?.title || item?.patientName || 'Evento clinico'
+                ).trim() || 'Evento clinico',
                 formatClinicalSeverity(item?.severity),
-                describeClinicalEventItem(item) || 'Sin detalle operativo adicional.',
+                describeClinicalEventItem(item) ||
+                    'Sin detalle operativo adicional.',
                 resolveClinicalTone(item?.reviewStatus, '', item?.severity)
             )
         )

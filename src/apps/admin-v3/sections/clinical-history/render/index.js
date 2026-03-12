@@ -1368,3 +1368,639 @@ function syncDraftStatusMeta() {
             sharedDisabled || normalizeString(slice.followUpQuestion) === '';
     }
 }
+
+function serializeDraftForm(form, baseDraft) {
+    const snapshot = normalizeDraftSnapshot(
+        cloneValue(baseDraft || emptyDraft())
+    );
+
+    if (!(form instanceof HTMLFormElement)) {
+        return snapshot;
+    }
+
+    const readValue = (name) => {
+        const field = form.elements.namedItem(name);
+        if (
+            field instanceof HTMLInputElement ||
+            field instanceof HTMLTextAreaElement ||
+            field instanceof HTMLSelectElement
+        ) {
+            return field.value;
+        }
+        return '';
+    };
+
+    const readChecked = (name) => {
+        const field = form.elements.namedItem(name);
+        return field instanceof HTMLInputElement ? field.checked : false;
+    };
+
+    snapshot.intake.motivoConsulta = normalizeString(
+        readValue('intake_motivo_consulta')
+    );
+    snapshot.intake.enfermedadActual = normalizeString(
+        readValue('intake_enfermedad_actual')
+    );
+    snapshot.intake.antecedentes = normalizeString(
+        readValue('intake_antecedentes')
+    );
+    snapshot.intake.alergias = normalizeString(readValue('intake_alergias'));
+    snapshot.intake.medicacionActual = normalizeString(
+        readValue('intake_medicacion_actual')
+    );
+    snapshot.intake.rosRedFlags = serializeTextareaLines(
+        readValue('intake_ros_red_flags')
+    );
+    snapshot.intake.resumenClinico = normalizeString(
+        readValue('intake_resumen_clinico')
+    );
+    snapshot.intake.preguntasFaltantes = serializeTextareaLines(
+        readValue('intake_preguntas_faltantes')
+    );
+    snapshot.intake.datosPaciente = {
+        ...snapshot.intake.datosPaciente,
+        edadAnios: normalizeNullableInt(readValue('patient_edad_anios')),
+        pesoKg: normalizeNullableFloat(readValue('patient_peso_kg')),
+        sexoBiologico: normalizeString(readValue('patient_sexo_biologico')),
+        embarazo: normalizePregnancyValue(readValue('patient_embarazo')),
+    };
+
+    snapshot.clinicianDraft.resumen = normalizeString(
+        readValue('clinician_resumen')
+    );
+    snapshot.clinicianDraft.preguntasFaltantes = serializeTextareaLines(
+        readValue('clinician_preguntas_faltantes')
+    );
+    snapshot.clinicianDraft.cie10Sugeridos = serializeTextareaLines(
+        readValue('clinician_cie10')
+    );
+    snapshot.clinicianDraft.tratamientoBorrador = normalizeString(
+        readValue('clinician_tratamiento')
+    );
+    snapshot.clinicianDraft.posologiaBorrador = normalizePosology({
+        texto: readValue('posologia_texto'),
+        baseCalculo: readValue('posologia_base_calculo'),
+        pesoKg: readValue('posologia_peso_kg'),
+        edadAnios: readValue('posologia_edad_anios'),
+        units: readValue('posologia_units'),
+        ambiguous: readChecked('posologia_ambiguous'),
+    });
+
+    snapshot.requiresHumanReview = readChecked('requires_human_review');
+    return snapshot;
+}
+
+function renderClinicalHeader(review, meta) {
+    const selectedLabel = currentSelectionLabel(review);
+    const draft = currentDraftSource();
+    const pendingAiStatus =
+        formatPendingAiStatus(
+            review.session.pendingAi?.status || draft.pendingAi?.status
+        ) || '';
+    const tone = formatTone(
+        draft.reviewStatus,
+        draft.requiresHumanReview,
+        pendingAiStatus
+    );
+    const statusChip = document.getElementById('clinicalHistoryStatusChip');
+    if (statusChip instanceof HTMLElement) {
+        statusChip.dataset.tone = tone;
+        statusChip.textContent = review.session.sessionId
+            ? formatReviewStatus(draft.reviewStatus)
+            : 'Sin seleccion';
+    }
+
+    const headerMeta = [
+        review.session.caseId ? `Caso ${review.session.caseId}` : '',
+        review.session.surface || '',
+        review.session.appointmentId
+            ? `Cita ${review.session.appointmentId}`
+            : '',
+        selectedLabel,
+    ]
+        .filter(Boolean)
+        .join(' • ');
+    setText(
+        '#clinicalHistoryHeaderMeta',
+        headerMeta ||
+            'Selecciona un caso para revisar la conversacion y el borrador medico.'
+    );
+
+    const statusMeta = [
+        pendingAiStatus,
+        draft.requiresHumanReview
+            ? 'Firma humana requerida'
+            : 'Lista para cierre',
+        formatConfidence(draft.confidence),
+    ]
+        .filter(Boolean)
+        .join(' • ');
+    setText(
+        '#clinicalHistoryStatusMeta',
+        statusMeta ||
+            `${normalizeList(meta.reviewQueue).length} caso(s) listos para revision`
+    );
+}
+
+function syncFollowUpInput() {
+    const slice = getClinicalHistorySlice();
+    const input = document.getElementById('clinicalHistoryFollowUpInput');
+    if (input instanceof HTMLTextAreaElement) {
+        if (input.value !== String(slice.followUpQuestion || '')) {
+            input.value = String(slice.followUpQuestion || '');
+        }
+        input.disabled = slice.loading || slice.saving;
+    }
+}
+
+function currentSessionId(state = getState()) {
+    const slice = getClinicalHistorySlice(state);
+    const selected = normalizeString(slice.selectedSessionId);
+    if (selected) {
+        return selected;
+    }
+
+    return normalizeString(currentReviewSource(state).session.sessionId);
+}
+
+async function loadClinicalHistorySession(sessionId, options = {}) {
+    const desiredSessionId = normalizeString(sessionId);
+    if (!desiredSessionId) {
+        setQueryParam(CLINICAL_HISTORY_SESSION_QUERY_PARAM, '');
+        setClinicalHistoryState({
+            selectedSessionId: '',
+            loading: false,
+            error: '',
+            dirty: false,
+            current: null,
+            draftForm: null,
+        });
+        renderClinicalHistorySection();
+        return null;
+    }
+
+    const slice = getClinicalHistorySlice();
+    if (
+        options.force !== true &&
+        desiredSessionId === normalizeString(slice.selectedSessionId) &&
+        slice.current
+    ) {
+        return currentReviewSource();
+    }
+
+    setQueryParam(CLINICAL_HISTORY_SESSION_QUERY_PARAM, desiredSessionId);
+    setClinicalHistoryState({
+        selectedSessionId: desiredSessionId,
+        loading: true,
+        error: '',
+    });
+    renderClinicalHistorySection();
+
+    try {
+        const response = await apiRequest('clinical-history-review', {
+            query: {
+                sessionId: desiredSessionId,
+            },
+        });
+        const review = normalizeReviewPayload(response.data);
+        setClinicalHistoryState({
+            selectedSessionId: review.session.sessionId || desiredSessionId,
+            loading: false,
+            error: '',
+            dirty: false,
+            lastLoadedAt: Date.now(),
+            current: review,
+            draftForm: cloneValue(review.draft),
+        });
+        renderClinicalHistorySection();
+        return review;
+    } catch (error) {
+        setClinicalHistoryState({
+            selectedSessionId: desiredSessionId,
+            loading: false,
+            error:
+                error?.message ||
+                'No se pudo cargar la revision clinica de este caso.',
+            current: null,
+            draftForm: null,
+        });
+        renderClinicalHistorySection();
+        if (options.silent !== true) {
+            createToast(
+                error?.message ||
+                    'No se pudo cargar la revision clinica de este caso.',
+                'error'
+            );
+        }
+        return null;
+    }
+}
+
+function buildReviewPatch(mode, question) {
+    const review = currentReviewSource();
+    const draft = currentDraftSource();
+    const sessionId = normalizeString(
+        review.session.sessionId || draft.sessionId
+    );
+    const payload = {
+        sessionId,
+        draft: {
+            intake: {
+                motivoConsulta: draft.intake.motivoConsulta,
+                enfermedadActual: draft.intake.enfermedadActual,
+                antecedentes: draft.intake.antecedentes,
+                alergias: draft.intake.alergias,
+                medicacionActual: draft.intake.medicacionActual,
+                rosRedFlags: cloneValue(draft.intake.rosRedFlags),
+                resumenClinico: draft.intake.resumenClinico,
+                preguntasFaltantes: cloneValue(draft.intake.preguntasFaltantes),
+                datosPaciente: cloneValue(draft.intake.datosPaciente),
+            },
+            clinicianDraft: cloneValue(draft.clinicianDraft),
+        },
+        requiresHumanReview: draft.requiresHumanReview === true,
+    };
+
+    if (mode === 'review-required') {
+        payload.reviewStatus = 'review_required';
+        payload.requiresHumanReview = true;
+    }
+
+    if (mode === 'approve') {
+        payload.approve = true;
+        payload.requiresHumanReview = false;
+    }
+
+    if (mode === 'follow-up') {
+        payload.requestAdditionalQuestion = normalizeString(question);
+    }
+
+    return payload;
+}
+
+async function saveClinicalHistoryReview(mode, question) {
+    const review = currentReviewSource();
+    const sessionId = normalizeString(review.session.sessionId);
+    if (!sessionId) {
+        createToast('Selecciona un caso clinico antes de guardar.', 'warning');
+        return null;
+    }
+
+    const rootForm = document.getElementById('clinicalHistoryDraftForm');
+    const nextDraft = serializeDraftForm(rootForm, currentDraftSource());
+    setClinicalHistoryState({
+        draftForm: cloneValue(nextDraft),
+        saving: true,
+        error: '',
+        dirty: true,
+    });
+    syncDraftStatusMeta();
+
+    try {
+        const response = await apiRequest('clinical-history-review', {
+            method: 'PATCH',
+            body: buildReviewPatch(mode, question),
+        });
+        const nextReview = normalizeReviewPayload(response.data);
+        setClinicalHistoryState({
+            saving: false,
+            error: '',
+            dirty: false,
+            current: nextReview,
+            draftForm: cloneValue(nextReview.draft),
+            selectedSessionId: nextReview.session.sessionId || sessionId,
+            followUpQuestion:
+                mode === 'follow-up'
+                    ? ''
+                    : getClinicalHistorySlice().followUpQuestion,
+            lastLoadedAt: Date.now(),
+        });
+
+        try {
+            await refreshAdminData();
+        } catch (_error) {
+            // If the snapshot refresh fails, keep the local review state usable.
+        }
+
+        renderAdminChrome(getState());
+        renderDashboard(getState());
+        renderClinicalHistorySection();
+
+        if (mode === 'approve') {
+            createToast('Historia clinica aprobada.', 'success');
+        } else if (mode === 'review-required') {
+            createToast('Caso marcado para revision humana.', 'success');
+        } else if (mode === 'follow-up') {
+            createToast('Pregunta adicional enviada al paciente.', 'success');
+        } else {
+            createToast('Borrador clinico guardado.', 'success');
+        }
+
+        return nextReview;
+    } catch (error) {
+        setClinicalHistoryState({
+            saving: false,
+            error:
+                error?.message ||
+                'No se pudo guardar la revision clinica del caso.',
+        });
+        syncDraftStatusMeta();
+        createToast(
+            error?.message ||
+                'No se pudo guardar la revision clinica del caso.',
+            'error'
+        );
+        return null;
+    }
+}
+
+function captureDraftFromDom() {
+    const form = document.getElementById('clinicalHistoryDraftForm');
+    if (!(form instanceof HTMLFormElement)) {
+        return;
+    }
+
+    const review = currentReviewSource();
+    const nextDraft = serializeDraftForm(form, currentDraftSource());
+    const dirty =
+        JSON.stringify(nextDraft) !==
+        JSON.stringify(normalizeDraftSnapshot(review.draft));
+
+    setClinicalHistoryState({
+        draftForm: cloneValue(nextDraft),
+        dirty,
+    });
+    syncDraftStatusMeta();
+}
+
+async function maybeSwitchSession(sessionId) {
+    const desiredSessionId = normalizeString(sessionId);
+    const slice = getClinicalHistorySlice();
+    if (!desiredSessionId || slice.loading || slice.saving) {
+        return null;
+    }
+
+    if (
+        slice.dirty &&
+        normalizeString(slice.selectedSessionId) !== desiredSessionId
+    ) {
+        const confirmed = window.confirm(
+            'Hay cambios sin guardar en este borrador. ¿Deseas cambiar de caso igualmente?'
+        );
+        if (!confirmed) {
+            return null;
+        }
+    }
+
+    return loadClinicalHistorySession(desiredSessionId, { force: true });
+}
+
+function ensureSessionSelection() {
+    const state = getState();
+    if (state?.ui?.activeSection !== 'clinical-history') {
+        return;
+    }
+
+    const slice = getClinicalHistorySlice(state);
+    if (slice.loading || slice.saving) {
+        return;
+    }
+
+    const querySessionId = normalizeString(
+        getQueryParam(CLINICAL_HISTORY_SESSION_QUERY_PARAM)
+    );
+    const fallbackSessionId = normalizeString(
+        normalizeList(readClinicalHistoryMeta(state).reviewQueue)[0]?.sessionId
+    );
+    const desiredSessionId =
+        querySessionId ||
+        normalizeString(slice.selectedSessionId) ||
+        fallbackSessionId;
+
+    if (!desiredSessionId) {
+        scheduledAutoSelection = '';
+        return;
+    }
+
+    if (
+        desiredSessionId === normalizeString(slice.selectedSessionId) &&
+        slice.current
+    ) {
+        scheduledAutoSelection = '';
+        return;
+    }
+
+    if (
+        desiredSessionId === normalizeString(slice.selectedSessionId) &&
+        normalizeString(slice.error) !== ''
+    ) {
+        scheduledAutoSelection = '';
+        return;
+    }
+
+    if (scheduledAutoSelection === desiredSessionId) {
+        return;
+    }
+
+    scheduledAutoSelection = desiredSessionId;
+    window.setTimeout(() => {
+        const stillActive =
+            getState()?.ui?.activeSection === 'clinical-history';
+        if (!stillActive) {
+            scheduledAutoSelection = '';
+            return;
+        }
+        openClinicalHistorySession(desiredSessionId).finally(() => {
+            scheduledAutoSelection = '';
+        });
+    }, 0);
+}
+
+function bindClinicalHistoryEvents() {
+    const root = document.getElementById('clinical-history');
+    if (!(root instanceof HTMLElement) || root.dataset.bound === 'true') {
+        return;
+    }
+
+    root.addEventListener('click', async (event) => {
+        const actionTarget =
+            event.target instanceof Element
+                ? event.target.closest('[data-clinical-review-action]')
+                : null;
+        const queueTarget =
+            event.target instanceof Element
+                ? event.target.closest('[data-clinical-session-id]')
+                : null;
+
+        if (queueTarget instanceof HTMLButtonElement) {
+            event.preventDefault();
+            await maybeSwitchSession(queueTarget.dataset.clinicalSessionId);
+            return;
+        }
+
+        if (!(actionTarget instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        event.preventDefault();
+        const action = normalizeString(
+            actionTarget.dataset.clinicalReviewAction
+        );
+        if (action === 'refresh-current') {
+            await refreshClinicalHistoryCurrentSession();
+            return;
+        }
+
+        if (action === 'send-follow-up') {
+            const question = normalizeString(
+                getClinicalHistorySlice().followUpQuestion
+            );
+            if (!question) {
+                createToast(
+                    'Escribe la pregunta adicional antes de enviarla.',
+                    'warning'
+                );
+                return;
+            }
+            await saveClinicalHistoryReview('follow-up', question);
+            return;
+        }
+
+        if (action === 'mark-review-required') {
+            await saveClinicalHistoryReview('review-required', '');
+            return;
+        }
+
+        if (action === 'approve-current') {
+            await saveClinicalHistoryReview('approve', '');
+        }
+    });
+
+    root.addEventListener('submit', async (event) => {
+        const form = event.target;
+        if (
+            !(form instanceof HTMLFormElement) ||
+            form.id !== 'clinicalHistoryDraftForm'
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        await saveClinicalHistoryReview('save', '');
+    });
+
+    root.addEventListener('input', (event) => {
+        const target = event.target;
+        if (
+            target instanceof HTMLTextAreaElement &&
+            target.id === 'clinicalHistoryFollowUpInput'
+        ) {
+            setClinicalHistoryState({
+                followUpQuestion: target.value,
+            });
+            syncDraftStatusMeta();
+            return;
+        }
+
+        if (
+            target instanceof HTMLInputElement ||
+            target instanceof HTMLTextAreaElement ||
+            target instanceof HTMLSelectElement
+        ) {
+            if (target.form?.id === 'clinicalHistoryDraftForm') {
+                captureDraftFromDom();
+            }
+        }
+    });
+
+    root.addEventListener('change', (event) => {
+        const target = event.target;
+        if (
+            target instanceof HTMLInputElement ||
+            target instanceof HTMLTextAreaElement ||
+            target instanceof HTMLSelectElement
+        ) {
+            if (target.form?.id === 'clinicalHistoryDraftForm') {
+                captureDraftFromDom();
+            }
+        }
+    });
+
+    root.dataset.bound = 'true';
+}
+
+export async function openClinicalHistorySession(sessionId = '') {
+    const explicitSessionId = normalizeString(sessionId);
+    const selected =
+        explicitSessionId ||
+        normalizeString(getQueryParam(CLINICAL_HISTORY_SESSION_QUERY_PARAM));
+    const fallback = normalizeString(
+        normalizeList(readClinicalHistoryMeta().reviewQueue)[0]?.sessionId
+    );
+    return maybeSwitchSession(selected || fallback);
+}
+
+export async function refreshClinicalHistoryCurrentSession() {
+    const selected =
+        currentSessionId() ||
+        normalizeString(getQueryParam(CLINICAL_HISTORY_SESSION_QUERY_PARAM));
+    if (!selected) {
+        renderClinicalHistorySection();
+        return null;
+    }
+    return loadClinicalHistorySession(selected, { force: true });
+}
+
+export function renderClinicalHistorySection() {
+    const state = getState();
+    const meta = readClinicalHistoryMeta(state);
+    const slice = getClinicalHistorySlice(state);
+    const review = currentReviewSource(state);
+    const draft = currentDraftSource(state);
+
+    renderClinicalHeader(review, meta);
+    setText(
+        '#clinicalHistoryQueueMeta',
+        `${normalizeList(meta.reviewQueue).length} caso(s) listos para revision humana.`
+    );
+    setText(
+        '#clinicalHistoryTranscriptMeta',
+        review.session.sessionId
+            ? `${currentSelectionLabel(review)} • ${
+                  review.session.surface || 'clinical_intake'
+              }`
+            : 'El transcript del paciente aparece aqui.'
+    );
+    setText(
+        '#clinicalHistoryTranscriptCount',
+        `${normalizeList(review.session.transcript).length} mensaje(s)`
+    );
+    setText(
+        '#clinicalHistoryEventsMeta',
+        review.events.length > 0
+            ? `${review.events.length} evento(s) registrados para este caso.`
+            : 'Alertas, conciliacion y acciones pendientes.'
+    );
+
+    setHtml('#clinicalHistorySummaryGrid', buildSummaryCards(review));
+    setHtml('#clinicalHistoryAttachmentStrip', buildAttachmentStrip(review));
+    setHtml(
+        '#clinicalHistoryQueueList',
+        buildQueueList(
+            meta,
+            normalizeString(slice.selectedSessionId),
+            slice.loading
+        )
+    );
+    setHtml(
+        '#clinicalHistoryTranscript',
+        buildTranscript(review, slice.loading, slice.error)
+    );
+    setHtml('#clinicalHistoryDraftForm', buildDraftForm(draft, slice.saving));
+    setHtml('#clinicalHistoryEvents', buildEvents(review));
+
+    syncFollowUpInput();
+    syncDraftStatusMeta();
+    bindClinicalHistoryEvents();
+    ensureSessionSelection();
+}
