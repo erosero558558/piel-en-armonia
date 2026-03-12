@@ -214,6 +214,7 @@ Para separar operación por equipo:
 - El hub ahora también muestra `Plan B de recepción`: deja lista una segunda ruta por `con cita` y `sin cita` si el paciente no acepta la primera sugerencia visible.
 - El hub ahora también muestra `Objeciones rápidas`: responde en un clic a “quiero lo más rápido”, “necesito una espera corta” o “prefiero la otra opción” usando la misma ventana viva del turno.
 - El hub ahora también muestra `Cierre de mostrador`: deja la frase final para despedir al paciente, con ventana estimada y una regla clara de qué hacer si no lo llaman a tiempo.
+- El hub ahora también muestra `Revalidación de espera`: guía qué decir si el paciente vuelve a preguntar, separando cita, sin cita y la comparación visible entre carriles antes de moverlo.
 - El hub ahora también muestra `Bloqueos vivos`: detecta los cuellos que frenan la ronda inmediata, por ejemplo un ticket llamado que bloquea el siguiente paso o un consultorio con ticket pero sin operador listo, y deja el ticket cargable al lookup para destrabarlo rápido.
 - El hub ahora también muestra `SLA vivo`: lista los tickets que ya cayeron o están por caer en ventana de riesgo, con etiqueta de `vence en` o `vencido hace`, para intervenir antes de que esa presión se convierta en bloqueo operativo.
 - El hub ahora también muestra un `Radar de espera`: tres carriles (`General`, `C1`, `C2`) ordenados por antigüedad/presión, para que recepción vea primero cuál ticket está envejeciendo y ejecute la siguiente jugada sin bajar a la tabla.

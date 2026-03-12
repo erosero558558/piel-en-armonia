@@ -1729,6 +1729,9 @@ function getOpsLogSourceLabel(source) {
     if (value === 'desk_close') {
         return 'Cierre';
     }
+    if (value === 'desk_recheck') {
+        return 'Revalidación';
+    }
     if (value === 'blockers') {
         return 'Bloqueos';
     }
@@ -1772,6 +1775,7 @@ function filterOpsLogItems(items, filter) {
                 'desk_fallback',
                 'desk_objection',
                 'desk_close',
+                'desk_recheck',
                 'blockers',
                 'sla_live',
             ].includes(item.source)
@@ -11860,6 +11864,329 @@ function renderQueueDeskCloseoutPanel(manifest, detectedPlatform) {
     });
 }
 
+function buildQueueDeskRecheckItem(label, key, candidates, windowBySlot) {
+    const rankedCandidates = Array.isArray(candidates) ? candidates : [];
+    const primary = rankedCandidates[0] || null;
+    if (!primary) {
+        return null;
+    }
+
+    const backup =
+        rankedCandidates.find(
+            (candidate) =>
+                String(candidate?.slotKey || '') !==
+                String(primary.slotKey || '')
+        ) || null;
+    const primaryWindow = windowBySlot.get(primary.slotKey) || null;
+    const backupWindow = backup
+        ? windowBySlot.get(backup.slotKey) || null
+        : null;
+    const primaryEta = Number(primaryWindow?.etaMinutes);
+    const backupEta = Number(backupWindow?.etaMinutes);
+    const primaryEtaLabel = getQueueDeskFallbackWindowLabel(primaryWindow);
+    const backupEtaLabel = getQueueDeskFallbackWindowLabel(backupWindow);
+    const primarySlotLabel = String(primary.slotKey || '').toUpperCase();
+    const backupSlotLabel = String(backup?.slotKey || '').toUpperCase();
+    const shouldShift =
+        backup &&
+        Number.isFinite(primaryEta) &&
+        Number.isFinite(backupEta) &&
+        backupEta + QUEUE_ESTIMATED_SERVICE_MINUTES <= primaryEta;
+
+    if (shouldShift) {
+        return {
+            key,
+            tone: backup.operatorReady ? 'suggested' : 'warning',
+            label,
+            headline: `${label} -> mover a ${backupSlotLabel} si vence ${primaryEtaLabel}`,
+            phrase: `Si vuelve y ya pasó ${primaryEtaLabel}, revalídelo aquí: hoy conviene moverlo a ${backupSlotLabel} (${backupEtaLabel}) sin perder el turno.`,
+            support: `Actual: ${primary.reason} Respaldo visible: ${backup.reason}`,
+            actionLabel: backup.operatorReady
+                ? `Abrir ${backupSlotLabel}`
+                : `Preparar ${backupSlotLabel}`,
+            actionUrl: backup.operatorUrl,
+        };
+    }
+
+    return {
+        key,
+        tone: primary.operatorReady ? 'ready' : 'warning',
+        label,
+        headline: `${label} -> sostener ${primarySlotLabel} hasta ${primaryEtaLabel}`,
+        phrase: `Si vuelve antes de ${primaryEtaLabel}, sigue por ${primarySlotLabel}. Si ya pasó esa ventana, revalídelo aquí y confirme si mantiene ${primarySlotLabel}.`,
+        support: backup
+            ? `Respaldo visible: ${backupSlotLabel} (${backupEtaLabel}) si la cola cambia. ${primary.reason}`
+            : primary.reason,
+        actionLabel: primary.operatorReady
+            ? `Abrir ${primarySlotLabel}`
+            : `Preparar ${primarySlotLabel}`,
+        actionUrl: primary.operatorUrl,
+    };
+}
+
+function buildQueueDeskRecheckTimingItem(windows) {
+    const rankedCards = [...(windows.cards || [])].sort((left, right) => {
+        const leftEta = Number(left?.etaMinutes || Number.POSITIVE_INFINITY);
+        const rightEta = Number(right?.etaMinutes || Number.POSITIVE_INFINITY);
+        if (leftEta !== rightEta) {
+            return leftEta - rightEta;
+        }
+        return Number(left?.slot || 0) - Number(right?.slot || 0);
+    });
+    const primary = rankedCards[0] || null;
+    if (!primary) {
+        return null;
+    }
+
+    const backup = rankedCards[1] || null;
+    const primarySlotLabel = String(primary.slotKey || '').toUpperCase();
+    const backupSlotLabel = String(backup?.slotKey || '').toUpperCase();
+    const primaryEtaLabel = formatQueueEstimatedWindow(primary.etaMinutes);
+    const backupEtaLabel = formatQueueEstimatedWindow(backup?.etaMinutes);
+
+    return {
+        key: 'timing',
+        tone:
+            primary.tone === 'warning'
+                ? 'warning'
+                : backup
+                  ? 'suggested'
+                  : 'ready',
+        label: 'Revalidación general',
+        headline: backup
+            ? `Compare ${primarySlotLabel} vs ${backupSlotLabel} si vuelve a preguntar`
+            : `Mantener ${primarySlotLabel} como referencia visible`,
+        phrase: backup
+            ? `Si vuelve antes de ${primaryEtaLabel}, mantenga el carril actual y pídale seguir atento. Si ya pasó, revalide aquí y compare ${primarySlotLabel} (${primaryEtaLabel}) contra ${backupSlotLabel} (${backupEtaLabel}) antes de moverlo.`
+            : `Si vuelve antes de ${primaryEtaLabel}, mantenga el carril actual. Si ya pasó, revalide aquí sobre ${primarySlotLabel} sin perder el turno.`,
+        support: backup
+            ? `Referencia más rápida: ${primarySlotLabel} (${primaryEtaLabel}). Respaldo visible: ${backupSlotLabel} (${backupEtaLabel}).`
+            : `Solo hay una referencia visible ahora mismo para revalidar la espera.`,
+        actionLabel: primary.actionLabel,
+        actionUrl: primary.actionUrl,
+    };
+}
+
+function buildQueueDeskRecheckPanel(manifest, detectedPlatform) {
+    const guidance = buildQueueGeneralGuidance(manifest, detectedPlatform);
+    const projectedTickets = Array.isArray(guidance?.projectedTickets)
+        ? guidance.projectedTickets
+        : getQueueSource().queueTickets;
+    const appointmentCandidates = buildQueueScenarioCandidates(
+        manifest,
+        detectedPlatform,
+        projectedTickets,
+        'appointment'
+    );
+    const walkInCandidates = buildQueueScenarioCandidates(
+        manifest,
+        detectedPlatform,
+        projectedTickets,
+        'walk_in'
+    );
+    const windows = buildQueueWindowDeck(manifest, detectedPlatform);
+    const windowBySlot = new Map(
+        (windows.cards || []).map((card) => [card.slotKey, card])
+    );
+    const items = [
+        buildQueueDeskRecheckItem(
+            'Con cita',
+            'appointment',
+            appointmentCandidates,
+            windowBySlot
+        ),
+        buildQueueDeskRecheckItem(
+            'Sin cita',
+            'walkin',
+            walkInCandidates,
+            windowBySlot
+        ),
+        buildQueueDeskRecheckTimingItem(windows),
+    ].filter(Boolean);
+    const top =
+        items.find((item) => item.tone === 'warning') ||
+        items.find((item) => item.tone === 'suggested') ||
+        items[0] ||
+        null;
+
+    return {
+        title: 'Revalidación de espera',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay guía de revalidación visible ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} guía(s) de revalidación`
+            : 'Sin revalidación visible',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function copyQueueDeskRecheckPanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Revalidación de espera - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin revalidación visible.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Revalidación copiada', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar la revalidación', 'error');
+        });
+}
+
+function renderQueueDeskRecheckPanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskRecheck');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskRecheckPanel(manifest, detectedPlatform);
+    setHtml(
+        '#queueDeskRecheck',
+        `
+            <section class="queue-desk-closeout__shell queue-desk-recheck__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-closeout__header queue-desk-recheck__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Si el paciente vuelve a preguntar</p>
+                        <h5 id="queueDeskRecheckTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskRecheckSummary" class="queue-desk-closeout__summary queue-desk-recheck__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-closeout__meta queue-desk-recheck__meta">
+                        <span
+                            id="queueDeskRecheckStatus"
+                            class="queue-desk-closeout__status queue-desk-recheck__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskRecheckCopyBtn"
+                            type="button"
+                            class="queue-desk-closeout__action queue-desk-recheck__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar revalidación
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskRecheckItems" class="queue-desk-closeout__grid queue-desk-recheck__grid" role="list" aria-label="Revalidación de espera por tipo">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskRecheckItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-closeout__item queue-desk-recheck__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-closeout__head queue-desk-recheck__head">
+                                                    <div>
+                                                        <p class="queue-desk-closeout__lane queue-desk-recheck__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskRecheckHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskRecheckPhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__phrase queue-desk-recheck__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskRecheckSupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__support queue-desk-recheck__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-closeout__actions queue-desk-recheck__actions">
+                                                    <a
+                                                        id="queueDeskRecheckOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-closeout__open queue-desk-recheck__open"
+                                                        data-queue-desk-recheck-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskRecheckEmpty" class="queue-desk-closeout__empty queue-desk-recheck__empty">
+                                <strong>Sin revalidación visible</strong>
+                                <p>Hace falta más contexto de cola para preparar la revalidación de espera.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById('queueDeskRecheckCopyBtn');
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskRecheckPanel(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-desk-recheck-label]').forEach((link) => {
+        if (!(link instanceof HTMLAnchorElement)) {
+            return;
+        }
+        link.onclick = () => {
+            const label = String(
+                link.dataset.queueDeskRecheckLabel || ''
+            ).trim();
+            appendOpsLogEntry({
+                source: 'desk_recheck',
+                tone: 'info',
+                title: 'Revalidación de espera: operador abierto',
+                summary: `${label || 'Mostrador'} quedó abierto desde la revalidación de espera.`,
+            });
+        };
+    });
+}
+
 function getQueueBlockerWeight(item) {
     const action = String(item?.actionLabel || '')
         .trim()
@@ -16178,6 +16505,7 @@ function rerenderQueueOpsHub(manifest, detectedPlatform) {
     renderQueueDeskFallbackPanel(manifest, detectedPlatform);
     renderQueueDeskObjectionsPanel(manifest, detectedPlatform);
     renderQueueDeskCloseoutPanel(manifest, detectedPlatform);
+    renderQueueDeskRecheckPanel(manifest, detectedPlatform);
     renderQueueBlockersPanel(manifest, detectedPlatform);
     renderQueueSlaDeck(manifest, detectedPlatform);
     renderQueueWaitRadar(manifest, detectedPlatform);
@@ -16624,6 +16952,7 @@ export function renderQueueInstallHub(options = {}) {
     renderQueueDeskFallbackPanel(manifest, platform);
     renderQueueDeskObjectionsPanel(manifest, platform);
     renderQueueDeskCloseoutPanel(manifest, platform);
+    renderQueueDeskRecheckPanel(manifest, platform);
     renderQueueBlockersPanel(manifest, platform);
     renderQueueSlaDeck(manifest, platform);
     renderQueueWaitRadar(manifest, platform);

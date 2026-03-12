@@ -62,6 +62,7 @@ export function renderQueueAppsHub() {
             <div id="queueDeskFallback" class="queue-desk-fallback" data-focus-match="opening operations incidents closing"></div>
             <div id="queueDeskObjections" class="queue-desk-objections" data-focus-match="opening operations incidents closing"></div>
             <div id="queueDeskCloseout" class="queue-desk-closeout" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueDeskRecheck" class="queue-desk-recheck" data-focus-match="opening operations incidents closing"></div>
             <div id="queueBlockers" class="queue-blockers" data-focus-match="opening operations incidents closing"></div>
             <div id="queueSlaDeck" class="queue-sla-deck" data-focus-match="opening operations incidents closing"></div>
             <div id="queueWaitRadar" class="queue-wait-radar" data-focus-match="opening operations incidents closing" data-queue-domain-match="operations incidents"></div>
