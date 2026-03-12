@@ -1732,6 +1732,33 @@ function getOpsLogSourceLabel(source) {
     if (value === 'desk_recheck') {
         return 'Revalidación';
     }
+    if (value === 'desk_shift') {
+        return 'Cambio';
+    }
+    if (value === 'desk_promise') {
+        return 'Promesa';
+    }
+    if (value === 'desk_escalation') {
+        return 'Escala';
+    }
+    if (value === 'desk_escalation_talk') {
+        return 'Escala verbal';
+    }
+    if (value === 'desk_escalation_confirm') {
+        return 'Escala confirmada';
+    }
+    if (value === 'desk_escalation_followup') {
+        return 'Seguimiento escala';
+    }
+    if (value === 'desk_escalation_reopen') {
+        return 'Reapertura escala';
+    }
+    if (value === 'desk_escalation_limit') {
+        return 'Límite escala';
+    }
+    if (value === 'desk_escalation_bridge') {
+        return 'Puente operación';
+    }
     if (value === 'blockers') {
         return 'Bloqueos';
     }
@@ -1776,6 +1803,15 @@ function filterOpsLogItems(items, filter) {
                 'desk_objection',
                 'desk_close',
                 'desk_recheck',
+                'desk_shift',
+                'desk_promise',
+                'desk_escalation',
+                'desk_escalation_talk',
+                'desk_escalation_confirm',
+                'desk_escalation_followup',
+                'desk_escalation_reopen',
+                'desk_escalation_limit',
+                'desk_escalation_bridge',
                 'blockers',
                 'sla_live',
             ].includes(item.source)
@@ -12187,6 +12223,3069 @@ function renderQueueDeskRecheckPanel(manifest, detectedPlatform) {
     });
 }
 
+function formatQueueEstimatedGain(fromMinutes, toMinutes) {
+    const fromValue = Number(fromMinutes);
+    const toValue = Number(toMinutes);
+    if (!Number.isFinite(fromValue) || !Number.isFinite(toValue)) {
+        return '~0m';
+    }
+    return formatQueueEstimatedWindow(
+        Math.max(1, Math.round(fromValue - toValue))
+    );
+}
+
+function buildQueueDeskShiftItem(label, key, candidates, windowBySlot) {
+    const rankedCandidates = Array.isArray(candidates) ? candidates : [];
+    const primary = rankedCandidates[0] || null;
+    const alternate =
+        rankedCandidates.find(
+            (candidate) =>
+                String(candidate?.slotKey || '') !==
+                String(primary?.slotKey || '')
+        ) || null;
+    if (!primary) {
+        return null;
+    }
+
+    const primaryWindow = windowBySlot.get(primary.slotKey) || null;
+    const alternateWindow = alternate
+        ? windowBySlot.get(alternate.slotKey) || null
+        : null;
+    const primaryEta = Number(primaryWindow?.etaMinutes);
+    const alternateEta = Number(alternateWindow?.etaMinutes);
+    const primaryEtaLabel = getQueueDeskFallbackWindowLabel(primaryWindow);
+    const alternateEtaLabel = getQueueDeskFallbackWindowLabel(alternateWindow);
+    const primarySlotLabel = String(primary.slotKey || '').toUpperCase();
+    const alternateSlotLabel = String(alternate?.slotKey || '').toUpperCase();
+    const visibleGain = formatQueueEstimatedGain(primaryEta, alternateEta);
+    const shouldShift =
+        alternate &&
+        Number.isFinite(primaryEta) &&
+        Number.isFinite(alternateEta) &&
+        (alternateEta + QUEUE_ESTIMATED_SERVICE_MINUTES <= primaryEta ||
+            (primaryEta > QUEUE_SHORT_WAIT_THRESHOLD_MINUTES &&
+                alternateEta <= QUEUE_SHORT_WAIT_THRESHOLD_MINUTES));
+
+    if (!alternate) {
+        return {
+            key,
+            tone: primary.operatorReady ? 'ready' : 'warning',
+            label,
+            headline: `${label} -> sostener ${primarySlotLabel}`,
+            phrase: `Hoy no hay otro carril visible para moverlo; manténgalo por ${primarySlotLabel} y revalide si la ventana vuelve a correrse.`,
+            support: primary.reason,
+            actionLabel: primary.operatorReady
+                ? `Abrir ${primarySlotLabel}`
+                : `Preparar ${primarySlotLabel}`,
+            actionUrl: primary.operatorUrl,
+        };
+    }
+
+    if (shouldShift) {
+        return {
+            key,
+            tone: alternate.operatorReady ? 'suggested' : 'warning',
+            label,
+            headline: `${label} -> mover de ${primarySlotLabel} a ${alternateSlotLabel}`,
+            phrase: `Si acepta moverse de ${primarySlotLabel} a ${alternateSlotLabel}, hoy baja la espera visible de ${primaryEtaLabel} a ${alternateEtaLabel}.`,
+            support: `Gana ${visibleGain} visibles. Origen: ${primary.reason} Destino: ${alternate.reason}`,
+            actionLabel: alternate.operatorReady
+                ? `Abrir ${alternateSlotLabel}`
+                : `Preparar ${alternateSlotLabel}`,
+            actionUrl: alternate.operatorUrl,
+        };
+    }
+
+    return {
+        key,
+        tone: primary.operatorReady ? 'ready' : 'warning',
+        label,
+        headline: `${label} -> sostener ${primarySlotLabel}`,
+        phrase: `No conviene moverlo de ${primarySlotLabel} a ${alternateSlotLabel} ahora: el carril actual sigue mejor (${primaryEtaLabel} vs ${alternateEtaLabel}).`,
+        support: `Mantén la promesa actual y solo revalida si se vence la ventana visible. ${primary.reason}`,
+        actionLabel: primary.operatorReady
+            ? `Abrir ${primarySlotLabel}`
+            : `Preparar ${primarySlotLabel}`,
+        actionUrl: primary.operatorUrl,
+    };
+}
+
+function buildQueueDeskShiftRuleItem(windows) {
+    const rankedCards = [...(windows.cards || [])].sort((left, right) => {
+        const leftEta = Number(left?.etaMinutes || Number.POSITIVE_INFINITY);
+        const rightEta = Number(right?.etaMinutes || Number.POSITIVE_INFINITY);
+        if (leftEta !== rightEta) {
+            return leftEta - rightEta;
+        }
+        return Number(left?.slot || 0) - Number(right?.slot || 0);
+    });
+    const best = rankedCards[0] || null;
+    if (!best) {
+        return null;
+    }
+
+    const next = rankedCards[1] || null;
+    const bestSlotLabel = String(best.slotKey || '').toUpperCase();
+    const nextSlotLabel = String(next?.slotKey || '').toUpperCase();
+    const bestEtaLabel = formatQueueEstimatedWindow(best.etaMinutes);
+    const nextEtaLabel = formatQueueEstimatedWindow(next?.etaMinutes);
+    const visibleGap = formatQueueEstimatedGain(
+        next?.etaMinutes,
+        best.etaMinutes
+    );
+
+    if (!next) {
+        return {
+            key: 'rule',
+            tone: best.tone === 'warning' ? 'warning' : 'ready',
+            label: 'Regla general',
+            headline: `Tomar ${bestSlotLabel} como referencia`,
+            phrase: `Hoy solo hay una referencia visible (${bestSlotLabel} ${bestEtaLabel}); sostenga el carril actual y revalide si la ventana se mueve.`,
+            support:
+                'No hay un segundo carril comparable ahora mismo para justificar un cambio.',
+            actionLabel: best.actionLabel,
+            actionUrl: best.actionUrl,
+        };
+    }
+
+    return {
+        key: 'rule',
+        tone:
+            Number(next.etaMinutes || 0) - Number(best.etaMinutes || 0) >=
+            QUEUE_ESTIMATED_SERVICE_MINUTES
+                ? 'suggested'
+                : 'ready',
+        label: 'Regla general',
+        headline: `Cambiar solo si gana al menos ${formatQueueEstimatedWindow(
+            QUEUE_ESTIMATED_SERVICE_MINUTES
+        )}`,
+        phrase: `Solo cambie de carril si gana al menos ${formatQueueEstimatedWindow(
+            QUEUE_ESTIMATED_SERVICE_MINUTES
+        )} o si ya venció la ventana prometida; hoy ${bestSlotLabel} le saca ${visibleGap} a ${nextSlotLabel}.`,
+        support: `Referencia más rápida: ${bestSlotLabel} (${bestEtaLabel}). Respaldo actual: ${nextSlotLabel} (${nextEtaLabel}).`,
+        actionLabel: best.actionLabel,
+        actionUrl: best.actionUrl,
+    };
+}
+
+function buildQueueDeskShiftPanel(manifest, detectedPlatform) {
+    const guidance = buildQueueGeneralGuidance(manifest, detectedPlatform);
+    const projectedTickets = Array.isArray(guidance?.projectedTickets)
+        ? guidance.projectedTickets
+        : getQueueSource().queueTickets;
+    const appointmentCandidates = buildQueueScenarioCandidates(
+        manifest,
+        detectedPlatform,
+        projectedTickets,
+        'appointment'
+    );
+    const walkInCandidates = buildQueueScenarioCandidates(
+        manifest,
+        detectedPlatform,
+        projectedTickets,
+        'walk_in'
+    );
+    const windows = buildQueueWindowDeck(manifest, detectedPlatform);
+    const windowBySlot = new Map(
+        (windows.cards || []).map((card) => [card.slotKey, card])
+    );
+    const items = [
+        buildQueueDeskShiftItem(
+            'Con cita',
+            'appointment',
+            appointmentCandidates,
+            windowBySlot
+        ),
+        buildQueueDeskShiftItem(
+            'Sin cita',
+            'walkin',
+            walkInCandidates,
+            windowBySlot
+        ),
+        buildQueueDeskShiftRuleItem(windows),
+    ].filter(Boolean);
+    const top =
+        items.find((item) => item.tone === 'warning') ||
+        items.find((item) => item.tone === 'suggested') ||
+        items[0] ||
+        null;
+
+    return {
+        title: 'Cambio de carril sugerido',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay cambio de carril visible ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} guía(s) de cambio`
+            : 'Sin cambio visible',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function copyQueueDeskShiftPanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Cambio de carril sugerido - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin cambio visible.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Cambio de carril copiado', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar el cambio de carril', 'error');
+        });
+}
+
+function renderQueueDeskShiftPanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskShift');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskShiftPanel(manifest, detectedPlatform);
+    setHtml(
+        '#queueDeskShift',
+        `
+            <section class="queue-desk-closeout__shell queue-desk-shift__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-closeout__header queue-desk-shift__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Si conviene moverlo después de revalidar</p>
+                        <h5 id="queueDeskShiftTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskShiftSummary" class="queue-desk-closeout__summary queue-desk-shift__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-closeout__meta queue-desk-shift__meta">
+                        <span
+                            id="queueDeskShiftStatus"
+                            class="queue-desk-closeout__status queue-desk-shift__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskShiftCopyBtn"
+                            type="button"
+                            class="queue-desk-closeout__action queue-desk-shift__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar cambio
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskShiftItems" class="queue-desk-closeout__grid queue-desk-shift__grid" role="list" aria-label="Cambio de carril sugerido por tipo">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskShiftItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-closeout__item queue-desk-shift__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-closeout__head queue-desk-shift__head">
+                                                    <div>
+                                                        <p class="queue-desk-closeout__lane queue-desk-shift__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskShiftHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskShiftPhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__phrase queue-desk-shift__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskShiftSupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__support queue-desk-shift__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-closeout__actions queue-desk-shift__actions">
+                                                    <a
+                                                        id="queueDeskShiftOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-closeout__open queue-desk-shift__open"
+                                                        data-queue-desk-shift-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskShiftEmpty" class="queue-desk-closeout__empty queue-desk-shift__empty">
+                                <strong>Sin cambio visible</strong>
+                                <p>Hace falta más contexto de cola para sugerir un cambio de carril.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById('queueDeskShiftCopyBtn');
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskShiftPanel(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-desk-shift-label]').forEach((link) => {
+        if (!(link instanceof HTMLAnchorElement)) {
+            return;
+        }
+        link.onclick = () => {
+            const label = String(link.dataset.queueDeskShiftLabel || '').trim();
+            appendOpsLogEntry({
+                source: 'desk_shift',
+                tone: 'info',
+                title: 'Cambio de carril sugerido: operador abierto',
+                summary: `${label || 'Mostrador'} quedó abierto desde el cambio de carril sugerido.`,
+            });
+        };
+    });
+}
+
+function buildQueueDeskPromiseItem(
+    label,
+    key,
+    scenarioCard,
+    windowCard,
+    shiftItem
+) {
+    if (!scenarioCard || !windowCard) {
+        return null;
+    }
+
+    const slotLabel = String(scenarioCard.slotKey || '').toUpperCase();
+    const etaLabel = formatQueueEstimatedWindow(windowCard.etaMinutes);
+    const shiftHeadline = String(shiftItem?.headline || '');
+    const shiftMatch = shiftHeadline.match(/mover de (\w+) a (\w+)/i);
+    const shiftSupported =
+        shiftItem &&
+        shiftItem.tone !== 'ready' &&
+        Array.isArray(shiftMatch) &&
+        shiftMatch.length >= 3;
+
+    if (shiftSupported) {
+        const fromSlotLabel = String(shiftMatch[1] || '').toUpperCase();
+        const toSlotLabel = String(shiftMatch[2] || '').toUpperCase();
+        const targetEtaMatch = String(shiftItem.phrase || '').match(
+            /a (~\d+m|ahora)\./i
+        );
+        const targetEtaLabel = targetEtaMatch?.[1] || etaLabel;
+        return {
+            key,
+            tone: shiftItem.tone === 'warning' ? 'warning' : 'suggested',
+            label,
+            headline: `${label} -> prometer cambio solo si aceptan ${toSlotLabel}`,
+            phrase: `Lo seguro es confirmar primero si acepta moverse de ${fromSlotLabel} a ${toSlotLabel}; si sí, promete ${targetEtaLabel}. Si no, mantén ${fromSlotLabel} sin prometer un recorte extra.`,
+            support: `No ofrezcas el cambio como hecho hasta abrir el operador. ${shiftItem.support}`,
+            actionLabel: shiftItem.actionLabel,
+            actionUrl: shiftItem.actionUrl,
+        };
+    }
+
+    return {
+        key,
+        tone:
+            scenarioCard.operatorReady &&
+            Number(windowCard.etaMinutes || 0) <=
+                QUEUE_SHORT_WAIT_THRESHOLD_MINUTES
+                ? 'ready'
+                : scenarioCard.operatorReady
+                  ? 'suggested'
+                  : 'warning',
+        label,
+        headline: `${label} -> prometer ${slotLabel} con ventana visible`,
+        phrase: `Lo seguro es prometer ${slotLabel} con una ventana visible de ${etaLabel} y pedirle que siga atento a la TV o campanilla.`,
+        support: `No prometas hora exacta ni “ya mismo”. ${scenarioCard.reason}`,
+        actionLabel: scenarioCard.operatorReady
+            ? `Abrir ${slotLabel}`
+            : `Preparar ${slotLabel}`,
+        actionUrl: scenarioCard.operatorUrl,
+    };
+}
+
+function buildQueueDeskPromiseRuleItem(windows) {
+    const rankedCards = [...(windows.cards || [])].sort((left, right) => {
+        const leftEta = Number(left?.etaMinutes || Number.POSITIVE_INFINITY);
+        const rightEta = Number(right?.etaMinutes || Number.POSITIVE_INFINITY);
+        if (leftEta !== rightEta) {
+            return leftEta - rightEta;
+        }
+        return Number(left?.slot || 0) - Number(right?.slot || 0);
+    });
+    const best = rankedCards[0] || null;
+    if (!best) {
+        return null;
+    }
+
+    const next = rankedCards[1] || null;
+    const bestSlotLabel = String(best.slotKey || '').toUpperCase();
+    const nextSlotLabel = String(next?.slotKey || '').toUpperCase();
+    const bestEtaLabel = formatQueueEstimatedWindow(best.etaMinutes);
+    const nextEtaLabel = formatQueueEstimatedWindow(next?.etaMinutes);
+    const visibleGap = formatQueueEstimatedGain(
+        next?.etaMinutes,
+        best.etaMinutes
+    );
+
+    return {
+        key: 'rule',
+        tone:
+            next &&
+            Number(next.etaMinutes || 0) - Number(best.etaMinutes || 0) <
+                QUEUE_ESTIMATED_SERVICE_MINUTES
+                ? 'warning'
+                : 'ready',
+        label: 'Regla segura',
+        headline: `Prometer ventana visible, no hora exacta`,
+        phrase: next
+            ? `Promete solo la ventana visible y el paso siguiente; hoy la promesa más segura es ${bestSlotLabel} (${bestEtaLabel}) y revalidar si pasa esa ventana o si el otro carril gana al menos ${formatQueueEstimatedWindow(
+                  QUEUE_ESTIMATED_SERVICE_MINUTES
+              )}.`
+            : `Promete solo la ventana visible por ${bestSlotLabel} (${bestEtaLabel}) y revalida si la cola se mueve.`,
+        support: next
+            ? `Comparación viva: ${bestSlotLabel} (${bestEtaLabel}) vs ${nextSlotLabel} (${nextEtaLabel}). Gap actual: ${visibleGap}.`
+            : 'No hay un segundo carril visible para comparar ahora mismo.',
+        actionLabel: best.actionLabel,
+        actionUrl: best.actionUrl,
+    };
+}
+
+function buildQueueDeskPromisePanel(manifest, detectedPlatform) {
+    const scenarios = buildQueueScenarioDeck(manifest, detectedPlatform);
+    const windows = buildQueueWindowDeck(manifest, detectedPlatform);
+    const shifts = buildQueueDeskShiftPanel(manifest, detectedPlatform);
+    const windowBySlot = new Map(
+        (windows.cards || []).map((card) => [card.slotKey, card])
+    );
+    const scenarioByBadge = new Map(
+        (scenarios.cards || []).map((card) => [card.badge, card])
+    );
+    const shiftByKey = new Map(
+        (shifts.items || []).map((item) => [item.key, item])
+    );
+
+    const appointmentScenario = scenarioByBadge.get('Con cita') || null;
+    const walkInScenario = scenarioByBadge.get('Sin cita') || null;
+
+    const items = [
+        buildQueueDeskPromiseItem(
+            'Con cita',
+            'appointment',
+            appointmentScenario,
+            appointmentScenario
+                ? windowBySlot.get(appointmentScenario.slotKey) || null
+                : null,
+            shiftByKey.get('appointment') || null
+        ),
+        buildQueueDeskPromiseItem(
+            'Sin cita',
+            'walkin',
+            walkInScenario,
+            walkInScenario
+                ? windowBySlot.get(walkInScenario.slotKey) || null
+                : null,
+            shiftByKey.get('walkin') || null
+        ),
+        buildQueueDeskPromiseRuleItem(windows),
+    ].filter(Boolean);
+    const top =
+        items.find((item) => item.tone === 'warning') ||
+        items.find((item) => item.tone === 'suggested') ||
+        items[0] ||
+        null;
+
+    return {
+        title: 'Promesa segura',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay promesa segura visible ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} promesa(s) seguras`
+            : 'Sin promesa visible',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function getQueueDeskEscalationState(state) {
+    return state === 'alert' ? 'warning' : state || 'idle';
+}
+
+function buildQueueDeskEscalationItem(
+    label,
+    key,
+    scenarioCard,
+    windowCard,
+    shiftItem,
+    blockers,
+    sla
+) {
+    if (!scenarioCard || !windowCard) {
+        return null;
+    }
+
+    const slotLabel = String(scenarioCard.slotKey || '').toUpperCase();
+    const etaLabel = formatQueueEstimatedWindow(windowCard.etaMinutes);
+    const shiftHeadline = String(shiftItem?.headline || '');
+    const shiftMatch = shiftHeadline.match(/mover de (\w+) a (\w+)/i);
+    const blockerItem = Array.isArray(blockers?.items)
+        ? blockers.items.find((item) => {
+              const lane = String(item?.laneLabel || '')
+                  .trim()
+                  .toUpperCase();
+              return lane === slotLabel || lane === 'GENERAL';
+          }) || null
+        : null;
+    const slaItem = Array.isArray(sla?.items)
+        ? sla.items.find((item) => {
+              const lane = String(item?.laneLabel || '')
+                  .trim()
+                  .toUpperCase();
+              return lane === slotLabel || lane === 'GENERAL';
+          }) || null
+        : null;
+    const blockerActive =
+        blockerItem &&
+        ['warning', 'alert', 'active'].includes(
+            String(blockerItem.state || '')
+                .trim()
+                .toLowerCase()
+        );
+    const slaActive =
+        slaItem &&
+        ['warning', 'alert'].includes(
+            String(slaItem.state || '')
+                .trim()
+                .toLowerCase()
+        );
+
+    if (shiftItem && Array.isArray(shiftMatch) && shiftMatch.length >= 3) {
+        const fromSlotLabel = String(shiftMatch[1] || '').toUpperCase();
+        const toSlotLabel = String(shiftMatch[2] || '').toUpperCase();
+        return {
+            key,
+            tone: getQueueDeskEscalationState(shiftItem.tone || 'suggested'),
+            label,
+            headline: `${label} -> escalar de ${fromSlotLabel} a ${toSlotLabel}`,
+            phrase: `Si el paciente ya no acepta ${fromSlotLabel}, sí conviene escalar a ${toSlotLabel}: hoy el recorte visible justifica moverlo antes de seguir prometiendo sobre ${fromSlotLabel}.`,
+            support: shiftItem.support,
+            actionLabel: shiftItem.actionLabel,
+            actionUrl: shiftItem.actionUrl,
+        };
+    }
+
+    if (blockerActive || slaActive) {
+        const signalLabel = blockerActive
+            ? blockerItem.headline
+            : slaItem?.headline || 'presión SLA visible';
+        const signalSupport = blockerActive
+            ? blockerItem.support
+            : slaItem?.support || 'Hay presión viva sobre este carril.';
+        return {
+            key,
+            tone: blockerActive
+                ? getQueueDeskEscalationState(blockerItem.state)
+                : getQueueDeskEscalationState(slaItem?.state),
+            label,
+            headline: `${label} -> escalar con ${slotLabel}`,
+            phrase: `Ya conviene escalar por ${slotLabel}: la promesa visible de ${etaLabel} ya no alcanza sola y hay una señal viva en ese carril.`,
+            support: `${signalLabel}. ${signalSupport}`.trim(),
+            actionLabel: scenarioCard.operatorReady
+                ? `Abrir ${slotLabel}`
+                : `Preparar ${slotLabel}`,
+            actionUrl: scenarioCard.operatorUrl,
+        };
+    }
+
+    return {
+        key,
+        tone: scenarioCard.operatorReady ? 'ready' : 'warning',
+        label,
+        headline: `${label} -> sostener ${slotLabel}`,
+        phrase: `Todavía no hace falta escalar: sostén ${slotLabel}, conserva la promesa visible de ${etaLabel} y revalida solo si rebasa esa ventana o aparece un bloqueo vivo.`,
+        support: scenarioCard.reason,
+        actionLabel: scenarioCard.operatorReady
+            ? `Abrir ${slotLabel}`
+            : `Preparar ${slotLabel}`,
+        actionUrl: scenarioCard.operatorUrl,
+    };
+}
+
+function buildQueueDeskEscalationRuleItem(windows, blockers, sla) {
+    const rankedCards = [...(windows.cards || [])].sort((left, right) => {
+        const leftEta = Number(left?.etaMinutes || Number.POSITIVE_INFINITY);
+        const rightEta = Number(right?.etaMinutes || Number.POSITIVE_INFINITY);
+        if (leftEta !== rightEta) {
+            return leftEta - rightEta;
+        }
+        return Number(left?.slot || 0) - Number(right?.slot || 0);
+    });
+    const fastest = rankedCards[0] || null;
+    const blockerItem = Array.isArray(blockers?.items)
+        ? blockers.items[0] || null
+        : null;
+    const slaItem = Array.isArray(sla?.items) ? sla.items[0] || null : null;
+    const blockerActive =
+        blockerItem &&
+        ['warning', 'alert', 'active'].includes(
+            String(blockerItem.state || '')
+                .trim()
+                .toLowerCase()
+        );
+    const slaActive =
+        slaItem &&
+        ['warning', 'alert'].includes(
+            String(slaItem.state || '')
+                .trim()
+                .toLowerCase()
+        );
+    const topSignal = blockerActive ? blockerItem : slaActive ? slaItem : null;
+
+    return {
+        key: 'rule',
+        tone: topSignal
+            ? getQueueDeskEscalationState(topSignal.state)
+            : 'ready',
+        label: 'Regla de escala',
+        headline: 'Escalar solo con señal real',
+        phrase: topSignal
+            ? `Escala solo cuando la promesa segura ya no aguanta: ventana vencida, bloqueo vivo o ticket en SLA crítico. Hoy la señal más fuerte es ${topSignal.headline}.`
+            : 'Escala solo cuando la promesa segura ya no aguanta: ventana vencida, bloqueo vivo o ticket en SLA crítico.',
+        support: topSignal
+            ? topSignal.support
+            : 'Si no hay señal viva, sostén el carril actual y sigue la promesa visible.',
+        actionLabel: fastest?.actionLabel || 'Abrir carril más corto',
+        actionUrl: fastest?.actionUrl || '/admin.html#queue',
+    };
+}
+
+function buildQueueDeskEscalationPanel(manifest, detectedPlatform) {
+    const scenarios = buildQueueScenarioDeck(manifest, detectedPlatform);
+    const windows = buildQueueWindowDeck(manifest, detectedPlatform);
+    const shifts = buildQueueDeskShiftPanel(manifest, detectedPlatform);
+    const blockers = buildQueueBlockersPanel(manifest, detectedPlatform);
+    const sla = buildQueueSlaDeck(manifest, detectedPlatform);
+    const windowBySlot = new Map(
+        (windows.cards || []).map((card) => [card.slotKey, card])
+    );
+    const scenarioByBadge = new Map(
+        (scenarios.cards || []).map((card) => [card.badge, card])
+    );
+    const shiftByKey = new Map(
+        (shifts.items || []).map((item) => [item.key, item])
+    );
+    const appointmentScenario = scenarioByBadge.get('Con cita') || null;
+    const walkInScenario = scenarioByBadge.get('Sin cita') || null;
+
+    const items = [
+        buildQueueDeskEscalationItem(
+            'Con cita',
+            'appointment',
+            appointmentScenario,
+            appointmentScenario
+                ? windowBySlot.get(appointmentScenario.slotKey) || null
+                : null,
+            shiftByKey.get('appointment') || null,
+            blockers,
+            sla
+        ),
+        buildQueueDeskEscalationItem(
+            'Sin cita',
+            'walkin',
+            walkInScenario,
+            walkInScenario
+                ? windowBySlot.get(walkInScenario.slotKey) || null
+                : null,
+            shiftByKey.get('walkin') || null,
+            blockers,
+            sla
+        ),
+        buildQueueDeskEscalationRuleItem(windows, blockers, sla),
+    ].filter(Boolean);
+    const top =
+        items.find((item) => item.tone === 'warning') ||
+        items.find((item) => item.tone === 'suggested') ||
+        items[0] ||
+        null;
+
+    return {
+        title: 'Escalación sugerida',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay escalación visible ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} señal(es) de escala`
+            : 'Sin escala visible',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function copyQueueDeskEscalationPanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Escalación sugerida - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin escala visible.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Escalación sugerida copiada', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar la escalación sugerida', 'error');
+        });
+}
+
+function renderQueueDeskEscalationPanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskEscalation');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskEscalationPanel(manifest, detectedPlatform);
+    setHtml(
+        '#queueDeskEscalation',
+        `
+            <section class="queue-desk-closeout__shell queue-desk-escalation__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-closeout__header queue-desk-escalation__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Cuándo sí debe escalar recepción</p>
+                        <h5 id="queueDeskEscalationTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskEscalationSummary" class="queue-desk-closeout__summary queue-desk-escalation__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-closeout__meta queue-desk-escalation__meta">
+                        <span
+                            id="queueDeskEscalationStatus"
+                            class="queue-desk-closeout__status queue-desk-escalation__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskEscalationCopyBtn"
+                            type="button"
+                            class="queue-desk-closeout__action queue-desk-escalation__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar escala
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskEscalationItems" class="queue-desk-closeout__grid queue-desk-escalation__grid" role="list" aria-label="Escalación sugerida por tipo">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskEscalationItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-closeout__item queue-desk-escalation__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-closeout__head queue-desk-escalation__head">
+                                                    <div>
+                                                        <p class="queue-desk-closeout__lane queue-desk-escalation__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskEscalationHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskEscalationPhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__phrase queue-desk-escalation__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskEscalationSupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__support queue-desk-escalation__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-closeout__actions queue-desk-escalation__actions">
+                                                    <a
+                                                        id="queueDeskEscalationOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-closeout__open queue-desk-escalation__open"
+                                                        data-queue-desk-escalation-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskEscalationEmpty" class="queue-desk-closeout__empty queue-desk-escalation__empty">
+                                <strong>Sin escala visible</strong>
+                                <p>Hace falta más contexto de cola para sugerir una escalación de mostrador.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById('queueDeskEscalationCopyBtn');
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskEscalationPanel(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-desk-escalation-label]').forEach(
+        (link) => {
+            if (!(link instanceof HTMLAnchorElement)) {
+                return;
+            }
+            link.onclick = () => {
+                const label = String(
+                    link.dataset.queueDeskEscalationLabel || ''
+                ).trim();
+                appendOpsLogEntry({
+                    source: 'desk_escalation',
+                    tone: 'info',
+                    title: 'Escalación sugerida: operador abierto',
+                    summary: `${label || 'Mostrador'} quedó abierto desde la escalación sugerida.`,
+                });
+            };
+        }
+    );
+}
+
+function extractQueueDeskEscalationSlots(item) {
+    const headline = String(item?.headline || '').trim();
+    const shiftMatch = headline.match(/escalar de (\w+) a (\w+)/i);
+    if (Array.isArray(shiftMatch) && shiftMatch.length >= 3) {
+        return {
+            fromSlotLabel: String(shiftMatch[1] || '').toUpperCase(),
+            toSlotLabel: String(shiftMatch[2] || '').toUpperCase(),
+        };
+    }
+
+    const directMatch = headline.match(/escalar con (\w+)/i);
+    if (Array.isArray(directMatch) && directMatch.length >= 2) {
+        return {
+            fromSlotLabel: '',
+            toSlotLabel: String(directMatch[1] || '').toUpperCase(),
+        };
+    }
+
+    const confirmMatch = headline.match(/cambio a (\w+)/i);
+    if (Array.isArray(confirmMatch) && confirmMatch.length >= 2) {
+        return {
+            fromSlotLabel: '',
+            toSlotLabel: String(confirmMatch[1] || '').toUpperCase(),
+        };
+    }
+
+    const resolvedMatch = headline.match(/(?:escala|seguimiento) por (\w+)/i);
+    if (Array.isArray(resolvedMatch) && resolvedMatch.length >= 2) {
+        return {
+            fromSlotLabel: '',
+            toSlotLabel: String(resolvedMatch[1] || '').toUpperCase(),
+        };
+    }
+
+    const phrase = String(item?.phrase || '').trim();
+    const phraseShiftMatch = phrase.match(/(?:queda|quedó|sigue) por (\w+)/i);
+    if (Array.isArray(phraseShiftMatch) && phraseShiftMatch.length >= 2) {
+        return {
+            fromSlotLabel: '',
+            toSlotLabel: String(phraseShiftMatch[1] || '').toUpperCase(),
+        };
+    }
+
+    return {
+        fromSlotLabel: '',
+        toSlotLabel: '',
+    };
+}
+
+function extractQueueDeskShiftSlots(item) {
+    const headline = String(item?.headline || '').trim();
+    const shiftMatch = headline.match(/mover de (\w+) a (\w+)/i);
+    if (Array.isArray(shiftMatch) && shiftMatch.length >= 3) {
+        return {
+            fromSlotLabel: String(shiftMatch[1] || '').toUpperCase(),
+            toSlotLabel: String(shiftMatch[2] || '').toUpperCase(),
+        };
+    }
+
+    const sustainMatch = headline.match(/sostener (\w+)/i);
+    if (Array.isArray(sustainMatch) && sustainMatch.length >= 2) {
+        return {
+            fromSlotLabel: '',
+            toSlotLabel: String(sustainMatch[1] || '').toUpperCase(),
+        };
+    }
+
+    return {
+        fromSlotLabel: '',
+        toSlotLabel: '',
+    };
+}
+
+function extractQueueDeskOperatorSlotLabel(item) {
+    const actionUrl = String(item?.actionUrl || '').trim();
+    const actionLabel = String(item?.actionLabel || '').trim();
+    const headline = String(item?.headline || '').trim();
+
+    const urlMatch = actionUrl.match(/[?&]station=(c\d)\b/i);
+    if (Array.isArray(urlMatch) && urlMatch.length >= 2) {
+        return String(urlMatch[1] || '').toUpperCase();
+    }
+
+    const labelMatch = actionLabel.match(/\b(c\d)\b/i);
+    if (Array.isArray(labelMatch) && labelMatch.length >= 2) {
+        return String(labelMatch[1] || '').toUpperCase();
+    }
+
+    const headlineMatch = headline.match(/\b(c\d)\b/i);
+    if (Array.isArray(headlineMatch) && headlineMatch.length >= 2) {
+        return String(headlineMatch[1] || '').toUpperCase();
+    }
+
+    return '';
+}
+
+function buildQueueDeskEscalationTalkItem(
+    label,
+    key,
+    scenarioCard,
+    windowCard,
+    escalationItem
+) {
+    if (!scenarioCard || !windowCard || !escalationItem) {
+        return null;
+    }
+
+    const slotLabel = String(scenarioCard.slotKey || '').toUpperCase();
+    const etaLabel = formatQueueEstimatedWindow(windowCard.etaMinutes);
+    const { fromSlotLabel, toSlotLabel } =
+        extractQueueDeskEscalationSlots(escalationItem);
+    const escalationTone = getQueueDeskEscalationState(escalationItem.tone);
+
+    if (fromSlotLabel && toSlotLabel) {
+        return {
+            key,
+            tone: escalationTone,
+            label,
+            headline: `${label} -> confirmar escala hacia ${toSlotLabel}`,
+            phrase: `Le voy a revisar una opción mejor por ${toSlotLabel}; si queda abierta, le confirmo el cambio sin perder la referencia actual por ${fromSlotLabel}.`,
+            support: `No lo cierres como cambio hecho hasta abrir el operador. ${escalationItem.support}`,
+            actionLabel: escalationItem.actionLabel,
+            actionUrl: escalationItem.actionUrl,
+        };
+    }
+
+    if (toSlotLabel) {
+        return {
+            key,
+            tone: escalationTone,
+            label,
+            headline: `${label} -> explicar la escala por ${toSlotLabel}`,
+            phrase: `Voy a escalarlo por ${toSlotLabel} y le confirmo enseguida qué ventana queda disponible; mientras tanto, conserve la referencia visible actual.`,
+            support: escalationItem.support,
+            actionLabel: escalationItem.actionLabel,
+            actionUrl: escalationItem.actionUrl,
+        };
+    }
+
+    return {
+        key,
+        tone: scenarioCard.operatorReady ? 'ready' : 'warning',
+        label,
+        headline: `${label} -> sostener ${slotLabel} sin escalar`,
+        phrase: `Por ahora lo mantengo por ${slotLabel} con una ventana visible de ${etaLabel}; si esa referencia se corre o cambia la carga, le confirmo otra opción sin quitarle este carril.`,
+        support: scenarioCard.reason,
+        actionLabel: scenarioCard.operatorReady
+            ? `Abrir ${slotLabel}`
+            : `Preparar ${slotLabel}`,
+        actionUrl: scenarioCard.operatorUrl,
+    };
+}
+
+function buildQueueDeskEscalationTalkRuleItem(escalationPanel) {
+    const top =
+        (escalationPanel?.items || []).find(
+            (item) => item.tone === 'warning' || item.tone === 'suggested'
+        ) ||
+        escalationPanel?.items?.[0] ||
+        null;
+
+    return {
+        key: 'rule',
+        tone: top ? getQueueDeskEscalationState(top.tone) : 'ready',
+        label: 'Regla verbal',
+        headline: 'Explicar la escala antes de prometer el cambio',
+        phrase:
+            top &&
+            (String(top.headline || '').includes('escalar') ||
+                String(top.phrase || '').includes('escala'))
+                ? 'Si ya toca escalar, primero diga que va a revisar la opción y confirme el cambio solo después de abrir el operador.'
+                : 'Si todavía no toca escalar, mantenga la ventana visible y reserve la escala solo para cuando aparezca una señal viva.',
+        support: top
+            ? top.support
+            : 'Sin señal viva, la mejor respuesta sigue siendo sostener el carril actual.',
+        actionLabel: top?.actionLabel || 'Abrir operador',
+        actionUrl: top?.actionUrl || '/admin.html#queue',
+    };
+}
+
+function buildQueueDeskEscalationTalkPanel(manifest, detectedPlatform) {
+    const scenarios = buildQueueScenarioDeck(manifest, detectedPlatform);
+    const windows = buildQueueWindowDeck(manifest, detectedPlatform);
+    const escalationPanel = buildQueueDeskEscalationPanel(
+        manifest,
+        detectedPlatform
+    );
+    const windowBySlot = new Map(
+        (windows.cards || []).map((card) => [card.slotKey, card])
+    );
+    const scenarioByBadge = new Map(
+        (scenarios.cards || []).map((card) => [card.badge, card])
+    );
+    const escalationByKey = new Map(
+        (escalationPanel.items || []).map((item) => [item.key, item])
+    );
+    const appointmentScenario = scenarioByBadge.get('Con cita') || null;
+    const walkInScenario = scenarioByBadge.get('Sin cita') || null;
+
+    const items = [
+        buildQueueDeskEscalationTalkItem(
+            'Con cita',
+            'appointment',
+            appointmentScenario,
+            appointmentScenario
+                ? windowBySlot.get(appointmentScenario.slotKey) || null
+                : null,
+            escalationByKey.get('appointment') || null
+        ),
+        buildQueueDeskEscalationTalkItem(
+            'Sin cita',
+            'walkin',
+            walkInScenario,
+            walkInScenario
+                ? windowBySlot.get(walkInScenario.slotKey) || null
+                : null,
+            escalationByKey.get('walkin') || null
+        ),
+        buildQueueDeskEscalationTalkRuleItem(escalationPanel),
+    ].filter(Boolean);
+    const top =
+        items.find((item) => item.tone === 'warning') ||
+        items.find((item) => item.tone === 'suggested') ||
+        items[0] ||
+        null;
+
+    return {
+        title: 'Escala verbal',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay frase de escalación visible ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} frase(s) de escala`
+            : 'Sin frase de escala',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function copyQueueDeskEscalationTalkPanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Escala verbal - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin frase de escala visible.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Escala verbal copiada', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar la escala verbal', 'error');
+        });
+}
+
+function renderQueueDeskEscalationTalkPanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskEscalationTalk');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskEscalationTalkPanel(manifest, detectedPlatform);
+    setHtml(
+        '#queueDeskEscalationTalk',
+        `
+            <section class="queue-desk-closeout__shell queue-desk-escalation-talk__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-closeout__header queue-desk-escalation-talk__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Qué decir cuando ya toca escalar</p>
+                        <h5 id="queueDeskEscalationTalkTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskEscalationTalkSummary" class="queue-desk-closeout__summary queue-desk-escalation-talk__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-closeout__meta queue-desk-escalation-talk__meta">
+                        <span
+                            id="queueDeskEscalationTalkStatus"
+                            class="queue-desk-closeout__status queue-desk-escalation-talk__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskEscalationTalkCopyBtn"
+                            type="button"
+                            class="queue-desk-closeout__action queue-desk-escalation-talk__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar frase
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskEscalationTalkItems" class="queue-desk-closeout__grid queue-desk-escalation-talk__grid" role="list" aria-label="Escala verbal por tipo">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskEscalationTalkItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-closeout__item queue-desk-escalation-talk__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-closeout__head queue-desk-escalation-talk__head">
+                                                    <div>
+                                                        <p class="queue-desk-closeout__lane queue-desk-escalation-talk__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskEscalationTalkHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskEscalationTalkPhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__phrase queue-desk-escalation-talk__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskEscalationTalkSupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__support queue-desk-escalation-talk__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-closeout__actions queue-desk-escalation-talk__actions">
+                                                    <a
+                                                        id="queueDeskEscalationTalkOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-closeout__open queue-desk-escalation-talk__open"
+                                                        data-queue-desk-escalation-talk-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskEscalationTalkEmpty" class="queue-desk-closeout__empty queue-desk-escalation-talk__empty">
+                                <strong>Sin frase visible</strong>
+                                <p>Hace falta más contexto de cola para preparar una frase de escalación.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById(
+        'queueDeskEscalationTalkCopyBtn'
+    );
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskEscalationTalkPanel(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-desk-escalation-talk-label]').forEach(
+        (link) => {
+            if (!(link instanceof HTMLAnchorElement)) {
+                return;
+            }
+            link.onclick = () => {
+                const label = String(
+                    link.dataset.queueDeskEscalationTalkLabel || ''
+                ).trim();
+                appendOpsLogEntry({
+                    source: 'desk_escalation_talk',
+                    tone: 'info',
+                    title: 'Escala verbal: operador abierto',
+                    summary: `${label || 'Mostrador'} quedó abierto desde la frase de escalación.`,
+                });
+            };
+        }
+    );
+}
+
+function buildQueueDeskEscalationConfirmItem(
+    label,
+    key,
+    scenarioCard,
+    windowCard,
+    escalationItem
+) {
+    if (!scenarioCard || !windowCard || !escalationItem) {
+        return null;
+    }
+
+    const slotLabel = String(scenarioCard.slotKey || '').toUpperCase();
+    const etaLabel = formatQueueEstimatedWindow(windowCard.etaMinutes);
+    const { fromSlotLabel, toSlotLabel } =
+        extractQueueDeskEscalationSlots(escalationItem);
+    const escalationTone = getQueueDeskEscalationState(escalationItem.tone);
+
+    if (fromSlotLabel && toSlotLabel) {
+        return {
+            key,
+            tone: escalationTone,
+            label,
+            headline: `${label} -> confirmar cambio a ${toSlotLabel}`,
+            phrase: `Ya quedó por ${toSlotLabel}; desde aquí mantenga el ticket a mano y siga la TV o campanilla. Si la referencia vuelve a cambiar, se lo confirmamos sin devolverlo a ${fromSlotLabel}.`,
+            support: `Ventana visible actual: ${etaLabel}. ${escalationItem.support}`,
+            actionLabel: escalationItem.actionLabel,
+            actionUrl: escalationItem.actionUrl,
+        };
+    }
+
+    if (toSlotLabel) {
+        return {
+            key,
+            tone: escalationTone,
+            label,
+            headline: `${label} -> confirmar escala por ${toSlotLabel}`,
+            phrase: `Ya lo dejé por ${toSlotLabel}; ahora solo espere el llamado y, si la ventana visible cambia, se lo confirmamos aquí mismo.`,
+            support: `Ventana visible actual: ${etaLabel}. ${escalationItem.support}`,
+            actionLabel: escalationItem.actionLabel,
+            actionUrl: escalationItem.actionUrl,
+        };
+    }
+
+    return {
+        key,
+        tone: scenarioCard.operatorReady ? 'ready' : 'warning',
+        label,
+        headline: `${label} -> confirmar continuidad por ${slotLabel}`,
+        phrase: `Por ahora sigue por ${slotLabel} con una ventana visible de ${etaLabel}; si hay un cambio real de carril, se lo confirmamos antes de moverlo.`,
+        support: scenarioCard.reason,
+        actionLabel: scenarioCard.operatorReady
+            ? `Abrir ${slotLabel}`
+            : `Preparar ${slotLabel}`,
+        actionUrl: scenarioCard.operatorUrl,
+    };
+}
+
+function buildQueueDeskEscalationConfirmRuleItem(confirmItems) {
+    const top =
+        (confirmItems || []).find(
+            (item) => item.tone === 'warning' || item.tone === 'suggested'
+        ) ||
+        (confirmItems || [])[0] ||
+        null;
+
+    return {
+        key: 'rule',
+        tone: top ? top.tone : 'ready',
+        label: 'Regla final',
+        headline: 'Confirmar solo con carril ya resuelto',
+        phrase: 'Cierre la conversación confirmando únicamente el carril que ya quedó operativo; si todavía está en revisión, mantenga la referencia actual y diga que le avisará el ajuste.',
+        support: top
+            ? top.support
+            : 'Sin cambio resuelto, la mejor confirmación es sostener el carril actual.',
+        actionLabel: top?.actionLabel || 'Abrir operador',
+        actionUrl: top?.actionUrl || '/admin.html#queue',
+    };
+}
+
+function buildQueueDeskEscalationConfirmPanel(manifest, detectedPlatform) {
+    const scenarios = buildQueueScenarioDeck(manifest, detectedPlatform);
+    const windows = buildQueueWindowDeck(manifest, detectedPlatform);
+    const escalationPanel = buildQueueDeskEscalationPanel(
+        manifest,
+        detectedPlatform
+    );
+    const windowBySlot = new Map(
+        (windows.cards || []).map((card) => [card.slotKey, card])
+    );
+    const scenarioByBadge = new Map(
+        (scenarios.cards || []).map((card) => [card.badge, card])
+    );
+    const escalationByKey = new Map(
+        (escalationPanel.items || []).map((item) => [item.key, item])
+    );
+    const appointmentScenario = scenarioByBadge.get('Con cita') || null;
+    const walkInScenario = scenarioByBadge.get('Sin cita') || null;
+
+    const baseItems = [
+        buildQueueDeskEscalationConfirmItem(
+            'Con cita',
+            'appointment',
+            appointmentScenario,
+            appointmentScenario
+                ? windowBySlot.get(appointmentScenario.slotKey) || null
+                : null,
+            escalationByKey.get('appointment') || null
+        ),
+        buildQueueDeskEscalationConfirmItem(
+            'Sin cita',
+            'walkin',
+            walkInScenario,
+            walkInScenario
+                ? windowBySlot.get(walkInScenario.slotKey) || null
+                : null,
+            escalationByKey.get('walkin') || null
+        ),
+    ].filter(Boolean);
+    const items = [
+        ...baseItems,
+        buildQueueDeskEscalationConfirmRuleItem(baseItems),
+    ].filter(Boolean);
+    const top =
+        items.find((item) => item.tone === 'warning') ||
+        items.find((item) => item.tone === 'suggested') ||
+        items[0] ||
+        null;
+
+    return {
+        title: 'Confirmación de escala',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay confirmación de escala visible ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} confirmación(es) listas`
+            : 'Sin confirmación visible',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function copyQueueDeskEscalationConfirmPanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Confirmación de escala - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin confirmación visible.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Confirmación de escala copiada', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar la confirmación de escala', 'error');
+        });
+}
+
+function renderQueueDeskEscalationConfirmPanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskEscalationConfirm');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskEscalationConfirmPanel(
+        manifest,
+        detectedPlatform
+    );
+    setHtml(
+        '#queueDeskEscalationConfirm',
+        `
+            <section class="queue-desk-closeout__shell queue-desk-escalation-confirm__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-closeout__header queue-desk-escalation-confirm__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Qué confirmar cuando la escala ya quedó resuelta</p>
+                        <h5 id="queueDeskEscalationConfirmTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskEscalationConfirmSummary" class="queue-desk-closeout__summary queue-desk-escalation-confirm__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-closeout__meta queue-desk-escalation-confirm__meta">
+                        <span
+                            id="queueDeskEscalationConfirmStatus"
+                            class="queue-desk-closeout__status queue-desk-escalation-confirm__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskEscalationConfirmCopyBtn"
+                            type="button"
+                            class="queue-desk-closeout__action queue-desk-escalation-confirm__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar confirmación
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskEscalationConfirmItems" class="queue-desk-closeout__grid queue-desk-escalation-confirm__grid" role="list" aria-label="Confirmación de escala por tipo">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskEscalationConfirmItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-closeout__item queue-desk-escalation-confirm__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-closeout__head queue-desk-escalation-confirm__head">
+                                                    <div>
+                                                        <p class="queue-desk-closeout__lane queue-desk-escalation-confirm__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskEscalationConfirmHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskEscalationConfirmPhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__phrase queue-desk-escalation-confirm__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskEscalationConfirmSupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__support queue-desk-escalation-confirm__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-closeout__actions queue-desk-escalation-confirm__actions">
+                                                    <a
+                                                        id="queueDeskEscalationConfirmOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-closeout__open queue-desk-escalation-confirm__open"
+                                                        data-queue-desk-escalation-confirm-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskEscalationConfirmEmpty" class="queue-desk-closeout__empty queue-desk-escalation-confirm__empty">
+                                <strong>Sin confirmación visible</strong>
+                                <p>Hace falta más contexto de cola para preparar la confirmación final de escala.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById(
+        'queueDeskEscalationConfirmCopyBtn'
+    );
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskEscalationConfirmPanel(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-desk-escalation-confirm-label]').forEach(
+        (link) => {
+            if (!(link instanceof HTMLAnchorElement)) {
+                return;
+            }
+            link.onclick = () => {
+                const label = String(
+                    link.dataset.queueDeskEscalationConfirmLabel || ''
+                ).trim();
+                appendOpsLogEntry({
+                    source: 'desk_escalation_confirm',
+                    tone: 'info',
+                    title: 'Confirmación de escala: operador abierto',
+                    summary: `${label || 'Mostrador'} quedó abierto desde la confirmación de escala.`,
+                });
+            };
+        }
+    );
+}
+
+function buildQueueDeskEscalationFollowupItem(
+    label,
+    key,
+    scenarioCard,
+    windowCard,
+    confirmItem,
+    windowBySlot
+) {
+    if (!scenarioCard || !windowCard || !confirmItem) {
+        return null;
+    }
+
+    const slotLabel = String(scenarioCard.slotKey || '').toUpperCase();
+    const etaLabel = formatQueueEstimatedWindow(windowCard.etaMinutes);
+    const { fromSlotLabel, toSlotLabel } =
+        extractQueueDeskEscalationSlots(confirmItem);
+    const effectiveSlotLabel = toSlotLabel || slotLabel;
+    const effectiveWindowCard =
+        toSlotLabel && windowBySlot instanceof Map
+            ? windowBySlot.get(toSlotLabel.toLowerCase()) || windowCard
+            : windowCard;
+    const tone =
+        confirmItem.tone === 'warning'
+            ? 'warning'
+            : scenarioCard.operatorReady
+              ? 'ready'
+              : 'warning';
+    const effectiveEtaLabel = formatQueueEstimatedWindow(
+        effectiveWindowCard?.etaMinutes
+    );
+
+    if (fromSlotLabel && toSlotLabel) {
+        return {
+            key,
+            tone,
+            label,
+            headline: `${label} -> seguimiento por ${toSlotLabel}`,
+            phrase: `Si vuelve a preguntar después del cambio, confirme que sigue por ${toSlotLabel}, que mantenga el ticket a mano y que revalidaremos aquí solo si pasa la ventana visible de ${effectiveEtaLabel}.`,
+            support: `Ya no hace falta devolverlo a ${fromSlotLabel} salvo que cambie la referencia viva. ${confirmItem.support}`,
+            actionLabel: confirmItem.actionLabel,
+            actionUrl: confirmItem.actionUrl,
+        };
+    }
+
+    return {
+        key,
+        tone,
+        label,
+        headline: `${label} -> seguimiento por ${effectiveSlotLabel}`,
+        phrase: `Si vuelve a preguntar, manténgalo por ${effectiveSlotLabel} y recuérdele que la referencia visible actual es ${effectiveEtaLabel}; solo revalide aquí si esa ventana ya pasó o cambia el carril.`,
+        support: confirmItem.support,
+        actionLabel: confirmItem.actionLabel,
+        actionUrl: confirmItem.actionUrl,
+    };
+}
+
+function buildQueueDeskEscalationFollowupRuleItem(confirmPanel, windows) {
+    const top =
+        (confirmPanel?.items || []).find(
+            (item) => item.tone === 'warning' || item.tone === 'suggested'
+        ) ||
+        (confirmPanel?.items || [])[0] ||
+        null;
+    const rankedCards = [...(windows?.cards || [])].sort((left, right) => {
+        const leftEta = Number(left?.etaMinutes || Number.POSITIVE_INFINITY);
+        const rightEta = Number(right?.etaMinutes || Number.POSITIVE_INFINITY);
+        if (leftEta !== rightEta) {
+            return leftEta - rightEta;
+        }
+        return Number(left?.slot || 0) - Number(right?.slot || 0);
+    });
+    const fastest = rankedCards[0] || null;
+
+    return {
+        key: 'rule',
+        tone: top?.tone || 'ready',
+        label: 'Regla de seguimiento',
+        headline: 'Reabrir solo si se vence la nueva referencia',
+        phrase: 'Después de confirmar la escala, el seguimiento es simple: sostenga el carril ya resuelto y reabra la conversación solo si se vence la ventana visible o si el hub vuelve a marcar otro cambio real.',
+        support: top
+            ? top.support
+            : 'Si no hay cambio nuevo, la conversación ya quedó cerrada sobre el carril actual.',
+        actionLabel:
+            top?.actionLabel || fastest?.actionLabel || 'Abrir operador',
+        actionUrl: top?.actionUrl || fastest?.actionUrl || '/admin.html#queue',
+    };
+}
+
+function buildQueueDeskEscalationFollowupPanel(manifest, detectedPlatform) {
+    const scenarios = buildQueueScenarioDeck(manifest, detectedPlatform);
+    const windows = buildQueueWindowDeck(manifest, detectedPlatform);
+    const confirmPanel = buildQueueDeskEscalationConfirmPanel(
+        manifest,
+        detectedPlatform
+    );
+    const windowBySlot = new Map(
+        (windows.cards || []).map((card) => [card.slotKey, card])
+    );
+    const scenarioByBadge = new Map(
+        (scenarios.cards || []).map((card) => [card.badge, card])
+    );
+    const confirmByKey = new Map(
+        (confirmPanel.items || []).map((item) => [item.key, item])
+    );
+    const appointmentScenario = scenarioByBadge.get('Con cita') || null;
+    const walkInScenario = scenarioByBadge.get('Sin cita') || null;
+
+    const items = [
+        buildQueueDeskEscalationFollowupItem(
+            'Con cita',
+            'appointment',
+            appointmentScenario,
+            appointmentScenario
+                ? windowBySlot.get(appointmentScenario.slotKey) || null
+                : null,
+            confirmByKey.get('appointment') || null,
+            windowBySlot
+        ),
+        buildQueueDeskEscalationFollowupItem(
+            'Sin cita',
+            'walkin',
+            walkInScenario,
+            walkInScenario
+                ? windowBySlot.get(walkInScenario.slotKey) || null
+                : null,
+            confirmByKey.get('walkin') || null,
+            windowBySlot
+        ),
+        buildQueueDeskEscalationFollowupRuleItem(confirmPanel, windows),
+    ].filter(Boolean);
+    const top =
+        items.find((item) => item.tone === 'warning') ||
+        items.find((item) => item.tone === 'suggested') ||
+        items[0] ||
+        null;
+
+    return {
+        title: 'Seguimiento de escala',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay seguimiento de escala visible ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} seguimiento(s) listos`
+            : 'Sin seguimiento visible',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function copyQueueDeskEscalationFollowupPanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Seguimiento de escala - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin seguimiento visible.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Seguimiento de escala copiado', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar el seguimiento de escala', 'error');
+        });
+}
+
+function renderQueueDeskEscalationFollowupPanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskEscalationFollowup');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskEscalationFollowupPanel(
+        manifest,
+        detectedPlatform
+    );
+    setHtml(
+        '#queueDeskEscalationFollowup',
+        `
+            <section class="queue-desk-closeout__shell queue-desk-escalation-followup__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-closeout__header queue-desk-escalation-followup__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Qué decir si vuelve a preguntar tras el cambio</p>
+                        <h5 id="queueDeskEscalationFollowupTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskEscalationFollowupSummary" class="queue-desk-closeout__summary queue-desk-escalation-followup__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-closeout__meta queue-desk-escalation-followup__meta">
+                        <span
+                            id="queueDeskEscalationFollowupStatus"
+                            class="queue-desk-closeout__status queue-desk-escalation-followup__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskEscalationFollowupCopyBtn"
+                            type="button"
+                            class="queue-desk-closeout__action queue-desk-escalation-followup__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar seguimiento
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskEscalationFollowupItems" class="queue-desk-closeout__grid queue-desk-escalation-followup__grid" role="list" aria-label="Seguimiento de escala por tipo">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskEscalationFollowupItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-closeout__item queue-desk-escalation-followup__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-closeout__head queue-desk-escalation-followup__head">
+                                                    <div>
+                                                        <p class="queue-desk-closeout__lane queue-desk-escalation-followup__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskEscalationFollowupHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskEscalationFollowupPhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__phrase queue-desk-escalation-followup__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskEscalationFollowupSupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__support queue-desk-escalation-followup__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-closeout__actions queue-desk-escalation-followup__actions">
+                                                    <a
+                                                        id="queueDeskEscalationFollowupOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-closeout__open queue-desk-escalation-followup__open"
+                                                        data-queue-desk-escalation-followup-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskEscalationFollowupEmpty" class="queue-desk-closeout__empty queue-desk-escalation-followup__empty">
+                                <strong>Sin seguimiento visible</strong>
+                                <p>Hace falta más contexto de cola para preparar el seguimiento tras la escala.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById(
+        'queueDeskEscalationFollowupCopyBtn'
+    );
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskEscalationFollowupPanel(panel);
+        };
+    }
+
+    root.querySelectorAll(
+        '[data-queue-desk-escalation-followup-label]'
+    ).forEach((link) => {
+        if (!(link instanceof HTMLAnchorElement)) {
+            return;
+        }
+        link.onclick = () => {
+            const label = String(
+                link.dataset.queueDeskEscalationFollowupLabel || ''
+            ).trim();
+            appendOpsLogEntry({
+                source: 'desk_escalation_followup',
+                tone: 'info',
+                title: 'Seguimiento de escala: operador abierto',
+                summary: `${label || 'Mostrador'} quedó abierto desde el seguimiento de escala.`,
+            });
+        };
+    });
+}
+
+function buildQueueDeskEscalationReopenItem(
+    label,
+    key,
+    followupItem,
+    shiftItem,
+    windowBySlot
+) {
+    if (!followupItem) {
+        return null;
+    }
+
+    const followupSlots = extractQueueDeskEscalationSlots(followupItem);
+    const shiftSlots = extractQueueDeskShiftSlots(shiftItem);
+    const currentSlotLabel =
+        followupSlots.toSlotLabel ||
+        shiftSlots.fromSlotLabel ||
+        shiftSlots.toSlotLabel ||
+        '';
+    const currentWindowCard = currentSlotLabel
+        ? windowBySlot.get(currentSlotLabel.toLowerCase()) || null
+        : null;
+    const currentEtaLabel = formatQueueEstimatedWindow(
+        currentWindowCard?.etaMinutes
+    );
+
+    if (
+        shiftItem &&
+        shiftItem.tone !== 'ready' &&
+        shiftSlots.fromSlotLabel &&
+        shiftSlots.toSlotLabel
+    ) {
+        const targetWindowCard =
+            windowBySlot.get(shiftSlots.toSlotLabel.toLowerCase()) || null;
+        const targetEtaLabel = formatQueueEstimatedWindow(
+            targetWindowCard?.etaMinutes
+        );
+        const visibleGain = formatQueueEstimatedGain(
+            currentWindowCard?.etaMinutes,
+            targetWindowCard?.etaMinutes
+        );
+
+        return {
+            key,
+            tone: shiftItem.tone === 'warning' ? 'warning' : 'suggested',
+            label,
+            headline: `${label} -> reabrir hacia ${shiftSlots.toSlotLabel}`,
+            phrase: `Si ya se venció la referencia por ${shiftSlots.fromSlotLabel}, reabra la conversación y ofrezca moverlo a ${shiftSlots.toSlotLabel}: hoy la nueva ventana visible baja a ${targetEtaLabel}.`,
+            support:
+                `Ganancia visible: ${visibleGain}. ${shiftItem.support}`.trim(),
+            actionLabel: shiftItem.actionLabel,
+            actionUrl: shiftItem.actionUrl,
+        };
+    }
+
+    const effectiveSlotLabel = currentSlotLabel || 'el carril actual';
+
+    return {
+        key,
+        tone: followupItem.tone === 'warning' ? 'warning' : 'ready',
+        label,
+        headline: `${label} -> reabrir sobre ${effectiveSlotLabel}`,
+        phrase: `Si la referencia por ${effectiveSlotLabel} ya se venció, reabra solo para actualizar la nueva ventana visible (${currentEtaLabel}) y confirmar que sigue por el mismo carril.`,
+        support:
+            `No hace falta prometer otro cambio mientras no haya un carril mejor. ${followupItem.support}`.trim(),
+        actionLabel: followupItem.actionLabel,
+        actionUrl: followupItem.actionUrl,
+    };
+}
+
+function buildQueueDeskEscalationReopenRuleItem(shiftPanel, windows) {
+    const topShift =
+        (shiftPanel?.items || []).find(
+            (item) => item.tone === 'warning' || item.tone === 'suggested'
+        ) ||
+        (shiftPanel?.items || [])[0] ||
+        null;
+    const rankedCards = [...(windows?.cards || [])].sort((left, right) => {
+        const leftEta = Number(left?.etaMinutes || Number.POSITIVE_INFINITY);
+        const rightEta = Number(right?.etaMinutes || Number.POSITIVE_INFINITY);
+        if (leftEta !== rightEta) {
+            return leftEta - rightEta;
+        }
+        return Number(left?.slot || 0) - Number(right?.slot || 0);
+    });
+    const best = rankedCards[0] || null;
+    const next = rankedCards[1] || null;
+    const bestSlotLabel = String(best?.slotKey || '').toUpperCase();
+    const nextSlotLabel = String(next?.slotKey || '').toUpperCase();
+    const bestEtaLabel = formatQueueEstimatedWindow(best?.etaMinutes);
+    const nextEtaLabel = formatQueueEstimatedWindow(next?.etaMinutes);
+
+    return {
+        key: 'rule',
+        tone: topShift?.tone || (best ? best.tone : 'ready') || 'ready',
+        label: 'Regla de reapertura',
+        headline: 'Reabrir por ventana vencida, no por presión',
+        phrase: next
+            ? `Si la escala confirmada vuelve a vencerse, primero actualice la ventana visible del carril resuelto y solo ofrezca otro cambio si el otro carril gana al menos ${formatQueueEstimatedWindow(
+                  QUEUE_ESTIMATED_SERVICE_MINUTES
+              )}.`
+            : `Si la escala confirmada vuelve a vencerse, actualice la ventana visible del mismo carril y evite prometer un nuevo cambio sin otra referencia real.`,
+        support: next
+            ? `Comparación viva actual: ${bestSlotLabel} (${bestEtaLabel}) vs ${nextSlotLabel} (${nextEtaLabel}).`
+            : 'Solo hay un carril comparable ahora mismo; no hace falta abrir otra promesa.',
+        actionLabel:
+            topShift?.actionLabel || best?.actionLabel || 'Abrir operador',
+        actionUrl:
+            topShift?.actionUrl || best?.actionUrl || '/admin.html#queue',
+    };
+}
+
+function buildQueueDeskEscalationReopenPanel(manifest, detectedPlatform) {
+    const windows = buildQueueWindowDeck(manifest, detectedPlatform);
+    const followupPanel = buildQueueDeskEscalationFollowupPanel(
+        manifest,
+        detectedPlatform
+    );
+    const shiftPanel = buildQueueDeskShiftPanel(manifest, detectedPlatform);
+    const windowBySlot = new Map(
+        (windows.cards || []).map((card) => [card.slotKey, card])
+    );
+    const followupByKey = new Map(
+        (followupPanel.items || []).map((item) => [item.key, item])
+    );
+    const shiftByKey = new Map(
+        (shiftPanel.items || []).map((item) => [item.key, item])
+    );
+
+    const items = [
+        buildQueueDeskEscalationReopenItem(
+            'Con cita',
+            'appointment',
+            followupByKey.get('appointment') || null,
+            shiftByKey.get('appointment') || null,
+            windowBySlot
+        ),
+        buildQueueDeskEscalationReopenItem(
+            'Sin cita',
+            'walkin',
+            followupByKey.get('walkin') || null,
+            shiftByKey.get('walkin') || null,
+            windowBySlot
+        ),
+        buildQueueDeskEscalationReopenRuleItem(shiftPanel, windows),
+    ].filter(Boolean);
+    const top =
+        items.find((item) => item.tone === 'warning') ||
+        items.find((item) => item.tone === 'suggested') ||
+        items[0] ||
+        null;
+
+    return {
+        title: 'Reapertura de escala',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay reapertura de escala visible ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} reapertura(s) listas`
+            : 'Sin reapertura visible',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function copyQueueDeskEscalationReopenPanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Reapertura de escala - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin reapertura visible.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Reapertura de escala copiada', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar la reapertura de escala', 'error');
+        });
+}
+
+function renderQueueDeskEscalationReopenPanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskEscalationReopen');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskEscalationReopenPanel(
+        manifest,
+        detectedPlatform
+    );
+    setHtml(
+        '#queueDeskEscalationReopen',
+        `
+            <section class="queue-desk-closeout__shell queue-desk-escalation-reopen__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-closeout__header queue-desk-escalation-reopen__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Qué hacer si la nueva referencia también se vence</p>
+                        <h5 id="queueDeskEscalationReopenTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskEscalationReopenSummary" class="queue-desk-closeout__summary queue-desk-escalation-reopen__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-closeout__meta queue-desk-escalation-reopen__meta">
+                        <span
+                            id="queueDeskEscalationReopenStatus"
+                            class="queue-desk-closeout__status queue-desk-escalation-reopen__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskEscalationReopenCopyBtn"
+                            type="button"
+                            class="queue-desk-closeout__action queue-desk-escalation-reopen__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar reapertura
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskEscalationReopenItems" class="queue-desk-closeout__grid queue-desk-escalation-reopen__grid" role="list" aria-label="Reapertura de escala por tipo">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskEscalationReopenItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-closeout__item queue-desk-escalation-reopen__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-closeout__head queue-desk-escalation-reopen__head">
+                                                    <div>
+                                                        <p class="queue-desk-closeout__lane queue-desk-escalation-reopen__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskEscalationReopenHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskEscalationReopenPhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__phrase queue-desk-escalation-reopen__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskEscalationReopenSupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__support queue-desk-escalation-reopen__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-closeout__actions queue-desk-escalation-reopen__actions">
+                                                    <a
+                                                        id="queueDeskEscalationReopenOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-closeout__open queue-desk-escalation-reopen__open"
+                                                        data-queue-desk-escalation-reopen-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskEscalationReopenEmpty" class="queue-desk-closeout__empty queue-desk-escalation-reopen__empty">
+                                <strong>Sin reapertura visible</strong>
+                                <p>Hace falta más contexto de cola para preparar la reapertura tras la escala.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById(
+        'queueDeskEscalationReopenCopyBtn'
+    );
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskEscalationReopenPanel(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-desk-escalation-reopen-label]').forEach(
+        (link) => {
+            if (!(link instanceof HTMLAnchorElement)) {
+                return;
+            }
+            link.onclick = () => {
+                const label = String(
+                    link.dataset.queueDeskEscalationReopenLabel || ''
+                ).trim();
+                appendOpsLogEntry({
+                    source: 'desk_escalation_reopen',
+                    tone: 'info',
+                    title: 'Reapertura de escala: operador abierto',
+                    summary: `${label || 'Mostrador'} quedó abierto desde la reapertura de escala.`,
+                });
+            };
+        }
+    );
+}
+
+function buildQueueDeskEscalationLimitItem(
+    label,
+    key,
+    reopenItem,
+    blockers,
+    sla
+) {
+    if (!reopenItem) {
+        return null;
+    }
+
+    const slotLabel =
+        extractQueueDeskOperatorSlotLabel(reopenItem) ||
+        extractQueueDeskEscalationSlots(reopenItem).toSlotLabel ||
+        'OPERACIÓN';
+    const blockerItem = Array.isArray(blockers?.items)
+        ? blockers.items.find((item) => {
+              const lane = String(item?.laneLabel || '')
+                  .trim()
+                  .toUpperCase();
+              return (
+                  lane === slotLabel ||
+                  lane === 'GENERAL' ||
+                  lane === 'SENSIBLE'
+              );
+          }) || null
+        : null;
+    const slaItem = Array.isArray(sla?.items)
+        ? sla.items.find((item) => {
+              const lane = String(item?.laneLabel || '')
+                  .trim()
+                  .toUpperCase();
+              return lane === slotLabel || lane === 'GENERAL';
+          }) || null
+        : null;
+    const blockerActive =
+        blockerItem &&
+        ['warning', 'alert', 'active'].includes(
+            String(blockerItem.state || '')
+                .trim()
+                .toLowerCase()
+        );
+    const slaActive =
+        slaItem &&
+        ['warning', 'alert'].includes(
+            String(slaItem.state || '')
+                .trim()
+                .toLowerCase()
+        );
+    const hardLimit = blockerActive || slaActive;
+    const signalLabel = blockerActive
+        ? blockerItem.headline
+        : slaActive
+          ? slaItem?.headline || 'presión SLA visible'
+          : '';
+    const signalSupport = blockerActive
+        ? blockerItem.support
+        : slaActive
+          ? slaItem?.support || 'Hay presión viva en este carril.'
+          : '';
+
+    if (hardLimit) {
+        return {
+            key,
+            tone: 'warning',
+            label,
+            headline: `${label} -> dejar mostrador y abrir ${slotLabel}`,
+            phrase: `Si vuelve a correrse otra vez, ya no prometa otro ajuste en mostrador: abra ${slotLabel} y cierre la decisión desde operación porque ya hay una señal viva en ese carril.`,
+            support: `${signalLabel}. ${signalSupport}`.trim(),
+            actionLabel: reopenItem.actionLabel,
+            actionUrl: reopenItem.actionUrl,
+        };
+    }
+
+    return {
+        key,
+        tone: reopenItem.tone === 'warning' ? 'warning' : 'suggested',
+        label,
+        headline: `${label} -> tope verbal en ${slotLabel}`,
+        phrase: `Si vuelve a correrse otra vez, no prometa una tercera ventana verbal; abra ${slotLabel} y confirme ahí si se sostiene el mismo carril o si se mueve de verdad.`,
+        support:
+            `Después de una reapertura, el siguiente ajuste ya debe salir desde operación. ${reopenItem.support}`.trim(),
+        actionLabel: reopenItem.actionLabel,
+        actionUrl: reopenItem.actionUrl,
+    };
+}
+
+function buildQueueDeskEscalationLimitRuleItem(reopenPanel, blockers, sla) {
+    const topReopen =
+        (reopenPanel?.items || []).find(
+            (item) => item.tone === 'warning' || item.tone === 'suggested'
+        ) ||
+        (reopenPanel?.items || [])[0] ||
+        null;
+    const topBlocker = Array.isArray(blockers?.items)
+        ? blockers.items[0] || null
+        : null;
+    const topSla = Array.isArray(sla?.items) ? sla.items[0] || null : null;
+    const strongestSignal =
+        (topBlocker &&
+            ['warning', 'alert', 'active'].includes(
+                String(topBlocker.state || '')
+                    .trim()
+                    .toLowerCase()
+            ) &&
+            topBlocker) ||
+        (topSla &&
+            ['warning', 'alert'].includes(
+                String(topSla.state || '')
+                    .trim()
+                    .toLowerCase()
+            ) &&
+            topSla) ||
+        null;
+
+    return {
+        key: 'rule',
+        tone: strongestSignal ? 'warning' : topReopen?.tone || 'ready',
+        label: 'Regla límite',
+        headline: 'No abrir una tercera negociación en mostrador',
+        phrase: 'Después de una reapertura, la siguiente conversación ya no va por guion: o actualiza una sola ventana o abre operador; evita prometer un tercer ajuste desde mostrador.',
+        support: strongestSignal
+            ? `${strongestSignal.headline}. ${strongestSignal.support}`
+            : 'Si la referencia vuelve a correrse otra vez, la resolución debe pasar a operación con la cola viva delante.',
+        actionLabel: topReopen?.actionLabel || 'Abrir operador',
+        actionUrl: topReopen?.actionUrl || '/admin.html#queue',
+    };
+}
+
+function buildQueueDeskEscalationLimitPanel(manifest, detectedPlatform) {
+    const reopenPanel = buildQueueDeskEscalationReopenPanel(
+        manifest,
+        detectedPlatform
+    );
+    const blockers = buildQueueBlockersPanel(manifest, detectedPlatform);
+    const sla = buildQueueSlaDeck(manifest, detectedPlatform);
+    const reopenByKey = new Map(
+        (reopenPanel.items || []).map((item) => [item.key, item])
+    );
+
+    const items = [
+        buildQueueDeskEscalationLimitItem(
+            'Con cita',
+            'appointment',
+            reopenByKey.get('appointment') || null,
+            blockers,
+            sla
+        ),
+        buildQueueDeskEscalationLimitItem(
+            'Sin cita',
+            'walkin',
+            reopenByKey.get('walkin') || null,
+            blockers,
+            sla
+        ),
+        buildQueueDeskEscalationLimitRuleItem(reopenPanel, blockers, sla),
+    ].filter(Boolean);
+    const top =
+        items.find((item) => item.tone === 'warning') ||
+        items.find((item) => item.tone === 'suggested') ||
+        items[0] ||
+        null;
+
+    return {
+        title: 'Límite de reapertura',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay límite de reapertura visible ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} límite(s) listos`
+            : 'Sin límite visible',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function copyQueueDeskEscalationLimitPanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Límite de reapertura - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin límite visible.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Límite de reapertura copiado', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar el límite de reapertura', 'error');
+        });
+}
+
+function renderQueueDeskEscalationLimitPanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskEscalationLimit');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskEscalationLimitPanel(
+        manifest,
+        detectedPlatform
+    );
+    setHtml(
+        '#queueDeskEscalationLimit',
+        `
+            <section class="queue-desk-closeout__shell queue-desk-escalation-limit__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-closeout__header queue-desk-escalation-limit__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Cuándo dejar de seguir ajustando en mostrador</p>
+                        <h5 id="queueDeskEscalationLimitTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskEscalationLimitSummary" class="queue-desk-closeout__summary queue-desk-escalation-limit__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-closeout__meta queue-desk-escalation-limit__meta">
+                        <span
+                            id="queueDeskEscalationLimitStatus"
+                            class="queue-desk-closeout__status queue-desk-escalation-limit__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskEscalationLimitCopyBtn"
+                            type="button"
+                            class="queue-desk-closeout__action queue-desk-escalation-limit__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar límite
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskEscalationLimitItems" class="queue-desk-closeout__grid queue-desk-escalation-limit__grid" role="list" aria-label="Límite de reapertura por tipo">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskEscalationLimitItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-closeout__item queue-desk-escalation-limit__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-closeout__head queue-desk-escalation-limit__head">
+                                                    <div>
+                                                        <p class="queue-desk-closeout__lane queue-desk-escalation-limit__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskEscalationLimitHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskEscalationLimitPhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__phrase queue-desk-escalation-limit__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskEscalationLimitSupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__support queue-desk-escalation-limit__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-closeout__actions queue-desk-escalation-limit__actions">
+                                                    <a
+                                                        id="queueDeskEscalationLimitOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-closeout__open queue-desk-escalation-limit__open"
+                                                        data-queue-desk-escalation-limit-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskEscalationLimitEmpty" class="queue-desk-closeout__empty queue-desk-escalation-limit__empty">
+                                <strong>Sin límite visible</strong>
+                                <p>Hace falta más contexto de cola para marcar el punto donde la conversación debe pasar a operación.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById(
+        'queueDeskEscalationLimitCopyBtn'
+    );
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskEscalationLimitPanel(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-desk-escalation-limit-label]').forEach(
+        (link) => {
+            if (!(link instanceof HTMLAnchorElement)) {
+                return;
+            }
+            link.onclick = () => {
+                const label = String(
+                    link.dataset.queueDeskEscalationLimitLabel || ''
+                ).trim();
+                appendOpsLogEntry({
+                    source: 'desk_escalation_limit',
+                    tone: 'warning',
+                    title: 'Límite de reapertura: operador abierto',
+                    summary: `${label || 'Mostrador'} quedó abierto desde el límite de reapertura.`,
+                });
+            };
+        }
+    );
+}
+
+function buildQueueDeskEscalationBridgeItem(label, key, limitItem) {
+    if (!limitItem) {
+        return null;
+    }
+
+    const slotLabel =
+        extractQueueDeskOperatorSlotLabel(limitItem) ||
+        extractQueueDeskEscalationSlots(limitItem).toSlotLabel ||
+        'OPERACIÓN';
+    const hardLimit =
+        String(limitItem.tone || '')
+            .trim()
+            .toLowerCase() === 'warning';
+
+    return {
+        key,
+        tone: hardLimit ? 'warning' : 'suggested',
+        label,
+        headline: `${label} -> puente corto con ${slotLabel}`,
+        phrase: hardLimit
+            ? `Para no seguirle corriendo la espera, voy a validarlo ahora con ${slotLabel}; mantenga su ticket a mano y le confirmamos el ajuste desde operación.`
+            : `Ya no le voy a prometer otra ventana aquí: lo validamos con ${slotLabel} y en cuanto quede resuelto le confirmamos si sigue igual o cambia de carril.`,
+        support:
+            `Mostrador ya llegó a su límite útil; el siguiente ajuste debe salir desde ${slotLabel}. ${limitItem.support}`.trim(),
+        actionLabel: limitItem.actionLabel,
+        actionUrl: limitItem.actionUrl,
+    };
+}
+
+function buildQueueDeskEscalationBridgeRuleItem(limitPanel) {
+    const topLimit =
+        (limitPanel?.items || []).find(
+            (item) => item.tone === 'warning' || item.tone === 'suggested'
+        ) ||
+        (limitPanel?.items || [])[0] ||
+        null;
+
+    return {
+        key: 'rule',
+        tone: topLimit?.tone || 'ready',
+        label: 'Regla de puente',
+        headline: 'Cerrar mostrador con un solo puente a operación',
+        phrase: 'Cuando el caso ya llegó a límite, cierre el mostrador con un puente corto a operación: abra el operador, evite discutir otra ventana y confirme una sola salida.',
+        support: topLimit
+            ? topLimit.support
+            : 'Si no hay señal nueva, solo hace falta un traspaso breve a operación para resolver la decisión viva.',
+        actionLabel: topLimit?.actionLabel || 'Abrir operador',
+        actionUrl: topLimit?.actionUrl || '/admin.html#queue',
+    };
+}
+
+function buildQueueDeskEscalationBridgePanel(manifest, detectedPlatform) {
+    const limitPanel = buildQueueDeskEscalationLimitPanel(
+        manifest,
+        detectedPlatform
+    );
+    const limitByKey = new Map(
+        (limitPanel.items || []).map((item) => [item.key, item])
+    );
+    const items = [
+        buildQueueDeskEscalationBridgeItem(
+            'Con cita',
+            'appointment',
+            limitByKey.get('appointment') || null
+        ),
+        buildQueueDeskEscalationBridgeItem(
+            'Sin cita',
+            'walkin',
+            limitByKey.get('walkin') || null
+        ),
+        buildQueueDeskEscalationBridgeRuleItem(limitPanel),
+    ].filter(Boolean);
+    const top =
+        items.find((item) => item.tone === 'warning') ||
+        items.find((item) => item.tone === 'suggested') ||
+        items[0] ||
+        null;
+
+    return {
+        title: 'Puente a operación',
+        summary: top
+            ? `${top.label}: ${top.phrase}`
+            : 'No hay puente a operación visible ahora mismo.',
+        statusLabel: items.length
+            ? `${items.length} puente(s) listos`
+            : 'Sin puente visible',
+        statusState: top ? top.tone : 'idle',
+        items,
+    };
+}
+
+function copyQueueDeskEscalationBridgePanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Puente a operación - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin puente visible.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Puente a operación copiado', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar el puente a operación', 'error');
+        });
+}
+
+function renderQueueDeskEscalationBridgePanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskEscalationBridge');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskEscalationBridgePanel(
+        manifest,
+        detectedPlatform
+    );
+    setHtml(
+        '#queueDeskEscalationBridge',
+        `
+            <section class="queue-desk-closeout__shell queue-desk-escalation-bridge__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-closeout__header queue-desk-escalation-bridge__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Qué decir cuando el caso ya pasa a operación</p>
+                        <h5 id="queueDeskEscalationBridgeTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskEscalationBridgeSummary" class="queue-desk-closeout__summary queue-desk-escalation-bridge__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-closeout__meta queue-desk-escalation-bridge__meta">
+                        <span
+                            id="queueDeskEscalationBridgeStatus"
+                            class="queue-desk-closeout__status queue-desk-escalation-bridge__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskEscalationBridgeCopyBtn"
+                            type="button"
+                            class="queue-desk-closeout__action queue-desk-escalation-bridge__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar puente
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskEscalationBridgeItems" class="queue-desk-closeout__grid queue-desk-escalation-bridge__grid" role="list" aria-label="Puente a operación por tipo">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskEscalationBridgeItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-closeout__item queue-desk-escalation-bridge__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-closeout__head queue-desk-escalation-bridge__head">
+                                                    <div>
+                                                        <p class="queue-desk-closeout__lane queue-desk-escalation-bridge__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskEscalationBridgeHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskEscalationBridgePhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__phrase queue-desk-escalation-bridge__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskEscalationBridgeSupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__support queue-desk-escalation-bridge__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-closeout__actions queue-desk-escalation-bridge__actions">
+                                                    <a
+                                                        id="queueDeskEscalationBridgeOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-closeout__open queue-desk-escalation-bridge__open"
+                                                        data-queue-desk-escalation-bridge-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskEscalationBridgeEmpty" class="queue-desk-closeout__empty queue-desk-escalation-bridge__empty">
+                                <strong>Sin puente visible</strong>
+                                <p>Hace falta más contexto de cola para preparar el traspaso breve a operación.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById(
+        'queueDeskEscalationBridgeCopyBtn'
+    );
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskEscalationBridgePanel(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-desk-escalation-bridge-label]').forEach(
+        (link) => {
+            if (!(link instanceof HTMLAnchorElement)) {
+                return;
+            }
+            link.onclick = () => {
+                const label = String(
+                    link.dataset.queueDeskEscalationBridgeLabel || ''
+                ).trim();
+                appendOpsLogEntry({
+                    source: 'desk_escalation_bridge',
+                    tone: 'warning',
+                    title: 'Puente a operación: operador abierto',
+                    summary: `${label || 'Mostrador'} quedó abierto desde el puente a operación.`,
+                });
+            };
+        }
+    );
+}
+
+function copyQueueDeskPromisePanel(panel) {
+    if (!panel) {
+        return Promise.resolve();
+    }
+    const report = [
+        `Promesa segura - ${formatDateTime(new Date().toISOString())}`,
+        `Estado: ${panel.statusLabel}`,
+        panel.summary,
+        '',
+        ...(panel.items.length
+            ? panel.items.map((item, index) =>
+                  `${index + 1}. ${item.label}: ${item.phrase} ${item.support}`.trim()
+              )
+            : ['Sin promesa visible.']),
+    ];
+    return navigator.clipboard
+        .writeText(report.join('\n').trim())
+        .then(() => {
+            createToast('Promesa segura copiada', 'success');
+        })
+        .catch(() => {
+            createToast('No se pudo copiar la promesa segura', 'error');
+        });
+}
+
+function renderQueueDeskPromisePanel(manifest, detectedPlatform) {
+    const root = document.getElementById('queueDeskPromise');
+    if (!(root instanceof HTMLElement)) {
+        return;
+    }
+
+    const panel = buildQueueDeskPromisePanel(manifest, detectedPlatform);
+    setHtml(
+        '#queueDeskPromise',
+        `
+            <section class="queue-desk-closeout__shell queue-desk-promise__shell" data-state="${escapeHtml(
+                panel.statusState
+            )}">
+                <div class="queue-desk-closeout__header queue-desk-promise__header">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Qué sí puede prometer recepción ahora</p>
+                        <h5 id="queueDeskPromiseTitle" class="queue-app-card__title">${escapeHtml(
+                            panel.title
+                        )}</h5>
+                        <p id="queueDeskPromiseSummary" class="queue-desk-closeout__summary queue-desk-promise__summary">${escapeHtml(
+                            panel.summary
+                        )}</p>
+                    </div>
+                    <div class="queue-desk-closeout__meta queue-desk-promise__meta">
+                        <span
+                            id="queueDeskPromiseStatus"
+                            class="queue-desk-closeout__status queue-desk-promise__status"
+                            data-state="${escapeHtml(panel.statusState)}"
+                        >
+                            ${escapeHtml(panel.statusLabel)}
+                        </span>
+                        <button
+                            id="queueDeskPromiseCopyBtn"
+                            type="button"
+                            class="queue-desk-closeout__action queue-desk-promise__action"
+                            ${panel.items.length ? '' : 'disabled'}
+                        >
+                            Copiar promesa
+                        </button>
+                    </div>
+                </div>
+                ${
+                    panel.items.length
+                        ? `
+                            <div id="queueDeskPromiseItems" class="queue-desk-closeout__grid queue-desk-promise__grid" role="list" aria-label="Promesas seguras por tipo">
+                                ${panel.items
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueDeskPromiseItem_${escapeHtml(
+                                                    item.key
+                                                )}"
+                                                class="queue-desk-closeout__item queue-desk-promise__item"
+                                                data-state="${escapeHtml(item.tone)}"
+                                                role="listitem"
+                                            >
+                                                <div class="queue-desk-closeout__head queue-desk-promise__head">
+                                                    <div>
+                                                        <p class="queue-desk-closeout__lane queue-desk-promise__lane">${escapeHtml(
+                                                            item.label
+                                                        )}</p>
+                                                        <strong id="queueDeskPromiseHeadline_${escapeHtml(
+                                                            item.key
+                                                        )}">${escapeHtml(
+                                                            item.headline
+                                                        )}</strong>
+                                                    </div>
+                                                </div>
+                                                <p id="queueDeskPromisePhrase_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__phrase queue-desk-promise__phrase">${escapeHtml(
+                                                    `"${item.phrase}"`
+                                                )}</p>
+                                                <p id="queueDeskPromiseSupport_${escapeHtml(
+                                                    item.key
+                                                )}" class="queue-desk-closeout__support queue-desk-promise__support">${escapeHtml(
+                                                    item.support
+                                                )}</p>
+                                                <div class="queue-desk-closeout__actions queue-desk-promise__actions">
+                                                    <a
+                                                        id="queueDeskPromiseOpen_${escapeHtml(
+                                                            item.key
+                                                        )}"
+                                                        href="${escapeHtml(
+                                                            item.actionUrl
+                                                        )}"
+                                                        class="queue-desk-closeout__open queue-desk-promise__open"
+                                                        data-queue-desk-promise-label="${escapeHtml(
+                                                            item.label
+                                                        )}"
+                                                        target="_blank"
+                                                        rel="noopener"
+                                                    >
+                                                        ${escapeHtml(
+                                                            item.actionLabel
+                                                        )}
+                                                    </a>
+                                                </div>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                        `
+                        : `
+                            <article id="queueDeskPromiseEmpty" class="queue-desk-closeout__empty queue-desk-promise__empty">
+                                <strong>Sin promesa visible</strong>
+                                <p>Hace falta más contexto de cola para preparar una promesa segura de mostrador.</p>
+                            </article>
+                        `
+                }
+            </section>
+        `
+    );
+
+    const copyButton = document.getElementById('queueDeskPromiseCopyBtn');
+    if (copyButton instanceof HTMLButtonElement) {
+        copyButton.onclick = () => {
+            void copyQueueDeskPromisePanel(panel);
+        };
+    }
+
+    root.querySelectorAll('[data-queue-desk-promise-label]').forEach((link) => {
+        if (!(link instanceof HTMLAnchorElement)) {
+            return;
+        }
+        link.onclick = () => {
+            const label = String(
+                link.dataset.queueDeskPromiseLabel || ''
+            ).trim();
+            appendOpsLogEntry({
+                source: 'desk_promise',
+                tone: 'info',
+                title: 'Promesa segura: operador abierto',
+                summary: `${label || 'Mostrador'} quedó abierto desde la promesa segura.`,
+            });
+        };
+    });
+}
+
 function getQueueBlockerWeight(item) {
     const action = String(item?.actionLabel || '')
         .trim()
@@ -16506,6 +19605,15 @@ function rerenderQueueOpsHub(manifest, detectedPlatform) {
     renderQueueDeskObjectionsPanel(manifest, detectedPlatform);
     renderQueueDeskCloseoutPanel(manifest, detectedPlatform);
     renderQueueDeskRecheckPanel(manifest, detectedPlatform);
+    renderQueueDeskShiftPanel(manifest, detectedPlatform);
+    renderQueueDeskPromisePanel(manifest, detectedPlatform);
+    renderQueueDeskEscalationPanel(manifest, detectedPlatform);
+    renderQueueDeskEscalationTalkPanel(manifest, detectedPlatform);
+    renderQueueDeskEscalationConfirmPanel(manifest, detectedPlatform);
+    renderQueueDeskEscalationFollowupPanel(manifest, detectedPlatform);
+    renderQueueDeskEscalationReopenPanel(manifest, detectedPlatform);
+    renderQueueDeskEscalationLimitPanel(manifest, detectedPlatform);
+    renderQueueDeskEscalationBridgePanel(manifest, detectedPlatform);
     renderQueueBlockersPanel(manifest, detectedPlatform);
     renderQueueSlaDeck(manifest, detectedPlatform);
     renderQueueWaitRadar(manifest, detectedPlatform);
@@ -16953,6 +20061,15 @@ export function renderQueueInstallHub(options = {}) {
     renderQueueDeskObjectionsPanel(manifest, platform);
     renderQueueDeskCloseoutPanel(manifest, platform);
     renderQueueDeskRecheckPanel(manifest, platform);
+    renderQueueDeskShiftPanel(manifest, platform);
+    renderQueueDeskPromisePanel(manifest, platform);
+    renderQueueDeskEscalationPanel(manifest, platform);
+    renderQueueDeskEscalationTalkPanel(manifest, platform);
+    renderQueueDeskEscalationConfirmPanel(manifest, platform);
+    renderQueueDeskEscalationFollowupPanel(manifest, platform);
+    renderQueueDeskEscalationReopenPanel(manifest, platform);
+    renderQueueDeskEscalationLimitPanel(manifest, platform);
+    renderQueueDeskEscalationBridgePanel(manifest, platform);
     renderQueueBlockersPanel(manifest, platform);
     renderQueueSlaDeck(manifest, platform);
     renderQueueWaitRadar(manifest, platform);

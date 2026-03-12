@@ -63,6 +63,15 @@ export function renderQueueAppsHub() {
             <div id="queueDeskObjections" class="queue-desk-objections" data-focus-match="opening operations incidents closing"></div>
             <div id="queueDeskCloseout" class="queue-desk-closeout" data-focus-match="opening operations incidents closing"></div>
             <div id="queueDeskRecheck" class="queue-desk-recheck" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueDeskShift" class="queue-desk-shift" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueDeskPromise" class="queue-desk-promise" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueDeskEscalation" class="queue-desk-escalation" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueDeskEscalationTalk" class="queue-desk-escalation-talk" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueDeskEscalationConfirm" class="queue-desk-escalation-confirm" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueDeskEscalationFollowup" class="queue-desk-escalation-followup" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueDeskEscalationReopen" class="queue-desk-escalation-reopen" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueDeskEscalationLimit" class="queue-desk-escalation-limit" data-focus-match="opening operations incidents closing"></div>
+            <div id="queueDeskEscalationBridge" class="queue-desk-escalation-bridge" data-focus-match="opening operations incidents closing"></div>
             <div id="queueBlockers" class="queue-blockers" data-focus-match="opening operations incidents closing"></div>
             <div id="queueSlaDeck" class="queue-sla-deck" data-focus-match="opening operations incidents closing"></div>
             <div id="queueWaitRadar" class="queue-wait-radar" data-focus-match="opening operations incidents closing" data-queue-domain-match="operations incidents"></div>
