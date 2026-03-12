@@ -125,6 +125,69 @@ function buildFixtureState() {
             calendarReachable: true,
             generatedAt: new Date().toISOString(),
         },
+        clinicalHistoryMeta: {
+            summary: {
+                reviewQueueCount: 1,
+                latestActivityAt: isoMinutesAgo(8),
+                sessions: {
+                    total: 1,
+                },
+                drafts: {
+                    total: 1,
+                    pendingAiCount: 0,
+                    reviewQueueCount: 1,
+                },
+                events: {
+                    total: 1,
+                    openCount: 1,
+                    unreadCount: 1,
+                },
+            },
+            reviewQueue: [
+                {
+                    sessionId: 'chs_001',
+                    caseId: 'CASE-001',
+                    appointmentId: 991,
+                    surface: 'waiting_room',
+                    sessionStatus: 'review_required',
+                    reviewStatus: 'review_required',
+                    requiresHumanReview: true,
+                    confidence: 0.74,
+                    reviewReasons: ['pediatria', 'alergias'],
+                    missingFields: ['desencadenantes'],
+                    redFlags: ['lesiones pruriginosas'],
+                    pendingAiStatus: '',
+                    patientName: 'Sofia Vega',
+                    patientEmail: 'sofia@example.com',
+                    patientPhone: '+593 99 777 8888',
+                    attachmentCount: 1,
+                    summary:
+                        'Brotes pruriginosos en codos y cuello desde hace 2 semanas.',
+                    createdAt: isoMinutesAgo(120),
+                    updatedAt: isoMinutesAgo(8),
+                },
+            ],
+            events: [
+                {
+                    eventId: 'evt_001',
+                    sessionId: 'chs_001',
+                    caseId: 'CASE-001',
+                    appointmentId: 991,
+                    type: 'guardrail',
+                    severity: 'warning',
+                    status: 'open',
+                    title: 'Revision pediatrica sugerida',
+                    message:
+                        'El caso requiere firma humana por edad y alergias.',
+                    patientName: 'Sofia Vega',
+                    reviewStatus: 'review_required',
+                    requiresHumanReview: true,
+                    confidence: 0.74,
+                    createdAt: isoMinutesAgo(10),
+                    occurredAt: isoMinutesAgo(10),
+                },
+            ],
+        },
         funnel: {
             summary: {
                 viewBooking: 120,
@@ -143,8 +206,130 @@ function buildFixtureState() {
     };
 }
 
+function buildClinicalReviewFixture() {
+    return {
+        session: {
+            sessionId: 'chs_001',
+            caseId: 'CASE-001',
+            appointmentId: 991,
+            surface: 'waiting_room',
+            status: 'review_required',
+            patient: {
+                name: 'Sofia Vega',
+                email: 'sofia@example.com',
+                phone: '+593 99 777 8888',
+                ageYears: 14,
+                weightKg: 52,
+                sexAtBirth: 'femenino',
+                pregnant: false,
+            },
+            transcript: [
+                {
+                    id: 'msg_patient_1',
+                    role: 'user',
+                    actor: 'patient',
+                    content: 'Tengo ronchas que pican mucho en codos y cuello.',
+                    surface: 'waiting_room',
+                    createdAt: isoMinutesAgo(26),
+                },
+                {
+                    id: 'msg_ai_1',
+                    role: 'assistant',
+                    actor: 'clinical_intake',
+                    content:
+                        'Gracias. Ya registre tu motivo de consulta y la picazon.',
+                    surface: 'waiting_room',
+                    createdAt: isoMinutesAgo(22),
+                },
+            ],
+            pendingAi: {},
+            metadata: {},
+            createdAt: isoMinutesAgo(30),
+            updatedAt: isoMinutesAgo(8),
+            lastMessageAt: isoMinutesAgo(22),
+        },
+        draft: {
+            sessionId: 'chs_001',
+            caseId: 'CASE-001',
+            appointmentId: 991,
+            reviewStatus: 'review_required',
+            requiresHumanReview: true,
+            confidence: 0.74,
+            reviewReasons: ['pediatria', 'alergias'],
+            intake: {
+                motivoConsulta: 'Ronchas pruriginosas',
+                enfermedadActual:
+                    'Brotes pruriginosos en codos y cuello de 2 semanas de evolucion.',
+                antecedentes: 'Dermatitis atopica en la infancia.',
+                alergias: 'Penicilina',
+                medicacionActual: 'Ninguna',
+                rosRedFlags: ['Prurito nocturno'],
+                adjuntos: [
+                    {
+                        id: 1,
+                        kind: 'photo',
+                        originalName: 'brote-codo.jpg',
+                        mime: 'image/jpeg',
+                        size: 20480,
+                        privatePath: 'clinical/private/brote-codo.jpg',
+                        appointmentId: 991,
+                    },
+                ],
+                resumenClinico:
+                    'Paciente adolescente con brotes pruriginosos y antecedentes atopicos.',
+                preguntasFaltantes: ['Confirmar desencadenantes'],
+                datosPaciente: {
+                    edadAnios: 14,
+                    pesoKg: 52,
+                    sexoBiologico: 'femenino',
+                    embarazo: false,
+                },
+            },
+            clinicianDraft: {
+                resumen:
+                    'Dermatitis en estudio con necesidad de validar desencadenantes.',
+                preguntasFaltantes: ['Confirmar contacto con irritantes'],
+                cie10Sugeridos: ['L20.9'],
+                tratamientoBorrador:
+                    'Emoliente BID mientras se confirma diagnostico.',
+                posologiaBorrador: {
+                    texto: 'Emoliente BID',
+                    baseCalculo: 'Plan de soporte inicial',
+                    pesoKg: 52,
+                    edadAnios: 14,
+                    units: 'aplicaciones/dia',
+                    ambiguous: true,
+                },
+            },
+            pendingAi: {},
+            updatedAt: isoMinutesAgo(8),
+            createdAt: isoMinutesAgo(30),
+        },
+        events: [
+            {
+                eventId: 'evt_001',
+                sessionId: 'chs_001',
+                type: 'guardrail',
+                severity: 'warning',
+                status: 'open',
+                title: 'Revision pediatrica sugerida',
+                message: 'El caso requiere firma humana por edad y alergias.',
+                requiresAction: true,
+                occurredAt: isoMinutesAgo(10),
+                patient: {
+                    name: 'Sofia Vega',
+                },
+            },
+        ],
+    };
+}
+
 async function setupSonyV3Mocks(page) {
     const state = buildFixtureState();
+    const clinicalReview = buildClinicalReviewFixture();
+    const calls = {
+        lastClinicalPatch: null,
+    };
 
     await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
         jsonResponse(route, {
@@ -179,6 +364,7 @@ async function setupSonyV3Mocks(page) {
                     reviews: state.reviews,
                     availability: state.availability,
                     availabilityMeta: state.availabilityMeta,
+                    clinicalHistoryMeta: state.clinicalHistoryMeta,
                 },
             });
         }
@@ -198,12 +384,47 @@ async function setupSonyV3Mocks(page) {
             });
         }
 
+        if (resource === 'clinical-history-review') {
+            if (route.request().method() === 'PATCH') {
+                calls.lastClinicalPatch = route.request().postDataJSON();
+                const patch = calls.lastClinicalPatch || {};
+                const clinicianDraft = patch?.draft?.clinicianDraft || {};
+                if (typeof clinicianDraft.resumen === 'string') {
+                    clinicalReview.draft.clinicianDraft.resumen =
+                        clinicianDraft.resumen;
+                }
+                if (patch.approve === true) {
+                    clinicalReview.draft.reviewStatus = 'approved';
+                    clinicalReview.draft.requiresHumanReview = false;
+                    clinicalReview.session.status = 'approved';
+                    state.clinicalHistoryMeta.reviewQueue = [];
+                    state.clinicalHistoryMeta.summary.reviewQueueCount = 0;
+                }
+                clinicalReview.draft.updatedAt = new Date().toISOString();
+                return jsonResponse(route, {
+                    ok: true,
+                    data: clinicalReview,
+                });
+            }
+
+            return jsonResponse(route, {
+                ok: true,
+                data: clinicalReview,
+            });
+        }
+
         return jsonResponse(route, { ok: true, data: {} });
     });
+
+    return {
+        state,
+        clinicalReview,
+        calls,
+    };
 }
 
 async function openAdminSonyV3(page) {
-    await setupSonyV3Mocks(page);
+    const fixture = await setupSonyV3Mocks(page);
     await page.goto('/admin.html');
     await expect(page.locator('html')).toHaveAttribute(
         'data-admin-ui',
@@ -211,6 +432,7 @@ async function openAdminSonyV3(page) {
     );
     await expect(page.locator('body')).toHaveClass(/admin-v3-mode/);
     await expect(page.locator('#adminDashboard')).toBeVisible();
+    return fixture;
 }
 
 test.describe('Admin sony_v3 shell', () => {
@@ -236,10 +458,9 @@ test.describe('Admin sony_v3 shell', () => {
         await expect(page.locator('#opsTodaySummaryCard')).toBeVisible();
         await expect(page.locator('#opsPendingSummaryCard')).toBeVisible();
         await expect(page.locator('#opsAvailabilitySummaryCard')).toBeVisible();
-        await expect(page.locator('#dashboardAdvancedAnalytics')).not.toHaveJSProperty(
-            'open',
-            true
-        );
+        await expect(
+            page.locator('#dashboardAdvancedAnalytics')
+        ).not.toHaveJSProperty('open', true);
         await expect(page.locator('#adminCommandPalette')).toHaveClass(
             /is-hidden/
         );
@@ -278,5 +499,45 @@ test.describe('Admin sony_v3 shell', () => {
         await expect(page.locator('#appointmentsFocusPatient')).toContainText(
             'Ana Transfer'
         );
+    });
+
+    test('abre la revision clinica desde dashboard y guarda el borrador medico', async ({
+        page,
+    }) => {
+        const fixture = await openAdminSonyV3(page);
+
+        await page
+            .locator(
+                '#dashboardClinicalHistoryActions [data-action="context-open-clinical-history"]'
+            )
+            .first()
+            .click();
+
+        await expect(page.locator('#clinical-history')).toHaveClass(/active/);
+        await expect(page.locator('#clinicalHistoryTranscript')).toContainText(
+            'Tengo ronchas que pican mucho en codos y cuello.'
+        );
+        await expect(page.locator('#clinicalHistoryQueueList')).toContainText(
+            'Sofia Vega'
+        );
+
+        await page
+            .locator('#clinician_resumen')
+            .fill('Resumen ajustado por staff.');
+        await page.locator('#clinicalHistorySaveBtn').click();
+
+        await expect
+            .poll(
+                () =>
+                    fixture.calls.lastClinicalPatch?.draft?.clinicianDraft
+                        ?.resumen
+            )
+            .toBe('Resumen ajustado por staff.');
+        await expect(
+            page.locator('#clinicalHistoryDraftSummary')
+        ).toContainText('Sofia Vega');
+        await expect(
+            page.locator('#clinicalHistoryDraftMeta')
+        ).not.toContainText('Cambios sin guardar');
     });
 });
