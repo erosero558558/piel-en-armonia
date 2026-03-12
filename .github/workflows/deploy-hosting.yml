@@ -462,6 +462,7 @@ jobs:
             TELEMEDICINE_DEPLOY_FAILURES: -1
             TELEMEDICINE_DEPLOY_NON_TELE_FAILURES: -1
             TRANSPORT_PREFLIGHT_REASON: not_evaluated
+            TRANSPORT_PREFLIGHT_TARGET: not_evaluated
 
         steps:
             - name: Checkout
@@ -553,6 +554,57 @@ jobs:
                     echo "::error::No se puede abrir ${HOST}:${PORT} desde GitHub Runner."
                     exit 1
                   fi
+
+            - name: Hydrate transport preflight status
+              if: ${{ always() && env.FTP_DRY_RUN != 'true' }}
+              id: transport_preflight_status
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  node <<'NODE'
+                  const fs = require('node:fs');
+
+                  const outputPath = process.env.GITHUB_OUTPUT;
+                  const envPath = process.env.GITHUB_ENV;
+                  const fallback = {
+                    reason: 'not_evaluated',
+                    target: `${process.env.DEPLOY_PROTOCOL || ''}:${process.env.FTP_SERVER_PORT || ''}`,
+                  };
+
+                  let payload = fallback;
+                  if (fs.existsSync('.public-cutover/transport-preflight.json')) {
+                    try {
+                      const parsed = JSON.parse(
+                        fs.readFileSync('.public-cutover/transport-preflight.json', 'utf8')
+                      );
+                      payload = {
+                        ...fallback,
+                        ...parsed,
+                      };
+                    } catch (error) {
+                      payload = {
+                        ...fallback,
+                        reason: `parse_error:${error && error.name ? error.name : 'unknown'}`,
+                      };
+                    }
+                  }
+
+                  const reason = String(payload.reason || fallback.reason);
+                  const target = String(payload.target || fallback.target);
+
+                  if (outputPath) {
+                    fs.appendFileSync(
+                      outputPath,
+                      `transport_preflight_reason=${reason}\ntransport_preflight_target=${target}\n`
+                    );
+                  }
+                  if (envPath) {
+                    fs.appendFileSync(
+                      envPath,
+                      `TRANSPORT_PREFLIGHT_REASON=${reason}\nTRANSPORT_PREFLIGHT_TARGET=${target}\n`
+                    );
+                  }
+                  NODE
 
             - name: Preparar bundle de deploy (Prod)
               id: prepare_bundle_prod
@@ -1644,7 +1696,7 @@ jobs:
                     echo "- public_cutover_artifact: \`public-cutover-evidence\`";
                     echo "- public_cutover_repo_vars: \`PROD_MONITOR_ENABLE_PUBLIC_CUTOVER,PUBLIC_CUTOVER_STARTED_AT,PUBLIC_CUTOVER_WINDOW_HOURS,PROD_MONITOR_ENABLE_PUBLIC_V4_ROLLOUT,PUBLIC_V4_ROLLOUT_STAGE,PUBLIC_V4_ROLLOUT_SURFACE_TEST,PUBLIC_V4_ROLLOUT_SURFACE_CONTROL,PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING,PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT,PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP,PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT,PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL\`";
                     echo "- transport_preflight_reason: \`${TRANSPORT_PREFLIGHT_REASON}\`";
-                    echo "- transport_preflight_target: \`${DEPLOY_PROTOCOL}:${FTP_SERVER_PORT}\`";
+                    echo "- transport_preflight_target: \`${TRANSPORT_PREFLIGHT_TARGET}\`";
                     echo "- transport_preflight_artifact: \`.public-cutover/transport-preflight.json\`";
                     echo "- telemedicine_deploy_status: \`${TELEMEDICINE_DEPLOY_STATUS}\`";
                     echo "- telemedicine_deploy_reason: \`${TELEMEDICINE_DEPLOY_REASON}\`";

@@ -131,6 +131,29 @@ the pattern is consistent with a stale host rather than a total outage:
 This keeps the emergency transport fallback conservative. Generic verify
 failures without the stale-host signature do not auto-dispatch transport.
 
+If you also want the repair workflow to try the Windows runner path, opt into
+the self-hosted fallback from the same repair dispatch:
+
+```bash
+gh workflow run repair-git-sync.yml --ref main \
+  -f dispatch_transport_fallback=true \
+  -f dispatch_self_hosted_fallback=true
+```
+
+With that flag enabled, `repair-git-sync.yml` now does three things off the same
+stale-host signature:
+
+1. dispatches `diagnose-host-connectivity.yml`
+2. dispatches `deploy-hosting.yml` transport fallback
+3. dispatches `deploy-frontend-selfhosted.yml` and records its initial state
+
+Read the repair summary before re-running anything manually:
+
+- `connectivity_diagnose_run_status` tells you whether the network probe was observed.
+- `self_hosted_fallback_state=queued` means the self-hosted runner is not available yet; the fallback is waiting for runner capacity, not blocked by repo logic.
+- `self_hosted_fallback_state=started` means the Windows runner picked up the job.
+- `self_hosted_fallback_state=dispatched_not_observed` means GitHub accepted the dispatch but the repair workflow could not observe the downstream run quickly enough.
+
 If you need to skip repair and update the page immediately, dispatch
 `deploy-hosting.yml` directly with the transport fallback command above.
 
@@ -139,6 +162,10 @@ If `deploy-hosting.yml` stops at `Preflight red (Prod)` and the summary reports
 the selected transport port from the runner. Try both `ftps:21` and `sftp:22`;
 if both report `runner_tcp_unreachable`, treat it as a runner-to-host network
 block, not as a repo/build regression.
+
+If `deploy-frontend-selfhosted.yml` stays `queued`, the repo is ready but no
+self-hosted Windows runner is online. Restoring that runner is a separate
+infrastructure action from fixing the host network path.
 
 In that case, inspect `.public-cutover/transport-preflight.json` from the run
 artifact and move to a manual host-side publish path:
