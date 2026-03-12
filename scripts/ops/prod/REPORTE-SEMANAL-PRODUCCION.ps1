@@ -32,6 +32,10 @@ param(
     [double]$LeadOpsCloseRateMinWarnPct = 15,
     [int]$LeadOpsAiAcceptanceWarnMinSamples = 3,
     [double]$LeadOpsAiAcceptanceMinWarnPct = 25,
+    [string]$GitHubRepo = 'erosero558558/piel-en-armonia',
+    [string]$GitHubApiBase = 'https://api.github.com',
+    [int]$GitHubAlertsTimeoutSec = 15,
+    [int]$GitHubAlertsIssueLimit = 30,
     [switch]$FailOnWarnings,
     [switch]$FailOnCriticalWarnings,
     [int]$CriticalFreeCycleTarget = 2,
@@ -467,6 +471,39 @@ if (
 ) {
     $publicSyncTelemetryGap = $true
 }
+$githubDeployAlertsSummary = Get-GitHubProductionAlertSummary `
+    -Repo $GitHubRepo `
+    -ApiBase $GitHubApiBase `
+    -TimeoutSec $GitHubAlertsTimeoutSec `
+    -IssueLimit $GitHubAlertsIssueLimit `
+    -UserAgent 'PielArmoniaWeeklyReport/1.0'
+$githubDeployAlertsEnabled = [bool](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'enabled' -DefaultValue $true)
+$githubDeployAlertsFetchOk = [bool](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'fetchOk' -DefaultValue $false)
+$githubDeployAlertsApiUrl = [string](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'apiUrl' -DefaultValue '')
+$githubDeployAlertsError = [string](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'error' -DefaultValue '')
+$githubDeployAlertsRelevantCount = [int](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'relevantCount' -DefaultValue 0)
+$githubDeployAlertsTransportCount = [int](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'transportCount' -DefaultValue 0)
+$githubDeployAlertsConnectivityCount = [int](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'connectivityCount' -DefaultValue 0)
+$githubDeployAlertsRepairGitSyncCount = [int](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'repairGitSyncCount' -DefaultValue 0)
+$githubDeployAlertsSelfHostedRunnerCount = [int](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'selfHostedRunnerCount' -DefaultValue 0)
+$githubDeployAlertsHasTransportBlock = [bool](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'hasTransportBlock' -DefaultValue $false)
+$githubDeployAlertsHasConnectivityBlock = [bool](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'hasConnectivityBlock' -DefaultValue $false)
+$githubDeployAlertsHasRepairGitSyncBlock = [bool](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'hasRepairGitSyncBlock' -DefaultValue $false)
+$githubDeployAlertsHasSelfHostedRunnerBlock = [bool](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'hasSelfHostedRunnerBlock' -DefaultValue $false)
+$githubDeployAlertsIssueNumbers = @(
+    Convert-ToArraySafe -Value (Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'issueNumbers' -DefaultValue @())
+)
+$githubDeployAlertsIssueUrls = @(
+    Convert-ToArraySafe -Value (Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'issueUrls' -DefaultValue @())
+)
+$githubDeployAlertsIssueRefs = @(
+    Convert-ToArraySafe -Value (Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'issueRefs' -DefaultValue @())
+)
+$githubDeployAlertsIssues = @(
+    Convert-ToArraySafe -Value (Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'issues' -DefaultValue @())
+)
+$githubDeployAlertsIssueNumbersLabel = [string](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'issueNumbersLabel' -DefaultValue 'none')
+$githubDeployAlertsIssueRefsLabel = [string](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'issueRefsLabel' -DefaultValue 'none')
 $telemedicineCheck = Get-ObjectValueOrDefault -Object $healthChecks -Property 'telemedicine' -DefaultValue $null
 $telemedicineConfigured = [bool](Get-ObjectValueOrDefault -Object $telemedicineCheck -Property 'configured' -DefaultValue $false)
 $telemedicineIntakesObj = Get-ObjectValueOrDefault -Object $telemedicineCheck -Property 'intakes' -DefaultValue $null
@@ -768,6 +805,24 @@ if ($publicSyncConfigured -and $publicSyncHeadDrift) {
 }
 if ($publicSyncConfigured -and $publicSyncTelemetryGap) {
     $warnings.Add('public_sync_telemetry_gap')
+}
+if (-not $githubDeployAlertsFetchOk) {
+    $warnings.Add('github_deploy_alerts_unreachable')
+}
+if ($githubDeployAlertsRelevantCount -gt 0) {
+    $warnings.Add("github_deploy_alerts_open_${githubDeployAlertsRelevantCount}")
+}
+if ($githubDeployAlertsHasTransportBlock) {
+    $warnings.Add('github_deploy_transport_blocked')
+}
+if ($githubDeployAlertsHasConnectivityBlock) {
+    $warnings.Add('github_deploy_connectivity_blocked')
+}
+if ($githubDeployAlertsHasRepairGitSyncBlock) {
+    $warnings.Add('github_deploy_repair_git_sync_blocked')
+}
+if ($githubDeployAlertsHasSelfHostedRunnerBlock) {
+    $warnings.Add('github_deploy_self_hosted_runner_blocked')
 }
 if ($servicesCatalogSource -ne 'file') {
     $warnings.Add("services_catalog_${servicesCatalogSource}")
@@ -1079,6 +1134,8 @@ Write-Host "start_checkout_rate_pct=$startCheckoutRatePct booking_confirmed=$boo
 Write-Host "retention_no_show_rate_pct=$retentionNoShowRatePct retention_recurrence_rate_pct=$retentionRecurrenceRatePct retention_report_alert_count=$retentionReportAlertCount sentry_backend=$sentryBackendConfigured sentry_frontend=$sentryFrontendConfigured"
 Write-Host "public_sync_configured=$publicSyncConfigured public_sync_healthy=$publicSyncHealthy public_sync_state=$publicSyncState public_sync_age_seconds=$publicSyncAgeSeconds public_sync_expected_max_lag_seconds=$publicSyncExpectedMaxLagSeconds public_sync_last_error_message=$publicSyncLastErrorMessage public_sync_dirty_paths_count=$publicSyncDirtyPathsCount public_sync_telemetry_gap=$publicSyncTelemetryGap"
 Write-Host "public_sync_job_id=$publicSyncJobId public_sync_deployed_commit=$publicSyncDeployedCommit public_sync_current_head=$publicSyncCurrentHead public_sync_remote_head=$publicSyncRemoteHead public_sync_head_drift=$publicSyncHeadDrift public_sync_dirty_paths_sample=$publicSyncDirtyPathsSampleLabel"
+Write-Host "github_deploy_alerts_repo=$GitHubRepo github_deploy_alerts_fetch_ok=$githubDeployAlertsFetchOk github_deploy_alerts_relevant_count=$githubDeployAlertsRelevantCount github_deploy_transport_count=$githubDeployAlertsTransportCount github_deploy_connectivity_count=$githubDeployAlertsConnectivityCount github_deploy_repair_git_sync_count=$githubDeployAlertsRepairGitSyncCount github_deploy_self_hosted_runner_count=$githubDeployAlertsSelfHostedRunnerCount"
+Write-Host "github_deploy_alerts_issue_numbers=$githubDeployAlertsIssueNumbersLabel github_deploy_alerts_issue_refs=$githubDeployAlertsIssueRefsLabel github_deploy_alerts_error=$githubDeployAlertsError"
 Write-Host "idempotency_requests_with_key=$idempotencyRequestsWithKey idempotency_conflict_rate_pct=$idempotencyConflictRatePct idempotency_replay_rate_pct=$idempotencyReplayRatePct"
 Write-Host "service_funnel_source=$serviceFunnelSource service_funnel_rows=$serviceFunnelRowsCount service_funnel_alert_count=$serviceFunnelAlertCount"
 Write-Host "services_catalog_source=$servicesCatalogSource services_catalog_version=$servicesCatalogVersion services_catalog_count=$servicesCatalogCount services_catalog_configured=$servicesCatalogConfigured"

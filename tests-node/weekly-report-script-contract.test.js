@@ -187,6 +187,51 @@ test('weekly report script integra bloque public sync operativo', () => {
     );
 });
 
+test('weekly report script integra bloque GitHub deploy alerts operativo', () => {
+    const rawReport = loadScript();
+    const rawWarnings = readFileSync(
+        resolve(__dirname, '..', 'bin', 'powershell', 'Common.Warnings.ps1'),
+        'utf8'
+    );
+    const requiredReportSnippets = [
+        "[string]$GitHubRepo = 'erosero558558/piel-en-armonia'",
+        '$githubDeployAlertsSummary = Get-GitHubProductionAlertSummary',
+        'github_deploy_alerts_unreachable',
+        'github_deploy_alerts_open_${githubDeployAlertsRelevantCount}',
+        'github_deploy_transport_blocked',
+        'github_deploy_connectivity_blocked',
+        'github_deploy_repair_git_sync_blocked',
+        'github_deploy_self_hosted_runner_blocked',
+        'github_deploy_alerts_issue_numbers=$githubDeployAlertsIssueNumbersLabel',
+        'github_deploy_alerts_issue_refs=$githubDeployAlertsIssueRefsLabel',
+    ];
+    const requiredWarningsSnippets = [
+        '## GitHub Deploy Alerts',
+        'githubDeployAlerts = [ordered]@{',
+        'transportCount = $githubDeployAlertsTransportCount',
+        'selfHostedRunnerCount = $githubDeployAlertsSelfHostedRunnerCount',
+        'issueRefs = @($githubDeployAlertsIssueRefs)',
+        "if ($WarningCode -eq 'github_deploy_alerts_unreachable') {",
+        "if ($WarningCode.StartsWith('github_deploy_')) {",
+    ];
+
+    for (const snippet of requiredReportSnippets) {
+        assert.equal(
+            rawReport.includes(snippet),
+            true,
+            `falta snippet GitHub deploy alerts en REPORTE-SEMANAL-PRODUCCION.ps1: ${snippet}`
+        );
+    }
+
+    for (const snippet of requiredWarningsSnippets) {
+        assert.equal(
+            rawWarnings.includes(snippet),
+            true,
+            `falta snippet GitHub deploy alerts en Common.Warnings.ps1: ${snippet}`
+        );
+    }
+});
+
 test('weekly report script integra bloque lead ops comercial', () => {
     const rawReport = loadScript();
     const rawWarnings = readFileSync(

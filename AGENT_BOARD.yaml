@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 588
+  revision: 591
   updated_at: 2026-03-12
 
 tasks:
@@ -8367,5 +8367,43 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-215.md"
     depends_on: []
     prompt: "Use remote asset refs for prod cache-header verification"
+    created_at: 2026-03-12
+    updated_at: 2026-03-12
+
+  - id: AG-216
+    title: "Propagate GitHub deploy alerts into prod ops triage"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-12T06:38:15.770Z"
+    risk: high
+    scope: deploy
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: ["bin/powershell/Common.Http.ps1", "bin/powershell/Common.Warnings.ps1", "scripts/ops/prod/MONITOR-PRODUCCION.ps1", "scripts/ops/prod/README.md", "scripts/ops/prod/REPORTE-SEMANAL-PRODUCCION.ps1", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "tests-node/prod-monitor-public-sync-contract.test.js", "tests-node/weekly-report-script-contract.test.js", "verification/agent-runs/AG-221.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-12T06:38:15.770Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Propagate GitHub deploy alerts into prod ops triage"
+    acceptance_ref: "verification/agent-runs/AG-216.md"
+    evidence_ref: "verification/agent-runs/AG-216.md"
+    depends_on: []
+    prompt: "Propagate GitHub deploy alerts into prod ops triage"
     created_at: 2026-03-12
     updated_at: 2026-03-12

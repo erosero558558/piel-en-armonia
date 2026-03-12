@@ -10,6 +10,10 @@ param(
     [switch]$AllowBlockedCalendar,
     [switch]$RequireServicePrioritiesFunnel,
     [switch]$AllowDegradedTelemedicineDiagnostics,
+    [string]$GitHubRepo = 'erosero558558/piel-en-armonia',
+    [string]$GitHubApiBase = 'https://api.github.com',
+    [int]$GitHubAlertsTimeoutSec = 15,
+    [int]$GitHubAlertsIssueLimit = 30,
     [bool]$RequireTelemedicineConfigured = $true,
     [int]$MaxTelemedicineReviewQueue = 12,
     [int]$MaxTelemedicineStagedUploads = 1,
@@ -205,6 +209,61 @@ if ($null -ne $healthResult -and $healthResult.StatusCode -eq 200) {
                 ) {
                     Add-MonitorFailure -Message "[FAIL] health.publicSync working tree dirty (dirtyPathsCount=$publicSyncDirtyPathsCount dirtyPathsSample=$publicSyncDirtyPathsSampleLabel)" -AllowDegraded:$AllowDegradedPublicSync
                 }
+            }
+
+            $githubDeployAlertsSummary = Get-GitHubProductionAlertSummary `
+                -Repo $GitHubRepo `
+                -ApiBase $GitHubApiBase `
+                -TimeoutSec $GitHubAlertsTimeoutSec `
+                -IssueLimit $GitHubAlertsIssueLimit `
+                -UserAgent 'PielArmoniaMonitor/1.0'
+            $githubDeployAlertsFetchOk = $false
+            $githubDeployAlertsError = ''
+            $githubDeployAlertsRelevantCount = 0
+            $githubDeployAlertsTransportCount = 0
+            $githubDeployAlertsConnectivityCount = 0
+            $githubDeployAlertsRepairGitSyncCount = 0
+            $githubDeployAlertsSelfHostedRunnerCount = 0
+            $githubDeployAlertsHasTransportBlock = $false
+            $githubDeployAlertsHasConnectivityBlock = $false
+            $githubDeployAlertsHasRepairGitSyncBlock = $false
+            $githubDeployAlertsHasSelfHostedRunnerBlock = $false
+            $githubDeployAlertsIssueNumbersLabel = 'none'
+            $githubDeployAlertsIssueRefsLabel = 'none'
+
+            try { $githubDeployAlertsFetchOk = [bool]$githubDeployAlertsSummary.fetchOk } catch { $githubDeployAlertsFetchOk = $false }
+            try { $githubDeployAlertsError = [string]$githubDeployAlertsSummary.error } catch { $githubDeployAlertsError = '' }
+            try { $githubDeployAlertsRelevantCount = [int]$githubDeployAlertsSummary.relevantCount } catch { $githubDeployAlertsRelevantCount = 0 }
+            try { $githubDeployAlertsTransportCount = [int]$githubDeployAlertsSummary.transportCount } catch { $githubDeployAlertsTransportCount = 0 }
+            try { $githubDeployAlertsConnectivityCount = [int]$githubDeployAlertsSummary.connectivityCount } catch { $githubDeployAlertsConnectivityCount = 0 }
+            try { $githubDeployAlertsRepairGitSyncCount = [int]$githubDeployAlertsSummary.repairGitSyncCount } catch { $githubDeployAlertsRepairGitSyncCount = 0 }
+            try { $githubDeployAlertsSelfHostedRunnerCount = [int]$githubDeployAlertsSummary.selfHostedRunnerCount } catch { $githubDeployAlertsSelfHostedRunnerCount = 0 }
+            try { $githubDeployAlertsHasTransportBlock = [bool]$githubDeployAlertsSummary.hasTransportBlock } catch { $githubDeployAlertsHasTransportBlock = $false }
+            try { $githubDeployAlertsHasConnectivityBlock = [bool]$githubDeployAlertsSummary.hasConnectivityBlock } catch { $githubDeployAlertsHasConnectivityBlock = $false }
+            try { $githubDeployAlertsHasRepairGitSyncBlock = [bool]$githubDeployAlertsSummary.hasRepairGitSyncBlock } catch { $githubDeployAlertsHasRepairGitSyncBlock = $false }
+            try { $githubDeployAlertsHasSelfHostedRunnerBlock = [bool]$githubDeployAlertsSummary.hasSelfHostedRunnerBlock } catch { $githubDeployAlertsHasSelfHostedRunnerBlock = $false }
+            try { $githubDeployAlertsIssueNumbersLabel = [string]$githubDeployAlertsSummary.issueNumbersLabel } catch { $githubDeployAlertsIssueNumbersLabel = 'none' }
+            try { $githubDeployAlertsIssueRefsLabel = [string]$githubDeployAlertsSummary.issueRefsLabel } catch { $githubDeployAlertsIssueRefsLabel = 'none' }
+
+            Write-Host "[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel"
+
+            if (-not $githubDeployAlertsFetchOk) {
+                Write-Host "[WARN] github.deployAlerts unreachable (repo=$GitHubRepo error=$githubDeployAlertsError)"
+            }
+            if ($githubDeployAlertsRelevantCount -gt 0) {
+                Add-MonitorFailure -Message "[FAIL] github.deployAlerts open production alerts (count=$githubDeployAlertsRelevantCount issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync
+            }
+            if ($githubDeployAlertsHasTransportBlock) {
+                Add-MonitorFailure -Message "[FAIL] github.deployAlerts transport blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync
+            }
+            if ($githubDeployAlertsHasConnectivityBlock) {
+                Add-MonitorFailure -Message "[FAIL] github.deployAlerts deploy connectivity blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync
+            }
+            if ($githubDeployAlertsHasRepairGitSyncBlock) {
+                Add-MonitorFailure -Message "[FAIL] github.deployAlerts repair git sync blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync
+            }
+            if ($githubDeployAlertsHasSelfHostedRunnerBlock) {
+                Add-MonitorFailure -Message "[FAIL] github.deployAlerts self-hosted runner blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync
             }
 
             $calendarSource = ''

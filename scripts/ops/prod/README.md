@@ -24,6 +24,7 @@ Adopcion operativa de `public_main_sync`:
 - `SMOKE-PRODUCCION.ps1 -RequireCronReady` valida `checks.publicSync` con `jobId`, `healthy`, `ageSeconds` y telemetria runtime (`state`, `lastErrorMessage`, `currentHead`, `remoteHead`, `dirtyPathsCount`, `dirtyPathsSample`).
 - `VERIFICAR-DESPLIEGUE.ps1 -RequireCronReady` propaga fallas como assets `health-public-sync-*`, incluyendo `working-tree-dirty`, `head-drift` y `telemetry-gap`.
 - `REPORTE-SEMANAL-PRODUCCION.ps1` publica el bloque `Public Sync Ops` en markdown/JSON y clasifica warnings `public_sync_*` contra [docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md](C:/Users/Ernesto/Documents/GitHub/piel-en-armonia/docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md).
+- `MONITOR-PRODUCCION.ps1` y `REPORTE-SEMANAL-PRODUCCION.ps1` ahora tambien consultan los incidentes GitHub `production-alert` para `deploy-hosting`, `diagnose-host-connectivity`, `repair-git-sync` y `self-hosted-runner`, exponiendo `github.deployAlerts`, `github_deploy_*`, conteos por categoria e issue numbers activos.
 
 Los entrypoints de triage `MONITOR-PRODUCCION.ps1`, `REPORTE-SEMANAL-PRODUCCION.ps1`,
 `SMOKE-PRODUCCION.ps1` y `VERIFICAR-DESPLIEGUE.ps1` consumen
@@ -31,3 +32,9 @@ Los entrypoints de triage `MONITOR-PRODUCCION.ps1`, `REPORTE-SEMANAL-PRODUCCION.
 `public_main_sync` con `state`, `failureReason`, `lastErrorMessage`,
 `currentHead`, `remoteHead`, `dirtyPathsCount`, `dirtyPathsSample`,
 `headDrift`, `telemetryGap` y la salida permisiva `AllowDegradedPublicSync`.
+
+Cuando el bloqueo real vive en la ruta GitHub runner -> VPS y no solo dentro del
+host, el mismo triage operativo agrega `github.deployAlerts` para mostrar si ya
+estan abiertos `Deploy Hosting transporte bloqueado desde GitHub Runner`,
+`Diagnose host connectivity sin ruta de deploy` o
+`Repair git sync self-hosted fallback sin runner`.

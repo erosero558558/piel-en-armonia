@@ -36,6 +36,10 @@ function Get-WarningSeverity {
         return 'critical'
     }
 
+    if ($WarningCode -eq 'github_deploy_alerts_unreachable') {
+        return 'non_critical'
+    }
+
     if (
         $WarningCode -eq 'calendar_unreachable' -or
         $WarningCode -eq 'calendar_token_unhealthy' -or
@@ -51,6 +55,7 @@ function Get-WarningSeverity {
         'calendar_source_',
         'calendar_mode_',
         'public_sync_',
+        'github_deploy_',
         'telemedicine_diagnostics_critical_',
         'telemedicine_dangling_links_',
         'telemedicine_case_photos_missing_private_path_'
@@ -134,6 +139,9 @@ function Get-WarningImpact {
     if ($WarningCode.StartsWith('public_sync_')) {
         return 'observability'
     }
+    if ($WarningCode.StartsWith('github_deploy_')) {
+        return 'observability'
+    }
     if ($WarningCode.StartsWith('sentry_')) {
         return 'observability'
     }
@@ -160,6 +168,9 @@ function Get-WarningRunbookRef {
         return 'docs/MONITORING_SETUP.md'
     }
     if ($WarningCode.StartsWith('public_sync_')) {
+        return 'docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md'
+    }
+    if ($WarningCode.StartsWith('github_deploy_')) {
         return 'docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md'
     }
     if ($WarningCode.StartsWith('telemedicine_')) {
@@ -667,6 +678,25 @@ $serviceFunnelTopRowsBlock
 - public_sync_log_path: $publicSyncLogPath
 - public_sync_lock_file: $publicSyncLockFile
 
+## GitHub Deploy Alerts
+
+- github_deploy_alerts_enabled: $githubDeployAlertsEnabled
+- github_deploy_alerts_fetch_ok: $githubDeployAlertsFetchOk
+- github_deploy_alerts_repo: $GitHubRepo
+- github_deploy_alerts_api_url: $githubDeployAlertsApiUrl
+- github_deploy_alerts_error: $githubDeployAlertsError
+- github_deploy_alerts_relevant_count: $githubDeployAlertsRelevantCount
+- github_deploy_transport_count: $githubDeployAlertsTransportCount
+- github_deploy_connectivity_count: $githubDeployAlertsConnectivityCount
+- github_deploy_repair_git_sync_count: $githubDeployAlertsRepairGitSyncCount
+- github_deploy_self_hosted_runner_count: $githubDeployAlertsSelfHostedRunnerCount
+- github_deploy_has_transport_block: $githubDeployAlertsHasTransportBlock
+- github_deploy_has_connectivity_block: $githubDeployAlertsHasConnectivityBlock
+- github_deploy_has_repair_git_sync_block: $githubDeployAlertsHasRepairGitSyncBlock
+- github_deploy_has_self_hosted_runner_block: $githubDeployAlertsHasSelfHostedRunnerBlock
+- github_deploy_alerts_issue_numbers: $githubDeployAlertsIssueNumbersLabel
+- github_deploy_alerts_issue_refs: $githubDeployAlertsIssueRefsLabel
+
 ## Services Catalog
 
 - services_catalog_source: $servicesCatalogSource
@@ -966,6 +996,27 @@ function New-WeeklyReportPayload {
             statusPath = $publicSyncStatusPath
             logPath = $publicSyncLogPath
             lockFile = $publicSyncLockFile
+        }
+        githubDeployAlerts = [ordered]@{
+            enabled = [bool]$githubDeployAlertsEnabled
+            fetchOk = [bool]$githubDeployAlertsFetchOk
+            repo = $GitHubRepo
+            apiBase = $GitHubApiBase
+            apiUrl = $githubDeployAlertsApiUrl
+            error = $githubDeployAlertsError
+            relevantCount = $githubDeployAlertsRelevantCount
+            transportCount = $githubDeployAlertsTransportCount
+            connectivityCount = $githubDeployAlertsConnectivityCount
+            repairGitSyncCount = $githubDeployAlertsRepairGitSyncCount
+            selfHostedRunnerCount = $githubDeployAlertsSelfHostedRunnerCount
+            hasTransportBlock = [bool]$githubDeployAlertsHasTransportBlock
+            hasConnectivityBlock = [bool]$githubDeployAlertsHasConnectivityBlock
+            hasRepairGitSyncBlock = [bool]$githubDeployAlertsHasRepairGitSyncBlock
+            hasSelfHostedRunnerBlock = [bool]$githubDeployAlertsHasSelfHostedRunnerBlock
+            issueNumbers = @($githubDeployAlertsIssueNumbers)
+            issueUrls = @($githubDeployAlertsIssueUrls)
+            issueRefs = @($githubDeployAlertsIssueRefs)
+            issues = @($githubDeployAlertsIssues)
         }
         servicesCatalog = [ordered]@{
             source = $servicesCatalogSource

@@ -59,6 +59,29 @@ test('prod monitor clasifica incidentes publicSync con telemetria canonica', () 
     }
 });
 
+test('prod monitor clasifica alertas GitHub de deploy dentro del mismo triage', () => {
+    const raw = load(MONITOR_PATH);
+    const requiredSnippets = [
+        "[string]$GitHubRepo = 'erosero558558/piel-en-armonia'",
+        '$githubDeployAlertsSummary = Get-GitHubProductionAlertSummary',
+        '[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk',
+        '[WARN] github.deployAlerts unreachable (repo=$GitHubRepo error=$githubDeployAlertsError)',
+        'Add-MonitorFailure -Message "[FAIL] github.deployAlerts open production alerts (count=$githubDeployAlertsRelevantCount issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync',
+        'Add-MonitorFailure -Message "[FAIL] github.deployAlerts transport blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync',
+        'Add-MonitorFailure -Message "[FAIL] github.deployAlerts deploy connectivity blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync',
+        'Add-MonitorFailure -Message "[FAIL] github.deployAlerts repair git sync blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync',
+        'Add-MonitorFailure -Message "[FAIL] github.deployAlerts self-hosted runner blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync',
+    ];
+
+    for (const snippet of requiredSnippets) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta snippet GitHub deploy alerts en MONITOR-PRODUCCION.ps1: ${snippet}`
+        );
+    }
+});
+
 test('prod ops readme documenta el monitor como consumidor de publicSync', () => {
     const raw = load(README_PATH);
     const requiredSnippets = [
@@ -69,6 +92,8 @@ test('prod ops readme documenta el monitor como consumidor de publicSync', () =>
         'telemetryGap',
         'dirtyPathsCount',
         'dirtyPathsSample',
+        'github.deployAlerts',
+        'github_deploy_*',
     ];
 
     for (const snippet of requiredSnippets) {
@@ -89,6 +114,9 @@ test('runbook enlaza el monitor con el triage canonico de public sync', () => {
         'headDrift',
         'telemetryGap',
         'dirtyPathsSample',
+        'github.deployAlerts',
+        'githubDeployAlerts',
+        'github_deploy_*',
     ];
 
     for (const snippet of requiredSnippets) {

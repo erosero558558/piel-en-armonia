@@ -67,12 +67,25 @@ It should surface `jobId`, `failureReason`, `lastErrorMessage`,
 If you need observation mode without hiding the incident, run it with
 `-AllowDegradedPublicSync`.
 
+The same monitor now also resolves open GitHub `production-alert` issues for
+`deploy-hosting`, `diagnose-host-connectivity`, `repair-git-sync`, and
+`self-hosted-runner`. Expect a `github.deployAlerts` line with live issue
+numbers whenever the deploy path is blocked outside the host itself.
+
 Triage the canonical `publicSync` signals before touching the host:
 
 - `failureReason=working_tree_dirty` is the canonical first-pass classification for tracked repo drift on the VPS.
 - `headDrift=true` means `currentHead` and `remoteHead` diverge, so the host repo is behind or detached from the intended `main` commit.
 - `telemetryGap=true` means the cron failed without exposing `currentHead`, `remoteHead`, or dirty tracked paths; treat it as incomplete host runtime telemetry until the updated wrapper is deployed.
 - `failureReason=working_tree_dirty` with `telemetryGap=false` means the cron had enough telemetry and `dirtyPathsCount` / `dirtyPathsSample` should identify the tracked drift to clean up.
+
+Triage the GitHub-side deploy corroboration in the same pass:
+
+- `github.deployAlerts transport blocked` maps to the open incident created by `deploy-hosting.yml` when the GitHub-hosted runner cannot open the transport port.
+- `github.deployAlerts deploy connectivity blocked` maps to `diagnose-host-connectivity.yml` proving that no configured target is reachable from GitHub-hosted infrastructure.
+- `github.deployAlerts self-hosted runner blocked` means the Windows fallback path is queued or otherwise unavailable, so the repo-side fallback is waiting on runner capacity.
+- `github.deployAlerts repair git sync blocked` means repair still recommends the self-hosted fallback path and the incident remains open.
+- `REPORTE-SEMANAL-PRODUCCION.ps1` persists the same GitHub deploy alert state in markdown/JSON as `githubDeployAlerts`, with warning codes `github_deploy_*`.
 
 ## Success criteria
 
@@ -232,3 +245,4 @@ If the emergency VPS publish path needs a different Nginx-served local verify
 host, use `LOCAL_VERIFY_BASE_URL=...` with `deploy-public-v3-live.sh`.
 `TEST_BASE_URL` remains for local QA/audits and should not be mixed with the
 VPS live verify target.
+
