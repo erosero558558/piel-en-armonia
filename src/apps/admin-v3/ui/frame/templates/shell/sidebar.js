@@ -6,7 +6,7 @@ export function renderShellSidebar() {
         <aside class="admin-sidebar admin-v3-sidebar" id="adminSidebar" tabindex="-1">
             <header class="sidebar-header">
                 <div class="admin-v3-sidebar__brand">
-                    <strong>Piel en Armonia</strong>
+                    <strong>Aurora Derm</strong>
                     <small>Admin sony_v3</small>
                 </div>
                 <div class="toolbar-group">

@@ -22,6 +22,7 @@ export function persistLocalAdminData(data) {
         LOCAL_DATA_KEYS.clinicalHistoryMeta,
         data.clinicalHistoryMeta || null
     );
+    setStorageJson(LOCAL_DATA_KEYS.mediaFlowMeta, data.mediaFlowMeta || null);
     setStorageJson(LOCAL_DATA_KEYS.health, data.health || null);
 }
 
@@ -44,6 +45,7 @@ export function loadLocalAdminFallback() {
             LOCAL_DATA_KEYS.clinicalHistoryMeta,
             null
         ),
+        mediaFlowMeta: getStorageJson(LOCAL_DATA_KEYS.mediaFlowMeta, null),
         health: getStorageJson(LOCAL_DATA_KEYS.health, null),
         funnelMetrics: EMPTY_FUNNEL_METRICS,
     };

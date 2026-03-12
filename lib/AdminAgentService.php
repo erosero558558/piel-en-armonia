@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/CaseMediaFlowService.php';
+
 final class AdminAgentService
 {
     private const APPROVAL_TTL_SECONDS = 1800;
@@ -18,7 +20,7 @@ final class AdminAgentService
         self::ensureStorage();
 
         $operator = self::resolveOperator();
-        $context = self::normalizeContext($payload['context'] ?? []);
+        $context = self::normalizeContext($payload['context'] ?? [], $payload);
         $createdAt = local_date('c');
         $sessionId = self::generateId('ags');
         $session = [
@@ -144,7 +146,7 @@ final class AdminAgentService
             throw new RuntimeException('La sesion fue cancelada', 409);
         }
 
-        $context = self::normalizeContext($payload['context'] ?? ($session['context'] ?? []));
+        $context = self::normalizeContext($payload['context'] ?? ($session['context'] ?? []), $payload);
         $session['context'] = $context;
         $session['activeSection'] = (string) ($context['section'] ?? $session['activeSection'] ?? 'dashboard');
         $session['entityRef'] = self::entityRefFromContext($context);
@@ -354,6 +356,7 @@ final class AdminAgentService
                 'activeSection' => (string) ($session['activeSection'] ?? 'dashboard'),
             ]
         );
+        $domainResponse = self::buildDomainResponse($toolCallsByTurn, $context, $finalAnswer);
 
         $turnStatus = $requiresApproval
             ? 'waiting_approval'
@@ -378,6 +381,7 @@ final class AdminAgentService
             'status' => $turnStatus,
             'createdAt' => local_date('c'),
             'relay' => $planned['relay'] ?? self::relayStatus(),
+            'domainResponse' => $domainResponse,
         ];
 
         $session['turns'][] = $turn;
@@ -386,6 +390,8 @@ final class AdminAgentService
             'role' => 'assistant',
             'content' => $finalAnswer,
             'createdAt' => local_date('c'),
+            'context' => $context,
+            'domainResponse' => $domainResponse,
         ];
         $session['status'] = $turnStatus;
         $session['updatedAt'] = local_date('c');
@@ -829,6 +835,10 @@ final class AdminAgentService
             ];
         }
 
+        if (self::isMediaFlowContext($context, $section)) {
+            return self::planMediaFlowTurnHeuristically($message, $context, $store);
+        }
+
         if ($section === 'callbacks') {
             $callbackId = self::extractNumericReference($message);
             if ($callbackId <= 0) {
@@ -1096,6 +1106,17 @@ final class AdminAgentService
             if ($tool === 'ui.navigate' && !isset($args['section'])) {
                 $args['section'] = (string) ($context['section'] ?? self::detectSectionFromText(self::normalizeText($message), 'dashboard'));
             }
+            if (str_starts_with($tool, 'media_flow.')) {
+                if (!isset($args['caseId']) || trim((string) $args['caseId']) === '') {
+                    $args['caseId'] = self::mediaFlowCaseId($context, []);
+                }
+                if (!isset($args['proposalId']) || trim((string) $args['proposalId']) === '') {
+                    $args['proposalId'] = trim((string) ($context['proposalId'] ?? ($context['domainContext']['proposalId'] ?? '')));
+                }
+                if (!isset($args['selectedAssetIds']) || !is_array($args['selectedAssetIds'])) {
+                    $args['selectedAssetIds'] = array_values((array) ($context['selectedAssetIds'] ?? ($context['domainContext']['selectedAssetIds'] ?? [])));
+                }
+            }
 
             $normalized[] = [
                 'tool' => $tool,
@@ -1142,6 +1163,9 @@ final class AdminAgentService
             'availability.day_summary' => self::executeAvailabilityDaySummary($store, $args),
             'queue.summary' => self::executeQueueSummary($store),
             'queue.list_tickets' => self::executeQueueListTickets($store, $args),
+            'media_flow.case_snapshot' => self::executeMediaFlowCaseSnapshot($store, $args, $context),
+            'media_flow.generate_proposal' => self::executeMediaFlowGenerateProposal($store, $args, $context),
+            'media_flow.rewrite_proposal' => self::executeMediaFlowRewriteProposal($store, $args, $context),
             'callbacks.mark_contacted' => self::executeMarkCallbackContacted($store, $args),
             'callbacks.set_outcome' => self::executeSetCallbackOutcome($store, $args),
             'callbacks.request_ai_draft' => self::executeRequestCallbackAiDraft($store, $args),
@@ -1853,6 +1877,446 @@ final class AdminAgentService
     }
 
     /**
+     * @param array<string,mixed> $store
+     * @param array<string,mixed> $args
+     * @param array<string,mixed> $context
+     * @return array<string,mixed>
+     */
+    private static function executeMediaFlowCaseSnapshot(array $store, array $args, array $context): array
+    {
+        $caseId = self::mediaFlowCaseId($context, $args);
+        if ($caseId === '') {
+            return [
+                'ok' => false,
+                'error' => 'Selecciona un caso de Media Flow antes de usar OpenClaw.',
+                'code' => 'media_flow_case_required',
+            ];
+        }
+
+        try {
+            $case = CaseMediaFlowService::getCase($store, $caseId);
+        } catch (RuntimeException $exception) {
+            return [
+                'ok' => false,
+                'error' => $exception->getMessage(),
+                'code' => 'media_flow_case_not_found',
+            ];
+        }
+
+        $proposal = is_array($case['proposal'] ?? null) ? $case['proposal'] : [];
+        $policy = is_array($case['policy'] ?? null) ? $case['policy'] : [];
+        $summary = (string) ($case['summary']['deck'] ?? '');
+        if ((string) ($policy['status'] ?? '') === 'blocked') {
+            $summary = 'Caso bloqueado por policy: ' . implode(', ', array_values((array) ($policy['flags'] ?? [])));
+        } elseif ($summary === '') {
+            $summary = $proposal !== []
+                ? 'Caso editorial cargado con propuesta vigente.'
+                : 'Caso editorial listo para generar propuesta.';
+        }
+
+        return [
+            'ok' => true,
+            'store' => $store,
+            'mutated' => false,
+            'result' => self::buildMediaFlowResult(
+                $case,
+                $proposal,
+                $summary,
+                []
+            ),
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $store
+     * @param array<string,mixed> $args
+     * @param array<string,mixed> $context
+     * @return array<string,mixed>
+     */
+    private static function executeMediaFlowGenerateProposal(array $store, array $args, array $context): array
+    {
+        $caseId = self::mediaFlowCaseId($context, $args);
+        if ($caseId === '') {
+            return [
+                'ok' => false,
+                'error' => 'Selecciona un caso de Media Flow antes de regenerar la propuesta.',
+                'code' => 'media_flow_case_required',
+            ];
+        }
+
+        try {
+            $payload = CaseMediaFlowService::generateProposal($store, [
+                'caseId' => $caseId,
+            ]);
+        } catch (RuntimeException $exception) {
+            return [
+                'ok' => false,
+                'error' => $exception->getMessage(),
+                'code' => 'media_flow_generate_failed',
+            ];
+        }
+
+        $workingStore = read_store();
+        $case = is_array($payload['case'] ?? null) ? $payload['case'] : CaseMediaFlowService::getCase($workingStore, $caseId);
+        $proposal = is_array($payload['proposal'] ?? null) ? $payload['proposal'] : [];
+
+        return [
+            'ok' => true,
+            'store' => $workingStore,
+            'mutated' => true,
+            'result' => self::buildMediaFlowResult(
+                $case,
+                $proposal,
+                'Propuesta editorial regenerada desde el snapshot clinico del caso.',
+                []
+            ),
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $store
+     * @param array<string,mixed> $args
+     * @param array<string,mixed> $context
+     * @return array<string,mixed>
+     */
+    private static function executeMediaFlowRewriteProposal(array $store, array $args, array $context): array
+    {
+        $caseId = self::mediaFlowCaseId($context, $args);
+        if ($caseId === '') {
+            return [
+                'ok' => false,
+                'error' => 'Selecciona un caso de Media Flow antes de ajustar la propuesta.',
+                'code' => 'media_flow_case_required',
+            ];
+        }
+
+        $workingStore = $store;
+        $case = null;
+        try {
+            $case = CaseMediaFlowService::getCase($workingStore, $caseId);
+            if (!is_array($case['proposal'] ?? null)) {
+                CaseMediaFlowService::generateProposal($workingStore, ['caseId' => $caseId]);
+                $workingStore = read_store();
+                $case = CaseMediaFlowService::getCase($workingStore, $caseId);
+            }
+        } catch (RuntimeException $exception) {
+            return [
+                'ok' => false,
+                'error' => $exception->getMessage(),
+                'code' => 'media_flow_case_not_ready',
+            ];
+        }
+
+        $instruction = trim((string) ($args['instruction'] ?? ($args['message'] ?? '')));
+        $proposalPatch = self::buildMediaFlowProposalPatch(
+            is_array($case) ? $case : [],
+            $instruction,
+            trim((string) ($args['message'] ?? '')),
+            is_array($args['selectedAssetIds'] ?? null) ? $args['selectedAssetIds'] : []
+        );
+
+        try {
+            $payload = CaseMediaFlowService::patchProposal($workingStore, [
+                'caseId' => $caseId,
+                'proposalId' => trim((string) ($args['proposalId'] ?? '')),
+                'edits' => $proposalPatch,
+                'instruction' => $instruction,
+            ]);
+        } catch (RuntimeException $exception) {
+            return [
+                'ok' => false,
+                'error' => $exception->getMessage(),
+                'code' => 'media_flow_patch_failed',
+            ];
+        }
+
+        $workingStore = read_store();
+        $case = is_array($payload['case'] ?? null) ? $payload['case'] : CaseMediaFlowService::getCase($workingStore, $caseId);
+        $proposal = is_array($payload['proposal'] ?? null) ? $payload['proposal'] : [];
+
+        return [
+            'ok' => true,
+            'store' => $workingStore,
+            'mutated' => true,
+            'result' => self::buildMediaFlowResult(
+                $case,
+                $proposal,
+                'OpenClaw ajusto la propuesta activa sin aprobar ni publicar automaticamente.',
+                $proposalPatch
+            ),
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $case
+     * @param array<int,string> $selectedAssetIds
+     * @return array<string,mixed>
+     */
+    private static function buildMediaFlowProposalPatch(
+        array $case,
+        string $instruction,
+        string $message,
+        array $selectedAssetIds = []
+    ): array {
+        $proposal = is_array($case['proposal'] ?? null) ? $case['proposal'] : [];
+        $assets = array_values(array_filter((array) ($case['mediaAssets'] ?? []), static function (array $asset) use ($selectedAssetIds): bool {
+            $assetId = trim((string) ($asset['assetId'] ?? ''));
+            if ($assetId === '') {
+                return false;
+            }
+            if ($selectedAssetIds === []) {
+                return true;
+            }
+            return in_array($assetId, array_map('strval', $selectedAssetIds), true);
+        }));
+        if ($assets === []) {
+            $assets = array_values((array) ($case['mediaAssets'] ?? []));
+        }
+
+        $normalizedInstruction = self::normalizeText($instruction . ' ' . $message);
+        $beforeAssetId = '';
+        $afterAssetId = '';
+        foreach ($assets as $asset) {
+            $kind = self::normalizeText((string) ($asset['kind'] ?? ''));
+            $assetId = trim((string) ($asset['assetId'] ?? ''));
+            if ($assetId === '') {
+                continue;
+            }
+            if ($beforeAssetId === '' && $kind === 'before') {
+                $beforeAssetId = $assetId;
+            }
+            if ($afterAssetId === '' && in_array($kind, ['after', 'progress', 'detail'], true)) {
+                $afterAssetId = $assetId;
+            }
+        }
+        if ($afterAssetId === '' && isset($assets[count($assets) - 1])) {
+            $afterAssetId = trim((string) ($assets[count($assets) - 1]['assetId'] ?? ''));
+        }
+
+        $comparePairs = is_array($proposal['comparePairs'] ?? null)
+            ? array_values($proposal['comparePairs'])
+            : [];
+        if ($beforeAssetId !== '' && $afterAssetId !== '') {
+            $comparePairs = [[
+                'beforeAssetId' => $beforeAssetId,
+                'afterAssetId' => $afterAssetId,
+            ]];
+        }
+
+        $coverAssetId = trim((string) ($proposal['coverAssetId'] ?? ''));
+        if (preg_match('/\b(cma_[a-z0-9]+)\b/i', $message, $matches) === 1) {
+            $coverAssetId = trim((string) ($matches[1] ?? ''));
+        } elseif (
+            str_contains($normalizedInstruction, 'cover')
+            || str_contains($normalizedInstruction, 'portada')
+            || str_contains($normalizedInstruction, 'hero')
+        ) {
+            $coverAssetId = $afterAssetId !== '' ? $afterAssetId : $coverAssetId;
+        }
+
+        $headline = trim((string) ($case['summary']['headline'] ?? 'Caso editorial'));
+        $serviceLabel = trim((string) ($case['service']['label'] ?? 'Caso dermatologico'));
+        $policyStatus = trim((string) ($case['policy']['status'] ?? 'needs_review'));
+        $copy = is_array($proposal['copy'] ?? null) ? $proposal['copy'] : [];
+        $alt = is_array($proposal['alt'] ?? null) ? $proposal['alt'] : [];
+
+        if (
+            str_contains($normalizedInstruction, 'reescribe')
+            || str_contains($normalizedInstruction, 'rewrite')
+            || str_contains($normalizedInstruction, 'copy')
+            || str_contains($normalizedInstruction, 'titulo')
+            || str_contains($normalizedInstruction, 'title')
+            || str_contains($normalizedInstruction, 'summary')
+            || str_contains($normalizedInstruction, 'resumen')
+            || str_contains($normalizedInstruction, 'alt')
+            || str_contains($normalizedInstruction, 'categoria')
+            || str_contains($normalizedInstruction, 'tags')
+        ) {
+            $copy = [
+                'es' => [
+                    'title' => $serviceLabel . ' · ' . $headline,
+                    'summary' => $policyStatus === 'blocked'
+                        ? 'Caso editorial retenido por policy hasta resolver consentimiento, identificacion o contexto clinico.'
+                        : 'Caso editorial preparado para revision humana con comparativa before/after y copy reutilizable en V6.',
+                    'deck' => 'OpenClaw ajusto el paquete editorial activo dentro de Media Flow.',
+                ],
+                'en' => [
+                    'title' => $serviceLabel . ' · ' . $headline,
+                    'summary' => $policyStatus === 'blocked'
+                        ? 'Editorial case held by policy until consent, identification risk, or context issues are resolved.'
+                        : 'Editorial case refreshed for human review with before/after comparison and reusable web copy.',
+                    'deck' => 'OpenClaw refreshed the active editorial package inside Media Flow.',
+                ],
+            ];
+            $alt = [
+                'es' => [
+                    'cover' => 'Caso editorial dermatologico revisado en Media Flow',
+                ],
+                'en' => [
+                    'cover' => 'Dermatology case story reviewed inside Media Flow',
+                ],
+            ];
+        }
+
+        return [
+            'selectedAssetIds' => array_values(array_filter(array_map(static function (array $asset): string {
+                return trim((string) ($asset['assetId'] ?? ''));
+            }, $assets), static fn (string $assetId): bool => $assetId !== '')),
+            'coverAssetId' => $coverAssetId,
+            'comparePairs' => $comparePairs,
+            'copy' => $copy,
+            'alt' => $alt,
+            'category' => trim((string) ($proposal['category'] ?? ($case['service']['label'] ?? 'Caso dermatologico'))),
+            'tags' => array_values((array) ($proposal['tags'] ?? [])),
+            'disclaimer' => trim((string) ($proposal['disclaimer'] ?? '')),
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $case
+     * @param array<string,mixed> $proposal
+     * @param array<string,mixed> $proposalPatch
+     * @return array<string,mixed>
+     */
+    private static function buildMediaFlowResult(
+        array $case,
+        array $proposal,
+        string $summary,
+        array $proposalPatch
+    ): array {
+        $policy = is_array($case['policy'] ?? null) ? $case['policy'] : [];
+        $effectiveProposal = $proposal !== []
+            ? $proposal
+            : (is_array($case['proposal'] ?? null) ? $case['proposal'] : []);
+
+        return [
+            'caseId' => trim((string) ($case['caseId'] ?? '')),
+            'case' => $case,
+            'proposal' => $effectiveProposal,
+            'proposalPatch' => $proposalPatch,
+            'comparePairs' => array_values((array) ($effectiveProposal['comparePairs'] ?? [])),
+            'copy' => is_array($effectiveProposal['copy'] ?? null) ? $effectiveProposal['copy'] : [],
+            'alt' => is_array($effectiveProposal['alt'] ?? null) ? $effectiveProposal['alt'] : [],
+            'policyStatus' => trim((string) ($policy['status'] ?? 'needs_review')),
+            'policyFlags' => array_values((array) ($policy['flags'] ?? [])),
+            'recommendation' => trim((string) ($effectiveProposal['recommendation'] ?? 'needs_review')),
+            'toolSuggestions' => self::buildMediaFlowToolSuggestions($case, $effectiveProposal),
+            'summary' => $summary,
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $case
+     * @param array<string,mixed> $proposal
+     * @return array<int,array<string,string>>
+     */
+    private static function buildMediaFlowToolSuggestions(array $case, array $proposal): array
+    {
+        $caseId = trim((string) ($case['caseId'] ?? ''));
+        if ($caseId === '') {
+            return [];
+        }
+
+        $suggestions = [
+            [
+                'id' => 'regenerate',
+                'label' => 'Regenerar',
+                'prompt' => 'Regenera la propuesta editorial de este caso',
+                'tone' => 'neutral',
+                'description' => 'Vuelve a leer el snapshot clinico y prepara una propuesta nueva.',
+            ],
+            [
+                'id' => 'repair',
+                'label' => 'Re-pair',
+                'prompt' => 'Reempareja el before/after de este caso',
+                'tone' => 'neutral',
+                'description' => 'Recalcula la comparativa before/after con los activos actuales.',
+            ],
+            [
+                'id' => 'rewrite-copy',
+                'label' => 'Rewrite copy',
+                'prompt' => 'Reescribe el copy editorial de este caso',
+                'tone' => 'neutral',
+                'description' => 'Refresca titulo, resumen, alt text y framing editorial.',
+            ],
+            [
+                'id' => 'change-cover',
+                'label' => 'Change cover',
+                'prompt' => 'Cambia la cover al mejor after de este caso',
+                'tone' => 'neutral',
+                'description' => 'Propone una portada mas fuerte usando el activo posterior.',
+            ],
+        ];
+
+        if ((string) ($case['policy']['status'] ?? '') === 'blocked') {
+            $suggestions[] = [
+                'id' => 'blocked-reason',
+                'label' => 'Blocked reason',
+                'prompt' => 'Explica por que este caso esta bloqueado',
+                'tone' => 'warning',
+                'description' => 'Resume el motivo de policy que impide publicarlo.',
+            ];
+        } elseif ($proposal !== []) {
+            $suggestions[] = [
+                'id' => 'approve-ready',
+                'label' => 'Approve ready',
+                'prompt' => 'Confirma si este caso esta listo para aprobacion humana',
+                'tone' => 'success',
+                'description' => 'Verifica si la propuesta ya puede pasar al gate humano final.',
+            ];
+        }
+
+        return $suggestions;
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $toolCalls
+     * @param array<string,mixed> $context
+     * @return array<string,mixed>
+     */
+    private static function buildDomainResponse(array $toolCalls, array $context, string $assistantMessage): array
+    {
+        if (!self::isMediaFlowContext($context)) {
+            return [];
+        }
+
+        $base = [
+            'domain' => 'media-flow',
+            'workspace' => 'media-flow',
+            'assistantMessage' => $assistantMessage,
+            'caseId' => self::mediaFlowCaseId($context, []),
+            'proposalId' => trim((string) ($context['proposalId'] ?? ($context['domainContext']['proposalId'] ?? ''))),
+            'proposal' => [],
+            'toolSuggestions' => [],
+        ];
+
+        foreach (array_reverse($toolCalls) as $toolCall) {
+            if ((string) ($toolCall['domain'] ?? '') !== 'media-flow') {
+                continue;
+            }
+
+            $result = is_array($toolCall['result'] ?? null) ? $toolCall['result'] : [];
+            $proposal = is_array($result['proposal'] ?? null) ? $result['proposal'] : [];
+            return array_merge($base, [
+                'tool' => (string) ($toolCall['tool'] ?? ''),
+                'status' => (string) ($toolCall['status'] ?? 'completed'),
+                'proposalId' => trim((string) ($proposal['proposalId'] ?? $base['proposalId'])),
+                'proposal' => $proposal,
+                'policyStatus' => trim((string) ($result['policyStatus'] ?? 'needs_review')),
+                'policyFlags' => array_values((array) ($result['policyFlags'] ?? [])),
+                'recommendation' => trim((string) ($result['recommendation'] ?? 'needs_review')),
+                'proposalPatch' => is_array($result['proposalPatch'] ?? null) ? $result['proposalPatch'] : [],
+                'comparePairs' => array_values((array) ($result['comparePairs'] ?? [])),
+                'copy' => is_array($result['copy'] ?? null) ? $result['copy'] : [],
+                'alt' => is_array($result['alt'] ?? null) ? $result['alt'] : [],
+                'toolSuggestions' => array_values((array) ($result['toolSuggestions'] ?? [])),
+            ]);
+        }
+
+        return $base;
+    }
+
+    /**
      * @param array<string,mixed> $session
      * @return array<string,mixed>
      */
@@ -1971,26 +2435,46 @@ final class AdminAgentService
     /**
      * @param array<string,mixed> $payload
      */
-    private static function normalizeContext($payload): array
+    private static function normalizeContext($payload, array $overrides = []): array
     {
         $context = is_array($payload) ? $payload : [];
         $selectedEntity = is_array($context['selectedEntity'] ?? null) ? $context['selectedEntity'] : [];
         $filters = is_array($context['filters'] ?? null) ? $context['filters'] : [];
         $visibleIds = isset($context['visibleIds']) && is_array($context['visibleIds'])
-            ? array_values(array_map(static fn ($value): int => (int) $value, $context['visibleIds']))
+            ? array_values(array_filter(array_map(static function ($value): string {
+                return trim((string) $value);
+            }, $context['visibleIds']), static fn (string $value): bool => $value !== ''))
             : [];
         $capabilities = is_array($context['operatorCapabilities'] ?? null) ? $context['operatorCapabilities'] : [];
         $adminHealth = is_array($context['adminHealth'] ?? null) ? $context['adminHealth'] : [];
+        $domainContext = is_array($context['domainContext'] ?? null) ? $context['domainContext'] : [];
+        $section = self::normalizeSection((string) ($overrides['section'] ?? ($context['section'] ?? 'dashboard')));
+        $caseId = trim((string) ($overrides['caseId'] ?? ($context['caseId'] ?? ($domainContext['caseId'] ?? ''))));
+        $proposalId = trim((string) ($overrides['proposalId'] ?? ($context['proposalId'] ?? ($domainContext['proposalId'] ?? ''))));
+        $selectedAssetIds = array_values(array_filter(array_map(static function ($value): string {
+            return trim((string) $value);
+        }, (array) ($overrides['selectedAssetIds'] ?? ($context['selectedAssetIds'] ?? ($domainContext['selectedAssetIds'] ?? [])))), static fn (string $value): bool => $value !== ''));
+        $workspace = self::normalizeWorkspace((string) ($overrides['workspace'] ?? ($context['workspace'] ?? '')), $section, $caseId);
 
         return [
-            'section' => self::normalizeSection((string) ($context['section'] ?? 'dashboard')),
+            'section' => $section,
+            'workspace' => $workspace,
             'selectedEntity' => [
                 'type' => trim((string) ($selectedEntity['type'] ?? '')),
                 'id' => (int) ($selectedEntity['id'] ?? 0),
+                'ref' => trim((string) ($selectedEntity['ref'] ?? '')),
                 'label' => truncate_field(sanitize_xss((string) ($selectedEntity['label'] ?? '')), 160),
             ],
             'filters' => $filters,
             'visibleIds' => $visibleIds,
+            'caseId' => $caseId,
+            'proposalId' => $proposalId,
+            'selectedAssetIds' => $selectedAssetIds,
+            'domainContext' => [
+                'caseId' => $caseId,
+                'proposalId' => $proposalId,
+                'selectedAssetIds' => $selectedAssetIds,
+            ],
             'operatorCapabilities' => [
                 'read' => (bool) ($capabilities['read'] ?? true),
                 'ui' => (bool) ($capabilities['ui'] ?? true),
@@ -2009,6 +2493,14 @@ final class AdminAgentService
         if ($type !== '' && $id > 0) {
             return $type . ':' . $id;
         }
+        $ref = trim((string) ($selectedEntity['ref'] ?? ''));
+        if ($type !== '' && $ref !== '') {
+            return $type . ':' . $ref;
+        }
+        $caseId = trim((string) ($context['caseId'] ?? ''));
+        if ($caseId !== '') {
+            return 'case_media:' . $caseId;
+        }
         return '';
     }
 
@@ -2023,7 +2515,7 @@ final class AdminAgentService
      */
     private static function knownSections(): array
     {
-        return ['dashboard', 'callbacks', 'appointments', 'availability', 'reviews', 'queue'];
+        return ['dashboard', 'callbacks', 'appointments', 'availability', 'reviews', 'queue', 'clinical-history'];
     }
 
     private static function normalizeRiskMode(string $riskMode): string
@@ -2628,6 +3120,15 @@ final class AdminAgentService
 
     private static function detectSectionFromText(string $normalizedText, string $fallback): string
     {
+        if (
+            str_contains($normalizedText, 'media flow')
+            || str_contains($normalizedText, 'editorial')
+            || str_contains($normalizedText, 'before')
+            || str_contains($normalizedText, 'after')
+            || str_contains($normalizedText, 'historia publica')
+        ) {
+            return 'clinical-history';
+        }
         if (str_contains($normalizedText, 'callback') || str_contains($normalizedText, 'pendiente') || str_contains($normalizedText, 'lead')) {
             return 'callbacks';
         }
@@ -2647,6 +3148,145 @@ final class AdminAgentService
             return 'dashboard';
         }
         return self::normalizeSection($fallback);
+    }
+
+    /**
+     * @param array<string,mixed> $context
+     */
+    private static function isMediaFlowContext(array $context, ?string $section = null): bool
+    {
+        $activeSection = self::normalizeSection((string) ($section ?? ($context['section'] ?? 'dashboard')));
+        $caseId = self::mediaFlowCaseId($context, []);
+        $workspace = self::normalizeWorkspace(
+            (string) ($context['workspace'] ?? ''),
+            $activeSection,
+            $caseId
+        );
+
+        return $workspace === 'media-flow' || ($activeSection === 'clinical-history' && $caseId !== '');
+    }
+
+    private static function normalizeWorkspace(string $workspace, string $section, string $caseId = ''): string
+    {
+        $normalized = self::normalizeText($workspace);
+        if ($normalized === 'media-flow' || $normalized === 'media_flow') {
+            return 'media-flow';
+        }
+        if ($section === 'clinical-history' && $caseId !== '') {
+            return 'media-flow';
+        }
+        return '';
+    }
+
+    /**
+     * @param array<string,mixed> $context
+     * @param array<string,mixed> $args
+     */
+    private static function mediaFlowCaseId(array $context, array $args): string
+    {
+        $selectedEntity = is_array($context['selectedEntity'] ?? null) ? $context['selectedEntity'] : [];
+        $domainContext = is_array($context['domainContext'] ?? null) ? $context['domainContext'] : [];
+        $candidates = [
+            $args['caseId'] ?? '',
+            $context['caseId'] ?? '',
+            $domainContext['caseId'] ?? '',
+            $selectedEntity['ref'] ?? '',
+            ((string) ($selectedEntity['type'] ?? '') === 'case_media')
+                ? ($selectedEntity['label'] ?? '')
+                : '',
+        ];
+
+        foreach ($candidates as $candidate) {
+            $value = trim((string) $candidate);
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param array<string,mixed> $context
+     * @param array<string,mixed> $store
+     * @return array<string,mixed>
+     */
+    private static function planMediaFlowTurnHeuristically(string $message, array $context, array $store): array
+    {
+        $normalized = self::normalizeText($message);
+        $caseId = self::mediaFlowCaseId($context, []);
+        $toolPlan = [];
+
+        if ((string) ($context['section'] ?? '') !== 'clinical-history') {
+            $toolPlan[] = [
+                'tool' => 'ui.navigate',
+                'args' => ['section' => 'clinical-history'],
+                'reason' => 'Mover el admin al workspace editorial',
+            ];
+        }
+
+        if ($caseId === '') {
+            return [
+                'toolPlan' => $toolPlan,
+                'finalAnswer' => 'Necesito un caso activo de Media Flow para hablar con OpenClaw desde el workspace editorial.',
+            ];
+        }
+
+        if (
+            preg_match('/\b(genera|regenera|regenerar|proposal|propuesta|refresh)\b/', $normalized) === 1
+            && preg_match('/\b(copy|titulo|title|cover|pair|before|after)\b/', $normalized) !== 1
+        ) {
+            $toolPlan[] = [
+                'tool' => 'media_flow.generate_proposal',
+                'args' => ['caseId' => $caseId],
+                'reason' => 'Regenerar la propuesta editorial desde el snapshot clinico',
+            ];
+            return [
+                'toolPlan' => $toolPlan,
+                'finalAnswer' => 'Voy a regenerar la propuesta editorial del caso activo sin publicarla.',
+            ];
+        }
+
+        if (
+            preg_match('/\b(reempareja|repair|re-pair|pair|before|after|comparativa)\b/', $normalized) === 1
+            || preg_match('/\b(portada|cover|hero)\b/', $normalized) === 1
+            || preg_match('/\b(reescribe|rewrite|copy|titulo|title|summary|resumen|alt|tags|categoria)\b/', $normalized) === 1
+        ) {
+            $toolPlan[] = [
+                'tool' => 'media_flow.rewrite_proposal',
+                'args' => [
+                    'caseId' => $caseId,
+                    'proposalId' => trim((string) ($context['proposalId'] ?? ($context['domainContext']['proposalId'] ?? ''))),
+                    'selectedAssetIds' => array_values((array) ($context['selectedAssetIds'] ?? ($context['domainContext']['selectedAssetIds'] ?? []))),
+                    'instruction' => $message,
+                    'message' => $message,
+                ],
+                'reason' => 'Ajustar la propuesta editorial sin aprobar ni publicar',
+            ];
+            return [
+                'toolPlan' => $toolPlan,
+                'finalAnswer' => 'Voy a ajustar la propuesta activa del caso sin saltarme el gate humano final.',
+            ];
+        }
+
+        $toolPlan[] = [
+            'tool' => 'media_flow.case_snapshot',
+            'args' => ['caseId' => $caseId],
+            'reason' => 'Leer el caso editorial activo y explicar su estado',
+        ];
+
+        if ((string) ($context['section'] ?? '') !== 'clinical-history') {
+            $toolPlan[] = [
+                'tool' => 'ui.navigate',
+                'args' => ['section' => 'clinical-history'],
+                'reason' => 'Mantener visible el workspace editorial',
+            ];
+        }
+
+        return [
+            'toolPlan' => $toolPlan,
+            'finalAnswer' => 'Voy a resumir el caso editorial activo, su policy y la propuesta vigente para continuar desde el mismo hilo.',
+        ];
     }
 
     private static function normalizeText(string $value): string
@@ -2813,6 +3453,59 @@ final class AdminAgentService
                     'summary' => 'string',
                 ],
             ],
+            'media_flow.case_snapshot' => [
+                'tool' => 'media_flow.case_snapshot',
+                'description' => 'Lee el caso editorial activo, su policy y la propuesta vigente.',
+                'domain' => 'media-flow',
+                'category' => 'read',
+                'risk' => 'low',
+                'autoExecutable' => true,
+                'requiresApproval' => false,
+                'reversible' => true,
+                'inputSchema' => [
+                    'caseId' => 'string',
+                ],
+                'outputSchema' => [
+                    'case' => 'case_media_case',
+                    'summary' => 'string',
+                ],
+            ],
+            'media_flow.generate_proposal' => [
+                'tool' => 'media_flow.generate_proposal',
+                'description' => 'Regenera una propuesta editorial desde el snapshot clinico.',
+                'domain' => 'media-flow',
+                'category' => 'write-internal',
+                'risk' => 'medium',
+                'autoExecutable' => true,
+                'requiresApproval' => false,
+                'reversible' => true,
+                'inputSchema' => [
+                    'caseId' => 'string',
+                ],
+                'outputSchema' => [
+                    'proposal' => 'media_story_proposal',
+                    'summary' => 'string',
+                ],
+            ],
+            'media_flow.rewrite_proposal' => [
+                'tool' => 'media_flow.rewrite_proposal',
+                'description' => 'Ajusta la propuesta editorial activa sin aprobar ni publicar.',
+                'domain' => 'media-flow',
+                'category' => 'write-internal',
+                'risk' => 'medium',
+                'autoExecutable' => true,
+                'requiresApproval' => false,
+                'reversible' => true,
+                'inputSchema' => [
+                    'caseId' => 'string',
+                    'proposalId' => 'string',
+                    'instruction' => 'string',
+                ],
+                'outputSchema' => [
+                    'proposal' => 'media_story_proposal',
+                    'summary' => 'string',
+                ],
+            ],
             'queue.call_next' => [
                 'tool' => 'queue.call_next',
                 'description' => 'Llama el siguiente ticket del turnero para un consultorio.',
@@ -2840,7 +3533,7 @@ final class AdminAgentService
                 'requiresApproval' => false,
                 'reversible' => true,
                 'inputSchema' => [
-                    'section' => 'enum: dashboard|callbacks|appointments|availability|reviews|queue',
+                    'section' => 'enum: dashboard|callbacks|appointments|availability|reviews|queue|clinical-history',
                 ],
                 'outputSchema' => [
                     'section' => 'string',

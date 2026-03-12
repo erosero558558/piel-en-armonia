@@ -29,7 +29,13 @@ if ($method === 'GET' && $action === 'status') {
     audit_log_event('admin.status', [
         'authenticated' => $isAuth
     ]);
-    $resp = ['ok' => true, 'authenticated' => $isAuth];
+    $resp = [
+        'ok' => true,
+        'authenticated' => $isAuth,
+        'capabilities' => $isAuth
+            ? admin_agent_capabilities_payload()
+            : ['adminAgent' => false],
+    ];
     if ($isAuth) {
         $resp['csrfToken'] = generate_csrf_token();
     }
@@ -113,7 +119,8 @@ if ($method === 'POST' && $action === 'login') {
     json_response([
         'ok' => true,
         'authenticated' => true,
-        'csrfToken' => generate_csrf_token()
+        'csrfToken' => generate_csrf_token(),
+        'capabilities' => admin_agent_capabilities_payload(),
     ]);
 }
 
@@ -170,7 +177,8 @@ if ($method === 'POST' && $action === 'login-2fa') {
     json_response([
         'ok' => true,
         'authenticated' => true,
-        'csrfToken' => generate_csrf_token()
+        'csrfToken' => generate_csrf_token(),
+        'capabilities' => admin_agent_capabilities_payload(),
     ]);
 }
 
@@ -186,7 +194,10 @@ if ($method === 'POST' && $action === 'logout') {
 
     json_response([
         'ok' => true,
-        'authenticated' => false
+        'authenticated' => false,
+        'capabilities' => [
+            'adminAgent' => false,
+        ],
     ]);
 }
 

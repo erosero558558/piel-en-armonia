@@ -129,9 +129,34 @@ function normalizeSection(section) {
         'availability',
         'reviews',
         'queue',
+        'clinical-history',
     ].includes(value)
         ? value
         : 'dashboard';
+}
+
+function normalizeWorkspace(workspace) {
+    const value = String(workspace || '')
+        .trim()
+        .toLowerCase();
+    return value === 'media-flow' || value === 'media_flow'
+        ? 'media-flow'
+        : '';
+}
+
+function normalizeStringList(value) {
+    return Array.isArray(value)
+        ? value
+              .map((item) => String(item || '').trim())
+              .filter(Boolean)
+        : [];
+}
+
+export function canUseAgent(state = getState()) {
+    return (
+        state?.auth?.authenticated === true &&
+        state?.auth?.capabilities?.adminAgent === true
+    );
 }
 
 function deriveVisibleCallbacks(state) {
@@ -161,13 +186,19 @@ export function buildAgentContextFromState(state = getState()) {
     const section = normalizeSection(state.ui.activeSection);
     const context = {
         section,
+        workspace: '',
         selectedEntity: {
             type: '',
             id: 0,
+            ref: '',
             label: '',
         },
         filters: {},
         visibleIds: [],
+        caseId: '',
+        proposalId: '',
+        selectedAssetIds: [],
+        domainContext: {},
         operatorCapabilities: {
             read: true,
             ui: true,
@@ -288,9 +319,109 @@ export function buildAgentContextFromState(state = getState()) {
         context.visibleIds = visible.map((item) =>
             Number(item.id || item.ticketId || 0)
         );
+    } else if (section === 'clinical-history') {
+        const queue = Array.isArray(state.data?.mediaFlowMeta?.queue)
+            ? state.data.mediaFlowMeta.queue
+            : [];
+        const currentCase =
+            state.caseMediaFlow?.current &&
+            typeof state.caseMediaFlow.current === 'object'
+                ? state.caseMediaFlow.current
+                : null;
+        const caseId = String(
+            currentCase?.caseId ||
+                state.caseMediaFlow?.selectedCaseId ||
+                queue[0]?.caseId ||
+                ''
+        ).trim();
+        const proposal =
+            currentCase?.proposal && typeof currentCase.proposal === 'object'
+                ? currentCase.proposal
+                : null;
+        const selectedAssetIds = normalizeStringList(
+            proposal?.selectedAssetIds ||
+                currentCase?.mediaAssets?.map?.((asset) => asset?.assetId)
+        );
+        context.workspace = caseId ? 'media-flow' : '';
+        context.caseId = caseId;
+        context.proposalId = String(proposal?.proposalId || '').trim();
+        context.selectedAssetIds = selectedAssetIds;
+        context.selectedEntity = caseId
+            ? {
+                  type: 'case_media',
+                  id: 0,
+                  ref: caseId,
+                  label:
+                      String(currentCase?.summary?.headline || '').trim() ||
+                      caseId,
+              }
+            : context.selectedEntity;
+        context.filters = {
+            workspace: context.workspace,
+            publicationStatus: String(currentCase?.publication?.status || '').trim(),
+            policyStatus: String(currentCase?.policy?.status || '').trim(),
+        };
+        context.visibleIds = queue
+            .map((item) => String(item?.caseId || '').trim())
+            .filter(Boolean);
+        context.domainContext = {
+            caseId,
+            proposalId: context.proposalId,
+            selectedAssetIds,
+        };
     }
 
     return context;
+}
+
+function mergeAgentContext(baseContext, override = {}) {
+    const base = baseContext && typeof baseContext === 'object' ? baseContext : {};
+    const patch = override && typeof override === 'object' ? override : {};
+    const selectedEntity =
+        patch.selectedEntity && typeof patch.selectedEntity === 'object'
+            ? patch.selectedEntity
+            : {};
+    const domainContext =
+        patch.domainContext && typeof patch.domainContext === 'object'
+            ? patch.domainContext
+            : {};
+    const next = {
+        ...base,
+        ...patch,
+        selectedEntity: {
+            ...(base.selectedEntity || {}),
+            ...selectedEntity,
+        },
+        domainContext: {
+            ...(base.domainContext || {}),
+            ...domainContext,
+        },
+    };
+
+    next.section = normalizeSection(next.section);
+    next.caseId = String(
+        next.caseId || next.domainContext?.caseId || next.selectedEntity?.ref || ''
+    ).trim();
+    next.workspace =
+        normalizeWorkspace(next.workspace || next.domainContext?.workspace || '') ||
+        (next.section === 'clinical-history' && next.caseId ? 'media-flow' : '');
+    next.proposalId = String(
+        next.proposalId || next.domainContext?.proposalId || ''
+    ).trim();
+    next.selectedAssetIds = normalizeStringList(
+        next.selectedAssetIds || next.domainContext?.selectedAssetIds || []
+    );
+    next.visibleIds = Array.isArray(next.visibleIds)
+        ? next.visibleIds.map((item) => String(item ?? '').trim()).filter(Boolean)
+        : [];
+    next.domainContext = {
+        ...next.domainContext,
+        caseId: next.caseId,
+        proposalId: next.proposalId,
+        selectedAssetIds: next.selectedAssetIds,
+    };
+
+    return next;
 }
 
 function renderMessageList(messages) {
@@ -438,8 +569,10 @@ function renderEventList(events) {
 
 export function renderAgentPanel() {
     const state = getState();
-    const context = buildAgentContextFromState(state);
+    const context =
+        agentContextFromSnapshot(state.agent?.context) || buildAgentContextFromState(state);
     const agent = state.agent || {};
+    const hasAccess = canUseAgent(state);
     const relayMode = String(agent.health?.relay?.mode || 'disabled');
     const sessionStatus = String(agent.session?.status || 'idle');
     const messages = Array.isArray(agent.messages) ? agent.messages : [];
@@ -456,7 +589,9 @@ export function renderAgentPanel() {
 
     setText(
         '#adminAgentPanelSummary',
-        agent.lastError
+        !hasAccess
+            ? 'OpenClaw disponible solo para admin/editorial.'
+            : agent.lastError
             ? `Error: ${agent.lastError}`
             : sessionStatus === 'idle'
               ? 'Sesion inactiva. Abre el copiloto para trabajar con contexto del admin.'
@@ -464,12 +599,16 @@ export function renderAgentPanel() {
     );
     setText(
         '#adminAgentContextSummary',
-        `${context.section} · visibles ${context.visibleIds.length}`
+        `${context.section}${context.workspace ? ` / ${context.workspace}` : ''} · visibles ${context.visibleIds.length}`
     );
     setText(
         '#adminAgentContextMeta',
-        context.selectedEntity?.id
-            ? `${context.selectedEntity.type} ${context.selectedEntity.id} · ${context.selectedEntity.label}`
+        context.caseId
+            ? `case ${context.caseId}${context.proposalId ? ` · ${context.proposalId}` : ''}`
+            : context.selectedEntity?.id
+              ? `${context.selectedEntity.type} ${context.selectedEntity.id} · ${context.selectedEntity.label}`
+              : context.selectedEntity?.ref
+                ? `${context.selectedEntity.type} ${context.selectedEntity.ref} · ${context.selectedEntity.label}`
             : 'Sin entidad seleccionada; el agente usara el contexto de seccion.'
     );
     setText('#adminAgentSessionState', sessionStatus);
@@ -510,6 +649,12 @@ export function renderAgentPanel() {
         relayBadge.setAttribute('data-state', relayMode);
     }
 
+    const openButton = qs('[data-action="open-agent-panel"]');
+    if (openButton instanceof HTMLButtonElement) {
+        openButton.hidden = !hasAccess;
+        openButton.disabled = !hasAccess;
+    }
+
     setHtml('#adminAgentConversation', renderMessageList(messages));
     setHtml('#adminAgentToolPlan', renderToolCallList(toolCalls));
     setHtml('#adminAgentApprovalQueue', renderApprovalList(approvals));
@@ -518,14 +663,23 @@ export function renderAgentPanel() {
 
     const prompt = qs('#adminAgentPrompt');
     if (prompt instanceof HTMLTextAreaElement) {
-        prompt.disabled = !isAuthenticated || agent.submitting === true;
+        prompt.disabled =
+            !isAuthenticated || !hasAccess || agent.submitting === true;
     }
 
     const submit = qs('#adminAgentSubmitBtn');
     if (submit instanceof HTMLButtonElement) {
-        submit.disabled = !isAuthenticated || agent.submitting === true;
+        submit.disabled =
+            !isAuthenticated || !hasAccess || agent.submitting === true;
         submit.textContent = agent.submitting ? 'Procesando...' : 'Ejecutar';
     }
+}
+
+function agentContextFromSnapshot(context) {
+    if (!context || typeof context !== 'object') {
+        return null;
+    }
+    return mergeAgentContext(buildAgentContextFromState(), context);
 }
 
 function stopAgentLiveSync() {
@@ -539,7 +693,7 @@ function stopAgentLiveSync() {
 function ensureAgentLiveSync() {
     stopAgentLiveSync();
     if (
-        getState().auth?.authenticated !== true ||
+        !canUseAgent(getState()) ||
         getState().agent?.open !== true ||
         !getState().agent?.session?.sessionId
     ) {
@@ -556,7 +710,7 @@ export async function refreshAgentLiveState({ silent = false } = {}) {
     const sessionId = String(state.agent?.session?.sessionId || '');
     if (
         !sessionId ||
-        state.auth?.authenticated !== true ||
+        !canUseAgent(state) ||
         state.agent?.open !== true ||
         liveSyncInFlight
     ) {
@@ -608,7 +762,7 @@ export async function refreshAgentLiveState({ silent = false } = {}) {
 
 export async function hydrateAgentSession() {
     const state = getState();
-    if (state.auth?.authenticated !== true) {
+    if (!canUseAgent(state)) {
         stopAgentLiveSync();
         clearAgentSnapshot({ keepOpen: state.agent?.open === true });
         renderAgentPanel();
@@ -644,6 +798,9 @@ export async function hydrateAgentSession() {
 
 export async function ensureAgentSession() {
     const state = getState();
+    if (!canUseAgent(state)) {
+        throw new Error('OpenClaw disponible solo para admin/editorial');
+    }
     if (state.agent?.session?.sessionId) {
         return state.agent.session.sessionId;
     }
@@ -719,16 +876,26 @@ async function applyClientActions(actions) {
     }
 }
 
-export async function submitAgentPrompt(message) {
+export async function submitAgentPrompt(message, options = {}) {
     const prompt = String(message || '').trim();
     if (!prompt) {
         throw new Error('Escribe una instruccion para el copiloto');
+    }
+
+    const state = getState();
+    if (!canUseAgent(state)) {
+        throw new Error('OpenClaw disponible solo para admin/editorial');
     }
 
     const sessionId = await ensureAgentSession();
     if (!sessionId) {
         throw new Error('No se pudo preparar la sesion del agente');
     }
+
+    const context = mergeAgentContext(
+        buildAgentContextFromState(),
+        options?.contextOverride || {}
+    );
 
     patchAgent({ submitting: true, lastError: '' });
     renderAgentPanel();
@@ -739,7 +906,12 @@ export async function submitAgentPrompt(message) {
             body: {
                 sessionId,
                 message: prompt,
-                context: buildAgentContextFromState(),
+                context,
+                workspace: context.workspace,
+                domainContext: context.domainContext,
+                caseId: context.caseId,
+                proposalId: context.proposalId,
+                selectedAssetIds: context.selectedAssetIds,
             },
         });
         const payload = response?.data || {};
@@ -834,6 +1006,10 @@ export async function cancelAgentSession() {
 }
 
 export async function openAgentPanelExperience({ focus = false } = {}) {
+    if (!canUseAgent(getState())) {
+        renderAgentPanel();
+        return null;
+    }
     patchAgent({ open: true });
     showAgentPanel();
     renderAgentPanel();
@@ -855,6 +1031,9 @@ export function closeAgentPanelExperience() {
 }
 
 export async function focusAgentPrompt() {
+    if (!canUseAgent(getState())) {
+        return null;
+    }
     await openAgentPanelExperience({ focus: true });
 }
 

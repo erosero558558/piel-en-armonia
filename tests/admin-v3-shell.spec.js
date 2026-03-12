@@ -188,6 +188,35 @@ function buildFixtureState() {
                 },
             ],
         },
+        mediaFlowMeta: {
+            summary: {
+                totalCases: 1,
+                eligibleCases: 1,
+                blockedCases: 0,
+                publishedCases: 0,
+                needsReviewCases: 0,
+                latestActivityAt: isoMinutesAgo(12),
+            },
+            queue: [
+                {
+                    caseId: 'CASE-MEDIA-001',
+                    appointmentId: 1201,
+                    patientName: 'Camila Ruiz',
+                    serviceLabel: 'Control de acne',
+                    assetCount: 2,
+                    policyStatus: 'eligible',
+                    policyFlags: [],
+                    recommendation: 'publish_ready',
+                    proposalStatus: 'draft',
+                    publicationStatus: 'draft',
+                    consentStatus: 'explicit',
+                    latestActivityAt: isoMinutesAgo(12),
+                    summary:
+                        'Control de acne con dos activos clinicos listos para curacion editorial.',
+                },
+            ],
+            recentEvents: [],
+        },
         funnel: {
             summary: {
                 viewBooking: 120,
@@ -324,20 +353,89 @@ function buildClinicalReviewFixture() {
     };
 }
 
-async function setupSonyV3Mocks(page) {
+function buildMediaFlowCaseFixture() {
+    return {
+        caseId: 'CASE-MEDIA-001',
+        appointmentId: 1201,
+        patient: {
+            name: 'Camila Ruiz',
+            ageYears: 29,
+            sexAtBirth: 'femenino',
+        },
+        service: {
+            label: 'Control de acne',
+            summary: 'Seguimiento de acne con par before/after listo.',
+        },
+        consent: {
+            status: 'explicit',
+            privacyAccepted: true,
+            publicationExplicit: true,
+        },
+        policy: {
+            status: 'eligible',
+            flags: [],
+        },
+        summary: {
+            headline: 'Camila Ruiz',
+            deck: 'Control de acne con dos activos clinicos listos para curacion editorial.',
+        },
+        mediaAssets: [
+            {
+                assetId: 'cma_1001',
+                kind: 'before',
+                visibility: 'candidate',
+                previewUrl:
+                    '/api.php?resource=media-flow-private-asset&assetId=cma_1001',
+                originalName: 'before-acne.jpg',
+                qualityFlags: [],
+                riskFlags: [],
+            },
+            {
+                assetId: 'cma_1002',
+                kind: 'after',
+                visibility: 'candidate',
+                previewUrl:
+                    '/api.php?resource=media-flow-private-asset&assetId=cma_1002',
+                originalName: 'after-acne.jpg',
+                qualityFlags: [],
+                riskFlags: [],
+            },
+        ],
+        proposal: null,
+        publication: {
+            status: 'draft',
+        },
+        timeline: [],
+    };
+}
+
+async function setupSonyV3Mocks(page, options = {}) {
     const state = buildFixtureState();
     const clinicalReview = buildClinicalReviewFixture();
+    const mediaFlowCase = buildMediaFlowCaseFixture();
     const calls = {
         lastClinicalPatch: null,
+        lastMediaReview: null,
+        lastMediaAgentTurn: null,
     };
     const agentSessionId = 'ags_test_shell';
     const liveSyncTimestamp = new Date().toISOString();
+    const agentAccess = options.agentAccess !== false;
 
     await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
         jsonResponse(route, {
             ok: true,
             authenticated: true,
             csrfToken: 'csrf_test_token',
+            capabilities: {
+                adminAgent: agentAccess,
+            },
+            operator: {
+                email: agentAccess
+                    ? 'editorial@auroraderm.test'
+                    : 'operaciones@auroraderm.test',
+                source: 'openclaw_chatgpt',
+            },
         })
     );
 
@@ -367,6 +465,7 @@ async function setupSonyV3Mocks(page) {
                     availability: state.availability,
                     availabilityMeta: state.availabilityMeta,
                     clinicalHistoryMeta: state.clinicalHistoryMeta,
+                    mediaFlowMeta: state.mediaFlowMeta,
                 },
             });
         }
@@ -415,6 +514,147 @@ async function setupSonyV3Mocks(page) {
             });
         }
 
+        if (resource === 'media-flow-case') {
+            return jsonResponse(route, {
+                ok: true,
+                data: mediaFlowCase,
+            });
+        }
+
+        if (resource === 'media-flow-proposal-generate') {
+            mediaFlowCase.proposal = {
+                proposalId: 'msp_test_media_flow',
+                status: 'draft',
+                recommendation: 'publish_ready',
+                publicationScore: 88,
+                category: 'Acne controlado',
+                tags: ['Acne', 'Seguimiento'],
+                disclaimer:
+                    'Contenido editorial con fines informativos. Requiere gate humano final.',
+                comparePairs: [
+                    {
+                        beforeAssetId: 'cma_1001',
+                        afterAssetId: 'cma_1002',
+                    },
+                ],
+                copy: {
+                    es: {
+                        title: 'Caso acne editorial',
+                        summary:
+                            'Seguimiento de acne preparado desde el flujo clinico.',
+                    },
+                    en: {
+                        title: 'Editorial acne case',
+                        summary:
+                            'Acne follow-up prepared from the clinical flow.',
+                    },
+                },
+                alt: {
+                    es: {
+                        cover: 'Caso acne publicado desde media flow',
+                    },
+                    en: {
+                        cover: 'Acne case published from media flow',
+                    },
+                },
+            };
+            mediaFlowCase.timeline = [
+                {
+                    eventId: 'mfe_generate_1',
+                    type: 'media_flow.proposal_generated',
+                    title: 'Propuesta OpenClaw generada',
+                    message:
+                        'Se preparo una propuesta editorial para revisar activos, copy y comparativas.',
+                    createdAt: new Date().toISOString(),
+                },
+            ];
+            state.mediaFlowMeta.queue[0].proposalStatus = 'draft';
+            state.mediaFlowMeta.queue[0].recommendation = 'publish_ready';
+            return jsonResponse(route, {
+                ok: true,
+                data: {
+                    case: mediaFlowCase,
+                    proposal: mediaFlowCase.proposal,
+                },
+            });
+        }
+
+        if (resource === 'media-flow-proposal-review') {
+            calls.lastMediaReview = route.request().postDataJSON();
+            mediaFlowCase.proposal = {
+                ...(mediaFlowCase.proposal || {}),
+                status:
+                    calls.lastMediaReview?.decision === 'edit_and_publish'
+                        ? 'published'
+                        : 'approved',
+                copy:
+                    calls.lastMediaReview?.edits?.copy ||
+                    mediaFlowCase.proposal?.copy,
+                alt:
+                    calls.lastMediaReview?.edits?.alt ||
+                    mediaFlowCase.proposal?.alt,
+                category:
+                    calls.lastMediaReview?.edits?.category ||
+                    mediaFlowCase.proposal?.category,
+                tags:
+                    calls.lastMediaReview?.edits?.tags ||
+                    mediaFlowCase.proposal?.tags,
+            };
+            mediaFlowCase.publication = {
+                status:
+                    calls.lastMediaReview?.decision === 'edit_and_publish'
+                        ? 'published'
+                        : 'approved',
+            };
+            mediaFlowCase.timeline = [
+                {
+                    eventId: 'mfe_review_1',
+                    type: 'media_flow.proposal_reviewed',
+                    title: 'Revision editorial registrada',
+                    message:
+                        'La mesa operativa reviso la propuesta y dejo una decision auditable.',
+                    createdAt: new Date().toISOString(),
+                },
+                ...mediaFlowCase.timeline,
+            ];
+            state.mediaFlowMeta.summary.publishedCases = 1;
+            state.mediaFlowMeta.queue[0].proposalStatus =
+                mediaFlowCase.proposal.status;
+            state.mediaFlowMeta.queue[0].publicationStatus =
+                mediaFlowCase.publication.status;
+            return jsonResponse(route, {
+                ok: true,
+                data: {
+                    case: mediaFlowCase,
+                    proposal: mediaFlowCase.proposal,
+                    publication: mediaFlowCase.publication,
+                },
+            });
+        }
+
+        if (resource === 'media-flow-publication-state') {
+            mediaFlowCase.publication = {
+                status: 'published',
+            };
+            state.mediaFlowMeta.summary.publishedCases = 1;
+            state.mediaFlowMeta.queue[0].publicationStatus = 'published';
+            return jsonResponse(route, {
+                ok: true,
+                data: {
+                    case: mediaFlowCase,
+                    publication: mediaFlowCase.publication,
+                },
+            });
+        }
+
+        if (resource === 'media-flow-private-asset') {
+            return route.fulfill({
+                status: 200,
+                contentType: 'image/svg+xml; charset=utf-8',
+                body: `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220"><rect width="320" height="220" fill="#dfe7ef"/><text x="28" y="116" font-size="22" fill="#30445a">Media Flow</text></svg>`,
+            });
+        }
+
         if (resource === 'admin-agent-status') {
             return jsonResponse(route, {
                 ok: true,
@@ -431,6 +671,7 @@ async function setupSonyV3Mocks(page) {
         }
 
         if (resource === 'admin-agent-session-start') {
+            const body = route.request().postDataJSON();
             return jsonResponse(route, {
                 ok: true,
                 data: {
@@ -439,7 +680,7 @@ async function setupSonyV3Mocks(page) {
                         status: 'active',
                         riskMode: 'autopilot_partial',
                     },
-                    context: {
+                    context: body?.context || {
                         section: 'dashboard',
                     },
                     messages: [],
@@ -459,11 +700,196 @@ async function setupSonyV3Mocks(page) {
 
         if (resource === 'admin-agent-turn') {
             let prompt = '';
+            let body = {};
             try {
-                const body = route.request().postDataJSON();
+                body = route.request().postDataJSON();
                 prompt = String(body?.message || '').toLowerCase();
             } catch (_error) {
                 prompt = '';
+                body = {};
+            }
+
+            if (String(body?.context?.workspace || '') === 'media-flow') {
+                calls.lastMediaAgentTurn = body;
+                mediaFlowCase.proposal = {
+                    ...(mediaFlowCase.proposal || {
+                        proposalId: 'msp_test_media_flow',
+                        status: 'draft',
+                        recommendation: 'publish_ready',
+                        publicationScore: 88,
+                        category: 'Acne controlado',
+                        tags: ['Acne', 'Seguimiento'],
+                        disclaimer:
+                            'Contenido editorial con fines informativos. Requiere gate humano final.',
+                        comparePairs: [
+                            {
+                                beforeAssetId: 'cma_1001',
+                                afterAssetId: 'cma_1002',
+                            },
+                        ],
+                    }),
+                    copy: {
+                        es: {
+                            title: 'Caso acne editorial reescrito',
+                            summary:
+                                'OpenClaw reajusto el copy editorial del caso desde Media Flow.',
+                        },
+                        en: {
+                            title: 'Editorial acne case refreshed',
+                            summary:
+                                'OpenClaw refreshed the editorial copy from Media Flow.',
+                        },
+                    },
+                    alt: {
+                        es: {
+                            cover: 'Caso acne revisado dentro de media flow',
+                        },
+                        en: {
+                            cover: 'Acne case reviewed inside media flow',
+                        },
+                    },
+                };
+                mediaFlowCase.timeline = [
+                    {
+                        eventId: 'mfe_patch_1',
+                        type: 'media_flow.proposal_patched',
+                        title: 'Propuesta editorial ajustada',
+                        message:
+                            'OpenClaw ajusto la propuesta activa sin aprobar ni publicar automaticamente.',
+                        createdAt: new Date().toISOString(),
+                    },
+                    ...mediaFlowCase.timeline,
+                ];
+
+                return jsonResponse(route, {
+                    ok: true,
+                    data: {
+                        session: {
+                            session: {
+                                sessionId: agentSessionId,
+                                status: 'completed',
+                                riskMode: 'autopilot_partial',
+                            },
+                            context: body?.context,
+                            messages: [
+                                {
+                                    role: 'user',
+                                    content: String(body?.message || ''),
+                                    createdAt: new Date().toISOString(),
+                                    context: body?.context,
+                                },
+                                {
+                                    role: 'assistant',
+                                    content:
+                                        'OpenClaw ajusto la propuesta activa sin aprobar ni publicar automaticamente.',
+                                    createdAt: new Date().toISOString(),
+                                    context: body?.context,
+                                },
+                            ],
+                            turns: [
+                                {
+                                    turnId: 'agt_test_shell_media_flow',
+                                    status: 'completed',
+                                    finalAnswer:
+                                        'OpenClaw ajusto la propuesta activa sin aprobar ni publicar automaticamente.',
+                                    context: body?.context,
+                                    domainResponse: {
+                                        domain: 'media-flow',
+                                        workspace: 'media-flow',
+                                        caseId: 'CASE-MEDIA-001',
+                                        proposalId: 'msp_test_media_flow',
+                                        assistantMessage:
+                                            'OpenClaw ajusto la propuesta activa sin aprobar ni publicar automaticamente.',
+                                        recommendation: 'publish_ready',
+                                        policyStatus: 'eligible',
+                                        comparePairs: [
+                                            {
+                                                beforeAssetId: 'cma_1001',
+                                                afterAssetId: 'cma_1002',
+                                            },
+                                        ],
+                                        toolSuggestions: [
+                                            {
+                                                id: 'approve-ready',
+                                                label: 'Approve ready',
+                                                prompt:
+                                                    'Confirma si este caso esta listo para aprobacion humana',
+                                                tone: 'success',
+                                                description:
+                                                    'Valida si el paquete ya puede pasar al gate humano final.',
+                                            },
+                                        ],
+                                    },
+                                },
+                            ],
+                            toolCalls: [
+                                {
+                                    toolCallId: 'atc_test_shell_media_flow',
+                                    tool: 'media_flow.rewrite_proposal',
+                                    status: 'completed',
+                                    reason:
+                                        'Ajustar la propuesta editorial sin aprobar ni publicar',
+                                },
+                            ],
+                            approvals: [],
+                            events: [
+                                {
+                                    event: 'agent.turn_processed',
+                                    status: 'completed',
+                                    createdAt: new Date().toISOString(),
+                                },
+                            ],
+                            health: {
+                                relay: {
+                                    mode: 'online',
+                                },
+                            },
+                            tools: [],
+                        },
+                        turn: {
+                            turnId: 'agt_test_shell_media_flow',
+                            status: 'completed',
+                            toolPlan: [
+                                {
+                                    tool: 'media_flow.rewrite_proposal',
+                                    status: 'completed',
+                                },
+                            ],
+                            finalAnswer:
+                                'OpenClaw ajusto la propuesta activa sin aprobar ni publicar automaticamente.',
+                            context: body?.context,
+                            domainResponse: {
+                                domain: 'media-flow',
+                                workspace: 'media-flow',
+                                caseId: 'CASE-MEDIA-001',
+                                proposalId: 'msp_test_media_flow',
+                                assistantMessage:
+                                    'OpenClaw ajusto la propuesta activa sin aprobar ni publicar automaticamente.',
+                                recommendation: 'publish_ready',
+                                policyStatus: 'eligible',
+                                comparePairs: [
+                                    {
+                                        beforeAssetId: 'cma_1001',
+                                        afterAssetId: 'cma_1002',
+                                    },
+                                ],
+                                toolSuggestions: [
+                                    {
+                                        id: 'approve-ready',
+                                        label: 'Approve ready',
+                                        prompt:
+                                            'Confirma si este caso esta listo para aprobacion humana',
+                                        tone: 'success',
+                                        description:
+                                            'Valida si el paquete ya puede pasar al gate humano final.',
+                                    },
+                                ],
+                            },
+                        },
+                        clientActions: [],
+                        refreshRecommended: true,
+                    },
+                });
             }
 
             if (prompt.includes('horarios')) {
@@ -752,8 +1178,8 @@ async function setupSonyV3Mocks(page) {
     };
 }
 
-async function openAdminSonyV3(page) {
-    const fixture = await setupSonyV3Mocks(page);
+async function openAdminSonyV3(page, options = {}) {
+    const fixture = await setupSonyV3Mocks(page, options);
     await page.goto('/admin.html');
     await expect(page.locator('html')).toHaveAttribute(
         'data-admin-ui',
@@ -932,6 +1358,101 @@ test.describe('Admin sony_v3 shell', () => {
         );
         await expect(page.locator('#adminAgentLiveMeta')).toContainText(
             'Ultima sincronizacion'
+        );
+    });
+
+    test('opera media flow dentro de clinical history', async ({ page }) => {
+        const fixture = await openAdminSonyV3(page);
+
+        await page
+            .locator(
+                '#dashboardClinicalHistoryActions [data-action="context-open-clinical-history"]'
+            )
+            .first()
+            .click();
+
+        await expect(page.locator('#clinicalMediaFlowQueueList')).toContainText(
+            'Camila Ruiz'
+        );
+        await expect(
+            page.locator(
+                '#clinicalMediaFlowAssetGrid .clinical-media-flow-asset-card'
+            )
+        ).toHaveCount(2);
+        await expect(
+            page.locator('#clinicalMediaFlowAgentSurface')
+        ).toContainText('OpenClaw por caso');
+
+        await page.locator('#clinicalMediaFlowGenerateBtn').click();
+        await expect(page.locator('#clinicalMediaFlowProposalForm')).toContainText(
+            'Copy editorial'
+        );
+        await page
+            .locator('#clinicalMediaFlowAgentPrompt')
+            .fill('Reescribe el copy editorial de este caso');
+        await page
+            .locator('[data-media-agent-action="submit"]')
+            .click();
+        await expect(page.locator('#clinicalMediaFlowAgentSurface')).toContainText(
+            'OpenClaw ajusto la propuesta activa'
+        );
+
+        await page
+            .locator('[data-media-agent-action="open-panel"]')
+            .click();
+        await expect(page.locator('#adminAgentPanel')).not.toHaveClass(
+            /is-hidden/
+        );
+        await expect(page.locator('#adminAgentContextMeta')).toContainText(
+            'CASE-MEDIA-001'
+        );
+        await expect(page.locator('#adminAgentToolPlan')).toContainText(
+            'media_flow.rewrite_proposal'
+        );
+
+        await page
+            .locator('#clinicalMediaFlowTitleEs')
+            .fill('Caso acne editorial aprobado');
+        await page
+            .locator(
+                '[data-media-flow-action="review"][data-media-flow-decision="edit_and_publish"]'
+            )
+            .click();
+
+        await expect(page.locator('#clinicalMediaFlowStatusMeta')).toContainText(
+            'published'
+        );
+        await expect(page.locator('#clinicalMediaFlowTimeline')).toContainText(
+            'Revision editorial registrada'
+        );
+        expect(fixture.calls.lastMediaReview).toMatchObject({
+            caseId: 'CASE-MEDIA-001',
+            decision: 'edit_and_publish',
+        });
+        expect(fixture.calls.lastMediaAgentTurn).toMatchObject({
+            caseId: 'CASE-MEDIA-001',
+            workspace: 'media-flow',
+        });
+    });
+
+    test('oculta OpenClaw cuando el perfil no tiene acceso editorial', async ({
+        page,
+    }) => {
+        await openAdminSonyV3(page, { agentAccess: false });
+
+        await expect(
+            page.locator('[data-action="open-agent-panel"]')
+        ).toBeHidden();
+
+        await page
+            .locator(
+                '#dashboardClinicalHistoryActions [data-action="context-open-clinical-history"]'
+            )
+            .first()
+            .click();
+
+        await expect(page.locator('#clinicalMediaFlowAgentSurface')).toContainText(
+            'Acceso restringido'
         );
     });
 });

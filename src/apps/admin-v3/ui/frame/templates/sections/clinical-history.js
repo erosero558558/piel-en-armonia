@@ -166,6 +166,86 @@ export function renderClinicalHistorySection() {
                     </div>
                 </article>
             </div>
+
+            <div class="clinical-media-flow-grid">
+                <article class="sony-panel soft clinical-media-flow-queue-panel">
+                    <header class="section-header">
+                        <div>
+                            <h3>Media Flow</h3>
+                            <p id="clinicalMediaFlowQueueMeta">
+                                Cola editorial con media clinica privada disponible.
+                            </p>
+                        </div>
+                        <div class="clinical-history-header-status">
+                            <span
+                                class="clinical-history-status-chip"
+                                id="clinicalMediaFlowStatusChip"
+                                data-tone="neutral"
+                            >
+                                Sin caso
+                            </span>
+                            <span
+                                class="clinical-history-status-meta"
+                                id="clinicalMediaFlowStatusMeta"
+                            >
+                                Esperando seleccion
+                            </span>
+                        </div>
+                    </header>
+                    <div
+                        id="clinicalMediaFlowQueueList"
+                        class="clinical-media-flow-queue-list"
+                    ></div>
+                </article>
+
+                <article class="sony-panel clinical-media-flow-workspace-panel">
+                    <header class="section-header">
+                        <div>
+                            <h3>Workspace editorial</h3>
+                            <p id="clinicalMediaFlowCaseMeta">
+                                OpenClaw prepara comparativas, copy y paquete publico antes de publicar.
+                            </p>
+                        </div>
+                        <div class="toolbar-row clinical-media-flow-toolbar">
+                            <button
+                                type="button"
+                                id="clinicalMediaFlowRefreshBtn"
+                                data-media-flow-action="refresh"
+                            >
+                                Refrescar
+                            </button>
+                            <button
+                                type="button"
+                                id="clinicalMediaFlowGenerateBtn"
+                                data-media-flow-action="generate-proposal"
+                            >
+                                Generar propuesta
+                            </button>
+                        </div>
+                    </header>
+
+                    <div
+                        id="clinicalMediaFlowConsentStrip"
+                        class="clinical-media-flow-consent-strip"
+                    ></div>
+                    <div
+                        id="clinicalMediaFlowAssetGrid"
+                        class="clinical-media-flow-asset-grid"
+                    ></div>
+                    <section
+                        id="clinicalMediaFlowAgentSurface"
+                        class="clinical-media-flow-agent-surface"
+                    ></section>
+                    <form
+                        id="clinicalMediaFlowProposalForm"
+                        class="clinical-media-flow-form"
+                    ></form>
+                    <div
+                        id="clinicalMediaFlowTimeline"
+                        class="clinical-media-flow-timeline"
+                    ></div>
+                </article>
+            </div>
         </section>
     `;
 }

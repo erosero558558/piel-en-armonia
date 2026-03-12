@@ -1786,6 +1786,7 @@ body.admin-v3-mode .clinical-history-toggle strong {
 }
 
 body.admin-v3-mode .clinical-history-field textarea,
+body.admin-v3-mode .clinical-history-field input,
 body.admin-v3-mode .clinical-history-field select,
 body.admin-v3-mode .clinical-history-followup-input {
     width: 100%;
@@ -1801,6 +1802,10 @@ body.admin-v3-mode .clinical-history-field textarea,
 body.admin-v3-mode .clinical-history-followup-input {
     min-height: 112px;
     resize: vertical;
+}
+
+body.admin-v3-mode .clinical-history-field input {
+    min-height: 48px;
 }
 
 body.admin-v3-mode .clinical-history-toggle {
@@ -1831,11 +1836,198 @@ body.admin-v3-mode .clinical-history-followup-input {
     min-height: 132px;
 }
 
+body.admin-v3-mode .clinical-media-flow-grid {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.72fr) minmax(0, 1.28fr);
+    gap: 20px;
+}
+
+body.admin-v3-mode .clinical-media-flow-queue-panel,
+body.admin-v3-mode .clinical-media-flow-workspace-panel {
+    padding: 24px;
+    display: grid;
+    gap: 18px;
+}
+
+body.admin-v3-mode .clinical-media-flow-queue-list,
+body.admin-v3-mode .clinical-media-flow-timeline {
+    display: grid;
+    gap: 12px;
+    max-height: 780px;
+    overflow: auto;
+    padding-right: 4px;
+}
+
+body.admin-v3-mode .clinical-media-flow-toolbar,
+body.admin-v3-mode .clinical-media-flow-action-row {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+
+body.admin-v3-mode .clinical-media-flow-consent-strip {
+    display: grid;
+    gap: 12px;
+}
+
+body.admin-v3-mode .clinical-media-flow-consent-card {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+    border-radius: 22px;
+    border: 1px solid var(--admin3-line);
+    background: linear-gradient(
+        180deg,
+        rgba(246, 248, 252, 0.94) 0%,
+        rgba(237, 242, 250, 0.9) 100%
+    );
+}
+
+body.admin-v3-mode .clinical-media-flow-consent-card small {
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .clinical-media-flow-asset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+body.admin-v3-mode .clinical-media-flow-asset-card {
+    display: grid;
+    gap: 10px;
+    border-radius: 22px;
+    overflow: hidden;
+    border: 1px solid var(--admin3-line);
+    background: var(--admin3-surface-alt);
+}
+
+body.admin-v3-mode .clinical-media-flow-asset-media {
+    margin: 0;
+    background: var(--admin3-surface);
+    min-height: 180px;
+}
+
+body.admin-v3-mode .clinical-media-flow-asset-media img {
+    display: block;
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+
+body.admin-v3-mode .clinical-media-flow-asset-meta {
+    display: grid;
+    gap: 8px;
+    padding: 0 14px 14px;
+}
+
+body.admin-v3-mode .clinical-media-flow-asset-meta small {
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .clinical-media-flow-form {
+    display: grid;
+    gap: 18px;
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-surface {
+    display: grid;
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-card {
+    display: grid;
+    gap: 16px;
+    padding: 20px;
+    border-radius: 24px;
+    border: 1px solid var(--admin3-line);
+    background: linear-gradient(
+        180deg,
+        rgba(248, 250, 252, 0.96) 0%,
+        rgba(237, 243, 250, 0.92) 100%
+    );
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-summary {
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.84);
+    border: 1px solid rgba(160, 178, 198, 0.22);
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-summary p {
+    margin: 0;
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+    gap: 16px;
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-conversation,
+body.admin-v3-mode .clinical-media-flow-agent-suggestions {
+    display: grid;
+    gap: 12px;
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-message,
+body.admin-v3-mode .clinical-media-flow-agent-suggestion {
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--admin3-line);
+    background: rgba(255, 255, 255, 0.86);
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-message[data-role='user'] {
+    background: rgba(228, 238, 248, 0.94);
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-message p,
+body.admin-v3-mode .clinical-media-flow-agent-suggestion p {
+    margin: 0;
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-suggestion[data-tone='warning'] {
+    border-color: rgba(196, 127, 74, 0.35);
+    background: rgba(255, 243, 232, 0.92);
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-suggestion[data-tone='success'] {
+    border-color: rgba(70, 135, 92, 0.28);
+    background: rgba(236, 246, 238, 0.94);
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-composer {
+    display: grid;
+    gap: 12px;
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-composer textarea {
+    min-height: 110px;
+}
+
+body.admin-v3-mode .clinical-media-flow-agent-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+
+body.admin-v3-mode .clinical-media-flow-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
 @media (max-width: 1280px) {
     body.admin-v3-mode .clinical-history-stage,
     body.admin-v3-mode .clinical-history-workbench,
     body.admin-v3-mode .clinical-history-footer-grid,
-    body.admin-v3-mode .clinical-history-form-grid {
+    body.admin-v3-mode .clinical-history-form-grid,
+    body.admin-v3-mode .clinical-media-flow-grid,
+    body.admin-v3-mode .clinical-media-flow-form-grid,
+    body.admin-v3-mode .clinical-media-flow-agent-grid {
         grid-template-columns: 1fr;
     }
 }

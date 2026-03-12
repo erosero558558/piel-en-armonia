@@ -10,6 +10,7 @@ export const LOCAL_DATA_KEYS = {
     queueSurfaceStatus: 'queue-surface-status',
     appDownloads: 'app-downloads',
     clinicalHistoryMeta: 'clinical-history-meta',
+    mediaFlowMeta: 'media-flow-meta',
     health: 'health-status',
 };
 

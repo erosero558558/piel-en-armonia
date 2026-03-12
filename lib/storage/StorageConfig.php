@@ -61,6 +61,9 @@ final class StorageConfig
             'clinical_history_sessions' => [],
             'clinical_history_drafts' => [],
             'clinical_history_events' => [],
+            'case_media_proposals' => [],
+            'case_media_publications' => [],
+            'case_media_events' => [],
             'availability' => [],
             'updatedAt' => local_date('c'),
         ];
@@ -140,6 +143,15 @@ final class StorageConfig
         $clinicalHistoryEvents = isset($store['clinical_history_events']) && is_array($store['clinical_history_events'])
             ? $store['clinical_history_events']
             : [];
+        $caseMediaProposals = isset($store['case_media_proposals']) && is_array($store['case_media_proposals'])
+            ? $store['case_media_proposals']
+            : [];
+        $caseMediaPublications = isset($store['case_media_publications']) && is_array($store['case_media_publications'])
+            ? $store['case_media_publications']
+            : [];
+        $caseMediaEvents = isset($store['case_media_events']) && is_array($store['case_media_events'])
+            ? $store['case_media_events']
+            : [];
         $availability = isset($store['availability']) && is_array($store['availability']) ? $store['availability'] : [];
         $updatedAt = isset($store['updatedAt']) && is_string($store['updatedAt']) && trim($store['updatedAt']) !== ''
             ? trim($store['updatedAt'])
@@ -155,6 +167,9 @@ final class StorageConfig
         $clinicalHistorySessions = self::normalizeStoreRecordsWithNumericId($clinicalHistorySessions, 'clinical_history_sessions');
         $clinicalHistoryDrafts = self::normalizeStoreRecordsWithNumericId($clinicalHistoryDrafts, 'clinical_history_drafts');
         $clinicalHistoryEvents = self::normalizeStoreRecordsWithNumericId($clinicalHistoryEvents, 'clinical_history_events');
+        $caseMediaProposals = self::normalizeStoreRecordsWithNumericId($caseMediaProposals, 'case_media_proposals');
+        $caseMediaPublications = self::normalizeStoreRecordsWithNumericId($caseMediaPublications, 'case_media_publications');
+        $caseMediaEvents = self::normalizeStoreRecordsWithNumericId($caseMediaEvents, 'case_media_events');
 
         return [
             'appointments' => array_values($appointments),
@@ -167,6 +182,9 @@ final class StorageConfig
             'clinical_history_sessions' => array_values($clinicalHistorySessions),
             'clinical_history_drafts' => array_values($clinicalHistoryDrafts),
             'clinical_history_events' => array_values($clinicalHistoryEvents),
+            'case_media_proposals' => array_values($caseMediaProposals),
+            'case_media_publications' => array_values($caseMediaPublications),
+            'case_media_events' => array_values($caseMediaEvents),
             'availability' => $availability,
             'updatedAt' => $updatedAt,
             'idx_appointments_date' => build_appointment_index($appointments),

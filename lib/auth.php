@@ -251,6 +251,55 @@ function operator_auth_is_email_allowed(string $email): bool
     return in_array($normalized, operator_auth_allowed_emails(), true);
 }
 
+function admin_agent_editorial_allowlist(): array
+{
+    $raw = getenv('PIELARMONIA_ADMIN_AGENT_EDITORIAL_ALLOWLIST');
+    if (!is_string($raw) || trim($raw) === '') {
+        return [];
+    }
+
+    $emails = [];
+    foreach (preg_split('/[\s,;]+/', $raw) ?: [] as $item) {
+        $email = operator_auth_normalize_email((string) $item);
+        if ($email !== '') {
+            $emails[] = $email;
+        }
+    }
+
+    return array_values(array_unique($emails));
+}
+
+function admin_agent_has_editorial_access(): bool
+{
+    if (legacy_admin_is_authenticated()) {
+        return true;
+    }
+
+    if (!operator_auth_is_authenticated()) {
+        return false;
+    }
+
+    $allowlist = admin_agent_editorial_allowlist();
+    if ($allowlist === []) {
+        return true;
+    }
+
+    $identity = operator_auth_current_identity(false);
+    if (!is_array($identity)) {
+        return false;
+    }
+
+    $email = operator_auth_normalize_email((string) ($identity['email'] ?? ''));
+    return $email !== '' && in_array($email, $allowlist, true);
+}
+
+function admin_agent_capabilities_payload(): array
+{
+    return [
+        'adminAgent' => admin_agent_has_editorial_access(),
+    ];
+}
+
 function operator_auth_challenge_dir(): string
 {
     return data_dir_path() . DIRECTORY_SEPARATOR . 'operator-auth' . DIRECTORY_SEPARATOR . 'challenges';
@@ -438,6 +487,7 @@ function operator_auth_authenticated_payload(array $operator, string $status = '
         'status' => $status,
         'mode' => operator_auth_mode(),
         'csrfToken' => generate_csrf_token(),
+        'capabilities' => admin_agent_capabilities_payload(),
         'operator' => [
             'email' => (string) ($operator['email'] ?? ''),
             'profileId' => (string) ($operator['profileId'] ?? ''),
@@ -456,6 +506,9 @@ function operator_auth_error_payload(array $challenge, string $status, string $e
         'authenticated' => false,
         'status' => $status,
         'mode' => operator_auth_mode(),
+        'capabilities' => [
+            'adminAgent' => false,
+        ],
         'error' => $error,
         'challenge' => operator_auth_challenge_public_payload($challenge),
     ];

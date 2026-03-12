@@ -30,6 +30,8 @@ class ApiConfig
             'whatsapp-openclaw-ops:GET' => [60, 60],
             'operator-auth-status:GET' => [90, 60],
             'clinical-history-session:GET' => [120, 60],
+            'public-case-stories:GET' => [60, 60],
+            'public-case-media-file:GET' => [120, 60],
 
             // Public POST - Actionable, lower volume to prevent spam
             'payment-intent:POST' => [10, 60],
@@ -77,6 +79,12 @@ class ApiConfig
             'admin-agent-turn:POST' => [60, 60],
             'admin-agent-approve:POST' => [30, 60],
             'admin-agent-cancel:POST' => [30, 60],
+            'media-flow-queue:GET' => [60, 60],
+            'media-flow-case:GET' => [60, 60],
+            'media-flow-private-asset:GET' => [120, 60],
+            'media-flow-proposal-generate:POST' => [30, 60],
+            'media-flow-proposal-review:POST' => [30, 60],
+            'media-flow-publication-state:POST' => [30, 60],
 
             // Predictions
             'predictions:GET' => [20, 60],
@@ -111,6 +119,8 @@ class ApiConfig
             ['method' => 'GET', 'resource' => 'lead-ai-queue'],
             ['method' => 'GET', 'resource' => 'whatsapp-openclaw-outbox'],
             ['method' => 'GET', 'resource' => 'clinical-history-session'],
+            ['method' => 'GET', 'resource' => 'public-case-stories'],
+            ['method' => 'GET', 'resource' => 'public-case-media-file'],
             ['method' => 'POST', 'resource' => 'lead-ai-result'],
             ['method' => 'POST', 'resource' => 'whatsapp-openclaw-inbound'],
             ['method' => 'POST', 'resource' => 'whatsapp-openclaw-ack'],

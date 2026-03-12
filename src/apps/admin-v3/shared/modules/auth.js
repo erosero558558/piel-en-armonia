@@ -71,6 +71,61 @@ function normalizeChallenge(rawChallenge, fallbackChallenge = null) {
     };
 }
 
+function normalizeOperator(rawOperator, fallbackOperator = null) {
+    const source =
+        rawOperator && typeof rawOperator === 'object'
+            ? rawOperator
+            : fallbackOperator && typeof fallbackOperator === 'object'
+              ? fallbackOperator
+              : null;
+
+    if (!source) {
+        return null;
+    }
+
+    const email = String(source.email || '').trim();
+    const profileId = String(source.profileId || '').trim();
+    const accountId = String(source.accountId || '').trim();
+    const authSource = String(source.source || '').trim();
+    const authenticatedAt = String(source.authenticatedAt || '').trim();
+    const expiresAt = String(source.expiresAt || '').trim();
+
+    if (
+        email === '' &&
+        profileId === '' &&
+        accountId === '' &&
+        authSource === '' &&
+        authenticatedAt === '' &&
+        expiresAt === ''
+    ) {
+        return null;
+    }
+
+    return {
+        email,
+        profileId,
+        accountId,
+        source: authSource,
+        authenticatedAt,
+        expiresAt,
+    };
+}
+
+function normalizeCapabilities(rawCapabilities, authenticated) {
+    const source =
+        rawCapabilities && typeof rawCapabilities === 'object'
+            ? rawCapabilities
+            : {};
+
+    return {
+        adminAgent:
+            authenticated === true &&
+            (Object.prototype.hasOwnProperty.call(source, 'adminAgent')
+                ? source.adminAgent === true
+                : true),
+    };
+}
+
 function resolveAuthenticatedMethod(mode, payload) {
     if (mode === OPERATOR_AUTH_MODE) {
         return 'operator_auth';
@@ -136,6 +191,10 @@ function buildAuthSnapshot(payload = {}, responseStatus = 200, overrides = {}) {
         challenge: authenticated ? null : challenge,
         error: authenticated ? '' : String(payload.error || '').trim(),
         helperUrlOpened: authenticated ? false : helperUrlOpened,
+        operator: authenticated
+            ? normalizeOperator(payload.operator, current.operator)
+            : null,
+        capabilities: normalizeCapabilities(payload.capabilities, authenticated),
         responseStatus: Number(responseStatus || 0),
     };
 }
@@ -152,6 +211,11 @@ function applyAuthSnapshot(snapshot) {
         challenge: normalizeChallenge(snapshot.challenge, null),
         error: String(snapshot.error || '').trim(),
         helperUrlOpened: snapshot.helperUrlOpened === true,
+        operator: normalizeOperator(snapshot.operator, null),
+        capabilities: normalizeCapabilities(
+            snapshot.capabilities,
+            snapshot.authenticated === true
+        ),
     };
 
     setApiCsrfToken(normalized.csrfToken);

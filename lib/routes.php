@@ -36,6 +36,14 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'clinical-history-message', [ClinicalHistoryController::class, 'messagePost']);
     $router->add('GET', 'clinical-history-review', [ClinicalHistoryController::class, 'reviewGet']);
     $router->add('PATCH', 'clinical-history-review', [ClinicalHistoryController::class, 'reviewPatch']);
+    $router->add('GET', 'media-flow-queue', [CaseMediaFlowController::class, 'queue']);
+    $router->add('GET', 'media-flow-case', [CaseMediaFlowController::class, 'caseGet']);
+    $router->add('POST', 'media-flow-proposal-generate', [CaseMediaFlowController::class, 'proposalGenerate']);
+    $router->add('POST', 'media-flow-proposal-review', [CaseMediaFlowController::class, 'proposalReview']);
+    $router->add('POST', 'media-flow-publication-state', [CaseMediaFlowController::class, 'publicationState']);
+    $router->add('GET', 'media-flow-private-asset', [CaseMediaFlowController::class, 'privateAsset']);
+    $router->add('GET', 'public-case-stories', [CaseMediaFlowController::class, 'publicStories']);
+    $router->add('GET', 'public-case-media-file', [CaseMediaFlowController::class, 'publicMediaFile']);
 
     $router->add('GET', 'queue-state', [QueueController::class, 'state']);
     $router->add('POST', 'queue-surface-heartbeat', [QueueController::class, 'surfaceHeartbeat']);

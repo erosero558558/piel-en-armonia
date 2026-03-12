@@ -12,6 +12,10 @@ const initialState = {
         challenge: null,
         error: '',
         helperUrlOpened: false,
+        operator: null,
+        capabilities: {
+            adminAgent: false,
+        },
     },
     ui: {
         activeSection: 'dashboard',
@@ -42,6 +46,7 @@ const initialState = {
         queueSurfaceStatus: null,
         appDownloads: null,
         clinicalHistoryMeta: null,
+        mediaFlowMeta: null,
         funnelMetrics: null,
         health: null,
     },
@@ -94,6 +99,15 @@ const initialState = {
         current: null,
         draftForm: null,
         followUpQuestion: '',
+    },
+    caseMediaFlow: {
+        selectedCaseId: '',
+        loading: false,
+        generating: false,
+        saving: false,
+        error: '',
+        current: null,
+        lastLoadedAt: 0,
     },
     agent: {
         open: false,

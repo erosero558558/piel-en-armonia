@@ -2,7 +2,7 @@ export function renderLoginHero() {
     return `
         <section class="admin-v3-login__hero">
             <div class="admin-v3-login__brand">
-                <p class="sony-kicker">Piel en Armonia</p>
+                <p class="sony-kicker">Aurora Derm</p>
                 <h1>Centro operativo claro y protegido</h1>
                 <p>
                     Acceso editorial para agenda, callbacks y disponibilidad con

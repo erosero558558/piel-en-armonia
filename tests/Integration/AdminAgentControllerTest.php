@@ -25,6 +25,9 @@ final class AdminAgentControllerTest extends TestCase
 
         $this->tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'admin-agent-' . bin2hex(random_bytes(6));
         mkdir($this->tempDir, 0777, true);
+        mkdir($this->tempDir . DIRECTORY_SEPARATOR . 'clinical-media', 0777, true);
+        file_put_contents($this->tempDir . DIRECTORY_SEPARATOR . 'clinical-media' . DIRECTORY_SEPARATOR . 'before-case.jpg', 'before');
+        file_put_contents($this->tempDir . DIRECTORY_SEPARATOR . 'clinical-media' . DIRECTORY_SEPARATOR . 'after-case.jpg', 'after');
 
         putenv('PIELARMONIA_DATA_DIR=' . $this->tempDir);
         putenv('PIELARMONIA_ADMIN_AGENT_EXTERNAL_ALLOWLIST=whatsapp,email');
@@ -61,10 +64,16 @@ final class AdminAgentControllerTest extends TestCase
                 [
                     'id' => 701,
                     'name' => 'Ana Test',
+                    'email' => 'ana@example.com',
+                    'service' => 'acne',
                     'date' => gmdate('Y-m-d', strtotime('+1 day')),
                     'time' => '10:00',
                     'status' => 'confirmed',
                     'paymentStatus' => 'pending_transfer_review',
+                    'privacyConsent' => true,
+                    'privacyConsentAt' => date('c', strtotime('-3 day')),
+                    'mediaPublicationConsent' => true,
+                    'mediaPublicationConsentAt' => date('c', strtotime('-2 day')),
                 ],
             ],
             'reviews' => [
@@ -127,6 +136,62 @@ final class AdminAgentControllerTest extends TestCase
                     'source' => 'ops',
                     'createdAt' => date('c', strtotime('-8 minute')),
                     'updatedAt' => date('c', strtotime('-8 minute')),
+                ],
+            ],
+            'clinical_history_sessions' => [
+                [
+                    'sessionId' => 'chs_media_701',
+                    'caseId' => 'CASE-MEDIA-701',
+                    'appointmentId' => 701,
+                    'patient' => [
+                        'name' => 'Ana Test',
+                        'ageYears' => 29,
+                        'sexAtBirth' => 'femenino',
+                    ],
+                    'createdAt' => date('c', strtotime('-3 day')),
+                    'updatedAt' => date('c', strtotime('-1 day')),
+                ],
+            ],
+            'clinical_history_drafts' => [
+                [
+                    'sessionId' => 'chs_media_701',
+                    'caseId' => 'CASE-MEDIA-701',
+                    'clinicianDraft' => [
+                        'resumen' => 'Seguimiento dermatologico con media before/after.',
+                    ],
+                    'intake' => [
+                        'resumenClinico' => 'Caso con secuencia editorial lista para revision.',
+                    ],
+                    'updatedAt' => date('c', strtotime('-1 day')),
+                    'createdAt' => date('c', strtotime('-3 day')),
+                ],
+            ],
+            'clinical_uploads' => [
+                [
+                    'id' => 1,
+                    'appointmentId' => 701,
+                    'kind' => 'case_photo',
+                    'storageMode' => 'private_clinical',
+                    'privatePath' => 'clinical-media/before-case.jpg',
+                    'mime' => 'image/jpeg',
+                    'size' => 24000,
+                    'sha256' => sha1('before'),
+                    'originalName' => 'before-case.jpg',
+                    'createdAt' => date('c', strtotime('-3 day')),
+                    'updatedAt' => date('c', strtotime('-2 day')),
+                ],
+                [
+                    'id' => 2,
+                    'appointmentId' => 701,
+                    'kind' => 'case_photo',
+                    'storageMode' => 'private_clinical',
+                    'privatePath' => 'clinical-media/after-case.jpg',
+                    'mime' => 'image/jpeg',
+                    'size' => 26000,
+                    'sha256' => sha1('after'),
+                    'originalName' => 'after-case.jpg',
+                    'createdAt' => date('c', strtotime('-2 day')),
+                    'updatedAt' => date('c', strtotime('-1 day')),
                 ],
             ],
         ]);
@@ -605,6 +670,138 @@ final class AdminAgentControllerTest extends TestCase
         );
     }
 
+    public function testMediaFlowTurnsShareSessionContextAndReturnStructuredResponse(): void
+    {
+        $sessionId = $this->startAgentSession([
+            'section' => 'clinical-history',
+            'workspace' => 'media-flow',
+            'selectedEntity' => [
+                'type' => 'case_media',
+                'id' => 0,
+                'ref' => 'CASE-MEDIA-701',
+                'label' => 'Ana Test',
+            ],
+            'caseId' => 'CASE-MEDIA-701',
+        ]);
+
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode([
+            'sessionId' => $sessionId,
+            'message' => 'Regenera la propuesta editorial de este caso',
+            'workspace' => 'media-flow',
+            'caseId' => 'CASE-MEDIA-701',
+            'context' => [
+                'section' => 'clinical-history',
+                'workspace' => 'media-flow',
+                'selectedEntity' => [
+                    'type' => 'case_media',
+                    'id' => 0,
+                    'ref' => 'CASE-MEDIA-701',
+                    'label' => 'Ana Test',
+                ],
+                'caseId' => 'CASE-MEDIA-701',
+            ],
+        ], JSON_UNESCAPED_UNICODE);
+
+        $generateTurn = $this->captureResponse(static function (): void {
+            \AdminAgentController::turn([
+                'store' => \read_store(),
+                'isAdmin' => true,
+            ]);
+        }, 'POST');
+
+        self::assertSame(200, $generateTurn['status']);
+        self::assertSame(
+            'media_flow.generate_proposal',
+            (string) ($generateTurn['payload']['data']['turn']['toolPlan'][0]['tool'] ?? '')
+        );
+        self::assertSame(
+            'media-flow',
+            (string) ($generateTurn['payload']['data']['session']['context']['workspace'] ?? '')
+        );
+        self::assertSame(
+            'media-flow',
+            (string) ($generateTurn['payload']['data']['turn']['domainResponse']['workspace'] ?? '')
+        );
+        self::assertSame(
+            'CASE-MEDIA-701',
+            (string) ($generateTurn['payload']['data']['turn']['domainResponse']['caseId'] ?? '')
+        );
+        self::assertNotEmpty(
+            $generateTurn['payload']['data']['turn']['domainResponse']['toolSuggestions'] ?? []
+        );
+
+        $proposalId = (string) ($generateTurn['payload']['data']['turn']['domainResponse']['proposal']['proposalId'] ?? '');
+        self::assertNotSame('', $proposalId);
+
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode([
+            'sessionId' => $sessionId,
+            'message' => 'Reescribe el copy editorial de este caso',
+            'workspace' => 'media-flow',
+            'caseId' => 'CASE-MEDIA-701',
+            'proposalId' => $proposalId,
+            'context' => [
+                'section' => 'clinical-history',
+                'workspace' => 'media-flow',
+                'selectedEntity' => [
+                    'type' => 'case_media',
+                    'id' => 0,
+                    'ref' => 'CASE-MEDIA-701',
+                    'label' => 'Ana Test',
+                ],
+                'caseId' => 'CASE-MEDIA-701',
+                'proposalId' => $proposalId,
+            ],
+        ], JSON_UNESCAPED_UNICODE);
+
+        $rewriteTurn = $this->captureResponse(static function (): void {
+            \AdminAgentController::turn([
+                'store' => \read_store(),
+                'isAdmin' => true,
+            ]);
+        }, 'POST');
+
+        self::assertSame(200, $rewriteTurn['status']);
+        self::assertSame(
+            'media_flow.rewrite_proposal',
+            (string) ($rewriteTurn['payload']['data']['turn']['toolPlan'][0]['tool'] ?? '')
+        );
+        self::assertSame(
+            'completed',
+            (string) ($rewriteTurn['payload']['data']['session']['toolCalls'][1]['status'] ?? '')
+        );
+        self::assertSame(
+            'media-flow',
+            (string) ($rewriteTurn['payload']['data']['turn']['domainResponse']['domain'] ?? '')
+        );
+        self::assertStringContainsString(
+            'OpenClaw ajusto la propuesta activa',
+            (string) ($rewriteTurn['payload']['data']['turn']['finalAnswer'] ?? '')
+        );
+    }
+
+    public function testAgentControllerRejectsAdminWithoutEditorialAccess(): void
+    {
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode([
+            'context' => [
+                'section' => 'callbacks',
+            ],
+        ], JSON_UNESCAPED_UNICODE);
+
+        $response = $this->captureResponse(static function (): void {
+            \AdminAgentController::start([
+                'store' => \read_store(),
+                'isAdmin' => true,
+                'agentAccess' => false,
+            ]);
+        }, 'POST');
+
+        self::assertSame(403, $response['status']);
+        self::assertSame(
+            'OpenClaw disponible solo para admin/editorial',
+            (string) ($response['payload']['error'] ?? '')
+        );
+    }
+
     private function startCallbacksSession(int $callbackId): string
     {
         return $this->startAgentSession([
@@ -659,6 +856,15 @@ final class AdminAgentControllerTest extends TestCase
             : [];
         $store['queue_help_requests'] = isset($partialStore['queue_help_requests']) && is_array($partialStore['queue_help_requests'])
             ? $partialStore['queue_help_requests']
+            : [];
+        $store['clinical_history_sessions'] = isset($partialStore['clinical_history_sessions']) && is_array($partialStore['clinical_history_sessions'])
+            ? $partialStore['clinical_history_sessions']
+            : [];
+        $store['clinical_history_drafts'] = isset($partialStore['clinical_history_drafts']) && is_array($partialStore['clinical_history_drafts'])
+            ? $partialStore['clinical_history_drafts']
+            : [];
+        $store['clinical_uploads'] = isset($partialStore['clinical_uploads']) && is_array($partialStore['clinical_uploads'])
+            ? $partialStore['clinical_uploads']
             : [];
         \write_store($store, false);
     }
