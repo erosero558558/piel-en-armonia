@@ -217,6 +217,7 @@ jobs:
               run: |
                   set -euo pipefail
                   node <<'NODE'
+                      (async () => {
                       const token = process.env.GITHUB_TOKEN || '';
                       if (!token) {
                         throw new Error('GITHUB_TOKEN missing');
@@ -335,6 +336,10 @@ jobs:
                         });
                         console.log(`Issue diagnose-host-connectivity creado: #${created.number}`);
                       }
+                      })().catch((error) => {
+                        console.error(error);
+                        process.exit(1);
+                      });
                   NODE
 
             - name: Cerrar incidente de conectividad deploy host al recuperar
@@ -351,6 +356,7 @@ jobs:
               run: |
                   set -euo pipefail
                   node <<'NODE'
+                      (async () => {
                       const token = process.env.GITHUB_TOKEN || '';
                       if (!token) {
                         throw new Error('GITHUB_TOKEN missing');
@@ -414,6 +420,10 @@ jobs:
                         body: { state: 'closed' },
                       });
                       console.log(`Issue diagnose-host-connectivity cerrado: #${existing.number}`);
+                      })().catch((error) => {
+                        console.error(error);
+                        process.exit(1);
+                      });
                   NODE
 
             - name: Publicar reporte
