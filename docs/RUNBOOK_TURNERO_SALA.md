@@ -230,6 +230,14 @@ Para separar operación por equipo:
 - En `Turnero Operador`, el primer arranque abre una configuración guiada para dejar el equipo en `C1 fijo`, `C2 fijo` o `modo libre`; luego puede reabrirse con `F10` o `Ctrl/Cmd + ,`.
 - `/app-downloads/` expone el mismo catálogo de apps para instalar fuera del admin con presets por equipo.
 
+### Windows Operador v1
+
+- usar el mismo `TurneroOperadorSetup.exe` en las dos PCs operador
+- PC 1: provisionar `C1 fijo`; PC 2: provisionar `C2 fijo`
+- no almacenar credenciales ni 2FA en el shell; la autenticacion sigue en `operador-turnos.html`
+- validar en cada PC: shell `Desktop instalada`, estacion correcta, `1 tecla` segun operacion y matriz del numpad completa (`llamar`, `+`, `.`, `-`)
+- si hace falta reconfigurar una PC, usar `F10` o `Ctrl/Cmd + ,` en vez de reinstalar
+
 Comandos base:
 
 ```bash

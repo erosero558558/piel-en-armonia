@@ -233,6 +233,6 @@ class AdminDataController
 
     private static function buildAppDownloads(): array
     {
-        return read_app_downloads_catalog();
+        return build_app_downloads_runtime_payload();
     }
 }

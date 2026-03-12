@@ -8,6 +8,7 @@ Routine GitHub uploads should use a dedicated branch and the workflow documented
 
 - current public source: V6 Astro + `content/public-v6/**`
 - generated artifacts committed to the repo: `es/**`, `en/**`, `_astro/**`
+- generated runtime artifacts committed to the repo: `script.js`, `styles.css`, `styles-deferred.css`, `js/chunks/**`, `js/engines/**`
 - production repo: `/var/www/figo`
 - publish mechanism: git-sync cron
 - job key: `public_main_sync`
@@ -30,19 +31,48 @@ npm run gate:public:v6:canonical-publish
 
 2. Push the verified commit to `main`.
 
-3. If you need to force the host sync:
+3. Let the host sync promote the committed public artifacts.
+
+The host sync now deploys the versioned public artifacts already committed in
+`main`. It does not rebuild Astro on the VPS during cron sync.
+
+4. If you need to force the host sync:
 
 ```bash
 /usr/bin/flock -n /tmp/sync-pielarmonia.lock /root/sync-pielarmonia.sh
 ```
 
-4. Verify host state:
+If the repo is dirty only because of canonical generated public outputs left by
+previous manual runs, the cron wrapper restores those paths from `HEAD` before
+continuing. Any other dirty path still blocks the sync as a safety guard.
+
+5. Verify host state:
 
 ```bash
 cat /var/lib/pielarmonia/public-sync-status.json
 tail -n 20 /var/log/sync-pielarmonia.log
 curl -s https://pielarmonia.com/api.php?resource=health
 ```
+
+Quick repo-side incident triage:
+
+```powershell
+pwsh -File scripts/ops/prod/MONITOR-PRODUCCION.ps1
+```
+
+`MONITOR-PRODUCCION.ps1` is the fast-fail entrypoint for `checks.publicSync`.
+It should surface `jobId`, `failureReason`, `lastErrorMessage`,
+`currentHead`, `remoteHead`, `headDrift`, `dirtyPathsCount`,
+`dirtyPathsSample`, and `telemetryGap` before you intervene on the host.
+If you need observation mode without hiding the incident, run it with
+`-AllowDegradedPublicSync`.
+
+Triage the canonical `publicSync` signals before touching the host:
+
+- `failureReason=working_tree_dirty` is the canonical first-pass classification for tracked repo drift on the VPS.
+- `headDrift=true` means `currentHead` and `remoteHead` diverge, so the host repo is behind or detached from the intended `main` commit.
+- `telemetryGap=true` means the cron failed without exposing `currentHead`, `remoteHead`, or dirty tracked paths; treat it as incomplete host runtime telemetry until the updated wrapper is deployed.
+- `failureReason=working_tree_dirty` with `telemetryGap=false` means the cron had enough telemetry and `dirtyPathsCount` / `dirtyPathsSample` should identify the tracked drift to clean up.
 
 ## Success criteria
 
@@ -51,6 +81,9 @@ curl -s https://pielarmonia.com/api.php?resource=health
 - `checks.publicSync.healthy=true`
 - `checks.publicSync.ageSeconds <= 120`
 - `checks.publicSync.deployedCommit` matches the commit pushed to `main`
+- `checks.publicSync.failureReason=""`
+- `checks.publicSync.headDrift=false`
+- `checks.publicSync.telemetryGap=false`
 
 ## Transport fallback
 

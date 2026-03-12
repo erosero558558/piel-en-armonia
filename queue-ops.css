@@ -31,6 +31,113 @@
     justify-items: end;
 }
 
+.queue-domain-switcher {
+    margin-bottom: 0.9rem;
+}
+
+.queue-domain-switcher__shell {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem;
+    border-radius: 24px;
+    border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
+    background:
+        linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(243 246 251 / 94%)),
+        radial-gradient(circle at top right, rgb(15 107 220 / 8%), transparent 42%);
+    box-shadow: 0 16px 30px rgb(15 23 32 / 6%);
+}
+
+.queue-domain-switcher__head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.85rem;
+    align-items: flex-start;
+}
+
+.queue-domain-switcher__head h5,
+.queue-domain-switcher__head p {
+    margin: 0;
+}
+
+.queue-domain-switcher__summary {
+    margin-top: 0.35rem !important;
+    max-width: 70ch;
+    color: var(--text-muted, #526173);
+}
+
+.queue-domain-switcher__meta {
+    display: grid;
+    gap: 0.55rem;
+    justify-items: end;
+}
+
+.queue-domain-switcher__chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0.32rem 0.72rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
+    background: rgb(15 107 220 / 10%);
+    color: #0f4a93;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.queue-domain-switcher__chip[data-state='manual'] {
+    background: rgb(255 255 255 / 92%);
+    color: #10233f;
+}
+
+.queue-domain-switcher__primary,
+.queue-domain-switcher__ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0.68rem 0.9rem;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
+    background: rgb(255 255 255 / 92%);
+    color: #223347;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.queue-domain-switcher__primary {
+    border-color: color-mix(in srgb, #0f6bdc 28%, #ffffff 72%);
+    background: linear-gradient(135deg, #0f6bdc, #2f88ea);
+    color: #fff;
+}
+
+.queue-domain-switcher__tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+.queue-domain-switcher__tab {
+    min-height: 44px;
+    padding: 0.72rem 0.9rem;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
+    background: rgb(255 255 255 / 90%);
+    color: #526173;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.queue-domain-switcher__tab[data-state='active'] {
+    border-color: color-mix(in srgb, #0f6bdc 28%, #ffffff 72%);
+    background: rgb(15 107 220 / 10%);
+    color: #0f4a93;
+}
+
 .queue-apps-platform-chip {
     display: inline-flex;
     align-items: center;
@@ -7124,6 +7231,80 @@
     line-height: 1.45;
 }
 
+.queue-surface-card__instances {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.queue-surface-card__instance {
+    display: grid;
+    gap: 0.32rem;
+    padding: 0.72rem;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, #0f1720 8%, #ffffff 92%);
+    background: rgb(248 251 255 / 86%);
+}
+
+.queue-surface-card__instance[data-state='warning'],
+.queue-surface-card__instance[data-state='unknown'] {
+    border-color: color-mix(in srgb, #d19328 18%, #ffffff 82%);
+    background: rgb(255 249 239 / 92%);
+}
+
+.queue-surface-card__instance[data-state='alert'] {
+    border-color: color-mix(in srgb, #de4437 18%, #ffffff 82%);
+    background: rgb(255 241 239 / 92%);
+}
+
+.queue-surface-card__instance-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: flex-start;
+}
+
+.queue-surface-card__instance-head strong,
+.queue-surface-card__instance-head span,
+.queue-surface-card__instance-meta,
+.queue-surface-card__instance-summary,
+.queue-surface-card__instance-age {
+    margin: 0;
+}
+
+.queue-surface-card__instance-meta,
+.queue-surface-card__instance-summary,
+.queue-surface-card__instance-age {
+    color: var(--text-muted, #526173);
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.queue-surface-card__instance-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 26px;
+    padding: 0.18rem 0.5rem;
+    border-radius: 999px;
+    background: rgb(15 107 220 / 10%);
+    color: #0f4a93;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.queue-surface-card__instance[data-state='warning'] .queue-surface-card__instance-badge,
+.queue-surface-card__instance[data-state='unknown'] .queue-surface-card__instance-badge {
+    color: #8a5a09;
+    background: rgb(242 187 99 / 16%);
+}
+
+.queue-surface-card__instance[data-state='alert'] .queue-surface-card__instance-badge {
+    color: #9c2418;
+    background: rgb(222 68 55 / 14%);
+}
+
 .queue-surface-card__badge {
     display: inline-flex;
     align-items: center;
@@ -8672,6 +8853,46 @@
     gap: 0.9rem;
 }
 
+.queue-operator-numpad-matrix {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.65rem;
+}
+
+.queue-operator-numpad-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 16px;
+    border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
+    background: linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(246 250 255 / 90%));
+}
+
+.queue-operator-numpad-chip[data-state='ready'] {
+    border-color: color-mix(in srgb, #16a34a 22%, #ffffff 78%);
+    background: linear-gradient(180deg, rgb(240 253 244 / 96%), rgb(255 255 255 / 92%));
+}
+
+.queue-operator-numpad-chip__label {
+    color: #10233f;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.queue-operator-numpad-chip__state {
+    color: #7c8da3;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.queue-operator-numpad-chip[data-state='ready'] .queue-operator-numpad-chip__state {
+    color: #166534;
+}
+
 .queue-operator-readiness-checks {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -8791,6 +9012,7 @@
 }
 
 @media (max-width: 980px) {
+    .queue-domain-switcher__head,
     .queue-focus-mode__header,
     .queue-numpad-guide__header,
     .queue-attention-deck__header,
@@ -8850,6 +9072,10 @@
     }
 
     .queue-apps-hub__header-meta {
+        justify-items: start;
+    }
+
+    .queue-domain-switcher__meta {
         justify-items: start;
     }
 
@@ -9025,6 +9251,7 @@
     .queue-priority-lane__item,
     .queue-active-tray__item,
     .queue-tray-burst__step,
+    .queue-domain-switcher__tabs,
     .queue-consultorio-card__facts,
     .queue-consultorio-card__chips,
     .queue-consultorio-card__actions,

@@ -14,107 +14,51 @@ import {
     getVisibleTickets,
     getWaitingForConsultorio,
 } from '../../selectors.js';
-
-const DEFAULT_APP_DOWNLOADS = Object.freeze({
-    operator: {
-        version: '0.1.0',
-        updatedAt: '2026-03-10T00:00:00Z',
-        webFallbackUrl: '/operador-turnos.html',
-        guideUrl: '/app-downloads/?surface=operator',
-        targets: {
-            win: {
-                url: '/app-downloads/stable/operator/win/TurneroOperadorSetup.exe',
-                label: 'Windows',
-            },
-            mac: {
-                url: '/app-downloads/stable/operator/mac/TurneroOperador.dmg',
-                label: 'macOS',
-            },
-        },
-    },
-    kiosk: {
-        version: '0.1.0',
-        updatedAt: '2026-03-10T00:00:00Z',
-        webFallbackUrl: '/kiosco-turnos.html',
-        guideUrl: '/app-downloads/?surface=kiosk',
-        targets: {
-            win: {
-                url: '/app-downloads/stable/kiosk/win/TurneroKioscoSetup.exe',
-                label: 'Windows',
-            },
-            mac: {
-                url: '/app-downloads/stable/kiosk/mac/TurneroKiosco.dmg',
-                label: 'macOS',
-            },
-        },
-    },
-    sala_tv: {
-        version: '0.1.0',
-        updatedAt: '2026-03-10T00:00:00Z',
-        webFallbackUrl: '/sala-turnos.html',
-        guideUrl: '/app-downloads/?surface=sala_tv',
-        targets: {
-            android_tv: {
-                url: '/app-downloads/stable/sala-tv/android/TurneroSalaTV.apk',
-                label: 'Android TV APK',
-            },
-        },
-    },
-});
-
-const APP_COPY = Object.freeze({
-    operator: {
-        eyebrow: 'Recepción + consultorio',
-        title: 'Operador',
-        description:
-            'Superficie diaria para llamar, re-llamar, completar y operar con el Genius Numpad 1000.',
-        recommendedFor: 'PC operador',
-        notes: [
-            'Conecta aquí el receptor USB 2.4 GHz del numpad.',
-            'La app desktop ahora puede quedar configurada como C1, C2 o modo libre desde el primer arranque.',
-        ],
-    },
-    kiosk: {
-        eyebrow: 'Recepción de pacientes',
-        title: 'Kiosco',
-        description:
-            'Instalador dedicado para check-in, generación de ticket y operación simple en mostrador.',
-        recommendedFor: 'PC o mini PC de kiosco',
-        notes: [
-            'Mantén el equipo en fullscreen y con impresora térmica conectada.',
-            'La versión web sigue disponible como respaldo inmediato.',
-        ],
-    },
-    sala_tv: {
-        eyebrow: 'Pantalla de sala',
-        title: 'Sala TV',
-        description:
-            'APK para Android TV en la TCL C655 con WebView controlado, reconexión y campanilla.',
-        recommendedFor: 'TCL C655 / Google TV',
-        notes: [
-            'Instala en la TV y prioriza Ethernet sobre Wi-Fi.',
-            'Usa el QR desde otra pantalla para simplificar la instalación del APK.',
-        ],
-    },
-});
-
-const SURFACE_TELEMETRY_COPY = Object.freeze({
-    operator: {
-        title: 'Operador',
-        emptySummary:
-            'Todavía no hay señal del equipo operador. Abre la app o el fallback web para registrar heartbeat.',
-    },
-    kiosk: {
-        title: 'Kiosco',
-        emptySummary:
-            'Todavía no hay señal del kiosco. Abre el equipo o el fallback web antes de dejar autoservicio.',
-    },
-    display: {
-        title: 'Sala TV',
-        emptySummary:
-            'Todavía no hay señal de la TV de sala. Abre la app Android TV o el fallback web para registrar estado.',
-    },
-});
+import {
+    ensureOpsAlertsState as ensureOpsAlertsStateStore,
+    ensureOpsFocusMode as ensureOpsFocusModeStore,
+    markOpsAlertsReviewed as markOpsAlertsReviewedStore,
+    persistOpsFocusMode as persistOpsFocusModeStore,
+    setOpsAlertReviewed as setOpsAlertReviewedStore,
+} from './install-hub/ops-alerts.js';
+import { createQueueOpsInteractionController } from './install-hub/interaction.js';
+import {
+    buildQueueFocusMode as buildQueueFocusModeModule,
+    renderQueueFocusMode as renderQueueFocusModeModule,
+} from './install-hub/focus-mode.js';
+import { renderQueueHubDomainView } from './install-hub/domain-view.js';
+import {
+    buildQueueOpsAlerts as buildQueueOpsAlertsModule,
+    renderQueueOpsAlerts as renderQueueOpsAlertsModule,
+} from './install-hub/alerts.js';
+import {
+    ensureInstallHubRegistryLoaded,
+    getInstallHubDefaultAppDownloads,
+    getInstallHubSurfaceCardCopy,
+    getInstallHubSurfaceDefinition,
+    getInstallHubSurfaceOrder,
+    getInstallHubSurfaceTelemetryCopy,
+    syncInstallHubRuntimePayload,
+} from './install-hub/registry.js';
+import {
+    buildQueueQuickConsole as buildQueueQuickConsoleModule,
+    renderQueueQuickConsole as renderQueueQuickConsoleModule,
+} from './install-hub/quick-console.js';
+import {
+    buildQueueOpsPilot as buildQueueOpsPilotModule,
+    renderQueueOpsPilot as renderQueueOpsPilotModule,
+} from './install-hub/pilot.js';
+import {
+    buildPlaybookDefinitions as buildPlaybookDefinitionsModule,
+    buildQueuePlaybook as buildQueuePlaybookModule,
+    buildQueuePlaybookAssist as buildQueuePlaybookAssistModule,
+    buildQueuePlaybookReport as buildQueuePlaybookReportModule,
+    copyQueuePlaybookReport as copyQueuePlaybookReportModule,
+    ensureOpsPlaybookState as ensureOpsPlaybookStateModule,
+    renderQueuePlaybook as renderQueuePlaybookModule,
+    resetOpsPlaybookMode as resetOpsPlaybookModeModule,
+    setOpsPlaybookStep as setOpsPlaybookStepModule,
+} from './install-hub/playbook.js';
 
 const QUEUE_INSTALL_PRESET_STORAGE_KEY = 'queueInstallPresetV1';
 const QUEUE_OPENING_CHECKLIST_STORAGE_KEY = 'queueOpeningChecklistV1';
@@ -147,18 +91,40 @@ let openingChecklistState = null;
 let shiftHandoffState = null;
 let opsLogState = null;
 let opsLogFilter = null;
-let opsAlertsState = null;
-let opsFocusMode = null;
-let opsPlaybookState = null;
 let queueTicketLookupTerm = null;
 let queueTicketSimulationContext = null;
-let queueOpsInteraction = {
-    lastAt: 0,
-    timerId: 0,
-    settleTimerId: 0,
-    pendingManifest: null,
-    pendingPlatform: '',
-};
+
+function getDefaultAppDownloads() {
+    return getInstallHubDefaultAppDownloads();
+}
+
+function getSurfaceCardCopy(surfaceKey) {
+    return getInstallHubSurfaceCardCopy(surfaceKey);
+}
+
+function getSurfaceTelemetryCopy(surfaceKey) {
+    return getInstallHubSurfaceTelemetryCopy(surfaceKey);
+}
+
+function getManifestCatalogPayload() {
+    const appDownloads = getState().data.appDownloads;
+    if (!appDownloads || typeof appDownloads !== 'object') {
+        return null;
+    }
+    if (appDownloads.catalog && typeof appDownloads.catalog === 'object') {
+        return appDownloads.catalog;
+    }
+    return appDownloads;
+}
+
+function listInstallHubSurfaceOrder() {
+    const surfaceOrder = getInstallHubSurfaceOrder();
+    if (surfaceOrder.length > 0) {
+        return surfaceOrder;
+    }
+
+    return Object.keys(getDefaultAppDownloads());
+}
 
 function detectPlatform() {
     const platform =
@@ -280,161 +246,12 @@ function getQueueAppsRefreshShieldChip() {
     return chip instanceof HTMLElement ? chip : null;
 }
 
-function resolveQueueOpsInteractionMeta() {
-    if (queueOpsInteraction.pendingManifest) {
-        return {
-            state: 'deferred',
-            label: 'Refresh en espera',
-            detail: 'Se mantiene el hub estable hasta que termine la interacción actual.',
-        };
-    }
-    if (hasActiveQueueOpsInteraction()) {
-        return {
-            state: 'active',
-            label: 'Protegiendo interacción',
-            detail: 'El hub aplaza repaints breves mientras estás usando sus controles.',
-        };
-    }
-    return {
-        state: 'idle',
-        label: 'Refresh sin bloqueo',
-        detail: 'El hub puede repintarse cuando llegue información nueva.',
-    };
-}
-
-function syncQueueOpsInteractionIndicator() {
-    const meta = resolveQueueOpsInteractionMeta();
-    const root = getQueueAppsHubRoot();
-    const chip = getQueueAppsRefreshShieldChip();
-    if (root) {
-        root.dataset.queueInteractionState = meta.state;
-    }
-    if (chip) {
-        chip.dataset.state = meta.state;
-        chip.textContent = meta.label;
-        chip.title = meta.detail;
-        chip.setAttribute('aria-label', meta.detail);
-    }
-}
-
-function clearQueueOpsInteractionSettleTimer() {
-    if (queueOpsInteraction.settleTimerId) {
-        window.clearTimeout(queueOpsInteraction.settleTimerId);
-        queueOpsInteraction.settleTimerId = 0;
-    }
-}
-
-function scheduleQueueOpsInteractionSettle() {
-    clearQueueOpsInteractionSettleTimer();
-    if (queueOpsInteraction.pendingManifest) {
-        syncQueueOpsInteractionIndicator();
-        return;
-    }
-    if (!hasActiveQueueOpsInteraction()) {
-        syncQueueOpsInteractionIndicator();
-        return;
-    }
-    const waitMs = Math.max(
-        80,
-        QUEUE_OPS_INTERACTION_HOLD_MS - getQueueOpsInteractionAgeMs()
-    );
-    queueOpsInteraction.settleTimerId = window.setTimeout(() => {
-        queueOpsInteraction.settleTimerId = 0;
-        if (queueOpsInteraction.pendingManifest) {
-            syncQueueOpsInteractionIndicator();
-            return;
-        }
-        if (hasActiveQueueOpsInteraction()) {
-            scheduleQueueOpsInteractionSettle();
-            return;
-        }
-        syncQueueOpsInteractionIndicator();
-    }, waitMs);
-}
-
-function markQueueOpsInteraction() {
-    queueOpsInteraction.lastAt = Date.now();
-    syncQueueOpsInteractionIndicator();
-    scheduleQueueOpsInteractionSettle();
-}
-
-function getQueueOpsInteractionAgeMs() {
-    if (!queueOpsInteraction.lastAt) {
-        return Number.POSITIVE_INFINITY;
-    }
-    return Math.max(0, Date.now() - queueOpsInteraction.lastAt);
-}
-
-function hasActiveQueueOpsInteraction() {
-    return getQueueOpsInteractionAgeMs() < QUEUE_OPS_INTERACTION_HOLD_MS;
-}
-
-function bindQueueOpsInteraction(root) {
-    if (
-        !(root instanceof HTMLElement) ||
-        root.dataset.queueInteractionBound === 'true'
-    ) {
-        return;
-    }
-
-    const signalInteraction = () => {
-        markQueueOpsInteraction();
-    };
-
-    root.addEventListener('pointerdown', signalInteraction, true);
-    root.addEventListener('keydown', signalInteraction, true);
-    root.addEventListener('focusin', signalInteraction, true);
-    root.addEventListener('input', signalInteraction, true);
-    root.addEventListener('change', signalInteraction, true);
-    root.dataset.queueInteractionBound = 'true';
-}
-
-function clearDeferredQueueOpsInteraction() {
-    if (queueOpsInteraction.timerId) {
-        window.clearTimeout(queueOpsInteraction.timerId);
-        queueOpsInteraction.timerId = 0;
-    }
-    queueOpsInteraction.pendingManifest = null;
-    queueOpsInteraction.pendingPlatform = '';
-    syncQueueOpsInteractionIndicator();
-    scheduleQueueOpsInteractionSettle();
-}
-
-function flushDeferredQueueOpsHubRender() {
-    const manifest = queueOpsInteraction.pendingManifest;
-    const platform = queueOpsInteraction.pendingPlatform;
-    queueOpsInteraction.timerId = 0;
-    if (!manifest) {
-        clearDeferredQueueOpsInteraction();
-        return;
-    }
-    if (hasActiveQueueOpsInteraction()) {
-        scheduleDeferredQueueOpsHubRender(manifest, platform);
-        return;
-    }
-    renderQueueInstallHub({
-        allowDuringInteraction: true,
-        manifestOverride: manifest,
-        platformOverride: platform,
-    });
-}
-
-function scheduleDeferredQueueOpsHubRender(manifest, detectedPlatform) {
-    queueOpsInteraction.pendingManifest = manifest;
-    queueOpsInteraction.pendingPlatform = detectedPlatform;
-    if (queueOpsInteraction.timerId) {
-        window.clearTimeout(queueOpsInteraction.timerId);
-    }
-    clearQueueOpsInteractionSettleTimer();
-    syncQueueOpsInteractionIndicator();
-    const waitMs = Math.max(
-        80,
-        QUEUE_OPS_INTERACTION_HOLD_MS - getQueueOpsInteractionAgeMs()
-    );
-    queueOpsInteraction.timerId = window.setTimeout(() => {
-        flushDeferredQueueOpsHubRender();
-    }, waitMs);
-}
+const queueOpsInteractionController = createQueueOpsInteractionController({
+    getRoot: getQueueAppsHubRoot,
+    getChip: getQueueAppsRefreshShieldChip,
+    holdMs: QUEUE_OPS_INTERACTION_HOLD_MS,
+    rerender: (options) => renderQueueInstallHub(options),
+});
 
 function absoluteUrl(url) {
     try {
@@ -449,20 +266,55 @@ function buildQrUrl(url) {
     return `https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=${encoded}`;
 }
 
+function getAvailableTargetKeys(appConfig) {
+    return Object.keys(
+        appConfig && typeof appConfig.targets === 'object'
+            ? appConfig.targets
+            : {}
+    );
+}
+
+function getPreferredTargetKey(surfaceKey, appConfig, presetPlatform) {
+    const targetKeys = getAvailableTargetKeys(appConfig);
+    if (targetKeys.length === 0) {
+        return '';
+    }
+    if (targetKeys.includes(presetPlatform)) {
+        return presetPlatform;
+    }
+    if (targetKeys.includes('android_tv')) {
+        return 'android_tv';
+    }
+    if (targetKeys.includes('win')) {
+        return 'win';
+    }
+    return targetKeys[0] || '';
+}
+
+function getSurfaceTarget(appConfig, targetKey) {
+    const resolvedKey = String(targetKey || '').trim();
+    if (
+        resolvedKey !== '' &&
+        appConfig &&
+        typeof appConfig.targets === 'object' &&
+        appConfig.targets[resolvedKey]
+    ) {
+        return appConfig.targets[resolvedKey];
+    }
+    return null;
+}
+
 function buildGuideUrl(surfaceKey, preset, appConfig) {
     const base = new URL(
         String(appConfig.guideUrl || `/app-downloads/?surface=${surfaceKey}`),
         `${window.location.origin}/`
     );
     base.searchParams.set('surface', surfaceKey);
-    if (surfaceKey === 'sala_tv') {
-        base.searchParams.set('platform', 'android_tv');
-    } else {
-        base.searchParams.set(
-            'platform',
-            preset.platform === 'mac' ? 'mac' : 'win'
-        );
-    }
+    base.searchParams.set(
+        'platform',
+        getPreferredTargetKey(surfaceKey, appConfig, preset.platform) ||
+            (preset.platform === 'mac' ? 'mac' : 'win')
+    );
     if (surfaceKey === 'operator') {
         base.searchParams.set('station', preset.station === 'c2' ? 'c2' : 'c1');
         base.searchParams.set('lock', preset.lock ? '1' : '0');
@@ -476,38 +328,45 @@ function buildGuideUrl(surfaceKey, preset, appConfig) {
 }
 
 function mergeManifest() {
-    const appDownloads = getState().data.appDownloads;
+    const defaults = getDefaultAppDownloads();
+    const appDownloads = getManifestCatalogPayload();
     if (!appDownloads || typeof appDownloads !== 'object') {
-        return DEFAULT_APP_DOWNLOADS;
+        return defaults;
     }
-    return {
-        operator: {
-            ...DEFAULT_APP_DOWNLOADS.operator,
-            ...(appDownloads.operator || {}),
-            targets: {
-                ...DEFAULT_APP_DOWNLOADS.operator.targets,
-                ...((appDownloads.operator && appDownloads.operator.targets) ||
-                    {}),
-            },
-        },
-        kiosk: {
-            ...DEFAULT_APP_DOWNLOADS.kiosk,
-            ...(appDownloads.kiosk || {}),
-            targets: {
-                ...DEFAULT_APP_DOWNLOADS.kiosk.targets,
-                ...((appDownloads.kiosk && appDownloads.kiosk.targets) || {}),
-            },
-        },
-        sala_tv: {
-            ...DEFAULT_APP_DOWNLOADS.sala_tv,
-            ...(appDownloads.sala_tv || {}),
-            targets: {
-                ...DEFAULT_APP_DOWNLOADS.sala_tv.targets,
-                ...((appDownloads.sala_tv && appDownloads.sala_tv.targets) ||
-                    {}),
-            },
-        },
-    };
+
+    const surfaceKeys = Array.from(
+        new Set([
+            ...listInstallHubSurfaceOrder(),
+            ...Object.keys(defaults),
+            ...Object.keys(appDownloads),
+        ])
+    ).filter(Boolean);
+
+    return Object.fromEntries(
+        surfaceKeys.map((surfaceKey) => {
+            const defaultConfig =
+                defaults[surfaceKey] && typeof defaults[surfaceKey] === 'object'
+                    ? defaults[surfaceKey]
+                    : {};
+            const loadedConfig =
+                appDownloads[surfaceKey] &&
+                typeof appDownloads[surfaceKey] === 'object'
+                    ? appDownloads[surfaceKey]
+                    : {};
+
+            return [
+                surfaceKey,
+                {
+                    ...defaultConfig,
+                    ...loadedConfig,
+                    targets: {
+                        ...(defaultConfig.targets || {}),
+                        ...(loadedConfig.targets || {}),
+                    },
+                },
+            ];
+        })
+    );
 }
 
 function normalizeInstallPreset(rawPreset, detectedPlatform) {
@@ -1056,397 +915,72 @@ function persistOpsLogFilter(nextFilter) {
     return opsLogFilter;
 }
 
-function createOpsAlertsState(date = getTodayLocalIsoDate()) {
-    return {
-        date,
-        reviewed: {},
-    };
-}
-
-function normalizeOpsAlertsState(rawState) {
-    const today = getTodayLocalIsoDate();
-    const source = rawState && typeof rawState === 'object' ? rawState : {};
-    const reviewedSource =
-        source.reviewed && typeof source.reviewed === 'object'
-            ? source.reviewed
-            : {};
-    const reviewed = Object.entries(reviewedSource).reduce(
-        (acc, [alertId, value]) => {
-            if (!alertId) {
-                return acc;
-            }
-            const reviewedAt = String(value?.reviewedAt || '').trim();
-            acc[String(alertId)] = {
-                reviewedAt: reviewedAt || new Date().toISOString(),
-            };
-            return acc;
-        },
-        {}
-    );
-
-    return {
-        date: String(source.date || '').trim() === today ? today : today,
-        reviewed,
-    };
-}
-
-function loadOpsAlertsState() {
-    const today = getTodayLocalIsoDate();
-    try {
-        const raw = localStorage.getItem(QUEUE_OPS_ALERTS_STORAGE_KEY);
-        if (!raw) {
-            return createOpsAlertsState(today);
-        }
-        const parsed = JSON.parse(raw);
-        if (String(parsed?.date || '') !== today) {
-            return createOpsAlertsState(today);
-        }
-        return normalizeOpsAlertsState(parsed);
-    } catch (_error) {
-        return createOpsAlertsState(today);
-    }
-}
-
-function persistOpsAlertsState(nextState) {
-    opsAlertsState = normalizeOpsAlertsState(nextState);
-    try {
-        localStorage.setItem(
-            QUEUE_OPS_ALERTS_STORAGE_KEY,
-            JSON.stringify(opsAlertsState)
-        );
-    } catch (_error) {
-        // ignore storage write failures
-    }
-    return opsAlertsState;
-}
-
 function ensureOpsAlertsState() {
-    const today = getTodayLocalIsoDate();
-    if (!opsAlertsState || opsAlertsState.date !== today) {
-        opsAlertsState = loadOpsAlertsState();
-    }
-    return opsAlertsState;
+    return ensureOpsAlertsStateStore(
+        QUEUE_OPS_ALERTS_STORAGE_KEY,
+        getTodayLocalIsoDate
+    );
 }
 
 function setOpsAlertReviewed(alertId, reviewed) {
-    const current = ensureOpsAlertsState();
-    const nextReviewed = {
-        ...current.reviewed,
-    };
-    if (reviewed) {
-        nextReviewed[String(alertId)] = {
-            reviewedAt: new Date().toISOString(),
-        };
-    } else {
-        delete nextReviewed[String(alertId)];
-    }
-    return persistOpsAlertsState({
-        ...current,
-        reviewed: nextReviewed,
-    });
+    return setOpsAlertReviewedStore(
+        QUEUE_OPS_ALERTS_STORAGE_KEY,
+        getTodayLocalIsoDate,
+        alertId,
+        reviewed
+    );
 }
 
 function markOpsAlertsReviewed(alertIds) {
-    const validIds = Array.isArray(alertIds)
-        ? alertIds
-              .map((alertId) => String(alertId || '').trim())
-              .filter(Boolean)
-        : [];
-    if (!validIds.length) {
-        return ensureOpsAlertsState();
-    }
-
-    const current = ensureOpsAlertsState();
-    const nextReviewed = { ...current.reviewed };
-    const reviewedAt = new Date().toISOString();
-    validIds.forEach((alertId) => {
-        nextReviewed[alertId] = { reviewedAt };
-    });
-
-    return persistOpsAlertsState({
-        ...current,
-        reviewed: nextReviewed,
-    });
-}
-
-function normalizeOpsFocusMode(rawValue) {
-    const value = String(rawValue || 'auto')
-        .trim()
-        .toLowerCase();
-    return value === 'opening' ||
-        value === 'operations' ||
-        value === 'incidents' ||
-        value === 'closing'
-        ? value
-        : 'auto';
-}
-
-function loadOpsFocusMode() {
-    try {
-        return normalizeOpsFocusMode(
-            localStorage.getItem(QUEUE_OPS_FOCUS_MODE_STORAGE_KEY)
-        );
-    } catch (_error) {
-        return 'auto';
-    }
+    return markOpsAlertsReviewedStore(
+        QUEUE_OPS_ALERTS_STORAGE_KEY,
+        getTodayLocalIsoDate,
+        alertIds
+    );
 }
 
 function ensureOpsFocusMode() {
-    if (!opsFocusMode) {
-        opsFocusMode = loadOpsFocusMode();
-    }
-    return opsFocusMode;
+    return ensureOpsFocusModeStore(QUEUE_OPS_FOCUS_MODE_STORAGE_KEY);
 }
 
 function persistOpsFocusMode(nextMode) {
-    opsFocusMode = normalizeOpsFocusMode(nextMode);
-    try {
-        localStorage.setItem(QUEUE_OPS_FOCUS_MODE_STORAGE_KEY, opsFocusMode);
-    } catch (_error) {
-        // ignore storage write failures
-    }
-    return opsFocusMode;
+    return persistOpsFocusModeStore(QUEUE_OPS_FOCUS_MODE_STORAGE_KEY, nextMode);
 }
 
 function buildPlaybookDefinitions(manifest, detectedPlatform) {
-    const preset = ensureInstallPreset(detectedPlatform);
-    const operatorConfig = manifest.operator || DEFAULT_APP_DOWNLOADS.operator;
-    const kioskConfig = manifest.kiosk || DEFAULT_APP_DOWNLOADS.kiosk;
-    const salaConfig = manifest.sala_tv || DEFAULT_APP_DOWNLOADS.sala_tv;
-    const operatorUrl = buildPreparedSurfaceUrl('operator', operatorConfig, {
-        ...preset,
-        surface: 'operator',
+    return buildPlaybookDefinitionsModule(manifest, detectedPlatform, {
+        ensureInstallPreset,
+        defaultAppDownloads: getDefaultAppDownloads(),
+        buildPreparedSurfaceUrl,
     });
-    const kioskUrl = buildPreparedSurfaceUrl('kiosk', kioskConfig, {
-        ...preset,
-        surface: 'kiosk',
-    });
-    const salaUrl = buildPreparedSurfaceUrl('sala_tv', salaConfig, {
-        ...preset,
-        surface: 'sala_tv',
-    });
-
-    return {
-        opening: [
-            {
-                id: 'opening_operator',
-                title: 'Abrir Operador',
-                detail: 'Verifica estación, lock y flujo base del equipo principal.',
-                href: operatorUrl,
-                actionLabel: 'Abrir Operador',
-            },
-            {
-                id: 'opening_kiosk',
-                title: 'Validar Kiosco + térmica',
-                detail: 'Confirma ticket térmico, cola viva y contingencia offline limpia.',
-                href: kioskUrl,
-                actionLabel: 'Abrir Kiosco',
-            },
-            {
-                id: 'opening_sala',
-                title: 'Validar Sala TV',
-                detail: 'Deja audio, campanilla y visualización listos en la TCL C655.',
-                href: salaUrl,
-                actionLabel: 'Abrir Sala TV',
-            },
-        ],
-        operations: [
-            {
-                id: 'operations_monitor',
-                title: 'Monitorear equipos vivos',
-                detail: 'Revisa heartbeat, cola viva y estado general antes de seguir atendiendo.',
-                href: '#queueSurfaceTelemetry',
-                actionLabel: 'Ir a equipos',
-            },
-            {
-                id: 'operations_call',
-                title: 'Lanzar siguiente llamada',
-                detail: 'Usa C1/C2 o el operador actual para mover la cola con el menor roce posible.',
-                href: '#queueQuickConsole',
-                actionLabel: 'Ir a consola',
-            },
-            {
-                id: 'operations_log',
-                title: 'Registrar cambio importante',
-                detail: 'Si cambias perfil o detectas desvío, deja rastro en la bitácora operativa.',
-                href: '#queueOpsLog',
-                actionLabel: 'Ir a bitácora',
-            },
-        ],
-        incidents: [
-            {
-                id: 'incidents_refresh',
-                title: 'Refrescar y confirmar sync',
-                detail: 'Atiende primero fallback, retrasos y watchdog antes de tocar hardware.',
-                href: '#queueContingencyDeck',
-                actionLabel: 'Ir a contingencias',
-            },
-            {
-                id: 'incidents_surface',
-                title: 'Abrir el equipo afectado',
-                detail: 'Ve directo a Operador, Kiosco o Sala TV según la superficie que cayó.',
-                href: '#queueQuickConsole',
-                actionLabel: 'Ir a consola',
-            },
-            {
-                id: 'incidents_log',
-                title: 'Registrar incidencia',
-                detail: 'Deja en la bitácora qué falló, qué se hizo y qué queda pendiente.',
-                href: '#queueOpsLog',
-                actionLabel: 'Ir a bitácora',
-            },
-        ],
-        closing: [
-            {
-                id: 'closing_queue',
-                title: 'Confirmar cola limpia',
-                detail: 'No cierres si todavía hay tickets waiting o called.',
-                href: '#queueShiftHandoff',
-                actionLabel: 'Ir a relevo',
-            },
-            {
-                id: 'closing_surfaces',
-                title: 'Dejar superficies listas',
-                detail: 'Operador, Kiosco y Sala TV deben quedar claros para el siguiente turno.',
-                href: '#queueSurfaceTelemetry',
-                actionLabel: 'Ir a equipos',
-            },
-            {
-                id: 'closing_copy',
-                title: 'Copiar y cerrar relevo',
-                detail: 'Entrega un resumen textual corto del estado del turno.',
-                href: '#queueShiftHandoff',
-                actionLabel: 'Ir a resumen',
-            },
-        ],
-    };
-}
-
-function createOpsPlaybookState(date = getTodayLocalIsoDate()) {
-    return {
-        date,
-        modes: {
-            opening: {},
-            operations: {},
-            incidents: {},
-            closing: {},
-        },
-    };
-}
-
-function normalizeOpsPlaybookState(rawState) {
-    const today = getTodayLocalIsoDate();
-    const source = rawState && typeof rawState === 'object' ? rawState : {};
-    const safeModes =
-        source.modes && typeof source.modes === 'object' ? source.modes : {};
-    return {
-        date: String(source.date || '').trim() === today ? today : today,
-        modes: {
-            opening:
-                safeModes.opening && typeof safeModes.opening === 'object'
-                    ? { ...safeModes.opening }
-                    : {},
-            operations:
-                safeModes.operations && typeof safeModes.operations === 'object'
-                    ? { ...safeModes.operations }
-                    : {},
-            incidents:
-                safeModes.incidents && typeof safeModes.incidents === 'object'
-                    ? { ...safeModes.incidents }
-                    : {},
-            closing:
-                safeModes.closing && typeof safeModes.closing === 'object'
-                    ? { ...safeModes.closing }
-                    : {},
-        },
-    };
-}
-
-function loadOpsPlaybookState() {
-    const today = getTodayLocalIsoDate();
-    try {
-        const raw = localStorage.getItem(QUEUE_OPS_PLAYBOOK_STORAGE_KEY);
-        if (!raw) {
-            return createOpsPlaybookState(today);
-        }
-        const parsed = JSON.parse(raw);
-        if (String(parsed?.date || '') !== today) {
-            return createOpsPlaybookState(today);
-        }
-        return normalizeOpsPlaybookState(parsed);
-    } catch (_error) {
-        return createOpsPlaybookState(today);
-    }
-}
-
-function persistOpsPlaybookState(nextState) {
-    opsPlaybookState = normalizeOpsPlaybookState(nextState);
-    try {
-        localStorage.setItem(
-            QUEUE_OPS_PLAYBOOK_STORAGE_KEY,
-            JSON.stringify(opsPlaybookState)
-        );
-    } catch (_error) {
-        // ignore storage write failures
-    }
-    return opsPlaybookState;
 }
 
 function ensureOpsPlaybookState() {
-    const today = getTodayLocalIsoDate();
-    if (!opsPlaybookState || opsPlaybookState.date !== today) {
-        opsPlaybookState = loadOpsPlaybookState();
-    }
-    return opsPlaybookState;
+    return ensureOpsPlaybookStateModule({
+        getTodayLocalIsoDate,
+        storageKey: QUEUE_OPS_PLAYBOOK_STORAGE_KEY,
+    });
 }
 
 function setOpsPlaybookStep(mode, stepId, complete) {
-    const current = ensureOpsPlaybookState();
-    const safeMode =
-        mode === 'opening' ||
-        mode === 'operations' ||
-        mode === 'incidents' ||
-        mode === 'closing'
-            ? mode
-            : 'operations';
-    return persistOpsPlaybookState({
-        ...current,
-        modes: {
-            ...current.modes,
-            [safeMode]: {
-                ...(current.modes[safeMode] || {}),
-                [stepId]: Boolean(complete),
-            },
-        },
+    return setOpsPlaybookStepModule(mode, stepId, complete, {
+        getTodayLocalIsoDate,
+        storageKey: QUEUE_OPS_PLAYBOOK_STORAGE_KEY,
     });
 }
 
 function resetOpsPlaybookMode(mode) {
-    const current = ensureOpsPlaybookState();
-    const safeMode =
-        mode === 'opening' ||
-        mode === 'operations' ||
-        mode === 'incidents' ||
-        mode === 'closing'
-            ? mode
-            : 'operations';
-    return persistOpsPlaybookState({
-        ...current,
-        modes: {
-            ...current.modes,
-            [safeMode]: {},
-        },
+    return resetOpsPlaybookModeModule(mode, {
+        getTodayLocalIsoDate,
+        storageKey: QUEUE_OPS_PLAYBOOK_STORAGE_KEY,
     });
 }
 
 function getDesktopTarget(appConfig, platform) {
-    if (platform === 'mac' && appConfig.targets.mac) {
-        return appConfig.targets.mac;
-    }
-    if (platform === 'win' && appConfig.targets.win) {
-        return appConfig.targets.win;
-    }
-    return appConfig.targets.win || appConfig.targets.mac || null;
+    return getSurfaceTarget(
+        appConfig,
+        getPreferredTargetKey('', appConfig, platform)
+    );
 }
 
 function buildPreparedSurfaceUrl(surfaceKey, appConfig, preset) {
@@ -1465,8 +999,9 @@ function buildPreparedSurfaceUrl(surfaceKey, appConfig, preset) {
 }
 
 function renderDesktopCard(key, appConfig, platform) {
-    const copy = APP_COPY[key];
+    const copy = getSurfaceCardCopy(key);
     const preset = ensureInstallPreset(platform);
+    const preferredTargetKey = getPreferredTargetKey(key, appConfig, platform);
     const detectedTarget = getDesktopTarget(appConfig, platform);
     const detectedLabel =
         platform === 'mac'
@@ -1480,7 +1015,7 @@ function renderDesktopCard(key, appConfig, platform) {
             ([targetKey, value]) => `
                 <a
                     href="${escapeHtml(value.url)}"
-                    class="${targetKey === platform ? 'queue-app-card__recommended' : ''}"
+                    class="${targetKey === preferredTargetKey ? 'queue-app-card__recommended' : ''}"
                     download
                 >
                     ${escapeHtml(value.label || targetKey)}
@@ -1530,7 +1065,7 @@ function renderDesktopCard(key, appConfig, platform) {
                 </button>
             </div>
             <ul class="queue-app-card__notes">
-                ${copy.notes
+                ${(Array.isArray(copy.notes) ? copy.notes : [])
                     .map((note) => `<li>${escapeHtml(note)}</li>`)
                     .join('')}
             </ul>
@@ -1538,10 +1073,14 @@ function renderDesktopCard(key, appConfig, platform) {
     `;
 }
 
-function renderTvCard(appConfig) {
-    const copy = APP_COPY.sala_tv;
+function renderAndroidCard(key, appConfig) {
+    const copy = getSurfaceCardCopy(key);
     const preset = ensureInstallPreset(detectPlatform());
-    const target = appConfig.targets.android_tv || {};
+    const target =
+        getSurfaceTarget(
+            appConfig,
+            getPreferredTargetKey(key, appConfig, 'android_tv')
+        ) || {};
     const apkUrl = String(target.url || '');
     const qrUrl = buildQrUrl(apkUrl);
 
@@ -1585,12 +1124,32 @@ function renderTvCard(appConfig) {
                 </button>
             </div>
             <ul class="queue-app-card__notes">
-                ${copy.notes
+                ${(Array.isArray(copy.notes) ? copy.notes : [])
                     .map((note) => `<li>${escapeHtml(note)}</li>`)
                     .join('')}
             </ul>
         </article>
     `;
+}
+
+function renderInstallHubSurfaceCards(manifest, platform) {
+    return listInstallHubSurfaceOrder()
+        .map((surfaceKey) => {
+            const surface = getInstallHubSurfaceDefinition(surfaceKey);
+            const appConfig =
+                manifest[surfaceKey] || getDefaultAppDownloads()[surfaceKey];
+
+            if (!surface || !appConfig) {
+                return '';
+            }
+
+            if (surface.family === 'android') {
+                return renderAndroidCard(surfaceKey, appConfig);
+            }
+
+            return renderDesktopCard(surfaceKey, appConfig, platform);
+        })
+        .join('');
 }
 
 function buildPresetSummaryTitle(preset) {
@@ -1635,9 +1194,10 @@ function buildPresetSteps(preset) {
 
 function buildOpeningChecklistSteps(manifest, detectedPlatform) {
     const preset = ensureInstallPreset(detectedPlatform);
-    const operatorConfig = manifest.operator || DEFAULT_APP_DOWNLOADS.operator;
-    const kioskConfig = manifest.kiosk || DEFAULT_APP_DOWNLOADS.kiosk;
-    const salaConfig = manifest.sala_tv || DEFAULT_APP_DOWNLOADS.sala_tv;
+    const defaultAppDownloads = getDefaultAppDownloads();
+    const operatorConfig = manifest.operator || defaultAppDownloads.operator;
+    const kioskConfig = manifest.kiosk || defaultAppDownloads.kiosk;
+    const salaConfig = manifest.sala_tv || defaultAppDownloads.sala_tv;
     const operatorUrl = buildPreparedSurfaceUrl('operator', operatorConfig, {
         ...preset,
         surface: 'operator',
@@ -1694,12 +1254,51 @@ function buildOpeningChecklistSteps(manifest, detectedPlatform) {
 function getLatestSurfaceDetails(surfaceKey) {
     const group = getSurfaceTelemetryState(surfaceKey);
     const latest =
-        group.latest && typeof group.latest === 'object' ? group.latest : null;
+        group.latest && typeof group.latest === 'object'
+            ? normalizeSurfaceTelemetryInstance(group.latest, group)
+            : null;
     const details =
         latest?.details && typeof latest.details === 'object'
             ? latest.details
             : {};
     return { group, latest, details };
+}
+
+function getOperatorSurfaceDetailsForStation(consultorio) {
+    const slot = Number(consultorio || 0) === 2 ? 2 : 1;
+    const slotKey = `c${slot}`;
+    const { group, latest: latestRecord } = getLatestSurfaceDetails('operator');
+    const instances = getSurfaceTelemetryInstances('operator');
+    const resolvedInstances =
+        instances.length > 0 ? instances : latestRecord ? [latestRecord] : [];
+    const assigned =
+        resolvedInstances.find(
+            (instance) =>
+                normalizeOperatorStationKey(instance?.details?.station) ===
+                slotKey
+        ) || null;
+    const fallbackLive =
+        resolvedInstances.find((instance) => isSurfaceInstanceLive(instance)) ||
+        latestRecord;
+    const latest = assigned || fallbackLive;
+    const details =
+        latest?.details && typeof latest.details === 'object'
+            ? latest.details
+            : {};
+
+    return {
+        group,
+        instances: resolvedInstances,
+        slotKey,
+        assigned,
+        assignedDetails:
+            assigned?.details && typeof assigned.details === 'object'
+                ? assigned.details
+                : {},
+        latest,
+        details,
+        fallbackLive,
+    };
 }
 
 function hasRecentQueueSmokeSignal(maxAgeSec = 21600) {
@@ -1749,7 +1348,7 @@ function buildOpeningChecklistAssist(detectedPlatform) {
     const operatorSuggested =
         operator.group.status === 'ready' &&
         !operator.group.stale &&
-        Boolean(operator.details.numpadSeen) &&
+        isOperatorNumpadReady(operator.details) &&
         operatorStationMatches &&
         operatorConnection !== 'fallback';
 
@@ -1779,13 +1378,13 @@ function buildOpeningChecklistAssist(detectedPlatform) {
         operator_ready: {
             suggested: operatorSuggested,
             reason: operatorSuggested
-                ? `Heartbeat operador listo${preset.lock ? ` en ${expectedStation.toUpperCase()} fijo` : ''} con numpad detectado.`
+                ? `Heartbeat operador listo${preset.lock ? ` en ${expectedStation.toUpperCase()} fijo` : ''} con numpad operativo validado.`
                 : operator.group.status === 'unknown'
                   ? 'Todavía no hay heartbeat reciente del operador.'
                   : !operatorStationMatches
                     ? `El operador reporta ${operatorStation.toUpperCase() || 'otra estación'}. Ajusta el perfil antes de confirmar.`
-                    : !operator.details.numpadSeen
-                      ? 'Falta una pulsación real del Genius Numpad 1000 para validar el equipo.'
+                    : !isOperatorNumpadReady(operator.details)
+                      ? `${buildOperatorNumpadTelemetryLabel(operator.details)}. Completa la matriz operativa antes de confirmar.`
                       : 'Confirma el operador manualmente antes de abrir consulta.',
         },
         kiosk_ready: {
@@ -1838,9 +1437,10 @@ function buildOpeningChecklistAssist(detectedPlatform) {
 
 function buildShiftHandoffSteps(manifest, detectedPlatform) {
     const preset = ensureInstallPreset(detectedPlatform);
-    const operatorConfig = manifest.operator || DEFAULT_APP_DOWNLOADS.operator;
-    const kioskConfig = manifest.kiosk || DEFAULT_APP_DOWNLOADS.kiosk;
-    const salaConfig = manifest.sala_tv || DEFAULT_APP_DOWNLOADS.sala_tv;
+    const defaultAppDownloads = getDefaultAppDownloads();
+    const operatorConfig = manifest.operator || defaultAppDownloads.operator;
+    const kioskConfig = manifest.kiosk || defaultAppDownloads.kiosk;
+    const salaConfig = manifest.sala_tv || defaultAppDownloads.sala_tv;
     const operatorUrl = buildPreparedSurfaceUrl('operator', operatorConfig, {
         ...preset,
         surface: 'operator',
@@ -1903,7 +1503,7 @@ function buildShiftHandoffAssist(detectedPlatform) {
         queueClearSuggested &&
         operator.group.status !== 'unknown' &&
         !operator.group.stale &&
-        Boolean(operator.details.numpadSeen);
+        isOperatorNumpadReady(operator.details);
     const kioskSuggested =
         queueClearSuggested &&
         Number(kiosk.details.pendingOffline || 0) <= 0 &&
@@ -2214,286 +1814,34 @@ async function copyShiftHandoffSummary(detectedPlatform) {
 }
 
 function buildQueueOpsPilot(manifest, detectedPlatform) {
-    const checklist = ensureOpeningChecklistState();
-    const steps = buildOpeningChecklistSteps(manifest, detectedPlatform);
-    const assist = buildOpeningChecklistAssist(detectedPlatform);
-    const syncHealth = getQueueSyncHealth();
-    const telemetry = [
-        getSurfaceTelemetryState('operator'),
-        getSurfaceTelemetryState('kiosk'),
-        getSurfaceTelemetryState('display'),
-    ];
-    const confirmedCount = steps.filter(
-        (step) => checklist.steps[step.id]
-    ).length;
-    const suggestedCount = assist.suggestedCount;
-    const pendingSteps = steps.filter((step) => !checklist.steps[step.id]);
-    const pendingAfterSuggestions = pendingSteps.filter(
-        (step) => !assist.suggestions[step.id]?.suggested
-    );
-    const readyEquipmentCount = telemetry.filter(
-        (entry) => entry.status === 'ready' && !entry.stale
-    ).length;
-    const issueCount =
-        telemetry.filter((entry) => entry.status !== 'ready' || entry.stale)
-            .length + (syncHealth.state === 'ready' ? 0 : 1);
-    const progressPct =
-        steps.length > 0
-            ? Math.max(
-                  0,
-                  Math.min(
-                      100,
-                      Math.round((confirmedCount / steps.length) * 100)
-                  )
-              )
-            : 0;
-
-    let tone = 'idle';
-    let eyebrow = 'Siguiente paso';
-    let title = 'Centro de apertura listo';
-    let summary =
-        'Sigue la siguiente acción sugerida para terminar la apertura sin revisar cada tarjeta por separado.';
-    let primaryAction = null;
-    let secondaryAction = null;
-    let supportCopy = '';
-
-    if (syncHealth.state === 'alert') {
-        tone = 'alert';
-        title = 'Resuelve la cola antes de abrir';
-        summary =
-            'Hay fallback o sincronización degradada. Prioriza el refresh de cola antes de validar hardware o instalación.';
-        primaryAction = {
-            kind: 'button',
-            id: 'queueOpsPilotRefreshBtn',
-            action: 'queue-refresh-state',
-            label: 'Refrescar cola ahora',
-        };
-        secondaryAction = {
-            kind: 'anchor',
-            href: '/admin.html#queue',
-            label: 'Abrir cola admin',
-        };
-        supportCopy =
-            'Cuando el sync vuelva a vivo, el panel te devolverá el siguiente paso operativo.';
-    } else if (suggestedCount > 0) {
-        tone = 'suggested';
-        title = `Confirma ${suggestedCount} paso(s) ya validados`;
-        summary =
-            pendingAfterSuggestions.length > 0
-                ? `${suggestedCount} paso(s) ya aparecen listos por heartbeat. Después te quedará ${pendingAfterSuggestions[0].title}.`
-                : 'El sistema ya detectó los pasos pendientes como listos. Confírmalos para cerrar la apertura.';
-        primaryAction = {
-            kind: 'button',
-            id: 'queueOpsPilotApplyBtn',
-            label: `Confirmar sugeridos (${suggestedCount})`,
-        };
-        secondaryAction = pendingAfterSuggestions.length
-            ? {
-                  kind: 'anchor',
-                  href: pendingAfterSuggestions[0].href,
-                  label: pendingAfterSuggestions[0].actionLabel,
-              }
-            : {
-                  kind: 'anchor',
-                  href: '/admin.html#queue',
-                  label: 'Volver a la cola',
-              };
-        supportCopy =
-            'Usa este botón cuando ya confías en la telemetría y solo quieres avanzar sin recorrer el checklist uno por uno.';
-    } else if (pendingAfterSuggestions.length > 0) {
-        tone = syncHealth.state === 'warning' ? 'warning' : 'active';
-        title = `Siguiente paso: ${pendingAfterSuggestions[0].title}`;
-        summary =
-            pendingAfterSuggestions.length > 1
-                ? `Quedan ${pendingAfterSuggestions.length} validaciones manuales. Empieza por esta para mantener el flujo simple.`
-                : 'Solo queda una validación manual para dejar la apertura lista.';
-        primaryAction = {
-            kind: 'anchor',
-            href: pendingAfterSuggestions[0].href,
-            label: pendingAfterSuggestions[0].actionLabel,
-        };
-        secondaryAction =
-            syncHealth.state === 'warning'
-                ? {
-                      kind: 'button',
-                      id: 'queueOpsPilotRefreshBtn',
-                      action: 'queue-refresh-state',
-                      label: 'Refrescar cola',
-                  }
-                : {
-                      kind: 'anchor',
-                      href: '/admin.html#queue',
-                      label: 'Abrir cola admin',
-                  };
-        supportCopy = String(
-            assist.suggestions[pendingAfterSuggestions[0].id]?.reason ||
-                pendingAfterSuggestions[0].hint ||
-                ''
-        );
-    } else {
-        tone = 'ready';
-        eyebrow = 'Operación lista';
-        title = 'Apertura completada';
-        summary =
-            'Operador, kiosco y sala ya están confirmados. Puedes seguir atendiendo o hacer un llamado de prueba final desde la cola.';
-        primaryAction = {
-            kind: 'anchor',
-            href: '/admin.html#queue',
-            label: 'Abrir cola admin',
-        };
-        secondaryAction = {
-            kind: 'anchor',
-            href: buildPreparedSurfaceUrl(
-                'operator',
-                manifest.operator || DEFAULT_APP_DOWNLOADS.operator,
-                {
-                    ...ensureInstallPreset(detectedPlatform),
-                    surface: 'operator',
-                }
-            ),
-            label: 'Abrir operador',
-        };
-        supportCopy =
-            'Si cambia un equipo a warning o alert, este panel volverá a priorizar la acción correcta.';
-    }
-
-    return {
-        tone,
-        eyebrow,
-        title,
-        summary,
-        supportCopy,
-        progressPct,
-        confirmedCount,
-        suggestedCount,
-        totalSteps: steps.length,
-        readyEquipmentCount,
-        issueCount,
-        primaryAction,
-        secondaryAction,
-    };
-}
-
-function renderQueueOpsPilotAction(action, variant = 'secondary') {
-    if (!action) {
-        return '';
-    }
-
-    const className =
-        variant === 'primary'
-            ? 'queue-ops-pilot__action queue-ops-pilot__action--primary'
-            : 'queue-ops-pilot__action';
-
-    if (action.kind === 'button') {
-        return `
-            <button
-                ${action.id ? `id="${escapeHtml(action.id)}"` : ''}
-                type="button"
-                class="${className}"
-                ${action.action ? `data-action="${escapeHtml(action.action)}"` : ''}
-            >
-                ${escapeHtml(action.label || 'Continuar')}
-            </button>
-        `;
-    }
-
-    return `
-        <a
-            ${action.id ? `id="${escapeHtml(action.id)}"` : ''}
-            href="${escapeHtml(action.href || '/')}"
-            class="${className}"
-            target="_blank"
-            rel="noopener"
-        >
-            ${escapeHtml(action.label || 'Continuar')}
-        </a>
-    `;
+    return buildQueueOpsPilotModule(manifest, detectedPlatform, {
+        ensureOpeningChecklistState,
+        buildOpeningChecklistSteps,
+        buildOpeningChecklistAssist,
+        getQueueSyncHealth,
+        getSurfaceTelemetryState,
+        buildPreparedSurfaceUrl,
+        defaultAppDownloads: getDefaultAppDownloads(),
+        ensureInstallPreset,
+    });
 }
 
 function renderQueueOpsPilot(manifest, detectedPlatform) {
-    const root = document.getElementById('queueOpsPilot');
-    if (!(root instanceof HTMLElement)) {
-        return;
-    }
-
-    const pilot = buildQueueOpsPilot(manifest, detectedPlatform);
-    setHtml(
-        '#queueOpsPilot',
-        `
-            <section class="queue-ops-pilot__shell" data-state="${escapeHtml(pilot.tone)}">
-                <div class="queue-ops-pilot__layout">
-                    <div class="queue-ops-pilot__copy">
-                        <p class="queue-app-card__eyebrow">${escapeHtml(pilot.eyebrow)}</p>
-                        <h5 id="queueOpsPilotTitle" class="queue-app-card__title">${escapeHtml(
-                            pilot.title
-                        )}</h5>
-                        <p id="queueOpsPilotSummary" class="queue-ops-pilot__summary">${escapeHtml(
-                            pilot.summary
-                        )}</p>
-                        <p class="queue-ops-pilot__support">${escapeHtml(
-                            pilot.supportCopy
-                        )}</p>
-                        <div class="queue-ops-pilot__actions">
-                            ${renderQueueOpsPilotAction(pilot.primaryAction, 'primary')}
-                            ${renderQueueOpsPilotAction(pilot.secondaryAction, 'secondary')}
-                        </div>
-                    </div>
-                    <div class="queue-ops-pilot__status">
-                        <div class="queue-ops-pilot__progress">
-                            <div class="queue-ops-pilot__progress-head">
-                                <span>Apertura confirmada</span>
-                                <strong id="queueOpsPilotProgressValue">${escapeHtml(
-                                    `${pilot.confirmedCount}/${pilot.totalSteps}`
-                                )}</strong>
-                            </div>
-                            <div class="queue-ops-pilot__bar" aria-hidden="true">
-                                <span style="width:${escapeHtml(String(pilot.progressPct))}%"></span>
-                            </div>
-                        </div>
-                        <div class="queue-ops-pilot__chips">
-                            <span id="queueOpsPilotChipConfirmed" class="queue-ops-pilot__chip">
-                                Confirmados ${escapeHtml(String(pilot.confirmedCount))}
-                            </span>
-                            <span id="queueOpsPilotChipSuggested" class="queue-ops-pilot__chip">
-                                Sugeridos ${escapeHtml(String(pilot.suggestedCount))}
-                            </span>
-                            <span id="queueOpsPilotChipEquipment" class="queue-ops-pilot__chip">
-                                Equipos listos ${escapeHtml(String(pilot.readyEquipmentCount))}/3
-                            </span>
-                            <span id="queueOpsPilotChipIssues" class="queue-ops-pilot__chip">
-                                Incidencias ${escapeHtml(String(pilot.issueCount))}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        `
-    );
-
-    const applyButton = document.getElementById('queueOpsPilotApplyBtn');
-    if (applyButton instanceof HTMLButtonElement) {
-        applyButton.onclick = () => {
-            const assist = buildOpeningChecklistAssist(detectedPlatform);
-            if (!assist.suggestedIds.length) {
-                return;
-            }
-            applyOpeningChecklistSuggestions(assist.suggestedIds);
-            appendOpsLogEntry({
-                tone: 'success',
-                source: 'opening',
-                title: `Apertura: ${assist.suggestedIds.length} sugerido(s) confirmados`,
-                summary: `Se confirmaron pasos de apertura ya validados por telemetría. Perfil activo: ${getInstallPresetLabel(
-                    detectedPlatform
-                )}.`,
-            });
-            renderQueueFocusMode(manifest, detectedPlatform);
-            renderQueueQuickConsole(manifest, detectedPlatform);
-            renderQueuePlaybook(manifest, detectedPlatform);
-            renderQueueOpsPilot(manifest, detectedPlatform);
-            renderOpeningChecklist(manifest, detectedPlatform);
-            renderQueueOpsLog(manifest, detectedPlatform);
-        };
-    }
+    return renderQueueOpsPilotModule(manifest, detectedPlatform, {
+        buildQueueOpsPilot,
+        setHtml,
+        escapeHtml,
+        buildOpeningChecklistAssist,
+        applyOpeningChecklistSuggestions,
+        appendOpsLogEntry,
+        getInstallPresetLabel,
+        renderQueueFocusMode,
+        renderQueueQuickConsole,
+        renderQueuePlaybook,
+        renderQueueOpsPilot,
+        renderOpeningChecklist,
+        renderQueueOpsLog,
+    });
 }
 
 function formatHeartbeatAge(ageSec) {
@@ -2632,6 +1980,385 @@ function getSurfaceTelemetryState(surfaceKey) {
           };
 }
 
+function normalizeSurfaceTelemetryInstance(instance, group) {
+    if (!instance || typeof instance !== 'object') {
+        return null;
+    }
+
+    const fallbackStatus = String(group?.status || 'unknown')
+        .trim()
+        .toLowerCase();
+    const rawStatus = String(
+        instance.effectiveStatus || instance.status || fallbackStatus
+    )
+        .trim()
+        .toLowerCase();
+    const details =
+        instance.details && typeof instance.details === 'object'
+            ? instance.details
+            : {};
+
+    return {
+        ...instance,
+        details,
+        effectiveStatus: rawStatus || fallbackStatus,
+        status: String(instance.status || rawStatus || fallbackStatus),
+        stale:
+            typeof instance.stale === 'boolean'
+                ? instance.stale
+                : group?.stale === true,
+        updatedAt: String(instance.updatedAt || group?.updatedAt || ''),
+        ageSec: Number.isFinite(Number(instance.ageSec))
+            ? Number(instance.ageSec)
+            : Number(group?.ageSec || 0),
+        summary: String(instance.summary || group?.summary || ''),
+    };
+}
+
+function getSurfaceTelemetryInstances(surfaceKey) {
+    const group = getSurfaceTelemetryState(surfaceKey);
+    return Array.isArray(group.instances)
+        ? group.instances
+              .filter((instance) => instance && typeof instance === 'object')
+              .map((instance) =>
+                  normalizeSurfaceTelemetryInstance(instance, group)
+              )
+              .filter(Boolean)
+        : [];
+}
+
+function formatSurfacePlatformLabel(platform) {
+    const normalized = String(platform || '')
+        .trim()
+        .toLowerCase();
+    if (normalized === 'win32') {
+        return 'Windows';
+    }
+    if (normalized === 'darwin') {
+        return 'macOS';
+    }
+    if (normalized === 'linux') {
+        return 'Linux';
+    }
+    return normalized === '' ? '' : normalized;
+}
+
+function normalizeOperatorStationKey(station) {
+    const normalized = String(station || '')
+        .trim()
+        .toLowerCase();
+    if (normalized === '2' || normalized === 'c2') {
+        return 'c2';
+    }
+    if (normalized === '1' || normalized === 'c1') {
+        return 'c1';
+    }
+    return '';
+}
+
+function buildOperatorProfileLabel(details) {
+    const station = normalizeOperatorStationKey(details?.station);
+    if (!station) {
+        return '';
+    }
+
+    const stationMode = String(details?.stationMode || '')
+        .trim()
+        .toLowerCase();
+    return `${station.toUpperCase()} ${stationMode === 'locked' ? 'fijo' : 'libre'}`;
+}
+
+function getOperatorShellPhase(details) {
+    return String(details?.shellPhase || '')
+        .trim()
+        .toLowerCase();
+}
+
+function buildOperatorShellLifecycleLabel(details) {
+    if (!details || typeof details !== 'object') {
+        return '';
+    }
+
+    const phase = getOperatorShellPhase(details);
+    const shellContext = String(details.shellContext || '')
+        .trim()
+        .toLowerCase();
+
+    if (details.shellFirstRun) {
+        return 'Primer arranque';
+    }
+    if (details.shellSettingsMode || phase === 'settings') {
+        return 'Configuración local';
+    }
+    if (phase === 'retry') {
+        return 'Reintentando';
+    }
+    if (phase === 'loading') {
+        return 'Conectando';
+    }
+    if (phase === 'blocked') {
+        return 'Bloqueado';
+    }
+    if (shellContext === 'boot' || phase === 'boot') {
+        return 'Boot local';
+    }
+
+    return '';
+}
+
+function isOperatorNumpadReady(details) {
+    if (!details || typeof details !== 'object') {
+        return false;
+    }
+
+    if (typeof details.numpadReady === 'boolean') {
+        return details.numpadReady;
+    }
+
+    return Boolean(details.numpadSeen);
+}
+
+function buildOperatorOperationalBlocker(instance) {
+    if (!instance || typeof instance !== 'object') {
+        return 'Sin heartbeat reciente del operador.';
+    }
+
+    const details =
+        instance.details && typeof instance.details === 'object'
+            ? instance.details
+            : {};
+    const summary = String(instance.summary || '').trim();
+    const lifecycleLabel = buildOperatorShellLifecycleLabel(details);
+    if (lifecycleLabel) {
+        return summary || lifecycleLabel;
+    }
+
+    const effectiveStatus = String(
+        instance.effectiveStatus || instance.status || 'unknown'
+    )
+        .trim()
+        .toLowerCase();
+    if (effectiveStatus === 'alert' || effectiveStatus === 'warning') {
+        return summary || buildOperatorNumpadTelemetryLabel(details);
+    }
+
+    return '';
+}
+
+function buildOperatorNumpadTelemetryLabel(details, { compact = false } = {}) {
+    if (!details || typeof details !== 'object') {
+        return compact ? 'Numpad pendiente' : 'Numpad sin señal';
+    }
+
+    if (isOperatorNumpadReady(details)) {
+        return 'Numpad listo';
+    }
+
+    const progress = Number(details.numpadProgress || 0);
+    const required = Number(details.numpadRequired || 0);
+    const compactLabel =
+        required > 0 ? `Numpad ${progress}/${required}` : 'Numpad pendiente';
+
+    if (compact) {
+        return String(details.numpadLabel || '').trim() || compactLabel;
+    }
+
+    return (
+        String(details.numpadSummary || '').trim() ||
+        String(details.numpadLabel || '').trim() ||
+        compactLabel
+    );
+}
+
+function isOperatorSurfaceOperational(instance) {
+    if (!isSurfaceInstanceLive(instance)) {
+        return false;
+    }
+
+    const effectiveStatus = String(
+        instance.effectiveStatus || instance.status || 'unknown'
+    )
+        .trim()
+        .toLowerCase();
+    if (effectiveStatus !== 'ready') {
+        return false;
+    }
+
+    const details =
+        instance?.details && typeof instance.details === 'object'
+            ? instance.details
+            : {};
+    return buildOperatorShellLifecycleLabel(details) === '';
+}
+
+function buildSurfaceAppModeLabel(latest) {
+    if (!latest || typeof latest !== 'object') {
+        return 'Sin señal';
+    }
+
+    const appMode = String(latest.appMode || '')
+        .trim()
+        .toLowerCase();
+    const details =
+        latest.details && typeof latest.details === 'object'
+            ? latest.details
+            : {};
+
+    if (appMode === 'desktop') {
+        return details.shellPackaged
+            ? 'Desktop instalada'
+            : 'Desktop en desarrollo';
+    }
+    if (appMode === 'android_tv') {
+        return 'Android TV';
+    }
+    return 'Fallback web';
+}
+
+function isSurfaceInstanceLive(instance) {
+    if (!instance || typeof instance !== 'object') {
+        return false;
+    }
+
+    const effectiveStatus = String(
+        instance.effectiveStatus || instance.status || 'unknown'
+    )
+        .trim()
+        .toLowerCase();
+    return instance.stale !== true && effectiveStatus !== 'unknown';
+}
+
+function resolveTelemetryBadge(state) {
+    if (state === 'ready') return 'En vivo';
+    if (state === 'alert') return 'Atender';
+    if (state === 'warning') return 'Revisar';
+    return 'Sin señal';
+}
+
+function buildSurfaceTelemetryInstanceMeta(surfaceKey, latest) {
+    const details =
+        latest?.details && typeof latest.details === 'object'
+            ? latest.details
+            : {};
+    const parts = [buildSurfaceAppModeLabel(latest)];
+
+    if (surfaceKey === 'operator') {
+        const lifecycleLabel = buildOperatorShellLifecycleLabel(details);
+        if (lifecycleLabel) {
+            parts.push(lifecycleLabel);
+        }
+        const platformLabel = formatSurfacePlatformLabel(details.shellPlatform);
+        if (platformLabel) {
+            parts.push(platformLabel);
+        }
+        const updateChannel = String(details.shellUpdateChannel || '').trim();
+        if (updateChannel) {
+            parts.push(`canal ${updateChannel}`);
+        }
+    }
+
+    return parts.filter(Boolean).join(' · ');
+}
+
+function buildSurfaceTelemetryInstanceSummary(surfaceKey, latest) {
+    if (!latest || typeof latest !== 'object') {
+        return 'Sin señal todavía.';
+    }
+
+    const details =
+        latest.details && typeof latest.details === 'object'
+            ? latest.details
+            : {};
+
+    if (surfaceKey === 'operator') {
+        const profileLabel = buildOperatorProfileLabel(details);
+        const parts = [];
+        if (profileLabel) {
+            parts.push(profileLabel);
+        }
+        parts.push(details.oneTap ? '1 tecla ON' : '1 tecla OFF');
+        parts.push(buildOperatorNumpadTelemetryLabel(details));
+        const lifecycleLabel = buildOperatorShellLifecycleLabel(details);
+        if (lifecycleLabel) {
+            parts.push(lifecycleLabel);
+        }
+        const latestSummary = String(latest.summary || '').trim();
+        const summary = parts.join(' · ');
+        if (
+            latestSummary &&
+            lifecycleLabel &&
+            !summary.includes(latestSummary)
+        ) {
+            return `${summary} · ${latestSummary}`;
+        }
+        return summary;
+    }
+
+    return String(latest.summary || '').trim() || 'Sin señal todavía.';
+}
+
+function buildSurfaceTelemetryInstances(surfaceKey, group) {
+    const instances = getSurfaceTelemetryInstances(surfaceKey);
+
+    return instances.map((instance, index) => {
+        const effectiveState = String(
+            instance.effectiveStatus || instance.status || 'unknown'
+        )
+            .trim()
+            .toLowerCase();
+
+        return {
+            id: `${surfaceKey}-${index + 1}`,
+            state: ['ready', 'warning', 'alert'].includes(effectiveState)
+                ? effectiveState
+                : 'unknown',
+            badge: resolveTelemetryBadge(effectiveState),
+            deviceLabel: String(
+                instance.deviceLabel || 'Sin equipo reportando'
+            ),
+            profileLabel: buildOperatorProfileLabel(instance.details || {}),
+            meta: buildSurfaceTelemetryInstanceMeta(surfaceKey, instance),
+            summary: buildSurfaceTelemetryInstanceSummary(surfaceKey, instance),
+            ageLabel: buildSignalAgeLabel(instance, 'Sin heartbeat todavía'),
+        };
+    });
+}
+
+function buildSurfaceTelemetryGroupLabel(surfaceKey, latest, instances) {
+    if (instances.length <= 1) {
+        return String(latest?.deviceLabel || 'Sin equipo reportando');
+    }
+
+    if (surfaceKey === 'operator') {
+        return `${instances.length} PCs operador reportando`;
+    }
+
+    return `${instances.length} equipos reportando`;
+}
+
+function buildSurfaceTelemetryGroupSummary(surfaceKey, group, instances) {
+    const baseSummary = String(group.summary || '').trim();
+
+    if (surfaceKey === 'operator' && instances.length > 1) {
+        const profiles = Array.from(
+            new Set(
+                instances
+                    .map((instance) => String(instance.profileLabel || ''))
+                    .filter(Boolean)
+            )
+        );
+        if (profiles.length > 0) {
+            return `${instances.length} equipos operador reportando: ${profiles.join(' y ')}.`;
+        }
+    }
+
+    return (
+        baseSummary ||
+        getSurfaceTelemetryCopy(surfaceKey).emptySummary ||
+        'Sin señal todavía.'
+    );
+}
+
 function buildSurfaceTelemetryChips(surfaceKey, latest) {
     if (!latest || typeof latest !== 'object') {
         return ['Sin señal'];
@@ -2642,29 +2369,21 @@ function buildSurfaceTelemetryChips(surfaceKey, latest) {
             ? latest.details
             : {};
     const chips = [];
-    const appMode = String(latest.appMode || '').trim();
-    if (appMode === 'desktop') {
-        chips.push('Desktop');
-    } else if (appMode === 'android_tv') {
-        chips.push('Android TV');
-    } else {
-        chips.push('Web');
-    }
+    chips.push(buildSurfaceAppModeLabel(latest));
 
     if (surfaceKey === 'operator') {
-        const station = String(details.station || '').toUpperCase();
-        const stationMode = String(details.stationMode || '');
-        const oneTap = Boolean(details.oneTap);
-        const numpadSeen = Boolean(details.numpadSeen);
-        if (station) {
-            chips.push(
-                stationMode === 'locked'
-                    ? `${station} fijo`
-                    : `${station} libre`
-            );
+        const profileLabel = buildOperatorProfileLabel(details);
+        if (profileLabel) {
+            chips.push(profileLabel);
         }
-        chips.push(oneTap ? '1 tecla ON' : '1 tecla OFF');
-        chips.push(numpadSeen ? 'Numpad listo' : 'Numpad pendiente');
+        chips.push(details.oneTap ? '1 tecla ON' : '1 tecla OFF');
+        chips.push(
+            buildOperatorNumpadTelemetryLabel(details, { compact: true })
+        );
+        const lifecycleLabel = buildOperatorShellLifecycleLabel(details);
+        if (lifecycleLabel) {
+            chips.push(lifecycleLabel);
+        }
     } else if (surfaceKey === 'kiosk') {
         chips.push(details.printerPrinted ? 'Térmica OK' : 'Térmica pendiente');
         chips.push(`Offline ${Number(details.pendingOffline || 0)}`);
@@ -2691,19 +2410,19 @@ function buildSurfaceTelemetryCards(manifest, detectedPlatform) {
     const cards = [
         {
             key: 'operator',
-            appConfig: manifest.operator || DEFAULT_APP_DOWNLOADS.operator,
+            appConfig: manifest.operator || getDefaultAppDownloads().operator,
             fallbackSurface: 'operator',
             actionLabel: 'Abrir operador',
         },
         {
             key: 'kiosk',
-            appConfig: manifest.kiosk || DEFAULT_APP_DOWNLOADS.kiosk,
+            appConfig: manifest.kiosk || getDefaultAppDownloads().kiosk,
             fallbackSurface: 'kiosk',
             actionLabel: 'Abrir kiosco',
         },
         {
             key: 'display',
-            appConfig: manifest.sala_tv || DEFAULT_APP_DOWNLOADS.sala_tv,
+            appConfig: manifest.sala_tv || getDefaultAppDownloads().sala_tv,
             fallbackSurface: 'sala_tv',
             actionLabel: 'Abrir sala TV',
         },
@@ -2711,15 +2430,12 @@ function buildSurfaceTelemetryCards(manifest, detectedPlatform) {
 
     return cards.map((entry) => {
         const group = getSurfaceTelemetryState(entry.key);
+        const instances = buildSurfaceTelemetryInstances(entry.key, group);
         const latest =
             group.latest && typeof group.latest === 'object'
                 ? group.latest
                 : null;
         const effectiveState = String(group.status || 'unknown');
-        const summary =
-            String(group.summary || '').trim() ||
-            SURFACE_TELEMETRY_COPY[entry.key]?.emptySummary ||
-            'Sin señal todavía.';
         const route = buildPreparedSurfaceUrl(
             entry.fallbackSurface,
             entry.appConfig,
@@ -2731,7 +2447,7 @@ function buildSurfaceTelemetryCards(manifest, detectedPlatform) {
 
         return {
             key: entry.key,
-            title: SURFACE_TELEMETRY_COPY[entry.key]?.title || entry.key,
+            title: getSurfaceTelemetryCopy(entry.key).title || entry.key,
             state:
                 effectiveState === 'ready' ||
                 effectiveState === 'warning' ||
@@ -2746,13 +2462,22 @@ function buildSurfaceTelemetryCards(manifest, detectedPlatform) {
                       : effectiveState === 'warning'
                         ? 'Revisar'
                         : 'Sin señal',
-            deviceLabel: String(latest?.deviceLabel || 'Sin equipo reportando'),
-            summary,
+            deviceLabel: buildSurfaceTelemetryGroupLabel(
+                entry.key,
+                latest,
+                instances
+            ),
+            summary: buildSurfaceTelemetryGroupSummary(
+                entry.key,
+                group,
+                instances
+            ),
             ageLabel:
                 latest && latest.ageSec !== undefined && latest.ageSec !== null
                     ? `Heartbeat hace ${formatHeartbeatAge(latest.ageSec)}`
                     : 'Sin heartbeat todavía',
             chips: buildSurfaceTelemetryChips(entry.key, latest),
+            instances,
             route,
             actionLabel: entry.actionLabel,
         };
@@ -2848,6 +2573,47 @@ function renderSurfaceTelemetry(manifest, detectedPlatform) {
                                     <p class="queue-surface-card__age">${escapeHtml(
                                         card.ageLabel
                                     )}</p>
+                                    ${
+                                        card.instances.length > 0
+                                            ? `
+                                                <div class="queue-surface-card__instances" role="list" aria-label="Instancias en vivo de ${escapeHtml(
+                                                    card.title
+                                                )}">
+                                                    ${card.instances
+                                                        .map(
+                                                            (instance) => `
+                                                                <article
+                                                                    class="queue-surface-card__instance"
+                                                                    data-state="${escapeHtml(
+                                                                        instance.state
+                                                                    )}"
+                                                                    role="listitem"
+                                                                >
+                                                                    <div class="queue-surface-card__instance-head">
+                                                                        <strong>${escapeHtml(
+                                                                            instance.deviceLabel
+                                                                        )}</strong>
+                                                                        <span class="queue-surface-card__instance-badge">${escapeHtml(
+                                                                            instance.badge
+                                                                        )}</span>
+                                                                    </div>
+                                                                    <p class="queue-surface-card__instance-meta">${escapeHtml(
+                                                                        instance.meta
+                                                                    )}</p>
+                                                                    <p class="queue-surface-card__instance-summary">${escapeHtml(
+                                                                        instance.summary
+                                                                    )}</p>
+                                                                    <p class="queue-surface-card__instance-age">${escapeHtml(
+                                                                        instance.ageLabel
+                                                                    )}</p>
+                                                                </article>
+                                                            `
+                                                        )
+                                                        .join('')}
+                                                </div>
+                                            `
+                                            : ''
+                                    }
                                     <div class="queue-surface-card__chips">
                                         ${card.chips
                                             .map(
@@ -2982,7 +2748,7 @@ function buildQueueSyncAlert() {
 function buildOperatorAlert(manifest, detectedPlatform) {
     const preset = ensureInstallPreset(detectedPlatform);
     const expectedStation = preset.station === 'c2' ? 'c2' : 'c1';
-    const appConfig = manifest.operator || DEFAULT_APP_DOWNLOADS.operator;
+    const appConfig = manifest.operator || getDefaultAppDownloads().operator;
     const route = buildPreparedSurfaceUrl('operator', appConfig, {
         ...preset,
         surface: 'operator',
@@ -3025,14 +2791,13 @@ function buildOperatorAlert(manifest, detectedPlatform) {
         };
     }
 
-    if (!details.numpadSeen) {
+    if (!isOperatorNumpadReady(details)) {
         return {
             id: 'operator_numpad_pending',
             scope: 'Operador',
             tone: 'warning',
-            title: 'Genius Numpad 1000 sin pulsación reciente',
-            summary:
-                'Falta una tecla real del numpad para cerrar la validación operativa. Si usas 1 tecla, este chequeo conviene resolverlo primero.',
+            title: 'Genius Numpad 1000 con validación incompleta',
+            summary: `${buildOperatorNumpadTelemetryLabel(details)}. Si usas 1 tecla, este chequeo conviene resolverlo primero.`,
             meta: ageLabel,
             href: route,
             actionLabel: 'Validar numpad',
@@ -3058,7 +2823,7 @@ function buildOperatorAlert(manifest, detectedPlatform) {
 
 function buildKioskAlert(manifest, detectedPlatform) {
     const preset = ensureInstallPreset(detectedPlatform);
-    const appConfig = manifest.kiosk || DEFAULT_APP_DOWNLOADS.kiosk;
+    const appConfig = manifest.kiosk || getDefaultAppDownloads().kiosk;
     const route = buildPreparedSurfaceUrl('kiosk', appConfig, {
         ...preset,
         surface: 'kiosk',
@@ -3131,7 +2896,7 @@ function buildKioskAlert(manifest, detectedPlatform) {
 
 function buildDisplayAlert(manifest, detectedPlatform) {
     const preset = ensureInstallPreset(detectedPlatform);
-    const appConfig = manifest.sala_tv || DEFAULT_APP_DOWNLOADS.sala_tv;
+    const appConfig = manifest.sala_tv || getDefaultAppDownloads().sala_tv;
     const route = buildPreparedSurfaceUrl('sala_tv', appConfig, {
         ...preset,
         surface: 'sala_tv',
@@ -3203,400 +2968,59 @@ function buildDisplayAlert(manifest, detectedPlatform) {
 }
 
 function buildQueueOpsAlerts(manifest, detectedPlatform) {
-    const reviewState = ensureOpsAlertsState();
-    const alerts = [
-        buildQueueSyncAlert(),
-        buildOperatorAlert(manifest, detectedPlatform),
-        buildKioskAlert(manifest, detectedPlatform),
-        buildDisplayAlert(manifest, detectedPlatform),
-    ]
-        .filter(Boolean)
-        .map((alert) => {
-            const reviewedMeta = reviewState.reviewed[String(alert.id)] || null;
-            return {
-                ...alert,
-                reviewed: Boolean(reviewedMeta),
-                reviewedAt: reviewedMeta?.reviewedAt || '',
-            };
-        });
-
-    const criticalCount = alerts.filter(
-        (alert) => alert.tone === 'alert'
-    ).length;
-    const reviewedCount = alerts.filter((alert) => alert.reviewed).length;
-    const pendingCount = alerts.length - reviewedCount;
-    const tone =
-        criticalCount > 0 ? 'alert' : alerts.length > 0 ? 'warning' : 'ready';
-    const title =
-        alerts.length === 0
-            ? 'Sin alertas activas'
-            : criticalCount > 0
-              ? 'Alertas activas del turno'
-              : 'Observaciones activas del turno';
-    const summary =
-        alerts.length === 0
-            ? 'La cola, Operador, Kiosco y Sala TV no muestran incidencias abiertas ahora mismo.'
-            : criticalCount > 0
-              ? `${criticalCount} alerta(s) crítica(s) y ${Math.max(0, alerts.length - criticalCount)} observación(es) activas. Marca una alerta como revisada cuando ya alguien la atendió, pero seguirá visible hasta resolverse.`
-              : `${alerts.length} observación(es) activas. Usa este panel para decidir qué equipo abrir primero sin bajar por toda la pantalla.`;
-
-    return {
-        tone,
-        title,
-        summary,
-        alerts,
-        criticalCount,
-        reviewedCount,
-        pendingCount,
-    };
+    return buildQueueOpsAlertsModule(manifest, detectedPlatform, {
+        ensureOpsAlertsState,
+        getQueueSyncHealth,
+        getQueueSource,
+        formatHeartbeatAge,
+        ensureInstallPreset,
+        getDefaultAppDownloads,
+        buildPreparedSurfaceUrl,
+        getLatestSurfaceDetails,
+        buildSignalAgeLabel,
+    });
 }
 
 function renderQueueOpsAlerts(manifest, detectedPlatform) {
-    const root = document.getElementById('queueOpsAlerts');
-    if (!(root instanceof HTMLElement)) {
-        return;
-    }
-
-    const alertState = buildQueueOpsAlerts(manifest, detectedPlatform);
-    setHtml(
-        '#queueOpsAlerts',
-        `
-            <section class="queue-ops-alerts__shell" data-state="${escapeHtml(alertState.tone)}">
-                <div class="queue-ops-alerts__header">
-                    <div>
-                        <p class="queue-app-card__eyebrow">Prioridad viva</p>
-                        <h5 id="queueOpsAlertsTitle" class="queue-app-card__title">${escapeHtml(
-                            alertState.title
-                        )}</h5>
-                        <p id="queueOpsAlertsSummary" class="queue-ops-alerts__summary">${escapeHtml(
-                            alertState.summary
-                        )}</p>
-                    </div>
-                    <div class="queue-ops-alerts__meta">
-                        <span id="queueOpsAlertsChipTotal" class="queue-ops-alerts__chip">
-                            Alertas ${escapeHtml(String(alertState.alerts.length))}
-                        </span>
-                        <span id="queueOpsAlertsChipPending" class="queue-ops-alerts__chip">
-                            Pendientes ${escapeHtml(String(alertState.pendingCount))}
-                        </span>
-                        <span id="queueOpsAlertsChipReviewed" class="queue-ops-alerts__chip" data-state="${escapeHtml(
-                            alertState.reviewedCount > 0 ? 'reviewed' : 'idle'
-                        )}">
-                            Revisadas ${escapeHtml(String(alertState.reviewedCount))}
-                        </span>
-                        <button
-                            id="queueOpsAlertsApplyBtn"
-                            type="button"
-                            class="queue-ops-alerts__action queue-ops-alerts__action--primary"
-                            ${alertState.pendingCount > 0 ? '' : 'disabled'}
-                        >
-                            Marcar visibles revisadas
-                        </button>
-                    </div>
-                </div>
-                <div id="queueOpsAlertsItems" class="queue-ops-alerts__list" role="list" aria-label="Alertas activas por equipo">
-                    ${
-                        alertState.alerts.length > 0
-                            ? alertState.alerts
-                                  .map(
-                                      (alert) => `
-                                        <article
-                                            id="queueOpsAlert_${escapeHtml(alert.id)}"
-                                            class="queue-ops-alerts__item"
-                                            data-state="${escapeHtml(alert.tone)}"
-                                            data-reviewed="${alert.reviewed ? 'true' : 'false'}"
-                                            role="listitem"
-                                        >
-                                            <div class="queue-ops-alerts__item-head">
-                                                <div class="queue-ops-alerts__item-copy">
-                                                    <span class="queue-ops-alerts__scope">${escapeHtml(
-                                                        alert.scope
-                                                    )}</span>
-                                                    <strong>${escapeHtml(alert.title)}</strong>
-                                                </div>
-                                                <div class="queue-ops-alerts__item-meta">
-                                                    <span class="queue-ops-alerts__severity">${escapeHtml(
-                                                        alert.tone === 'alert'
-                                                            ? 'Critica'
-                                                            : 'Revisar'
-                                                    )}</span>
-                                                    ${
-                                                        alert.reviewed
-                                                            ? `<span class="queue-ops-alerts__reviewed">Revisada ${escapeHtml(
-                                                                  formatDateTime(
-                                                                      alert.reviewedAt
-                                                                  )
-                                                              )}</span>`
-                                                            : ''
-                                                    }
-                                                </div>
-                                            </div>
-                                            <p class="queue-ops-alerts__item-summary">${escapeHtml(
-                                                alert.summary
-                                            )}</p>
-                                            <p class="queue-ops-alerts__item-note">${escapeHtml(
-                                                alert.meta
-                                            )}</p>
-                                            <div class="queue-ops-alerts__actions">
-                                                <a
-                                                    href="${escapeHtml(alert.href)}"
-                                                    class="queue-ops-alerts__action queue-ops-alerts__action--primary"
-                                                    target="_blank"
-                                                    rel="noopener"
-                                                >
-                                                    ${escapeHtml(alert.actionLabel)}
-                                                </a>
-                                                <button
-                                                    id="queueOpsAlertReview_${escapeHtml(alert.id)}"
-                                                    type="button"
-                                                    class="queue-ops-alerts__action"
-                                                    data-queue-alert-review="${escapeHtml(alert.id)}"
-                                                    data-review-state="${alert.reviewed ? 'clear' : 'review'}"
-                                                >
-                                                    ${escapeHtml(
-                                                        alert.reviewed
-                                                            ? 'Marcar pendiente otra vez'
-                                                            : 'Marcar revisada'
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </article>
-                                    `
-                                  )
-                                  .join('')
-                            : `
-                                <article class="queue-ops-alerts__empty" role="listitem">
-                                    <strong>Sin prioridades abiertas</strong>
-                                    <p>La telemetría actual no muestra incidentes ni observaciones activas en cola, operador, kiosco o sala.</p>
-                                </article>
-                            `
-                    }
-                </div>
-            </section>
-        `
-    );
-
-    const applyButton = document.getElementById('queueOpsAlertsApplyBtn');
-    if (applyButton instanceof HTMLButtonElement) {
-        applyButton.onclick = () => {
-            const pendingIds = alertState.alerts
-                .filter((alert) => !alert.reviewed)
-                .map((alert) => alert.id);
-            if (!pendingIds.length) {
-                return;
-            }
-            markOpsAlertsReviewed(pendingIds);
-            appendOpsLogEntry({
-                tone: alertState.criticalCount > 0 ? 'warning' : 'info',
-                source: 'incident',
-                title: `Alertas revisadas: ${pendingIds.length}`,
-                summary: `Se marcaron como revisadas las alertas visibles del turno. Perfil activo: ${getInstallPresetLabel(
-                    detectedPlatform
-                )}.`,
-            });
-            renderQueueOpsAlerts(manifest, detectedPlatform);
-            renderQueueOpsLog(manifest, detectedPlatform);
-        };
-    }
-
-    root.querySelectorAll('[data-queue-alert-review]').forEach((button) => {
-        if (!(button instanceof HTMLButtonElement)) {
-            return;
-        }
-        button.onclick = () => {
-            const alertId = String(
-                button.dataset.queueAlertReview || ''
-            ).trim();
-            const targetAlert = alertState.alerts.find(
-                (alert) => alert.id === alertId
-            );
-            if (!targetAlert) {
-                return;
-            }
-            const shouldReview = button.dataset.reviewState !== 'clear';
-            setOpsAlertReviewed(alertId, shouldReview);
-            appendOpsLogEntry({
-                tone: shouldReview ? 'info' : 'warning',
-                source: 'incident',
-                title: `${shouldReview ? 'Alerta revisada' : 'Alerta reabierta'}: ${targetAlert.scope}`,
-                summary: shouldReview
-                    ? `${targetAlert.title}. Sigue visible hasta que la condición se resuelva.`
-                    : `${targetAlert.title}. La alerta vuelve al tablero pendiente del turno.`,
-            });
-            renderQueueOpsAlerts(manifest, detectedPlatform);
-            renderQueueOpsLog(manifest, detectedPlatform);
-        };
+    return renderQueueOpsAlertsModule(manifest, detectedPlatform, {
+        buildQueueOpsAlerts,
+        setHtml,
+        escapeHtml,
+        formatDateTime,
+        markOpsAlertsReviewed,
+        appendOpsLogEntry,
+        getInstallPresetLabel,
+        renderQueueOpsAlerts,
+        renderQueueOpsLog,
+        setOpsAlertReviewed,
     });
 }
 
 function buildQueueFocusMode(manifest, detectedPlatform) {
-    const selectedMode = ensureOpsFocusMode();
-    const manifestReady = Boolean(manifest && typeof manifest === 'object');
-    const syncHealth = getQueueSyncHealth();
-    const openingPending =
-        OPENING_CHECKLIST_STEP_IDS.length -
-        OPENING_CHECKLIST_STEP_IDS.filter(
-            (stepId) => ensureOpeningChecklistState().steps[stepId]
-        ).length;
-    const closingPending =
-        SHIFT_HANDOFF_STEP_IDS.length -
-        SHIFT_HANDOFF_STEP_IDS.filter(
-            (stepId) => ensureShiftHandoffState().steps[stepId]
-        ).length;
-    const operator = getSurfaceTelemetryState('operator');
-    const kiosk = getSurfaceTelemetryState('kiosk');
-    const display = getSurfaceTelemetryState('display');
-    const hasAlert =
-        syncHealth.state === 'alert' ||
-        [operator, kiosk, display].some(
-            (entry) => String(entry.status || '').toLowerCase() === 'alert'
-        );
-    const queueClear = Boolean(
-        buildShiftHandoffAssist(detectedPlatform).suggestions.queue_clear
-            ?.suggested
-    );
-    const suggestedMode = hasAlert
-        ? 'incidents'
-        : openingPending > 0
-          ? 'opening'
-          : queueClear && closingPending > 0
-            ? 'closing'
-            : 'operations';
-    const effectiveMode =
-        selectedMode === 'auto' ? suggestedMode : selectedMode;
-
-    if (effectiveMode === 'opening') {
-        return {
-            selectedMode,
-            suggestedMode,
-            effectiveMode,
-            title: 'Modo foco: Apertura',
-            summary:
-                openingPending > 0
-                    ? `Quedan ${openingPending} validaciones de apertura. Mantén visibles Operador, Telemetría y el checklist hasta dejar lista la mañana.`
-                    : 'La apertura ya está confirmada, pero puedes revisar el checklist o ajustar la instalación del equipo.',
-            primaryHref: '#queueOpeningChecklist',
-            primaryLabel: 'Ir a apertura diaria',
-        };
-    }
-
-    if (effectiveMode === 'incidents') {
-        return {
-            selectedMode,
-            suggestedMode,
-            effectiveMode,
-            title: 'Modo foco: Incidencias',
-            summary:
-                syncHealth.state === 'alert'
-                    ? 'La cola está degradada o en fallback. En este modo se priorizan contingencias, equipos vivos y señales críticas.'
-                    : 'Mantén a la vista contingencias y equipos con señal parcial para resolver la incidencia sin distraerte con instalación o cierre.',
-            primaryHref: '#queueContingencyDeck',
-            primaryLabel: 'Ir a contingencias',
-        };
-    }
-
-    if (effectiveMode === 'closing') {
-        return {
-            selectedMode,
-            suggestedMode,
-            effectiveMode,
-            title: 'Modo foco: Cierre',
-            summary:
-                closingPending > 0
-                    ? `La cola ya permite relevo y faltan ${closingPending} paso(s) para cerrar el turno con evidencia clara.`
-                    : 'El relevo ya quedó completo; usa este foco si necesitas revisar la salida del día o copiar el resumen final.',
-            primaryHref: '#queueShiftHandoff',
-            primaryLabel: 'Ir a cierre y relevo',
-        };
-    }
-
-    return {
-        selectedMode,
-        suggestedMode,
-        effectiveMode: 'operations',
-        title: 'Modo foco: Operación',
-        summary: manifestReady
-            ? 'Mantén visibles equipos en vivo, bitácora y contingencias para operar durante el día sin mezclar apertura o cierre.'
-            : 'Mantén visibles equipos y bitácora mientras el hub termina de cargar el catálogo operativo.',
-        primaryHref: '#queueSurfaceTelemetry',
-        primaryLabel: 'Ir a equipos en vivo',
-    };
+    return buildQueueFocusModeModule(manifest, detectedPlatform, {
+        ensureOpsFocusMode,
+        getQueueSyncHealth,
+        getSortedWaitingTickets,
+        getCalledTicketForConsultorio,
+        ensureOpeningChecklistState,
+        openingStepIds: OPENING_CHECKLIST_STEP_IDS,
+        ensureShiftHandoffState,
+        shiftStepIds: SHIFT_HANDOFF_STEP_IDS,
+        getSurfaceTelemetryState,
+        buildShiftHandoffAssist,
+    });
 }
 
 function renderQueueFocusMode(manifest, detectedPlatform) {
-    const root = document.getElementById('queueFocusMode');
-    const hub = document.getElementById('queueAppsHub');
-    if (!(root instanceof HTMLElement)) {
-        return;
-    }
-
-    const focus = buildQueueFocusMode(manifest, detectedPlatform);
-    if (hub instanceof HTMLElement) {
-        hub.dataset.queueFocus = focus.effectiveMode;
-        hub.dataset.queueFocusSource =
-            focus.selectedMode === 'auto' ? 'auto' : 'manual';
-    }
-
-    setHtml(
-        '#queueFocusMode',
-        `
-            <section class="queue-focus-mode__shell">
-                <div class="queue-focus-mode__header">
-                    <div>
-                        <p class="queue-app-card__eyebrow">Modo foco</p>
-                        <h5 id="queueFocusModeTitle" class="queue-app-card__title">${escapeHtml(
-                            focus.title
-                        )}</h5>
-                        <p id="queueFocusModeSummary" class="queue-focus-mode__summary">${escapeHtml(
-                            focus.summary
-                        )}</p>
-                    </div>
-                    <div class="queue-focus-mode__meta">
-                        <span
-                            id="queueFocusModeChip"
-                            class="queue-focus-mode__chip"
-                            data-state="${escapeHtml(
-                                focus.selectedMode === 'auto'
-                                    ? 'auto'
-                                    : 'manual'
-                            )}"
-                        >
-                            ${escapeHtml(
-                                focus.selectedMode === 'auto'
-                                    ? `Auto -> ${focus.suggestedMode}`
-                                    : `Manual -> ${focus.effectiveMode}`
-                            )}
-                        </span>
-                        <a
-                            id="queueFocusModePrimary"
-                            href="${escapeHtml(focus.primaryHref)}"
-                            class="queue-focus-mode__primary"
-                        >
-                            ${escapeHtml(focus.primaryLabel)}
-                        </a>
-                    </div>
-                </div>
-                <div class="queue-focus-mode__choices" role="tablist" aria-label="Cambiar foco del hub operativo">
-                    <button id="queueFocusModeAuto" type="button" class="queue-focus-mode__choice" data-queue-focus-mode="auto" data-state="${focus.selectedMode === 'auto' ? 'active' : 'idle'}">Auto</button>
-                    <button id="queueFocusModeOpening" type="button" class="queue-focus-mode__choice" data-queue-focus-mode="opening" data-state="${focus.selectedMode === 'opening' ? 'active' : 'idle'}">Apertura</button>
-                    <button id="queueFocusModeOperations" type="button" class="queue-focus-mode__choice" data-queue-focus-mode="operations" data-state="${focus.selectedMode === 'operations' ? 'active' : 'idle'}">Operación</button>
-                    <button id="queueFocusModeIncidents" type="button" class="queue-focus-mode__choice" data-queue-focus-mode="incidents" data-state="${focus.selectedMode === 'incidents' ? 'active' : 'idle'}">Incidencias</button>
-                    <button id="queueFocusModeClosing" type="button" class="queue-focus-mode__choice" data-queue-focus-mode="closing" data-state="${focus.selectedMode === 'closing' ? 'active' : 'idle'}">Cierre</button>
-                </div>
-            </section>
-        `
-    );
-
-    root.querySelectorAll('[data-queue-focus-mode]').forEach((button) => {
-        if (!(button instanceof HTMLButtonElement)) {
-            return;
-        }
-        button.onclick = () => {
-            persistOpsFocusMode(button.dataset.queueFocusMode || 'auto');
-            renderQueueFocusMode(manifest, detectedPlatform);
-            renderQueueQuickConsole(manifest, detectedPlatform);
-            renderQueuePlaybook(manifest, detectedPlatform);
-        };
+    return renderQueueFocusModeModule(manifest, detectedPlatform, {
+        buildQueueFocusMode,
+        setHtml,
+        escapeHtml,
+        persistOpsFocusMode,
+        getHubRoot: getQueueAppsHubRoot,
+        renderQueueHubDomainView,
+        renderQueueQuickConsole,
+        renderQueuePlaybook,
     });
 }
 
@@ -3752,7 +3176,7 @@ function buildQueueNumpadGuide(manifest, detectedPlatform) {
     const preset = ensureInstallPreset(detectedPlatform);
     const operatorUrl = buildPreparedSurfaceUrl(
         'operator',
-        manifest.operator || DEFAULT_APP_DOWNLOADS.operator,
+        manifest.operator || getDefaultAppDownloads().operator,
         {
             ...preset,
             surface: 'operator',
@@ -4132,30 +3556,40 @@ function buildConsultorioOperatorContext(
     consultorio
 ) {
     const slot = Number(consultorio || 0) === 2 ? 2 : 1;
-    const slotKey = `c${slot}`;
-    const operator = getLatestSurfaceDetails('operator');
-    const operatorStation = String(operator.details.station || '')
-        .trim()
-        .toLowerCase();
+    const operator = getOperatorSurfaceDetailsForStation(slot);
+    const { slotKey } = operator;
+    const operatorAssigned = Boolean(operator.assigned);
+    const operatorAssignedDetails = operator.assignedDetails || {};
+    const operatorProfileLabel = buildOperatorProfileLabel(
+        operatorAssignedDetails
+    );
+    const operatorStation = normalizeOperatorStationKey(
+        operatorAssignedDetails.station
+    );
     const operatorLocked =
-        String(operator.details.stationMode || '')
+        String(operatorAssignedDetails.stationMode || '')
             .trim()
             .toLowerCase() === 'locked';
-    const operatorAssigned = operatorStation === slotKey;
-    const operatorLive =
-        Boolean(operator.latest) &&
-        !operator.group.stale &&
-        String(operator.group.status || '')
-            .trim()
-            .toLowerCase() !== 'unknown';
+    const operatorInstance = operator.assigned || operator.fallbackLive;
+    const operatorSignal = isSurfaceInstanceLive(operatorInstance);
+    const operatorReady = isOperatorSurfaceOperational(operatorInstance);
+    const operatorLive = operatorSignal;
+    const operatorBlocker = buildOperatorOperationalBlocker(operatorInstance);
+    const fallbackProfileLabel = buildOperatorProfileLabel(operator.details);
+    const fallbackOperatorLabel = operator.fallbackLive
+        ? fallbackProfileLabel
+            ? `Operador activo en ${fallbackProfileLabel}`
+            : String(operator.fallbackLive.deviceLabel || 'Operador activo')
+        : 'Sin operador dedicado';
     const operatorLabel = operatorAssigned
-        ? `Operador ${slotKey.toUpperCase()} ${operatorLocked ? 'fijo' : 'libre'}`
-        : operatorLive
-          ? `Operador activo en ${String(operatorStation || 'otra estación').toUpperCase()}`
-          : `Sin operador dedicado`;
+        ? String(
+              operator.assigned?.deviceLabel ||
+                  `Operador ${operatorProfileLabel || slotKey.toUpperCase()}`
+          )
+        : fallbackOperatorLabel;
     const operatorUrl = buildPreparedSurfaceUrl(
         'operator',
-        manifest.operator || DEFAULT_APP_DOWNLOADS.operator,
+        manifest.operator || getDefaultAppDownloads().operator,
         {
             ...ensureInstallPreset(detectedPlatform),
             surface: 'operator',
@@ -4170,18 +3604,32 @@ function buildConsultorioOperatorContext(
         operatorStation,
         operatorLocked,
         operatorAssigned,
+        operatorSignal,
         operatorLive,
+        operatorReady,
+        operatorBlocker,
         operatorLabel,
         operatorUrl,
         oneTapLabel: operatorAssigned
-            ? `1 tecla ${operator.details.oneTap ? 'ON' : 'OFF'}`
+            ? `1 tecla ${operatorAssignedDetails.oneTap ? 'ON' : 'OFF'}`
             : '1 tecla sin validar',
         numpadLabel: operatorAssigned
-            ? operator.details.numpadSeen
-                ? 'Numpad listo'
-                : 'Numpad pendiente'
+            ? buildOperatorNumpadTelemetryLabel(operatorAssignedDetails, {
+                  compact: true,
+              })
             : 'Numpad sin señal',
-        heartbeatLabel: buildSignalAgeLabel(operator.latest, 'Sin heartbeat'),
+        heartbeatLabel: buildSignalAgeLabel(
+            operator.assigned || operator.fallbackLive,
+            'Sin heartbeat'
+        ),
+        shellLabel: operatorAssigned
+            ? buildSurfaceTelemetryInstanceMeta('operator', operator.assigned)
+            : operator.fallbackLive
+              ? buildSurfaceTelemetryInstanceMeta(
+                    'operator',
+                    operator.fallbackLive
+                )
+              : 'Shell sin señal',
     };
 }
 
@@ -4195,12 +3643,15 @@ function buildConsultorioBoardCard(manifest, detectedPlatform, consultorio) {
         slot,
         slotKey,
         operatorAssigned,
-        operatorLive,
+        operatorSignal,
+        operatorReady,
+        operatorBlocker,
         operatorLabel,
         operatorUrl,
         oneTapLabel,
         numpadLabel,
         heartbeatLabel,
+        shellLabel,
     } = operatorContext;
     const currentTicket = getCalledTicketForConsultorio(slot);
     const nextTicket = getWaitingForConsultorio(slot);
@@ -4218,7 +3669,7 @@ function buildConsultorioBoardCard(manifest, detectedPlatform, consultorio) {
         summary = `${currentTicket.ticketCode} sigue en atención. Puedes re-llamar o liberar ${slotKey.toUpperCase()} sin salir del hub.`;
         primaryLabel = `Re-llamar ${currentTicket.ticketCode}`;
         primaryAction = 'recall';
-    } else if (nextTicket && operatorAssigned && operatorLive) {
+    } else if (nextTicket && operatorAssigned && operatorReady) {
         state = 'ready';
         badge = 'Listo para llamar';
         summary = `${nextTicket.ticketCode} ya puede llamarse desde ${slotKey.toUpperCase()} con el operador correcto arriba y heartbeat vigente.`;
@@ -4227,21 +3678,30 @@ function buildConsultorioBoardCard(manifest, detectedPlatform, consultorio) {
     } else if (nextTicket) {
         state = 'warning';
         badge = 'Falta operador';
-        summary = `${nextTicket.ticketCode} está listo, pero ${slotKey.toUpperCase()} todavía no tiene un operador dedicado o señal suficiente para confiar en el llamado rápido.`;
+        summary =
+            operatorAssigned && operatorBlocker
+                ? `${nextTicket.ticketCode} está listo, pero ${slotKey.toUpperCase()} sigue con validación pendiente: ${operatorBlocker}`
+                : `${nextTicket.ticketCode} está listo, pero ${slotKey.toUpperCase()} todavía no tiene un operador dedicado o señal suficiente para confiar en el llamado rápido.`;
         primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
         primaryAction = 'open';
     } else if (!operatorAssigned) {
-        state = operatorLive ? 'warning' : 'idle';
-        badge = operatorLive ? 'Sin operador dedicado' : 'Sin señal';
-        summary = operatorLive
+        state = operatorSignal ? 'warning' : 'idle';
+        badge = operatorSignal ? 'Sin operador dedicado' : 'Sin señal';
+        summary = operatorSignal
             ? `${slotKey.toUpperCase()} no coincide con el operador reportado. Conviene abrir el operador correcto antes del siguiente pico de atención.`
             : `Todavía no hay heartbeat del operador preparado para ${slotKey.toUpperCase()}.`;
         primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
         primaryAction = 'open';
-    } else if (operatorAssigned && operatorLive) {
+    } else if (operatorAssigned && operatorReady) {
         state = 'ready';
         badge = 'Listo hoy';
         summary = `${slotKey.toUpperCase()} ya tiene operador en vivo y puede recibir el siguiente ticket en cuanto entre a la cola.`;
+        primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
+        primaryAction = 'open';
+    } else if (operatorAssigned && operatorBlocker) {
+        state = 'warning';
+        badge = 'Pendiente de validar';
+        summary = `${slotKey.toUpperCase()} todavía no está operativo: ${operatorBlocker}`;
         primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
         primaryAction = 'open';
     }
@@ -4255,6 +3715,7 @@ function buildConsultorioBoardCard(manifest, detectedPlatform, consultorio) {
         operatorLabel,
         oneTapLabel,
         numpadLabel,
+        shellLabel,
         heartbeatLabel,
         summary,
         currentLabel: currentTicket
@@ -4408,6 +3869,9 @@ function renderConsultorioBoard(manifest, detectedPlatform) {
                                             card.numpadLabel
                                         )}</span>
                                         <span class="queue-consultorio-card__chip">${escapeHtml(
+                                            card.shellLabel
+                                        )}</span>
+                                        <span class="queue-consultorio-card__chip">${escapeHtml(
                                             card.heartbeatLabel
                                         )}</span>
                                     </div>
@@ -4526,7 +3990,8 @@ function buildQueueAttentionCard(manifest, detectedPlatform, consultorio) {
         slot,
         slotKey,
         operatorAssigned,
-        operatorLive,
+        operatorReady,
+        operatorBlocker,
         operatorLabel,
         operatorUrl,
         oneTapLabel,
@@ -4586,7 +4051,7 @@ function buildQueueAttentionCard(manifest, detectedPlatform, consultorio) {
             primaryAction = 'open';
             primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
         }
-    } else if (nextTicket && operatorAssigned && operatorLive) {
+    } else if (nextTicket && operatorAssigned && operatorReady) {
         state = 'ready';
         badge = 'Siguiente listo';
         headline = `${nextTicket.ticketCode} ya espera en ${slotKey.toUpperCase()}`;
@@ -4598,16 +4063,27 @@ function buildQueueAttentionCard(manifest, detectedPlatform, consultorio) {
         state = 'warning';
         badge = 'Falta operador';
         headline = `${nextTicket.ticketCode} espera, pero ${slotKey.toUpperCase()} no está listo`;
-        detail = `${nextTicket.ticketCode} ya es el siguiente ticket para ${slotKey.toUpperCase()}, pero todavía falta alinear el operador o recuperar su heartbeat antes del llamado.`;
+        detail =
+            operatorAssigned && operatorBlocker
+                ? `${nextTicket.ticketCode} ya es el siguiente ticket para ${slotKey.toUpperCase()}, pero el operador sigue pendiente: ${operatorBlocker}`
+                : `${nextTicket.ticketCode} ya es el siguiente ticket para ${slotKey.toUpperCase()}, pero todavía falta alinear el operador o recuperar su heartbeat antes del llamado.`;
         recommendationLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
         primaryAction = 'open';
         primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
-    } else if (operatorAssigned && operatorLive) {
+    } else if (operatorAssigned && operatorReady) {
         state = 'ready';
         badge = 'Operador atento';
         headline = `${slotKey.toUpperCase()} listo para recibir`;
         detail = `${slotKey.toUpperCase()} ya tiene operador en vivo, sin llamado activo y sin cola asignada detrás.`;
         recommendationLabel = `Mantener ${slotKey.toUpperCase()} visible`;
+        primaryAction = 'open';
+        primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
+    } else if (operatorAssigned && operatorBlocker) {
+        state = 'warning';
+        badge = 'Validación pendiente';
+        headline = `${slotKey.toUpperCase()} sigue en preparación`;
+        detail = `${slotKey.toUpperCase()} todavía no puede absorber el siguiente ticket: ${operatorBlocker}`;
+        recommendationLabel = `Corregir ${slotKey.toUpperCase()}`;
         primaryAction = 'open';
         primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
     }
@@ -5700,7 +5176,7 @@ function pickQueueTicketLookupConsultorio(manifest, detectedPlatform) {
                 getAssignedWaitingTickets(consultorio).length +
                 (getCalledTicketForConsultorio(consultorio) ? 1 : 0);
             const readinessScore =
-                context.operatorAssigned && context.operatorLive
+                context.operatorAssigned && context.operatorReady
                     ? 0
                     : context.operatorLive
                       ? 1
@@ -7545,7 +7021,7 @@ function buildQueueNextTurnsTargetSlot(
                     slot
                 );
             const operatorReady = Boolean(
-                context.operatorAssigned && context.operatorLive
+                context.operatorAssigned && context.operatorReady
             );
             const currentTicket = getCalledTicketForConsultorio(slot);
             return {
@@ -8262,7 +7738,7 @@ function buildQueueCoverageCard(manifest, detectedPlatform, consultorio) {
             ? getAssignedWaitingTickets(otherSlot)[1]
             : null;
     const operatorReady = Boolean(
-        operatorContext.operatorAssigned && operatorContext.operatorLive
+        operatorContext.operatorAssigned && operatorContext.operatorReady
     );
 
     let state = 'idle';
@@ -8584,7 +8060,7 @@ function buildQueueReserveCard(manifest, detectedPlatform, consultorio) {
             ? getAssignedWaitingTickets(otherSlot)[1]
             : null;
     const operatorReady = Boolean(
-        operatorContext.operatorAssigned && operatorContext.operatorLive
+        operatorContext.operatorAssigned && operatorContext.operatorReady
     );
 
     let state = 'idle';
@@ -8926,7 +8402,7 @@ function buildQueueGeneralGuidanceTarget(
     const currentTicket = getCalledTicketForConsultorioFromList(tickets, slot);
     const totalLoad = assignedWaiting.length + (currentTicket ? 1 : 0);
     const operatorReady =
-        operatorContext.operatorAssigned && operatorContext.operatorLive;
+        operatorContext.operatorAssigned && operatorContext.operatorReady;
 
     let score = 10 + totalLoad * 3 + (operatorReady ? 0 : 1);
     let badge = 'Balance';
@@ -9543,7 +9019,7 @@ function buildQueueIncomingCard(
         Array.isArray(intake?.steps) ? intake.steps : []
     ).filter((step) => Number(step.slot || 0) === slot);
     const operatorReady =
-        operatorContext.operatorAssigned && operatorContext.operatorLive;
+        operatorContext.operatorAssigned && operatorContext.operatorReady;
 
     let state = 'idle';
     let badge = 'Sin ingreso sugerido';
@@ -9849,7 +9325,7 @@ function buildQueueScenarioCandidates(
                 waitingCount * 4 +
                 (currentTicket ? 0 : 2) +
                 (operatorContext.operatorAssigned &&
-                operatorContext.operatorLive
+                operatorContext.operatorReady
                     ? 0
                     : 1);
             badge = 'Con cita';
@@ -9863,7 +9339,7 @@ function buildQueueScenarioCandidates(
         } else {
             score =
                 (operatorContext.operatorAssigned &&
-                operatorContext.operatorLive
+                operatorContext.operatorReady
                     ? 0
                     : 4) +
                 (reserveDepth >= 2 ? 0 : reserveDepth === 1 ? 3 : 6) +
@@ -9899,7 +9375,7 @@ function buildQueueScenarioCandidates(
                 : 'Sin cola proyectada',
             operatorReady:
                 operatorContext.operatorAssigned &&
-                operatorContext.operatorLive,
+                operatorContext.operatorReady,
         };
     });
 
@@ -11757,19 +11233,23 @@ function buildQueueWaitRadarLaneCard(manifest, detectedPlatform, laneKey) {
             laneKey,
             laneLabel: laneKey.toUpperCase(),
             state:
-                operatorContext.operatorAssigned && operatorContext.operatorLive
+                operatorContext.operatorAssigned &&
+                operatorContext.operatorReady
                     ? 'ready'
                     : 'idle',
             badge:
-                operatorContext.operatorAssigned && operatorContext.operatorLive
+                operatorContext.operatorAssigned &&
+                operatorContext.operatorReady
                     ? 'Listo'
                     : 'Sin cola',
             headline:
-                operatorContext.operatorAssigned && operatorContext.operatorLive
+                operatorContext.operatorAssigned &&
+                operatorContext.operatorReady
                     ? `${laneKey.toUpperCase()} listo para absorber demanda`
                     : `${laneKey.toUpperCase()} sin espera propia`,
             detail:
-                operatorContext.operatorAssigned && operatorContext.operatorLive
+                operatorContext.operatorAssigned &&
+                operatorContext.operatorReady
                     ? `No hay tickets esperando ahora, pero ${laneKey.toUpperCase()} ya tiene operador y heartbeat para responder al siguiente ingreso.`
                     : `No hay presión visible en ${laneKey.toUpperCase()} y todavía no hace falta una acción rápida desde el radar.`,
             oldestLabel: 'Sin ticket pendiente',
@@ -12060,7 +11540,7 @@ function buildQueueLoadBalanceCard(manifest, detectedPlatform, consultorio) {
     const loadDelta = ownLoadUnits - otherLoadUnits;
     const gap = Math.abs(loadDelta);
     const operatorReady =
-        operatorContext.operatorAssigned && operatorContext.operatorLive;
+        operatorContext.operatorAssigned && operatorContext.operatorReady;
 
     let state =
         operatorReady || ownLoadUnits > 0 || generalWaiting.length > 0
@@ -13805,12 +13285,15 @@ function buildQueueDispatchCard(manifest, detectedPlatform, consultorio) {
         slot,
         slotKey,
         operatorAssigned,
-        operatorLive,
+        operatorSignal,
+        operatorReady,
+        operatorBlocker,
         operatorLabel,
         operatorUrl,
         oneTapLabel,
         numpadLabel,
         heartbeatLabel,
+        shellLabel,
     } = operatorContext;
     const otherSlot = slot === 2 ? 1 : 2;
     const currentTicket = getCalledTicketForConsultorio(slot);
@@ -13849,7 +13332,7 @@ function buildQueueDispatchCard(manifest, detectedPlatform, consultorio) {
             currentTicket,
             'called'
         )}`;
-    } else if (nextAssignedTicket && operatorAssigned && operatorLive) {
+    } else if (nextAssignedTicket && operatorAssigned && operatorReady) {
         state = 'ready';
         badge = 'Llamar ahora';
         headline = `${nextAssignedTicket.ticketCode} listo para ${slotKey.toUpperCase()}`;
@@ -13861,7 +13344,7 @@ function buildQueueDispatchCard(manifest, detectedPlatform, consultorio) {
             nextAssignedTicket,
             'waiting'
         )}`;
-    } else if (nextGeneralTicket && operatorAssigned && operatorLive) {
+    } else if (nextGeneralTicket && operatorAssigned && operatorReady) {
         state = 'suggested';
         badge = 'Tomar de cola general';
         headline = `${slotKey.toUpperCase()} puede absorber ${nextGeneralTicket.ticketCode}`;
@@ -13873,7 +13356,7 @@ function buildQueueDispatchCard(manifest, detectedPlatform, consultorio) {
             nextGeneralTicket,
             'waiting'
         )}`;
-    } else if (rebalanceTicket && operatorAssigned && operatorLive) {
+    } else if (rebalanceTicket && operatorAssigned && operatorReady) {
         state = 'warning';
         badge = 'Rebalancear cola';
         headline = `${slotKey.toUpperCase()} puede ayudar a C${otherSlot}`;
@@ -13889,7 +13372,10 @@ function buildQueueDispatchCard(manifest, detectedPlatform, consultorio) {
         state = 'warning';
         badge = 'Falta operador';
         headline = `Prepara Operador ${slotKey.toUpperCase()}`;
-        detail = `Hay ticket pendiente para ${slotKey.toUpperCase()}, pero todavía no coincide el operador reportado. Abre la app correcta antes de despachar desde aquí.`;
+        detail =
+            operatorAssigned && operatorBlocker
+                ? `Hay ticket pendiente para ${slotKey.toUpperCase()}, pero el operador sigue bloqueado: ${operatorBlocker}`
+                : `Hay ticket pendiente para ${slotKey.toUpperCase()}, pero todavía no coincide el operador reportado. Abre la app correcta antes de despachar desde aquí.`;
         primaryAction = 'open';
         primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
         targetTicket =
@@ -13900,18 +13386,25 @@ function buildQueueDispatchCard(manifest, detectedPlatform, consultorio) {
                   'waiting'
               )}`
             : 'Sin ticket pendiente';
-    } else if (!operatorAssigned && operatorLive) {
+    } else if (!operatorAssigned && operatorSignal) {
         state = 'warning';
         badge = 'Operador en otra estación';
         headline = `${slotKey.toUpperCase()} sin operador dedicado`;
         detail = `El operador vivo no coincide con ${slotKey.toUpperCase()}. Deja abierto el consultorio correcto antes de que vuelva a entrar cola.`;
         primaryAction = 'open';
         primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
-    } else if (operatorAssigned && operatorLive) {
+    } else if (operatorAssigned && operatorReady) {
         state = 'ready';
         badge = 'Equipo listo';
         headline = `${slotKey.toUpperCase()} preparado para el próximo ticket`;
         detail = `No hay turno esperando ahora, pero ${slotKey.toUpperCase()} ya tiene operador, numpad y heartbeat listos para absorber el siguiente ingreso.`;
+        primaryAction = 'open';
+        primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
+    } else if (operatorAssigned && operatorBlocker) {
+        state = 'warning';
+        badge = 'Pendiente de validar';
+        headline = `${slotKey.toUpperCase()} todavía no está listo`;
+        detail = `${slotKey.toUpperCase()} no puede absorber la siguiente demanda todavía: ${operatorBlocker}`;
         primaryAction = 'open';
         primaryLabel = `Abrir Operador ${slotKey.toUpperCase()}`;
     }
@@ -13931,7 +13424,7 @@ function buildQueueDispatchCard(manifest, detectedPlatform, consultorio) {
         operatorUrl,
         queueMixLabel: `${slotKey.toUpperCase()} ${ownBacklog} · General ${generalBacklog}`,
         backlogLabel: `C${otherSlot} ${otherBacklog} · Heartbeat ${heartbeatLabel}`,
-        chips: [operatorLabel, oneTapLabel, numpadLabel],
+        chips: [operatorLabel, shellLabel, oneTapLabel, numpadLabel],
     };
 }
 
@@ -14210,793 +13703,103 @@ function renderQueueDispatchDeck(manifest, detectedPlatform) {
     });
 }
 
-function renderQueueQuickConsoleAction(action, index) {
-    const safeId = String(action.id || `queueQuickConsoleAction_${index}`);
-    const className =
-        action.variant === 'primary'
-            ? 'queue-quick-console__action queue-quick-console__action--primary'
-            : 'queue-quick-console__action';
-
-    if (action.kind === 'anchor') {
-        return `
-            <a
-                id="${escapeHtml(safeId)}"
-                href="${escapeHtml(action.href || '#queue')}"
-                class="${className}"
-                ${action.external ? 'target="_blank" rel="noopener"' : ''}
-            >
-                ${escapeHtml(action.label || 'Abrir')}
-            </a>
-        `;
-    }
-
-    return `
-        <button
-            id="${escapeHtml(safeId)}"
-            type="button"
-            class="${className}"
-            ${action.action ? `data-action="${escapeHtml(action.action)}"` : ''}
-            ${action.consultorio ? `data-queue-consultorio="${escapeHtml(String(action.consultorio))}"` : ''}
-        >
-            ${escapeHtml(action.label || 'Continuar')}
-        </button>
-    `;
-}
-
 function buildQueueQuickConsole(manifest, detectedPlatform) {
-    const focus = buildQueueFocusMode(manifest, detectedPlatform);
-    const preset = ensureInstallPreset(detectedPlatform);
-    const operatorConfig = manifest.operator || DEFAULT_APP_DOWNLOADS.operator;
-    const kioskConfig = manifest.kiosk || DEFAULT_APP_DOWNLOADS.kiosk;
-    const salaConfig = manifest.sala_tv || DEFAULT_APP_DOWNLOADS.sala_tv;
-    const operatorUrl = buildPreparedSurfaceUrl('operator', operatorConfig, {
-        ...preset,
-        surface: 'operator',
+    return buildQueueQuickConsoleModule(manifest, detectedPlatform, {
+        buildQueueFocusMode,
+        ensureInstallPreset,
+        defaultAppDownloads: getDefaultAppDownloads(),
+        buildPreparedSurfaceUrl,
+        buildOpeningChecklistAssist,
+        buildShiftHandoffAssist,
+        getQueueSyncHealth,
+        getInstallPresetLabel,
+        openingStepIds: OPENING_CHECKLIST_STEP_IDS,
+        shiftStepIds: SHIFT_HANDOFF_STEP_IDS,
     });
-    const kioskUrl = buildPreparedSurfaceUrl('kiosk', kioskConfig, {
-        ...preset,
-        surface: 'kiosk',
-    });
-    const salaUrl = buildPreparedSurfaceUrl('sala_tv', salaConfig, {
-        ...preset,
-        surface: 'sala_tv',
-    });
-    const openingAssist = buildOpeningChecklistAssist(detectedPlatform);
-    const handoffAssist = buildShiftHandoffAssist(detectedPlatform);
-    const syncHealth = getQueueSyncHealth();
-    const chips = [
-        getInstallPresetLabel(detectedPlatform),
-        syncHealth.badge,
-        focus.effectiveMode === 'closing'
-            ? `Relevo ${handoffAssist.suggestedCount}/${SHIFT_HANDOFF_STEP_IDS.length}`
-            : `Apertura ${openingAssist.suggestedCount}/${OPENING_CHECKLIST_STEP_IDS.length}`,
-    ];
-
-    if (focus.effectiveMode === 'opening') {
-        return {
-            tone: 'opening',
-            title: 'Consola rápida: Apertura',
-            summary:
-                openingAssist.suggestedCount > 0
-                    ? `Confirma pasos sugeridos o abre cada superficie sin bajar al resto del panel. Ideal para dejar listo Operador, Kiosco y Sala TV en menos clics.`
-                    : 'Abre cada superficie operativa o vuelve al checklist de apertura para completar las validaciones manuales pendientes.',
-            chips,
-            actions: [
-                {
-                    id: 'queueQuickConsoleAction_opening_apply',
-                    kind: 'button',
-                    label:
-                        openingAssist.suggestedCount > 0
-                            ? `Confirmar sugeridos (${openingAssist.suggestedCount})`
-                            : 'Sin sugeridos ahora',
-                    variant: 'primary',
-                },
-                {
-                    id: 'queueQuickConsoleAction_open_operator',
-                    kind: 'anchor',
-                    label: 'Abrir Operador',
-                    href: operatorUrl,
-                    external: true,
-                },
-                {
-                    id: 'queueQuickConsoleAction_open_kiosk',
-                    kind: 'anchor',
-                    label: 'Abrir Kiosco',
-                    href: kioskUrl,
-                    external: true,
-                },
-                {
-                    id: 'queueQuickConsoleAction_open_sala',
-                    kind: 'anchor',
-                    label: 'Abrir Sala TV',
-                    href: salaUrl,
-                    external: true,
-                },
-            ],
-        };
-    }
-
-    if (focus.effectiveMode === 'incidents') {
-        return {
-            tone: 'incidents',
-            title: 'Consola rápida: Incidencias',
-            summary:
-                'Enfoca refresh, contingencia y registro de incidencia sin perder tiempo buscando la acción correcta en todo el hub.',
-            chips,
-            actions: [
-                {
-                    id: 'queueQuickConsoleAction_refresh',
-                    kind: 'button',
-                    label: 'Refrescar cola',
-                    variant: 'primary',
-                    action: 'queue-refresh-state',
-                },
-                {
-                    id: 'queueQuickConsoleAction_incident_log',
-                    kind: 'button',
-                    label: 'Registrar incidencia',
-                },
-                {
-                    id: 'queueQuickConsoleAction_open_contingency',
-                    kind: 'anchor',
-                    label: 'Ir a contingencias',
-                    href: '#queueContingencyDeck',
-                },
-                {
-                    id: 'queueQuickConsoleAction_open_log',
-                    kind: 'anchor',
-                    label: 'Ir a bitácora',
-                    href: '#queueOpsLog',
-                },
-            ],
-        };
-    }
-
-    if (focus.effectiveMode === 'closing') {
-        return {
-            tone: 'closing',
-            title: 'Consola rápida: Cierre',
-            summary:
-                handoffAssist.suggestedCount > 0
-                    ? 'Confirma el relevo sugerido, copia el resumen y deja a la vista las superficies críticas del cierre.'
-                    : 'Abre operador o sala y remata el cierre del turno sin desplazarte por todos los bloques.',
-            chips,
-            actions: [
-                {
-                    id: 'queueQuickConsoleAction_closing_apply',
-                    kind: 'button',
-                    label:
-                        handoffAssist.suggestedCount > 0
-                            ? `Confirmar relevo (${handoffAssist.suggestedCount})`
-                            : 'Sin relevo sugerido ahora',
-                    variant: 'primary',
-                },
-                {
-                    id: 'queueQuickConsoleAction_copy_handoff',
-                    kind: 'button',
-                    label: 'Copiar resumen de relevo',
-                },
-                {
-                    id: 'queueQuickConsoleAction_open_operator_close',
-                    kind: 'anchor',
-                    label: 'Abrir Operador',
-                    href: operatorUrl,
-                    external: true,
-                },
-                {
-                    id: 'queueQuickConsoleAction_open_sala_close',
-                    kind: 'anchor',
-                    label: 'Abrir Sala TV',
-                    href: salaUrl,
-                    external: true,
-                },
-            ],
-        };
-    }
-
-    return {
-        tone: 'operations',
-        title: 'Consola rápida: Operación',
-        summary:
-            'Llama el siguiente turno, refresca la cola o abre la superficie correcta sin saltar entre el header y el resto del hub.',
-        chips,
-        actions: [
-            {
-                id: 'queueQuickConsoleAction_call_c1',
-                kind: 'button',
-                label: 'Llamar C1',
-                variant: 'primary',
-                action: 'queue-call-next',
-                consultorio: 1,
-            },
-            {
-                id: 'queueQuickConsoleAction_call_c2',
-                kind: 'button',
-                label: 'Llamar C2',
-                action: 'queue-call-next',
-                consultorio: 2,
-            },
-            {
-                id: 'queueQuickConsoleAction_refresh_ops',
-                kind: 'button',
-                label: 'Refrescar cola',
-                action: 'queue-refresh-state',
-            },
-            {
-                id: 'queueQuickConsoleAction_open_operator_ops',
-                kind: 'anchor',
-                label: 'Abrir Operador',
-                href: operatorUrl,
-                external: true,
-            },
-        ],
-    };
 }
 
 function renderQueueQuickConsole(manifest, detectedPlatform) {
-    const root = document.getElementById('queueQuickConsole');
-    if (!(root instanceof HTMLElement)) {
-        return;
-    }
-
-    const consoleData = buildQueueQuickConsole(manifest, detectedPlatform);
-    setHtml(
-        '#queueQuickConsole',
-        `
-            <section class="queue-quick-console__shell" data-state="${escapeHtml(
-                consoleData.tone
-            )}">
-                <div class="queue-quick-console__header">
-                    <div>
-                        <p class="queue-app-card__eyebrow">Consola rápida</p>
-                        <h5 id="queueQuickConsoleTitle" class="queue-app-card__title">${escapeHtml(
-                            consoleData.title
-                        )}</h5>
-                        <p id="queueQuickConsoleSummary" class="queue-quick-console__summary">${escapeHtml(
-                            consoleData.summary
-                        )}</p>
-                    </div>
-                    <div class="queue-quick-console__chips">
-                        ${consoleData.chips
-                            .map(
-                                (chip, index) => `
-                                    <span
-                                        ${index === 0 ? 'id="queueQuickConsoleChip"' : ''}
-                                        class="queue-quick-console__chip"
-                                    >
-                                        ${escapeHtml(chip)}
-                                    </span>
-                                `
-                            )
-                            .join('')}
-                    </div>
-                </div>
-                <div id="queueQuickConsoleActions" class="queue-quick-console__actions">
-                    ${consoleData.actions
-                        .map((action, index) =>
-                            renderQueueQuickConsoleAction(action, index)
-                        )
-                        .join('')}
-                </div>
-            </section>
-        `
-    );
-
-    const openingApplyButton = document.getElementById(
-        'queueQuickConsoleAction_opening_apply'
-    );
-    if (openingApplyButton instanceof HTMLButtonElement) {
-        openingApplyButton.disabled =
-            buildOpeningChecklistAssist(detectedPlatform).suggestedCount <= 0;
-        openingApplyButton.onclick = () => {
-            const assist = buildOpeningChecklistAssist(detectedPlatform);
-            if (!assist.suggestedIds.length) {
-                return;
-            }
-            applyOpeningChecklistSuggestions(assist.suggestedIds);
-            appendOpsLogEntry({
-                tone: 'success',
-                source: 'opening',
-                title: `Apertura: ${assist.suggestedIds.length} sugerido(s) confirmados`,
-                summary: `La consola rápida confirmó sugeridos de apertura. Perfil activo: ${getInstallPresetLabel(
-                    detectedPlatform
-                )}.`,
-            });
-            renderQueueFocusMode(manifest, detectedPlatform);
-            renderQueueQuickConsole(manifest, detectedPlatform);
-            renderQueuePlaybook(manifest, detectedPlatform);
-            renderQueueOpsPilot(manifest, detectedPlatform);
-            renderOpeningChecklist(manifest, detectedPlatform);
-            renderShiftHandoff(manifest, detectedPlatform);
-            renderQueueOpsLog(manifest, detectedPlatform);
-        };
-    }
-
-    const incidentButton = document.getElementById(
-        'queueQuickConsoleAction_incident_log'
-    );
-    if (incidentButton instanceof HTMLButtonElement) {
-        incidentButton.onclick = () => {
-            appendOpsLogEntry(
-                buildOpsLogIncidentEntry(manifest, detectedPlatform)
-            );
-            renderQueueQuickConsole(manifest, detectedPlatform);
-            renderQueuePlaybook(manifest, detectedPlatform);
-            renderQueueOpsLog(manifest, detectedPlatform);
-        };
-    }
-
-    const closingApplyButton = document.getElementById(
-        'queueQuickConsoleAction_closing_apply'
-    );
-    if (closingApplyButton instanceof HTMLButtonElement) {
-        closingApplyButton.disabled =
-            buildShiftHandoffAssist(detectedPlatform).suggestedCount <= 0;
-        closingApplyButton.onclick = () => {
-            const assist = buildShiftHandoffAssist(detectedPlatform);
-            if (!assist.suggestedIds.length) {
-                return;
-            }
-            applyShiftHandoffSuggestions(assist.suggestedIds);
-            appendOpsLogEntry({
-                tone: 'success',
-                source: 'handoff',
-                title: `Relevo: ${assist.suggestedIds.length} sugerido(s) confirmados`,
-                summary:
-                    'La consola rápida confirmó el relevo sugerido del turno.',
-            });
-            renderQueueFocusMode(manifest, detectedPlatform);
-            renderQueueQuickConsole(manifest, detectedPlatform);
-            renderQueuePlaybook(manifest, detectedPlatform);
-            renderShiftHandoff(manifest, detectedPlatform);
-            renderQueueOpsLog(manifest, detectedPlatform);
-        };
-    }
-
-    const copyHandoffButton = document.getElementById(
-        'queueQuickConsoleAction_copy_handoff'
-    );
-    if (copyHandoffButton instanceof HTMLButtonElement) {
-        copyHandoffButton.onclick = () => {
-            void copyShiftHandoffSummary(detectedPlatform);
-        };
-    }
+    return renderQueueQuickConsoleModule(manifest, detectedPlatform, {
+        buildQueueQuickConsole,
+        setHtml,
+        escapeHtml,
+        buildOpeningChecklistAssist,
+        applyOpeningChecklistSuggestions,
+        appendOpsLogEntry,
+        getInstallPresetLabel,
+        renderQueueFocusMode,
+        renderQueueQuickConsole,
+        renderQueuePlaybook,
+        renderQueueOpsPilot,
+        renderOpeningChecklist,
+        renderShiftHandoff,
+        renderQueueOpsLog,
+        buildOpsLogIncidentEntry,
+        buildShiftHandoffAssist,
+        applyShiftHandoffSuggestions,
+        copyShiftHandoffSummary,
+    });
 }
 
 function buildQueuePlaybook(manifest, detectedPlatform) {
-    const focus = buildQueueFocusMode(manifest, detectedPlatform);
-    const definitions = buildPlaybookDefinitions(manifest, detectedPlatform);
-    const mode = focus.effectiveMode;
-    const steps = definitions[mode] || [];
-    const state = ensureOpsPlaybookState();
-    const modeState =
-        state.modes && typeof state.modes[mode] === 'object'
-            ? state.modes[mode]
-            : {};
-    const completedCount = steps.filter((step) =>
-        Boolean(modeState[step.id])
-    ).length;
-    const nextStep = steps.find((step) => !modeState[step.id]) || null;
-    const summary = nextStep
-        ? `Paso actual: ${nextStep.title}. ${nextStep.detail}`
-        : 'La secuencia de este modo ya quedó completa. Puedes reiniciarla o pasar al siguiente momento del turno.';
-
-    return {
-        mode,
-        title: `Playbook activo: ${focus.title.replace('Modo foco: ', '')}`,
-        summary,
-        steps,
-        completedCount,
-        totalSteps: steps.length,
-        nextStep,
-        modeState,
-    };
+    return buildQueuePlaybookModule(manifest, detectedPlatform, {
+        buildQueueFocusMode,
+        buildPlaybookDefinitions,
+        ensureOpsPlaybookState,
+    });
 }
 
 function buildQueuePlaybookAssist(manifest, detectedPlatform) {
-    const playbook = buildQueuePlaybook(manifest, detectedPlatform);
-    const opening = ensureOpeningChecklistState();
-    const shift = ensureShiftHandoffState();
-    const openingAssist = buildOpeningChecklistAssist(detectedPlatform);
-    const handoffAssist = buildShiftHandoffAssist(detectedPlatform);
-    const syncHealth = getQueueSyncHealth();
-    const operator = getSurfaceTelemetryState('operator');
-    const kiosk = getSurfaceTelemetryState('kiosk');
-    const display = getSurfaceTelemetryState('display');
-    const log = ensureOpsLogState();
-    const logHasIncident = log.items.some((item) => item.source === 'incident');
-    const logHasStatus = log.items.some((item) => item.source === 'status');
-    const openingMap = {
-        opening_operator: {
-            suggested:
-                Boolean(opening.steps.operator_ready) ||
-                Boolean(openingAssist.suggestions.operator_ready?.suggested),
-            reason:
-                openingAssist.suggestions.operator_ready?.reason ||
-                'Operador todavía necesita validación explícita.',
-        },
-        opening_kiosk: {
-            suggested:
-                Boolean(opening.steps.kiosk_ready) ||
-                Boolean(openingAssist.suggestions.kiosk_ready?.suggested),
-            reason:
-                openingAssist.suggestions.kiosk_ready?.reason ||
-                'Kiosco todavía necesita validación explícita.',
-        },
-        opening_sala: {
-            suggested:
-                Boolean(opening.steps.sala_ready) ||
-                Boolean(openingAssist.suggestions.sala_ready?.suggested),
-            reason:
-                openingAssist.suggestions.sala_ready?.reason ||
-                'Sala TV todavía necesita validación explícita.',
-        },
-    };
-    const surfacesHealthy =
-        operator.status === 'ready' &&
-        kiosk.status !== 'unknown' &&
-        display.status === 'ready';
-    const incidentOpen =
-        syncHealth.state === 'alert' ||
-        [operator, kiosk, display].some((item) =>
-            ['alert', 'warning', 'unknown'].includes(
-                String(item.status || '').toLowerCase()
-            )
-        );
-    const incidentMap = {
-        incidents_refresh: {
-            suggested: syncHealth.state !== 'alert',
-            reason: syncHealth.summary,
-        },
-        incidents_surface: {
-            suggested:
-                operator.status !== 'unknown' ||
-                kiosk.status !== 'unknown' ||
-                display.status !== 'unknown',
-            reason: 'Al menos una superficie ya está reportando señal para investigar desde el equipo correcto.',
-        },
-        incidents_log: {
-            suggested: logHasIncident,
-            reason: logHasIncident
-                ? 'La bitácora ya tiene al menos una incidencia registrada.'
-                : 'Todavía no hay incidencia registrada en la bitácora.',
-        },
-    };
-    const closingSurfacesSuggested =
-        (Boolean(shift.steps.operator_handoff) ||
-            Boolean(handoffAssist.suggestions.operator_handoff?.suggested)) &&
-        (Boolean(shift.steps.kiosk_handoff) ||
-            Boolean(handoffAssist.suggestions.kiosk_handoff?.suggested)) &&
-        (Boolean(shift.steps.sala_handoff) ||
-            Boolean(handoffAssist.suggestions.sala_handoff?.suggested));
-    const closingMap = {
-        closing_queue: {
-            suggested:
-                Boolean(shift.steps.queue_clear) ||
-                Boolean(handoffAssist.suggestions.queue_clear?.suggested),
-            reason:
-                handoffAssist.suggestions.queue_clear?.reason ||
-                'La cola todavía necesita una validación final.',
-        },
-        closing_surfaces: {
-            suggested: closingSurfacesSuggested,
-            reason: closingSurfacesSuggested
-                ? 'Operador, Kiosco y Sala TV ya aparecen listos para el siguiente turno.'
-                : 'Todavía falta dejar una o más superficies listas para mañana.',
-        },
-        closing_copy: {
-            suggested:
-                Boolean(shift.steps.queue_clear) ||
-                (Boolean(handoffAssist.suggestions.queue_clear?.suggested) &&
-                    closingSurfacesSuggested),
-            reason: 'Cuando cola y superficies quedan listas, conviene copiar el resumen final del relevo.',
-        },
-    };
-    const operationsMap = {
-        operations_monitor: {
-            suggested: surfacesHealthy,
-            reason: surfacesHealthy
-                ? 'Las superficies ya reportan señal suficiente para operar con seguimiento.'
-                : 'Falta señal estable en alguna superficie antes de dar por monitoreo resuelto.',
-        },
-        operations_call: {
-            suggested:
-                syncHealth.state !== 'alert' &&
-                operator.status === 'ready' &&
-                !operator.stale,
-            reason: 'Llamar siguiente conviene cuando Operador está listo y la cola no está en fallback.',
-        },
-        operations_log: {
-            suggested: logHasStatus,
-            reason: logHasStatus
-                ? 'La bitácora ya tiene estado operativo o cambios recientes.'
-                : 'No hay estado operativo reciente en la bitácora.',
-        },
-    };
-
-    const suggestionsByMode = {
-        opening: openingMap,
-        operations: operationsMap,
-        incidents: incidentMap,
-        closing: closingMap,
-    };
-    const modeSuggestions = suggestionsByMode[playbook.mode] || {};
-    const suggestedIds = playbook.steps
-        .filter(
-            (step) =>
-                !playbook.modeState[step.id] &&
-                Boolean(modeSuggestions[step.id]?.suggested)
-        )
-        .map((step) => step.id);
-
-    return {
-        suggestions: modeSuggestions,
-        suggestedIds,
-        suggestedCount: suggestedIds.length,
-        incidentOpen,
-    };
+    return buildQueuePlaybookAssistModule(manifest, detectedPlatform, {
+        buildQueuePlaybook,
+        ensureOpeningChecklistState,
+        ensureShiftHandoffState,
+        buildOpeningChecklistAssist,
+        buildShiftHandoffAssist,
+        getQueueSyncHealth,
+        getSurfaceTelemetryState,
+        ensureOpsLogState,
+    });
 }
 
 function buildQueuePlaybookReport(manifest, detectedPlatform) {
-    const playbook = buildQueuePlaybook(manifest, detectedPlatform);
-    const assist = buildQueuePlaybookAssist(manifest, detectedPlatform);
-    return [
-        `${playbook.title} - ${formatDateTime(new Date().toISOString())}`,
-        `Progreso: ${playbook.completedCount}/${playbook.totalSteps}`,
-        `Sugeridos actuales: ${assist.suggestedCount}`,
-        ...playbook.steps.map((step) => {
-            const done = Boolean(playbook.modeState[step.id]);
-            return `${done ? '[x]' : '[ ]'} ${step.title} - ${step.detail}`;
-        }),
-    ].join('\n');
+    return buildQueuePlaybookReportModule(manifest, detectedPlatform, {
+        buildQueuePlaybook,
+        buildQueuePlaybookAssist,
+        formatDateTime,
+    });
 }
 
 async function copyQueuePlaybookReport(manifest, detectedPlatform) {
-    try {
-        await navigator.clipboard.writeText(
-            buildQueuePlaybookReport(manifest, detectedPlatform)
-        );
-        createToast('Playbook copiado', 'success');
-    } catch (_error) {
-        createToast('No se pudo copiar el playbook', 'error');
-    }
+    return copyQueuePlaybookReportModule(manifest, detectedPlatform, {
+        buildQueuePlaybook,
+        buildQueuePlaybookAssist,
+        formatDateTime,
+        createToast,
+    });
 }
 
 function renderQueuePlaybook(manifest, detectedPlatform) {
-    const root = document.getElementById('queuePlaybook');
-    if (!(root instanceof HTMLElement)) {
-        return;
-    }
-
-    const playbook = buildQueuePlaybook(manifest, detectedPlatform);
-    const assist = buildQueuePlaybookAssist(manifest, detectedPlatform);
-    setHtml(
-        '#queuePlaybook',
-        `
-            <section class="queue-playbook__shell" data-state="${escapeHtml(
-                playbook.mode
-            )}">
-                <div class="queue-playbook__header">
-                    <div>
-                        <p class="queue-app-card__eyebrow">Playbook activo</p>
-                        <h5 id="queuePlaybookTitle" class="queue-app-card__title">${escapeHtml(
-                            playbook.title
-                        )}</h5>
-                        <p id="queuePlaybookSummary" class="queue-playbook__summary">${escapeHtml(
-                            playbook.summary
-                        )}</p>
-                    </div>
-                    <div class="queue-playbook__meta">
-                        <span
-                            id="queuePlaybookChip"
-                            class="queue-playbook__chip"
-                            data-state="${playbook.completedCount >= playbook.totalSteps ? 'ready' : 'active'}"
-                        >
-                            ${escapeHtml(
-                                playbook.completedCount >= playbook.totalSteps
-                                    ? 'Secuencia completa'
-                                    : `Paso ${Math.min(playbook.completedCount + 1, playbook.totalSteps)}/${playbook.totalSteps}`
-                            )}
-                        </span>
-                        <span
-                            id="queuePlaybookAssistChip"
-                            class="queue-playbook__assist"
-                            data-state="${assist.suggestedCount > 0 ? 'suggested' : playbook.completedCount >= playbook.totalSteps ? 'ready' : 'idle'}"
-                        >
-                            ${escapeHtml(
-                                assist.suggestedCount > 0
-                                    ? `Sugeridos ${assist.suggestedCount}`
-                                    : playbook.completedCount >=
-                                        playbook.totalSteps
-                                      ? 'Rutina completa'
-                                      : 'Sin sugeridos'
-                            )}
-                        </span>
-                        <button
-                            id="queuePlaybookApplyBtn"
-                            type="button"
-                            class="queue-playbook__action queue-playbook__action--primary"
-                            ${playbook.nextStep ? '' : 'disabled'}
-                        >
-                            ${
-                                playbook.nextStep
-                                    ? `Marcar: ${playbook.nextStep.title}`
-                                    : 'Sin pasos pendientes'
-                            }
-                        </button>
-                        <button
-                            id="queuePlaybookAssistBtn"
-                            type="button"
-                            class="queue-playbook__action"
-                            ${assist.suggestedCount > 0 ? '' : 'disabled'}
-                        >
-                            ${
-                                assist.suggestedCount > 0
-                                    ? `Confirmar sugeridos (${assist.suggestedCount})`
-                                    : 'Sin sugeridos ahora'
-                            }
-                        </button>
-                        <button
-                            id="queuePlaybookCopyBtn"
-                            type="button"
-                            class="queue-playbook__action"
-                        >
-                            Copiar secuencia
-                        </button>
-                        <button
-                            id="queuePlaybookResetBtn"
-                            type="button"
-                            class="queue-playbook__action"
-                        >
-                            Reiniciar playbook
-                        </button>
-                    </div>
-                </div>
-                <div id="queuePlaybookSteps" class="queue-playbook__steps" role="list" aria-label="Secuencia operativa por foco">
-                    ${playbook.steps
-                        .map((step) => {
-                            const done = Boolean(playbook.modeState[step.id]);
-                            const isCurrent =
-                                !done &&
-                                playbook.nextStep &&
-                                playbook.nextStep.id === step.id;
-                            const isSuggested =
-                                !done &&
-                                Boolean(assist.suggestions[step.id]?.suggested);
-                            const stepState = done
-                                ? 'ready'
-                                : isCurrent
-                                  ? 'current'
-                                  : isSuggested
-                                    ? 'suggested'
-                                    : 'pending';
-                            return `
-                                <article class="queue-playbook__step" data-state="${stepState}" role="listitem">
-                                    <div class="queue-playbook__step-head">
-                                        <div>
-                                            <strong>${escapeHtml(step.title)}</strong>
-                                            <p>${escapeHtml(step.detail)}</p>
-                                        </div>
-                                        <span class="queue-playbook__step-state">${escapeHtml(
-                                            done
-                                                ? 'Hecho'
-                                                : isCurrent
-                                                  ? 'Actual'
-                                                  : isSuggested
-                                                    ? 'Sugerido'
-                                                    : 'Pendiente'
-                                        )}</span>
-                                    </div>
-                                    <p class="queue-playbook__step-note">${escapeHtml(
-                                        assist.suggestions[step.id]?.reason ||
-                                            step.detail
-                                    )}</p>
-                                    <div class="queue-playbook__step-actions">
-                                        <a
-                                            href="${escapeHtml(step.href)}"
-                                            class="queue-playbook__step-primary"
-                                            ${String(step.href || '').startsWith('#') ? '' : 'target="_blank" rel="noopener"'}
-                                        >
-                                            ${escapeHtml(step.actionLabel)}
-                                        </a>
-                                        <button
-                                            id="queuePlaybookToggle_${escapeHtml(step.id)}"
-                                            type="button"
-                                            class="queue-playbook__step-toggle"
-                                            data-queue-playbook-step="${escapeHtml(step.id)}"
-                                            data-state="${stepState}"
-                                        >
-                                            ${done ? 'Marcar pendiente' : 'Marcar hecho'}
-                                        </button>
-                                    </div>
-                                </article>
-                            `;
-                        })
-                        .join('')}
-                </div>
-            </section>
-        `
-    );
-
-    const applyButton = document.getElementById('queuePlaybookApplyBtn');
-    if (applyButton instanceof HTMLButtonElement) {
-        applyButton.onclick = () => {
-            if (!playbook.nextStep) {
-                return;
-            }
-            setOpsPlaybookStep(playbook.mode, playbook.nextStep.id, true);
-            appendOpsLogEntry({
-                tone: 'info',
-                source: 'status',
-                title: `Playbook ${playbook.mode}: paso confirmado`,
-                summary: `${playbook.nextStep.title} quedó marcado como hecho desde el playbook activo.`,
-            });
-            renderQueuePlaybook(manifest, detectedPlatform);
-            renderQueueOpsLog(manifest, detectedPlatform);
-        };
-    }
-
-    const assistButton = document.getElementById('queuePlaybookAssistBtn');
-    if (assistButton instanceof HTMLButtonElement) {
-        assistButton.onclick = () => {
-            if (!assist.suggestedIds.length) {
-                return;
-            }
-            assist.suggestedIds.forEach((stepId) => {
-                setOpsPlaybookStep(playbook.mode, stepId, true);
-            });
-            appendOpsLogEntry({
-                tone: 'success',
-                source: 'status',
-                title: `Playbook ${playbook.mode}: sugeridos confirmados`,
-                summary: `Se confirmaron ${assist.suggestedIds.length} paso(s) sugeridos por señales del sistema.`,
-            });
-            renderQueuePlaybook(manifest, detectedPlatform);
-            renderQueueOpsLog(manifest, detectedPlatform);
-        };
-    }
-
-    const copyButton = document.getElementById('queuePlaybookCopyBtn');
-    if (copyButton instanceof HTMLButtonElement) {
-        copyButton.onclick = () => {
-            void copyQueuePlaybookReport(manifest, detectedPlatform);
-        };
-    }
-
-    const resetButton = document.getElementById('queuePlaybookResetBtn');
-    if (resetButton instanceof HTMLButtonElement) {
-        resetButton.onclick = () => {
-            resetOpsPlaybookMode(playbook.mode);
-            appendOpsLogEntry({
-                tone: 'warning',
-                source: 'status',
-                title: `Playbook ${playbook.mode}: reiniciado`,
-                summary:
-                    'La secuencia del modo activo se reinició para volver a guiar el flujo desde el primer paso.',
-            });
-            renderQueuePlaybook(manifest, detectedPlatform);
-            renderQueueOpsLog(manifest, detectedPlatform);
-        };
-    }
-
-    root.querySelectorAll('[data-queue-playbook-step]').forEach((button) => {
-        if (!(button instanceof HTMLButtonElement)) {
-            return;
-        }
-        button.onclick = () => {
-            const stepId = String(button.dataset.queuePlaybookStep || '');
-            const nextValue = !playbook.modeState[stepId];
-            setOpsPlaybookStep(playbook.mode, stepId, nextValue);
-            renderQueuePlaybook(manifest, detectedPlatform);
-        };
+    return renderQueuePlaybookModule(manifest, detectedPlatform, {
+        setHtml,
+        escapeHtml,
+        buildQueuePlaybook,
+        buildQueuePlaybookAssist,
+        setOpsPlaybookStep,
+        appendOpsLogEntry,
+        renderQueuePlaybook,
+        renderQueueOpsLog,
+        copyQueuePlaybookReport,
+        resetOpsPlaybookMode,
     });
 }
 
 function buildContingencyCards(manifest, detectedPlatform) {
     const preset = ensureInstallPreset(detectedPlatform);
-    const operatorConfig = manifest.operator || DEFAULT_APP_DOWNLOADS.operator;
-    const kioskConfig = manifest.kiosk || DEFAULT_APP_DOWNLOADS.kiosk;
-    const salaConfig = manifest.sala_tv || DEFAULT_APP_DOWNLOADS.sala_tv;
+    const defaultAppDownloads = getDefaultAppDownloads();
+    const operatorConfig = manifest.operator || defaultAppDownloads.operator;
+    const kioskConfig = manifest.kiosk || defaultAppDownloads.kiosk;
+    const salaConfig = manifest.sala_tv || defaultAppDownloads.sala_tv;
     const syncHealth = getQueueSyncHealth();
     const stationLabel = preset.station === 'c2' ? 'C2' : 'C1';
     const operatorModeLabel = preset.lock
@@ -15987,8 +14790,9 @@ function rerenderQueueOpsHub(manifest, detectedPlatform) {
     renderShiftHandoff(manifest, detectedPlatform);
     renderQueueOpsLog(manifest, detectedPlatform);
     renderInstallConfigurator(manifest, detectedPlatform);
-    syncQueueOpsInteractionIndicator();
-    scheduleQueueOpsInteractionSettle();
+    renderQueueHubDomainView();
+    queueOpsInteractionController.syncIndicator();
+    queueOpsInteractionController.scheduleSettle();
 }
 
 function renderInstallConfigurator(manifest, detectedPlatform) {
@@ -16333,9 +15137,23 @@ export function renderQueueInstallHub(options = {}) {
     if (!(cardsRoot instanceof HTMLElement)) {
         return;
     }
+    const runtimeAppDownloads = getState().data.appDownloads;
+    const hasRuntimeRegistry =
+        syncInstallHubRuntimePayload(runtimeAppDownloads);
+    if (!hasRuntimeRegistry) {
+        ensureInstallHubRegistryLoaded(() => {
+            renderQueueInstallHub({
+                allowDuringInteraction: true,
+                platformOverride:
+                    typeof options?.platformOverride === 'string'
+                        ? options.platformOverride
+                        : '',
+            });
+        });
+    }
     const hubRoot = getQueueAppsHubRoot();
     if (hubRoot) {
-        bindQueueOpsInteraction(hubRoot);
+        queueOpsInteractionController.bind(hubRoot);
     }
 
     const platform =
@@ -16364,20 +15182,16 @@ export function renderQueueInstallHub(options = {}) {
         !allowDuringInteraction &&
         hubRoot &&
         hubRoot.dataset.queueHubReady === 'true' &&
-        hasActiveQueueOpsInteraction()
+        queueOpsInteractionController.hasActive()
     ) {
-        scheduleDeferredQueueOpsHubRender(manifest, platform);
+        queueOpsInteractionController.scheduleDeferred(manifest, platform);
         return;
     }
 
-    clearDeferredQueueOpsInteraction();
+    queueOpsInteractionController.clearDeferred();
     setHtml(
         '#queueAppDownloadsCards',
-        [
-            renderDesktopCard('operator', manifest.operator, platform),
-            renderDesktopCard('kiosk', manifest.kiosk, platform),
-            renderTvCard(manifest.sala_tv),
-        ].join('')
+        renderInstallHubSurfaceCards(manifest, platform)
     );
     renderQueueFocusMode(manifest, platform);
     renderQueueNumpadGuide(manifest, platform);
@@ -16417,9 +15231,10 @@ export function renderQueueInstallHub(options = {}) {
     renderShiftHandoff(manifest, platform);
     renderQueueOpsLog(manifest, platform);
     renderInstallConfigurator(manifest, platform);
+    renderQueueHubDomainView();
     if (hubRoot) {
         hubRoot.dataset.queueHubReady = 'true';
     }
-    syncQueueOpsInteractionIndicator();
-    scheduleQueueOpsInteractionSettle();
+    queueOpsInteractionController.syncIndicator();
+    queueOpsInteractionController.scheduleSettle();
 }

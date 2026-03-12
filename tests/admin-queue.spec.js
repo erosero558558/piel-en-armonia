@@ -1939,6 +1939,11 @@ test.describe('Admin turnero sala', () => {
         await page.goto(adminUrl());
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await page.locator('.nav-item[data-section="queue"]').click();
+        await page.locator('#queueDomainOperations').click();
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-domain',
+            'operations'
+        );
         await expect(page.locator('#queueDispatchDeck')).toBeVisible();
         await expect(page.locator('#queueDispatchDeckStatus')).toContainText(
             '1 acción'
@@ -5498,6 +5503,11 @@ test.describe('Admin turnero sala', () => {
         await page.goto(adminUrl());
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await page.locator('.nav-item[data-section="queue"]').click();
+        await page.locator('#queueDomainOperations').click();
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-domain',
+            'operations'
+        );
 
         await expect(page.locator('#queueWaitRadar')).toBeVisible();
         await expect(page.locator('#queueWaitRadarStatus')).toContainText(
@@ -8508,12 +8518,22 @@ test.describe('Admin turnero sala', () => {
             'Refresh sin bloqueo'
         );
         await page.locator('#queueInstallSurfaceSelect').focus();
-        await expect(
-            page.locator('#queueAppsRefreshShieldChip')
-        ).toHaveAttribute('data-state', /^(active|deferred)$/);
-        await expect(page.locator('#queueAppsRefreshShieldChip')).toContainText(
-            /Protegiendo interacción|Refresh en espera/
-        );
+        await expect
+            .poll(async () => {
+                const state = await page
+                    .locator('#queueAppsRefreshShieldChip')
+                    .getAttribute('data-state');
+                return state || '';
+            })
+            .toMatch(/active|deferred/);
+        await expect
+            .poll(async () => {
+                const text = await page
+                    .locator('#queueAppsRefreshShieldChip')
+                    .textContent();
+                return text || '';
+            })
+            .toMatch(/Protegiendo interacción|Refresh en espera/);
         await page.locator('#refreshAdminDataBtn').click();
         await expect(
             page.locator('#queueAppsRefreshShieldChip')
@@ -8526,6 +8546,86 @@ test.describe('Admin turnero sala', () => {
         ).toHaveAttribute('data-state', 'idle', {
             timeout: 2500,
         });
+        await expect(page.locator('#queueDomainSwitcher')).toBeVisible();
+        await expect(page.locator('#queueDomainTitle')).toContainText(
+            'Experiencia: Despliegue'
+        );
+        await expect(page.locator('#queueDomainSummary')).toContainText(
+            'Instaladores, checklist, configuracion'
+        );
+        await expect(page.locator('#queueDomainChip')).toContainText(
+            'Auto -> deployment'
+        );
+        await expect(page.locator('#queueDomainPrimary')).toHaveAttribute(
+            'href',
+            '#queueAppDownloadsCards'
+        );
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-domain',
+            'deployment'
+        );
+        await expect(page.locator('#queueNumpadGuide')).toBeHidden();
+        await expect(page.locator('#queueSurfaceTelemetry')).toBeHidden();
+        await expect(page.locator('#queueContingencyDeck')).toBeHidden();
+
+        await expect(page.locator('#queuePlaybook')).toBeVisible();
+        await expect(page.locator('#queuePlaybookTitle')).toContainText(
+            'Playbook activo: Apertura'
+        );
+        await expect(page.locator('#queuePlaybookChip')).toContainText(
+            'Paso 1/3'
+        );
+        await expect(page.locator('#queuePlaybookAssistChip')).toContainText(
+            'Sugeridos 2'
+        );
+        await expect(page.locator('#queuePlaybookSteps')).toContainText(
+            'Abrir Operador'
+        );
+        await expect(page.locator('#queueOpsPilot')).toBeVisible();
+        await expect(page.locator('#queueOpsPilotTitle')).toContainText(
+            'Confirma 2 paso(s) ya validados'
+        );
+        await expect(page.locator('#queueOpsPilotChipSuggested')).toContainText(
+            'Sugeridos 2'
+        );
+        await expect(page.locator('#queueOpsPilotChipEquipment')).toContainText(
+            'Equipos listos 2/3'
+        );
+        await expect(page.locator('#queueOpeningChecklist')).toBeVisible();
+        await expect(page.locator('#queueOpeningChecklistTitle')).toContainText(
+            'Apertura diaria asistida'
+        );
+        await expect(
+            page.locator('#queueOpeningChecklistAssistChip')
+        ).toContainText('Sugeridos 2');
+        await expect(
+            page.locator('#queueOpeningChecklistApplyBtn')
+        ).toContainText('Confirmar sugeridos (2)');
+        await expect(page.locator('#queueOpsLog')).toBeVisible();
+        await expect(page.locator('#queueOpsLogTitle')).toContainText(
+            'Bitácora operativa del día'
+        );
+        await expect(page.locator('#queueOpsLogChip')).toContainText(
+            'Sin eventos'
+        );
+
+        await page.locator('#queueDomainOperations').click();
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-domain',
+            'operations'
+        );
+        await expect(page.locator('#queueDomainTitle')).toContainText(
+            'Experiencia: Operacion'
+        );
+        await expect(page.locator('#queueDomainChip')).toContainText(
+            'Manual -> operations'
+        );
+        await expect(page.locator('#queueDomainPrimary')).toHaveAttribute(
+            'href',
+            '#queueConsultorioBoard'
+        );
+        await expect(page.locator('#queueDomainAuto')).toBeVisible();
+        await expect(page.locator('#queueOpsPilot')).toBeHidden();
         await expect(page.locator('#queueNumpadGuide')).toBeVisible();
         await expect(page.locator('#queueNumpadGuideTitle')).toContainText(
             'Numpad en vivo'
@@ -8716,20 +8816,38 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueQuickConsoleActions')).toContainText(
             'Confirmar sugeridos (2)'
         );
+        await expect(page.locator('#queueShiftHandoff')).toBeVisible();
+        await expect(page.locator('#queueShiftHandoffTitle')).toContainText(
+            'Cierre y relevo asistido'
+        );
+        await expect(
+            page.locator('#queueShiftHandoffAssistChip')
+        ).toContainText('Sugeridos 4');
+        await expect(page.locator('#queueShiftHandoffApplyBtn')).toContainText(
+            'Confirmar sugeridos (4)'
+        );
+        await expect(page.locator('#queueShiftHandoffPreview')).toContainText(
+            'Perfil actual operador: C1 fijo.'
+        );
+        await expect(page.locator('#queueOpsLog')).toBeHidden();
+
+        await page.locator('#queueDomainIncidents').click();
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-domain',
+            'incidents'
+        );
+        await expect(page.locator('#queueDomainTitle')).toContainText(
+            'Experiencia: Incidentes'
+        );
+        await expect(page.locator('#queueDomainChip')).toContainText(
+            'Manual -> incidents'
+        );
+        await expect(page.locator('#queueDomainPrimary')).toHaveAttribute(
+            'href',
+            '#queueSurfaceTelemetry'
+        );
+        await expect(page.locator('#queueNumpadGuide')).toBeVisible();
         await expect(page.locator('#queuePlaybook')).toBeVisible();
-        await expect(page.locator('#queuePlaybookTitle')).toContainText(
-            'Playbook activo: Apertura'
-        );
-        await expect(page.locator('#queuePlaybookChip')).toContainText(
-            'Paso 1/3'
-        );
-        await expect(page.locator('#queuePlaybookAssistChip')).toContainText(
-            'Sugeridos 2'
-        );
-        await expect(page.locator('#queuePlaybookSteps')).toContainText(
-            'Abrir Operador'
-        );
-        await expect(page.locator('#queueOpsPilot')).toBeVisible();
         await expect(page.locator('#queueSurfaceTelemetry')).toBeVisible();
         await expect(
             page.locator('#queueSurfaceTelemetryAutoState')
@@ -8737,17 +8855,6 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('#queueSurfaceTelemetryAutoMeta')
         ).toContainText('ultimo ciclo');
-        await expect(page.locator('#queueOpsPilotTitle')).toContainText(
-            'Confirma 2 paso(s) ya validados'
-        );
-        await expect(page.locator('#queueOpsPilotChipSuggested')).toContainText(
-            'Sugeridos 2'
-        );
-        await expect(page.locator('#queueOpsPilotChipEquipment')).toContainText(
-            'Equipos listos 2/3'
-        );
-        await expect(page.locator('#queueOpeningChecklist')).toBeVisible();
-        await expect(page.locator('#queueContingencyDeck')).toBeVisible();
         await expect(page.locator('#queueSurfaceTelemetryTitle')).toContainText(
             'Equipos con señal parcial'
         );
@@ -8773,27 +8880,21 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueOpsAlertsItems')).toContainText(
             'Térmica pendiente en kiosco'
         );
-        await expect(page.locator('#queueOpeningChecklistTitle')).toContainText(
-            'Apertura diaria asistida'
+        await expect(page.locator('#queueContingencyDeck')).toBeVisible();
+        await expect(page.locator('#queueContingencyTitle')).toContainText(
+            'Contingencia rápida lista'
         );
-        await expect(
-            page.locator('#queueOpeningChecklistAssistChip')
-        ).toContainText('Sugeridos 2');
-        await expect(
-            page.locator('#queueOpeningChecklistApplyBtn')
-        ).toContainText('Confirmar sugeridos (2)');
-        await expect(page.locator('#queueShiftHandoff')).toBeVisible();
-        await expect(page.locator('#queueShiftHandoffTitle')).toContainText(
-            'Cierre y relevo asistido'
+        await expect(page.locator('#queueContingencyDeck')).toContainText(
+            'Numpad no responde'
         );
-        await expect(
-            page.locator('#queueShiftHandoffAssistChip')
-        ).toContainText('Sugeridos 4');
-        await expect(page.locator('#queueShiftHandoffApplyBtn')).toContainText(
-            'Confirmar sugeridos (4)'
+        await expect(page.locator('#queueContingencyDeck')).toContainText(
+            'Térmica no imprime'
         );
-        await expect(page.locator('#queueShiftHandoffPreview')).toContainText(
-            'Perfil actual operador: C1 fijo.'
+        await expect(page.locator('#queueContingencyDeck')).toContainText(
+            'Sala TV sin campanilla'
+        );
+        await expect(page.locator('#queueContingencySyncCard')).toContainText(
+            'Cola sincronizada'
         );
         await expect(page.locator('#queueOpsLog')).toBeVisible();
         await expect(page.locator('#queueOpsLogTitle')).toContainText(
@@ -8861,21 +8962,18 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueFocusModeChip')).toContainText(
             'Auto -> opening'
         );
-        await expect(page.locator('#queueContingencyTitle')).toContainText(
-            'Contingencia rápida lista'
+        await page.locator('#queueDomainAuto').click();
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-domain',
+            'deployment'
         );
-        await expect(page.locator('#queueContingencyDeck')).toContainText(
-            'Numpad no responde'
+        await expect(page.locator('#queueDomainChip')).toContainText(
+            'Auto -> deployment'
         );
-        await expect(page.locator('#queueContingencyDeck')).toContainText(
-            'Térmica no imprime'
-        );
-        await expect(page.locator('#queueContingencyDeck')).toContainText(
-            'Sala TV sin campanilla'
-        );
-        await expect(page.locator('#queueContingencySyncCard')).toContainText(
-            'Cola sincronizada'
-        );
+        await expect(page.locator('#queueAppDownloadsCards')).toBeVisible();
+        await expect(
+            page.locator('#queueAppDownloadsCards .queue-app-card')
+        ).toHaveCount(3);
         await expect(page.locator('#queueAppDownloadsCards')).toContainText(
             'Operador'
         );
@@ -8901,9 +8999,12 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueOpeningChecklistTitle')).toContainText(
             'faltan 2 paso(s)'
         );
+        await page.locator('#queueDomainOperations').click();
         await expect(page.locator('#queueQuickConsoleTitle')).toContainText(
             'Consola rápida: Apertura'
         );
+        await page.locator('#queueDomainDeployment').click();
+        await expect(page.locator('#queuePlaybook')).toBeVisible();
         await page.locator('#queuePlaybookAssistBtn').click();
         await expect(page.locator('#queuePlaybookAssistChip')).toContainText(
             'Sin sugeridos'
@@ -8921,10 +9022,12 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueOpsLogItems')).toContainText(
             'Apertura: 2 sugerido(s) confirmados'
         );
+        await page.locator('#queueDomainOperations').click();
         await page.locator('#queueShiftHandoffApplyBtn').click();
         await expect(page.locator('#queueShiftHandoffTitle')).toContainText(
             'Relevo listo'
         );
+        await page.locator('#queueDomainIncidents').click();
         await expect(page.locator('#queueOpsLogItems')).toContainText(
             'Relevo: 4 sugerido(s) confirmados'
         );
@@ -8955,14 +9058,21 @@ test.describe('Admin turnero sala', () => {
         expect(playbookState.modes.opening.opening_operator).toBe(true);
         expect(playbookState.modes.opening.opening_kiosk).toBe(true);
         expect(playbookState.modes.opening.opening_sala).toBe(true);
+        await page.locator('#queueDomainAuto').click();
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-domain',
+            'deployment'
+        );
         await page.locator('#queueOpeningChecklistResetBtn').click();
         await expect(page.locator('#queueOpeningChecklistTitle')).toContainText(
             'Apertura diaria asistida'
         );
+        await page.locator('#queueDomainOperations').click();
         await page.locator('#queueShiftHandoffResetBtn').click();
         await expect(page.locator('#queueShiftHandoffTitle')).toContainText(
             'Cierre y relevo asistido'
         );
+        await page.locator('#queueDomainDeployment').click();
         await expect(page.locator('#queueInstallConfigurator')).toContainText(
             'Operador'
         );
@@ -9011,12 +9121,6 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueOpsLogItems')).toContainText(
             'Perfil operativo ajustado'
         );
-        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
-            'Abrir operador'
-        );
-        await expect(page.locator('#queueContingencyDeck')).toContainText(
-            'C2 fijo'
-        );
         await expect(page.locator('#queueInstallConfigurator')).toContainText(
             'station=c2'
         );
@@ -9038,6 +9142,14 @@ test.describe('Admin turnero sala', () => {
             'Incidencia: Kiosco'
         );
         await page.locator('#queueOpsLogFilterAll').click();
+        await page.locator('#queueDomainIncidents').click();
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Abrir operador'
+        );
+        await expect(page.locator('#queueContingencyDeck')).toContainText(
+            'C2 fijo'
+        );
+        await page.locator('#queueDomainDeployment').click();
 
         await page.locator('#queueInstallPreset_sala_tv').click();
         await expect(page.locator('#queueInstallSurfaceSelect')).toHaveValue(
@@ -9064,8 +9176,430 @@ test.describe('Admin turnero sala', () => {
         await expect
             .poll(() => dataRequestCount)
             .toBeGreaterThan(dataCountAtQueueOpen);
+        await page.locator('#queueDomainIncidents').click();
         await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
             'Pulso renovado'
+        );
+    });
+
+    test('admin muestra dos operadores Windows por estacion en operaciones e incidentes', async ({
+        page,
+    }) => {
+        const nowIso = new Date().toISOString();
+        const operatorInstances = [
+            {
+                deviceLabel: 'Operador C1 fijo',
+                appMode: 'desktop',
+                ageSec: 4,
+                stale: false,
+                effectiveStatus: 'ready',
+                summary: 'Equipo listo para operar en C1 fijo.',
+                details: {
+                    station: 'c1',
+                    stationMode: 'locked',
+                    oneTap: false,
+                    numpadSeen: true,
+                    numpadReady: true,
+                    numpadProgress: 4,
+                    numpadRequired: 4,
+                    numpadLabel: 'Numpad listo',
+                    numpadSummary: 'Numpad listo · Numpad Enter, +, ., -',
+                    shellPackaged: true,
+                    shellPlatform: 'win32',
+                    shellUpdateChannel: 'stable',
+                },
+            },
+            {
+                deviceLabel: 'Operador C2 fijo',
+                appMode: 'desktop',
+                ageSec: 6,
+                stale: false,
+                effectiveStatus: 'warning',
+                summary:
+                    'Numpad 2/4 · faltan + y - antes de operar en C2 fijo.',
+                details: {
+                    station: 'c2',
+                    stationMode: 'locked',
+                    oneTap: true,
+                    numpadSeen: true,
+                    numpadReady: false,
+                    numpadProgress: 2,
+                    numpadRequired: 4,
+                    numpadLabel: 'Numpad 2/4',
+                    numpadSummary: 'Numpad 2/4 · faltan + y -',
+                    shellPackaged: true,
+                    shellPlatform: 'win32',
+                    shellUpdateChannel: 'stable',
+                },
+            },
+        ];
+
+        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
+            json(route, {
+                ok: true,
+                authenticated: true,
+                csrfToken: 'csrf_queue_admin_dual_operator',
+            })
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'features') {
+                return json(route, {
+                    ok: true,
+                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
+                });
+            }
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: nowIso,
+                        },
+                        queue_tickets: [],
+                        queueMeta: buildQueueMetaFromState({
+                            updatedAt: nowIso,
+                            waitingCount: 0,
+                            calledCount: 0,
+                            counts: {
+                                waiting: 0,
+                                called: 0,
+                                completed: 0,
+                                no_show: 0,
+                                cancelled: 0,
+                            },
+                            callingNow: [],
+                            nextTickets: [],
+                        }),
+                        queueSurfaceStatus: {
+                            operator: {
+                                surface: 'operator',
+                                label: 'Operador',
+                                status: 'warning',
+                                updatedAt: nowIso,
+                                ageSec: 4,
+                                stale: false,
+                                summary:
+                                    'Un equipo operador listo y otro con numpad pendiente.',
+                                latest: operatorInstances[0],
+                                instances: operatorInstances,
+                            },
+                            kiosk: {
+                                surface: 'kiosk',
+                                label: 'Kiosco',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                            display: {
+                                surface: 'display',
+                                label: 'Sala TV',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                        },
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            if (resource === 'queue-state') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        updatedAt: nowIso,
+                        waitingCount: 0,
+                        calledCount: 0,
+                        counts: {
+                            waiting: 0,
+                            called: 0,
+                            completed: 0,
+                            no_show: 0,
+                            cancelled: 0,
+                        },
+                        callingNow: [],
+                        nextTickets: [],
+                    },
+                });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await page.locator('#queueDomainOperations').click();
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-domain',
+            'operations'
+        );
+        await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
+            'Operador C1 fijo'
+        );
+        await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
+            'Desktop instalada'
+        );
+        await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
+            'Numpad listo'
+        );
+        await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
+            'Windows'
+        );
+        await expect(page.locator('#queueConsultorioCard_c2')).toContainText(
+            'Operador C2 fijo'
+        );
+        await expect(page.locator('#queueConsultorioCard_c2')).toContainText(
+            '1 tecla ON'
+        );
+        await expect(page.locator('#queueConsultorioCard_c2')).toContainText(
+            'Numpad 2/4'
+        );
+        await expect(page.locator('#queueDispatchCard_c2')).toContainText(
+            'Desktop instalada'
+        );
+
+        await page.locator('#queueDomainIncidents').click();
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-domain',
+            'incidents'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            '2 PCs operador reportando'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Operador C1 fijo'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Operador C2 fijo'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Desktop instalada'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Numpad listo'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Numpad 2/4'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Windows'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'canal stable'
+        );
+    });
+
+    test('admin mantiene visible una desktop operador en configuracion local sin contarla como lista', async ({
+        page,
+    }) => {
+        const nowIso = new Date().toISOString();
+        const operatorInstance = {
+            deviceLabel: 'Operador C1 fijo',
+            appMode: 'desktop',
+            ageSec: 5,
+            stale: false,
+            effectiveStatus: 'warning',
+            summary: 'Configuración local abierta en C1 fijo.',
+            details: {
+                station: 'c1',
+                stationMode: 'locked',
+                oneTap: false,
+                numpadSeen: false,
+                numpadReady: false,
+                numpadProgress: 0,
+                numpadRequired: 4,
+                numpadLabel: 'Validar en operador',
+                numpadSummary:
+                    'La matriz del numpad se valida dentro de operador-turnos.html',
+                shellContext: 'boot',
+                shellPhase: 'settings',
+                shellSettingsMode: true,
+                shellFirstRun: false,
+                shellPackaged: true,
+                shellPlatform: 'win32',
+                shellUpdateChannel: 'stable',
+            },
+        };
+
+        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
+            json(route, {
+                ok: true,
+                authenticated: true,
+                csrfToken: 'csrf_queue_admin_boot_operator',
+            })
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'features') {
+                return json(route, {
+                    ok: true,
+                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
+                });
+            }
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: nowIso,
+                        },
+                        queue_tickets: [],
+                        queueMeta: buildQueueMetaFromState({
+                            updatedAt: nowIso,
+                            waitingCount: 0,
+                            calledCount: 0,
+                            counts: {
+                                waiting: 0,
+                                called: 0,
+                                completed: 0,
+                                no_show: 0,
+                                cancelled: 0,
+                            },
+                            callingNow: [],
+                            nextTickets: [],
+                        }),
+                        queueSurfaceStatus: {
+                            operator: {
+                                surface: 'operator',
+                                label: 'Operador',
+                                status: 'warning',
+                                updatedAt: nowIso,
+                                ageSec: 5,
+                                stale: false,
+                                summary:
+                                    'Una desktop operador quedó en configuración local.',
+                                latest: operatorInstance,
+                                instances: [operatorInstance],
+                            },
+                            kiosk: {
+                                surface: 'kiosk',
+                                label: 'Kiosco',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                            display: {
+                                surface: 'display',
+                                label: 'Sala TV',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                        },
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            if (resource === 'queue-state') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        updatedAt: nowIso,
+                        waitingCount: 0,
+                        calledCount: 0,
+                        counts: {
+                            waiting: 0,
+                            called: 0,
+                            completed: 0,
+                            no_show: 0,
+                            cancelled: 0,
+                        },
+                        callingNow: [],
+                        nextTickets: [],
+                    },
+                });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await page.locator('#queueDomainOperations').click();
+        await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
+            'Configuración local'
+        );
+        await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
+            'Pendiente de validar'
+        );
+        await expect(page.locator('#queueDispatchCard_c1')).toContainText(
+            'Validar en operador'
+        );
+        await expect(page.locator('#queueDispatchCard_c1')).toContainText(
+            'Configuración local'
+        );
+
+        await page.locator('#queueDomainIncidents').click();
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Operador C1 fijo'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Configuración local'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Validar en operador'
         );
     });
 });
