@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 587
+  revision: 588
   updated_at: 2026-03-12
 
 tasks:
@@ -8222,8 +8222,8 @@ tasks:
     title: "Publish deploy observability batch to main and refresh production page"
     owner: Ernesto
     executor: codex
-    status: in_progress
-    status_since_at: "2026-03-12T05:43:18.813Z"
+    status: done
+    status_since_at: "2026-03-12T06:34:11.880Z"
     risk: high
     scope: deploy
     codex_instance: codex_backend_ops
@@ -8238,19 +8238,19 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: "lease_AG-212_20260312054318813_f45943"
-    lease_owner: "Ernesto"
-    lease_created_at: "2026-03-12T05:43:18.813Z"
-    heartbeat_at: "2026-03-12T06:18:54.574Z"
-    lease_expires_at: "2026-03-12T10:18:54.574Z"
-    lease_reason: "leases_heartbeat"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-12T06:34:11.880Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "Publish deploy observability batch to main and refresh production page"
-    acceptance_ref: ""
-    evidence_ref: ""
+    acceptance_ref: "verification/agent-runs/AG-212.md"
+    evidence_ref: "verification/agent-runs/AG-212.md"
     depends_on: []
     prompt: "Publish deploy observability batch to main and refresh production page"
     created_at: 2026-03-12
