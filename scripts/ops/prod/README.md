@@ -21,7 +21,7 @@ Los checks canonicos de runtime publico resuelven engines solo desde
 
 Adopcion operativa de `public_main_sync`:
 
-- `MONITOR-PRODUCCION.ps1` hace triage rapido de `checks.publicSync`: trata `healthy=false`, `failureReason`, `headDrift` y `telemetryGap` como fallo operativo, pero deja `repoHygieneIssue=true` como warning visible cuando el unico problema es `working_tree_dirty` con telemetria suficiente; `-AllowDegradedPublicSync` deja la corrida en modo observacion sin tapar el diagnostico.
+- `MONITOR-PRODUCCION.ps1` hace triage rapido de `checks.publicSync`: trata `healthy=false`, `headDrift` y `telemetryGap` como fallo operativo, pero deja `repoHygieneIssue=true` como warning visible cuando el unico problema es `working_tree_dirty` con telemetria suficiente.
 - `SMOKE-PRODUCCION.ps1 -RequireCronReady` valida `checks.publicSync` con `jobId`, `healthy`, `ageSeconds` y telemetria runtime (`state`, `lastErrorMessage`, `currentHead`, `remoteHead`, `dirtyPathsCount`, `dirtyPathsSample`); tambien resuelve `github.deployAlerts` y falla si quedan incidentes GitHub abiertos de transporte/conectividad, salvo `-AllowOpenGitHubDeployAlerts`.
 - `VERIFICAR-DESPLIEGUE.ps1 -RequireCronReady` propaga fallas como assets `health-public-sync-*`, incluyendo `working-tree-dirty`, `head-drift` y `telemetry-gap`; ademas agrega assets `github-deploy-*` para incidentes abiertos de deploy y forwardea `-AllowOpenGitHubDeployAlerts` al smoke integrado.
 - `REPORTE-SEMANAL-PRODUCCION.ps1` publica los bloques `Auth Posture`, `Operator Auth Rollout`, `Storage Posture` y `Public Sync Ops` en markdown/JSON; ademas clasifica warnings `auth_*`, `storage_*`, `public_sync_*` y `github_deploy_*` con `runbookRef`, `remediation` y `suggestedCommand`.

@@ -1,44 +1,7 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { adminLogin, safeJson } = require('./helpers/admin-auth');
 const { skipIfPhpRuntimeMissing } = require('./helpers/php-backend');
-
-function getEnv(name, fallback = '') {
-    const value = process.env[name];
-    return typeof value === 'string' ? value.trim() : fallback;
-}
-
-async function safeJson(response) {
-    try {
-        return await response.json();
-    } catch {
-        return {};
-    }
-}
-
-async function adminLogin(request, password) {
-    const response = await request.post('/admin-auth.php?action=login', {
-        data: { password },
-    });
-    const body = await safeJson(response);
-
-    if (!response.ok() || body.ok === false) {
-        return {
-            ok: false,
-            reason: body.error || `HTTP ${response.status()}`,
-        };
-    }
-
-    if (body.twoFactorRequired) {
-        return {
-            ok: false,
-            reason: '2FA requerido para panel admin',
-        };
-    }
-
-    return {
-        ok: true,
-    };
-}
 
 test.describe('Retention metrics contract (admin)', () => {
     test('funnel-metrics expone bloque retention no-break', async ({
@@ -46,15 +9,7 @@ test.describe('Retention metrics contract (admin)', () => {
     }) => {
         await skipIfPhpRuntimeMissing(test, request);
 
-        const adminPassword =
-            getEnv('TEST_ADMIN_PASSWORD') ||
-            getEnv('PIELARMONIA_ADMIN_PASSWORD');
-        test.skip(
-            !adminPassword,
-            'TEST_ADMIN_PASSWORD o PIELARMONIA_ADMIN_PASSWORD es requerido.'
-        );
-
-        const login = await adminLogin(request, adminPassword);
+        const login = await adminLogin(request);
         test.skip(!login.ok, `No se pudo autenticar admin: ${login.reason}`);
 
         const response = await request.get('/api.php?resource=funnel-metrics');

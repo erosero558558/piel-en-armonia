@@ -197,6 +197,24 @@ async function setupOperatorAuthOperatorMocks(
         const resource =
             new URL(request.url()).searchParams.get('resource') || '';
 
+        if (resource === 'queue-surface-heartbeat') {
+            let body = {};
+            try {
+                body = request.postDataJSON() || {};
+            } catch (_error) {
+                body = {};
+            }
+            heartbeatRequests.push({
+                method: request.method(),
+                url: request.url(),
+                body,
+            });
+            return json(route, {
+                ok: true,
+                data: { accepted: true },
+            });
+        }
+
         if (resource === 'data') {
             return json(route, {
                 ok: true,
@@ -213,6 +231,16 @@ async function setupOperatorAuthOperatorMocks(
         }
 
         if (resource === 'queue-state') {
+            if (failQueueState) {
+                return json(
+                    route,
+                    {
+                        ok: false,
+                        error: 'queue_state_unavailable',
+                    },
+                    503
+                );
+            }
             return json(route, {
                 ok: true,
                 data: queueState,
@@ -271,21 +299,6 @@ async function setupOperatorAuthOperatorMocks(
             return json(route, { ok: true, data: {} });
         }
 
-        if (resource === 'queue-surface-heartbeat') {
-            let body = {};
-            try {
-                body = request.postDataJSON() || {};
-            } catch (_error) {
-                body = {};
-            }
-            heartbeatRequests.push({
-                method: request.method(),
-                url: request.url(),
-                body,
-            });
-            return json(route, { ok: true, data: {} });
-        }
-
         return json(route, { ok: true, data: {} });
     });
 
@@ -300,12 +313,14 @@ async function setupOperatorAuthOperatorMocks(
 async function mockOperatorSurface(page, overrides = {}) {
     let failQueueState = Boolean(overrides.failQueueStateInitially);
     const heartbeatPayloads = [];
+    const heartbeatRequests = [];
+    const queueCallNextRequests = [];
     let queueTickets = [
         {
-            id: 1201,
-            ticketCode: 'A-1201',
+            id: 2201,
+            ticketCode: 'B-2201',
             queueType: 'appointment',
-            patientInitials: 'ER',
+            patientInitials: 'OC',
             priorityClass: 'appt_overdue',
             status: 'waiting',
             assignedConsultorio: null,
@@ -327,9 +342,9 @@ async function mockOperatorSurface(page, overrides = {}) {
         callingNow: [],
         nextTickets: [
             {
-                id: 1201,
-                ticketCode: 'A-1201',
-                patientInitials: 'ER',
+                id: 2201,
+                ticketCode: 'B-2201',
+                patientInitials: 'OC',
                 position: 1,
             },
         ],
@@ -345,11 +360,19 @@ async function mockOperatorSurface(page, overrides = {}) {
             new URL(request.url()).searchParams.get('resource') || '';
 
         if (resource === 'queue-surface-heartbeat') {
+            let body = {};
             try {
-                heartbeatPayloads.push(request.postDataJSON());
+                body = request.postDataJSON() || {};
+                heartbeatPayloads.push(body);
             } catch (_error) {
+                body = {};
                 heartbeatPayloads.push(null);
             }
+            heartbeatRequests.push({
+                method: request.method(),
+                url: request.url(),
+                body,
+            });
             return json(route, {
                 ok: true,
                 data: { accepted: true },
@@ -389,6 +412,10 @@ async function mockOperatorSurface(page, overrides = {}) {
         }
 
         if (resource === 'queue-call-next') {
+            queueCallNextRequests.push({
+                method: request.method(),
+                url: request.url(),
+            });
             const calledTicket = {
                 ...queueTickets[0],
                 status: 'called',
@@ -429,7 +456,10 @@ async function mockOperatorSurface(page, overrides = {}) {
             });
         }
 
-        if (resource === 'health' || resource === 'funnel-metrics') {
+        if (
+            resource === 'health' ||
+            resource === 'funnel-metrics'
+        ) {
             return json(route, { ok: true, data: {} });
         }
 
@@ -471,6 +501,12 @@ async function mockOperatorSurface(page, overrides = {}) {
         },
         getLastHeartbeatPayload() {
             return heartbeatPayloads[heartbeatPayloads.length - 1] || null;
+        },
+        getHeartbeatRequests() {
+            return [...heartbeatRequests];
+        },
+        getQueueCallNextRequests() {
+            return [...queueCallNextRequests];
         },
     };
 }

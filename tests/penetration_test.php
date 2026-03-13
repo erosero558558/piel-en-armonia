@@ -3,7 +3,7 @@
 $serverBaseUrl = rtrim(getenv('TEST_BASE_URL') ?: 'http://127.0.0.1:8011', '/');
 $baseUrl = $serverBaseUrl . '/api.php';
 $authUrl = $serverBaseUrl . '/admin-auth.php';
-$adminPassword = getenv('PIELARMONIA_ADMIN_PASSWORD') ?: 'admin123';
+$adminPassword = trim((string) (getenv('PIELARMONIA_ADMIN_PASSWORD') ?: ''));
 
 function request($url, $method = 'GET', $data = [], $headers = [], $cookies = [])
 {
@@ -57,6 +57,14 @@ function request($url, $method = 'GET', $data = [], $headers = [], $cookies = []
         'body' => $responseBody,
         'cookies' => $newCookies
     ];
+}
+
+function fetch_admin_auth_status(string $authUrl): array
+{
+    $response = request($authUrl, 'GET', ['action' => 'status']);
+    $decoded = json_decode((string) ($response['body'] ?? ''), true);
+
+    return is_array($decoded) ? $decoded : [];
 }
 
 echo "Starting Penetration Test...\n";
@@ -140,33 +148,44 @@ if ($res['code'] === 401) {
     echo "[FAIL] Auth Bypass succeeded! Code: {$res['code']}\n";
 }
 
-// Login to get session
-$loginRes = request($authUrl . '?action=login', 'POST', ['password' => $adminPassword]);
-$cookies = $loginRes['cookies'];
-$csrfToken = '';
-$body = json_decode($loginRes['body'], true);
-if (isset($body['csrfToken'])) {
-    $csrfToken = $body['csrfToken'];
-}
-
-if (empty($cookies)) {
-    echo "[WARN] Could not log in. Skipping CSRF test.\n";
+if ($adminPassword === '') {
+    echo "[WARN] PIELARMONIA_ADMIN_PASSWORD no definido. Skipping CSRF test.\n";
 } else {
-    // Try protected resource WITH auth but WITHOUT CSRF token
-    $res = request($baseUrl . '?resource=import', 'POST', ['appointments' => []], [], $cookies);
-    if ($res['code'] === 403) {
-        echo "[PASS] CSRF protection working (403 Forbidden without token).\n";
+    $authStatus = fetch_admin_auth_status($authUrl);
+    if (($authStatus['mode'] ?? '') !== 'legacy_password') {
+        echo "[WARN] Este entorno usa " . ($authStatus['mode'] ?? 'openclaw_chatgpt') . " como acceso primario. Skipping CSRF legacy test.\n";
+    } elseif (($authStatus['configured'] ?? true) === false || ($authStatus['status'] ?? '') === 'legacy_auth_not_configured') {
+        echo "[WARN] Login legacy no configurado en este entorno. Skipping CSRF test.\n";
     } else {
-        echo "[FAIL] CSRF protection failed! Code: {$res['code']}\n";
-    }
+        // Login to get session
+        $loginRes = request($authUrl . '?action=login', 'POST', ['password' => $adminPassword]);
+        $cookies = $loginRes['cookies'];
+        $csrfToken = '';
+        $body = json_decode($loginRes['body'], true);
+        if (isset($body['csrfToken'])) {
+            $csrfToken = $body['csrfToken'];
+        }
 
-    // Try WITH CSRF token
-    $headers = ['X-CSRF-Token: ' . $csrfToken];
-    $res = request($baseUrl . '?resource=import', 'POST', ['appointments' => []], $headers, $cookies);
-    if ($res['code'] === 200) {
-        echo "[PASS] Authenticated request with CSRF token succeeded.\n";
-    } else {
-        echo "[WARN] Authenticated request failed with code {$res['code']}. Body: {$res['body']}\n";
+        if (empty($cookies)) {
+            echo "[WARN] Could not log in. Skipping CSRF test.\n";
+        } else {
+            // Try protected resource WITH auth but WITHOUT CSRF token
+            $res = request($baseUrl . '?resource=import', 'POST', ['appointments' => []], [], $cookies);
+            if ($res['code'] === 403) {
+                echo "[PASS] CSRF protection working (403 Forbidden without token).\n";
+            } else {
+                echo "[FAIL] CSRF protection failed! Code: {$res['code']}\n";
+            }
+
+            // Try WITH CSRF token
+            $headers = ['X-CSRF-Token: ' . $csrfToken];
+            $res = request($baseUrl . '?resource=import', 'POST', ['appointments' => []], $headers, $cookies);
+            if ($res['code'] === 200) {
+                echo "[PASS] Authenticated request with CSRF token succeeded.\n";
+            } else {
+                echo "[WARN] Authenticated request failed with code {$res['code']}. Body: {$res['body']}\n";
+            }
+        }
     }
 }
 

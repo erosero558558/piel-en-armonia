@@ -88,7 +88,6 @@ export async function runQueueTicketAction(ticketId, action, consultorio = 0) {
         notifyAdminQueuePilotBlocked('queue-ticket-action');
         return;
     }
-
     if (payload.action === 'atender_apoyo') {
         await updateQueueHelpRequestStatus({
             ticketId: payload.ticketId,

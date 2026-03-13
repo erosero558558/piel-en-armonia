@@ -1,11 +1,7 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { adminLogin, getEnv } = require('./helpers/admin-auth');
 const { skipIfPhpRuntimeMissing } = require('./helpers/php-backend');
-
-function getEnv(name, fallback = '') {
-    const value = process.env[name];
-    return typeof value === 'string' ? value.trim() : fallback;
-}
 
 function requireGoogleCalendar() {
     return getEnv('TEST_REQUIRE_GOOGLE_CALENDAR', 'false') === 'true';
@@ -55,40 +51,6 @@ function pickFirstSlot(
     return null;
 }
 
-async function adminLogin(request, password) {
-    const response = await request.post('/admin-auth.php?action=login', {
-        data: { password },
-    });
-    const body = await response.json().catch(() => ({}));
-
-    if (!response.ok() || body.ok === false) {
-        return {
-            ok: false,
-            reason: body.error || `HTTP ${response.status()}`,
-        };
-    }
-
-    if (body.twoFactorRequired) {
-        return {
-            ok: false,
-            reason: '2FA requerido para panel admin',
-        };
-    }
-
-    const csrfToken = typeof body.csrfToken === 'string' ? body.csrfToken : '';
-    if (!csrfToken) {
-        return {
-            ok: false,
-            reason: 'Login admin sin CSRF token',
-        };
-    }
-
-    return {
-        ok: true,
-        csrfToken,
-    };
-}
-
 test.describe('Google Calendar E2E write flow', () => {
     test('crea cita 60min, reprograma y limpia via admin', async ({
         request,
@@ -134,7 +96,7 @@ test.describe('Google Calendar E2E write flow', () => {
             );
         }
 
-        const login = await adminLogin(request, adminPassword);
+        const login = await adminLogin(request);
         test.skip(!login.ok, `No se pudo autenticar admin: ${login.reason}`);
 
         let appointmentId = null;

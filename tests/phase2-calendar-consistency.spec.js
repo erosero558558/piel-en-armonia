@@ -1,5 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { adminLogin, getEnv } = require('./helpers/admin-auth');
 const {
     expectNoLegacyPublicShell,
     gotoPublicRoute,
@@ -8,11 +9,6 @@ const {
 const { skipIfPhpRuntimeMissing } = require('./helpers/php-backend');
 
 test.use({ serviceWorkers: 'block' });
-
-function getEnv(name, fallback = '') {
-    const value = process.env[name];
-    return typeof value === 'string' ? value.trim() : fallback;
-}
 
 function requireGoogleCalendar() {
     return getEnv('TEST_REQUIRE_GOOGLE_CALENDAR', 'false') === 'true';
@@ -39,40 +35,6 @@ function enforceOrSkipGoogleMode(testInfo, health) {
         !googleActive,
         'La fuente de agenda no es Google en este entorno.'
     );
-}
-
-async function adminLogin(request, password) {
-    const response = await request.post('/admin-auth.php?action=login', {
-        data: { password },
-    });
-    const body = await response.json().catch(() => ({}));
-
-    if (!response.ok() || body.ok === false) {
-        return {
-            ok: false,
-            reason: body.error || `HTTP ${response.status()}`,
-        };
-    }
-
-    if (body.twoFactorRequired) {
-        return {
-            ok: false,
-            reason: '2FA requerido para panel admin',
-        };
-    }
-
-    const csrfToken = typeof body.csrfToken === 'string' ? body.csrfToken : '';
-    if (!csrfToken) {
-        return {
-            ok: false,
-            reason: 'Login admin sin CSRF token',
-        };
-    }
-
-    return {
-        ok: true,
-        csrfToken,
-    };
 }
 
 async function safeJson(response) {
@@ -244,18 +206,10 @@ test.describe('Fase 2: consistencia calendario', () => {
             'TEST_ENABLE_CALENDAR_WRITE=true es requerido para prueba de concurrencia real.'
         );
 
-        const adminPassword =
-            getEnv('TEST_ADMIN_PASSWORD') ||
-            getEnv('PIELARMONIA_ADMIN_PASSWORD');
-        test.skip(
-            !adminPassword,
-            'TEST_ADMIN_PASSWORD o PIELARMONIA_ADMIN_PASSWORD es requerido para cleanup seguro.'
-        );
-
         const health = await getHealthPayload(request);
         enforceOrSkipGoogleMode(testInfo, health);
 
-        const login = await adminLogin(request, adminPassword);
+        const login = await adminLogin(request);
         test.skip(!login.ok, `No se pudo autenticar admin: ${login.reason}`);
 
         const createdAppointmentIds = [];

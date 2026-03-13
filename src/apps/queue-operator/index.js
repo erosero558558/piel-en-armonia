@@ -344,17 +344,6 @@ function getOperatorMutationBlocker(state = getState()) {
         return null;
     }
 
-    if (isOperatorPilotBlocked()) {
-        const detail = getOperatorPilotBlockDetail();
-        return {
-            key: 'pilot_blocked',
-            tone: 'danger',
-            title: 'Piloto bloqueado',
-            summary: detail,
-            toast: detail,
-        };
-    }
-
     if (operatorRuntime.shellRuntime.mode === 'offline') {
         return null;
     }
@@ -428,6 +417,11 @@ function resolveOperatorAppMode() {
 
 function buildOperatorHeartbeatPayload() {
     const state = getState();
+    const numpadStatus = buildOperatorNumpadStatus(state.queue);
+    const syncHealth = getQueueSyncHealth(state);
+    const surfaceContract =
+        operatorRuntime.surfaceContract ||
+        getTurneroSurfaceContract(operatorClinicProfile, 'operator');
     const clinicId = String(operatorClinicProfile?.clinic_id || '').trim();
     const clinicName = String(
         operatorClinicProfile?.branding?.name ||
@@ -440,11 +434,6 @@ function buildOperatorHeartbeatPayload() {
     const profileSource = String(
         operatorClinicProfile?.runtime_meta?.source || 'remote'
     ).trim();
-    const numpadStatus = buildOperatorNumpadStatus(state.queue);
-    const surfaceContract =
-        operatorRuntime.surfaceContract ||
-        getTurneroSurfaceContract(operatorClinicProfile, 'operator');
-    const syncHealth = getQueueSyncHealth(state);
     const payload = buildHeartbeatPayload({
         queueState: state.queue,
         online: operatorRuntime.online,
@@ -454,9 +443,14 @@ function buildOperatorHeartbeatPayload() {
         numpadStatus,
         syncHealth,
     });
-
+    if (surfaceContract.state === 'alert') {
+        payload.status = 'alert';
+        payload.summary = surfaceContract.detail;
+    }
     payload.details = {
-        ...(payload.details || {}),
+        ...(payload.details && typeof payload.details === 'object'
+            ? payload.details
+            : {}),
         clinicId,
         clinicName,
         profileSource,
@@ -465,10 +459,6 @@ function buildOperatorHeartbeatPayload() {
         surfaceRouteExpected: String(surfaceContract.expectedRoute || ''),
         surfaceRouteCurrent: String(surfaceContract.currentRoute || ''),
     };
-    if (surfaceContract.state === 'alert') {
-        payload.status = 'alert';
-        payload.summary = surfaceContract.detail;
-    }
     return payload;
 }
 
@@ -1084,9 +1074,9 @@ function updateOperatorReadiness() {
         getTurneroSurfaceContract(operatorClinicProfile, 'operator');
     const syncHealth = getQueueSyncHealth(state);
     const blocker = getOperatorMutationBlocker(state);
-    const stationLabel = `${getOperatorConsultorioShortLabel(
-        Number(state.queue.stationConsultorio || 1)
-    )} ${
+    const stationNumber =
+        Number(state.queue.stationConsultorio || 1) === 2 ? 2 : 1;
+    const stationLabel = `${getOperatorConsultorioShortLabel(stationNumber)} ${
         state.queue.stationMode === 'locked' ? 'fijo' : 'libre'
     }`;
     const routeSummary = `${stationLabel} · ${
@@ -1138,9 +1128,13 @@ function updateOperatorReadiness() {
     const readyForLiveUse =
         runtimeMode === 'live' &&
         operatorRuntime.online &&
+        surfaceContract.state !== 'alert' &&
         !syncHealth.degraded &&
         numpadStatus.ready;
-    const readyForOfflineUse = runtimeMode === 'offline' && numpadStatus.ready;
+    const readyForOfflineUse =
+        runtimeMode === 'offline' &&
+        surfaceContract.state !== 'alert' &&
+        numpadStatus.ready;
     const pendingCount = numpadStatus.pendingLabels.length;
 
     if (readinessTitle) {
@@ -1174,7 +1168,7 @@ function updateOperatorReadiness() {
                     ? 'La contingencia offline está habilitada. Puedes operar con las cuatro teclas del numpad y el replay se hará al reconectar.'
                     : readyForLiveUse
                       ? 'La ruta, la sesión y las cuatro teclas operativas ya respondieron. Puedes pasar al primer llamado real.'
-                      : `Valida ${formatOperatorLabelList(
+                    : `Valida ${formatOperatorLabelList(
                             numpadStatus.pendingLabels
                         )} en el Genius Numpad 1000 antes del primer llamado real.`;
     }
@@ -1360,6 +1354,24 @@ function getOperatorActionGuard(action, element, state = getState()) {
         return null;
     }
 
+    if (isMutatingOperatorAction(action) && isOperatorPilotBlocked()) {
+        const surfaceContract = getOperatorSurfaceContract();
+        const detail = getOperatorPilotBlockDetail();
+        return {
+            key:
+                surfaceContract.reason === 'profile_missing'
+                    ? 'pilot_profile'
+                    : 'pilot_route',
+            tone: 'danger',
+            title:
+                surfaceContract.reason === 'profile_missing'
+                    ? 'Operación bloqueada por perfil'
+                    : 'Operación bloqueada por ruta',
+            summary: detail,
+            toast: detail,
+        };
+    }
+
     const blocker = getOperatorMutationBlocker(state);
     if (blocker && isMutatingOperatorAction(action)) {
         return blocker;
@@ -1513,6 +1525,10 @@ function syncShellSettingsButton() {
 
 function syncLoggedOutAccessState() {
     const state = getState();
+    if (isOperatorAuthMode(state.auth)) {
+        return;
+    }
+
     if (state.auth.authenticated || state.auth.requires2FA) {
         return;
     }
@@ -1528,7 +1544,12 @@ function syncLoggedOutAccessState() {
         );
         return;
     }
-    syncOperatorLoginSurface(state.auth);
+
+    setLoginStatus(
+        'neutral',
+        'Acceso protegido',
+        'Inicia sesión para abrir la consola operativa del turnero.'
+    );
 }
 
 function updateOperatorChrome({
@@ -1766,6 +1787,11 @@ async function startOperatorAuthFlow(forceNew = false) {
 async function handleLoginSubmit(event) {
     event.preventDefault();
 
+    if (isOperatorAuthMode(getState().auth)) {
+        await startOperatorAuthFlow(false);
+        return;
+    }
+
     if (
         !operatorRuntime.online &&
         !getState().auth.authenticated &&
@@ -1776,11 +1802,6 @@ async function handleLoginSubmit(event) {
             'El ingreso offline no está habilitado. Recupera conexión para iniciar sesión.',
             'warning'
         );
-        return;
-    }
-
-    if (isOperatorAuthMode(getState().auth)) {
-        await startOperatorAuthFlow(false);
         return;
     }
 
@@ -1862,7 +1883,7 @@ async function handleDocumentClick(event) {
     const actionNode =
         event.target instanceof Element
             ? event.target.closest(
-                  '[data-action], #operatorLogoutBtn, #operatorReset2FABtn, #operatorAppSettingsBtn, #operatorShellRecoveryBtn, #operatorOpenClawBtn, #operatorOpenClawRetryBtn'
+                  '[data-action], #operatorLogoutBtn, #operatorReset2FABtn, #operatorAppSettingsBtn, #operatorOpenClawBtn, #operatorOpenClawRetryBtn, #operatorShellRecoveryBtn'
               )
             : null;
 
@@ -1879,6 +1900,7 @@ async function handleDocumentClick(event) {
         mountLoggedOutView();
         resetLoginForm({ clearPassword: true });
         show2FA(false);
+        syncOperatorLoginSurface(getState().auth);
         syncLoggedOutAccessState();
         createToast('Sesión cerrada', 'info');
         focusLoginField(
@@ -2006,8 +2028,16 @@ function attachKeyboardBridge() {
             isNumpadAddEvent(codeNormalized, keyNormalized) ||
             isNumpadDecimalEvent(codeNormalized, keyNormalized) ||
             isNumpadSubtractEvent(codeNormalized, keyNormalized);
-        const blocker = getOperatorMutationBlocker(state);
 
+        if (isOperatorPilotBlocked() && mutatingNumpadAction) {
+            event.preventDefault();
+            noteNumpadActivity(event);
+            notifyOperatorPilotBlocked();
+            updateOperatorChrome();
+            return;
+        }
+
+        const blocker = getOperatorMutationBlocker(state);
         if (blocker && mutatingNumpadAction) {
             event.preventDefault();
             noteNumpadActivity(event);
@@ -2070,7 +2100,6 @@ function attachVisibilityRefresh() {
 
 async function boot() {
     applyQueueRuntimeDefaults();
-    applyOperatorClinicProfile(await loadTurneroClinicProfile());
     operatorRuntime.queueAdapter = resolveOperatorQueueAdapter(
         getDesktopBridge(),
         {
@@ -2090,6 +2119,7 @@ async function boot() {
     );
     setQueueCommandAdapter(operatorRuntime.queueAdapter);
     await operatorRuntime.queueAdapter.init?.();
+    applyOperatorClinicProfile(await loadTurneroClinicProfile());
     await refreshDesktopSnapshot();
     subscribe(() => {
         if (getState().auth.authenticated) {
@@ -2154,6 +2184,8 @@ async function boot() {
 
     mountLoggedOutView();
     syncOperatorLoginSurface(auth);
+    show2FA(false);
+    syncLoggedOutAccessState();
     focusLoginField(isOperatorAuthMode(auth) ? 'operator_auth' : 'password');
     if (isOperatorAuthMode(auth) && String(auth.status || '') === 'pending') {
         void ensureOperatorAuthPolling();
