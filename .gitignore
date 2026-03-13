@@ -26,6 +26,13 @@ verification/agent-runs/*
 
 # PHP Composer
 vendor/
+!vendor/
+vendor/*
+!vendor/composer/
+vendor/composer/*
+!vendor/composer/autoload_real.php
+!vendor/composer/autoload_static.php
+!vendor/composer/installed.php
 .php-cs-fixer.cache
 .phpunit.cache/
 coverage.xml
