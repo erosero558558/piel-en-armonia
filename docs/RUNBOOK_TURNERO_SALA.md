@@ -29,6 +29,7 @@ Notas del corte:
 - Usa `queueOpsPilotHandoffCopyBtn` para copiar el paquete de apertura por clínica cuando necesites pasar el estado del piloto a recepción, operación o soporte sin resumirlo a mano. Ese paquete ya debe decir si el perfil viene `remoto verificado` o `fallback local`.
 - Ese mismo paquete ya debe incluir `Bloqueo activo`; úsalo como primera línea del handoff para que el segundo equipo vea de inmediato qué sigue frenando el go-live.
 - `queueOpeningChecklistV1`, `queueShiftHandoffV1` y `queueOpsLogV1` ahora se consideran válidos solo para la clínica activa. Si cambias de `clinic_id`, esos bloques deben reiniciarse aunque sigan siendo del mismo día.
+- Lo mismo aplica a `queueOpsLogFilterV1`, `queueOpsAlertsV1`, `queueOpsFocusModeV1`, `queueOpsPlaybookV1`, `queueHubDomainViewV1` y `queueTicketLookupV1`: si cambias de clínica, el hub debe volver a estado limpio antes de operar.
 - La sugerencia automática de `smoke final` también ignora actividad local de otra clínica. Un `Llamado C1 ejecutado` heredado de otra sede o sin `clinicId` ya no sirve para abrir el piloto.
 - Verifica también las superficies reales: `operador-turnos.html`, `kiosco-turnos.html` y `sala-turnos.html` deben mostrar branding y contexto de la clínica activa, no nombres genéricos de otra sede.
 - Si alguna superficie carga una ruta distinta a la declarada en `clinic-profile.json`, debe pasar a estado visible de bloqueo (`Ruta del piloto incorrecta`) antes de operar.

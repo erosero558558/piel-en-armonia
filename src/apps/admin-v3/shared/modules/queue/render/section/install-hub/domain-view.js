@@ -15,24 +15,85 @@ function normalizeSelection(value) {
     return VALID_DOMAIN_SELECTIONS.has(safeValue) ? safeValue : 'auto';
 }
 
-function loadSelection() {
+function normalizeClinicScopedSelection(rawValue, activeClinicId) {
+    const clinicId = String(activeClinicId || '').trim() || 'default-clinic';
+    if (typeof rawValue === 'string') {
+        return {
+            clinicId,
+            selection: normalizeSelection(rawValue),
+        };
+    }
+    const source = rawValue && typeof rawValue === 'object' ? rawValue : {};
+    return {
+        clinicId,
+        selection:
+            String(source.clinicId || '').trim() === clinicId
+                ? normalizeSelection(source.selection)
+                : 'auto',
+    };
+}
+
+function loadSelection(activeClinicId) {
+    const clinicId = String(activeClinicId || '').trim() || 'default-clinic';
     try {
-        return normalizeSelection(
-            window.localStorage.getItem(QUEUE_HUB_DOMAIN_STORAGE_KEY)
+        const rawValue = window.localStorage.getItem(
+            QUEUE_HUB_DOMAIN_STORAGE_KEY
         );
+        if (!rawValue) {
+            return 'auto';
+        }
+        const parsed = JSON.parse(rawValue);
+        const normalized = normalizeClinicScopedSelection(parsed, clinicId);
+        if (
+            normalized.selection !== normalizeSelection(parsed?.selection) ||
+            String(parsed?.clinicId || '').trim() !== clinicId
+        ) {
+            window.localStorage.setItem(
+                QUEUE_HUB_DOMAIN_STORAGE_KEY,
+                JSON.stringify(normalized)
+            );
+        }
+        return normalized.selection;
     } catch (_error) {
+        try {
+            const legacyValue = window.localStorage.getItem(
+                QUEUE_HUB_DOMAIN_STORAGE_KEY
+            );
+            if (legacyValue) {
+                const normalized = normalizeClinicScopedSelection(
+                    legacyValue,
+                    clinicId
+                );
+                window.localStorage.setItem(
+                    QUEUE_HUB_DOMAIN_STORAGE_KEY,
+                    JSON.stringify(normalized)
+                );
+                return normalized.selection;
+            }
+        } catch (_nestedError) {
+            // ignore storage recovery failures
+        }
         return 'auto';
     }
 }
 
-function persistSelection(value) {
-    const safeValue = normalizeSelection(value);
+function persistSelection(value, activeClinicId) {
+    const normalized = normalizeClinicScopedSelection(
+        {
+            clinicId: activeClinicId,
+            selection: value,
+        },
+        activeClinicId
+    );
     try {
-        window.localStorage.setItem(QUEUE_HUB_DOMAIN_STORAGE_KEY, safeValue);
+        window.localStorage.setItem(
+            QUEUE_HUB_DOMAIN_STORAGE_KEY,
+            JSON.stringify(normalized)
+        );
     } catch (_error) {
         // ignore storage write failures
     }
-    return safeValue;
+    return normalized.selection;
 }
 
 function getSuggestedDomain(queueFocus) {
@@ -108,7 +169,9 @@ function applyDomainVisibility(hub, effectiveDomain) {
 }
 
 function buildModel(hub) {
-    const selectedDomain = loadSelection();
+    const activeClinicId =
+        String(hub?.dataset?.queueClinicId || '').trim() || 'default-clinic';
+    const selectedDomain = loadSelection(activeClinicId);
     const suggestedDomain = getSuggestedDomain(hub?.dataset?.queueFocus || '');
     const adminMode =
         String(hub?.dataset?.queueAdminMode || '')
@@ -139,6 +202,8 @@ export function renderQueueHubDomainView() {
         return;
     }
 
+    const activeClinicId =
+        String(hub.dataset.queueClinicId || '').trim() || 'default-clinic';
     const model = buildModel(hub);
     hub.dataset.queueDomain = model.effectiveDomain;
     hub.dataset.queueDomainSource =
@@ -195,7 +260,10 @@ export function renderQueueHubDomainView() {
             return;
         }
         button.onclick = () => {
-            persistSelection(button.dataset.queueDomainSelect || 'operations');
+            persistSelection(
+                button.dataset.queueDomainSelect || 'operations',
+                activeClinicId
+            );
             renderQueueHubDomainView();
         };
     });
@@ -203,7 +271,7 @@ export function renderQueueHubDomainView() {
     const autoButton = document.getElementById('queueDomainAuto');
     if (autoButton instanceof HTMLButtonElement) {
         autoButton.onclick = () => {
-            persistSelection('auto');
+            persistSelection('auto', activeClinicId);
             renderQueueHubDomainView();
         };
     }

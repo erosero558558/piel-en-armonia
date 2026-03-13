@@ -159,7 +159,9 @@ let openingChecklistState = null;
 let shiftHandoffState = null;
 let opsLogState = null;
 let opsLogFilter = null;
+let opsLogFilterClinicId = null;
 let queueTicketLookupTerm = null;
+let queueTicketLookupClinicId = null;
 let queueTicketSimulationContext = null;
 let queueAdminViewMode = null;
 let queueAdminViewModeClinicId = null;
@@ -388,23 +390,42 @@ function normalizeQueueTicketLookupTerm(value) {
 }
 
 function loadStoredQueueTicketLookupTerm() {
+    const activeClinicId = getActiveQueueOpsClinicId();
     try {
-        return normalizeQueueTicketLookupTerm(
-            window.localStorage.getItem(QUEUE_TICKET_LOOKUP_STORAGE_KEY) || ''
-        );
+        const rawValue =
+            window.localStorage.getItem(QUEUE_TICKET_LOOKUP_STORAGE_KEY) || '';
+        if (!rawValue) {
+            return '';
+        }
+        const parsed = JSON.parse(rawValue);
+        if (String(parsed?.clinicId || '').trim() !== activeClinicId) {
+            window.localStorage.removeItem(QUEUE_TICKET_LOOKUP_STORAGE_KEY);
+            return '';
+        }
+        return normalizeQueueTicketLookupTerm(parsed?.term || '');
     } catch (_error) {
+        try {
+            window.localStorage.removeItem(QUEUE_TICKET_LOOKUP_STORAGE_KEY);
+        } catch (_nestedError) {
+            // ignore storage cleanup failures
+        }
         return '';
     }
 }
 
 function persistQueueTicketLookupTerm(value) {
+    const activeClinicId = getActiveQueueOpsClinicId();
     clearQueueTicketSimulationContext();
     queueTicketLookupTerm = normalizeQueueTicketLookupTerm(value);
+    queueTicketLookupClinicId = activeClinicId;
     try {
         if (queueTicketLookupTerm) {
             window.localStorage.setItem(
                 QUEUE_TICKET_LOOKUP_STORAGE_KEY,
-                queueTicketLookupTerm
+                JSON.stringify({
+                    clinicId: activeClinicId,
+                    term: queueTicketLookupTerm,
+                })
             );
         } else {
             window.localStorage.removeItem(QUEUE_TICKET_LOOKUP_STORAGE_KEY);
@@ -416,11 +437,17 @@ function persistQueueTicketLookupTerm(value) {
 }
 
 function getQueueTicketLookupTerm() {
-    if (typeof queueTicketLookupTerm === 'string') {
+    const activeClinicId = getActiveQueueOpsClinicId();
+    if (
+        typeof queueTicketLookupTerm === 'string' &&
+        queueTicketLookupClinicId === activeClinicId
+    ) {
         return queueTicketLookupTerm;
     }
+    clearQueueTicketSimulationContext();
     const stateSearch = normalizeQueueTicketLookupTerm(getState().queue.search);
     queueTicketLookupTerm = loadStoredQueueTicketLookupTerm() || stateSearch;
+    queueTicketLookupClinicId = activeClinicId;
     return queueTicketLookupTerm;
 }
 
@@ -625,9 +652,9 @@ function normalizeInstallPreset(rawPreset, detectedPlatform) {
               : 'win';
 
     return {
-        clinicId: String(
-            raw.clinicId || getActiveQueueOpsClinicId()
-        ).trim() || getActiveQueueOpsClinicId(),
+        clinicId:
+            String(raw.clinicId || getActiveQueueOpsClinicId()).trim() ||
+            getActiveQueueOpsClinicId(),
         surface:
             raw.surface === 'kiosk' || raw.surface === 'sala_tv'
                 ? raw.surface
@@ -817,7 +844,10 @@ function getTodayLocalIsoDate() {
 }
 
 function getActiveQueueOpsClinicId() {
-    return String(getTurneroClinicId() || 'default-clinic').trim() || 'default-clinic';
+    return (
+        String(getTurneroClinicId() || 'default-clinic').trim() ||
+        'default-clinic'
+    );
 }
 
 function formatOpeningChecklistDate(isoDate) {
@@ -853,7 +883,10 @@ function normalizeOpeningChecklistState(rawState) {
         date: today,
         clinicId: activeClinicId,
         steps: OPENING_CHECKLIST_STEP_IDS.reduce((acc, key) => {
-            acc[key] = sameClinic && sameDate && Boolean(source.steps && source.steps[key]);
+            acc[key] =
+                sameClinic &&
+                sameDate &&
+                Boolean(source.steps && source.steps[key]);
             return acc;
         }, {}),
     };
@@ -872,7 +905,10 @@ function loadOpeningChecklistState() {
             String(parsed?.date || '').trim() !== today ||
             String(parsed?.clinicId || '').trim() !== activeClinicId
         ) {
-            const resetState = createOpeningChecklistState(today, activeClinicId);
+            const resetState = createOpeningChecklistState(
+                today,
+                activeClinicId
+            );
             localStorage.setItem(
                 QUEUE_OPENING_CHECKLIST_STORAGE_KEY,
                 JSON.stringify(resetState)
@@ -987,7 +1023,10 @@ function normalizeShiftHandoffState(rawState) {
         date: today,
         clinicId: activeClinicId,
         steps: SHIFT_HANDOFF_STEP_IDS.reduce((acc, key) => {
-            acc[key] = sameClinic && sameDate && Boolean(source.steps && source.steps[key]);
+            acc[key] =
+                sameClinic &&
+                sameDate &&
+                Boolean(source.steps && source.steps[key]);
             return acc;
         }, {}),
     };
@@ -1138,11 +1177,12 @@ function normalizeOpsLogState(rawState) {
     return {
         date: today,
         clinicId: activeClinicId,
-        items: sameClinic && sameDate && Array.isArray(source.items)
-            ? source.items
-                  .map((item) => normalizeOpsLogItem(item))
-                  .slice(0, QUEUE_OPS_LOG_MAX_ITEMS)
-            : [],
+        items:
+            sameClinic && sameDate && Array.isArray(source.items)
+                ? source.items
+                      .map((item) => normalizeOpsLogItem(item))
+                      .slice(0, QUEUE_OPS_LOG_MAX_ITEMS)
+                : [],
     };
 }
 
@@ -1250,26 +1290,61 @@ function normalizeOpsLogFilter(rawValue) {
 }
 
 function loadOpsLogFilter() {
+    const activeClinicId = getActiveQueueOpsClinicId();
     try {
-        return normalizeOpsLogFilter(
-            localStorage.getItem(QUEUE_OPS_LOG_FILTER_STORAGE_KEY)
-        );
+        const rawValue = localStorage.getItem(QUEUE_OPS_LOG_FILTER_STORAGE_KEY);
+        if (!rawValue) {
+            return 'all';
+        }
+        const parsed = JSON.parse(rawValue);
+        if (String(parsed?.clinicId || '').trim() !== activeClinicId) {
+            localStorage.setItem(
+                QUEUE_OPS_LOG_FILTER_STORAGE_KEY,
+                JSON.stringify({
+                    clinicId: activeClinicId,
+                    filter: 'all',
+                })
+            );
+            return 'all';
+        }
+        return normalizeOpsLogFilter(parsed?.filter);
     } catch (_error) {
+        try {
+            localStorage.setItem(
+                QUEUE_OPS_LOG_FILTER_STORAGE_KEY,
+                JSON.stringify({
+                    clinicId: activeClinicId,
+                    filter: 'all',
+                })
+            );
+        } catch (_storageError) {
+            // ignore storage write failures
+        }
         return 'all';
     }
 }
 
 function ensureOpsLogFilter() {
-    if (!opsLogFilter) {
+    const activeClinicId = getActiveQueueOpsClinicId();
+    if (!opsLogFilter || opsLogFilterClinicId !== activeClinicId) {
         opsLogFilter = loadOpsLogFilter();
+        opsLogFilterClinicId = activeClinicId;
     }
     return opsLogFilter;
 }
 
 function persistOpsLogFilter(nextFilter) {
+    const activeClinicId = getActiveQueueOpsClinicId();
     opsLogFilter = normalizeOpsLogFilter(nextFilter);
+    opsLogFilterClinicId = activeClinicId;
     try {
-        localStorage.setItem(QUEUE_OPS_LOG_FILTER_STORAGE_KEY, opsLogFilter);
+        localStorage.setItem(
+            QUEUE_OPS_LOG_FILTER_STORAGE_KEY,
+            JSON.stringify({
+                clinicId: activeClinicId,
+                filter: opsLogFilter,
+            })
+        );
     } catch (_error) {
         // ignore storage write failures
     }
@@ -1279,7 +1354,8 @@ function persistOpsLogFilter(nextFilter) {
 function ensureOpsAlertsState() {
     return ensureOpsAlertsStateStore(
         QUEUE_OPS_ALERTS_STORAGE_KEY,
-        getTodayLocalIsoDate
+        getTodayLocalIsoDate,
+        getActiveQueueOpsClinicId
     );
 }
 
@@ -1287,6 +1363,7 @@ function setOpsAlertReviewed(alertId, reviewed) {
     return setOpsAlertReviewedStore(
         QUEUE_OPS_ALERTS_STORAGE_KEY,
         getTodayLocalIsoDate,
+        getActiveQueueOpsClinicId,
         alertId,
         reviewed
     );
@@ -1296,16 +1373,24 @@ function markOpsAlertsReviewed(alertIds) {
     return markOpsAlertsReviewedStore(
         QUEUE_OPS_ALERTS_STORAGE_KEY,
         getTodayLocalIsoDate,
+        getActiveQueueOpsClinicId,
         alertIds
     );
 }
 
 function ensureOpsFocusMode() {
-    return ensureOpsFocusModeStore(QUEUE_OPS_FOCUS_MODE_STORAGE_KEY);
+    return ensureOpsFocusModeStore(
+        QUEUE_OPS_FOCUS_MODE_STORAGE_KEY,
+        getActiveQueueOpsClinicId
+    );
 }
 
 function persistOpsFocusMode(nextMode) {
-    return persistOpsFocusModeStore(QUEUE_OPS_FOCUS_MODE_STORAGE_KEY, nextMode);
+    return persistOpsFocusModeStore(
+        QUEUE_OPS_FOCUS_MODE_STORAGE_KEY,
+        nextMode,
+        getActiveQueueOpsClinicId
+    );
 }
 
 function buildPlaybookDefinitions(manifest, detectedPlatform) {
@@ -1320,6 +1405,7 @@ function ensureOpsPlaybookState() {
     return ensureOpsPlaybookStateModule({
         getTodayLocalIsoDate,
         storageKey: QUEUE_OPS_PLAYBOOK_STORAGE_KEY,
+        getActiveQueueOpsClinicId,
     });
 }
 
@@ -1327,6 +1413,7 @@ function setOpsPlaybookStep(mode, stepId, complete) {
     return setOpsPlaybookStepModule(mode, stepId, complete, {
         getTodayLocalIsoDate,
         storageKey: QUEUE_OPS_PLAYBOOK_STORAGE_KEY,
+        getActiveQueueOpsClinicId,
     });
 }
 
@@ -1334,7 +1421,21 @@ function resetOpsPlaybookMode(mode) {
     return resetOpsPlaybookModeModule(mode, {
         getTodayLocalIsoDate,
         storageKey: QUEUE_OPS_PLAYBOOK_STORAGE_KEY,
+        getActiveQueueOpsClinicId,
     });
+}
+
+function syncQueueClinicScopedLocalState(detectedPlatform) {
+    ensureQueueAdminViewMode();
+    ensureInstallPreset(detectedPlatform);
+    ensureOpeningChecklistState();
+    ensureShiftHandoffState();
+    ensureOpsLogState();
+    ensureOpsLogFilter();
+    ensureOpsAlertsState();
+    ensureOpsFocusMode();
+    ensureOpsPlaybookState();
+    getQueueTicketLookupTerm();
 }
 
 function getDesktopTarget(appConfig, platform) {
@@ -3492,6 +3593,7 @@ function primeQueueAdminViewModeToHub(mode) {
 
     const normalizedMode = normalizeQueueAdminViewMode(mode);
     root.dataset.queueAdminMode = normalizedMode;
+    root.dataset.queueClinicId = getActiveQueueOpsClinicId();
     syncQueueHubPanelAdminLevels();
 
     if (normalizedMode !== 'expert') {
@@ -3511,6 +3613,7 @@ function applyQueueAdminViewModeToHub(mode) {
 
     const normalizedMode = normalizeQueueAdminViewMode(mode);
     root.dataset.queueAdminMode = normalizedMode;
+    root.dataset.queueClinicId = getActiveQueueOpsClinicId();
     syncQueueHubPanelAdminLevels();
 
     if (normalizedMode !== 'basic') {
@@ -21514,6 +21617,7 @@ export function renderQueueInstallHub(options = {}) {
     if (platformChip instanceof HTMLElement) {
         platformChip.setAttribute('data-platform', platform);
     }
+    syncQueueClinicScopedLocalState(platform);
 
     const manifest =
         manifestOverride && typeof manifestOverride === 'object'

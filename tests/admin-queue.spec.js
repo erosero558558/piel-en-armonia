@@ -11540,9 +11540,9 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('#queueOpsPilotCanonItem_operator')
         ).toContainText('/operador-turnos.html');
-        await expect(
-            page.locator('#queueOpsPilotCanonSupport')
-        ).toContainText('3/4 superficies ya verificaron su ruta');
+        await expect(page.locator('#queueOpsPilotCanonSupport')).toContainText(
+            '3/4 superficies ya verificaron su ruta'
+        );
         await expect(page.locator('#queueOpsPilotSmokeTitle')).toContainText(
             'Secuencia repetible'
         );
@@ -11632,7 +11632,7 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueInstallConfigurator')).toBeVisible();
     });
 
-    test('queue reinicia checklist y bitácora local cuando cambia de clínica', async ({
+    test('queue reinicia el estado local del piloto cuando cambia de clínica', async ({
         page,
     }) => {
         const nowIso = new Date().toISOString();
@@ -11695,10 +11695,68 @@ test.describe('Admin turnero sala', () => {
                                 createdAt: now,
                                 tone: 'warning',
                                 title: 'Clínica Sur',
-                                summary: 'No debe sobrevivir al cambio de clínica.',
+                                summary:
+                                    'No debe sobrevivir al cambio de clínica.',
                                 source: 'manual',
                             },
                         ],
+                    })
+                );
+                window.localStorage.setItem(
+                    'queueOpsLogFilterV1',
+                    JSON.stringify({
+                        clinicId: 'clinica-sur-demo',
+                        filter: 'incidents',
+                    })
+                );
+                window.localStorage.setItem(
+                    'queueOpsAlertsV1',
+                    JSON.stringify({
+                        date: today,
+                        clinicId: 'clinica-sur-demo',
+                        reviewed: {
+                            operator_warning: {
+                                reviewedAt: now,
+                            },
+                        },
+                    })
+                );
+                window.localStorage.setItem(
+                    'queueOpsFocusModeV1',
+                    JSON.stringify({
+                        clinicId: 'clinica-sur-demo',
+                        mode: 'incidents',
+                    })
+                );
+                window.localStorage.setItem(
+                    'queueOpsPlaybookV1',
+                    JSON.stringify({
+                        date: today,
+                        clinicId: 'clinica-sur-demo',
+                        modes: {
+                            opening: {
+                                check_sur: true,
+                            },
+                            operations: {
+                                queue_sur: true,
+                            },
+                            incidents: {},
+                            closing: {},
+                        },
+                    })
+                );
+                window.localStorage.setItem(
+                    'queueHubDomainViewV1',
+                    JSON.stringify({
+                        clinicId: 'clinica-sur-demo',
+                        selection: 'incidents',
+                    })
+                );
+                window.localStorage.setItem(
+                    'queueTicketLookupV1',
+                    JSON.stringify({
+                        clinicId: 'clinica-sur-demo',
+                        term: 'A-1999',
                     })
                 );
             },
@@ -11935,24 +11993,48 @@ test.describe('Admin turnero sala', () => {
             '0/4'
         );
 
-        const scopedState = await page.evaluate(() => ({
-            opening: JSON.parse(
-                window.localStorage.getItem('queueOpeningChecklistV1') || 'null'
-            ),
-            handoff: JSON.parse(
-                window.localStorage.getItem('queueShiftHandoffV1') || 'null'
-            ),
-            log: JSON.parse(
-                window.localStorage.getItem('queueOpsLogV1') || 'null'
-            ),
-            adminViewMode: window.localStorage.getItem('queueAdminViewModeV1'),
-            adminViewModeClinic: window.localStorage.getItem(
-                'queueAdminViewModeClinicV1'
-            ),
-            installPreset: JSON.parse(
-                window.localStorage.getItem('queueInstallPresetV1') || 'null'
-            ),
-        }));
+        const scopedState = await page.evaluate(() => {
+            const readStorageValue = (key) => {
+                const raw = window.localStorage.getItem(key);
+                if (!raw) {
+                    return null;
+                }
+                try {
+                    return JSON.parse(raw);
+                } catch (_error) {
+                    return raw;
+                }
+            };
+
+            return {
+                opening: JSON.parse(
+                    window.localStorage.getItem('queueOpeningChecklistV1') ||
+                        'null'
+                ),
+                handoff: JSON.parse(
+                    window.localStorage.getItem('queueShiftHandoffV1') || 'null'
+                ),
+                log: JSON.parse(
+                    window.localStorage.getItem('queueOpsLogV1') || 'null'
+                ),
+                logFilter: readStorageValue('queueOpsLogFilterV1'),
+                opsAlerts: readStorageValue('queueOpsAlertsV1'),
+                opsFocusMode: readStorageValue('queueOpsFocusModeV1'),
+                opsPlaybook: readStorageValue('queueOpsPlaybookV1'),
+                domainView: readStorageValue('queueHubDomainViewV1'),
+                ticketLookup: readStorageValue('queueTicketLookupV1'),
+                adminViewMode: window.localStorage.getItem(
+                    'queueAdminViewModeV1'
+                ),
+                adminViewModeClinic: window.localStorage.getItem(
+                    'queueAdminViewModeClinicV1'
+                ),
+                installPreset: JSON.parse(
+                    window.localStorage.getItem('queueInstallPresetV1') ||
+                        'null'
+                ),
+            };
+        });
 
         expect(scopedState.opening?.clinicId).toBe('clinica-norte-demo');
         expect(
@@ -11965,6 +12047,23 @@ test.describe('Admin turnero sala', () => {
         expect(scopedState.log?.clinicId).toBe('clinica-norte-demo');
         expect(Array.isArray(scopedState.log?.items)).toBe(true);
         expect(scopedState.log.items).toHaveLength(0);
+        expect(scopedState.logFilter?.clinicId).toBe('clinica-norte-demo');
+        expect(scopedState.logFilter?.filter).toBe('all');
+        expect(scopedState.opsAlerts?.clinicId).toBe('clinica-norte-demo');
+        expect(Object.keys(scopedState.opsAlerts?.reviewed || {})).toHaveLength(
+            0
+        );
+        expect(scopedState.opsFocusMode?.clinicId).toBe('clinica-norte-demo');
+        expect(scopedState.opsFocusMode?.mode).toBe('auto');
+        expect(scopedState.opsPlaybook?.clinicId).toBe('clinica-norte-demo');
+        expect(
+            Object.values(scopedState.opsPlaybook?.modes || {}).every(
+                (mode) => !mode || Object.keys(mode).length === 0
+            )
+        ).toBe(true);
+        expect(scopedState.domainView?.clinicId).toBe('clinica-norte-demo');
+        expect(scopedState.domainView?.selection).toBe('auto');
+        expect(scopedState.ticketLookup).toBeNull();
         expect(scopedState.adminViewMode).toBe('basic');
         expect(scopedState.adminViewModeClinic).toBe('clinica-norte-demo');
         expect(scopedState.installPreset?.clinicId).toBe('clinica-norte-demo');
@@ -11972,6 +12071,7 @@ test.describe('Admin turnero sala', () => {
         expect(scopedState.installPreset?.station).toBe('c1');
         expect(scopedState.installPreset?.lock).toBe(true);
         expect(scopedState.installPreset?.oneTap).toBe(false);
+        await expect(page.locator('#queueTicketLookupInput')).toHaveValue('');
     });
 
     test('queue bloquea el piloto web si una superficie reporta otra ruta canónica', async ({
@@ -12202,9 +12302,9 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('#queueOpsPilotCanonItem_operator')
         ).toContainText('/operador-turnos.html');
-        await expect(
-            page.locator('#queueOpsPilotCanonSupport')
-        ).toContainText('1 superficie');
+        await expect(page.locator('#queueOpsPilotCanonSupport')).toContainText(
+            '1 superficie'
+        );
         await expect(
             page.locator('#queueOpsPilotSmokeItem_operator')
         ).toContainText('Bloquea');

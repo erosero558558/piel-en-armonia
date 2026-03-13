@@ -178,8 +178,10 @@ This document freezes the active admin frontend contract after the total cutover
     - `queueOpsAlertsV1`
     - `queueOpsFocusModeV1`
     - `queueOpsPlaybookV1`
+    - `queueHubDomainViewV1`
     - `queueAdminViewModeV1`
     - `queueInstallPresetV1`
+    - `queueTicketLookupV1`
 - Retired compatibility key:
     - `adminUiVariant` (historical only; not read or cleaned by runtime)
 
@@ -229,7 +231,8 @@ This document freezes the active admin frontend contract after the total cutover
 - In deployment/basic, `#queueOpsPilotCanonItem_*` must also block if `queueSurfaceStatus.*.latest.details.clinicId` differs from `turneroClinicProfile.clinic_id`, even when the route matches.
 - In deployment/basic, `#queueOpsPilotCanonItem_*` must also block if `queueSurfaceStatus.*.latest.details.profileFingerprint` differs from the active profile fingerprint, even when `clinicId` and route still match.
 - In deployment/basic, `#queueOpsPilotHandoff` is the shareable opening packet for the clinic pilot: it must summarize `clinic_id`, release mode, deployed commit, `bloqueo activo` and smoke progress, and `#queueOpsPilotHandoffCopyBtn` must copy the packet plus canonical routes.
-- `queueOpeningChecklistV1`, `queueShiftHandoffV1` and `queueOpsLogV1` now persist `clinicId` in their payloads; if the active `turneroClinicProfile.clinic_id` changes, runtime must reset those states before rendering the piloto web.
+- `queueOpeningChecklistV1`, `queueShiftHandoffV1`, `queueOpsLogV1`, `queueOpsLogFilterV1`, `queueOpsAlertsV1`, `queueOpsFocusModeV1`, `queueOpsPlaybookV1` and `queueHubDomainViewV1` are clinic-scoped. If the active `turneroClinicProfile.clinic_id` changes, runtime must reset those states before rendering the piloto web.
+- `queueTicketLookupV1` is also clinic-scoped; if the active clinic changes, runtime must clear the prior lookup before rendering the piloto web.
 - `state.queue.activity[*]` now also carries `clinicId`; `queueOpsPilotSmoke` and checklist assist must ignore local call activity that belongs to another clinic or lacks `clinicId`.
 - Rollback is operational (`revert + deploy`), not a runtime variant switch.
 - Any DOM contract break requires explicit test migration in active admin suites.

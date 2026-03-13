@@ -1,19 +1,33 @@
 let opsAlertsState = null;
 let opsFocusMode = null;
+let opsFocusModeClinicId = null;
 
-function createOpsAlertsState(date) {
+function getActiveClinicId(getActiveQueueOpsClinicId) {
+    return (
+        String(
+            typeof getActiveQueueOpsClinicId === 'function'
+                ? getActiveQueueOpsClinicId()
+                : ''
+        ).trim() || 'default-clinic'
+    );
+}
+
+function createOpsAlertsState(date, clinicId) {
     return {
         date,
+        clinicId,
         reviewed: {},
     };
 }
 
-function normalizeOpsAlertsState(rawState, today) {
+function normalizeOpsAlertsState(rawState, today, clinicId) {
     const source = rawState && typeof rawState === 'object' ? rawState : {};
     const reviewedSource =
         source.reviewed && typeof source.reviewed === 'object'
             ? source.reviewed
             : {};
+    const sameClinic = String(source.clinicId || '').trim() === clinicId;
+    const sameDate = String(source.date || '').trim() === today;
     const reviewed = Object.entries(reviewedSource).reduce(
         (acc, [alertId, value]) => {
             if (!alertId) {
@@ -29,30 +43,56 @@ function normalizeOpsAlertsState(rawState, today) {
     );
 
     return {
-        date: String(source.date || '').trim() === today ? today : today,
-        reviewed,
+        date: today,
+        clinicId,
+        reviewed: sameClinic && sameDate ? reviewed : {},
     };
 }
 
-function loadOpsAlertsState(storageKey, getTodayLocalIsoDate) {
+function loadOpsAlertsState(
+    storageKey,
+    getTodayLocalIsoDate,
+    getActiveQueueOpsClinicId
+) {
     const today = getTodayLocalIsoDate();
+    const clinicId = getActiveClinicId(getActiveQueueOpsClinicId);
     try {
         const raw = localStorage.getItem(storageKey);
         if (!raw) {
-            return createOpsAlertsState(today);
+            return createOpsAlertsState(today, clinicId);
         }
         const parsed = JSON.parse(raw);
-        if (String(parsed?.date || '') !== today) {
-            return createOpsAlertsState(today);
+        if (
+            String(parsed?.date || '').trim() !== today ||
+            String(parsed?.clinicId || '').trim() !== clinicId
+        ) {
+            const resetState = createOpsAlertsState(today, clinicId);
+            localStorage.setItem(storageKey, JSON.stringify(resetState));
+            return resetState;
         }
-        return normalizeOpsAlertsState(parsed, today);
+        return normalizeOpsAlertsState(parsed, today, clinicId);
     } catch (_error) {
-        return createOpsAlertsState(today);
+        const resetState = createOpsAlertsState(today, clinicId);
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(resetState));
+        } catch (_storageError) {
+            // ignore storage write failures
+        }
+        return resetState;
     }
 }
 
-function persistOpsAlertsState(storageKey, getTodayLocalIsoDate, nextState) {
-    opsAlertsState = normalizeOpsAlertsState(nextState, getTodayLocalIsoDate());
+function persistOpsAlertsState(
+    storageKey,
+    getTodayLocalIsoDate,
+    getActiveQueueOpsClinicId,
+    nextState
+) {
+    opsAlertsState = normalizeOpsAlertsState(
+        nextState,
+        getTodayLocalIsoDate(),
+        getActiveClinicId(getActiveQueueOpsClinicId)
+    );
     try {
         localStorage.setItem(storageKey, JSON.stringify(opsAlertsState));
     } catch (_error) {
@@ -61,10 +101,23 @@ function persistOpsAlertsState(storageKey, getTodayLocalIsoDate, nextState) {
     return opsAlertsState;
 }
 
-export function ensureOpsAlertsState(storageKey, getTodayLocalIsoDate) {
+export function ensureOpsAlertsState(
+    storageKey,
+    getTodayLocalIsoDate,
+    getActiveQueueOpsClinicId
+) {
     const today = getTodayLocalIsoDate();
-    if (!opsAlertsState || opsAlertsState.date !== today) {
-        opsAlertsState = loadOpsAlertsState(storageKey, getTodayLocalIsoDate);
+    const clinicId = getActiveClinicId(getActiveQueueOpsClinicId);
+    if (
+        !opsAlertsState ||
+        opsAlertsState.date !== today ||
+        opsAlertsState.clinicId !== clinicId
+    ) {
+        opsAlertsState = loadOpsAlertsState(
+            storageKey,
+            getTodayLocalIsoDate,
+            getActiveQueueOpsClinicId
+        );
     }
     return opsAlertsState;
 }
@@ -72,10 +125,15 @@ export function ensureOpsAlertsState(storageKey, getTodayLocalIsoDate) {
 export function setOpsAlertReviewed(
     storageKey,
     getTodayLocalIsoDate,
+    getActiveQueueOpsClinicId,
     alertId,
     reviewed
 ) {
-    const current = ensureOpsAlertsState(storageKey, getTodayLocalIsoDate);
+    const current = ensureOpsAlertsState(
+        storageKey,
+        getTodayLocalIsoDate,
+        getActiveQueueOpsClinicId
+    );
     const nextReviewed = {
         ...current.reviewed,
     };
@@ -86,15 +144,21 @@ export function setOpsAlertReviewed(
     } else {
         delete nextReviewed[String(alertId)];
     }
-    return persistOpsAlertsState(storageKey, getTodayLocalIsoDate, {
-        ...current,
-        reviewed: nextReviewed,
-    });
+    return persistOpsAlertsState(
+        storageKey,
+        getTodayLocalIsoDate,
+        getActiveQueueOpsClinicId,
+        {
+            ...current,
+            reviewed: nextReviewed,
+        }
+    );
 }
 
 export function markOpsAlertsReviewed(
     storageKey,
     getTodayLocalIsoDate,
+    getActiveQueueOpsClinicId,
     alertIds
 ) {
     const validIds = Array.isArray(alertIds)
@@ -103,20 +167,33 @@ export function markOpsAlertsReviewed(
               .filter(Boolean)
         : [];
     if (!validIds.length) {
-        return ensureOpsAlertsState(storageKey, getTodayLocalIsoDate);
+        return ensureOpsAlertsState(
+            storageKey,
+            getTodayLocalIsoDate,
+            getActiveQueueOpsClinicId
+        );
     }
 
-    const current = ensureOpsAlertsState(storageKey, getTodayLocalIsoDate);
+    const current = ensureOpsAlertsState(
+        storageKey,
+        getTodayLocalIsoDate,
+        getActiveQueueOpsClinicId
+    );
     const nextReviewed = { ...current.reviewed };
     const reviewedAt = new Date().toISOString();
     validIds.forEach((alertId) => {
         nextReviewed[alertId] = { reviewedAt };
     });
 
-    return persistOpsAlertsState(storageKey, getTodayLocalIsoDate, {
-        ...current,
-        reviewed: nextReviewed,
-    });
+    return persistOpsAlertsState(
+        storageKey,
+        getTodayLocalIsoDate,
+        getActiveQueueOpsClinicId,
+        {
+            ...current,
+            reviewed: nextReviewed,
+        }
+    );
 }
 
 function normalizeOpsFocusMode(rawValue) {
@@ -131,25 +208,74 @@ function normalizeOpsFocusMode(rawValue) {
         : 'auto';
 }
 
-function loadOpsFocusMode(storageKey) {
+function loadOpsFocusMode(storageKey, getActiveQueueOpsClinicId) {
+    const clinicId = getActiveClinicId(getActiveQueueOpsClinicId);
     try {
-        return normalizeOpsFocusMode(localStorage.getItem(storageKey));
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) {
+            return 'auto';
+        }
+        const parsed = JSON.parse(raw);
+        const parsedClinicId = String(parsed?.clinicId || '').trim();
+        if (parsedClinicId && parsedClinicId !== clinicId) {
+            const fallbackMode = 'auto';
+            localStorage.setItem(
+                storageKey,
+                JSON.stringify({ clinicId, mode: fallbackMode })
+            );
+            return fallbackMode;
+        }
+        const safeMode = normalizeOpsFocusMode(parsed?.mode);
+        if (parsedClinicId !== clinicId || safeMode !== parsed?.mode) {
+            localStorage.setItem(
+                storageKey,
+                JSON.stringify({ clinicId, mode: safeMode })
+            );
+        }
+        return safeMode;
     } catch (_error) {
+        try {
+            const legacyValue = localStorage.getItem(storageKey);
+            if (legacyValue) {
+                const safeMode = normalizeOpsFocusMode(legacyValue);
+                localStorage.setItem(
+                    storageKey,
+                    JSON.stringify({ clinicId, mode: safeMode })
+                );
+                return safeMode;
+            }
+        } catch (_nestedError) {
+            // ignore storage recovery failures
+        }
         return 'auto';
     }
 }
 
-export function ensureOpsFocusMode(storageKey) {
-    if (!opsFocusMode) {
-        opsFocusMode = loadOpsFocusMode(storageKey);
+export function ensureOpsFocusMode(storageKey, getActiveQueueOpsClinicId) {
+    const clinicId = getActiveClinicId(getActiveQueueOpsClinicId);
+    if (!opsFocusMode || opsFocusModeClinicId !== clinicId) {
+        opsFocusMode = loadOpsFocusMode(storageKey, getActiveQueueOpsClinicId);
+        opsFocusModeClinicId = clinicId;
     }
     return opsFocusMode;
 }
 
-export function persistOpsFocusMode(storageKey, nextMode) {
+export function persistOpsFocusMode(
+    storageKey,
+    nextMode,
+    getActiveQueueOpsClinicId
+) {
+    const clinicId = getActiveClinicId(getActiveQueueOpsClinicId);
     opsFocusMode = normalizeOpsFocusMode(nextMode);
+    opsFocusModeClinicId = clinicId;
     try {
-        localStorage.setItem(storageKey, opsFocusMode);
+        localStorage.setItem(
+            storageKey,
+            JSON.stringify({
+                clinicId,
+                mode: opsFocusMode,
+            })
+        );
     } catch (_error) {
         // ignore storage write failures
     }

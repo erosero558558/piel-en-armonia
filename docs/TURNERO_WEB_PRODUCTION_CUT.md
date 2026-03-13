@@ -89,6 +89,8 @@ Además debe exponer `bloqueos de salida`: una lista corta y accionable con solo
 
 La evidencia local del piloto (`opening checklist`, `relevo`, `bitácora`) debe quedar aislada por `clinic_id`. Si el navegador carga otra clínica, esos bloques deben reiniciarse y no arrastrar confirmaciones de una sede anterior.
 
+La misma regla aplica al estado operativo persistido del hub (`filtro de bitácora`, `alertas revisadas`, `focus mode`, `playbook`, `dominio del hub` y `lookup de ticket`). Ninguna de esas ayudas puede sobrevivir al cambio de clínica.
+
 El heurístico de `smoke final` también debe ser clínico: la actividad local del admin solo cuenta si el llamado/rellamado reciente pertenece al `clinic_id` activo. Actividad heredada o sin `clinicId` no puede dejar el piloto en verde.
 
 Debe evaluar cinco señales antes de abrir una clínica real:

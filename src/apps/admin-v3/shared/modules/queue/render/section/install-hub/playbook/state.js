@@ -1,9 +1,20 @@
 const VALID_MODES = new Set(['opening', 'operations', 'incidents', 'closing']);
 let opsPlaybookState = null;
 
-export function createOpsPlaybookState(date) {
+function getActiveClinicId(getActiveQueueOpsClinicId) {
+    return (
+        String(
+            typeof getActiveQueueOpsClinicId === 'function'
+                ? getActiveQueueOpsClinicId()
+                : ''
+        ).trim() || 'default-clinic'
+    );
+}
+
+export function createOpsPlaybookState(date, clinicId) {
     return {
         date,
+        clinicId,
         modes: {
             opening: {},
             operations: {},
@@ -14,28 +25,44 @@ export function createOpsPlaybookState(date) {
 }
 
 export function normalizeOpsPlaybookState(rawState, deps) {
-    const { getTodayLocalIsoDate } = deps;
+    const { getTodayLocalIsoDate, getActiveQueueOpsClinicId } = deps;
     const today = getTodayLocalIsoDate();
+    const clinicId = getActiveClinicId(getActiveQueueOpsClinicId);
     const source = rawState && typeof rawState === 'object' ? rawState : {};
     const safeModes =
         source.modes && typeof source.modes === 'object' ? source.modes : {};
+    const sameClinic = String(source.clinicId || '').trim() === clinicId;
+    const sameDate = String(source.date || '').trim() === today;
     return {
-        date: String(source.date || '').trim() === today ? today : today,
+        date: today,
+        clinicId,
         modes: {
             opening:
-                safeModes.opening && typeof safeModes.opening === 'object'
+                sameClinic &&
+                sameDate &&
+                safeModes.opening &&
+                typeof safeModes.opening === 'object'
                     ? { ...safeModes.opening }
                     : {},
             operations:
-                safeModes.operations && typeof safeModes.operations === 'object'
+                sameClinic &&
+                sameDate &&
+                safeModes.operations &&
+                typeof safeModes.operations === 'object'
                     ? { ...safeModes.operations }
                     : {},
             incidents:
-                safeModes.incidents && typeof safeModes.incidents === 'object'
+                sameClinic &&
+                sameDate &&
+                safeModes.incidents &&
+                typeof safeModes.incidents === 'object'
                     ? { ...safeModes.incidents }
                     : {},
             closing:
-                safeModes.closing && typeof safeModes.closing === 'object'
+                sameClinic &&
+                sameDate &&
+                safeModes.closing &&
+                typeof safeModes.closing === 'object'
                     ? { ...safeModes.closing }
                     : {},
         },
@@ -43,20 +70,33 @@ export function normalizeOpsPlaybookState(rawState, deps) {
 }
 
 export function loadOpsPlaybookState(deps) {
-    const { getTodayLocalIsoDate, storageKey } = deps;
+    const { getTodayLocalIsoDate, getActiveQueueOpsClinicId, storageKey } =
+        deps;
     const today = getTodayLocalIsoDate();
+    const clinicId = getActiveClinicId(getActiveQueueOpsClinicId);
     try {
         const raw = localStorage.getItem(storageKey);
         if (!raw) {
-            return createOpsPlaybookState(today);
+            return createOpsPlaybookState(today, clinicId);
         }
         const parsed = JSON.parse(raw);
-        if (String(parsed?.date || '') !== today) {
-            return createOpsPlaybookState(today);
+        if (
+            String(parsed?.date || '').trim() !== today ||
+            String(parsed?.clinicId || '').trim() !== clinicId
+        ) {
+            const resetState = createOpsPlaybookState(today, clinicId);
+            localStorage.setItem(storageKey, JSON.stringify(resetState));
+            return resetState;
         }
         return normalizeOpsPlaybookState(parsed, deps);
     } catch (_error) {
-        return createOpsPlaybookState(today);
+        const resetState = createOpsPlaybookState(today, clinicId);
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(resetState));
+        } catch (_storageError) {
+            // ignore storage write failures
+        }
+        return resetState;
     }
 }
 
@@ -72,9 +112,14 @@ export function persistOpsPlaybookState(nextState, deps) {
 }
 
 export function ensureOpsPlaybookState(deps) {
-    const { getTodayLocalIsoDate } = deps;
+    const { getTodayLocalIsoDate, getActiveQueueOpsClinicId } = deps;
     const today = getTodayLocalIsoDate();
-    if (!opsPlaybookState || opsPlaybookState.date !== today) {
+    const clinicId = getActiveClinicId(getActiveQueueOpsClinicId);
+    if (
+        !opsPlaybookState ||
+        opsPlaybookState.date !== today ||
+        opsPlaybookState.clinicId !== clinicId
+    ) {
         opsPlaybookState = loadOpsPlaybookState(deps);
     }
     return opsPlaybookState;
