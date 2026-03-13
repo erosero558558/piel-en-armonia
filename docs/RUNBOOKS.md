@@ -176,6 +176,24 @@ Gate recomendado por etapa:
 npm run gate:admin:rollout
 ```
 
+Atajos por etapa:
+
+- `npm run gate:admin:rollout:internal`
+- `npm run gate:admin:rollout:canary`
+- `npm run gate:admin:rollout:general`
+- `npm run gate:admin:rollout:rollback`
+
+Contrato actual del gate:
+
+1. `GATE-ADMIN-ROLLOUT.ps1` acepta `internal|canary|general|rollback`.
+2. `internal` mantiene guardrail tolerante: si no se pasan flags explicitas,
+   se permite `Features API` degradada y ausencia temporal de
+   `data.admin_sony_ui` / `data.admin_sony_ui_v3`.
+3. `canary`, `general` y `rollback` validan el contrato de flags backend contra
+   `/api.php?resource=features`, ademas del shell canonico `sony_v3`.
+4. El smoke runtime sigue ejecutandose contra el `-Domain` solicitado usando
+   `TEST_BASE_URL`, sin reusar servidores locales heredados.
+
 Reglas operativas:
 
 1. `admin.html` siempre debe resolver a `sony_v3`.

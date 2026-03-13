@@ -92,13 +92,50 @@ test('admin rollout root wrapper delega a la implementacion canonica de admin op
     );
 });
 
-test('admin rollout gate expone stage estable y contrato v3-only', () => {
+test('admin rollout gate expone stages canonicos y contrato v3-only', () => {
     const raw = loadScript();
 
     assert.equal(
-        raw.includes("[ValidateSet('stable')]"),
+        raw.includes(
+            "[ValidateSet('internal', 'canary', 'general', 'rollback')]"
+        ),
         true,
-        'falta stage estable canonico'
+        'falta set canonico de stages admin rollout'
+    );
+    assert.equal(
+        raw.includes('[switch]$AllowFeatureApiFailure'),
+        true,
+        'falta switch AllowFeatureApiFailure en el gate'
+    );
+    assert.equal(
+        raw.includes('[switch]$AllowMissingAdminFlag'),
+        true,
+        'falta switch AllowMissingAdminFlag en el gate'
+    );
+    assert.equal(
+        raw.includes('allow_feature_api_failure_effective'),
+        true,
+        'falta trazabilidad de allow_feature_api_failure_effective'
+    );
+    assert.equal(
+        raw.includes('allow_missing_admin_flag_effective'),
+        true,
+        'falta trazabilidad de allow_missing_admin_flag_effective'
+    );
+    assert.equal(
+        raw.includes('Get-ExpectedFeatureFlagsByStage'),
+        true,
+        'falta helper stage-aware de feature flags'
+    );
+    assert.equal(
+        raw.includes('admin_sony_ui_v3'),
+        true,
+        'falta validacion del flag admin_sony_ui_v3'
+    );
+    assert.equal(
+        raw.includes('Admin query sony_v3'),
+        true,
+        'falta chequeo de la URL inerte admin_ui=sony_v3'
     );
     assert.equal(
         raw.includes('url = "$base/admin.html"'),
@@ -240,6 +277,34 @@ test('package.json expone check canonico para chunks admin', () => {
         ),
         true,
         'package.json debe exponer chunks:admin:check como diagnostico canonico'
+    );
+    assert.equal(
+        packageJson.includes(
+            '"gate:admin:rollout": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-ADMIN-ROLLOUT.ps1 -Domain https://pielarmonia.com -Stage general"'
+        ),
+        true,
+        'gate:admin:rollout debe apuntar al stage general canonico'
+    );
+    assert.equal(
+        packageJson.includes(
+            '"gate:admin:rollout:internal": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-ADMIN-ROLLOUT.ps1 -Domain https://pielarmonia.com -Stage internal"'
+        ),
+        true,
+        'falta atajo npm para stage internal'
+    );
+    assert.equal(
+        packageJson.includes(
+            '"gate:admin:rollout:canary": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-ADMIN-ROLLOUT.ps1 -Domain https://pielarmonia.com -Stage canary"'
+        ),
+        true,
+        'falta atajo npm para stage canary'
+    );
+    assert.equal(
+        packageJson.includes(
+            '"gate:admin:rollout:rollback": "powershell -NoProfile -ExecutionPolicy Bypass -File ./GATE-ADMIN-ROLLOUT.ps1 -Domain https://pielarmonia.com -Stage rollback"'
+        ),
+        true,
+        'gate:admin:rollout:rollback debe propagar el stage rollback'
     );
 });
 

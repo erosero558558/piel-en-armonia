@@ -6,8 +6,8 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 598
-  updated_at: 2026-03-12
+  revision: 600
+  updated_at: 2026-03-13
 
 tasks:
   - id: AG-001
@@ -8483,3 +8483,41 @@ tasks:
     prompt: "Auto-close stale deploy alerts when public sync recovers"
     created_at: 2026-03-12
     updated_at: 2026-03-12
+
+  - id: AG-219
+    title: "Restore admin rollout gate policy compatibility"
+    owner: Ernesto
+    executor: codex
+    status: in_progress
+    status_since_at: "2026-03-13T00:11:36.967Z"
+    risk: high
+    scope: deploy
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: ["scripts/ops/admin/GATE-ADMIN-ROLLOUT.ps1", "tests-node/admin-rollout-gate-contract.test.js", "docs/RUNBOOKS.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: "lease_AG-219_20260313001136967_21b5d5"
+    lease_owner: "Ernesto"
+    lease_created_at: "2026-03-13T00:11:36.967Z"
+    heartbeat_at: "2026-03-13T00:11:36.967Z"
+    lease_expires_at: "2026-03-13T04:11:36.967Z"
+    lease_reason: "board_write"
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Restore admin rollout gate policy compatibility"
+    acceptance_ref: ""
+    evidence_ref: ""
+    depends_on: []
+    prompt: "Restore admin rollout gate policy compatibility"
+    created_at: 2026-03-13
+    updated_at: 2026-03-13
