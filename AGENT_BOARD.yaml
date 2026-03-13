@@ -6,7 +6,7 @@ policy:
   codex_partition_model: dual_fixed_domains
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
-  revision: 600
+  revision: 601
   updated_at: 2026-03-13
 
 tasks:
@@ -8488,8 +8488,8 @@ tasks:
     title: "Restore admin rollout gate policy compatibility"
     owner: Ernesto
     executor: codex
-    status: in_progress
-    status_since_at: "2026-03-13T00:11:36.967Z"
+    status: done
+    status_since_at: "2026-03-13T00:27:14.035Z"
     risk: high
     scope: deploy
     codex_instance: codex_backend_ops
@@ -8504,19 +8504,19 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: "lease_AG-219_20260313001136967_21b5d5"
-    lease_owner: "Ernesto"
-    lease_created_at: "2026-03-13T00:11:36.967Z"
-    heartbeat_at: "2026-03-13T00:11:36.967Z"
-    lease_expires_at: "2026-03-13T04:11:36.967Z"
-    lease_reason: "board_write"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-13T00:27:14.035Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "Restore admin rollout gate policy compatibility"
-    acceptance_ref: ""
-    evidence_ref: ""
+    acceptance_ref: "verification/agent-runs/AG-219.md"
+    evidence_ref: "verification/agent-runs/AG-219.md"
     depends_on: []
     prompt: "Restore admin rollout gate policy compatibility"
     created_at: 2026-03-13
