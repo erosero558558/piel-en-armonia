@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
+class ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
@@ -361,6 +361,7 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
     );
 
     public static $classMap = array (
+        'AdminAgentService' => __DIR__ . '/../..' . '/lib/AdminAgentService.php',
         'AnalyticsLabelNormalizer' => __DIR__ . '/../..' . '/lib/analytics/AnalyticsLabelNormalizer.php',
         'ApiConfig' => __DIR__ . '/../..' . '/lib/ApiConfig.php',
         'ApiKernel' => __DIR__ . '/../..' . '/lib/ApiKernel.php',
@@ -377,6 +378,12 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         'CURLStringFile' => __DIR__ . '/..' . '/symfony/polyfill-php81/Resources/stubs/CURLStringFile.php',
         'CalendarAvailabilityService' => __DIR__ . '/../..' . '/lib/calendar/CalendarAvailabilityService.php',
         'CalendarBookingService' => __DIR__ . '/../..' . '/lib/calendar/CalendarBookingService.php',
+        'CaseMediaFlowService' => __DIR__ . '/../..' . '/lib/CaseMediaFlowService.php',
+        'ClinicalHistoryAIService' => __DIR__ . '/../..' . '/lib/clinical_history/ClinicalHistoryAIService.php',
+        'ClinicalHistoryGuardrails' => __DIR__ . '/../..' . '/lib/clinical_history/ClinicalHistoryGuardrails.php',
+        'ClinicalHistoryOpsSnapshot' => __DIR__ . '/../..' . '/lib/clinical_history/ClinicalHistoryOpsSnapshot.php',
+        'ClinicalHistoryRepository' => __DIR__ . '/../..' . '/lib/clinical_history/ClinicalHistoryRepository.php',
+        'ClinicalHistoryService' => __DIR__ . '/../..' . '/lib/clinical_history/ClinicalHistoryService.php',
         'ClinicalMediaService' => __DIR__ . '/../..' . '/lib/telemedicine/ClinicalMediaService.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'Deprecated' => __DIR__ . '/..' . '/symfony/polyfill-php84/Resources/stubs/Deprecated.php',
@@ -1605,15 +1612,20 @@ class ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa
         'TicketPriorityPolicy' => __DIR__ . '/../..' . '/lib/queue/TicketPriorityPolicy.php',
         'UnhandledMatchError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/UnhandledMatchError.php',
         'ValueError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/ValueError.php',
+        'WhatsappOpenclawConfig' => __DIR__ . '/../..' . '/lib/whatsapp_openclaw/Config.php',
+        'WhatsappOpenclawConversationOrchestrator' => __DIR__ . '/../..' . '/lib/whatsapp_openclaw/ConversationOrchestrator.php',
+        'WhatsappOpenclawPlannerClient' => __DIR__ . '/../..' . '/lib/whatsapp_openclaw/PlannerClient.php',
+        'WhatsappOpenclawRepository' => __DIR__ . '/../..' . '/lib/whatsapp_openclaw/Repository.php',
+        'WhatsappOpenclawSlotHoldService' => __DIR__ . '/../..' . '/lib/whatsapp_openclaw/SlotHoldService.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$prefixesPsr0;
-            $loader->classMap = ComposerStaticInit9cbc8d713265ff9b0a8a50f7a11fe4aa::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d::$prefixesPsr0;
+            $loader->classMap = ComposerStaticInit1eb58578d878f7856f8ef53f738b1c3d::$classMap;
 
         }, null, ClassLoader::class);
     }

@@ -13,8 +13,10 @@ import type {
 import { buildProviderReceiptMetadata } from "./provider-registry.js";
 import {
   assertTenantProviderDispatchReady,
+  createDefaultProviderDispatchTransport,
   dispatchThroughTenantProviderClient
 } from "./provider-clients.js";
+import type { ProviderDispatchTransport } from "./provider-clients.js";
 import type { PlatformRepository } from "./state.js";
 
 function nowIso(): string {
@@ -71,55 +73,61 @@ export interface DispatchPortContext {
 }
 
 export interface QueueDispatchPort {
-  callNextPatient(input: DispatchPortContext): { ticket: QueueTicket; receipt: CopilotExecutionReceipt };
-  startCheckIn(input: DispatchPortContext): { appointment: Appointment; receipt: CopilotExecutionReceipt };
+  callNextPatient(input: DispatchPortContext): Promise<{ ticket: QueueTicket; receipt: CopilotExecutionReceipt }>;
+  startCheckIn(input: DispatchPortContext): Promise<{ appointment: Appointment; receipt: CopilotExecutionReceipt }>;
 }
 
 export interface MessagingDispatchPort {
   sendOpsMessage(input: DispatchPortContext & {
     body: string;
     channelOverride?: ConversationThread["channel"];
-  }): {
+  }): Promise<{
     thread: ConversationThread;
     receipt: CopilotExecutionReceipt;
-  };
+  }>;
 }
 
 export interface SchedulingDispatchPort {
-  confirmAppointment(input: DispatchPortContext): {
+  confirmAppointment(input: DispatchPortContext): Promise<{
     appointment: Appointment;
     receipt: CopilotExecutionReceipt;
-  };
-  requestReschedule(input: DispatchPortContext): {
+  }>;
+  requestReschedule(input: DispatchPortContext): Promise<{
     appointment: Appointment;
     receipt: CopilotExecutionReceipt;
-  };
-  recordBookingOptions(input: DispatchPortContext & { rationale: string }): {
+  }>;
+  recordBookingOptions(input: DispatchPortContext & { rationale: string }): Promise<{
     action: PatientCaseAction;
     receipt: CopilotExecutionReceipt;
-  };
+  }>;
 }
 
 export interface PaymentsDispatchPort {
-  recordApprovalFollowUp(input: DispatchPortContext & { rationale: string; messageUsed: string | null }): {
+  recordApprovalFollowUp(input: DispatchPortContext & {
+    rationale: string;
+    messageUsed: string | null;
+  }): Promise<{
     action: PatientCaseAction;
     approval: PatientCaseApproval;
     receipt: CopilotExecutionReceipt;
-  };
+  }>;
 }
 
 export interface FollowUpDispatchPort {
-  recordFollowUp(input: DispatchPortContext & { rationale: string; messageUsed: string | null }): {
+  recordFollowUp(input: DispatchPortContext & {
+    rationale: string;
+    messageUsed: string | null;
+  }): Promise<{
     action: PatientCaseAction;
     receipt: CopilotExecutionReceipt;
-  };
+  }>;
 }
 
 export interface HandoffDispatchPort {
-  createHandoff(input: DispatchPortContext & { rationale: string }): {
+  createHandoff(input: DispatchPortContext & { rationale: string }): Promise<{
     action: PatientCaseAction;
     receipt: CopilotExecutionReceipt;
-  };
+  }>;
 }
 
 export interface DestinationDispatchPorts {
@@ -138,7 +146,8 @@ export function buildPreparedActionPortIdempotencyKey(
   return `${preparedAction.destinationSystem}:${preparedAction.id}:${operation}`;
 }
 
-function buildReceipt(input: {
+async function buildReceipt(
+  input: {
   tenant: TenantConfig;
   system: string;
   operation: string;
@@ -146,13 +155,17 @@ function buildReceipt(input: {
   localExternalRef: string | null;
   metadata?: Record<string, unknown>;
   status?: "accepted" | "noop";
-}): CopilotExecutionReceipt {
-  const providerDispatch = dispatchThroughTenantProviderClient({
+  },
+  providerDispatchTransport: ProviderDispatchTransport
+): Promise<CopilotExecutionReceipt> {
+  const providerDispatch = await dispatchThroughTenantProviderClient({
     tenant: input.tenant,
     system: input.system,
     operation: input.operation,
     idempotencyKey: input.idempotencyKey,
     localExternalRef: input.localExternalRef
+  }, {
+    transport: providerDispatchTransport
   });
 
   return {
@@ -188,10 +201,19 @@ function requireDispatchReady(
   return tenant;
 }
 
-export function createLocalDestinationDispatchPorts(repository: PlatformRepository): DestinationDispatchPorts {
+export interface LocalDestinationDispatchPortsOptions {
+  providerDispatchTransport?: ProviderDispatchTransport;
+}
+
+export function createLocalDestinationDispatchPorts(
+  repository: PlatformRepository,
+  options: LocalDestinationDispatchPortsOptions = {}
+): DestinationDispatchPorts {
+  const providerDispatchTransport =
+    options.providerDispatchTransport ?? createDefaultProviderDispatchTransport();
   return {
     queue: {
-      callNextPatient(input) {
+      async callNextPatient(input) {
         const ticket = liveQueueTicket(input.snapshot);
         if (!ticket) {
           throw new Error("queue ticket not found for copilot execution");
@@ -205,7 +227,7 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
 
         return {
           ticket: updatedTicket,
-          receipt: buildReceipt({
+          receipt: await buildReceipt({
             tenant,
             system: "queue_console",
             operation: "call_next_patient",
@@ -216,10 +238,10 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
               queueStatus: updatedTicket.status
             },
             status: ticket.status === "waiting" ? "accepted" : "noop"
-          })
+          }, providerDispatchTransport)
         };
       },
-      startCheckIn(input) {
+      async startCheckIn(input) {
         const appointment = latestAppointment(input.snapshot);
         if (!appointment) {
           throw new Error("appointment not found for copilot execution");
@@ -233,7 +255,7 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
 
         return {
           appointment: updatedAppointment,
-          receipt: buildReceipt({
+          receipt: await buildReceipt({
             tenant,
             system: "queue_console",
             operation: "start_check_in",
@@ -244,12 +266,12 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
               appointmentStatus: updatedAppointment.status
             },
             status: appointment.status === "checked_in" ? "noop" : "accepted"
-          })
+          }, providerDispatchTransport)
         };
       }
     },
     messaging: {
-      sendOpsMessage(input) {
+      async sendOpsMessage(input) {
         const tenant = requireDispatchReady(repository, input.tenantId, "patient_messaging");
         const thread = repository.appendConversationMessage(
           input.tenantId,
@@ -260,7 +282,7 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
         );
         return {
           thread,
-          receipt: buildReceipt({
+          receipt: await buildReceipt({
             tenant,
             system: "patient_messaging",
             operation: "send_ops_message",
@@ -272,12 +294,12 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
               threadStatus: thread.status,
               messageLength: input.body.length
             }
-          })
+          }, providerDispatchTransport)
         };
       }
     },
     scheduling: {
-      confirmAppointment(input) {
+      async confirmAppointment(input) {
         const appointment = latestAppointment(input.snapshot);
         if (!appointment) {
           throw new Error("appointment not found for copilot execution");
@@ -291,7 +313,7 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
 
         return {
           appointment: updatedAppointment,
-          receipt: buildReceipt({
+          receipt: await buildReceipt({
             tenant,
             system: "scheduling_workbench",
             operation: "confirm_appointment",
@@ -302,10 +324,10 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
               appointmentStatus: updatedAppointment.status
             },
             status: appointment.status === "confirmed" ? "noop" : "accepted"
-          })
+          }, providerDispatchTransport)
         };
       },
-      requestReschedule(input) {
+      async requestReschedule(input) {
         const appointment = latestAppointment(input.snapshot);
         if (!appointment) {
           throw new Error("appointment not found for copilot execution");
@@ -319,7 +341,7 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
 
         return {
           appointment: updatedAppointment,
-          receipt: buildReceipt({
+          receipt: await buildReceipt({
             tenant,
             system: "scheduling_workbench",
             operation: "request_reschedule",
@@ -330,10 +352,10 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
               appointmentStatus: updatedAppointment.status
             },
             status: appointment.status === "reschedule_requested" ? "noop" : "accepted"
-          })
+          }, providerDispatchTransport)
         };
       },
-      recordBookingOptions(input) {
+      async recordBookingOptions(input) {
         const tenant = requireDispatchReady(repository, input.tenantId, "scheduling_workbench");
         const action = repository.createCaseAction(input.tenantId, input.caseId, {
           action: "send_booking_options",
@@ -346,7 +368,7 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
 
         return {
           action,
-          receipt: buildReceipt({
+          receipt: await buildReceipt({
             tenant,
             system: "scheduling_workbench",
             operation: "record_booking_options",
@@ -356,12 +378,12 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
               actionType: action.action,
               actionStatus: action.status
             }
-          })
+          }, providerDispatchTransport)
         };
       }
     },
     payments: {
-      recordApprovalFollowUp(input) {
+      async recordApprovalFollowUp(input) {
         const approval = pendingApproval(input.snapshot);
         if (!approval) {
           throw new Error("approval not found for copilot execution");
@@ -386,7 +408,7 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
         return {
           action,
           approval,
-          receipt: buildReceipt({
+          receipt: await buildReceipt({
             tenant,
             system: "payments_review_queue",
             operation: input.preparedAction.recommendedAction,
@@ -400,12 +422,12 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
               approvalType: approval.type,
               actionStatus: action.status
             }
-          })
+          }, providerDispatchTransport)
         };
       }
     },
     followUp: {
-      recordFollowUp(input) {
+      async recordFollowUp(input) {
         const tenant = requireDispatchReady(repository, input.tenantId, "ops_followup_queue");
         const pendingFollowUp = latestPendingAction(input.snapshot, ["send_follow_up", "recover_no_show"]);
         const action = pendingFollowUp
@@ -421,7 +443,7 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
 
         return {
           action,
-          receipt: buildReceipt({
+          receipt: await buildReceipt({
             tenant,
             system: "ops_followup_queue",
             operation: input.preparedAction.recommendedAction,
@@ -434,12 +456,12 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
               actionType: action.action,
               actionStatus: action.status
             }
-          })
+          }, providerDispatchTransport)
         };
       }
     },
     handoff: {
-      createHandoff(input) {
+      async createHandoff(input) {
         const tenant = requireDispatchReady(repository, input.tenantId, "ops_handoff_queue");
         const existingAction = latestPendingAction(input.snapshot, ["handoff_to_staff"]);
         const action = existingAction
@@ -454,7 +476,7 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
 
         return {
           action,
-          receipt: buildReceipt({
+          receipt: await buildReceipt({
             tenant,
             system: "ops_handoff_queue",
             operation: "handoff_to_staff",
@@ -465,7 +487,7 @@ export function createLocalDestinationDispatchPorts(repository: PlatformReposito
               actionStatus: action.status
             },
             status: existingAction ? "noop" : "accepted"
-          })
+          }, providerDispatchTransport)
         };
       }
     }

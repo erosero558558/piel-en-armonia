@@ -111,6 +111,11 @@ function app_downloads_page_absolute(string $path): string
 $surfaceMap = turnero_surface_registry_map();
 $surfaceUiMap = app_downloads_surface_ui_map();
 $catalog = read_app_downloads_catalog();
+$turneroDefaults = turnero_surface_registry_defaults();
+$turneroBrandName = (string) ($turneroDefaults['brandName'] ?? 'Consultorio Medicina General');
+$turneroDownloadLabels = isset($turneroDefaults['downloadLabels']) && is_array($turneroDefaults['downloadLabels'])
+    ? $turneroDefaults['downloadLabels']
+    : [];
 $surface = app_downloads_page_surface($catalog, $surfaceMap);
 $surfaceDefinition = $surfaceMap[$surface] ?? [];
 $platform = app_downloads_page_platform($surfaceDefinition);
@@ -129,6 +134,8 @@ $setupQuery = app_downloads_page_build_query($surface, $platform, $station, $loc
 $surfaceTitle = (string) ($surfaceUiMap[$surface]['catalog']['title'] ?? $surface);
 $surfaceEyebrow = (string) ($surfaceUiMap[$surface]['catalog']['eyebrow'] ?? '');
 $surfaceDescription = (string) ($surfaceUiMap[$surface]['catalog']['description'] ?? '');
+$downloadsHubTitle = (string) ($turneroDownloadLabels['hubTitle'] ?? 'Centro de instalacion del turnero');
+$downloadsHeroTitle = (string) ($turneroDownloadLabels['heroTitle'] ?? 'Prepara cada equipo sin mezclar operador, kiosco y TV');
 $currentTargetOptions = array_keys(isset($surfaceConfig['targets']) && is_array($surfaceConfig['targets']) ? $surfaceConfig['targets'] : []);
 $initialPayload = build_app_downloads_runtime_payload([
     'surface' => $surface,
@@ -143,7 +150,7 @@ $initialPayload = build_app_downloads_runtime_payload([
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Instaladores opcionales del turnero - Piel en Armonia</title>
+        <title><?php echo app_downloads_page_escape($downloadsHubTitle); ?> | <?php echo app_downloads_page_escape($turneroBrandName); ?></title>
         <meta
             name="description"
             content="Instaladores opcionales del turnero para el siguiente release. El piloto estable actual corre por web."
@@ -155,8 +162,8 @@ $initialPayload = build_app_downloads_runtime_payload([
         <main class="app-downloads-shell">
             <section class="app-downloads-hero">
                 <div class="app-downloads-hero__copy">
-                    <p class="app-downloads-kicker">Siguiente release</p>
-                    <h1>Instaladores opcionales para Operador, Kiosco y Sala TV</h1>
+                    <p class="app-downloads-kicker"><?php echo app_downloads_page_escape($downloadsHubTitle); ?></p>
+                    <h1><?php echo app_downloads_page_escape($downloadsHeroTitle); ?></h1>
                     <p>
                         El piloto estable actual sale por web con `admin`, `operador`, `kiosco`
                         y `sala`. Esta página queda como centro opcional para preparar instaladores

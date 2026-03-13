@@ -1,10 +1,10 @@
 {
     "schema": "turnero-clinic-profile/v1",
-    "clinic_id": "piel-armonia-quito",
+    "clinic_id": "medicina-general",
     "branding": {
-        "name": "Piel en Armonia",
-        "short_name": "Piel en Armonia",
-        "city": "Quito",
+        "name": "Consultorio Medicina General",
+        "short_name": "Medicina General",
+        "city": "",
         "base_url": "https://pielarmonia.com"
     },
     "consultorios": {

@@ -5,7 +5,19 @@
         "version": "0.1.0",
         "baseUrl": "https://pielarmonia.com",
         "downloadBasePath": "/app-downloads/",
-        "updateBasePath": "/desktop-updates/"
+        "updateBasePath": "/desktop-updates/",
+        "brandName": "Consultorio Medicina General",
+        "brandShortName": "Medicina General",
+        "surfaceTitles": {
+            "operator": "Turnero Operador | Consultorio Medicina General",
+            "kiosk": "Kiosco de turnos | Consultorio Medicina General",
+            "sala_tv": "Sala de espera | Consultorio Medicina General",
+            "downloads": "Centro de instalacion del turnero | Consultorio Medicina General"
+        },
+        "downloadLabels": {
+            "hubTitle": "Centro de instalacion del turnero",
+            "heroTitle": "Prepara cada equipo sin mezclar operador, kiosco y TV"
+        }
     },
     "surfaces": [
         {
@@ -15,7 +27,7 @@
             "productName": "Turnero Operador",
             "artifactBase": "TurneroOperador",
             "executableName": "TurneroOperador",
-            "appId": "com.pielarmonia.turnero.operator",
+            "appId": "com.turnero.medicinageneral.operator",
             "webFallbackUrl": "/operador-turnos.html",
             "guideUrl": "/app-downloads/?surface=operator",
             "updateChannel": "stable",
@@ -66,7 +78,7 @@
                     "manualFile": "TurneroOperadorSetup.exe",
                     "updatePath": "operator/win",
                     "updateFile": "TurneroOperadorSetup.exe",
-                    "feedFile": "latest.yml"
+                    "feedFile": "stable.yml"
                 },
                 "mac": {
                     "label": "macOS",
@@ -74,7 +86,7 @@
                     "manualFile": "TurneroOperador.dmg",
                     "updatePath": "operator/mac",
                     "updateFile": "TurneroOperador.zip",
-                    "feedFile": "latest-mac.yml"
+                    "feedFile": "stable-mac.yml"
                 }
             }
         },
@@ -85,7 +97,7 @@
             "productName": "Turnero Kiosco",
             "artifactBase": "TurneroKiosco",
             "executableName": "TurneroKiosco",
-            "appId": "com.pielarmonia.turnero.kiosk",
+            "appId": "com.turnero.medicinageneral.kiosk",
             "webFallbackUrl": "/kiosco-turnos.html",
             "guideUrl": "/app-downloads/?surface=kiosk",
             "updateChannel": "stable",
@@ -132,7 +144,7 @@
                     "manualFile": "TurneroKioscoSetup.exe",
                     "updatePath": "kiosk/win",
                     "updateFile": "TurneroKioscoSetup.exe",
-                    "feedFile": "latest.yml"
+                    "feedFile": "stable.yml"
                 },
                 "mac": {
                     "label": "macOS",
@@ -140,7 +152,7 @@
                     "manualFile": "TurneroKiosco.dmg",
                     "updatePath": "kiosk/mac",
                     "updateFile": "TurneroKiosco.zip",
-                    "feedFile": "latest-mac.yml"
+                    "feedFile": "stable-mac.yml"
                 }
             }
         },

@@ -11,6 +11,7 @@ class GoogleCalendarClient
     private array $doctorCalendarMap;
     private string $statusPath;
     private int $cacheTtlSec;
+    private string $caBundlePath;
 
     public function __construct(
         GoogleTokenProvider $tokenProvider,
@@ -18,7 +19,8 @@ class GoogleCalendarClient
         array $doctorCalendarMap,
         string $baseUrl = 'https://www.googleapis.com/calendar/v3',
         int $timeoutMs = 8500,
-        int $cacheTtlSec = 60
+        int $cacheTtlSec = 60,
+        string $caBundlePath = ''
     ) {
         $this->tokenProvider = $tokenProvider;
         $this->timezone = trim($timezone) !== '' ? trim($timezone) : 'America/Guayaquil';
@@ -26,6 +28,7 @@ class GoogleCalendarClient
         $this->baseUrl = rtrim($baseUrl, '/');
         $this->timeoutMs = max(2000, $timeoutMs);
         $this->cacheTtlSec = max(0, min(300, $cacheTtlSec));
+        $this->caBundlePath = trim($caBundlePath);
         $statusDir = data_dir_path() . DIRECTORY_SEPARATOR . 'cache';
         if (!is_dir($statusDir)) {
             @mkdir($statusDir, 0775, true);
@@ -47,7 +50,8 @@ class GoogleCalendarClient
             $map,
             'https://www.googleapis.com/calendar/v3',
             8500,
-            $cacheTtlSec
+            $cacheTtlSec,
+            GoogleTokenProvider::resolveCaBundlePath()
         );
     }
 
@@ -343,6 +347,11 @@ class GoogleCalendarClient
                 curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
                 curl_setopt($ch, CURLOPT_TIMEOUT_MS, $this->timeoutMs);
                 curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, min(3000, $this->timeoutMs));
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+                if ($this->caBundlePath !== '') {
+                    curl_setopt($ch, CURLOPT_CAINFO, $this->caBundlePath);
+                }
                 if ($body !== '') {
                     curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
                 }
@@ -359,7 +368,7 @@ class GoogleCalendarClient
             }
         }
 
-        $context = stream_context_create([
+        $contextOptions = [
             'http' => [
                 'method' => $method,
                 'header' => implode("\r\n", $headers),
@@ -367,7 +376,17 @@ class GoogleCalendarClient
                 'timeout' => max(1, (int) ceil($this->timeoutMs / 1000)),
                 'ignore_errors' => true,
             ],
-        ]);
+        ];
+
+        if ($this->caBundlePath !== '') {
+            $contextOptions['ssl'] = [
+                'cafile' => $this->caBundlePath,
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ];
+        }
+
+        $context = stream_context_create($contextOptions);
 
         $responseBody = @file_get_contents($url, false, $context);
         $status = 0;

@@ -1836,6 +1836,54 @@ body.admin-v3-mode .clinical-history-followup-input {
     min-height: 132px;
 }
 
+body.admin-v3-mode .clinical-history-followup-status {
+    display: grid;
+    gap: 12px;
+}
+
+body.admin-v3-mode .clinical-history-followup-status-card {
+    display: grid;
+    gap: 8px;
+    padding: 14px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--admin3-line);
+    background: var(--admin3-surface);
+}
+
+body.admin-v3-mode .clinical-history-followup-status-card[data-tone='warning'] {
+    border-color: rgba(180, 116, 27, 0.28);
+    background: rgba(248, 238, 215, 0.85);
+}
+
+body.admin-v3-mode .clinical-history-followup-status-card[data-tone='success'] {
+    border-color: rgba(41, 120, 67, 0.22);
+    background: rgba(230, 244, 235, 0.9);
+}
+
+body.admin-v3-mode .clinical-history-followup-status-card strong,
+body.admin-v3-mode .clinical-history-followup-status-card p,
+body.admin-v3-mode .clinical-history-followup-status-card small {
+    margin: 0;
+}
+
+body.admin-v3-mode .clinical-history-followup-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+body.admin-v3-mode .clinical-history-followup-links a,
+body.admin-v3-mode .clinical-history-followup-links button {
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: var(--admin3-accent);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 body.admin-v3-mode .clinical-media-flow-grid {
     display: grid;
     grid-template-columns: minmax(320px, 0.72fr) minmax(0, 1.28fr);

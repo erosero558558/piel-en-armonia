@@ -46,10 +46,45 @@ function getChatHistoryLength() {
     return 0;
 }
 
+function getChatModeSafe() {
+    if (deps && typeof deps.getChatMode === 'function') {
+        return String(deps.getChatMode() || '').trim() || 'general';
+    }
+    return 'general';
+}
+
+function getClinicalHistorySessionSafe() {
+    if (deps && typeof deps.getClinicalHistorySession === 'function') {
+        const session = deps.getClinicalHistorySession();
+        return session && typeof session === 'object' ? session : null;
+    }
+    return null;
+}
+
+function doesClinicalSessionMatchRouteSafe(session) {
+    if (deps && typeof deps.doesClinicalSessionMatchRoute === 'function') {
+        return deps.doesClinicalSessionMatchRoute(session) === true;
+    }
+    return false;
+}
+
 function warmChatUi() {
     if (deps && typeof deps.warmChatUi === 'function') {
         deps.warmChatUi();
     }
+}
+
+function renderChatHistorySafe() {
+    if (deps && typeof deps.renderChatHistory === 'function') {
+        deps.renderChatHistory();
+    }
+}
+
+function ensureClinicalSessionHydratedSafe(options) {
+    if (deps && typeof deps.ensureClinicalSessionHydrated === 'function') {
+        return deps.ensureClinicalSessionHydrated(options || {});
+    }
+    return Promise.resolve(null);
 }
 
 function scrollToBottomSafe() {
@@ -228,7 +263,53 @@ function shouldUseRealAI() {
     return window.location.protocol !== 'file:';
 }
 
-function buildWelcomeMessage(usingRealAI) {
+function isClinicalIntakeMode() {
+    return getChatModeSafe() === 'clinical_intake';
+}
+
+function getPendingPatientAction(session) {
+    if (!session || typeof session !== 'object') {
+        return null;
+    }
+    const metadata =
+        session.metadata && typeof session.metadata === 'object'
+            ? session.metadata
+            : null;
+    const pending =
+        metadata && metadata.pendingPatientAction
+            ? metadata.pendingPatientAction
+            : null;
+    return pending && typeof pending === 'object' ? pending : null;
+}
+
+function buildWelcomeMessage(usingRealAI, clinicalSession) {
+    if (isClinicalIntakeMode()) {
+        const pendingPatientAction = getPendingPatientAction(clinicalSession);
+        let message =
+            'Hola. Vamos a continuar tu <strong>historia clinica</strong> en este mismo chat.<br><br>';
+
+        if (
+            pendingPatientAction &&
+            typeof pendingPatientAction.question === 'string' &&
+            pendingPatientAction.question.trim() !== ''
+        ) {
+            message +=
+                'Tu medico dejo una pregunta pendiente para seguir con el caso:<br><br>';
+            message += `<strong>${String(
+                pendingPatientAction.question
+            ).trim()}</strong><br><br>`;
+            message +=
+                'Responde con tus propias palabras en el cuadro de abajo y seguimos desde ahi.';
+            return message;
+        }
+
+        message +=
+            'Escribe con tus palabras que te esta pasando y te hare una pregunta a la vez. ';
+        message +=
+            'No necesitas llenar formularios largos ni explicar todo de golpe.';
+        return message;
+    }
+
     let message =
         'Hola! Soy el <strong>Dr. Virtual</strong> de <strong>Aurora Derm</strong>.<br><br>';
 
@@ -254,6 +335,10 @@ function buildWelcomeMessage(usingRealAI) {
 }
 
 function renderQuickSuggestions() {
+    if (isClinicalIntakeMode()) {
+        return;
+    }
+
     setTimeout(() => {
         let quickOptions = '<div class="chat-suggestions">';
         quickOptions +=
@@ -272,6 +357,61 @@ function renderQuickSuggestions() {
 
         addBotMessageSafe(quickOptions);
     }, 500);
+}
+
+function hasReusableHistory() {
+    if (getChatHistoryLength() <= 0) {
+        return false;
+    }
+
+    if (!isClinicalIntakeMode()) {
+        return true;
+    }
+
+    const session = getClinicalHistorySessionSafe();
+    return doesClinicalSessionMatchRouteSafe(session);
+}
+
+function showInitialWelcome() {
+    const usingRealAI = shouldUseRealAI();
+    const session = getClinicalHistorySessionSafe();
+    debugLogSafe(
+        'Estado del chatbot:',
+        isClinicalIntakeMode()
+            ? 'HISTORIA CLINICA'
+            : usingRealAI
+              ? 'IA REAL'
+              : 'Respuestas locales'
+    );
+    addBotMessageSafe(buildWelcomeMessage(usingRealAI, session));
+    renderQuickSuggestions();
+}
+
+function hydrateClinicalHistoryOnOpen() {
+    Promise.resolve(
+        ensureClinicalSessionHydratedSafe({
+            render: true,
+        })
+    )
+        .then((session) => {
+            if (getChatHistoryLength() > 0) {
+                renderChatHistorySafe();
+                scrollToBottomSafe();
+                return;
+            }
+
+            const resolvedSession =
+                session && typeof session === 'object'
+                    ? session
+                    : getClinicalHistorySessionSafe();
+            const usingRealAI = shouldUseRealAI();
+            addBotMessageSafe(
+                buildWelcomeMessage(usingRealAI, resolvedSession)
+            );
+        })
+        .catch(() => {
+            showInitialWelcome();
+        });
 }
 
 function toggleChatbot() {
@@ -304,17 +444,24 @@ function toggleChatbot() {
 
     ensureChatStartedTracked('widget_open');
 
-    if (getChatHistoryLength() > 0) {
+    if (hasReusableHistory()) {
+        renderChatHistorySafe();
+        if (isClinicalIntakeMode()) {
+            Promise.resolve(
+                ensureClinicalSessionHydratedSafe({
+                    render: true,
+                })
+            ).catch(() => undefined);
+        }
         return;
     }
 
-    const usingRealAI = shouldUseRealAI();
-    debugLogSafe(
-        'Estado del chatbot:',
-        usingRealAI ? 'IA REAL' : 'Respuestas locales'
-    );
-    addBotMessageSafe(buildWelcomeMessage(usingRealAI));
-    renderQuickSuggestions();
+    if (isClinicalIntakeMode()) {
+        hydrateClinicalHistoryOnOpen();
+        return;
+    }
+
+    showInitialWelcome();
 }
 
 function minimizeChatbot() {

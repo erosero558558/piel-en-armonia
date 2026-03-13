@@ -240,19 +240,41 @@ function scrollToBottom() {
     container.scrollTop = container.scrollHeight;
 }
 
-function addUserMessage(text) {
-    const messagesContainer = document.getElementById('chatMessages');
-    if (!messagesContainer) {
-        return;
-    }
+function getMessagesContainer() {
+    return document.getElementById('chatMessages');
+}
 
+function createUserMessageNode(text) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'chat-message user';
     messageDiv.innerHTML = `
         <div class="message-avatar"><i class="fas fa-user"></i></div>
         <div class="message-content"><p>${escapeHtml(text)}</p></div>
     `;
-    messagesContainer.appendChild(messageDiv);
+    return messageDiv;
+}
+
+function createBotMessageNode(html, showOfflineLabel) {
+    const offlineIndicator = showOfflineLabel
+        ? '<div class="chatbot-offline-badge"><i class="fas fa-robot"></i> Asistente Virtual</div>'
+        : '';
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'chat-message bot';
+    messageDiv.innerHTML = `
+        <div class="message-avatar"><i class="fas fa-user-md"></i></div>
+        <div class="message-content">${offlineIndicator}${sanitizeBotHtml(html)}</div>
+    `;
+    return messageDiv;
+}
+
+function addUserMessage(text) {
+    const messagesContainer = getMessagesContainer();
+    if (!messagesContainer) {
+        return;
+    }
+
+    messagesContainer.appendChild(createUserMessageNode(text));
     scrollToBottom();
 
     const entry = { type: 'user', text, time: new Date().toISOString() };
@@ -263,7 +285,7 @@ function addUserMessage(text) {
 }
 
 function addBotMessage(html, showOfflineLabel) {
-    const messagesContainer = document.getElementById('chatMessages');
+    const messagesContainer = getMessagesContainer();
     if (!messagesContainer) {
         return;
     }
@@ -280,17 +302,9 @@ function addBotMessage(html, showOfflineLabel) {
         }
     }
 
-    const offlineIndicator = showOfflineLabel
-        ? '<div class="chatbot-offline-badge"><i class="fas fa-robot"></i> Asistente Virtual</div>'
-        : '';
-
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'chat-message bot';
-    messageDiv.innerHTML = `
-        <div class="message-avatar"><i class="fas fa-user-md"></i></div>
-        <div class="message-content">${offlineIndicator}${safeHtml}</div>
-    `;
-    messagesContainer.appendChild(messageDiv);
+    messagesContainer.appendChild(
+        createBotMessageNode(safeHtml, showOfflineLabel)
+    );
     scrollToBottom();
 
     const entry = {
@@ -304,7 +318,7 @@ function addBotMessage(html, showOfflineLabel) {
 }
 
 function showTypingIndicator() {
-    const messagesContainer = document.getElementById('chatMessages');
+    const messagesContainer = getMessagesContainer();
     if (!messagesContainer || document.getElementById('typingIndicator')) {
         return;
     }
@@ -329,11 +343,56 @@ function removeTypingIndicator() {
     }
 }
 
+function renderChatHistory(history) {
+    const messagesContainer = getMessagesContainer();
+    if (!messagesContainer) {
+        return;
+    }
+
+    messagesContainer.innerHTML = '';
+
+    const entries = Array.isArray(history) ? history : [];
+    entries.forEach((entry) => {
+        if (!entry || typeof entry !== 'object') {
+            return;
+        }
+
+        const type = String(entry.type || '')
+            .trim()
+            .toLowerCase();
+        if (type === 'user') {
+            messagesContainer.appendChild(
+                createUserMessageNode(String(entry.text || ''))
+            );
+            return;
+        }
+
+        const isBot =
+            type === 'bot' ||
+            type === 'assistant' ||
+            type === 'system' ||
+            type === '';
+        if (!isBot) {
+            return;
+        }
+
+        messagesContainer.appendChild(
+            createBotMessageNode(
+                String(entry.text || ''),
+                entry.showOfflineLabel === true
+            )
+        );
+    });
+
+    scrollToBottom();
+}
+
 window.Piel = window.Piel || {};
 window.Piel.ChatUiEngine = {
     init,
     addUserMessage,
     addBotMessage,
+    renderChatHistory,
     sanitizeBotHtml,
     showTypingIndicator,
     removeTypingIndicator,

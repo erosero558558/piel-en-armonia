@@ -69,10 +69,10 @@ Artefactos esperados:
 
 Metadatos de auto-update esperados:
 
-- `dist/operator/win/latest.yml`
-- `dist/operator/mac/latest-mac.yml`
-- `dist/kiosk/win/latest.yml`
-- `dist/kiosk/mac/latest-mac.yml`
+- `dist/operator/win/stable.yml`
+- `dist/operator/mac/stable-mac.yml`
+- `dist/kiosk/win/stable.yml`
+- `dist/kiosk/mac/stable-mac.yml`
 
 Si `electron` o `electron-builder` no estan instalados localmente, los scripts
 de `dev` y `build` fallan con una instruccion explicita para ejecutar:

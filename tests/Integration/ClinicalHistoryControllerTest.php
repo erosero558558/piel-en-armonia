@@ -371,6 +371,136 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertNotSame('', (string) ($reviewPatch['payload']['data']['events'][0]['resolvedAt'] ?? ''));
     }
 
+    public function testClinicalHistoryFollowUpQuestionCreatesResumeStateAndResolvesOnPatientReply(): void
+    {
+        putenv('PIELARMONIA_CLINICAL_HISTORY_FAKE_RESPONSE=' . json_encode([
+            'reply' => 'Gracias, ya registre la aclaracion en tu historia clinica.',
+            'nextQuestion' => 'Tambien quiero confirmar si has usado algun tratamiento reciente.',
+            'intakePatch' => [
+                'motivoConsulta' => 'Prurito nocturno',
+                'enfermedadActual' => 'Prurito que empeora por la noche',
+            ],
+            'missingFields' => ['medicacionActual'],
+            'redFlags' => [],
+            'clinicianDraft' => [
+                'resumen' => 'Paciente con prurito de predominio nocturno.',
+                'preguntasFaltantes' => ['Tratamientos recientes'],
+                'cie10Sugeridos' => ['L29.9'],
+                'tratamientoBorrador' => 'Pendiente de validacion humana.',
+                'posologiaBorrador' => [
+                    'texto' => '',
+                    'baseCalculo' => '',
+                    'pesoKg' => null,
+                    'edadAnios' => null,
+                    'units' => '',
+                    'ambiguous' => true,
+                ],
+            ],
+            'requiresHumanReview' => true,
+            'confidence' => 0.61,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Sofia Vega',
+                    'email' => 'sofia@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+        $sessionId = (string) ($session['sessionId'] ?? '');
+        $caseId = (string) ($session['caseId'] ?? '');
+
+        $_SESSION['csrf_token'] = 'csrf-follow-up';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-follow-up';
+        $reviewPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::reviewPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => $sessionId,
+                'requestAdditionalQuestion' => 'Necesito confirmar si la picazon empeora por la noche.',
+            ]
+        );
+
+        self::assertSame(200, $reviewPatch['status']);
+        self::assertSame('review_required', (string) ($reviewPatch['payload']['data']['draft']['reviewStatus'] ?? ''));
+        self::assertSame('review_required', (string) ($reviewPatch['payload']['data']['session']['status'] ?? ''));
+        self::assertSame(
+            'Necesito confirmar si la picazon empeora por la noche.',
+            (string) ($reviewPatch['payload']['data']['session']['metadata']['pendingPatientAction']['question'] ?? '')
+        );
+        self::assertStringContainsString(
+            'mode=clinical_intake',
+            (string) ($reviewPatch['payload']['data']['session']['metadata']['patientIntake']['resumeUrl'] ?? '')
+        );
+        self::assertStringContainsString(
+            $sessionId,
+            (string) ($reviewPatch['payload']['data']['session']['metadata']['patientIntake']['resumeUrl'] ?? '')
+        );
+        self::assertCount(1, $reviewPatch['payload']['data']['events'] ?? []);
+        self::assertSame('patient_follow_up_pending', (string) ($reviewPatch['payload']['data']['events'][0]['type'] ?? ''));
+        self::assertSame('open', (string) ($reviewPatch['payload']['data']['events'][0]['status'] ?? ''));
+
+        $_GET = ['sessionId' => $sessionId];
+        $publicSession = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionGet([])
+        );
+
+        self::assertSame(200, $publicSession['status']);
+        self::assertSame(
+            'Necesito confirmar si la picazon empeora por la noche.',
+            (string) ($publicSession['payload']['data']['session']['metadata']['pendingPatientAction']['question'] ?? '')
+        );
+
+        $patientReply = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::messagePost([]),
+            'POST',
+            [
+                'sessionId' => $sessionId,
+                'caseId' => $caseId,
+                'surface' => 'patient_link',
+                'clientMessageId' => 'msg-follow-up-001',
+                'message' => 'Si, en la noche pica mucho mas y me despierta.',
+            ]
+        );
+
+        self::assertSame(200, $patientReply['status']);
+        self::assertArrayNotHasKey(
+            'pendingPatientAction',
+            $patientReply['payload']['data']['session']['metadata'] ?? []
+        );
+
+        $_GET = ['sessionId' => $sessionId];
+        $review = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::reviewGet([
+                'isAdmin' => true,
+            ])
+        );
+
+        self::assertSame(200, $review['status']);
+        self::assertArrayNotHasKey(
+            'pendingPatientAction',
+            $review['payload']['data']['session']['metadata'] ?? []
+        );
+        self::assertSame(
+            'answered',
+            (string) ($review['payload']['data']['session']['metadata']['lastPatientAction']['status'] ?? '')
+        );
+        self::assertSame(
+            'resolved',
+            (string) ($review['payload']['data']['events'][0]['status'] ?? '')
+        );
+        self::assertGreaterThanOrEqual(3, count($review['payload']['data']['session']['transcript'] ?? []));
+    }
+
     public function testClinicalHistoryBackgroundReconcilerProcessesPendingSessionsWithoutReopeningSession(): void
     {
         putenv('FIGO_PROVIDER_MODE=openclaw_queue');

@@ -124,6 +124,16 @@ final class ClinicalHistoryService
                 'caseId' => (string) ($session['caseId'] ?? ''),
             ],
         ]);
+        $patientTranscript = is_array($session['transcript'] ?? null) ? $session['transcript'] : [];
+        $patientMessageId = (string) (($patientTranscript[count($patientTranscript) - 1]['id'] ?? ''));
+        [$session, $resolvedPatientAction] = $this->resolvePendingPatientActionAfterPatientReply(
+            $session,
+            $patientMessageId,
+            $messageText
+        );
+        if ($resolvedPatientAction !== []) {
+            $store = $this->resolvePendingPatientActionEvent($store, $session, $resolvedPatientAction);
+        }
 
         $attachmentResult = $this->attachUploads($store, $session, $draft, $payload);
         $store = $attachmentResult['store'];
@@ -417,6 +427,12 @@ final class ClinicalHistoryService
 
         $question = ClinicalHistoryRepository::trimString($payload['requestAdditionalQuestion'] ?? $payload['followUpQuestion'] ?? '');
         if ($question !== '') {
+            $approve = false;
+            $reviewStatus = 'review_required';
+            $draft['reviewStatus'] = 'review_required';
+            $draft['status'] = 'review_required';
+            $draft['requiresHumanReview'] = true;
+            $session['status'] = 'review_required';
             $session = ClinicalHistoryRepository::appendTranscriptMessage($session, [
                 'role' => 'assistant',
                 'actor' => 'clinician_review',
@@ -426,6 +442,8 @@ final class ClinicalHistoryService
                     'requestedBy' => 'clinician',
                 ],
             ]);
+            [$session, $pendingPatientAction] = $this->startPendingPatientAction($session, $question);
+            $store = $this->upsertPendingPatientActionEvent($store, $session, $pendingPatientAction);
         }
 
         $draft['updatedAt'] = local_date('c');
@@ -510,8 +528,11 @@ final class ClinicalHistoryService
                 : [];
         }
 
+        $sessionPayload = ClinicalHistoryRepository::patientSafeSession($session);
+        $sessionPayload['metadata'] = $this->buildPublicSessionMetadata($session);
+
         return [
-            'session' => ClinicalHistoryRepository::patientSafeSession($session),
+            'session' => $sessionPayload,
             'draft' => ClinicalHistoryRepository::patientSafeDraft($draft),
             'response' => $response,
             'ai' => $ai,
@@ -520,14 +541,315 @@ final class ClinicalHistoryService
 
     private function buildAdminPayload(array $store, array $session, array $draft): array
     {
+        $sessionPayload = ClinicalHistoryRepository::adminSession($session);
+        $sessionPayload['metadata'] = $this->buildAdminSessionMetadata($session);
+
         return [
-            'session' => ClinicalHistoryRepository::adminSession($session),
+            'session' => $sessionPayload,
             'draft' => ClinicalHistoryRepository::adminDraft($draft),
             'events' => ClinicalHistoryRepository::findEventsBySessionId(
                 $store,
                 (string) ($session['sessionId'] ?? '')
             ),
         ];
+    }
+
+    private function buildPublicSessionMetadata(array $session): array
+    {
+        $metadata = [];
+        $patientIntake = $this->buildPatientIntakeMetadata($session);
+        if ($patientIntake !== []) {
+            $metadata['patientIntake'] = $patientIntake;
+        }
+
+        $pendingPatientAction = $this->normalizePendingPatientAction(
+            isset($session['metadata']['pendingPatientAction']) && is_array($session['metadata']['pendingPatientAction'])
+                ? $session['metadata']['pendingPatientAction']
+                : []
+        );
+        if ($pendingPatientAction !== []) {
+            $metadata['pendingPatientAction'] = $this->sanitizePendingPatientActionForPatient($pendingPatientAction);
+        }
+
+        return $metadata;
+    }
+
+    private function buildAdminSessionMetadata(array $session): array
+    {
+        $metadata = isset($session['metadata']) && is_array($session['metadata']) ? $session['metadata'] : [];
+        $metadata['patientIntake'] = $this->buildPatientIntakeMetadata($session);
+
+        $pendingPatientAction = $this->normalizePendingPatientAction(
+            isset($metadata['pendingPatientAction']) && is_array($metadata['pendingPatientAction'])
+                ? $metadata['pendingPatientAction']
+                : []
+        );
+        if ($pendingPatientAction === []) {
+            unset($metadata['pendingPatientAction']);
+        } else {
+            $metadata['pendingPatientAction'] = $pendingPatientAction;
+        }
+
+        $lastPatientAction = $this->normalizePendingPatientAction(
+            isset($metadata['lastPatientAction']) && is_array($metadata['lastPatientAction'])
+                ? $metadata['lastPatientAction']
+                : []
+        );
+        if ($lastPatientAction === []) {
+            unset($metadata['lastPatientAction']);
+        } else {
+            $metadata['lastPatientAction'] = $lastPatientAction;
+        }
+
+        return $metadata;
+    }
+
+    private function buildPatientIntakeMetadata(array $session): array
+    {
+        $sessionId = ClinicalHistoryRepository::trimString($session['sessionId'] ?? '');
+        $caseId = ClinicalHistoryRepository::trimString($session['caseId'] ?? '');
+        if ($sessionId === '' && $caseId === '') {
+            return [];
+        }
+
+        return [
+            'mode' => 'clinical_intake',
+            'surface' => ClinicalHistoryRepository::trimString($session['surface'] ?? ''),
+            'sessionId' => $sessionId,
+            'caseId' => $caseId,
+            'appointmentId' => ClinicalHistoryRepository::nullablePositiveInt($session['appointmentId'] ?? null),
+            'resumeUrl' => $this->buildPatientIntakeResumeUrl($session),
+        ];
+    }
+
+    private function buildPatientIntakeResumeUrl(array $session): string
+    {
+        $sessionId = ClinicalHistoryRepository::trimString($session['sessionId'] ?? '');
+        $caseId = ClinicalHistoryRepository::trimString($session['caseId'] ?? '');
+        if ($sessionId === '' && $caseId === '') {
+            return '';
+        }
+
+        $query = [
+            'mode' => 'clinical_intake',
+        ];
+        if ($sessionId !== '') {
+            $query['sessionId'] = $sessionId;
+        }
+        if ($caseId !== '') {
+            $query['caseId'] = $caseId;
+        }
+        $appointmentId = ClinicalHistoryRepository::nullablePositiveInt($session['appointmentId'] ?? null);
+        if ($appointmentId !== null) {
+            $query['appointmentId'] = $appointmentId;
+        }
+
+        $baseUrl = $this->resolvePublicBaseUrl();
+        return rtrim($baseUrl !== '' ? $baseUrl : '', '/') . '/?' . http_build_query($query);
+    }
+
+    private function resolvePublicBaseUrl(): string
+    {
+        foreach ([
+            'PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL',
+            'PIELARMONIA_LEADOPS_SERVER_BASE_URL',
+        ] as $envKey) {
+            $configured = ClinicalHistoryRepository::trimString(getenv($envKey) ?: '');
+            if ($configured !== '') {
+                return rtrim($configured, '/');
+            }
+        }
+
+        $host = ClinicalHistoryRepository::trimString($_SERVER['HTTP_HOST'] ?? '');
+        if ($host === '') {
+            return '';
+        }
+
+        $scheme = 'http';
+        $https = strtolower((string) ($_SERVER['HTTPS'] ?? ''));
+        if ($https !== '' && $https !== 'off' && $https !== '0') {
+            $scheme = 'https';
+        } elseif ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443 || stripos($host, ':443') !== false) {
+            $scheme = 'https';
+        }
+
+        return $scheme . '://' . $host;
+    }
+
+    private function startPendingPatientAction(array $session, string $question): array
+    {
+        $session = ClinicalHistoryRepository::adminSession($session);
+        $sanitizedQuestion = ClinicalHistoryGuardrails::sanitizePatientText($question);
+        $action = $this->normalizePendingPatientAction([
+            'actionId' => ClinicalHistoryRepository::newOpaqueId('chpa'),
+            'type' => 'follow_up_question',
+            'status' => 'pending',
+            'question' => $sanitizedQuestion,
+            'requestedAt' => local_date('c'),
+            'requestedBy' => 'clinician_review',
+        ]);
+
+        $metadata = isset($session['metadata']) && is_array($session['metadata']) ? $session['metadata'] : [];
+        $metadata['pendingPatientAction'] = $action;
+        unset($metadata['lastPatientAction']);
+        $session['metadata'] = $metadata;
+        $session['updatedAt'] = local_date('c');
+
+        return [$session, $action];
+    }
+
+    private function resolvePendingPatientActionAfterPatientReply(array $session, string $messageId, string $messageText): array
+    {
+        $session = ClinicalHistoryRepository::adminSession($session);
+        $metadata = isset($session['metadata']) && is_array($session['metadata']) ? $session['metadata'] : [];
+        $pendingPatientAction = $this->normalizePendingPatientAction(
+            isset($metadata['pendingPatientAction']) && is_array($metadata['pendingPatientAction'])
+                ? $metadata['pendingPatientAction']
+                : []
+        );
+        if ($pendingPatientAction === [] || $pendingPatientAction['status'] !== 'pending') {
+            return [$session, []];
+        }
+
+        $pendingPatientAction['status'] = 'answered';
+        $pendingPatientAction['answeredAt'] = local_date('c');
+        $pendingPatientAction['answeredBy'] = 'patient';
+        $pendingPatientAction['responseMessageId'] = ClinicalHistoryRepository::trimString($messageId);
+        $pendingPatientAction['responsePreview'] = ClinicalHistoryRepository::trimString($messageText);
+
+        unset($metadata['pendingPatientAction']);
+        $metadata['lastPatientAction'] = $pendingPatientAction;
+        $session['metadata'] = $metadata;
+        $session['updatedAt'] = local_date('c');
+
+        return [$session, $pendingPatientAction];
+    }
+
+    private function normalizePendingPatientAction(array $action): array
+    {
+        $question = ClinicalHistoryRepository::trimString($action['question'] ?? '');
+        $actionId = ClinicalHistoryRepository::trimString($action['actionId'] ?? '');
+        if ($question === '' && $actionId === '') {
+            return [];
+        }
+
+        return [
+            'actionId' => $actionId !== '' ? $actionId : ClinicalHistoryRepository::newOpaqueId('chpa'),
+            'type' => ClinicalHistoryRepository::trimString($action['type'] ?? 'follow_up_question') !== ''
+                ? ClinicalHistoryRepository::trimString($action['type'] ?? 'follow_up_question')
+                : 'follow_up_question',
+            'status' => ClinicalHistoryRepository::trimString($action['status'] ?? 'pending') !== ''
+                ? ClinicalHistoryRepository::trimString($action['status'] ?? 'pending')
+                : 'pending',
+            'question' => $question,
+            'requestedAt' => ClinicalHistoryRepository::trimString($action['requestedAt'] ?? ''),
+            'requestedBy' => ClinicalHistoryRepository::trimString($action['requestedBy'] ?? ''),
+            'answeredAt' => ClinicalHistoryRepository::trimString($action['answeredAt'] ?? ''),
+            'answeredBy' => ClinicalHistoryRepository::trimString($action['answeredBy'] ?? ''),
+            'responseMessageId' => ClinicalHistoryRepository::trimString($action['responseMessageId'] ?? ''),
+            'responsePreview' => ClinicalHistoryRepository::trimString($action['responsePreview'] ?? ''),
+        ];
+    }
+
+    private function sanitizePendingPatientActionForPatient(array $action): array
+    {
+        $normalized = $this->normalizePendingPatientAction($action);
+        if ($normalized === []) {
+            return [];
+        }
+
+        return [
+            'actionId' => $normalized['actionId'],
+            'type' => $normalized['type'],
+            'status' => $normalized['status'],
+            'question' => $normalized['question'],
+            'requestedAt' => $normalized['requestedAt'],
+        ];
+    }
+
+    private function upsertPendingPatientActionEvent(array $store, array $session, array $action): array
+    {
+        $action = $this->normalizePendingPatientAction($action);
+        if ($action === []) {
+            return $store;
+        }
+
+        $sessionId = ClinicalHistoryRepository::trimString($session['sessionId'] ?? '');
+        if ($sessionId === '') {
+            return $store;
+        }
+
+        $eventSave = ClinicalHistoryRepository::upsertEvent($store, [
+            'sessionId' => $sessionId,
+            'caseId' => (string) ($session['caseId'] ?? ''),
+            'appointmentId' => $session['appointmentId'] ?? null,
+            'type' => 'patient_follow_up_pending',
+            'severity' => 'info',
+            'status' => 'open',
+            'title' => 'Paciente con pregunta adicional pendiente',
+            'message' => $action['question'],
+            'requiresAction' => true,
+            'dedupeKey' => 'clinical_history|patient_follow_up_pending|' . $sessionId,
+            'patient' => isset($session['patient']) && is_array($session['patient']) ? $session['patient'] : [],
+            'metadata' => [
+                'actionId' => $action['actionId'],
+                'resumeUrl' => $this->buildPatientIntakeResumeUrl($session),
+                'requestedAt' => $action['requestedAt'],
+            ],
+            'occurredAt' => $action['requestedAt'] !== '' ? $action['requestedAt'] : local_date('c'),
+            'acknowledgedAt' => '',
+            'resolvedAt' => '',
+        ]);
+
+        return $eventSave['store'];
+    }
+
+    private function resolvePendingPatientActionEvent(array $store, array $session, array $action): array
+    {
+        $action = $this->normalizePendingPatientAction($action);
+        $sessionId = ClinicalHistoryRepository::trimString($session['sessionId'] ?? '');
+        if ($action === [] || $sessionId === '') {
+            return $store;
+        }
+
+        $dedupeKey = 'clinical_history|patient_follow_up_pending|' . $sessionId;
+        $events = isset($store['clinical_history_events']) && is_array($store['clinical_history_events'])
+            ? $store['clinical_history_events']
+            : [];
+        $now = local_date('c');
+        $changed = false;
+
+        foreach ($events as $index => $eventRecord) {
+            $event = ClinicalHistoryRepository::defaultEvent($eventRecord);
+            if (ClinicalHistoryRepository::trimString($event['dedupeKey'] ?? '') !== $dedupeKey) {
+                continue;
+            }
+
+            $event['status'] = 'resolved';
+            $event['requiresAction'] = false;
+            if (ClinicalHistoryRepository::trimString($event['acknowledgedAt'] ?? '') === '') {
+                $event['acknowledgedAt'] = $now;
+            }
+            $event['resolvedAt'] = $action['answeredAt'] !== '' ? $action['answeredAt'] : $now;
+            $event['updatedAt'] = $now;
+            $event['metadata'] = array_merge(
+                isset($event['metadata']) && is_array($event['metadata']) ? $event['metadata'] : [],
+                [
+                    'actionId' => $action['actionId'],
+                    'answeredAt' => $action['answeredAt'],
+                    'responseMessageId' => $action['responseMessageId'],
+                ]
+            );
+            $events[$index] = ClinicalHistoryRepository::defaultEvent($event);
+            $changed = true;
+            break;
+        }
+
+        if ($changed) {
+            $store['clinical_history_events'] = array_values($events);
+        }
+
+        return $store;
     }
 
     private function resolveSessionContext(array $store, array $payload, bool $createIfMissing): array
@@ -1242,6 +1564,12 @@ final class ClinicalHistoryService
                 continue;
             }
             if ((bool) ($event['requiresAction'] ?? false) !== true) {
+                continue;
+            }
+            if (
+                !$resolve &&
+                ClinicalHistoryRepository::trimString($event['type'] ?? '') === 'patient_follow_up_pending'
+            ) {
                 continue;
             }
 

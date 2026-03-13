@@ -142,6 +142,82 @@ test.describe('Kiosco turnos', () => {
         );
     });
 
+    test('confirma check-in con cita y emite ticket appointment', async ({
+        page,
+    }) => {
+        let checkinBody = null;
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const request = route.request();
+            const url = new URL(request.url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'queue-state') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        updatedAt: new Date().toISOString(),
+                        waitingCount: 0,
+                        calledCount: 0,
+                        callingNow: [],
+                        nextTickets: [],
+                        assistancePendingCount: 0,
+                        activeHelpRequests: [],
+                    },
+                });
+            }
+
+            if (resource === 'queue-checkin') {
+                checkinBody = request.postDataJSON();
+                return json(
+                    route,
+                    {
+                        ok: true,
+                        data: {
+                            id: 102,
+                            ticketCode: 'A-102',
+                            patientInitials: 'EP',
+                            queueType: 'appointment',
+                            createdAt: new Date().toISOString(),
+                        },
+                        printed: true,
+                        print: { ok: true, errorCode: '', message: 'ok' },
+                    },
+                    201
+                );
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto('/kiosco-turnos.html');
+        await page.fill('#checkinPhone', '0999123456');
+        await page.fill('#checkinDate', '2026-03-31');
+        await page.fill('#checkinTime', '08:30');
+        await page.fill('#checkinInitials', 'EP');
+        await page.click('#checkinSubmit');
+
+        expect(checkinBody).toEqual({
+            telefono: '0999123456',
+            hora: '08:30',
+            fecha: '2026-03-31',
+            patientInitials: 'EP',
+        });
+        await expect(page.locator('#ticketResult')).toContainText('A-102');
+        await expect(page.locator('#ticketResult')).toContainText(
+            'Check-in de cita'
+        );
+        await expect(page.locator('#ticketResult')).toContainText(
+            'appointment'
+        );
+        await expect(page.locator('#ticketResult')).toContainText(
+            'Impresion enviada a termica'
+        );
+        await expect(page.locator('#kioskStatus')).toContainText(
+            'Check-in registrado correctamente'
+        );
+    });
+
     test('enruta No tengo cita sin usar chat libre', async ({ page }) => {
         let chatCalls = 0;
 

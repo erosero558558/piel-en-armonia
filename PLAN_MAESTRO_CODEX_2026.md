@@ -1619,6 +1619,95 @@ Criterio de salida:
 - [x] `node --test tests-node/weekly-kpi-workflow-contract.test.js` en verde.
 - [x] `npm run agent:gate` en verde.
 
+## C49 - Contrato operativo canonico
+
+Estado: `COMPLETED`
+Objetivo:
+
+- Volver operable y medible la historia clinica conversacional existente en
+  `web + admin`, usando un snapshot unico para `admin`, `health` y `metrics`.
+
+Entregables:
+
+- [x] `ClinicalHistoryOpsSnapshot` consolidado como fuente canonica operativa.
+- [x] `GET /api.php?resource=health` expone `checks.clinicalHistory` con
+      `configured`, `status`, `summary`, `reviewQueue`, `pendingAi`, `events`,
+      `surfaces`, `lastReconcileAt` y `diagnostics`.
+- [x] `docs/API.md` y `docs/openapi.yaml` documentan
+      `clinical-history-session`, `clinical-history-message` y
+      `clinical-history-review`.
+- [x] `metrics` exporta senales clinicas por superficie, estado y severidad.
+- [x] `cron.php` persiste snapshot reconciliado para lectura real desde
+      `health/reportes`.
+
+Criterio de salida:
+
+- [x] `health`, `admin` y `metrics` leen el mismo snapshot clinico.
+- [x] La reconciliacion deja evidencia persistida y auditable.
+- [x] Contratos PHP de health/metrics/cron quedan verdes.
+
+## C50 - Convergencia multi-superficie
+
+Estado: `COMPLETED`
+Objetivo:
+
+- Reusar `caseId` como hilo clinico canonico entre `web`, `WhatsApp OpenClaw`
+  y `admin`, manteniendo `sessionId` por superficie sin romper contratos.
+
+Entregables:
+
+- [x] `clinical_history_sessions` y `clinical_history_drafts` soportan
+      `patientKey` y `channelRefs`.
+- [x] `ClinicalHistoryService` acepta referencias cross-surface aditivas
+      (`surface`, `channelRef`, `sourceMessageId`, `patient.phone`,
+      `patient.email`).
+- [x] `lib/whatsapp_openclaw/*` soporta intents clinicos
+      `clinical_collect`, `clinical_followup` y `clinical_review_required`.
+- [x] Media de WhatsApp se mapea a `clinical_uploads` via
+      `ClinicalMediaService`.
+- [x] Drafts/conversations de WhatsApp quedan enlazados con
+      `clinicalCaseId`, `clinicalSessionId`, `clinicalStatus` y
+      `clinicalReviewStatus`.
+
+Criterio de salida:
+
+- [x] Un mismo paciente puede iniciar en web y continuar en WhatsApp sobre el
+      mismo `caseId`.
+- [x] Booking/reprogramacion/pagos quedan intactos con el flag clinico apagado.
+- [x] Admin review refleja origen y superficies enlazadas del caso.
+
+## C51 - Escala y gobernanza
+
+Estado: `COMPLETED`
+Objetivo:
+
+- Escalar la historia clinica conversacional con guardrails de produccion,
+  monitoreo, runbooks e incidente dedicado.
+
+Entregables:
+
+- [x] `checks.openclawInternal.components.clinicalHistory` agregado al
+      contrato interno.
+- [x] `patientFacingExpansionAllowed` pasa a politica env-driven con rollout
+      por fases (`web=live`, `whatsapp=shadow/live`, allowlist).
+- [x] `REPORTE-SEMANAL-PRODUCCION.ps1`, `MONITOR-PRODUCCION.ps1`,
+      `VERIFICAR-DESPLIEGUE.ps1`, `SMOKE-PRODUCCION.ps1` y `GATE-POSTDEPLOY.ps1`
+      incorporan thresholds y validaciones clinicas.
+- [x] `.github/workflows/prod-monitor.yml`,
+      `.github/workflows/post-deploy-gate.yml` y
+      `.github/workflows/weekly-kpi-report.yml` abren/cierra incidente dedicado de
+      historia clinica.
+- [x] `docs/RUNBOOKS.md`, `docs/LEADOPS_OPENCLAW.md` y `env.example.php`
+      reflejan la politica de rollout clinico.
+
+Criterio de salida:
+
+- [x] Los incidentes generales ya no absorben degradaciones clinicas puras.
+- [x] Existe trazabilidad clinica dedicada en monitor diario, gate post-deploy
+      y weekly KPI.
+- [x] El rollout paciente por WhatsApp queda explicitamente gobernado por flags
+      y allowlist, manteniendo `human-in-the-loop`.
+
 ## Contratos publicos
 
 - No se introducen cambios breaking en contratos HTTP existentes.
@@ -1719,3 +1808,12 @@ Criterio de salida:
 - 2026-03-09: cerrado C46 con hardening de dedupe en incidentes telemedicina de deploy (`deploy-hosting`, `deploy-staging`, `deploy-frontend-selfhosted`): la huella `signal` ahora incorpora `non_tele` para detectar cambios no-tele aunque se mantengan `status|reason|failures`, y los comentarios de actualizacion incluyen `*_non_tele_failures` para trazabilidad operativa; contratos reforzados en `tests-node/deploy-hosting-workflow-contract.test.js`, `tests-node/public-routing-deploy-workflows-contract.test.js` y `tests-node/deploy-frontend-selfhosted-workflow-contract.test.js`; validado con tests dedicados y `npm run agent:gate`; evidencia en `verification/agent-runs/CDX-038.md`.
 - 2026-03-09: cerrado C47 con homogeneizacion de dedupe `non_tele` en incidentes telemedicina no-deploy (`post-deploy-fast`, `post-deploy-gate`, `nightly-stability`, `calendar-write-smoke`, `prod-monitor`, `repair-git-sync`): cada `signal` dedicado ahora incluye `non_tele` y los comentarios de update mantienen trazabilidad `*_non_tele_failures`; contratos reforzados en `tests-node/post-deploy-fast-workflow-contract.test.js`, `tests-node/post-deploy-gate-workflow-contract.test.js`, `tests-node/nightly-stability-workflow-contract.test.js`, `tests-node/calendar-write-smoke-workflow-contract.test.js`, `tests-node/prod-monitor-workflow-contract.test.js` y `tests-node/deploy-hosting-workflow-contract.test.js` (repair); validado con tests dedicados y `npm run agent:gate`; evidencia en `verification/agent-runs/CDX-039.md`.
 - 2026-03-09: cerrado C48 con hardening final de dedupe semanal en `weekly-kpi-report`: `telemedicine_signal_key` deja de usar llaves opacas en fallback (`missing_report`, `report_invalid`) y pasa a semantica estructurada `status|reason|failures|non_tele|reasons|stale`; ademas la senal semanal normaliza `non_tele` (reemplaza `nontele`) y el incidente dedicado semanal agrega trazabilidad `telemedicine_weekly_non_tele_failures`; contrato reforzado en `tests-node/weekly-kpi-workflow-contract.test.js`; validado con test dedicado y `npm run agent:gate`; evidencia en `verification/agent-runs/CDX-040.md`.
+- 2026-03-12: runway inicial de `Patient Flow OS` consolidado sobre la vertical `callbacks_followup_approvals`: `cutover-cli.ts` ahora serializa `adoptionTrack/adoptionTrackEvidence` en promotion/rollback/backup drill, los workflows `patient-flow-os-cutover/promote/rollback/backup-drill` propagan el vertical en manifests y summaries, la guia `src/apps/patient-flow-os/docs/POSTGRES_CUTOVER.md` fija esta pista como primer caso de adopcion, y la verificacion dedicada queda en verde con `npm test` dentro de `src/apps/patient-flow-os` (`70/70`), contratos workflow Node (`12/12`) y `npm run agent:gate`; evidencia en `verification/agent-runs/AG-212.md`.
+- 2026-03-12: soporte de calidad para el batch activo de deploy observability (`AG-212`): rerun verde de contratos Sentry/public sync/verify/repair (`24/24`), workflows `patient-flow-os-*` (`12/12`), `npm test` en `src/apps/patient-flow-os` (`70/70`) y `npm run agent:gate` (`424/424`) sobre el arbol combinado; evidencia ampliada en `verification/agent-runs/AG-212.md`.
+- 2026-03-12: cierre operativo parcial de `AG-212` refrescado con runtime real: `verify:sentry:events` sigue en `needs_configuration` por ausencia de `SENTRY_AUTH_TOKEN` y `SENTRY_ORG`, mientras `prod-readiness-summary` confirma `public_sync=healthy` y `deploy_verify=ok_fresh`; los bloqueos vigentes pasan a ser externos/remotos (`PM-SENTRY-001`, `CI`, `Post-Deploy Gate` y `Deploy Hosting` fallidos) y no deuda local adicional de implementacion.
+- 2026-03-12: triage fino de `Post-Deploy Gate` dentro de `AG-212`: el rojo remoto sin jobs queda explicado por el commit publicado con `26` `workflow_dispatch.inputs` (`skip_figo_post_bench` era el extra); el worktree local ya recorta el workflow a `25` inputs, mueve ese toggle a `vars.SKIP_FIGO_POST_BENCH`, y valida el fix con `node --test tests-node/post-deploy-gate-workflow-contract.test.js` (`6/6`).
+- 2026-03-12: `prod-readiness-summary` queda endurecido para el carril de deploy remoto: soporta BOM en `verification/weekly/weekly-report-*.json`, exporta helpers puros para contrato, y clasifica diagnosticos de workflows en `workflow_file_issue` (sin jobs) y `staging_canary_missing_secrets` (bloqueo por `require_staging_canary=true` sin `STAGING_FTP_*`), reflejandolo en markdown/JSON y en `suggestedActions`.
+- 2026-03-12: el runtime real ya muestra el rojo con mas precision en `verification/runtime/prod-readiness-summary.{json,md}`: `Post-Deploy Gate` pasa a diagnostico de workflow invalido, `Deploy Hosting` pasa a bloqueo de secrets/politica de staging canary, y el siguiente paso operativo se concentra en configurar `STAGING_FTP_SERVER`, `STAGING_FTP_USERNAME`, `STAGING_FTP_PASSWORD`, `SENTRY_AUTH_TOKEN` y `SENTRY_ORG`.
+- 2026-03-12: cierre de hardening transversal para `AG-212` en gobernanza local: nuevo contrato `tests-node/prod-readiness-summary-workflows.test.js`, ajuste de `tests-node/workspace-hygiene-contract.test.js` para validar superficies root trackeadas y la invocacion multilinea canonica de `SMOKE-PRODUCCION`, y `npm run agent:gate` vuelve a quedar en verde (`420/420` tests + gobernanza completa).
+- 2026-03-12: cerrados C49-C51 de historia clinica conversacional con OpenClaw: `checks.clinicalHistory` y `checks.openclawInternal.components.clinicalHistory` quedan operativos en health/admin/metrics, `weekly report` + `prod-monitor` + `post-deploy gate` suman thresholds e incidente dedicado clinico, el rollout paciente por WhatsApp pasa a politica env-driven con `shadow|live|allowlist`, y la documentacion operativa queda actualizada en `docs/RUNBOOKS.md` y `docs/LEADOPS_OPENCLAW.md`; validacion con contratos PHP/Node y parse checks de PowerShell.
+- 2026-03-12: aceptacion visible de C49-C51 validada en UI con `npx playwright test tests/admin-v3-shell.spec.js tests/chat-clinical-intake.spec.js --workers=1` usando `TEST_BASE_URL=http://127.0.0.1:8011`; `admin` confirma apertura de revision clinica, guardado de borrador medico y resolucion de eventos, mientras `chat` confirma intake clinico conversacional y restauracion de transcript reutilizando `caseId`.

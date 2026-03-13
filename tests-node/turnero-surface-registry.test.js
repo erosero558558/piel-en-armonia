@@ -28,11 +28,12 @@ test('turnero surface registry expone las superficies canonicas actuales', () =>
 test('turnero surface registry resuelve metadata y rutas publicas desde una sola fuente', () => {
     const operator = getTurneroSurfaceDefinition('operator');
     assert.equal(operator.productName, 'Turnero Operador');
+    assert.equal(operator.appId, 'com.turnero.medicinageneral.operator');
     assert.equal(operator.ops.installHub.recommendedFor, 'PC operador');
     assert.equal(operator.ops.telemetry.title, 'Operador');
     assert.equal(
         resolveTurneroUpdatePublicFeedPath('operator', 'win'),
-        '/desktop-updates/stable/operator/win/latest.yml'
+        '/desktop-updates/stable/operator/win/stable.yml'
     );
     assert.equal(
         buildTurneroReleaseArtifactName('sala_tv', 'android_tv'),
@@ -57,5 +58,16 @@ test('turnero surface registry genera defaults del catalogo sin hardcodes parale
     assert.equal(
         getTurneroSurfaceDefinition('sala_tv').ops.installHub.recommendedFor,
         'TCL C655 / Google TV'
+    );
+});
+
+test('turnero surface registry expone branding canonico para medicina general', () => {
+    const defaults =
+        require('../lib/turnero-surface-registry.js').getTurneroRegistryDefaults();
+    assert.equal(defaults.brandName, 'Consultorio Medicina General');
+    assert.equal(defaults.brandShortName, 'Medicina General');
+    assert.equal(
+        defaults.surfaceTitles.downloads,
+        'Centro de instalacion del turnero | Consultorio Medicina General'
     );
 });

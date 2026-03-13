@@ -272,7 +272,17 @@ function buildClinicalReviewFixture() {
                 },
             ],
             pendingAi: {},
-            metadata: {},
+            metadata: {
+                patientIntake: {
+                    mode: 'clinical_intake',
+                    surface: 'waiting_room',
+                    sessionId: 'chs_001',
+                    caseId: 'CASE-001',
+                    appointmentId: 991,
+                    resumeUrl:
+                        'http://127.0.0.1:4173/?mode=clinical_intake&sessionId=chs_001&caseId=CASE-001&appointmentId=991',
+                },
+            },
             createdAt: isoMinutesAgo(30),
             updatedAt: isoMinutesAgo(8),
             lastMessageAt: isoMinutesAgo(22),
@@ -494,10 +504,47 @@ async function setupSonyV3Mocks(page, options = {}) {
                     clinicalReview.draft.clinicianDraft.resumen =
                         clinicianDraft.resumen;
                 }
+                if (typeof patch.requestAdditionalQuestion === 'string') {
+                    const question = String(
+                        patch.requestAdditionalQuestion || ''
+                    ).trim();
+                    clinicalReview.session.status = 'review_required';
+                    clinicalReview.draft.reviewStatus = 'review_required';
+                    clinicalReview.draft.requiresHumanReview = true;
+                    clinicalReview.session.metadata.pendingPatientAction = {
+                        actionId: 'chpa_001',
+                        type: 'follow_up_question',
+                        status: 'pending',
+                        question,
+                        requestedAt: new Date().toISOString(),
+                    };
+                    clinicalReview.events = [
+                        {
+                            eventId: 'evt_followup_001',
+                            sessionId: 'chs_001',
+                            type: 'patient_follow_up_pending',
+                            severity: 'info',
+                            status: 'open',
+                            title: 'Paciente con pregunta adicional pendiente',
+                            message: question,
+                            requiresAction: true,
+                            occurredAt: new Date().toISOString(),
+                            patient: {
+                                name: 'Sofia Vega',
+                            },
+                        },
+                        ...clinicalReview.events.filter(
+                            (event) =>
+                                String(event.eventId || '') !==
+                                'evt_followup_001'
+                        ),
+                    ];
+                }
                 if (patch.approve === true) {
                     clinicalReview.draft.reviewStatus = 'approved';
                     clinicalReview.draft.requiresHumanReview = false;
                     clinicalReview.session.status = 'approved';
+                    delete clinicalReview.session.metadata.pendingPatientAction;
                     state.clinicalHistoryMeta.reviewQueue = [];
                     state.clinicalHistoryMeta.summary.reviewQueueCount = 0;
                 }
@@ -812,8 +859,7 @@ async function setupSonyV3Mocks(page, options = {}) {
                                             {
                                                 id: 'approve-ready',
                                                 label: 'Approve ready',
-                                                prompt:
-                                                    'Confirma si este caso esta listo para aprobacion humana',
+                                                prompt: 'Confirma si este caso esta listo para aprobacion humana',
                                                 tone: 'success',
                                                 description:
                                                     'Valida si el paquete ya puede pasar al gate humano final.',
@@ -827,8 +873,7 @@ async function setupSonyV3Mocks(page, options = {}) {
                                     toolCallId: 'atc_test_shell_media_flow',
                                     tool: 'media_flow.rewrite_proposal',
                                     status: 'completed',
-                                    reason:
-                                        'Ajustar la propuesta editorial sin aprobar ni publicar',
+                                    reason: 'Ajustar la propuesta editorial sin aprobar ni publicar',
                                 },
                             ],
                             approvals: [],
@@ -877,8 +922,7 @@ async function setupSonyV3Mocks(page, options = {}) {
                                     {
                                         id: 'approve-ready',
                                         label: 'Approve ready',
-                                        prompt:
-                                            'Confirma si este caso esta listo para aprobacion humana',
+                                        prompt: 'Confirma si este caso esta listo para aprobacion humana',
                                         tone: 'success',
                                         description:
                                             'Valida si el paquete ya puede pasar al gate humano final.',
@@ -1304,6 +1348,45 @@ test.describe('Admin sony_v3 shell', () => {
         ).not.toContainText('Cambios sin guardar');
     });
 
+    test('muestra el estado del follow-up clinico cuando el medico envia una pregunta', async ({
+        page,
+    }) => {
+        const fixture = await openAdminSonyV3(page);
+
+        await page
+            .locator(
+                '#dashboardClinicalHistoryActions [data-action="context-open-clinical-history"]'
+            )
+            .first()
+            .click();
+
+        await expect(page.locator('#clinical-history')).toHaveClass(/active/);
+        await page
+            .locator('#clinicalHistoryFollowUpInput')
+            .fill('Necesito confirmar si la picazon empeora por la noche.');
+        await page.locator('#clinicalHistorySendFollowUpBtn').click();
+
+        await expect
+            .poll(
+                () => fixture.calls.lastClinicalPatch?.requestAdditionalQuestion
+            )
+            .toBe('Necesito confirmar si la picazon empeora por la noche.');
+        await expect(
+            page.locator('#clinicalHistoryFollowUpMeta')
+        ).toContainText('Esperando la respuesta');
+        await expect(
+            page.locator('#clinicalHistoryFollowUpStatus')
+        ).toContainText('Pendiente de respuesta');
+        await expect(
+            page.locator('#clinicalHistoryFollowUpStatus')
+        ).toContainText(
+            'Necesito confirmar si la picazon empeora por la noche.'
+        );
+        await expect(
+            page.locator('#clinicalHistoryFollowUpStatus a')
+        ).toHaveAttribute('href', /mode=clinical_intake/);
+    });
+
     test('aplica seleccion de fecha de availability desde el copiloto', async ({
         page,
     }) => {
@@ -1384,22 +1467,18 @@ test.describe('Admin sony_v3 shell', () => {
         ).toContainText('OpenClaw por caso');
 
         await page.locator('#clinicalMediaFlowGenerateBtn').click();
-        await expect(page.locator('#clinicalMediaFlowProposalForm')).toContainText(
-            'Copy editorial'
-        );
+        await expect(
+            page.locator('#clinicalMediaFlowProposalForm')
+        ).toContainText('Copy editorial');
         await page
             .locator('#clinicalMediaFlowAgentPrompt')
             .fill('Reescribe el copy editorial de este caso');
-        await page
-            .locator('[data-media-agent-action="submit"]')
-            .click();
-        await expect(page.locator('#clinicalMediaFlowAgentSurface')).toContainText(
-            'OpenClaw ajusto la propuesta activa'
-        );
+        await page.locator('[data-media-agent-action="submit"]').click();
+        await expect(
+            page.locator('#clinicalMediaFlowAgentSurface')
+        ).toContainText('OpenClaw ajusto la propuesta activa');
 
-        await page
-            .locator('[data-media-agent-action="open-panel"]')
-            .click();
+        await page.locator('[data-media-agent-action="open-panel"]').click();
         await expect(page.locator('#adminAgentPanel')).not.toHaveClass(
             /is-hidden/
         );
@@ -1419,9 +1498,9 @@ test.describe('Admin sony_v3 shell', () => {
             )
             .click();
 
-        await expect(page.locator('#clinicalMediaFlowStatusMeta')).toContainText(
-            'published'
-        );
+        await expect(
+            page.locator('#clinicalMediaFlowStatusMeta')
+        ).toContainText('published');
         await expect(page.locator('#clinicalMediaFlowTimeline')).toContainText(
             'Revision editorial registrada'
         );
@@ -1451,8 +1530,8 @@ test.describe('Admin sony_v3 shell', () => {
             .first()
             .click();
 
-        await expect(page.locator('#clinicalMediaFlowAgentSurface')).toContainText(
-            'Acceso restringido'
-        );
+        await expect(
+            page.locator('#clinicalMediaFlowAgentSurface')
+        ).toContainText('Acceso restringido');
     });
 });

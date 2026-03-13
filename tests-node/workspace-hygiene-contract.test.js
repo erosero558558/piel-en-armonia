@@ -402,16 +402,17 @@ test('frontera de js en raiz queda explicita y limitada', () => {
 
 test('frontera de html css php y ps1 en raiz queda explicita y limitada', () => {
     const rootSurfaces = readRepoFile('docs/ROOT_SURFACES.md');
-    const currentRootHtml = readdirSync(REPO_ROOT)
+    const trackedRootFiles = listTrackedRootFiles();
+    const currentRootHtml = trackedRootFiles
         .filter((entry) => entry.endsWith('.html'))
         .sort();
-    const currentRootCss = readdirSync(REPO_ROOT)
+    const currentRootCss = trackedRootFiles
         .filter((entry) => entry.endsWith('.css'))
         .sort();
-    const currentRootPhp = readdirSync(REPO_ROOT)
+    const currentRootPhp = trackedRootFiles
         .filter((entry) => entry.endsWith('.php'))
         .sort();
-    const currentRootPs1 = readdirSync(REPO_ROOT)
+    const currentRootPs1 = trackedRootFiles
         .filter((entry) => entry.endsWith('.ps1'))
         .sort();
     const expectedRootHtml = [
@@ -450,6 +451,7 @@ test('frontera de html css php y ps1 en raiz queda explicita y limitada', () => 
         'index.php',
         'legacy.php',
         'payment-lib.php',
+        'turnero-product-config.js.php',
         'verify-backup.php',
     ].sort();
     const expectedRootPs1 = [
@@ -1532,7 +1534,6 @@ test('verify deploy soporta layout publico v6 y rutas locales canonicas', () => 
         'public-v6-shell\\.js',
         '_astro/[^"]+\\.css',
         'Get-Content -Path $localIndexPath -Raw',
-        '& $smokeScriptPath -Domain $base',
     ];
 
     for (const entry of requiredEntries) {
@@ -1542,6 +1543,12 @@ test('verify deploy soporta layout publico v6 y rutas locales canonicas', () => 
             `VERIFICAR-DESPLIEGUE debe incluir ${entry}`
         );
     }
+
+    assert.match(
+        raw,
+        /& \$smokeScriptPath\s*`\r?\n\s*-Domain \$base/,
+        'VERIFICAR-DESPLIEGUE debe invocar SMOKE-PRODUCCION con -Domain $base'
+    );
 
     assert.equal(
         raw.includes("Get-Content -Path 'index.html' -Raw"),

@@ -734,13 +734,16 @@ export class PatientCaseCopilotService {
       now: input.now
     });
 
-    const items = claimedJobs.map((dispatchJob) =>
-      this.processPreparedActionDispatchJob({
-        tenantId: dispatchJob.tenantId,
-        dispatchJobId: dispatchJob.id,
-        workerId
-      })
-    );
+    const items: PatientCaseCopilotDispatchWorkResult[] = [];
+    for (const dispatchJob of claimedJobs) {
+      items.push(
+        await this.processPreparedActionDispatchJob({
+          tenantId: dispatchJob.tenantId,
+          dispatchJobId: dispatchJob.id,
+          workerId
+        })
+      );
+    }
 
     return {
       workerId,
@@ -1244,11 +1247,11 @@ export class PatientCaseCopilotService {
     };
   }
 
-  private processPreparedActionDispatchJob(input: {
+  private async processPreparedActionDispatchJob(input: {
     tenantId: string;
     dispatchJobId: string;
     workerId: string;
-  }): PatientCaseCopilotDispatchWorkResult {
+  }): Promise<PatientCaseCopilotDispatchWorkResult> {
     const queuedDispatch = this.repository.getPreparedActionDispatchJob(input.tenantId, input.dispatchJobId);
     if (!queuedDispatch) {
       throw new Error("prepared action dispatch job not found");
@@ -1299,7 +1302,7 @@ export class PatientCaseCopilotService {
         preparedActionId: queuedDispatch.preparedActionId,
         actorId: input.workerId
       });
-      const execution = executePreparedActionWithAdapters({
+      const execution = await executePreparedActionWithAdapters({
         tenantId: input.tenantId,
         caseId: queuedDispatch.patientCaseId,
         snapshot,

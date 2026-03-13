@@ -1,6 +1,12 @@
 // Prefer explicit user choice; fall back to browser language; default to Spanish.
 const _savedLang = localStorage.getItem('language');
-const _browserLang = (navigator.language || navigator.userLanguage || '').startsWith('en') ? 'en' : 'es';
+const _browserLang = (
+    navigator.language ||
+    navigator.userLanguage ||
+    ''
+).startsWith('en')
+    ? 'en'
+    : 'es';
 let currentLang = _savedLang || _browserLang;
 let currentThemeMode = localStorage.getItem('themeMode') || 'system';
 let currentAppointment = null;
@@ -32,6 +38,10 @@ let paymentConfigLoadedAt = 0;
 let stripeSdkPromise = null;
 let chatbotOpen = false;
 let conversationContext = [];
+const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
+const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
+const CLINICAL_HISTORY_SESSION_STORAGE_KEY = 'clinicalHistorySession';
+const CLINICAL_HISTORY_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function getCurrentLang() {
     return currentLang;
@@ -175,15 +185,18 @@ export function setConversationContext(val) {
 
 export function getChatHistory() {
     try {
-        const raw = localStorage.getItem('chatHistory');
+        const raw = localStorage.getItem(CHAT_HISTORY_STORAGE_KEY);
         const saved = raw ? JSON.parse(raw) : [];
-        const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+        const cutoff = Date.now() - CHAT_HISTORY_TTL_MS;
         const valid = saved.filter(
             (m) => m.time && new Date(m.time).getTime() > cutoff
         );
         if (valid.length !== saved.length) {
             try {
-                localStorage.setItem('chatHistory', JSON.stringify(valid));
+                localStorage.setItem(
+                    CHAT_HISTORY_STORAGE_KEY,
+                    JSON.stringify(valid)
+                );
             } catch {
                 // noop
             }
@@ -195,7 +208,92 @@ export function getChatHistory() {
 }
 export function setChatHistory(history) {
     try {
-        localStorage.setItem('chatHistory', JSON.stringify(history));
+        localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(history));
+    } catch {
+        // noop
+    }
+}
+
+function isClinicalSessionExpired(savedAt, session) {
+    const now = Date.now();
+    const candidates = [
+        savedAt,
+        session && typeof session.updatedAt === 'string'
+            ? Date.parse(session.updatedAt)
+            : Number.NaN,
+        session && typeof session.createdAt === 'string'
+            ? Date.parse(session.createdAt)
+            : Number.NaN,
+    ];
+    const latestKnownAt = candidates.find((value) => Number.isFinite(value));
+    if (!Number.isFinite(latestKnownAt)) {
+        return false;
+    }
+    return now - latestKnownAt > CLINICAL_HISTORY_SESSION_TTL_MS;
+}
+
+export function getClinicalHistorySession() {
+    try {
+        const raw = localStorage.getItem(CLINICAL_HISTORY_SESSION_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (!parsed || typeof parsed !== 'object') {
+            return null;
+        }
+
+        const session =
+            parsed.session && typeof parsed.session === 'object'
+                ? parsed.session
+                : parsed;
+        if (!session || typeof session !== 'object') {
+            return null;
+        }
+
+        const hasIdentifier =
+            typeof session.sessionId === 'string' ||
+            typeof session.caseId === 'string' ||
+            typeof session?.metadata?.patientIntake?.sessionId === 'string' ||
+            typeof session?.metadata?.patientIntake?.caseId === 'string';
+        if (!hasIdentifier) {
+            return null;
+        }
+
+        const savedAt = Number(parsed.savedAt);
+        if (isClinicalSessionExpired(savedAt, session)) {
+            try {
+                localStorage.removeItem(CLINICAL_HISTORY_SESSION_STORAGE_KEY);
+            } catch {
+                // noop
+            }
+            return null;
+        }
+
+        return session;
+    } catch {
+        return null;
+    }
+}
+
+export function setClinicalHistorySession(session) {
+    try {
+        if (!session || typeof session !== 'object') {
+            localStorage.removeItem(CLINICAL_HISTORY_SESSION_STORAGE_KEY);
+            return;
+        }
+        localStorage.setItem(
+            CLINICAL_HISTORY_SESSION_STORAGE_KEY,
+            JSON.stringify({
+                savedAt: Date.now(),
+                session,
+            })
+        );
+    } catch {
+        // noop
+    }
+}
+
+export function clearClinicalHistorySession() {
+    try {
+        localStorage.removeItem(CLINICAL_HISTORY_SESSION_STORAGE_KEY);
     } catch {
         // noop
     }
@@ -209,6 +307,10 @@ const stateAccessors = {
     reviewsCache: [getReviewsCache, setReviewsCache],
     chatbotOpen: [getChatbotOpen, setChatbotOpen],
     conversationContext: [getConversationContext, setConversationContext],
+    clinicalHistorySession: [
+        getClinicalHistorySession,
+        setClinicalHistorySession,
+    ],
 };
 
 const internalState = {

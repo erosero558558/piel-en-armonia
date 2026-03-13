@@ -55,9 +55,13 @@ function ensureDirForFile(filePath) {
     mkdirSync(dirname(filePath), { recursive: true });
 }
 
+function stripUtf8Bom(text) {
+    return String(text || '').replace(/^\uFEFF/, '');
+}
+
 function safeJsonParse(text, fallback = null) {
     try {
-        return JSON.parse(String(text || ''));
+        return JSON.parse(stripUtf8Bom(text));
     } catch (_error) {
         return fallback;
     }
@@ -97,6 +101,160 @@ function runGhJson(args, { allowFailure = true } = {}) {
         ...response,
         json: response.ok ? safeJsonParse(response.stdout, null) : null,
     };
+}
+
+function collectUniqueMatches(text, regex) {
+    return [
+        ...new Set(
+            [...String(text || '').matchAll(regex)].map((match) => match[0])
+        ),
+    ];
+}
+
+function extractInterestingFailedLogLine(text) {
+    const lines = String(text || '')
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+    for (const line of lines) {
+        if (
+            line.includes('Politica bloqueante:') ||
+            line.includes('Configura staging') ||
+            line.includes('::error::') ||
+            line.toLowerCase().includes('error')
+        ) {
+            return line;
+        }
+    }
+    return lines[0] || null;
+}
+
+function inferWorkflowFailureDiagnostic({
+    workflowRef,
+    run,
+    jobs,
+    failedLogText,
+    failedLogError,
+}) {
+    const normalizedJobs = Array.isArray(jobs) ? jobs : [];
+    const logText = String(failedLogText || '');
+    const interestingLogLine = extractInterestingFailedLogLine(logText);
+    const missingStagingSecrets = collectUniqueMatches(
+        logText,
+        /\bSTAGING_FTP_[A-Z_]+\b/g
+    ).sort();
+
+    if (
+        normalizedJobs.length === 0 &&
+        String(run?.conclusion || '').toLowerCase() === 'failure'
+    ) {
+        return {
+            kind: 'workflow_file_issue',
+            summary:
+                'GitHub rechazo el workflow antes de crear jobs; revisar YAML/inputs del archivo.',
+            jobsCount: 0,
+            recommendedAction:
+                'Corregir la definicion del workflow y volver a dispararlo.',
+            recommendedCommand: `gh workflow view '${workflowRef}' --yaml`,
+            logError: failedLogError || null,
+            logLine: interestingLogLine,
+        };
+    }
+
+    if (
+        logText.includes('Politica bloqueante: require_staging_canary=true') ||
+        logText.includes('faltan secretos STAGING_FTP_*')
+    ) {
+        const listedSecrets =
+            missingStagingSecrets.length > 0
+                ? missingStagingSecrets.join(', ')
+                : 'STAGING_FTP_SERVER, STAGING_FTP_USERNAME, STAGING_FTP_PASSWORD';
+        return {
+            kind: 'staging_canary_missing_secrets',
+            summary: `require_staging_canary bloquea porque faltan secretos de staging (${listedSecrets}).`,
+            jobsCount: normalizedJobs.length,
+            missingSecrets: missingStagingSecrets,
+            recommendedAction:
+                'Configurar los secretos STAGING_FTP_* o usar allow_prod_without_staging=true solo en emergencia.',
+            recommendedCommand: 'gh secret list',
+            logError: failedLogError || null,
+            logLine: interestingLogLine,
+        };
+    }
+
+    if (interestingLogLine) {
+        return {
+            kind: 'failed_log_excerpt',
+            summary: interestingLogLine,
+            jobsCount: normalizedJobs.length,
+            recommendedAction:
+                'Inspeccionar el log fallido y aplicar la remediacion del workflow.',
+            recommendedCommand:
+                `gh run view ${run?.id || ''} --log-failed`.trim(),
+            logError: failedLogError || null,
+            logLine: interestingLogLine,
+        };
+    }
+
+    return {
+        kind: 'failed_without_diagnostic',
+        summary: 'Run fallido sin diagnostico adicional automatizado.',
+        jobsCount: normalizedJobs.length,
+        recommendedAction:
+            'Inspeccionar el run en GitHub Actions para capturar la causa raiz.',
+        recommendedCommand: `gh run view ${run?.id || ''}`.trim(),
+        logError: failedLogError || null,
+        logLine: null,
+    };
+}
+
+function fetchWorkflowFailureDiagnostic(wrapper) {
+    if (!wrapper?.available) return null;
+    const run = getWorkflowRunForHealth(wrapper);
+    if (!run || String(run.conclusion || '').toLowerCase() === 'success') {
+        return null;
+    }
+
+    const jobsResponse = runGhJson(
+        ['run', 'view', String(run.id), '--json', 'jobs'],
+        { allowFailure: true }
+    );
+    const jobs = Array.isArray(jobsResponse.json?.jobs)
+        ? jobsResponse.json.jobs
+        : [];
+    const failedLogResponse = runGh(
+        ['run', 'view', String(run.id), '--log-failed'],
+        { allowFailure: true }
+    );
+    const failedLogText = [failedLogResponse.stdout, failedLogResponse.stderr]
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+    const failedLogError = failedLogResponse.ok
+        ? null
+        : failedLogResponse.stderr || failedLogResponse.stdout || null;
+
+    return inferWorkflowFailureDiagnostic({
+        workflowRef:
+            wrapper.workflowRef ||
+            wrapper.workflowName ||
+            '.github/workflows/unknown.yml',
+        run,
+        jobs,
+        failedLogText,
+        failedLogError,
+    });
+}
+
+function annotateWorkflowFailureDiagnostics(workflows, keys) {
+    const workflowMap = workflows || {};
+    for (const key of keys || []) {
+        if (!workflowMap[key]) continue;
+        workflowMap[key].failureDiagnostic = fetchWorkflowFailureDiagnostic(
+            workflowMap[key]
+        );
+    }
+    return workflowMap;
 }
 
 function toIso(value) {
@@ -462,8 +620,7 @@ function findLatestWeeklyReportJson(outputDir) {
 function findFileRecursive(rootDir, matcher) {
     const stack = [rootDir];
     const matches = [];
-    const matchFn =
-        typeof matcher === 'function' ? matcher : () => false;
+    const matchFn = typeof matcher === 'function' ? matcher : () => false;
     while (stack.length > 0) {
         const current = stack.pop();
         let entries;
@@ -630,7 +787,7 @@ function parseWeeklyReportPayload(payload, meta = {}) {
 function readWeeklyReportFromFile(filePath, meta = {}) {
     let payload;
     try {
-        payload = JSON.parse(readFileSync(filePath, 'utf8'));
+        payload = JSON.parse(stripUtf8Bom(readFileSync(filePath, 'utf8')));
     } catch (error) {
         return {
             found: true,
@@ -872,12 +1029,13 @@ function parseSentryEvidencePayload(payload, meta = {}) {
             ? payload.staleProjects
             : [],
         actionRequired: payload.actionRequired || null,
-        failureReason: failureReason.code || failureReason.message
-            ? {
-                  code: failureReason.code || null,
-                  message: failureReason.message || null,
-              }
-            : null,
+        failureReason:
+            failureReason.code || failureReason.message
+                ? {
+                      code: failureReason.code || null,
+                      message: failureReason.message || null,
+                  }
+                : null,
         backend: {
             project: backend.project || null,
             found: Boolean(backend.found),
@@ -895,7 +1053,7 @@ function parseSentryEvidencePayload(payload, meta = {}) {
 function readSentryEvidenceFromFile(filePath, meta = {}) {
     let payload;
     try {
-        payload = JSON.parse(readFileSync(filePath, 'utf8'));
+        payload = JSON.parse(stripUtf8Bom(readFileSync(filePath, 'utf8')));
     } catch (error) {
         return {
             found: true,
@@ -1675,6 +1833,7 @@ function computeSuggestedActions({
     for (const key of ['ci', 'postDeployGate', 'deployHosting']) {
         const wrapper = workflows?.[key];
         const label = workflowLabels[key] || key;
+        const failureDiagnostic = wrapper?.failureDiagnostic || null;
         if (!wrapper?.available) {
             pushAction({
                 id: `ACT-P1-WF-${key.toUpperCase()}-UNAVAILABLE`,
@@ -1721,9 +1880,15 @@ function computeSuggestedActions({
                 id: `ACT-P0-WF-${key.toUpperCase()}-FAILED`,
                 priority: 'P0',
                 blocking: true,
-                title: `Recuperar workflow fallido (${label})`,
-                reason: `Run ${run.id} termino en ${run.conclusion || 'unknown'}`,
+                title:
+                    failureDiagnostic?.kind === 'workflow_file_issue'
+                        ? `Corregir workflow invalido (${label})`
+                        : `Recuperar workflow fallido (${label})`,
+                reason: failureDiagnostic?.summary
+                    ? `Run ${run.id} termino en ${run.conclusion || 'unknown'}: ${failureDiagnostic.summary}`
+                    : `Run ${run.id} termino en ${run.conclusion || 'unknown'}`,
                 command:
+                    failureDiagnostic?.recommendedCommand ||
                     workflowCommands[key] ||
                     `gh run view ${run.id} --log-failed`,
                 url: run.url || null,
@@ -1872,7 +2037,10 @@ function markdownWorkflowLine(label, wrapper) {
         wrapper.latest.id !== wrapper.latestEffective.id
             ? ` [latest actual skipped: ${wrapper.latest.id}]`
             : '';
-    return `- ${label}: ${run.conclusion || run.status || 'unknown'} (run ${run.id}, ${run.ageLabel}, ${run.durationLabel})${fallbackNote} ${run.url || ''}`.trim();
+    const diagnosticNote = wrapper.failureDiagnostic?.summary
+        ? ` | diag: ${wrapper.failureDiagnostic.summary}`
+        : '';
+    return `- ${label}: ${run.conclusion || run.status || 'unknown'} (run ${run.id}, ${run.ageLabel}, ${run.durationLabel})${fallbackNote}${diagnosticNote} ${run.url || ''}`.trim();
 }
 
 function toMarkdown(summary) {
@@ -2159,7 +2327,9 @@ function toMarkdown(summary) {
         lines.push(`- ok: ${summary.sentryEvidence.ok ? 'true' : 'false'}`);
         lines.push(`- status: ${summary.sentryEvidence.status || 'n/a'}`);
         if (summary.sentryEvidence.reportRun?.id) {
-            lines.push(`- source_run_id: ${summary.sentryEvidence.reportRun.id}`);
+            lines.push(
+                `- source_run_id: ${summary.sentryEvidence.reportRun.id}`
+            );
         }
         if (summary.sentryEvidence.reportRun?.url) {
             lines.push(
@@ -2407,6 +2577,10 @@ function main() {
             branch
         ),
     };
+    annotateWorkflowFailureDiagnostics(workflows, [
+        'postDeployGate',
+        'deployHosting',
+    ]);
     const weeklyKpiRunsRecent = fetchRecentWorkflowRuns(
         {
             workflowRef: '.github/workflows/weekly-kpi-report.yml',
@@ -2503,9 +2677,23 @@ function main() {
     process.stdout.write(`${markdown}\n`);
 }
 
-try {
-    main();
-} catch (error) {
-    process.stderr.write(`prod-readiness-summary error: ${error.message}\n`);
-    process.exit(1);
+module.exports = {
+    stripUtf8Bom,
+    safeJsonParse,
+    inferWorkflowFailureDiagnostic,
+    getWorkflowRunForHealth,
+    computeSuggestedActions,
+    markdownWorkflowLine,
+    readWeeklyReportFromFile,
+};
+
+if (require.main === module) {
+    try {
+        main();
+    } catch (error) {
+        process.stderr.write(
+            `prod-readiness-summary error: ${error.message}\n`
+        );
+        process.exit(1);
+    }
 }

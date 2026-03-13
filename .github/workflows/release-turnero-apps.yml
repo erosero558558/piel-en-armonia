@@ -87,7 +87,7 @@ jobs:
             - name: Resolve turnero surface matrices
               id: plan
               shell: bash
-              run: node bin/resolve-turnero-release-plan.js --github-output "$GITHUB_OUTPUT"
+              run: node bin/resolve-turnero-release-plan.js --base-url "${{ inputs.base_url }}" --github-output "$GITHUB_OUTPUT"
 
     build-desktop:
         name: Build desktop ${{ matrix.surface }} (${{ matrix.platform }})

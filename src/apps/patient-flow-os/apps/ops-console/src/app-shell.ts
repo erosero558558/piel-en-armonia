@@ -16,6 +16,7 @@ export function renderOpsConsoleShell(tenant: TenantConfig): string {
     endpoints: {
       cases: `/v1/patient-cases?tenantId=${encodeURIComponent(tenant.id)}`,
       kpi: `/v1/reports/kpi?tenantId=${encodeURIComponent(tenant.id)}`,
+      providerRuntime: `/v1/provider-runtime?tenantId=${encodeURIComponent(tenant.id)}`,
       nextBestAction: "/v1/agent-tasks/ops-next-best-action",
       dispatchWorkerDrain: "/v1/copilot/dispatch-worker/drain",
       providerExceptions: `/v1/copilot/provider-exceptions?tenantId=${encodeURIComponent(tenant.id)}`,
@@ -103,6 +104,19 @@ export function renderOpsConsoleShell(tenant: TenantConfig): string {
   <article class="card">
     <div class="row">
       <div>
+        <span class="pill">Provider Runtime</span>
+        <h2>Health de bindings</h2>
+      </div>
+      <p class="small muted">Estado canónico por destino antes de despachar.</p>
+    </div>
+    <div id="ops-provider-runtime">
+      <p class="muted">Cargando provider runtime...</p>
+    </div>
+  </article>
+
+  <article class="card">
+    <div class="row">
+      <div>
         <span class="pill">Provider Exceptions</span>
         <h2>Receipts fallidos</h2>
       </div>
@@ -119,6 +133,7 @@ export function renderOpsConsoleShell(tenant: TenantConfig): string {
   const state = {
     cases: [],
     kpi: null,
+    providerRuntime: null,
     providerExceptions: [],
     inspection: null,
     selectedCaseId: null
@@ -130,6 +145,7 @@ export function renderOpsConsoleShell(tenant: TenantConfig): string {
     followUp: document.getElementById("kpi-follow-up"),
     waiting: document.getElementById("kpi-waiting"),
     caseBoard: document.getElementById("ops-case-board"),
+    providerRuntime: document.getElementById("ops-provider-runtime"),
     providerExceptions: document.getElementById("ops-provider-exceptions"),
     spotlight: document.getElementById("ops-copilot-spotlight"),
     status: document.getElementById("ops-console-status")
@@ -283,6 +299,45 @@ export function renderOpsConsoleShell(tenant: TenantConfig): string {
         + actionRow
         + '</li>';
     }).join('') + '</ul>';
+  }
+
+  function renderProviderRuntime() {
+    if (!elements.providerRuntime) {
+      return;
+    }
+
+    const runtime = state.providerRuntime;
+    if (!runtime) {
+      elements.providerRuntime.innerHTML = '<p class="muted">Provider runtime unavailable.</p>';
+      return;
+    }
+
+    const summary = runtime.summary || {};
+    const bindings = Array.isArray(runtime.items) ? runtime.items : [];
+    const summaryLine = [
+      'State: ' + escapeHtml(summary.overallState || 'unknown'),
+      'ready ' + escapeHtml(String(summary.readyCount || 0)),
+      'degraded ' + escapeHtml(String(summary.degradedCount || 0)),
+      'blocked ' + escapeHtml(String(summary.blockedCount || 0))
+    ].join(' · ');
+
+    const items = bindings.length === 0
+      ? '<p class="muted">No provider bindings registered.</p>'
+      : '<ul>' + bindings.slice(0, 6).map((binding) => {
+          const issues = Array.isArray(binding.dispatchIssues) && binding.dispatchIssues.length > 0
+            ? '<div class="small muted">' + escapeHtml(binding.dispatchIssues.join(', ')) + '</div>'
+            : '';
+          return '<li><strong>' + escapeHtml(binding.system) + '</strong>'
+            + ' · ' + escapeHtml(binding.providerKey)
+            + ' · ' + escapeHtml(binding.dispatchHealthState)
+            + ' · ' + escapeHtml(binding.dispatchMode)
+            + (binding.dispatchReady ? '' : ' · blocked')
+            + issues
+            + '</li>';
+        }).join('') + '</ul>';
+
+    elements.providerRuntime.innerHTML =
+      '<p class="small muted">' + summaryLine + '</p>' + items;
   }
 
   function renderSpotlight() {
@@ -477,9 +532,10 @@ export function renderOpsConsoleShell(tenant: TenantConfig): string {
 
   async function loadBoard(preserveSelection) {
     setStatus('Refreshing board...', 'info');
-    const [casesPayload, kpiPayload, focusPayload, providerExceptionsPayload] = await Promise.all([
+    const [casesPayload, kpiPayload, providerRuntimePayload, focusPayload, providerExceptionsPayload] = await Promise.all([
       requestJson(config.endpoints.cases),
       requestJson(config.endpoints.kpi),
+      requestJson(config.endpoints.providerRuntime),
       requestJson(config.endpoints.nextBestAction, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -493,8 +549,10 @@ export function renderOpsConsoleShell(tenant: TenantConfig): string {
 
     state.cases = Array.isArray(casesPayload.items) ? casesPayload.items : [];
     state.kpi = kpiPayload;
+    state.providerRuntime = providerRuntimePayload;
     state.providerExceptions = Array.isArray(providerExceptionsPayload.items) ? providerExceptionsPayload.items : [];
     renderKpis();
+    renderProviderRuntime();
     renderProviderExceptions();
 
     const preferredCaseId = preserveSelection && state.selectedCaseId
@@ -728,6 +786,7 @@ export function renderOpsConsoleApiHint(tenant: TenantConfig): string {
     '<ul>',
     '<li><code>' + escapeHtml(`/v1/patient-cases?tenantId=${tenant.id}`) + '</code></li>',
     '<li><code>' + escapeHtml(`/v1/reports/kpi?tenantId=${tenant.id}`) + '</code></li>',
+    '<li><code>' + escapeHtml(`/v1/provider-runtime?tenantId=${tenant.id}`) + '</code></li>',
     '<li><code>/v1/agent-tasks/ops-next-best-action</code></li>',
     '<li><code>' + escapeHtml(`/v1/copilot/provider-exceptions?tenantId=${tenant.id}`) + '</code></li>',
     '<li><code>/v1/patient-cases/' + escapeHtml(tenant.id) + '/:caseId/copilot</code></li>',

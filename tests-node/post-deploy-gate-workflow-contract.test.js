@@ -80,6 +80,45 @@ test('post-deploy-gate expone inputs de admin rollout y public_v4 rollout', () =
     }
 });
 
+test('post-deploy-gate respeta el limite de workflow_dispatch y no referencia inputs no declarados', () => {
+    const { raw, parsed } = loadWorkflow();
+    const inputs = parsed?.on?.workflow_dispatch?.inputs || {};
+    const inputNames = Object.keys(inputs);
+    const referencedInputs = [
+        ...new Set(
+            [...raw.matchAll(/github\.event\.inputs\.([A-Za-z0-9_]+)/g)].map(
+                (match) => match[1]
+            )
+        ),
+    ].sort();
+    const undeclaredInputs = referencedInputs.filter(
+        (inputName) => !(inputName in inputs)
+    );
+
+    assert.equal(
+        inputNames.length <= 25,
+        true,
+        `post-deploy-gate excede el limite de 25 inputs workflow_dispatch (actual: ${inputNames.length})`
+    );
+    assert.deepEqual(
+        undeclaredInputs,
+        [],
+        `post-deploy-gate referencia inputs no declarados: ${undeclaredInputs.join(', ')}`
+    );
+    assert.equal(
+        raw.includes('github.event.inputs.skip_figo_post_bench'),
+        false,
+        'skip_figo_post_bench ya no debe depender de workflow_dispatch'
+    );
+    assert.equal(
+        raw.includes(
+            "SKIP_FIGO_POST_BENCH_INPUT: ${{ vars.SKIP_FIGO_POST_BENCH || 'false' }}"
+        ),
+        true,
+        'skip_figo_post_bench debe resolverse via repo vars/default'
+    );
+});
+
 test('post-deploy-gate ejecuta gate admin rollout y lo reporta en summary', () => {
     const { raw, parsed } = loadWorkflow();
     const steps = parsed?.jobs?.gate?.steps || [];

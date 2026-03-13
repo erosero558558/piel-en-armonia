@@ -421,8 +421,8 @@ test("copilot accepts injectable destination ports and surfaces external receipt
     ...basePorts,
     queue: {
       ...basePorts.queue,
-      callNextPatient(input) {
-        const result = basePorts.queue.callNextPatient(input);
+      async callNextPatient(input) {
+        const result = await basePorts.queue.callNextPatient(input);
         idempotencyKeys.push(result.receipt.idempotencyKey);
         return {
           ...result,
@@ -465,6 +465,70 @@ test("copilot accepts injectable destination ports and surfaces external receipt
   assert.equal(drain.items[0]?.execution?.receipts[0]?.metadata.provider, "stub_queue");
 });
 
+test("provider relay transport enriches receipt metadata when a tenant binding points to a real endpoint", async () => {
+  const seedState = createBootstrapState();
+  const tenant = seedState.tenantConfigs.find((candidate) => candidate.id === "tnt_river");
+  assert.ok(tenant);
+  const queueBinding = tenant.providerBindings.find((candidate) => candidate.system === "queue_console");
+  assert.ok(queueBinding);
+  queueBinding.endpointBaseUrl = "https://relay.example.test/river/queue";
+
+  const repository = new InMemoryPlatformRepository(seedState);
+  const transportCalls: Array<{ system: string; operation: string; idempotencyKey: string; dispatchUrl: string }> = [];
+  const ports = createLocalDestinationDispatchPorts(repository, {
+    providerDispatchTransport: {
+      async dispatch(input) {
+        transportCalls.push({
+          system: input.system,
+          operation: input.operation,
+          idempotencyKey: input.idempotencyKey,
+          dispatchUrl: input.dispatchUrl
+        });
+        return {
+          externalRef: "relay:req_queue_001",
+          metadata: {
+            providerTransportKind: "http_relay",
+            providerHttpStatus: 202,
+            providerHttpRequestId: "req_queue_001",
+            providerTransportStatus: "accepted"
+          }
+        };
+      }
+    }
+  });
+  const service = new PatientCaseCopilotService(repository, undefined, ports);
+
+  const inspection = await service.inspectCase({
+    tenantId: "tnt_river",
+    caseId: "case_river_001"
+  });
+
+  await service.reviewCase("tnt_river", "case_river_001", {
+    recommendationAction: inspection.recommendation.recommendedAction,
+    decision: "approve",
+    actor: "leo.manager",
+    preparedActionId: inspection.preparedAction.id,
+    executeNow: true
+  });
+
+  const drain = await service.drainDispatchQueue({
+    tenantId: "tnt_river",
+    workerId: "worker_river_http"
+  });
+
+  assert.equal(transportCalls.length, 1);
+  assert.deepEqual(transportCalls[0], {
+    system: "queue_console",
+    operation: "call_next_patient",
+    idempotencyKey: `queue_console:${inspection.preparedAction.id}:call_next_patient`,
+    dispatchUrl: "https://relay.example.test/river/queue"
+  });
+  assert.equal(drain.items[0]?.execution?.receipts[0]?.externalRef, "relay:req_queue_001");
+  assert.equal(drain.items[0]?.execution?.receipts[0]?.metadata.providerTransportKind, "http_relay");
+  assert.equal(drain.items[0]?.execution?.receipts[0]?.metadata.providerHttpStatus, 202);
+  assert.equal(drain.items[0]?.execution?.receipts[0]?.metadata.providerHttpRequestId, "req_queue_001");
+});
+
 test("retry policy reschedules transient dispatch failures with backoff", async () => {
   const repository = new InMemoryPlatformRepository(createBootstrapState());
   const basePorts = createLocalDestinationDispatchPorts(repository);
@@ -473,7 +537,7 @@ test("retry policy reschedules transient dispatch failures with backoff", async 
     ...basePorts,
     messaging: {
       ...basePorts.messaging,
-      sendOpsMessage(input) {
+      async sendOpsMessage(input) {
         sendAttempts += 1;
         if (sendAttempts === 1) {
           throw new RetryableDispatchError("simulated message gateway outage", {

@@ -117,6 +117,7 @@ de backend descubiertos por el hosting/tooling:
 - `check-ai-response.php`
 - `cron.php`
 - `env.example.php`
+- `turnero-product-config.js.php`
 - `.php-cs-fixer.dist.php`
 
 ## Superficies PS1 permitidas en raiz

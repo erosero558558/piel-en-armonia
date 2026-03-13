@@ -67,6 +67,8 @@ test("GET /ops/:tenantSlug serves the api-driven ops console shell", async () =>
     assert.match(response.body, /data-copilot-ready="true"/);
     assert.match(response.body, /\/v1\/agent-tasks\/ops-next-best-action/);
     assert.match(response.body, /\/v1\/reports\/kpi\?tenantId=tnt_green/);
+    assert.match(response.body, /\/v1\/provider-runtime\?tenantId=tnt_green/);
+    assert.match(response.body, /Provider Runtime/);
   } finally {
     await app.close();
   }

@@ -56,8 +56,9 @@ function buildDesktopMatrix() {
     };
 }
 
-function buildAndroidMatrix() {
+function buildAndroidMatrix(options = {}) {
     const defaults = getTurneroRegistryDefaults();
+    const overrideBaseUrl = String(options.baseUrl || '').trim();
     return {
         include: listTurneroSurfaceDefinitions({ family: 'android' }).map(
             (surface) => {
@@ -105,7 +106,9 @@ function buildAndroidMatrix() {
                         )
                     ),
                     base_url: String(
-                        surface.android?.baseUrl || defaults.baseUrl
+                        overrideBaseUrl ||
+                            surface.android?.baseUrl ||
+                            defaults.baseUrl
                     ),
                     surface_path: String(
                         surface.android?.surfacePath || surface.route || ''
@@ -125,7 +128,9 @@ function formatGithubOutput(payload) {
 function main() {
     const args = parseArgs(process.argv.slice(2));
     const desktopMatrix = buildDesktopMatrix();
-    const androidMatrix = buildAndroidMatrix();
+    const androidMatrix = buildAndroidMatrix({
+        baseUrl: args['base-url'],
+    });
     const payload = {
         desktop_matrix: desktopMatrix,
         android_matrix: androidMatrix,

@@ -56,11 +56,6 @@ on:
                 required: false
                 default: '2026-03-08T23:59:59-05:00'
                 type: string
-            skip_figo_post_bench:
-                description: 'Omitir benchmark de figo-post'
-                required: false
-                default: false
-                type: boolean
             require_google_calendar:
                 description: 'Forzar contrato de calendario estricto (source=google)'
                 required: false
@@ -157,8 +152,8 @@ jobs:
             BENCH_RUNS_LIGHT: ${{ vars.BENCH_RUNS_LIGHT || '10' }}
             WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || vars.WAIT_SECONDS || '90' }}
             WAIT_SECONDS_LIGHT: ${{ vars.WAIT_SECONDS_LIGHT || '30' }}
-            ASSET_HASH_RETRY_COUNT: ${{ github.event.inputs.asset_hash_retry_count || vars.ASSET_HASH_RETRY_COUNT || '2' }}
-            ASSET_HASH_RETRY_DELAY_SEC: ${{ github.event.inputs.asset_hash_retry_delay_sec || vars.ASSET_HASH_RETRY_DELAY_SEC || '4' }}
+            ASSET_HASH_RETRY_COUNT: ${{ vars.ASSET_HASH_RETRY_COUNT || '2' }}
+            ASSET_HASH_RETRY_DELAY_SEC: ${{ vars.ASSET_HASH_RETRY_DELAY_SEC || '4' }}
             VERIFY_RETRY_ATTEMPTS: ${{ github.event.inputs.verify_retry_attempts || vars.VERIFY_RETRY_ATTEMPTS || '2' }}
             VERIFY_RETRY_DELAY_SEC: ${{ github.event.inputs.verify_retry_delay_sec || vars.VERIFY_RETRY_DELAY_SEC || '75' }}
             CORE_P95_MAX_MS: ${{ github.event.inputs.core_p95_max_ms || vars.CORE_P95_MAX_MS || '800' }}
@@ -167,7 +162,7 @@ jobs:
             SKIP_ASSET_HASH_CHECKS_INPUT: ${{ github.event.inputs.skip_asset_hash_checks || 'false' }}
             FORCE_ASSET_HASH_CHECKS_INPUT: ${{ github.event.inputs.force_asset_hash_checks || 'false' }}
             ASSET_HASH_WARNING_UNTIL_INPUT: ${{ github.event.inputs.asset_hash_warning_until || vars.ASSET_HASH_WARNING_UNTIL || '2026-03-08T23:59:59-05:00' }}
-            SKIP_FIGO_POST_BENCH_INPUT: ${{ github.event.inputs.skip_figo_post_bench || 'false' }}
+            SKIP_FIGO_POST_BENCH_INPUT: ${{ vars.SKIP_FIGO_POST_BENCH || 'false' }}
             ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME || 'PROD' }}
             REQUIRE_GOOGLE_CALENDAR: ${{ github.event.inputs.require_google_calendar || vars.REQUIRE_GOOGLE_CALENDAR || 'false' }}
             REQUIRE_GOOGLE_CALENDAR_EFFECTIVE: ${{ github.event.inputs.require_google_calendar || vars.REQUIRE_GOOGLE_CALENDAR || 'false' }}
@@ -608,7 +603,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input skip asset hashes: ``$env:SKIP_ASSET_HASH_CHECKS_INPUT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input force asset hashes: ``$env:FORCE_ASSET_HASH_CHECKS_INPUT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Asset hash warning until: ``$env:ASSET_HASH_WARNING_UNTIL_INPUT``"
-                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input skip figo-post bench: ``$env:SKIP_FIGO_POST_BENCH_INPUT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Skip figo-post bench (vars/default): ``$env:SKIP_FIGO_POST_BENCH_INPUT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input admin rollout stage: ``$env:ADMIN_ROLLOUT_STAGE_INPUT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input admin rollout skip runtime smoke: ``$env:ADMIN_ROLLOUT_SKIP_RUNTIME_SMOKE_INPUT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Input admin rollout allow feature API failure: ``$env:ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_INPUT``"

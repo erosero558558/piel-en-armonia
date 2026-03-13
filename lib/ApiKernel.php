@@ -20,10 +20,6 @@ class ApiKernel
 
         set_exception_handler(static function (Throwable $e): void {
             $code = ($e->getCode() >= 400 && $e->getCode() < 600) ? (int) $e->getCode() : 500;
-            if (!headers_sent()) {
-                http_response_code($code);
-                header('Content-Type: application/json; charset=utf-8');
-            }
             if (function_exists('get_logger')) {
                 get_logger()->error('Piel en Armonía API uncaught: ' . $e->getMessage(), [
                     'file' => $e->getFile(),
@@ -39,10 +35,15 @@ class ApiKernel
             }
 
             $clientMessage = api_error_message_for_client($e, $code);
-            echo json_encode([
+            $body = json_response_body([
                 'ok' => false,
                 'error' => $clientMessage
-            ], JSON_UNESCAPED_UNICODE);
+            ]);
+            if (!headers_sent()) {
+                emit_json_response($body, $code);
+            } else {
+                echo $body;
+            }
             exit(1);
         });
 

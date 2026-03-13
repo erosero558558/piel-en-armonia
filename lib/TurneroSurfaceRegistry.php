@@ -7,6 +7,25 @@ function turnero_surface_registry_path(): string
     return dirname(__DIR__) . '/data/turnero-surfaces.json';
 }
 
+function turnero_surface_registry_normalize_string_map($value): array
+{
+    if (!is_array($value)) {
+        return [];
+    }
+
+    $normalized = [];
+    foreach ($value as $key => $item) {
+        $normalizedKey = trim((string) $key);
+        $normalizedValue = trim((string) $item);
+        if ($normalizedKey === '' || $normalizedValue === '') {
+            continue;
+        }
+        $normalized[$normalizedKey] = $normalizedValue;
+    }
+
+    return $normalized;
+}
+
 function read_turnero_surface_registry(): array
 {
     static $cache = null;
@@ -40,6 +59,10 @@ function read_turnero_surface_registry(): array
             'baseUrl' => (string) ($defaults['baseUrl'] ?? 'https://pielarmonia.com'),
             'downloadBasePath' => (string) ($defaults['downloadBasePath'] ?? '/app-downloads/'),
             'updateBasePath' => (string) ($defaults['updateBasePath'] ?? '/desktop-updates/'),
+            'brandName' => (string) ($defaults['brandName'] ?? 'Consultorio Medicina General'),
+            'brandShortName' => (string) ($defaults['brandShortName'] ?? 'Medicina General'),
+            'surfaceTitles' => turnero_surface_registry_normalize_string_map($defaults['surfaceTitles'] ?? []),
+            'downloadLabels' => turnero_surface_registry_normalize_string_map($defaults['downloadLabels'] ?? []),
         ],
         'surfaces' => array_map(
             static fn (array $surface): array => turnero_surface_registry_normalize_surface($surface),

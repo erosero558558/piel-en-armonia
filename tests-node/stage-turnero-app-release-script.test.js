@@ -26,7 +26,7 @@ function createDesktopFixture(rootDir, surfaceKey, artifactBase) {
         `${surfaceKey}-win-exe`
     );
     writeFixture(
-        path.join(rootDir, surfaceKey, 'win', 'latest.yml'),
+        path.join(rootDir, surfaceKey, 'win', 'stable.yml'),
         `${surfaceKey}-win-latest`
     );
     writeFixture(
@@ -48,7 +48,7 @@ function createDesktopFixture(rootDir, surfaceKey, artifactBase) {
         `${surfaceKey}-mac-zip`
     );
     writeFixture(
-        path.join(rootDir, surfaceKey, 'mac', 'latest-mac.yml'),
+        path.join(rootDir, surfaceKey, 'mac', 'stable-mac.yml'),
         `${surfaceKey}-mac-latest`
     );
     writeFixture(
@@ -115,7 +115,7 @@ test('stage-turnero-app-release genera bundle y manifest con rutas publicas', ()
     );
     assert.equal(
         manifest.apps.operator.updates.win.feedUrl.includes(
-            '/desktop-updates/stable/operator/win/latest.yml'
+            '/desktop-updates/stable/operator/win/stable.yml'
         ),
         true
     );
@@ -146,7 +146,7 @@ test('stage-turnero-app-release genera bundle y manifest con rutas publicas', ()
         true
     );
     assert.equal(
-        shaRaw.includes('desktop-updates/stable/operator/win/latest.yml'),
+        shaRaw.includes('desktop-updates/stable/operator/win/stable.yml'),
         true
     );
     assert.equal(
@@ -168,7 +168,7 @@ test('stage-turnero-app-release falla si falta un artefacto requerido', () => {
     createDesktopFixture(desktopRoot, 'operator', 'TurneroOperador');
     createDesktopFixture(desktopRoot, 'kiosk', 'TurneroKiosco');
     writeFixture(path.join(tvRoot, 'TurneroSalaTV.apk'), 'tv-apk');
-    fs.rmSync(path.join(desktopRoot, 'operator', 'win', 'latest.yml'));
+    fs.rmSync(path.join(desktopRoot, 'operator', 'win', 'stable.yml'));
 
     const result = spawnSync(
         process.execPath,
@@ -206,7 +206,7 @@ test('stage-turnero-app-release soporta layout de artifacts descargados por nomb
         'turnero-desktop-operator-win',
         {
             'TurneroOperadorSetup.exe': 'operator-win-exe',
-            'latest.yml': 'operator-win-latest',
+            'stable.yml': 'operator-win-latest',
             'TurneroOperadorSetup.exe.blockmap': 'operator-win-blockmap',
         }
     );
@@ -216,19 +216,19 @@ test('stage-turnero-app-release soporta layout de artifacts descargados por nomb
         {
             'TurneroOperador.dmg': 'operator-mac-dmg',
             'TurneroOperador.zip': 'operator-mac-zip',
-            'latest-mac.yml': 'operator-mac-latest',
+            'stable-mac.yml': 'operator-mac-latest',
             'TurneroOperador.zip.blockmap': 'operator-mac-blockmap',
         }
     );
     createDownloadedArtifactFixture(desktopRoot, 'turnero-desktop-kiosk-win', {
         'TurneroKioscoSetup.exe': 'kiosk-win-exe',
-        'latest.yml': 'kiosk-win-latest',
+        'stable.yml': 'kiosk-win-latest',
         'TurneroKioscoSetup.exe.blockmap': 'kiosk-win-blockmap',
     });
     createDownloadedArtifactFixture(desktopRoot, 'turnero-desktop-kiosk-mac', {
         'TurneroKiosco.dmg': 'kiosk-mac-dmg',
         'TurneroKiosco.zip': 'kiosk-mac-zip',
-        'latest-mac.yml': 'kiosk-mac-latest',
+        'stable-mac.yml': 'kiosk-mac-latest',
         'TurneroKiosco.zip.blockmap': 'kiosk-mac-blockmap',
     });
     createDownloadedArtifactFixture(

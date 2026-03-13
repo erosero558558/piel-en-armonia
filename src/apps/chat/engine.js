@@ -20,17 +20,21 @@ let deps = null;
 let conversationContext = [];
 let chatHistory = [];
 let currentAppointment = null;
+let clinicalHistorySession = null;
 let CLINIC_ADDRESS = 'Dr. Cecilio Caiza e hijas, Quito, Ecuador';
 let CLINIC_MAP_URL = '';
 let DOCTOR_CAROLINA_PHONE = '+593 98 786 6885';
 let DOCTOR_CAROLINA_EMAIL = 'caro93narvaez@gmail.com';
 let isProcessingMessage = false; // Evitar duplicados
+let clinicalSessionHydrationPromise = null;
+let clinicalSessionRefreshTimerId = 0;
 
 function init(inputDeps = {}) {
     deps = inputDeps || {};
     conversationContext = getConversationContextSafe();
     chatHistory = getChatHistorySafe();
     currentAppointment = getCurrentAppointmentSafe();
+    clinicalHistorySession = getClinicalHistorySessionSafe();
 
     const clinicAddress = String(deps.clinicAddress || '').trim();
     const clinicMapUrl = String(deps.clinicMapUrl || '').trim();
@@ -139,6 +143,402 @@ function getCurrentAppointmentSafe() {
         : null;
 }
 
+function getChatModeSafe() {
+    if (deps && typeof deps.getChatMode === 'function') {
+        const mode = String(deps.getChatMode() || '').trim();
+        return mode || 'general';
+    }
+    return 'general';
+}
+
+function getClinicalRouteContextSafe() {
+    if (deps && typeof deps.getClinicalRouteContext === 'function') {
+        const value = deps.getClinicalRouteContext();
+        return value && typeof value === 'object' ? value : {};
+    }
+
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        return {
+            mode: String(params.get('mode') || '').trim(),
+            sessionId: String(params.get('sessionId') || '').trim(),
+            caseId: String(params.get('caseId') || '').trim(),
+            appointmentId: String(params.get('appointmentId') || '').trim(),
+            surface: String(params.get('surface') || '').trim(),
+        };
+    } catch {
+        return {};
+    }
+}
+
+function isClinicalIntakeMode() {
+    return getChatModeSafe() === 'clinical_intake';
+}
+
+function getClinicalHistorySessionSafe() {
+    if (deps && typeof deps.getClinicalHistorySession === 'function') {
+        const value = deps.getClinicalHistorySession();
+        return value && typeof value === 'object' ? value : null;
+    }
+    return clinicalHistorySession && typeof clinicalHistorySession === 'object'
+        ? clinicalHistorySession
+        : null;
+}
+
+function setClinicalHistorySessionSafe(nextSession) {
+    clinicalHistorySession =
+        nextSession && typeof nextSession === 'object' ? nextSession : null;
+    if (deps && typeof deps.setClinicalHistorySession === 'function') {
+        deps.setClinicalHistorySession(clinicalHistorySession);
+    }
+}
+
+function clearClinicalHistorySessionSafe() {
+    clinicalHistorySession = null;
+    if (deps && typeof deps.clearClinicalHistorySession === 'function') {
+        deps.clearClinicalHistorySession();
+    }
+}
+
+function renderChatHistorySafe(nextHistory) {
+    if (deps && typeof deps.renderChatHistory === 'function') {
+        deps.renderChatHistory(Array.isArray(nextHistory) ? nextHistory : []);
+    }
+}
+
+function getClinicalHistorySessionEndpoint() {
+    const endpoint =
+        deps && typeof deps.clinicalHistorySessionEndpoint === 'string'
+            ? deps.clinicalHistorySessionEndpoint.trim()
+            : '';
+    return endpoint || '/api.php?resource=clinical-history-session';
+}
+
+function getClinicalSessionIdentifiers(session = null) {
+    const safeSession =
+        session && typeof session === 'object'
+            ? session
+            : getClinicalHistorySessionSafe() || {};
+    const metadata =
+        safeSession.metadata && typeof safeSession.metadata === 'object'
+            ? safeSession.metadata
+            : {};
+    const patientIntake =
+        metadata.patientIntake && typeof metadata.patientIntake === 'object'
+            ? metadata.patientIntake
+            : {};
+
+    return {
+        sessionId: String(
+            safeSession.sessionId || patientIntake.sessionId || ''
+        ).trim(),
+        caseId: String(safeSession.caseId || patientIntake.caseId || '').trim(),
+        appointmentId:
+            patientIntake.appointmentId ?? safeSession.appointmentId ?? null,
+        surface: String(
+            patientIntake.surface || safeSession.surface || ''
+        ).trim(),
+    };
+}
+
+function doesClinicalSessionMatchRequest(session, identifiers = {}) {
+    const sessionIdentifiers = getClinicalSessionIdentifiers(session);
+    const requestedSessionId = String(identifiers.sessionId || '').trim();
+    const requestedCaseId = String(identifiers.caseId || '').trim();
+
+    if (!sessionIdentifiers.sessionId && !sessionIdentifiers.caseId) {
+        return false;
+    }
+    if (
+        requestedSessionId &&
+        requestedSessionId !== sessionIdentifiers.sessionId
+    ) {
+        return false;
+    }
+    if (requestedCaseId && requestedCaseId !== sessionIdentifiers.caseId) {
+        return false;
+    }
+    return true;
+}
+
+function createClientMessageId() {
+    if (
+        typeof window !== 'undefined' &&
+        window.crypto &&
+        typeof window.crypto.randomUUID === 'function'
+    ) {
+        return `chat-msg-${window.crypto.randomUUID()}`;
+    }
+    return `chat-msg-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+}
+
+function mapClinicalTranscriptToChatHistory(transcript) {
+    const entries = Array.isArray(transcript) ? transcript : [];
+    return entries
+        .map((entry) => {
+            if (!entry || typeof entry !== 'object') {
+                return null;
+            }
+
+            const role = String(entry.role || '')
+                .trim()
+                .toLowerCase();
+            const content = String(entry.content || '').trim();
+            if (!content) {
+                return null;
+            }
+
+            const baseEntry = {
+                time: String(
+                    entry.createdAt ||
+                        entry.updatedAt ||
+                        new Date().toISOString()
+                ),
+            };
+            if (role === 'user') {
+                return {
+                    ...baseEntry,
+                    type: 'user',
+                    text: content,
+                };
+            }
+
+            return {
+                ...baseEntry,
+                type: 'bot',
+                text: formatMarkdown(content),
+            };
+        })
+        .filter(Boolean);
+}
+
+function mapClinicalTranscriptToConversationContext(transcript) {
+    const entries = Array.isArray(transcript) ? transcript : [];
+    return entries
+        .map((entry) => {
+            if (!entry || typeof entry !== 'object') {
+                return null;
+            }
+            const role = String(entry.role || '')
+                .trim()
+                .toLowerCase();
+            const content = String(entry.content || '').trim();
+            if (!content) {
+                return null;
+            }
+            return {
+                role: role === 'user' ? 'user' : 'assistant',
+                content,
+            };
+        })
+        .filter(Boolean)
+        .slice(-CHAT_CONTEXT_MAX_ITEMS);
+}
+
+function clearClinicalSessionRefreshTimer() {
+    if (clinicalSessionRefreshTimerId) {
+        clearTimeout(clinicalSessionRefreshTimerId);
+        clinicalSessionRefreshTimerId = 0;
+    }
+}
+
+function scheduleClinicalSessionRefresh(aiPayload, session) {
+    clearClinicalSessionRefreshTimer();
+
+    const mode = String(aiPayload?.mode || aiPayload?.status || '').trim();
+    if (mode !== 'queued') {
+        return;
+    }
+
+    const identifiers = getClinicalSessionIdentifiers(session);
+    if (!identifiers.sessionId && !identifiers.caseId) {
+        return;
+    }
+
+    const pollAfterMs = Math.max(
+        1000,
+        Math.min(10000, Number(aiPayload?.pollAfterMs || 2000))
+    );
+    clinicalSessionRefreshTimerId = setTimeout(() => {
+        ensureClinicalSessionHydrated({
+            render: true,
+            force: true,
+            sessionId: identifiers.sessionId,
+            caseId: identifiers.caseId,
+        }).catch(() => undefined);
+    }, pollAfterMs);
+}
+
+function applyClinicalSessionPayload(payload, options = {}) {
+    const safePayload = payload && typeof payload === 'object' ? payload : {};
+    const session =
+        safePayload.session && typeof safePayload.session === 'object'
+            ? safePayload.session
+            : null;
+    if (!session) {
+        return null;
+    }
+
+    setClinicalHistorySessionSafe(session);
+
+    const transcript = Array.isArray(session.transcript)
+        ? session.transcript
+        : [];
+    const mappedHistory = mapClinicalTranscriptToChatHistory(transcript);
+    setChatHistorySafe(mappedHistory);
+    setConversationContextSafe(
+        mapClinicalTranscriptToConversationContext(transcript)
+    );
+
+    if (options.render !== false) {
+        renderChatHistorySafe(mappedHistory);
+    }
+
+    scheduleClinicalSessionRefresh(safePayload.ai, session);
+    return session;
+}
+
+async function fetchClinicalHistorySession(query = {}, debugLabel = 'hydrate') {
+    const identifiers = {
+        sessionId: String(query.sessionId || '').trim(),
+        caseId: String(query.caseId || '').trim(),
+    };
+    if (!identifiers.sessionId && !identifiers.caseId) {
+        return null;
+    }
+
+    const endpoint = new URL(
+        getClinicalHistorySessionEndpoint(),
+        window.location.origin
+    );
+    if (identifiers.sessionId) {
+        endpoint.searchParams.set('sessionId', identifiers.sessionId);
+    }
+    if (identifiers.caseId) {
+        endpoint.searchParams.set('caseId', identifiers.caseId);
+    }
+    endpoint.searchParams.set('t', String(Date.now()));
+
+    const response = await fetch(endpoint.toString(), {
+        method: 'GET',
+        headers: {
+            Accept: 'application/json',
+            'Cache-Control': 'no-cache',
+        },
+    });
+
+    debugLog(`?? Status (${debugLabel}):`, response.status);
+    let data;
+    try {
+        data = await response.json();
+    } catch (parseError) {
+        throw createFigoError('clinical_session_invalid_json', {
+            code: 'clinical_session_invalid_json',
+            cause: parseError,
+        });
+    }
+
+    if (!response.ok || data?.ok !== true || !data?.data) {
+        throw createFigoError('clinical_session_fetch_failed', {
+            code: 'clinical_session_fetch_failed',
+            status: response.status,
+            payload: data,
+        });
+    }
+
+    return data.data;
+}
+
+async function ensureClinicalSessionHydrated(options = {}) {
+    const route = getClinicalRouteContextSafe();
+    const storedSession = getClinicalHistorySessionSafe();
+    const storedIdentifiers = getClinicalSessionIdentifiers(storedSession);
+    const requestedIdentifiers = {
+        sessionId: String(
+            options.sessionId ||
+                route.sessionId ||
+                storedIdentifiers.sessionId ||
+                ''
+        ).trim(),
+        caseId: String(
+            options.caseId || route.caseId || storedIdentifiers.caseId || ''
+        ).trim(),
+    };
+    const shouldRender = options.render === true;
+    const shouldForce = options.force === true;
+
+    if (
+        !isClinicalIntakeMode() &&
+        !requestedIdentifiers.sessionId &&
+        !requestedIdentifiers.caseId &&
+        shouldForce !== true
+    ) {
+        return null;
+    }
+
+    if (
+        !shouldForce &&
+        storedSession &&
+        doesClinicalSessionMatchRequest(storedSession, requestedIdentifiers)
+    ) {
+        if (shouldRender) {
+            applyClinicalSessionPayload(
+                {
+                    session: storedSession,
+                },
+                { render: true }
+            );
+        }
+        return storedSession;
+    }
+
+    if (!requestedIdentifiers.sessionId && !requestedIdentifiers.caseId) {
+        if (shouldRender && storedSession) {
+            applyClinicalSessionPayload(
+                {
+                    session: storedSession,
+                },
+                { render: true }
+            );
+        }
+        return storedSession;
+    }
+
+    if (!shouldForce && clinicalSessionHydrationPromise) {
+        return clinicalSessionHydrationPromise;
+    }
+
+    clinicalSessionHydrationPromise = fetchClinicalHistorySession(
+        requestedIdentifiers,
+        'clinical_session'
+    )
+        .then((payload) =>
+            applyClinicalSessionPayload(payload, {
+                render: shouldRender,
+            })
+        )
+        .catch((error) => {
+            debugLog('No se pudo hidratar la sesion clinica:', error);
+            if (storedSession) {
+                if (shouldRender) {
+                    applyClinicalSessionPayload(
+                        {
+                            session: storedSession,
+                        },
+                        { render: true }
+                    );
+                }
+                return storedSession;
+            }
+            throw error;
+        })
+        .finally(() => {
+            clinicalSessionHydrationPromise = null;
+        });
+
+    return clinicalSessionHydrationPromise;
+}
+
 function shouldUseRealAI() {
     if (localStorage.getItem('forceAI') === 'true') {
         return true;
@@ -194,14 +594,63 @@ Puedes continuar por <a href="https://wa.me/593982453672" target="_blank" rel="n
     );
 }
 
+function showClinicalIntakeUnavailableMessage() {
+    addBotMessage(
+        `No pude continuar tu <strong>historia clinica</strong> en este momento.<br><br>
+Puedes intentar de nuevo en unos minutos o seguir por <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">WhatsApp +593 98 245 3672</a> si necesitas ayuda inmediata.`,
+        false
+    );
+}
+
+function buildClinicalIntakePayload(message) {
+    const route = getClinicalRouteContextSafe();
+    const identifiers = getClinicalSessionIdentifiers();
+    const appointmentId =
+        identifiers.appointmentId ?? route.appointmentId ?? null;
+    const surface =
+        String(route.surface || identifiers.surface || 'web_chat').trim() ||
+        'web_chat';
+    const payload = {
+        mode: 'clinical_intake',
+        messages: [],
+        message: String(message || '').trim(),
+        clientMessageId: createClientMessageId(),
+        surface,
+    };
+
+    if (identifiers.sessionId) {
+        payload.sessionId = identifiers.sessionId;
+    } else if (route.sessionId) {
+        payload.sessionId = String(route.sessionId || '').trim();
+    }
+
+    if (identifiers.caseId) {
+        payload.caseId = identifiers.caseId;
+    } else if (route.caseId) {
+        payload.caseId = String(route.caseId || '').trim();
+    }
+
+    if (appointmentId !== null && appointmentId !== '') {
+        payload.appointmentId = appointmentId;
+    }
+
+    return payload;
+}
+
 async function processWithKimi(message) {
     if (isProcessingMessage) {
         debugLog('Ya procesando, ignorando duplicado');
         return;
     }
 
+    const clinicalMode = isClinicalIntakeMode();
+
     // Si hay un booking en curso, desviar al flujo conversacional
-    if (typeof isChatBookingActive === 'function' && isChatBookingActive()) {
+    if (
+        !clinicalMode &&
+        typeof isChatBookingActive === 'function' &&
+        isChatBookingActive()
+    ) {
         const handled = await processChatBookingStep(message);
         if (handled !== false) {
             return;
@@ -210,6 +659,7 @@ async function processWithKimi(message) {
 
     // Detectar intención de agendar cita para iniciar booking conversacional
     if (
+        !clinicalMode &&
         /cita|agendar|reservar|turno|quiero una consulta|necesito cita/i.test(
             message
         )
@@ -222,7 +672,7 @@ async function processWithKimi(message) {
 
     showTypingIndicator();
 
-    if (isOutOfScopeIntent(message)) {
+    if (!clinicalMode && isOutOfScopeIntent(message)) {
         removeTypingIndicator();
         addBotMessage(
             `Puedo ayudarte con temas de <strong>Aurora Derm</strong> (servicios, precios, citas, pagos, horarios y ubicación).<br><br>Si deseas, te ayudo ahora con:<br>- <a href="#servicios" data-action="minimize-chat">Servicios y tratamientos</a><br>- <a href="#v5-booking" data-action="minimize-chat">Reservar cita</a><br>- <a href="https://wa.me/593982453672" target="_blank" rel="noopener noreferrer">WhatsApp directo</a>`,
@@ -241,16 +691,25 @@ async function processWithKimi(message) {
             debugLog('?? Consultando bot del servidor...');
             await tryRealAI(message);
         } else {
-            debugLog('?? Usando respuestas locales (modo offline)');
-            setTimeout(() => {
+            if (clinicalMode) {
                 removeTypingIndicator();
-                processLocalResponse(message, false);
-            }, 600);
+                showClinicalIntakeUnavailableMessage();
+            } else {
+                debugLog('?? Usando respuestas locales (modo offline)');
+                setTimeout(() => {
+                    removeTypingIndicator();
+                    processLocalResponse(message, false);
+                }, 600);
+            }
         }
     } catch (error) {
         debugLog('Error:', error);
         removeTypingIndicator();
-        processLocalResponse(message, false);
+        if (clinicalMode) {
+            showClinicalIntakeUnavailableMessage();
+        } else {
+            processLocalResponse(message, false);
+        }
     } finally {
         isProcessingMessage = false;
     }
@@ -560,9 +1019,14 @@ async function requestFigoCompletion(
         throw new Error('Respuesta no es JSON valido');
     }
 
+    const clinicalIntake =
+        data && typeof data.clinicalIntake === 'object' && data.clinicalIntake
+            ? data.clinicalIntake
+            : null;
+
     if (data && typeof data === 'object' && data.mode === 'queued') {
         return {
-            content: '',
+            content: String(data?.choices?.[0]?.message?.content || ''),
             mode: 'queued',
             source: typeof data.source === 'string' ? data.source : '',
             reason: typeof data.reason === 'string' ? data.reason : '',
@@ -581,6 +1045,7 @@ async function requestFigoCompletion(
             pollAfterMs: Number.isFinite(data.pollAfterMs)
                 ? Number(data.pollAfterMs)
                 : 1500,
+            clinicalIntake,
         };
     }
 
@@ -625,6 +1090,7 @@ async function requestFigoCompletion(
         pollAfterMs: Number.isFinite(data.pollAfterMs)
             ? Number(data.pollAfterMs)
             : 1500,
+        clinicalIntake,
     };
 }
 
@@ -743,7 +1209,73 @@ async function waitForQueuedCompletion(initialReply) {
     });
 }
 
+async function tryClinicalIntakeMessage(message) {
+    let hydratedSession = null;
+    try {
+        hydratedSession = await ensureClinicalSessionHydrated({
+            render: false,
+        });
+    } catch (hydrateError) {
+        debugLog('No se pudo precargar la sesion clinica:', hydrateError);
+    }
+
+    const payload = buildClinicalIntakePayload(message);
+    if (!payload.sessionId && hydratedSession) {
+        const identifiers = getClinicalSessionIdentifiers(hydratedSession);
+        if (identifiers.sessionId) {
+            payload.sessionId = identifiers.sessionId;
+        }
+        if (identifiers.caseId) {
+            payload.caseId = identifiers.caseId;
+        }
+        if (
+            (payload.appointmentId === null || payload.appointmentId === '') &&
+            identifiers.appointmentId !== null &&
+            identifiers.appointmentId !== ''
+        ) {
+            payload.appointmentId = identifiers.appointmentId;
+        }
+    }
+
+    debugLog('?? Enviando historia clinica a:', KIMI_CONFIG.apiUrl);
+    let reply = await requestFigoCompletion([], payload, 'clinical_intake');
+
+    const clinicalPayload =
+        reply &&
+        reply.clinicalIntake &&
+        typeof reply.clinicalIntake === 'object'
+            ? reply.clinicalIntake
+            : null;
+    if (clinicalPayload) {
+        applyClinicalSessionPayload(clinicalPayload, {
+            render: true,
+        });
+        removeTypingIndicator();
+        return;
+    }
+
+    if (reply.queued === true) {
+        const fallbackSession = getClinicalHistorySessionSafe();
+        scheduleClinicalSessionRefresh(reply, fallbackSession);
+    }
+
+    const botResponse = String(reply.content || '').trim();
+    if (!botResponse) {
+        throw createFigoError('clinical_intake_empty_reply', {
+            code: 'clinical_intake_empty_reply',
+        });
+    }
+
+    removeTypingIndicator();
+    addBotMessage(formatMarkdown(botResponse), false);
+}
+
 async function tryRealAI(message) {
+    if (isClinicalIntakeMode()) {
+        await tryClinicalIntakeMessage(message);
+        return;
+    }
+
     try {
         // Limpiar duplicados del contexto antes de enviar
         conversationContext = getConversationContextSafe();
@@ -1114,9 +1646,11 @@ function formatMarkdown(text) {
 // UTILIDADES DEL CHATBOT
 // ========================================
 function resetConversation() {
+    clearClinicalSessionRefreshTimer();
     setConversationContextSafe([]);
     localStorage.removeItem('chatHistory');
     setChatHistorySafe([]);
+    clearClinicalHistorySessionSafe();
     showToast('Conversacion reiniciada', 'info');
 }
 
@@ -1167,6 +1701,7 @@ if (typeof window !== 'undefined') {
     window.Piel.FigoChatEngine = {
         init,
         processWithKimi,
+        ensureClinicalSessionHydrated,
         resetConversation,
         checkServerEnvironment,
         forzarModoIA,

@@ -9,10 +9,10 @@ Publicar `Turnero Operador`, `Turnero Kiosco` y `Turnero Sala TV` con un solo wo
 - `/app-downloads/stable/kiosk/win/TurneroKioscoSetup.exe`
 - `/app-downloads/stable/kiosk/mac/TurneroKiosco.dmg`
 - `/app-downloads/stable/sala-tv/android/TurneroSalaTV.apk`
-- `/desktop-updates/stable/operator/win/latest.yml`
-- `/desktop-updates/stable/operator/mac/latest-mac.yml`
-- `/desktop-updates/stable/kiosk/win/latest.yml`
-- `/desktop-updates/stable/kiosk/mac/latest-mac.yml`
+- `/desktop-updates/stable/operator/win/stable.yml`
+- `/desktop-updates/stable/operator/mac/stable-mac.yml`
+- `/desktop-updates/stable/kiosk/win/stable.yml`
+- `/desktop-updates/stable/kiosk/mac/stable-mac.yml`
 
 ## Workflow canonico
 
@@ -130,7 +130,7 @@ Validar siempre:
 - `admin.html#queue` muestra la version de release correcta
 - `app-downloads/` entrega el instalador correcto por plataforma
 - `app-downloads/` marca `Listo para instalación` solo si la descarga y la ruta preparada responden
-- `desktop-updates/` responde `latest.yml` y `latest-mac.yml`
+- `desktop-updates/` responde `stable.yml` y `stable-mac.yml`
 - el shell desktop muestra `Equipo listo` al pasar el checklist de arranque
 
 ## Smoke operativo obligatorio
@@ -142,7 +142,7 @@ Antes de publicar `stable`, completar y registrar esta matriz minima:
 - `Sala TV` Android TV: `audio primed -> bell test -> listo`; reconexion; fallback local; campanilla audible
 - `admin.html#queue`: version visible del release; surfaces listas; links resueltos desde `release-manifest.json`
 - `/app-downloads/`: URLs reales; manifest visible; descargas correctas por plataforma
-- `desktop-updates/stable/...`: feeds `latest.yml` y `latest-mac.yml` accesibles con payloads correctos
+- `desktop-updates/stable/...`: feeds `stable.yml` y `stable-mac.yml` accesibles con payloads correctos
 
 ## Cierre del primer release estable
 

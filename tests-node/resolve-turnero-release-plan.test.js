@@ -54,3 +54,20 @@ test('resolve-turnero-release-plan genera matrices desde el registry', () => {
         'app/build/outputs/apk/release/TurneroSalaTV.apk'
     );
 });
+
+test('resolve-turnero-release-plan respeta el base URL solicitado para Android TV', () => {
+    const result = spawnSync(
+        process.execPath,
+        [SCRIPT_PATH, '--base-url', 'https://turnero.example.test'],
+        {
+            cwd: resolve(__dirname, '..'),
+            encoding: 'utf8',
+        }
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const payload = JSON.parse(result.stdout);
+    const android = payload.android_matrix?.include || [];
+    assert.equal(android.length, 1);
+    assert.equal(android[0].base_url, 'https://turnero.example.test');
+});

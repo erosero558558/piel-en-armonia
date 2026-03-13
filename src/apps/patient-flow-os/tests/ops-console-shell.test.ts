@@ -14,6 +14,7 @@ test("ops console shell se hidrata desde el API canonico del copilot", () => {
   assert.match(html, /data-copilot-ready="true"/);
   assert.match(html, /\/v1\/patient-cases\?tenantId=tnt_green/);
   assert.match(html, /\/v1\/reports\/kpi\?tenantId=tnt_green/);
+  assert.match(html, /\/v1\/provider-runtime\?tenantId=tnt_green/);
   assert.match(html, /\/v1\/agent-tasks\/ops-next-best-action/);
   assert.match(html, /\/v1\/copilot\/dispatch-worker\/drain/);
   assert.match(html, /\/v1\/copilot\/provider-exceptions\?tenantId=tnt_green/);
@@ -21,6 +22,7 @@ test("ops console shell se hidrata desde el API canonico del copilot", () => {
   assert.match(html, /\/v1\/patient-cases\/:caseId\/copilot-receipts\?tenantId=tnt_green/);
   assert.match(html, /\/v1\/patient-cases\/:caseId\/copilot-receipt-events\?tenantId=tnt_green/);
   assert.match(html, /\/v1\/copilot\/receipts\/webhook/);
+  assert.match(html, /Provider Runtime/);
   assert.match(html, /Receipts fallidos/);
   assert.match(html, /data-review-decision/);
   assert.match(html, /data-provider-exception-decision/);

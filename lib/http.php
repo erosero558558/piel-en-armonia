@@ -25,6 +25,24 @@ if (!class_exists('TestingExitException', false)) {
     }
 }
 
+function json_response_body(array $payload): string
+{
+    $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (!is_string($encoded)) {
+        return '{"ok":false,"error":"json_encoding_failed"}';
+    }
+
+    return $encoded;
+}
+
+function emit_json_response(string $body, int $status = 200): void
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Content-Length: ' . strlen($body));
+    echo $body;
+}
+
 function json_response(array $payload, int $status = 200): void
 {
     if (defined('TESTING_ENV')) {
@@ -34,9 +52,7 @@ function json_response(array $payload, int $status = 200): void
         }
     }
 
-    http_response_code($status);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    emit_json_response(json_response_body($payload), $status);
     exit();
 }
 

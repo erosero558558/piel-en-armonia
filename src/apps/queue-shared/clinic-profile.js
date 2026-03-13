@@ -2,9 +2,9 @@ const FALLBACK_PROFILE = Object.freeze({
     schema: 'turnero-clinic-profile/v1',
     clinic_id: 'default-clinic',
     branding: {
-        name: 'Piel en Armonia',
-        short_name: 'Piel en Armonia',
-        city: 'Quito',
+        name: 'Consultorio Medicina General',
+        short_name: 'Medicina General',
+        city: '',
         base_url: '',
     },
     consultorios: {
@@ -18,7 +18,11 @@ const FALLBACK_PROFILE = Object.freeze({
         },
     },
     surfaces: {
-        admin: { enabled: true, label: 'Admin web', route: '/admin.html#queue' },
+        admin: {
+            enabled: true,
+            label: 'Admin web',
+            route: '/admin.html#queue',
+        },
         operator: {
             enabled: true,
             label: 'Operador web',
@@ -29,7 +33,11 @@ const FALLBACK_PROFILE = Object.freeze({
             label: 'Kiosco web',
             route: '/kiosco-turnos.html',
         },
-        display: { enabled: true, label: 'Sala web', route: '/sala-turnos.html' },
+        display: {
+            enabled: true,
+            label: 'Sala web',
+            route: '/sala-turnos.html',
+        },
     },
     release: {
         mode: 'web_pilot',
@@ -47,9 +55,23 @@ function toString(value, fallback = '') {
     return normalized || fallback;
 }
 
+function getTurneroRuntimeProductConfig() {
+    if (typeof window === 'undefined') {
+        return {};
+    }
+
+    const payload = window.__TURNERO_PRODUCT_CONFIG__;
+    return payload && typeof payload === 'object' ? payload : {};
+}
+
 export function normalizeTurneroClinicProfile(rawProfile) {
     const source =
         rawProfile && typeof rawProfile === 'object' ? rawProfile : {};
+    const productConfig = getTurneroRuntimeProductConfig();
+    const productSurfaces =
+        productConfig.surfaces && typeof productConfig.surfaces === 'object'
+            ? productConfig.surfaces
+            : {};
     const branding =
         source.branding && typeof source.branding === 'object'
             ? source.branding
@@ -66,20 +88,35 @@ export function normalizeTurneroClinicProfile(rawProfile) {
         source.release && typeof source.release === 'object'
             ? source.release
             : {};
+    const runtimeOperator = productSurfaces.operator || {};
+    const runtimeKiosk = productSurfaces.kiosk || {};
+    const runtimeDisplay = productSurfaces.sala_tv || {};
 
     return {
         schema: toString(source.schema, FALLBACK_PROFILE.schema),
         clinic_id: toString(source.clinic_id, FALLBACK_PROFILE.clinic_id),
         branding: {
-            name: toString(branding.name, FALLBACK_PROFILE.branding.name),
+            name: toString(
+                productConfig.brandName,
+                toString(branding.name, FALLBACK_PROFILE.branding.name)
+            ),
             short_name: toString(
-                branding.short_name,
-                toString(branding.name, FALLBACK_PROFILE.branding.short_name)
+                productConfig.brandShortName,
+                toString(
+                    branding.short_name,
+                    toString(
+                        productConfig.brandName,
+                        toString(
+                            branding.name,
+                            FALLBACK_PROFILE.branding.short_name
+                        )
+                    )
+                )
             ),
             city: toString(branding.city, FALLBACK_PROFILE.branding.city),
             base_url: toString(
-                branding.base_url,
-                FALLBACK_PROFILE.branding.base_url
+                productConfig.baseUrl,
+                toString(branding.base_url, FALLBACK_PROFILE.branding.base_url)
             ),
         },
         consultorios: {
@@ -126,11 +163,17 @@ export function normalizeTurneroClinicProfile(rawProfile) {
                         : true,
                 label: toString(
                     surfaces?.operator?.label,
-                    FALLBACK_PROFILE.surfaces.operator.label
+                    toString(
+                        runtimeOperator.catalogTitle,
+                        FALLBACK_PROFILE.surfaces.operator.label
+                    )
                 ),
                 route: toString(
                     surfaces?.operator?.route,
-                    FALLBACK_PROFILE.surfaces.operator.route
+                    toString(
+                        runtimeOperator.webFallbackUrl,
+                        FALLBACK_PROFILE.surfaces.operator.route
+                    )
                 ),
             },
             kiosk: {
@@ -140,11 +183,17 @@ export function normalizeTurneroClinicProfile(rawProfile) {
                         : true,
                 label: toString(
                     surfaces?.kiosk?.label,
-                    FALLBACK_PROFILE.surfaces.kiosk.label
+                    toString(
+                        runtimeKiosk.catalogTitle,
+                        FALLBACK_PROFILE.surfaces.kiosk.label
+                    )
                 ),
                 route: toString(
                     surfaces?.kiosk?.route,
-                    FALLBACK_PROFILE.surfaces.kiosk.route
+                    toString(
+                        runtimeKiosk.webFallbackUrl,
+                        FALLBACK_PROFILE.surfaces.kiosk.route
+                    )
                 ),
             },
             display: {
@@ -154,11 +203,17 @@ export function normalizeTurneroClinicProfile(rawProfile) {
                         : true,
                 label: toString(
                     surfaces?.display?.label,
-                    FALLBACK_PROFILE.surfaces.display.label
+                    toString(
+                        runtimeDisplay.catalogTitle,
+                        FALLBACK_PROFILE.surfaces.display.label
+                    )
                 ),
                 route: toString(
                     surfaces?.display?.route,
-                    FALLBACK_PROFILE.surfaces.display.route
+                    toString(
+                        runtimeDisplay.webFallbackUrl,
+                        FALLBACK_PROFILE.surfaces.display.route
+                    )
                 ),
             },
         },
@@ -187,10 +242,7 @@ export function normalizeTurneroClinicProfile(rawProfile) {
 }
 
 export function getTurneroClinicBrandName(profile) {
-    return toString(
-        profile?.branding?.name,
-        FALLBACK_PROFILE.branding.name
-    );
+    return toString(profile?.branding?.name, FALLBACK_PROFILE.branding.name);
 }
 
 export function getTurneroClinicShortName(profile) {
@@ -200,11 +252,7 @@ export function getTurneroClinicShortName(profile) {
     );
 }
 
-export function getTurneroConsultorioLabel(
-    profile,
-    consultorio,
-    options = {}
-) {
+export function getTurneroConsultorioLabel(profile, consultorio, options = {}) {
     const short = Boolean(options.short);
     const key = Number(consultorio || 0) === 2 ? 'c2' : 'c1';
     const fallback = FALLBACK_PROFILE.consultorios[key];

@@ -686,6 +686,113 @@ function buildSummaryCards(review) {
     ].join('');
 }
 
+function readPatientIntakeMeta(review) {
+    const metadata =
+        review?.session?.metadata && typeof review.session.metadata === 'object'
+            ? review.session.metadata
+            : {};
+    return metadata.patientIntake && typeof metadata.patientIntake === 'object'
+        ? metadata.patientIntake
+        : {};
+}
+
+function readPendingPatientAction(review) {
+    const metadata =
+        review?.session?.metadata && typeof review.session.metadata === 'object'
+            ? review.session.metadata
+            : {};
+    return metadata.pendingPatientAction &&
+        typeof metadata.pendingPatientAction === 'object'
+        ? metadata.pendingPatientAction
+        : {};
+}
+
+function readLastPatientAction(review) {
+    const metadata =
+        review?.session?.metadata && typeof review.session.metadata === 'object'
+            ? review.session.metadata
+            : {};
+    return metadata.lastPatientAction &&
+        typeof metadata.lastPatientAction === 'object'
+        ? metadata.lastPatientAction
+        : {};
+}
+
+function buildFollowUpStatus(review) {
+    if (!normalizeString(review?.session?.sessionId)) {
+        return `
+            <article class="clinical-history-followup-status-card" data-tone="neutral">
+                <strong>Sin seguimiento activo</strong>
+                <p>Selecciona un caso para compartir el mismo hilo clinico con el paciente.</p>
+            </article>
+        `;
+    }
+
+    const patientIntake = readPatientIntakeMeta(review);
+    const pendingAction = readPendingPatientAction(review);
+    const lastAction = readLastPatientAction(review);
+    const resumeUrl = normalizeString(patientIntake.resumeUrl);
+    const actionLinks = resumeUrl
+        ? `
+            <div class="clinical-history-followup-links">
+                <a href="${escapeHtml(resumeUrl)}" target="_blank" rel="noopener noreferrer">
+                    Abrir hilo del paciente
+                </a>
+                <button
+                    type="button"
+                    data-clinical-review-action="copy-follow-up-link"
+                >
+                    Copiar link
+                </button>
+            </div>
+        `
+        : '';
+
+    if (normalizeString(pendingAction.question)) {
+        return `
+            <article class="clinical-history-followup-status-card" data-tone="warning">
+                <strong>Pendiente de respuesta</strong>
+                <p>${escapeHtml(pendingAction.question)}</p>
+                <small>${escapeHtml(
+                    pendingAction.requestedAt
+                        ? `Enviada ${readableTimestamp(pendingAction.requestedAt)}`
+                        : 'Esperando respuesta del paciente.'
+                )}</small>
+                ${actionLinks}
+            </article>
+        `;
+    }
+
+    if (normalizeString(lastAction.status) === 'answered') {
+        return `
+            <article class="clinical-history-followup-status-card" data-tone="success">
+                <strong>Paciente respondio</strong>
+                <p>${escapeHtml(
+                    normalizeString(lastAction.responsePreview) ||
+                        'La respuesta ya quedo registrada en el transcript.'
+                )}</p>
+                <small>${escapeHtml(
+                    lastAction.answeredAt
+                        ? `Respondida ${readableTimestamp(lastAction.answeredAt)}`
+                        : 'Respuesta registrada.'
+                )}</small>
+                ${actionLinks}
+            </article>
+        `;
+    }
+
+    return `
+        <article class="clinical-history-followup-status-card" data-tone="neutral">
+            <strong>Hilo listo para compartir</strong>
+            <p>La pregunta adicional saldra por el mismo canal conversacional del paciente.</p>
+            <small>${escapeHtml(
+                review.session.surface || 'clinical_intake'
+            )}</small>
+            ${actionLinks}
+        </article>
+    `;
+}
+
 function buildAttachmentStrip(review) {
     const attachments = normalizeList(review.draft.intake.adjuntos);
     if (attachments.length === 0) {
@@ -1334,9 +1441,14 @@ function syncDraftStatusMeta() {
     setText(
         '#clinicalHistoryFollowUpMeta',
         review.session.sessionId
-            ? `La pregunta saldra por el mismo hilo de ${currentSelectionLabel(
-                  review
-              )}.`
+            ? normalizeString(readPendingPatientAction(review).question)
+                ? `Esperando la respuesta de ${currentSelectionLabel(review)} en el mismo hilo clinico.`
+                : normalizeString(readLastPatientAction(review).status) ===
+                    'answered'
+                  ? `La ultima respuesta del paciente ya quedo registrada en este caso.`
+                  : `La pregunta saldra por el mismo hilo de ${currentSelectionLabel(
+                        review
+                    )}.`
             : 'Envia una pregunta puntual al paciente sin salir del review.'
     );
 
@@ -1874,6 +1986,37 @@ function bindClinicalHistoryEvents() {
             return;
         }
 
+        if (action === 'copy-follow-up-link') {
+            const resumeUrl = normalizeString(
+                readPatientIntakeMeta(currentReviewSource()).resumeUrl
+            );
+            if (!resumeUrl) {
+                createToast(
+                    'No hay un link clinico listo para compartir todavia.',
+                    'warning'
+                );
+                return;
+            }
+
+            try {
+                if (
+                    navigator.clipboard &&
+                    typeof navigator.clipboard.writeText === 'function'
+                ) {
+                    await navigator.clipboard.writeText(resumeUrl);
+                    createToast('Link clinico copiado.', 'success');
+                } else {
+                    throw new Error('clipboard_unavailable');
+                }
+            } catch (_error) {
+                createToast(
+                    'No se pudo copiar automaticamente el link clinico.',
+                    'error'
+                );
+            }
+            return;
+        }
+
         if (action === 'mark-review-required') {
             await saveClinicalHistoryReview('review-required', '');
             return;
@@ -2006,6 +2149,7 @@ export function renderClinicalHistorySection() {
     );
     setHtml('#clinicalHistoryDraftForm', buildDraftForm(draft, slice.saving));
     setHtml('#clinicalHistoryEvents', buildEvents(review));
+    setHtml('#clinicalHistoryFollowUpStatus', buildFollowUpStatus(review));
 
     syncFollowUpInput();
     syncDraftStatusMeta();

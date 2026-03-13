@@ -137,10 +137,12 @@ interface PreparedActionDispatchAdapterResult {
 interface PreparedActionDispatchAdapter {
   key: string;
   destinationSystem: string;
-  execute(input: PreparedActionDispatchExecutionInput): PreparedActionDispatchAdapterResult;
+  execute(input: PreparedActionDispatchExecutionInput): Promise<PreparedActionDispatchAdapterResult>;
 }
 
-function executeQueueConsoleAdapter(input: PreparedActionDispatchExecutionInput): PreparedActionDispatchAdapterResult {
+async function executeQueueConsoleAdapter(
+  input: PreparedActionDispatchExecutionInput
+): Promise<PreparedActionDispatchAdapterResult> {
   const portContext = toPortContext(input);
   const messageUsed = resolveMessageUsed(input.preparedAction, input.messageOverride);
   const channelOverride = resolveChannelOverride(input.preparedAction);
@@ -153,7 +155,7 @@ function executeQueueConsoleAdapter(input: PreparedActionDispatchExecutionInput)
         throw new Error("provider remediation cannot replay call_next_patient for a non-queue receipt");
       }
       assertProviderSystemsReady(input, ["queue_console"]);
-      const { ticket, receipt } = input.ports.queue.callNextPatient(portContext);
+      const { ticket, receipt } = await input.ports.queue.callNextPatient(portContext);
       applied.push(mutation("queue_ticket", ticket.id, `queue:${ticket.ticketNumber}`, ticket.status));
       receipts.push(receipt);
       return { messageUsed, applied, receipts };
@@ -163,7 +165,7 @@ function executeQueueConsoleAdapter(input: PreparedActionDispatchExecutionInput)
         throw new Error("provider remediation cannot replay start_check_in for a non-queue receipt");
       }
       assertProviderSystemsReady(input, ["queue_console"]);
-      const { appointment, receipt } = input.ports.queue.startCheckIn(portContext);
+      const { appointment, receipt } = await input.ports.queue.startCheckIn(portContext);
       applied.push(
         mutation("appointment", appointment.id, `appointment:${appointment.providerName}`, appointment.status)
       );
@@ -178,7 +180,7 @@ function executeQueueConsoleAdapter(input: PreparedActionDispatchExecutionInput)
         throw new Error("message draft not available for copilot execution");
       }
       assertProviderSystemsReady(input, ["patient_messaging"]);
-      const { thread, receipt } = input.ports.messaging.sendOpsMessage({
+      const { thread, receipt } = await input.ports.messaging.sendOpsMessage({
         ...portContext,
         body: messageUsed,
         channelOverride
@@ -192,9 +194,9 @@ function executeQueueConsoleAdapter(input: PreparedActionDispatchExecutionInput)
   }
 }
 
-function executeSchedulingWorkbenchAdapter(
+async function executeSchedulingWorkbenchAdapter(
   input: PreparedActionDispatchExecutionInput
-): PreparedActionDispatchAdapterResult {
+): Promise<PreparedActionDispatchAdapterResult> {
   const portContext = toPortContext(input);
   const messageUsed = resolveMessageUsed(input.preparedAction, input.messageOverride);
   const channelOverride = resolveChannelOverride(input.preparedAction);
@@ -208,7 +210,7 @@ function executeSchedulingWorkbenchAdapter(
         throw new Error("provider remediation cannot replay confirm_appointment for a non-scheduling receipt");
       }
       assertProviderSystemsReady(input, ["scheduling_workbench"]);
-      const { appointment, receipt } = input.ports.scheduling.confirmAppointment(portContext);
+      const { appointment, receipt } = await input.ports.scheduling.confirmAppointment(portContext);
       applied.push(
         mutation("appointment", appointment.id, `appointment:${appointment.providerName}`, appointment.status)
       );
@@ -231,7 +233,7 @@ function executeSchedulingWorkbenchAdapter(
       );
 
       if (includeScheduling) {
-        const { appointment, receipt } = input.ports.scheduling.requestReschedule(portContext);
+        const { appointment, receipt } = await input.ports.scheduling.requestReschedule(portContext);
         applied.push(
           mutation("appointment", appointment.id, `appointment:${appointment.providerName}`, appointment.status)
         );
@@ -242,7 +244,7 @@ function executeSchedulingWorkbenchAdapter(
         if (!messageUsed) {
           throw new Error("message draft not available for copilot execution");
         }
-        const messageDispatch = input.ports.messaging.sendOpsMessage({
+        const messageDispatch = await input.ports.messaging.sendOpsMessage({
           ...portContext,
           body: messageUsed,
           channelOverride
@@ -294,7 +296,7 @@ function executeSchedulingWorkbenchAdapter(
         if (!messageUsed) {
           throw new Error("message draft not available for copilot execution");
         }
-        const messageDispatch = input.ports.messaging.sendOpsMessage({
+        const messageDispatch = await input.ports.messaging.sendOpsMessage({
           ...portContext,
           body: messageUsed,
           channelOverride
@@ -311,7 +313,7 @@ function executeSchedulingWorkbenchAdapter(
       }
 
       if (includeScheduling) {
-        const bookingOptions = input.ports.scheduling.recordBookingOptions({
+        const bookingOptions = await input.ports.scheduling.recordBookingOptions({
           ...portContext,
           rationale: messageUsed ?? rationale
         });
@@ -327,7 +329,9 @@ function executeSchedulingWorkbenchAdapter(
   }
 }
 
-function executePaymentsReviewAdapter(input: PreparedActionDispatchExecutionInput): PreparedActionDispatchAdapterResult {
+async function executePaymentsReviewAdapter(
+  input: PreparedActionDispatchExecutionInput
+): Promise<PreparedActionDispatchAdapterResult> {
   const portContext = toPortContext(input);
   const messageUsed = resolveMessageUsed(input.preparedAction, input.messageOverride);
   const channelOverride = resolveChannelOverride(input.preparedAction);
@@ -352,7 +356,7 @@ function executePaymentsReviewAdapter(input: PreparedActionDispatchExecutionInpu
     if (!messageUsed) {
       throw new Error("message draft not available for copilot execution");
     }
-    const messageDispatch = input.ports.messaging.sendOpsMessage({
+    const messageDispatch = await input.ports.messaging.sendOpsMessage({
       ...portContext,
       body: messageUsed,
       channelOverride
@@ -369,7 +373,7 @@ function executePaymentsReviewAdapter(input: PreparedActionDispatchExecutionInpu
   }
 
   if (includePayments) {
-    const followUp = input.ports.payments.recordApprovalFollowUp({
+    const followUp = await input.ports.payments.recordApprovalFollowUp({
       ...portContext,
       rationale,
       messageUsed
@@ -386,7 +390,9 @@ function executePaymentsReviewAdapter(input: PreparedActionDispatchExecutionInpu
   return { messageUsed, applied, receipts };
 }
 
-function executeFollowUpQueueAdapter(input: PreparedActionDispatchExecutionInput): PreparedActionDispatchAdapterResult {
+async function executeFollowUpQueueAdapter(
+  input: PreparedActionDispatchExecutionInput
+): Promise<PreparedActionDispatchAdapterResult> {
   const portContext = toPortContext(input);
   const messageUsed = resolveMessageUsed(input.preparedAction, input.messageOverride);
   const channelOverride = resolveChannelOverride(input.preparedAction);
@@ -411,7 +417,7 @@ function executeFollowUpQueueAdapter(input: PreparedActionDispatchExecutionInput
     if (!messageUsed) {
       throw new Error("message draft not available for copilot execution");
     }
-    const messageDispatch = input.ports.messaging.sendOpsMessage({
+    const messageDispatch = await input.ports.messaging.sendOpsMessage({
       ...portContext,
       body: messageUsed,
       channelOverride
@@ -428,7 +434,7 @@ function executeFollowUpQueueAdapter(input: PreparedActionDispatchExecutionInput
   }
 
   if (includeFollowUp) {
-    const followUp = input.ports.followUp.recordFollowUp({
+    const followUp = await input.ports.followUp.recordFollowUp({
       ...portContext,
       rationale,
       messageUsed
@@ -442,7 +448,9 @@ function executeFollowUpQueueAdapter(input: PreparedActionDispatchExecutionInput
   return { messageUsed, applied, receipts };
 }
 
-function executeOpsHandoffAdapter(input: PreparedActionDispatchExecutionInput): PreparedActionDispatchAdapterResult {
+async function executeOpsHandoffAdapter(
+  input: PreparedActionDispatchExecutionInput
+): Promise<PreparedActionDispatchAdapterResult> {
   const portContext = toPortContext(input);
   const messageUsed = resolveMessageUsed(input.preparedAction, input.messageOverride);
   const channelOverride = resolveChannelOverride(input.preparedAction);
@@ -459,7 +467,7 @@ function executeOpsHandoffAdapter(input: PreparedActionDispatchExecutionInput): 
         throw new Error("message draft not available for copilot execution");
       }
       assertProviderSystemsReady(input, ["patient_messaging"]);
-      const messageDispatch = input.ports.messaging.sendOpsMessage({
+      const messageDispatch = await input.ports.messaging.sendOpsMessage({
         ...portContext,
         body: messageUsed,
         channelOverride
@@ -480,7 +488,7 @@ function executeOpsHandoffAdapter(input: PreparedActionDispatchExecutionInput): 
         throw new Error("provider remediation cannot replay handoff for a non-handoff receipt");
       }
       assertProviderSystemsReady(input, ["ops_handoff_queue"]);
-      const handoff = input.ports.handoff.createHandoff({
+      const handoff = await input.ports.handoff.createHandoff({
         ...portContext,
         rationale
       });
@@ -554,11 +562,11 @@ export function buildDedupedCopilotExecutionResult(
   };
 }
 
-export function executePreparedActionWithAdapters(
+export async function executePreparedActionWithAdapters(
   input: PreparedActionDispatchExecutionInput
-): CopilotExecutionResult {
+): Promise<CopilotExecutionResult> {
   const adapter = resolvePreparedActionDispatchAdapter(input.preparedAction);
-  const adapterResult = adapter.execute(input);
+  const adapterResult = await adapter.execute(input);
   const applied = [...adapterResult.applied];
 
   const task = latestPendingTask(input.snapshot, input.preparedAction.recommendedAction);

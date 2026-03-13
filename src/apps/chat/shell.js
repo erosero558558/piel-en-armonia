@@ -17,6 +17,9 @@ import {
     getCurrentAppointment,
     getChatHistory,
     setChatHistory,
+    getClinicalHistorySession,
+    setClinicalHistorySession,
+    clearClinicalHistorySession,
     getConversationContext,
     setConversationContext,
     getChatbotOpen,
@@ -60,6 +63,80 @@ const CHAT_HISTORY_STORAGE_KEY = 'chatHistory';
 const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
 const CHAT_HISTORY_MAX_ITEMS = 50;
 const CHAT_CONTEXT_MAX_ITEMS = 24;
+const CLINICAL_HISTORY_RESOURCE_BASE = '/api.php?resource=';
+
+function getUrlSearchParams() {
+    try {
+        return new URLSearchParams(window.location.search || '');
+    } catch {
+        return new URLSearchParams();
+    }
+}
+
+function getClinicalSessionIdentifiers(session) {
+    const safeSession =
+        session && typeof session === 'object' ? session : Object.create(null);
+    const patientIntake =
+        safeSession.metadata && typeof safeSession.metadata === 'object'
+            ? safeSession.metadata.patientIntake
+            : null;
+    return {
+        sessionId: String(
+            safeSession.sessionId || patientIntake?.sessionId || ''
+        ).trim(),
+        caseId: String(
+            safeSession.caseId || patientIntake?.caseId || ''
+        ).trim(),
+    };
+}
+
+function getCurrentClinicalRouteContext() {
+    const params = getUrlSearchParams();
+    return {
+        mode: String(params.get('mode') || '').trim(),
+        sessionId: String(params.get('sessionId') || '').trim(),
+        caseId: String(params.get('caseId') || '').trim(),
+        appointmentId: String(params.get('appointmentId') || '').trim(),
+        surface: String(params.get('surface') || '').trim(),
+    };
+}
+
+export function getClinicalRouteContext() {
+    return getCurrentClinicalRouteContext();
+}
+
+export function doesClinicalSessionMatchRoute(session) {
+    const route = getCurrentClinicalRouteContext();
+    const identifiers = getClinicalSessionIdentifiers(session);
+
+    if (!identifiers.sessionId && !identifiers.caseId) {
+        return false;
+    }
+    if (route.sessionId && route.sessionId !== identifiers.sessionId) {
+        return false;
+    }
+    if (route.caseId && route.caseId !== identifiers.caseId) {
+        return false;
+    }
+    return true;
+}
+
+export function getChatMode() {
+    const route = getCurrentClinicalRouteContext();
+    if (route.mode === 'clinical_intake') {
+        return 'clinical_intake';
+    }
+
+    const storedSession = getClinicalHistorySession();
+    if (doesClinicalSessionMatchRoute(storedSession)) {
+        return 'clinical_intake';
+    }
+
+    const storedMode = String(
+        storedSession?.metadata?.patientIntake?.mode || ''
+    ).trim();
+    return storedMode === 'clinical_intake' ? 'clinical_intake' : 'general';
+}
 
 export function escapeHtml(text) {
     if (
@@ -98,6 +175,18 @@ export function addUserMessage(text) {
 export function addBotMessage(html, showOfflineLabel = false) {
     return runDeferredModule(loadChatUiEngine, (engine) =>
         engine.addBotMessage(html, showOfflineLabel)
+    );
+}
+
+export function renderChatHistory(history = state.chatHistory) {
+    return runDeferredModule(
+        loadChatUiEngine,
+        (engine) => {
+            if (engine && typeof engine.renderChatHistory === 'function') {
+                engine.renderChatHistory(Array.isArray(history) ? history : []);
+            }
+        },
+        () => undefined
     );
 }
 
@@ -163,7 +252,13 @@ function getChatWidgetEngineDeps() {
             state.chatbotOpen = val;
         },
         getChatHistoryLength: () => state.chatHistory.length,
+        getChatMode,
+        getClinicalRouteContext,
+        getClinicalHistorySession: () => state.clinicalHistorySession,
+        doesClinicalSessionMatchRoute,
         warmChatUi: () => runDeferredModule(loadChatUiEngine, () => undefined),
+        renderChatHistory,
+        ensureClinicalSessionHydrated,
         scrollToBottom,
         trackEvent,
         debugLog,
@@ -421,11 +516,18 @@ export function loadFigoChatEngine() {
                     processChatBookingStep,
                     isChatBookingActive,
                     showToast,
+                    getChatMode,
+                    getClinicalRouteContext,
                     getConversationContext,
                     setConversationContext,
                     getCurrentAppointment,
                     getChatHistory,
                     setChatHistory,
+                    getClinicalHistorySession,
+                    setClinicalHistorySession,
+                    clearClinicalHistorySession,
+                    renderChatHistory,
+                    clinicalHistorySessionEndpoint: `${CLINICAL_HISTORY_RESOURCE_BASE}clinical-history-session`,
                     chatContextMaxItems: CHAT_CONTEXT_MAX_ITEMS,
                     clinicAddress: CLINIC_ADDRESS,
                     clinicMapUrl: CLINIC_MAP_URL,
@@ -461,6 +563,22 @@ export async function processWithKimi(message) {
                 false
             );
         }
+    );
+}
+
+export async function ensureClinicalSessionHydrated(options = {}) {
+    return runDeferredModule(
+        loadFigoChatEngine,
+        (engine) => {
+            if (
+                engine &&
+                typeof engine.ensureClinicalSessionHydrated === 'function'
+            ) {
+                return engine.ensureClinicalSessionHydrated(options);
+            }
+            return null;
+        },
+        () => null
     );
 }
 

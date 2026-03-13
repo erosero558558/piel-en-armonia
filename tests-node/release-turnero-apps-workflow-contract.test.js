@@ -64,7 +64,7 @@ test('release-turnero-apps empaqueta bundle, publica APK y deja rutas de hosting
     const { raw } = loadWorkflow();
 
     for (const snippet of [
-        'node bin/resolve-turnero-release-plan.js --github-output "$GITHUB_OUTPUT"',
+        'node bin/resolve-turnero-release-plan.js --base-url "${{ inputs.base_url }}" --github-output "$GITHUB_OUTPUT"',
         'node bin/stage-turnero-app-release.js',
         'turnero-apps-release-bundle',
         'actions/download-artifact@v4',

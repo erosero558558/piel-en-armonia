@@ -16,6 +16,7 @@ class GoogleTokenProvider
     private string $scope;
     private string $cachePath;
     private string $statusPath;
+    private string $caBundlePath;
     private static array $memoryCache = [];
 
     public function __construct(
@@ -28,7 +29,8 @@ class GoogleTokenProvider
         string $tokenUri,
         string $scope,
         string $cachePath,
-        string $statusPath
+        string $statusPath,
+        string $caBundlePath = ''
     ) {
         $this->authMode = trim($authMode);
         $this->clientEmail = trim($clientEmail);
@@ -40,6 +42,7 @@ class GoogleTokenProvider
         $this->scope = trim($scope);
         $this->cachePath = trim($cachePath);
         $this->statusPath = trim($statusPath);
+        $this->caBundlePath = trim($caBundlePath);
     }
 
     public static function fromEnv(): self
@@ -92,6 +95,7 @@ class GoogleTokenProvider
         }
         $cachePath = $cacheDir . DIRECTORY_SEPARATOR . 'google-token-' . $cacheSuffix . '.json';
         $statusPath = $cacheDir . DIRECTORY_SEPARATOR . 'google-token-status.json';
+        $caBundlePath = self::resolveCaBundlePath();
 
         return new self(
             $authMode,
@@ -103,8 +107,36 @@ class GoogleTokenProvider
             $tokenUri,
             $scope,
             $cachePath,
-            $statusPath
+            $statusPath,
+            $caBundlePath
         );
+    }
+
+    public static function resolveCaBundlePath(): string
+    {
+        $envCandidates = [
+            (string) ini_get('curl.cainfo'),
+            (string) ini_get('openssl.cafile'),
+            (string) (getenv('PIELARMONIA_CA_BUNDLE') ?: ''),
+            (string) (getenv('CURL_CA_BUNDLE') ?: ''),
+            (string) (getenv('SSL_CERT_FILE') ?: ''),
+        ];
+
+        $defaultCandidates = [
+            'C:\\Program Files\\Git\\mingw64\\etc\\ssl\\certs\\ca-bundle.crt',
+            'C:\\Program Files\\Git\\usr\\ssl\\certs\\ca-bundle.crt',
+            'C:\\Program Files\\Git\\mingw64\\etc\\ssl\\cert.pem',
+            'C:\\Program Files\\Git\\usr\\ssl\\cert.pem',
+        ];
+
+        foreach (array_merge($envCandidates, $defaultCandidates) as $candidate) {
+            $candidate = trim((string) $candidate);
+            if ($candidate !== '' && is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return '';
     }
 
     public static function readStatusSnapshot(): array
@@ -341,6 +373,11 @@ class GoogleTokenProvider
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
                 curl_setopt($ch, CURLOPT_TIMEOUT_MS, $timeoutMs);
                 curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, min(3000, $timeoutMs));
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+                if ($this->caBundlePath !== '') {
+                    curl_setopt($ch, CURLOPT_CAINFO, $this->caBundlePath);
+                }
                 $rawBody = curl_exec($ch);
                 $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 $curlError = curl_error($ch);
@@ -353,7 +390,7 @@ class GoogleTokenProvider
             }
         }
 
-        $context = stream_context_create([
+        $contextOptions = [
             'http' => [
                 'method' => 'POST',
                 'header' => implode("\r\n", $headers),
@@ -361,7 +398,17 @@ class GoogleTokenProvider
                 'timeout' => max(1, (int) ceil($timeoutMs / 1000)),
                 'ignore_errors' => true,
             ],
-        ]);
+        ];
+
+        if ($this->caBundlePath !== '') {
+            $contextOptions['ssl'] = [
+                'cafile' => $this->caBundlePath,
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ];
+        }
+
+        $context = stream_context_create($contextOptions);
 
         $rawBody = @file_get_contents($url, false, $context);
         $status = 0;

@@ -134,6 +134,10 @@ export function renderClinicalHistorySection() {
                         rows="4"
                         placeholder="Ej.: ¿Puedes decirme si el brote empeora con el sol o el calor?"
                     ></textarea>
+                    <div
+                        id="clinicalHistoryFollowUpStatus"
+                        class="clinical-history-followup-status"
+                    ></div>
                     <div class="toolbar-row clinical-history-actions-row">
                         <button
                             type="button"
