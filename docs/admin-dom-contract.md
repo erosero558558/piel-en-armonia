@@ -119,6 +119,8 @@ This document freezes the active admin frontend contract after the total cutover
 - `#queueQuickConsole`, `#queueQuickConsoleTitle`, `#queueQuickConsoleSummary`, `#queueQuickConsoleChip`, `#queueQuickConsoleActions`, `#queueQuickConsoleAction_opening_apply`, `#queueQuickConsoleAction_incident_log`, `#queueQuickConsoleAction_closing_apply`, `#queueQuickConsoleAction_copy_handoff`
 - `#queuePlaybook`, `#queuePlaybookTitle`, `#queuePlaybookSummary`, `#queuePlaybookChip`, `#queuePlaybookAssistChip`, `#queuePlaybookApplyBtn`, `#queuePlaybookAssistBtn`, `#queuePlaybookCopyBtn`, `#queuePlaybookResetBtn`, `#queuePlaybookSteps`, `#queuePlaybookToggle_opening_operator`
 - `#queueOpsPilot`, `#queueOpsPilotTitle`, `#queueOpsPilotSummary`, `#queueOpsPilotProgressValue`, `#queueOpsPilotChipConfirmed`, `#queueOpsPilotChipSuggested`, `#queueOpsPilotChipEquipment`, `#queueOpsPilotChipIssues`
+- `#queueOpsPilotReadiness`, `#queueOpsPilotReadinessTitle`, `#queueOpsPilotReadinessStatus`, `#queueOpsPilotReadinessSummary`, `#queueOpsPilotReadinessSupport`
+- `#queueOpsPilotReadinessItem_profile`, `#queueOpsPilotReadinessItem_surfaces`, `#queueOpsPilotReadinessItem_publish`, `#queueOpsPilotReadinessItem_health`, `#queueOpsPilotReadinessItem_smoke`
 - `#queueSurfaceTelemetry`, `#queueSurfaceTelemetryTitle`, `#queueSurfaceTelemetrySummary`, `#queueSurfaceTelemetryAutoMeta`, `#queueSurfaceTelemetryAutoState`, `#queueSurfaceTelemetryStatus`, `#queueSurfaceTelemetryCards`
 - `#queueOpsAlerts`, `#queueOpsAlertsTitle`, `#queueOpsAlertsSummary`, `#queueOpsAlertsChipTotal`, `#queueOpsAlertsChipPending`, `#queueOpsAlertsChipReviewed`, `#queueOpsAlertsApplyBtn`, `#queueOpsAlertsItems`, `#queueOpsAlert_kiosk_printer_pending`, `#queueOpsAlertReview_kiosk_printer_pending`
 - `#queueOpeningChecklist`, `#queueOpeningChecklistTitle`, `#queueOpeningChecklistSummary`, `#queueOpeningChecklistAssistChip`, `#queueOpeningChecklistApplyBtn`, `#queueOpeningChecklistResetBtn`, `#queueOpeningChecklistSteps`, `#queueOpeningToggle_operator_ready`
@@ -210,5 +212,6 @@ This document freezes the active admin frontend contract after the total cutover
 - `GET /api.php?resource=data` now also includes `data.queueSurfaceStatus` with grouped heartbeats for `operator`, `kiosk` and `display`.
 - `GET /api.php?resource=data` now also includes `data.turneroClinicProfile` with `clinic_id`, `branding`, `consultorios`, `surfaces` and `release.admin_mode_default`.
 - `admin.html#queue` now runs in `queueAdminViewModeV1=basic|expert`; `basic` is the production default for the piloto web and `expert` keeps the advanced hub as non-blocking support tooling.
+- In deployment/basic, `#queueOpsPilotReadiness` is the canonical go-live gate for the piloto web: it evaluates `perfil por clínica`, `superficies web`, `publicación del release`, `señal viva + heartbeats` and `smoke final`.
 - Rollback is operational (`revert + deploy`), not a runtime variant switch.
 - Any DOM contract break requires explicit test migration in active admin suites.

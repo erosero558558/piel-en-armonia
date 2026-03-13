@@ -99,6 +99,7 @@ const QUEUE_ADMIN_BASIC_PANEL_IDS = Object.freeze([
     'queueTicketLookup',
     'queueSurfaceTelemetry',
     'queueOpsAlerts',
+    'queueOpsPilot',
     'queueOpeningChecklist',
     'queueShiftHandoff',
     'queueContingencyDeck',
@@ -146,7 +147,6 @@ const QUEUE_ADMIN_EXPERT_PANEL_IDS = Object.freeze([
     'queueDispatchDeck',
     'queueQuickConsole',
     'queuePlaybook',
-    'queueOpsPilot',
     'queueAppDownloadsCards',
     'queueOpsLog',
     'queueInstallConfigurator',
@@ -198,12 +198,16 @@ function getTurneroClinicBrandName() {
 function getTurneroClinicShortName() {
     const profile = getTurneroClinicProfile();
     return String(
-        profile?.branding?.short_name || profile?.branding?.name || 'Piel en Armonia'
+        profile?.branding?.short_name ||
+            profile?.branding?.name ||
+            'Piel en Armonia'
     ).trim();
 }
 
 function getTurneroClinicId() {
-    return String(getTurneroClinicProfile()?.clinic_id || 'default-clinic').trim();
+    return String(
+        getTurneroClinicProfile()?.clinic_id || 'default-clinic'
+    ).trim();
 }
 
 function getTurneroConsultorioKey(consultorio) {
@@ -211,10 +215,7 @@ function getTurneroConsultorioKey(consultorio) {
 }
 
 function getTurneroConsultorioLabel(consultorio, options = {}) {
-    const {
-        short = false,
-        fallbackGeneral = 'Recepcion',
-    } = options || {};
+    const { short = false, fallbackGeneral = 'Recepcion' } = options || {};
     const normalizedConsultorio = Number(consultorio || 0);
     if (normalizedConsultorio !== 1 && normalizedConsultorio !== 2) {
         return fallbackGeneral;
@@ -252,8 +253,40 @@ function getTurneroConsultorioLabelFromStation(value, options = {}) {
     return String(options?.fallback || 'sin señal').trim() || 'sin señal';
 }
 
+function getTurneroPublicSyncStatus() {
+    const health = getState().data.health;
+    const checks =
+        health?.checks && typeof health.checks === 'object'
+            ? health.checks
+            : null;
+    const publicSync =
+        checks?.publicSync && typeof checks.publicSync === 'object'
+            ? checks.publicSync
+            : null;
+    const ageSeconds = Number(publicSync?.ageSeconds);
+
+    return {
+        available: Boolean(publicSync),
+        configured: publicSync?.configured === true,
+        healthy: publicSync?.healthy === true,
+        state: String(publicSync?.state || 'unknown')
+            .trim()
+            .toLowerCase(),
+        deployedCommit: String(publicSync?.deployedCommit || '').trim(),
+        headDrift: publicSync?.headDrift === true,
+        failureReason: String(
+            publicSync?.failureReason || publicSync?.lastErrorMessage || ''
+        ).trim(),
+        ageSeconds: Number.isFinite(ageSeconds)
+            ? Math.max(0, ageSeconds)
+            : null,
+    };
+}
+
 function normalizeQueueAdminViewMode(value) {
-    return String(value || '').trim().toLowerCase() === 'expert'
+    return String(value || '')
+        .trim()
+        .toLowerCase() === 'expert'
         ? 'expert'
         : 'basic';
 }
@@ -2070,6 +2103,10 @@ function buildQueueOpsPilot(manifest, detectedPlatform) {
         buildOpeningChecklistAssist,
         getQueueSyncHealth,
         getSurfaceTelemetryState,
+        getTurneroClinicProfile,
+        getTurneroClinicBrandName,
+        getTurneroPublicSyncStatus,
+        hasRecentQueueSmokeSignal,
         buildPreparedSurfaceUrl,
         defaultAppDownloads: getDefaultAppDownloads(),
         ensureInstallPreset,
@@ -3362,6 +3399,7 @@ function renderQueueHubCorePanels(manifest, detectedPlatform) {
     renderSurfaceTelemetry(manifest, detectedPlatform);
     renderQueueOpsAlerts(manifest, detectedPlatform);
     renderContingencyDeck(manifest, detectedPlatform);
+    renderQueueOpsPilot(manifest, detectedPlatform);
     renderOpeningChecklist(manifest, detectedPlatform);
     renderShiftHandoff(manifest, detectedPlatform);
 }
@@ -3409,7 +3447,6 @@ function renderQueueHubExpertPanels(manifest, detectedPlatform) {
     renderQueueDispatchDeck(manifest, detectedPlatform);
     renderQueueQuickConsole(manifest, detectedPlatform);
     renderQueuePlaybook(manifest, detectedPlatform);
-    renderQueueOpsPilot(manifest, detectedPlatform);
     setHtml(
         '#queueAppDownloadsCards',
         renderInstallHubSurfaceCards(manifest, detectedPlatform)
@@ -3437,9 +3474,7 @@ function renderQueueAdminViewMode(manifest, detectedPlatform) {
             ? 'Expert reabre simulacion, coaching y paneles avanzados. No es bloqueante para el piloto web.'
             : 'Basic deja solo cola, consultorios, heartbeats, incidentes directos y checklist util para operar una clinica real.';
     const modeChip =
-        adminMode === 'expert'
-            ? 'Expert activo'
-            : 'Basic por defecto';
+        adminMode === 'expert' ? 'Expert activo' : 'Basic por defecto';
     const releaseNote =
         releaseNotes[0] ||
         'Canon operativo del piloto: admin web, operador web, kiosco web y sala web.';
@@ -4247,10 +4282,9 @@ function buildConsultorioBoard(manifest, detectedPlatform) {
             : 'Mesa por consultorio lista';
     const summary =
         warningCount > 0
-            ? `Cada tarjeta resume ${getTurneroConsultorioLabel(
-                  1,
-                  { short: true }
-              )} y ${getTurneroConsultorioLabel(2, {
+            ? `Cada tarjeta resume ${getTurneroConsultorioLabel(1, {
+                  short: true,
+              })} y ${getTurneroConsultorioLabel(2, {
                   short: true,
               })} con ticket actual, siguiente en cola y el operador esperado para resolver el turno sin navegar por toda la tabla.`
             : `${getTurneroConsultorioLabel(1, {
@@ -5553,9 +5587,7 @@ function getQueueTicketLookupStatusCopy(ticket) {
         return consultorio > 0 ? `Llamado ${slotLabel}` : 'Llamado';
     }
     if (status === 'waiting') {
-        return consultorio > 0
-            ? `En espera ${slotLabel}`
-            : 'En espera general';
+        return consultorio > 0 ? `En espera ${slotLabel}` : 'En espera general';
     }
     if (status === 'completed') {
         return 'Completado';
@@ -15586,12 +15618,7 @@ function renderQueueDeskEscalationBridgePanel(manifest, detectedPlatform) {
     );
 }
 
-function buildQueueDeskEscalationBriefItem(
-    label,
-    key,
-    bridgeItem,
-    limitItem
-) {
+function buildQueueDeskEscalationBriefItem(label, key, bridgeItem, limitItem) {
     if (!bridgeItem) {
         return null;
     }
@@ -15632,7 +15659,9 @@ function buildQueueDeskEscalationBriefItem(
         phrase: subject,
         support: supportNotes,
         actionLabel:
-            bridgeItem.actionLabel || limitItem?.actionLabel || 'Abrir operador',
+            bridgeItem.actionLabel ||
+            limitItem?.actionLabel ||
+            'Abrir operador',
         actionUrl:
             bridgeItem.actionUrl || limitItem?.actionUrl || '/admin.html#queue',
     };
@@ -15663,13 +15692,9 @@ function buildQueueDeskEscalationBriefRuleItem(bridgePanel, limitPanel) {
             topBridge?.support ||
             'Si no hay señal nueva, el brief al operador solo debe dejar clara la decisión viva que falta resolver.',
         actionLabel:
-            topBridge?.actionLabel ||
-            topLimit?.actionLabel ||
-            'Abrir operador',
+            topBridge?.actionLabel || topLimit?.actionLabel || 'Abrir operador',
         actionUrl:
-            topBridge?.actionUrl ||
-            topLimit?.actionUrl ||
-            '/admin.html#queue',
+            topBridge?.actionUrl || topLimit?.actionUrl || '/admin.html#queue',
     };
 }
 
@@ -15894,12 +15919,7 @@ function renderQueueDeskEscalationBriefPanel(manifest, detectedPlatform) {
     );
 }
 
-function buildQueueDeskEscalationReturnItem(
-    label,
-    key,
-    briefItem,
-    bridgeItem
-) {
+function buildQueueDeskEscalationReturnItem(label, key, briefItem, bridgeItem) {
     if (!briefItem) {
         return null;
     }
@@ -15942,9 +15962,7 @@ function buildQueueDeskEscalationReturnItem(
             bridgeItem?.actionLabel ||
             'Abrir operador',
         actionUrl:
-            briefItem.actionUrl ||
-            bridgeItem?.actionUrl ||
-            '/admin.html#queue',
+            briefItem.actionUrl || bridgeItem?.actionUrl || '/admin.html#queue',
     };
 }
 
@@ -15973,13 +15991,9 @@ function buildQueueDeskEscalationReturnRuleItem(briefPanel, bridgePanel) {
             topBridge?.support ||
             'Si no hay señal nueva, la devolución de operación solo debe cerrar el caso con una respuesta útil.',
         actionLabel:
-            topBrief?.actionLabel ||
-            topBridge?.actionLabel ||
-            'Abrir operador',
+            topBrief?.actionLabel || topBridge?.actionLabel || 'Abrir operador',
         actionUrl:
-            topBrief?.actionUrl ||
-            topBridge?.actionUrl ||
-            '/admin.html#queue',
+            topBrief?.actionUrl || topBridge?.actionUrl || '/admin.html#queue',
     };
 }
 
@@ -16252,9 +16266,7 @@ function buildQueueDeskEscalationResolutionItem(
             briefItem?.actionLabel ||
             'Abrir operador',
         actionUrl:
-            returnItem.actionUrl ||
-            briefItem?.actionUrl ||
-            '/admin.html#queue',
+            returnItem.actionUrl || briefItem?.actionUrl || '/admin.html#queue',
     };
 }
 
@@ -16283,13 +16295,9 @@ function buildQueueDeskEscalationResolutionRuleItem(returnPanel, briefPanel) {
             topBrief?.support ||
             'Si no hay señal nueva, la respuesta final solo debe confirmar la salida ya definida por operación.',
         actionLabel:
-            topReturn?.actionLabel ||
-            topBrief?.actionLabel ||
-            'Abrir operador',
+            topReturn?.actionLabel || topBrief?.actionLabel || 'Abrir operador',
         actionUrl:
-            topReturn?.actionUrl ||
-            topBrief?.actionUrl ||
-            '/admin.html#queue',
+            topReturn?.actionUrl || topBrief?.actionUrl || '/admin.html#queue',
     };
 }
 
@@ -16367,10 +16375,7 @@ function copyQueueDeskEscalationResolutionPanel(panel) {
         });
 }
 
-function renderQueueDeskEscalationResolutionPanel(
-    manifest,
-    detectedPlatform
-) {
+function renderQueueDeskEscalationResolutionPanel(manifest, detectedPlatform) {
     const root = document.getElementById('queueDeskEscalationResolution');
     if (!(root instanceof HTMLElement)) {
         return;

@@ -34,11 +34,11 @@ Contrato mínimo:
 ## Admin modes
 
 - `basic`
-  - default de producción
-  - deja visibles cola, consultorios, resolución, heartbeats, incidentes directos y checklist útil
+    - default de producción
+    - deja visibles cola, consultorios, resolución, heartbeats, incidentes directos y checklist útil
 - `expert`
-  - reabre simulación, coaching, descarga e instalación avanzada
-  - no bloquea el piloto
+    - reabre simulación, coaching, descarga e instalación avanzada
+    - no bloquea el piloto
 
 ## Contrato mínimo de producción
 
@@ -66,3 +66,17 @@ Contrato mínimo:
 - journey `sin cita`
 - operador llama, re-llama, completa y marca `no_show`
 - `public_main_sync` sano y commit desplegado verificable
+
+## Gate visible en admin
+
+En `admin.html#queue`, dentro del dominio `deployment`, el bloque `queueOpsPilotReadiness` es el gate visible del piloto.
+
+Debe evaluar cinco señales antes de abrir una clínica real:
+
+- `perfil por clínica`
+- `superficies web canónicas`
+- `publicación del release`
+- `señal viva + heartbeats`
+- `smoke final del turno`
+
+Si una clínica queda en `casi listo` o `bloqueado`, no se toma como release operativo aunque la cola siga respondiendo.

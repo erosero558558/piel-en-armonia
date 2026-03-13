@@ -18,6 +18,7 @@ Canon operativo del corte:
 Notas del corte:
 
 - `expert` conserva paneles avanzados de coaching, simulación y recepción, pero no bloquea el piloto.
+- Antes de abrir una clínica real, usa `queueOpsPilotReadiness` en dominio `deployment` como gate de salida. Debe quedar en `Piloto web listo para abrir` y confirmar `publicación del release`; si no, resuelve los bloqueos marcados allí antes del primer turno.
 - `app-downloads/`, Electron y Android TV quedan como `siguiente release`; no son requisito para el go-live web.
 - Cada clínica debe desplegar su propia copia con `content/turnero/clinic-profile.json` dedicado; no hay runtime multi-tenant compartido en este corte.
 

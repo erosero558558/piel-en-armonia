@@ -41,6 +41,73 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps) {
                                 { escapeHtml }
                             )}
                         </div>
+                        <section
+                            id="queueOpsPilotReadiness"
+                            class="queue-ops-pilot__readiness"
+                            data-state="${escapeHtml(pilot.readinessState)}"
+                        >
+                            <div class="queue-ops-pilot__readiness-head">
+                                <div>
+                                    <p class="queue-app-card__eyebrow">Readiness</p>
+                                    <h6 id="queueOpsPilotReadinessTitle">${escapeHtml(
+                                        pilot.readinessTitle
+                                    )}</h6>
+                                </div>
+                                <span
+                                    id="queueOpsPilotReadinessStatus"
+                                    class="queue-ops-pilot__readiness-status"
+                                    data-state="${escapeHtml(pilot.readinessState)}"
+                                >
+                                    ${escapeHtml(
+                                        pilot.readinessBlockingCount > 0
+                                            ? `${pilot.readinessBlockingCount} bloqueo(s)`
+                                            : 'Listo'
+                                    )}
+                                </span>
+                            </div>
+                            <p id="queueOpsPilotReadinessSummary" class="queue-ops-pilot__readiness-summary">${escapeHtml(
+                                pilot.readinessSummary
+                            )}</p>
+                            <div id="queueOpsPilotReadinessItems" class="queue-ops-pilot__readiness-items" role="list" aria-label="Checklist de readiness del piloto web">
+                                ${pilot.readinessItems
+                                    .map(
+                                        (item) => `
+                                            <article
+                                                id="queueOpsPilotReadinessItem_${escapeHtml(
+                                                    item.id
+                                                )}"
+                                                class="queue-ops-pilot__readiness-item"
+                                                data-state="${escapeHtml(
+                                                    item.ready
+                                                        ? 'ready'
+                                                        : item.blocker
+                                                          ? 'alert'
+                                                          : 'warning'
+                                                )}"
+                                                role="listitem"
+                                            >
+                                                <strong>${escapeHtml(
+                                                    item.label
+                                                )}</strong>
+                                                <span class="queue-ops-pilot__readiness-item-badge">${escapeHtml(
+                                                    item.ready
+                                                        ? 'Listo'
+                                                        : item.blocker
+                                                          ? 'Bloquea'
+                                                          : 'Pendiente'
+                                                )}</span>
+                                                <p>${escapeHtml(
+                                                    item.detail
+                                                )}</p>
+                                            </article>
+                                        `
+                                    )
+                                    .join('')}
+                            </div>
+                            <p id="queueOpsPilotReadinessSupport" class="queue-ops-pilot__readiness-support">${escapeHtml(
+                                pilot.readinessSupport
+                            )}</p>
+                        </section>
                     </div>
                     <div class="queue-ops-pilot__status">
                         <div class="queue-ops-pilot__progress">

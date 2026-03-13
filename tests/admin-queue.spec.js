@@ -194,7 +194,22 @@ test.describe('Admin turnero sala', () => {
             }
 
             if (resource === 'health') {
-                return json(route, { ok: true, status: 'ok' });
+                return json(route, {
+                    ok: true,
+                    status: 'ok',
+                    checks: {
+                        publicSync: {
+                            configured: true,
+                            healthy: true,
+                            state: 'ok',
+                            deployedCommit:
+                                '3de287e27f2f5034f6f471234567890abcdef12',
+                            headDrift: false,
+                            ageSeconds: 32,
+                            failureReason: '',
+                        },
+                    },
+                });
             }
 
             if (resource === 'queue-state') {
@@ -401,7 +416,22 @@ test.describe('Admin turnero sala', () => {
             }
 
             if (resource === 'health') {
-                return json(route, { ok: true, status: 'ok' });
+                return json(route, {
+                    ok: true,
+                    status: 'ok',
+                    checks: {
+                        publicSync: {
+                            configured: true,
+                            healthy: true,
+                            state: 'ok',
+                            deployedCommit:
+                                '3de287e27f2f5034f6f471234567890abcdef12',
+                            headDrift: false,
+                            ageSeconds: 32,
+                            failureReason: '',
+                        },
+                    },
+                });
             }
 
             if (resource === 'funnel-metrics') {
@@ -519,7 +549,22 @@ test.describe('Admin turnero sala', () => {
             }
 
             if (resource === 'health') {
-                return json(route, { ok: true, status: 'ok' });
+                return json(route, {
+                    ok: true,
+                    status: 'ok',
+                    checks: {
+                        publicSync: {
+                            configured: true,
+                            healthy: true,
+                            state: 'ok',
+                            deployedCommit:
+                                '3de287e27f2f5034f6f471234567890abcdef12',
+                            headDrift: false,
+                            ageSeconds: 32,
+                            failureReason: '',
+                        },
+                    },
+                });
             }
 
             if (resource === 'funnel-metrics') {
@@ -1945,9 +1990,7 @@ test.describe('Admin turnero sala', () => {
         await page.goto(adminUrl());
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await page.locator('.nav-item[data-section="queue"]').click();
-        await page
-            .locator('#queueDomainOperations')
-            .dispatchEvent('click');
+        await page.locator('#queueDomainOperations').dispatchEvent('click');
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
             'data-queue-domain',
             'operations'
@@ -8332,9 +8375,7 @@ test.describe('Admin turnero sala', () => {
         await page.goto(adminUrl());
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await page.locator('.nav-item[data-section="queue"]').click();
-        await page
-            .locator('#queueDomainOperations')
-            .dispatchEvent('click');
+        await page.locator('#queueDomainOperations').dispatchEvent('click');
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
             'data-queue-domain',
             'operations'
@@ -11238,8 +11279,14 @@ test.describe('Admin turnero sala', () => {
                                 base_url: 'https://clinica-norte.example',
                             },
                             consultorios: {
-                                c1: { label: 'Dermatología 1', short_label: 'D1' },
-                                c2: { label: 'Dermatología 2', short_label: 'D2' },
+                                c1: {
+                                    label: 'Dermatología 1',
+                                    short_label: 'D1',
+                                },
+                                c2: {
+                                    label: 'Dermatología 2',
+                                    short_label: 'D2',
+                                },
                             },
                             surfaces: {
                                 admin: {
@@ -11357,7 +11404,22 @@ test.describe('Admin turnero sala', () => {
             }
 
             if (resource === 'health') {
-                return json(route, { ok: true, status: 'ok' });
+                return json(route, {
+                    ok: true,
+                    status: 'ok',
+                    checks: {
+                        publicSync: {
+                            configured: true,
+                            healthy: true,
+                            state: 'ok',
+                            deployedCommit:
+                                '3de287e27f2f5034f6f471234567890abcdef12',
+                            headDrift: false,
+                            ageSeconds: 32,
+                            failureReason: '',
+                        },
+                    },
+                });
             }
 
             if (resource === 'funnel-metrics') {
@@ -11395,6 +11457,28 @@ test.describe('Admin turnero sala', () => {
             'href',
             '#queueOpeningChecklist'
         );
+        await expect(page.locator('#queueOpsPilot')).toBeVisible();
+        await expect(
+            page.locator('#queueOpsPilotReadinessTitle')
+        ).toContainText('Piloto web casi listo');
+        await expect(
+            page.locator('#queueOpsPilotReadinessStatus')
+        ).toContainText('2 bloqueo');
+        await expect(
+            page.locator('#queueOpsPilotReadinessItem_profile')
+        ).toContainText('Listo');
+        await expect(
+            page.locator('#queueOpsPilotReadinessItem_surfaces')
+        ).toContainText('Admin, operador, kiosco y sala web');
+        await expect(
+            page.locator('#queueOpsPilotReadinessItem_publish')
+        ).toContainText('public_main_sync sano');
+        await expect(
+            page.locator('#queueOpsPilotReadinessItem_health')
+        ).toContainText('Pendiente');
+        await expect(
+            page.locator('#queueOpsPilotReadinessItem_smoke')
+        ).toContainText('Todavía falta un llamado real o de prueba');
         await expect(page.locator('#queueOpeningChecklist')).toBeVisible();
         await expect(page.locator('#queueAppDownloadsCards')).toBeHidden();
         await expect(page.locator('#queuePlaybook')).toBeHidden();
@@ -11406,12 +11490,12 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueAttentionDeck')).toBeVisible();
         await expect(page.locator('#queueResolutionDeck')).toBeVisible();
         await expect(page.locator('#queueTicketLookup')).toBeVisible();
-        await expect(page.locator('#queueConsultorioCard_c1 strong').first()).toContainText(
-            'D1'
-        );
-        await expect(page.locator('#queueConsultorioCard_c2 strong').first()).toContainText(
-            'D2'
-        );
+        await expect(
+            page.locator('#queueConsultorioCard_c1 strong').first()
+        ).toContainText('D1');
+        await expect(
+            page.locator('#queueConsultorioCard_c2 strong').first()
+        ).toContainText('D2');
         await expect(page.locator('#queueConsultorioPrimary_c1')).toContainText(
             'Abrir Operador D1'
         );
@@ -11704,9 +11788,7 @@ test.describe('Admin turnero sala', () => {
             'Sin eventos'
         );
 
-        await page
-            .locator('#queueDomainOperations')
-            .dispatchEvent('click');
+        await page.locator('#queueDomainOperations').dispatchEvent('click');
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
             'data-queue-domain',
             'operations'
@@ -12540,9 +12622,7 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#adminDashboard')).toBeVisible();
 
         await page.locator('.nav-item[data-section="queue"]').click();
-        await page
-            .locator('#queueDomainOperations')
-            .dispatchEvent('click');
+        await page.locator('#queueDomainOperations').dispatchEvent('click');
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
             'data-queue-domain',
             'operations'
@@ -12760,9 +12840,7 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#adminDashboard')).toBeVisible();
 
         await page.locator('.nav-item[data-section="queue"]').click();
-        await page
-            .locator('#queueDomainOperations')
-            .dispatchEvent('click');
+        await page.locator('#queueDomainOperations').dispatchEvent('click');
         await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
             'Configuración local'
         );
