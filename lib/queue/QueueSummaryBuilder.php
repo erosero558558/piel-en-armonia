@@ -50,6 +50,7 @@ final class QueueSummaryBuilder
         $called = $this->priorityPolicy->sortCalledTickets($called);
 
         $activeHelpRequests = $this->normalizeActiveHelpRequests($helpRequests);
+        $recentResolvedHelpRequests = $this->normalizeRecentResolvedHelpRequests($helpRequests);
         $helpRequestsByTicketId = $this->indexActiveHelpRequestsByTicketId($activeHelpRequests);
         $assistancePendingCount = count(array_filter(
             $activeHelpRequests,
@@ -67,6 +68,7 @@ final class QueueSummaryBuilder
             $callingNowByConsultorio[$consultorio] = [
                 'id' => (int) ($ticket['id'] ?? 0),
                 'ticketCode' => (string) ($ticket['ticketCode'] ?? ''),
+                'patientCaseId' => (string) ($ticket['patientCaseId'] ?? ''),
                 'patientInitials' => (string) ($ticket['patientInitials'] ?? ''),
                 'assignedConsultorio' => $consultorio,
                 'calledAt' => (string) ($ticket['calledAt'] ?? ''),
@@ -90,6 +92,7 @@ final class QueueSummaryBuilder
             $nextTickets[] = [
                 'id' => $ticketId,
                 'ticketCode' => (string) ($ticket['ticketCode'] ?? ''),
+                'patientCaseId' => (string) ($ticket['patientCaseId'] ?? ''),
                 'patientInitials' => (string) ($ticket['patientInitials'] ?? ''),
                 'queueType' => (string) ($ticket['queueType'] ?? 'walk_in'),
                 'priorityClass' => (string) ($ticket['priorityClass'] ?? 'walk_in'),
@@ -121,6 +124,7 @@ final class QueueSummaryBuilder
                 'delayReason' => $delayReason,
                 'assistancePendingCount' => $assistancePendingCount,
                 'activeHelpRequests' => $activeHelpRequests,
+                'recentResolvedHelpRequests' => $recentResolvedHelpRequests,
             ],
         ];
     }
@@ -158,6 +162,9 @@ final class QueueSummaryBuilder
             'activeHelpRequests' => is_array($data['activeHelpRequests'] ?? null)
                 ? $data['activeHelpRequests']
                 : [],
+            'recentResolvedHelpRequests' => is_array($data['recentResolvedHelpRequests'] ?? null)
+                ? $data['recentResolvedHelpRequests']
+                : [],
         ];
     }
 
@@ -180,6 +187,7 @@ final class QueueSummaryBuilder
                 'id' => (int) ($request['id'] ?? 0),
                 'ticketId' => isset($request['ticketId']) ? (int) $request['ticketId'] : null,
                 'ticketCode' => (string) ($request['ticketCode'] ?? ''),
+                'patientCaseId' => (string) ($request['patientCaseId'] ?? ''),
                 'patientInitials' => (string) ($request['patientInitials'] ?? ''),
                 'reason' => (string) ($request['reason'] ?? 'general'),
                 'reasonLabel' => (string) ($request['reasonLabel'] ?? queue_help_request_reason_label((string) ($request['reason'] ?? 'general'))),
@@ -187,6 +195,9 @@ final class QueueSummaryBuilder
                 'source' => (string) ($request['source'] ?? 'kiosk'),
                 'createdAt' => (string) ($request['createdAt'] ?? ''),
                 'updatedAt' => (string) ($request['updatedAt'] ?? ''),
+                'context' => isset($request['context']) && is_array($request['context'])
+                    ? $request['context']
+                    : [],
             ];
         }
 
@@ -200,6 +211,56 @@ final class QueueSummaryBuilder
         });
 
         return $active;
+    }
+
+    /**
+     * @param array<int,array> $helpRequests
+     * @return array<int,array>
+     */
+    private function normalizeRecentResolvedHelpRequests(array $helpRequests): array
+    {
+        $resolved = [];
+        foreach ($helpRequests as $request) {
+            if (!is_array($request)) {
+                continue;
+            }
+            if ((string) ($request['status'] ?? '') !== 'resolved') {
+                continue;
+            }
+            $context = isset($request['context']) && is_array($request['context'])
+                ? $request['context']
+                : [];
+            if (!$this->hasStructuredResolutionContext($context)) {
+                continue;
+            }
+
+            $resolved[] = [
+                'id' => (int) ($request['id'] ?? 0),
+                'ticketId' => isset($request['ticketId']) ? (int) $request['ticketId'] : null,
+                'ticketCode' => (string) ($request['ticketCode'] ?? ''),
+                'patientCaseId' => (string) ($request['patientCaseId'] ?? ''),
+                'patientInitials' => (string) ($request['patientInitials'] ?? ''),
+                'reason' => (string) ($request['reason'] ?? 'general'),
+                'reasonLabel' => (string) ($request['reasonLabel'] ?? queue_help_request_reason_label((string) ($request['reason'] ?? 'general'))),
+                'status' => 'resolved',
+                'source' => (string) ($request['source'] ?? 'kiosk'),
+                'createdAt' => (string) ($request['createdAt'] ?? ''),
+                'updatedAt' => (string) ($request['updatedAt'] ?? ''),
+                'resolvedAt' => (string) ($request['resolvedAt'] ?? $request['updatedAt'] ?? ''),
+                'context' => $context,
+            ];
+        }
+
+        usort($resolved, static function (array $left, array $right): int {
+            $leftTs = strtotime((string) ($left['resolvedAt'] ?? $left['updatedAt'] ?? $left['createdAt'] ?? '')) ?: 0;
+            $rightTs = strtotime((string) ($right['resolvedAt'] ?? $right['updatedAt'] ?? $right['createdAt'] ?? '')) ?: 0;
+            if ($leftTs !== $rightTs) {
+                return $rightTs <=> $leftTs;
+            }
+            return ((int) ($right['id'] ?? 0)) <=> ((int) ($left['id'] ?? 0));
+        });
+
+        return array_slice($resolved, 0, 5);
     }
 
     /**
@@ -228,6 +289,46 @@ final class QueueSummaryBuilder
         if ($waitingCount >= 5) {
             return 'Alta demanda en sala.';
         }
+        return '';
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function hasStructuredResolutionContext(array $context): bool
+    {
+        return $this->readContextValue(
+            $context,
+            [
+                'resolutionOutcome',
+                'resolution_outcome',
+                'resolutionOutcomeLabel',
+                'resolution_outcome_label',
+                'reviewOutcome',
+                'review_outcome',
+                'reviewOutcomeLabel',
+                'review_outcome_label',
+            ]
+        ) !== '';
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     * @param array<int, string> $keys
+     */
+    private function readContextValue(array $context, array $keys): string
+    {
+        foreach ($keys as $key) {
+            $value = $context[$key] ?? null;
+            if ($value === null) {
+                continue;
+            }
+            $normalized = trim((string) $value);
+            if ($normalized !== '') {
+                return $normalized;
+            }
+        }
+
         return '';
     }
 

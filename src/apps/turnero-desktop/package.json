@@ -3,6 +3,7 @@
     "version": "0.1.0",
     "private": true,
     "type": "module",
+    "author": "Piel en Armonia",
     "description": "Shells desktop para Turnero Operador y Turnero Kiosco conectados al backend central.",
     "main": "src/main.mjs",
     "scripts": {

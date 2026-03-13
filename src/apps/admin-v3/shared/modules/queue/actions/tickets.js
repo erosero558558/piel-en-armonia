@@ -9,6 +9,8 @@ import {
 import { appendActivity } from '../state.js';
 import { showSensitiveConfirm } from '../render.js';
 import { executeTicketAction } from './execute.js';
+import { getQueueCommandAdapter } from '../command-adapter.js';
+import { updateQueueHelpRequestStatus } from './help-requests.js';
 import { requiresSensitiveConfirm, setTicketCalledLocal } from './shared.js';
 import { apiRequest } from '../../../core/api-client.js';
 import { applyQueueStateResponse } from '../sync.js';
@@ -53,6 +55,12 @@ export async function callNextForConsultorio(consultorio) {
 
     CALL_NEXT_IN_FLIGHT.set(target, true);
     try {
+        const commandAdapter = getQueueCommandAdapter();
+        if (typeof commandAdapter?.callNextForConsultorio === 'function') {
+            await commandAdapter.callNextForConsultorio(target);
+            return;
+        }
+
         const payload = await apiRequest('queue-call-next', {
             method: 'POST',
             body: { consultorio: target },
@@ -78,6 +86,21 @@ export async function runQueueTicketAction(ticketId, action, consultorio = 0) {
     };
     if (shouldBlockAdminQueueAction('queue-ticket-action')) {
         notifyAdminQueuePilotBlocked('queue-ticket-action');
+        return;
+    }
+
+    if (payload.action === 'atender_apoyo') {
+        await updateQueueHelpRequestStatus({
+            ticketId: payload.ticketId,
+            status: 'attending',
+        });
+        return;
+    }
+    if (payload.action === 'resolver_apoyo') {
+        await updateQueueHelpRequestStatus({
+            ticketId: payload.ticketId,
+            status: 'resolved',
+        });
         return;
     }
     const state = getState();

@@ -39,6 +39,8 @@ Fecha de ejecucion sugerida: completar al desplegar.
 - `sala-turnos.html`
 - `queue-kiosk.css`
 - `queue-display.css`
+- `node bin/check-public-routing-smoke.js --base-url https://pielarmonia.com --label production`
+  debe validar tambien esas tres superficies del turnero como parte del smoke publico.
 - `js/queue-operator.js`
 - `js/queue-kiosk.js`
 - `js/queue-display.js`
@@ -62,8 +64,13 @@ Compatibilidad opcional:
 
 2. Verifica variables de entorno:
 
+- `PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt`
+- `PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN`
+- `PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET`
+- `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST`
 - `PIELARMONIA_ADMIN_PASSWORD`
 - opcional: `PIELARMONIA_ADMIN_PASSWORD_HASH`
+- opcional solo para soporte legacy: `PIELARMONIA_INTERNAL_CONSOLE_AUTH_PRIMARY=legacy_password`
 - opcional: `PIELARMONIA_ADMIN_EMAIL` (para alertas de nuevas citas)
 - opcional: `PIELARMONIA_EMAIL_FROM`
 - opcional: `PIELARMONIA_DATA_DIR`
@@ -97,20 +104,32 @@ Compatibilidad opcional:
 ## 2. Pruebas del panel admin
 
 1. Abre `https://TU_DOMINIO/admin.html`.
-2. Intenta login con contraseña incorrecta:
+2. Sin sesion, verifica el gate del modo activo:
+
+- Esperado por defecto: challenge/login de OpenClaw.
+- Solo si activaste `PIELARMONIA_INTERNAL_CONSOLE_AUTH_PRIMARY=legacy_password`: formulario de clave.
+
+3. Si activaste soporte legacy, intenta login con contraseña incorrecta:
 
 - Esperado: mensaje de error.
 
-3. Login con contraseña correcta (`PIELARMONIA_ADMIN_PASSWORD`):
+4. Si activaste soporte legacy, login con contraseña correcta (`PIELARMONIA_ADMIN_PASSWORD`):
 
 - Esperado: carga dashboard.
 
-4. Navega por secciones:
+5. Si el entorno esta en modo OpenClaw, valida `start -> complete -> status authenticated -> logout`:
+
+- `POST /admin-auth.php?action=start`
+- `POST /api.php?resource=operator-auth-complete`
+- `GET /admin-auth.php?action=status`
+- `POST /admin-auth.php?action=logout`
+
+6. Navega por secciones:
 
 - `Citas`, `Callbacks`, `Reseñas`, `Disponibilidad`
 - Esperado: sin errores visuales ni pantallas en blanco.
 
-5. Exportar datos:
+7. Exportar datos:
 
 - Boton `Exportar Datos`
 - Esperado: descarga de JSON correcta.
@@ -287,12 +306,12 @@ Compatibilidad opcional:
 
 Opcional automatizado (PowerShell):
 
-- `.\SMOKE-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -TestFigoPost`
-- `.\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://TU_DOMINIO" -RunSmoke`
-- `.\BENCH-API-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -Runs 25 -IncludeFigoPost`
-- `.\GATE-POSTDEPLOY.ps1 -Domain "https://TU_DOMINIO" -RequireWebhookSecret`
+- `.\scripts\ops\prod\SMOKE-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -TestFigoPost`
+- `.\scripts\ops\prod\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://TU_DOMINIO" -RunSmoke`
+- `.\scripts\ops\prod\BENCH-API-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -Runs 25 -IncludeFigoPost`
+- `.\scripts\ops\prod\GATE-POSTDEPLOY.ps1 -Domain "https://TU_DOMINIO" -RequireWebhookSecret`
 - Si estas en mantenimiento y aceptas chat degradado temporalmente:
-    - `.\SMOKE-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -TestFigoPost -AllowDegradedFigo -AllowRecursiveFigo`
+    - `.\scripts\ops\prod\SMOKE-PRODUCCION.ps1 -Domain "https://TU_DOMINIO" -TestFigoPost -AllowDegradedFigo -AllowRecursiveFigo`
 
 1. Home carga sin errores.
 2. Menu y scroll funcionan.

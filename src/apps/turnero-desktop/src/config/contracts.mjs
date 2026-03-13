@@ -1,4 +1,14 @@
 import registryModule from '../../../../../lib/turnero-surface-registry.js';
+import {
+    applyOperatorSurfaceSearchParams,
+    buildOperatorSurfaceState,
+    normalizeAutoStart,
+    normalizeLaunchMode,
+    normalizeOneTap,
+    normalizeStationConsultorio,
+    normalizeStationMode,
+    normalizeUpdateChannel,
+} from '../../../queue-shared/turnero-runtime-contract.mjs';
 
 const {
     getTurneroDefaultTargetKey,
@@ -7,6 +17,17 @@ const {
     normalizeTurneroSurfaceId,
     resolveTurneroUpdateRelativeDirectory,
 } = registryModule;
+
+export {
+    applyOperatorSurfaceSearchParams,
+    buildOperatorSurfaceState,
+    normalizeAutoStart,
+    normalizeLaunchMode,
+    normalizeOneTap,
+    normalizeStationConsultorio,
+    normalizeStationMode,
+    normalizeUpdateChannel,
+};
 
 const REGISTRY_DEFAULTS = getTurneroRegistryDefaults();
 const DEFAULT_BASE_URL = REGISTRY_DEFAULTS.baseUrl;
@@ -20,67 +41,6 @@ export function normalizeSurface(value) {
         family: 'desktop',
         fallback: 'operator',
     });
-}
-
-export function normalizeLaunchMode(value) {
-    return String(value || '')
-        .trim()
-        .toLowerCase() === 'windowed'
-        ? 'windowed'
-        : 'fullscreen';
-}
-
-export function normalizeStationMode(value, fallback = 'free') {
-    return String(value || fallback)
-        .trim()
-        .toLowerCase() === 'locked'
-        ? 'locked'
-        : 'free';
-}
-
-export function normalizeStationConsultorio(value, fallback = 1) {
-    return Number(value || fallback) === 2 ? 2 : 1;
-}
-
-export function normalizeAutoStart(value, fallback = true) {
-    if (typeof value === 'boolean') {
-        return value;
-    }
-
-    const normalized = String(value || '')
-        .trim()
-        .toLowerCase();
-    if (['1', 'true', 'yes', 'on'].includes(normalized)) {
-        return true;
-    }
-    if (['0', 'false', 'no', 'off'].includes(normalized)) {
-        return false;
-    }
-    return Boolean(fallback);
-}
-
-export function normalizeUpdateChannel(value, fallback = 'stable') {
-    const normalized = String(value || fallback)
-        .trim()
-        .toLowerCase();
-    return normalized === '' ? 'stable' : normalized;
-}
-
-export function normalizeOneTap(value, fallback = false) {
-    if (typeof value === 'boolean') {
-        return value;
-    }
-
-    const normalized = String(value || '')
-        .trim()
-        .toLowerCase();
-    if (['1', 'true', 'yes', 'on'].includes(normalized)) {
-        return true;
-    }
-    if (['0', 'false', 'no', 'off'].includes(normalized)) {
-        return false;
-    }
-    return Boolean(fallback);
 }
 
 export function sanitizeBaseUrl(value, fallback = DEFAULT_BASE_URL) {
@@ -192,22 +152,49 @@ export function createSurfaceUrl(config) {
     );
 
     if (normalizeSurface(config.surface) === 'operator') {
-        url.searchParams.set(
-            'station',
-            normalizeStationConsultorio(config.stationConsultorio, 1) === 2
-                ? 'c2'
-                : 'c1'
-        );
-        url.searchParams.set(
-            'lock',
-            normalizeStationMode(config.stationMode, 'free') === 'locked'
-                ? '1'
-                : '0'
-        );
-        url.searchParams.set(
-            'one_tap',
-            normalizeOneTap(config.oneTap, false) ? '1' : '0'
-        );
+        applyOperatorSurfaceSearchParams(url.searchParams, config);
+    }
+
+    return url.toString();
+}
+
+function resolveGuideTargetKey(surface, platform = process.platform) {
+    if (normalizeSurface(surface) === 'sala_tv') {
+        return getTurneroDefaultTargetKey(surface, {
+            targetKey: 'android_tv',
+        });
+    }
+
+    return getTurneroDefaultTargetKey(surface, {
+        targetKey:
+            String(platform || '')
+                .trim()
+                .toLowerCase() === 'darwin'
+                ? 'mac'
+                : 'win',
+    });
+}
+
+export function buildSupportGuideUrl(config, platform = process.platform) {
+    const surface = normalizeSurface(config.surface);
+    const surfaceMeta = getSurfaceMeta(surface);
+    const url = new URL(
+        String(surfaceMeta?.guideUrl || `/app-downloads/?surface=${surface}`),
+        `${sanitizeBaseUrl(config.baseUrl)}/`
+    );
+
+    url.searchParams.set('surface', surface);
+    const targetKey = resolveGuideTargetKey(surface, platform);
+    if (targetKey) {
+        url.searchParams.set('platform', targetKey);
+    }
+
+    if (surface === 'operator') {
+        applyOperatorSurfaceSearchParams(url.searchParams, config);
+    } else {
+        url.searchParams.delete('station');
+        url.searchParams.delete('lock');
+        url.searchParams.delete('one_tap');
     }
 
     return url.toString();
@@ -228,6 +215,27 @@ export function buildUpdateFeedUrl(config, platform = process.platform) {
         relativePath,
         sanitizeUpdateBaseUrl(config.updateBaseUrl, config.baseUrl)
     ).toString();
+}
+
+export function buildUpdateMetadataUrl(config, platform = process.platform) {
+    const feedUrl = buildUpdateFeedUrl(config, platform);
+    const metadataFile =
+        platform === 'darwin' ? 'latest-mac.yml' : 'latest.yml';
+
+    return new URL(
+        metadataFile,
+        feedUrl.endsWith('/') ? feedUrl : `${feedUrl}/`
+    ).toString();
+}
+
+export function buildGenericUpdateProvider(
+    config,
+    platform = process.platform
+) {
+    return {
+        provider: 'generic',
+        url: buildUpdateFeedUrl(config, platform),
+    };
 }
 
 export function getDefaultBaseUrl() {

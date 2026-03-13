@@ -13,3 +13,4 @@ export {
     runQueueBulkAction,
     runQueueBulkReprint,
 } from './actions/bulk.js';
+export { updateQueueHelpRequestStatus } from './actions/help-requests.js';

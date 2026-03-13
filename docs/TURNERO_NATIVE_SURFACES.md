@@ -81,8 +81,16 @@ node bin/stage-turnero-app-release.js --version 0.1.0
 
 - `npm run gate:turnero`
 - `npm run turnero:release:plan`
+- `npm run checklist:turnero:operator:pilot`
 - `node --test tests-node/turnero-surface-registry.test.js tests-node/resolve-turnero-release-plan.test.js tests-node/stage-turnero-app-release-script.test.js`
 - `node --test tests-node/app-downloads-catalog-registry-contract.test.js tests-node/admin-data-app-downloads-contract.test.js`
+
+Para el piloto Windows del operador, usar tambien:
+
+- `npm run turnero:stage:pilot:local`
+- `npm run turnero:verify:pilot:local`
+- `npm run publish:turnero:operator:pilot -- -DryRun`
+- `npm run checklist:turnero:operator:pilot -- -ServerBaseUrl https://pielarmonia.com`
 
 ## Rollback
 

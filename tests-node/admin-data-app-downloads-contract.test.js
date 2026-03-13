@@ -41,7 +41,11 @@ test('AdminDataController expone appDownloads con catalog y surfaces canonicos',
     assert.equal(payload.ok, true);
     assert.equal(
         payload.data.appDownloads.catalog.operator.targets.win.url,
-        '/app-downloads/stable/operator/win/TurneroOperadorSetup.exe'
+        '/app-downloads/pilot/operator/win/TurneroOperadorSetup.exe'
+    );
+    assert.equal(
+        payload.data.appDownloads.catalog.operator.targets.win.feedUrl,
+        '/desktop-updates/pilot/operator/win/latest.yml'
     );
     assert.equal(
         payload.data.appDownloads.surfaces.operator.ops.installHub

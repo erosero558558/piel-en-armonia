@@ -11,6 +11,27 @@ function json(route, payload, status = 200) {
 
 const ADMIN_UI_VARIANT = 'sony_v3';
 
+function supportReasonLabel(reason) {
+    return (
+        {
+            human_help: 'Ayuda humana',
+            lost_ticket: 'Perdio su ticket',
+            printer_issue: 'Problema de impresion',
+            appointment_not_found: 'Cita no encontrada',
+            ticket_duplicate: 'Ticket duplicado',
+            special_priority: 'Prioridad especial',
+            accessibility: 'Accesibilidad',
+            clinical_redirect: 'Derivacion clinica',
+            late_arrival: 'Llegada tarde',
+            offline_pending: 'Pendiente offline',
+            no_phone: 'Sin celular',
+            schedule_taken: 'Horario ocupado',
+            reprint_requested: 'Reimpresion solicitada',
+            general: 'Apoyo general',
+        }[String(reason || 'general')] || 'Apoyo general'
+    );
+}
+
 function adminUrl(query = '') {
     const params = new URLSearchParams(String(query || ''));
     const search = params.toString();
@@ -63,13 +84,36 @@ function sortWaitingTickets(a, b) {
 
 function buildQueueState(queueTickets, helpRequests = []) {
     const tickets = Array.isArray(queueTickets) ? queueTickets : [];
-    const activeHelpRequests = (
-        Array.isArray(helpRequests) ? helpRequests : []
-    ).filter(
+    const allHelpRequests = Array.isArray(helpRequests) ? helpRequests : [];
+    const activeHelpRequests = allHelpRequests.filter(
         (request) =>
             request &&
             ['pending', 'attending'].includes(String(request.status || ''))
     );
+    const recentResolvedHelpRequests = allHelpRequests
+        .filter(
+            (request) =>
+                request &&
+                String(request.status || '') === 'resolved' &&
+                request.context &&
+                typeof request.context === 'object' &&
+                (String(
+                    request.context.resolutionOutcome ||
+                        request.context.reviewOutcome ||
+                        ''
+                ).trim() ||
+                    String(
+                        request.context.resolutionOutcomeLabel ||
+                            request.context.reviewOutcomeLabel ||
+                            ''
+                    ).trim())
+        )
+        .sort(
+            (left, right) =>
+                Date.parse(String(right.resolvedAt || right.updatedAt || '')) -
+                Date.parse(String(left.resolvedAt || left.updatedAt || ''))
+        )
+        .slice(0, 5);
     const waiting = tickets
         .filter((ticket) => String(ticket.status || '') === 'waiting')
         .sort(sortWaitingTickets);
@@ -108,12 +152,39 @@ function buildQueueState(queueTickets, helpRequests = []) {
             ticketCode: request.ticketCode || '',
             patientInitials: request.patientInitials || '--',
             reason: request.reason || 'general',
-            reasonLabel: request.reasonLabel || 'Apoyo general',
+            reasonLabel:
+                request.reasonLabel ||
+                supportReasonLabel(request.reason || 'general'),
             status: request.status || 'pending',
             source: request.source || 'assistant',
             createdAt: request.createdAt,
             updatedAt: request.updatedAt,
+            context:
+                request.context && typeof request.context === 'object'
+                    ? request.context
+                    : {},
         })),
+        recentResolvedHelpRequests: recentResolvedHelpRequests.map(
+            (request) => ({
+                id: request.id,
+                ticketId: request.ticketId || null,
+                ticketCode: request.ticketCode || '',
+                patientInitials: request.patientInitials || '--',
+                reason: request.reason || 'general',
+                reasonLabel:
+                    request.reasonLabel ||
+                    supportReasonLabel(request.reason || 'general'),
+                status: 'resolved',
+                source: request.source || 'assistant',
+                createdAt: request.createdAt,
+                updatedAt: request.updatedAt,
+                resolvedAt: request.resolvedAt || request.updatedAt,
+                context:
+                    request.context && typeof request.context === 'object'
+                        ? request.context
+                        : {},
+            })
+        ),
         counts: {
             waiting: waiting.length,
             called: called.length,
@@ -160,6 +231,7 @@ function buildQueueMetaFromState(queueState) {
         delayReason: queueState.delayReason || '',
         assistancePendingCount: queueState.assistancePendingCount || 0,
         activeHelpRequests: queueState.activeHelpRequests || [],
+        recentResolvedHelpRequests: queueState.recentResolvedHelpRequests || [],
         counts: queueState.counts || {},
         callingNowByConsultorio: byConsultorio,
         nextTickets: queueState.nextTickets || [],
@@ -444,13 +516,7 @@ async function installSharedQueueMocks(context, options = {}) {
                 id: nextHelpRequestId,
                 source: String(body.source || 'assistant'),
                 reason: String(body.reason || 'general'),
-                reasonLabel:
-                    {
-                        human_help: 'Ayuda humana',
-                        clinical_redirect: 'Derivacion clinica',
-                        printer_issue: 'Problema de impresion',
-                        special_priority: 'Prioridad especial',
-                    }[String(body.reason || '')] || 'Apoyo general',
+                reasonLabel: supportReasonLabel(body.reason || 'general'),
                 status: 'pending',
                 message: String(body.message || ''),
                 intent: String(body.intent || ''),
@@ -470,6 +536,10 @@ async function installSharedQueueMocks(context, options = {}) {
                 ),
                 createdAt: nowIso,
                 updatedAt: nowIso,
+                context:
+                    body.context && typeof body.context === 'object'
+                        ? body.context
+                        : {},
             };
             nextHelpRequestId += 1;
             queueHelpRequests = [helpRequest, ...queueHelpRequests];
@@ -485,6 +555,65 @@ async function installSharedQueueMocks(context, options = {}) {
                 },
                 201
             );
+        }
+
+        if (resource === 'queue-help-request' && method === 'PATCH') {
+            const body = parseBody(request);
+            const helpRequestId = Number(body.id || 0);
+            const ticketId = Number(body.ticketId || body.ticket_id || 0);
+            const status = String(body.status || 'pending').toLowerCase();
+            const nowIso = new Date().toISOString();
+            let updatedHelpRequest = null;
+
+            queueHelpRequests = queueHelpRequests.map((request) => {
+                const matchesById =
+                    helpRequestId > 0 &&
+                    Number(request.id || 0) === helpRequestId;
+                const matchesByTicket =
+                    helpRequestId <= 0 &&
+                    ticketId > 0 &&
+                    Number(request.ticketId || 0) === ticketId &&
+                    ['pending', 'attending'].includes(
+                        String(request.status || '')
+                    );
+
+                if (!matchesById && !matchesByTicket) {
+                    return request;
+                }
+
+                updatedHelpRequest = {
+                    ...request,
+                    status,
+                    updatedAt: nowIso,
+                    context:
+                        body.context && typeof body.context === 'object'
+                            ? {
+                                  ...(request.context || {}),
+                                  ...body.context,
+                              }
+                            : request.context || {},
+                    ...(status === 'attending' ? { attendedAt: nowIso } : {}),
+                    ...(status === 'resolved' ? { resolvedAt: nowIso } : {}),
+                };
+                return updatedHelpRequest;
+            });
+
+            if (!updatedHelpRequest) {
+                return json(
+                    route,
+                    { ok: false, error: 'Solicitud de apoyo no encontrada' },
+                    404
+                );
+            }
+
+            syncTicketAssistanceFlags();
+            return json(route, {
+                ok: true,
+                data: {
+                    helpRequest: updatedHelpRequest,
+                    queueState: currentQueueState(),
+                },
+            });
         }
 
         if (resource === 'queue-call-next' && method === 'POST') {
@@ -879,7 +1008,74 @@ test.describe('Turnero integrado kiosco-admin-tv', () => {
         await adminPage.locator('.nav-item[data-section="queue"]').click();
         await expect(adminPage.locator('#queue')).toHaveClass(/active/);
         await expect(adminPage.locator('#queueTableBody')).toContainText(
-            'Apoyo'
+            'Ayuda humana'
+        );
+    });
+
+    test('muestra razon operativa especifica en admin para ticket duplicado', async ({
+        page,
+    }) => {
+        const context = page.context();
+        await installSharedQueueMocks(context);
+
+        const adminPage = page;
+        const kioskPage = await context.newPage();
+
+        await Promise.all([
+            adminPage.goto(adminUrl()),
+            kioskPage.goto('/kiosco-turnos.html'),
+        ]);
+
+        await kioskPage.fill('#walkinInitials', 'EP');
+        await kioskPage.click('#walkinSubmit');
+        await expect(kioskPage.locator('#ticketResult')).toContainText('A-001');
+
+        await kioskPage.fill('#assistantInput', 'Me salieron dos tickets');
+        await kioskPage.click('#assistantSend');
+        await expect(kioskPage.locator('#assistantMessages')).toContainText(
+            'ticket duplicado'
+        );
+
+        await adminPage.reload();
+        await adminPage.locator('.nav-item[data-section="queue"]').click();
+        await expect(adminPage.locator('#queue')).toHaveClass(/active/);
+        await expect(adminPage.locator('#queueTableBody')).toContainText(
+            'Ticket duplicado'
+        );
+        await expect(
+            adminPage.locator('#queueReceptionGuidanceList')
+        ).toContainText('Ticket duplicado');
+        await expect(
+            adminPage.locator('#queueReceptionGuidanceList')
+        ).toContainText('solo quede un ticket vigente');
+        await expect(
+            adminPage.locator(
+                '[data-action="queue-help-request-status"][data-queue-guidance-shortcut="attend"]'
+            )
+        ).toContainText('Marcar en atencion');
+
+        await adminPage
+            .locator(
+                '[data-action="queue-help-request-status"][data-queue-guidance-shortcut="attend"]'
+            )
+            .first()
+            .click();
+        await expect(
+            adminPage.locator('#queueReceptionGuidanceList')
+        ).toContainText('En atencion');
+        await expect(adminPage.locator('#queueTableBody')).toContainText(
+            'Ticket duplicado'
+        );
+
+        await clickQueueTicketActionByCode(adminPage, {
+            ticketCode: 'A-001',
+            action: 'resolver_apoyo',
+        });
+        await expect(adminPage.locator('#queueTableBody')).toContainText(
+            'A-001'
+        );
+        await expect(adminPage.locator('#queueTableBody')).not.toContainText(
+            'Ticket duplicado'
         );
     });
 

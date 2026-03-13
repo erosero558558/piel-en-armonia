@@ -12,6 +12,12 @@ param(
     [int]$MaxTelemedicineReviewQueue = 12,
     [int]$MaxTelemedicineStagedUploads = 1,
     [int]$MaxTelemedicineUnlinkedIntakes = 5,
+    [switch]$RequireStoreEncryption,
+    [switch]$RequireAuthConfigured,
+    [switch]$RequireOperatorAuth,
+    [switch]$RequireAdminTwoFactor,
+    [switch]$RequireTurneroWebSurfaces,
+    [switch]$RequireTurneroOperatorPilot,
     [switch]$RequireStableDataDir,
     [int]$MaxHealthTimingMs = 2000,
     [int]$AssetHashRetryCount = 2,
@@ -31,6 +37,7 @@ $base = $Domain.TrimEnd('/')
 $script:CurlBinary = $null
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
 $commonHttpPath = Join-Path $repoRoot 'bin/powershell/Common.Http.ps1'
+$openClawAuthDiagnosticScriptPath = Join-Path $repoRoot 'scripts/ops/admin/DIAGNOSTICAR-OPENCLAW-AUTH-ROLLOUT.ps1'
 . $commonHttpPath
 
 $localIndexCandidatePaths = @(
@@ -52,6 +59,117 @@ $smokeScriptPath = Join-Path $PSScriptRoot 'SMOKE-PRODUCCION.ps1'
 $primaryScriptRefPattern = '<script[^>]+src="([^"]*(?:script\.js|public-v6-shell\.js)[^"]*)"'
 $primaryStyleRefPattern = '<link[^>]+href="([^"]*(?:styles\.css|_astro/[^"]+\.css)[^"]*)"'
 $deferredStyleRefPattern = '<link[^>]+href="([^"]*styles-deferred\.css[^"]*)"'
+$turneroOperatorSurfaceUrl = "$base/operador-turnos.html"
+$turneroKioskSurfaceUrl = "$base/kiosco-turnos.html"
+$turneroDisplaySurfaceUrl = "$base/sala-turnos.html"
+$turneroOperatorPilotCenterUrl = "$base/app-downloads/?surface=operator&platform=win"
+$turneroOperatorPilotFeedUrl = "$base/desktop-updates/pilot/operator/win/latest.yml"
+$turneroOperatorPilotInstallerUrl = "$base/app-downloads/pilot/operator/win/TurneroOperadorSetup.exe"
+
+function Invoke-HeadCheck {
+    param(
+        [string]$Name,
+        [string]$Url,
+        [int]$TimeoutSec = 20,
+        [string]$UserAgent = 'PielArmoniaDeployCheck/1.0'
+    )
+
+    try {
+        $resp = Invoke-WebRequest -Uri $Url -Method HEAD -TimeoutSec $TimeoutSec -UseBasicParsing -Headers (Get-DiagnosticsAuthHeaders -UserAgent $UserAgent)
+        $status = [int]$resp.StatusCode
+        return [pscustomobject]@{
+            Name = $Name
+            Ok = ($status -ge 200 -and $status -lt 300)
+            StatusCode = $status
+            Error = if ($status -ge 200 -and $status -lt 300) { '' } else { "HTTP $status" }
+        }
+    } catch {
+        $statusCode = 0
+        if ($_.Exception.Response) {
+            try { $statusCode = [int]$_.Exception.Response.StatusCode.value__ } catch {}
+        }
+        return [pscustomobject]@{
+            Name = $Name
+            Ok = $false
+            StatusCode = $statusCode
+            Error = $_.Exception.Message
+        }
+    }
+}
+
+function Add-DeployFailure {
+    param(
+        [string]$Asset,
+        [string]$LocalHash,
+        [string]$RemoteHash,
+        [string]$RemoteUrl
+    )
+
+    $script:results += [PSCustomObject]@{
+        Asset = $Asset
+        Match = $false
+        LocalHash = $LocalHash
+        RemoteHash = $RemoteHash
+        RemoteUrl = $RemoteUrl
+    }
+}
+
+function Invoke-OpenClawAuthRolloutDiagnostic {
+    param(
+        [string]$BaseUrl,
+        [string]$ScriptPath
+    )
+
+    if (-not (Test-Path $ScriptPath)) {
+        return [PSCustomObject]@{
+            available = $false
+            ok = $false
+            diagnosis = 'diagnostic_script_missing'
+            nextAction = 'No se encontro scripts/ops/admin/DIAGNOSTICAR-OPENCLAW-AUTH-ROLLOUT.ps1 en este workspace.'
+            source = ''
+            mode = ''
+            configured = $false
+            error = 'diagnostic_script_missing'
+        }
+    }
+
+    $reportPath = Join-Path ([System.IO.Path]::GetTempPath()) ("openclaw-auth-rollout-" + [Guid]::NewGuid().ToString('N') + '.json')
+
+    try {
+        & powershell -NoProfile -ExecutionPolicy Bypass -File $ScriptPath -Domain $BaseUrl -AllowNotReady -ReportPath $reportPath *> $null
+
+        if (-not (Test-Path $reportPath)) {
+            throw 'No se genero reporte del diagnostico OpenClaw.'
+        }
+
+        $raw = Get-Content -Path $reportPath -Raw
+        $payload = ($raw -replace "^\uFEFF", '') | ConvertFrom-Json -Depth 12
+
+        return [PSCustomObject]@{
+            available = $true
+            ok = [bool]$payload.ok
+            diagnosis = [string]$payload.diagnosis
+            nextAction = [string]$payload.next_action
+            source = [string]$payload.resolved.source
+            mode = [string]$payload.resolved.mode
+            configured = [bool]$payload.resolved.configured
+            error = ''
+        }
+    } catch {
+        return [PSCustomObject]@{
+            available = $true
+            ok = $false
+            diagnosis = 'diagnostic_script_failed'
+            nextAction = 'No se pudo interpretar el diagnostico OpenClaw del admin.'
+            source = ''
+            mode = ''
+            configured = $false
+            error = $_.Exception.Message
+        }
+    } finally {
+        Remove-Item -Path $reportPath -Force -ErrorAction SilentlyContinue
+    }
+}
 
 Write-Host "== Verificacion de despliegue =="
 Write-Host "Dominio: $base"
@@ -306,6 +424,62 @@ try {
         LocalHash = 'no-store'
         RemoteHash = ''
         RemoteUrl = "$base/api.php?resource=health"
+    }
+}
+
+if ($RequireTurneroWebSurfaces -or $RequireTurneroOperatorPilot) {
+    $turneroOperatorSurfaceResp = Invoke-TextGet -Name 'turnero-operator-surface' -Url $turneroOperatorSurfaceUrl -UserAgent 'PielArmoniaDeployCheck/1.0'
+    if ($turneroOperatorSurfaceResp.Ok) {
+        Write-Host '[OK]  turnero operador web publicado'
+    } else {
+        Write-Host "[FAIL] turnero operador web ausente (status=$($turneroOperatorSurfaceResp.StatusCode))"
+        Add-DeployFailure -Asset 'turnero-operator-surface' -LocalHash '200' -RemoteHash "status=$($turneroOperatorSurfaceResp.StatusCode)" -RemoteUrl $turneroOperatorSurfaceUrl
+    }
+}
+
+if ($RequireTurneroWebSurfaces) {
+    $turneroKioskSurfaceResp = Invoke-TextGet -Name 'turnero-kiosk-surface' -Url $turneroKioskSurfaceUrl -UserAgent 'PielArmoniaDeployCheck/1.0'
+    if ($turneroKioskSurfaceResp.Ok) {
+        Write-Host '[OK]  turnero kiosco web publicado'
+    } else {
+        Write-Host "[FAIL] turnero kiosco web ausente (status=$($turneroKioskSurfaceResp.StatusCode))"
+        Add-DeployFailure -Asset 'turnero-kiosk-surface' -LocalHash '200' -RemoteHash "status=$($turneroKioskSurfaceResp.StatusCode)" -RemoteUrl $turneroKioskSurfaceUrl
+    }
+
+    $turneroDisplaySurfaceResp = Invoke-TextGet -Name 'turnero-display-surface' -Url $turneroDisplaySurfaceUrl -UserAgent 'PielArmoniaDeployCheck/1.0'
+    if ($turneroDisplaySurfaceResp.Ok) {
+        Write-Host '[OK]  turnero sala web publicado'
+    } else {
+        Write-Host "[FAIL] turnero sala web ausente (status=$($turneroDisplaySurfaceResp.StatusCode))"
+        Add-DeployFailure -Asset 'turnero-display-surface' -LocalHash '200' -RemoteHash "status=$($turneroDisplaySurfaceResp.StatusCode)" -RemoteUrl $turneroDisplaySurfaceUrl
+    }
+}
+
+if ($RequireTurneroOperatorPilot) {
+    $turneroPilotCenterResp = Invoke-TextGet -Name 'turnero-operator-pilot-center' -Url $turneroOperatorPilotCenterUrl -UserAgent 'PielArmoniaDeployCheck/1.0'
+    $turneroPilotCenterMatches = $turneroPilotCenterResp.Ok -and ([string]$turneroPilotCenterResp.Body).Contains('TurneroOperadorSetup.exe')
+    if ($turneroPilotCenterMatches) {
+        Write-Host '[OK]  turnero operador pilot center publicado'
+    } else {
+        Write-Host "[FAIL] turnero operador pilot center incompleto (status=$($turneroPilotCenterResp.StatusCode))"
+        Add-DeployFailure -Asset 'turnero-operator-pilot-center' -LocalHash 'TurneroOperadorSetup.exe visible' -RemoteHash $(if ($turneroPilotCenterResp.Ok) { 'installer missing in body' } else { "status=$($turneroPilotCenterResp.StatusCode)" }) -RemoteUrl $turneroOperatorPilotCenterUrl
+    }
+
+    $turneroPilotFeedResp = Invoke-TextGet -Name 'turnero-operator-pilot-feed' -Url $turneroOperatorPilotFeedUrl -UserAgent 'PielArmoniaDeployCheck/1.0'
+    $turneroPilotFeedMatches = $turneroPilotFeedResp.Ok -and [regex]::IsMatch([string]$turneroPilotFeedResp.Body, '(?m)^path:\s*TurneroOperadorSetup\.exe\s*$')
+    if ($turneroPilotFeedMatches) {
+        Write-Host '[OK]  turnero operador pilot feed publicado'
+    } else {
+        Write-Host "[FAIL] turnero operador pilot feed incompleto (status=$($turneroPilotFeedResp.StatusCode))"
+        Add-DeployFailure -Asset 'turnero-operator-pilot-feed' -LocalHash 'path: TurneroOperadorSetup.exe' -RemoteHash $(if ($turneroPilotFeedResp.Ok) { 'missing canonical path' } else { "status=$($turneroPilotFeedResp.StatusCode)" }) -RemoteUrl $turneroOperatorPilotFeedUrl
+    }
+
+    $turneroPilotInstallerResp = Invoke-HeadCheck -Name 'turnero-operator-pilot-installer' -Url $turneroOperatorPilotInstallerUrl -UserAgent 'PielArmoniaDeployCheck/1.0'
+    if ($turneroPilotInstallerResp.Ok) {
+        Write-Host '[OK]  turnero operador pilot installer publicado'
+    } else {
+        Write-Host "[FAIL] turnero operador pilot installer ausente (status=$($turneroPilotInstallerResp.StatusCode))"
+        Add-DeployFailure -Asset 'turnero-operator-pilot-installer' -LocalHash '200' -RemoteHash "status=$($turneroPilotInstallerResp.StatusCode)" -RemoteUrl $turneroOperatorPilotInstallerUrl
     }
 }
 
@@ -837,7 +1011,7 @@ foreach ($check in $analyticsChecks) {
     }
 }
 
-$healthUrl = "$base/api.php?resource=health"
+$healthUrl = "$base/api.php?resource=health-diagnostics"
 try {
     $healthResp = Invoke-JsonGetStrict -Url $healthUrl -UserAgent 'PielArmoniaDeployCheck/1.0'
     $healthRequired = @(
@@ -846,6 +1020,14 @@ try {
         'dataDirWritable',
         'dataDirSource',
         'storeEncrypted',
+        'storeEncryptionConfigured',
+        'storeEncryptionRequired',
+        'storeEncryptionStatus',
+        'storeEncryptionCompliant',
+        'authMode',
+        'authStatus',
+        'authConfigured',
+        'authHardeningCompliant',
         'figoConfigured',
         'figoRecursiveConfig',
         'calendarConfigured',
@@ -926,6 +1108,161 @@ try {
             }
         } else {
             Write-Host "[OK]  health dataDirSource=$dataDirSource"
+        }
+    }
+
+    $storageNode = $null
+    try {
+        $storageNode = $healthResp.Json.checks.storage
+    } catch {
+        $storageNode = $null
+    }
+    if ($null -eq $storageNode) {
+        Write-Host "[WARN] health no incluye checks.storage"
+        if ($RequireStoreEncryption) {
+            $results += [PSCustomObject]@{
+                Asset = 'health-store-encryption-missing'
+                Match = $false
+                LocalHash = 'present'
+                RemoteHash = 'missing'
+                RemoteUrl = $healthUrl
+            }
+        }
+    } else {
+        $storeEncrypted = $false
+        $storeEncryptionConfigured = $false
+        $storeEncryptionRequired = $false
+        $storeEncryptionStatus = 'unknown'
+        $storeEncryptionCompliant = $false
+        $storageBackend = 'unknown'
+        $storageSource = 'unknown'
+
+        try { $storeEncrypted = [bool]$storageNode.encrypted } catch { $storeEncrypted = $false }
+        try { $storeEncryptionConfigured = [bool]$storageNode.encryptionConfigured } catch { $storeEncryptionConfigured = $false }
+        try { $storeEncryptionRequired = [bool]$storageNode.encryptionRequired } catch { $storeEncryptionRequired = $false }
+        try { $storeEncryptionStatus = [string]$storageNode.encryptionStatus } catch { $storeEncryptionStatus = 'unknown' }
+        try { $storeEncryptionCompliant = [bool]$storageNode.encryptionCompliant } catch { $storeEncryptionCompliant = $false }
+        try { $storageBackend = [string]$storageNode.backend } catch { $storageBackend = 'unknown' }
+        try { $storageSource = [string]$storageNode.source } catch { $storageSource = 'unknown' }
+
+        Write-Host "[INFO] health storage backend=$storageBackend source=$storageSource encrypted=$storeEncrypted encryptionConfigured=$storeEncryptionConfigured encryptionRequired=$storeEncryptionRequired encryptionStatus=$storeEncryptionStatus encryptionCompliant=$storeEncryptionCompliant"
+
+        if (($storeEncryptionRequired -or $RequireStoreEncryption) -and -not $storeEncryptionCompliant) {
+            $results += [PSCustomObject]@{
+                Asset = 'health-store-encryption-compliant'
+                Match = $false
+                LocalHash = 'true'
+                RemoteHash = "status=$storeEncryptionStatus;configured=$storeEncryptionConfigured;required=$storeEncryptionRequired"
+                RemoteUrl = $healthUrl
+            }
+        } elseif (-not $storeEncryptionCompliant) {
+            Write-Host "[WARN] health storage encryption no compliant"
+        } elseif ($storeEncryptionStatus -eq 'encrypted') {
+            Write-Host "[OK]  health storage cifrado en reposo activo"
+        } else {
+            Write-Host "[OK]  health storage status=$storeEncryptionStatus"
+        }
+    }
+
+    $authNode = $null
+    try {
+        $authNode = $healthResp.Json.checks.auth
+    } catch {
+        $authNode = $null
+    }
+    if ($null -eq $authNode) {
+        Write-Host "[WARN] health no incluye checks.auth"
+        $results += [PSCustomObject]@{
+            Asset = 'health-auth-missing'
+            Match = $false
+            LocalHash = 'present'
+            RemoteHash = 'missing'
+            RemoteUrl = $healthUrl
+        }
+    } else {
+        $authMode = 'unknown'
+        $authStatus = 'unknown'
+        $authConfigured = $false
+        $authHardeningCompliant = $false
+        $authRecommendedMode = 'openclaw_chatgpt'
+        $authRecommendedModeActive = $false
+        $authOperatorAuthEnabled = $false
+        $authOperatorAuthConfigured = $false
+        $authLegacyPasswordConfigured = $false
+        $authTwoFactorEnabled = $false
+
+        try { $authMode = [string]$authNode.mode } catch { $authMode = 'unknown' }
+        try { $authStatus = [string]$authNode.status } catch { $authStatus = 'unknown' }
+        try { $authConfigured = [bool]$authNode.configured } catch { $authConfigured = $false }
+        try { $authHardeningCompliant = [bool]$authNode.hardeningCompliant } catch { $authHardeningCompliant = $false }
+        try { $authRecommendedMode = [string]$authNode.recommendedMode } catch { $authRecommendedMode = 'openclaw_chatgpt' }
+        try { $authRecommendedModeActive = [bool]$authNode.recommendedModeActive } catch { $authRecommendedModeActive = $false }
+        try { $authOperatorAuthEnabled = [bool]$authNode.operatorAuthEnabled } catch { $authOperatorAuthEnabled = $false }
+        try { $authOperatorAuthConfigured = [bool]$authNode.operatorAuthConfigured } catch { $authOperatorAuthConfigured = $false }
+        try { $authLegacyPasswordConfigured = [bool]$authNode.legacyPasswordConfigured } catch { $authLegacyPasswordConfigured = $false }
+        try { $authTwoFactorEnabled = [bool]$authNode.twoFactorEnabled } catch { $authTwoFactorEnabled = $false }
+
+        Write-Host "[INFO] health auth mode=$authMode status=$authStatus configured=$authConfigured hardeningCompliant=$authHardeningCompliant recommendedMode=$authRecommendedMode recommendedModeActive=$authRecommendedModeActive operatorAuthEnabled=$authOperatorAuthEnabled operatorAuthConfigured=$authOperatorAuthConfigured legacyPasswordConfigured=$authLegacyPasswordConfigured twoFactorEnabled=$authTwoFactorEnabled"
+
+        if (-not $authConfigured) {
+            $results += [PSCustomObject]@{
+                Asset = 'health-auth-configured'
+                Match = $false
+                LocalHash = 'true'
+                RemoteHash = "mode=$authMode;status=$authStatus"
+                RemoteUrl = $healthUrl
+            }
+        }
+        if ($RequireOperatorAuth -and -not $authRecommendedModeActive) {
+            $results += [PSCustomObject]@{
+                Asset = 'health-auth-mode'
+                Match = $false
+                LocalHash = $authRecommendedMode
+                RemoteHash = $authMode
+                RemoteUrl = $healthUrl
+            }
+        }
+        if ($RequireAdminTwoFactor -and -not $authTwoFactorEnabled) {
+            $results += [PSCustomObject]@{
+                Asset = 'health-auth-2fa'
+                Match = $false
+                LocalHash = 'true'
+                RemoteHash = 'false'
+                RemoteUrl = $healthUrl
+            }
+        }
+        if ($RequireAuthConfigured -and -not $authHardeningCompliant) {
+            $results += [PSCustomObject]@{
+                Asset = 'health-auth-hardening'
+                Match = $false
+                LocalHash = 'true'
+                RemoteHash = "mode=$authMode;recommendedMode=$authRecommendedMode;twoFactorEnabled=$authTwoFactorEnabled"
+                RemoteUrl = $healthUrl
+            }
+        }
+        if (-not $authRecommendedModeActive) {
+            Write-Host "[WARN] health auth mode no recomendado (mode=$authMode expected=$authRecommendedMode)"
+        }
+        if ($authMode -eq 'legacy_password' -and -not $authTwoFactorEnabled) {
+            Write-Host "[WARN] health auth legacy_password sin 2FA"
+        }
+        if ($authConfigured -and -not $authHardeningCompliant) {
+            Write-Host "[WARN] health auth hardening pendiente"
+        }
+
+        if ($RequireOperatorAuth) {
+            $operatorAuthRollout = Invoke-OpenClawAuthRolloutDiagnostic -BaseUrl $base -ScriptPath $openClawAuthDiagnosticScriptPath
+            Write-Host "[INFO] operator auth rollout diagnosis=$($operatorAuthRollout.diagnosis) source=$($operatorAuthRollout.source) mode=$($operatorAuthRollout.mode) configured=$($operatorAuthRollout.configured)"
+            if (-not $operatorAuthRollout.ok) {
+                $results += [PSCustomObject]@{
+                    Asset = 'operator-auth-rollout'
+                    Match = $false
+                    LocalHash = 'openclaw_ready'
+                    RemoteHash = "diagnosis=$($operatorAuthRollout.diagnosis);mode=$($operatorAuthRollout.mode);configured=$($operatorAuthRollout.configured)"
+                    RemoteUrl = "$base/admin-auth.php?action=status"
+                    Detail = [string]$operatorAuthRollout.nextAction
+                }
+            }
         }
     }
 
@@ -1624,6 +1961,8 @@ if ($RunSmoke) {
         -AllowMetaCspFallback:$AllowMetaCspFallback `
         -RequireWebhookSecret:$RequireWebhookSecret `
         -RequireCronReady:$RequireCronReady `
+        -RequireTurneroWebSurfaces:$RequireTurneroWebSurfaces `
+        -RequireTurneroOperatorPilot:$RequireTurneroOperatorPilot `
         -GitHubRepo $GitHubRepo `
         -GitHubApiBase $GitHubApiBase `
         -GitHubAlertsTimeoutSec $GitHubAlertsTimeoutSec `

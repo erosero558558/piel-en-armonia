@@ -4,9 +4,10 @@
         return;
     }
 
-    let payload = null;
+    const payloadText = dataNode.textContent || '{}';
+    let payload;
     try {
-        payload = JSON.parse(dataNode.textContent || '{}');
+        payload = JSON.parse(payloadText);
     } catch (_error) {
         return;
     }
@@ -38,6 +39,9 @@
     const targetLabelNode = document.getElementById('appDownloadsTargetLabel');
     const targetUrlNode = document.getElementById('appDownloadsTargetUrl');
     const preparedUrlNode = document.getElementById('appDownloadsPreparedUrl');
+    const feedCardNode = document.getElementById('appDownloadsFeedCard');
+    const feedLabelNode = document.getElementById('appDownloadsFeedLabel');
+    const feedUrlNode = document.getElementById('appDownloadsFeedUrl');
     const primaryAction = document.getElementById('appDownloadsPrimaryAction');
     const openPreparedBtn = document.getElementById(
         'appDownloadsOpenPreparedBtn'
@@ -56,6 +60,16 @@
         'appDownloadsSetupSummary'
     );
     const setupChecksNode = document.getElementById('appDownloadsSetupChecks');
+    const rolloutCardNode = document.getElementById('appDownloadsRolloutCard');
+    const rolloutTitleNode = document.getElementById(
+        'appDownloadsRolloutTitle'
+    );
+    const rolloutSummaryNode = document.getElementById(
+        'appDownloadsRolloutSummary'
+    );
+    const rolloutLanesNode = document.getElementById(
+        'appDownloadsRolloutLanes'
+    );
     const surfaceCards = Array.from(
         document.querySelectorAll('[data-surface-card]')
     );
@@ -77,6 +91,34 @@
 
     function getSurfaceCatalog(surfaceId) {
         return catalog[surfaceId] || catalog[fallbackSurfaceId] || {};
+    }
+
+    function toAbsoluteUrl(value) {
+        const resolved = String(value || '').trim();
+        if (!resolved) {
+            return '';
+        }
+        try {
+            return new URL(resolved, window.location.origin).toString();
+        } catch (_error) {
+            return resolved;
+        }
+    }
+
+    function getFileNameFromUrl(value) {
+        const resolved = String(value || '').trim();
+        if (!resolved) {
+            return '';
+        }
+
+        try {
+            const url = new URL(resolved, window.location.origin);
+            const parts = url.pathname.split('/').filter(Boolean);
+            return parts[parts.length - 1] || '';
+        } catch (_error) {
+            const parts = resolved.split('/').filter(Boolean);
+            return parts[parts.length - 1] || '';
+        }
     }
 
     function getTargetKeys(surfaceId) {
@@ -177,6 +219,73 @@
         return `https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=${encodeURIComponent(
             value
         )}`;
+    }
+
+    function buildOperatorPilotPreset(next, station) {
+        return {
+            surface: 'operator',
+            platform: 'win',
+            station,
+            lock: true,
+            oneTap: Boolean(next.oneTap),
+        };
+    }
+
+    function renderOperatorRollout(next, surfaceCatalog, absoluteTargetUrl) {
+        if (
+            !(rolloutCardNode instanceof HTMLElement) ||
+            !(rolloutLanesNode instanceof HTMLElement)
+        ) {
+            return;
+        }
+
+        const visible = next.surface === 'operator' && next.platform === 'win';
+        rolloutCardNode.classList.toggle('is-hidden', !visible);
+        if (!visible) {
+            rolloutLanesNode.innerHTML = '';
+            return;
+        }
+
+        const installerName =
+            getFileNameFromUrl(absoluteTargetUrl) || 'TurneroOperadorSetup.exe';
+        const currentLabel =
+            next.lock && next.station === 'c2'
+                ? 'PC 2 queda como C2 fijo'
+                : next.lock
+                  ? 'PC 1 queda como C1 fijo'
+                  : 'El preset actual sigue en modo libre';
+
+        if (rolloutTitleNode) {
+            rolloutTitleNode.textContent = 'Despliegue operador Windows';
+        }
+        if (rolloutSummaryNode) {
+            rolloutSummaryNode.textContent = `Usa el mismo ${installerName} en las dos PCs operador. ${currentLabel}; la otra PC debe provisionarse con el perfil fijo restante en el primer arranque.`;
+        }
+
+        rolloutLanesNode.innerHTML = ['c1', 'c2']
+            .map((station) => {
+                const preset = buildOperatorPilotPreset(next, station);
+                const preparedUrl = buildPreparedUrl(preset, surfaceCatalog);
+                const active = next.lock && next.station === station;
+                const laneLabel = station === 'c2' ? 'PC 2' : 'PC 1';
+                const stationLabel = station === 'c2' ? 'C2 fijo' : 'C1 fijo';
+                return `
+                    <article class="app-downloads-rollout-lane" data-state="${active ? 'active' : 'ready'}">
+                        <span>${escapeHtml(laneLabel)}</span>
+                        <strong>${escapeHtml(stationLabel)}</strong>
+                        <p>
+                            ${escapeHtml(installerName)} + ${
+                                next.oneTap ? '1 tecla ON' : '1 tecla OFF'
+                            }. El perfil se fija en el primer arranque del shell.
+                        </p>
+                        <code>${escapeHtml(preparedUrl)}</code>
+                        <a href="${escapeHtml(preparedUrl)}" target="_blank" rel="noopener">
+                            Abrir preset web
+                        </a>
+                    </article>
+                `;
+            })
+            .join('');
     }
 
     function showToast(message) {
@@ -373,7 +482,8 @@
         surfaceMeta,
         target,
         absoluteTargetUrl,
-        preparedUrl
+        preparedUrl,
+        absoluteFeedUrl
     ) {
         window.clearTimeout(readinessTimerId);
 
@@ -393,11 +503,19 @@
         readinessTimerId = window.setTimeout(async () => {
             const runToken = Date.now();
             readinessRunToken = runToken;
+            const shouldProbeFeed = Boolean(
+                absoluteFeedUrl && surfaceMeta.family === 'desktop'
+            );
 
-            const [downloadProbe, preparedProbe] = await Promise.all([
-                probeUrl(absoluteTargetUrl),
-                probeUrl(preparedUrl),
-            ]);
+            const [downloadProbe, preparedProbe, feedProbe] = await Promise.all(
+                [
+                    probeUrl(absoluteTargetUrl),
+                    probeUrl(preparedUrl),
+                    shouldProbeFeed
+                        ? probeUrl(absoluteFeedUrl)
+                        : Promise.resolve(null),
+                ]
+            );
 
             if (readinessRunToken !== runToken) {
                 return;
@@ -434,6 +552,24 @@
                 },
             ];
 
+            if (surfaceMeta.family === 'desktop') {
+                if (shouldProbeFeed && feedProbe) {
+                    checks.splice(1, 0, {
+                        label: 'Auto-update',
+                        state: feedProbe.state,
+                        detail: feedProbe.ok
+                            ? `Feed ${getFileNameFromUrl(absoluteFeedUrl)} disponible. ${feedProbe.detail}`
+                            : `Feed pendiente. ${feedProbe.detail}`,
+                    });
+                } else {
+                    checks.splice(1, 0, {
+                        label: 'Auto-update',
+                        state: 'danger',
+                        detail: 'No hay feed de auto-update configurado para este target desktop.',
+                    });
+                }
+            }
+
             const hasDanger = checks.some((check) => check.state === 'danger');
             renderSetupStatus({
                 title: hasDanger
@@ -464,10 +600,10 @@
                 surfaceCatalog.targets[getDefaultTargetKey(next.surface)]) || {
                 label: 'Sin artefacto',
                 url: '',
+                feedUrl: '',
             };
-        const absoluteTargetUrl = target.url
-            ? new URL(String(target.url), window.location.origin).toString()
-            : '';
+        const absoluteTargetUrl = toAbsoluteUrl(target.url);
+        const absoluteFeedUrl = toAbsoluteUrl(target.feedUrl);
         const preparedUrl = buildPreparedUrl(next, surfaceCatalog);
         const query = buildQuery(next);
         const qrTarget =
@@ -525,6 +661,17 @@
         if (preparedUrlNode) {
             preparedUrlNode.textContent = preparedUrl;
         }
+        if (feedCardNode instanceof HTMLElement) {
+            feedCardNode.classList.toggle('is-hidden', !absoluteFeedUrl);
+        }
+        if (feedLabelNode) {
+            feedLabelNode.textContent = absoluteFeedUrl
+                ? getFileNameFromUrl(absoluteFeedUrl)
+                : 'Sin feed';
+        }
+        if (feedUrlNode) {
+            feedUrlNode.textContent = absoluteFeedUrl;
+        }
         if (queryPreview) {
             queryPreview.textContent = query;
         }
@@ -554,12 +701,14 @@
             );
         });
         renderNotes(next.surface);
+        renderOperatorRollout(next, surfaceCatalog, absoluteTargetUrl);
         scheduleReadinessCheck(
             next,
             surfaceMeta,
             target,
             absoluteTargetUrl,
-            preparedUrl
+            preparedUrl,
+            absoluteFeedUrl
         );
 
         const nextUrl = `${window.location.pathname}?${query}`;

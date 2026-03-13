@@ -70,6 +70,50 @@ function renderActions(viewModel) {
         <a href="${escapeHtml(guideUrl)}" target="_blank" rel="noopener">Abrir centro público</a>`;
 }
 
+function renderFeedMeta(viewModel) {
+    if (!viewModel.supportsAutoUpdate || !viewModel.autoUpdateFeedUrl) {
+        return '';
+    }
+
+    return `
+        <div id="queueInstallFeedMeta" class="queue-install-result__meta">
+            <span>Feed auto-update</span>
+            <strong>${escapeHtml(viewModel.autoUpdateFeedUrl)}</strong>
+        </div>
+    `;
+}
+
+function renderOperatorRollout(viewModel) {
+    const rollout = viewModel.operatorRollout;
+    if (!rollout || !Array.isArray(rollout.lanes) || !rollout.lanes.length) {
+        return '';
+    }
+
+    return `
+        <section id="queueInstallRollout" class="queue-install-rollout">
+            <div class="queue-install-rollout__header">
+                <span>Despliegue dual</span>
+                <strong>${escapeHtml(rollout.title)}</strong>
+            </div>
+            <p class="queue-install-rollout__summary">${escapeHtml(rollout.summary)}</p>
+            <div class="queue-install-rollout__lanes">
+                ${rollout.lanes
+                    .map(
+                        (lane) => `
+                            <article class="queue-install-rollout__lane" data-state="${lane.active ? 'active' : 'ready'}">
+                                <span>${escapeHtml(lane.title)}</span>
+                                <strong>${escapeHtml(lane.summary)}</strong>
+                                <code>${escapeHtml(lane.preparedWebUrl)}</code>
+                                <a href="${escapeHtml(lane.preparedWebUrl)}" target="_blank" rel="noopener">Abrir preset web</a>
+                            </article>
+                        `
+                    )
+                    .join('')}
+            </div>
+        </section>
+    `;
+}
+
 function renderSteps(steps) {
     return steps.map((step) => `<li>${escapeHtml(step)}</li>`).join('');
 }
@@ -119,9 +163,11 @@ export function renderInstallConfiguratorMarkup(viewModel) {
                 </div>
                 <div class="queue-install-result__meta"><span>Descarga recomendada</span><strong>${escapeHtml((downloadTarget && downloadTarget.url) || 'Sin artefacto')}</strong></div>
                 <div class="queue-install-result__meta"><span>Ruta web preparada</span><strong>${escapeHtml(preparedWebUrl)}</strong></div>
+                ${renderFeedMeta(viewModel)}
                 <div class="queue-install-configurator__actions">
                     ${renderActions(viewModel)}
                 </div>
+                ${renderOperatorRollout(viewModel)}
                 <ul class="queue-app-card__notes">${renderSteps(setupSteps)}</ul>
             </section>
         </div>

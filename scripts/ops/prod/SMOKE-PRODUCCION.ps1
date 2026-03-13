@@ -9,6 +9,8 @@ param(
     [switch]$RequireBackupReceiverReady,
     [switch]$RequireCronReady,
     [switch]$RequireTelemedicineReady,
+    [switch]$RequireTurneroWebSurfaces,
+    [switch]$RequireTurneroOperatorPilot,
     [int]$MaxHealthTimingMs = 2000,
     [int]$FigoPostRetries = 3,
     [int]$FigoPostRetryDelaySec = 2,
@@ -291,6 +293,13 @@ $optionalMissingAssets = @(
     'Reschedule engine asset'
 )
 
+$turneroOperatorSurfaceUrl = "$base/operador-turnos.html"
+$turneroKioskSurfaceUrl = "$base/kiosco-turnos.html"
+$turneroDisplaySurfaceUrl = "$base/sala-turnos.html"
+$turneroOperatorPilotCenterUrl = "$base/app-downloads/?surface=operator&platform=win"
+$turneroOperatorPilotFeedUrl = "$base/desktop-updates/pilot/operator/win/latest.yml"
+$turneroOperatorPilotInstallerUrl = "$base/app-downloads/pilot/operator/win/TurneroOperadorSetup.exe"
+
 function Invoke-Check {
     param(
         [string]$Name,
@@ -367,6 +376,103 @@ function Invoke-Check {
         Ok = $false
         Status = $status
         Body = $bodyText
+    }
+}
+
+function Invoke-StrictGetCheck {
+    param(
+        [string]$Name,
+        [string]$Url
+    )
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    try {
+        $resp = Invoke-WebRequest -Uri $Url -Method GET -TimeoutSec 20 -UseBasicParsing -Headers @{
+            'Cache-Control' = 'no-cache'
+            'User-Agent' = 'PielArmoniaSmoke/1.0'
+        }
+        $sw.Stop()
+        $status = [int]$resp.StatusCode
+        $bodyText = [string]$resp.Content
+        if ($status -ge 200 -and $status -lt 300) {
+            Write-Host "[OK]  $Name -> HTTP $status ($([int]$sw.ElapsedMilliseconds) ms)"
+        } else {
+            Write-Host "[FAIL] $Name -> HTTP $status ($([int]$sw.ElapsedMilliseconds) ms)"
+        }
+        return [PSCustomObject]@{
+            Name = $Name
+            Ok = ($status -ge 200 -and $status -lt 300)
+            Status = $status
+            Body = $bodyText
+        }
+    } catch {
+        $sw.Stop()
+        $status = 0
+        $bodyText = ''
+        if ($_.Exception.Response) {
+            try { $status = [int]$_.Exception.Response.StatusCode.value__ } catch {}
+            try {
+                $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+                $bodyText = $reader.ReadToEnd()
+                $reader.Close()
+            } catch {}
+        }
+        Write-Host "[FAIL] $Name -> HTTP $status ($([int]$sw.ElapsedMilliseconds) ms)"
+        if ($bodyText) {
+            Write-Host "       $bodyText"
+        } elseif ($_.Exception.Message) {
+            Write-Host "       $($_.Exception.Message)"
+        } else {
+            Write-Host '       Sin respuesta'
+        }
+        return [PSCustomObject]@{
+            Name = $Name
+            Ok = $false
+            Status = $status
+            Body = $bodyText
+        }
+    }
+}
+
+function Invoke-HeadCheck {
+    param(
+        [string]$Name,
+        [string]$Url
+    )
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    try {
+        $resp = Invoke-WebRequest -Uri $Url -Method HEAD -TimeoutSec 20 -UseBasicParsing -Headers @{
+            'Cache-Control' = 'no-cache'
+            'User-Agent' = 'PielArmoniaSmoke/1.0'
+        }
+        $sw.Stop()
+        $status = [int]$resp.StatusCode
+        Write-Host "[OK]  $Name -> HTTP $status ($([int]$sw.ElapsedMilliseconds) ms)"
+        return [PSCustomObject]@{
+            Name = $Name
+            Ok = ($status -ge 200 -and $status -lt 300)
+            Status = $status
+            Body = ''
+        }
+    } catch {
+        $sw.Stop()
+        $status = 0
+        if ($_.Exception.Response) {
+            try { $status = [int]$_.Exception.Response.StatusCode.value__ } catch {}
+        }
+        Write-Host "[FAIL] $Name -> HTTP $status ($([int]$sw.ElapsedMilliseconds) ms)"
+        if ($_.Exception.Message) {
+            Write-Host "       $($_.Exception.Message)"
+        } else {
+            Write-Host "       Sin respuesta"
+        }
+        return [PSCustomObject]@{
+            Name = $Name
+            Ok = $false
+            Status = $status
+            Body = ''
+        }
     }
 }
 
@@ -473,6 +579,18 @@ if ($RequireCronReady) {
     $results += Invoke-Check -Name 'Cron backup health unauthorized' -Url "$base/cron.php?action=backup-health"
     $results += Invoke-Check -Name 'Cron backup offsite unauthorized' -Url "$base/cron.php?action=backup-offsite"
 }
+if ($RequireTurneroWebSurfaces -or $RequireTurneroOperatorPilot) {
+    $results += Invoke-StrictGetCheck -Name 'Turnero operador web' -Url $turneroOperatorSurfaceUrl
+}
+if ($RequireTurneroWebSurfaces) {
+    $results += Invoke-StrictGetCheck -Name 'Turnero kiosco web' -Url $turneroKioskSurfaceUrl
+    $results += Invoke-StrictGetCheck -Name 'Turnero sala web' -Url $turneroDisplaySurfaceUrl
+}
+if ($RequireTurneroOperatorPilot) {
+    $results += Invoke-StrictGetCheck -Name 'Turnero operador pilot center' -Url $turneroOperatorPilotCenterUrl
+    $results += Invoke-StrictGetCheck -Name 'Turnero operador pilot feed' -Url $turneroOperatorPilotFeedUrl
+    $results += Invoke-HeadCheck -Name 'Turnero operador pilot installer' -Url $turneroOperatorPilotInstallerUrl
+}
 foreach ($assetCheck in $assetChecks) {
     if ([string]::IsNullOrWhiteSpace($assetCheck.Url)) {
         Write-Host "[INFO] $($assetCheck.Name) omitido: no referenciado en el build local."
@@ -518,6 +636,18 @@ $expectedStatusByName = @{
     'Cron backup health unauthorized' = 403
     'Cron backup offsite unauthorized' = 403
 }
+if ($RequireTurneroWebSurfaces -or $RequireTurneroOperatorPilot) {
+    $expectedStatusByName['Turnero operador web'] = 200
+}
+if ($RequireTurneroWebSurfaces) {
+    $expectedStatusByName['Turnero kiosco web'] = 200
+    $expectedStatusByName['Turnero sala web'] = 200
+}
+if ($RequireTurneroOperatorPilot) {
+    $expectedStatusByName['Turnero operador pilot center'] = 200
+    $expectedStatusByName['Turnero operador pilot feed'] = 200
+    $expectedStatusByName['Turnero operador pilot installer'] = 200
+}
 foreach ($assetCheck in $assetChecks) {
     if ([string]::IsNullOrWhiteSpace($assetCheck.Url)) {
         continue
@@ -562,6 +692,28 @@ foreach ($result in $results) {
     if ([int]$result.Status -ne [int]$expected) {
         Write-Host "[FAIL] $($result.Name) devolvio HTTP $($result.Status), esperado HTTP $expected"
         $contractFailures += 1
+    }
+}
+
+if ($RequireTurneroOperatorPilot) {
+    $turneroPilotCenterResult = $results | Where-Object { $_.Name -eq 'Turnero operador pilot center' } | Select-Object -First 1
+    if ($null -ne $turneroPilotCenterResult -and [int]$turneroPilotCenterResult.Status -eq 200) {
+        if (-not ([string]$turneroPilotCenterResult.Body).Contains('TurneroOperadorSetup.exe')) {
+            Write-Host '[FAIL] Turnero operador pilot center no muestra el instalador canonico'
+            $contractFailures += 1
+        } else {
+            Write-Host '[OK]  Turnero operador pilot center muestra el instalador canonico'
+        }
+    }
+
+    $turneroPilotFeedResult = $results | Where-Object { $_.Name -eq 'Turnero operador pilot feed' } | Select-Object -First 1
+    if ($null -ne $turneroPilotFeedResult -and [int]$turneroPilotFeedResult.Status -eq 200) {
+        if (-not [regex]::IsMatch([string]$turneroPilotFeedResult.Body, '(?m)^path:\s*TurneroOperadorSetup\.exe\s*$')) {
+            Write-Host '[FAIL] Turnero operador pilot feed no apunta a TurneroOperadorSetup.exe'
+            $contractFailures += 1
+        } else {
+            Write-Host '[OK]  Turnero operador pilot feed apunta al instalador canonico'
+        }
     }
 }
 
@@ -627,11 +779,12 @@ try {
     $contractFailures += 1
 }
 
+$healthDiagnosticsUrl = "$base/api.php?resource=health-diagnostics"
 $healthResult = $results | Where-Object { $_.Name -eq 'Health API' } | Select-Object -First 1
 if ($null -ne $healthResult -and $healthResult.Ok) {
     try {
         $healthJson = $healthResult.Body | ConvertFrom-Json
-        foreach ($field in @('timingMs', 'version', 'dataDirWritable', 'storeEncrypted', 'figoConfigured', 'figoRecursiveConfig')) {
+        foreach ($field in @('ok', 'status', 'storageReady', 'dataDirWritable', 'timingMs', 'version', 'timestamp')) {
             if ($null -eq $healthJson.PSObject.Properties[$field]) {
                 Write-Host "[FAIL] Health API sin campo requerido: $field"
                 $contractFailures += 1
@@ -645,92 +798,22 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
             $contractFailures += 1
         }
 
-        $healthRecursive = $false
-        try { $healthRecursive = [bool]$healthJson.figoRecursiveConfig } catch { $healthRecursive = $false }
-        if ($healthRecursive -and -not $AllowRecursiveFigo) {
-            Write-Host "[FAIL] Health API reporta figoRecursiveConfig=true"
+        $healthDiagnosticsJson = $null
+        try {
+            $healthDiagnosticsResp = Invoke-JsonGetStrict -Url $healthDiagnosticsUrl -UserAgent 'PielArmoniaSmoke/1.0'
+            $healthDiagnosticsJson = $healthDiagnosticsResp.Json
+        } catch {
+            Write-Host "[FAIL] Health diagnostics no disponible: $($_.Exception.Message)"
             $contractFailures += 1
         }
 
-        if ($RequireCronReady) {
-            $publicSync = $null
-            try { $publicSync = $healthJson.checks.publicSync } catch { $publicSync = $null }
-            if ($null -eq $publicSync) {
-                Write-Host "[FAIL] Health API sin checks.publicSync"
-                $contractFailures += 1
-            } else {
-                $jobId = ''
-                $configured = $false
-                $healthy = $false
-                $ageSeconds = 999999
-                $state = ''
-                $lastErrorMessage = ''
-                $currentHead = ''
-                $remoteHead = ''
-                $dirtyPathsCount = 0
-                $dirtyPathsSample = @()
-                try { $jobId = [string]$publicSync.jobId } catch { $jobId = '' }
-                try { $configured = [bool]$publicSync.configured } catch { $configured = $false }
-                try { $healthy = [bool]$publicSync.healthy } catch { $healthy = $false }
-                try { $ageSeconds = [int]$publicSync.ageSeconds } catch { $ageSeconds = 999999 }
-                try { $state = [string]$publicSync.state } catch { $state = '' }
-                try { $lastErrorMessage = [string]$publicSync.lastErrorMessage } catch { $lastErrorMessage = '' }
-                try { $currentHead = [string]$publicSync.currentHead } catch { $currentHead = '' }
-                try { $remoteHead = [string]$publicSync.remoteHead } catch { $remoteHead = '' }
-                try { $dirtyPathsCount = [int]$publicSync.dirtyPathsCount } catch { $dirtyPathsCount = 0 }
-                try {
-                    if ($null -ne $publicSync.dirtyPathsSample) {
-                        $dirtyPathsSample = @($publicSync.dirtyPathsSample)
-                    }
-                } catch {
-                    $dirtyPathsSample = @()
-                }
-                $dirtyPathsSampleLabel = if ($dirtyPathsSample.Count -eq 0) {
-                    'none'
-                } else {
-                    (@($dirtyPathsSample | Select-Object -First 5 | ForEach-Object { [string]$_ }) -join ', ')
-                }
-                $headDrift = (
-                    -not [string]::IsNullOrWhiteSpace($currentHead) -and
-                    -not [string]::IsNullOrWhiteSpace($remoteHead) -and
-                    $currentHead -ne $remoteHead
-                )
-                $telemetryGap = (
-                    -not $healthy -and
-                    -not [string]::IsNullOrWhiteSpace($lastErrorMessage) -and
-                    [string]::IsNullOrWhiteSpace($currentHead) -and
-                    [string]::IsNullOrWhiteSpace($remoteHead) -and
-                    $dirtyPathsCount -le 0
-                )
-
-                Write-Host "[INFO] checks.publicSync state=$state lastErrorMessage=$lastErrorMessage currentHead=$currentHead remoteHead=$remoteHead headDrift=$headDrift dirtyPathsCount=$dirtyPathsCount telemetryGap=$telemetryGap dirtyPathsSample=$dirtyPathsSampleLabel"
-
-                if (-not $configured) {
-                    Write-Host "[FAIL] checks.publicSync.configured=false"
-                    $contractFailures += 1
-                }
-                if ($jobId -ne '8d31e299-7e57-4959-80b5-aaa2d73e9674') {
-                    Write-Host "[FAIL] checks.publicSync.jobId invalido: $jobId"
-                    $contractFailures += 1
-                }
-                if (-not $healthy) {
-                    Write-Host "[FAIL] checks.publicSync.healthy=false (state=$state, lastErrorMessage=$lastErrorMessage, dirtyPathsCount=$dirtyPathsCount)"
-                    $contractFailures += 1
-                }
-                if ($ageSeconds -gt 120) {
-                    Write-Host "[FAIL] checks.publicSync.ageSeconds alto: $ageSeconds (state=$state, currentHead=$currentHead, remoteHead=$remoteHead)"
-                    $contractFailures += 1
-                }
-                if ($headDrift) {
-                    Write-Host "[FAIL] checks.publicSync head drift detectado: currentHead=$currentHead remoteHead=$remoteHead"
-                    $contractFailures += 1
-                }
-                if ($telemetryGap) {
-                    Write-Host "[FAIL] checks.publicSync failed sin telemetria runtime suficiente (currentHead/remoteHead/dirtyPathsCount ausentes)"
+        if ($null -ne $healthDiagnosticsJson) {
+            foreach ($field in @('storeEncrypted', 'figoConfigured', 'figoRecursiveConfig')) {
+                if ($null -eq $healthDiagnosticsJson.PSObject.Properties[$field]) {
+                    Write-Host "[FAIL] Health diagnostics sin campo requerido: $field"
                     $contractFailures += 1
                 }
             }
-
             $githubDeployAlerts = Get-GitHubProductionAlertSummary `
                 -Repo $GitHubRepo `
                 -ApiBase $GitHubApiBase `
@@ -791,39 +874,127 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
             }
         }
 
-        if ($RequireTelemedicineReady) {
-            $telemedicine = $null
-            try { $telemedicine = $healthJson.checks.telemedicine } catch { $telemedicine = $null }
-            if ($null -eq $telemedicine) {
-                Write-Host "[FAIL] Health API sin checks.telemedicine"
+            $healthRecursive = $false
+            try { $healthRecursive = [bool]$healthDiagnosticsJson.figoRecursiveConfig } catch { $healthRecursive = $false }
+            if ($healthRecursive -and -not $AllowRecursiveFigo) {
+                Write-Host "[FAIL] Health diagnostics reporta figoRecursiveConfig=true"
                 $contractFailures += 1
-            } else {
-                $telemedicineConfigured = $false
-                $telemedicineDiagnosticsStatus = ''
-                $telemedicineCriticalCount = 0
-                $telemedicineDanglingLinks = 0
-                $telemedicineCasePhotosMissingPrivatePath = 0
-                try { $telemedicineConfigured = [bool]$telemedicine.configured } catch { $telemedicineConfigured = $false }
-                try { $telemedicineDiagnosticsStatus = [string]$telemedicine.diagnostics.status } catch { $telemedicineDiagnosticsStatus = '' }
-                try { $telemedicineCriticalCount = [int]$telemedicine.diagnostics.summary.critical } catch { $telemedicineCriticalCount = 0 }
-                try { $telemedicineDanglingLinks = [int]$telemedicine.integrity.danglingAppointmentLinksCount } catch { $telemedicineDanglingLinks = 0 }
-                try { $telemedicineCasePhotosMissingPrivatePath = [int]$telemedicine.integrity.casePhotosWithoutPrivatePathCount } catch { $telemedicineCasePhotosMissingPrivatePath = 0 }
+            }
 
-                if (-not $telemedicineConfigured) {
-                    Write-Host "[FAIL] checks.telemedicine.configured=false"
+            if ($RequireCronReady) {
+                $publicSync = $null
+                try { $publicSync = $healthDiagnosticsJson.checks.publicSync } catch { $publicSync = $null }
+                if ($null -eq $publicSync) {
+                    Write-Host "[FAIL] Health diagnostics sin checks.publicSync"
                     $contractFailures += 1
+                } else {
+                    $jobId = ''
+                    $configured = $false
+                    $healthy = $false
+                    $ageSeconds = 999999
+                    $state = ''
+                    $lastErrorMessage = ''
+                    $currentHead = ''
+                    $remoteHead = ''
+                    $dirtyPathsCount = 0
+                    $dirtyPathsSample = @()
+                    try { $jobId = [string]$publicSync.jobId } catch { $jobId = '' }
+                    try { $configured = [bool]$publicSync.configured } catch { $configured = $false }
+                    try { $healthy = [bool]$publicSync.healthy } catch { $healthy = $false }
+                    try { $ageSeconds = [int]$publicSync.ageSeconds } catch { $ageSeconds = 999999 }
+                    try { $state = [string]$publicSync.state } catch { $state = '' }
+                    try { $lastErrorMessage = [string]$publicSync.lastErrorMessage } catch { $lastErrorMessage = '' }
+                    try { $currentHead = [string]$publicSync.currentHead } catch { $currentHead = '' }
+                    try { $remoteHead = [string]$publicSync.remoteHead } catch { $remoteHead = '' }
+                    try { $dirtyPathsCount = [int]$publicSync.dirtyPathsCount } catch { $dirtyPathsCount = 0 }
+                    try {
+                        if ($null -ne $publicSync.dirtyPathsSample) {
+                            $dirtyPathsSample = @($publicSync.dirtyPathsSample)
+                        }
+                    } catch {
+                        $dirtyPathsSample = @()
+                    }
+                    $dirtyPathsSampleLabel = if ($dirtyPathsSample.Count -eq 0) {
+                        'none'
+                    } else {
+                        (@($dirtyPathsSample | Select-Object -First 5 | ForEach-Object { [string]$_ }) -join ', ')
+                    }
+                    $headDrift = (
+                        -not [string]::IsNullOrWhiteSpace($currentHead) -and
+                        -not [string]::IsNullOrWhiteSpace($remoteHead) -and
+                        $currentHead -ne $remoteHead
+                    )
+                    $telemetryGap = (
+                        -not $healthy -and
+                        -not [string]::IsNullOrWhiteSpace($lastErrorMessage) -and
+                        [string]::IsNullOrWhiteSpace($currentHead) -and
+                        [string]::IsNullOrWhiteSpace($remoteHead) -and
+                        $dirtyPathsCount -le 0
+                    )
+
+                    Write-Host "[INFO] checks.publicSync state=$state lastErrorMessage=$lastErrorMessage currentHead=$currentHead remoteHead=$remoteHead headDrift=$headDrift dirtyPathsCount=$dirtyPathsCount telemetryGap=$telemetryGap dirtyPathsSample=$dirtyPathsSampleLabel"
+
+                    if (-not $configured) {
+                        Write-Host "[FAIL] checks.publicSync.configured=false"
+                        $contractFailures += 1
+                    }
+                    if ($jobId -ne '8d31e299-7e57-4959-80b5-aaa2d73e9674') {
+                        Write-Host "[FAIL] checks.publicSync.jobId invalido: $jobId"
+                        $contractFailures += 1
+                    }
+                    if (-not $healthy) {
+                        Write-Host "[FAIL] checks.publicSync.healthy=false (state=$state, lastErrorMessage=$lastErrorMessage, dirtyPathsCount=$dirtyPathsCount)"
+                        $contractFailures += 1
+                    }
+                    if ($ageSeconds -gt 120) {
+                        Write-Host "[FAIL] checks.publicSync.ageSeconds alto: $ageSeconds (state=$state, currentHead=$currentHead, remoteHead=$remoteHead)"
+                        $contractFailures += 1
+                    }
+                    if ($headDrift) {
+                        Write-Host "[FAIL] checks.publicSync head drift detectado: currentHead=$currentHead remoteHead=$remoteHead"
+                        $contractFailures += 1
+                    }
+                    if ($telemetryGap) {
+                        Write-Host "[FAIL] checks.publicSync failed sin telemetria runtime suficiente (currentHead/remoteHead/dirtyPathsCount ausentes)"
+                        $contractFailures += 1
+                    }
                 }
-                if ($telemedicineDiagnosticsStatus -eq 'critical' -or $telemedicineCriticalCount -gt 0) {
-                    Write-Host "[FAIL] checks.telemedicine diagnostics critico (status=$telemedicineDiagnosticsStatus, critical=$telemedicineCriticalCount)"
+            }
+
+            if ($RequireTelemedicineReady) {
+                $telemedicine = $null
+                try { $telemedicine = $healthDiagnosticsJson.checks.telemedicine } catch { $telemedicine = $null }
+                if ($null -eq $telemedicine) {
+                    Write-Host "[FAIL] Health diagnostics sin checks.telemedicine"
                     $contractFailures += 1
-                }
-                if ($telemedicineDanglingLinks -gt 0) {
-                    Write-Host "[FAIL] checks.telemedicine danglingAppointmentLinksCount=$telemedicineDanglingLinks"
-                    $contractFailures += 1
-                }
-                if ($telemedicineCasePhotosMissingPrivatePath -gt 0) {
-                    Write-Host "[FAIL] checks.telemedicine casePhotosWithoutPrivatePathCount=$telemedicineCasePhotosMissingPrivatePath"
-                    $contractFailures += 1
+                } else {
+                    $telemedicineConfigured = $false
+                    $telemedicineDiagnosticsStatus = ''
+                    $telemedicineCriticalCount = 0
+                    $telemedicineDanglingLinks = 0
+                    $telemedicineCasePhotosMissingPrivatePath = 0
+                    try { $telemedicineConfigured = [bool]$telemedicine.configured } catch { $telemedicineConfigured = $false }
+                    try { $telemedicineDiagnosticsStatus = [string]$telemedicine.diagnostics.status } catch { $telemedicineDiagnosticsStatus = '' }
+                    try { $telemedicineCriticalCount = [int]$telemedicine.diagnostics.summary.critical } catch { $telemedicineCriticalCount = 0 }
+                    try { $telemedicineDanglingLinks = [int]$telemedicine.integrity.danglingAppointmentLinksCount } catch { $telemedicineDanglingLinks = 0 }
+                    try { $telemedicineCasePhotosMissingPrivatePath = [int]$telemedicine.integrity.casePhotosWithoutPrivatePathCount } catch { $telemedicineCasePhotosMissingPrivatePath = 0 }
+
+                    if (-not $telemedicineConfigured) {
+                        Write-Host "[FAIL] checks.telemedicine.configured=false"
+                        $contractFailures += 1
+                    }
+                    if ($telemedicineDiagnosticsStatus -eq 'critical' -or $telemedicineCriticalCount -gt 0) {
+                        Write-Host "[FAIL] checks.telemedicine diagnostics critico (status=$telemedicineDiagnosticsStatus, critical=$telemedicineCriticalCount)"
+                        $contractFailures += 1
+                    }
+                    if ($telemedicineDanglingLinks -gt 0) {
+                        Write-Host "[FAIL] checks.telemedicine danglingAppointmentLinksCount=$telemedicineDanglingLinks"
+                        $contractFailures += 1
+                    }
+                    if ($telemedicineCasePhotosMissingPrivatePath -gt 0) {
+                        Write-Host "[FAIL] checks.telemedicine casePhotosWithoutPrivatePathCount=$telemedicineCasePhotosMissingPrivatePath"
+                        $contractFailures += 1
+                    }
                 }
             }
         }

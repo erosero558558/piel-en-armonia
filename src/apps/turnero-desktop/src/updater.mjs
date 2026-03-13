@@ -1,5 +1,8 @@
 import { MacUpdater, NsisUpdater } from 'electron-updater';
-import { buildUpdateFeedUrl } from './config/contracts.mjs';
+import {
+    buildGenericUpdateProvider,
+    buildUpdateFeedUrl,
+} from './config/contracts.mjs';
 
 function createLogger(log) {
     return {
@@ -21,11 +24,7 @@ export function createUpdater(config, onStatus, log) {
     }
 
     const feedUrl = buildUpdateFeedUrl(config, process.platform);
-    const provider = {
-        provider: 'generic',
-        url: feedUrl,
-        channel: config.updateChannel,
-    };
+    const provider = buildGenericUpdateProvider(config, process.platform);
     const updater =
         process.platform === 'darwin'
             ? new MacUpdater(provider)

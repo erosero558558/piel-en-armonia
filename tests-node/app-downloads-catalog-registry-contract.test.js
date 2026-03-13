@@ -26,8 +26,13 @@ test('AppDownloadsCatalog deriva defaults desde el registry canonicamente', () =
 
     assert.equal(
         catalog.operator.targets.win.url,
-        '/app-downloads/stable/operator/win/TurneroOperadorSetup.exe'
+        '/app-downloads/pilot/operator/win/TurneroOperadorSetup.exe'
     );
+    assert.equal(
+        catalog.operator.targets.win.feedUrl,
+        '/desktop-updates/pilot/operator/win/latest.yml'
+    );
+    assert.equal(catalog.operator.targets.win.supportsAutoUpdate, true);
     assert.equal(
         catalog.kiosk.targets.mac.url,
         '/app-downloads/stable/kiosk/mac/TurneroKiosco.dmg'

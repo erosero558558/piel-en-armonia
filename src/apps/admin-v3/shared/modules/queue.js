@@ -7,6 +7,12 @@ export {
     toggleQueueTicketSelection,
 } from './queue/state.js';
 
+export {
+    clearQueueCommandAdapter,
+    getQueueCommandAdapter,
+    setQueueCommandAdapter,
+} from './queue/command-adapter.js';
+
 export { renderQueueSection } from './queue/render.js';
 
 export {
@@ -31,6 +37,7 @@ export {
     runQueueBulkReprint,
     runQueueReleaseStation,
     runQueueTicketAction,
+    updateQueueHelpRequestStatus,
 } from './queue/actions.js';
 
 export {

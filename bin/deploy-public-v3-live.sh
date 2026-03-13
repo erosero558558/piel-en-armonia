@@ -73,6 +73,12 @@ verify_canonical_public_artifacts() {
         "script.js"
         "styles.css"
         "styles-deferred.css"
+        "operador-turnos.html"
+        "kiosco-turnos.html"
+        "sala-turnos.html"
+        "queue-ops.css"
+        "queue-kiosk.css"
+        "queue-display.css"
         "js/chunks"
         "js/engines"
     )
@@ -131,7 +137,7 @@ fi
 
 echo "== Verify canonical public artifacts =="
 verify_canonical_public_artifacts
-ls -ld "$REPO/es" "$REPO/en" "$REPO/_astro" "$REPO/js/chunks" "$REPO/js/engines"
+ls -ld "$REPO/es" "$REPO/en" "$REPO/_astro" "$REPO/js/chunks" "$REPO/js/engines" "$REPO/operador-turnos.html" "$REPO/kiosco-turnos.html" "$REPO/sala-turnos.html"
 
 if [ -f "$SITE_PATH" ]; then
     echo "== Patch live Nginx redirect safety =="
@@ -155,12 +161,18 @@ curl -I "$LOCAL_VERIFY_BASE_URL/"
 curl -I "$LOCAL_VERIFY_BASE_URL/es/"
 curl -I "$LOCAL_VERIFY_BASE_URL/en/"
 curl -I "$LOCAL_VERIFY_BASE_URL/telemedicina.html"
+curl -I "$LOCAL_VERIFY_BASE_URL/operador-turnos.html"
+curl -I "$LOCAL_VERIFY_BASE_URL/kiosco-turnos.html"
+curl -I "$LOCAL_VERIFY_BASE_URL/sala-turnos.html"
 
 echo "== Public verify =="
 curl -I https://pielarmonia.com/
 curl -I https://pielarmonia.com/es/
 curl -I https://pielarmonia.com/en/
 curl -I https://pielarmonia.com/telemedicina.html
+curl -I https://pielarmonia.com/operador-turnos.html
+curl -I https://pielarmonia.com/kiosco-turnos.html
+curl -I https://pielarmonia.com/sala-turnos.html
 
 echo "== Done =="
 echo "Commit actual: $(git rev-parse --short HEAD)"

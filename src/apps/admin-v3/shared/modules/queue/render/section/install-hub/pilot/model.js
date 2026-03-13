@@ -958,6 +958,73 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
         goLiveSupport,
     };
 
+    const preset = ensureInstallPreset(detectedPlatform);
+    const operatorConfig = manifest.operator || defaultAppDownloads.operator;
+    const operatorCandidates =
+        Array.isArray(telemetry[0]?.instances) &&
+        telemetry[0].instances.length > 0
+            ? telemetry[0].instances
+            : telemetry[0]?.latest
+              ? [telemetry[0].latest]
+              : [];
+    const operatorStations =
+        preset.surface === 'operator' && preset.platform === 'win'
+            ? ['c1', 'c2'].map((station) => {
+                  const instance = operatorCandidates.find(
+                      (entry) =>
+                          String(
+                              entry?.details?.station || ''
+                          ).toLowerCase() === station &&
+                          String(entry?.appMode || '') === 'desktop'
+                  );
+                  const live = instance != null && !instance?.stale;
+                  const ready =
+                      live &&
+                      String(
+                          instance?.effectiveStatus ||
+                              instance?.status ||
+                              telemetry[0]?.status ||
+                              ''
+                      ).toLowerCase() === 'ready';
+                  return {
+                      station,
+                      title:
+                          station === 'c2'
+                              ? 'PC 2 · C2 fijo'
+                              : 'PC 1 · C1 fijo',
+                      live,
+                      ready,
+                      href: buildPreparedSurfaceUrl(
+                          'operator',
+                          operatorConfig,
+                          {
+                              ...preset,
+                              surface: 'operator',
+                              platform: 'win',
+                              station,
+                              lock: true,
+                          }
+                      ),
+                  };
+              })
+            : [];
+    const missingOperatorStations = operatorStations.filter(
+        (station) => !station.live
+    );
+    const operatorFeedUrl = String(operatorConfig?.targets?.win?.feedUrl || '');
+    const operatorFeedFile =
+        operatorFeedUrl.split('/').filter(Boolean).pop() || 'latest.yml';
+    const operatorRolloutSupport =
+        operatorStations.length > 0 && missingOperatorStations.length > 0
+            ? `Windows operador pendiente: falta ${missingOperatorStations
+                  .map((station) => station.station.toUpperCase())
+                  .join(
+                      ' y '
+                  )} fijo. Usa el mismo TurneroOperadorSetup.exe en ambas PCs y confirma ${operatorFeedFile}.`
+            : operatorStations.length > 0
+              ? 'Windows operador visible en C1 y C2.'
+              : '';
+
     if (syncHealth.state === 'alert') {
         return {
             ...sharedPilotPayload,
@@ -985,15 +1052,21 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
     if (suggestedCount > 0) {
         return {
             ...sharedPilotPayload,
-            tone: 'suggested',
+            tone: missingOperatorStations.length > 0 ? 'warning' : 'suggested',
             eyebrow: 'Siguiente paso',
             title: `Confirma ${suggestedCount} paso(s) ya validados`,
             summary:
                 pendingAfterSuggestions.length > 0
                     ? `${suggestedCount} paso(s) ya aparecen listos por heartbeat. Después te quedará ${pendingAfterSuggestions[0].title}.`
                     : 'El sistema ya detectó los pasos pendientes como listos. Confírmalos para cerrar la apertura.',
-            supportCopy:
-                'Usa este botón cuando ya confías en la telemetría y solo quieres avanzar sin recorrer el checklist uno por uno.',
+            supportCopy: `Usa este botón cuando ya confías en la telemetría y solo quieres avanzar sin recorrer el checklist uno por uno.${operatorRolloutSupport ? ` ${operatorRolloutSupport}` : ''}`,
+            progressPct,
+            confirmedCount,
+            suggestedCount,
+            totalSteps: steps.length,
+            readyEquipmentCount,
+            issueCount,
+            rolloutStations: operatorStations,
             primaryAction: {
                 kind: 'button',
                 id: 'queueOpsPilotApplyBtn',
@@ -1027,7 +1100,16 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
                 assist.suggestions[pendingAfterSuggestions[0].id]?.reason ||
                     pendingAfterSuggestions[0].hint ||
                     ''
+            ).concat(
+                operatorRolloutSupport ? ` ${operatorRolloutSupport}` : ''
             ),
+            progressPct,
+            confirmedCount,
+            suggestedCount,
+            totalSteps: steps.length,
+            readyEquipmentCount,
+            issueCount,
+            rolloutStations: operatorStations,
             primaryAction: {
                 kind: 'anchor',
                 href: pendingAfterSuggestions[0].href,
@@ -1056,8 +1138,14 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
         title: 'Apertura completada',
         summary:
             'Operador, kiosco y sala ya están confirmados. Puedes seguir atendiendo o hacer un llamado de prueba final desde la cola.',
-        supportCopy:
-            'Si cambia un equipo a warning o alert, este panel volverá a priorizar la acción correcta.',
+        supportCopy: `Si cambia un equipo a warning o alert, este panel volverá a priorizar la acción correcta.${operatorRolloutSupport ? ` ${operatorRolloutSupport}` : ''}`,
+        progressPct,
+        confirmedCount,
+        suggestedCount,
+        totalSteps: steps.length,
+        readyEquipmentCount,
+        issueCount,
+        rolloutStations: operatorStations,
         primaryAction: {
             kind: 'anchor',
             href: '/admin.html#queue',

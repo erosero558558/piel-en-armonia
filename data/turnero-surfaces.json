@@ -18,7 +18,7 @@
             "appId": "com.pielarmonia.turnero.operator",
             "webFallbackUrl": "/operador-turnos.html",
             "guideUrl": "/app-downloads/?surface=operator",
-            "updateChannel": "stable",
+            "updateChannel": "pilot",
             "catalog": {
                 "title": "Operador",
                 "eyebrow": "Genius Numpad 1000",

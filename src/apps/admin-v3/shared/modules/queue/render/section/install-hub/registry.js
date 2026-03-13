@@ -25,6 +25,7 @@ const FALLBACK_INSTALL_HUB_REGISTRY = Object.freeze({
         channel: 'stable',
         version: '0.1.0',
         downloadBasePath: '/app-downloads/',
+        updateBasePath: '/desktop-updates/',
     },
     surfaces: [
         {
@@ -33,16 +34,23 @@ const FALLBACK_INSTALL_HUB_REGISTRY = Object.freeze({
             productName: 'Turnero Operador',
             webFallbackUrl: '/operador-turnos.html',
             guideUrl: '/app-downloads/?surface=operator',
+            updateChannel: 'pilot',
             targets: {
                 win: {
                     label: 'Windows',
                     downloadPath: 'operator/win',
                     manualFile: 'TurneroOperadorSetup.exe',
+                    updatePath: 'operator/win',
+                    updateFile: 'TurneroOperadorSetup.exe',
+                    feedFile: 'latest.yml',
                 },
                 mac: {
                     label: 'macOS',
                     downloadPath: 'operator/mac',
                     manualFile: 'TurneroOperador.dmg',
+                    updatePath: 'operator/mac',
+                    updateFile: 'TurneroOperador.zip',
+                    feedFile: 'latest-mac.yml',
                 },
             },
         },
@@ -52,16 +60,23 @@ const FALLBACK_INSTALL_HUB_REGISTRY = Object.freeze({
             productName: 'Turnero Kiosco',
             webFallbackUrl: '/kiosco-turnos.html',
             guideUrl: '/app-downloads/?surface=kiosk',
+            updateChannel: 'stable',
             targets: {
                 win: {
                     label: 'Windows',
                     downloadPath: 'kiosk/win',
                     manualFile: 'TurneroKioscoSetup.exe',
+                    updatePath: 'kiosk/win',
+                    updateFile: 'TurneroKioscoSetup.exe',
+                    feedFile: 'latest.yml',
                 },
                 mac: {
                     label: 'macOS',
                     downloadPath: 'kiosk/mac',
                     manualFile: 'TurneroKiosco.dmg',
+                    updatePath: 'kiosk/mac',
+                    updateFile: 'TurneroKiosco.zip',
+                    feedFile: 'latest-mac.yml',
                 },
             },
         },
@@ -71,6 +86,7 @@ const FALLBACK_INSTALL_HUB_REGISTRY = Object.freeze({
             productName: 'Turnero Sala TV',
             webFallbackUrl: '/sala-turnos.html',
             guideUrl: '/app-downloads/?surface=sala_tv',
+            updateChannel: 'stable',
             targets: {
                 android_tv: {
                     label: 'Android TV APK',
@@ -94,6 +110,19 @@ function buildDownloadUrl(defaults, channel, target) {
     )}/${trimSlashes(downloadPath)}/${manualFile}`;
 }
 
+function buildUpdateBaseUrl(defaults, channel, target, fileKey) {
+    const updateBasePath = normalizeText(defaults.updateBasePath);
+    const updatePath = normalizeText(target.updatePath);
+    const fileName = normalizeText(target[fileKey]);
+    if (updateBasePath === '' || updatePath === '' || fileName === '') {
+        return '';
+    }
+
+    return `/${trimSlashes(updateBasePath)}/${normalizeText(channel)}/${trimSlashes(
+        updatePath
+    )}/${fileName}`;
+}
+
 function normalizeRegistry(payload) {
     const source = isObject(payload) ? payload : {};
     const defaults = isObject(source.defaults) ? source.defaults : {};
@@ -103,6 +132,8 @@ function normalizeRegistry(payload) {
         version: normalizeText(defaults.version) || '0.1.0',
         downloadBasePath:
             normalizeText(defaults.downloadBasePath) || '/app-downloads/',
+        updateBasePath:
+            normalizeText(defaults.updateBasePath) || '/desktop-updates/',
     };
     const surfaceOrder = [];
     const surfaceMap = {};
@@ -140,6 +171,25 @@ function normalizeRegistry(payload) {
             downloadTargets[targetKey] = {
                 label: normalizeText(target.label) || targetKey,
                 url: buildDownloadUrl(normalizedDefaults, channel, target),
+                updateUrl: buildUpdateBaseUrl(
+                    normalizedDefaults,
+                    channel,
+                    target,
+                    'updateFile'
+                ),
+                feedUrl: buildUpdateBaseUrl(
+                    normalizedDefaults,
+                    channel,
+                    target,
+                    'feedFile'
+                ),
+                supportsAutoUpdate:
+                    buildUpdateBaseUrl(
+                        normalizedDefaults,
+                        channel,
+                        target,
+                        'feedFile'
+                    ) !== '',
             };
         });
 

@@ -10,6 +10,7 @@ import {
     resolveQueueMetaCounts,
 } from './normalize/index.js';
 import { asArray, toFiniteNumber } from '../../helpers.js';
+import { normalizeHelpRequest } from '../normalizers.js';
 
 export function normalizeQueueMeta(rawMeta, tickets = []) {
     const meta = rawMeta && typeof rawMeta === 'object' ? rawMeta : {};
@@ -29,6 +30,20 @@ export function normalizeQueueMeta(rawMeta, tickets = []) {
         ticketFallbacks,
         { c1, c2 }
     );
+    const rawActiveHelpRequests = asArray(meta.activeHelpRequests).length
+        ? asArray(meta.activeHelpRequests)
+        : asArray(meta.active_help_requests);
+    const activeHelpRequests = rawActiveHelpRequests.map((request, index) =>
+        normalizeHelpRequest(request, index)
+    );
+    const rawRecentResolvedHelpRequests = asArray(
+        meta.recentResolvedHelpRequests
+    ).length
+        ? asArray(meta.recentResolvedHelpRequests)
+        : asArray(meta.recent_resolved_help_requests);
+    const recentResolvedHelpRequests = rawRecentResolvedHelpRequests.map(
+        (request, index) => normalizeHelpRequest(request, index)
+    );
 
     return {
         updatedAt: String(
@@ -46,21 +61,15 @@ export function normalizeQueueMeta(rawMeta, tickets = []) {
         assistancePendingCount: toFiniteNumber(
             meta.assistancePendingCount ??
                 meta.assistance_pending_count ??
-                asArray(meta.activeHelpRequests).filter(
-                    (request) =>
-                        String(request?.status || '').toLowerCase() ===
-                        'pending'
-                ).length ??
-                asArray(meta.active_help_requests).filter(
+                activeHelpRequests.filter(
                     (request) =>
                         String(request?.status || '').toLowerCase() ===
                         'pending'
                 ).length,
             0
         ),
-        activeHelpRequests: asArray(meta.activeHelpRequests).length
-            ? asArray(meta.activeHelpRequests)
-            : asArray(meta.active_help_requests),
+        activeHelpRequests,
+        recentResolvedHelpRequests,
         counts: {
             waiting: normalizedCounts.waitingCount,
             called: normalizedCounts.calledCount,

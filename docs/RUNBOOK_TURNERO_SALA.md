@@ -298,6 +298,10 @@ Para separar operación por equipo:
 - PC 1: provisionar `C1 fijo`; PC 2: provisionar `C2 fijo`
 - no almacenar credenciales ni 2FA en el shell; la autenticacion sigue en `operador-turnos.html`
 - validar en cada PC: shell `Desktop instalada`, estacion correcta, `1 tecla` segun operacion y matriz del numpad completa (`llamar`, `+`, `.`, `-`)
+- usar `/app-downloads/?surface=operator&platform=win` como chequeo previo: debe responder el instalador, el feed `latest.yml` y la matriz `PC 1 C1 fijo / PC 2 C2 fijo`
+- si soporte pide evidencia rápida de una PC Windows, abrir `F10` y copiar desde la pantalla de boot: `Perfil local`, feed, guía `/app-downloads/` y ruta de `turnero-desktop.json`
+- si la consola o admin muestran `Update 42%` o `Update lista`, el equipo sigue operativo; dejar que la descarga termine y reiniciar solo fuera del flujo del turno
+- si aparece `Update con error`, tratarlo como incidencia del shell Windows y revisar feed `/desktop-updates/pilot/operator/win/` antes de reinstalar
 - si hace falta reconfigurar una PC, usar `F10` o `Ctrl/Cmd + ,` en vez de reinstalar
 
 Comandos base:

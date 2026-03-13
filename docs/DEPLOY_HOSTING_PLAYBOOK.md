@@ -83,10 +83,10 @@ que genera `npm run bundle:deploy`. El set minimo actual debe contener:
 - `figo-backend.php`
 - carpeta `vendor/` (dependencias instaladas)
 - carpeta `data/` (con permisos de escritura)
-- `SMOKE-PRODUCCION.ps1`
-- `VERIFICAR-DESPLIEGUE.ps1`
-- `BENCH-API-PRODUCCION.ps1`
-- `GATE-POSTDEPLOY.ps1`
+- `scripts/ops/prod/SMOKE-PRODUCCION.ps1`
+- `scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1`
+- `scripts/ops/prod/BENCH-API-PRODUCCION.ps1`
+- `scripts/ops/prod/GATE-POSTDEPLOY.ps1`
 - `CONFIGURAR-TELEGRAM-WEBHOOK.ps1`
 
 Atajo recomendado para preparar un paquete listo para subir:
@@ -119,6 +119,8 @@ Notas:
   `admin.css` queda archivado como legacy.
 - El turnero publicado depende de `operador-turnos.html`,
   `kiosco-turnos.html`, `sala-turnos.html` y sus assets `queue-*`.
+- `node bin/check-public-routing-smoke.js --base-url https://pielarmonia.com --label production`
+  ya debe fallar si cualquiera de esas tres superficies responde con redirect o `404`.
 - Las rutas HTML legacy en raiz pueden seguir publicadas por compatibilidad,
   pero no sustituyen ni definen la shell V6 canonica.
 - El frontend consume `figo-chat.php` para el chatbot IA.
@@ -240,20 +242,20 @@ Ejemplo recomendado de `data/figo-config.json`:
 
 6. Verificacion de paridad de despliegue:
 
-- `.\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://pielarmonia.com" -RunSmoke`
+- `.\scripts\ops\prod\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://pielarmonia.com" -RunSmoke`
 - Si estas en ventana de mantenimiento y aceptas modo degradado temporal:
-    - `.\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://pielarmonia.com" -RunSmoke -AllowDegradedFigo -AllowRecursiveFigo`
+    - `.\scripts\ops\prod\VERIFICAR-DESPLIEGUE.ps1 -Domain "https://pielarmonia.com" -RunSmoke -AllowDegradedFigo -AllowRecursiveFigo`
 
 7. Bench de latencia (p95):
 
-- `.\BENCH-API-PRODUCCION.ps1 -Domain "https://pielarmonia.com" -Runs 25 -IncludeFigoPost`
+- `.\scripts\ops\prod\BENCH-API-PRODUCCION.ps1 -Domain "https://pielarmonia.com" -Runs 25 -IncludeFigoPost`
 
 8. Gate completo post-deploy (recomendado):
 
-- `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireWebhookSecret`
-- (Temporal, solo mientras corriges headers en edge/servidor) `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -AllowMetaCspFallback`
-- Para exigir backups sanos en el gate: `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireBackupHealthy`
-- Para exigir almacenamiento persistente (no /tmp): `.\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireStableDataDir`
+- `.\scripts\ops\prod\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireWebhookSecret`
+- (Temporal, solo mientras corriges headers en edge/servidor) `.\scripts\ops\prod\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -AllowMetaCspFallback`
+- Para exigir backups sanos en el gate: `.\scripts\ops\prod\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireBackupHealthy`
+- Para exigir almacenamiento persistente (no /tmp): `.\scripts\ops\prod\GATE-POSTDEPLOY.ps1 -Domain "https://pielarmonia.com" -RequireStableDataDir`
 
 9. Verificacion de cron de backup:
 

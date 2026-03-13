@@ -9,6 +9,17 @@ import {
     createToast,
 } from '../admin-v3/shared/ui/render.js';
 import { createSurfaceHeartbeatClient } from '../queue-shared/surface-heartbeat.js';
+import { buildOperatorSurfaceState } from '../queue-shared/turnero-runtime-contract.mjs';
+import {
+    createEmptyOperatorShellState as createEmptyShellState,
+    getOperatorShellMetaLabel as getShellMetaLabel,
+    getOperatorShellModeLabel as getShellModeLabel,
+    getOperatorShellReadiness as getShellReadiness,
+    getOperatorShellSettingsButtonCopy,
+    getOperatorShellSupportLabel as getShellSupportLabel,
+    hydrateOperatorShellState,
+} from './shell-state.mjs';
+import { buildOperatorHeartbeatPayload as buildHeartbeatPayload } from './heartbeat-payload.mjs';
 import {
     checkAuthStatus,
     isOperatorAuthMode,
@@ -24,13 +35,16 @@ import {
 } from '../admin-v3/shared/modules/data.js';
 import {
     applyQueueRuntimeDefaults,
+    clearQueueCommandAdapter,
     hydrateQueueFromData,
     queueNumpadAction,
     renderQueueSection,
     refreshQueueState,
+    setQueueCommandAdapter,
     setQueueFilter,
     setQueueSearch,
 } from '../admin-v3/shared/modules/queue.js';
+import { normalizeQueueAction } from '../admin-v3/shared/modules/queue/helpers.js';
 import {
     getActiveCalledTicketForStation,
     getWaitingForConsultorio,
@@ -54,6 +68,7 @@ import {
     isNumpadEnterEvent,
     isNumpadSubtractEvent,
 } from '../admin-v3/shared/modules/queue/runtime/numpad/index.js';
+import { resolveOperatorQueueAdapter } from './queue-adapters.js';
 
 const QUEUE_REFRESH_MS = 8000;
 const OPERATOR_HEARTBEAT_MS = 15000;
@@ -62,21 +77,8 @@ const OPERATOR_PILOT_BLOCK_TOAST_COOLDOWN_MS = 2500;
 let refreshIntervalId = 0;
 let operatorHeartbeat = null;
 let operatorAuthPollPromise = null;
-
-function createEmptyShellState() {
-    return {
-        available: false,
-        packaged: false,
-        appMode: 'web',
-        version: '',
-        name: '',
-        platform: '',
-        arch: '',
-        updateChannel: 'stable',
-        configPath: '',
-        updateFeedUrl: '',
-    };
-}
+let lastOperatorGuardToastAt = 0;
+let lastOperatorGuardToastKey = '';
 
 function createEmptyNumpadValidationState() {
     return {
@@ -98,8 +100,93 @@ const operatorRuntime = {
     shell: createEmptyShellState(),
     surfaceContract: null,
     pilotBlockToastAt: 0,
+    shellRuntime: createEmptyShellRuntimeState(),
+    shellRuntimeSnapshot: createEmptyShellRuntimeSnapshot(),
+    queueAdapter: null,
+    releaseBootStatusListener: null,
+    releaseShellStatusListener: null,
 };
 let operatorClinicProfile = null;
+
+function createEmptyShellRuntimeState() {
+    return {
+        connectivity: 'online',
+        mode: 'live',
+        offlineEnabled: false,
+        snapshotAgeSec: null,
+        outboxSize: 0,
+        reconciliationSize: 0,
+        lastSuccessfulSyncAt: '',
+        updateChannel: 'stable',
+        reason: 'connected',
+    };
+}
+
+function createEmptyShellRuntimeSnapshot() {
+    return {
+        snapshot: null,
+        outbox: [],
+        reconciliation: [],
+        hasAuthenticatedSession: false,
+        lastAuthenticatedAt: '',
+    };
+}
+
+function normalizeOperatorShellRuntime(status = {}) {
+    const fallback = createEmptyShellRuntimeState();
+    const mode = String(status?.mode || fallback.mode)
+        .trim()
+        .toLowerCase();
+    const connectivity = String(status?.connectivity || fallback.connectivity)
+        .trim()
+        .toLowerCase();
+
+    return {
+        connectivity: connectivity === 'offline' ? 'offline' : 'online',
+        mode: mode === 'offline' || mode === 'safe' ? mode : fallback.mode,
+        offlineEnabled: status?.offlineEnabled === true,
+        snapshotAgeSec: Number.isFinite(Number(status?.snapshotAgeSec))
+            ? Number(status.snapshotAgeSec)
+            : null,
+        outboxSize: Math.max(0, Number(status?.outboxSize || 0) || 0),
+        reconciliationSize: Math.max(
+            0,
+            Number(status?.reconciliationSize || 0) || 0
+        ),
+        lastSuccessfulSyncAt: String(status?.lastSuccessfulSyncAt || ''),
+        updateChannel:
+            String(status?.updateChannel || '')
+                .trim()
+                .toLowerCase() === 'pilot'
+                ? 'pilot'
+                : 'stable',
+        reason: String(status?.reason || fallback.reason),
+    };
+}
+
+function normalizeOperatorShellRuntimeSnapshot(snapshot = {}) {
+    const fallback = createEmptyShellRuntimeSnapshot();
+    return {
+        snapshot:
+            snapshot?.snapshot && typeof snapshot.snapshot === 'object'
+                ? snapshot.snapshot
+                : null,
+        outbox: Array.isArray(snapshot?.outbox)
+            ? snapshot.outbox
+            : fallback.outbox,
+        reconciliation: Array.isArray(snapshot?.reconciliation)
+            ? snapshot.reconciliation
+            : fallback.reconciliation,
+        hasAuthenticatedSession: snapshot?.hasAuthenticatedSession === true,
+        lastAuthenticatedAt: String(snapshot?.lastAuthenticatedAt || ''),
+    };
+}
+
+function syncOperatorShellRuntime(status, snapshot = {}) {
+    operatorRuntime.shellRuntime = normalizeOperatorShellRuntime(status);
+    operatorRuntime.shellRuntimeSnapshot =
+        normalizeOperatorShellRuntimeSnapshot(snapshot);
+}
 
 function getById(id) {
     return document.getElementById(id);
@@ -238,93 +325,91 @@ function getDesktopBridge() {
         : null;
 }
 
-function formatShellPlatformLabel(platform) {
-    const normalized = String(platform || '')
+function getQueueSyncHealth(state = getState()) {
+    const syncMode = String(state?.queue?.syncMode || 'live')
         .trim()
         .toLowerCase();
-    if (normalized === 'win32') {
-        return 'Windows';
-    }
-    if (normalized === 'darwin') {
-        return 'macOS';
-    }
-    if (normalized === 'linux') {
-        return 'Linux';
-    }
-    return normalized || 'Web';
-}
-
-function getShellModeLabel() {
-    if (!operatorRuntime.shell.available) {
-        return 'Fallback web';
-    }
-
-    return operatorRuntime.shell.packaged
-        ? 'Desktop instalada'
-        : 'Desktop en desarrollo';
-}
-
-function getShellReadiness() {
-    if (!operatorRuntime.shell.available) {
-        return {
-            state: 'warning',
-            detail: 'Fallback web activo · instala el shell para autostart y updates.',
-        };
-    }
-
-    const shellName = String(
-        operatorRuntime.shell.name || 'Turnero Operador'
-    ).trim();
-    const platformLabel = formatShellPlatformLabel(
-        operatorRuntime.shell.platform
-    );
-    const version = operatorRuntime.shell.version
-        ? ` v${operatorRuntime.shell.version}`
-        : '';
-    const updateChannel = String(
-        operatorRuntime.shell.updateChannel || 'stable'
-    ).trim();
-    const channelSuffix = updateChannel ? ` · canal ${updateChannel}` : '';
-    const shellIdentity = `${shellName}${version} · ${platformLabel}${channelSuffix}`;
-
-    if (operatorRuntime.shell.packaged) {
-        return {
-            state: 'ready',
-            detail: `Desktop instalada · ${shellIdentity} · F10 reabre configuracion.`,
-        };
-    }
+    const fallbackPartial = Boolean(state?.queue?.fallbackPartial);
+    const degraded = syncMode === 'fallback' || fallbackPartial;
 
     return {
-        state: 'warning',
-        detail: `Desktop en desarrollo · ${shellIdentity} · valida el instalador antes del piloto.`,
+        syncMode,
+        fallbackPartial,
+        degraded,
     };
+}
+
+function getOperatorMutationBlocker(state = getState()) {
+    if (!state?.auth?.authenticated) {
+        return null;
+    }
+
+    if (isOperatorPilotBlocked()) {
+        const detail = getOperatorPilotBlockDetail();
+        return {
+            key: 'pilot_blocked',
+            tone: 'danger',
+            title: 'Piloto bloqueado',
+            summary: detail,
+            toast: detail,
+        };
+    }
+
+    if (operatorRuntime.shellRuntime.mode === 'offline') {
+        return null;
+    }
+
+    if (
+        !operatorRuntime.online ||
+        operatorRuntime.shellRuntime.connectivity === 'offline'
+    ) {
+        const safeReason = operatorRuntime.shellRuntime.reason;
+        return {
+            key: 'offline_safe',
+            tone: 'danger',
+            title: 'Modo seguro',
+            summary:
+                safeReason === 'snapshot_expired'
+                    ? 'El último snapshot válido ya venció. Mantén la vista solo como referencia y espera red antes de volver a operar.'
+                    : safeReason === 'no_authenticated_session'
+                      ? 'No hay una sesión previa válida y el login offline no está disponible. Mantén la pantalla en solo lectura.'
+                      : safeReason === 'reconciliation_pending'
+                        ? 'Hay acciones en conciliación. Mantén la cola en línea o solo lectura hasta limpiarlas.'
+                        : 'La consola quedó en modo seguro. Puedes revisar la cola o hardware, pero no llamar ni cerrar tickets hasta recuperar red.',
+            toast: 'Modo seguro activo. Las acciones sobre tickets quedan bloqueadas hasta recuperar conexión.',
+        };
+    }
+
+    if (getQueueSyncHealth(state).degraded) {
+        return {
+            key: 'fallback',
+            tone: 'warning',
+            title: 'Cola en fallback local',
+            summary:
+                'La superficie está mostrando cache local. Puedes revisar contexto y preparar hardware, pero evita llamar, reasignar o cerrar tickets hasta volver a sincronizar.',
+            toast: 'Cola en fallback local. Refresca y espera sincronización antes de operar tickets.',
+        };
+    }
+
+    return null;
 }
 
 async function refreshDesktopSnapshot() {
     const bridge = getDesktopBridge();
     if (!bridge || typeof bridge.getRuntimeSnapshot !== 'function') {
         operatorRuntime.shell = createEmptyShellState();
+        syncOperatorShellRuntime(createEmptyShellRuntimeState());
         syncShellSettingsButton();
         return operatorRuntime.shell;
     }
 
     try {
         const snapshot = await bridge.getRuntimeSnapshot();
-        operatorRuntime.shell = {
-            available: true,
-            packaged: Boolean(snapshot?.packaged),
-            appMode: String(
-                snapshot?.appMode ||
-                    (snapshot?.packaged ? 'packaged' : 'development')
-            ),
-            version: String(snapshot?.version || ''),
-            name: String(snapshot?.name || 'Turnero Operador'),
-            platform: String(snapshot?.platform || ''),
-            arch: String(snapshot?.arch || ''),
-            updateChannel: String(snapshot?.config?.updateChannel || 'stable'),
-            configPath: String(snapshot?.configPath || ''),
-            updateFeedUrl: String(snapshot?.updateFeedUrl || ''),
-        };
+        operatorRuntime.shell = hydrateOperatorShellState(snapshot);
+        syncOperatorShellRuntime(
+            snapshot?.shellStatus || operatorRuntime.shellRuntime,
+            operatorRuntime.shellRuntimeSnapshot
+        );
     } catch (_error) {
         operatorRuntime.shell = createEmptyShellState();
     }
@@ -341,24 +426,8 @@ function resolveOperatorAppMode() {
         : 'web';
 }
 
-function resolveOperatorInstance() {
-    const state = getState();
-    if (state.queue.stationMode === 'locked') {
-        return Number(state.queue.stationConsultorio || 1) === 2 ? 'c2' : 'c1';
-    }
-    return 'free';
-}
-
 function buildOperatorHeartbeatPayload() {
     const state = getState();
-    const stationNumber =
-        Number(state.queue.stationConsultorio || 1) === 2 ? 2 : 1;
-    const stationKey = `c${stationNumber}`;
-    const locked = state.queue.stationMode === 'locked';
-    const stationShortLabel = getOperatorConsultorioShortLabel(stationNumber);
-    const stationLabel = locked
-        ? `Operador ${stationShortLabel} fijo`
-        : 'Operador modo libre';
     const clinicId = String(operatorClinicProfile?.clinic_id || '').trim();
     const clinicName = String(
         operatorClinicProfile?.branding?.name ||
@@ -375,65 +444,32 @@ function buildOperatorHeartbeatPayload() {
     const surfaceContract =
         operatorRuntime.surfaceContract ||
         getTurneroSurfaceContract(operatorClinicProfile, 'operator');
-    const readyForLiveUse = operatorRuntime.online && numpadStatus.ready;
-    const status = surfaceContract.state === 'alert'
-        ? 'alert'
-        : !operatorRuntime.online
-        ? 'alert'
-        : readyForLiveUse
-          ? 'ready'
-          : 'warning';
-    const summary = surfaceContract.state === 'alert'
-        ? surfaceContract.detail
-        : !operatorRuntime.online
-        ? 'Equipo sin red; recupera conectividad antes de operar.'
-        : readyForLiveUse
-          ? `Equipo listo para operar en ${locked ? `C${stationNumber} fijo` : 'modo libre'}.`
-          : `${numpadStatus.label}. Falta validar ${formatOperatorLabelList(
-                numpadStatus.pendingLabels
-            )} antes del primer llamado.`;
-
-    return {
-        instance: resolveOperatorInstance(),
-        deviceLabel: stationLabel,
+    const syncHealth = getQueueSyncHealth(state);
+    const payload = buildHeartbeatPayload({
+        queueState: state.queue,
+        online: operatorRuntime.online,
+        shell: operatorRuntime.shell,
+        shellRuntime: operatorRuntime.shellRuntime,
         appMode: resolveOperatorAppMode(),
-        status,
-        summary,
-        networkOnline: operatorRuntime.online,
-        lastEvent: numpadStatus.seen ? 'numpad_detected' : 'heartbeat',
-        lastEventAt: numpadStatus.lastAt || new Date().toISOString(),
-        details: {
-            station: stationKey,
-            stationMode: locked ? 'locked' : 'free',
-            oneTap: Boolean(state.queue.oneTap),
-            callKeyLabel: numpadStatus.callKeyLabel,
-            numpadSeen: Boolean(numpadStatus.seen),
-            numpadReady: Boolean(numpadStatus.ready),
-            numpadProgress: numpadStatus.validatedCount,
-            numpadRequired: numpadStatus.requiredCount,
-            numpadLabel: numpadStatus.label,
-            numpadSummary: numpadStatus.summary,
-            lastNumpadCode: String(numpadStatus.lastCode || ''),
-            shellMode: resolveOperatorAppMode(),
-            shellName: String(operatorRuntime.shell.name || ''),
-            shellVersion: String(operatorRuntime.shell.version || ''),
-            shellPlatform: String(operatorRuntime.shell.platform || ''),
-            shellPackaged: Boolean(operatorRuntime.shell.packaged),
-            shellUpdateChannel: String(
-                operatorRuntime.shell.updateChannel || ''
-            ),
-            shellUpdateFeedUrl: String(
-                operatorRuntime.shell.updateFeedUrl || ''
-            ),
-            clinicId,
-            clinicName,
-            profileSource,
-            profileFingerprint,
-            surfaceContractState: String(surfaceContract.state || ''),
-            surfaceRouteExpected: String(surfaceContract.expectedRoute || ''),
-            surfaceRouteCurrent: String(surfaceContract.currentRoute || ''),
-        },
+        numpadStatus,
+        syncHealth,
+    });
+
+    payload.details = {
+        ...(payload.details || {}),
+        clinicId,
+        clinicName,
+        profileSource,
+        profileFingerprint,
+        surfaceContractState: String(surfaceContract.state || ''),
+        surfaceRouteExpected: String(surfaceContract.expectedRoute || ''),
+        surfaceRouteCurrent: String(surfaceContract.currentRoute || ''),
     };
+    if (surfaceContract.state === 'alert') {
+        payload.status = 'alert';
+        payload.summary = surfaceContract.detail;
+    }
+    return payload;
 }
 
 function ensureOperatorHeartbeat() {
@@ -449,12 +485,19 @@ function ensureOperatorHeartbeat() {
     return operatorHeartbeat;
 }
 
-function syncOperatorHeartbeat(reason = 'state_change') {
+function syncOperatorHeartbeat(
+    reason = 'state_change',
+    { force = false } = {}
+) {
     if (!getState().auth.authenticated) {
         operatorHeartbeat?.stop();
         return;
     }
     const heartbeat = ensureOperatorHeartbeat();
+    if (force) {
+        void heartbeat.beatNow(reason);
+        return;
+    }
     heartbeat.notify(reason);
 }
 
@@ -906,12 +949,141 @@ function setReadinessCheck(id, state, detail) {
     node.textContent = detail;
 }
 
+function formatOperatorRuntimeAge(seconds) {
+    const ageSec = Number(seconds);
+    if (!Number.isFinite(ageSec) || ageSec < 0) {
+        return 'sin sync válido';
+    }
+    if (ageSec < 60) {
+        return `${Math.round(ageSec)}s`;
+    }
+    if (ageSec < 3600) {
+        return `${Math.round(ageSec / 60)}m`;
+    }
+    return `${Math.round(ageSec / 3600)}h`;
+}
+
+function formatOperatorRuntimeTimestamp(value) {
+    const date = new Date(value || '');
+    if (Number.isNaN(date.getTime())) {
+        return 'sin registro';
+    }
+    return date.toLocaleString('es-EC', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+function getOperatorRuntimeModeLabel() {
+    if (operatorRuntime.shellRuntime.mode === 'offline') {
+        return 'Offline operativo';
+    }
+    if (operatorRuntime.shellRuntime.mode === 'safe') {
+        return 'Modo seguro';
+    }
+    if (operatorRuntime.shellRuntime.reconciliationSize > 0) {
+        return 'Live con conciliación';
+    }
+    return 'Live';
+}
+
+function getOperatorRuntimeTone(syncHealth = getQueueSyncHealth()) {
+    if (operatorRuntime.shellRuntime.mode === 'safe') {
+        return 'danger';
+    }
+    if (operatorRuntime.shellRuntime.mode === 'offline') {
+        return 'warning';
+    }
+    return operatorRuntime.shellRuntime.reconciliationSize > 0 ||
+        operatorRuntime.shellRuntime.outboxSize > 0 ||
+        syncHealth.degraded
+        ? 'warning'
+        : 'ready';
+}
+
+function getOperatorRuntimeSummary(syncHealth = getQueueSyncHealth()) {
+    if (operatorRuntime.shellRuntime.mode === 'offline') {
+        return 'Puedes llamar, re-llamar, completar y no show. Todo quedará pendiente de replay hasta recuperar red.';
+    }
+    if (operatorRuntime.shellRuntime.mode === 'safe') {
+        if (
+            operatorRuntime.shellRuntime.reason === 'no_authenticated_session'
+        ) {
+            return 'Solo lectura: no hay sesión previa válida y el login offline no está disponible.';
+        }
+        if (operatorRuntime.shellRuntime.reason === 'snapshot_expired') {
+            return 'Solo lectura: el snapshot local venció y no conviene operar así.';
+        }
+        if (operatorRuntime.shellRuntime.reason === 'reconciliation_pending') {
+            return 'Solo lectura: hay acciones en conciliación pendientes antes de volver a contingencia.';
+        }
+        return 'Solo lectura hasta recuperar red y un snapshot sano.';
+    }
+    if (operatorRuntime.shellRuntime.reconciliationSize > 0) {
+        return 'La app sigue en línea, pero hay acciones en conciliación y no debe volver a contingencia todavía.';
+    }
+    if (syncHealth.degraded) {
+        return 'La cola quedó en fallback local; refresca y espera sincronización antes de operar tickets.';
+    }
+    return 'Shell y cola en vivo para la operación diaria.';
+}
+
+function getOperatorRuntimeMeta() {
+    return [
+        `Sync ${formatOperatorRuntimeTimestamp(
+            operatorRuntime.shellRuntime.lastSuccessfulSyncAt
+        )}`,
+        `edad ${formatOperatorRuntimeAge(
+            operatorRuntime.shellRuntime.snapshotAgeSec
+        )}`,
+        `outbox ${operatorRuntime.shellRuntime.outboxSize}`,
+        `conciliación ${operatorRuntime.shellRuntime.reconciliationSize}`,
+        `canal ${operatorRuntime.shellRuntime.updateChannel}`,
+    ].join(' · ');
+}
+
+function updateOperatorRuntimeCard(syncHealth = getQueueSyncHealth()) {
+    const card = getById('operatorShellRuntimeCard');
+    if (card instanceof HTMLElement) {
+        card.setAttribute('data-state', getOperatorRuntimeTone(syncHealth));
+    }
+
+    setText('#operatorShellRuntimeMode', getOperatorRuntimeModeLabel());
+    setText(
+        '#operatorShellRuntimeSummary',
+        getOperatorRuntimeSummary(syncHealth)
+    );
+    setText('#operatorShellRuntimeMeta', getOperatorRuntimeMeta());
+
+    const recoveryButton = getById('operatorShellRecoveryBtn');
+    if (!(recoveryButton instanceof HTMLButtonElement)) {
+        return;
+    }
+
+    const bridge = getDesktopBridge();
+    const canOpenSettings = bridge && typeof bridge.openSettings === 'function';
+    const prefersSettings =
+        operatorRuntime.shellRuntime.mode === 'safe' && canOpenSettings;
+
+    recoveryButton.hidden = false;
+    recoveryButton.textContent = prefersSettings
+        ? 'Abrir ajustes'
+        : 'Reintentar sync';
+    recoveryButton.title = prefersSettings
+        ? 'Revisar la configuración local del equipo'
+        : 'Intentar sincronizar la cola ahora';
+}
+
 function updateOperatorReadiness() {
     const state = getState();
     const numpadStatus = buildOperatorNumpadStatus(state.queue);
     const surfaceContract =
         operatorRuntime.surfaceContract ||
         getTurneroSurfaceContract(operatorClinicProfile, 'operator');
+    const syncHealth = getQueueSyncHealth(state);
+    const blocker = getOperatorMutationBlocker(state);
     const stationLabel = `${getOperatorConsultorioShortLabel(
         Number(state.queue.stationConsultorio || 1)
     )} ${
@@ -920,10 +1092,16 @@ function updateOperatorReadiness() {
     const routeSummary = `${stationLabel} · ${
         state.queue.oneTap ? '1 tecla ON' : '1 tecla OFF'
     }`;
-    const networkSummary = operatorRuntime.online
-        ? 'Sesión activa y red en línea'
-        : 'Equipo sin red; no conviene operar así';
-    const shellSummary = getShellReadiness();
+    const runtimeMode = operatorRuntime.shellRuntime.mode;
+    const networkSummary =
+        runtimeMode === 'offline'
+            ? 'Offline operativo con snapshot fresco y replay pendiente'
+            : blocker?.key === 'offline_safe'
+              ? 'Equipo sin red segura para operar'
+              : syncHealth.degraded
+                ? 'Red en línea, pero la cola quedó en fallback local'
+                : 'Sesión activa y red en línea';
+    const shellSummary = getShellReadiness(operatorRuntime.shell);
 
     setReadinessCheck(
         'operatorReadyRoute',
@@ -934,7 +1112,13 @@ function updateOperatorReadiness() {
     );
     setReadinessCheck(
         'operatorReadyNetwork',
-        operatorRuntime.online ? 'ready' : 'danger',
+        runtimeMode === 'offline'
+            ? 'warning'
+            : blocker?.key === 'offline_safe'
+              ? 'danger'
+              : syncHealth.degraded
+                ? 'warning'
+                : 'ready',
         networkSummary
     );
     setReadinessCheck(
@@ -951,38 +1135,48 @@ function updateOperatorReadiness() {
 
     const readinessTitle = getById('operatorReadinessTitle');
     const readinessSummary = getById('operatorReadinessSummary');
-    const hasDanger =
-        !operatorRuntime.online || surfaceContract.state === 'alert';
     const readyForLiveUse =
+        runtimeMode === 'live' &&
         operatorRuntime.online &&
-        numpadStatus.ready &&
-        surfaceContract.state !== 'alert';
+        !syncHealth.degraded &&
+        numpadStatus.ready;
+    const readyForOfflineUse = runtimeMode === 'offline' && numpadStatus.ready;
     const pendingCount = numpadStatus.pendingLabels.length;
 
     if (readinessTitle) {
-        readinessTitle.textContent = hasDanger
-            ? surfaceContract.state === 'alert'
+        readinessTitle.textContent =
+            surfaceContract.state === 'alert'
                 ? surfaceContract.reason === 'profile_missing'
                     ? 'Perfil de clínica no cargado'
                     : 'Ruta del piloto incorrecta'
-                : 'Conexión pendiente'
-            : readyForLiveUse
-              ? 'Equipo listo para operar'
-              : pendingCount === numpadStatus.requiredCount
-                ? 'Falta validar el numpad'
-                : `Faltan validar ${pendingCount} tecla(s)`;
+                : blocker?.key === 'offline_safe'
+                ? 'Modo seguro'
+                : blocker?.key === 'fallback'
+                  ? 'Sincronización pendiente'
+                  : readyForOfflineUse
+                    ? 'Offline operativo'
+                    : readyForLiveUse
+                      ? 'Equipo listo para operar'
+                      : pendingCount === numpadStatus.requiredCount
+                        ? 'Falta validar el numpad'
+                        : `Faltan validar ${pendingCount} tecla(s)`;
     }
 
     if (readinessSummary) {
-        readinessSummary.textContent = hasDanger
-            ? surfaceContract.state === 'alert'
+        readinessSummary.textContent =
+            surfaceContract.state === 'alert'
                 ? surfaceContract.detail
-                : 'Recupera la conexión antes de llamar o completar tickets.'
-            : readyForLiveUse
-              ? 'La ruta, la sesión y las cuatro teclas operativas ya respondieron. Puedes pasar al primer llamado real.'
-              : `Valida ${formatOperatorLabelList(
-                    numpadStatus.pendingLabels
-                )} en el Genius Numpad 1000 antes del primer llamado real.`;
+                : blocker?.key === 'offline_safe'
+                ? 'Mantén la pantalla solo como referencia hasta recuperar red o una sesión válida.'
+                : blocker?.key === 'fallback'
+                  ? 'La cola está en fallback local. Mantén la vista como referencia y refresca antes de reanudar llamados o cierres.'
+                  : readyForOfflineUse
+                    ? 'La contingencia offline está habilitada. Puedes operar con las cuatro teclas del numpad y el replay se hará al reconectar.'
+                    : readyForLiveUse
+                      ? 'La ruta, la sesión y las cuatro teclas operativas ya respondieron. Puedes pasar al primer llamado real.'
+                      : `Valida ${formatOperatorLabelList(
+                            numpadStatus.pendingLabels
+                        )} en el Genius Numpad 1000 antes del primer llamado real.`;
     }
 }
 
@@ -1071,6 +1265,233 @@ function updateOperatorActionGuide() {
     setText('#operatorActionSummary', summary);
 }
 
+function updateOperatorGuardState() {
+    const state = getState();
+    const blocker = getOperatorMutationBlocker(state);
+    let title = 'Operación habilitada';
+    let summary =
+        'La cola sigue en vivo. Puedes llamar, re-llamar y cerrar tickets desde esta superficie.';
+    let tone = 'success';
+
+    if (operatorRuntime.shellRuntime.mode === 'offline') {
+        title = 'Offline operativo';
+        summary =
+            'Puedes llamar, re-llamar, completar y no show. Los cambios quedarán en cola hasta recuperar red.';
+        tone = 'warning';
+    } else if (blocker) {
+        title = blocker.title;
+        summary = blocker.summary;
+        tone = blocker.tone;
+    } else if (operatorRuntime.shellRuntime.reconciliationSize > 0) {
+        title = 'Operación online con conciliación';
+        summary =
+            'El equipo puede seguir trabajando en línea, pero no debe volver a contingencia hasta limpiar la conciliación.';
+        tone = 'warning';
+    }
+
+    const card = getById('operatorGuardCard');
+    if (card instanceof HTMLElement) {
+        card.setAttribute('data-state', tone);
+    }
+    setText('#operatorGuardTitle', title);
+    setText('#operatorGuardSummary', summary);
+}
+
+function isSafeOperatorAction(action) {
+    return [
+        'queue-refresh-state',
+        'queue-toggle-shortcuts',
+        'queue-toggle-one-tap',
+        'queue-lock-station',
+        'queue-set-station-mode',
+        'queue-capture-call-key',
+        'queue-clear-call-key',
+        'queue-clear-search',
+        'queue-sensitive-cancel',
+        'queue-toggle-ticket-select',
+    ].includes(String(action || '').trim());
+}
+
+function isMutatingOperatorAction(action) {
+    return [
+        'queue-call-next',
+        'queue-ticket-action',
+        'queue-sensitive-confirm',
+        'queue-reprint-ticket',
+        'queue-bulk-action',
+        'queue-bulk-reprint',
+        'queue-release-station',
+    ].includes(String(action || '').trim());
+}
+
+function isOperatorActionAllowedDuringOffline(
+    action,
+    element,
+    state = getState()
+) {
+    const actionName = String(action || '').trim();
+    if (!isMutatingOperatorAction(actionName)) {
+        return true;
+    }
+
+    if (actionName === 'queue-call-next') {
+        return true;
+    }
+
+    if (actionName === 'queue-ticket-action') {
+        const ticketAction = normalizeQueueAction(
+            element?.dataset?.queueAction
+        );
+        return ['re-llamar', 'completar', 'no_show'].includes(ticketAction);
+    }
+
+    if (actionName === 'queue-sensitive-confirm') {
+        const pendingAction = normalizeQueueAction(
+            state.queue.pendingSensitiveAction?.action
+        );
+        return ['re-llamar', 'completar', 'no_show'].includes(pendingAction);
+    }
+
+    return false;
+}
+
+function getOperatorActionGuard(action, element, state = getState()) {
+    if (!state?.auth?.authenticated) {
+        return null;
+    }
+
+    const blocker = getOperatorMutationBlocker(state);
+    if (blocker && isMutatingOperatorAction(action)) {
+        return blocker;
+    }
+
+    if (
+        operatorRuntime.shellRuntime.mode === 'offline' &&
+        !isOperatorActionAllowedDuringOffline(action, element, state)
+    ) {
+        return {
+            key: 'offline_scope',
+            tone: 'warning',
+            title: 'Offline operativo limitado',
+            summary:
+                'En contingencia solo están permitidos llamar, re-llamar, completar y no show. El resto queda bloqueado hasta recuperar red.',
+            toast: 'Acción fuera de scope offline. Recupera red para reasignar, liberar, reimprimir o usar acciones masivas.',
+        };
+    }
+
+    return null;
+}
+
+function syncOperatorActionAvailability() {
+    document.querySelectorAll('[data-action]').forEach((node) => {
+        const action = String(node.getAttribute('data-action') || '').trim();
+        const blocker = getOperatorActionGuard(action, node);
+        const disabled = Boolean(blocker);
+        const guardDisabledState = node.getAttribute(
+            'data-operator-guard-disabled'
+        );
+        const guardTitle = node.getAttribute('data-operator-guard-title');
+        if (
+            node instanceof HTMLButtonElement ||
+            node instanceof HTMLInputElement
+        ) {
+            if (disabled) {
+                if (!guardDisabledState) {
+                    node.setAttribute(
+                        'data-operator-guard-disabled',
+                        node.disabled ? 'preserved' : 'forced'
+                    );
+                }
+                node.disabled = true;
+            } else if (guardDisabledState === 'forced') {
+                node.disabled = false;
+            }
+        }
+        if (disabled) {
+            node.setAttribute('aria-disabled', 'true');
+            node.setAttribute(
+                'data-operator-guard-title',
+                blocker?.summary || ''
+            );
+            node.setAttribute('title', blocker?.summary || '');
+        } else {
+            node.removeAttribute('data-operator-guard-disabled');
+            node.removeAttribute('aria-disabled');
+            if (guardTitle && node.getAttribute('title') === guardTitle) {
+                node.removeAttribute('title');
+            }
+            node.removeAttribute('data-operator-guard-title');
+        }
+    });
+}
+
+function notifyOperatorMutationBlocked(blocker) {
+    if (!blocker) {
+        return;
+    }
+
+    const now = Date.now();
+    if (
+        blocker.key === lastOperatorGuardToastKey &&
+        now - lastOperatorGuardToastAt < 3000
+    ) {
+        return;
+    }
+
+    lastOperatorGuardToastKey = blocker.key;
+    lastOperatorGuardToastAt = now;
+    createToast(blocker.toast, blocker.tone === 'danger' ? 'error' : 'warning');
+}
+
+async function openOperatorSettings() {
+    const bridge = getDesktopBridge();
+    if (!bridge || typeof bridge.openSettings !== 'function') {
+        return false;
+    }
+
+    try {
+        await bridge.openSettings();
+        return true;
+    } catch (error) {
+        createToast(
+            error?.message || 'No se pudo abrir la configuración local',
+            'error'
+        );
+        return false;
+    }
+}
+
+async function handleOperatorRecoveryAction() {
+    if (
+        operatorRuntime.shellRuntime.mode === 'safe' &&
+        (await openOperatorSettings())
+    ) {
+        return true;
+    }
+
+    await Promise.all([refreshQueueState(), refreshDesktopSnapshot()]);
+    updateOperatorChrome({
+        heartbeatReason: 'manual_recovery',
+        forceHeartbeat: true,
+    });
+    return true;
+}
+
+function isOpenSettingsShortcut(event) {
+    const key = String(event?.key || '')
+        .trim()
+        .toLowerCase();
+    const code = String(event?.code || '')
+        .trim()
+        .toLowerCase();
+
+    return (
+        key === 'f10' ||
+        (Boolean(event?.ctrlKey || event?.metaKey) &&
+            (key === ',' || code === 'comma'))
+    );
+}
+
 function syncShellSettingsButton() {
     const button = getById('operatorAppSettingsBtn');
     if (!(button instanceof HTMLButtonElement)) {
@@ -1082,31 +1503,44 @@ function syncShellSettingsButton() {
 
     button.classList.toggle('is-hidden', !canOpenSettings);
     if (canOpenSettings) {
-        const shellName = String(
-            operatorRuntime.shell.name || 'Turnero Desktop'
-        ).trim();
-        const platformLabel = formatShellPlatformLabel(
-            operatorRuntime.shell.platform
+        const buttonCopy = getOperatorShellSettingsButtonCopy(
+            operatorRuntime.shell
         );
-        button.textContent =
-            operatorRuntime.shell.packaged &&
-            operatorRuntime.shell.platform === 'win32'
-                ? 'Configurar Windows app (F10)'
-                : 'Configurar app (F10)';
-        button.title = operatorRuntime.shell.available
-            ? `Reabre la configuracion local de ${shellName} (${platformLabel}).`
-            : 'Reabre la configuracion local del shell desktop.';
+        button.textContent = buttonCopy.text;
+        button.title = buttonCopy.title;
     }
 }
 
-function updateOperatorChrome() {
+function syncLoggedOutAccessState() {
     const state = getState();
-    const stationLabel = `${getOperatorConsultorioShortLabel(
-        Number(state.queue.stationConsultorio || 1)
-    )} ${
-        state.queue.stationMode === 'locked' ? 'bloqueado' : 'libre'
+    if (state.auth.authenticated || state.auth.requires2FA) {
+        return;
+    }
+
+    if (
+        !operatorRuntime.online ||
+        operatorRuntime.shellRuntime.connectivity === 'offline'
+    ) {
+        setLoginStatus(
+            'warning',
+            'Sin login offline',
+            'El ingreso offline no está habilitado. Recupera conexión para iniciar sesión.'
+        );
+        return;
+    }
+    syncOperatorLoginSurface(state.auth);
+}
+
+function updateOperatorChrome({
+    heartbeatReason = 'render',
+    forceHeartbeat = false,
+} = {}) {
+    const state = getState();
+    const surfaceState = buildOperatorSurfaceState(state.queue);
+    const stationLabel = `C${surfaceState.stationConsultorio} ${
+        surfaceState.locked ? 'bloqueado' : 'libre'
     }`;
-    const oneTapLabel = state.queue.oneTap ? '1 tecla ON' : '1 tecla OFF';
+    const oneTapLabel = surfaceState.oneTap ? '1 tecla ON' : '1 tecla OFF';
     const callKey = state.queue.customCallKey
         ? String(
               state.queue.customCallKey.code ||
@@ -1114,7 +1548,24 @@ function updateOperatorChrome() {
                   'tecla externa'
           )
         : 'Numpad Enter';
-    const shellModeLabel = getShellModeLabel();
+    const shellModeLabel = getShellModeLabel(operatorRuntime.shell);
+    const shellReadiness = getShellReadiness(operatorRuntime.shell);
+    const networkOnline = operatorRuntime.online;
+    const syncHealth = getQueueSyncHealth(state);
+    const networkSummary = !networkOnline
+        ? 'Sin red local'
+        : operatorRuntime.shellRuntime.mode === 'offline'
+          ? 'Servidor sin respuesta'
+          : syncHealth.degraded
+            ? 'Sync degradado'
+            : 'Red en línea';
+    const networkMeta = !networkOnline
+        ? 'La conectividad local cayó. La app solo debe operar si el runtime quedó en offline operativo.'
+        : operatorRuntime.shellRuntime.mode === 'offline'
+          ? 'La red local sigue arriba, pero el backend no respondió y la consola pasó a contingencia.'
+          : syncHealth.degraded
+            ? `${refreshStatusLabel()} · cola en fallback local; refresca antes de operar.`
+            : `${refreshStatusLabel()} · heartbeat operador listo para admin y shell.`;
 
     setText('#operatorStationSummary', stationLabel);
     setText(
@@ -1122,10 +1573,50 @@ function updateOperatorChrome() {
         `${oneTapLabel} · ${refreshStatusLabel()} · ${shellModeLabel}`
     );
     setText('#operatorCallKeySummary', humanizeCallKeyLabel(callKey));
+    setText('#operatorShellModeSummary', shellModeLabel);
+    setText(
+        '#operatorShellMetaSummary',
+        getShellMetaLabel(operatorRuntime.shell)
+    );
+    setText(
+        '#operatorShellSupportSummary',
+        getShellSupportLabel(operatorRuntime.shell)
+    );
+    setText('#operatorShellRuntimeMode', getOperatorRuntimeModeLabel());
+    setText(
+        '#operatorShellRuntimeSummary',
+        getOperatorRuntimeSummary(syncHealth)
+    );
+    setText('#operatorShellRuntimeMeta', getOperatorRuntimeMeta());
+    setText('#operatorNetworkSummary', networkSummary);
+    setText('#operatorNetworkMetaSummary', networkMeta);
+    getById('operatorShellCard')?.setAttribute(
+        'data-state',
+        shellReadiness.state
+    );
+    const shellSupportNode = getById('operatorShellSupportSummary');
+    if (shellSupportNode instanceof HTMLElement) {
+        shellSupportNode.setAttribute(
+            'title',
+            getShellSupportLabel(operatorRuntime.shell)
+        );
+    }
+    getById('operatorNetworkCard')?.setAttribute(
+        'data-state',
+        !networkOnline
+            ? 'danger'
+            : operatorRuntime.shellRuntime.mode === 'offline' ||
+                syncHealth.degraded
+              ? 'warning'
+              : 'ready'
+    );
+    updateOperatorRuntimeCard(syncHealth);
     renderQueueSection();
     updateOperatorActionGuide();
     updateOperatorReadiness();
-    syncOperatorHeartbeat('render');
+    updateOperatorGuardState();
+    syncOperatorActionAvailability();
+    syncOperatorHeartbeat(heartbeatReason, { force: forceHeartbeat });
 }
 
 function mountAuthenticatedView() {
@@ -1136,6 +1627,7 @@ function mountAuthenticatedView() {
 function mountLoggedOutView() {
     getById('operatorApp')?.classList.add('is-hidden');
     getById('operatorLoginView')?.classList.remove('is-hidden');
+    syncLoggedOutAccessState();
 }
 
 function stopRefreshLoop() {
@@ -1154,16 +1646,23 @@ function startRefreshLoop() {
 
 async function bootAuthenticatedSurface(showToast = false) {
     mountAuthenticatedView();
-    const ok = await refreshAdminData();
+    const refreshResult = await refreshAdminData();
     await hydrateQueueFromData();
     await refreshDesktopSnapshot();
+    await operatorRuntime.queueAdapter?.markSessionAuthenticated?.(true);
+    await operatorRuntime.queueAdapter?.syncStateSnapshot?.({
+        healthy: Boolean(refreshResult?.ok),
+    });
+    await refreshQueueState();
     ensureOperatorHeartbeat().start({ immediate: false });
     updateOperatorChrome();
     startRefreshLoop();
     if (showToast) {
         createToast(
-            ok ? 'Operador conectado' : 'Operador cargado con respaldo local',
-            ok ? 'success' : 'warning'
+            refreshResult?.ok
+                ? 'Operador conectado'
+                : 'Operador cargado con respaldo local',
+            refreshResult?.ok ? 'success' : 'warning'
         );
     }
 }
@@ -1267,6 +1766,19 @@ async function startOperatorAuthFlow(forceNew = false) {
 async function handleLoginSubmit(event) {
     event.preventDefault();
 
+    if (
+        !operatorRuntime.online &&
+        !getState().auth.authenticated &&
+        !getState().auth.requires2FA
+    ) {
+        syncLoggedOutAccessState();
+        createToast(
+            'El ingreso offline no está habilitado. Recupera conexión para iniciar sesión.',
+            'warning'
+        );
+        return;
+    }
+
     if (isOperatorAuthMode(getState().auth)) {
         await startOperatorAuthFlow(false);
         return;
@@ -1350,7 +1862,7 @@ async function handleDocumentClick(event) {
     const actionNode =
         event.target instanceof Element
             ? event.target.closest(
-                  '[data-action], #operatorLogoutBtn, #operatorReset2FABtn, #operatorAppSettingsBtn, #operatorOpenClawBtn, #operatorOpenClawRetryBtn'
+                  '[data-action], #operatorLogoutBtn, #operatorReset2FABtn, #operatorAppSettingsBtn, #operatorShellRecoveryBtn, #operatorOpenClawBtn, #operatorOpenClawRetryBtn'
               )
             : null;
 
@@ -1362,11 +1874,12 @@ async function handleDocumentClick(event) {
         event.preventDefault();
         stopRefreshLoop();
         operatorHeartbeat?.stop();
+        await operatorRuntime.queueAdapter?.markSessionAuthenticated?.(false);
         await logoutSession();
         mountLoggedOutView();
         resetLoginForm({ clearPassword: true });
         show2FA(false);
-        syncOperatorLoginSurface(getState().auth);
+        syncLoggedOutAccessState();
         createToast('Sesión cerrada', 'info');
         focusLoginField(
             isOperatorAuthMode(getState().auth) ? 'operator_auth' : 'password'
@@ -1376,10 +1889,13 @@ async function handleDocumentClick(event) {
 
     if (actionNode.id === 'operatorAppSettingsBtn') {
         event.preventDefault();
-        const bridge = getDesktopBridge();
-        if (bridge && typeof bridge.openSettings === 'function') {
-            await bridge.openSettings();
-        }
+        await openOperatorSettings();
+        return;
+    }
+
+    if (actionNode.id === 'operatorShellRecoveryBtn') {
+        event.preventDefault();
+        await handleOperatorRecoveryAction();
         return;
     }
 
@@ -1413,8 +1929,9 @@ async function handleDocumentClick(event) {
         return;
     }
 
-    if (isOperatorPilotBlocked()) {
-        notifyOperatorPilotBlocked();
+    const blocker = getOperatorActionGuard(action, actionNode);
+    if (blocker) {
+        notifyOperatorMutationBlocked(blocker);
         updateOperatorChrome();
         return;
     }
@@ -1452,6 +1969,14 @@ function handleFilterClick(event) {
 
 function attachKeyboardBridge() {
     document.addEventListener('keydown', async (event) => {
+        if (isOpenSettingsShortcut(event)) {
+            const opened = await openOperatorSettings();
+            if (opened) {
+                event.preventDefault();
+                return;
+            }
+        }
+
         if (!getState().auth.authenticated) {
             return;
         }
@@ -1466,10 +1991,27 @@ function attachKeyboardBridge() {
             return;
         }
 
-        if (isOperatorPilotBlocked()) {
+        const state = getState();
+        const callKeyBinding = syncOperatorNumpadBinding(state.queue);
+        const codeNormalized = String(event.code || '')
+            .trim()
+            .toLowerCase();
+        const keyNormalized = String(event.key || '')
+            .trim()
+            .toLowerCase();
+        const mutatingNumpadAction =
+            (callKeyBinding.binding
+                ? eventMatchesBinding(event, callKeyBinding.binding)
+                : isNumpadEnterEvent(event, codeNormalized, keyNormalized)) ||
+            isNumpadAddEvent(codeNormalized, keyNormalized) ||
+            isNumpadDecimalEvent(codeNormalized, keyNormalized) ||
+            isNumpadSubtractEvent(codeNormalized, keyNormalized);
+        const blocker = getOperatorMutationBlocker(state);
+
+        if (blocker && mutatingNumpadAction) {
             event.preventDefault();
             noteNumpadActivity(event);
-            notifyOperatorPilotBlocked();
+            notifyOperatorMutationBlocked(blocker);
             updateOperatorChrome();
             return;
         }
@@ -1503,21 +2045,51 @@ function attachVisibilityRefresh() {
     window.addEventListener('online', () => {
         operatorRuntime.online = true;
         if (getState().auth.authenticated) {
-            void refreshQueueState().then(() => updateOperatorChrome());
+            void operatorRuntime.queueAdapter
+                ?.reportConnectivity?.('online')
+                ?.finally(() => {
+                    void refreshQueueState().then(() => updateOperatorChrome());
+                });
+            return;
         }
+
+        syncLoggedOutAccessState();
     });
 
     window.addEventListener('offline', () => {
         operatorRuntime.online = false;
+        void operatorRuntime.queueAdapter?.reportConnectivity?.('offline');
         if (getState().auth.authenticated) {
             updateOperatorChrome();
+            return;
         }
+
+        syncLoggedOutAccessState();
     });
 }
 
 async function boot() {
     applyQueueRuntimeDefaults();
     applyOperatorClinicProfile(await loadTurneroClinicProfile());
+    operatorRuntime.queueAdapter = resolveOperatorQueueAdapter(
+        getDesktopBridge(),
+        {
+            onShellState(status, snapshot) {
+                syncOperatorShellRuntime(status, snapshot);
+                if (getState().auth.authenticated) {
+                    updateOperatorChrome({
+                        heartbeatReason: 'shell_runtime',
+                        forceHeartbeat: true,
+                    });
+                    return;
+                }
+
+                syncLoggedOutAccessState();
+            },
+        }
+    );
+    setQueueCommandAdapter(operatorRuntime.queueAdapter);
+    await operatorRuntime.queueAdapter.init?.();
     await refreshDesktopSnapshot();
     subscribe(() => {
         if (getState().auth.authenticated) {
@@ -1535,14 +2107,36 @@ async function boot() {
 
     const desktopBridge = getDesktopBridge();
     if (desktopBridge && typeof desktopBridge.onBootStatus === 'function') {
-        desktopBridge.onBootStatus(() => {
-            void refreshDesktopSnapshot().then(() => {
-                if (getState().auth.authenticated) {
-                    updateOperatorChrome();
-                }
-            });
-        });
+        operatorRuntime.releaseBootStatusListener = desktopBridge.onBootStatus(
+            () => {
+                void refreshDesktopSnapshot().then(() => {
+                    if (getState().auth.authenticated) {
+                        updateOperatorChrome({
+                            heartbeatReason: 'desktop_status',
+                            forceHeartbeat: true,
+                        });
+                        return;
+                    }
+
+                    syncLoggedOutAccessState();
+                });
+            }
+        );
     }
+
+    if (desktopBridge && typeof desktopBridge.onShellEvent === 'function') {
+        operatorRuntime.releaseShellStatusListener = desktopBridge.onShellEvent(
+            (payload) => {
+                operatorRuntime.queueAdapter?.handleShellEvent?.(payload);
+            }
+        );
+    }
+
+    window.addEventListener('beforeunload', () => {
+        operatorRuntime.releaseBootStatusListener?.();
+        operatorRuntime.releaseShellStatusListener?.();
+        clearQueueCommandAdapter();
+    });
 
     const loginForm = getById('operatorLoginForm');
     if (loginForm instanceof HTMLFormElement) {
@@ -1553,6 +2147,7 @@ async function boot() {
 
     const auth = await checkAuthStatus();
     if (auth.authenticated) {
+        await operatorRuntime.queueAdapter?.markSessionAuthenticated?.(true);
         await bootAuthenticatedSurface();
         return;
     }

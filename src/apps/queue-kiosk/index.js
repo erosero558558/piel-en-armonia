@@ -46,6 +46,7 @@ const state = {
     assistantSessionId: '',
     assistantMetrics: {
         intents: {},
+        helpReasons: {},
         resolvedWithoutHuman: 0,
         escalated: 0,
         clinicalBlocked: 0,
@@ -54,6 +55,8 @@ const state = {
         actioned: 0,
         lastIntent: '',
         lastLatencyMs: 0,
+        latencyTotalMs: 0,
+        latencySamples: 0,
     },
     queueTimerId: 0,
     queuePollingEnabled: false,
@@ -370,6 +373,7 @@ function buildKioskHeartbeatPayload() {
     const profileSource = String(
         state.clinicProfile?.runtime_meta?.source || 'remote'
     ).trim();
+    const assistantHeartbeat = buildAssistantHeartbeatMetrics();
 
     let status = 'warning';
     let summary = 'Kiosco pendiente de validación.';
@@ -418,6 +422,20 @@ function buildKioskHeartbeatPayload() {
             surfaceContractState: String(surfaceContract.state || ''),
             surfaceRouteExpected: String(surfaceContract.expectedRoute || ''),
             surfaceRouteCurrent: String(surfaceContract.currentRoute || ''),
+            assistantSessionId: assistantHeartbeat.sessionId,
+            assistantActioned: assistantHeartbeat.actioned,
+            assistantResolvedWithoutHuman:
+                assistantHeartbeat.resolvedWithoutHuman,
+            assistantEscalated: assistantHeartbeat.escalated,
+            assistantClinicalBlocked: assistantHeartbeat.clinicalBlocked,
+            assistantFallback: assistantHeartbeat.fallback,
+            assistantErrors: assistantHeartbeat.errors,
+            assistantLastIntent: assistantHeartbeat.lastIntent,
+            assistantLastLatencyMs: assistantHeartbeat.lastLatencyMs,
+            assistantLatencyTotalMs: assistantHeartbeat.latencyTotalMs,
+            assistantLatencySamples: assistantHeartbeat.latencySamples,
+            assistantIntents: assistantHeartbeat.intents,
+            assistantHelpReasons: assistantHeartbeat.helpReasons,
         },
     };
 }
@@ -437,6 +455,47 @@ function ensureKioskHeartbeat() {
 
 function notifyKioskHeartbeat(reason = 'state_change') {
     ensureKioskHeartbeat().notify(reason);
+}
+
+function normalizeAssistantMetricMap(input) {
+    if (!input || typeof input !== 'object') {
+        return {};
+    }
+
+    return Object.entries(input).reduce((accumulator, [rawKey, rawValue]) => {
+        const key = String(rawKey || '')
+            .trim()
+            .toLowerCase();
+        const value = Math.max(0, Number(rawValue || 0));
+        if (!key || !Number.isFinite(value) || value <= 0) {
+            return accumulator;
+        }
+        accumulator[key] = Math.round(value);
+        return accumulator;
+    }, {});
+}
+
+function buildAssistantHeartbeatMetrics() {
+    const metrics = state.assistantMetrics || {};
+
+    return {
+        sessionId: ensureAssistantSessionId(),
+        actioned: Math.max(0, Number(metrics.actioned || 0)),
+        resolvedWithoutHuman: Math.max(
+            0,
+            Number(metrics.resolvedWithoutHuman || 0)
+        ),
+        escalated: Math.max(0, Number(metrics.escalated || 0)),
+        clinicalBlocked: Math.max(0, Number(metrics.clinicalBlocked || 0)),
+        fallback: Math.max(0, Number(metrics.fallback || 0)),
+        errors: Math.max(0, Number(metrics.errors || 0)),
+        lastIntent: String(metrics.lastIntent || '').trim(),
+        lastLatencyMs: Math.max(0, Number(metrics.lastLatencyMs || 0)),
+        latencyTotalMs: Math.max(0, Number(metrics.latencyTotalMs || 0)),
+        latencySamples: Math.max(0, Number(metrics.latencySamples || 0)),
+        intents: normalizeAssistantMetricMap(metrics.intents),
+        helpReasons: normalizeAssistantMetricMap(metrics.helpReasons),
+    };
 }
 
 function ensureKioskStarStyles() {
@@ -859,14 +918,32 @@ function supportReasonMessage(reason) {
     if (normalized === 'clinical_redirect') {
         return 'Recepcion fue alertada para derivarte con el personal adecuado.';
     }
+    if (normalized === 'lost_ticket') {
+        return 'Recepcion revisara tu ticket y te ayudara a retomar la fila.';
+    }
     if (normalized === 'printer_issue' || normalized === 'reprint_requested') {
         return 'Recepcion revisara la impresion o reimpresion de tu ticket enseguida.';
     }
     if (normalized === 'appointment_not_found') {
         return 'Recepcion revisara tu cita y te ayudara a continuar.';
     }
+    if (normalized === 'ticket_duplicate') {
+        return 'Recepcion revisara el ticket duplicado para dejar un solo turno activo.';
+    }
     if (normalized === 'special_priority') {
         return 'Recepcion fue alertada para darte apoyo prioritario.';
+    }
+    if (normalized === 'late_arrival') {
+        return 'Recepcion revisara tu llegada tarde y te indicara el siguiente paso.';
+    }
+    if (normalized === 'offline_pending') {
+        return 'Recepcion revisara el pendiente offline y te ayudara a continuar.';
+    }
+    if (normalized === 'no_phone') {
+        return 'Recepcion te ayudara a completar el proceso sin celular.';
+    }
+    if (normalized === 'schedule_taken') {
+        return 'Recepcion revisara la disponibilidad y te ayudara a continuar.';
     }
     if (normalized === 'accessibility') {
         return 'Recepcion te brindara apoyo para completar el proceso.';
@@ -1365,6 +1442,7 @@ function recordAssistantMetric(intent, outcome, startedAt, detail = {}) {
     );
     const metrics = state.assistantMetrics || {
         intents: {},
+        helpReasons: {},
         resolvedWithoutHuman: 0,
         escalated: 0,
         clinicalBlocked: 0,
@@ -1373,12 +1451,17 @@ function recordAssistantMetric(intent, outcome, startedAt, detail = {}) {
         actioned: 0,
         lastIntent: '',
         lastLatencyMs: 0,
+        latencyTotalMs: 0,
+        latencySamples: 0,
     };
 
     metrics.intents = metrics.intents || {};
+    metrics.helpReasons = metrics.helpReasons || {};
     metrics.intents[safeIntent] = (metrics.intents[safeIntent] || 0) + 1;
     metrics.lastIntent = safeIntent;
     metrics.lastLatencyMs = latencyMs;
+    metrics.latencyTotalMs += latencyMs;
+    metrics.latencySamples += 1;
     metrics.actioned += 1;
     if (safeOutcome === 'resolved') {
         metrics.resolvedWithoutHuman += 1;
@@ -1391,7 +1474,15 @@ function recordAssistantMetric(intent, outcome, startedAt, detail = {}) {
     } else if (safeOutcome === 'error') {
         metrics.errors += 1;
     }
+    const helpReason = String(detail.reason || '')
+        .trim()
+        .toLowerCase();
+    if (helpReason) {
+        metrics.helpReasons[helpReason] =
+            (metrics.helpReasons[helpReason] || 0) + 1;
+    }
     state.assistantMetrics = metrics;
+    void ensureKioskHeartbeat().beatNow('assistant_metric');
 
     emitQueueOpsEvent('assistant_metric', {
         intent: safeIntent,
@@ -1441,6 +1532,23 @@ function resolveAssistantPatientInitials() {
 
 function buildHelpRequestBody(reason, message, source, intent = '') {
     const ticket = state.lastIssuedTicket;
+    const checkinPhone = getById('checkinPhone');
+    const checkinDate = getById('checkinDate');
+    const checkinTime = getById('checkinTime');
+    const phoneDigits =
+        checkinPhone instanceof HTMLInputElement
+            ? String(checkinPhone.value || '').replace(/\D/g, '')
+            : '';
+    const phoneLast4 =
+        String(ticket?.phoneLast4 || '').trim() || phoneDigits.slice(-4);
+    const requestedDate =
+        checkinDate instanceof HTMLInputElement
+            ? String(checkinDate.value || '').trim()
+            : '';
+    const requestedTime =
+        checkinTime instanceof HTMLInputElement
+            ? String(checkinTime.value || '').trim()
+            : '';
     return {
         source: String(source || 'kiosk'),
         reason: String(reason || 'general'),
@@ -1455,6 +1563,11 @@ function buildHelpRequestBody(reason, message, source, intent = '') {
             waitingCount: Number(state.queueState?.waitingCount || 0),
             estimatedWaitMin: Number(state.queueState?.estimatedWaitMin || 0),
             offlinePending: Number(state.offlineOutbox.length || 0),
+            appointmentId: Number(ticket?.appointmentId || 0) || 0,
+            patientCaseId: String(ticket?.patientCaseId || '').trim(),
+            phoneLast4: phoneLast4 || '',
+            requestedDate,
+            requestedTime,
         },
     };
 }
@@ -1608,6 +1721,7 @@ function resetAssistantConversation() {
     state.assistantSessionId = createRuntimeId('assistant');
     state.assistantMetrics = {
         intents: {},
+        helpReasons: {},
         resolvedWithoutHuman: 0,
         escalated: 0,
         clinicalBlocked: 0,
@@ -1616,6 +1730,8 @@ function resetAssistantConversation() {
         actioned: 0,
         lastIntent: '',
         lastLatencyMs: 0,
+        latencyTotalMs: 0,
+        latencySamples: 0,
     };
     appendAssistantMessage('bot', ASSISTANT_WELCOME_TEXT);
 
@@ -2300,6 +2416,16 @@ function renderTicketResult(payload, originLabel) {
         ticketCode: String(
             rawTicket?.ticketCode || rawTicket?.ticket_code || '--'
         ),
+        appointmentId:
+            Number(
+                rawTicket?.appointmentId || rawTicket?.appointment_id || 0
+            ) || 0,
+        phoneLast4: String(
+            rawTicket?.phoneLast4 || rawTicket?.phone_last4 || ''
+        ),
+        patientCaseId: String(
+            rawTicket?.patientCaseId || rawTicket?.patient_case_id || ''
+        ),
         patientInitials: String(
             rawTicket?.patientInitials || rawTicket?.patient_initials || '--'
         ),
@@ -2835,6 +2961,13 @@ function classifyAssistantIntent(text) {
         return { intent: 'lost_ticket', normalized };
     }
     if (
+        /(ticket duplicado|tengo dos tickets|me salieron dos tickets|doble ticket|ticket repetido|turno duplicado|dos turnos)/.test(
+            normalized
+        )
+    ) {
+        return { intent: 'ticket_duplicate', normalized };
+    }
+    if (
         /(impresora|no imprimio|no salio el ticket|ticket no salio|no imprime|problema de impresion|reimprimir)/.test(
             normalized
         )
@@ -2842,11 +2975,39 @@ function classifyAssistantIntent(text) {
         return { intent: 'printer_issue', normalized };
     }
     if (
+        /(llegue tarde|voy tarde|estoy tarde|se me hizo tarde|se paso mi hora|llegada tarde|me atrase a la cita)/.test(
+            normalized
+        )
+    ) {
+        return { intent: 'late_arrival', normalized };
+    }
+    if (
+        /(sin internet|sin conexion|internet caido|pendiente offline|quedo offline|no hay internet|sin red)/.test(
+            normalized
+        )
+    ) {
+        return { intent: 'offline_pending', normalized };
+    }
+    if (
         /(no encuentro mi cita|mi cita no aparece|no sale mi cita|no encuentro la cita)/.test(
             normalized
         )
     ) {
         return { intent: 'appointment_not_found', normalized };
+    }
+    if (
+        /(no tengo celular|no traje celular|no traje mi celular|sin celular|sin telefono|no tengo telefono|no traje telefono|no traje mi telefono|sin movil)/.test(
+            normalized
+        )
+    ) {
+        return { intent: 'no_phone', normalized };
+    }
+    if (
+        /(horario ya tomado|horario ocupado|ya se ocupo el horario|se tomo el horario|ya no hay cupo|no hay cupo en ese horario|ese horario ya esta ocupado)/.test(
+            normalized
+        )
+    ) {
+        return { intent: 'schedule_taken', normalized };
     }
     if (
         /(embarazada|adulto mayor|discapacidad|movilidad reducida|prioridad especial|necesito prioridad)/.test(
@@ -2975,6 +3136,7 @@ async function resolveAssistantIntent(route, rawText, startedAt) {
             });
             recordAssistantMetric(intent, 'handoff', startedAt, {
                 queued: support.queued,
+                reason: 'human_help',
             });
             return support.message;
         }
@@ -2988,9 +3150,26 @@ async function resolveAssistantIntent(route, rawText, startedAt) {
             });
             recordAssistantMetric(intent, 'handoff', startedAt, {
                 queued: support.queued,
+                reason: 'lost_ticket',
             });
             return state.lastIssuedTicket?.ticketCode
                 ? `${support.message} Tu ultimo ticket registrado fue ${state.lastIssuedTicket.ticketCode}.`
+                : support.message;
+        }
+        case 'ticket_duplicate': {
+            const support = await requestReceptionSupport({
+                source: 'assistant',
+                reason: 'ticket_duplicate',
+                message: rawText,
+                intent,
+                announceInAssistant: false,
+            });
+            recordAssistantMetric(intent, 'handoff', startedAt, {
+                queued: support.queued,
+                reason: 'ticket_duplicate',
+            });
+            return state.lastIssuedTicket?.ticketCode
+                ? `${support.message} Conserva por ahora ${state.lastIssuedTicket.ticketCode} hasta que recepcion te confirme el ticket valido.`
                 : support.message;
         }
         case 'printer_issue': {
@@ -3003,8 +3182,44 @@ async function resolveAssistantIntent(route, rawText, startedAt) {
             });
             recordAssistantMetric(intent, 'handoff', startedAt, {
                 queued: support.queued,
+                reason: 'printer_issue',
             });
             return support.message;
+        }
+        case 'late_arrival': {
+            focusFlowTarget('checkin');
+            const support = await requestReceptionSupport({
+                source: 'assistant',
+                reason: 'late_arrival',
+                message: rawText,
+                intent,
+                announceInAssistant: false,
+            });
+            recordAssistantMetric(intent, 'handoff', startedAt, {
+                queued: support.queued,
+                reason: 'late_arrival',
+            });
+            return `${support.message} Si tienes la cita a mano, deja listos telefono, fecha y hora para validarlo con recepcion.`;
+        }
+        case 'offline_pending': {
+            const pendingCount = Math.max(
+                0,
+                Number(state.offlineOutbox.length || 0)
+            );
+            const support = await requestReceptionSupport({
+                source: 'assistant',
+                reason: 'offline_pending',
+                message: rawText,
+                intent,
+                announceInAssistant: false,
+            });
+            recordAssistantMetric(intent, 'handoff', startedAt, {
+                queued: support.queued,
+                reason: 'offline_pending',
+            });
+            return pendingCount > 0
+                ? `${support.message} Este kiosco tiene ${pendingCount} pendiente(s) offline por sincronizar.`
+                : `${support.message} Si el kiosco sigue sin conexion, recepcion continuara el registro manualmente.`;
         }
         case 'appointment_not_found': {
             focusFlowTarget('checkin');
@@ -3017,8 +3232,38 @@ async function resolveAssistantIntent(route, rawText, startedAt) {
             });
             recordAssistantMetric(intent, 'handoff', startedAt, {
                 queued: support.queued,
+                reason: 'appointment_not_found',
             });
             return `${support.message} Mientras tanto, revisa telefono, fecha y hora en Tengo cita.`;
+        }
+        case 'no_phone': {
+            focusFlowTarget('checkin');
+            const support = await requestReceptionSupport({
+                source: 'assistant',
+                reason: 'no_phone',
+                message: rawText,
+                intent,
+                announceInAssistant: false,
+            });
+            recordAssistantMetric(intent, 'handoff', startedAt, {
+                queued: support.queued,
+                reason: 'no_phone',
+            });
+            return `${support.message} Recepcion validara tus datos presencialmente para continuar.`;
+        }
+        case 'schedule_taken': {
+            const support = await requestReceptionSupport({
+                source: 'assistant',
+                reason: 'schedule_taken',
+                message: rawText,
+                intent,
+                announceInAssistant: false,
+            });
+            recordAssistantMetric(intent, 'handoff', startedAt, {
+                queued: support.queued,
+                reason: 'schedule_taken',
+            });
+            return `${support.message} La reprogramacion o cambio de horario se gestiona en recepcion.`;
         }
         case 'special_priority': {
             const support = await requestReceptionSupport({
@@ -3030,6 +3275,7 @@ async function resolveAssistantIntent(route, rawText, startedAt) {
             });
             recordAssistantMetric(intent, 'handoff', startedAt, {
                 queued: support.queued,
+                reason: 'special_priority',
             });
             return support.message;
         }
@@ -3043,6 +3289,7 @@ async function resolveAssistantIntent(route, rawText, startedAt) {
             });
             recordAssistantMetric(intent, 'handoff', startedAt, {
                 queued: support.queued,
+                reason: 'accessibility',
             });
             return support.message;
         }
@@ -3056,6 +3303,7 @@ async function resolveAssistantIntent(route, rawText, startedAt) {
             });
             recordAssistantMetric(intent, 'clinical_blocked', startedAt, {
                 queued: support.queued,
+                reason: 'clinical_redirect',
             });
             return 'En este kiosco no doy orientacion medica. Recepcion ya fue alertada para derivarte con el personal adecuado.';
         }

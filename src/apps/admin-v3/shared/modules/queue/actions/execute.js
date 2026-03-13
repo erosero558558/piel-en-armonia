@@ -3,6 +3,7 @@ import { getState } from '../../../core/store.js';
 import { appendActivity } from '../state.js';
 import { applyQueueStateResponse } from '../sync.js';
 import { normalizeQueueAction } from '../helpers.js';
+import { getQueueCommandAdapter } from '../command-adapter.js';
 import { setTicketStatusLocal } from './shared.js';
 import {
     notifyAdminQueuePilotBlocked,
@@ -54,6 +55,15 @@ export async function executeTicketAction({ ticketId, action, consultorio }) {
             `Practica: accion ${targetAction} en ticket ${targetId}`
         );
         return;
+    }
+
+    const commandAdapter = getQueueCommandAdapter();
+    if (typeof commandAdapter?.executeTicketAction === 'function') {
+        return commandAdapter.executeTicketAction({
+            ticketId: targetId,
+            action: targetAction,
+            consultorio,
+        });
     }
 
     const payload = await apiRequest('queue-ticket', {

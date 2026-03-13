@@ -32,7 +32,7 @@ RewriteRule ^ninos/([a-z0-9-]+)\.html$ /es/servicios/$1/ [R=301,L,NC]
 RewriteRule ^ninos/([a-z0-9-]+)/?$ /es/servicios/$1/ [R=301,L,NC]
 
 # Fallback para páginas públicas legacy en raíz (mantiene query params)
-RewriteRule ^(?!admin$|kiosco-turnos$|sala-turnos$|stats$)([a-z0-9-]+)\.html$ /es/$1/ [R=301,L,NC]
+RewriteRule ^(?!admin$|operador-turnos$|kiosco-turnos$|sala-turnos$|stats$)([a-z0-9-]+)\.html$ /es/$1/ [R=301,L,NC]
 
 # ── Cabeceras de seguridad ───────────────────────────────
 <IfModule mod_headers.c>

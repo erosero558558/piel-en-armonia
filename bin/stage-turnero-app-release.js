@@ -11,6 +11,7 @@ const {
     getTurneroTargetDefinition,
     listTurneroSurfaceDefinitions,
     listTurneroTargetKeys,
+    resolveTurneroChannel,
     resolveTurneroDownloadPublicPath,
     resolveTurneroUpdatePublicFeedPath,
     resolveTurneroUpdatePublicPayloadPath,
@@ -33,6 +34,34 @@ function parseArgs(argv) {
         index += 1;
     }
     return parsed;
+}
+
+function normalizeId(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase();
+}
+
+function parseSurfaceFilter(value) {
+    return Array.from(
+        new Set(
+            String(value || '')
+                .split(',')
+                .map((entry) => normalizeId(entry))
+                .filter(Boolean)
+        )
+    );
+}
+
+function parseTargetFilter(value) {
+    return Array.from(
+        new Set(
+            String(value || '')
+                .split(',')
+                .map((entry) => normalizeId(entry))
+                .filter(Boolean)
+        )
+    );
 }
 
 function ensureDir(dirPath) {
@@ -180,7 +209,8 @@ function stageDesktopSurface(
     desktopRoot,
     channel,
     version,
-    releasedAt
+    releasedAt,
+    targetFilter = []
 ) {
     const surfaceManifest = {
         version,
@@ -192,7 +222,16 @@ function stageDesktopSurface(
         files: [],
     };
 
-    for (const targetKey of listTurneroTargetKeys(surface)) {
+    const targetKeys = listTurneroTargetKeys(surface).filter(
+        (targetKey) =>
+            targetFilter.length === 0 || targetFilter.includes(targetKey)
+    );
+
+    if (targetKeys.length === 0) {
+        return null;
+    }
+
+    for (const targetKey of targetKeys) {
         const target = getTurneroTargetDefinition(surface, targetKey);
         const sourceDir = resolveDesktopSourceDir(
             desktopRoot,
@@ -291,11 +330,15 @@ function stageAndroidSurface(
     androidRoot,
     channel,
     version,
-    releasedAt
+    releasedAt,
+    targetFilter = []
 ) {
     const targetKey = getTurneroDefaultTargetKey(surface, {
         targetKey: String(surface.android?.targetKey || ''),
     });
+    if (targetFilter.length > 0 && !targetFilter.includes(targetKey)) {
+        return null;
+    }
     const target = getTurneroTargetDefinition(surface, targetKey);
     const artifactSource = resolveAndroidArtifactFile(
         androidRoot,
@@ -331,6 +374,45 @@ function stageAndroidSurface(
     };
 }
 
+function createChannelManifest(channel, version, releasedAt, baseUrl) {
+    return {
+        schema: 'turnero-release-bundle/v1',
+        channel,
+        version,
+        releasedAt,
+        baseUrl,
+        apps: {},
+    };
+}
+
+function writeChannelManifest(outputRoot, defaults, manifest) {
+    const shaRecords = Object.values(manifest.apps).flatMap((surface) =>
+        Array.isArray(surface.files) ? surface.files : []
+    );
+    const manifestPath = path.join(
+        outputRoot,
+        trimBasePath(defaults.downloadBasePath),
+        manifest.channel,
+        'release-manifest.json'
+    );
+    ensureDir(path.dirname(manifestPath));
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const shaPath = path.join(
+        outputRoot,
+        trimBasePath(defaults.downloadBasePath),
+        manifest.channel,
+        'SHA256SUMS.txt'
+    );
+    fs.writeFileSync(shaPath, `${buildShaLines(shaRecords)}\n`);
+
+    return {
+        manifestPath,
+        shaPath,
+        fileCount: shaRecords.length + 2,
+    };
+}
+
 function main() {
     const args = parseArgs(process.argv.slice(2));
     const version = String(args.version || '').trim();
@@ -338,7 +420,11 @@ function main() {
         throw new Error('Debes pasar --version');
     }
 
-    const channel = String(args.channel || 'stable').trim() || 'stable';
+    const channelOverride = String(args.channel || '').trim();
+    const requestedSurfaceIds = parseSurfaceFilter(
+        args.surfaces || args.surface
+    );
+    const requestedTargetIds = parseTargetFilter(args.targets || args.target);
     const outputRoot = path.resolve(
         String(args.outputRoot || 'release/turnero-apps').trim()
     );
@@ -360,68 +446,121 @@ function main() {
 
     resetDir(outputRoot);
 
-    const manifest = {
-        schema: 'turnero-release-bundle/v1',
-        channel,
-        version,
-        releasedAt,
-        baseUrl,
-        apps: {},
-    };
+    const allSurfaces = listTurneroSurfaceDefinitions();
+    const knownSurfaceIds = new Set(allSurfaces.map((surface) => surface.id));
+    for (const surfaceId of requestedSurfaceIds) {
+        if (!knownSurfaceIds.has(surfaceId)) {
+            throw new Error(
+                `Superficie desconocida en --surfaces: ${surfaceId}`
+            );
+        }
+    }
 
-    for (const surface of listTurneroSurfaceDefinitions({
-        family: 'desktop',
-    })) {
-        manifest.apps[surface.id] = stageDesktopSurface(
+    const selectedSurfaces =
+        requestedSurfaceIds.length === 0
+            ? allSurfaces
+            : allSurfaces.filter((surface) =>
+                  requestedSurfaceIds.includes(surface.id)
+              );
+
+    const manifests = new Map();
+
+    for (const surface of selectedSurfaces.filter(
+        (entry) => entry.family === 'desktop'
+    )) {
+        const surfaceChannel = resolveTurneroChannel(surface, channelOverride);
+        if (!manifests.has(surfaceChannel)) {
+            manifests.set(
+                surfaceChannel,
+                createChannelManifest(
+                    surfaceChannel,
+                    version,
+                    releasedAt,
+                    baseUrl
+                )
+            );
+        }
+
+        const stagedSurface = stageDesktopSurface(
             surface,
             outputRoot,
             desktopRoot,
-            channel,
+            surfaceChannel,
             version,
-            releasedAt
+            releasedAt,
+            requestedTargetIds
         );
+        if (stagedSurface) {
+            manifests.get(surfaceChannel).apps[surface.id] = stagedSurface;
+        }
     }
 
-    for (const surface of listTurneroSurfaceDefinitions({
-        family: 'android',
-    })) {
-        manifest.apps[surface.id] = stageAndroidSurface(
+    for (const surface of selectedSurfaces.filter(
+        (entry) => entry.family === 'android'
+    )) {
+        const surfaceChannel = resolveTurneroChannel(surface, channelOverride);
+        if (!manifests.has(surfaceChannel)) {
+            manifests.set(
+                surfaceChannel,
+                createChannelManifest(
+                    surfaceChannel,
+                    version,
+                    releasedAt,
+                    baseUrl
+                )
+            );
+        }
+
+        const stagedSurface = stageAndroidSurface(
             surface,
             outputRoot,
             androidRoot,
-            channel,
+            surfaceChannel,
             version,
-            releasedAt
+            releasedAt,
+            requestedTargetIds
         );
+        if (stagedSurface) {
+            manifests.get(surfaceChannel).apps[surface.id] = stagedSurface;
+        }
     }
 
-    const manifestPath = path.join(
-        outputRoot,
-        trimBasePath(defaults.downloadBasePath),
-        channel,
-        'release-manifest.json'
-    );
-    ensureDir(path.dirname(manifestPath));
-    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    const channels = Array.from(manifests.keys()).sort();
+    const manifestPaths = [];
+    let fileCount = 0;
 
-    const shaRecords = Object.values(manifest.apps).flatMap((surface) =>
-        Array.isArray(surface.files) ? surface.files : []
-    );
-    const shaPath = path.join(
-        outputRoot,
-        trimBasePath(defaults.downloadBasePath),
-        channel,
-        'SHA256SUMS.txt'
-    );
-    fs.writeFileSync(shaPath, `${buildShaLines(shaRecords)}\n`);
+    for (const channel of channels) {
+        if (Object.keys(manifests.get(channel).apps).length === 0) {
+            continue;
+        }
+        const writeResult = writeChannelManifest(
+            outputRoot,
+            defaults,
+            manifests.get(channel)
+        );
+        manifestPaths.push(writeResult.manifestPath);
+        fileCount += writeResult.fileCount;
+    }
+
+    if (manifestPaths.length === 0) {
+        throw new Error('No hubo superficies/targets compatibles para stagear');
+    }
 
     const summary = {
         version,
-        channel,
+        channel:
+            channelOverride !== ''
+                ? channelOverride
+                : channels.length === 1
+                  ? channels[0]
+                  : '',
+        channels,
+        surfaces: selectedSurfaces.map((surface) => surface.id),
+        targets: requestedTargetIds,
         releasedAt,
         outputRoot,
-        manifestPath,
-        fileCount: shaRecords.length + 2,
+        manifestPaths,
+        fileCount,
     };
 
     process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);

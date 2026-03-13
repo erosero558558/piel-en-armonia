@@ -10,6 +10,8 @@ import { renderQueueActivity } from './activity.js';
 import { setQueueNowMeta } from './meta.js';
 import {
     renderQueueNextAdminList,
+    renderQueueRecentResolutions,
+    renderQueueReceptionGuidance,
     renderQueueTableBody,
 } from './section/content.js';
 import { renderQueueInstallHub } from './section/install-hub/index.js';
@@ -36,6 +38,8 @@ export function renderQueueSection(appendActivity = () => {}) {
     setQueueNowMeta(queueMeta, appendActivity);
     renderQueueTableBody(visible);
     renderQueueNextAdminList(queueMeta, state.queue.fallbackPartial);
+    renderQueueReceptionGuidance(queueMeta);
+    renderQueueRecentResolutions(queueMeta);
     updateQueueTriageSummary({
         state,
         visible,

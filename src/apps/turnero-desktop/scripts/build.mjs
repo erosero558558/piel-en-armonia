@@ -1,13 +1,17 @@
 import path from 'node:path';
+import fs from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import {
+    buildGenericUpdateProvider,
     createBuildConfig,
-    buildUpdateFeedUrl,
     getSurfaceMeta,
 } from '../src/config/contracts.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectDir = path.resolve(__dirname, '..');
+const repositoryRoot = path.resolve(projectDir, '..', '..', '..');
+const appIconPath = path.join(repositoryRoot, 'favicon.ico');
 
 function failMissingDependency(packageName) {
     console.error(
@@ -61,7 +65,6 @@ function resolveTargets(platform) {
 
 function createBuilderConfig(surface, platform, config) {
     const meta = getSurfaceMeta(surface);
-    const updatePlatform = platform === 'mac' ? 'darwin' : 'win32';
     return {
         appId: meta.appId,
         productName: meta.productName,
@@ -81,6 +84,7 @@ function createBuilderConfig(surface, platform, config) {
             artifactName: `${meta.artifactBase}Setup.\${ext}`,
             signAndEditExecutable: false,
             verifyUpdateCodeSignature: false,
+            icon: appIconPath,
         },
         nsis: {
             oneClick: false,
@@ -88,6 +92,8 @@ function createBuilderConfig(surface, platform, config) {
             allowToChangeInstallationDirectory: true,
             shortcutName: meta.productName,
             uninstallDisplayName: meta.productName,
+            installerIcon: appIconPath,
+            uninstallerIcon: appIconPath,
         },
         mac: {
             target: [
@@ -98,11 +104,10 @@ function createBuilderConfig(surface, platform, config) {
             category: 'public.app-category.medical',
         },
         publish: [
-            {
-                provider: 'generic',
-                url: buildUpdateFeedUrl(config, updatePlatform),
-                channel: config.updateChannel,
-            },
+            buildGenericUpdateProvider(
+                config,
+                platform === 'mac' ? 'darwin' : 'win32'
+            ),
         ],
     };
 }
@@ -130,3 +135,47 @@ await build({
     config: createBuilderConfig(buildConfig.surface, platform, buildConfig),
     publish: 'never',
 });
+
+async function writeWindowsUpdateMetadata(surfaceName, config) {
+    const outputDir = path.join(projectDir, 'dist', surfaceName, 'win');
+    const artifactName = `${getSurfaceMeta(surfaceName).artifactBase}Setup.exe`;
+    const artifactPath = path.join(outputDir, artifactName);
+    const artifactBuffer = await fs.readFile(artifactPath);
+    const artifactStats = await fs.stat(artifactPath);
+    const sha512 = createHash('sha512').update(artifactBuffer).digest('base64');
+    const metadata = [
+        `version: ${config.releaseVersion}`,
+        'files:',
+        `  - url: ${artifactName}`,
+        `    sha512: ${sha512}`,
+        `    size: ${artifactStats.size}`,
+        `path: ${artifactName}`,
+        `sha512: ${sha512}`,
+        `releaseDate: '${new Date().toISOString()}'`,
+        '',
+    ].join('\n');
+
+    await Promise.all([
+        fs.writeFile(path.join(outputDir, 'latest.yml'), metadata, 'utf8'),
+        fs.writeFile(path.join(outputDir, 'stable.yml'), metadata, 'utf8'),
+    ]);
+}
+
+async function ensureLatestMetadataAliases(surfaceName, platformName, config) {
+    if (platformName === 'win') {
+        await writeWindowsUpdateMetadata(surfaceName, config);
+        return;
+    }
+
+    const outputDir = path.join(projectDir, 'dist', surfaceName, platformName);
+    const stableMetadataPath = path.join(outputDir, 'stable-mac.yml');
+    const latestMetadataPath = path.join(outputDir, 'latest-mac.yml');
+    try {
+        await fs.access(stableMetadataPath);
+        await fs.copyFile(stableMetadataPath, latestMetadataPath);
+    } catch (_error) {
+        // electron-builder already emitted latest-mac.yml; no alias needed.
+    }
+}
+
+await ensureLatestMetadataAliases(buildConfig.surface, platform, buildConfig);

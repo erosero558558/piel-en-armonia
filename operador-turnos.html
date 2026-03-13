@@ -15,7 +15,7 @@
         />
         <link
             rel="stylesheet"
-            href="queue-ops.css?v=queue-ops-20260312-pilot1"
+            href="queue-ops.css?v=queue-ops-20260313-operator-pilot1"
         />
     </head>
     <body
@@ -204,10 +204,53 @@
                     <strong id="operatorCallKeySummary">Numpad Enter</strong>
                     <small>Calibra otra tecla si el hardware la reporta distinto.</small>
                 </article>
-                <article class="queue-operator-signal-card">
-                    <span>Equipo</span>
-                    <strong>Genius Numpad 1000</strong>
-                    <small>Conecta el receptor USB al PC del operador.</small>
+                <article
+                    id="operatorShellCard"
+                    class="queue-operator-signal-card"
+                    data-state="warning"
+                >
+                    <span>Windows app</span>
+                    <strong id="operatorShellModeSummary">Fallback web</strong>
+                    <small id="operatorShellMetaSummary">
+                        Instala la desktop para autoarranque, updates y
+                        configuración local.
+                    </small>
+                    <small id="operatorShellSupportSummary">
+                        Feed y guía de soporte visibles al instalar la desktop.
+                    </small>
+                </article>
+                <article
+                    id="operatorShellRuntimeCard"
+                    class="queue-operator-signal-card"
+                    data-state="warning"
+                >
+                    <span>Runtime clínico</span>
+                    <strong id="operatorShellRuntimeMode">Modo seguro</strong>
+                    <small id="operatorShellRuntimeSummary">
+                        Solo lectura hasta recuperar red y un snapshot sano.
+                    </small>
+                    <small id="operatorShellRuntimeMeta">
+                        Sync sin registro · edad sin sync válido · outbox 0 · conciliación 0 · canal stable
+                    </small>
+                    <button
+                        type="button"
+                        id="operatorShellRecoveryBtn"
+                        class="queue-operator-runtime-btn"
+                    >
+                        Reintentar sync
+                    </button>
+                </article>
+                <article
+                    id="operatorNetworkCard"
+                    class="queue-operator-signal-card"
+                    data-state="warning"
+                >
+                    <span>Red</span>
+                    <strong id="operatorNetworkSummary">Verificando red</strong>
+                    <small id="operatorNetworkMetaSummary">
+                        La sesión operativa confirmará heartbeat y sync al
+                        entrar.
+                    </small>
                 </article>
             </section>
 
@@ -263,6 +306,17 @@
                         class="queue-operator-numpad-matrix"
                         aria-live="polite"
                     ></div>
+                </article>
+                <article
+                    id="operatorGuardCard"
+                    class="queue-operator-status-card"
+                    data-state="success"
+                >
+                    <strong id="operatorGuardTitle">Operación habilitada</strong>
+                    <p id="operatorGuardSummary">
+                        La cola sigue en vivo. Puedes llamar, re-llamar y cerrar
+                        tickets desde esta superficie.
+                    </p>
                 </article>
             </section>
 
@@ -484,7 +538,7 @@
         </dialog>
 
         <script
-            src="js/queue-operator.js?v=queue-operator-20260313-pilotblock1"
+            src="js/queue-operator.js?v=queue-operator-20260313-operator-pilot1"
             type="module"
         ></script>
     </body>

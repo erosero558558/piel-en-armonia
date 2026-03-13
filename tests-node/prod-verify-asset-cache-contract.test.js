@@ -40,7 +40,6 @@ test('prod verify usa refs remotas para cache-header de estilos publicados', () 
         );
     }
 });
-
 test('prod verify agrega assets GitHub de deploy para incidentes de transporte y conectividad', () => {
     for (const snippet of [
         '$githubDeployAlerts = Get-GitHubProductionAlertSummary',

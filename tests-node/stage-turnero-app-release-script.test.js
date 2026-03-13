@@ -63,6 +63,26 @@ function createDownloadedArtifactFixture(rootDir, artifactName, files) {
     }
 }
 
+function createDesktopWinOnlyFixture(rootDir, surfaceKey, artifactBase) {
+    writeFixture(
+        path.join(rootDir, surfaceKey, 'win', `${artifactBase}Setup.exe`),
+        `${surfaceKey}-win-exe`
+    );
+    writeFixture(
+        path.join(rootDir, surfaceKey, 'win', 'latest.yml'),
+        `${surfaceKey}-win-latest`
+    );
+    writeFixture(
+        path.join(
+            rootDir,
+            surfaceKey,
+            'win',
+            `${artifactBase}Setup.exe.blockmap`
+        ),
+        `${surfaceKey}-win-blockmap`
+    );
+}
+
 test('stage-turnero-app-release genera bundle y manifest con rutas publicas', () => {
     const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'turnero-release-'));
     const desktopRoot = path.join(tempRoot, 'desktop');
@@ -98,59 +118,78 @@ test('stage-turnero-app-release genera bundle y manifest con rutas publicas', ()
 
     assert.equal(result.status, 0, result.stderr);
 
-    const manifestPath = path.join(
-        outputRoot,
-        'app-downloads',
-        'stable',
-        'release-manifest.json'
+    const pilotManifest = JSON.parse(
+        fs.readFileSync(
+            path.join(
+                outputRoot,
+                'app-downloads',
+                'pilot',
+                'release-manifest.json'
+            ),
+            'utf8'
+        )
     );
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const stableManifest = JSON.parse(
+        fs.readFileSync(
+            path.join(
+                outputRoot,
+                'app-downloads',
+                'stable',
+                'release-manifest.json'
+            ),
+            'utf8'
+        )
+    );
 
-    assert.equal(manifest.version, '0.1.3');
+    assert.equal(pilotManifest.version, '0.1.3');
     assert.equal(
-        manifest.apps.operator.targets.win.url.includes(
-            '/app-downloads/stable/operator/win/TurneroOperadorSetup.exe'
+        pilotManifest.apps.operator.targets.win.url.includes(
+            '/app-downloads/pilot/operator/win/TurneroOperadorSetup.exe'
         ),
         true
     );
     assert.equal(
-        manifest.apps.operator.updates.win.feedUrl.includes(
-            '/desktop-updates/stable/operator/win/latest.yml'
+        pilotManifest.apps.operator.updates.win.feedUrl.includes(
+            '/desktop-updates/pilot/operator/win/latest.yml'
         ),
         true
     );
     assert.equal(
-        manifest.apps.kiosk.targets.mac.url.includes(
+        stableManifest.apps.kiosk.targets.mac.url.includes(
             '/app-downloads/stable/kiosk/mac/TurneroKiosco.dmg'
         ),
         true
     );
     assert.equal(
-        manifest.apps.sala_tv.targets.android_tv.url.includes(
+        stableManifest.apps.sala_tv.targets.android_tv.url.includes(
             '/app-downloads/stable/sala-tv/android/TurneroSalaTV.apk'
         ),
         true
     );
 
-    const shaPath = path.join(
+    const pilotShaPath = path.join(
         outputRoot,
         'app-downloads',
-        'stable',
+        'pilot',
         'SHA256SUMS.txt'
     );
-    const shaRaw = fs.readFileSync(shaPath, 'utf8');
+    const pilotShaRaw = fs.readFileSync(pilotShaPath, 'utf8');
     assert.equal(
-        shaRaw.includes(
-            'app-downloads/stable/operator/win/TurneroOperadorSetup.exe'
+        pilotShaRaw.includes(
+            'app-downloads/pilot/operator/win/TurneroOperadorSetup.exe'
         ),
         true
     );
     assert.equal(
-        shaRaw.includes('desktop-updates/stable/operator/win/latest.yml'),
+        pilotShaRaw.includes('desktop-updates/pilot/operator/win/latest.yml'),
         true
     );
+    const stableShaRaw = fs.readFileSync(
+        path.join(outputRoot, 'app-downloads', 'stable', 'SHA256SUMS.txt'),
+        'utf8'
+    );
     assert.equal(
-        shaRaw.includes(
+        stableShaRaw.includes(
             'app-downloads/stable/sala-tv/android/TurneroSalaTV.apk'
         ),
         true
@@ -245,6 +284,8 @@ test('stage-turnero-app-release soporta layout de artifacts descargados por nomb
             SCRIPT_PATH,
             '--version',
             '0.1.4',
+            '--channel',
+            'stable',
             '--desktopRoot',
             desktopRoot,
             '--androidRoot',
@@ -274,5 +315,60 @@ test('stage-turnero-app-release soporta layout de artifacts descargados por nomb
     assert.equal(
         manifest.apps.sala_tv.targets.android_tv.url,
         '/app-downloads/stable/sala-tv/android/TurneroSalaTV.apk'
+    );
+});
+
+test('stage-turnero-app-release permite staging local del piloto operador sin requerir kiosk ni sala', () => {
+    const tempRoot = fs.mkdtempSync(
+        path.join(os.tmpdir(), 'turnero-release-operator-only-')
+    );
+    const desktopRoot = path.join(tempRoot, 'desktop');
+    const outputRoot = path.join(tempRoot, 'bundle');
+
+    createDesktopWinOnlyFixture(desktopRoot, 'operator', 'TurneroOperador');
+
+    const result = spawnSync(
+        process.execPath,
+        [
+            SCRIPT_PATH,
+            '--version',
+            '0.1.5',
+            '--surface',
+            'operator',
+            '--target',
+            'win',
+            '--desktopRoot',
+            desktopRoot,
+            '--outputRoot',
+            outputRoot,
+        ],
+        {
+            cwd: path.resolve(__dirname, '..'),
+            encoding: 'utf8',
+        }
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const summary = JSON.parse(result.stdout);
+    assert.deepEqual(summary.surfaces, ['operator']);
+    assert.deepEqual(summary.targets, ['win']);
+    assert.deepEqual(summary.channels, ['pilot']);
+
+    const manifest = JSON.parse(
+        fs.readFileSync(
+            path.join(
+                outputRoot,
+                'app-downloads',
+                'pilot',
+                'release-manifest.json'
+            ),
+            'utf8'
+        )
+    );
+
+    assert.deepEqual(Object.keys(manifest.apps), ['operator']);
+    assert.equal(
+        manifest.apps.operator.targets.win.url,
+        '/app-downloads/pilot/operator/win/TurneroOperadorSetup.exe'
     );
 });

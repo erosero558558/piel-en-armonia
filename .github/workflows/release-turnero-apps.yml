@@ -352,5 +352,7 @@ jobs:
                   tag_name: turnero-apps-v${{ inputs.release_version }}
                   name: Turnero Apps v${{ inputs.release_version }}
                   files: |
+                      release/turnero-apps/app-downloads/pilot/**/*
                       release/turnero-apps/app-downloads/stable/**/*
+                      release/turnero-apps/desktop-updates/pilot/**/*
                       release/turnero-apps/desktop-updates/stable/**/*

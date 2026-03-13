@@ -27,6 +27,9 @@ test.describe('Public routing redirect maps', () => {
         expect(htaccess).toContain(
             'RewriteRule ^ninos/([a-z0-9-]+)\\.html$ /es/servicios/$1/ [R=301,L,NC]'
         );
+        expect(htaccess).toContain('operador-turnos$');
+        expect(htaccess).toContain('kiosco-turnos$');
+        expect(htaccess).toContain('sala-turnos$');
     });
 
     test('nginx map preserves query params in 301 redirects', async () => {
@@ -45,5 +48,8 @@ test.describe('Public routing redirect maps', () => {
         expect(nginxConf).toContain(
             'return 301 https://$host/es/legal/aviso-medico/$is_args$args;'
         );
+        expect(nginxConf).toContain('operador-turnos\\.html$');
+        expect(nginxConf).toContain('kiosco-turnos\\.html$');
+        expect(nginxConf).toContain('sala-turnos\\.html$');
     });
 });

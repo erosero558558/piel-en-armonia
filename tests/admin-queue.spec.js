@@ -1,5 +1,6 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { installLegacyAdminAuthMock } = require('./helpers/admin-auth-mocks');
 
 function json(route, payload, status = 200) {
     return route.fulfill({
@@ -17,6 +18,24 @@ function adminUrl(query = '') {
     return `/admin.html${search ? `?${search}` : ''}`;
 }
 
+function installQueueAdminAuthMock(page, csrfToken) {
+    return installLegacyAdminAuthMock(page, { csrfToken });
+}
+
+function parseBody(request) {
+    try {
+        return request.postDataJSON() || {};
+    } catch (_error) {
+        const raw = request.postData() || '';
+        try {
+            return raw ? JSON.parse(raw) : {};
+        } catch (_jsonError) {
+            const params = new URLSearchParams(raw);
+            return Object.fromEntries(params.entries());
+        }
+    }
+}
+
 function buildQueueMetaFromState(state) {
     const byConsultorio = { 1: null, 2: null };
     for (const ticket of state.callingNow || []) {
@@ -29,6 +48,11 @@ function buildQueueMetaFromState(state) {
         updatedAt: state.updatedAt,
         waitingCount: state.waitingCount,
         calledCount: state.calledCount,
+        estimatedWaitMin: state.estimatedWaitMin || 0,
+        delayReason: state.delayReason || '',
+        assistancePendingCount: state.assistancePendingCount || 0,
+        activeHelpRequests: state.activeHelpRequests || [],
+        recentResolvedHelpRequests: state.recentResolvedHelpRequests || [],
         counts: state.counts || {},
         callingNowByConsultorio: byConsultorio,
         nextTickets: state.nextTickets || [],
@@ -123,6 +147,923 @@ test.describe('Admin turnero sala', () => {
         });
     });
 
+    test('cola muestra guia accionable para apoyos activos y enfoca el ticket correcto', async ({
+        page,
+    }) => {
+        const nowIso = new Date().toISOString();
+        const queueTickets = [
+            {
+                id: 1501,
+                ticketCode: 'A-1501',
+                queueType: 'appointment',
+                patientInitials: 'EP',
+                priorityClass: 'appt_current',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: nowIso,
+                needsAssistance: true,
+                assistanceRequestStatus: 'pending',
+                activeHelpRequestId: 901,
+                assistanceReason: 'no_phone',
+                assistanceReasonLabel: 'Sin celular',
+            },
+        ];
+
+        const queueState = {
+            updatedAt: nowIso,
+            waitingCount: 1,
+            calledCount: 0,
+            estimatedWaitMin: 8,
+            delayReason: 'Recepcion atendiendo solicitudes de apoyo.',
+            assistancePendingCount: 1,
+            activeHelpRequests: [
+                {
+                    id: 901,
+                    ticketId: 1501,
+                    ticketCode: 'A-1501',
+                    patientInitials: 'EP',
+                    reason: 'no_phone',
+                    reasonLabel: 'Sin celular',
+                    status: 'pending',
+                    source: 'assistant',
+                    createdAt: nowIso,
+                    updatedAt: nowIso,
+                },
+            ],
+            counts: {
+                waiting: 1,
+                called: 0,
+                completed: 0,
+                no_show: 0,
+                cancelled: 0,
+            },
+            callingNow: [],
+            nextTickets: [
+                {
+                    id: 1501,
+                    ticketCode: 'A-1501',
+                    patientInitials: 'EP',
+                    position: 1,
+                    queueType: 'appointment',
+                    priorityClass: 'appt_current',
+                    needsAssistance: true,
+                    assistanceRequestStatus: 'pending',
+                    activeHelpRequestId: 901,
+                    assistanceReason: 'no_phone',
+                    assistanceReasonLabel: 'Sin celular',
+                },
+            ],
+        };
+
+        await installQueueAdminAuthMock(page, 'csrf_queue_guidance');
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const request = route.request();
+            const url = new URL(request.url());
+            const resource = url.searchParams.get('resource') || '';
+            if (resource === 'features') {
+                return json(route, {
+                    ok: true,
+                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
+                });
+            }
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: nowIso,
+                        },
+                        queue_tickets: queueTickets,
+                        queueMeta: buildQueueMetaFromState(queueState),
+                    },
+                });
+            }
+
+            if (resource === 'queue-state') {
+                return json(route, { ok: true, data: queueState });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto(adminUrl());
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(
+            page.locator('#queueReceptionGuidancePanel')
+        ).toBeVisible();
+        await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
+            'Sin celular'
+        );
+        await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
+            'Valida identidad y datos basicos presencialmente'
+        );
+
+        await page.locator('[data-queue-filter="called"]').first().click();
+        await expect(page.locator('#queueTableBody')).toContainText(
+            'No hay tickets para filtro'
+        );
+
+        await page
+            .locator('[data-action="queue-focus-ticket"][data-queue-id="1501"]')
+            .click();
+
+        await expect(
+            page.locator('#queueTableBody tr[data-queue-id="1501"]')
+        ).toHaveClass(/queue-row-focus/);
+        await expect(page.locator('#queueTableBody')).toContainText('A-1501');
+    });
+
+    test('guia de recepcion ofrece atajos contextuales por motivo y los ejecuta', async ({
+        page,
+    }) => {
+        const nowIso = new Date().toISOString();
+        let reprintRequests = 0;
+        const appointments = [
+            {
+                id: 4201,
+                name: 'Carla Torres',
+                email: 'carla@example.com',
+                phone: '0991234567',
+                date: '2026-03-13',
+                time: '10:30',
+                service: 'Consulta de control',
+                doctor: 'Dra. Vega',
+                paymentStatus: 'paid',
+                status: 'confirmed',
+            },
+        ];
+        const availability = {
+            '2026-03-13': ['10:30', '11:00'],
+            '2026-03-14': ['09:00', '09:30'],
+        };
+        let queueTickets = [
+            {
+                id: 1601,
+                ticketCode: 'A-1601',
+                queueType: 'walk_in',
+                patientInitials: 'PR',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: nowIso,
+            },
+            {
+                id: 1602,
+                ticketCode: 'A-1602',
+                queueType: 'appointment',
+                patientInitials: 'CT',
+                priorityClass: 'appt_current',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: nowIso,
+                appointmentId: 4201,
+                phoneLast4: '4567',
+            },
+            {
+                id: 1603,
+                ticketCode: 'A-1603',
+                queueType: 'appointment',
+                patientInitials: 'MD',
+                priorityClass: 'appt_current',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: nowIso,
+            },
+        ];
+        let queueHelpRequests = [
+            {
+                id: 911,
+                ticketId: 1601,
+                ticketCode: 'A-1601',
+                patientInitials: 'PR',
+                reason: 'printer_issue',
+                reasonLabel: 'Problema de impresion',
+                status: 'pending',
+                source: 'assistant',
+                createdAt: nowIso,
+                updatedAt: nowIso,
+            },
+            {
+                id: 912,
+                ticketId: 1602,
+                ticketCode: 'A-1602',
+                patientInitials: 'CT',
+                reason: 'appointment_not_found',
+                reasonLabel: 'Cita no encontrada',
+                status: 'pending',
+                source: 'assistant',
+                createdAt: nowIso,
+                updatedAt: nowIso,
+                context: {
+                    appointmentId: 4201,
+                    phoneLast4: '4567',
+                    requestedDate: '2026-03-13',
+                    requestedTime: '10:30',
+                },
+            },
+            {
+                id: 913,
+                ticketId: 1603,
+                ticketCode: 'A-1603',
+                patientInitials: 'MD',
+                reason: 'clinical_redirect',
+                reasonLabel: 'Derivacion clinica',
+                status: 'pending',
+                source: 'assistant',
+                createdAt: nowIso,
+                updatedAt: nowIso,
+            },
+        ];
+        let queueState = {
+            updatedAt: nowIso,
+            waitingCount: 0,
+            calledCount: 0,
+            estimatedWaitMin: 0,
+            delayReason: '',
+            assistancePendingCount: 0,
+            activeHelpRequests: [],
+            recentResolvedHelpRequests: [],
+            counts: {
+                waiting: 0,
+                called: 0,
+                completed: 0,
+                no_show: 0,
+                cancelled: 0,
+            },
+            callingNow: [],
+            nextTickets: [],
+        };
+
+        function syncQueueHelpState() {
+            const updatedAt = new Date().toISOString();
+            const activeHelpRequests = queueHelpRequests.filter((request) =>
+                ['pending', 'attending'].includes(String(request.status || ''))
+            );
+            const recentResolvedHelpRequests = queueHelpRequests
+                .filter(
+                    (request) => String(request.status || '') === 'resolved'
+                )
+                .sort(
+                    (left, right) =>
+                        Date.parse(
+                            String(right.resolvedAt || right.updatedAt || '')
+                        ) -
+                        Date.parse(
+                            String(left.resolvedAt || left.updatedAt || '')
+                        )
+                )
+                .slice(0, 5);
+            queueTickets = queueTickets.map((ticket) => {
+                const activeHelpRequest =
+                    activeHelpRequests.find(
+                        (request) =>
+                            Number(request.ticketId || 0) ===
+                            Number(ticket.id || 0)
+                    ) || null;
+                if (!activeHelpRequest) {
+                    return {
+                        ...ticket,
+                        needsAssistance: false,
+                        assistanceRequestStatus: '',
+                        activeHelpRequestId: null,
+                    };
+                }
+
+                return {
+                    ...ticket,
+                    needsAssistance: true,
+                    assistanceRequestStatus: String(
+                        activeHelpRequest.status || 'pending'
+                    ),
+                    activeHelpRequestId:
+                        Number(activeHelpRequest.id || 0) || null,
+                    assistanceReason: String(
+                        activeHelpRequest.reason || ''
+                    ).trim(),
+                    assistanceReasonLabel: String(
+                        activeHelpRequest.reasonLabel || ''
+                    ).trim(),
+                };
+            });
+
+            const waitingTickets = queueTickets.filter(
+                (ticket) => ticket.status === 'waiting'
+            );
+            queueState = {
+                updatedAt,
+                waitingCount: waitingTickets.length,
+                calledCount: queueTickets.filter(
+                    (ticket) => ticket.status === 'called'
+                ).length,
+                estimatedWaitMin: waitingTickets.length * 8,
+                delayReason: activeHelpRequests.length
+                    ? 'Recepcion atendiendo solicitudes de apoyo.'
+                    : '',
+                assistancePendingCount: activeHelpRequests.filter(
+                    (request) => String(request.status || '') === 'pending'
+                ).length,
+                activeHelpRequests,
+                recentResolvedHelpRequests,
+                counts: {
+                    waiting: waitingTickets.length,
+                    called: queueTickets.filter(
+                        (ticket) => ticket.status === 'called'
+                    ).length,
+                    completed: queueTickets.filter(
+                        (ticket) => ticket.status === 'completed'
+                    ).length,
+                    no_show: queueTickets.filter(
+                        (ticket) => ticket.status === 'no_show'
+                    ).length,
+                    cancelled: queueTickets.filter(
+                        (ticket) => ticket.status === 'cancelled'
+                    ).length,
+                },
+                callingNow: [],
+                nextTickets: waitingTickets.map((ticket, index) => ({
+                    id: ticket.id,
+                    ticketCode: ticket.ticketCode,
+                    patientInitials: ticket.patientInitials,
+                    position: index + 1,
+                    queueType: ticket.queueType,
+                    priorityClass: ticket.priorityClass,
+                    needsAssistance: Boolean(ticket.needsAssistance),
+                    assistanceRequestStatus:
+                        ticket.assistanceRequestStatus || '',
+                    activeHelpRequestId: ticket.activeHelpRequestId || null,
+                    assistanceReason: ticket.assistanceReason || '',
+                    assistanceReasonLabel: ticket.assistanceReasonLabel || '',
+                })),
+            };
+        }
+
+        syncQueueHelpState();
+
+        await installQueueAdminAuthMock(page, 'csrf_queue_guidance_shortcuts');
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const request = route.request();
+            const url = new URL(request.url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'features') {
+                return json(route, {
+                    ok: true,
+                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
+                });
+            }
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments,
+                        callbacks: [],
+                        reviews: [],
+                        availability,
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: queueState.updatedAt,
+                        },
+                        queue_tickets: queueTickets,
+                        queueMeta: buildQueueMetaFromState(queueState),
+                    },
+                });
+            }
+
+            if (resource === 'queue-state') {
+                return json(route, { ok: true, data: queueState });
+            }
+
+            if (
+                resource === 'queue-help-request' &&
+                request.method() === 'PATCH'
+            ) {
+                const body = parseBody(request);
+                const helpRequestId = Number(body.id || 0);
+                const status = String(body.status || 'pending').toLowerCase();
+                const ticketId = Number(body.ticketId || body.ticket_id || 0);
+                let updatedRequest = null;
+
+                queueHelpRequests = queueHelpRequests.map((requestItem) => {
+                    const matchesById =
+                        helpRequestId > 0 &&
+                        Number(requestItem.id || 0) === helpRequestId;
+                    const matchesByTicket =
+                        helpRequestId <= 0 &&
+                        ticketId > 0 &&
+                        Number(requestItem.ticketId || 0) === ticketId &&
+                        ['pending', 'attending'].includes(
+                            String(requestItem.status || '')
+                        );
+                    if (!matchesById && !matchesByTicket) {
+                        return requestItem;
+                    }
+
+                    updatedRequest = {
+                        ...requestItem,
+                        status,
+                        updatedAt: new Date().toISOString(),
+                        context:
+                            body.context && typeof body.context === 'object'
+                                ? {
+                                      ...(requestItem.context || {}),
+                                      ...body.context,
+                                  }
+                                : requestItem.context || {},
+                        ...(status === 'resolved'
+                            ? { resolvedAt: new Date().toISOString() }
+                            : {}),
+                    };
+                    return updatedRequest;
+                });
+
+                syncQueueHelpState();
+                return json(route, {
+                    ok: true,
+                    data: {
+                        helpRequest: updatedRequest,
+                        queueState,
+                    },
+                });
+            }
+
+            if (resource === 'queue-reprint' && request.method() === 'POST') {
+                reprintRequests += 1;
+                return json(route, {
+                    ok: true,
+                    printed: true,
+                    data: {
+                        ticket: queueTickets.find(
+                            (ticket) =>
+                                Number(ticket.id || 0) ===
+                                Number(parseBody(request).id || 0)
+                        ),
+                    },
+                    print: {
+                        ok: true,
+                        errorCode: '',
+                        message: 'ok',
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto(adminUrl());
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
+            'Problema de impresion'
+        );
+        await expect(
+            page.locator(
+                '[data-action="queue-help-request-status"][data-queue-help-request-id="911"][data-queue-help-request-status="attending"]'
+            )
+        ).toContainText('Marcar en atencion');
+        await expect(
+            page.locator(
+                '[data-action="queue-reprint-ticket"][data-queue-help-request-id="911"][data-queue-guidance-shortcut="reprint"]'
+            )
+        ).toContainText('Reimprimir ticket');
+        await expect(
+            page.locator(
+                '[data-action="queue-open-appointments"][data-queue-help-request-id="912"][data-queue-guidance-shortcut="appointments"]'
+            )
+        ).toContainText('Validar cita');
+        await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
+            'Contexto operativo'
+        );
+        await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
+            'tel. *4567'
+        );
+        await expect(
+            page.locator(
+                '[data-action="queue-help-request-status"][data-queue-help-request-id="913"][data-queue-help-request-status="attending"]'
+            )
+        ).toContainText('Derivar a doctor');
+
+        await page
+            .locator(
+                '[data-action="queue-help-request-status"][data-queue-help-request-id="913"][data-queue-help-request-status="attending"]'
+            )
+            .click();
+        await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
+            'Cerrar derivacion'
+        );
+
+        await page
+            .locator(
+                '[data-action="queue-help-request-status"][data-queue-help-request-id="911"][data-queue-help-request-status="attending"]'
+            )
+            .click();
+        await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
+            'En atencion'
+        );
+
+        await page
+            .locator(
+                '[data-action="queue-reprint-ticket"][data-queue-help-request-id="911"][data-queue-guidance-shortcut="reprint"]'
+            )
+            .click();
+        await expect.poll(() => reprintRequests).toBe(1);
+
+        await page
+            .locator(
+                '[data-action="queue-help-request-status"][data-queue-help-request-id="911"][data-queue-help-request-status="resolved"]'
+            )
+            .click();
+        await expect(
+            page.locator('#queueReceptionGuidanceList')
+        ).not.toContainText('A-1601');
+        await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
+            'A-1602'
+        );
+        await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
+            'A-1603'
+        );
+
+        await page
+            .locator(
+                '[data-action="queue-open-appointments"][data-queue-help-request-id="912"][data-queue-guidance-shortcut="appointments"]'
+            )
+            .click();
+        await expect(page.locator('#appointments')).toHaveClass(/active/);
+        await expect(page.locator('#searchAppointments')).toHaveValue('4567');
+        await expect(
+            page.locator(
+                '#appointmentsTableBody tr[data-appointment-id="4201"]'
+            )
+        ).toHaveClass(/appointment-row-focus/);
+        await expect(page.locator('#appointmentsFocusLabel')).toContainText(
+            'Revision desde sala'
+        );
+        await expect(page.locator('#appointmentsFocusPatient')).toContainText(
+            'Carla Torres'
+        );
+        await expect(page.locator('#appointmentsQueueReview')).toContainText(
+            'A-1602'
+        );
+        await expect(page.locator('#appointmentsQueueReview')).toContainText(
+            'Cita no encontrada'
+        );
+        await expect(page.locator('#appointmentsQueueReview')).toContainText(
+            'Cita vigente'
+        );
+        await expect(page.locator('#appointmentsQueueReview')).toContainText(
+            'tel. *4567'
+        );
+        await expect(
+            page.locator(
+                '[data-action="appointment-review-confirm-appointment"][data-review-ticket-id="1602"]'
+            )
+        ).toContainText('Confirmar cita vigente');
+        await expect(
+            page.locator(
+                '[data-action="appointment-review-help-request-status"][data-review-ticket-id="1602"][data-review-help-request-status="attending"]'
+            )
+        ).toContainText('Marcar apoyo en atencion');
+
+        await page
+            .locator(
+                '[data-action="appointment-review-help-request-status"][data-review-ticket-id="1602"][data-review-help-request-status="attending"]'
+            )
+            .click();
+        await expect(page.locator('#appointmentsQueueReview')).toContainText(
+            'En atencion'
+        );
+        await expect(page.locator('#appointmentsQueueReview')).toContainText(
+            'Cita vigente'
+        );
+
+        await page
+            .locator(
+                '[data-action="appointment-review-open-queue"][data-review-ticket-id="1602"]'
+            )
+            .click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(
+            page.locator('#queueTableBody tr[data-queue-id="1602"]')
+        ).toContainText('A-1602');
+        await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
+            'Validacion actual: Cita vigente'
+        );
+        await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
+            'Cierre recomendado ahora: Cita vigente confirmada'
+        );
+        await expect(
+            page.locator(
+                '[data-action="queue-help-request-status"][data-queue-help-request-id="912"][data-queue-help-request-status="resolved"]'
+            )
+        ).toContainText('Confirmar cita vigente');
+
+        await page
+            .locator(
+                '[data-action="queue-help-request-status"][data-queue-help-request-id="912"][data-queue-help-request-status="resolved"]'
+            )
+            .click();
+        await expect(page.locator('#queueActivityList')).toContainText(
+            'Apoyo resuelto 1602 · Cita vigente confirmada'
+        );
+        await expect(
+            page.locator('#queueReceptionGuidanceList')
+        ).not.toContainText('A-1602');
+        await expect(page.locator('#queueRecentResolutionsList')).toContainText(
+            'A-1602'
+        );
+        await expect(page.locator('#queueRecentResolutionsList')).toContainText(
+            'Cita vigente confirmada'
+        );
+    });
+
+    test('agenda lee disponibilidad real y abre el dia pedido para conflicto horario', async ({
+        page,
+    }) => {
+        const nowIso = new Date().toISOString();
+        const availability = {
+            '2026-03-14': ['09:00', '09:30'],
+        };
+        const queueTickets = [
+            {
+                id: 1701,
+                ticketCode: 'A-1701',
+                queueType: 'appointment',
+                patientInitials: 'LS',
+                priorityClass: 'appt_current',
+                status: 'waiting',
+                assignedConsultorio: null,
+                createdAt: nowIso,
+                phoneLast4: '8899',
+            },
+        ];
+        const queueState = {
+            updatedAt: nowIso,
+            waitingCount: 1,
+            calledCount: 0,
+            estimatedWaitMin: 8,
+            delayReason: 'Recepcion validando agenda.',
+            assistancePendingCount: 1,
+            activeHelpRequests: [
+                {
+                    id: 971,
+                    ticketId: 1701,
+                    ticketCode: 'A-1701',
+                    patientInitials: 'LS',
+                    reason: 'schedule_taken',
+                    reasonLabel: 'Horario ocupado',
+                    status: 'pending',
+                    source: 'assistant',
+                    createdAt: nowIso,
+                    updatedAt: nowIso,
+                    context: {
+                        phoneLast4: '8899',
+                        requestedDate: '2026-03-14',
+                        requestedTime: '11:00',
+                    },
+                },
+            ],
+            recentResolvedHelpRequests: [],
+            counts: {
+                waiting: 1,
+                called: 0,
+                completed: 0,
+                no_show: 0,
+                cancelled: 0,
+            },
+            callingNow: [],
+            nextTickets: [
+                {
+                    id: 1701,
+                    ticketCode: 'A-1701',
+                    patientInitials: 'LS',
+                    position: 1,
+                    queueType: 'appointment',
+                    priorityClass: 'appt_current',
+                    needsAssistance: true,
+                    assistanceRequestStatus: 'pending',
+                    activeHelpRequestId: 971,
+                    assistanceReason: 'schedule_taken',
+                    assistanceReasonLabel: 'Horario ocupado',
+                },
+            ],
+        };
+
+        await installQueueAdminAuthMock(page, 'csrf_queue_schedule_conflict');
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const request = route.request();
+            const url = new URL(request.url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'features') {
+                return json(route, {
+                    ok: true,
+                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
+                });
+            }
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability,
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: nowIso,
+                        },
+                        queue_tickets: queueTickets,
+                        queueMeta: buildQueueMetaFromState(queueState),
+                    },
+                });
+            }
+
+            if (resource === 'queue-state') {
+                return json(route, { ok: true, data: queueState });
+            }
+
+            if (
+                resource === 'queue-help-request' &&
+                request.method() === 'PATCH'
+            ) {
+                const body = parseBody(request);
+                const nextStatus = String(body.status || 'pending')
+                    .trim()
+                    .toLowerCase();
+                const updatedAt = new Date().toISOString();
+                const requestItem = queueState.activeHelpRequests[0];
+                const updatedRequest = {
+                    ...requestItem,
+                    status: nextStatus,
+                    updatedAt,
+                    context:
+                        body.context && typeof body.context === 'object'
+                            ? {
+                                  ...(requestItem.context || {}),
+                                  ...body.context,
+                              }
+                            : requestItem.context || {},
+                    ...(nextStatus === 'attending'
+                        ? { attendedAt: updatedAt }
+                        : {}),
+                    ...(nextStatus === 'resolved'
+                        ? { resolvedAt: updatedAt }
+                        : {}),
+                };
+
+                queueState.activeHelpRequests =
+                    nextStatus === 'resolved' ? [] : [updatedRequest];
+                queueState.assistancePendingCount =
+                    nextStatus === 'pending' ? 1 : 0;
+                queueState.recentResolvedHelpRequests =
+                    nextStatus === 'resolved' ? [updatedRequest] : [];
+                queueState.updatedAt = updatedAt;
+
+                return json(route, {
+                    ok: true,
+                    data: {
+                        helpRequest: updatedRequest,
+                        queueState,
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto(adminUrl());
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await page
+            .locator(
+                '[data-action="queue-open-appointments"][data-queue-help-request-id="971"]'
+            )
+            .click();
+
+        await expect(page.locator('#appointments')).toHaveClass(/active/);
+        await expect(page.locator('#appointmentsQueueReview')).toContainText(
+            'Slot no publicado'
+        );
+        await expect(page.locator('#appointmentsQueueReview')).toContainText(
+            '11:00 no aparece'
+        );
+        await expect(
+            page.locator(
+                '[data-action="appointment-review-open-availability"][data-review-requested-date="2026-03-14"]'
+            )
+        ).toContainText('Revisar disponibilidad');
+        await expect(
+            page.locator(
+                '[data-action="appointment-review-help-request-status"][data-review-ticket-id="1701"][data-review-help-request-status="attending"]'
+            )
+        ).toContainText('Marcar apoyo en atencion');
+
+        await page
+            .locator(
+                '[data-action="appointment-review-help-request-status"][data-review-ticket-id="1701"][data-review-help-request-status="attending"]'
+            )
+            .click();
+        await expect(page.locator('#appointmentsQueueReview')).toContainText(
+            'En atencion'
+        );
+
+        await page
+            .locator(
+                '[data-action="appointment-review-open-availability"][data-review-requested-date="2026-03-14"]'
+            )
+            .click();
+
+        await expect(page.locator('#availability')).toHaveClass(/active/);
+        await expect(page.locator('#selectedDate')).toHaveText('2026-03-14');
+        await expect(page.locator('#timeSlotsList')).toContainText('09:00');
+        await expect(page.locator('#timeSlotsList')).toContainText('09:30');
+        await expect(page.locator('#timeSlotsList')).not.toContainText('11:00');
+        await expect(page.locator('#availabilityReviewContext')).toContainText(
+            'Disponibilidad abierta desde sala'
+        );
+        await expect(page.locator('#availabilityReviewContext')).toContainText(
+            'Slot no publicado'
+        );
+        await expect(
+            page.locator(
+                '#availabilityReviewContext [data-action="appointment-review-open-queue"][data-review-ticket-id="1701"]'
+            )
+        ).toContainText('Volver a cola con conflicto horario');
+
+        await page
+            .locator(
+                '#availabilityReviewContext [data-action="appointment-review-open-queue"][data-review-ticket-id="1701"]'
+            )
+            .click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
+            'Validacion actual: Slot no publicado'
+        );
+        await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
+            'Cierre recomendado ahora: Horario ya no publicado'
+        );
+        await expect(
+            page.locator(
+                '[data-action="queue-help-request-status"][data-queue-help-request-id="971"][data-queue-help-request-status="resolved"]'
+            )
+        ).toContainText('Confirmar horario no publicado');
+
+        await page
+            .locator(
+                '[data-action="queue-help-request-status"][data-queue-help-request-id="971"][data-queue-help-request-status="resolved"]'
+            )
+            .click();
+        await expect(page.locator('#queueRecentResolutionsList')).toContainText(
+            'Horario ya no publicado'
+        );
+    });
+
     test('permite llamar siguiente ticket en consultorio 1', async ({
         page,
     }) => {
@@ -177,22 +1118,7 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const action = url.searchParams.get('action') || '';
-            if (action === 'status') {
-                return json(route, {
-                    ok: true,
-                    authenticated: true,
-                    csrfToken: 'csrf_queue_admin',
-                });
-            }
-            return json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_admin',
-            });
-        });
+        await installQueueAdminAuthMock(page, 'csrf_queue_admin');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -409,13 +1335,7 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_triage',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_triage');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -542,13 +1462,7 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_watchdog',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_watchdog');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -677,13 +1591,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_shortcuts',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_shortcuts');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -861,13 +1769,7 @@ test.describe('Admin turnero sala', () => {
         };
         let queueStateRequests = 0;
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_state_fallback',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_state_fallback');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -984,13 +1886,7 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_meta_fallback',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_meta_fallback');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -1113,13 +2009,7 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_state_data_fallback',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_state_data_fallback');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -1211,13 +2101,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_burst',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_burst');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -1331,13 +2215,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_retry',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_retry');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -1469,13 +2347,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_parallel_rooms',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_parallel_rooms');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -1645,13 +2517,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_lifecycle',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_lifecycle');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -1863,13 +2729,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_dispatch',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_dispatch');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -2092,13 +2952,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_attention_deck',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_attention_deck');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -2356,13 +3210,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_resolution_deck',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_resolution_deck');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -2606,13 +3454,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_ticket_lookup',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_ticket_lookup');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -2861,13 +3703,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_ticket_route',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_ticket_route');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -3026,13 +3862,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_ticket_simulation',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_ticket_simulation');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -3210,13 +4040,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_next_turns',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_next_turns');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -3378,13 +4202,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_master_sequence',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_master_sequence');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -3546,13 +4364,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_blockers',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_blockers');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -3710,13 +4522,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_sla_deck',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_sla_deck');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -3879,13 +4685,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_coverage_deck',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_coverage_deck');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -4074,13 +4874,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_reserve_deck',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_reserve_deck');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -4262,13 +5056,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_general_guidance',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_general_guidance');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -4450,13 +5238,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_projected_deck',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_projected_deck');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -4627,13 +5409,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_incoming_deck',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_incoming_deck');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -4807,13 +5583,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_scenarios',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_scenarios');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -4984,13 +5754,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_reception_script',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_reception_script');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -5150,13 +5914,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_reception_collision',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_reception_collision');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -5322,13 +6080,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_reception_lights',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_reception_lights');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -5497,13 +6249,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_window_deck',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_window_deck');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -5671,13 +6417,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_reply',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_desk_reply');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -5838,13 +6578,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_fallback',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_desk_fallback');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -6002,13 +6736,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_objections',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_desk_objections');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -6167,13 +6895,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_closeout',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_desk_closeout');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -8292,13 +9014,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_wait_radar',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_wait_radar');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -8486,13 +9202,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_load_balance',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_load_balance');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -8675,13 +9385,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_priority_lane',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_priority_lane');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -8876,13 +9580,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_quick_trays',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_quick_trays');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -9027,13 +9725,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_active_tray',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_active_tray');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -9205,13 +9897,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_tray_burst',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_tray_burst');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -9432,13 +10118,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_station_c2',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_station_c2');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -9574,13 +10254,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_station_c1',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_station_c1');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -9704,13 +10378,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_one_tap_c2',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_one_tap_c2');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -9890,13 +10558,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_one_tap_only_call',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_one_tap_only_call');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -10019,13 +10681,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_station_override',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_station_override');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -10141,13 +10797,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_numpad_star_help',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_numpad_star_help');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -10296,13 +10946,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_numpad_star_confirm',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_numpad_star_confirm');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -10451,12 +11095,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_numpad_location_fallback',
-            })
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_numpad_location_fallback'
         );
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -10714,13 +11355,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_custom_call_key',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_custom_call_key');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -10918,13 +11553,7 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_practice_mode',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_practice_mode');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -11056,13 +11685,7 @@ test.describe('Admin turnero sala', () => {
         ];
         const queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_filter_empty',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_filter_empty');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -11160,13 +11783,7 @@ test.describe('Admin turnero sala', () => {
         const queueState = buildQueueStateFromTickets(queueTickets);
         let reprintRequests = 0;
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_reprint_bulk',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_reprint_bulk');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -13698,13 +14315,7 @@ test.describe('Admin turnero sala', () => {
             window.__QUEUE_AUTO_REFRESH_INTERVAL_MS__ = 120;
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_apps_hub',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_apps_hub');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -14498,6 +15109,15 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueInstallConfigurator')).toContainText(
             'station=c1'
         );
+        await expect(page.locator('#queueInstallConfigurator')).toContainText(
+            'latest.yml'
+        );
+        await expect(page.locator('#queueInstallConfigurator')).toContainText(
+            'PC 1 · C1 fijo'
+        );
+        await expect(page.locator('#queueInstallConfigurator')).toContainText(
+            'PC 2 · C2 fijo'
+        );
         await expect(
             page.locator('#queueInstallPreset_operator_c1_locked')
         ).toBeVisible();
@@ -14547,6 +15167,9 @@ test.describe('Admin turnero sala', () => {
         );
         await expect(page.locator('#queueInstallConfigurator')).toContainText(
             'one_tap=1'
+        );
+        await expect(page.locator('#queueInstallConfigurator')).toContainText(
+            'TurneroOperadorSetup.exe'
         );
         await expect(page.locator('#queueOpsLogItems')).toContainText(
             'Modo 1 tecla activado'
@@ -14632,6 +15255,12 @@ test.describe('Admin turnero sala', () => {
                     shellPackaged: true,
                     shellPlatform: 'win32',
                     shellUpdateChannel: 'stable',
+                    shellUpdateMetadataUrl:
+                        'https://pielarmonia.com/desktop-updates/pilot/operator/win/latest.yml',
+                    shellInstallGuideUrl:
+                        'https://pielarmonia.com/app-downloads/?surface=operator&platform=win&station=c1&lock=1&one_tap=0',
+                    shellConfigPath:
+                        'C:\\Users\\OperadorC1\\AppData\\Roaming\\TurneroOperador\\turnero-desktop.json',
                 },
             },
             {
@@ -14655,17 +15284,17 @@ test.describe('Admin turnero sala', () => {
                     shellPackaged: true,
                     shellPlatform: 'win32',
                     shellUpdateChannel: 'stable',
+                    shellUpdateMetadataUrl:
+                        'https://pielarmonia.com/desktop-updates/pilot/operator/win/latest.yml',
+                    shellInstallGuideUrl:
+                        'https://pielarmonia.com/app-downloads/?surface=operator&platform=win&station=c2&lock=1&one_tap=1',
+                    shellConfigPath:
+                        'C:\\Users\\OperadorC2\\AppData\\Roaming\\TurneroOperador\\turnero-desktop.json',
                 },
             },
         ];
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_admin_dual_operator',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_admin_dual_operator');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -14843,6 +15472,24 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
             'canal stable'
         );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Feed'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'latest.yml'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Guía'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'station=c2'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Config local'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'turnero-desktop.json'
+        );
     });
 
     test('admin mantiene visible una desktop operador en configuracion local sin contarla como lista', async ({
@@ -14877,13 +15524,7 @@ test.describe('Admin turnero sala', () => {
             },
         };
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_admin_boot_operator',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_admin_boot_operator');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -15025,6 +15666,560 @@ test.describe('Admin turnero sala', () => {
         );
         await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
             'Validar en operador'
+        );
+    });
+
+    test('admin expone intento y causa cuando una desktop operador queda reintentando apertura', async ({
+        page,
+    }) => {
+        const nowIso = new Date().toISOString();
+        const operatorInstance = {
+            deviceLabel: 'Operador C1 fijo',
+            appMode: 'desktop',
+            ageSec: 4,
+            stale: false,
+            effectiveStatus: 'warning',
+            summary:
+                'No se pudo abrir la superficie operator. Reintentando en 18s.',
+            details: {
+                station: 'c1',
+                stationMode: 'locked',
+                oneTap: true,
+                numpadSeen: false,
+                numpadReady: false,
+                numpadProgress: 0,
+                numpadRequired: 4,
+                numpadLabel: 'Validar en operador',
+                numpadSummary:
+                    'La matriz del numpad se valida dentro de operador-turnos.html',
+                shellContext: 'boot',
+                shellPhase: 'retry',
+                shellSettingsMode: false,
+                shellFirstRun: false,
+                shellPackaged: true,
+                shellPlatform: 'win32',
+                shellUpdateChannel: 'stable',
+                shellRetryActive: true,
+                shellRetryAttempt: 2,
+                shellRetryDelayMs: 18000,
+                shellRetryRemainingMs: 18000,
+                shellRetryReason: 'No se pudo abrir la superficie operator',
+            },
+        };
+
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_admin_operator_retry'
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'features') {
+                return json(route, {
+                    ok: true,
+                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
+                });
+            }
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: nowIso,
+                        },
+                        queue_tickets: [],
+                        queueMeta: buildQueueMetaFromState({
+                            updatedAt: nowIso,
+                            waitingCount: 0,
+                            calledCount: 0,
+                            counts: {
+                                waiting: 0,
+                                called: 0,
+                                completed: 0,
+                                no_show: 0,
+                                cancelled: 0,
+                            },
+                            callingNow: [],
+                            nextTickets: [],
+                        }),
+                        queueSurfaceStatus: {
+                            operator: {
+                                surface: 'operator',
+                                label: 'Operador',
+                                status: 'warning',
+                                updatedAt: nowIso,
+                                ageSec: 4,
+                                stale: false,
+                                summary:
+                                    'Una desktop operador quedó reintentando apertura.',
+                                latest: operatorInstance,
+                                instances: [operatorInstance],
+                            },
+                            kiosk: {
+                                surface: 'kiosk',
+                                label: 'Kiosco',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                            display: {
+                                surface: 'display',
+                                label: 'Sala TV',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                        },
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            if (resource === 'queue-state') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        updatedAt: nowIso,
+                        waitingCount: 0,
+                        calledCount: 0,
+                        counts: {
+                            waiting: 0,
+                            called: 0,
+                            completed: 0,
+                            no_show: 0,
+                            cancelled: 0,
+                        },
+                        callingNow: [],
+                        nextTickets: [],
+                    },
+                });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await page.locator('#queueDomainOperations').click();
+        await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
+            'Pendiente de validar'
+        );
+        await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
+            'Reintentando #2'
+        );
+        await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
+            '18s'
+        );
+        await expect(page.locator('#queueDispatchCard_c1')).toContainText(
+            'Reintentando #2'
+        );
+
+        await page.locator('#queueDomainIncidents').click();
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Reintentando #2'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            '18s'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'No se pudo abrir la superficie operator'
+        );
+        await expect(page.locator('#queueOpsAlertsItems')).toContainText(
+            'Operador reintentando apertura'
+        );
+        await expect(page.locator('#queueOpsAlertsItems')).toContainText(
+            'Reintentando #2'
+        );
+        await expect(page.locator('#queueOpsAlertsItems')).toContainText(
+            'No se pudo abrir la superficie operator'
+        );
+    });
+
+    test('admin mantiene visible launchMode y alerta autoarranque apagado en desktop operador', async ({
+        page,
+    }) => {
+        const nowIso = new Date().toISOString();
+        const operatorInstance = {
+            deviceLabel: 'Operador C2 fijo',
+            appMode: 'desktop',
+            ageSec: 3,
+            stale: false,
+            effectiveStatus: 'ready',
+            summary: 'Equipo listo para operar en C2 fijo.',
+            details: {
+                station: 'c2',
+                stationMode: 'locked',
+                oneTap: true,
+                numpadSeen: true,
+                numpadReady: true,
+                numpadProgress: 4,
+                numpadRequired: 4,
+                numpadLabel: 'Numpad listo',
+                numpadSummary: 'Matriz completa validada: llamar, +, . y -',
+                shellPackaged: true,
+                shellPlatform: 'win32',
+                shellUpdateChannel: 'stable',
+                shellLaunchMode: 'windowed',
+                shellAutoStart: false,
+            },
+        };
+
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_admin_operator_autostart'
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'features') {
+                return json(route, {
+                    ok: true,
+                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
+                });
+            }
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: nowIso,
+                        },
+                        queue_tickets: [],
+                        queueMeta: buildQueueMetaFromState({
+                            updatedAt: nowIso,
+                            waitingCount: 0,
+                            calledCount: 0,
+                            counts: {
+                                waiting: 0,
+                                called: 0,
+                                completed: 0,
+                                no_show: 0,
+                                cancelled: 0,
+                            },
+                            callingNow: [],
+                            nextTickets: [],
+                        }),
+                        queueSurfaceStatus: {
+                            operator: {
+                                surface: 'operator',
+                                label: 'Operador',
+                                status: 'ready',
+                                updatedAt: nowIso,
+                                ageSec: 3,
+                                stale: false,
+                                summary:
+                                    'Operador Windows listo, pero con autoarranque apagado.',
+                                latest: operatorInstance,
+                                instances: [operatorInstance],
+                            },
+                            kiosk: {
+                                surface: 'kiosk',
+                                label: 'Kiosco',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                            display: {
+                                surface: 'display',
+                                label: 'Sala TV',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                        },
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            if (resource === 'queue-state') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        updatedAt: nowIso,
+                        waitingCount: 0,
+                        calledCount: 0,
+                        counts: {
+                            waiting: 0,
+                            called: 0,
+                            completed: 0,
+                            no_show: 0,
+                            cancelled: 0,
+                        },
+                        callingNow: [],
+                        nextTickets: [],
+                    },
+                });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await page.locator('#queueDomainOperations').click();
+        await expect(page.locator('#queueConsultorioCard_c2')).toContainText(
+            'Ventana'
+        );
+        await expect(page.locator('#queueConsultorioCard_c2')).toContainText(
+            'Autoarranque OFF'
+        );
+        await expect(page.locator('#queueDispatchCard_c2')).toContainText(
+            'Ventana'
+        );
+        await expect(page.locator('#queueDispatchCard_c2')).toContainText(
+            'Autoarranque OFF'
+        );
+
+        await page.locator('#queueDomainIncidents').click();
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Ventana'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Autoarranque OFF'
+        );
+        await expect(page.locator('#queueOpsAlertsItems')).toContainText(
+            'Operador con autoarranque apagado'
+        );
+        await expect(page.locator('#queueOpsAlertsItems')).toContainText(
+            'Autoarranque OFF'
+        );
+    });
+
+    test('admin muestra progreso de auto-update del operador sin perder el contexto operativo', async ({
+        page,
+    }) => {
+        const nowIso = new Date().toISOString();
+        const operatorInstance = {
+            deviceLabel: 'Operador C1 fijo',
+            appMode: 'desktop',
+            ageSec: 3,
+            stale: false,
+            effectiveStatus: 'ready',
+            summary: 'Equipo listo para operar en C1 fijo.',
+            details: {
+                station: 'c1',
+                stationMode: 'locked',
+                oneTap: false,
+                numpadSeen: true,
+                numpadReady: true,
+                numpadProgress: 4,
+                numpadRequired: 4,
+                numpadLabel: 'Numpad listo',
+                numpadSummary: 'Matriz completa validada: llamar, +, . y -',
+                shellPackaged: true,
+                shellPlatform: 'win32',
+                shellUpdateChannel: 'stable',
+                shellLaunchMode: 'fullscreen',
+                shellAutoStart: true,
+                shellStatusPhase: 'download',
+                shellStatusLevel: 'info',
+                shellStatusPercent: 42,
+                shellStatusVersion: '0.2.0',
+                shellMessage: 'Descargando update 42%',
+            },
+        };
+
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_admin_operator_update'
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'features') {
+                return json(route, {
+                    ok: true,
+                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
+                });
+            }
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: nowIso,
+                        },
+                        queue_tickets: [],
+                        queueMeta: buildQueueMetaFromState({
+                            updatedAt: nowIso,
+                            waitingCount: 0,
+                            calledCount: 0,
+                            counts: {
+                                waiting: 0,
+                                called: 0,
+                                completed: 0,
+                                no_show: 0,
+                                cancelled: 0,
+                            },
+                            callingNow: [],
+                            nextTickets: [],
+                        }),
+                        queueSurfaceStatus: {
+                            operator: {
+                                surface: 'operator',
+                                label: 'Operador',
+                                status: 'ready',
+                                updatedAt: nowIso,
+                                ageSec: 3,
+                                stale: false,
+                                summary:
+                                    'Operador Windows listo mientras descarga update.',
+                                latest: operatorInstance,
+                                instances: [operatorInstance],
+                            },
+                            kiosk: {
+                                surface: 'kiosk',
+                                label: 'Kiosco',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                            display: {
+                                surface: 'display',
+                                label: 'Sala TV',
+                                status: 'unknown',
+                                updatedAt: '',
+                                ageSec: 0,
+                                stale: true,
+                                summary: 'Sin heartbeat',
+                                latest: null,
+                                instances: [],
+                            },
+                        },
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, { ok: true, status: 'ok' });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            if (resource === 'queue-state') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        updatedAt: nowIso,
+                        waitingCount: 0,
+                        calledCount: 0,
+                        counts: {
+                            waiting: 0,
+                            called: 0,
+                            completed: 0,
+                            no_show: 0,
+                            cancelled: 0,
+                        },
+                        callingNow: [],
+                        nextTickets: [],
+                    },
+                });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await page.locator('#queueDomainOperations').click();
+        await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
+            'Update 42%'
+        );
+        await expect(page.locator('#queueDispatchCard_c1')).toContainText(
+            'Update 42%'
+        );
+
+        await page.locator('#queueDomainIncidents').click();
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Update 42%'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Descargando update 42%'
+        );
+        await expect(page.locator('#queueOpsAlertsItems')).toContainText(
+            'Operador descargando actualización'
+        );
+        await expect(page.locator('#queueOpsAlertsItems')).toContainText(
+            'Descargando update 42%'
         );
     });
 });

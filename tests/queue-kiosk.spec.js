@@ -9,6 +9,27 @@ function json(route, payload, status = 200) {
     });
 }
 
+function supportReasonLabel(reason) {
+    return (
+        {
+            human_help: 'Ayuda humana',
+            lost_ticket: 'Perdio su ticket',
+            printer_issue: 'Problema de impresion',
+            appointment_not_found: 'Cita no encontrada',
+            ticket_duplicate: 'Ticket duplicado',
+            special_priority: 'Prioridad especial',
+            accessibility: 'Accesibilidad',
+            clinical_redirect: 'Derivacion clinica',
+            late_arrival: 'Llegada tarde',
+            offline_pending: 'Pendiente offline',
+            no_phone: 'Sin celular',
+            schedule_taken: 'Horario ocupado',
+            reprint_requested: 'Reimpresion solicitada',
+            general: 'Apoyo general',
+        }[String(reason || 'general')] || 'Apoyo general'
+    );
+}
+
 test.describe('Kiosco turnos', () => {
     test('aplica branding del perfil clinico en cabecera y contexto del kiosco', async ({
         page,
@@ -486,6 +507,396 @@ test.describe('Kiosco turnos', () => {
         await expect(page.locator('#queueOutboxHint')).toContainText(
             'Pendientes offline: 0'
         );
+    });
+
+    test('envia contexto operativo al escalar cita no encontrada', async ({
+        page,
+    }) => {
+        let chatCalls = 0;
+        let helpRequestBody = null;
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const request = route.request();
+            const url = new URL(request.url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'queue-state') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        updatedAt: new Date().toISOString(),
+                        waitingCount: 1,
+                        calledCount: 0,
+                        callingNow: [],
+                        nextTickets: [],
+                        estimatedWaitMin: 8,
+                        assistancePendingCount: 0,
+                        activeHelpRequests: [],
+                    },
+                });
+            }
+
+            if (resource === 'queue-help-request') {
+                helpRequestBody = request.postDataJSON();
+                return json(
+                    route,
+                    {
+                        ok: true,
+                        data: {
+                            helpRequest: {
+                                id: 811,
+                                source: 'assistant',
+                                reason: 'appointment_not_found',
+                                reasonLabel: 'Cita no encontrada',
+                                status: 'pending',
+                                patientInitials: 'EP',
+                                createdAt: new Date().toISOString(),
+                                updatedAt: new Date().toISOString(),
+                            },
+                            queueState: {
+                                updatedAt: new Date().toISOString(),
+                                waitingCount: 1,
+                                calledCount: 0,
+                                callingNow: [],
+                                nextTickets: [],
+                                estimatedWaitMin: 8,
+                                assistancePendingCount: 1,
+                                activeHelpRequests: [
+                                    {
+                                        id: 811,
+                                        source: 'assistant',
+                                        reason: 'appointment_not_found',
+                                        reasonLabel: 'Cita no encontrada',
+                                        status: 'pending',
+                                        patientInitials: 'EP',
+                                        createdAt: new Date().toISOString(),
+                                        updatedAt: new Date().toISOString(),
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                    201
+                );
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.route(/\/figo-chat\.php(\?.*)?$/i, async (route) => {
+            chatCalls += 1;
+            return json(route, {
+                choices: [
+                    {
+                        message: {
+                            role: 'assistant',
+                            content: 'respuesta libre',
+                        },
+                    },
+                ],
+            });
+        });
+
+        await page.goto('/kiosco-turnos.html');
+
+        await page.fill('#checkinInitials', 'EP');
+        await page.fill('#checkinPhone', '0991234567');
+        await page.fill('#checkinDate', '2026-03-13');
+        await page.fill('#checkinTime', '10:30');
+        await page.fill('#assistantInput', 'No encuentro mi cita');
+        await page.click('#assistantSend');
+
+        await expect(page.locator('#assistantMessages')).toContainText(
+            'revisa telefono, fecha y hora en Tengo cita'
+        );
+        expect(chatCalls).toBe(0);
+        expect(helpRequestBody?.reason).toBe('appointment_not_found');
+        expect(helpRequestBody?.context?.selectedFlow).toBe('checkin');
+        expect(helpRequestBody?.context?.phoneLast4).toBe('4567');
+        expect(helpRequestBody?.context?.requestedDate).toBe('2026-03-13');
+        expect(helpRequestBody?.context?.requestedTime).toBe('10:30');
+    });
+
+    test('enruta excepciones operativas restantes sin usar chat libre', async ({
+        page,
+    }) => {
+        let chatCalls = 0;
+        const helpReasons = [];
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const request = route.request();
+            const url = new URL(request.url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'queue-state') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        updatedAt: new Date().toISOString(),
+                        waitingCount: 1,
+                        calledCount: 0,
+                        callingNow: [],
+                        nextTickets: [],
+                        assistancePendingCount: 0,
+                        activeHelpRequests: [],
+                    },
+                });
+            }
+
+            if (resource === 'queue-ticket') {
+                return json(
+                    route,
+                    {
+                        ok: true,
+                        data: {
+                            id: 101,
+                            ticketCode: 'A-101',
+                            patientInitials: 'EP',
+                            queueType: 'walk_in',
+                            createdAt: new Date().toISOString(),
+                        },
+                        printed: false,
+                        print: {
+                            ok: true,
+                            errorCode: '',
+                            message: 'ok',
+                        },
+                    },
+                    201
+                );
+            }
+
+            if (resource === 'queue-help-request') {
+                const body = request.postDataJSON();
+                const reason = String(body.reason || 'general');
+                helpReasons.push(reason);
+                const helpRequest = {
+                    id: 900 + helpReasons.length,
+                    source: 'assistant',
+                    reason,
+                    reasonLabel: supportReasonLabel(reason),
+                    status: 'pending',
+                    patientInitials: 'EP',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                };
+                return json(
+                    route,
+                    {
+                        ok: true,
+                        data: {
+                            helpRequest,
+                            queueState: {
+                                updatedAt: new Date().toISOString(),
+                                waitingCount: 1,
+                                calledCount: 0,
+                                callingNow: [],
+                                nextTickets: [],
+                                assistancePendingCount: 1,
+                                activeHelpRequests: [helpRequest],
+                            },
+                        },
+                    },
+                    201
+                );
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.route(/\/figo-chat\.php(\?.*)?$/i, async (route) => {
+            chatCalls += 1;
+            return json(route, {
+                choices: [
+                    {
+                        message: {
+                            role: 'assistant',
+                            content: 'respuesta libre',
+                        },
+                    },
+                ],
+            });
+        });
+
+        await page.goto('/kiosco-turnos.html');
+
+        await page.fill('#walkinInitials', 'EP');
+        await page.click('#walkinSubmit');
+        await expect(page.locator('#ticketResult')).toContainText('A-101');
+
+        await page.fill('#assistantInput', 'Me salieron dos tickets');
+        await page.click('#assistantSend');
+        await expect(page.locator('#assistantMessages')).toContainText(
+            'ticket duplicado'
+        );
+
+        await page.fill('#assistantInput', 'Llegue tarde a mi cita');
+        await page.click('#assistantSend');
+        await expect(page.locator('#assistantMessages')).toContainText(
+            'llegada tarde'
+        );
+
+        await page.fill('#assistantInput', 'No traje mi celular');
+        await page.click('#assistantSend');
+        await expect(page.locator('#assistantMessages')).toContainText(
+            'sin celular'
+        );
+
+        await page.fill('#assistantInput', 'Ese horario ya esta ocupado');
+        await page.click('#assistantSend');
+        await expect(page.locator('#assistantMessages')).toContainText(
+            'reprogramacion o cambio de horario'
+        );
+
+        await page.fill('#assistantInput', 'Mi turno quedo pendiente offline');
+        await page.click('#assistantSend');
+        await expect(page.locator('#assistantMessages')).toContainText(
+            'pendiente offline'
+        );
+
+        expect(helpReasons).toEqual([
+            'ticket_duplicate',
+            'late_arrival',
+            'no_phone',
+            'schedule_taken',
+            'offline_pending',
+        ]);
+        expect(chatCalls).toBe(0);
+    });
+
+    test('publica metricas acumuladas del asistente en heartbeat del kiosco', async ({
+        page,
+    }) => {
+        const heartbeatBodies = [];
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const request = route.request();
+            const url = new URL(request.url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'queue-state') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        updatedAt: new Date().toISOString(),
+                        waitingCount: 0,
+                        calledCount: 0,
+                        callingNow: [],
+                        nextTickets: [],
+                        assistancePendingCount: 0,
+                        activeHelpRequests: [],
+                    },
+                });
+            }
+
+            if (resource === 'queue-help-request') {
+                return json(
+                    route,
+                    {
+                        ok: true,
+                        data: {
+                            helpRequest: {
+                                id: 910,
+                                source: 'assistant',
+                                reason: 'clinical_redirect',
+                                reasonLabel: 'Derivacion clinica',
+                                status: 'pending',
+                                patientInitials: '--',
+                                createdAt: new Date().toISOString(),
+                                updatedAt: new Date().toISOString(),
+                            },
+                            queueState: {
+                                updatedAt: new Date().toISOString(),
+                                waitingCount: 0,
+                                calledCount: 0,
+                                callingNow: [],
+                                nextTickets: [],
+                                assistancePendingCount: 1,
+                                activeHelpRequests: [
+                                    {
+                                        id: 910,
+                                        source: 'assistant',
+                                        reason: 'clinical_redirect',
+                                        reasonLabel: 'Derivacion clinica',
+                                        status: 'pending',
+                                        patientInitials: '--',
+                                        createdAt: new Date().toISOString(),
+                                        updatedAt: new Date().toISOString(),
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                    201
+                );
+            }
+
+            if (resource === 'queue-surface-heartbeat') {
+                heartbeatBodies.push(request.postDataJSON());
+                return json(route, {
+                    ok: true,
+                    data: {
+                        status: 'ready',
+                    },
+                });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto('/kiosco-turnos.html');
+        await expect.poll(() => heartbeatBodies.length).toBeGreaterThan(0);
+
+        await page.fill('#assistantInput', 'No tengo cita');
+        await page.click('#assistantSend');
+        await expect(page.locator('#assistantMessages')).toContainText(
+            'Te llevo a No tengo cita'
+        );
+
+        await page.fill(
+            '#assistantInput',
+            'Que crema me pongo para el sarpullido'
+        );
+        await page.click('#assistantSend');
+        await expect(page.locator('#assistantMessages')).toContainText(
+            'no doy orientacion medica'
+        );
+
+        await expect
+            .poll(
+                () =>
+                    heartbeatBodies.find((body) => {
+                        const details = body?.details || {};
+                        return (
+                            Number(details.assistantActioned || 0) >= 2 &&
+                            Number(
+                                details.assistantResolvedWithoutHuman || 0
+                            ) >= 1 &&
+                            Number(details.assistantClinicalBlocked || 0) >=
+                                1 &&
+                            Number(details.assistantLatencySamples || 0) >= 2
+                        );
+                    }) || null
+            )
+            .not.toBeNull();
+
+        const telemetry = heartbeatBodies.find((body) => {
+            const details = body?.details || {};
+            return (
+                Number(details.assistantActioned || 0) >= 2 &&
+                Number(details.assistantResolvedWithoutHuman || 0) >= 1 &&
+                Number(details.assistantClinicalBlocked || 0) >= 1
+            );
+        });
+
+        expect(telemetry?.surface).toBe('kiosk');
+        expect(telemetry?.details?.assistantLastIntent).toBe(
+            'clinical_blocked'
+        );
+        expect(telemetry?.details?.assistantIntents?.walk_in).toBe(1);
+        expect(
+            telemetry?.details?.assistantHelpReasons?.clinical_redirect
+        ).toBe(1);
     });
 
     test('guarda apoyo offline y lo sincroniza al reconectar', async ({

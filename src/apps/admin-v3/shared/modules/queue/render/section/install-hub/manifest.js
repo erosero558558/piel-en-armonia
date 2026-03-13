@@ -1,6 +1,33 @@
 import { getState } from '../../../../../core/store.js';
 import { DEFAULT_APP_DOWNLOADS } from './constants.js';
 
+function mergeSurfaceTargets(defaultTargets, runtimeTargets) {
+    const fallbackTargets =
+        defaultTargets && typeof defaultTargets === 'object'
+            ? defaultTargets
+            : {};
+    const loadedTargets =
+        runtimeTargets && typeof runtimeTargets === 'object'
+            ? runtimeTargets
+            : {};
+    const targetKeys = Array.from(
+        new Set([
+            ...Object.keys(fallbackTargets),
+            ...Object.keys(loadedTargets),
+        ])
+    ).filter(Boolean);
+
+    return Object.fromEntries(
+        targetKeys.map((targetKey) => [
+            targetKey,
+            {
+                ...(fallbackTargets[targetKey] || {}),
+                ...(loadedTargets[targetKey] || {}),
+            },
+        ])
+    );
+}
+
 export function mergeManifest() {
     const appDownloads = getState().data.appDownloads;
     if (!appDownloads || typeof appDownloads !== 'object') {
@@ -14,26 +41,26 @@ export function mergeManifest() {
         operator: {
             ...DEFAULT_APP_DOWNLOADS.operator,
             ...(catalog.operator || {}),
-            targets: {
-                ...DEFAULT_APP_DOWNLOADS.operator.targets,
-                ...((catalog.operator && catalog.operator.targets) || {}),
-            },
+            targets: mergeSurfaceTargets(
+                DEFAULT_APP_DOWNLOADS.operator.targets,
+                catalog.operator && catalog.operator.targets
+            ),
         },
         kiosk: {
             ...DEFAULT_APP_DOWNLOADS.kiosk,
             ...(catalog.kiosk || {}),
-            targets: {
-                ...DEFAULT_APP_DOWNLOADS.kiosk.targets,
-                ...((catalog.kiosk && catalog.kiosk.targets) || {}),
-            },
+            targets: mergeSurfaceTargets(
+                DEFAULT_APP_DOWNLOADS.kiosk.targets,
+                catalog.kiosk && catalog.kiosk.targets
+            ),
         },
         sala_tv: {
             ...DEFAULT_APP_DOWNLOADS.sala_tv,
             ...(catalog.sala_tv || {}),
-            targets: {
-                ...DEFAULT_APP_DOWNLOADS.sala_tv.targets,
-                ...((catalog.sala_tv && catalog.sala_tv.targets) || {}),
-            },
+            targets: mergeSurfaceTargets(
+                DEFAULT_APP_DOWNLOADS.sala_tv.targets,
+                catalog.sala_tv && catalog.sala_tv.targets
+            ),
         },
     };
 }

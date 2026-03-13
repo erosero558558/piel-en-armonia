@@ -165,6 +165,49 @@ async function checkCanonicalRoutes(baseUrl, failures, checks) {
     }
 }
 
+async function checkTurneroSurfaceRoutes(baseUrl, failures, checks) {
+    const turneroRoutes = [
+        '/operador-turnos.html',
+        '/kiosco-turnos.html',
+        '/sala-turnos.html',
+    ];
+
+    for (const route of turneroRoutes) {
+        const url = joinWithBasePath(baseUrl, route);
+        const response = await requestWithRetry(url, {
+            method: 'GET',
+            redirect: 'manual',
+        });
+        const ok = response.status >= 200 && response.status < 300;
+        if (ok) {
+            checks.push({
+                type: 'turnero-surface',
+                route,
+                status: 'passed',
+                httpStatus: response.status,
+            });
+            console.log(
+                `[routing-smoke] turnero surface OK ${route} -> ${response.status}`
+            );
+            continue;
+        }
+
+        const location = response.headers.get('location') || '';
+        checks.push({
+            type: 'turnero-surface',
+            route,
+            status: 'failed',
+            httpStatus: response.status,
+            location,
+        });
+        failures.push(
+            `Turnero surface ${route} expected 2xx but got ${response.status}${
+                location ? ` (location=${location})` : ''
+            }`
+        );
+    }
+}
+
 async function checkRedirectRoutes(baseUrl, failures, checks) {
     const query =
         'utm_source=routing_smoke&utm_medium=deploy&utm_campaign=v6_canonical';
@@ -332,6 +375,7 @@ async function main() {
 
     try {
         await checkCanonicalRoutes(baseUrl, failures, checks);
+        await checkTurneroSurfaceRoutes(baseUrl, failures, checks);
         await checkRedirectRoutes(baseUrl, failures, checks);
     } finally {
         if (localServer) {

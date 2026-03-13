@@ -17,6 +17,7 @@ html[data-admin-ui='sony_v3'] {
     --admin3-font: 'Inter', 'Plus Jakarta Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     --admin3-focus: #1742d1;
     --admin3-success: #1f7a4f;
+    --admin3-info: #2b6cb0;
     --admin3-warning: #9d6a10;
     --admin3-danger: #a3352b;
     --admin3-neutral: #5b646d;
@@ -380,6 +381,65 @@ body.admin-v3-mode .sony-login-form {
 body.admin-v3-mode .admin-login-field {
     display: grid;
     gap: 8px;
+}
+
+body.admin-v3-mode .admin-openclaw-stage,
+body.admin-v3-mode .admin-openclaw-stage__intro,
+body.admin-v3-mode .admin-openclaw-challenge {
+    display: grid;
+    gap: 14px;
+}
+
+body.admin-v3-mode .admin-openclaw-stage__intro,
+body.admin-v3-mode .admin-openclaw-challenge {
+    padding: 18px 20px;
+    border-radius: 22px;
+    border: 1px solid var(--admin3-line);
+    background: var(--admin3-surface-alt);
+}
+
+body.admin-v3-mode .admin-openclaw-stage__intro p,
+body.admin-v3-mode .admin-openclaw-challenge p,
+body.admin-v3-mode .admin-login-support-copy {
+    margin: 0;
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .admin-openclaw-challenge__head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+body.admin-v3-mode .admin-openclaw-challenge__eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .admin-openclaw-challenge strong {
+    font-size: clamp(1.4rem, 2vw, 1.9rem);
+    letter-spacing: 0.08em;
+}
+
+body.admin-v3-mode .admin-openclaw-challenge__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+body.admin-v3-mode .admin-login-inline-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--admin3-line);
+    background: var(--admin3-surface);
+    font-weight: 600;
 }
 
 body.admin-v3-mode .admin-theme-btn {
@@ -916,6 +976,7 @@ body.admin-v3-mode .dashboard-attention-list,
 body.admin-v3-mode .sony-list,
 body.admin-v3-mode #operationActionList,
 body.admin-v3-mode #queueNextAdminList,
+body.admin-v3-mode #queueReceptionGuidanceList,
 body.admin-v3-mode #queueActivityList {
     list-style: none;
     padding: 0;
@@ -967,6 +1028,174 @@ body.admin-v3-mode .dashboard-home-card button:hover {
     border-color: rgba(255, 255, 255, 0.2);
 }
 
+body.admin-v3-mode .queue-reception-guidance {
+    display: grid;
+    gap: 14px;
+}
+
+body.admin-v3-mode #queueReceptionResolutionsPanel {
+    margin-top: 14px;
+}
+
+body.admin-v3-mode .queue-reception-guidance__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: start;
+}
+
+body.admin-v3-mode .queue-reception-guidance__header h4,
+body.admin-v3-mode .queue-reception-guidance__header p {
+    margin: 0;
+}
+
+body.admin-v3-mode .queue-reception-guidance__header p {
+    color: var(--admin3-muted);
+    margin-top: 4px;
+}
+
+body.admin-v3-mode .queue-reception-guidance__item {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+    border-radius: 20px;
+    border: 1px solid var(--admin3-line);
+    background: var(--admin3-surface-alt);
+}
+
+body.admin-v3-mode .queue-reception-guidance__item[data-state='resolved'] {
+    border-color: rgba(31, 122, 79, 0.22);
+    background: rgba(31, 122, 79, 0.06);
+}
+
+body.admin-v3-mode .queue-reception-guidance__item p,
+body.admin-v3-mode .queue-reception-guidance__item small {
+    margin: 0;
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .queue-reception-guidance__item strong {
+    color: var(--admin3-ink);
+}
+
+body.admin-v3-mode .queue-reception-guidance__assessment {
+    display: grid;
+    gap: 4px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid var(--admin3-line);
+    background: rgba(91, 100, 109, 0.08);
+}
+
+body.admin-v3-mode .queue-reception-guidance__assessment strong {
+    color: var(--admin3-ink);
+}
+
+body.admin-v3-mode .queue-reception-guidance__assessment small {
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .queue-reception-guidance__assessment[data-tone='success'] {
+    background: rgba(31, 122, 79, 0.08);
+    border-color: rgba(31, 122, 79, 0.24);
+}
+
+body.admin-v3-mode .queue-reception-guidance__assessment[data-tone='info'] {
+    background: rgba(43, 108, 176, 0.08);
+    border-color: rgba(43, 108, 176, 0.24);
+}
+
+body.admin-v3-mode .queue-reception-guidance__assessment[data-tone='warning'] {
+    background: rgba(214, 138, 69, 0.12);
+    border-color: rgba(214, 138, 69, 0.24);
+}
+
+body.admin-v3-mode .queue-reception-guidance__assessment[data-tone='danger'] {
+    background: rgba(163, 53, 43, 0.08);
+    border-color: rgba(163, 53, 43, 0.22);
+}
+
+body.admin-v3-mode .queue-reception-guidance__item-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: start;
+}
+
+body.admin-v3-mode .queue-reception-guidance__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--admin3-line);
+    background: rgba(91, 100, 109, 0.08);
+    color: var(--admin3-neutral);
+    font-size: 0.78rem;
+}
+
+body.admin-v3-mode .queue-reception-guidance__pill[data-state='pending'] {
+    background: rgba(214, 138, 69, 0.12);
+    border-color: rgba(214, 138, 69, 0.28);
+    color: var(--admin3-warning);
+}
+
+body.admin-v3-mode .queue-reception-guidance__pill[data-state='attending'] {
+    background: rgba(64, 138, 222, 0.12);
+    border-color: rgba(64, 138, 222, 0.26);
+    color: var(--admin3-info);
+}
+
+body.admin-v3-mode .queue-reception-guidance__pill[data-state='resolved'] {
+    background: rgba(64, 163, 110, 0.12);
+    border-color: rgba(64, 163, 110, 0.26);
+    color: var(--admin3-success);
+}
+
+body.admin-v3-mode .queue-reception-guidance__actions {
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+body.admin-v3-mode .queue-reception-guidance__actions button {
+    width: fit-content;
+}
+
+body.admin-v3-mode
+    .queue-reception-guidance__actions
+    button[data-queue-guidance-shortcut='attend'] {
+    background: var(--admin3-stage);
+    color: #fff;
+    border-color: var(--admin3-stage);
+}
+
+body.admin-v3-mode
+    .queue-reception-guidance__actions
+    button[data-queue-guidance-shortcut='resolve'] {
+    border-color: rgba(31, 122, 79, 0.24);
+    background: rgba(31, 122, 79, 0.1);
+    color: var(--admin3-success);
+}
+
+body.admin-v3-mode .queue-reception-guidance__item.is-empty {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+body.admin-v3-mode .queue-admin-table tr.queue-row-focus {
+    outline: 2px solid rgba(214, 138, 69, 0.55);
+    outline-offset: -2px;
+    background: rgba(214, 138, 69, 0.08);
+}
+
+body.admin-v3-mode .appointment-row.appointment-row-focus {
+    outline: 2px solid rgba(23, 66, 209, 0.38);
+    outline-offset: -2px;
+    background: rgba(23, 66, 209, 0.08);
+    box-shadow: 0 0 0 1px rgba(23, 66, 209, 0.08);
+}
+
 body.admin-v3-mode .dashboard-launch-btn {
     width: 100%;
     justify-content: center;
@@ -978,6 +1207,31 @@ body.admin-v3-mode .dashboard-launch-btn {
 body.admin-v3-mode .dashboard-secondary-summary {
     margin: 0;
     color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .dashboard-card-assistant {
+    display: grid;
+    gap: 16px;
+    align-content: start;
+}
+
+body.admin-v3-mode .dashboard-card-assistant > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+body.admin-v3-mode .dashboard-card-assistant > header small,
+body.admin-v3-mode .dashboard-assistant-meta p,
+body.admin-v3-mode #dashboardAssistantSummary {
+    margin: 0;
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .dashboard-assistant-meta {
+    display: grid;
+    gap: 8px;
 }
 
 body.admin-v3-mode .dashboard-secondary-links {
@@ -1081,6 +1335,140 @@ body.admin-v3-mode .availability-badges {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
+}
+
+body.admin-v3-mode .appointments-review-context {
+    margin-top: 18px;
+}
+
+body.admin-v3-mode .appointments-review-context__card {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 20px;
+    border: 1px solid var(--admin3-line);
+    background: var(--admin3-surface-alt);
+}
+
+body.admin-v3-mode .appointments-review-context__card[data-state='attending'] {
+    border-color: rgba(64, 138, 222, 0.28);
+    background: rgba(64, 138, 222, 0.08);
+}
+
+body.admin-v3-mode .appointments-review-context__card[data-state='resolved'] {
+    border-color: rgba(31, 122, 79, 0.26);
+    background: rgba(31, 122, 79, 0.08);
+}
+
+body.admin-v3-mode .appointments-review-context__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+body.admin-v3-mode .appointments-review-context__head strong,
+body.admin-v3-mode .appointments-review-context__meta strong {
+    color: var(--admin3-ink);
+}
+
+body.admin-v3-mode .appointments-review-context__head small,
+body.admin-v3-mode .appointments-review-context__hint,
+body.admin-v3-mode .appointments-review-context__meta {
+    margin: 0;
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .appointments-review-context__assessment {
+    display: grid;
+    gap: 4px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid var(--admin3-line);
+    background: rgba(91, 100, 109, 0.08);
+}
+
+body.admin-v3-mode .appointments-review-context__assessment strong {
+    color: var(--admin3-ink);
+}
+
+body.admin-v3-mode .appointments-review-context__assessment small {
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .appointments-review-context__assessment[data-tone='success'] {
+    background: rgba(31, 122, 79, 0.08);
+    border-color: rgba(31, 122, 79, 0.24);
+}
+
+body.admin-v3-mode .appointments-review-context__assessment[data-tone='info'] {
+    background: rgba(43, 108, 176, 0.08);
+    border-color: rgba(43, 108, 176, 0.24);
+}
+
+body.admin-v3-mode .appointments-review-context__assessment[data-tone='warning'] {
+    background: rgba(214, 138, 69, 0.12);
+    border-color: rgba(214, 138, 69, 0.24);
+}
+
+body.admin-v3-mode .appointments-review-context__assessment[data-tone='danger'] {
+    background: rgba(163, 53, 43, 0.08);
+    border-color: rgba(163, 53, 43, 0.22);
+}
+
+body.admin-v3-mode .appointments-review-context__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--admin3-line);
+    background: rgba(214, 138, 69, 0.12);
+    color: var(--admin3-warning);
+    font-size: 0.78rem;
+}
+
+body.admin-v3-mode .appointments-review-context__pill[data-state='attending'] {
+    background: rgba(64, 138, 222, 0.12);
+    border-color: rgba(64, 138, 222, 0.26);
+    color: var(--admin3-info);
+}
+
+body.admin-v3-mode .appointments-review-context__pill[data-state='resolved'] {
+    background: rgba(31, 122, 79, 0.12);
+    border-color: rgba(31, 122, 79, 0.26);
+    color: var(--admin3-success);
+}
+
+body.admin-v3-mode .appointments-review-context__tags,
+body.admin-v3-mode .appointments-review-context__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+body.admin-v3-mode .appointments-review-context__actions button:first-child {
+    background: var(--admin3-stage);
+    color: #fff;
+    border-color: var(--admin3-stage);
+}
+
+body.admin-v3-mode .availability-review-context {
+    margin: 0 0 18px;
+}
+
+body.admin-v3-mode .calendar-day.availability-day-focus {
+    box-shadow:
+        0 0 0 2px rgba(23, 66, 209, 0.38),
+        var(--admin3-shadow-soft);
+}
+
+body.admin-v3-mode .time-slot-item.availability-slot-focus {
+    border-color: rgba(23, 66, 209, 0.28);
+    background: rgba(23, 66, 209, 0.08);
+    box-shadow:
+        0 0 0 1px rgba(23, 66, 209, 0.12),
+        var(--admin3-shadow-soft);
 }
 
 body.admin-v3-mode .appointments-toolbar,

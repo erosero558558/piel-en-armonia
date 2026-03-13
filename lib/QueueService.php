@@ -6,6 +6,8 @@ require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/validation.php';
 require_once __DIR__ . '/models.php';
 require_once __DIR__ . '/storage.php';
+require_once __DIR__ . '/PatientCaseService.php';
+require_once __DIR__ . '/QueueAssistantMetricsStore.php';
 require_once __DIR__ . '/queue/TicketFactory.php';
 require_once __DIR__ . '/queue/TicketPriorityPolicy.php';
 require_once __DIR__ . '/queue/QueueSummaryBuilder.php';
@@ -23,21 +25,25 @@ class QueueService
     private TicketFactory $ticketFactory;
     private TicketPriorityPolicy $priorityPolicy;
     private QueueSummaryBuilder $summaryBuilder;
+    private PatientCaseService $patientCaseService;
 
     public function __construct(
         ?TicketFactory $ticketFactory = null,
         ?TicketPriorityPolicy $priorityPolicy = null,
-        ?QueueSummaryBuilder $summaryBuilder = null
+        ?QueueSummaryBuilder $summaryBuilder = null,
+        ?PatientCaseService $patientCaseService = null
     ) {
         $this->ticketFactory = $ticketFactory ?? new TicketFactory();
         $this->priorityPolicy = $priorityPolicy ?? new TicketPriorityPolicy();
         $this->summaryBuilder = $summaryBuilder ?? new QueueSummaryBuilder($this->priorityPolicy);
+        $this->patientCaseService = $patientCaseService ?? new PatientCaseService();
     }
 
     public function getQueueState(array $store): array
     {
         $store = $this->normalizeStore($store);
         $store = $this->priorityPolicy->refreshWaitingAppointmentPriorities($store);
+        $store = $this->hydratePatientFlowStore($store);
         return $this->summaryBuilder->buildQueueState(
             $store['queue_tickets'] ?? [],
             $store['queue_help_requests'] ?? [],
@@ -61,6 +67,8 @@ class QueueService
         $ticket = $this->ticketFactory->createWalkInTicket($store['queue_tickets'] ?? [], $payload, $createdSource, $nowIso);
         $store['queue_tickets'][] = $ticket;
         $store['updatedAt'] = $nowIso;
+        $store = $this->hydratePatientFlowStore($store);
+        $ticket = $this->findTicketRecord($store, (int) ($ticket['id'] ?? 0)) ?? $ticket;
 
         return [
             'ok' => true,
@@ -126,6 +134,8 @@ class QueueService
 
         $existing = $this->findActiveTicketByAppointment($store['queue_tickets'] ?? [], $appointmentId);
         if ($existing !== null) {
+            $store = $this->hydratePatientFlowStore($store);
+            $existing = $this->findTicketRecord($store, (int) ($existing['id'] ?? 0)) ?? $existing;
             return [
                 'ok' => true,
                 'store' => $store,
@@ -149,6 +159,8 @@ class QueueService
 
         $store['queue_tickets'][] = $ticket;
         $store['updatedAt'] = $nowIso;
+        $store = $this->hydratePatientFlowStore($store);
+        $ticket = $this->findTicketRecord($store, (int) ($ticket['id'] ?? 0)) ?? $ticket;
 
         return [
             'ok' => true,
@@ -176,6 +188,8 @@ class QueueService
             (string) ($payload['sessionId'] ?? ($payload['session_id'] ?? ''))
         );
         if (is_array($openRequest)) {
+            $store = $this->hydratePatientFlowStore($store);
+            $openRequest = $this->findHelpRequestRecord($store, (int) ($openRequest['id'] ?? 0)) ?? $openRequest;
             return [
                 'ok' => true,
                 'store' => $store,
@@ -204,6 +218,8 @@ class QueueService
         $store['queue_help_requests'][] = $request;
         $store['updatedAt'] = $nowIso;
         $store = $this->syncTicketAssistanceFlags($store);
+        $store = $this->hydratePatientFlowStore($store);
+        $request = $this->findHelpRequestRecord($store, (int) ($request['id'] ?? 0)) ?? $request;
 
         Metrics::increment('queue_help_requests_total', [
             'reason' => $reason,
@@ -236,7 +252,11 @@ class QueueService
 
         $found = false;
         $updatedRequest = null;
+        $previousRequest = null;
         $nowIso = local_date('c');
+        $contextPatch = isset($payload['context']) && is_array($payload['context'])
+            ? $payload['context']
+            : [];
         foreach ($store['queue_help_requests'] as $idx => $request) {
             if (!is_array($request)) {
                 continue;
@@ -247,6 +267,7 @@ class QueueService
                 continue;
             }
 
+            $previousRequest = normalize_queue_help_request($request);
             $request['status'] = $status;
             $request['updatedAt'] = $nowIso;
             if ($status === 'attending') {
@@ -254,6 +275,14 @@ class QueueService
             }
             if ($status === 'resolved') {
                 $request['resolvedAt'] = $nowIso;
+            }
+            if ($contextPatch !== []) {
+                $request['context'] = $this->mergeHelpRequestContext(
+                    isset($request['context']) && is_array($request['context'])
+                        ? $request['context']
+                        : [],
+                    $contextPatch
+                );
             }
 
             $store['queue_help_requests'][$idx] = normalize_queue_help_request($request);
@@ -275,6 +304,14 @@ class QueueService
 
         $store['updatedAt'] = $nowIso;
         $store = $this->syncTicketAssistanceFlags($store);
+        $store = $this->hydratePatientFlowStore($store);
+        $updatedRequest = $this->findHelpRequestRecord($store, (int) ($updatedRequest['id'] ?? 0)) ?? $updatedRequest;
+        if (
+            is_array($previousRequest) &&
+            $this->shouldRecordHelpRequestResolution($previousRequest, $updatedRequest)
+        ) {
+            QueueAssistantMetricsStore::recordHelpRequestResolution($updatedRequest);
+        }
 
         Metrics::increment('queue_help_requests_total', [
             'reason' => (string) ($updatedRequest['reason'] ?? 'general'),
@@ -362,6 +399,8 @@ class QueueService
         }
 
         $store['updatedAt'] = $nowIso;
+        $store = $this->hydratePatientFlowStore($store);
+        $updatedTicket = $this->findTicketRecord($store, (int) ($updatedTicket['id'] ?? 0)) ?? $updatedTicket;
         return [
             'ok' => true,
             'store' => $store,
@@ -386,6 +425,29 @@ class QueueService
         $status = strtolower(trim((string) ($payload['status'] ?? '')));
         $consultorio = $this->normalizeConsultorio($payload['consultorio'] ?? ($payload['assignedConsultorio'] ?? null));
         $nowIso = local_date('c');
+
+        if (in_array($action, ['atender_apoyo', 'resolver_apoyo'], true)) {
+            $helpStatus = $action === 'atender_apoyo' ? 'attending' : 'resolved';
+            $helpResult = $this->patchHelpRequest($store, [
+                'ticketId' => $ticketId,
+                'status' => $helpStatus,
+            ]);
+            if (($helpResult['ok'] ?? false) !== true) {
+                return $helpResult;
+            }
+
+            return [
+                'ok' => true,
+                'store' => $helpResult['store'] ?? $store,
+                'ticket' => $this->findTicketRecord(
+                    is_array($helpResult['store'] ?? null)
+                        ? $helpResult['store']
+                        : $store,
+                    $ticketId
+                ),
+                'helpRequest' => $helpResult['helpRequest'] ?? null,
+            ];
+        }
 
         $found = false;
         $updated = null;
@@ -548,6 +610,8 @@ class QueueService
         }
 
         $store['updatedAt'] = $nowIso;
+        $store = $this->hydratePatientFlowStore($store);
+        $updated = $this->findTicketRecord($store, (int) ($updated['id'] ?? 0)) ?? $updated;
         return [
             'ok' => true,
             'store' => $store,
@@ -557,6 +621,7 @@ class QueueService
 
     public function findTicketById(array $store, int $ticketId): ?array
     {
+        $store = $this->hydratePatientFlowStore($this->normalizeStore($store));
         foreach ($this->normalizeTickets($store['queue_tickets'] ?? []) as $ticket) {
             if ((int) ($ticket['id'] ?? 0) === $ticketId) {
                 return $ticket;
@@ -759,6 +824,110 @@ class QueueService
             return '';
         }
         return str_pad((string) $hh, 2, '0', STR_PAD_LEFT) . ':' . str_pad((string) $mm, 2, '0', STR_PAD_LEFT);
+    }
+
+    private function hydratePatientFlowStore(array $store): array
+    {
+        return $this->patientCaseService->hydrateStore($store);
+    }
+
+    private function findTicketRecord(array $store, int $ticketId): ?array
+    {
+        if ($ticketId <= 0) {
+            return null;
+        }
+
+        $tickets = isset($store['queue_tickets']) && is_array($store['queue_tickets'])
+            ? $store['queue_tickets']
+            : [];
+        foreach ($tickets as $ticket) {
+            if (!is_array($ticket)) {
+                continue;
+            }
+            if ((int) ($ticket['id'] ?? 0) === $ticketId) {
+                return normalize_queue_ticket($ticket);
+            }
+        }
+
+        return null;
+    }
+
+    private function findHelpRequestRecord(array $store, int $requestId): ?array
+    {
+        if ($requestId <= 0) {
+            return null;
+        }
+
+        $requests = isset($store['queue_help_requests']) && is_array($store['queue_help_requests'])
+            ? $store['queue_help_requests']
+            : [];
+        foreach ($requests as $request) {
+            if (!is_array($request)) {
+                continue;
+            }
+            if ((int) ($request['id'] ?? 0) === $requestId) {
+                return normalize_queue_help_request($request);
+            }
+        }
+
+        return null;
+    }
+
+    private function mergeHelpRequestContext(array $current, array $patch): array
+    {
+        return array_replace_recursive($current, $patch);
+    }
+
+    private function shouldRecordHelpRequestResolution(array $previousRequest, array $updatedRequest): bool
+    {
+        $updatedStatus = strtolower(trim((string) ($updatedRequest['status'] ?? '')));
+        if ($updatedStatus !== 'resolved') {
+            return false;
+        }
+
+        $updatedOutcome = $this->readHelpRequestContextValue(
+            isset($updatedRequest['context']) && is_array($updatedRequest['context'])
+                ? $updatedRequest['context']
+                : [],
+            ['resolutionOutcome', 'resolution_outcome', 'reviewOutcome', 'review_outcome']
+        );
+        if ($updatedOutcome === '') {
+            return false;
+        }
+
+        $previousStatus = strtolower(trim((string) ($previousRequest['status'] ?? '')));
+        if ($previousStatus !== 'resolved') {
+            return true;
+        }
+
+        $previousOutcome = $this->readHelpRequestContextValue(
+            isset($previousRequest['context']) && is_array($previousRequest['context'])
+                ? $previousRequest['context']
+                : [],
+            ['resolutionOutcome', 'resolution_outcome', 'reviewOutcome', 'review_outcome']
+        );
+
+        return $previousOutcome === '' && $updatedOutcome !== '';
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     * @param array<int, string> $keys
+     */
+    private function readHelpRequestContextValue(array $context, array $keys): string
+    {
+        foreach ($keys as $key) {
+            $value = $context[$key] ?? null;
+            if ($value === null) {
+                continue;
+            }
+            $normalized = trim((string) $value);
+            if ($normalized !== '') {
+                return $normalized;
+            }
+        }
+
+        return '';
     }
 
     private function findAppointment(array $appointments, string $phoneLast4, string $date, string $time): ?array

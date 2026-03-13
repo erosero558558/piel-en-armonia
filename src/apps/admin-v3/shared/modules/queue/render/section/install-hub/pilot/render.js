@@ -3,6 +3,42 @@ import {
     renderQueueOpsPilotActionMarkup,
 } from './actions.js';
 
+function renderPilotRolloutStations(pilot, escapeHtml) {
+    if (
+        !Array.isArray(pilot.rolloutStations) ||
+        !pilot.rolloutStations.length
+    ) {
+        return '';
+    }
+
+    return `
+        <div class="queue-ops-pilot__lanes">
+            ${pilot.rolloutStations
+                .map(
+                    (station) => `
+                        <article class="queue-ops-pilot__lane" data-state="${
+                            station.ready
+                                ? 'ready'
+                                : station.live
+                                  ? 'warning'
+                                  : 'pending'
+                        }">
+                            <span>${escapeHtml(station.title)}</span>
+                            <strong>${escapeHtml(
+                                station.ready
+                                    ? 'Desktop lista'
+                                    : station.live
+                                      ? 'Desktop visible'
+                                      : 'Pendiente'
+                            )}</strong>
+                        </article>
+                    `
+                )
+                .join('')}
+        </div>
+    `;
+}
+
 export function renderQueueOpsPilotView(manifest, detectedPlatform, deps) {
     const { buildQueueOpsPilot, setHtml, escapeHtml } = deps;
     const root = document.getElementById('queueOpsPilot');
@@ -27,6 +63,7 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps) {
                         <p class="queue-ops-pilot__support">${escapeHtml(
                             pilot.supportCopy
                         )}</p>
+                        ${renderPilotRolloutStations(pilot, escapeHtml)}
                         <div class="queue-ops-pilot__actions">
                             ${renderQueueOpsPilotActionMarkup(
                                 pilot.primaryAction,

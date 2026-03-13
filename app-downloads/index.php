@@ -125,6 +125,9 @@ $absolutePreparedSurfaceUrl = app_downloads_page_absolute($preparedSurfaceUrl);
 $absoluteDownloadUrl = $downloadTarget !== null
     ? app_downloads_page_absolute((string) ($downloadTarget['url'] ?? ''))
     : '';
+$absoluteFeedUrl = $downloadTarget !== null
+    ? app_downloads_page_absolute((string) ($downloadTarget['feedUrl'] ?? ''))
+    : '';
 $setupQuery = app_downloads_page_build_query($surface, $platform, $station, $lock, $oneTap);
 $surfaceTitle = (string) ($surfaceUiMap[$surface]['catalog']['title'] ?? $surface);
 $surfaceEyebrow = (string) ($surfaceUiMap[$surface]['catalog']['eyebrow'] ?? '');
@@ -149,7 +152,7 @@ $initialPayload = build_app_downloads_runtime_payload([
             content="Instaladores opcionales del turnero para el siguiente release. El piloto estable actual corre por web."
         />
         <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="stylesheet" href="/app-downloads/app-downloads.css?v=app-downloads-20260310-v2" />
+        <link rel="stylesheet" href="/app-downloads/app-downloads.css?v=app-downloads-20260312-v3" />
     </head>
     <body class="app-downloads-body">
         <main class="app-downloads-shell">
@@ -297,6 +300,16 @@ $initialPayload = build_app_downloads_runtime_payload([
                         <strong>Fallback web</strong>
                         <code id="appDownloadsPreparedUrl"><?php echo app_downloads_page_escape($absolutePreparedSurfaceUrl); ?></code>
                     </div>
+                    <div
+                        id="appDownloadsFeedCard"
+                        class="app-downloads-artifact-card<?php echo $absoluteFeedUrl !== '' ? '' : ' is-hidden'; ?>"
+                    >
+                        <span>Feed auto-update</span>
+                        <strong id="appDownloadsFeedLabel">
+                            <?php echo app_downloads_page_escape($absoluteFeedUrl !== '' ? basename($absoluteFeedUrl) : 'Sin feed'); ?>
+                        </strong>
+                        <code id="appDownloadsFeedUrl"><?php echo app_downloads_page_escape($absoluteFeedUrl); ?></code>
+                    </div>
                     <div class="app-downloads-actions">
                         <a
                             id="appDownloadsPrimaryAction"
@@ -342,6 +355,20 @@ $initialPayload = build_app_downloads_runtime_payload([
                         </p>
                         <div id="appDownloadsSetupChecks" class="app-downloads-setup-checks"></div>
                     </section>
+                    <section
+                        id="appDownloadsRolloutCard"
+                        class="app-downloads-rollout-card<?php echo ($surface === 'operator' && $targetKey === 'win') ? '' : ' is-hidden'; ?>"
+                        aria-labelledby="appDownloadsRolloutTitle"
+                    >
+                        <div class="app-downloads-setup-card__header">
+                            <span>Despliegue guiado</span>
+                            <strong id="appDownloadsRolloutTitle">Despliegue operador Windows</strong>
+                        </div>
+                        <p id="appDownloadsRolloutSummary" class="app-downloads-setup-card__summary">
+                            Usa el mismo TurneroOperadorSetup.exe en las dos PCs. PC 1 queda como C1 fijo y PC 2 como C2 fijo desde el primer arranque.
+                        </p>
+                        <div id="appDownloadsRolloutLanes" class="app-downloads-rollout-lanes"></div>
+                    </section>
                     <ul id="appDownloadsNotes" class="app-downloads-notes">
                         <?php foreach (($surfaceUiMap[$surface]['catalog']['notes'] ?? []) as $note): ?>
                             <li><?php echo app_downloads_page_escape($note); ?></li>
@@ -353,6 +380,6 @@ $initialPayload = build_app_downloads_runtime_payload([
 
         <div id="appDownloadsToast" class="app-downloads-toast" hidden></div>
         <script id="appDownloadsCatalogData" type="application/json"><?php echo json_encode($initialPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?></script>
-        <script src="/app-downloads/app-downloads.js?v=app-downloads-20260310-v2"></script>
+        <script src="/app-downloads/app-downloads.js?v=app-downloads-20260312-v3"></script>
     </body>
 </html>

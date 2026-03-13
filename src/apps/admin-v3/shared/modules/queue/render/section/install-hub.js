@@ -605,6 +605,31 @@ function buildGuideUrl(surfaceKey, preset, appConfig) {
     return `${base.pathname}${base.search}`;
 }
 
+function mergeSurfaceTargets(defaultTargets, loadedTargets) {
+    const fallbackTargets =
+        defaultTargets && typeof defaultTargets === 'object'
+            ? defaultTargets
+            : {};
+    const runtimeTargets =
+        loadedTargets && typeof loadedTargets === 'object' ? loadedTargets : {};
+    const targetKeys = Array.from(
+        new Set([
+            ...Object.keys(fallbackTargets),
+            ...Object.keys(runtimeTargets),
+        ])
+    ).filter(Boolean);
+
+    return Object.fromEntries(
+        targetKeys.map((targetKey) => [
+            targetKey,
+            {
+                ...(fallbackTargets[targetKey] || {}),
+                ...(runtimeTargets[targetKey] || {}),
+            },
+        ])
+    );
+}
+
 function mergeManifest() {
     const defaults = getDefaultAppDownloads();
     const appDownloads = getManifestCatalogPayload();
@@ -637,10 +662,10 @@ function mergeManifest() {
                 {
                     ...defaultConfig,
                     ...loadedConfig,
-                    targets: {
-                        ...(defaultConfig.targets || {}),
-                        ...(loadedConfig.targets || {}),
-                    },
+                    targets: mergeSurfaceTargets(
+                        defaultConfig.targets,
+                        loadedConfig.targets
+                    ),
                 },
             ];
         })
@@ -1659,6 +1684,38 @@ function buildPresetSteps(preset) {
     ];
 }
 
+function getInstallTargetFileName(url) {
+    return String(url || '')
+        .split('/')
+        .filter(Boolean)
+        .pop();
+}
+
+function buildOperatorRolloutEntries(preset, appConfig, downloadTarget) {
+    if (preset.surface !== 'operator' || preset.platform !== 'win') {
+        return [];
+    }
+
+    const installerName =
+        getInstallTargetFileName(downloadTarget?.url) ||
+        'TurneroOperadorSetup.exe';
+
+    return ['c1', 'c2'].map((station) => ({
+        title: station === 'c2' ? 'PC 2 · C2 fijo' : 'PC 1 · C1 fijo',
+        summary: `${installerName} · ${
+            preset.oneTap ? '1 tecla ON' : '1 tecla OFF'
+        }`,
+        preparedWebUrl: buildPreparedSurfaceUrl('operator', appConfig, {
+            ...preset,
+            surface: 'operator',
+            platform: 'win',
+            station,
+            lock: true,
+        }),
+        active: Boolean(preset.lock && preset.station === station),
+    }));
+}
+
 function buildOpeningChecklistSteps(manifest, detectedPlatform) {
     const preset = ensureInstallPreset(detectedPlatform);
     const defaultAppDownloads = getDefaultAppDownloads();
@@ -2576,6 +2633,182 @@ function formatSurfacePlatformLabel(platform) {
     return normalized === '' ? '' : normalized;
 }
 
+function formatOperatorShellLaunchModeLabel(mode) {
+    const normalized = String(mode || '')
+        .trim()
+        .toLowerCase();
+    if (!normalized) {
+        return '';
+    }
+    return normalized === 'windowed' ? 'Ventana' : 'Fullscreen';
+}
+
+function buildOperatorShellStartupLabels(details) {
+    if (!details || typeof details !== 'object') {
+        return [];
+    }
+
+    const labels = [];
+    const launchModeLabel = formatOperatorShellLaunchModeLabel(
+        details.shellLaunchMode
+    );
+    if (launchModeLabel) {
+        labels.push(launchModeLabel);
+    }
+    if (typeof details.shellAutoStart === 'boolean') {
+        labels.push(
+            details.shellAutoStart ? 'Autoarranque ON' : 'Autoarranque OFF'
+        );
+    }
+
+    return labels;
+}
+
+function getOperatorShellStatusPhase(details) {
+    return String(details?.shellStatusPhase || '')
+        .trim()
+        .toLowerCase();
+}
+
+function isOperatorShellUpdateReady(details) {
+    return (
+        getOperatorShellStatusPhase(details) === 'ready' &&
+        /^actualizacion lista/i.test(String(details?.shellMessage || '').trim())
+    );
+}
+
+function buildOperatorShellStatusMetaLabel(details) {
+    if (!details || typeof details !== 'object') {
+        return '';
+    }
+
+    const phase = getOperatorShellStatusPhase(details);
+    const level = String(details.shellStatusLevel || '')
+        .trim()
+        .toLowerCase();
+    const message = String(details.shellMessage || '').trim();
+    const percent = Math.max(
+        0,
+        Math.round(Number(details.shellStatusPercent || 0))
+    );
+
+    if (phase === 'error' || level === 'error') {
+        return 'Update con error';
+    }
+    if (phase === 'download') {
+        return percent > 0 ? `Update ${percent}%` : 'Descargando update';
+    }
+    if (isOperatorShellUpdateReady(details)) {
+        return 'Update lista';
+    }
+    if (phase === 'update' && /sin actualizaciones pendientes/i.test(message)) {
+        return 'Updates al día';
+    }
+    if (phase === 'update' && /actualizacion disponible/i.test(message)) {
+        return 'Update disponible';
+    }
+    if (phase === 'update' && /buscando actualizaciones/i.test(message)) {
+        return 'Buscando updates';
+    }
+
+    return '';
+}
+
+function buildOperatorShellStatusSummaryLabel(details) {
+    if (!details || typeof details !== 'object') {
+        return '';
+    }
+
+    const phase = getOperatorShellStatusPhase(details);
+    const level = String(details.shellStatusLevel || '')
+        .trim()
+        .toLowerCase();
+    const message = String(details.shellMessage || '').trim();
+
+    if (phase === 'error' || level === 'error') {
+        return message || 'Auto-update no disponible.';
+    }
+    if (phase === 'download' && message) {
+        return message;
+    }
+    if (isOperatorShellUpdateReady(details)) {
+        return message
+            ? `${message}. Se instalará al cerrar la app.`
+            : 'Actualización lista. Se instalará al cerrar la app.';
+    }
+    if (
+        phase === 'update' &&
+        /buscando actualizaciones|actualizacion disponible|sin actualizaciones pendientes/i.test(
+            message
+        )
+    ) {
+        return message;
+    }
+
+    return '';
+}
+
+function buildOperatorShellUpdateMetadataUrl(details) {
+    const explicitUrl = String(details?.shellUpdateMetadataUrl || '').trim();
+    if (explicitUrl) {
+        return explicitUrl;
+    }
+
+    const feedUrl = String(details?.shellUpdateFeedUrl || '').trim();
+    if (!feedUrl) {
+        return '';
+    }
+
+    const metadataFile =
+        String(details?.shellPlatform || '')
+            .trim()
+            .toLowerCase() === 'darwin'
+            ? 'latest-mac.yml'
+            : 'latest.yml';
+
+    try {
+        return new URL(
+            metadataFile,
+            feedUrl.endsWith('/') ? feedUrl : `${feedUrl}/`
+        ).toString();
+    } catch (_error) {
+        const normalized = feedUrl.endsWith('/') ? feedUrl : `${feedUrl}/`;
+        return `${normalized}${metadataFile}`;
+    }
+}
+
+function buildOperatorShellSupportEntries(details) {
+    if (!details || typeof details !== 'object') {
+        return [];
+    }
+
+    const entries = [];
+    const feedUrl = buildOperatorShellUpdateMetadataUrl(details);
+    const installGuideUrl = String(details.shellInstallGuideUrl || '').trim();
+    const configPath = String(details.shellConfigPath || '').trim();
+
+    if (feedUrl) {
+        entries.push({
+            label: 'Feed',
+            value: feedUrl,
+        });
+    }
+    if (installGuideUrl) {
+        entries.push({
+            label: 'Guía',
+            value: installGuideUrl,
+        });
+    }
+    if (configPath) {
+        entries.push({
+            label: 'Config local',
+            value: configPath,
+        });
+    }
+
+    return entries;
+}
+
 function normalizeOperatorStationKey(station) {
     const normalized = String(station || '')
         .trim()
@@ -2605,6 +2838,40 @@ function getOperatorShellPhase(details) {
     return String(details?.shellPhase || '')
         .trim()
         .toLowerCase();
+}
+
+function getOperatorShellRetryState(details) {
+    if (!details || typeof details !== 'object') {
+        return {
+            active: false,
+            attempt: 0,
+            remainingMs: 0,
+            reason: '',
+        };
+    }
+
+    const phase = getOperatorShellPhase(details);
+    const attempt = Math.max(
+        0,
+        Math.floor(Number(details.shellRetryAttempt || 0))
+    );
+    const remainingMs = Math.max(0, Number(details.shellRetryRemainingMs || 0));
+
+    return {
+        active: Boolean(details.shellRetryActive) || phase === 'retry',
+        attempt,
+        remainingMs,
+        reason: String(details.shellRetryReason || '').trim(),
+    };
+}
+
+function formatOperatorRetryRemainingLabel(remainingMs) {
+    const safeRemainingMs = Number(remainingMs);
+    if (!Number.isFinite(safeRemainingMs) || safeRemainingMs <= 0) {
+        return '';
+    }
+
+    return formatHeartbeatAge(Math.max(1, Math.ceil(safeRemainingMs / 1000)));
 }
 
 function buildOperatorShellLifecycleLabel(details) {
@@ -2639,6 +2906,46 @@ function buildOperatorShellLifecycleLabel(details) {
     return '';
 }
 
+function buildOperatorShellLifecycleMetaLabel(details) {
+    const phase = getOperatorShellPhase(details);
+    if (phase !== 'retry') {
+        return buildOperatorShellLifecycleLabel(details);
+    }
+
+    const retryState = getOperatorShellRetryState(details);
+    if (retryState.attempt > 0) {
+        return `Reintentando #${retryState.attempt}`;
+    }
+
+    return 'Reintentando';
+}
+
+function buildOperatorShellLifecycleSummaryLabel(details) {
+    const phase = getOperatorShellPhase(details);
+    if (phase !== 'retry') {
+        return buildOperatorShellLifecycleLabel(details);
+    }
+
+    const retryState = getOperatorShellRetryState(details);
+    const parts = ['Reintentando'];
+
+    if (retryState.attempt > 0) {
+        parts[0] = `${parts[0]} #${retryState.attempt}`;
+    }
+
+    const remainingLabel = formatOperatorRetryRemainingLabel(
+        retryState.remainingMs
+    );
+    if (remainingLabel) {
+        parts.push(`en ${remainingLabel}`);
+    }
+    if (retryState.reason) {
+        parts.push(retryState.reason);
+    }
+
+    return parts.join(' · ');
+}
+
 function isOperatorNumpadReady(details) {
     if (!details || typeof details !== 'object') {
         return false;
@@ -2663,7 +2970,11 @@ function buildOperatorOperationalBlocker(instance) {
     const summary = String(instance.summary || '').trim();
     const lifecycleLabel = buildOperatorShellLifecycleLabel(details);
     if (lifecycleLabel) {
-        return summary || lifecycleLabel;
+        const lifecycleSummary =
+            buildOperatorShellLifecycleSummaryLabel(details);
+        return getOperatorShellPhase(details) === 'retry'
+            ? lifecycleSummary || summary || lifecycleLabel
+            : summary || lifecycleSummary || lifecycleLabel;
     }
 
     const effectiveStatus = String(
@@ -2776,7 +3087,7 @@ function buildSurfaceTelemetryInstanceMeta(surfaceKey, latest) {
     const parts = [buildSurfaceAppModeLabel(latest)];
 
     if (surfaceKey === 'operator') {
-        const lifecycleLabel = buildOperatorShellLifecycleLabel(details);
+        const lifecycleLabel = buildOperatorShellLifecycleMetaLabel(details);
         if (lifecycleLabel) {
             parts.push(lifecycleLabel);
         }
@@ -2787,6 +3098,11 @@ function buildSurfaceTelemetryInstanceMeta(surfaceKey, latest) {
         const updateChannel = String(details.shellUpdateChannel || '').trim();
         if (updateChannel) {
             parts.push(`canal ${updateChannel}`);
+        }
+        parts.push(...buildOperatorShellStartupLabels(details));
+        const shellStatusLabel = buildOperatorShellStatusMetaLabel(details);
+        if (shellStatusLabel) {
+            parts.push(shellStatusLabel);
         }
     }
 
@@ -2811,9 +3127,14 @@ function buildSurfaceTelemetryInstanceSummary(surfaceKey, latest) {
         }
         parts.push(details.oneTap ? '1 tecla ON' : '1 tecla OFF');
         parts.push(buildOperatorNumpadTelemetryLabel(details));
-        const lifecycleLabel = buildOperatorShellLifecycleLabel(details);
+        const lifecycleLabel = buildOperatorShellLifecycleSummaryLabel(details);
         if (lifecycleLabel) {
             parts.push(lifecycleLabel);
+        }
+        const shellStatusSummary =
+            buildOperatorShellStatusSummaryLabel(details);
+        if (shellStatusSummary) {
+            parts.push(shellStatusSummary);
         }
         const latestSummary = String(latest.summary || '').trim();
         const summary = parts.join(' · ');
@@ -2852,6 +3173,10 @@ function buildSurfaceTelemetryInstances(surfaceKey, group) {
             profileLabel: buildOperatorProfileLabel(instance.details || {}),
             meta: buildSurfaceTelemetryInstanceMeta(surfaceKey, instance),
             summary: buildSurfaceTelemetryInstanceSummary(surfaceKey, instance),
+            supportEntries:
+                surfaceKey === 'operator'
+                    ? buildOperatorShellSupportEntries(instance.details || {})
+                    : [],
             ageLabel: buildSignalAgeLabel(instance, 'Sin heartbeat todavía'),
         };
     });
@@ -2913,9 +3238,13 @@ function buildSurfaceTelemetryChips(surfaceKey, latest) {
         chips.push(
             buildOperatorNumpadTelemetryLabel(details, { compact: true })
         );
-        const lifecycleLabel = buildOperatorShellLifecycleLabel(details);
+        const lifecycleLabel = buildOperatorShellLifecycleMetaLabel(details);
         if (lifecycleLabel) {
             chips.push(lifecycleLabel);
+        }
+        const shellStatusLabel = buildOperatorShellStatusMetaLabel(details);
+        if (shellStatusLabel) {
+            chips.push(shellStatusLabel);
         }
     } else if (surfaceKey === 'kiosk') {
         chips.push(details.printerPrinted ? 'Térmica OK' : 'Térmica pendiente');
@@ -3136,6 +3465,40 @@ function renderSurfaceTelemetry(manifest, detectedPlatform) {
                                                                     <p class="queue-surface-card__instance-summary">${escapeHtml(
                                                                         instance.summary
                                                                     )}</p>
+                                                                    ${
+                                                                        Array.isArray(
+                                                                            instance.supportEntries
+                                                                        ) &&
+                                                                        instance
+                                                                            .supportEntries
+                                                                            .length >
+                                                                            0
+                                                                            ? `
+                                                                                <div class="queue-surface-card__instance-support" role="list" aria-label="Soporte remoto de ${escapeHtml(
+                                                                                    instance.deviceLabel
+                                                                                )}">
+                                                                                    ${instance.supportEntries
+                                                                                        .map(
+                                                                                            (
+                                                                                                entry
+                                                                                            ) => `
+                                                                                                <p class="queue-surface-card__instance-support-entry" role="listitem">
+                                                                                                    <strong>${escapeHtml(
+                                                                                                        entry.label
+                                                                                                    )}</strong>
+                                                                                                    <span>${escapeHtml(
+                                                                                                        entry.value
+                                                                                                    )}</span>
+                                                                                                </p>
+                                                                                            `
+                                                                                        )
+                                                                                        .join(
+                                                                                            ''
+                                                                                        )}
+                                                                                </div>
+                                                                            `
+                                                                            : ''
+                                                                    }
                                                                     <p class="queue-surface-card__instance-age">${escapeHtml(
                                                                         instance.ageLabel
                                                                     )}</p>
@@ -3511,6 +3874,9 @@ function buildQueueOpsAlerts(manifest, detectedPlatform) {
         buildPreparedSurfaceUrl,
         getLatestSurfaceDetails,
         buildSignalAgeLabel,
+        getOperatorShellPhase,
+        buildOperatorShellLifecycleLabel,
+        buildOperatorOperationalBlocker,
     });
 }
 
@@ -5995,6 +6361,7 @@ function buildQueueTicketLookupResult(ticket, manifest, detectedPlatform) {
         return null;
     }
 
+    const defaultOperatorConfig = getDefaultAppDownloads().operator || {};
     const consultorio = Number(ticket.assignedConsultorio || 0);
     const slot = consultorio === 2 ? 2 : consultorio === 1 ? 1 : 0;
     const slotLabel =
@@ -6049,7 +6416,7 @@ function buildQueueTicketLookupResult(ticket, manifest, detectedPlatform) {
         slot > 0
             ? buildPreparedSurfaceUrl(
                   'operator',
-                  manifest.operator || DEFAULT_APP_DOWNLOADS.operator,
+                  manifest.operator || defaultOperatorConfig,
                   {
                       ...ensureInstallPreset(detectedPlatform),
                       surface: 'operator',
@@ -21284,6 +21651,14 @@ function renderInstallConfigurator(manifest, detectedPlatform) {
               )
             : buildQrUrl(preparedWebUrl);
     const guideUrl = buildGuideUrl(surfaceKey, preset, appConfig);
+    const autoUpdateFeedUrl = String(
+        (downloadTarget && downloadTarget.feedUrl) || ''
+    );
+    const operatorRollout = buildOperatorRolloutEntries(
+        preset,
+        appConfig,
+        downloadTarget
+    );
     const setupSteps = buildPresetSteps(preset)
         .map((step) => `<li>${escapeHtml(step)}</li>`)
         .join('');
@@ -21433,6 +21808,16 @@ function renderInstallConfigurator(manifest, detectedPlatform) {
                         <span>Ruta web preparada</span>
                         <strong>${escapeHtml(preparedWebUrl)}</strong>
                     </div>
+                    ${
+                        autoUpdateFeedUrl
+                            ? `
+                                <div class="queue-install-result__meta">
+                                    <span>Feed auto-update</span>
+                                    <strong>${escapeHtml(autoUpdateFeedUrl)}</strong>
+                                </div>
+                            `
+                            : ''
+                    }
                     <div class="queue-install-configurator__actions">
                         ${
                             downloadTarget && downloadTarget.url
@@ -21469,6 +21854,41 @@ function renderInstallConfigurator(manifest, detectedPlatform) {
                             Abrir centro público
                         </a>
                     </div>
+                    ${
+                        operatorRollout.length > 0
+                            ? `
+                                <section class="queue-install-rollout">
+                                    <div class="queue-install-rollout__header">
+                                        <span>Despliegue dual</span>
+                                        <strong>Despliegue operador Windows</strong>
+                                    </div>
+                                    <p class="queue-install-rollout__summary">
+                                        Usa el mismo TurneroOperadorSetup.exe en las dos PCs operador. Cada equipo se provisiona una sola vez como C1 fijo o C2 fijo.
+                                    </p>
+                                    <div class="queue-install-rollout__lanes">
+                                        ${operatorRollout
+                                            .map(
+                                                (entry) => `
+                                                    <article class="queue-install-rollout__lane" data-state="${
+                                                        entry.active
+                                                            ? 'active'
+                                                            : 'ready'
+                                                    }">
+                                                        <span>${escapeHtml(entry.title)}</span>
+                                                        <strong>${escapeHtml(entry.summary)}</strong>
+                                                        <code>${escapeHtml(entry.preparedWebUrl)}</code>
+                                                        <a href="${escapeHtml(
+                                                            entry.preparedWebUrl
+                                                        )}" target="_blank" rel="noopener">Abrir preset web</a>
+                                                    </article>
+                                                `
+                                            )
+                                            .join('')}
+                                    </div>
+                                </section>
+                            `
+                            : ''
+                    }
                     <ul class="queue-app-card__notes">${setupSteps}</ul>
                 </section>
             </div>

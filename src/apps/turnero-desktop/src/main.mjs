@@ -2,13 +2,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, Menu, ipcMain, powerSaveBlocker } from 'electron';
 import { ensureRuntimeConfig, persistRuntimeConfig } from './config/store.mjs';
-import { buildUpdateFeedUrl, mergeRuntimeConfig } from './config/contracts.mjs';
+import {
+    buildSupportGuideUrl,
+    buildUpdateFeedUrl,
+    buildUpdateMetadataUrl,
+    mergeRuntimeConfig,
+} from './config/contracts.mjs';
 import { createNavigationPolicy } from './runtime/navigation.mjs';
 import { runPreflightChecks } from './runtime/preflight.mjs';
 import {
     getBrowserWindowOptions,
     shouldPreventDisplaySleep,
-    shouldUseKioskMode,
 } from './runtime/window-options.mjs';
 import {
     buildDesktopHeartbeatEndpoint,
@@ -16,12 +20,34 @@ import {
     DESKTOP_HEARTBEAT_INTERVAL_MS,
     shouldRunDesktopHeartbeat,
 } from './runtime/desktop-heartbeat.mjs';
+import { createShellStateStore } from './runtime/shell-state.mjs';
+import { createEmptyRetryState } from './runtime/retry-state.mjs';
+import {
+    buildDesktopBootEntryStatus,
+    buildDesktopConfigSavedStatus,
+    buildDesktopUpdateCheckFailedStatus,
+    buildDesktopUpdateDisabledStatus,
+    createInitialDesktopBootStatus,
+} from './runtime/boot-status-contract.mjs';
+import {
+    buildDesktopBootPageTransition,
+    buildDesktopLoadSurfaceTransition,
+    buildDesktopOpenSettingsTransition,
+    buildDesktopRetryTransition,
+} from './runtime/boot-lifecycle-state.mjs';
+import { buildDesktopRuntimeSnapshotBase } from './runtime/snapshot-contract.mjs';
+import {
+    getDesktopBlockedNavigationDecision,
+    getDesktopDidFailLoadRecovery,
+    getDesktopDidFinishLoadDecision,
+    getDesktopRenderProcessGoneRecovery,
+    shouldOpenDesktopSettingsShortcut,
+} from './runtime/navigation-guard-policy.mjs';
 import { createUpdater } from './updater.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const preloadPath = path.join(__dirname, 'preload.cjs');
 const bootHtmlPath = path.join(__dirname, 'renderer', 'boot.html');
-const RETRY_DELAYS_MS = [3000, 5000, 10000, 15000];
 
 let mainWindow = null;
 let currentRuntime = null;
@@ -36,38 +62,15 @@ let firstRunPending = false;
 let desktopHeartbeatTimer = null;
 let desktopHeartbeatInFlight = false;
 let desktopHeartbeatActive = false;
-let lastBootStatus = {
-    level: 'info',
-    phase: 'boot',
-    message: 'Inicializando shell desktop...',
-};
-
-function getSurfaceRuntimeLabels(config = currentConfig) {
-    const surface = String(config?.surface || 'operator')
-        .trim()
-        .toLowerCase();
-    if (surface === 'kiosk') {
-        return {
-            surfaceId: 'kiosk',
-            surfaceLabel: 'Kiosco',
-            surfaceDesktopLabel: 'Turnero Kiosco',
-        };
-    }
-
-    return {
-        surfaceId: 'operator',
-        surfaceLabel: 'Operador',
-        surfaceDesktopLabel: 'Turnero Operador',
-    };
-}
+let shellStateStore = null;
+let currentRetryState = createEmptyRetryState();
+let lastBootStatus = createInitialDesktopBootStatus();
 
 function getRuntimeSnapshot() {
     const packaged = app.isPackaged;
     const supportsNativeUpdate =
         process.platform === 'win32' || process.platform === 'darwin';
-    const surfaceLabels = getSurfaceRuntimeLabels(currentConfig);
-
-    return {
+    return buildDesktopRuntimeSnapshotBase({
         config: currentConfig,
         status: lastBootStatus,
         surfaceUrl: navigationPolicy ? navigationPolicy.surfaceUrl : '',
@@ -77,15 +80,22 @@ function getRuntimeSnapshot() {
         version: app.getVersion(),
         name: app.getName(),
         configPath: currentRuntime ? currentRuntime.configPath : '',
-        ...surfaceLabels,
+        retry: currentRetryState,
         updateFeedUrl:
             supportsNativeUpdate && currentConfig
                 ? buildUpdateFeedUrl(currentConfig, process.platform)
                 : '',
+        updateMetadataUrl:
+            supportsNativeUpdate && currentConfig
+                ? buildUpdateMetadataUrl(currentConfig, process.platform)
+                : '',
+        installGuideUrl:
+            currentConfig && currentConfig.baseUrl
+                ? buildSupportGuideUrl(currentConfig, process.platform)
+                : '',
         firstRun: firstRunPending,
         settingsMode,
-        appMode: packaged ? 'packaged' : 'development',
-    };
+    });
 }
 
 function log(level, message) {
@@ -108,6 +118,17 @@ function setBootStatus(payload) {
     if (desktopHeartbeatActive) {
         void sendDesktopHeartbeat('status_change');
     }
+}
+
+function emitShellSnapshot() {
+    if (!mainWindow || mainWindow.isDestroyed() || !shellStateStore) {
+        return;
+    }
+
+    mainWindow.webContents.send('turnero:shell-event', {
+        status: shellStateStore.getStatus(),
+        ...shellStateStore.getOfflineSnapshot(),
+    });
 }
 
 function clearDesktopHeartbeatTimer() {
@@ -179,10 +200,14 @@ async function loadBootPage() {
     if (!mainWindow || mainWindow.isDestroyed()) {
         return;
     }
-    settingsMode = true;
+    const transition = buildDesktopBootPageTransition({
+        firstRunPending,
+        lastBootStatus,
+    });
+    settingsMode = transition.settingsMode;
     await mainWindow.loadFile(bootHtmlPath);
-    startDesktopHeartbeat(firstRunPending ? 'first_run' : 'boot_page');
-    setBootStatus(lastBootStatus);
+    startDesktopHeartbeat(transition.heartbeatReason);
+    setBootStatus(transition.status);
 }
 
 function clearRetryTimer() {
@@ -190,22 +215,22 @@ function clearRetryTimer() {
         clearTimeout(retryTimer);
         retryTimer = null;
     }
+    currentRetryState = createEmptyRetryState();
 }
 
 function scheduleReload(reason) {
     clearRetryTimer();
-    settingsMode = false;
-    const delay =
-        RETRY_DELAYS_MS[Math.min(retryCount, RETRY_DELAYS_MS.length - 1)];
-    retryCount += 1;
-    setBootStatus({
-        level: 'warn',
-        phase: 'retry',
-        message: `${reason}. Reintentando en ${Math.round(delay / 1000)}s.`,
+    const transition = buildDesktopRetryTransition({
+        retryCount,
+        reason,
     });
+    settingsMode = transition.settingsMode;
+    currentRetryState = transition.retryState;
+    retryCount = transition.retryCount;
+    setBootStatus(transition.status);
     retryTimer = setTimeout(() => {
         void loadSurface('retry');
-    }, delay);
+    }, transition.delayMs);
 }
 
 async function loadSurface(source = 'launch') {
@@ -215,17 +240,19 @@ async function loadSurface(source = 'launch') {
 
     clearRetryTimer();
     stopDesktopHeartbeat();
-    settingsMode = false;
-    setBootStatus({
-        level: 'info',
-        phase: 'loading',
-        message: `Conectando ${currentConfig.surface} a ${currentConfig.baseUrl} (${source})`,
+    const transition = buildDesktopLoadSurfaceTransition(currentConfig, {
+        source,
     });
+    settingsMode = transition.settingsMode;
+    setBootStatus(transition.status);
 
     try {
         await mainWindow.loadURL(navigationPolicy.surfaceUrl);
     } catch (error) {
         log('error', `loadURL failed: ${error.message}`);
+        shellStateStore?.reportShellState({
+            connectivity: 'offline',
+        });
         await loadBootPage();
         scheduleReload(
             `No se pudo abrir la superficie ${currentConfig.surface}`
@@ -234,27 +261,28 @@ async function loadSurface(source = 'launch') {
 }
 
 async function openSettings(reason = 'manual') {
-    await loadBootPage();
-    setBootStatus({
-        level: 'info',
-        phase: 'settings',
-        message: firstRunPending
-            ? `Configura ${currentConfig.surface} antes del primer arranque.`
-            : `Configuracion del equipo abierta (${reason}).`,
+    clearRetryTimer();
+    const transition = buildDesktopOpenSettingsTransition(currentConfig, {
+        firstRun: firstRunPending,
+        reason,
     });
+    await loadBootPage();
+    settingsMode = transition.settingsMode;
+    setBootStatus(transition.status);
 }
 
 function attachNavigationGuards(windowRef) {
     const contents = windowRef.webContents;
 
     contents.on('will-navigate', (event, targetUrl) => {
-        if (!navigationPolicy.isAllowedNavigation(targetUrl)) {
+        const decision = getDesktopBlockedNavigationDecision({
+            targetUrl,
+            isAllowedNavigation:
+                navigationPolicy.isAllowedNavigation(targetUrl),
+        });
+        if (decision) {
             event.preventDefault();
-            setBootStatus({
-                level: 'warn',
-                phase: 'blocked',
-                message: 'Navegacion externa bloqueada por el shell desktop.',
-            });
+            setBootStatus(decision.status);
         }
     });
 
@@ -263,14 +291,7 @@ function attachNavigationGuards(windowRef) {
     }));
 
     contents.on('before-input-event', (event, input) => {
-        if (String(input.type || '').toLowerCase() !== 'keydown') {
-            return;
-        }
-
-        const key = String(input.key || '').toLowerCase();
-        const openSettingsShortcut =
-            key === 'f10' || ((input.control || input.meta) && key === ',');
-        if (!openSettingsShortcut) {
+        if (!shouldOpenDesktopSettingsShortcut(input)) {
             return;
         }
 
@@ -279,9 +300,10 @@ function attachNavigationGuards(windowRef) {
     });
 
     contents.on('render-process-gone', async (_event, details) => {
-        log('warn', `render-process-gone: ${details.reason}`);
+        const recovery = getDesktopRenderProcessGoneRecovery(details);
+        log('warn', recovery.logMessage);
         await loadBootPage();
-        scheduleReload('La aplicacion remota se cerro de forma inesperada');
+        scheduleReload(recovery.retryReason);
     });
 
     contents.on(
@@ -293,45 +315,52 @@ function attachNavigationGuards(windowRef) {
             validatedUrl,
             isMainFrame
         ) => {
-            if (!isMainFrame) {
+            const recovery = getDesktopDidFailLoadRecovery({
+                errorCode,
+                errorDescription,
+                validatedUrl,
+                isMainFrame,
+                isAllowedNavigation:
+                    Boolean(validatedUrl) &&
+                    navigationPolicy.isAllowedNavigation(validatedUrl),
+                config: currentConfig,
+            });
+            if (!recovery) {
                 return;
             }
 
-            if (
-                !validatedUrl ||
-                !navigationPolicy.isAllowedNavigation(validatedUrl)
-            ) {
-                return;
-            }
-
-            log(
-                'warn',
-                `did-fail-load ${errorCode}: ${errorDescription} (${validatedUrl})`
-            );
+            log('warn', recovery.logMessage);
+            shellStateStore?.reportShellState({
+                connectivity: 'offline',
+            });
             await loadBootPage();
-            scheduleReload(
-                `La superficie ${currentConfig.surface} no pudo cargar (${errorDescription})`
-            );
+            scheduleReload(recovery.retryReason);
         }
     );
 
     contents.on('did-finish-load', () => {
         const currentUrl = contents.getURL();
-        if (!navigationPolicy.isAllowedNavigation(currentUrl)) {
+        const decision = getDesktopDidFinishLoadDecision({
+            currentUrl,
+            isAllowedNavigation:
+                navigationPolicy.isAllowedNavigation(currentUrl),
+            config: currentConfig,
+        });
+        if (!decision) {
             return;
         }
 
-        retryCount = 0;
-        firstRunPending = false;
-        setBootStatus({
-            level: 'info',
-            phase: 'ready',
-            message: `${currentConfig.surface} conectado correctamente.`,
-            url: currentUrl,
+        const transition = decision.transition;
+        currentRetryState = transition.retryState;
+        retryCount = transition.retryCount;
+        firstRunPending = transition.firstRunPending;
+        shellStateStore?.reportShellState({
+            connectivity: 'online',
         });
-        if (shouldUseKioskMode(currentConfig)) {
+        setBootStatus(transition.status);
+        if (decision.presentation === 'kiosk') {
             windowRef.setKiosk(true);
-        } else if (currentConfig.launchMode === 'fullscreen') {
+        } else if (decision.presentation === 'fullscreen') {
             windowRef.setFullScreen(true);
         }
         windowRef.show();
@@ -363,6 +392,16 @@ async function createMainWindow() {
     currentConfig = runtime.runtimeConfig;
     navigationPolicy = createNavigationPolicy(currentConfig);
     firstRunPending = Boolean(runtime.firstRun);
+    shellStateStore = createShellStateStore(
+        path.join(app.getPath('userData'), 'turnero-shell-state.json'),
+        () =>
+            currentConfig ||
+            currentRuntime?.runtimeConfig ||
+            runtime.runtimeConfig
+    );
+    shellStateStore.subscribe(() => {
+        emitShellSnapshot();
+    });
 
     mainWindow = new BrowserWindow(
         getBrowserWindowOptions(currentConfig, preloadPath, {
@@ -377,14 +416,13 @@ async function createMainWindow() {
 
     await loadBootPage();
     mainWindow.show();
-    setBootStatus({
-        level: 'info',
-        phase: 'boot',
-        message: firstRunPending
-            ? `${currentConfig.surface} listo para configuracion inicial.`
-            : `${currentConfig.surface} listo para conectar.`,
-        configPath: runtime.configPath,
-    });
+    setBootStatus(
+        buildDesktopBootEntryStatus(currentConfig, {
+            firstRun: firstRunPending,
+            configPath: runtime.configPath,
+        })
+    );
+    emitShellSnapshot();
     if (firstRunPending) {
         await openSettings('first-run');
         return;
@@ -395,11 +433,7 @@ async function createMainWindow() {
 
 function setupUpdater() {
     if (!app.isPackaged) {
-        setBootStatus({
-            level: 'info',
-            phase: 'update',
-            message: 'Auto-update desactivado en modo desarrollo.',
-        });
+        setBootStatus(buildDesktopUpdateDisabledStatus());
         return;
     }
 
@@ -410,17 +444,14 @@ function setupUpdater() {
 
     setTimeout(() => {
         updater.checkForUpdates().catch((error) => {
-            setBootStatus({
-                level: 'warn',
-                phase: 'update',
-                message: `No se pudo comprobar update: ${error.message}`,
-            });
+            setBootStatus(buildDesktopUpdateCheckFailedStatus(error));
         });
     }, 6000);
 }
 
 ipcMain.handle('turnero:get-runtime-snapshot', () => ({
     ...getRuntimeSnapshot(),
+    shellStatus: shellStateStore?.getStatus() || null,
 }));
 
 ipcMain.handle('turnero:run-preflight', async (_event, payload = {}) => {
@@ -472,16 +503,64 @@ ipcMain.handle('turnero:save-runtime-config', async (_event, payload = {}) => {
     applyAutoStart(currentConfig);
     applyDisplaySleepPolicy(currentConfig);
 
-    setBootStatus({
-        level: 'info',
-        phase: 'settings',
-        message: `Configuracion guardada para ${currentConfig.surface}.`,
-    });
+    setBootStatus(buildDesktopConfigSavedStatus(currentConfig));
+    emitShellSnapshot();
 
     return {
         ...getRuntimeSnapshot(),
+        shellStatus: shellStateStore?.getStatus() || null,
     };
 });
+
+ipcMain.handle(
+    'turnero:get-shell-status',
+    () => shellStateStore?.getStatus() || null
+);
+
+ipcMain.handle(
+    'turnero:get-offline-snapshot',
+    () => shellStateStore?.getOfflineSnapshot() || null
+);
+
+ipcMain.handle(
+    'turnero:report-shell-state',
+    (_event, payload = {}) =>
+        shellStateStore?.reportShellState(
+            payload && typeof payload === 'object' ? payload : {}
+        ) || null
+);
+
+ipcMain.handle(
+    'turnero:mark-session-authenticated',
+    (_event, payload = {}) =>
+        shellStateStore?.markSessionAuthenticated(
+            payload && typeof payload === 'object' ? payload : {}
+        ) || null
+);
+
+ipcMain.handle(
+    'turnero:save-offline-snapshot',
+    (_event, payload = {}) =>
+        shellStateStore?.saveOfflineSnapshot(
+            payload && typeof payload === 'object' ? payload : {}
+        ) || null
+);
+
+ipcMain.handle(
+    'turnero:enqueue-queue-action',
+    (_event, payload = {}) =>
+        shellStateStore?.enqueueQueueAction(
+            payload && typeof payload === 'object' ? payload : {}
+        ) || null
+);
+
+ipcMain.handle(
+    'turnero:flush-queue-outbox',
+    (_event, payload = {}) =>
+        shellStateStore?.flushQueueOutbox(
+            payload && typeof payload === 'object' ? payload : {}
+        ) || null
+);
 
 ipcMain.handle('turnero:open-surface', async () => {
     await loadSurface(settingsMode ? 'settings-open' : 'manual-open');

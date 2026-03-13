@@ -28,6 +28,19 @@ export function buildQueueSyncAlert(deps) {
     };
 }
 
+function getOperatorShellStatusPhase(details) {
+    return String(details?.shellStatusPhase || '')
+        .trim()
+        .toLowerCase();
+}
+
+function isOperatorShellUpdateReady(details) {
+    return (
+        getOperatorShellStatusPhase(details) === 'ready' &&
+        /^actualizacion lista/i.test(String(details?.shellMessage || '').trim())
+    );
+}
+
 function buildOperatorAlert(manifest, detectedPlatform, deps) {
     const {
         ensureInstallPreset,
@@ -35,6 +48,9 @@ function buildOperatorAlert(manifest, detectedPlatform, deps) {
         buildPreparedSurfaceUrl,
         getLatestSurfaceDetails,
         buildSignalAgeLabel,
+        getOperatorShellPhase,
+        buildOperatorShellLifecycleLabel,
+        buildOperatorOperationalBlocker,
     } = deps;
     const preset = ensureInstallPreset(detectedPlatform);
     const expectedStation = preset.station === 'c2' ? 'c2' : 'c1';
@@ -51,6 +67,13 @@ function buildOperatorAlert(manifest, detectedPlatform, deps) {
         .trim()
         .toLowerCase();
     const ageLabel = buildSignalAgeLabel(latest);
+    const lifecycleLabel = buildOperatorShellLifecycleLabel(details);
+    const shellPhase = getOperatorShellPhase(details);
+    const shellStatusPhase = getOperatorShellStatusPhase(details);
+    const shellStatusLevel = String(details.shellStatusLevel || '')
+        .trim()
+        .toLowerCase();
+    const shellMessage = String(details.shellMessage || '').trim();
 
     if (!latest || group.stale || String(group.status || '') === 'unknown') {
         return {
@@ -78,6 +101,99 @@ function buildOperatorAlert(manifest, detectedPlatform, deps) {
             meta: ageLabel,
             href: route,
             actionLabel: 'Corregir operador',
+        };
+    }
+
+    if (lifecycleLabel) {
+        let title = `Operador en ${lifecycleLabel.toLowerCase()}`;
+        if (details.shellFirstRun) {
+            title = 'Operador pendiente de primer arranque';
+        } else if (shellPhase === 'settings') {
+            title = 'Operador en configuración local';
+        } else if (shellPhase === 'retry') {
+            title = 'Operador reintentando apertura';
+        } else if (shellPhase === 'loading') {
+            title = 'Operador conectando superficie';
+        } else if (shellPhase === 'blocked') {
+            title = 'Operador con navegación bloqueada';
+        } else if (shellPhase === 'boot') {
+            title = 'Operador en boot local';
+        }
+
+        return {
+            id: 'operator_shell_lifecycle',
+            scope: 'Operador',
+            tone: shellPhase === 'blocked' ? 'alert' : 'warning',
+            title,
+            summary:
+                buildOperatorOperationalBlocker(latest) ||
+                String(latest.summary || '').trim() ||
+                `${lifecycleLabel}.`,
+            meta: ageLabel,
+            href: route,
+            actionLabel:
+                shellPhase === 'settings'
+                    ? 'Abrir configuración'
+                    : 'Revisar operador',
+        };
+    }
+
+    if (details.shellPackaged && details.shellAutoStart === false) {
+        return {
+            id: 'operator_shell_autostart',
+            scope: 'Operador',
+            tone: 'warning',
+            title: 'Operador con autoarranque apagado',
+            summary:
+                'La desktop instalada sigue arriba, pero reporta Autoarranque OFF. Corrígelo antes del próximo reinicio para no perder el puesto operativo.',
+            meta: ageLabel,
+            href: route,
+            actionLabel: 'Abrir configuración',
+        };
+    }
+
+    if (shellStatusPhase === 'error' || shellStatusLevel === 'error') {
+        return {
+            id: 'operator_shell_update_error',
+            scope: 'Operador',
+            tone: 'alert',
+            title: 'Operador sin auto-update operativo',
+            summary:
+                shellMessage ||
+                'La desktop instalada reportó un error del updater. Conviene revisar feed, red o permisos antes del próximo reinicio.',
+            meta: ageLabel,
+            href: route,
+            actionLabel: 'Revisar operador',
+        };
+    }
+
+    if (shellStatusPhase === 'download') {
+        return {
+            id: 'operator_shell_update_download',
+            scope: 'Operador',
+            tone: 'warning',
+            title: 'Operador descargando actualización',
+            summary:
+                shellMessage ||
+                'La desktop está descargando un update en segundo plano. Evita reiniciar el equipo hasta que termine la descarga.',
+            meta: ageLabel,
+            href: route,
+            actionLabel: 'Monitorear operador',
+        };
+    }
+
+    if (isOperatorShellUpdateReady(details)) {
+        return {
+            id: 'operator_shell_update_ready',
+            scope: 'Operador',
+            tone: 'warning',
+            title: 'Operador con actualización lista',
+            summary: shellMessage
+                ? `${shellMessage}. Se instalará al cerrar la app; evita reiniciar en mitad del turno.`
+                : 'La desktop ya descargó una actualización. Se instalará al cerrar la app; evita reiniciar en mitad del turno.',
+            meta: ageLabel,
+            href: route,
+            actionLabel: 'Planificar reinicio',
         };
     }
 

@@ -27,5 +27,6 @@ export function buildQueueMeta(tickets) {
             patientInitials: item.patientInitials,
             position: index + 1,
         })),
+        recentResolvedHelpRequests: [],
     };
 }

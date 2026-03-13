@@ -19,32 +19,107 @@ function app_downloads_manifest_path(): string
     return dirname(__DIR__) . '/app-downloads/stable/release-manifest.json';
 }
 
+function app_downloads_manifest_paths(): array
+{
+    $root = dirname(__DIR__) . '/app-downloads';
+    if (!is_dir($root)) {
+        return [];
+    }
+
+    $paths = [];
+    $channels = array_diff(scandir($root) ?: [], ['.', '..']);
+    foreach ($channels as $channel) {
+        $manifestPath = $root . DIRECTORY_SEPARATOR . $channel . DIRECTORY_SEPARATOR . 'release-manifest.json';
+        if (is_file($manifestPath)) {
+            $paths[(string) $channel] = $manifestPath;
+        }
+    }
+
+    ksort($paths);
+    return $paths;
+}
+
 function app_downloads_manifest_payload(): array
 {
-    $manifestPath = app_downloads_manifest_path();
-    if (!is_file($manifestPath)) {
+    $payloads = app_downloads_manifest_payloads();
+    if (isset($payloads['stable']) && is_array($payloads['stable'])) {
+        return $payloads['stable'];
+    }
+
+    if ($payloads === []) {
         return [];
     }
 
-    $raw = file_get_contents($manifestPath);
-    if ($raw === false || trim($raw) === '') {
-        return [];
+    $firstPayload = reset($payloads);
+    return is_array($firstPayload) ? $firstPayload : [];
+}
+
+function app_downloads_manifest_payloads(): array
+{
+    $payloads = [];
+
+    foreach (app_downloads_manifest_paths() as $channel => $manifestPath) {
+        $raw = file_get_contents($manifestPath);
+        if ($raw === false || trim($raw) === '') {
+            continue;
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            continue;
+        }
+
+        $apps = isset($decoded['apps']) && is_array($decoded['apps'])
+            ? $decoded['apps']
+            : [];
+
+        $payloads[(string) $channel] = [
+            'channel' => (string) $channel,
+            'version' => isset($decoded['version']) ? (string) $decoded['version'] : '',
+            'releasedAt' => isset($decoded['releasedAt']) ? (string) $decoded['releasedAt'] : '',
+            'apps' => $apps,
+        ];
     }
 
-    $decoded = json_decode($raw, true);
-    if (!is_array($decoded)) {
-        return [];
+    return $payloads;
+}
+
+function app_downloads_surface_channel(string $surfaceId): string
+{
+    $surface = turnero_surface_registry_surface($surfaceId);
+    if (!is_array($surface)) {
+        $defaults = turnero_surface_registry_defaults();
+        return (string) ($defaults['channel'] ?? 'stable');
     }
 
-    $apps = isset($decoded['apps']) && is_array($decoded['apps'])
-        ? $decoded['apps']
-        : [];
+    return turnero_surface_registry_resolve_channel($surface);
+}
 
-    return [
-        'version' => isset($decoded['version']) ? (string) $decoded['version'] : '',
-        'releasedAt' => isset($decoded['releasedAt']) ? (string) $decoded['releasedAt'] : '',
-        'apps' => $apps,
-    ];
+function app_downloads_resolve_manifest_surface(
+    string $surfaceId,
+    array $manifestPayloads
+): array {
+    $preferredChannel = app_downloads_surface_channel($surfaceId);
+    $preferredPayload = $manifestPayloads[$preferredChannel] ?? null;
+    if (is_array($preferredPayload)) {
+        $preferredSurface = $preferredPayload['apps'][$surfaceId] ?? null;
+        if (is_array($preferredSurface)) {
+            return $preferredSurface;
+        }
+    }
+
+    foreach ($manifestPayloads as $manifestPayload) {
+        if (!is_array($manifestPayload)) {
+            continue;
+        }
+
+        $manifestSurface = $manifestPayload['apps'][$surfaceId] ?? null;
+        if (is_array($manifestSurface)) {
+            return $manifestSurface;
+        }
+    }
+
+    return [];
 }
 
 function app_downloads_merge_surface(
@@ -89,10 +164,7 @@ function read_app_downloads_catalog(): array
     $defaults = app_downloads_catalog_defaults();
     $updatedAt = app_downloads_catalog_timestamp();
     $catalogPath = dirname(__DIR__) . '/content/app-downloads/catalog.php';
-    $manifest = app_downloads_manifest_payload();
-    $manifestApps = isset($manifest['apps']) && is_array($manifest['apps'])
-        ? $manifest['apps']
-        : [];
+    $manifestPayloads = app_downloads_manifest_payloads();
 
     $loaded = [];
     if (is_file($catalogPath)) {
@@ -111,9 +183,7 @@ function read_app_downloads_catalog(): array
         $resolved[$surfaceId] = app_downloads_merge_surface(
             $surfaceDefaults,
             isset($loaded[$surfaceId]) && is_array($loaded[$surfaceId]) ? $loaded[$surfaceId] : [],
-            isset($manifestApps[$surfaceId]) && is_array($manifestApps[$surfaceId])
-                ? $manifestApps[$surfaceId]
-                : [],
+            app_downloads_resolve_manifest_surface($surfaceId, $manifestPayloads),
             $updatedAt
         );
     }

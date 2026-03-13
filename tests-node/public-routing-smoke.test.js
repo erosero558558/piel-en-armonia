@@ -18,6 +18,7 @@ const SCRIPT_PATH = path.resolve(
 
 function createHandler(options = {}) {
     const breakQueryOnPath = options.breakQueryOnPath || '';
+    const missingTurneroPath = options.missingTurneroPath || '';
     const basePrefix = '/staging';
     const canonical = new Set([
         '/es/',
@@ -29,12 +30,20 @@ function createHandler(options = {}) {
         '/es/legal/privacidad/',
         '/en/legal/privacy/',
     ]);
+    const turneroSurfaces = new Set([
+        '/operador-turnos.html',
+        '/kiosco-turnos.html',
+        '/sala-turnos.html',
+    ]);
     const redirects = new Map([
         ['/', '/es/'],
         ['/index.html', '/es/'],
         ['/telemedicina.html', '/es/telemedicina/'],
         ['/servicios/acne-rosacea.html', '/es/servicios/acne-rosacea/'],
-        ['/ninos/dermatologia-pediatrica.html', '/es/servicios/dermatologia-pediatrica/'],
+        [
+            '/ninos/dermatologia-pediatrica.html',
+            '/es/servicios/dermatologia-pediatrica/',
+        ],
         ['/terminos.html', '/es/legal/terminos/'],
     ]);
 
@@ -46,10 +55,22 @@ function createHandler(options = {}) {
             return;
         }
 
-        const relativePath = requestUrl.pathname.slice(basePrefix.length) || '/';
+        const relativePath =
+            requestUrl.pathname.slice(basePrefix.length) || '/';
         if (canonical.has(relativePath)) {
             res.writeHead(200, { 'content-type': 'text/plain' });
             res.end('ok');
+            return;
+        }
+
+        if (turneroSurfaces.has(relativePath)) {
+            if (relativePath === missingTurneroPath) {
+                res.writeHead(404);
+                res.end('turnero-missing');
+                return;
+            }
+            res.writeHead(200, { 'content-type': 'text/plain' });
+            res.end('turnero-ok');
             return;
         }
 
@@ -121,11 +142,18 @@ function runRoutingSmoke(baseUrl, outputPath = '') {
 
 test('public routing smoke passes when canonical and redirect rules are correct', async () => {
     const { server, port } = await startServer(createHandler());
-    const outputPath = path.join(os.tmpdir(), `public-routing-smoke-${Date.now()}.json`);
+    const outputPath = path.join(
+        os.tmpdir(),
+        `public-routing-smoke-${Date.now()}.json`
+    );
     try {
         const baseUrl = `http://127.0.0.1:${port}/staging`;
         const result = await runRoutingSmoke(baseUrl, outputPath);
-        assert.equal(result.code, 0, `Expected success but got:\n${result.stderr}`);
+        assert.equal(
+            result.code,
+            0,
+            `Expected success but got:\n${result.stderr}`
+        );
         assert.equal(
             result.stdout.includes('All public routing checks passed.'),
             true,
@@ -133,7 +161,11 @@ test('public routing smoke passes when canonical and redirect rules are correct'
         );
         const report = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
         assert.equal(report.passed, true, 'expected JSON report to pass');
-        assert.equal(Array.isArray(report.checks), true, 'expected checks array');
+        assert.equal(
+            Array.isArray(report.checks),
+            true,
+            'expected checks array'
+        );
     } finally {
         fs.rmSync(outputPath, { force: true });
         await new Promise((resolve) => server.close(resolve));
@@ -153,6 +185,27 @@ test('public routing smoke fails when redirect query params are not preserved', 
             combined.includes('did not preserve query params'),
             true,
             'Expected query preservation error in output'
+        );
+    } finally {
+        await new Promise((resolve) => server.close(resolve));
+    }
+});
+
+test('public routing smoke fails when a turnero surface is missing', async () => {
+    const { server, port } = await startServer(
+        createHandler({ missingTurneroPath: '/operador-turnos.html' })
+    );
+    try {
+        const baseUrl = `http://127.0.0.1:${port}/staging`;
+        const result = await runRoutingSmoke(baseUrl);
+        assert.equal(result.code, 1, 'Expected non-zero exit code');
+        const combined = `${result.stdout}\n${result.stderr}`;
+        assert.equal(
+            combined.includes(
+                'Turnero surface /operador-turnos.html expected 2xx but got 404'
+            ),
+            true,
+            'Expected missing turnero surface error in output'
         );
     } finally {
         await new Promise((resolve) => server.close(resolve));

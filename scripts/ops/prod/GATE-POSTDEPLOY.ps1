@@ -11,6 +11,8 @@ param(
     [switch]$RequireBackupReceiverReady,
     [switch]$RequireCronReady,
     [switch]$RequireTelemedicineReady,
+    [switch]$RequireTurneroWebSurfaces,
+    [switch]$RequireTurneroOperatorPilot,
     [switch]$RequireStableDataDir,
     [switch]$SkipAssetHashChecks,
     [string]$AssetHashWarningUntil = '2026-03-08T23:59:59-05:00',
@@ -70,6 +72,8 @@ while ($verifyAttempts -lt $verifyMaxAttempts) {
         -RequireBackupHealthy:$RequireBackupHealthy `
         -RequireCronReady:$RequireCronReady `
         -RequireTelemedicineReady:$RequireTelemedicineReady `
+        -RequireTurneroWebSurfaces:$RequireTurneroWebSurfaces `
+        -RequireTurneroOperatorPilot:$RequireTurneroOperatorPilot `
         -RequireStableDataDir:$RequireStableDataDir `
         -SkipAssetHashChecks:$effectiveSkipAssetHashChecks `
         -ForceAssetHashChecks:$ForceAssetHashChecks `
@@ -104,7 +108,9 @@ Write-Host "[2/3] Smoke de produccion..." -ForegroundColor Yellow
     -RequireWebhookSecret:$RequireWebhookSecret `
     -RequireBackupReceiverReady:$RequireBackupReceiverReady `
     -RequireCronReady:$RequireCronReady `
-    -RequireTelemedicineReady:$RequireTelemedicineReady
+    -RequireTelemedicineReady:$RequireTelemedicineReady `
+    -RequireTurneroWebSurfaces:$RequireTurneroWebSurfaces `
+    -RequireTurneroOperatorPilot:$RequireTurneroOperatorPilot
 if ($LASTEXITCODE -ne 0) {
     $failures += 1
 }

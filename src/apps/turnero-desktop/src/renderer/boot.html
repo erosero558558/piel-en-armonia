@@ -35,6 +35,21 @@
                 <div class="boot-actions">
                     <button id="bootRetryBtn" type="button">Reintentar</button>
                 </div>
+                <section
+                    id="bootRetryCard"
+                    class="boot-retry"
+                    data-state="warning"
+                    hidden
+                >
+                    <div class="boot-retry__header">
+                        <p class="boot-eyebrow">Retry automático</p>
+                        <strong id="bootRetrySummary">Sin retry pendiente</strong>
+                    </div>
+                    <p id="bootRetryHint" class="boot-retry__hint">
+                        El shell volverá a intentar la carga automáticamente si
+                        pierde la superficie remota.
+                    </p>
+                </section>
                 <section class="boot-config" aria-labelledby="bootConfigTitle">
                     <div class="boot-config__header">
                         <div>
@@ -123,6 +138,83 @@
                             </div>
                             <div id="bootPreflightChecks" class="boot-preflight__checks"></div>
                         </section>
+                        <section
+                            class="boot-support"
+                            aria-labelledby="bootSupportTitle"
+                        >
+                            <div class="boot-support__header">
+                                <div>
+                                    <p class="boot-eyebrow">Soporte y despliegue</p>
+                                    <h3 id="bootSupportTitle">Datos listos para soporte remoto</h3>
+                                </div>
+                                <p id="bootSupportSummary" class="boot-support__summary">
+                                    Valida perfil local, feed y guía de despliegue antes de dejar esta desktop en producción.
+                                </p>
+                            </div>
+                            <div class="boot-support__grid">
+                                <article
+                                    id="bootShellRuntimeCard"
+                                    class="boot-support__item"
+                                    data-state="warning"
+                                >
+                                    <span>Modo shell</span>
+                                    <strong id="bootShellRuntimeMode">safe</strong>
+                                    <small id="bootShellRuntimeSummary">
+                                        Sin snapshot local ni sesión previa válida.
+                                    </small>
+                                    <small id="bootShellRuntimeMeta">
+                                        Sync: Sin registro · Outbox: 0 · Conciliación: 0
+                                    </small>
+                                </article>
+                                <article class="boot-support__item">
+                                    <span>Perfil local</span>
+                                    <strong id="bootSupportProfile">-</strong>
+                                    <small id="bootSupportProvisioning">-</small>
+                                </article>
+                                <article class="boot-support__item">
+                                    <div class="boot-support__item-head">
+                                        <span>Feed auto-update</span>
+                                        <button
+                                            id="bootCopyFeedBtn"
+                                            type="button"
+                                            class="boot-support__copy"
+                                            data-boot-copy-target="bootSupportFeedUrl"
+                                        >
+                                            Copiar
+                                        </button>
+                                    </div>
+                                    <code id="bootSupportFeedUrl">-</code>
+                                </article>
+                                <article class="boot-support__item">
+                                    <div class="boot-support__item-head">
+                                        <span>Guía de despliegue</span>
+                                        <button
+                                            id="bootCopyGuideBtn"
+                                            type="button"
+                                            class="boot-support__copy"
+                                            data-boot-copy-target="bootSupportGuideUrl"
+                                        >
+                                            Copiar
+                                        </button>
+                                    </div>
+                                    <code id="bootSupportGuideUrl">-</code>
+                                </article>
+                                <article class="boot-support__item">
+                                    <div class="boot-support__item-head">
+                                        <span>Config local</span>
+                                        <button
+                                            id="bootCopyConfigBtn"
+                                            type="button"
+                                            class="boot-support__copy"
+                                            data-boot-copy-target="bootSupportConfigPath"
+                                        >
+                                            Copiar
+                                        </button>
+                                    </div>
+                                    <code id="bootSupportConfigPath">-</code>
+                                </article>
+                            </div>
+                        </section>
                         <p
                             id="bootPreflightGateHint"
                             class="boot-config__hint boot-config__hint--gate"
@@ -154,6 +246,6 @@
                 </p>
             </section>
         </main>
-        <script src="./boot.js"></script>
+        <script type="module" src="./boot.js"></script>
     </body>
 </html>

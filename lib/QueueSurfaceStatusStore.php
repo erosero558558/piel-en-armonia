@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/storage.php';
+require_once __DIR__ . '/QueueAssistantMetricsStore.php';
 
 final class QueueSurfaceStatusStore
 {
@@ -63,6 +64,12 @@ final class QueueSurfaceStatusStore
      */
     public static function writeHeartbeat(array $payload): array
     {
+        try {
+            QueueAssistantMetricsStore::recordHeartbeat($payload);
+        } catch (\Throwable $th) {
+            // Keep live heartbeat resilient even if analytics persistence fails.
+        }
+
         $record = self::normalizeRecord($payload);
         $records = self::pruneExpiredRecords(self::readRawRecords());
         $records[self::buildRecordKey($record)] = $record;

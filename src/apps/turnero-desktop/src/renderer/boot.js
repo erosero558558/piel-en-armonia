@@ -1,3 +1,19 @@
+import {
+    buildDesktopLaunchUrl,
+    buildDesktopPreflightFingerprint,
+    buildDesktopRuntimePatchFromForm,
+    getDesktopPreflightGateState,
+} from '../runtime/snapshot-contract.mjs';
+import {
+    getBootConfigFormView,
+    getBootShellView,
+} from './boot-shell-view-state.mjs';
+import {
+    getBootPendingPreflightView,
+    getBootPreflightView,
+    getBootRetryView,
+} from './boot-view-state.mjs';
+
 (function () {
     const titleEl = document.getElementById('bootTitle');
     const messageEl = document.getElementById('bootMessage');
@@ -5,6 +21,9 @@
     const baseUrlEl = document.getElementById('bootBaseUrl');
     const phaseEl = document.getElementById('bootPhase');
     const retryBtn = document.getElementById('bootRetryBtn');
+    const retryCardEl = document.getElementById('bootRetryCard');
+    const retrySummaryEl = document.getElementById('bootRetrySummary');
+    const retryHintEl = document.getElementById('bootRetryHint');
     const configModeEl = document.getElementById('bootConfigMode');
     const configHintEl = document.getElementById('bootConfigHint');
     const launchUrlPreviewEl = document.getElementById('bootConfigLaunchUrl');
@@ -16,6 +35,22 @@
     const preflightGateHintEl = document.getElementById(
         'bootPreflightGateHint'
     );
+    const supportSummaryEl = document.getElementById('bootSupportSummary');
+    const supportProfileEl = document.getElementById('bootSupportProfile');
+    const supportProvisioningEl = document.getElementById(
+        'bootSupportProvisioning'
+    );
+    const shellRuntimeCardEl = document.getElementById('bootShellRuntimeCard');
+    const shellRuntimeModeEl = document.getElementById('bootShellRuntimeMode');
+    const shellRuntimeSummaryEl = document.getElementById(
+        'bootShellRuntimeSummary'
+    );
+    const shellRuntimeMetaEl = document.getElementById('bootShellRuntimeMeta');
+    const supportFeedUrlEl = document.getElementById('bootSupportFeedUrl');
+    const supportGuideUrlEl = document.getElementById('bootSupportGuideUrl');
+    const supportConfigPathEl = document.getElementById(
+        'bootSupportConfigPath'
+    );
     const configForm = document.getElementById('bootConfigForm');
     const baseUrlInput = document.getElementById('bootConfigBaseUrl');
     const profileSelect = document.getElementById('bootConfigProfile');
@@ -23,117 +58,194 @@
     const launchModeSelect = document.getElementById('bootConfigLaunchMode');
     const autoStartInput = document.getElementById('bootConfigAutoStart');
     const operatorFields = document.getElementById('bootConfigOperatorFields');
+    const supportCopyButtons = Array.from(
+        document.querySelectorAll('[data-boot-copy-target]')
+    );
 
     let latestSnapshot = null;
     let lastPreflightRunToken = 0;
     let latestPreflightReport = null;
     let lastPreflightFingerprint = '';
     let preflightRunning = false;
+    let retryCountdownTimer = 0;
 
-    function formatPlatformLabel(platform) {
-        const normalized = String(platform || '')
-            .trim()
-            .toLowerCase();
-        if (normalized === 'win32') {
-            return 'Windows';
-        }
-        if (normalized === 'darwin') {
-            return 'macOS';
-        }
-        if (normalized === 'linux') {
-            return 'Linux';
-        }
-        return normalized || 'Equipo local';
-    }
-
-    function getSurfaceLabel(snapshot) {
-        const surfaceLabel = String(
-            snapshot?.surfaceLabel || snapshot?.config?.surface || 'Superficie'
-        ).trim();
-        return surfaceLabel || 'Superficie';
-    }
-
-    function getSurfaceDesktopLabel(snapshot) {
-        const surfaceDesktopLabel = String(
-            snapshot?.surfaceDesktopLabel || ''
-        ).trim();
-        if (surfaceDesktopLabel) {
-            return surfaceDesktopLabel;
-        }
-        return `Turnero ${getSurfaceLabel(snapshot)}`;
-    }
-
-    function formatShellSummary(snapshot) {
-        const surfaceDesktopLabel = getSurfaceDesktopLabel(snapshot);
-        if (!snapshot || !snapshot.packaged) {
-            return `${surfaceDesktopLabel} en validacion local`;
+    function setSupportValue(element, value) {
+        if (!(element instanceof HTMLElement)) {
+            return;
         }
 
-        const name = String(snapshot.name || surfaceDesktopLabel).trim();
-        const version = String(snapshot.version || '').trim();
-        return version ? `${name} v${version}` : name;
+        const normalized = String(value || '').trim();
+        element.textContent = normalized || '-';
+        element.dataset.copyValue = normalized;
     }
 
-    function formatOpenSurfaceLabel(snapshot) {
-        if (!snapshot || !snapshot.packaged) {
-            return 'Abrir superficie';
-        }
-
-        const surfaceLabel = getSurfaceLabel(snapshot).toLowerCase();
-        return `Abrir ${surfaceLabel} ${formatPlatformLabel(snapshot.platform)}`;
-    }
-
-    function formatShellMeta(snapshot) {
-        if (!snapshot) {
-            return 'Sin metadata del shell.';
-        }
-
-        const platformLabel = formatPlatformLabel(snapshot.platform);
-        const appMode = snapshot.packaged
-            ? 'Desktop instalada'
-            : 'Desktop en desarrollo';
-        const updateChannel = String(
-            snapshot.config?.updateChannel || 'stable'
-        );
-        const configPath = String(snapshot.configPath || '').trim();
-        const configSuffix = configPath ? ` · Config: ${configPath}` : '';
-
-        return `${platformLabel} · ${appMode} · Canal ${updateChannel}${configSuffix}`;
-    }
-
-    function isOperatorSurface(surface) {
-        return (
-            String(surface || '')
-                .trim()
-                .toLowerCase() === 'operator'
-        );
-    }
-
-    function buildLaunchUrl(config) {
-        try {
-            const surface = String(config.surface || 'operator');
-            const baseUrl = String(
-                config.baseUrl || 'https://pielarmonia.com'
-            ).trim();
-            const route =
-                surface === 'kiosk'
-                    ? '/kiosco-turnos.html'
-                    : '/operador-turnos.html';
-            const url = new URL(route, baseUrl);
-
-            if (surface === 'operator') {
-                const profile = String(config.profile || 'free');
-                url.searchParams.set(
-                    'station',
-                    profile === 'c2_locked' ? 'c2' : 'c1'
-                );
-                url.searchParams.set('lock', profile === 'free' ? '0' : '1');
-                url.searchParams.set('one_tap', config.oneTap ? '1' : '0');
+    function syncSupportCopyButtons() {
+        supportCopyButtons.forEach((button) => {
+            if (!(button instanceof HTMLButtonElement)) {
+                return;
             }
 
-            return url.toString();
-        } catch (_error) {
-            return '-';
+            const targetId = String(button.dataset.bootCopyTarget || '').trim();
+            const targetEl = targetId
+                ? document.getElementById(targetId)
+                : null;
+            const copyValue =
+                targetEl instanceof HTMLElement
+                    ? String(targetEl.dataset.copyValue || '').trim()
+                    : '';
+            button.disabled = copyValue === '';
+            button.title =
+                copyValue === ''
+                    ? 'Sin dato disponible para copiar'
+                    : 'Copiar al portapapeles';
+        });
+    }
+
+    function renderSupport(supportView) {
+        const view =
+            supportView && typeof supportView === 'object' ? supportView : {};
+
+        if (supportSummaryEl instanceof HTMLElement) {
+            supportSummaryEl.textContent = String(view.summary || '');
+        }
+
+        if (supportProfileEl instanceof HTMLElement) {
+            supportProfileEl.textContent = String(view.profile || '');
+        }
+        if (supportProvisioningEl instanceof HTMLElement) {
+            supportProvisioningEl.textContent = String(view.provisioning || '');
+        }
+
+        setSupportValue(supportFeedUrlEl, view.feedUrl);
+        setSupportValue(supportGuideUrlEl, view.guideUrl);
+        setSupportValue(supportConfigPathEl, view.configPath);
+        syncSupportCopyButtons();
+    }
+
+    function formatRelativeAge(seconds) {
+        const ageSec = Number(seconds);
+        if (!Number.isFinite(ageSec) || ageSec < 0) {
+            return 'sin sync válido';
+        }
+        if (ageSec < 60) {
+            return `${Math.round(ageSec)}s`;
+        }
+        if (ageSec < 3600) {
+            return `${Math.round(ageSec / 60)}m`;
+        }
+        return `${Math.round(ageSec / 3600)}h`;
+    }
+
+    function formatIsoDate(value) {
+        const date = new Date(value || '');
+        if (Number.isNaN(date.getTime())) {
+            return 'sin registro';
+        }
+        return date.toLocaleString('es-EC', {
+            day: '2-digit',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    }
+
+    function renderShellRuntime(shellStatus, shellSnapshot) {
+        if (
+            !(shellRuntimeCardEl instanceof HTMLElement) ||
+            !(shellRuntimeModeEl instanceof HTMLElement) ||
+            !(shellRuntimeSummaryEl instanceof HTMLElement) ||
+            !(shellRuntimeMetaEl instanceof HTMLElement)
+        ) {
+            return;
+        }
+
+        const status =
+            shellStatus && typeof shellStatus === 'object' ? shellStatus : null;
+        const snapshot =
+            shellSnapshot && typeof shellSnapshot === 'object'
+                ? shellSnapshot
+                : null;
+        const mode = String(status?.mode || 'safe')
+            .trim()
+            .toLowerCase();
+        const state =
+            mode === 'live'
+                ? 'ready'
+                : mode === 'offline'
+                  ? 'warning'
+                  : 'danger';
+        const reconciliationSize = Number(status?.reconciliationSize || 0);
+        const outboxSize = Number(status?.outboxSize || 0);
+
+        let summary =
+            'Solo lectura hasta recuperar red y confirmar una sesión válida.';
+        if (mode === 'live') {
+            summary =
+                reconciliationSize > 0
+                    ? 'En línea, pero hay acciones pendientes de conciliación.'
+                    : 'Equipo conectado y listo para sincronizar en vivo.';
+        } else if (mode === 'offline') {
+            summary =
+                'Offline operativo con snapshot fresco y replay pendiente al reconectar.';
+        } else if (status?.reason === 'reconciliation_pending') {
+            summary =
+                'Modo seguro por conciliación pendiente. Limpia el outbox antes de volver a contingencia.';
+        } else if (status?.reason === 'snapshot_expired') {
+            summary =
+                'Modo seguro: el último snapshot ya venció y no conviene operar así.';
+        } else if (status?.reason === 'no_authenticated_session') {
+            summary =
+                'Modo seguro: no hay sesión previa válida y el login offline no está habilitado.';
+        }
+
+        shellRuntimeCardEl.setAttribute('data-state', state);
+        shellRuntimeModeEl.textContent =
+            mode === 'live' ? 'live' : mode === 'offline' ? 'offline' : 'safe';
+        shellRuntimeSummaryEl.textContent = summary;
+        shellRuntimeMetaEl.textContent = [
+            `Sync ${formatIsoDate(status?.lastSuccessfulSyncAt)}`,
+            `edad ${formatRelativeAge(status?.snapshotAgeSec)}`,
+            `outbox ${outboxSize}`,
+            `conciliación ${reconciliationSize}`,
+            `canal ${String(status?.updateChannel || 'stable')}`,
+            snapshot?.hasAuthenticatedSession
+                ? 'sesión previa OK'
+                : 'sin sesión previa',
+        ].join(' · ');
+    }
+
+    function clearRetryCountdownTimer() {
+        if (retryCountdownTimer) {
+            window.clearInterval(retryCountdownTimer);
+            retryCountdownTimer = 0;
+        }
+    }
+
+    function renderRetryState(now = Date.now()) {
+        const retryState = getBootRetryView(latestSnapshot, now);
+
+        if (!(retryCardEl instanceof HTMLElement)) {
+            return;
+        }
+
+        if (!retryState) {
+            retryCardEl.hidden = true;
+            clearRetryCountdownTimer();
+            return;
+        }
+
+        retryCardEl.hidden = false;
+        if (retrySummaryEl instanceof HTMLElement) {
+            retrySummaryEl.textContent = retryState.summary;
+        }
+        if (retryHintEl instanceof HTMLElement) {
+            retryHintEl.textContent = retryState.hint;
+        }
+
+        if (!retryCountdownTimer) {
+            retryCountdownTimer = window.setInterval(() => {
+                renderRetryState(Date.now());
+            }, 1000);
         }
     }
 
@@ -163,88 +275,25 @@
         };
     }
 
-    function createRuntimePatch(formPayload) {
-        const profile = String(formPayload.profile || 'free');
-        return {
-            baseUrl: formPayload.baseUrl,
-            launchMode: formPayload.launchMode,
-            autoStart: formPayload.autoStart,
-            stationMode: profile === 'free' ? 'free' : 'locked',
-            stationConsultorio: profile === 'c2_locked' ? 2 : 1,
-            oneTap: Boolean(formPayload.oneTap),
-        };
-    }
-
     function getRuntimePatchFromForm() {
-        return createRuntimePatch(getFormPayload());
+        return buildDesktopRuntimePatchFromForm(getFormPayload());
     }
 
     function getPreflightFingerprint() {
-        return JSON.stringify({
-            packaged: Boolean(latestSnapshot?.packaged),
-            surface: String(latestSnapshot?.config?.surface || 'operator'),
-            config: getRuntimePatchFromForm(),
-        });
+        return buildDesktopPreflightFingerprint(
+            latestSnapshot,
+            getRuntimePatchFromForm()
+        );
     }
 
     function getPreflightGateState() {
-        if (!latestSnapshot) {
-            return {
-                blocked: true,
-                state: 'warning',
-                detail: 'Cargando la configuración local del shell.',
-            };
-        }
-
-        if (!latestSnapshot.packaged) {
-            return {
-                blocked: false,
-                state: 'warning',
-                detail: 'El checklist remoto completo se valida solo en desktop instalada; en desarrollo puedes continuar.',
-            };
-        }
-
-        if (preflightRunning) {
-            return {
-                blocked: true,
-                state: 'warning',
-                detail: 'Espera a que termine la comprobación antes de abrir la superficie.',
-            };
-        }
-
-        const currentFingerprint = getPreflightFingerprint();
-        if (
-            !latestPreflightReport ||
-            lastPreflightFingerprint !== currentFingerprint
-        ) {
-            return {
-                blocked: true,
-                state: 'warning',
-                detail: 'Vuelve a comprobar el equipo después de cambiar la configuración.',
-            };
-        }
-
-        if (String(latestPreflightReport.state || '') === 'danger') {
-            return {
-                blocked: true,
-                state: 'danger',
-                detail: 'Corrige los checks en rojo antes de guardar y abrir esta desktop.',
-            };
-        }
-
-        if (String(latestPreflightReport.state || '') === 'warning') {
-            return {
-                blocked: false,
-                state: 'warning',
-                detail: 'El equipo puede abrir, pero todavía quedan validaciones pendientes.',
-            };
-        }
-
-        return {
-            blocked: false,
-            state: 'ready',
-            detail: 'Checklist vigente para esta configuración local.',
-        };
+        return getDesktopPreflightGateState({
+            snapshot: latestSnapshot,
+            preflightRunning,
+            preflightReport: latestPreflightReport,
+            preflightFingerprint: lastPreflightFingerprint,
+            currentFingerprint: getPreflightFingerprint(),
+        });
     }
 
     function syncLaunchGuard() {
@@ -270,29 +319,24 @@
         if (!launchUrlPreviewEl) {
             return;
         }
-        launchUrlPreviewEl.textContent = buildLaunchUrl(getFormPayload());
+        launchUrlPreviewEl.textContent = buildDesktopLaunchUrl(
+            getRuntimePatchFromForm()
+        );
     }
 
     function renderPreflight(report) {
+        const viewState = getBootPreflightView(report);
+
         if (preflightSummaryEl instanceof HTMLElement) {
-            if (!report) {
-                preflightSummaryEl.setAttribute('data-state', 'warning');
-                preflightSummaryEl.textContent =
-                    'Ejecuta la comprobación para validar servidor, superficie y perfil del equipo.';
-            } else {
-                preflightSummaryEl.setAttribute(
-                    'data-state',
-                    report.state || 'warning'
-                );
-                preflightSummaryEl.textContent = `${report.title || 'Equipo en revisión'}: ${
-                    report.summary || ''
-                }`;
-            }
+            preflightSummaryEl.setAttribute(
+                'data-state',
+                viewState.summaryState
+            );
+            preflightSummaryEl.textContent = viewState.summaryText;
         }
 
         if (preflightChecksEl instanceof HTMLElement) {
-            const checks = Array.isArray(report?.checks) ? report.checks : [];
-            preflightChecksEl.innerHTML = checks
+            preflightChecksEl.innerHTML = viewState.checks
                 .map(
                     (check) => `
                         <article class="boot-preflight__check" data-state="${String(
@@ -330,9 +374,12 @@
             runPreflightBtn.disabled = true;
         }
         if (preflightSummaryEl instanceof HTMLElement) {
-            preflightSummaryEl.setAttribute('data-state', 'warning');
-            preflightSummaryEl.textContent =
-                'Comprobando servidor, superficie y salud del equipo...';
+            const pendingView = getBootPendingPreflightView();
+            preflightSummaryEl.setAttribute(
+                'data-state',
+                pendingView.summaryState
+            );
+            preflightSummaryEl.textContent = pendingView.summaryText;
         }
 
         try {
@@ -369,32 +416,25 @@
     }
 
     function hydrateForm(snapshot) {
-        const config = snapshot?.config || {};
-        const operator = isOperatorSurface(config.surface);
-        const profile =
-            config.stationMode === 'locked'
-                ? Number(config.stationConsultorio || 1) === 2
-                    ? 'c2_locked'
-                    : 'c1_locked'
-                : 'free';
+        const formView = getBootConfigFormView(snapshot);
 
         if (baseUrlInput instanceof HTMLInputElement) {
-            baseUrlInput.value = String(config.baseUrl || '');
+            baseUrlInput.value = formView.baseUrl;
         }
         if (profileSelect instanceof HTMLSelectElement) {
-            profileSelect.value = profile;
+            profileSelect.value = formView.profile;
         }
         if (oneTapInput instanceof HTMLInputElement) {
-            oneTapInput.checked = Boolean(config.oneTap);
+            oneTapInput.checked = formView.oneTap;
         }
         if (launchModeSelect instanceof HTMLSelectElement) {
-            launchModeSelect.value = String(config.launchMode || 'fullscreen');
+            launchModeSelect.value = formView.launchMode;
         }
         if (autoStartInput instanceof HTMLInputElement) {
-            autoStartInput.checked = config.autoStart !== false;
+            autoStartInput.checked = formView.autoStart;
         }
         if (operatorFields instanceof HTMLElement) {
-            operatorFields.hidden = !operator;
+            operatorFields.hidden = !formView.operator;
         }
         renderLaunchPreview();
     }
@@ -405,56 +445,38 @@
         }
 
         latestSnapshot = snapshot;
+        const shellView = getBootShellView(snapshot);
 
         if (titleEl) {
-            titleEl.textContent =
-                snapshot.phase === 'ready'
-                    ? 'Shell conectado'
-                    : snapshot.settingsMode || snapshot.firstRun
-                      ? 'Configura este equipo'
-                      : 'Inicializando shell operativo';
+            titleEl.textContent = shellView.title;
         }
         if (surfaceEl) {
-            surfaceEl.textContent = snapshot.config?.surface || '-';
+            surfaceEl.textContent = shellView.surface;
         }
         if (baseUrlEl) {
-            baseUrlEl.textContent = snapshot.config?.baseUrl || '-';
+            baseUrlEl.textContent = shellView.baseUrl;
         }
         if (phaseEl) {
-            phaseEl.textContent = snapshot.phase || 'boot';
+            phaseEl.textContent = shellView.phase;
         }
         if (configModeEl) {
-            const runtimeMode = snapshot.firstRun
-                ? 'Primer arranque'
-                : snapshot.settingsMode
-                  ? 'Reconfiguracion'
-                  : 'Perfil persistido';
-            configModeEl.textContent = `${runtimeMode} · ${formatPlatformLabel(
-                snapshot.platform
-            )}`;
+            configModeEl.textContent = shellView.configMode;
         }
         if (configHintEl) {
-            configHintEl.innerHTML = snapshot.firstRun
-                ? `Confirma este equipo antes de abrir el turnero. Mismo instalador para <code>C1</code> y <code>C2</code>; cambia solo el perfil local.`
-                : `Presiona <code>F10</code> o <code>Ctrl/Cmd + ,</code> para volver a esta configuracion. ${formatShellMeta(
-                      snapshot
-                  )}`;
+            configHintEl.innerHTML = shellView.configHintHtml;
         }
         if (openSurfaceBtn instanceof HTMLButtonElement) {
-            openSurfaceBtn.hidden = Boolean(snapshot.firstRun);
-            openSurfaceBtn.textContent = formatOpenSurfaceLabel(snapshot);
+            openSurfaceBtn.hidden = Boolean(shellView.openSurfaceHidden);
+            openSurfaceBtn.textContent = shellView.openSurfaceLabel;
         }
         if (messageEl) {
-            const shellSummary = formatShellSummary(snapshot);
-            const runtimeMessage = String(snapshot.message || '')
-                .trim()
-                .replace(/[.!?]\s*$/u, '');
-            messageEl.textContent = runtimeMessage
-                ? `${runtimeMessage}. ${shellSummary}.`
-                : `${shellSummary}.`;
+            messageEl.textContent = shellView.message;
         }
 
         hydrateForm(snapshot);
+        renderSupport(shellView.support);
+        renderShellRuntime(snapshot.shellStatus, snapshot.shellSnapshot);
+        renderRetryState();
         syncLaunchGuard();
     }
 
@@ -463,10 +485,20 @@
             return;
         }
 
-        const snapshot = await window.turneroDesktop.getRuntimeSnapshot();
+        const [snapshot, shellStatus, shellSnapshot] = await Promise.all([
+            window.turneroDesktop.getRuntimeSnapshot(),
+            typeof window.turneroDesktop.getShellStatus === 'function'
+                ? window.turneroDesktop.getShellStatus()
+                : Promise.resolve(null),
+            typeof window.turneroDesktop.getOfflineSnapshot === 'function'
+                ? window.turneroDesktop.getOfflineSnapshot()
+                : Promise.resolve(null),
+        ]);
         render({
             ...snapshot,
             ...snapshot.status,
+            shellStatus,
+            shellSnapshot,
         });
     }
 
@@ -478,6 +510,11 @@
         window.turneroDesktop.onBootStatus(() => {
             refreshSnapshot().catch(() => {});
         });
+        if (typeof window.turneroDesktop.onShellEvent === 'function') {
+            window.turneroDesktop.onShellEvent((payload) => {
+                renderShellRuntime(payload?.status, payload);
+            });
+        }
     }
 
     if (retryBtn && window.turneroDesktop) {
@@ -536,6 +573,42 @@
         });
     }
 
+    supportCopyButtons.forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        const defaultLabel = String(button.textContent || 'Copiar').trim();
+        button.dataset.defaultLabel = defaultLabel;
+        button.addEventListener('click', async () => {
+            const targetId = String(button.dataset.bootCopyTarget || '').trim();
+            const targetEl = targetId
+                ? document.getElementById(targetId)
+                : null;
+            const copyValue =
+                targetEl instanceof HTMLElement
+                    ? String(targetEl.dataset.copyValue || '').trim()
+                    : '';
+            if (!copyValue || !navigator.clipboard?.writeText) {
+                return;
+            }
+
+            button.disabled = true;
+            try {
+                await navigator.clipboard.writeText(copyValue);
+                button.textContent = 'Copiado';
+            } catch (_error) {
+                button.textContent = 'Sin copiar';
+            } finally {
+                window.setTimeout(() => {
+                    button.textContent =
+                        button.dataset.defaultLabel || 'Copiar';
+                    syncSupportCopyButtons();
+                }, 1200);
+            }
+        });
+    });
+
     [baseUrlInput, profileSelect, oneTapInput, launchModeSelect, autoStartInput]
         .filter(Boolean)
         .forEach((element) => {
@@ -551,4 +624,5 @@
         });
 
     renderPreflight(null);
+    syncSupportCopyButtons();
 })();

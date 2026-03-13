@@ -32,7 +32,7 @@ test('turnero surface registry resuelve metadata y rutas publicas desde una sola
     assert.equal(operator.ops.telemetry.title, 'Operador');
     assert.equal(
         resolveTurneroUpdatePublicFeedPath('operator', 'win'),
-        '/desktop-updates/stable/operator/win/latest.yml'
+        '/desktop-updates/pilot/operator/win/latest.yml'
     );
     assert.equal(
         buildTurneroReleaseArtifactName('sala_tv', 'android_tv'),
@@ -44,7 +44,7 @@ test('turnero surface registry genera defaults del catalogo sin hardcodes parale
     const catalog = buildTurneroCatalogDefaults();
     assert.equal(
         catalog.operator.targets.win.url,
-        '/app-downloads/stable/operator/win/TurneroOperadorSetup.exe'
+        '/app-downloads/pilot/operator/win/TurneroOperadorSetup.exe'
     );
     assert.equal(
         catalog.kiosk.targets.mac.url,

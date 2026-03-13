@@ -180,6 +180,17 @@ function turnero_surface_registry_trim_slashes(string $value): string
     return trim($value, '/');
 }
 
+function turnero_surface_registry_resolve_channel(array $surface, ?string $channel = null): string
+{
+    $defaults = turnero_surface_registry_defaults();
+    $resolvedChannel = trim((string) ($channel ?? ($surface['updateChannel'] ?? $defaults['channel'])));
+    if ($resolvedChannel === '') {
+        return (string) $defaults['channel'];
+    }
+
+    return $resolvedChannel;
+}
+
 function turnero_surface_registry_download_public_path(array $surface, string $targetKey, ?string $channel = null): string
 {
     $targets = isset($surface['targets']) && is_array($surface['targets'])
@@ -199,24 +210,102 @@ function turnero_surface_registry_download_public_path(array $surface, string $t
     }
 
     $defaults = turnero_surface_registry_defaults();
-    $channel = trim((string) ($channel ?? ($surface['updateChannel'] ?? $defaults['channel'])));
-    if ($channel === '') {
-        $channel = (string) $defaults['channel'];
-    }
+    $resolvedChannel = turnero_surface_registry_resolve_channel($surface, $channel);
 
     return '/' . turnero_surface_registry_trim_slashes((string) $defaults['downloadBasePath'])
-        . '/' . $channel
+        . '/' . $resolvedChannel
         . '/' . turnero_surface_registry_trim_slashes($downloadPath)
         . '/' . $manualFile;
+}
+
+function turnero_surface_registry_update_public_directory(array $surface, string $targetKey, ?string $channel = null): string
+{
+    $targets = isset($surface['targets']) && is_array($surface['targets'])
+        ? $surface['targets']
+        : [];
+    $target = isset($targets[$targetKey]) && is_array($targets[$targetKey])
+        ? $targets[$targetKey]
+        : null;
+    if ($target === null) {
+        return '';
+    }
+
+    $updatePath = (string) ($target['updatePath'] ?? '');
+    if ($updatePath === '') {
+        return '';
+    }
+
+    $defaults = turnero_surface_registry_defaults();
+    $resolvedChannel = turnero_surface_registry_resolve_channel($surface, $channel);
+
+    return '/' . turnero_surface_registry_trim_slashes((string) $defaults['updateBasePath'])
+        . '/' . $resolvedChannel
+        . '/' . turnero_surface_registry_trim_slashes($updatePath)
+        . '/';
+}
+
+function turnero_surface_registry_update_public_feed_path(array $surface, string $targetKey, ?string $channel = null): string
+{
+    $targets = isset($surface['targets']) && is_array($surface['targets'])
+        ? $surface['targets']
+        : [];
+    $target = isset($targets[$targetKey]) && is_array($targets[$targetKey])
+        ? $targets[$targetKey]
+        : null;
+    if ($target === null) {
+        return '';
+    }
+
+    $feedFile = (string) ($target['feedFile'] ?? '');
+    if ($feedFile === '') {
+        return '';
+    }
+
+    $directory = turnero_surface_registry_update_public_directory(
+        $surface,
+        $targetKey,
+        $channel
+    );
+    if ($directory === '') {
+        return '';
+    }
+
+    return $directory . $feedFile;
+}
+
+function turnero_surface_registry_update_public_payload_path(array $surface, string $targetKey, ?string $channel = null): string
+{
+    $targets = isset($surface['targets']) && is_array($surface['targets'])
+        ? $surface['targets']
+        : [];
+    $target = isset($targets[$targetKey]) && is_array($targets[$targetKey])
+        ? $targets[$targetKey]
+        : null;
+    if ($target === null) {
+        return '';
+    }
+
+    $updateFile = (string) ($target['updateFile'] ?? '');
+    if ($updateFile === '') {
+        return '';
+    }
+
+    $directory = turnero_surface_registry_update_public_directory(
+        $surface,
+        $targetKey,
+        $channel
+    );
+    if ($directory === '') {
+        return '';
+    }
+
+    return $directory . $updateFile;
 }
 
 function turnero_surface_registry_catalog_defaults(?string $channel = null, ?string $version = null): array
 {
     $defaults = turnero_surface_registry_defaults();
-    $resolvedChannel = trim((string) ($channel ?? $defaults['channel']));
-    if ($resolvedChannel === '') {
-        $resolvedChannel = (string) $defaults['channel'];
-    }
+    $resolvedChannel = trim((string) ($channel ?? ''));
     $resolvedVersion = trim((string) ($version ?? $defaults['version']));
     if ($resolvedVersion === '') {
         $resolvedVersion = (string) $defaults['version'];
@@ -237,15 +326,32 @@ function turnero_surface_registry_catalog_defaults(?string $channel = null, ?str
             'targets' => [],
         ];
 
+        $surfaceChannel = $resolvedChannel !== ''
+            ? $resolvedChannel
+            : turnero_surface_registry_resolve_channel($surface);
+
         foreach (turnero_surface_registry_target_keys($surface) as $targetKey) {
             $target = $surface['targets'][$targetKey];
+            $feedUrl = turnero_surface_registry_update_public_feed_path(
+                $surface,
+                $targetKey,
+                $surfaceChannel
+            );
+            $updateUrl = turnero_surface_registry_update_public_payload_path(
+                $surface,
+                $targetKey,
+                $surfaceChannel
+            );
             $catalog[$surfaceId]['targets'][$targetKey] = [
                 'url' => turnero_surface_registry_download_public_path(
                     $surface,
                     $targetKey,
-                    $resolvedChannel
+                    $surfaceChannel
                 ),
                 'label' => (string) ($target['label'] ?? ''),
+                'updateUrl' => $updateUrl,
+                'feedUrl' => $feedUrl,
+                'supportsAutoUpdate' => $feedUrl !== '' || $updateUrl !== '',
             ];
         }
     }

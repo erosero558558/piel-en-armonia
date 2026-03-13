@@ -23,10 +23,13 @@ Overrides:
 ## Fuentes de verdad
 
 - Publico V6: `docs/public-v6-canonical-source.md`
+- Source vs output de runtime versionado: `docs/RUNTIME_ARTIFACT_POLICY.md`
+- Branch slicing para trabajo mixto: `docs/BRANCH_SLICING_GUARDRAILS.md`
 - Admin sony_v3: `docs/ADMIN-UI-ROLLOUT.md`
 - Desarrollo local con backend: `docs/LOCAL_SERVER.md`
 - Contribucion y PR flow: `docs/CONTRIBUTING.md`
 - LeadOps/OpenClaw: `docs/LEADOPS_OPENCLAW.md`
+- Runtime transversal OpenClaw/Codex: `TRI_LANE_RUNTIME_RUNBOOK.md`
 - Deploy y post-deploy: `docs/DEPLOYMENT.md`
 - Deploy hosting detallado: `docs/DEPLOY_HOSTING_PLAYBOOK.md`
 - Deploy por GitHub Actions: `docs/GITHUB_ACTIONS_DEPLOY.md`
@@ -67,6 +70,9 @@ Comandos:
 - `npm run build:public:v6`
 - `npm run check:public:v6:artifacts`
 - `npm run check:public:runtime:artifacts`
+- `npm run check:runtime:compat:versions`
+- `npm run check:runtime:artifacts`
+- `npm run check:deploy:artifacts`
 - `npm run chunks:public:check`
 - `npm run chunks:public:prune`
 - `npm run benchmark:local`
@@ -83,6 +89,9 @@ Notas:
 
 - Los audits y baselines V6 aceptan `TEST_BASE_URL` o `--base-url`.
 - `check:public:runtime:artifacts` valida el runtime versionado del gateway publico (`styles.css`, `styles-deferred.css`, `script.js`, `js/chunks/**`, `js/engines/**`) y escribe `verification/public-v6-canonical/runtime-artifacts-report.json`.
+- `check:runtime:compat:versions` valida solo los puentes de compatibilidad que todavia fijan versiones runtime, incluido `sw.js`.
+- `check:runtime:artifacts` agrupa el chequeo del runtime publico, chunks admin y el validador de compatibilidad de versiones para revisar outputs sin tratar bundles generados como source.
+- `check:deploy:artifacts` suma a lo anterior la verificacion de `es/**`, `en/**` y `_astro/**`.
 - `chunks:public:prune` elimina chunks huerfanos en `js/chunks/**` que ya no son alcanzables desde `script.js`.
 - `npm run test:frontend:lighthouse:premium` usa `LIGHTHOUSE_BASE_URL` o el host local canonico; `LIGHTHOUSE_LOCAL_SERVER_PORT` manda sobre `TEST_LOCAL_SERVER_PORT` si necesitas separarlo.
 - `npm run benchmark:local` reutiliza `TEST_BASE_URL` o levanta `127.0.0.1:8011`.
@@ -100,19 +109,58 @@ Runtime canonico:
 Comandos:
 
 - `npm run gate:admin:rollout`
+- `npm run gate:admin:rollout:openclaw`
+- `npm run checklist:admin:openclaw-auth:local`
+- `npm run diagnose:admin:openclaw-auth:rollout`
+- `npm run smoke:admin:openclaw-auth:local`
+- `npm run openclaw:auth:start`
 - `npm run test:admin:runtime-smoke`
 - `npm run test:frontend:qa:admin`
 - `npm run chunks:admin:check`
 - `npm run chunks:admin:prune`
+- `npm run check:runtime:artifacts`
 
 Notas:
 
 - `js/admin-runtime.js` existe solo como alias de compatibilidad.
 - `legacy` y `sony_v2` no forman parte del runtime operativo.
 - Implementacion operativa canonica: `scripts/ops/admin/**`
+- Si `PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt`, levantar el helper del operador con `npm run openclaw:auth:start`.
+- `npm run gate:admin:rollout` ya cubre `tests/admin-openclaw-login.spec.js` para no dejar el login OpenClaw fuera del gate.
+- `npm run gate:admin:rollout:openclaw` endurece el gate para exigir `operator-auth-status` en modo OpenClaw configurado.
+- `npm run diagnose:admin:openclaw-auth:rollout` inspecciona `operator-auth-status` y la fachada `admin-auth.php?action=status` para devolver `diagnosis` + `nextAction` del rollout remoto.
+- `npm run test:frontend:qa:admin` tambien cubre `tests/admin-openclaw-login.spec.js` dentro del QA canonico del admin.
+- `npm run checklist:admin:openclaw-auth:local` imprime el smoke manual canonico del laptop operador.
+- Implementacion operativa del checklist local: `scripts/ops/admin/CHECKLIST-OPENCLAW-AUTH-LOCAL.ps1`
+- `npm run smoke:admin:openclaw-auth:local` ejecuta el smoke no interactivo del facade `admin-auth.php`.
+- Implementacion operativa del smoke local: `scripts/ops/admin/SMOKE-OPENCLAW-AUTH-LOCAL.ps1`
+- `docs/RUNTIME_ARTIFACT_POLICY.md` fija que `src/apps/admin/index.js` y `src/apps/admin-v3/**` son la fuente primaria; `admin.js` y `js/admin-chunks/**` se revisan como outputs validados.
 - Playwright local usa `127.0.0.1:8011` por defecto; para reutilizar otro servidor usar `TEST_BASE_URL=...` y `TEST_REUSE_EXISTING_SERVER=1` solo si es intencional.
 
-### 3. Validar dominios criticos
+### 3. Operar Turnero nativo
+
+Comandos:
+
+- `npm run turnero:stage:pilot:local`
+- `npm run turnero:verify:pilot:local`
+- `npm run checklist:turnero:operator:pilot`
+- `npm run publish:turnero:operator:pilot -- -DryRun`
+- `npm run verify:prod:turnero:operator:pilot`
+- `npm run smoke:prod:turnero:operator:pilot`
+- `npm run gate:turnero`
+
+Notas:
+
+- Para validar tambien el hosting publicado del piloto, usa `npm run checklist:turnero:operator:pilot -- -ServerBaseUrl https://pielarmonia.com`.
+- Para convertir esa validacion en gate operativo del hosting, usa `npm run verify:prod:turnero:operator:pilot` y luego `npm run smoke:prod:turnero:operator:pilot`.
+- Implementacion operativa canonica: `scripts/ops/turnero/**`
+- Entry point local del checklist: `scripts/ops/turnero/CHECKLIST-OPERADOR-WINDOWS-PILOTO.ps1`
+- Entry point local de publicacion: `scripts/ops/turnero/PUBLICAR-OPERADOR-WINDOWS-PILOTO.ps1`
+- El checklist de piloto Windows valida bundle local, feed `pilot`, centro de descargas y deja el smoke manual listo para recepcion o consultorio.
+- `publish:turnero:operator:pilot` sube solo `app-downloads/pilot` y `desktop-updates/pilot` del operador. Usa `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `FTP_SERVER_DIR`, `FTP_PROTOCOL`, `FTP_SERVER_PORT` y `FTP_SECURITY`.
+- Si el equipo entra en contingencia, el cierre real sigue siendo `live/offline/safe` + prueba del Genius Numpad 1000.
+
+### 4. Validar dominios criticos
 
 Comandos:
 
@@ -122,7 +170,7 @@ Comandos:
 
 Usalos antes de tocar despliegue o si cambias comportamiento en agenda, funnel o pagos.
 
-### 4. Validar produccion
+### 5. Validar produccion
 
 Comandos:
 
@@ -134,6 +182,7 @@ Comandos:
 - `npm run gate:prod:strict`
 - `npm run nightly:stability`
 - `npm run monitor:prod`
+- `npm run checklist:prod:public-sync:host`
 - `npm run report:weekly:prod`
 
 Implementacion canonica:
@@ -143,11 +192,19 @@ Implementacion canonica:
 - `bin/powershell/**`
 - Los `.ps1` de raiz siguen existiendo como wrappers compatibles.
 
-### 5. Operar LeadOps interno con OpenClaw
+Notas:
+
+- `npm run checklist:prod:public-sync:host` no ejecuta cambios remotos; imprime el checklist host-side canonico para revisar wrapper, `public-sync-status.json`, `health-diagnostics`, auth y cifrado en reposo antes de intervenir el VPS.
+- Entry point canonico: `scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1`
+
+### 6. Operar LeadOps interno con OpenClaw
 
 Comandos:
 
 - `npm run leadops:worker`
+- `node agent-orchestrator.js task create --title "..." --template runtime --files bin/lead-ai-worker.js --json`
+- `node agent-orchestrator.js runtime verify openclaw_chatgpt --json`
+- `node agent-orchestrator.js runtime invoke <AG-ID> --expect-rev <n> --json`
 - `php vendor/bin/phpunit tests/Integration/LeadOpsEndpointsTest.php`
 - `node --test tests-node/lead-ai-worker.test.js`
 - `npx playwright test tests/admin-callbacks-triage.spec.js`
@@ -157,8 +214,12 @@ Notas:
 - `lead-ai-queue` y `lead-ai-result` usan token de maquina, no sesion admin.
 - El worker es pull-based desde el laptop del operador.
 - Si el worker cae, el panel sigue operando con scoring heuristico local.
+- El orquestador modela OpenClaw como runtime interno `openclaw_chatgpt` en el lane `transversal_runtime`.
+- `task create --template runtime` crea la tarea ya alineada a `codex_transversal` e infiere `runtime_surface` desde `files`.
+- `runtime verify` comprueba `figo_queue`, `leadops_worker` y `operator_auth`; `runtime invoke` solo ejecuta `figo_queue` y `leadops_worker`.
+- Para crear o mover tareas de runtime, seguir `TRI_LANE_RUNTIME_RUNBOOK.md` y mantener `codex_instance=codex_transversal`.
 
-### 6. Trabajar con gobernanza y board
+### 7. Trabajar con gobernanza y board
 
 Comandos de lectura:
 
@@ -173,8 +234,12 @@ Comandos de validacion:
 - `npm run agent:test`
 - `npm run agent:policy:lint`
 - `npm run agent:gate`
+- `node agent-orchestrator.js runtime verify openclaw_chatgpt --json`
 
 Para mutaciones del board, seguir `AGENTS.md` y usar `--expect-rev`.
+Si una iniciativa empieza a mezclar ops/deploy, queue runtime, desktop,
+tests o governance evidence, cortar la rama con
+`docs/BRANCH_SLICING_GUARDRAILS.md` antes de seguir agregando superficies.
 
 ## Atajos por perfil
 
