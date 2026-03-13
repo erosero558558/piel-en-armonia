@@ -14,6 +14,14 @@ function readJson(relativePath) {
     return JSON.parse(read(relativePath));
 }
 
+function findRasterMaster(assetId) {
+    return ['.jpg', '.jpeg', '.png']
+        .map((extension) =>
+            path.join(repoRoot, 'images', 'src', `${assetId}${extension}`)
+        )
+        .find((candidate) => fs.existsSync(candidate));
+}
+
 function normalizeAssetBasePath(value) {
     return String(value || '')
         .trim()
@@ -527,6 +535,49 @@ test('public V6 manifest includes the relaunch image family', () => {
     });
 });
 
+test('public V6 manifest marks photo provenance and ships raster masters for every asset', () => {
+    const manifest = readJson(
+        path.join('content', 'public-v6', 'assets-manifest.json')
+    );
+    const assets = Array.isArray(manifest.assets) ? manifest.assets : [];
+    const validSourceKinds = new Set(['real_photo', 'ai_photoreal']);
+    const validIdentityPolicies = new Set(['generic', 'staff_real']);
+    const staffRequired = new Set([
+        'v6-clinic-doctor-rosero',
+        'v6-clinic-doctor-narvaez',
+        'v6-clinic-team-roundtable',
+    ]);
+
+    assets.forEach((asset) => {
+        assert.equal(
+            validSourceKinds.has(asset.sourceKind),
+            true,
+            `${asset.id} must declare sourceKind`
+        );
+        assert.equal(
+            validIdentityPolicies.has(asset.identityPolicy),
+            true,
+            `${asset.id} must declare identityPolicy`
+        );
+        assert.ok(
+            findRasterMaster(asset.id),
+            `${asset.id} must ship a raster master in images/src`
+        );
+        if (staffRequired.has(asset.id)) {
+            assert.equal(
+                asset.identityPolicy,
+                'staff_real',
+                `${asset.id} must be marked staff_real`
+            );
+            assert.equal(
+                asset.sourceKind,
+                'real_photo',
+                `${asset.id} must use real_photo`
+            );
+        }
+    });
+});
+
 test('public V6 content caps primary asset reuse and keeps section-level image sets unique', () => {
     const contentFiles = [
         path.join('content', 'public-v6', 'es', 'home.json'),
@@ -547,12 +598,12 @@ test('public V6 content caps primary asset reuse and keeps section-level image s
     });
 
     const overLimit = Array.from(counts.entries()).filter(
-        ([, count]) => count > 10
+        ([, count]) => count > 8
     );
     assert.deepEqual(
         overLimit,
         [],
-        `primary image refs must stay at or below 10: ${JSON.stringify(
+        `primary image refs must stay at or below 8: ${JSON.stringify(
             overLimit
         )}`
     );

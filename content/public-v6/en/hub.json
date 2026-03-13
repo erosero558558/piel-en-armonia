@@ -42,7 +42,7 @@
             "category": "Diagnosis",
             "title": "Comprehensive diagnosis",
             "copy": "A complete first read that sets priorities and leaves you with a clear plan after the first visit.",
-            "image": "/images/optimized/v6-clinic-statement-clinical-direction.webp",
+            "image": "/images/optimized/v6-clinic-diagnostico-integral.webp",
             "href": "/en/services/diagnostico-integral/"
         },
         {
@@ -141,7 +141,7 @@
                     "category": "Integral",
                     "title": "Skin, hair and nails",
                     "copy": "Integrated care for combined symptoms that need coordinated clinical reading.",
-                    "image": "/images/optimized/v6-clinic-home-followup.webp",
+                    "image": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
                     "href": "/en/services/piel-cabello-unas/"
                 },
                 {
@@ -167,7 +167,7 @@
             "category": "Inflammation",
             "title": "Active flare support",
             "copy": "We adjust early when lesions return or the skin becomes more reactive.",
-            "image": "/images/optimized/v6-clinic-acne-rosacea.webp",
+            "image": "/images/optimized/v6-clinic-granitos-brazos-piernas.webp",
             "href": "/en/services/acne-rosacea/"
         },
         {

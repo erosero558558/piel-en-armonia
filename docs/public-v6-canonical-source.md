@@ -13,6 +13,7 @@ Only these paths define the public website:
 - `src/apps/astro/src/lib/public-v6.js`
 - `src/apps/astro/src/styles/public-v6/**`
 - `content/public-v6/**`
+- `images/src/**`
 - `js/public-v6-shell.js`
 - `images/optimized/**`
 
@@ -29,6 +30,14 @@ Generation flow:
 1. `npm run build:public:v6`
 2. `npm run check:public:v6:artifacts`
 3. Commit artifacts to `main`
+
+Photo contract:
+
+- `images/src/**` is photo-first. Public V6 assets must resolve to raster masters
+  (`.jpg`, `.jpeg`, `.png`).
+- `content/public-v6/assets-manifest.json` must declare `sourceKind` and
+  `identityPolicy` for every asset.
+- Doctor/team surfaces must be marked `staff_real`.
 
 `build:public:v6` is the canonical runner. It executes, in order:
 

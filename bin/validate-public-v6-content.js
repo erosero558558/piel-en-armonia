@@ -29,11 +29,76 @@ const LEGAL_SLOT_MAP = {
     cookies: 'cookies',
     'medical-disclaimer': 'aviso-medico',
 };
+const VALID_SOURCE_KINDS = new Set(['real_photo', 'ai_photoreal']);
+const VALID_IDENTITY_POLICIES = new Set(['generic', 'staff_real']);
+const STAFF_REAL_REQUIRED_ASSETS = new Set([
+    'v6-clinic-doctor-rosero',
+    'v6-clinic-doctor-narvaez',
+    'v6-clinic-team-roundtable',
+]);
+const MAX_PRIMARY_IMAGE_REFS = 8;
 
 function readJson(relativePath) {
     const full = path.join(ROOT, relativePath);
     const raw = fs.readFileSync(full, 'utf8');
     return JSON.parse(raw);
+}
+
+function normalizeAssetBasePath(value) {
+    return String(value || '')
+        .trim()
+        .split(/\s+/u)[0]
+        .replace(
+            /-(400|500|640|800|900|1024|1200|1344|1400|lqip)(?=\.(webp|jpg)$)/u,
+            ''
+        );
+}
+
+function collectPrimaryImageRefs(value, counts) {
+    if (!value || typeof value === 'string') {
+        return;
+    }
+
+    if (Array.isArray(value)) {
+        value.forEach((item) => collectPrimaryImageRefs(item, counts));
+        return;
+    }
+
+    if (typeof value === 'object') {
+        for (const [key, item] of Object.entries(value)) {
+            if (
+                (key === 'src' || key === 'image' || key === 'heroImage') &&
+                typeof item === 'string' &&
+                item.startsWith('/images/optimized/')
+            ) {
+                const normalized = normalizeAssetBasePath(item);
+                counts.set(normalized, (counts.get(normalized) || 0) + 1);
+            }
+            collectPrimaryImageRefs(item, counts);
+        }
+    }
+}
+
+function collectSectionRefs(items, field) {
+    return Array.isArray(items)
+        ? items
+              .map((item) =>
+                  normalizeAssetBasePath(
+                      item && typeof item === 'object' ? item[field] : ''
+                  )
+              )
+              .filter(Boolean)
+        : [];
+}
+
+function checkUniqueSectionImages(issues, label, items, field = 'image') {
+    const refs = collectSectionRefs(items, field);
+    if (refs.length !== new Set(refs).size) {
+        issues.push({
+            type: 'section_image_reuse',
+            detail: `${label} must not repeat image refs inside the same section`,
+        });
+    }
 }
 
 function flattenImageRefs(value, collector) {
@@ -85,6 +150,22 @@ function existsWebAsset(webPath) {
     return fs.existsSync(local);
 }
 
+function findRasterMaster(assetId) {
+    const supported = ['.jpg', '.jpeg', '.png'];
+    for (const extension of supported) {
+        const candidate = path.join(
+            ROOT,
+            'images',
+            'src',
+            `${assetId}${extension}`
+        );
+        if (fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+    return '';
+}
+
 function readPath(obj, pathExpr) {
     return pathExpr.split('.').reduce((acc, key) => {
         if (acc === null || acc === undefined) return undefined;
@@ -106,6 +187,7 @@ function requireStringField(issues, file, json, pathExpr, type) {
 function run() {
     const issues = [];
     const expectedSlotIds = new Set();
+    const parsedFiles = new Map();
 
     for (const file of requiredFiles) {
         if (!fs.existsSync(path.join(ROOT, file))) {
@@ -209,6 +291,47 @@ function run() {
                 type: 'asset_policy',
                 asset: asset.id,
                 detail: 'real_case assets cannot be publicWebSafe=true',
+            });
+        }
+        if (!VALID_SOURCE_KINDS.has(asset.sourceKind)) {
+            issues.push({
+                type: 'asset_schema',
+                asset: asset.id,
+                detail: `invalid sourceKind: ${asset.sourceKind || ''}`,
+            });
+        }
+        if (!VALID_IDENTITY_POLICIES.has(asset.identityPolicy)) {
+            issues.push({
+                type: 'asset_schema',
+                asset: asset.id,
+                detail: `invalid identityPolicy: ${asset.identityPolicy || ''}`,
+            });
+        }
+        if (
+            STAFF_REAL_REQUIRED_ASSETS.has(asset.id) &&
+            asset.identityPolicy !== 'staff_real'
+        ) {
+            issues.push({
+                type: 'identity_policy_violation',
+                asset: asset.id,
+                detail: 'doctor/team assets must be marked staff_real',
+            });
+        }
+        if (
+            asset.identityPolicy === 'staff_real' &&
+            asset.sourceKind !== 'real_photo'
+        ) {
+            issues.push({
+                type: 'identity_policy_violation',
+                asset: asset.id,
+                detail: 'staff_real assets must use sourceKind=real_photo',
+            });
+        }
+        if (!findRasterMaster(asset.id)) {
+            issues.push({
+                type: 'missing_raster_master',
+                asset: asset.id,
+                detail: 'photo-first assets must ship a jpg/png master in images/src',
             });
         }
         if (!existsWebAsset(asset.src)) {
@@ -350,9 +473,12 @@ function run() {
             !file.endsWith('image-decisions.json')
     );
     const imageRefs = new Set();
+    const primaryImageRefCounts = new Map();
     contentFiles.forEach((file) => {
         const json = readJson(file);
+        parsedFiles.set(file, json);
         flattenImageRefs(json, imageRefs);
+        collectPrimaryImageRefs(json, primaryImageRefCounts);
 
         if (file.endsWith('navigation.json')) {
             if (
@@ -809,6 +935,66 @@ function run() {
         if (!existsWebAsset(src)) {
             issues.push({ type: 'missing_referenced_image', src });
         }
+    });
+
+    const overLimit = Array.from(primaryImageRefCounts.entries()).filter(
+        ([, count]) => count > MAX_PRIMARY_IMAGE_REFS
+    );
+    overLimit.forEach(([src, count]) => {
+        issues.push({
+            type: 'primary_image_reuse_limit',
+            src,
+            detail: `primary image refs must stay at or below ${MAX_PRIMARY_IMAGE_REFS}; received ${count}`,
+        });
+    });
+
+    ['es', 'en'].forEach((locale) => {
+        const home = parsedFiles.get(`content/public-v6/${locale}/home.json`);
+        const hub = parsedFiles.get(`content/public-v6/${locale}/hub.json`);
+        const telemedicine = parsedFiles.get(
+            `content/public-v6/${locale}/telemedicine.json`
+        );
+
+        checkUniqueSectionImages(
+            issues,
+            `${locale} home hero`,
+            home?.hero?.slides
+        );
+        checkUniqueSectionImages(
+            issues,
+            `${locale} home editorial`,
+            home?.editorial?.cards
+        );
+        checkUniqueSectionImages(
+            issues,
+            `${locale} home corporate matrix`,
+            home?.corporateMatrix?.cards
+        );
+        checkUniqueSectionImages(
+            issues,
+            `${locale} hub featured`,
+            hub?.featured
+        );
+        checkUniqueSectionImages(
+            issues,
+            `${locale} hub initiatives`,
+            hub?.initiatives
+        );
+        checkUniqueSectionImages(
+            issues,
+            `${locale} telemedicine initiatives`,
+            telemedicine?.initiatives
+        );
+
+        (Array.isArray(hub?.sections) ? hub.sections : []).forEach(
+            (section) => {
+                checkUniqueSectionImages(
+                    issues,
+                    `${locale} hub section ${section?.id || 'unknown'}`,
+                    section?.cards
+                );
+            }
+        );
     });
 
     finalize(issues);

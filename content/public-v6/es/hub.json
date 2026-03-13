@@ -42,7 +42,7 @@
             "category": "Diagnostico",
             "title": "Diagnostico integral",
             "copy": "Una primera lectura completa para ordenar prioridades y salir de la consulta con un plan claro.",
-            "image": "/images/optimized/v6-clinic-statement-clinical-direction.webp",
+            "image": "/images/optimized/v6-clinic-diagnostico-integral.webp",
             "href": "/es/servicios/diagnostico-integral/"
         },
         {
@@ -141,7 +141,7 @@
                     "category": "Integral",
                     "title": "Piel, cabello y unas",
                     "copy": "Consulta integral para sintomas combinados que requieren una lectura clinica coordinada.",
-                    "image": "/images/optimized/v6-clinic-home-followup.webp",
+                    "image": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
                     "href": "/es/servicios/piel-cabello-unas/"
                 },
                 {
@@ -167,7 +167,7 @@
             "category": "Inflamacion",
             "title": "Brote activo",
             "copy": "Ajustamos temprano cuando reaparecen lesiones o la piel se vuelve mas reactiva.",
-            "image": "/images/optimized/v6-clinic-acne-rosacea.webp",
+            "image": "/images/optimized/v6-clinic-granitos-brazos-piernas.webp",
             "href": "/es/servicios/acne-rosacea/"
         },
         {
