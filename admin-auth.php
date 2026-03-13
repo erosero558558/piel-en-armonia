@@ -61,6 +61,7 @@ if ($method === 'GET' && $action === 'status') {
         'recommendedMode' => $prefersOpenClawAuth
             ? OPERATOR_AUTH_SOURCE
             : 'legacy_password',
+        'capabilities' => admin_agent_capabilities_payload(),
     ];
     if ($isAuth) {
         $resp['csrfToken'] = generate_csrf_token();
@@ -142,7 +143,15 @@ if ($method === 'POST' && $action === 'login') {
 
         json_response([
             'ok' => true,
-            'twoFactorRequired' => true
+            'twoFactorRequired' => true,
+            'authenticated' => false,
+            'status' => 'two_factor_required',
+            'mode' => 'legacy_password',
+            'configured' => true,
+            'recommendedMode' => internal_console_primary_auth_mode(),
+            'capabilities' => [
+                'adminAgent' => false,
+            ],
         ]);
     }
 
@@ -156,7 +165,12 @@ if ($method === 'POST' && $action === 'login') {
     json_response([
         'ok' => true,
         'authenticated' => true,
-        'csrfToken' => generate_csrf_token()
+        'status' => 'authenticated',
+        'mode' => 'legacy_password',
+        'configured' => true,
+        'recommendedMode' => internal_console_primary_auth_mode(),
+        'csrfToken' => generate_csrf_token(),
+        'capabilities' => admin_agent_capabilities_payload(),
     ]);
 }
 
@@ -214,7 +228,12 @@ if ($method === 'POST' && $action === 'login-2fa') {
     json_response([
         'ok' => true,
         'authenticated' => true,
-        'csrfToken' => generate_csrf_token()
+        'status' => 'authenticated',
+        'mode' => 'legacy_password',
+        'configured' => true,
+        'recommendedMode' => internal_console_primary_auth_mode(),
+        'csrfToken' => generate_csrf_token(),
+        'capabilities' => admin_agent_capabilities_payload(),
     ]);
 }
 
@@ -230,7 +249,14 @@ if ($method === 'POST' && $action === 'logout') {
 
     json_response([
         'ok' => true,
-        'authenticated' => false
+        'authenticated' => false,
+        'status' => 'logout',
+        'mode' => internal_console_primary_auth_mode(),
+        'configured' => admin_password_is_configured(),
+        'recommendedMode' => internal_console_primary_auth_mode(),
+        'capabilities' => [
+            'adminAgent' => false,
+        ],
     ]);
 }
 

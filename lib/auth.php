@@ -523,6 +523,9 @@ function operator_auth_config_error_payload(): array
         'mode' => OPERATOR_AUTH_SOURCE,
         'configured' => false,
         'recommendedMode' => OPERATOR_AUTH_SOURCE,
+        'capabilities' => [
+            'adminAgent' => false,
+        ],
         'configuration' => $snapshot,
         'error' => $error,
     ];
@@ -548,6 +551,8 @@ function operator_auth_authenticated_payload(array $operator, string $status = '
         'authenticated' => true,
         'status' => $status,
         'mode' => operator_auth_mode(),
+        'configured' => true,
+        'recommendedMode' => OPERATOR_AUTH_SOURCE,
         'csrfToken' => generate_csrf_token(),
         'capabilities' => admin_agent_capabilities_payload(),
         'operator' => [
@@ -568,6 +573,8 @@ function operator_auth_error_payload(array $challenge, string $status, string $e
         'authenticated' => false,
         'status' => $status,
         'mode' => operator_auth_mode(),
+        'configured' => true,
+        'recommendedMode' => OPERATOR_AUTH_SOURCE,
         'capabilities' => [
             'adminAgent' => false,
         ],
@@ -952,6 +959,11 @@ function operator_auth_status_payload(): array
             'authenticated' => false,
             'status' => 'anonymous',
             'mode' => operator_auth_mode(),
+            'configured' => true,
+            'recommendedMode' => OPERATOR_AUTH_SOURCE,
+            'capabilities' => [
+                'adminAgent' => false,
+            ],
         ];
     }
 
@@ -963,6 +975,11 @@ function operator_auth_status_payload(): array
             'authenticated' => false,
             'status' => 'anonymous',
             'mode' => operator_auth_mode(),
+            'configured' => true,
+            'recommendedMode' => OPERATOR_AUTH_SOURCE,
+            'capabilities' => [
+                'adminAgent' => false,
+            ],
         ];
     }
 
@@ -972,6 +989,11 @@ function operator_auth_status_payload(): array
             'authenticated' => false,
             'status' => 'anonymous',
             'mode' => operator_auth_mode(),
+            'configured' => true,
+            'recommendedMode' => OPERATOR_AUTH_SOURCE,
+            'capabilities' => [
+                'adminAgent' => false,
+            ],
         ];
     }
 
@@ -1010,6 +1032,11 @@ function operator_auth_status_payload(): array
             'authenticated' => false,
             'status' => 'anonymous',
             'mode' => operator_auth_mode(),
+            'configured' => true,
+            'recommendedMode' => OPERATOR_AUTH_SOURCE,
+            'capabilities' => [
+                'adminAgent' => false,
+            ],
         ];
     }
 
@@ -1018,6 +1045,11 @@ function operator_auth_status_payload(): array
         'authenticated' => false,
         'status' => 'pending',
         'mode' => operator_auth_mode(),
+        'configured' => true,
+        'recommendedMode' => OPERATOR_AUTH_SOURCE,
+        'capabilities' => [
+            'adminAgent' => false,
+        ],
         'challenge' => operator_auth_challenge_public_payload($challenge),
     ];
 }
@@ -1044,6 +1076,11 @@ function operator_auth_logout_payload(): array
         'authenticated' => false,
         'status' => 'logout',
         'mode' => operator_auth_mode(),
+        'configured' => operator_auth_is_configured(),
+        'recommendedMode' => OPERATOR_AUTH_SOURCE,
+        'capabilities' => [
+            'adminAgent' => false,
+        ],
     ];
 }
 

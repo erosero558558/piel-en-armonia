@@ -55,6 +55,26 @@ function normalizeOperator(operator) {
     };
 }
 
+function normalizeCapabilities(
+    capabilities,
+    authenticated,
+    fallbackCapabilities = null
+) {
+    const source =
+        capabilities && typeof capabilities === 'object'
+            ? capabilities
+            : fallbackCapabilities && typeof fallbackCapabilities === 'object'
+              ? fallbackCapabilities
+              : {};
+
+    return {
+        adminAgent:
+            authenticated === true &&
+            (!Object.prototype.hasOwnProperty.call(source, 'adminAgent') ||
+                source.adminAgent === true),
+    };
+}
+
 function applyAuthPayload(payload, fallbackMode = 'legacy_password') {
     const authenticated = payload?.authenticated === true;
     const mode = normalizeAuthMode(payload, fallbackMode);
@@ -68,6 +88,11 @@ function applyAuthPayload(payload, fallbackMode = 'legacy_password') {
         payload?.configured !== false &&
         status !== 'legacy_auth_not_configured' &&
         status !== 'operator_auth_not_configured';
+    const capabilities = normalizeCapabilities(
+        payload?.capabilities,
+        authenticated,
+        getState().auth.capabilities
+    );
     const authMethod = authenticated
         ? mode === 'openclaw_chatgpt'
             ? 'openclaw'
@@ -93,6 +118,7 @@ function applyAuthPayload(payload, fallbackMode = 'legacy_password') {
             configured,
             challenge,
             operator,
+            capabilities,
             lastError: authenticated ? '' : String(payload?.error || ''),
         },
     }));

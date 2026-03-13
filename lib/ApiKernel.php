@@ -209,6 +209,7 @@ class ApiKernel
         $context = [
             'store' => $store,
             'isAdmin' => $isAdmin,
+            'agentAccess' => $isAdmin ? admin_agent_has_editorial_access() : false,
             'diagnosticsAuthorized' => $diagnosticsAuthorized,
             'requestStartedAt' => $requestStartedAt,
             'method' => $method,

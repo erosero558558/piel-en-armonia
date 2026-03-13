@@ -11,7 +11,11 @@ const initialState = {
         status: 'anonymous',
         configured: false,
         challenge: null,
+        helperUrlOpened: false,
         operator: null,
+        capabilities: {
+            adminAgent: false,
+        },
         lastError: '',
     },
     ui: {

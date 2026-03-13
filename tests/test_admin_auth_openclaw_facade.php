@@ -106,6 +106,10 @@ try {
             assert_false($status['body']['authenticated'] ?? true, 'anonymous operator should not authenticate');
             assert_equals('openclaw_chatgpt', $status['body']['mode'] ?? '', 'mode should expose openclaw_chatgpt');
             assert_equals('anonymous', $status['body']['status'] ?? '', 'status should remain anonymous before challenge');
+            assert_false(
+                $status['body']['capabilities']['adminAgent'] ?? true,
+                'anonymous facade status should not grant admin agent capabilities'
+            );
         } finally {
             admin_auth_openclaw_cleanup_cookie($cookieFile);
         }
@@ -132,12 +136,20 @@ try {
             assert_equals('autenticado', $status['body']['status'] ?? '', 'status should expose autenticado');
             assert_equals('operator@example.com', $status['body']['operator']['email'] ?? '', 'operator email should match allowlist');
             assert_true(strlen((string) ($status['body']['csrfToken'] ?? '')) > 10, 'status should expose csrfToken');
+            assert_true(
+                $status['body']['capabilities']['adminAgent'] ?? false,
+                'authenticated operator should expose admin agent capabilities when editorial allowlist is open'
+            );
 
             $logout = admin_auth_openclaw_request('POST', $serverBaseUrl, 'logout', [], $cookieFile);
             assert_equals(200, $logout['code'], 'logout should respond 200');
             assert_false($logout['body']['authenticated'] ?? true, 'logout should clear authentication');
             assert_equals('logout', $logout['body']['status'] ?? '', 'logout should expose logout status');
             assert_equals('openclaw_chatgpt', $logout['body']['mode'] ?? '', 'logout should preserve auth mode');
+            assert_false(
+                $logout['body']['capabilities']['adminAgent'] ?? true,
+                'logout should clear admin agent capabilities'
+            );
         } finally {
             admin_auth_openclaw_cleanup_cookie($cookieFile);
         }
@@ -187,6 +199,10 @@ try {
                 assert_equals(200, $login['code'], 'legacy login should succeed when override is explicit');
                 assert_true($login['body']['authenticated'] ?? false, 'legacy override login should authenticate');
                 assert_true(strlen((string) ($login['body']['csrfToken'] ?? '')) > 10, 'legacy override login should expose csrfToken');
+                assert_true(
+                    $login['body']['capabilities']['adminAgent'] ?? false,
+                    'legacy override login should expose admin agent capabilities'
+                );
             } finally {
                 admin_auth_openclaw_cleanup_cookie($cookieFile);
             }

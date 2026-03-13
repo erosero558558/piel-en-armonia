@@ -68,6 +68,10 @@ run_test('admin status prefers openclaw mode when consultorio auth is primary by
         assert_equals('operator_auth_not_configured', $status['body']['status'] ?? '', 'status should report missing operator auth setup');
         assert_false($status['body']['configured'] ?? true, 'configured should be false when operator auth is incomplete');
         assert_equals('openclaw_chatgpt', $status['body']['recommendedMode'] ?? '', 'recommended mode should preserve openclaw as primary');
+        assert_false(
+            $status['body']['capabilities']['adminAgent'] ?? true,
+            'anonymous openclaw status should not grant admin agent capabilities'
+        );
     });
 });
 
@@ -83,6 +87,10 @@ run_test('admin status reports legacy mode as misconfigured when password is mis
         assert_equals('legacy_auth_not_configured', $status['body']['status'] ?? '', 'legacy status should report misconfiguration');
         assert_false($status['body']['configured'] ?? true, 'configured should be false when password missing');
         assert_equals('legacy_password', $status['body']['recommendedMode'] ?? '', 'recommended mode should follow forced legacy auth');
+        assert_false(
+            $status['body']['capabilities']['adminAgent'] ?? true,
+            'anonymous legacy status should not grant admin agent capabilities'
+        );
     });
 });
 
@@ -99,6 +107,10 @@ run_test('admin status reports legacy mode as configured when password exists an
         assert_equals('anonymous', $status['body']['status'] ?? '', 'configured legacy auth should report anonymous status');
         assert_true($status['body']['configured'] ?? false, 'configured should be true when password exists');
         assert_equals('legacy_password', $status['body']['recommendedMode'] ?? '', 'recommended mode should stay aligned with legacy override');
+        assert_false(
+            $status['body']['capabilities']['adminAgent'] ?? true,
+            'legacy status should remain capability-free before authentication'
+        );
     });
 });
 
