@@ -256,6 +256,7 @@ Lista aprobada actual:
 - `content`
 - `controllers`
 - `data`
+- `desktop-updates`
 - `docs`
 - `en`
 - `es`

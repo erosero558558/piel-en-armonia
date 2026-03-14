@@ -728,6 +728,7 @@ test('frontera de directorios en raiz queda explicita y limitada', () => {
         'content',
         'controllers',
         'data',
+        'desktop-updates',
         'docs',
         'en',
         'es',
