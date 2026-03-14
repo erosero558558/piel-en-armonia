@@ -63,6 +63,7 @@ This document freezes the active admin frontend contract after the total cutover
 
 - `#loginForm`, `#adminDashboard`, `#adminSidebar`, `#adminPrimaryNav`, `#adminSecondaryNav`, `#adminMenuToggle`, `#adminMenuClose`, `#adminSidebarBackdrop`, `#adminSidebarCollapse`
 - `#pageTitle`, `#adminQuickCommand`, `#adminRunQuickCommandBtn`, `#adminRefreshStatus`, `#adminContextTitle`, `#adminCommandPalette`
+- `#adminAgentPanel`, `#adminAgentPrompt`, `#adminAgentSubmitBtn`, `#adminAgentPanelSummary`, `#adminAgentContextSummary`, `#adminAgentSessionState`
 - `#dashboard`, `#opsTodaySummaryCard`, `#opsTodayCount`, `#opsTodayMeta`, `#opsPendingSummaryCard`, `#opsPendingCount`, `#opsPendingMeta`, `#opsAvailabilitySummaryCard`, `#opsAvailabilityCount`, `#opsAvailabilityMeta`
 - `#opsQueueLaunchCard`, `#opsQueueStatus`, `#opsQueueMeta`, `#openOperatorAppBtn`, `#dashboardLiveStatus`, `#dashboardLiveMeta`, `#dashboardQueueHealth`, `#dashboardFlowStatus`, `#dashboardAttentionList`
 - `#dashboardClinicalHistoryMeta`, `#dashboardClinicalHistoryChip`, `#clinicalHistorySessionCount`, `#clinicalHistoryReviewCount`, `#clinicalHistoryPendingAiCount`, `#clinicalHistoryEventCount`, `#dashboardClinicalHistorySummary`, `#dashboardClinicalHistoryActions`, `#clinicalHistoryQueueHeadline`, `#clinicalHistoryQueueMeta`, `#clinicalHistoryEventHeadline`, `#clinicalHistoryEventMeta`, `#dashboardClinicalReviewQueue`, `#dashboardClinicalEventFeed`
@@ -150,7 +151,7 @@ This document freezes the active admin frontend contract after the total cutover
 
 ## Required `data-action`
 
-- Core: `set-admin-theme`, `toggle-sidebar-collapse`, `refresh-admin-data`, `run-admin-command`, `open-command-palette`, `close-command-palette`, `logout`, `close-toast`, `open-operator-app`
+- Core: `set-admin-theme`, `toggle-sidebar-collapse`, `refresh-admin-data`, `run-admin-command`, `open-command-palette`, `close-command-palette`, `open-agent-panel`, `close-agent-panel`, `admin-agent-refresh`, `admin-agent-submit`, `admin-agent-cancel`, `admin-agent-approve`, `logout`, `close-toast`, `open-operator-app`
 - Dashboard context: `context-open-appointments-overview`, `context-open-callbacks-pending`, `context-open-callbacks-next`, `context-open-availability`, `context-open-clinical-history`
 - Appointments: `appointment-quick-filter`, `clear-appointment-filters`, `appointment-density`, `approve-transfer`, `reject-transfer`, `mark-no-show`, `cancel-appointment`, `export-csv`
 - Callbacks: `callback-quick-filter`, `clear-callback-filters`, `callbacks-triage-next`, `mark-contacted`, `callbacks-bulk-select-visible`, `callbacks-bulk-clear`, `callbacks-bulk-mark`

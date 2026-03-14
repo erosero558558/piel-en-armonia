@@ -1,9 +1,18 @@
 import { createToast } from '../../../../shared/ui/render.js';
+import { getState } from '../../../../shared/core/store.js';
 import {
     hideCommandPalette,
     showCommandPalette,
     showLoginView,
 } from '../../../../ui/frame.js';
+import {
+    approveAgentAction,
+    cancelAgentSession,
+    closeAgentPanelExperience,
+    openAgentPanelExperience,
+    refreshAgentLiveState,
+    submitAgentPrompt,
+} from '../../../../shared/modules/agent.js';
 import { logoutSession } from '../../../../shared/modules/auth.js';
 import { syncQueueAutoRefresh } from '../../../../shared/modules/queue.js';
 import {
@@ -65,6 +74,34 @@ export async function handleShellAction(action, element) {
         case 'open-command-palette':
             showCommandPalette();
             focusQuickCommand();
+            return true;
+        case 'open-agent-panel':
+            hideCommandPalette();
+            await openAgentPanelExperience({ focus: true });
+            return true;
+        case 'close-agent-panel':
+            closeAgentPanelExperience();
+            return true;
+        case 'admin-agent-refresh':
+            if (String(getState().agent?.session?.sessionId || '').trim()) {
+                await refreshAgentLiveState();
+            } else {
+                await openAgentPanelExperience({ focus: false });
+            }
+            return true;
+        case 'admin-agent-submit': {
+            const input = document.getElementById('adminAgentPrompt');
+            if (input instanceof HTMLTextAreaElement) {
+                await submitAgentPrompt(input.value);
+                input.value = '';
+            }
+            return true;
+        }
+        case 'admin-agent-cancel':
+            await cancelAgentSession();
+            return true;
+        case 'admin-agent-approve':
+            await approveAgentAction(String(element.dataset.approvalId || ''));
             return true;
         case 'open-operator-app':
             window.location.assign(buildOperatorAppUrl());

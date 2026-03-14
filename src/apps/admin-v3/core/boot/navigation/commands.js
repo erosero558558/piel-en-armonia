@@ -4,6 +4,7 @@ import {
     setAppointmentSearch,
 } from '../../../sections/appointments.js';
 import { setCallbacksFilter } from '../../../sections/callbacks.js';
+import { openClinicalHistorySession } from '../../../sections/clinical-history.js';
 import {
     callNextForConsultorio,
     setQueueFilter,
@@ -48,6 +49,18 @@ const QUICK_ACTIONS = {
         await navigateToSection('callbacks');
         setCallbacksFilter('sla_urgent');
     },
+    agent_panel: async () => {
+        const trigger = document.querySelector(
+            '[data-action="open-agent-panel"]'
+        );
+        if (trigger instanceof HTMLElement) {
+            trigger.click();
+        }
+    },
+    clinical_history_section: async () => {
+        await navigateToSection('clinical-history');
+        await openClinicalHistorySession();
+    },
     availability_section: async () => {
         await navigateToSection('availability');
     },
@@ -89,6 +102,26 @@ export function parseQuickCommand(value) {
         .trim()
         .toLowerCase();
     if (!command) return null;
+    if (
+        command.includes('openclaw') ||
+        command.includes('copiloto') ||
+        command.includes('copilot') ||
+        command.includes('agente ia') ||
+        command === 'agente'
+    ) {
+        return 'agent_panel';
+    }
+    if (
+        command.includes('historia') ||
+        command.includes('clinica') ||
+        command.includes('clínica') ||
+        command.includes('telemedicina') ||
+        command.includes('intake') ||
+        command.includes('paciente') ||
+        command.includes('caso')
+    ) {
+        return 'clinical_history_section';
+    }
     if (command.includes('callbacks') && command.includes('pend')) {
         return 'callbacks_pending';
     }

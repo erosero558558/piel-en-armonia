@@ -11,7 +11,7 @@ export function renderShellCommandPalette() {
                     <button type="button" class="admin-command-dialog__close" data-action="close-command-palette">Cerrar</button>
                 </div>
                 <div class="admin-command-box">
-                    <input id="adminQuickCommand" type="text" placeholder="Ej. agenda, pendientes, horarios, turnero" />
+                    <input id="adminQuickCommand" type="text" placeholder="Ej. agenda, historia clinica, telemedicina, OpenClaw, turnero" />
                     <button id="adminRunQuickCommandBtn" data-action="run-admin-command">Ejecutar</button>
                 </div>
                 <div class="admin-command-dialog__hints">

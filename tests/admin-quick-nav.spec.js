@@ -175,6 +175,68 @@ test.describe('Admin navigation desktop', () => {
         );
     });
 
+    test('quick command tambien abre historia clinica con aliases de telemedicina', async ({
+        page,
+    }) => {
+        await setupAdminApiMocks(page);
+        await page.goto('/admin.html');
+        await waitForAdminRuntimeReady(page);
+
+        await page.keyboard.press('Control+K');
+        await expect(page.locator('#adminCommandPalette')).not.toHaveClass(
+            /is-hidden/
+        );
+
+        const commandInput = page.locator('#adminQuickCommand');
+        await expect(commandInput).toHaveAttribute(
+            'placeholder',
+            /historia clinica, telemedicina/
+        );
+
+        await commandInput.fill('telemedicina pendiente');
+        await page.keyboard.press('Enter');
+
+        await expect(page.locator('#clinical-history')).toHaveClass(/active/);
+        await expect(page).toHaveURL(/#clinical-history$/);
+        await expect(page.locator('#pageTitle')).toHaveText('Historia clinica');
+        await expect(page.locator('#adminContextTitle')).toContainText(
+            'Historia clinica conversacional'
+        );
+    });
+
+    test('boton de copiloto y quick command OpenClaw abren el mismo panel operativo', async ({
+        page,
+    }) => {
+        await setupAdminApiMocks(page);
+        await page.goto('/admin.html');
+        await waitForAdminRuntimeReady(page);
+
+        const agentPanel = page.locator('#adminAgentPanel');
+        const agentPrompt = page.locator('#adminAgentPrompt');
+
+        await expect(agentPanel).toHaveClass(/is-hidden/);
+
+        await page.locator('[data-action="open-agent-panel"]').click();
+        await expect(agentPanel).not.toHaveClass(/is-hidden/);
+        await expect(agentPrompt).toBeFocused();
+        await expect(page.locator('#adminAgentPanelSummary')).toContainText(
+            'Sesion inactiva'
+        );
+
+        await page.locator('[data-action="close-agent-panel"]').click();
+        await expect(agentPanel).toHaveClass(/is-hidden/);
+
+        await page.keyboard.press('Control+K');
+        await page.locator('#adminQuickCommand').fill('OpenClaw');
+        await page.keyboard.press('Enter');
+
+        await expect(page.locator('#adminCommandPalette')).toHaveClass(
+            /is-hidden/
+        );
+        await expect(agentPanel).not.toHaveClass(/is-hidden/);
+        await expect(agentPrompt).toBeFocused();
+    });
+
     test('Alt+Shift+I abre el copiloto operativo', async ({ page }) => {
         await setupAdminApiMocks(page);
         await page.goto('/admin.html');

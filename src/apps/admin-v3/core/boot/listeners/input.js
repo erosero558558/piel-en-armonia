@@ -8,6 +8,7 @@ import {
     setCallbacksSearch,
     setCallbacksSort,
 } from '../../../sections/callbacks.js';
+import { hideCommandPalette } from '../../../ui/frame.js';
 import { setQueueSearch } from '../../../shared/modules/queue.js';
 import { parseQuickCommand, runQuickAction } from '../navigation.js';
 
@@ -18,6 +19,8 @@ function attachQuickCommandInput(input) {
         const action = parseQuickCommand(input.value);
         if (action) {
             await runQuickAction(action);
+            input.value = '';
+            hideCommandPalette();
         }
     });
 }
