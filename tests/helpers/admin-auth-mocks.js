@@ -52,6 +52,18 @@ function buildOperatorAuthChallenge(overrides = {}, defaults = {}) {
     };
 }
 
+function buildOpenClawBrokerRedirect(overrides = {}) {
+    return {
+        transport: 'web_broker',
+        redirectUrl:
+            overrides.redirectUrl ||
+            'https://broker.example.test/authorize?state=test-state-web-broker',
+        expiresAt:
+            overrides.expiresAt ||
+            new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+    };
+}
+
 function buildOperatorQueueTicket(overrides = {}) {
     return {
         id: 2201,
@@ -141,6 +153,7 @@ function buildOperatorOpenClawAnonymousPayload(overrides = {}) {
         ok: true,
         authenticated: false,
         mode: 'openclaw_chatgpt',
+        transport: overrides.transport || 'local_helper',
         status: 'anonymous',
         recommendedMode: 'openclaw_chatgpt',
         fallbacks: buildLegacyFallbackPayload(overrides.fallbacks),
@@ -149,16 +162,22 @@ function buildOperatorOpenClawAnonymousPayload(overrides = {}) {
 }
 
 function buildOperatorOpenClawPendingPayload(challenge, overrides = {}) {
-    return {
+    const payload = {
         ok: true,
         authenticated: false,
         mode: 'openclaw_chatgpt',
+        transport: overrides.transport || 'local_helper',
         status: 'pending',
-        challenge,
         recommendedMode: 'openclaw_chatgpt',
         fallbacks: buildLegacyFallbackPayload(overrides.fallbacks),
         ...overrides,
     };
+
+    if (challenge && typeof challenge === 'object') {
+        payload.challenge = challenge;
+    }
+
+    return payload;
 }
 
 function buildOperatorOpenClawAuthenticatedPayload(overrides = {}) {
@@ -166,6 +185,7 @@ function buildOperatorOpenClawAuthenticatedPayload(overrides = {}) {
         ok: true,
         authenticated: true,
         mode: 'openclaw_chatgpt',
+        transport: overrides.transport || 'local_helper',
         status: 'autenticado',
         recommendedMode: 'openclaw_chatgpt',
         csrfToken: 'csrf_operator_auth',
@@ -306,6 +326,17 @@ async function installOperatorOpenClawAuthMock(target, options = {}) {
         typeof options.startResponseFactory === 'function'
             ? options.startResponseFactory
             : null;
+    const initialTransport =
+        String(
+            options.transport ||
+                options.anonymousPayload?.transport ||
+                options.pendingPayload?.transport ||
+                'local_helper'
+        )
+            .trim()
+            .toLowerCase() === 'web_broker'
+            ? 'web_broker'
+            : 'local_helper';
 
     let statusIndex = 0;
     let startIndex = 0;
@@ -318,9 +349,12 @@ async function installOperatorOpenClawAuthMock(target, options = {}) {
         authenticated: false,
         status: 'anonymous',
         mode: 'openclaw_chatgpt',
+        transport: initialTransport,
         csrfToken: '',
         operator: null,
         challenge: null,
+        redirectUrl: '',
+        attemptExpiresAt: '',
     };
 
     function adoptAuthPayload(payload = {}) {
@@ -339,19 +373,32 @@ async function installOperatorOpenClawAuthMock(target, options = {}) {
             mode:
                 String(payload?.mode || 'openclaw_chatgpt').trim() ||
                 'openclaw_chatgpt',
+            transport:
+                String(payload?.transport || 'local_helper').trim() ||
+                'local_helper',
             csrfToken: authenticated ? String(payload?.csrfToken || '') : '',
             operator: authenticated ? payload?.operator || null : null,
             challenge,
+            redirectUrl: String(payload?.redirectUrl || '').trim(),
+            attemptExpiresAt: String(payload?.expiresAt || '').trim(),
         };
         if (challenge) {
             lastIssuedChallenge = challenge;
+        } else if (authState.transport === 'web_broker') {
+            lastIssuedChallenge = {
+                transport: 'web_broker',
+                redirectUrl: authState.redirectUrl,
+                expiresAt: authState.attemptExpiresAt,
+            };
         }
         return payload;
     }
 
-    function buildStartPayload(nextStartCount) {
+    function buildStartPayload(nextStartCount, requestMeta = null) {
         if (startResponseFactory) {
-            return adoptAuthPayload(startResponseFactory(nextStartCount) || {});
+            return adoptAuthPayload(
+                startResponseFactory(nextStartCount, requestMeta) || {}
+            );
         }
 
         if (providedStartResponses) {
@@ -379,10 +426,11 @@ async function installOperatorOpenClawAuthMock(target, options = {}) {
             autoAuthenticateOnPendingStatus &&
             authState.authenticated !== true &&
             String(authState.status || '') === 'pending' &&
-            authState.challenge
+            (authState.challenge || authState.transport === 'web_broker')
         ) {
             return adoptAuthPayload(
                 buildOperatorOpenClawAuthenticatedPayload({
+                    transport: authState.transport,
                     ...(options.authenticatedPayload || {}),
                 })
             );
@@ -404,20 +452,23 @@ async function installOperatorOpenClawAuthMock(target, options = {}) {
 
         if (
             String(authState.status || '') === 'pending' &&
-            authState.challenge
+            (authState.challenge || authState.transport === 'web_broker')
         ) {
             return adoptAuthPayload(
-                buildOperatorOpenClawPendingPayload(
-                    authState.challenge,
-                    options.pendingPayload || {}
-                )
+                buildOperatorOpenClawPendingPayload(authState.challenge, {
+                    ...(options.pendingPayload || {}),
+                    transport: authState.transport,
+                    redirectUrl: authState.redirectUrl,
+                    expiresAt: authState.attemptExpiresAt,
+                })
             );
         }
 
         return adoptAuthPayload(
-            buildOperatorOpenClawAnonymousPayload(
-                options.anonymousPayload || {}
-            )
+            buildOperatorOpenClawAnonymousPayload({
+                ...(options.anonymousPayload || {}),
+                transport: authState.transport,
+            })
         );
     }
 
@@ -446,11 +497,22 @@ async function installOperatorOpenClawAuthMock(target, options = {}) {
 
         if (action === 'start') {
             startCount += 1;
+            let requestBody = null;
+            try {
+                requestBody = route.request().postDataJSON();
+            } catch (_error) {
+                requestBody = null;
+            }
             startRequests.push({
                 method: route.request().method(),
                 url: route.request().url(),
+                body: requestBody,
             });
-            const payload = buildStartPayload(startCount);
+            const payload = buildStartPayload(startCount, {
+                method: route.request().method(),
+                url: route.request().url(),
+                body: requestBody,
+            });
             startIndex += 1;
             return fulfillJson(route, payload, startStatusCode);
         }
@@ -526,6 +588,7 @@ function buildOpenClawAdminAuthPayload(overrides = {}) {
         authenticated,
         configured: true,
         mode: 'openclaw_chatgpt',
+        transport: overrides.transport || 'local_helper',
         recommendedMode: 'openclaw_chatgpt',
         status: authenticated ? 'autenticado' : 'pending',
         fallbacks: buildLegacyFallbackPayload(overrides.fallbacks),
@@ -552,6 +615,12 @@ function buildOpenClawAdminAuthPayload(overrides = {}) {
 }
 
 async function installOpenClawAdminAuthMock(page, options = {}) {
+    const transport =
+        String(options.transport || 'local_helper')
+            .trim()
+            .toLowerCase() === 'web_broker'
+            ? 'web_broker'
+            : 'local_helper';
     const terminalStatus =
         typeof options.terminalStatus === 'string' &&
         options.terminalStatus.trim()
@@ -563,7 +632,19 @@ async function installOpenClawAdminAuthMock(page, options = {}) {
         ? Math.max(0, Math.trunc(options.pollsBeforeTerminal))
         : 2;
     const challenge = buildOpenClawAdminChallenge(options.challenge);
+    const webBroker = buildOpenClawBrokerRedirect(options.webBroker || {});
+    const keepPendingAfterStart = options.keepPendingAfterStart === true;
+    const pendingStatusCallsAfterStart = Number.isFinite(
+        options.pendingStatusCallsAfterStart
+    )
+        ? Math.max(0, Math.trunc(options.pendingStatusCallsAfterStart))
+        : keepPendingAfterStart
+          ? Number.MAX_SAFE_INTEGER
+          : 0;
     let statusCalls = 0;
+    let startCalls = 0;
+    let startTriggered = false;
+    let webBrokerStatusCallsAfterStart = 0;
     let legacyFallbackAuthenticated = false;
     let legacyFallbackPending2FA = false;
     const fallbackEnabled = options.fallbackAvailable === true;
@@ -623,8 +704,57 @@ async function installOpenClawAdminAuthMock(page, options = {}) {
                     buildOpenClawAdminAuthPayload({
                         authenticated: false,
                         status: 'anonymous',
+                        transport,
                         fallbacks: fallbackPayload,
                         ...options.anonymousPayload,
+                    })
+                );
+            }
+
+            if (transport === 'web_broker' && startTriggered) {
+                webBrokerStatusCallsAfterStart += 1;
+                if (
+                    webBrokerStatusCallsAfterStart <=
+                    pendingStatusCallsAfterStart
+                ) {
+                    return fulfillJson(
+                        route,
+                        buildOpenClawAdminAuthPayload({
+                            authenticated: false,
+                            status: 'pending',
+                            transport,
+                            ...webBroker,
+                            fallbacks: fallbackPayload,
+                            ...options.pendingPayload,
+                        })
+                    );
+                }
+
+                if (terminalStatus === 'autenticado') {
+                    return fulfillJson(
+                        route,
+                        buildOpenClawAdminAuthPayload({
+                            authenticated: true,
+                            status: 'autenticado',
+                            transport,
+                            operator: buildOpenClawAdminOperator(
+                                options.operator
+                            ),
+                            fallbacks: fallbackPayload,
+                            ...options.authenticatedPayload,
+                        })
+                    );
+                }
+
+                return fulfillJson(
+                    route,
+                    buildOpenClawAdminAuthPayload({
+                        authenticated: false,
+                        status: terminalStatus,
+                        transport,
+                        error: terminalError,
+                        fallbacks: fallbackPayload,
+                        ...options.terminalPayload,
                     })
                 );
             }
@@ -638,6 +768,7 @@ async function installOpenClawAdminAuthMock(page, options = {}) {
                     buildOpenClawAdminAuthPayload({
                         authenticated: true,
                         status: 'autenticado',
+                        transport,
                         operator: buildOpenClawAdminOperator(options.operator),
                         fallbacks: fallbackPayload,
                         ...options.authenticatedPayload,
@@ -651,6 +782,7 @@ async function installOpenClawAdminAuthMock(page, options = {}) {
                     buildOpenClawAdminAuthPayload({
                         authenticated: false,
                         status: terminalStatus,
+                        transport,
                         error: terminalError,
                         challenge,
                         fallbacks: fallbackPayload,
@@ -664,7 +796,8 @@ async function installOpenClawAdminAuthMock(page, options = {}) {
                 buildOpenClawAdminAuthPayload({
                     authenticated: false,
                     status: 'pending',
-                    challenge,
+                    transport,
+                    ...(transport === 'web_broker' ? webBroker : { challenge }),
                     fallbacks: fallbackPayload,
                     ...options.pendingPayload,
                 })
@@ -672,12 +805,15 @@ async function installOpenClawAdminAuthMock(page, options = {}) {
         }
 
         if (action === 'start') {
+            startTriggered = true;
+            startCalls += 1;
             return fulfillJson(
                 route,
                 buildOpenClawAdminAuthPayload({
                     authenticated: false,
                     status: 'pending',
-                    challenge,
+                    transport,
+                    ...(transport === 'web_broker' ? webBroker : { challenge }),
                     fallbacks: fallbackPayload,
                     ...options.startPayload,
                 }),
@@ -744,6 +880,7 @@ async function installOpenClawAdminAuthMock(page, options = {}) {
                 buildOpenClawAdminAuthPayload({
                     authenticated: false,
                     status: 'logout',
+                    transport,
                     fallbacks: fallbackPayload,
                     ...options.logoutPayload,
                 })
@@ -754,9 +891,12 @@ async function installOpenClawAdminAuthMock(page, options = {}) {
     });
 
     return {
-        challenge,
+        challenge: transport === 'web_broker' ? webBroker : challenge,
         getStatusCalls() {
             return statusCalls;
+        },
+        getStartCount() {
+            return startCalls;
         },
         isLegacyFallbackPending2FA() {
             return legacyFallbackPending2FA;
@@ -770,6 +910,7 @@ module.exports = {
     buildOperatorQueueTicket,
     buildLegacyAdminAuthPayload,
     buildOpenClawAdminAuthPayload,
+    buildOpenClawBrokerRedirect,
     buildOpenClawAdminChallenge,
     buildOpenClawAdminOperator,
     installLegacyAdminAuthMock,

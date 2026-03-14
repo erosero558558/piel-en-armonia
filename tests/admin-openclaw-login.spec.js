@@ -35,6 +35,12 @@ test.describe('Admin OpenClaw login', () => {
         await expect(page.locator('#adminPassword')).toBeHidden();
         await expect(page.locator('#group2FA')).toBeHidden();
         await expect(page.locator('#loginFallbackToggleBtn')).toBeHidden();
+        await expect(page.locator('#adminLoginRouteTitle')).toHaveText(
+            'OpenClaw en este equipo'
+        );
+        await expect(page.locator('#adminLoginStepSummary')).not.toContainText(
+            'readiness'
+        );
         await expect(page.locator('#loginBtn')).toHaveText(
             'Continuar con OpenClaw'
         );
@@ -47,7 +53,7 @@ test.describe('Admin OpenClaw login', () => {
         );
         await expect(page.locator('#adminOpenClawHelperLink')).toBeVisible();
         await expect(page.locator('#adminLoginStatusTitle')).toHaveText(
-            'Challenge activo'
+            'Codigo temporal activo'
         );
 
         await expect
@@ -85,7 +91,7 @@ test.describe('Admin OpenClaw login', () => {
 
         await expect(page.locator('#adminDashboard')).toHaveClass(/is-hidden/);
         await expect(page.locator('#adminLoginStatusTitle')).toHaveText(
-            'Email no permitido'
+            'Esta cuenta no tiene permiso'
         );
         await expect(page.locator('#adminLoginStatusMessage')).toContainText(
             'no esta autorizada'
@@ -115,7 +121,7 @@ test.describe('Admin OpenClaw login', () => {
 
         await expect(page.locator('#adminDashboard')).toHaveClass(/is-hidden/);
         await expect(page.locator('#adminLoginStatusTitle')).toHaveText(
-            'Challenge expirado'
+            'Codigo vencido'
         );
         await expect(page.locator('#adminLoginStatusMessage')).toContainText(
             'expiro'
@@ -145,7 +151,7 @@ test.describe('Admin OpenClaw login', () => {
         await page.locator('#loginBtn').click();
 
         await expect(page.locator('#adminLoginStatusTitle')).toHaveText(
-            'Challenge expirado'
+            'Codigo vencido'
         );
         await expect(page.locator('#adminOpenClawChallengeCard')).toBeVisible();
         await expect(page.locator('#adminOpenClawManualCode')).toHaveText(
@@ -159,14 +165,17 @@ test.describe('Admin OpenClaw login', () => {
         await expect(page.locator('#legacyLoginStage')).toBeVisible();
         await expect(page.locator('#openclawLoginStage')).toBeHidden();
         await expect(page.locator('#loginPrimaryToggleBtn')).toBeVisible();
-        await expect(page.locator('#adminLoginStepTitle')).toHaveText(
-            'Clave + 2FA de contingencia'
+        await expect(page.locator('#adminLoginRouteTitle')).toHaveText(
+            'Clave + 2FA solo como contingencia'
         );
 
         await page.locator('#loginPrimaryToggleBtn').click();
 
         await expect(page.locator('#openclawLoginStage')).toBeVisible();
         await expect(page.locator('#legacyLoginStage')).toBeHidden();
+        await expect(page.locator('#adminLoginRouteTitle')).toHaveText(
+            'OpenClaw en este equipo'
+        );
         await expect(page.locator('#adminOpenClawChallengeCard')).toBeVisible();
         await expect(page.locator('#adminOpenClawManualCode')).toHaveText(
             '9F38F7-D8D6D4'
@@ -193,13 +202,13 @@ test.describe('Admin OpenClaw login', () => {
 
         await expect(page.locator('#loginFallbackToggleBtn')).toBeVisible();
         await expect(page.locator('#adminLoginContingencyCopy')).toContainText(
-            'OpenClaw es el acceso principal del operador local'
+            'helper local'
         );
 
         await page.locator('#loginBtn').click();
 
         await expect(page.locator('#adminLoginStatusTitle')).toHaveText(
-            'Helper local no disponible'
+            'No encontramos el helper local'
         );
         await expect(page.locator('#adminOpenClawChallengeCard')).toBeVisible();
         await expect(page.locator('#loginFallbackToggleBtn')).toBeVisible();
@@ -209,16 +218,16 @@ test.describe('Admin OpenClaw login', () => {
         await expect(page.locator('#legacyLoginStage')).toBeVisible();
         await expect(page.locator('#openclawLoginStage')).toBeHidden();
         await expect(page.locator('#loginPrimaryToggleBtn')).toBeVisible();
-        await expect(page.locator('#adminLoginStepTitle')).toHaveText(
-            'Clave + 2FA de contingencia'
+        await expect(page.locator('#adminLoginRouteTitle')).toHaveText(
+            'Clave + 2FA solo como contingencia'
         );
 
         await page.locator('#adminPassword').fill('contingencia-segura');
         await page.locator('#loginBtn').click();
 
         await expect(page.locator('#group2FA')).toBeVisible();
-        await expect(page.locator('#adminLoginStepTitle')).toHaveText(
-            'Confirma el 2FA de contingencia'
+        await expect(page.locator('#adminLoginRouteTitle')).toHaveText(
+            '2FA de contingencia'
         );
 
         await page.locator('#admin2FACode').fill('123456');
@@ -230,6 +239,176 @@ test.describe('Admin OpenClaw login', () => {
         );
         await expect(page.locator('#adminSessionMeta')).toContainText(
             '2FA validado'
+        );
+    });
+
+    test('web broker redirige en la misma pestana y vuelve autenticado sin helper local', async ({
+        page,
+    }) => {
+        await installBasicAdminApiMocks(page, {
+            healthPayload: {
+                status: 'ok',
+            },
+        });
+        await installOpenClawAdminAuthMock(page, {
+            transport: 'web_broker',
+            webBroker: {
+                redirectUrl:
+                    'https://broker.example.test/authorize?state=admin-web-broker',
+            },
+        });
+        await page.route('https://broker.example.test/**', async (route) => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'text/html; charset=utf-8',
+                body: `<!doctype html><meta charset="utf-8"><script>
+const referrer = String(document.referrer || '');
+const base = referrer ? new URL(referrer).origin : window.location.origin;
+window.location.replace(new URL('/admin.html?callback=web_broker_success', base).toString());
+</script>`,
+            });
+        });
+
+        await page.goto('/admin.html');
+
+        await expect(page.locator('#openclawLoginStage')).toBeVisible();
+        await expect(page.locator('#legacyLoginStage')).toBeHidden();
+        await expect(page.locator('#adminOpenClawChallengeCard')).toBeHidden();
+        await expect(page.locator('#adminOpenClawHelperLink')).toBeHidden();
+        await expect(page.locator('#adminLoginRouteTitle')).toHaveText(
+            'OpenClaw en navegador'
+        );
+        await expect(page.locator('#adminLoginSupportCopy')).toContainText(
+            'misma pestana'
+        );
+        await expect(page.locator('#adminLoginStepSummary')).not.toContainText(
+            'readiness'
+        );
+
+        await page.locator('#loginBtn').click();
+
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await expect(page.locator('#adminSessionState')).toHaveText(
+            'Sesion activa'
+        );
+        await expect(page.locator('#adminSessionMeta')).toContainText(
+            'OpenClaw validado'
+        );
+        await expect(page.locator('#adminOpenClawChallengeCard')).toBeHidden();
+        await expect(page.locator('#adminOpenClawHelperLink')).toBeHidden();
+        await expect(page.locator('#adminOpenClawManualCode')).toHaveText('-');
+    });
+
+    test('web broker conserva el intento pendiente al volver o recargar y lo retoma sin crear otro start', async ({
+        page,
+    }) => {
+        await installBasicAdminApiMocks(page, {
+            healthPayload: {
+                status: 'ok',
+            },
+        });
+        const authMock = await installOpenClawAdminAuthMock(page, {
+            transport: 'web_broker',
+            pendingStatusCallsAfterStart: 2,
+            webBroker: {
+                redirectUrl:
+                    'https://broker.example.test/authorize?state=admin-web-broker-resume',
+            },
+        });
+        let brokerVisits = 0;
+        await page.route('https://broker.example.test/**', async (route) => {
+            brokerVisits += 1;
+            const targetPath =
+                brokerVisits === 1
+                    ? '/admin.html?resume=web_broker_pending'
+                    : '/admin.html?callback=web_broker_success';
+            await route.fulfill({
+                status: 200,
+                contentType: 'text/html; charset=utf-8',
+                body: `<!doctype html><meta charset="utf-8"><script>
+const referrer = String(document.referrer || '');
+const base = referrer ? new URL(referrer).origin : window.location.origin;
+window.location.replace(new URL(${JSON.stringify(targetPath)}, base).toString());
+</script>`,
+            });
+        });
+
+        await page.goto('/admin.html');
+        await page.locator('#loginBtn').click();
+
+        await expect(page.locator('#adminDashboard')).toHaveClass(/is-hidden/);
+        await expect(page.locator('#adminLoginStatusTitle')).toHaveText(
+            'Acceso web pendiente'
+        );
+        await expect(page.locator('#adminLoginStatusMessage')).toContainText(
+            'intento web sigue activo'
+        );
+        await expect(page.locator('#loginBtn')).toHaveText('Retomar OpenClaw');
+        await expect(page.locator('#adminOpenClawChallengeCard')).toBeHidden();
+        await expect(page.locator('#adminOpenClawHelperLink')).toBeHidden();
+        await expect.poll(() => authMock.getStartCount()).toBe(1);
+
+        await page.reload();
+
+        await expect(page.locator('#adminLoginStatusTitle')).toHaveText(
+            'Acceso web pendiente'
+        );
+        await expect(page.locator('#loginBtn')).toHaveText('Retomar OpenClaw');
+
+        await page.locator('#loginBtn').click();
+
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await expect(page.locator('#adminSessionState')).toHaveText(
+            'Sesion activa'
+        );
+        await expect.poll(() => authMock.getStartCount()).toBe(1);
+        await expect.poll(() => brokerVisits).toBe(2);
+    });
+
+    test('web broker muestra error de callback sin helper local ni polling', async ({
+        page,
+    }) => {
+        await installBasicAdminApiMocks(page, {
+            healthPayload: {
+                status: 'ok',
+            },
+        });
+        await installOpenClawAdminAuthMock(page, {
+            transport: 'web_broker',
+            terminalStatus: 'identity_missing',
+            terminalError:
+                'OpenClaw no devolvio una identidad utilizable para este panel.',
+            webBroker: {
+                redirectUrl:
+                    'https://broker.example.test/authorize?state=admin-web-broker-error',
+            },
+        });
+        await page.route('https://broker.example.test/**', async (route) => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'text/html; charset=utf-8',
+                body: `<!doctype html><meta charset="utf-8"><script>
+const referrer = String(document.referrer || '');
+const base = referrer ? new URL(referrer).origin : window.location.origin;
+window.location.replace(new URL('/admin.html?callback=web_broker_error', base).toString());
+</script>`,
+            });
+        });
+
+        await page.goto('/admin.html');
+        await page.locator('#loginBtn').click();
+
+        await expect(page.locator('#adminDashboard')).toHaveClass(/is-hidden/);
+        await expect(page.locator('#adminLoginStatusTitle')).toHaveText(
+            'Identidad incompleta'
+        );
+        await expect(page.locator('#adminLoginStatusMessage')).toContainText(
+            'no devolvio una identidad'
+        );
+        await expect(page.locator('#adminOpenClawChallengeCard')).toBeHidden();
+        await expect(page.locator('#adminOpenClawHelperLink')).toBeHidden();
+        await expect(page.locator('#loginBtn')).toHaveText(
+            'Reintentar en OpenClaw'
         );
     });
 });

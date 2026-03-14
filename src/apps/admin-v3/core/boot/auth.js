@@ -2,8 +2,10 @@ import { getState, updateState } from '../../shared/core/store.js';
 import { createToast } from '../../shared/ui/render.js';
 import {
     checkAuthStatus,
+    getReusableOpenClawRedirectUrl,
     getActiveLoginSurfaceMode,
     getVisibleOpenClawState,
+    isOpenClawWebBrokerTransport,
     loginWith2FA,
     loginWithPassword,
     startOpenClawLogin,
@@ -30,6 +32,11 @@ const OPENCLAW_TERMINAL_STATUSES = new Set([
     'email_no_permitido',
     'challenge_expirado',
     'helper_no_disponible',
+    'cancelled',
+    'invalid_state',
+    'broker_unavailable',
+    'code_exchange_failed',
+    'identity_missing',
 ]);
 
 let openClawPollTimer = 0;
@@ -65,15 +72,25 @@ function openHelperWindow(helperUrl) {
 function buildOpenClawFeedback(auth) {
     const status = normalizeAuthStatus(auth.status);
     const challenge = auth.challenge || null;
+    const transport =
+        String(auth.transport || challenge?.transport || 'local_helper')
+            .trim()
+            .toLowerCase() || 'local_helper';
 
     switch (status) {
         case 'pending':
             return {
                 tone: 'warning',
-                title: 'Challenge activo',
-                message: challenge?.manualCode
-                    ? `Confirma el codigo ${challenge.manualCode} desde el helper local y deja esta pantalla abierta.`
-                    : 'Esperando a que OpenClaw confirme la identidad del operador.',
+                title:
+                    transport === 'web_broker'
+                        ? 'Acceso web pendiente'
+                        : 'Codigo temporal activo',
+                message:
+                    transport === 'web_broker'
+                        ? 'Su intento web sigue activo. Puede retomarlo desde esta misma pantalla sin usar helper local ni codigo manual.'
+                        : challenge?.manualCode
+                          ? `Confirme el codigo ${challenge.manualCode} en el helper local y deje esta pantalla abierta.`
+                          : 'Estamos esperando que OpenClaw confirme la identidad del operador en este equipo.',
             };
         case 'autenticado':
         case 'authenticated':
@@ -87,34 +104,36 @@ function buildOpenClawFeedback(auth) {
         case 'openclaw_no_logueado':
             return {
                 tone: 'warning',
-                title: 'Completa tu sesion en OpenClaw',
+                title: 'Abra su sesion de OpenClaw',
                 message:
                     auth.lastError ||
-                    'El helper local necesita una sesion activa de OpenClaw antes de continuar.',
+                    (transport === 'web_broker'
+                        ? 'Abra OpenClaw en el navegador y vuelva a esta pantalla para continuar.'
+                        : 'Abra OpenClaw en este equipo antes de generar un codigo temporal.'),
             };
         case 'email_no_permitido':
             return {
                 tone: 'danger',
-                title: 'Email no permitido',
+                title: 'Esta cuenta no tiene permiso',
                 message:
                     auth.lastError ||
-                    'La identidad resuelta por OpenClaw no esta autorizada para operar este panel.',
+                    'La identidad que devolvio OpenClaw no esta autorizada para operar este panel.',
             };
         case 'challenge_expirado':
             return {
                 tone: 'warning',
-                title: 'Challenge expirado',
+                title: 'Codigo vencido',
                 message:
                     auth.lastError ||
-                    'El codigo ya expiro. Genera un nuevo challenge para continuar.',
+                    'El codigo temporal ya vencio. Genere uno nuevo para continuar.',
             };
         case 'helper_no_disponible':
             return {
                 tone: 'danger',
-                title: 'Helper local no disponible',
+                title: 'No encontramos el helper local',
                 message:
                     auth.lastError ||
-                    'No se pudo contactar al helper local de OpenClaw en este equipo.',
+                    'No se pudo abrir el helper local de OpenClaw en este equipo.',
             };
         case 'operator_auth_not_configured':
             return {
@@ -124,12 +143,57 @@ function buildOpenClawFeedback(auth) {
                     auth.lastError ||
                     'Este entorno aun no tiene configurado el acceso delegado por OpenClaw para el consultorio.',
             };
+        case 'cancelled':
+            return {
+                tone: 'warning',
+                title: 'Ingreso cancelado',
+                message:
+                    auth.lastError ||
+                    'Se cerro el flujo de OpenClaw antes de terminar el acceso.',
+            };
+        case 'invalid_state':
+            return {
+                tone: 'warning',
+                title: 'Intento vencido',
+                message:
+                    auth.lastError ||
+                    'El intento que estaba pendiente ya no es valido. Inicie uno nuevo para continuar.',
+            };
+        case 'broker_unavailable':
+            return {
+                tone: 'danger',
+                title: 'OpenClaw web no respondio',
+                message:
+                    auth.lastError ||
+                    'La redireccion web no pudo completarse. Reintente cuando OpenClaw vuelva a responder.',
+            };
+        case 'code_exchange_failed':
+            return {
+                tone: 'danger',
+                title: 'No pudimos confirmar el retorno',
+                message:
+                    auth.lastError ||
+                    'OpenClaw regreso, pero no pudimos validar el retorno del acceso.',
+            };
+        case 'identity_missing':
+            return {
+                tone: 'danger',
+                title: 'Identidad incompleta',
+                message:
+                    auth.lastError ||
+                    'OpenClaw devolvio una identidad incompleta para este panel.',
+            };
         default:
             return {
                 tone: 'neutral',
-                title: 'Sesion local OpenClaw',
+                title:
+                    transport === 'web_broker'
+                        ? 'Listo para entrar con OpenClaw web'
+                        : 'Listo para entrar con OpenClaw',
                 message:
-                    'Genera un challenge para validar la identidad del operador desde este laptop.',
+                    transport === 'web_broker'
+                        ? 'Use el boton principal para abrir la redireccion web en esta misma pestana.'
+                        : 'Use el boton principal para generar un codigo temporal y validar la identidad desde este equipo.',
             };
     }
 }
@@ -143,11 +207,11 @@ function buildLegacyFeedback(auth) {
         return {
             tone: 'warning',
             title: isContingency
-                ? '2FA de contingencia requerido'
-                : 'Codigo 2FA requerido',
+                ? 'Falta el 2FA de contingencia'
+                : 'Falta el codigo 2FA',
             message: isContingency
-                ? 'La clave de contingencia fue validada. Ingresa ahora el codigo de seis digitos.'
-                : 'El backend valido la clave. Ingresa ahora el codigo de seis digitos.',
+                ? 'La clave de contingencia ya fue validada. Ingrese ahora el codigo de seis digitos.'
+                : 'La clave ya fue validada. Ingrese ahora el codigo de seis digitos.',
         };
     }
 
@@ -165,10 +229,10 @@ function buildLegacyFeedback(auth) {
 
     return {
         tone: 'neutral',
-        title: isContingency ? 'Contingencia web' : 'Acceso de respaldo',
+        title: isContingency ? 'Contingencia habilitada' : 'Acceso con clave',
         message: isContingency
-            ? 'Usa esta ruta solo como contingencia desde cualquier computadora con clave + 2FA.'
-            : 'Usa tu clave solo si necesitas entrar como respaldo al nucleo interno.',
+            ? 'Use esta ruta solo cuando OpenClaw no este disponible y el backend mantenga activa la contingencia.'
+            : 'Ingrese la clave para abrir el admin. Si el backend lo pide, el 2FA aparecera en esta misma tarjeta.',
     };
 }
 
@@ -185,6 +249,7 @@ function syncLoginSurfaceFromState() {
     setLoginMode(mode, {
         recommendedMode,
         fallbackAvailable,
+        transport: auth.transport,
     });
 
     if (mode === 'openclaw_chatgpt') {
@@ -192,10 +257,12 @@ function syncLoginSurfaceFromState() {
         setOpenClawChallenge(openClawState.challenge, {
             status: normalizeAuthStatus(openClawState.status),
             error: openClawState.lastError,
+            transport: openClawState.transport,
         });
         setLoginSubmittingState(false, {
             mode,
             status: openClawState.status,
+            transport: openClawState.transport,
         });
         setLoginFeedback(
             buildOpenClawFeedback({
@@ -210,9 +277,14 @@ function syncLoginSurfaceFromState() {
 
     setLogin2FAVisibility(Boolean(auth.requires2FA), {
         recommendedMode,
+        transport: auth.transport,
         fallbackAvailable,
     });
-    setLoginSubmittingState(false, { mode, status });
+    setLoginSubmittingState(false, {
+        mode,
+        status,
+        transport: auth.transport,
+    });
     setLoginFeedback(buildLegacyFeedback(auth));
 }
 
@@ -230,7 +302,12 @@ async function finishAuthenticatedLogin(toastMessage = 'Sesion iniciada') {
     clearOpenClawPollTimer();
     showDashboardView();
     hideCommandPalette();
-    setLogin2FAVisibility(false);
+    setLogin2FAVisibility(false, {
+        recommendedMode: getState().auth.recommendedMode,
+        transport: getState().auth.transport,
+        fallbackAvailable:
+            getState().auth.fallbacks?.legacy_password?.available === true,
+    });
     resetLoginForm({ clearPassword: true });
     await refreshDataAndRender(false);
     createToast(toastMessage, 'success');
@@ -262,7 +339,11 @@ async function pollOpenClawStatus() {
     }
 
     const status = normalizeAuthStatus(auth.status);
-    if (status === 'pending' && auth.challenge) {
+    if (
+        status === 'pending' &&
+        auth.challenge &&
+        String(auth.transport || 'local_helper') === 'local_helper'
+    ) {
         scheduleOpenClawPoll(auth.challenge.pollAfterMs || 1200);
         return;
     }
@@ -273,16 +354,82 @@ async function pollOpenClawStatus() {
 }
 
 async function handleOpenClawSubmit() {
+    const auth = getState().auth;
+    const openClawState = getVisibleOpenClawState(auth);
+    const openClawStatus = normalizeAuthStatus(openClawState.status);
+    const localHelperUrl = String(
+        openClawState.challenge?.helperUrl || ''
+    ).trim();
+    const localPending =
+        openClawStatus === 'pending' &&
+        String(openClawState.transport || auth.transport || 'local_helper') ===
+            'local_helper';
+
+    if (localPending && localHelperUrl) {
+        setLoginSubmittingState(true, {
+            mode: 'openclaw_chatgpt',
+            status: openClawState.status,
+            transport: openClawState.transport || auth.transport,
+        });
+        setLoginFeedback({
+            tone: 'neutral',
+            title: 'Reabriendo helper local',
+            message:
+                'Volvemos a abrir el helper local para terminar el codigo temporal que ya estaba pendiente.',
+        });
+
+        const helperOpened = openHelperWindow(localHelperUrl);
+        if (!helperOpened) {
+            createToast(
+                'Abra el helper local desde el enlace del codigo temporal.',
+                'warning'
+            );
+        }
+
+        if (openClawState.challenge) {
+            scheduleOpenClawPoll(openClawState.challenge.pollAfterMs || 1200);
+        }
+
+        setLoginSubmittingState(false, {
+            mode: 'openclaw_chatgpt',
+            status: openClawState.status,
+            transport: openClawState.transport || auth.transport,
+        });
+        return;
+    }
+
+    const reusableRedirectUrl = getReusableOpenClawRedirectUrl(auth);
+    if (reusableRedirectUrl) {
+        setLoginSubmittingState(true, {
+            mode: 'openclaw_chatgpt',
+            status: auth.status,
+            transport: auth.transport,
+        });
+        setLoginFeedback({
+            tone: 'neutral',
+            title: 'Retomando OpenClaw web',
+            message:
+                'Volviendo a la redireccion segura de OpenClaw en esta misma pestana para completar el acceso pendiente.',
+        });
+        window.location.assign(reusableRedirectUrl);
+        return;
+    }
+
     clearOpenClawPollTimer();
+    const webBroker = isOpenClawWebBrokerTransport(getState().auth);
     setLoginSubmittingState(true, {
         mode: 'openclaw_chatgpt',
         status: getState().auth.status,
+        transport: getState().auth.transport,
     });
     setLoginFeedback({
         tone: 'neutral',
-        title: 'Preparando challenge',
-        message:
-            'Solicitando un codigo temporal al backend y abriendo el helper local.',
+        title: webBroker
+            ? 'Abriendo OpenClaw web'
+            : 'Generando codigo temporal',
+        message: webBroker
+            ? 'Preparando la redireccion segura en esta misma pestana.'
+            : 'Solicitando el codigo temporal a OpenClaw y abriendo el helper local de este equipo.',
     });
 
     try {
@@ -292,6 +439,17 @@ async function handleOpenClawSubmit() {
 
         if (result.authenticated || auth.authenticated) {
             await finishAuthenticatedLogin('Sesion iniciada con OpenClaw');
+            return;
+        }
+
+        if (result.transport === 'web_broker') {
+            if (!result.redirectUrl) {
+                throw new Error(
+                    'OpenClaw no devolvio una URL valida para continuar el login web.'
+                );
+            }
+
+            window.location.assign(result.redirectUrl);
             return;
         }
 
@@ -308,7 +466,7 @@ async function handleOpenClawSubmit() {
             result.challenge
         ) {
             scheduleOpenClawPoll(result.challenge.pollAfterMs || 1200);
-            createToast('Challenge OpenClaw emitido', 'info');
+            createToast('Codigo temporal emitido', 'info');
         }
     } catch (error) {
         updateState((state) => ({
@@ -331,6 +489,7 @@ async function handleOpenClawSubmit() {
         setLoginSubmittingState(false, {
             mode: auth.mode || 'openclaw_chatgpt',
             status: auth.status,
+            transport: auth.transport,
         });
     }
 }
@@ -343,6 +502,10 @@ export function primeLoginSurface() {
 }
 
 export function resetTwoFactorStage() {
+    const auth = getState().auth;
+    const contingencyMode =
+        String(auth.recommendedMode || '').trim() === 'openclaw_chatgpt';
+
     updateState((state) => ({
         ...state,
         auth: {
@@ -354,14 +517,19 @@ export function resetTwoFactorStage() {
 
     setLogin2FAVisibility(false, {
         recommendedMode: getState().auth.recommendedMode,
+        transport: getState().auth.transport,
         fallbackAvailable:
             getState().auth.fallbacks?.legacy_password?.available === true,
     });
     resetLoginForm();
     setLoginFeedback({
         tone: 'neutral',
-        title: 'Acceso de respaldo',
-        message: 'Volviste al paso de clave. Puedes reintentar el acceso.',
+        title: contingencyMode
+            ? 'Contingencia reiniciada'
+            : 'Volvio al paso de clave',
+        message: contingencyMode
+            ? 'Volvio al paso de clave de contingencia. Puede intentarlo otra vez o regresar a OpenClaw.'
+            : 'Volvio al paso de clave. Puede intentarlo otra vez.',
     });
     focusLoginField('password');
 }
@@ -383,20 +551,32 @@ export async function handleLoginSubmit(event) {
     const code = codeInput instanceof HTMLInputElement ? codeInput.value : '';
 
     try {
+        const contingencyMode =
+            String(state.auth.recommendedMode || '').trim() ===
+            'openclaw_chatgpt';
         setLoginSubmittingState(true, {
             mode: 'legacy_password',
             status: state.auth.requires2FA
                 ? 'two_factor_required'
                 : 'anonymous',
+            transport: state.auth.transport,
         });
         setLoginFeedback({
             tone: state.auth.requires2FA ? 'warning' : 'neutral',
             title: state.auth.requires2FA
-                ? 'Validando segundo factor'
-                : 'Validando credenciales',
+                ? contingencyMode
+                    ? 'Validando 2FA de contingencia'
+                    : 'Validando codigo 2FA'
+                : contingencyMode
+                  ? 'Validando clave de contingencia'
+                  : 'Validando clave',
             message: state.auth.requires2FA
-                ? 'Comprobando el codigo 2FA antes de abrir el panel.'
-                : 'Comprobando clave y proteccion de sesion.',
+                ? contingencyMode
+                    ? 'Comprobando el codigo 2FA antes de cerrar la contingencia.'
+                    : 'Comprobando el codigo 2FA antes de abrir el panel.'
+                : contingencyMode
+                  ? 'Comprobando la clave excepcional antes de pedir el 2FA.'
+                  : 'Comprobando la clave antes de abrir el panel.',
         });
 
         if (state.auth.requires2FA) {
@@ -406,15 +586,19 @@ export async function handleLoginSubmit(event) {
             if (result.requires2FA) {
                 setLogin2FAVisibility(true, {
                     recommendedMode: getState().auth.recommendedMode,
+                    transport: getState().auth.transport,
                     fallbackAvailable:
                         getState().auth.fallbacks?.legacy_password
                             ?.available === true,
                 });
                 setLoginFeedback({
                     tone: 'warning',
-                    title: 'Codigo 2FA requerido',
-                    message:
-                        'El backend valido la clave. Ingresa ahora el codigo de seis digitos.',
+                    title: contingencyMode
+                        ? 'Falta el 2FA de contingencia'
+                        : 'Codigo 2FA requerido',
+                    message: contingencyMode
+                        ? 'La clave de contingencia ya fue validada. Ingrese ahora el codigo de seis digitos.'
+                        : 'La clave ya fue validada. Ingrese ahora el codigo de seis digitos.',
                 });
                 focusLoginField('2fa');
                 return;
@@ -443,6 +627,7 @@ export async function handleLoginSubmit(event) {
             status: getState().auth.requires2FA
                 ? 'two_factor_required'
                 : 'anonymous',
+            transport: getState().auth.transport,
         });
     }
 }
@@ -460,7 +645,8 @@ export function resumeOpenClawPolling() {
         auth.authenticated ||
         String(auth.mode || '') !== 'openclaw_chatgpt' ||
         normalizeAuthStatus(auth.status) !== 'pending' ||
-        !auth.challenge
+        !auth.challenge ||
+        String(auth.transport || 'local_helper') !== 'local_helper'
     ) {
         return;
     }
@@ -493,7 +679,8 @@ export function showPrimaryLoginSurface() {
         const openClawState = getVisibleOpenClawState(getState().auth);
         if (
             normalizeAuthStatus(openClawState.status) === 'pending' &&
-            openClawState.challenge
+            openClawState.challenge &&
+            String(openClawState.transport || 'local_helper') === 'local_helper'
         ) {
             scheduleOpenClawPoll(openClawState.challenge.pollAfterMs || 1200);
         }
