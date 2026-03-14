@@ -2,6 +2,9 @@
 const { test, expect } = require('@playwright/test');
 const {
     buildOperatorAuthChallenge,
+    buildOperatorQueueState,
+    buildOperatorQueueTicket,
+    installOperatorOpenClawAuthMock,
     installWindowOpenRecorder,
 } = require('./helpers/admin-auth-mocks');
 
@@ -25,30 +28,6 @@ function operatorUrl(query = '') {
     return `/operador-turnos.html${search ? `?${search}` : ''}`;
 }
 
-function buildQueueState(ticket) {
-    return {
-        updatedAt: new Date().toISOString(),
-        waitingCount: 1,
-        calledCount: 0,
-        counts: {
-            waiting: 1,
-            called: 0,
-            completed: 0,
-            no_show: 0,
-            cancelled: 0,
-        },
-        callingNow: [],
-        nextTickets: [
-            {
-                id: ticket.id,
-                ticketCode: ticket.ticketCode,
-                patientInitials: ticket.patientInitials,
-                position: 1,
-            },
-        ],
-    };
-}
-
 async function waitForAdminReady(page) {
     await expect(page.locator('html')).toHaveAttribute(
         'data-admin-ready',
@@ -63,17 +42,8 @@ async function expectAdminOpenClawStage(page) {
 }
 
 async function installSharedOperatorAuthMocks(context) {
-    const queueTicket = {
-        id: 2201,
-        ticketCode: 'B-2201',
-        queueType: 'appointment',
-        patientInitials: 'OC',
-        priorityClass: 'appt_overdue',
-        status: 'waiting',
-        assignedConsultorio: null,
-        createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    };
-    const queueState = buildQueueState(queueTicket);
+    const queueTicket = buildOperatorQueueTicket();
+    const queueState = buildOperatorQueueState(queueTicket);
     const availabilityMeta = {
         source: 'store',
         mode: 'live',
@@ -83,111 +53,27 @@ async function installSharedOperatorAuthMocks(context) {
         generatedAt: new Date().toISOString(),
     };
 
-    let challengeSequence = 0;
-    let startCount = 0;
-    let lastIssuedChallenge = null;
-    let authState = {
-        authenticated: false,
-        status: 'anonymous',
-        mode: 'openclaw_chatgpt',
-        csrfToken: '',
-        operator: null,
-        challenge: null,
-    };
-
-    function buildAnonymousPayload() {
-        return {
-            ok: true,
-            authenticated: false,
-            mode: 'openclaw_chatgpt',
-            status: 'anonymous',
-        };
-    }
-
-    function buildPendingPayload() {
-        return {
-            ok: true,
-            authenticated: false,
-            mode: 'openclaw_chatgpt',
-            status: 'pending',
-            challenge: authState.challenge,
-        };
-    }
-
-    function buildAuthenticatedPayload() {
-        return {
-            ok: true,
-            authenticated: true,
-            mode: 'openclaw_chatgpt',
-            status: 'autenticado',
+    const authSession = await installOperatorOpenClawAuthMock(context, {
+        autoAuthenticateOnPendingStatus: true,
+        authenticatedPayload: {
             csrfToken: 'csrf_shared_operator_auth',
             operator: {
                 email: 'operator@example.com',
                 source: 'openclaw_chatgpt',
             },
-        };
-    }
-
-    await context.route(/\/admin-auth\.php(\?.*)?$/i, async (route) => {
-        const url = new URL(route.request().url());
-        const action = String(
-            url.searchParams.get('action') || ''
-        ).toLowerCase();
-
-        if (action === 'status') {
-            if (authState.authenticated) {
-                return json(route, buildAuthenticatedPayload());
-            }
-
-            if (authState.status === 'pending' && authState.challenge) {
-                authState = {
-                    authenticated: true,
-                    status: 'autenticado',
-                    mode: 'openclaw_chatgpt',
-                    csrfToken: 'csrf_shared_operator_auth',
-                    operator: {
-                        email: 'operator@example.com',
-                        source: 'openclaw_chatgpt',
-                    },
-                    challenge: null,
-                };
-                return json(route, buildAuthenticatedPayload());
-            }
-
-            return json(route, buildAnonymousPayload());
-        }
-
-        if (action === 'start') {
-            challengeSequence += 1;
-            startCount += 1;
-            lastIssuedChallenge = buildOperatorAuthChallenge({
-                challengeId: `shared-openclaw-${challengeSequence}`,
-                manualCode: `SHARED-${String(challengeSequence).padStart(3, '0')}`,
-            });
-            authState = {
+        },
+        startResponseFactory(nextStartCount) {
+            return {
+                ok: true,
                 authenticated: false,
+                mode: 'openclaw_chatgpt',
                 status: 'pending',
-                mode: 'openclaw_chatgpt',
-                csrfToken: '',
-                operator: null,
-                challenge: lastIssuedChallenge,
+                challenge: buildOperatorAuthChallenge({
+                    challengeId: `shared-openclaw-${nextStartCount}`,
+                    manualCode: `SHARED-${String(nextStartCount).padStart(3, '0')}`,
+                }),
             };
-            return json(route, buildPendingPayload(), 202);
-        }
-
-        if (action === 'logout') {
-            authState = {
-                authenticated: false,
-                status: 'anonymous',
-                mode: 'openclaw_chatgpt',
-                csrfToken: '',
-                operator: null,
-                challenge: null,
-            };
-            return json(route, { ok: true });
-        }
-
-        return json(route, { ok: true });
+        },
     });
 
     await context.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -282,14 +168,7 @@ async function installSharedOperatorAuthMocks(context) {
         return json(route, { ok: true, data: {} });
     });
 
-    return {
-        getLastIssuedChallenge() {
-            return lastIssuedChallenge;
-        },
-        getStartCount() {
-            return startCount;
-        },
-    };
+    return authSession;
 }
 
 test.describe('OpenClaw shared session', () => {

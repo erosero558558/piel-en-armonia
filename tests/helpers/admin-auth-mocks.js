@@ -34,6 +34,53 @@ function buildOperatorAuthChallenge(overrides = {}, defaults = {}) {
     };
 }
 
+function buildOperatorQueueTicket(overrides = {}) {
+    return {
+        id: 2201,
+        ticketCode: 'B-2201',
+        queueType: 'appointment',
+        patientInitials: 'OC',
+        priorityClass: 'appt_overdue',
+        status: 'waiting',
+        assignedConsultorio: null,
+        createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+        ...overrides,
+    };
+}
+
+function buildOperatorQueueState(ticketOrTickets, overrides = {}) {
+    const tickets = Array.isArray(ticketOrTickets)
+        ? ticketOrTickets
+        : [ticketOrTickets || buildOperatorQueueTicket()];
+    const waitingTickets = tickets.filter(
+        (ticket) => String(ticket?.status || 'waiting') === 'waiting'
+    );
+    const calledTickets = tickets.filter(
+        (ticket) => String(ticket?.status || '') === 'called'
+    );
+
+    return {
+        updatedAt: new Date().toISOString(),
+        waitingCount: waitingTickets.length,
+        calledCount: calledTickets.length,
+        counts: {
+            waiting: waitingTickets.length,
+            called: calledTickets.length,
+            completed: 0,
+            no_show: 0,
+            cancelled: 0,
+        },
+        callingNow: calledTickets,
+        nextTickets: waitingTickets.map((ticket, index) => ({
+            id: ticket.id,
+            ticketCode: ticket.ticketCode,
+            patientInitials: ticket.patientInitials,
+            position: index + 1,
+        })),
+        ...overrides,
+    };
+}
+
 async function installWindowOpenRecorder(page, { blocked = false } = {}) {
     await page.addInitScript(
         ({ popupBlocked }) => {
@@ -66,6 +113,42 @@ function buildLegacyAdminAuthPayload(overrides = {}) {
         recommendedMode: 'legacy_password',
         twoFactorEnabled: false,
         csrfToken: authenticated ? 'csrf_test_token' : '',
+        ...overrides,
+    };
+}
+
+function buildOperatorOpenClawAnonymousPayload(overrides = {}) {
+    return {
+        ok: true,
+        authenticated: false,
+        mode: 'openclaw_chatgpt',
+        status: 'anonymous',
+        ...overrides,
+    };
+}
+
+function buildOperatorOpenClawPendingPayload(challenge, overrides = {}) {
+    return {
+        ok: true,
+        authenticated: false,
+        mode: 'openclaw_chatgpt',
+        status: 'pending',
+        challenge,
+        ...overrides,
+    };
+}
+
+function buildOperatorOpenClawAuthenticatedPayload(overrides = {}) {
+    return {
+        ok: true,
+        authenticated: true,
+        mode: 'openclaw_chatgpt',
+        status: 'autenticado',
+        csrfToken: 'csrf_operator_auth',
+        operator: {
+            email: 'operator@example.com',
+            source: 'openclaw_chatgpt',
+        },
         ...overrides,
     };
 }
@@ -176,6 +259,210 @@ async function installLegacyAdminLoginFlowMock(page, options = {}) {
         },
         setAuthenticated(next) {
             authenticated = Boolean(next);
+        },
+    };
+}
+
+async function installOperatorOpenClawAuthMock(target, options = {}) {
+    const startStatusCode = Number.isFinite(options.startStatusCode)
+        ? Math.trunc(options.startStatusCode)
+        : 202;
+    const autoAuthenticateOnPendingStatus =
+        options.autoAuthenticateOnPendingStatus === true;
+    const providedStatusResponses = Array.isArray(options.statusResponses)
+        ? options.statusResponses
+        : null;
+    const providedStartResponses =
+        Array.isArray(options.startResponses) &&
+        options.startResponses.length > 0
+            ? options.startResponses
+            : null;
+    const startResponseFactory =
+        typeof options.startResponseFactory === 'function'
+            ? options.startResponseFactory
+            : null;
+
+    let statusIndex = 0;
+    let startIndex = 0;
+    let startCount = 0;
+    let statusCalls = 0;
+    let lastIssuedChallenge = null;
+    const startRequests = [];
+
+    let authState = {
+        authenticated: false,
+        status: 'anonymous',
+        mode: 'openclaw_chatgpt',
+        csrfToken: '',
+        operator: null,
+        challenge: null,
+    };
+
+    function adoptAuthPayload(payload = {}) {
+        const authenticated = payload?.authenticated === true;
+        const challenge = payload?.challenge || null;
+        authState = {
+            authenticated,
+            status: String(
+                payload?.status ||
+                    (authenticated
+                        ? 'autenticado'
+                        : challenge
+                          ? 'pending'
+                          : 'anonymous')
+            ).trim(),
+            mode:
+                String(payload?.mode || 'openclaw_chatgpt').trim() ||
+                'openclaw_chatgpt',
+            csrfToken: authenticated ? String(payload?.csrfToken || '') : '',
+            operator: authenticated ? payload?.operator || null : null,
+            challenge,
+        };
+        if (challenge) {
+            lastIssuedChallenge = challenge;
+        }
+        return payload;
+    }
+
+    function buildStartPayload(nextStartCount) {
+        if (startResponseFactory) {
+            return adoptAuthPayload(startResponseFactory(nextStartCount) || {});
+        }
+
+        if (providedStartResponses) {
+            const payload =
+                providedStartResponses[
+                    Math.min(
+                        startIndex,
+                        Math.max(providedStartResponses.length - 1, 0)
+                    )
+                ] || providedStartResponses[providedStartResponses.length - 1];
+            return adoptAuthPayload(payload || {});
+        }
+
+        const challenge = buildOperatorAuthChallenge(options.challenge || {});
+        return adoptAuthPayload(
+            buildOperatorOpenClawPendingPayload(
+                challenge,
+                options.startPayload || {}
+            )
+        );
+    }
+
+    function buildDynamicStatusPayload() {
+        if (
+            autoAuthenticateOnPendingStatus &&
+            authState.authenticated !== true &&
+            String(authState.status || '') === 'pending' &&
+            authState.challenge
+        ) {
+            return adoptAuthPayload(
+                buildOperatorOpenClawAuthenticatedPayload({
+                    ...(options.authenticatedPayload || {}),
+                })
+            );
+        }
+
+        if (authState.authenticated) {
+            return adoptAuthPayload(
+                buildOperatorOpenClawAuthenticatedPayload({
+                    csrfToken:
+                        authState.csrfToken ||
+                        options.authenticatedPayload?.csrfToken,
+                    operator:
+                        authState.operator ||
+                        options.authenticatedPayload?.operator,
+                    ...(options.authenticatedPayload || {}),
+                })
+            );
+        }
+
+        if (
+            String(authState.status || '') === 'pending' &&
+            authState.challenge
+        ) {
+            return adoptAuthPayload(
+                buildOperatorOpenClawPendingPayload(
+                    authState.challenge,
+                    options.pendingPayload || {}
+                )
+            );
+        }
+
+        return adoptAuthPayload(
+            buildOperatorOpenClawAnonymousPayload(
+                options.anonymousPayload || {}
+            )
+        );
+    }
+
+    await target.route(/\/admin-auth\.php(\?.*)?$/i, async (route) => {
+        const url = new URL(route.request().url());
+        const action = String(
+            url.searchParams.get('action') || ''
+        ).toLowerCase();
+
+        if (action === 'status') {
+            statusCalls += 1;
+            if (providedStatusResponses) {
+                const payload =
+                    providedStatusResponses[
+                        Math.min(
+                            statusIndex,
+                            Math.max(providedStatusResponses.length - 1, 0)
+                        )
+                    ] ||
+                    providedStatusResponses[providedStatusResponses.length - 1];
+                statusIndex += 1;
+                return fulfillJson(route, adoptAuthPayload(payload || {}));
+            }
+            return fulfillJson(route, buildDynamicStatusPayload());
+        }
+
+        if (action === 'start') {
+            startCount += 1;
+            startRequests.push({
+                method: route.request().method(),
+                url: route.request().url(),
+            });
+            const payload = buildStartPayload(startCount);
+            startIndex += 1;
+            return fulfillJson(route, payload, startStatusCode);
+        }
+
+        if (action === 'logout') {
+            lastIssuedChallenge = null;
+            return fulfillJson(
+                route,
+                adoptAuthPayload(
+                    buildOperatorOpenClawAnonymousPayload(
+                        options.logoutPayload || {}
+                    )
+                )
+            );
+        }
+
+        return fulfillJson(route, {
+            ok: true,
+            ...(options.defaultPayload || {}),
+        });
+    });
+
+    return {
+        startRequests,
+        getStatusCalls() {
+            return statusCalls;
+        },
+        getStartCount() {
+            return startCount;
+        },
+        getLastIssuedChallenge() {
+            return lastIssuedChallenge;
+        },
+        snapshotAuthState() {
+            return {
+                ...authState,
+            };
         },
     };
 }
@@ -347,12 +634,15 @@ async function installOpenClawAdminAuthMock(page, options = {}) {
 
 module.exports = {
     buildOperatorAuthChallenge,
+    buildOperatorQueueState,
+    buildOperatorQueueTicket,
     buildLegacyAdminAuthPayload,
     buildOpenClawAdminAuthPayload,
     buildOpenClawAdminChallenge,
     buildOpenClawAdminOperator,
     installLegacyAdminAuthMock,
     installLegacyAdminLoginFlowMock,
+    installOperatorOpenClawAuthMock,
     installOpenClawAdminAuthMock,
     installWindowOpenRecorder,
 };

@@ -2,7 +2,10 @@
 const { test, expect } = require('@playwright/test');
 const {
     buildOperatorAuthChallenge,
+    buildOperatorQueueState,
+    buildOperatorQueueTicket,
     installLegacyAdminAuthMock,
+    installOperatorOpenClawAuthMock,
     installWindowOpenRecorder,
 } = require('./helpers/admin-auth-mocks');
 
@@ -30,40 +33,8 @@ async function setupOperatorAuthOperatorMocks(
     } = {}
 ) {
     let failQueueState = Boolean(failQueueStateInitially);
-    let queueTickets = [
-        {
-            id: 2201,
-            ticketCode: 'B-2201',
-            queueType: 'appointment',
-            patientInitials: 'OC',
-            priorityClass: 'appt_overdue',
-            status: 'waiting',
-            assignedConsultorio: null,
-            createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-        },
-    ];
-
-    let queueState = {
-        updatedAt: new Date().toISOString(),
-        waitingCount: 1,
-        calledCount: 0,
-        counts: {
-            waiting: 1,
-            called: 0,
-            completed: 0,
-            no_show: 0,
-            cancelled: 0,
-        },
-        callingNow: [],
-        nextTickets: [
-            {
-                id: 2201,
-                ticketCode: 'B-2201',
-                patientInitials: 'OC',
-                position: 1,
-            },
-        ],
-    };
+    let queueTickets = [buildOperatorQueueTicket()];
+    let queueState = buildOperatorQueueState(queueTickets);
 
     function buildStartResponse(payload = {}) {
         const challenge = buildOperatorAuthChallenge(
@@ -87,10 +58,10 @@ async function setupOperatorAuthOperatorMocks(
         };
     }
 
-    const preparedStartResponses = Array.isArray(startResponses) &&
-        startResponses.length > 0
-        ? startResponses.map((entry) => buildStartResponse(entry || {}))
-        : [buildStartResponse(startPayload || {})];
+    const preparedStartResponses =
+        Array.isArray(startResponses) && startResponses.length > 0
+            ? startResponses.map((entry) => buildStartResponse(entry || {}))
+            : [buildStartResponse(startPayload || {})];
     const startResponse =
         preparedStartResponses[0] || buildStartResponse(startPayload || {});
     const defaultStatusResponses = [
@@ -120,49 +91,13 @@ async function setupOperatorAuthOperatorMocks(
         },
     ];
 
-    let statusIndex = 0;
-    let startIndex = 0;
-    const startRequests = [];
     const heartbeatRequests = [];
     const queueCallNextRequests = [];
-
-    await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) => {
-        const action =
-            new URL(route.request().url()).searchParams.get('action') || '';
-
-        if (action === 'status') {
-            const responses = Array.isArray(statusResponses)
-                ? statusResponses
-                : defaultStatusResponses;
-            const payload =
-                responses[
-                    Math.min(statusIndex, Math.max(responses.length - 1, 0))
-                ] || defaultStatusResponses[defaultStatusResponses.length - 1];
-            statusIndex += 1;
-            return json(route, payload);
-        }
-
-        if (action === 'start') {
-            startRequests.push({
-                method: route.request().method(),
-                url: route.request().url(),
-            });
-            const payload =
-                preparedStartResponses[
-                    Math.min(
-                        startIndex,
-                        Math.max(preparedStartResponses.length - 1, 0)
-                    )
-                ] || startResponse;
-            startIndex += 1;
-            return json(route, payload, 202);
-        }
-
-        if (action === 'logout') {
-            return json(route, { ok: true });
-        }
-
-        return json(route, { ok: true });
+    const authSession = await installOperatorOpenClawAuthMock(page, {
+        statusResponses: Array.isArray(statusResponses)
+            ? statusResponses
+            : defaultStatusResponses,
+        startResponses: preparedStartResponses,
     });
 
     await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -232,20 +167,9 @@ async function setupOperatorAuthOperatorMocks(
                 calledAt: new Date().toISOString(),
             };
             queueTickets = [calledTicket];
-            queueState = {
-                updatedAt: new Date().toISOString(),
-                waitingCount: 0,
-                calledCount: 1,
-                counts: {
-                    waiting: 0,
-                    called: 1,
-                    completed: 0,
-                    no_show: 0,
-                    cancelled: 0,
-                },
-                callingNow: [calledTicket],
+            queueState = buildOperatorQueueState(queueTickets, {
                 nextTickets: [],
-            };
+            });
             return json(route, {
                 ok: true,
                 data: {
@@ -265,10 +189,7 @@ async function setupOperatorAuthOperatorMocks(
             });
         }
 
-        if (
-            resource === 'health' ||
-            resource === 'funnel-metrics'
-        ) {
+        if (resource === 'health' || resource === 'funnel-metrics') {
             return json(route, { ok: true, data: {} });
         }
 
@@ -277,7 +198,7 @@ async function setupOperatorAuthOperatorMocks(
 
     return {
         challenge: startResponse.challenge,
-        startRequests,
+        startRequests: authSession.startRequests,
         heartbeatRequests,
         queueCallNextRequests,
     };
@@ -288,40 +209,8 @@ async function mockOperatorSurface(page, overrides = {}) {
     const heartbeatPayloads = [];
     const heartbeatRequests = [];
     const queueCallNextRequests = [];
-    let queueTickets = [
-        {
-            id: 2201,
-            ticketCode: 'B-2201',
-            queueType: 'appointment',
-            patientInitials: 'OC',
-            priorityClass: 'appt_overdue',
-            status: 'waiting',
-            assignedConsultorio: null,
-            createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-        },
-    ];
-
-    let queueState = {
-        updatedAt: new Date().toISOString(),
-        waitingCount: 1,
-        calledCount: 0,
-        counts: {
-            waiting: 1,
-            called: 0,
-            completed: 0,
-            no_show: 0,
-            cancelled: 0,
-        },
-        callingNow: [],
-        nextTickets: [
-            {
-                id: 2201,
-                ticketCode: 'B-2201',
-                patientInitials: 'OC',
-                position: 1,
-            },
-        ],
-    };
+    let queueTickets = [buildOperatorQueueTicket()];
+    let queueState = buildOperatorQueueState(queueTickets);
 
     await installLegacyAdminAuthMock(page, {
         csrfToken: 'csrf_operator',
@@ -396,20 +285,9 @@ async function mockOperatorSurface(page, overrides = {}) {
                 calledAt: new Date().toISOString(),
             };
             queueTickets = [calledTicket];
-            queueState = {
-                updatedAt: new Date().toISOString(),
-                waitingCount: 0,
-                calledCount: 1,
-                counts: {
-                    waiting: 0,
-                    called: 1,
-                    completed: 0,
-                    no_show: 0,
-                    cancelled: 0,
-                },
-                callingNow: [calledTicket],
+            queueState = buildOperatorQueueState(queueTickets, {
                 nextTickets: [],
-            };
+            });
             return json(route, {
                 ok: true,
                 data: {
@@ -429,10 +307,7 @@ async function mockOperatorSurface(page, overrides = {}) {
             });
         }
 
-        if (
-            resource === 'health' ||
-            resource === 'funnel-metrics'
-        ) {
+        if (resource === 'health' || resource === 'funnel-metrics') {
             return json(route, { ok: true, data: {} });
         }
 
@@ -511,21 +386,18 @@ test.describe('Turnero Operador', () => {
                 })
         );
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: false,
-                mode: 'local',
-                status: 'anonymous',
-            })
-        );
+        await installLegacyAdminAuthMock(page, {
+            authenticated: false,
+            mode: 'local',
+            status: 'anonymous',
+        });
 
         await page.goto(operatorUrl());
 
         await expect(page).toHaveTitle(/Clinica Norte/i);
-        await expect(page.locator('.queue-operator-kicker').first()).toContainText(
-            'Norte · Operador'
-        );
+        await expect(
+            page.locator('.queue-operator-kicker').first()
+        ).toContainText('Norte · Operador');
         await expect(page.locator('#operatorClinicMeta')).toContainText(
             'clinica-norte-demo'
         );
@@ -579,7 +451,9 @@ test.describe('Turnero Operador', () => {
             '/operador-alt.html'
         );
         await page
-            .locator('[data-action="queue-call-next"][data-queue-consultorio="2"]')
+            .locator(
+                '[data-action="queue-call-next"][data-queue-consultorio="2"]'
+            )
             .click();
         await expect(page.locator('#toastContainer')).toContainText(
             'No se puede operar este equipo'
@@ -666,7 +540,8 @@ test.describe('Turnero Operador', () => {
         const latestHeartbeat =
             heartbeatRequests[heartbeatRequests.length - 1]?.body || {};
         const details =
-            latestHeartbeat.details && typeof latestHeartbeat.details === 'object'
+            latestHeartbeat.details &&
+            typeof latestHeartbeat.details === 'object'
                 ? latestHeartbeat.details
                 : {};
 
@@ -779,10 +654,9 @@ test.describe('Turnero Operador', () => {
             /Esperando confirmaci.n en OpenClaw/
         );
         await expect(page.locator('#operatorOpenClawRetryBtn')).toBeVisible();
-        await expect(page.locator('#operatorOpenClawHelperLink')).toHaveAttribute(
-            'href',
-            challenge.helperUrl
-        );
+        await expect(
+            page.locator('#operatorOpenClawHelperLink')
+        ).toHaveAttribute('href', challenge.helperUrl);
         await expect(page.locator('#operatorOpenClawManualRow')).toBeVisible();
         await expect(page.locator('#operatorOpenClawManualCode')).toHaveText(
             challenge.manualCode
@@ -830,10 +704,9 @@ test.describe('Turnero Operador', () => {
             /is-hidden/
         );
         await expect(page.locator('#operatorOpenClawRetryBtn')).toBeVisible();
-        await expect(page.locator('#operatorOpenClawHelperLink')).toHaveAttribute(
-            'href',
-            challenge.helperUrl
-        );
+        await expect(
+            page.locator('#operatorOpenClawHelperLink')
+        ).toHaveAttribute('href', challenge.helperUrl);
         await expect(page.locator('#operatorOpenClawManualCode')).toHaveText(
             challenge.manualCode
         );
@@ -849,7 +722,8 @@ test.describe('Turnero Operador', () => {
                 {
                     challenge: {
                         challengeId: 'challenge-operator-1',
-                        helperUrl: 'http://127.0.0.1:4173/resolve?challenge=challenge-operator-1',
+                        helperUrl:
+                            'http://127.0.0.1:4173/resolve?challenge=challenge-operator-1',
                         manualCode: 'OPR-ONE-111',
                         pollAfterMs: 50,
                     },
@@ -857,7 +731,8 @@ test.describe('Turnero Operador', () => {
                 {
                     challenge: {
                         challengeId: 'challenge-operator-2',
-                        helperUrl: 'http://127.0.0.1:4173/resolve?challenge=challenge-operator-2',
+                        helperUrl:
+                            'http://127.0.0.1:4173/resolve?challenge=challenge-operator-2',
                         manualCode: 'OPR-TWO-222',
                         pollAfterMs: 50,
                     },
@@ -894,7 +769,9 @@ test.describe('Turnero Operador', () => {
         await expect(page.locator('#operatorOpenClawManualCode')).toHaveText(
             'OPR-ONE-111'
         );
-        await expect(page.locator('#operatorOpenClawHelperLink')).toHaveAttribute(
+        await expect(
+            page.locator('#operatorOpenClawHelperLink')
+        ).toHaveAttribute(
             'href',
             'http://127.0.0.1:4173/resolve?challenge=challenge-operator-1'
         );
@@ -905,7 +782,9 @@ test.describe('Turnero Operador', () => {
         await expect(page.locator('#operatorOpenClawManualCode')).toHaveText(
             'OPR-TWO-222'
         );
-        await expect(page.locator('#operatorOpenClawHelperLink')).toHaveAttribute(
+        await expect(
+            page.locator('#operatorOpenClawHelperLink')
+        ).toHaveAttribute(
             'href',
             'http://127.0.0.1:4173/resolve?challenge=challenge-operator-2'
         );
@@ -955,21 +834,9 @@ test.describe('Turnero Operador', () => {
             ],
         };
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) => {
-            const action =
-                new URL(route.request().url()).searchParams.get('action') || '';
-            if (action === 'status') {
-                return json(route, {
-                    ok: true,
-                    authenticated: true,
-                    csrfToken: 'csrf_operator',
-                });
-            }
-            return json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_operator',
-            });
+        await installLegacyAdminAuthMock(page, {
+            authenticated: true,
+            csrfToken: 'csrf_operator',
         });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {

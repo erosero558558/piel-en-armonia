@@ -9,6 +9,9 @@ const vm = require('vm');
 
 const {
     buildOperatorAuthChallenge,
+    buildOperatorQueueState,
+    buildOperatorQueueTicket,
+    installOperatorOpenClawAuthMock,
     installWindowOpenRecorder,
 } = require('../tests/helpers/admin-auth-mocks');
 
@@ -24,6 +27,42 @@ const SHARED_SESSION_SPEC_PATH = resolve(
     'tests',
     'operator-auth-shared-session.spec.js'
 );
+
+function createRouteHarness() {
+    let routeHandler = null;
+
+    return {
+        target: {
+            async route(_pattern, handler) {
+                routeHandler = handler;
+            },
+        },
+        async dispatch(action, method = 'GET') {
+            let fulfilled = null;
+            await routeHandler({
+                request() {
+                    return {
+                        url() {
+                            return `https://example.test/admin-auth.php?action=${action}`;
+                        },
+                        method() {
+                            return method;
+                        },
+                    };
+                },
+                fulfill(payload) {
+                    fulfilled = payload;
+                    return payload;
+                },
+            });
+
+            return {
+                ...fulfilled,
+                payload: JSON.parse(String(fulfilled.body || '{}')),
+            };
+        },
+    };
+}
 
 test('buildOperatorAuthChallenge expone defaults canonicos del operador', () => {
     const challenge = buildOperatorAuthChallenge();
@@ -59,6 +98,23 @@ test('buildOperatorAuthChallenge respeta defaults externos y overrides explicito
     assert.equal(challenge.pollAfterMs, 75);
     assert.equal(challenge.status, 'ready');
     assert.match(challenge.helperUrl, /shared-openclaw-7$/);
+});
+
+test('buildOperatorQueueTicket y buildOperatorQueueState generan defaults canonicos del operador', () => {
+    const ticket = buildOperatorQueueTicket({
+        ticketCode: 'C-2201',
+        patientInitials: 'EA',
+    });
+    const queueState = buildOperatorQueueState(ticket);
+
+    assert.equal(ticket.ticketCode, 'C-2201');
+    assert.equal(ticket.patientInitials, 'EA');
+    assert.equal(ticket.status, 'waiting');
+    assert.equal(queueState.waitingCount, 1);
+    assert.equal(queueState.calledCount, 0);
+    assert.deepEqual(queueState.callingNow, []);
+    assert.equal(queueState.nextTickets.length, 1);
+    assert.equal(queueState.nextTickets[0].ticketCode, 'C-2201');
 });
 
 test('installWindowOpenRecorder registra popup recorder reutilizable', async () => {
@@ -117,33 +173,97 @@ test('installWindowOpenRecorder soporta popup bloqueado', async () => {
     ]);
 });
 
+test('installOperatorOpenClawAuthMock modela start/status/logout reutilizable', async () => {
+    const harness = createRouteHarness();
+    const session = await installOperatorOpenClawAuthMock(harness.target, {
+        autoAuthenticateOnPendingStatus: true,
+        authenticatedPayload: {
+            csrfToken: 'csrf_shared_operator_auth',
+        },
+        startResponseFactory(startCount) {
+            return {
+                ok: true,
+                authenticated: false,
+                mode: 'openclaw_chatgpt',
+                status: 'pending',
+                challenge: buildOperatorAuthChallenge({
+                    challengeId: `shared-openclaw-${startCount}`,
+                    manualCode: `SHARED-${String(startCount).padStart(3, '0')}`,
+                }),
+            };
+        },
+    });
+
+    const anonymous = await harness.dispatch('status');
+    assert.equal(anonymous.status, 200);
+    assert.equal(anonymous.payload.authenticated, false);
+    assert.equal(anonymous.payload.status, 'anonymous');
+
+    const pending = await harness.dispatch('start', 'POST');
+    assert.equal(pending.status, 202);
+    assert.equal(pending.payload.status, 'pending');
+    assert.equal(pending.payload.challenge.challengeId, 'shared-openclaw-1');
+    assert.equal(session.getStartCount(), 1);
+    assert.equal(session.startRequests.length, 1);
+    assert.equal(session.getLastIssuedChallenge().manualCode, 'SHARED-001');
+
+    const authenticated = await harness.dispatch('status');
+    assert.equal(authenticated.status, 200);
+    assert.equal(authenticated.payload.authenticated, true);
+    assert.equal(authenticated.payload.csrfToken, 'csrf_shared_operator_auth');
+    assert.equal(session.getStatusCalls(), 2);
+
+    const logout = await harness.dispatch('logout', 'POST');
+    assert.equal(logout.status, 200);
+    assert.equal(logout.payload.authenticated, false);
+    assert.equal(logout.payload.status, 'anonymous');
+    assert.equal(session.getLastIssuedChallenge(), null);
+});
+
 test('queue-operator y shared-session consumen el helper compartido sin duplicar utilidades', () => {
     const queueOperatorSpec = readFileSync(QUEUE_OPERATOR_SPEC_PATH, 'utf8');
     const sharedSessionSpec = readFileSync(SHARED_SESSION_SPEC_PATH, 'utf8');
 
     assert.match(
         queueOperatorSpec,
-        /buildOperatorAuthChallenge,\s+installLegacyAdminAuthMock,\s+installWindowOpenRecorder/
+        /buildOperatorAuthChallenge,\s+buildOperatorQueueState,\s+buildOperatorQueueTicket,\s+installLegacyAdminAuthMock,\s+installOperatorOpenClawAuthMock,\s+installWindowOpenRecorder/
     );
     assert.doesNotMatch(
         queueOperatorSpec,
         /function buildOperatorAuthChallenge\(/
     );
+    assert.match(
+        queueOperatorSpec,
+        /async function setupOperatorAuthOperatorMocks[\s\S]*?installOperatorOpenClawAuthMock\(page,/m
+    );
     assert.doesNotMatch(
         queueOperatorSpec,
         /async function installWindowOpenRecorder\(/
+    );
+    assert.doesNotMatch(
+        queueOperatorSpec,
+        /async function setupOperatorAuthOperatorMocks[\s\S]*?page\.route\(\/\\\/admin-auth\\\.php/m
     );
 
     assert.match(
         sharedSessionSpec,
-        /buildOperatorAuthChallenge,\s+installWindowOpenRecorder/
+        /buildOperatorAuthChallenge,\s+buildOperatorQueueState,\s+buildOperatorQueueTicket,\s+installOperatorOpenClawAuthMock,\s+installWindowOpenRecorder/
+    );
+    assert.match(
+        sharedSessionSpec,
+        /async function installSharedOperatorAuthMocks[\s\S]*?installOperatorOpenClawAuthMock\(context,/m
     );
     assert.doesNotMatch(
         sharedSessionSpec,
         /function buildOperatorAuthChallenge\(/
     );
+    assert.doesNotMatch(sharedSessionSpec, /function buildQueueState\(/);
     assert.doesNotMatch(
         sharedSessionSpec,
         /async function installWindowOpenRecorder\(/
+    );
+    assert.doesNotMatch(
+        sharedSessionSpec,
+        /async function installSharedOperatorAuthMocks[\s\S]*?context\.route\(\/\\\/admin-auth\\\.php/m
     );
 });
