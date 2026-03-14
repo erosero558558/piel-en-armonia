@@ -225,32 +225,48 @@ jobs:
     package-release-desktop-only:
         name: Package release bundle (desktop-only)
         runs-on: ubuntu-latest
-        if: >-
-            ${{
-              always() &&
-              needs.build-desktop.result == 'success' &&
-              needs.resolve-release-plan.outputs.android_count == '0'
-            }}
+        if: ${{ always() }}
         needs:
             - resolve-release-plan
             - build-desktop
+        outputs:
+            bundle_ready: ${{ steps.plan.outputs.bundle_ready }}
         steps:
+            - name: Decide desktop-only packaging
+              id: plan
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ "${{ needs.resolve-release-plan.outputs.android_count }}" != "0" ]; then
+                    echo "bundle_ready=false" >> "$GITHUB_OUTPUT"
+                    echo "Se omite el bundle desktop-only porque el plan requiere artifacts Android."
+                    exit 0
+                  fi
+                  if [ "${{ needs.build-desktop.result }}" != "success" ]; then
+                    echo "::error::build-desktop no quedo en success"
+                    exit 1
+                  fi
+                  echo "bundle_ready=true" >> "$GITHUB_OUTPUT"
+
             - name: Checkout
+              if: ${{ steps.plan.outputs.bundle_ready == 'true' }}
               uses: actions/checkout@v4
 
             - name: Setup Node
+              if: ${{ steps.plan.outputs.bundle_ready == 'true' }}
               uses: actions/setup-node@v4
               with:
                   node-version: '20'
 
             - name: Download desktop artifacts
-              if: ${{ needs.resolve-release-plan.outputs.desktop_count != '0' }}
+              if: ${{ steps.plan.outputs.bundle_ready == 'true' && needs.resolve-release-plan.outputs.desktop_count != '0' }}
               uses: actions/download-artifact@v4
               with:
                   pattern: turnero-desktop-*
                   path: artifacts/desktop
 
             - name: Stage app-downloads and desktop-updates bundle
+              if: ${{ steps.plan.outputs.bundle_ready == 'true' }}
               shell: bash
               run: >
                   node bin/stage-turnero-app-release.js
@@ -264,6 +280,7 @@ jobs:
                   --outputRoot release/turnero-apps
 
             - name: Upload release bundle
+              if: ${{ steps.plan.outputs.bundle_ready == 'true' }}
               uses: actions/upload-artifact@v4
               with:
                   name: turnero-apps-release-bundle
@@ -271,6 +288,7 @@ jobs:
                   retention-days: 14
 
             - name: Publish workflow summary
+              if: ${{ steps.plan.outputs.bundle_ready == 'true' }}
               shell: bash
               run: |
                   {
@@ -290,41 +308,60 @@ jobs:
     package-release-full:
         name: Package release bundle (full)
         runs-on: ubuntu-latest
-        if: >-
-            ${{
-              always() &&
-              needs.build-desktop.result == 'success' &&
-              needs.resolve-release-plan.outputs.android_count != '0' &&
-              needs.build-android.result == 'success'
-            }}
+        if: ${{ always() }}
         needs:
             - resolve-release-plan
             - build-desktop
             - build-android
+        outputs:
+            bundle_ready: ${{ steps.plan.outputs.bundle_ready }}
         steps:
+            - name: Decide full packaging
+              id: plan
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ "${{ needs.resolve-release-plan.outputs.android_count }}" = "0" ]; then
+                    echo "bundle_ready=false" >> "$GITHUB_OUTPUT"
+                    echo "Se omite el bundle full porque el plan no requiere artifacts Android."
+                    exit 0
+                  fi
+                  if [ "${{ needs.build-desktop.result }}" != "success" ]; then
+                    echo "::error::build-desktop no quedo en success"
+                    exit 1
+                  fi
+                  if [ "${{ needs.build-android.result }}" != "success" ]; then
+                    echo "::error::build-android no quedo en success"
+                    exit 1
+                  fi
+                  echo "bundle_ready=true" >> "$GITHUB_OUTPUT"
+
             - name: Checkout
+              if: ${{ steps.plan.outputs.bundle_ready == 'true' }}
               uses: actions/checkout@v4
 
             - name: Setup Node
+              if: ${{ steps.plan.outputs.bundle_ready == 'true' }}
               uses: actions/setup-node@v4
               with:
                   node-version: '20'
 
             - name: Download desktop artifacts
-              if: ${{ needs.resolve-release-plan.outputs.desktop_count != '0' }}
+              if: ${{ steps.plan.outputs.bundle_ready == 'true' && needs.resolve-release-plan.outputs.desktop_count != '0' }}
               uses: actions/download-artifact@v4
               with:
                   pattern: turnero-desktop-*
                   path: artifacts/desktop
 
             - name: Download Android artifacts
-              if: ${{ needs.resolve-release-plan.outputs.android_count != '0' }}
+              if: ${{ steps.plan.outputs.bundle_ready == 'true' && needs.resolve-release-plan.outputs.android_count != '0' }}
               uses: actions/download-artifact@v4
               with:
                   pattern: turnero-android-*
                   path: artifacts/android
 
             - name: Stage app-downloads and desktop-updates bundle
+              if: ${{ steps.plan.outputs.bundle_ready == 'true' }}
               shell: bash
               run: >
                   node bin/stage-turnero-app-release.js
@@ -338,6 +375,7 @@ jobs:
                   --outputRoot release/turnero-apps
 
             - name: Upload release bundle
+              if: ${{ steps.plan.outputs.bundle_ready == 'true' }}
               uses: actions/upload-artifact@v4
               with:
                   name: turnero-apps-release-bundle
@@ -345,6 +383,7 @@ jobs:
                   retention-days: 14
 
             - name: Publish workflow summary
+              if: ${{ steps.plan.outputs.bundle_ready == 'true' }}
               shell: bash
               run: |
                   {
@@ -367,15 +406,7 @@ jobs:
         needs:
             - package-release-desktop-only
             - package-release-full
-        if: >-
-            ${{
-              always() &&
-              github.event.inputs.publish_to_hosting == 'true' &&
-              (
-                needs.package-release-desktop-only.result == 'success' ||
-                needs.package-release-full.result == 'success'
-              )
-            }}
+        if: ${{ always() && github.event.inputs.publish_to_hosting == 'true' }}
         env:
             DEPLOY_PROTOCOL: ${{ github.event.inputs.protocol || 'ftps' }}
             FTP_SERVER_PORT: ${{ github.event.inputs.server_port || '21' }}
@@ -383,6 +414,15 @@ jobs:
             FTP_SERVER_DIR: ${{ github.event.inputs.server_dir || '/public_html/' }}
             FTP_DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
         steps:
+            - name: Validate bundle availability
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ "${{ needs.package-release-desktop-only.outputs.bundle_ready }}" != "true" ] && [ "${{ needs.package-release-full.outputs.bundle_ready }}" != "true" ]; then
+                    echo "::error::No hay release bundle listo para publicar"
+                    exit 1
+                  fi
+
             - name: Download release bundle
               uses: actions/download-artifact@v4
               with:
@@ -452,16 +492,17 @@ jobs:
         needs:
             - package-release-desktop-only
             - package-release-full
-        if: >-
-            ${{
-              always() &&
-              github.event.inputs.publish_github_release == 'true' &&
-              (
-                needs.package-release-desktop-only.result == 'success' ||
-                needs.package-release-full.result == 'success'
-              )
-            }}
+        if: ${{ always() && github.event.inputs.publish_github_release == 'true' }}
         steps:
+            - name: Validate bundle availability
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ "${{ needs.package-release-desktop-only.outputs.bundle_ready }}" != "true" ] && [ "${{ needs.package-release-full.outputs.bundle_ready }}" != "true" ]; then
+                    echo "::error::No hay release bundle listo para publicar en GitHub Release"
+                    exit 1
+                  fi
+
             - name: Download release bundle
               uses: actions/download-artifact@v4
               with:
