@@ -67,27 +67,27 @@
     },
     "newsStrip": {
         "label": "Aurora Derm",
-        "headline": "Clear clinical dermatology, ready to move you forward even while online booking is paused.",
+        "headline": "Three clear ways to begin: first visit, indicated treatments, or teledermatology when you need to move today.",
         "href": "/en/services/",
         "expandLabel": "Expand",
         "collapseLabel": "Collapse",
-        "detail": "Start with teledermatology or open the first-visit route that best matches what is happening right now.",
+        "detail": "Start with the route that sounds closest to what is happening now, then open the more specific options after that first decision is clear.",
         "ctaLabel": "See specialties",
         "localeAria": "Language switch"
     },
     "editorial": {
         "eyebrow": "Aurora Derm",
-        "title": "We explain what we see, why it matters, and what makes sense next.",
-        "deck": "These entries show how we structure the first read, when we bring in technology, and how follow-up stays clear instead of heavy.",
+        "title": "Three master routes to begin without guesswork.",
+        "deck": "If you need to sort symptoms, choose treatment, or start remotely, these are the three front doors.",
         "ctaLabel": "Open service",
         "cards": [
             {
                 "id": "c1",
                 "type": "video",
                 "size": "tall",
-                "category": "First consultation",
-                "title": "From first consultation to a full plan",
-                "copy": "When skin changes in a recent way, we start by sorting findings and priorities so you leave with a plan that makes sense.",
+                "category": "First visit",
+                "title": "Begin with a complete read",
+                "copy": "When several symptoms overlap or everything just started, this visit sorts priority, risk, and the next step.",
                 "href": "/en/services/diagnostico-integral/",
                 "image": "/images/optimized/v6-clinic-statement-clinical-direction.webp",
                 "alt": "Clinical dermatology direction with a structured read",
@@ -97,82 +97,36 @@
                 "id": "c2",
                 "type": "info",
                 "size": "wide",
-                "category": "Inflammation",
-                "title": "Acne and rosacea with steady control",
-                "copy": "We control flares and sensitivity through timely adjustments based on how your skin is actually responding.",
-                "href": "/en/services/acne-rosacea/",
-                "image": "/images/optimized/v6-clinic-acne-rosacea.webp",
-                "alt": "Dermatology follow-up for inflammation and skin sensitivity",
-                "srcset": "/images/optimized/v6-clinic-acne-rosacea-400.webp 400w, /images/optimized/v6-clinic-acne-rosacea-640.webp 640w, /images/optimized/v6-clinic-acne-rosacea-800.webp 800w, /images/optimized/v6-clinic-acne-rosacea-900.webp 900w, /images/optimized/v6-clinic-acne-rosacea-1200.webp 1200w, /images/optimized/v6-clinic-acne-rosacea.webp 1400w"
-            },
-            {
-                "id": "c3",
-                "type": "video",
-                "size": "standard",
-                "category": "Technology",
-                "title": "Laser with clear medical settings",
-                "copy": "Energy and frequency are set by phototype, lesion profile, and tolerance so skin stays protected throughout the process.",
+                "category": "Treatments",
+                "title": "Indicated treatments, not impulse",
+                "copy": "Laser, peels, and biostimulation are chosen only when they add real clinical value and can be followed safely.",
                 "href": "/en/services/laser-dermatologico/",
                 "image": "/images/optimized/v6-clinic-laser-dermatologico.webp",
                 "alt": "Dermatology laser platform with controlled settings",
                 "srcset": "/images/optimized/v6-clinic-laser-dermatologico-400.webp 400w, /images/optimized/v6-clinic-laser-dermatologico-640.webp 640w, /images/optimized/v6-clinic-laser-dermatologico-800.webp 800w, /images/optimized/v6-clinic-laser-dermatologico-900.webp 900w, /images/optimized/v6-clinic-laser-dermatologico-1200.webp 1200w, /images/optimized/v6-clinic-laser-dermatologico.webp 1400w"
             },
             {
-                "id": "c4",
+                "id": "c3",
                 "type": "info",
-                "size": "tall",
+                "size": "standard",
                 "category": "Teledermatology",
-                "title": "Teledermatology when timing matters",
-                "copy": "You get early guidance without waiting longer than needed, and if an in-person exam matters, we coordinate the move into clinic.",
+                "title": "Move today without guessing blind",
+                "copy": "Teledermatology helps you start early, organize images, and know when remote care is enough and when clinic matters.",
                 "href": "/en/telemedicine/",
                 "image": "/images/optimized/v6-clinic-telemedicine-review.webp",
                 "alt": "Remote dermatology review with follow-up and adjustment",
                 "srcset": "/images/optimized/v6-clinic-telemedicine-review-400.webp 400w, /images/optimized/v6-clinic-telemedicine-review-640.webp 640w, /images/optimized/v6-clinic-telemedicine-review-800.webp 800w, /images/optimized/v6-clinic-telemedicine-review-900.webp 900w, /images/optimized/v6-clinic-telemedicine-review-1200.webp 1200w, /images/optimized/v6-clinic-telemedicine-review.webp 1400w"
-            },
-            {
-                "id": "c5",
-                "type": "info",
-                "size": "standard",
-                "category": "Pediatric",
-                "title": "Pediatric care with clear guidance for families",
-                "copy": "We turn medical instructions into practical steps for home routines, school days, and caregiver follow-through.",
-                "href": "/en/services/dermatologia-pediatrica/",
-                "image": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
-                "alt": "Pediatric dermatology consultation with family support",
-                "srcset": "/images/optimized/v6-clinic-dermatologia-pediatrica-400.webp 400w, /images/optimized/v6-clinic-dermatologia-pediatrica-640.webp 640w, /images/optimized/v6-clinic-dermatologia-pediatrica-800.webp 800w, /images/optimized/v6-clinic-dermatologia-pediatrica-900.webp 900w, /images/optimized/v6-clinic-dermatologia-pediatrica-1200.webp 1200w, /images/optimized/v6-clinic-dermatologia-pediatrica.webp 1400w"
-            },
-            {
-                "id": "c6",
-                "type": "video",
-                "size": "wide",
-                "category": "Follow-up",
-                "title": "Follow-up that lets us see real progress",
-                "copy": "Symptoms, images, and tolerance are compared between visits so treatment can be adjusted with more precision.",
-                "href": "/en/services/piel-cabello-unas/",
-                "image": "/images/optimized/v6-clinic-home-followup.webp",
-                "alt": "Dermatology follow-up with progress comparison and adjustments",
-                "srcset": "/images/optimized/v6-clinic-home-followup-400.webp 400w, /images/optimized/v6-clinic-home-followup-640.webp 640w, /images/optimized/v6-clinic-home-followup-800.webp 800w, /images/optimized/v6-clinic-home-followup-900.webp 900w, /images/optimized/v6-clinic-home-followup-1200.webp 1200w, /images/optimized/v6-clinic-home-followup.webp 1400w"
             }
         ]
     },
     "corporateMatrix": {
-        "eyebrow": "Patient pathway",
-        "title": "A clearer way to choose where to begin",
-        "deck": "Each service page explains when it helps, how care is approached, and when it makes sense to move into another stage of care.",
+        "eyebrow": "After you enter",
+        "title": "Then narrow the route to what you need.",
+        "deck": "These options refine the decision once you know you need inflammation care, lesion review, integrated follow-up, or a specific medical procedure.",
         "ctaLabel": "Open service",
         "cards": [
             {
                 "id": "m1",
-                "category": "Diagnosis",
-                "title": "Comprehensive diagnosis",
-                "copy": "A complete first read that puts priorities, risk, and follow-up timing on the table from the start.",
-                "href": "/en/services/diagnostico-integral/",
-                "image": "/images/optimized/v6-clinic-diagnostico-integral.webp",
-                "alt": "Comprehensive dermatology consultation with structured first review",
-                "srcset": "/images/optimized/v6-clinic-diagnostico-integral-400.webp 400w, /images/optimized/v6-clinic-diagnostico-integral-640.webp 640w, /images/optimized/v6-clinic-diagnostico-integral-800.webp 800w, /images/optimized/v6-clinic-diagnostico-integral-900.webp 900w, /images/optimized/v6-clinic-diagnostico-integral-1200.webp 1200w, /images/optimized/v6-clinic-diagnostico-integral.webp 1400w"
-            },
-            {
-                "id": "m2",
                 "category": "Inflammation",
                 "title": "Acne and rosacea",
                 "copy": "Phase-based care to calm flares, ease sensitivity, and avoid unnecessary relapse.",
@@ -182,7 +136,37 @@
                 "srcset": "/images/optimized/v6-clinic-acne-rosacea-400.webp 400w, /images/optimized/v6-clinic-acne-rosacea-640.webp 640w, /images/optimized/v6-clinic-acne-rosacea-800.webp 800w, /images/optimized/v6-clinic-acne-rosacea-900.webp 900w, /images/optimized/v6-clinic-acne-rosacea-1200.webp 1200w, /images/optimized/v6-clinic-acne-rosacea.webp 1400w"
             },
             {
+                "id": "m2",
+                "category": "Screening",
+                "title": "Lesions worth reviewing",
+                "copy": "Review recent change, bleeding, or warning signs before more time passes.",
+                "href": "/en/services/cancer-piel/",
+                "image": "/images/optimized/v6-clinic-cancer-piel.webp",
+                "alt": "Dermatoscopy and lesion review with warning criteria",
+                "srcset": "/images/optimized/v6-clinic-cancer-piel-400.webp 400w, /images/optimized/v6-clinic-cancer-piel-640.webp 640w, /images/optimized/v6-clinic-cancer-piel-800.webp 800w, /images/optimized/v6-clinic-cancer-piel-900.webp 900w, /images/optimized/v6-clinic-cancer-piel-1200.webp 1200w, /images/optimized/v6-clinic-cancer-piel.webp 1400w"
+            },
+            {
                 "id": "m3",
+                "category": "Pediatric",
+                "title": "Pediatric dermatology",
+                "copy": "Clear guidance for home, school, and caregivers when a child's skin changes or relapses.",
+                "href": "/en/services/dermatologia-pediatrica/",
+                "image": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
+                "alt": "Pediatric dermatology consultation with family support",
+                "srcset": "/images/optimized/v6-clinic-dermatologia-pediatrica-400.webp 400w, /images/optimized/v6-clinic-dermatologia-pediatrica-640.webp 640w, /images/optimized/v6-clinic-dermatologia-pediatrica-800.webp 800w, /images/optimized/v6-clinic-dermatologia-pediatrica-900.webp 900w, /images/optimized/v6-clinic-dermatologia-pediatrica-1200.webp 1200w, /images/optimized/v6-clinic-dermatologia-pediatrica.webp 1400w"
+            },
+            {
+                "id": "m4",
+                "category": "Integrated care",
+                "title": "Skin, hair and nails",
+                "copy": "One coordinated read for mixed symptoms that should not be split across disconnected visits.",
+                "href": "/en/services/piel-cabello-unas/",
+                "image": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
+                "alt": "Integrated skin, hair, and nails route with coordinated review",
+                "srcset": "/images/optimized/v6-clinic-piel-cabello-unas-400.webp 400w, /images/optimized/v6-clinic-piel-cabello-unas-640.webp 640w, /images/optimized/v6-clinic-piel-cabello-unas-800.webp 800w, /images/optimized/v6-clinic-piel-cabello-unas-900.webp 900w, /images/optimized/v6-clinic-piel-cabello-unas-1200.webp 1200w, /images/optimized/v6-clinic-piel-cabello-unas.webp 1400w"
+            },
+            {
+                "id": "m5",
                 "category": "Technology",
                 "title": "Dermatology laser",
                 "copy": "Laser is chosen by phototype, treatment goal, and skin response, with adjustments at every session.",
@@ -192,29 +176,9 @@
                 "srcset": "/images/optimized/v6-clinic-laser-dermatologico-400.webp 400w, /images/optimized/v6-clinic-laser-dermatologico-640.webp 640w, /images/optimized/v6-clinic-laser-dermatologico-800.webp 800w, /images/optimized/v6-clinic-laser-dermatologico-900.webp 900w, /images/optimized/v6-clinic-laser-dermatologico-1200.webp 1200w, /images/optimized/v6-clinic-laser-dermatologico.webp 1400w"
             },
             {
-                "id": "m4",
-                "category": "Screening",
-                "title": "Early lesion assessment",
-                "copy": "Changing lesions are reviewed early so decisions happen on time and follow-up stays well documented.",
-                "href": "/en/services/cancer-piel/",
-                "image": "/images/optimized/v6-clinic-cancer-piel.webp",
-                "alt": "Dermatoscopy and lesion review with warning criteria",
-                "srcset": "/images/optimized/v6-clinic-cancer-piel-400.webp 400w, /images/optimized/v6-clinic-cancer-piel-640.webp 640w, /images/optimized/v6-clinic-cancer-piel-800.webp 800w, /images/optimized/v6-clinic-cancer-piel-900.webp 900w, /images/optimized/v6-clinic-cancer-piel-1200.webp 1200w, /images/optimized/v6-clinic-cancer-piel.webp 1400w"
-            },
-            {
-                "id": "m5",
-                "category": "Teledermatology",
-                "title": "Teledermatology and clinic handoff",
-                "copy": "Remote guidance helps decide when follow-up at a distance is enough and when it is worth seeing you soon in Quito.",
-                "href": "/en/telemedicine/",
-                "image": "/images/optimized/v6-clinic-telemedicine-intake.webp",
-                "alt": "Teledermatology intake with clinical context and imaging",
-                "srcset": "/images/optimized/v6-clinic-telemedicine-intake-400.webp 400w, /images/optimized/v6-clinic-telemedicine-intake-640.webp 640w, /images/optimized/v6-clinic-telemedicine-intake-800.webp 800w, /images/optimized/v6-clinic-telemedicine-intake-900.webp 900w, /images/optimized/v6-clinic-telemedicine-intake-1200.webp 1200w, /images/optimized/v6-clinic-telemedicine-intake.webp 1400w"
-            },
-            {
                 "id": "m6",
                 "category": "Rejuvenation",
-                "title": "Medical dermoaesthetics",
+                "title": "Collagen biostimulators",
                 "copy": "Medical protocols for texture and firmness with realistic timelines and steady follow-up.",
                 "href": "/en/services/bioestimuladores-colageno/",
                 "image": "/images/optimized/v6-clinic-bioestimuladores-colageno.webp",
@@ -224,10 +188,10 @@
         ]
     },
     "bookingStatus": {
-        "eyebrow": "First step",
+        "eyebrow": "Next step",
         "title": "Online booking under maintenance",
-        "description": "If you want to get moving today without calling first, open teledermatology or the specialty that sounds closest to what you are dealing with.",
-        "ctaLabel": "Open teledermatology",
-        "ctaHref": "/en/telemedicine/"
+        "description": "If you want a clear next step, open first visit. If you are still unsure about coming in, teledermatology helps sort the case.",
+        "ctaLabel": "Open first visit",
+        "ctaHref": "/en/services/diagnostico-integral/"
     }
 }

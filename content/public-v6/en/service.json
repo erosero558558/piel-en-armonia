@@ -4,12 +4,12 @@
     "voiceNote": "Each page turns options, limits, and ways forward into language you can understand without losing precision or calm.",
     "ui": {
         "menu": {
-            "glance": "At a glance",
-            "checkpoints": "What matters",
-            "process": "How we approach it",
+            "glance": "What this clarifies first",
+            "checkpoints": "Review first",
+            "process": "How care moves",
             "faq": "Questions people ask",
-            "related": "Related services",
-            "booking": "Online booking"
+            "related": "When to switch route",
+            "booking": "Next step"
         },
         "breadcrumb": {
             "home": "Home",
@@ -17,8 +17,8 @@
         },
         "thesis": {
             "eyebrow": "Aurora Derm",
-            "titleSuffix": "with a clear medical read and precise follow-up",
-            "body": "Each stage clarifies what to watch, what to expect, and when in-clinic care protects progress without confusion."
+            "titleSuffix": "with a clear route and a visible next step",
+            "body": "This page shows what it usually clarifies first, how care moves, when it makes sense to switch routes, and what the visible next step should be so nothing stays half-decided."
         },
         "statement": {
             "eyebrow": "Medical read",
@@ -33,25 +33,25 @@
             "aria": "Service sections"
         },
         "glance": {
-            "routeType": "Service focus",
-            "checkpoints": "What matters",
+            "routeType": "Suggested route",
+            "checkpoints": "What it organizes",
             "processStages": "Care stages"
         },
         "sections": {
-            "checkpointsTitle": "What matters",
-            "processTitle": "How we approach it",
+            "checkpointsTitle": "What this clarifies first",
+            "processTitle": "How care moves",
             "faqTitle": "Questions people ask",
-            "relatedTitle": "Related services"
+            "relatedTitle": "When to switch route"
         },
         "faqPrefix": "Q",
         "faqAnswerNote": "Guidance answer; the final plan is confirmed in consultation.",
-        "relatedCta": "Open service",
+        "relatedCta": "Open this route",
         "bookingStatus": {
-            "eyebrow": "Start here",
+            "eyebrow": "Next step",
             "title": "Online booking under maintenance",
-            "description": "If you are still unsure whether you need to come in, start with teledermatology and we will help you sort out the clearest option.",
-            "ctaLabel": "Open teledermatology",
-            "ctaHref": "/en/telemedicine/"
+            "description": "If this service already sounds right, the next step is to open first visit. If you are still comparing routes, telemedicine guides first.",
+            "ctaLabel": "Open first visit",
+            "ctaHref": "/en/services/diagnostico-integral/"
         }
     },
     "services": [

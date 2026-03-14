@@ -1,0 +1,164 @@
+{
+    "generatedAt": "2026-03-14T00:00:00-05:00",
+    "reportDate": "2026-03-14",
+    "weekStart": "2026-03-08",
+    "weekEnd": "2026-03-14",
+    "decisionType": "small_coherent_release",
+    "recommendedReleaseId": "admin-shell-rc1-weekly-cut",
+    "summary": {
+        "completedTasksThisWindow": 92,
+        "activeTasksThisWindow": 2,
+        "governance": {
+            "blockingConflicts": 0,
+            "handoffsActive": 0,
+            "boardDoctorFindings": 0
+        },
+        "strategyActive": "STRAT-2026-03-turnero-web-pilot",
+        "fronts": [
+            {
+                "name": "public-web-v6",
+                "completed": 45
+            },
+            {
+                "name": "admin-shell-rc1",
+                "completed": 16
+            },
+            {
+                "name": "turnero-test-and-surface-hardening",
+                "completed": 15
+            },
+            {
+                "name": "deploy-and-public-sync",
+                "completed": 12
+            },
+            {
+                "name": "telemedicine-safety",
+                "completed": 2
+            },
+            {
+                "name": "turnero-web-pilot-active",
+                "active": 2
+            }
+        ],
+        "releaseRecommendation": "Cut only Admin Shell RC1 and keep the turnero web pilot out of this weekly release."
+    },
+    "releasable_now": {
+        "scope": "Admin Shell RC1",
+        "primaryTasks": ["CDX-041", "CDX-042"],
+        "supportingTasks": [
+            "AG-183",
+            "AG-220",
+            "AG-221",
+            "AG-222",
+            "AG-223",
+            "AG-225",
+            "AG-232",
+            "AG-233",
+            "AG-235",
+            "AG-238",
+            "AG-239",
+            "AG-240",
+            "AG-241",
+            "AG-242"
+        ],
+        "contract": [
+            "OpenClaw remains the primary admin access path.",
+            "Legacy password + 2FA contingency appears only when the backend announces it.",
+            "The daily shell remains limited to dashboard, appointments, callbacks, availability, and clinical-history."
+        ],
+        "evidence": [
+            "verification/agent-runs/CDX-041.md",
+            "verification/agent-runs/CDX-042.md"
+        ],
+        "validationStatus": {
+            "backendAuthGatesGreen": true,
+            "adminRolloutInternalGate": "OK",
+            "playwrightVisibleCut": "28/28",
+            "runtimeSmoke": "2/2"
+        }
+    },
+    "not_releasable_yet": [
+        {
+            "area": "turnero_web_pilot",
+            "tasks": ["CDX-043", "CDX-044"],
+            "reason": "Still in progress and not yet validated end to end for a real clinic."
+        },
+        {
+            "area": "deploy_and_public_sync",
+            "reason": "public_main_sync remains unverified, healthy=false, state=unknown."
+        },
+        {
+            "area": "public_web_v6",
+            "reason": "Too broad for a small coherent weekly release and still tied to unresolved deploy verification."
+        },
+        {
+            "area": "telemedicine_safety",
+            "reason": "Critical-zone work touching payments, appointments, and WhatsApp should ship separately as a backend cut or hotfix."
+        }
+    ],
+    "integration_conflicts": {
+        "formal": {
+            "blocking": 0,
+            "handoff": 0
+        },
+        "semanticCouplings": [
+            {
+                "pair": ["CDX-041", "CDX-043"],
+                "sharedPath": "controllers/AdminDataController.php"
+            },
+            {
+                "pair": ["CDX-042", "CDX-044"],
+                "sharedPath": "admin.html"
+            }
+        ],
+        "workspaceCutRule": "Keep local governance, evidence, and unrelated scratch/doc changes out of the release branch so the product cut only carries the RC1 scope."
+    },
+    "stability_risks": [
+        "public_main_sync has no reliable healthy signal on 2026-03-14.",
+        "Mixing the turnero web pilot with RC1 reopens admin.html, api.php, QueueController, QueueService, and AdminDataController right after a stabilization cut.",
+        "CDX-041 still records remote 502 warnings for operator-auth-status and admin-auth; this does not block the cut, but it requires post-release monitoring."
+    ],
+    "recommended_release_scope": {
+        "releaseName": "Admin Shell RC1",
+        "include": [
+            "Backend auth and readiness lane from CDX-041",
+            "Frontend daily-use shell lane from CDX-042"
+        ],
+        "exclude": [
+            "queue/turnero reactivation",
+            "reviews reactivation",
+            "public V6 work",
+            "deploy/public sync changes",
+            "turnero web pilot by clinic"
+        ],
+        "goal": "Ship a daily-use admin shell with a stable auth posture and no visible queue or review surfaces until the dedicated second wave is ready."
+    },
+    "parked_for_next_cycle": [
+        "Finish CDX-043 with clinic canon, queue state, readiness, and verify-remote evidence.",
+        "Finish CDX-044 with the full web journey kiosco -> admin/operator -> sala.",
+        "Revalidate public_main_sync before sending more deploy or public-web work through the release train.",
+        "Decide whether telemedicine-safety should ship as a separate backend hotfix next week.",
+        "Resolve RC1 deferred debt: controlled queue/turnero reactivation, queue-ops.css cleanup decision, and any OpenClaw transversal exception only if real access blocks again."
+    ],
+    "assumptions": [
+        "This close prepares the next small production cut; it is not a full recap of every merge already sitting on main.",
+        "The recommendation is based on AGENT_BOARD.yaml, board events, git status, weekly commit history, orchestrator health commands, and evidence files CDX-041 through CDX-044 as reviewed on 2026-03-14."
+    ],
+    "sources": [
+        "node agent-orchestrator.js status --json",
+        "node agent-orchestrator.js strategy status --json",
+        "node agent-orchestrator.js task ls --active --json",
+        "node agent-orchestrator.js conflicts --json",
+        "node agent-orchestrator.js board doctor --json",
+        "node agent-orchestrator.js handoffs status --json",
+        "node agent-orchestrator.js jobs status --json",
+        "node agent-orchestrator.js jobs verify public_main_sync --json",
+        "node agent-orchestrator.js board events stats --days 7 --json",
+        "git log --since=\"7 days ago\" --stat",
+        "git status --short --branch",
+        "verification/agent-runs/CDX-041.md",
+        "verification/agent-runs/CDX-042.md",
+        "verification/agent-runs/CDX-043.md",
+        "verification/agent-runs/CDX-044.md"
+    ]
+}

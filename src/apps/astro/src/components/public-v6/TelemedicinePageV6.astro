@@ -50,13 +50,18 @@ const initiatives = initiativesRaw
     }))
     .filter((item) => hasText(item.title) && hasText(item.copy) && hasText(item.image) && hasText(item.href));
 
-const pageMenuItems = blockModels
-    .map((block) => makeMenuItem(block.title, `#${block.anchorId}`))
-    .filter(Boolean);
+const pageMenuItems = [];
+const glanceItem = makeMenuItem(menuUi.glance || '', '#v6-tele-glance');
+if (glanceItem) {
+    pageMenuItems.push(glanceItem);
+}
+pageMenuItems.push(
+    ...blockModels.map((block) => makeMenuItem(block.title, `#${block.anchorId}`)).filter(Boolean)
+);
 if (initiatives.length) {
     const initiativesItem = makeMenuItem(menuUi.initiatives || '', '#v6-tele-initiatives');
     if (initiativesItem) {
-        pageMenuItems.unshift(initiativesItem);
+        pageMenuItems.push(initiativesItem);
     }
 }
 const bookingStatus = page?.bookingStatus && typeof page.bookingStatus === 'object' ? page.bookingStatus : {};
@@ -83,6 +88,10 @@ const statement = {
 };
 const lead = normalizeText(page.lead);
 const internalDescription = normalizeText(internalMessageUi.description);
+const internalMessageTitle =
+    locale === 'en'
+        ? 'Where remote care helps, and where it should switch'
+        : 'Donde ayuda a distancia y donde conviene cambiar';
 const heroImageSrc = normalizeText(page?.heroImage?.src);
 const heroImageSrcSet = normalizeText(page?.heroImage?.srcset);
 const heroImageAlt = normalizeText(page?.heroImage?.alt) || normalizeText(page.heading);
@@ -98,7 +107,7 @@ const kpiCards = [
 const blockCtaLabel = normalizeText(ui.blockCtaLabel);
 const initiativesCtaLabel = normalizeText(initiativesUi.ctaLabel);
 const initiativesAria = normalizeText(initiativesUi.aria);
-const heroSummaryLabel = locale === 'en' ? 'Hybrid access' : 'Acceso hibrido';
+const heroSummaryLabel = locale === 'en' ? 'Teledermatology' : 'Teledermatologia';
 const heroSummaryTitle =
     locale === 'en'
         ? 'Remote care with clear clinical thresholds'
@@ -141,7 +150,6 @@ const heroBookingLabel =
                     <p class="v6-tele-hero-shell__eyebrow">{heroSummaryLabel}</p>
                     <h2>{heroSummaryTitle}</h2>
                     {lead ? <p>{lead}</p> : null}
-                    {internalDescription ? <p class="v6-tele-hero-shell__support">{internalDescription}</p> : null}
                     {
                         kpiCards.length ? (
                             <div class="v6-tele-hero-shell__chips" aria-hidden="true">
@@ -171,9 +179,9 @@ const heroBookingLabel =
 }
 
 {
-    lead || internalDescription ? (
+    internalMessageTitle || internalDescription ? (
         <section class="v6-internal-message" data-v6-internal-message>
-            {lead ? <h2>{lead}</h2> : null}
+            {internalMessageTitle ? <h2>{internalMessageTitle}</h2> : null}
             {internalDescription ? <p>{internalDescription}</p> : null}
         </section>
     ) : null
@@ -214,12 +222,45 @@ const heroBookingLabel =
     <div class="v6-internal-shell__body">
         {
             kpiCards.length ? (
-                <section class="v6-tele-kpis v6-tele-kpis--shell" aria-label={normalizeText(kpiUi.aria) || undefined}>
+                <section id="v6-tele-glance" class="v6-tele-kpis v6-tele-kpis--shell" aria-label={normalizeText(kpiUi.aria) || undefined}>
                     {
                         kpiCards.map((item) => (
                             <article>
                                 <p>{item.label}</p>
                                 <h3>{item.value}</h3>
+                            </article>
+                        ))
+                    }
+                </section>
+            ) : null
+        }
+
+        {
+            blockModels.length ? (
+                <section class="v6-tele-grid v6-tele-grid--shell">
+                    {
+                        blockModels.map((block, index) => (
+                            <article id={block.anchorId} class:list={[index === 0 && 'is-lead']} data-v6-tele-block>
+                                {
+                                    block.mediaSrc ? (
+                                        <figure class="v6-tele-grid__media">
+                                            <img src={block.mediaSrc} alt={block.title} loading="lazy" decoding="async" />
+                                        </figure>
+                                    ) : null
+                                }
+                                <div class="v6-tele-grid__body">
+                                    <p class="v6-tele-grid__index">{String(index + 1).padStart(2, '0')}</p>
+                                    <h3>{block.title}</h3>
+                                    <ul>
+                                        {block.items.map((item) => <li>{item}</li>)}
+                                    </ul>
+                                    {blockCtaLabel && hasBookingStatus ? (
+                                        <a href="#v6-booking-status">
+                                            {blockCtaLabel}
+                                            <span aria-hidden="true">></span>
+                                        </a>
+                                    ) : null}
+                                </div>
                             </article>
                         ))
                     }
@@ -253,35 +294,6 @@ const heroBookingLabel =
                 </section>
             ) : null
         }
-
-        <section class="v6-tele-grid v6-tele-grid--shell">
-            {
-                blockModels.map((block, index) => (
-                    <article id={block.anchorId} class:list={[index === 0 && 'is-lead']} data-v6-tele-block>
-                        {
-                            block.mediaSrc ? (
-                                <figure class="v6-tele-grid__media">
-                                    <img src={block.mediaSrc} alt={block.title} loading="lazy" decoding="async" />
-                                </figure>
-                            ) : null
-                        }
-                        <div class="v6-tele-grid__body">
-                            <p class="v6-tele-grid__index">{String(index + 1).padStart(2, '0')}</p>
-                            <h3>{block.title}</h3>
-                            <ul>
-                                {block.items.map((item) => <li>{item}</li>)}
-                            </ul>
-                            {blockCtaLabel && hasBookingStatus ? (
-                                <a href="#v6-booking-status">
-                                    {blockCtaLabel}
-                                    <span aria-hidden="true">></span>
-                                </a>
-                            ) : null}
-                        </div>
-                    </article>
-                ))
-            }
-        </section>
     </div>
 </div>
 

@@ -28,10 +28,10 @@
                 "eyebrow": "Find where to begin",
                 "inputLabel": "Type a symptom, service, or treatment",
                 "placeholder": "Acne, moles, laser, teledermatology...",
-                "hint": "You can search symptoms, treatments, or teledermatology. We will show useful ways to move forward.",
+                "hint": "You can search first visit, symptoms, treatments, or teledermatology. We will show the clearest place to begin.",
                 "resultsAria": "Search results",
                 "emptyTitle": "We did not find a clear match",
-                "emptyBody": "Try diagnosis, acne, moles, laser, or teledermatology.",
+                "emptyBody": "Try first visit, diagnosis, acne, laser, or teledermatology.",
                 "closeLabel": "Close search",
                 "resultsLimit": 8
             }
@@ -50,7 +50,7 @@
     "header": {
         "contactLabel": "WhatsApp",
         "contactHref": "https://wa.me/593982453672",
-        "searchLabel": "Search by specialty, topic, or treatment",
+        "searchLabel": "Search where to begin",
         "menuLabel": "Explore",
         "closeMenuLabel": "Close",
         "switchLabel": "ES",

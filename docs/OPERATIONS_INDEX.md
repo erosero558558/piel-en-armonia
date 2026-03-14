@@ -137,7 +137,23 @@ Notas:
 - `docs/RUNTIME_ARTIFACT_POLICY.md` fija que `src/apps/admin/index.js` y `src/apps/admin-v3/**` son la fuente primaria; `admin.js` y `js/admin-chunks/**` se revisan como outputs validados.
 - Playwright local usa `127.0.0.1:8011` por defecto; para reutilizar otro servidor usar `TEST_BASE_URL=...` y `TEST_REUSE_EXISTING_SERVER=1` solo si es intencional.
 
-### 3. Operar Turnero nativo
+### 3. Operar Turnero web pilot
+
+Comandos:
+
+- `npm run gate:turnero:web-pilot`
+- `npm run verify:prod:turnero:web-pilot`
+- `npm run smoke:prod:turnero:web-pilot`
+- `npm run gate:prod:turnero:web-pilot`
+- `npm run turnero:clinic-profile:verify-remote -- --base-url https://pielarmonia.com --json`
+
+Notas:
+
+- Este es el carril canonico del piloto web por clínica; valida `clinic-profile`, `verify-remote`, `publicSync` y las superficies `admin/operator/kiosk/display`.
+- No arrastra `desktop-updates`, `app-downloads` ni instaladores como blocker de salida.
+- Si el host remoto sigue `unverified` en `public_main_sync`, tratarlo como blocker único del corte y no reabrir scope lateral.
+
+### 4. Operar Turnero nativo
 
 Comandos:
 
@@ -151,6 +167,7 @@ Comandos:
 
 Notas:
 
+- `gate:turnero` queda como gate ampliado del release que tambien incluye el carril nativo.
 - Para validar tambien el hosting publicado del piloto, usa `npm run checklist:turnero:operator:pilot -- -ServerBaseUrl https://pielarmonia.com`.
 - Para convertir esa validacion en gate operativo del hosting, usa `npm run verify:prod:turnero:operator:pilot` y luego `npm run smoke:prod:turnero:operator:pilot`.
 - Implementacion operativa canonica: `scripts/ops/turnero/**`
@@ -160,7 +177,7 @@ Notas:
 - `publish:turnero:operator:pilot` sube solo `app-downloads/pilot` y `desktop-updates/pilot` del operador. Usa `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `FTP_SERVER_DIR`, `FTP_PROTOCOL`, `FTP_SERVER_PORT` y `FTP_SECURITY`.
 - Si el equipo entra en contingencia, el cierre real sigue siendo `live/offline/safe` + prueba del Genius Numpad 1000.
 
-### 4. Validar dominios criticos
+### 5. Validar dominios criticos
 
 Comandos:
 
@@ -170,7 +187,7 @@ Comandos:
 
 Usalos antes de tocar despliegue o si cambias comportamiento en agenda, funnel o pagos.
 
-### 5. Validar produccion
+### 6. Validar produccion
 
 Comandos:
 
@@ -196,8 +213,10 @@ Notas:
 
 - `npm run checklist:prod:public-sync:host` no ejecuta cambios remotos; imprime el checklist host-side canonico para revisar wrapper, `public-sync-status.json`, `health-diagnostics`, auth y cifrado en reposo antes de intervenir el VPS.
 - Entry point canonico: `scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1`
+- El weekly report de produccion vive en `verification/weekly/weekly-report-YYYYMMDD.{md,json}`.
+- El cierre semanal orientado a release manager puede vivir junto a ese reporte en `verification/weekly/release-close-YYYYMMDD.{md,json}` usando las secciones `releasable now`, `not releasable yet`, `integration conflicts`, `stability risks`, `recommended release scope` y `parked for next cycle`.
 
-### 6. Operar LeadOps interno con OpenClaw
+### 7. Operar LeadOps interno con OpenClaw
 
 Comandos:
 
@@ -219,7 +238,7 @@ Notas:
 - `runtime verify` comprueba `figo_queue`, `leadops_worker` y `operator_auth`; `runtime invoke` solo ejecuta `figo_queue` y `leadops_worker`.
 - Para crear o mover tareas de runtime, seguir `TRI_LANE_RUNTIME_RUNBOOK.md` y mantener `codex_instance=codex_transversal`.
 
-### 7. Trabajar con gobernanza y board
+### 8. Trabajar con gobernanza y board
 
 Comandos de lectura:
 

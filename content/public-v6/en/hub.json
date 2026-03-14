@@ -17,45 +17,45 @@
         "srcset": "/images/optimized/v6-clinic-hub-editorial-map-400.webp 400w, /images/optimized/v6-clinic-hub-editorial-map-640.webp 640w, /images/optimized/v6-clinic-hub-editorial-map-800.webp 800w, /images/optimized/v6-clinic-hub-editorial-map-1024.webp 1024w, /images/optimized/v6-clinic-hub-editorial-map-1200.webp 1200w, /images/optimized/v6-clinic-hub-editorial-map-1344.webp 1344w, /images/optimized/v6-clinic-hub-editorial-map.webp 1400w",
         "alt": "Editorial map of dermatology routes and clinical decisions"
     },
-    "introTitle": "Find the specialty that best organizes what your skin needs today",
-    "introDeck": "Each page explains scope, timing, and follow-up so you can understand the plan before deciding.",
+    "introTitle": "Start with the route that best organizes what you need today",
+    "introDeck": "Choose how to enter first; then we narrow care by symptoms, treatment, follow-up, and whether clinic review matters.",
     "ui": {
         "menu": {
-            "featured": "Featured pathways",
+            "featured": "Where to start",
             "initiatives": "Helpful support"
         },
         "featured": {
             "eyebrow": "Where to start",
-            "title": "Three clear ways to begin"
+            "title": "Three clear opening decisions"
         },
         "sectionLabelPrefix": "Section",
         "routeLabel": "pathways",
         "ctaLabel": "See service",
         "railAria": "Service sections",
         "initiatives": {
-            "eyebrow": "Also helpful",
-            "title": "Support that often makes a difference"
+            "eyebrow": "Practical support",
+            "title": "Useful signals after you choose the route"
         }
     },
     "featured": [
         {
             "category": "Diagnosis",
             "title": "Comprehensive diagnosis",
-            "copy": "A complete first read that sets priorities and leaves you with a clear plan after the first visit.",
+            "copy": "The right door when you need a full first read and a plan you can understand from the start.",
             "image": "/images/optimized/v6-clinic-diagnostico-integral.webp",
             "href": "/en/services/diagnostico-integral/"
         },
         {
             "category": "Technology",
             "title": "Dermatology laser for your case",
-            "copy": "Technology is chosen by phototype, goal, and expected recovery, with settings reviewed at each follow-up.",
+            "copy": "The right door when you already know you are looking for technology or a procedure chosen with medical judgment.",
             "image": "/images/optimized/v6-clinic-statement-procedure-guidance.webp",
             "href": "/en/services/laser-dermatologico/"
         },
         {
             "category": "Teledermatology",
             "title": "Teledermatology with a careful clinic handoff",
-            "copy": "Remote care helps decide whether follow-up at a distance is enough or if it makes sense to see you in clinic soon.",
+            "copy": "The right door when you want to move today and decide clearly when remote care is enough and when clinic matters.",
             "image": "/images/optimized/v6-clinic-telemedicine-intake.webp",
             "href": "/en/telemedicine/"
         }
@@ -63,8 +63,8 @@
     "sections": [
         {
             "id": "clinical-core",
-            "title": "Start and assess",
-            "deck": "Pathways that clarify diagnosis and support common conditions with clear follow-up from the start.",
+            "title": "If you need a first clinical read",
+            "deck": "This is where initial diagnosis, inflammatory care, and early lesion review belong when the case is still being sorted.",
             "cards": [
                 {
                     "slug": "diagnostico-integral",
@@ -94,8 +94,8 @@
         },
         {
             "id": "procedures",
-            "title": "Treat with judgment",
-            "deck": "Procedures and technology when they add clinical value and can be followed safely.",
+            "title": "If you already need indicated treatment",
+            "deck": "Technology and procedures for cases with a clear goal, where intensity, recovery, and follow-through need calibration.",
             "cards": [
                 {
                     "slug": "laser-dermatologico",
@@ -125,8 +125,8 @@
         },
         {
             "id": "extended",
-            "title": "Follow through and adjust",
-            "deck": "Options for longer follow-up, mixed presentations, and shared decisions that need structure.",
+            "title": "If you need follow-up or a route change",
+            "deck": "Options for longer follow-up, mixed symptoms, and cases that may begin remotely before deciding on clinic review.",
             "cards": [
                 {
                     "slug": "dermatologia-pediatrica",
@@ -199,11 +199,11 @@
             "href": "/en/services/bioestimuladores-colageno/"
         },
         {
-            "category": "Legal",
-            "title": "Consent in plain language",
-            "copy": "Rights and responsibilities are explained clearly, without unnecessary legal weight.",
-            "image": "/images/optimized/v6-clinic-legal-governance.webp",
-            "href": "/en/legal/terms/"
+            "category": "Route change",
+            "title": "Change route on time",
+            "copy": "If the first option stops fitting, we redirect quickly into first visit or in-clinic evaluation.",
+            "image": "/images/optimized/v6-clinic-team-roundtable.webp",
+            "href": "/en/services/diagnostico-integral/"
         },
         {
             "category": "Teledermatology",
@@ -214,10 +214,10 @@
         }
     ],
     "bookingStatus": {
-        "eyebrow": "First step",
+        "eyebrow": "Next step",
         "title": "Online booking under maintenance",
-        "description": "You can start today with teledermatology or open the pathway that sounds closest to what you are feeling.",
-        "ctaLabel": "Open teledermatology",
-        "ctaHref": "/en/telemedicine/"
+        "description": "If you need to decide where to enter today, open first visit. If you still do not know whether to come in, teledermatology guides first.",
+        "ctaLabel": "Open first visit",
+        "ctaHref": "/en/services/diagnostico-integral/"
     }
 }

@@ -12,10 +12,10 @@ test.describe('Public V6 editorial grid', () => {
         await expect(section).toBeVisible();
 
         const cards = section.locator('.v6-editorial__card');
-        await expect(cards).toHaveCount(6);
+        await expect(cards).toHaveCount(3);
         await expect(
             section.locator('.v6-editorial__card.is-video')
-        ).toHaveCount(3);
+        ).toHaveCount(1);
 
         const bg = await section.evaluate(
             (node) => window.getComputedStyle(node).backgroundImage

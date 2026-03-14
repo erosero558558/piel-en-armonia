@@ -64,6 +64,26 @@ test('prod-monitor workflow propaga env de service priorities a monitor script',
     }
 });
 
+test('prod-monitor workflow exporta credenciales diagnostics al monitor script', () => {
+    const { raw } = loadWorkflow();
+    for (const snippet of [
+        'PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN',
+        'PIELARMONIA_CRON_SECRET',
+        'PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER',
+        'PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX',
+        'secrets.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN',
+        'secrets.CRON_SECRET',
+        "vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER || 'Authorization'",
+        "vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX || 'Bearer'",
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring de diagnostics en prod-monitor: ${snippet}`
+        );
+    }
+});
+
 test('prod-monitor workflow publica parametros de service priorities en summary', () => {
     const { raw } = loadWorkflow();
     const requiredSummaryLines = [

@@ -192,6 +192,55 @@ test('build:public:v6 uses the dedicated Node runner instead of shell chaining',
     );
 });
 
+test('quality150 gate exposes a dedicated runner and canonical report outputs', () => {
+    const packageJson = JSON.parse(read('package.json'));
+    const gateScript = String(
+        packageJson.scripts['gate:public:v6:quality150'] || ''
+    );
+    const runner = read(path.join('bin', 'gate-public-v6-quality150.js'));
+
+    assert.equal(
+        gateScript,
+        'node bin/gate-public-v6-quality150.js',
+        'gate:public:v6:quality150 must point to the dedicated runner'
+    );
+    assert.match(
+        runner,
+        /quality150\.json/u,
+        'quality150 runner must write quality150.json'
+    );
+    assert.match(
+        runner,
+        /quality150\.md/u,
+        'quality150 runner must write quality150.md'
+    );
+    assert.match(
+        runner,
+        /visual-contract\.json/u,
+        'quality150 runner must read visual-contract.json'
+    );
+    assert.match(
+        runner,
+        /sony-parity-50\.json/u,
+        'quality150 runner must read sony-parity-50.json'
+    );
+    assert.match(
+        runner,
+        /quality_score/u,
+        'quality150 runner must persist quality_score'
+    );
+    assert.match(
+        runner,
+        /154/u,
+        'quality150 runner must keep the canonical 154-point ceiling'
+    );
+    assert.match(
+        runner,
+        /test:frontend:performance:gate/u,
+        'quality150 runner must include the performance hard gate'
+    );
+});
+
 test('canonical build wires public runtime validation after rollup', () => {
     const packageJson = JSON.parse(read('package.json'));
     const buildScript = String(packageJson.scripts.build || '');

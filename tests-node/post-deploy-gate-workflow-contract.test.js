@@ -52,6 +52,26 @@ test('post-deploy-gate soporta modo dual (push + manual) con guardrail de activa
     );
 });
 
+test('post-deploy-gate exporta credenciales diagnostics al gate estricto', () => {
+    const { raw } = loadWorkflow();
+    for (const snippet of [
+        'PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN',
+        'PIELARMONIA_CRON_SECRET',
+        'PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER',
+        'PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX',
+        'secrets.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN',
+        'secrets.CRON_SECRET',
+        "vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER || 'Authorization'",
+        "vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX || 'Bearer'",
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring de diagnostics en post-deploy-gate: ${snippet}`
+        );
+    }
+});
+
 test('post-deploy-gate expone inputs de admin rollout y public_v4 rollout', () => {
     const { parsed } = loadWorkflow();
     const inputs = parsed?.on?.workflow_dispatch?.inputs || {};

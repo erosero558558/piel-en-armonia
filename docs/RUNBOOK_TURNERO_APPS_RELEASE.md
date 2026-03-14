@@ -12,6 +12,8 @@ Prioridad operativa actual:
 
 El piloto de `Operador` está pensado para 1-2 equipos Windows de recepción o consultorio. La meta no es solo entregar un instalador: el equipo debe quedar listo para operar con perfil clínico, Genius Numpad 1000 validado y recuperación segura ante caída de red.
 
+Mientras el `clinic-profile` activo siga en `release.mode=web_pilot`, el gate canónico del frente es `npm run gate:turnero:web-pilot`. `npm run gate:turnero` queda para el release ampliado que tambien incluye el carril nativo.
+
 ## Rutas objetivo
 
 Piloto Windows de Operador:
@@ -86,6 +88,7 @@ Nota operativa:
 
 Mínimo recomendado:
 
+- `npm run gate:turnero:web-pilot`
 - `npm run gate:turnero`
 - `npm run turnero:release:plan`
 - `npm run test:turnero:php-contract`
@@ -95,7 +98,9 @@ Mínimo recomendado:
 
 Notas:
 
+- `npm run gate:turnero:web-pilot` valida el piloto web por clínica sin reabrir como blocker el bundle/operator pilot nativo.
 - `npm run gate:turnero` es el gate rápido canónico del frente; si falla, no avanzar al workflow.
+- Para la ola actual del piloto web, leer `npm run gate:turnero` como gate ampliado del release nativo, no como sustituto del carril web-pilot.
 - La ruta PHP oficial del contrato `/data` + `appDownloads` es `npm run test:turnero:php-contract`.
 - La corrida integrada de las cuatro superficies del turnero debe ejecutarse en `--workers=1` para evitar flake por estado compartido del servidor local y del store de pruebas.
 
@@ -199,9 +204,17 @@ npm run publish:turnero:operator:pilot -- -ServerBaseUrl https://pielarmonia.com
 Gate del hosting despues de publicar:
 
 ```bash
+npm run verify:prod:turnero:web-pilot
+npm run smoke:prod:turnero:web-pilot
+npm run gate:prod:turnero:web-pilot
 npm run verify:prod:turnero:operator:pilot
 npm run smoke:prod:turnero:operator:pilot
 ```
+
+Notas:
+
+- El carril `web-pilot` valida solo `clinic-profile`, `verify-remote`, `publicSync` y las superficies web (`admin/operator/kiosk/display`).
+- El carril `operator:pilot` agrega `app-downloads`, `desktop-updates` e instalador Windows; usarlo solo cuando el release ampliado tambien incluya el carril nativo.
 
 Variables esperadas:
 

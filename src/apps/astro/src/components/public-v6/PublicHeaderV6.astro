@@ -252,6 +252,7 @@ const hasDrawer = Boolean(menuLabel && (links.length || hasMega || hasSwitch || 
 
         <div class="v6-header__actions">
             {hasContact ? <a class="v6-header__contact" href={contactHref} target="_blank" rel="noopener noreferrer">{contactLabel}</a> : null}
+            {hasBrandUtility ? <a class="v6-header__utility" href={brandUtilityHref}>{brandUtilityLabel}</a> : null}
             {
                 hasSearch ? (
                     <button

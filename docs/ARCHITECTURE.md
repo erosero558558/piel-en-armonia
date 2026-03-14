@@ -108,3 +108,49 @@ Mantener `lib/db.php` como un wrapper ligero sobre PDO para conexiones MySQL.
 
 - **Positivas:** Prepara el terreno para escalabilidad futura sin reescribir todo.
 - **Negativas:** Código muerto si no se activa.
+
+---
+
+## ADR-006: No abrir un cuarto subfrente durante el piloto web por clínica
+
+**Estado:** Aceptado
+
+**Fecha:** 2026-03-14
+
+**Contexto:**
+La estrategia activa `STRAT-2026-03-turnero-web-pilot` ya define el corte operativo mínimo para cerrar A2.0: un lane `frontend` para las superficies web visibles, un lane `backend_ops` para `clinic-profile`, `queue state`, readiness y gates, y un lane `transversal` reservado solo para desbloqueos puntuales de runtime. El objetivo vigente es demostrar una clínica de punta a punta en `admin basic`, `operator`, `kiosk` y `display`, sin depender de instaladores nativos ni distribución desktop.
+
+En el estado actual:
+
+- `SF-frontend-turnero-web-pilot` y `SF-backend-turnero-web-pilot` son los únicos subfrentes primarios activos.
+- `SF-transversal-turnero-web-pilot` existe como soporte excepcional, no como frente permanente de entrega.
+- La estrategia no tiene conflictos activos ni overflow de WIP, y el riesgo de dispersión operativo es bajo mientras se mantenga la partición actual.
+
+**Decisión:**
+No abrir un subfrente adicional mientras siga vigente A2.0 del piloto web por clínica.
+
+- Todo lo que mueva la demo visible permanece en `frontend`.
+- Todo lo que sostenga canon, readiness, smoke y gate permanece en `backend_ops`.
+- Cualquier bloqueo real de runtime/OpenClaw entra como excepción temporal en `transversal`, no como subfrente permanente.
+- Todo candidato a subfrente nuevo queda `parked` hasta que demuestre simultáneamente:
+    - backlog propio y acotado;
+    - ownership de archivos realmente distinto;
+    - capacidad de mover por sí solo un exit criterion de `strategy.active`.
+
+**Consecuencias:**
+
+- **Positivas:** Mantiene foco en el piloto web, evita handoffs innecesarios, conserva la partición mínima para un equipo pequeño y protege el `dispersion_score` operativo.
+- **Negativas:** Trabajo futuro de runtime permanente, instaladores nativos o distribución desktop se difiere hasta después de A2.0 o hasta que aparezca un bloqueo estructural recurrente.
+
+**Versión mínima viable:**
+La implementación mínima viable de esta decisión es no cambiar el board ni la estrategia activa: se preservan los subfrentes actuales y solo se permite soporte transversal por excepción temporal.
+
+**Kill condition:**
+Se descarta la idea de un subfrente nuevo si sigue siendo soporte, desbloqueo puntual o trabajo futuro sin backlog propio. Si no cumple las tres condiciones de apertura, no merece existir como subfrente.
+
+**Reevaluación:**
+La decisión se revisa únicamente si ocurre una de estas condiciones:
+
+- El runtime/OpenClaw deja de ser excepción y pasa a ser camino crítico permanente del piloto.
+- La salida del piloto empieza a depender de instaladores nativos o distribución desktop hoy fuera de alcance.
+- Aparece un backlog separado, con archivos y aceptación propios, que ya no cabe limpiamente en `frontend` o `backend_ops`.

@@ -81,6 +81,35 @@ If local credentials are unavailable, run the manual workflow and review the upl
 
 ---
 
+## Canonical Production Monitor
+
+Production monitor evidence now follows the same normalized pattern:
+
+- Local/runtime path: `verification/runtime/prod-monitor-last.json`
+- Producer command: `npm run monitor:prod`
+- Producer workflow: `.github/workflows/prod-monitor.yml`
+- Uploaded artifact name: `prod-monitor-report`
+- Canonical consumer: `node bin/prod-readiness-summary.js`
+
+Expected behavior:
+
+1. `scripts/ops/prod/MONITOR-PRODUCCION.ps1` always writes the base JSON report, even when the monitor exits with failures.
+2. The workflow enriches that base report with recovery/incidence state (`publicSync`, telemedicine, turnero pilot, cutover, rollout V4, stale deploy autoclose) and uploads the normalized artifact.
+3. `bin/prod-readiness-summary.js` reads the latest `prod-monitor-report` artifact first and falls back to the local runtime file if the remote artifact is unavailable.
+
+Recommended verification flow:
+
+```bash
+npm run monitor:prod
+node bin/prod-readiness-summary.js
+```
+
+Operational note:
+
+- `prod-readiness-summary` is now the official single-pane operational view for Sentry evidence, Weekly KPI evidence, and Production Monitor evidence.
+
+---
+
 ## Option 2: Self-Hosted Grafana + Prometheus (Advanced)
 
 This guide explains how to spin up a local or self-hosted Grafana + Prometheus stack to monitor the PielArmonia application.

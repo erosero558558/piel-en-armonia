@@ -17,103 +17,104 @@
         "srcset": "/images/optimized/v6-clinic-telemedicine-intake-400.webp 400w, /images/optimized/v6-clinic-telemedicine-intake-640.webp 640w, /images/optimized/v6-clinic-telemedicine-intake-800.webp 800w, /images/optimized/v6-clinic-telemedicine-intake-900.webp 900w, /images/optimized/v6-clinic-telemedicine-intake-1200.webp 1200w, /images/optimized/v6-clinic-telemedicine-intake.webp 1400w",
         "alt": "Telemedicine intake with clinical context and imaging"
     },
-    "lead": "Telemedicine works best when it helps you move sooner without losing medical oversight or clarity about what comes next.",
+    "lead": "Teledermatology works best when early remote guidance clarifies whether to keep moving online or switch into clinic.",
     "ui": {
         "menu": {
-            "initiatives": "Support",
-            "bookingStatus": "Online booking"
+            "glance": "What this clarifies first",
+            "initiatives": "Next action",
+            "bookingStatus": "Next step"
         },
         "thesis": {
             "eyebrow": "Remote clinical model",
-            "title": "Remote care when it truly helps",
-            "body": "We decide what can be handled remotely, what needs closer watch, and when it makes more sense to see you in clinic."
+            "title": "Teledermatology when it helps and when it should switch routes",
+            "body": "We define what can be clarified remotely, what should not stay online, and when the correct next step is already an in-clinic review."
         },
         "statement": {
             "eyebrow": "Remote review",
-            "title": "Useful telemedicine, with clear limits and medical oversight",
+            "title": "Teledermatology with clear limits and an in-clinic handoff when needed",
             "signature": "Hybrid model, Quito",
             "image": "/images/optimized/v6-clinic-consent-trust.webp",
             "alt": "Remote dermatology review with follow-up and adjustment"
         },
         "internalMessage": {
-            "description": "We review context, risk, and progression to decide whether remote follow-up is enough or whether an in-person exam is already the better move."
+            "description": "Remote guidance fits cases that can be read through good history and clear images; if risk signs appear, we move quickly into clinic."
         },
         "rail": {
             "title": "Sections",
             "aria": "Telemedicine sections"
         },
         "kpis": {
-            "blocks": "Key points",
-            "criteria": "When it helps",
-            "model": "Care model",
-            "modelValue": "Hybrid"
+            "blocks": "Key moments",
+            "criteria": "Triage criteria",
+            "model": "Clinic handoff",
+            "modelValue": "when needed"
         },
         "initiatives": {
             "aria": "Telemedicine support",
-            "ctaLabel": "See details"
+            "ctaLabel": "See step"
         },
-        "blockCtaLabel": "See options"
+        "blockCtaLabel": "See next step"
     },
     "blocks": [
         {
-            "title": "How it works",
+            "title": "When it does help",
             "items": [
-                "You share key history and photos with enough context to guide an initial review.",
-                "We prioritize risk to decide whether the case can be handled remotely.",
-                "We send an initial plan, clear care steps, and a follow-up window when needed.",
-                "If warning signs appear, we speed the move into clinic."
+                "Known flares that need adjustment without waiting for a full clinic visit.",
+                "Questions between reviews when progression can be compared through photos and history.",
+                "Follow-up after a recent treatment or routine change.",
+                "Early orientation when you need to know whether arranging clinic soon makes sense."
             ]
         },
         {
-            "title": "When it usually fits",
+            "title": "When it is not enough",
             "items": [
-                "Previously assessed inflammatory flares that need an adjustment",
-                "Follow-up on active treatment plans after a recent change",
-                "Questions about how things are evolving between reviews",
-                "Initial guidance before arranging a clinic visit"
+                "Blurred images or symptoms that still lack enough context.",
+                "New lesions with rapid change that have not been examined before.",
+                "Intense pain, bleeding, drainage, or functional impact.",
+                "Likely need for dermatoscopy, procedure, or direct physical examination."
             ]
         },
         {
-            "title": "When clinic review makes more sense",
+            "title": "Move into clinic",
             "items": [
-                "Rapidly changing, bleeding, or non-healing lesions",
-                "Intense pain, accelerated spread, or functional impact",
-                "Insufficient response to the first remote plan",
-                "Need for procedures or direct diagnostic examination"
+                "When the first remote read still leaves clinical doubt that should not be dragged out.",
+                "When the first plan does not respond as expected in the agreed review window.",
+                "When the case needs confirmation through direct examination or a procedure.",
+                "When the way the lesion behaves suggests the next step should not wait."
             ]
         }
     ],
     "initiatives": [
         {
-            "title": "Visual triage",
-            "copy": "A first read through clinical photos to prioritize risk and response timing.",
+            "title": "Prepare useful photos",
+            "copy": "Natural light, steady distance, and one context photo make the first read much clearer.",
             "image": "/images/optimized/v6-clinic-telemedicine-review.webp",
+            "href": "#v6-tele-glance"
+        },
+        {
+            "title": "Explain what changed first",
+            "copy": "Timing, symptoms, and previous treatment help decide whether this remote start is enough.",
+            "image": "/images/optimized/v6-clinic-home-followup.webp",
             "href": "#v6-tele-block-1"
         },
         {
-            "title": "Flare control",
-            "copy": "Remote adjustments that help contain flares between reviews and keep care moving.",
-            "image": "/images/optimized/v6-clinic-home-followup.webp",
-            "href": "#v6-tele-block-2"
-        },
-        {
-            "title": "Clinic handoff",
-            "copy": "A move into clinic when the way a lesion behaves calls for direct examination.",
+            "title": "Watch for switching signals",
+            "copy": "Pain, bleeding, fast spread, or poor response are signs to move from remote care into clinic.",
             "image": "/images/optimized/v6-clinic-clinic-environment.webp",
             "href": "#v6-tele-block-3"
         },
         {
-            "title": "Hybrid follow-up in Quito",
-            "copy": "A model built for Quito, combining remote follow-up with timely in-clinic review.",
-            "image": "/images/optimized/v6-clinic-legal-governance.webp",
+            "title": "Open first visit",
+            "copy": "When the decision already requires direct examination, the next step is not to wait but to open first visit.",
+            "image": "/images/optimized/v6-clinic-team-roundtable.webp",
             "href": "#v6-booking-status"
         }
     ],
     "bookingStatus": {
-        "eyebrow": "After this review",
+        "eyebrow": "Next step",
         "title": "Online booking under maintenance",
-        "description": "If you want to compare other care options afterwards, you can go back to services and choose the one that fits best.",
-        "ctaLabel": "View services",
-        "ctaHref": "/en/services/"
+        "description": "If this remote review shows that direct examination matters, the next step is to open first visit in Quito.",
+        "ctaLabel": "Open first visit",
+        "ctaHref": "/en/services/diagnostico-integral/"
     }
 }

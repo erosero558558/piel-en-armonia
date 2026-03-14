@@ -1,0 +1,280 @@
+{
+    "generatedAt": "2026-02-27T05:23:49Z",
+    "domain": "https://pielarmonia.com",
+    "summary": {
+        "viewBooking": 453,
+        "startCheckout": 1,
+        "bookingConfirmed": 1,
+        "checkoutAbandon": 11,
+        "bookingError": 0,
+        "checkoutError": 0,
+        "bookingErrorRatePct": 0.0
+    },
+    "conversion": {
+        "viewBooking": 453,
+        "startCheckout": 1,
+        "bookingConfirmed": 1,
+        "checkoutAbandon": 11,
+        "bookingError": 0,
+        "checkoutError": 0,
+        "startCheckoutRatePct": 0.22,
+        "bookingConfirmedRatePct": 100.0,
+        "checkoutAbandonRatePct": 1100.0,
+        "errorRatePct": 0.0,
+        "startCheckoutWarningSampleSufficient": true,
+        "startCheckoutWarnMinViewBooking": 100,
+        "startCheckoutMinWarnPct": 0.25,
+        "startCheckoutDropWarnPct": 0.2,
+        "conversionWarningSampleSufficient": false,
+        "conversionWarnMinStartCheckout": 10,
+        "conversionMinWarnPct": 25.0,
+        "conversionDropWarnPct": 15.0
+    },
+    "conversionTrend": {
+        "previousReportGeneratedAt": "02/25/2026 18:41:26",
+        "startCheckoutRateDeltaPct": -0.09,
+        "bookingConfirmedRateDeltaPct": 0.0
+    },
+    "serviceFunnel": {
+        "source": "missing",
+        "rows": 0,
+        "rowsDetailSample": 0,
+        "rowsCheckoutSample": 0,
+        "thresholds": {
+            "minDetailViews": 25,
+            "minCheckoutStarts": 5,
+            "checkoutToConfirmedMinWarnPct": 35.0,
+            "detailToConfirmedMinWarnPct": 8.0
+        },
+        "top": [],
+        "alertCount": 0,
+        "alertCodes": [],
+        "alerts": null
+    },
+    "calendar": {
+        "source": "google",
+        "mode": "live",
+        "reachable": true,
+        "tokenHealthy": true,
+        "lastSuccessAt": "02/27/2026 00:23:05"
+    },
+    "observability": {
+        "sentryBackendConfigured": true,
+        "sentryFrontendConfigured": true
+    },
+    "servicesCatalog": {
+        "source": "file",
+        "configured": true,
+        "version": "2026.1",
+        "servicesCount": 13
+    },
+    "servicePriorities": {
+        "source": "catalog_only",
+        "catalogSource": "file",
+        "catalogVersion": "2026.1",
+        "servicesCount": 13,
+        "categoriesCount": 3,
+        "featuredCount": 3,
+        "sort": "hybrid",
+        "audience": ""
+    },
+    "retention": {
+        "appointmentsTotal": 19,
+        "appointmentsNonCancelled": 3,
+        "statusCounts": {
+            "confirmed": 3,
+            "completed": 0,
+            "noShow": 0,
+            "cancelled": 16
+        },
+        "noShowRatePct": 0.0,
+        "completionRatePct": 0.0,
+        "uniquePatients": 2,
+        "recurrentPatients": 1,
+        "recurrenceRatePct": 50.0,
+        "recurrenceWarningSampleSufficient": false,
+        "recurrenceWarnMinUniquePatients": 5,
+        "recurrenceMinWarnPct": 30.0,
+        "recurrenceDropWarnPct": 15.0
+    },
+    "retentionReport": {
+        "source": "unreachable",
+        "days": 30,
+        "error": "Response status code does not indicate success: 401 (Unauthorized).",
+        "meta": {},
+        "summary": {},
+        "alertCounts": {
+            "total": 0,
+            "warn": 0,
+            "critical": 0
+        },
+        "alerts": null,
+        "alertCodes": []
+    },
+    "idempotency": {
+        "requestsWithKey": 0,
+        "new": 0,
+        "replay": 0,
+        "conflict": 0,
+        "unknown": 0,
+        "conflictRatePct": 0.0,
+        "replayRatePct": 0.0,
+        "conflictWarningSampleSufficient": false,
+        "conflictWarnPctThreshold": 5.0
+    },
+    "retentionTrend": {
+        "previousReportGeneratedAt": "02/25/2026 18:41:26",
+        "noShowRateDeltaPct": 0.0,
+        "recurrenceRateDeltaPct": 0.0,
+        "trendReady": true
+    },
+    "retentionBaseline": {
+        "generatedAt": "02/25/2026 18:41:26",
+        "noShowRatePct": 0.0,
+        "recurrenceRatePct": 50.0,
+        "source": "seeded_from_previous_report"
+    },
+    "latency": {
+        "coreP95MaxMs": 465.04,
+        "coreP95TargetMs": 800,
+        "figoPostP95Ms": 509.0,
+        "figoPostP95TargetMs": 2500,
+        "bench": [
+            {
+                "Name": "health",
+                "Samples": 5,
+                "AvgMs": 350.66,
+                "P95Ms": 373.4,
+                "MaxMs": 373.4,
+                "StatusFailures": 0,
+                "NetworkFailures": 0
+            },
+            {
+                "Name": "reviews",
+                "Samples": 5,
+                "AvgMs": 361.47,
+                "P95Ms": 376.4,
+                "MaxMs": 376.4,
+                "StatusFailures": 0,
+                "NetworkFailures": 0
+            },
+            {
+                "Name": "availability",
+                "Samples": 5,
+                "AvgMs": 417.01,
+                "P95Ms": 465.04,
+                "MaxMs": 465.04,
+                "StatusFailures": 0,
+                "NetworkFailures": 0
+            },
+            {
+                "Name": "figo-post",
+                "Samples": 5,
+                "AvgMs": 464.38,
+                "P95Ms": 509.0,
+                "MaxMs": 509.0,
+                "StatusFailures": 0,
+                "NetworkFailures": 0
+            }
+        ]
+    },
+    "warningCounts": {
+        "total": 3,
+        "critical": 0,
+        "nonCritical": 3
+    },
+    "releaseGuardrails": {
+        "decision": "warn",
+        "reason": "non_critical_warnings",
+        "action": "Allow release with monitoring and follow-up hardening task.",
+        "criticalWarnings": [],
+        "nonCriticalWarnings": [
+            "retention_report_unreachable",
+            "service_priorities_catalog_only",
+            "start_checkout_rate_baja_0.22pct"
+        ]
+    },
+    "weeklyCycle": {
+        "targetConsecutiveNoCritical": 2,
+        "consecutiveNoCritical": 2,
+        "ready": true,
+        "status": "ready",
+        "reason": "target_met",
+        "lastCriticalGeneratedAt": "none",
+        "historyCount": 2,
+        "history": [
+            {
+                "generatedAt": "2026-02-27T05:23:49Z",
+                "criticalWarnings": 0,
+                "totalWarnings": 3,
+                "source": "current_run"
+            },
+            {
+                "generatedAt": "02/25/2026 18:41:26",
+                "criticalWarnings": 0,
+                "totalWarnings": 0,
+                "source": "history_file"
+            }
+        ]
+    },
+    "warningsBySeverity": {
+        "critical": [],
+        "nonCritical": [
+            "retention_report_unreachable",
+            "service_priorities_catalog_only",
+            "start_checkout_rate_baja_0.22pct"
+        ]
+    },
+    "warningsByImpact": {
+        "agenda": [],
+        "chat": [],
+        "conversion": [
+            "service_priorities_catalog_only",
+            "start_checkout_rate_baja_0.22pct"
+        ],
+        "retention": ["retention_report_unreachable"],
+        "observability": [],
+        "platform": []
+    },
+    "warningDetails": [
+        {
+            "code": "retention_report_unreachable",
+            "severity": "non_critical",
+            "impact": "retention",
+            "runbookRef": "docs/RUNBOOKS.md#31-monitoreo-diario"
+        },
+        {
+            "code": "service_priorities_catalog_only",
+            "severity": "non_critical",
+            "impact": "conversion",
+            "runbookRef": "docs/RUNBOOKS.md#31-monitoreo-diario"
+        },
+        {
+            "code": "start_checkout_rate_baja_0.22pct",
+            "severity": "non_critical",
+            "impact": "conversion",
+            "runbookRef": "docs/RUNBOOKS.md#31-monitoreo-diario"
+        }
+    ],
+    "warningsCritical": [],
+    "warningsNonCritical": [
+        "retention_report_unreachable",
+        "service_priorities_catalog_only",
+        "start_checkout_rate_baja_0.22pct"
+    ],
+    "warnings": [
+        "retention_report_unreachable",
+        "service_priorities_catalog_only",
+        "start_checkout_rate_baja_0.22pct"
+    ],
+    "triagePlaybook": {
+        "targetMinutes": 15,
+        "quickChecks": [
+            "npm run gate:prod:fast",
+            "GET /api.php?resource=health",
+            "GET /api.php?resource=availability",
+            "POST /figo-chat.php"
+        ],
+        "defaultRunbook": "docs/RUNBOOKS.md#2-respuesta-a-incidentes-emergency-response"
+    }
+}

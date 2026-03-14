@@ -1,0 +1,129 @@
+{
+    "generatedAt": "2026-02-25T18:41:26Z",
+    "domain": "https://pielarmonia.com",
+    "summary": {
+        "viewBooking": 322,
+        "startCheckout": 1,
+        "bookingConfirmed": 1,
+        "checkoutAbandon": 9,
+        "bookingError": 0,
+        "checkoutError": 0,
+        "bookingErrorRatePct": 0.0
+    },
+    "conversion": {
+        "viewBooking": 322,
+        "startCheckout": 1,
+        "bookingConfirmed": 1,
+        "checkoutAbandon": 9,
+        "bookingError": 0,
+        "checkoutError": 0,
+        "startCheckoutRatePct": 0.31,
+        "bookingConfirmedRatePct": 100.0,
+        "checkoutAbandonRatePct": 900.0,
+        "errorRatePct": 0.0,
+        "startCheckoutWarningSampleSufficient": true,
+        "startCheckoutWarnMinViewBooking": 100,
+        "startCheckoutMinWarnPct": 0.25,
+        "startCheckoutDropWarnPct": 0.2,
+        "conversionWarningSampleSufficient": false,
+        "conversionWarnMinStartCheckout": 10,
+        "conversionMinWarnPct": 25.0,
+        "conversionDropWarnPct": 15.0
+    },
+    "conversionTrend": {
+        "previousReportGeneratedAt": "02/25/2026 18:20:32",
+        "startCheckoutRateDeltaPct": -0.01,
+        "bookingConfirmedRateDeltaPct": 0.0
+    },
+    "calendar": {
+        "source": "google",
+        "mode": "live",
+        "reachable": true,
+        "tokenHealthy": true,
+        "lastSuccessAt": "02/25/2026 13:30:16"
+    },
+    "observability": {
+        "sentryBackendConfigured": true,
+        "sentryFrontendConfigured": true
+    },
+    "retention": {
+        "appointmentsTotal": 17,
+        "appointmentsNonCancelled": 3,
+        "statusCounts": {
+            "confirmed": 3,
+            "completed": 0,
+            "noShow": 0,
+            "cancelled": 14
+        },
+        "noShowRatePct": 0.0,
+        "completionRatePct": 0.0,
+        "uniquePatients": 2,
+        "recurrentPatients": 1,
+        "recurrenceRatePct": 50.0,
+        "recurrenceWarningSampleSufficient": false,
+        "recurrenceWarnMinUniquePatients": 5,
+        "recurrenceMinWarnPct": 30.0,
+        "recurrenceDropWarnPct": 15.0
+    },
+    "retentionTrend": {
+        "previousReportGeneratedAt": "02/25/2026 18:20:32",
+        "noShowRateDeltaPct": 0.0,
+        "recurrenceRateDeltaPct": 0.0
+    },
+    "latency": {
+        "coreP95MaxMs": 679.11,
+        "coreP95TargetMs": 800,
+        "figoPostP95Ms": 399.8,
+        "figoPostP95TargetMs": 2500,
+        "bench": [
+            {
+                "Name": "health",
+                "Samples": 5,
+                "AvgMs": 350.01,
+                "P95Ms": 367.89,
+                "MaxMs": 367.89,
+                "StatusFailures": 0,
+                "NetworkFailures": 0
+            },
+            {
+                "Name": "reviews",
+                "Samples": 5,
+                "AvgMs": 343.41,
+                "P95Ms": 349.9,
+                "MaxMs": 349.9,
+                "StatusFailures": 0,
+                "NetworkFailures": 0
+            },
+            {
+                "Name": "availability",
+                "Samples": 5,
+                "AvgMs": 412.04,
+                "P95Ms": 679.11,
+                "MaxMs": 679.11,
+                "StatusFailures": 0,
+                "NetworkFailures": 0
+            },
+            {
+                "Name": "figo-post",
+                "Samples": 5,
+                "AvgMs": 382.37,
+                "P95Ms": 399.8,
+                "MaxMs": 399.8,
+                "StatusFailures": 0,
+                "NetworkFailures": 0
+            }
+        ]
+    },
+    "warningCounts": {
+        "total": 0,
+        "critical": 0,
+        "nonCritical": 0
+    },
+    "warningsBySeverity": {
+        "critical": [],
+        "nonCritical": []
+    },
+    "warningsCritical": [],
+    "warningsNonCritical": [],
+    "warnings": []
+}

@@ -29,6 +29,26 @@ test('deploy-frontend-selfhosted no depende de label kimi y mantiene runner wind
     assert.equal(raw.includes('runs-on: [self-hosted, Windows, kimi]'), false);
 });
 
+test('deploy-frontend-selfhosted exporta credenciales diagnostics al verify-remote', () => {
+    const { raw } = loadWorkflow();
+    for (const snippet of [
+        'PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN',
+        'PIELARMONIA_CRON_SECRET',
+        'PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER',
+        'PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX',
+        'secrets.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN',
+        'secrets.CRON_SECRET',
+        "vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER || 'Authorization'",
+        "vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX || 'Bearer'",
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring de diagnostics en deploy-frontend-selfhosted: ${snippet}`
+        );
+    }
+});
+
 test('deploy-frontend-selfhosted evalua y gestiona incidente dedicado de telemedicina', () => {
     const { raw, parsed } = loadWorkflow();
     const steps = parsed?.jobs?.deploy?.steps || [];

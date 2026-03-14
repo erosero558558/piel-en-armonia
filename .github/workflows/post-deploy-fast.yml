@@ -108,6 +108,10 @@ jobs:
         env:
             ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME || 'PROD' }}
             TARGET_DOMAIN: ${{ github.event.inputs.domain || vars.TARGET_DOMAIN || 'https://pielarmonia.com' }}
+            PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN: ${{ secrets.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN || vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN || secrets.CRON_SECRET || vars.CRON_SECRET || '' }}
+            PIELARMONIA_CRON_SECRET: ${{ secrets.CRON_SECRET || vars.CRON_SECRET || secrets.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN || vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN || '' }}
+            PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER: ${{ vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER || 'Authorization' }}
+            PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX: ${{ vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX || 'Bearer' }}
             WAIT_SECONDS_FAST: ${{ github.event.inputs.wait_seconds || vars.WAIT_SECONDS_FAST || '45' }}
             ADMIN_ROLLOUT_STAGE_FAST: ${{ github.event.inputs.admin_rollout_stage || vars.ADMIN_ROLLOUT_STAGE_FAST || 'canary' }}
             ADMIN_ROLLOUT_SKIP_RUNTIME_SMOKE_FAST: ${{ github.event.inputs.admin_rollout_skip_runtime_smoke || vars.ADMIN_ROLLOUT_SKIP_RUNTIME_SMOKE_FAST || 'true' }}

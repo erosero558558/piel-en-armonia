@@ -23,6 +23,13 @@ verification/agent-runs/*
 !verification/agent-runs/.gitkeep
 !verification/agent-runs/AG-*.md
 !verification/agent-runs/CDX-*.md
+!verification/weekly/
+verification/weekly/*
+!verification/weekly/retention-baseline.json
+!verification/weekly/weekly-report-*.md
+!verification/weekly/weekly-report-*.json
+!verification/weekly/release-close-*.md
+!verification/weekly/release-close-*.json
 
 # PHP Composer
 vendor/

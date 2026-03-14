@@ -1142,8 +1142,8 @@ async function run() {
         addCheck(
             checks,
             'VC-05',
-            'desktop nav items >= 6',
-            desktopHome.navCount >= 6,
+            'desktop nav keeps 5 focused items',
+            desktopHome.navCount === 5,
             { navItems: desktopHome.navCount }
         );
         addCheck(
@@ -1428,8 +1428,8 @@ async function run() {
         addCheck(
             checks,
             'VC-42',
-            'editorial cards >= 6',
-            desktopHome.editorialCount >= 6,
+            'editorial cards = 3 master routes',
+            desktopHome.editorialCount === 3,
             { editorialCount: desktopHome.editorialCount }
         );
         addCheck(
@@ -1760,7 +1760,7 @@ async function run() {
             desktopTele.railPosition === 'sticky' &&
                 desktopTele.railTop >= 140 &&
                 desktopTele.railTop <= 180 &&
-                desktopTele.railLinks >= 4,
+                desktopTele.railLinks >= 6,
             {
                 railPosition: desktopTele.railPosition,
                 railTop: desktopTele.railTop,

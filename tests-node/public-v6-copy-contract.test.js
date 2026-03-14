@@ -101,6 +101,7 @@ test('public-v6 copy contract: required ui labels exist in ES and EN', () => {
             'ui.bookingStatus.ctaHref',
         ],
         'telemedicine.json': [
+            'ui.menu.glance',
             'ui.menu.initiatives',
             'ui.kpis.blocks',
             'ui.initiatives.ctaLabel',
@@ -154,6 +155,165 @@ test('public-v6 brand contract: Aurora Derm is canonical in navigation ES and EN
             raw.includes('piel en armonia'),
             false,
             `${file}: legacy brand must not appear`
+        );
+    }
+});
+
+test('public-v6 structure contract: primary navigation stays patient-first in ES and EN', () => {
+    const checks = [
+        {
+            file: 'content/public-v6/es/navigation.json',
+            firstVisitHref: '/es/servicios/diagnostico-integral/',
+        },
+        {
+            file: 'content/public-v6/en/navigation.json',
+            firstVisitHref: '/en/services/diagnostico-integral/',
+        },
+    ];
+
+    for (const check of checks) {
+        const json = readJson(check.file);
+        const links = Array.isArray(json?.header?.links)
+            ? json.header.links
+            : [];
+        const searchEntries = Array.isArray(json?.header?.searchEntries)
+            ? json.header.searchEntries
+            : [];
+
+        assert.equal(
+            links.length,
+            5,
+            `${check.file}: header.links must keep exactly five focused items`
+        );
+        assert.equal(
+            links.some((item) => String(item?.href || '').includes('/legal/')),
+            false,
+            `${check.file}: primary navigation must not include legal routes`
+        );
+        assert.equal(
+            searchEntries.some((item) =>
+                String(item?.href || '').includes('/legal/')
+            ),
+            false,
+            `${check.file}: search entries must stay focused on care routes`
+        );
+        assert.equal(
+            links.some(
+                (item) => String(item?.href || '') === check.firstVisitHref
+            ),
+            true,
+            `${check.file}: primary navigation must include first visit`
+        );
+    }
+});
+
+test('public-v6 home contract: editorial exposes 3 master routes and booking points to first visit', () => {
+    const checks = [
+        {
+            file: 'content/public-v6/es/home.json',
+            expectedRoutes: [
+                '/es/servicios/diagnostico-integral/',
+                '/es/servicios/laser-dermatologico/',
+                '/es/telemedicina/',
+            ],
+            bookingHref: '/es/servicios/diagnostico-integral/',
+        },
+        {
+            file: 'content/public-v6/en/home.json',
+            expectedRoutes: [
+                '/en/services/diagnostico-integral/',
+                '/en/services/laser-dermatologico/',
+                '/en/telemedicine/',
+            ],
+            bookingHref: '/en/services/diagnostico-integral/',
+        },
+    ];
+
+    for (const check of checks) {
+        const json = readJson(check.file);
+        const cards = Array.isArray(json?.editorial?.cards)
+            ? json.editorial.cards
+            : [];
+        const routes = cards.map((card) => String(card?.href || ''));
+
+        assert.deepEqual(
+            routes,
+            check.expectedRoutes,
+            `${check.file}: editorial must mirror the 3 master routes`
+        );
+        assert.equal(
+            cards.length,
+            3,
+            `${check.file}: editorial must keep exactly three cards`
+        );
+        assert.equal(
+            String(json?.bookingStatus?.ctaHref || ''),
+            check.bookingHref,
+            `${check.file}: booking status must point to first visit`
+        );
+    }
+});
+
+test('public-v6 telemedicine and hub contracts keep aligned route anatomy in ES and EN', () => {
+    const checks = [
+        {
+            hubFile: 'content/public-v6/es/hub.json',
+            teleFile: 'content/public-v6/es/telemedicine.json',
+            bookingHref: '/es/servicios/diagnostico-integral/',
+        },
+        {
+            hubFile: 'content/public-v6/en/hub.json',
+            teleFile: 'content/public-v6/en/telemedicine.json',
+            bookingHref: '/en/services/diagnostico-integral/',
+        },
+    ];
+
+    for (const check of checks) {
+        const hub = readJson(check.hubFile);
+        const tele = readJson(check.teleFile);
+        const hubInitiatives = Array.isArray(hub?.initiatives)
+            ? hub.initiatives
+            : [];
+        const blocks = Array.isArray(tele?.blocks) ? tele.blocks : [];
+        const initiatives = Array.isArray(tele?.initiatives)
+            ? tele.initiatives
+            : [];
+
+        assert.equal(
+            hubInitiatives.length,
+            8,
+            `${check.hubFile}: hub initiatives must keep eight support cards`
+        );
+        assert.equal(
+            hubInitiatives.some((item) =>
+                String(item?.href || '').includes('/legal/')
+            ),
+            false,
+            `${check.hubFile}: hub initiatives must stay clinical and utility-focused`
+        );
+        assert.equal(
+            typeof tele?.ui?.menu?.glance,
+            'string',
+            `${check.teleFile}: telemedicine menu must expose glance`
+        );
+        assert.ok(
+            String(tele?.ui?.menu?.glance || '').trim(),
+            `${check.teleFile}: telemedicine glance label must not be empty`
+        );
+        assert.equal(
+            blocks.length,
+            3,
+            `${check.teleFile}: telemedicine must keep three decision blocks`
+        );
+        assert.equal(
+            initiatives.length,
+            4,
+            `${check.teleFile}: telemedicine must keep four next-action cards`
+        );
+        assert.equal(
+            String(tele?.bookingStatus?.ctaHref || ''),
+            check.bookingHref,
+            `${check.teleFile}: telemedicine booking must point to first visit`
         );
     }
 });

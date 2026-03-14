@@ -86,12 +86,31 @@
     gap: 14px;
 }
 
+.v6-header__utility,
 .v6-header__contact,
 .v6-header__search,
 .v6-header__menu {
     color: var(--v6-color-ink);
     font-size: 13px;
     line-height: 1;
+}
+
+.v6-header__utility {
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(78, 102, 92, 0.14);
+    background: rgba(246, 242, 235, 0.88);
+    color: var(--v6-color-moss);
+    letter-spacing: 0.04em;
+}
+
+.v6-header__utility:hover,
+.v6-header__utility:focus-visible {
+    border-color: rgba(214, 176, 140, 0.68);
+    background: rgba(255, 252, 247, 0.94);
 }
 
 .v6-header__contact {
@@ -1355,6 +1374,7 @@
     }
 
     .v6-header__nav,
+    .v6-header__utility,
     .v6-header__contact,
     .v6-header__search,
     .v6-mega {

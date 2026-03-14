@@ -16,9 +16,12 @@ test.describe('Public V6 header and mega menu', () => {
         await expect(header).toBeVisible();
         await expect(
             header.locator('.v6-header__nav .v6-header__link')
-        ).toHaveCount(6);
+        ).toHaveCount(5);
         await expect(header.locator('.v6-header__nav')).not.toContainText(
             'Software'
+        );
+        await expect(header.locator('.v6-header__utility')).toHaveText(
+            'Para clinicas'
         );
 
         const trigger = header.locator('[data-v6-mega-trigger]').first();
@@ -139,9 +142,9 @@ test.describe('Public V6 header and mega menu', () => {
             drawer.locator('[data-v6-drawer-group-toggle]')
         ).toHaveCount(3);
         await expect(drawer.locator('.v6-drawer__intro')).toBeVisible();
-        await expect(drawer.locator('footer a[href="/es/software/turnero-clinicas/"]')).toHaveText(
-            'Para clinicas'
-        );
+        await expect(
+            drawer.locator('footer a[href="/es/software/turnero-clinicas/"]')
+        ).toHaveText('Para clinicas');
 
         const toggles = drawer.locator('[data-v6-drawer-group-toggle]');
         await toggles.nth(1).click();

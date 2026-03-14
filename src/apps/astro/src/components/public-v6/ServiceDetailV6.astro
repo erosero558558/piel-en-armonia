@@ -139,8 +139,27 @@ const railTitle = normalizeText(railUi.title);
 const railAria = normalizeText(railUi.aria);
 const heroSummaryLabel = locale === 'en' ? 'Clinical route' : 'Ruta clinica';
 const heroPanelTitle =
-    locale === 'en' ? 'What this route organizes first' : 'Lo que esta ruta ordena primero';
+    locale === 'en' ? 'Clear route for this service' : 'Ruta clara para este servicio';
 const heroJumpLabel = locale === 'en' ? 'Jump to' : 'Ir a';
+const serviceInternalTitle =
+    locale === 'en' ? 'What this route clarifies first' : 'Esto ordena primero';
+const serviceInternalBody = [
+    checkpoints[0]
+        ? locale === 'en'
+            ? `We usually start by clarifying ${checkpoints[0].toLowerCase()}.`
+            : `Solemos empezar por aclarar ${checkpoints[0].toLowerCase()}.`
+        : '',
+    processSteps[0]
+        ? locale === 'en'
+            ? `The first move is ${processSteps[0].toLowerCase()}.`
+            : `El primer movimiento suele ser ${processSteps[0].toLowerCase()}.`
+        : '',
+    locale === 'en'
+        ? 'From there we adjust expectations, follow-up timing, and whether staying on this route still makes the best clinical sense.'
+        : 'Desde ahi ajustamos expectativas, tiempos de control y si seguir en esta ruta sigue siendo la decision clinica mas clara.',
+]
+    .filter(Boolean)
+    .join(' ');
 const glanceCards = [
     normalizeText(glanceUi.routeType) && serviceCategory ? { label: normalizeText(glanceUi.routeType), value: serviceCategory } : null,
     normalizeText(glanceUi.checkpoints) ? { label: normalizeText(glanceUi.checkpoints), value: String(checkpoints.length) } : null,
@@ -214,10 +233,10 @@ const heroMenuItems = sectionMenuItems.slice(0, 3);
 }
 
 {
-    serviceSummary || serviceLead ? (
+    serviceInternalTitle || serviceInternalBody ? (
         <section class="v6-internal-message" data-v6-internal-message>
-            {serviceSummary ? <h2>{serviceSummary}</h2> : null}
-            {serviceLead ? <p>{serviceLead}</p> : null}
+            {serviceInternalTitle ? <h2>{serviceInternalTitle}</h2> : null}
+            {serviceInternalBody ? <p>{serviceInternalBody}</p> : null}
         </section>
     ) : null
 }

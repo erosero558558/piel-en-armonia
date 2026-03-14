@@ -26,7 +26,7 @@ test.describe('Public V6 internal thesis and rail', () => {
         await gotoPublicRoute(page, '/es/telemedicina/');
         const teleRail = page.locator('[data-v6-internal-rail]').first();
         await expect(teleRail).toBeVisible();
-        await expect(teleRail.locator('a')).toHaveCount(5);
+        await expect(teleRail.locator('a')).toHaveCount(6);
     });
 
     test('service, tele, and legal pages expose thesis block', async ({
@@ -54,7 +54,7 @@ test.describe('Public V6 internal thesis and rail', () => {
             .first()
             .evaluate((node) => {
                 return window.getComputedStyle(node).position;
-        });
+            });
         expect(position).toBe('static');
     });
 
@@ -65,7 +65,9 @@ test.describe('Public V6 internal thesis and rail', () => {
 
         const rail = page.locator('[data-v6-internal-rail]').first();
         const firstLink = rail.locator('a').first();
-        const bookingLink = rail.locator('a[href="#v6-booking-status"]').first();
+        const bookingLink = rail
+            .locator('a[href="#v6-booking-status"]')
+            .first();
 
         await expect(firstLink).toHaveAttribute('aria-current', 'location');
         await bookingLink.click();

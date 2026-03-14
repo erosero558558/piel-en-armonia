@@ -169,6 +169,10 @@ jobs:
             ADMIN_ROLLOUT_STAGE: ${{ vars.ADMIN_ROLLOUT_STAGE || 'general' }}
             ADMIN_ROLLOUT_REQUIRE_OPENCLAW_AUTH: ${{ vars.ADMIN_ROLLOUT_REQUIRE_OPENCLAW_AUTH || '' }}
             PROD_MONITOR_REPORT_PATH: verification/runtime/prod-monitor-last.json
+            PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN: ${{ secrets.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN || vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN || secrets.CRON_SECRET || vars.CRON_SECRET || '' }}
+            PIELARMONIA_CRON_SECRET: ${{ secrets.CRON_SECRET || vars.CRON_SECRET || secrets.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN || vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN || '' }}
+            PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER: ${{ vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER || 'Authorization' }}
+            PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX: ${{ vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX || 'Bearer' }}
             MAX_LATENCY_MS: ${{ github.event.inputs.max_latency_ms || '3500' }}
             ALLOW_DEGRADED_FIGO: ${{ github.event.inputs.allow_degraded_figo || 'false' }}
             ALLOW_STORE_CALENDAR: ${{ github.event.inputs.allow_store_calendar || vars.PROD_MONITOR_ALLOW_STORE_CALENDAR || 'true' }}
