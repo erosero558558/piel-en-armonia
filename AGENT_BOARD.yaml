@@ -10191,7 +10191,7 @@ tasks:
     runtime_surface: ""
     runtime_transport: ""
     runtime_last_transport: ""
-    files: ["src/apps/admin-v3/ui/frame/templates/sections/dashboard/overview.js", "src/apps/admin-v3/sections/dashboard/markup/actions.js", "src/apps/admin-v3/sections/dashboard/render/index.js", "tests/admin.spec.js", "verification/agent-runs/AG-238.md"]
+    files: ["src/apps/admin-v3/ui/frame/templates/sections/dashboard/overview.js", "src/apps/admin-v3/sections/dashboard/markup/actions.js", "src/apps/admin-v3/sections/dashboard/render/index.js"]
     source_signal: manual
     source_ref: ""
     priority_score: 0
