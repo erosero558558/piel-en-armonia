@@ -66,6 +66,11 @@ $turneroDisplaySurfaceUrl = "$base/sala-turnos.html"
 $turneroOperatorPilotCenterUrl = "$base/app-downloads/?surface=operator&platform=win"
 $turneroOperatorPilotFeedUrl = "$base/desktop-updates/pilot/operator/win/latest.yml"
 $turneroOperatorPilotInstallerUrl = "$base/app-downloads/pilot/operator/win/TurneroOperadorSetup.exe"
+$diagnosticsAccessToken = [string]$env:PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN
+if ([string]::IsNullOrWhiteSpace($diagnosticsAccessToken)) {
+    $diagnosticsAccessToken = [string]$env:PIELARMONIA_CRON_SECRET
+}
+$diagnosticsAuthConfigured = -not [string]::IsNullOrWhiteSpace($diagnosticsAccessToken)
 
 function Invoke-HeadCheck {
     param(
@@ -1748,13 +1753,25 @@ try {
         }
     }
 } catch {
-    Write-Host "[FAIL] No se pudo validar health: $($_.Exception.Message)"
-    $results += [PSCustomObject]@{
-        Asset = "health-endpoint"
-        Match = $false
-        LocalHash = ''
-        RemoteHash = ''
-        RemoteUrl = $healthUrl
+    $healthErrorMessage = [string]$_.Exception.Message
+    $healthDiagnosticsDenied = (
+        -not $diagnosticsAuthConfigured -and (
+            $healthErrorMessage -match '\(403\)' -or
+            $healthErrorMessage -match 'HTTP 403'
+        )
+    )
+
+    if ($healthDiagnosticsDenied) {
+        Write-Host '[WARN] health-diagnostics protegido y sin token local; se omite validacion profunda.'
+    } else {
+        Write-Host "[FAIL] No se pudo validar health: $healthErrorMessage"
+        $results += [PSCustomObject]@{
+            Asset = "health-endpoint"
+            Match = $false
+            LocalHash = ''
+            RemoteHash = ''
+            RemoteUrl = $healthUrl
+        }
     }
 }
 

@@ -65,6 +65,55 @@ function Get-DiagnosticsAuthHeaders {
     return $headers
 }
 
+function Get-ResponseContentString {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Response
+    )
+
+    $content = $Response.Content
+    if ($content -is [string]) {
+        return $content
+    }
+
+    $bytes = $null
+    if ($content -is [byte[]]) {
+        $bytes = $content
+    } elseif ($content -is [System.Array]) {
+        try {
+            $bytes = [byte[]]$content
+        } catch {
+            $bytes = $null
+        }
+    }
+
+    if ($null -ne $bytes) {
+        $encoding = $null
+        $contentType = ''
+        try {
+            $contentType = [string]$Response.Headers['Content-Type']
+        } catch {
+            $contentType = ''
+        }
+
+        if ($contentType -match 'charset\s*=\s*("?)([^;"]+)\1') {
+            try {
+                $encoding = [System.Text.Encoding]::GetEncoding($matches[2].Trim())
+            } catch {
+                $encoding = $null
+            }
+        }
+
+        if ($null -eq $encoding) {
+            $encoding = [System.Text.Encoding]::UTF8
+        }
+
+        return $encoding.GetString($bytes)
+    }
+
+    return [string]$content
+}
+
 function Invoke-JsonGet {
     param(
         [string]$Name,
@@ -77,7 +126,7 @@ function Invoke-JsonGet {
     try {
         $resp = Invoke-WebRequest -Uri $Url -Method GET -TimeoutSec $TimeoutSec -UseBasicParsing -Headers (Get-DiagnosticsAuthHeaders -UserAgent $UserAgent)
         $status = [int]$resp.StatusCode
-        $body = [string]$resp.Content
+        $body = Get-ResponseContentString -Response $resp
         if ($status -lt 200 -or $status -ge 300) {
             return [pscustomobject]@{
                 Name = $Name
@@ -132,7 +181,7 @@ function Invoke-JsonGetStrict {
     $resp = Invoke-WebRequest -Uri $Url -Method GET -TimeoutSec $TimeoutSec -UseBasicParsing -Headers (Get-DiagnosticsAuthHeaders -UserAgent $UserAgent)
 
     $status = [int]$resp.StatusCode
-    $body = [string]$resp.Content
+    $body = Get-ResponseContentString -Response $resp
     if ($status -lt 200 -or $status -ge 300) {
         throw "HTTP $status en $Url"
     }
@@ -165,7 +214,7 @@ function Invoke-TextGet {
             Ok = ($status -ge 200 -and $status -lt 300)
             StatusCode = $status
             Error = if ($status -ge 200 -and $status -lt 300) { '' } else { "HTTP $status" }
-            Body = [string]$resp.Content
+            Body = Get-ResponseContentString -Response $resp
         }
     } catch {
         $statusCode = 0

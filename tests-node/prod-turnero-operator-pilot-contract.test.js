@@ -100,6 +100,7 @@ test('prod verify propaga fallas de superficies turnero y piloto Windows', () =>
         '[FAIL] turnero operador pilot center incompleto',
         '[FAIL] turnero operador pilot feed incompleto',
         '[FAIL] turnero operador pilot installer ausente',
+        'health-diagnostics protegido y sin token local; se omite validacion profunda.',
         '-RequireTurneroWebSurfaces:$RequireTurneroWebSurfaces',
         '-RequireTurneroOperatorPilot:$RequireTurneroOperatorPilot',
     ];
@@ -132,6 +133,13 @@ test('gate y scripts npm exponen un carril dedicado para operador Windows pilot'
     const scripts = pkg.scripts || {};
     assert.equal(
         String(scripts['verify:prod:turnero:operator:pilot'] || '').includes(
+            '-AllowDegradedFigo -RequireTurneroWebSurfaces -RequireTurneroOperatorPilot'
+        ),
+        true,
+        'package.json debe permitir figo degradado en verify:prod:turnero:operator:pilot'
+    );
+    assert.equal(
+        String(scripts['verify:prod:turnero:operator:pilot'] || '').includes(
             '-RequireTurneroWebSurfaces -RequireTurneroOperatorPilot'
         ),
         true,
@@ -139,10 +147,24 @@ test('gate y scripts npm exponen un carril dedicado para operador Windows pilot'
     );
     assert.equal(
         String(scripts['smoke:prod:turnero:operator:pilot'] || '').includes(
+            '-TestFigoPost -AllowDegradedFigo -RequireTurneroWebSurfaces -RequireTurneroOperatorPilot'
+        ),
+        true,
+        'package.json debe permitir figo degradado en smoke:prod:turnero:operator:pilot'
+    );
+    assert.equal(
+        String(scripts['smoke:prod:turnero:operator:pilot'] || '').includes(
             '-RequireTurneroWebSurfaces -RequireTurneroOperatorPilot'
         ),
         true,
         'package.json debe exponer smoke:prod:turnero:operator:pilot'
+    );
+    assert.equal(
+        String(scripts['gate:prod:turnero:operator:pilot'] || '').includes(
+            '-AllowDegradedFigo -RequireTurneroWebSurfaces -RequireTurneroOperatorPilot'
+        ),
+        true,
+        'package.json debe permitir figo degradado en gate:prod:turnero:operator:pilot'
     );
     assert.equal(
         String(scripts['gate:prod:turnero:operator:pilot'] || '').includes(
