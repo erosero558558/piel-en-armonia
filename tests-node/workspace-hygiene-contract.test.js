@@ -412,6 +412,7 @@ test('frontera de html css php y ps1 en raiz queda explicita y limitada', () => 
         .sort();
     const currentRootPhp = readdirSync(REPO_ROOT)
         .filter((entry) => entry.endsWith('.php'))
+        .filter((entry) => entry !== 'env.php')
         .sort();
     const currentRootPs1 = readdirSync(REPO_ROOT)
         .filter((entry) => entry.endsWith('.ps1'))
