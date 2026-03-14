@@ -85,7 +85,15 @@ final class HealthVisibilityTest extends TestCase
         $this->assertArrayHasKey('version', $response['payload']);
         $this->assertArrayNotHasKey('storageBackend', $response['payload']);
         $this->assertArrayNotHasKey('dataDirSource', $response['payload']);
-        $this->assertArrayNotHasKey('checks', $response['payload']);
+        $this->assertArrayHasKey('calendarConfigured', $response['payload']);
+        $this->assertArrayHasKey('calendarReachable', $response['payload']);
+        $this->assertArrayHasKey('calendarMode', $response['payload']);
+        $this->assertArrayHasKey('calendarSource', $response['payload']);
+        $this->assertArrayHasKey('checks', $response['payload']);
+        $this->assertArrayHasKey('publicSync', $response['payload']['checks']);
+        $this->assertArrayNotHasKey('storage', $response['payload']['checks']);
+        $this->assertArrayNotHasKey('auth', $response['payload']['checks']);
+        $this->assertArrayNotHasKey('internalConsole', $response['payload']['checks']);
     }
 
     public function testAuthorizedHealthStillExposesDetailedDiagnostics(): void

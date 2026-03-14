@@ -500,6 +500,9 @@ class HealthController
             'version' => (string) ($detailedPayload['version'] ?? app_runtime_version()),
             'timestamp' => (string) ($detailedPayload['timestamp'] ?? local_date('c')),
         ];
+        foreach (self::publicCalendarSummaryFields($detailedPayload) as $key => $value) {
+            $payload[$key] = $value;
+        }
 
         $publicSync = self::publicSyncSummaryPayload(
             $detailedPayload['checks']['publicSync'] ?? null
@@ -508,6 +511,29 @@ class HealthController
             $payload['checks'] = [
                 'publicSync' => $publicSync,
             ];
+        }
+
+        return $payload;
+    }
+
+    private static function publicCalendarSummaryFields(array $detailedPayload): array
+    {
+        $fields = [
+            'calendarConfigured',
+            'calendarReachable',
+            'calendarMode',
+            'calendarSource',
+            'calendarAuth',
+            'calendarTokenHealthy',
+            'calendarLastSuccessAt',
+            'calendarLastErrorAt',
+            'calendarLastErrorReason',
+        ];
+        $payload = [];
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $detailedPayload)) {
+                $payload[$field] = $detailedPayload[$field];
+            }
         }
 
         return $payload;
