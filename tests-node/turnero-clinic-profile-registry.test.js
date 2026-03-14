@@ -22,7 +22,10 @@ test('lista perfiles turnero catalogados para despliegues separados', () => {
     assert.ok(items.length >= 2);
     assert.ok(items.some((entry) => entry.id === 'piel-armonia-quito'));
     assert.ok(items.some((entry) => entry.id === 'clinica-norte-demo'));
-    assert.equal(items.every((entry) => entry.ok), true);
+    assert.equal(
+        items.every((entry) => entry.ok),
+        true
+    );
 });
 
 test('valida perfil turnero y exige separate_deploy para el piloto', () => {
@@ -40,10 +43,26 @@ test('valida perfil turnero y exige separate_deploy para el piloto', () => {
             c2: { label: 'Dos', short_label: 'D2' },
         },
         surfaces: {
-            admin: { enabled: true, label: 'Admin', route: '/admin.html#queue' },
-            operator: { enabled: true, label: 'Operador', route: '/operador-turnos.html' },
-            kiosk: { enabled: true, label: 'Kiosco', route: '/kiosco-turnos.html' },
-            display: { enabled: true, label: 'Sala', route: '/sala-turnos.html' },
+            admin: {
+                enabled: true,
+                label: 'Admin',
+                route: '/admin.html#queue',
+            },
+            operator: {
+                enabled: true,
+                label: 'Operador',
+                route: '/operador-turnos.html',
+            },
+            kiosk: {
+                enabled: true,
+                label: 'Kiosco',
+                route: '/kiosco-turnos.html',
+            },
+            display: {
+                enabled: true,
+                label: 'Sala',
+                route: '/sala-turnos.html',
+            },
         },
         release: {
             mode: 'web_pilot',
@@ -90,8 +109,18 @@ test('status detecta cuando el clinic-profile activo coincide con un catalogo', 
     const tempRoot = fs.mkdtempSync(
         path.join(os.tmpdir(), 'turnero-clinic-profile-status-')
     );
-    const profilesDir = path.join(tempRoot, 'content', 'turnero', 'clinic-profiles');
-    const outputPath = path.join(tempRoot, 'content', 'turnero', 'clinic-profile.json');
+    const profilesDir = path.join(
+        tempRoot,
+        'content',
+        'turnero',
+        'clinic-profiles'
+    );
+    const outputPath = path.join(
+        tempRoot,
+        'content',
+        'turnero',
+        'clinic-profile.json'
+    );
 
     fs.mkdirSync(profilesDir, { recursive: true });
     const profile = {
@@ -108,10 +137,26 @@ test('status detecta cuando el clinic-profile activo coincide con un catalogo', 
             c2: { label: 'Dos', short_label: 'D2' },
         },
         surfaces: {
-            admin: { enabled: true, label: 'Admin', route: '/admin.html#queue' },
-            operator: { enabled: true, label: 'Operador', route: '/operador-turnos.html' },
-            kiosk: { enabled: true, label: 'Kiosco', route: '/kiosco-turnos.html' },
-            display: { enabled: true, label: 'Sala', route: '/sala-turnos.html' },
+            admin: {
+                enabled: true,
+                label: 'Admin',
+                route: '/admin.html#queue',
+            },
+            operator: {
+                enabled: true,
+                label: 'Operador',
+                route: '/operador-turnos.html',
+            },
+            kiosk: {
+                enabled: true,
+                label: 'Kiosco',
+                route: '/kiosco-turnos.html',
+            },
+            display: {
+                enabled: true,
+                label: 'Sala',
+                route: '/sala-turnos.html',
+            },
         },
         release: {
             mode: 'web_pilot',
@@ -137,4 +182,6 @@ test('status detecta cuando el clinic-profile activo coincide con un catalogo', 
     assert.equal(status.ok, true);
     assert.equal(status.matchingProfileId, 'clinica-demo');
     assert.equal(status.matchesCatalog, true);
+    assert.equal(status.catalogReady, true);
+    assert.match(String(status.profileFingerprint || ''), /^[a-f0-9]{8}$/);
 });

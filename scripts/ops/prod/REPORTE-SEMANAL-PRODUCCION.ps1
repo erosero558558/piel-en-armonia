@@ -32,7 +32,7 @@ param(
     [double]$LeadOpsCloseRateMinWarnPct = 15,
     [int]$LeadOpsAiAcceptanceWarnMinSamples = 3,
     [double]$LeadOpsAiAcceptanceMinWarnPct = 25,
-    [string]$GitHubRepo = 'erosero558558/piel-en-armonia',
+    [string]$GitHubRepo = 'erosero558558/Aurora-Derm',
     [string]$GitHubApiBase = 'https://api.github.com',
     [int]$GitHubAlertsTimeoutSec = 15,
     [int]$GitHubAlertsIssueLimit = 30,
@@ -50,6 +50,7 @@ $commonMetricsPath = Join-Path $repoRoot 'bin/powershell/Common.Metrics.ps1'
 $commonWarningsPath = Join-Path $repoRoot 'bin/powershell/Common.Warnings.ps1'
 $openClawAuthDiagnosticScriptPath = Join-Path $repoRoot 'scripts/ops/admin/DIAGNOSTICAR-OPENCLAW-AUTH-ROLLOUT.ps1'
 $hostChecklistCommand = 'npm run checklist:prod:public-sync:host'
+$turneroClinicProfileScriptPath = Join-Path $repoRoot 'bin/turnero-clinic-profile.js'
 . $commonHttpPath
 . $commonMetricsPath
 . $commonWarningsPath
@@ -562,6 +563,74 @@ if (
     $publicSyncOperationallyHealthy = $true
     $publicSyncHealthy = $true
 }
+$turneroPilotProfileStatusResolved = $false
+$turneroPilotVerifyRequired = $false
+$turneroPilotClinicId = ''
+$turneroPilotCatalogMatch = $false
+$turneroPilotRemoteOk = $false
+$turneroPilotRemoteClinicId = ''
+$turneroPilotRemoteFingerprint = ''
+$turneroPilotRemoteCatalogReady = $false
+$turneroPilotRemoteProfileSource = ''
+$turneroPilotRemoteReleaseMode = ''
+$turneroPilotRemoteAdminModeDefault = ''
+$turneroPilotErrors = New-Object System.Collections.Generic.List[string]
+if (Test-Path $turneroClinicProfileScriptPath) {
+    $turneroPilotStatusRaw = ''
+    $turneroPilotStatusExit = 0
+    $turneroPilotStatus = $null
+
+    try {
+        $turneroPilotStatusRaw = ((& node $turneroClinicProfileScriptPath status --json 2>&1) | Out-String).Trim()
+        $turneroPilotStatusExit = $LASTEXITCODE
+        if (-not [string]::IsNullOrWhiteSpace($turneroPilotStatusRaw)) {
+            $turneroPilotStatus = $turneroPilotStatusRaw | ConvertFrom-Json
+        }
+    } catch {
+        $turneroPilotStatus = $null
+    }
+
+    if ($null -eq $turneroPilotStatus -or $turneroPilotStatusExit -ne 0) {
+        $turneroPilotErrors.Add('status_unresolved')
+    } else {
+        $turneroPilotProfileStatusResolved = [bool]$turneroPilotStatus.ok
+        try { $turneroPilotClinicId = [string]$turneroPilotStatus.profile.clinic_id } catch { $turneroPilotClinicId = '' }
+        try { $turneroPilotCatalogMatch = [bool]$turneroPilotStatus.matchesCatalog } catch { $turneroPilotCatalogMatch = $false }
+        try { $turneroPilotVerifyRequired = ([bool]$turneroPilotStatus.ok) -and ([string]$turneroPilotStatus.profile.release.mode -eq 'web_pilot') } catch { $turneroPilotVerifyRequired = $false }
+
+        if (-not $turneroPilotCatalogMatch) {
+            $turneroPilotErrors.Add('catalog_drift')
+        } elseif ($turneroPilotVerifyRequired) {
+            $turneroPilotVerifyRaw = ''
+            $turneroPilotVerifyExit = 0
+            $turneroPilotVerify = $null
+
+            try {
+                $turneroPilotVerifyRaw = ((& node $turneroClinicProfileScriptPath verify-remote --base-url $base --json 2>&1) | Out-String).Trim()
+                $turneroPilotVerifyExit = $LASTEXITCODE
+                if (-not [string]::IsNullOrWhiteSpace($turneroPilotVerifyRaw)) {
+                    $turneroPilotVerify = $turneroPilotVerifyRaw | ConvertFrom-Json
+                }
+            } catch {
+                $turneroPilotVerify = $null
+            }
+
+            try { $turneroPilotRemoteOk = [bool]$turneroPilotVerify.ok } catch { $turneroPilotRemoteOk = $false }
+            try { $turneroPilotRemoteClinicId = [string]$turneroPilotVerify.turneroPilot.clinicId } catch { $turneroPilotRemoteClinicId = '' }
+            try { $turneroPilotRemoteFingerprint = [string]$turneroPilotVerify.turneroPilot.profileFingerprint } catch { $turneroPilotRemoteFingerprint = '' }
+            try { $turneroPilotRemoteCatalogReady = [bool]$turneroPilotVerify.turneroPilot.catalogReady } catch { $turneroPilotRemoteCatalogReady = $false }
+            try { $turneroPilotRemoteProfileSource = [string]$turneroPilotVerify.turneroPilot.profileSource } catch { $turneroPilotRemoteProfileSource = '' }
+            try { $turneroPilotRemoteReleaseMode = [string]$turneroPilotVerify.turneroPilot.releaseMode } catch { $turneroPilotRemoteReleaseMode = '' }
+            try { $turneroPilotRemoteAdminModeDefault = [string]$turneroPilotVerify.turneroPilot.adminModeDefault } catch { $turneroPilotRemoteAdminModeDefault = '' }
+
+            if ($null -eq $turneroPilotVerify -or $turneroPilotVerifyExit -ne 0 -or -not $turneroPilotRemoteOk) {
+                $turneroPilotErrors.Add('remote_mismatch')
+            }
+        }
+    }
+} else {
+    $turneroPilotErrors.Add('cli_missing')
+}
 $githubDeployAlertsSummary = Get-GitHubProductionAlertSummary `
     -Repo $GitHubRepo `
     -ApiBase $GitHubApiBase `
@@ -577,10 +646,14 @@ $githubDeployAlertsTransportCount = [int](Get-ObjectValueOrDefault -Object $gith
 $githubDeployAlertsConnectivityCount = [int](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'connectivityCount' -DefaultValue 0)
 $githubDeployAlertsRepairGitSyncCount = [int](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'repairGitSyncCount' -DefaultValue 0)
 $githubDeployAlertsSelfHostedRunnerCount = [int](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'selfHostedRunnerCount' -DefaultValue 0)
+$githubDeployAlertsSelfHostedDeployCount = [int](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'selfHostedDeployCount' -DefaultValue 0)
+$githubDeployAlertsTurneroPilotCount = [int](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'turneroPilotCount' -DefaultValue 0)
 $githubDeployAlertsHasTransportBlock = [bool](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'hasTransportBlock' -DefaultValue $false)
 $githubDeployAlertsHasConnectivityBlock = [bool](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'hasConnectivityBlock' -DefaultValue $false)
 $githubDeployAlertsHasRepairGitSyncBlock = [bool](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'hasRepairGitSyncBlock' -DefaultValue $false)
 $githubDeployAlertsHasSelfHostedRunnerBlock = [bool](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'hasSelfHostedRunnerBlock' -DefaultValue $false)
+$githubDeployAlertsHasSelfHostedDeployBlock = [bool](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'hasSelfHostedDeployBlock' -DefaultValue $false)
+$githubDeployAlertsHasTurneroPilotBlock = [bool](Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'hasTurneroPilotBlock' -DefaultValue $false)
 $githubDeployAlertsIssueNumbers = @(
     Convert-ToArraySafe -Value (Get-ObjectValueOrDefault -Object $githubDeployAlertsSummary -Property 'issueNumbers' -DefaultValue @())
 )
@@ -947,6 +1020,15 @@ if ($publicSyncConfigured -and $publicSyncHeadDrift) {
 if ($publicSyncConfigured -and $publicSyncTelemetryGap) {
     $warnings.Add('public_sync_telemetry_gap')
 }
+if (-not $turneroPilotProfileStatusResolved) {
+    $warnings.Add('turnero_pilot_profile_status_unresolved')
+}
+if ($turneroPilotProfileStatusResolved -and -not $turneroPilotCatalogMatch) {
+    $warnings.Add('turnero_pilot_catalog_drift')
+}
+if ($turneroPilotVerifyRequired -and -not $turneroPilotRemoteOk) {
+    $warnings.Add('turnero_pilot_remote_mismatch')
+}
 if (-not $githubDeployAlertsFetchOk) {
     $warnings.Add('github_deploy_alerts_unreachable')
 }
@@ -964,6 +1046,12 @@ if ($githubDeployAlertsHasRepairGitSyncBlock) {
 }
 if ($githubDeployAlertsHasSelfHostedRunnerBlock) {
     $warnings.Add('github_deploy_self_hosted_runner_blocked')
+}
+if ($githubDeployAlertsHasSelfHostedDeployBlock) {
+    $warnings.Add('github_deploy_self_hosted_deploy_blocked')
+}
+if ($githubDeployAlertsHasTurneroPilotBlock) {
+    $warnings.Add('github_deploy_turnero_pilot_blocked')
 }
 if ($servicesCatalogSource -ne 'file') {
     $warnings.Add("services_catalog_${servicesCatalogSource}")
@@ -1278,7 +1366,9 @@ Write-Host "auth_rollout_available=$operatorAuthRolloutAvailable auth_rollout_ok
 Write-Host "storage_backend=$storageBackend storage_source=$storageSource storage_encrypted=$storeEncrypted storage_encryption_configured=$storeEncryptionConfigured storage_encryption_required=$storeEncryptionRequired storage_encryption_status=$storeEncryptionStatus storage_encryption_compliant=$storeEncryptionCompliant storage_host_checklist_command=$hostChecklistCommand"
 Write-Host "public_sync_configured=$publicSyncConfigured public_sync_healthy=$publicSyncHealthy public_sync_operationally_healthy=$publicSyncOperationallyHealthy public_sync_repo_hygiene_issue=$publicSyncRepoHygieneIssue public_sync_state=$publicSyncState public_sync_age_seconds=$publicSyncAgeSeconds public_sync_expected_max_lag_seconds=$publicSyncExpectedMaxLagSeconds public_sync_failure_reason=$publicSyncFailureReason public_sync_last_error_message=$publicSyncLastErrorMessage public_sync_dirty_paths_count=$publicSyncDirtyPathsCount public_sync_telemetry_gap=$publicSyncTelemetryGap"
 Write-Host "public_sync_job_id=$publicSyncJobId public_sync_deployed_commit=$publicSyncDeployedCommit public_sync_current_head=$publicSyncCurrentHead public_sync_remote_head=$publicSyncRemoteHead public_sync_head_drift=$publicSyncHeadDrift public_sync_dirty_paths_sample=$publicSyncDirtyPathsSampleLabel"
-Write-Host "github_deploy_alerts_repo=$GitHubRepo github_deploy_alerts_fetch_ok=$githubDeployAlertsFetchOk github_deploy_alerts_relevant_count=$githubDeployAlertsRelevantCount github_deploy_transport_count=$githubDeployAlertsTransportCount github_deploy_connectivity_count=$githubDeployAlertsConnectivityCount github_deploy_repair_git_sync_count=$githubDeployAlertsRepairGitSyncCount github_deploy_self_hosted_runner_count=$githubDeployAlertsSelfHostedRunnerCount"
+Write-Host "turnero_pilot_verify_required=$turneroPilotVerifyRequired turnero_pilot_profile_status_resolved=$turneroPilotProfileStatusResolved turnero_pilot_clinic_id=$turneroPilotClinicId turnero_pilot_catalog_match=$turneroPilotCatalogMatch turnero_pilot_remote_ok=$turneroPilotRemoteOk"
+Write-Host "turnero_pilot_remote_clinic_id=$turneroPilotRemoteClinicId turnero_pilot_remote_fingerprint=$turneroPilotRemoteFingerprint turnero_pilot_remote_catalog_ready=$turneroPilotRemoteCatalogReady turnero_pilot_remote_profile_source=$turneroPilotRemoteProfileSource turnero_pilot_remote_release_mode=$turneroPilotRemoteReleaseMode turnero_pilot_remote_admin_mode_default=$turneroPilotRemoteAdminModeDefault turnero_pilot_errors=$($turneroPilotErrors -join ',')"
+Write-Host "github_deploy_alerts_repo=$GitHubRepo github_deploy_alerts_fetch_ok=$githubDeployAlertsFetchOk github_deploy_alerts_relevant_count=$githubDeployAlertsRelevantCount github_deploy_transport_count=$githubDeployAlertsTransportCount github_deploy_connectivity_count=$githubDeployAlertsConnectivityCount github_deploy_repair_git_sync_count=$githubDeployAlertsRepairGitSyncCount github_deploy_self_hosted_runner_count=$githubDeployAlertsSelfHostedRunnerCount github_deploy_self_hosted_deploy_count=$githubDeployAlertsSelfHostedDeployCount github_deploy_turnero_pilot_count=$githubDeployAlertsTurneroPilotCount"
 Write-Host "github_deploy_alerts_issue_numbers=$githubDeployAlertsIssueNumbersLabel github_deploy_alerts_issue_refs=$githubDeployAlertsIssueRefsLabel github_deploy_alerts_error=$githubDeployAlertsError"
 Write-Host "idempotency_requests_with_key=$idempotencyRequestsWithKey idempotency_conflict_rate_pct=$idempotencyConflictRatePct idempotency_replay_rate_pct=$idempotencyReplayRatePct"
 Write-Host "service_funnel_source=$serviceFunnelSource service_funnel_rows=$serviceFunnelRowsCount service_funnel_alert_count=$serviceFunnelAlertCount"

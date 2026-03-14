@@ -13825,6 +13825,275 @@ test.describe('Admin turnero sala', () => {
         ).toContainText('firma');
     });
 
+    test('queue bloquea el piloto web si /health reporta otra clínica activa para el piloto', async ({
+        page,
+    }) => {
+        const nowIso = new Date().toISOString();
+
+        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
+            json(route, {
+                ok: true,
+                authenticated: true,
+                csrfToken: 'csrf_queue_pilot_health_clinic',
+            })
+        );
+
+        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
+            const url = new URL(route.request().url());
+            const resource = url.searchParams.get('resource') || '';
+
+            if (resource === 'features') {
+                return json(route, {
+                    ok: true,
+                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
+                });
+            }
+
+            if (resource === 'data') {
+                return json(route, {
+                    ok: true,
+                    data: {
+                        appointments: [],
+                        callbacks: [],
+                        reviews: [],
+                        availability: {},
+                        availabilityMeta: {
+                            source: 'store',
+                            mode: 'live',
+                            timezone: 'America/Guayaquil',
+                            calendarConfigured: true,
+                            calendarReachable: true,
+                            generatedAt: nowIso,
+                        },
+                        turneroClinicProfile: {
+                            schema: 'turnero-clinic-profile/v1',
+                            clinic_id: 'clinica-lago-demo',
+                            branding: {
+                                name: 'Clínica Lago',
+                                short_name: 'Lago',
+                                base_url: 'https://clinica-lago.example',
+                            },
+                            consultorios: {
+                                c1: {
+                                    label: 'Lago 1',
+                                    short_label: 'L1',
+                                },
+                                c2: {
+                                    label: 'Lago 2',
+                                    short_label: 'L2',
+                                },
+                            },
+                            surfaces: {
+                                admin: {
+                                    enabled: true,
+                                    label: 'Admin web',
+                                    route: '/admin.html#queue',
+                                },
+                                operator: {
+                                    enabled: true,
+                                    label: 'Operador web',
+                                    route: '/operador-turnos.html',
+                                },
+                                kiosk: {
+                                    enabled: true,
+                                    label: 'Kiosco web',
+                                    route: '/kiosco-turnos.html',
+                                },
+                                display: {
+                                    enabled: true,
+                                    label: 'Sala web',
+                                    route: '/sala-turnos.html',
+                                },
+                            },
+                            release: {
+                                mode: 'web_pilot',
+                                admin_mode_default: 'basic',
+                                separate_deploy: true,
+                                native_apps_blocking: false,
+                            },
+                        },
+                        turneroClinicProfileMeta: {
+                            source: 'remote',
+                            cached: false,
+                            clinicId: 'clinica-lago-demo',
+                            fetchedAt: nowIso,
+                            profileFingerprint: 'lago0001',
+                        },
+                        turneroClinicProfileCatalogStatus:
+                            buildTurneroClinicProfileCatalogStatus({
+                                clinicId: 'clinica-lago-demo',
+                            }),
+                        queue_tickets: [],
+                        queueMeta: buildQueueMetaFromState({
+                            updatedAt: nowIso,
+                            waitingCount: 0,
+                            calledCount: 0,
+                            counts: {
+                                waiting: 0,
+                                called: 0,
+                                completed: 0,
+                                no_show: 0,
+                                cancelled: 0,
+                            },
+                            callingNow: [],
+                            nextTickets: [],
+                        }),
+                        queueSurfaceStatus: {
+                            operator: {
+                                surface: 'operator',
+                                label: 'Operador',
+                                status: 'ready',
+                                updatedAt: nowIso,
+                                ageSec: 4,
+                                stale: false,
+                                summary: 'Operador listo.',
+                                latest: {
+                                    deviceLabel: 'Operador Lago',
+                                    appMode: 'browser',
+                                    ageSec: 4,
+                                    details: {
+                                        clinicId: 'clinica-lago-demo',
+                                        profileFingerprint: 'lago0001',
+                                        surfaceContractState: 'ready',
+                                        surfaceRouteExpected:
+                                            '/operador-turnos.html',
+                                        surfaceRouteCurrent:
+                                            '/operador-turnos.html',
+                                    },
+                                },
+                                instances: [],
+                            },
+                            kiosk: {
+                                surface: 'kiosk',
+                                label: 'Kiosco',
+                                status: 'ready',
+                                updatedAt: nowIso,
+                                ageSec: 5,
+                                stale: false,
+                                summary: 'Kiosco listo.',
+                                latest: {
+                                    deviceLabel: 'Kiosco Lago',
+                                    appMode: 'browser',
+                                    ageSec: 5,
+                                    details: {
+                                        clinicId: 'clinica-lago-demo',
+                                        profileFingerprint: 'lago0001',
+                                        surfaceContractState: 'ready',
+                                        surfaceRouteExpected:
+                                            '/kiosco-turnos.html',
+                                        surfaceRouteCurrent:
+                                            '/kiosco-turnos.html',
+                                    },
+                                },
+                                instances: [],
+                            },
+                            display: {
+                                surface: 'display',
+                                label: 'Sala',
+                                status: 'ready',
+                                updatedAt: nowIso,
+                                ageSec: 6,
+                                stale: false,
+                                summary: 'Sala lista.',
+                                latest: {
+                                    deviceLabel: 'Sala Lago',
+                                    appMode: 'browser',
+                                    ageSec: 6,
+                                    details: {
+                                        clinicId: 'clinica-lago-demo',
+                                        profileFingerprint: 'lago0001',
+                                        surfaceContractState: 'ready',
+                                        surfaceRouteExpected:
+                                            '/sala-turnos.html',
+                                        surfaceRouteCurrent:
+                                            '/sala-turnos.html',
+                                    },
+                                },
+                                instances: [],
+                            },
+                        },
+                    },
+                });
+            }
+
+            if (resource === 'health') {
+                return json(route, {
+                    ok: true,
+                    status: 'ok',
+                    checks: {
+                        publicSync: {
+                            configured: true,
+                            healthy: true,
+                            state: 'ok',
+                            deployedCommit:
+                                '4cb7bf723aa88f53f52b6bcfddf7004bb83faa19',
+                            headDrift: false,
+                            ageSeconds: 11,
+                            failureReason: '',
+                        },
+                        turneroPilot: {
+                            configured: true,
+                            ready: true,
+                            profileSource: 'file',
+                            clinicId: 'clinica-sur-real',
+                            profileFingerprint: 'sur00001',
+                            catalogAvailable: true,
+                            catalogMatched: true,
+                            catalogReady: true,
+                            catalogEntryId: 'clinica-sur-real',
+                            releaseMode: 'web_pilot',
+                            adminModeDefault: 'basic',
+                            separateDeploy: true,
+                            nativeAppsBlocking: false,
+                            surfaces: {
+                                admin: {
+                                    enabled: true,
+                                    label: 'Admin web',
+                                    route: '/admin.html#queue',
+                                },
+                                operator: {
+                                    enabled: true,
+                                    label: 'Operador web',
+                                    route: '/operador-turnos.html',
+                                },
+                                kiosk: {
+                                    enabled: true,
+                                    label: 'Kiosco web',
+                                    route: '/kiosco-turnos.html',
+                                },
+                                display: {
+                                    enabled: true,
+                                    label: 'Sala web',
+                                    route: '/sala-turnos.html',
+                                },
+                            },
+                        },
+                    },
+                });
+            }
+
+            if (resource === 'funnel-metrics') {
+                return json(route, { ok: true, data: {} });
+            }
+
+            return json(route, { ok: true, data: {} });
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('.nav-item[data-section="queue"]').click();
+
+        await expect(
+            page.locator('#queueOpsPilotReadinessTitle')
+        ).toContainText('Piloto web bloqueado');
+        await expect(
+            page.locator('#queueOpsPilotReadinessItem_health')
+        ).toContainText('clinica-sur-real');
+        await expect(
+            page.locator('#queueOpsPilotIssuesItem_health')
+        ).toContainText('clinica-sur-real');
+    });
+
     test('queue bloquea el piloto web si una superficie usa perfil de respaldo por clinic-profile faltante', async ({
         page,
     }) => {

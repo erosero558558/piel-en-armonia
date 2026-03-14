@@ -61,6 +61,7 @@ function Get-WarningSeverity {
         'calendar_mode_',
         'public_sync_',
         'storage_encryption_',
+        'turnero_pilot_',
         'github_deploy_',
         'telemedicine_diagnostics_critical_',
         'telemedicine_dangling_links_',
@@ -153,6 +154,9 @@ function Get-WarningImpact {
     if ($WarningCode.StartsWith('public_sync_')) {
         return 'observability'
     }
+    if ($WarningCode.StartsWith('turnero_pilot_')) {
+        return 'turnero'
+    }
     if ($WarningCode.StartsWith('github_deploy_')) {
         return 'observability'
     }
@@ -189,6 +193,9 @@ function Get-WarningRunbookRef {
     }
     if ($WarningCode.StartsWith('public_sync_')) {
         return 'docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md'
+    }
+    if ($WarningCode.StartsWith('turnero_pilot_')) {
+        return 'docs/TURNERO_WEB_PRODUCTION_CUT.md'
     }
     if ($WarningCode.StartsWith('github_deploy_')) {
         return 'docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md'
@@ -791,6 +798,21 @@ $serviceFunnelTopRowsBlock
 - public_sync_log_path: $publicSyncLogPath
 - public_sync_lock_file: $publicSyncLockFile
 
+## Turnero Pilot
+
+- turnero_pilot_profile_status_resolved: $turneroPilotProfileStatusResolved
+- turnero_pilot_verify_required: $turneroPilotVerifyRequired
+- turnero_pilot_clinic_id: $turneroPilotClinicId
+- turnero_pilot_catalog_match: $turneroPilotCatalogMatch
+- turnero_pilot_remote_ok: $turneroPilotRemoteOk
+- turnero_pilot_remote_clinic_id: $turneroPilotRemoteClinicId
+- turnero_pilot_remote_fingerprint: $turneroPilotRemoteFingerprint
+- turnero_pilot_remote_catalog_ready: $turneroPilotRemoteCatalogReady
+- turnero_pilot_remote_profile_source: $turneroPilotRemoteProfileSource
+- turnero_pilot_remote_release_mode: $turneroPilotRemoteReleaseMode
+- turnero_pilot_remote_admin_mode_default: $turneroPilotRemoteAdminModeDefault
+- turnero_pilot_errors: $($turneroPilotErrors -join ', ')
+
 ## GitHub Deploy Alerts
 
 - github_deploy_alerts_enabled: $githubDeployAlertsEnabled
@@ -803,10 +825,14 @@ $serviceFunnelTopRowsBlock
 - github_deploy_connectivity_count: $githubDeployAlertsConnectivityCount
 - github_deploy_repair_git_sync_count: $githubDeployAlertsRepairGitSyncCount
 - github_deploy_self_hosted_runner_count: $githubDeployAlertsSelfHostedRunnerCount
+- github_deploy_self_hosted_deploy_count: $githubDeployAlertsSelfHostedDeployCount
+- github_deploy_turnero_pilot_count: $githubDeployAlertsTurneroPilotCount
 - github_deploy_has_transport_block: $githubDeployAlertsHasTransportBlock
 - github_deploy_has_connectivity_block: $githubDeployAlertsHasConnectivityBlock
 - github_deploy_has_repair_git_sync_block: $githubDeployAlertsHasRepairGitSyncBlock
 - github_deploy_has_self_hosted_runner_block: $githubDeployAlertsHasSelfHostedRunnerBlock
+- github_deploy_has_self_hosted_deploy_block: $githubDeployAlertsHasSelfHostedDeployBlock
+- github_deploy_has_turnero_pilot_block: $githubDeployAlertsHasTurneroPilotBlock
 - github_deploy_alerts_issue_numbers: $githubDeployAlertsIssueNumbersLabel
 - github_deploy_alerts_issue_refs: $githubDeployAlertsIssueRefsLabel
 
@@ -1154,6 +1180,20 @@ function New-WeeklyReportPayload {
             logPath = $publicSyncLogPath
             lockFile = $publicSyncLockFile
         }
+        turneroPilot = [ordered]@{
+            profileStatusResolved = [bool]$turneroPilotProfileStatusResolved
+            verifyRequired = [bool]$turneroPilotVerifyRequired
+            clinicId = $turneroPilotClinicId
+            catalogMatch = [bool]$turneroPilotCatalogMatch
+            remoteOk = [bool]$turneroPilotRemoteOk
+            remoteClinicId = $turneroPilotRemoteClinicId
+            remoteFingerprint = $turneroPilotRemoteFingerprint
+            remoteCatalogReady = [bool]$turneroPilotRemoteCatalogReady
+            remoteProfileSource = $turneroPilotRemoteProfileSource
+            remoteReleaseMode = $turneroPilotRemoteReleaseMode
+            remoteAdminModeDefault = $turneroPilotRemoteAdminModeDefault
+            errors = @($turneroPilotErrors)
+        }
         githubDeployAlerts = [ordered]@{
             enabled = [bool]$githubDeployAlertsEnabled
             fetchOk = [bool]$githubDeployAlertsFetchOk
@@ -1166,10 +1206,14 @@ function New-WeeklyReportPayload {
             connectivityCount = $githubDeployAlertsConnectivityCount
             repairGitSyncCount = $githubDeployAlertsRepairGitSyncCount
             selfHostedRunnerCount = $githubDeployAlertsSelfHostedRunnerCount
+            selfHostedDeployCount = $githubDeployAlertsSelfHostedDeployCount
+            turneroPilotCount = $githubDeployAlertsTurneroPilotCount
             hasTransportBlock = [bool]$githubDeployAlertsHasTransportBlock
             hasConnectivityBlock = [bool]$githubDeployAlertsHasConnectivityBlock
             hasRepairGitSyncBlock = [bool]$githubDeployAlertsHasRepairGitSyncBlock
             hasSelfHostedRunnerBlock = [bool]$githubDeployAlertsHasSelfHostedRunnerBlock
+            hasSelfHostedDeployBlock = [bool]$githubDeployAlertsHasSelfHostedDeployBlock
+            hasTurneroPilotBlock = [bool]$githubDeployAlertsHasTurneroPilotBlock
             issueNumbers = @($githubDeployAlertsIssueNumbers)
             issueUrls = @($githubDeployAlertsIssueUrls)
             issueRefs = @($githubDeployAlertsIssueRefs)

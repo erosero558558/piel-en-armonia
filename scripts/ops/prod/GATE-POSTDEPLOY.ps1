@@ -27,9 +27,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+$repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
 $verifyScriptPath = Join-Path $PSScriptRoot 'VERIFICAR-DESPLIEGUE.ps1'
 $smokeScriptPath = Join-Path $PSScriptRoot 'SMOKE-PRODUCCION.ps1'
 $benchScriptPath = Join-Path $PSScriptRoot 'BENCH-API-PRODUCCION.ps1'
+$turneroClinicProfileScriptPath = Join-Path $repoRoot 'bin/turnero-clinic-profile.js'
 
 Write-Host "== Gate Post-Deploy ==" -ForegroundColor Cyan
 Write-Host "Dominio: $Domain"
@@ -55,6 +57,49 @@ if ($effectiveSkipAssetHashChecks) {
 }
 
 $failures = 0
+$turneroPilotReleaseGateRequired = $false
+$turneroPilotClinicId = ''
+$turneroPilotCatalogMatch = $false
+$turneroPilotProfileStatusResolved = $false
+
+if (Test-Path $turneroClinicProfileScriptPath) {
+    $turneroPilotStatusRaw = ''
+    $turneroPilotStatusExit = 0
+    $turneroPilotStatus = $null
+
+    try {
+        $turneroPilotStatusRaw = ((& node $turneroClinicProfileScriptPath status --json 2>&1) | Out-String).Trim()
+        $turneroPilotStatusExit = $LASTEXITCODE
+        if (-not [string]::IsNullOrWhiteSpace($turneroPilotStatusRaw)) {
+            $turneroPilotStatus = $turneroPilotStatusRaw | ConvertFrom-Json
+        }
+    } catch {
+        $turneroPilotStatus = $null
+    }
+
+    if ($null -eq $turneroPilotStatus -or $turneroPilotStatusExit -ne 0) {
+        Write-Host '[FAIL] turneroPilot clinic-profile status unresolved antes del gate.' -ForegroundColor Red
+        $failures += 1
+    } else {
+        $turneroPilotProfileStatusResolved = [bool]$turneroPilotStatus.ok
+        try { $turneroPilotClinicId = [string]$turneroPilotStatus.profile.clinic_id } catch { $turneroPilotClinicId = '' }
+        try { $turneroPilotCatalogMatch = [bool]$turneroPilotStatus.matchesCatalog } catch { $turneroPilotCatalogMatch = $false }
+        try { $turneroPilotReleaseGateRequired = ([bool]$turneroPilotStatus.ok) -and ([string]$turneroPilotStatus.profile.release.mode -eq 'web_pilot') } catch { $turneroPilotReleaseGateRequired = $false }
+
+        Write-Host "[INFO] turneroPilot gate clinicId=$turneroPilotClinicId statusResolved=$turneroPilotProfileStatusResolved catalogMatch=$turneroPilotCatalogMatch verifyRemoteEnforced=$turneroPilotReleaseGateRequired"
+
+        if (-not $turneroPilotProfileStatusResolved) {
+            Write-Host '[FAIL] turneroPilot clinic-profile inválido antes del gate.' -ForegroundColor Red
+            $failures += 1
+        }
+        if ($turneroPilotProfileStatusResolved -and -not $turneroPilotCatalogMatch) {
+            Write-Host "[FAIL] turneroPilot catalog drift antes del gate (clinicId=$turneroPilotClinicId)." -ForegroundColor Red
+            $failures += 1
+        }
+    }
+} else {
+    Write-Host '[WARN] bin/turnero-clinic-profile.js no existe; se omite preflight turneroPilot del gate.'
+}
 
 Write-Host ""
 Write-Host "[1/3] Verificacion de despliegue..." -ForegroundColor Yellow
@@ -145,6 +190,10 @@ Write-Host ""
 if ($failures -gt 0) {
     Write-Host "Gate FALLIDO: $failures bloque(s) con errores." -ForegroundColor Red
     exit 1
+}
+
+if ($turneroPilotReleaseGateRequired) {
+    Write-Host "Turnero pilot gate OK: clinicId=$turneroPilotClinicId, catalogMatch=$turneroPilotCatalogMatch, verifyRemoteEnforced=true." -ForegroundColor Green
 }
 
 Write-Host "Gate OK: despliegue validado." -ForegroundColor Green

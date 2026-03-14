@@ -191,6 +191,93 @@ test('prod-monitor workflow maneja incidente dedicado de telemedicina', () => {
     }
 });
 
+test('prod-monitor workflow cierra alertas stale de deploy cuando public sync se recupera', () => {
+    const { raw, parsed } = loadWorkflow();
+    const steps = parsed?.jobs?.monitor?.steps || [];
+    const stepNames = steps.map((step) => String(step?.name || ''));
+
+    for (const expectedStepName of [
+        'Evaluar recuperacion public sync para alertas stale de deploy',
+        'Cerrar alertas stale de deploy al recuperar public sync',
+    ]) {
+        assert.equal(
+            stepNames.includes(expectedStepName),
+            true,
+            `falta step de recuperacion public sync en prod-monitor: ${expectedStepName}`
+        );
+    }
+
+    const requiredSnippets = [
+        'PUBLIC_SYNC_RECOVERY_STATUS: not_evaluated',
+        'PUBLIC_SYNC_RECOVERY_REASON: not_evaluated',
+        "PUBLIC_SYNC_CURRENT_HEAD: ''",
+        "PUBLIC_SYNC_REMOTE_HEAD: ''",
+        "PUBLIC_SYNC_DIRTY_PATHS_COUNT: '0'",
+        'PielArmoniaPublicSyncRecovery/1.0',
+        "if: ${{ always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && env.TARGET_DOMAIN == 'https://pielarmonia.com')) && steps.public_sync_recovery.outputs.status == 'healthy' }}",
+        "'[ALERTA PROD] Deploy Hosting transporte bloqueado desde GitHub Runner'",
+        "'[ALERTA PROD] Diagnose host connectivity sin ruta de deploy'",
+        "'[ALERTA PROD] Repair git sync self-hosted fallback sin runner'",
+        "'[ALERTA PROD] Deploy Frontend Self-Hosted ruta bloqueada'",
+        'Cerrado automaticamente por monitor programado al confirmar `public_main_sync` saludable.',
+        'Issue stale de deploy cerrado',
+        'public sync recovery => status=$status reason=$reason current_head=$currentHead remote_head=$remoteHead dirty_paths_count=$dirtyPathsCount',
+    ];
+
+    for (const snippet of requiredSnippets) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring de recuperacion public sync en prod-monitor: ${snippet}`
+        );
+    }
+});
+
+test('prod-monitor workflow cierra incidente turneroPilot cuando verify-remote se recupera', () => {
+    const { raw, parsed } = loadWorkflow();
+    const steps = parsed?.jobs?.monitor?.steps || [];
+    const stepNames = steps.map((step) => String(step?.name || ''));
+
+    for (const expectedStepName of [
+        'Evaluar recuperacion turneroPilot para alertas stale de deploy',
+        'Cerrar incidente turneroPilot al recuperar (solo schedule/default prod)',
+    ]) {
+        assert.equal(
+            stepNames.includes(expectedStepName),
+            true,
+            `falta step turneroPilot recovery en prod-monitor: ${expectedStepName}`
+        );
+    }
+
+    for (const snippet of [
+        'TURNERO_PILOT_RECOVERY_STATUS: not_evaluated',
+        'TURNERO_PILOT_RECOVERY_REASON: not_evaluated',
+        "TURNERO_PILOT_RECOVERY_CLINIC_ID: ''",
+        "TURNERO_PILOT_RECOVERY_PROFILE_FINGERPRINT: ''",
+        "TURNERO_PILOT_RECOVERY_DEPLOYED_COMMIT: ''",
+        'TURNERO_PILOT_RECOVERY_MANIFEST_PATH: .public-cutover-monitor/turnero-pilot-recovery.json',
+        "if: ${{ always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && env.TARGET_DOMAIN == 'https://pielarmonia.com')) }}",
+        '& node $scriptPath status --json 2>&1',
+        '& node $scriptPath verify-remote --base-url $env:TARGET_DOMAIN --json 2>&1',
+        'New-Item -ItemType Directory -Path $manifestDir -Force | Out-Null',
+        'Set-Content -Path $manifestPath -Encoding utf8',
+        'turnero pilot recovery => status=$status reason=$reason clinic_id=$clinicId deployed_commit=$deployedCommit',
+        'prod-monitor-turnero-pilot-recovery',
+        '- turnero_pilot_recovery_status: ``$env:TURNERO_PILOT_RECOVERY_STATUS``',
+        '- turnero_pilot_recovery_reason: ``$env:TURNERO_PILOT_RECOVERY_REASON``',
+        '- turnero_pilot_recovery_deployed_commit: ``$env:TURNERO_PILOT_RECOVERY_DEPLOYED_COMMIT``',
+        '- turnero_pilot_recovery_manifest: ``$env:TURNERO_PILOT_RECOVERY_MANIFEST_PATH``',
+        "'[ALERTA PROD] Deploy Hosting turneroPilot bloqueado'",
+        'Cerrado automaticamente por prod-monitor al confirmar `verify-remote` saludable.',
+        'Issue turneroPilot cerrado',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring turneroPilot recovery en prod-monitor: ${snippet}`
+        );
+    }
+});
 test('prod-monitor workflow expone inputs de monitoreo post-cutover publico', () => {
     const { parsed } = loadWorkflow();
     const inputs = parsed?.on?.workflow_dispatch?.inputs || {};

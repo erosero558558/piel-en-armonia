@@ -9,6 +9,7 @@ const {
     getTurneroClinicProfileEntry,
     listTurneroClinicProfiles,
     stageTurneroClinicProfile,
+    verifyRemoteTurneroClinicProfile,
 } = require('../lib/turnero-clinic-profile-registry.js');
 
 function parseArgs(argv) {
@@ -44,11 +45,13 @@ function printHelp() {
   node bin/turnero-clinic-profile.js validate --id <clinic_id> [--json]
   node bin/turnero-clinic-profile.js stage --id <clinic_id> [--dry-run] [--json]
   node bin/turnero-clinic-profile.js status [--json]
+  node bin/turnero-clinic-profile.js verify-remote --base-url <url> [--json]
 
 Opciones:
   --profiles-dir <path>  Directorio de perfiles catalogados
   --output <path>        Ruta del clinic-profile activo
   --root <path>          Root alterno del proyecto
+  --base-url <url>       Base URL remota para validar /api.php?resource=health
   --json                 Salida JSON`);
 }
 
@@ -79,6 +82,9 @@ function printResult(result, asJson) {
     if (result.command === 'status') {
         console.log(`Activo: ${result.activePath}`);
         console.log(`Clinic ID: ${result.profile?.clinic_id || 'sin perfil'}`);
+        console.log(
+            `Fingerprint: ${result.profileFingerprint || 'sin fingerprint'}`
+        );
         console.log(
             `Catalogo: ${result.matchingProfileId || 'sin coincidencia'}${result.matchesCatalog ? ' (exacto)' : ''}`
         );
@@ -111,6 +117,28 @@ function printResult(result, asJson) {
         for (const error of result.errors || []) {
             console.log(`error: ${error}`);
         }
+        return;
+    }
+
+    if (result.command === 'verify-remote') {
+        console.log(
+            `${result.ok ? 'OK' : 'ERROR'} remote ${result.baseUrl} -> ${result.remoteUrl}`
+        );
+        console.log(
+            `Clinic ID local: ${result.profile?.clinic_id || 'sin perfil'}`
+        );
+        console.log(
+            `Fingerprint local: ${result.localFingerprint || 'sin fingerprint'}`
+        );
+        console.log(
+            `Health remoto: clinic_id=${result.turneroPilot?.clinicId || 'sin dato'} fingerprint=${result.turneroPilot?.profileFingerprint || 'sin dato'}`
+        );
+        for (const warning of result.warnings || []) {
+            console.log(`warn: ${warning}`);
+        }
+        for (const error of result.errors || []) {
+            console.log(`error: ${error}`);
+        }
     }
 }
 
@@ -124,7 +152,7 @@ function resolveCommonOptions(options) {
     };
 }
 
-function main() {
+async function main() {
     const { command, options } = parseArgs(process.argv.slice(2));
     const asJson = Boolean(options.json);
     const commonOptions = resolveCommonOptions(options);
@@ -203,8 +231,21 @@ function main() {
         return;
     }
 
+    if (command === 'verify-remote') {
+        const result = await verifyRemoteTurneroClinicProfile(
+            options['base-url'],
+            commonOptions
+        );
+        printResult(result, asJson);
+        process.exitCode = result.ok ? 0 : 1;
+        return;
+    }
+
     printHelp();
     process.exitCode = 1;
 }
 
-main();
+main().catch((error) => {
+    console.error(error && error.message ? error.message : 'Error desconocido');
+    process.exitCode = 1;
+});

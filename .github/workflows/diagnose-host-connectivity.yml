@@ -8,6 +8,21 @@ on:
                 required: false
                 default: '21,22,990,2121,2222,65002,21098,22022,22222,10022,7822,443'
                 type: string
+            turnero_clinic_id:
+                description: 'clinic_id esperado del piloto web'
+                required: false
+                default: ''
+                type: string
+            turnero_profile_fingerprint:
+                description: 'profileFingerprint esperado del piloto web'
+                required: false
+                default: ''
+                type: string
+            turnero_release_mode:
+                description: 'release.mode esperado del clinic-profile'
+                required: false
+                default: ''
+                type: string
 
 permissions:
     contents: read
@@ -24,6 +39,17 @@ jobs:
             FTP_SERVER_SECRET: ${{ secrets.FTP_SERVER }}
             SSH_HOST_VAR: ${{ vars.SSH_HOST || '' }}
             FTP_SERVER_VAR: ${{ vars.FTP_SERVER || '' }}
+            TURNERO_PILOT_EXPECTED_CLINIC_ID: ${{ github.event.inputs.turnero_clinic_id || '' }}
+            TURNERO_PILOT_EXPECTED_PROFILE_FINGERPRINT: ${{ github.event.inputs.turnero_profile_fingerprint || '' }}
+            TURNERO_PILOT_EXPECTED_RELEASE_MODE: ${{ github.event.inputs.turnero_release_mode || '' }}
+            TURNERO_PILOT_DIAGNOSE_STATUS: unknown
+            TURNERO_PILOT_DIAGNOSE_REASON: not_evaluated
+            TURNERO_PILOT_DIAGNOSE_CLINIC_ID: ''
+            TURNERO_PILOT_DIAGNOSE_PROFILE_FINGERPRINT: ''
+            TURNERO_PILOT_DIAGNOSE_CATALOG_READY: 'false'
+            TURNERO_PILOT_DIAGNOSE_RELEASE_MODE: unknown
+            TURNERO_PILOT_DIAGNOSE_EXPECTED_MATCH: 'false'
+            TURNERO_PILOT_DIAGNOSE_EXPECTED_REASON: not_evaluated
         steps:
             - name: Diagnosticar puertos por origen de host
               shell: bash
@@ -187,6 +213,173 @@ jobs:
                   append(envPath, 'CONNECTIVITY_SIGNAL', signal);
                   NODE
 
+            - name: Resolver turneroPilot local para diagnose
+              id: turnero_pilot_diagnose
+              if: ${{ always() }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  status_path="turnero-pilot-diagnose.json"
+                  raw_path="turnero-pilot-diagnose.raw.txt"
+                  status_exit=0
+                  if ! node bin/turnero-clinic-profile.js status --json > "${status_path}" 2>"${raw_path}"; then
+                    status_exit=$?
+                  fi
+                  export TURNERO_PILOT_DIAGNOSE_STATUS_EXIT="${status_exit}"
+                  export TURNERO_PILOT_DIAGNOSE_STATUS_PATH="${status_path}"
+                  export TURNERO_PILOT_DIAGNOSE_STATUS_RAW_PATH="${raw_path}"
+                  node <<'NODE'
+                  const fs = require('node:fs');
+
+                  const outputPath = process.env.GITHUB_OUTPUT;
+                  const envPath = process.env.GITHUB_ENV;
+                  const statusPath = process.env.TURNERO_PILOT_DIAGNOSE_STATUS_PATH;
+                  const rawPath = process.env.TURNERO_PILOT_DIAGNOSE_STATUS_RAW_PATH;
+                  const statusExit = Number.parseInt(
+                    process.env.TURNERO_PILOT_DIAGNOSE_STATUS_EXIT || '1',
+                    10
+                  );
+
+                  function append(path, key, value) {
+                    if (!path) return;
+                    fs.appendFileSync(path, `${key}=${String(value)}\n`);
+                  }
+
+                  function safeString(value, fallback = '') {
+                    const normalized = String(value ?? '').trim();
+                    return normalized || fallback;
+                  }
+
+                  let status = 'unknown';
+                  let reason = 'profile_status_failed';
+                  let clinicId = '';
+                  let profileFingerprint = '';
+                  let catalogReady = false;
+                  let releaseMode = 'unknown';
+                  let expectedMatch = false;
+                  let expectedReason = 'no_expected_profile';
+                  const expectedClinicId = safeString(process.env.TURNERO_PILOT_EXPECTED_CLINIC_ID, '');
+                  const expectedProfileFingerprint = safeString(
+                    process.env.TURNERO_PILOT_EXPECTED_PROFILE_FINGERPRINT,
+                    ''
+                  );
+                  const expectedReleaseMode = safeString(
+                    process.env.TURNERO_PILOT_EXPECTED_RELEASE_MODE,
+                    ''
+                  );
+
+                  if (statusExit === 0 && statusPath && fs.existsSync(statusPath)) {
+                    try {
+                      const payload = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
+                      clinicId = safeString(payload?.profile?.clinic_id, '');
+                      profileFingerprint = safeString(payload?.profileFingerprint, '');
+                      catalogReady = payload?.catalogReady === true;
+                      releaseMode = safeString(payload?.profile?.release?.mode, 'unknown');
+                      if (releaseMode !== 'web_pilot') {
+                        status = 'not_required';
+                        reason = `release_mode:${releaseMode}`;
+                      } else if (!catalogReady) {
+                        status = 'blocked';
+                        reason = 'catalog_not_ready';
+                      } else {
+                        status = 'ready';
+                        reason = 'ok';
+                      }
+
+                      const expectedMismatches = [];
+                      if (expectedClinicId && clinicId !== expectedClinicId) {
+                        expectedMismatches.push(`clinic_id:${expectedClinicId}->${clinicId || 'missing'}`);
+                      }
+                      if (expectedProfileFingerprint && profileFingerprint !== expectedProfileFingerprint) {
+                        expectedMismatches.push(
+                          `profile_fingerprint:${expectedProfileFingerprint}->${profileFingerprint || 'missing'}`
+                        );
+                      }
+                      if (expectedReleaseMode && releaseMode !== expectedReleaseMode) {
+                        expectedMismatches.push(
+                          `release_mode:${expectedReleaseMode}->${releaseMode || 'missing'}`
+                        );
+                      }
+
+                      if (!expectedClinicId && !expectedProfileFingerprint && !expectedReleaseMode) {
+                        expectedMatch = false;
+                        expectedReason = 'no_expected_profile';
+                      } elseif (expectedMismatches.length > 0) {
+                        expectedMatch = false;
+                        expectedReason = expectedMismatches.join(';');
+                      } else {
+                        expectedMatch = true;
+                        expectedReason = 'ok';
+                      }
+                    } catch (error) {
+                      status = 'unknown';
+                      reason = `profile_status_unreadable:${error && error.name ? error.name : 'unknown'}`;
+                    }
+                  } else if (rawPath && fs.existsSync(rawPath)) {
+                    const stderr = safeString(fs.readFileSync(rawPath, 'utf8'), '');
+                    if (stderr) {
+                      reason = `profile_status_failed:${stderr.split(/\r?\n/, 1)[0]}`;
+                    }
+                  }
+
+                  const catalogReadyText = catalogReady ? 'true' : 'false';
+                  const expectedMatchText = expectedMatch ? 'true' : 'false';
+                  append(outputPath, 'turnero_pilot_status', status);
+                  append(outputPath, 'turnero_pilot_reason', reason);
+                  append(outputPath, 'turnero_pilot_clinic_id', clinicId);
+                  append(outputPath, 'turnero_pilot_profile_fingerprint', profileFingerprint);
+                  append(outputPath, 'turnero_pilot_catalog_ready', catalogReadyText);
+                  append(outputPath, 'turnero_pilot_release_mode', releaseMode);
+                  append(outputPath, 'turnero_pilot_expected_match', expectedMatchText);
+                  append(outputPath, 'turnero_pilot_expected_reason', expectedReason);
+
+                  append(envPath, 'TURNERO_PILOT_DIAGNOSE_STATUS', status);
+                  append(envPath, 'TURNERO_PILOT_DIAGNOSE_REASON', reason);
+                  append(envPath, 'TURNERO_PILOT_DIAGNOSE_CLINIC_ID', clinicId);
+                  append(envPath, 'TURNERO_PILOT_DIAGNOSE_PROFILE_FINGERPRINT', profileFingerprint);
+                  append(envPath, 'TURNERO_PILOT_DIAGNOSE_CATALOG_READY', catalogReadyText);
+                  append(envPath, 'TURNERO_PILOT_DIAGNOSE_RELEASE_MODE', releaseMode);
+                  append(envPath, 'TURNERO_PILOT_DIAGNOSE_EXPECTED_MATCH', expectedMatchText);
+                  append(envPath, 'TURNERO_PILOT_DIAGNOSE_EXPECTED_REASON', expectedReason);
+
+                  const reportPath = 'connectivity-report.json';
+                  if (fs.existsSync(reportPath)) {
+                    try {
+                      const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+                      report.turneroPilot = {
+                        status,
+                        reason,
+                        clinicId,
+                        profileFingerprint,
+                        catalogReady,
+                        releaseMode,
+                        expectedClinicId,
+                        expectedProfileFingerprint,
+                        expectedReleaseMode,
+                        expectedMatch,
+                        expectedReason,
+                      };
+                      fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+                    } catch {}
+                  }
+
+                  const textPath = 'connectivity-report.txt';
+                  if (fs.existsSync(textPath)) {
+                    const lines = [
+                      '',
+                      `- turnero_pilot_status: ${status}`,
+                      `- turnero_pilot_reason: ${reason}`,
+                      `- turnero_pilot_clinic_id: ${clinicId || 'n/a'}`,
+                      `- turnero_pilot_profile_fingerprint: ${profileFingerprint || 'n/a'}`,
+                      `- turnero_pilot_catalog_ready: ${catalogReadyText}`,
+                      `- turnero_pilot_release_mode: ${releaseMode}`,
+                      `- turnero_pilot_expected_match: ${expectedMatchText}`,
+                      `- turnero_pilot_expected_reason: ${expectedReason}`,
+                    ].join('\n');
+                    fs.appendFileSync(textPath, `${lines}\n`);
+                  }
+                  NODE
+
             - name: Connectivity summary
               if: ${{ always() }}
               shell: bash
@@ -197,6 +390,14 @@ jobs:
                     echo "- configured_host_count: \`${{ steps.connectivity_summary.outputs.configured_host_count }}\`";
                     echo "- reachable_any: \`${{ steps.connectivity_summary.outputs.reachable_any }}\`";
                     echo "- open_targets: \`${{ steps.connectivity_summary.outputs.open_targets }}\`";
+                    echo "- turnero_pilot_status: \`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_status }}\`";
+                    echo "- turnero_pilot_reason: \`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_reason }}\`";
+                    echo "- turnero_pilot_clinic_id: \`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_clinic_id }}\`";
+                    echo "- turnero_pilot_profile_fingerprint: \`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_profile_fingerprint }}\`";
+                    echo "- turnero_pilot_catalog_ready: \`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_catalog_ready }}\`";
+                    echo "- turnero_pilot_release_mode: \`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_release_mode }}\`";
+                    echo "- turnero_pilot_expected_match: \`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_expected_match }}\`";
+                    echo "- turnero_pilot_expected_reason: \`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_expected_reason }}\`";
                     echo "- report_json: \`connectivity-report.json\`";
                     echo "- report_text: \`connectivity-report.txt\`";
                   } >> "$GITHUB_STEP_SUMMARY"
@@ -214,6 +415,14 @@ jobs:
                   CONNECTIVITY_CONFIGURED_HOST_COUNT: ${{ steps.connectivity_summary.outputs.configured_host_count }}
                   CONNECTIVITY_OPEN_TARGETS: ${{ steps.connectivity_summary.outputs.open_targets }}
                   CONNECTIVITY_SIGNAL: ${{ steps.connectivity_summary.outputs.connectivity_signal }}
+                  TURNERO_PILOT_DIAGNOSE_STATUS: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_status }}
+                  TURNERO_PILOT_DIAGNOSE_REASON: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_reason }}
+                  TURNERO_PILOT_DIAGNOSE_CLINIC_ID: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_clinic_id }}
+                  TURNERO_PILOT_DIAGNOSE_PROFILE_FINGERPRINT: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_profile_fingerprint }}
+                  TURNERO_PILOT_DIAGNOSE_CATALOG_READY: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_catalog_ready }}
+                  TURNERO_PILOT_DIAGNOSE_RELEASE_MODE: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_release_mode }}
+                  TURNERO_PILOT_DIAGNOSE_EXPECTED_MATCH: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_expected_match }}
+                  TURNERO_PILOT_DIAGNOSE_EXPECTED_REASON: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_expected_reason }}
               run: |
                   set -euo pipefail
                   node <<'NODE'
@@ -278,6 +487,14 @@ jobs:
                         `- connectivity_status: ${process.env.CONNECTIVITY_STATUS || 'unknown'}`,
                         `- configured_host_count: ${process.env.CONNECTIVITY_CONFIGURED_HOST_COUNT || '0'}`,
                         `- open_targets: ${process.env.CONNECTIVITY_OPEN_TARGETS || 'none'}`,
+                        `- turnero_pilot_status: ${process.env.TURNERO_PILOT_DIAGNOSE_STATUS || 'unknown'}`,
+                        `- turnero_pilot_reason: ${process.env.TURNERO_PILOT_DIAGNOSE_REASON || 'unknown'}`,
+                        `- turnero_pilot_clinic_id: ${process.env.TURNERO_PILOT_DIAGNOSE_CLINIC_ID || 'n/a'}`,
+                        `- turnero_pilot_profile_fingerprint: ${process.env.TURNERO_PILOT_DIAGNOSE_PROFILE_FINGERPRINT || 'n/a'}`,
+                        `- turnero_pilot_catalog_ready: ${process.env.TURNERO_PILOT_DIAGNOSE_CATALOG_READY || 'false'}`,
+                        `- turnero_pilot_release_mode: ${process.env.TURNERO_PILOT_DIAGNOSE_RELEASE_MODE || 'unknown'}`,
+                        `- turnero_pilot_expected_match: ${process.env.TURNERO_PILOT_DIAGNOSE_EXPECTED_MATCH || 'false'}`,
+                        `- turnero_pilot_expected_reason: ${process.env.TURNERO_PILOT_DIAGNOSE_EXPECTED_REASON || 'not_evaluated'}`,
                         `- artifact_json: connectivity-report.json`,
                         `- artifact_text: connectivity-report.txt`,
                         '',
@@ -320,7 +537,12 @@ jobs:
                               `- Run: ${runUrl}`,
                               `- connectivity_status: ${process.env.CONNECTIVITY_STATUS || 'unknown'}`,
                               `- configured_host_count: ${process.env.CONNECTIVITY_CONFIGURED_HOST_COUNT || '0'}`,
-                              `- open_targets: ${process.env.CONNECTIVITY_OPEN_TARGETS || 'none'}`
+                              `- open_targets: ${process.env.CONNECTIVITY_OPEN_TARGETS || 'none'}`,
+                              `- turnero_pilot_status: ${process.env.TURNERO_PILOT_DIAGNOSE_STATUS || 'unknown'}`,
+                              `- turnero_pilot_clinic_id: ${process.env.TURNERO_PILOT_DIAGNOSE_CLINIC_ID || 'n/a'}`,
+                              `- turnero_pilot_profile_fingerprint: ${process.env.TURNERO_PILOT_DIAGNOSE_PROFILE_FINGERPRINT || 'n/a'}`,
+                              `- turnero_pilot_expected_match: ${process.env.TURNERO_PILOT_DIAGNOSE_EXPECTED_MATCH || 'false'}`,
+                              `- turnero_pilot_expected_reason: ${process.env.TURNERO_PILOT_DIAGNOSE_EXPECTED_REASON || 'not_evaluated'}`
                             ].join('\n'),
                           },
                         });
@@ -353,6 +575,9 @@ jobs:
                   GITHUB_SERVER_URL: ${{ github.server_url }}
                   CONNECTIVITY_STATUS: ${{ steps.connectivity_summary.outputs.connectivity_status }}
                   CONNECTIVITY_OPEN_TARGETS: ${{ steps.connectivity_summary.outputs.open_targets }}
+                  TURNERO_PILOT_DIAGNOSE_STATUS: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_status }}
+                  TURNERO_PILOT_DIAGNOSE_CLINIC_ID: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_clinic_id }}
+                  TURNERO_PILOT_DIAGNOSE_PROFILE_FINGERPRINT: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_profile_fingerprint }}
               run: |
                   set -euo pipefail
                   node <<'NODE'
@@ -410,7 +635,10 @@ jobs:
                             `- Fecha: ${now}`,
                             `- Run: ${runUrl}`,
                             `- connectivity_status: ${process.env.CONNECTIVITY_STATUS || 'reachable'}`,
-                            `- open_targets: ${process.env.CONNECTIVITY_OPEN_TARGETS || 'n/a'}`
+                            `- open_targets: ${process.env.CONNECTIVITY_OPEN_TARGETS || 'n/a'}`,
+                            `- turnero_pilot_status: ${process.env.TURNERO_PILOT_DIAGNOSE_STATUS || 'unknown'}`,
+                            `- turnero_pilot_clinic_id: ${process.env.TURNERO_PILOT_DIAGNOSE_CLINIC_ID || 'n/a'}`,
+                            `- turnero_pilot_profile_fingerprint: ${process.env.TURNERO_PILOT_DIAGNOSE_PROFILE_FINGERPRINT || 'n/a'}`
                           ].join('\n'),
                         },
                       });

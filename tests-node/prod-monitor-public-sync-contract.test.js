@@ -29,6 +29,7 @@ test('prod monitor clasifica incidentes publicSync con telemetria canonica', () 
     const raw = load(MONITOR_PATH);
     const requiredSnippets = [
         'resource=health-diagnostics',
+        "$turneroClinicProfileScriptPath = Join-Path $repoRoot 'bin/turnero-clinic-profile.js'",
         '[switch]$AllowDegradedPublicSync',
         'function Add-MonitorFailure',
         '$publicSyncNode = $null',
@@ -63,10 +64,33 @@ test('prod monitor clasifica incidentes publicSync con telemetria canonica', () 
     }
 });
 
+test('prod monitor integra verify-remote del piloto web por clínica en el triage rápido', () => {
+    const raw = load(MONITOR_PATH);
+    const requiredSnippets = [
+        '$turneroPilotVerifyRequired = $false',
+        "Add-MonitorFailure -Message '[FAIL] turneroPilot clinic-profile status unresolved' -AllowDegraded:$AllowDegradedPublicSync",
+        'Add-MonitorFailure -Message "[FAIL] turneroPilot catalog drift (clinicId=$turneroPilotClinicId)" -AllowDegraded:$AllowDegradedPublicSync',
+        '[INFO] turneroPilot clinicId=$turneroPilotClinicId catalogMatch=$turneroPilotCatalogMatch',
+        '& node $turneroClinicProfileScriptPath verify-remote --base-url $base --json 2>&1',
+        '[INFO] turneroPilot remote clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady',
+        'Add-MonitorFailure -Message "[FAIL] turneroPilot remote mismatch (clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady)" -AllowDegraded:$AllowDegradedPublicSync',
+        "Write-Host '[INFO] turneroPilot verify-remote omitido: perfil activo no esta en modo web_pilot.'",
+        "Write-Host '[WARN] bin/turnero-clinic-profile.js no existe; se omite monitor turneroPilot.'",
+    ];
+
+    for (const snippet of requiredSnippets) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta snippet turneroPilot en MONITOR-PRODUCCION.ps1: ${snippet}`
+        );
+    }
+});
+
 test('prod monitor clasifica alertas GitHub de deploy dentro del mismo triage', () => {
     const raw = load(MONITOR_PATH);
     const requiredSnippets = [
-        "[string]$GitHubRepo = 'erosero558558/piel-en-armonia'",
+        "[string]$GitHubRepo = 'erosero558558/Aurora-Derm'",
         '$githubDeployAlertsSummary = Get-GitHubProductionAlertSummary',
         '[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk',
         '[WARN] github.deployAlerts unreachable (repo=$GitHubRepo error=$githubDeployAlertsError)',
@@ -75,6 +99,10 @@ test('prod monitor clasifica alertas GitHub de deploy dentro del mismo triage', 
         'Add-MonitorFailure -Message "[FAIL] github.deployAlerts deploy connectivity blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync',
         'Add-MonitorFailure -Message "[FAIL] github.deployAlerts repair git sync blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync',
         'Add-MonitorFailure -Message "[FAIL] github.deployAlerts self-hosted runner blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync',
+        'selfHostedDeployCount=$githubDeployAlertsSelfHostedDeployCount',
+        'Add-MonitorFailure -Message "[FAIL] github.deployAlerts self-hosted deploy blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync',
+        'turneroPilotCount=$githubDeployAlertsTurneroPilotCount',
+        'Add-MonitorFailure -Message "[FAIL] github.deployAlerts turnero pilot blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync',
     ];
 
     for (const snippet of requiredSnippets) {
@@ -165,6 +193,8 @@ test('prod ops readme documenta el monitor como consumidor de publicSync', () =>
         'telemetryGap',
         'dirtyPathsCount',
         'dirtyPathsSample',
+        'turneroPilot',
+        'verify-remote',
         'github.deployAlerts',
         'github_deploy_*',
         'checks.auth',
@@ -196,6 +226,8 @@ test('runbook enlaza el monitor con el triage canonico de public sync', () => {
         'headDrift',
         'telemetryGap',
         'dirtyPathsSample',
+        'turneroPilot',
+        'verify-remote',
         'github.deployAlerts',
         'githubDeployAlerts',
         'github_deploy_*',

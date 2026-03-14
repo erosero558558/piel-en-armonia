@@ -205,6 +205,66 @@ function buildPublicationReadinessDetail(publicSync, clinicName, release) {
     return `public_main_sync sano y commit ${formatShortCommit(publicSync.deployedCommit)} ya coincide con la publicación activa de ${clinicName}.`;
 }
 
+function buildPilotHealthReadinessDetail(
+    turneroPilotHealth,
+    clinicName,
+    clinicId,
+    profileFingerprint,
+    syncHealth,
+    telemetryReadyCount,
+    telemetryCount
+) {
+    if (!turneroPilotHealth || turneroPilotHealth.available !== true) {
+        return 'El host no publica `checks.turneroPilot`; falta confirmar clinic_id, catálogo, canon y la señal viva + heartbeats del piloto desde `/health`.';
+    }
+
+    if (turneroPilotHealth.configured !== true) {
+        return 'El host todavía no expone el contrato `turneroPilot` en `/health`.';
+    }
+
+    if (turneroPilotHealth.profileSource !== 'file') {
+        return `Health público usa perfil ${turneroPilotHealth.profileSource || 'desconocido'}; falta un clinic-profile.json activo antes del go-live.`;
+    }
+
+    if (
+        turneroPilotHealth.clinicId &&
+        String(turneroPilotHealth.clinicId).trim().toLowerCase() !==
+            String(clinicId || '')
+                .trim()
+                .toLowerCase()
+    ) {
+        return `Health público reporta clinic_id ${turneroPilotHealth.clinicId}, pero el piloto activo exige ${clinicId}.`;
+    }
+
+    if (
+        profileFingerprint &&
+        turneroPilotHealth.profileFingerprint &&
+        turneroPilotHealth.profileFingerprint !== profileFingerprint
+    ) {
+        return `Health público reporta firma ${turneroPilotHealth.profileFingerprint}, pero el perfil activo usa ${profileFingerprint}.`;
+    }
+
+    if (turneroPilotHealth.catalogReady !== true) {
+        return `Health público todavía no confirma un perfil catalogado para ${clinicName}.`;
+    }
+
+    if (turneroPilotHealth.ready !== true) {
+        return `Health público todavía no marca ${clinicName} como piloto listo; revisa release, catálogo y rutas activas.`;
+    }
+
+    if (
+        syncHealth.state !== 'ready' ||
+        telemetryReadyCount !== telemetryCount
+    ) {
+        return `Health público ya confirma ${clinicName}, pero todavía faltan ${Math.max(
+            0,
+            telemetryCount - telemetryReadyCount
+        )} superficie(s) o la cola sigue degradada.`;
+    }
+
+    return `Health público confirma ${clinicName} (${clinicId}) con firma ${turneroPilotHealth.profileFingerprint} y heartbeats listos para operar.`;
+}
+
 function buildSmokeStepState(
     surfaceReady,
     telemetryEntry,
@@ -255,6 +315,7 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
         getTurneroClinicProfileCatalogStatus,
         getTurneroClinicBrandName,
         getTurneroPublicSyncStatus,
+        getTurneroPilotHealthStatus,
         hasRecentQueueSmokeSignal,
         buildPreparedSurfaceUrl,
         defaultAppDownloads,
@@ -325,6 +386,10 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
     const publicSync =
         typeof getTurneroPublicSyncStatus === 'function'
             ? getTurneroPublicSyncStatus()
+            : null;
+    const turneroPilotHealth =
+        typeof getTurneroPilotHealthStatus === 'function'
+            ? getTurneroPilotHealthStatus()
             : null;
     const requiredSurfaceKeys = ['admin', 'operator', 'kiosk', 'display'];
     const enabledSurfaceKeys = requiredSurfaceKeys.filter(
@@ -544,14 +609,30 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
         {
             id: 'health',
             ready:
+                turneroPilotHealth?.available === true &&
+                turneroPilotHealth?.configured === true &&
+                turneroPilotHealth?.profileSource === 'file' &&
+                String(turneroPilotHealth?.clinicId || '')
+                    .trim()
+                    .toLowerCase() === clinicId.toLowerCase() &&
+                (!profileFingerprint ||
+                    String(
+                        turneroPilotHealth?.profileFingerprint || ''
+                    ).trim() === profileFingerprint) &&
+                turneroPilotHealth?.catalogReady === true &&
+                turneroPilotHealth?.ready === true &&
                 syncHealth.state === 'ready' &&
                 telemetryReadyCount === telemetry.length,
             label: 'Señal viva + heartbeats',
-            detail:
-                syncHealth.state === 'ready' &&
-                telemetryReadyCount === telemetry.length
-                    ? 'Operador, kiosco y sala reportan señal estable para operar la clínica real.'
-                    : `Hay ${Math.max(0, telemetry.length - telemetryReadyCount)} superficie(s) sin estado listo o la cola sigue degradada.`,
+            detail: buildPilotHealthReadinessDetail(
+                turneroPilotHealth,
+                clinicName,
+                clinicId,
+                profileFingerprint,
+                syncHealth,
+                telemetryReadyCount,
+                telemetry.length
+            ),
             blocker: false,
         },
         {

@@ -24,6 +24,7 @@ Notas del corte:
 - En el mismo shell, revisa `queueOpsPilotIssues`: debe dejar una lista corta de `Bloqueos de salida`. Si algo aparece en `Bloquea`, resuélvelo primero y vuelve recién después al smoke final.
 - En el mismo bloque valida `queueOpsPilotCanon`: debe listar las cuatro rutas web activas de esa clínica (`admin`, `operador`, `kiosco`, `sala`) antes de compartir accesos al equipo local.
 - Dentro de ese canon, cada superficie debe quedar como `Verificada`, `Declarada` o `Bloquea`; si aparece `Bloquea`, el piloto no abre hasta corregir la ruta reportada por heartbeat.
+- Valida también `GET /api.php?resource=health`: `checks.turneroPilot` debe reportar el mismo `clinicId` y `profileFingerprint` del perfil activo, con `profileSource=file` y `catalogReady=true`. Si no coincide, no abras la clínica aunque `publicSync` esté sano.
 - Lo mismo aplica para identidad de clínica: si `operator`, `kiosco` o `sala` reportan un `clinic_id` distinto al del perfil activo, trátalo como mezcla de entornos y no abras la clínica.
 - Si el `clinic_id` coincide pero la superficie reporta otra `firma` de perfil, trátalo como un equipo desactualizado: vuelve a desplegar o refrescar esa superficie antes del go-live.
 - Debajo del canon, valida `queueOpsPilotSmoke`: debe dejar visible una secuencia repetible con enlaces directos por clínica para `admin`, `operador`, `kiosco`, `sala` y el cierre del llamado final antes del go-live.
@@ -45,6 +46,8 @@ Notas del corte:
 - Cada clínica debe desplegar su propia copia con `content/turnero/clinic-profile.json` dedicado; no hay runtime multi-tenant compartido en este corte.
 - La fuente canónica de esos perfiles ahora vive en `content/turnero/clinic-profiles/*.json`. Antes del deploy, prepara el perfil activo con `node bin/turnero-clinic-profile.js stage --id <clinic_id>`.
 - Usa `node bin/turnero-clinic-profile.js validate --id <clinic_id>` para validar branding, rutas canónicas y `separate_deploy=true` antes de publicar.
+- Después del deploy, usa `node bin/turnero-clinic-profile.js verify-remote --base-url https://TU_DOMINIO --json` para comparar el perfil activo con `checks.turneroPilot` del host público antes de abrir la clínica.
+- `pwsh -File scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1 -Domain https://TU_DOMINIO` ya corre ese `verify-remote` automáticamente cuando el perfil activo está en `release.mode=web_pilot`, y debe fallar con `turnero-pilot-profile-status` o `turnero-pilot-remote-verify` si el host publicado no coincide.
 
 ## Superficies operativas
 

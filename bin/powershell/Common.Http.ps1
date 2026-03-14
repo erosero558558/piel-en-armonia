@@ -294,10 +294,14 @@ function Get-GitHubProductionAlertSummary {
         connectivityCount = 0
         repairGitSyncCount = 0
         selfHostedRunnerCount = 0
+        selfHostedDeployCount = 0
+        turneroPilotCount = 0
         hasTransportBlock = $false
         hasConnectivityBlock = $false
         hasRepairGitSyncBlock = $false
         hasSelfHostedRunnerBlock = $false
+        hasSelfHostedDeployBlock = $false
+        hasTurneroPilotBlock = $false
         issueNumbersLabel = 'none'
         issueRefsLabel = 'none'
     }
@@ -370,7 +374,9 @@ function Get-GitHubProductionAlertSummary {
             $labelValues -contains 'diagnose-host-connectivity' -or
             $labelValues -contains 'deploy-connectivity' -or
             $labelValues -contains 'repair-git-sync' -or
-            $labelValues -contains 'self-hosted-runner'
+            $labelValues -contains 'self-hosted-runner' -or
+            $labelValues -contains 'self-hosted-route' -or
+            $labelValues -contains 'turnero-pilot'
         )
         if (-not $isDeployRelevant) {
             continue
@@ -399,6 +405,14 @@ function Get-GitHubProductionAlertSummary {
         if ($labelValues -contains 'self-hosted-runner') {
             $categories.Add('self-hosted-runner') | Out-Null
             $summary.selfHostedRunnerCount++
+        }
+        if ($labelValues -contains 'self-hosted-route') {
+            $categories.Add('self-hosted-deploy') | Out-Null
+            $summary.selfHostedDeployCount++
+        }
+        if ($labelValues -contains 'turnero-pilot') {
+            $categories.Add('turnero-pilot') | Out-Null
+            $summary.turneroPilotCount++
         }
 
         $categoryLabel = 'deploy'
@@ -438,6 +452,8 @@ function Get-GitHubProductionAlertSummary {
     $summary.hasConnectivityBlock = [bool]($summary.connectivityCount -gt 0)
     $summary.hasRepairGitSyncBlock = [bool]($summary.repairGitSyncCount -gt 0)
     $summary.hasSelfHostedRunnerBlock = [bool]($summary.selfHostedRunnerCount -gt 0)
+    $summary.hasSelfHostedDeployBlock = [bool]($summary.selfHostedDeployCount -gt 0)
+    $summary.hasTurneroPilotBlock = [bool]($summary.turneroPilotCount -gt 0)
     $summary.issueNumbersLabel = if ($issueNumbers.Count -eq 0) {
         'none'
     } else {
@@ -1406,7 +1422,8 @@ function Write-VerifyReport {
         [string]$Path,
         [string]$Domain,
         [Object[]]$Results,
-        [int]$FailedCount
+        [int]$FailedCount,
+        [object]$Metadata = $null
     )
 
     try {
@@ -1415,7 +1432,7 @@ function Write-VerifyReport {
             New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
         }
 
-        $report = [pscustomobject]@{
+        $reportData = [ordered]@{
             generatedAt = (Get-Date).ToString('o')
             domain = $Domain
             failed = $FailedCount
@@ -1425,6 +1442,13 @@ function Write-VerifyReport {
             checks = @($Results)
         }
 
+        if ($null -ne $Metadata -and $Metadata -is [System.Collections.IDictionary]) {
+            foreach ($entry in $Metadata.GetEnumerator()) {
+                $reportData[[string]$entry.Key] = $entry.Value
+            }
+        }
+
+        $report = [pscustomobject]$reportData
         $report | ConvertTo-Json -Depth 12 | Set-Content -Path $Path -Encoding UTF8
         Write-Host "[INFO] reporte de verificacion guardado: $Path"
     } catch {

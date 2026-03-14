@@ -133,6 +133,13 @@ jobs:
             TELEMEDICINE_FAST_REASON: not_evaluated
             TELEMEDICINE_FAST_FAILURES: '0'
             TELEMEDICINE_FAST_NON_TELE_FAILURES: '0'
+            TURNERO_PILOT_FAST_STATUS: unknown
+            TURNERO_PILOT_FAST_REASON: not_evaluated
+            TURNERO_PILOT_FAST_CLINIC_ID: ''
+            TURNERO_PILOT_FAST_PROFILE_FINGERPRINT: ''
+            TURNERO_PILOT_FAST_CATALOG_READY: 'false'
+            TURNERO_PILOT_FAST_REMOTE_VERIFIED: 'false'
+            TURNERO_PILOT_FAST_DEPLOYED_COMMIT: ''
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -378,6 +385,122 @@ jobs:
                   "non_tele_failures=$nonTeleFailures" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
                   Write-Host "Telemedicine fast => status=$status reason=$reason tele_failures=$teleFailures non_tele_failures=$nonTeleFailures"
 
+            - name: Evaluar estado turneroPilot fast lane
+              id: turnero_pilot_fast
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  $status = 'unknown'
+                  $reason = 'verify_report_missing'
+                  $clinicId = ''
+                  $profileFingerprint = ''
+                  $statusResolved = $false
+                  $verifyRemoteRequired = $false
+                  $catalogReady = $false
+                  $remoteVerified = $false
+                  $deployedCommit = ''
+                  $releaseMode = ''
+                  $reportPath = 'verification/last-deploy-verify.json'
+
+                  if (Test-Path $reportPath) {
+                    try {
+                      $report = Get-Content -Raw $reportPath | ConvertFrom-Json -Depth 20
+                      $turneroPilot = $null
+                      try { $turneroPilot = $report.turneroPilot } catch { $turneroPilot = $null }
+                      $failures = @()
+                      try { $failures = @($report.failures) } catch { $failures = @() }
+
+                      if ($null -eq $turneroPilot) {
+                        $status = 'unknown'
+                        $reason = 'turnero_pilot_missing'
+                      } else {
+                        try { $clinicId = [string]$turneroPilot.clinicId } catch { $clinicId = '' }
+                        try { $profileFingerprint = [string]$turneroPilot.profileFingerprint } catch { $profileFingerprint = '' }
+                        try { $statusResolved = [bool]$turneroPilot.statusResolved } catch { $statusResolved = $false }
+                        try { $verifyRemoteRequired = [bool]$turneroPilot.verifyRemoteRequired } catch { $verifyRemoteRequired = $false }
+                        try { $catalogReady = [bool]$turneroPilot.catalogReady } catch { $catalogReady = $false }
+                        try { $remoteVerified = [bool]$turneroPilot.remoteVerified } catch { $remoteVerified = $false }
+                        try { $deployedCommit = [string]$turneroPilot.remoteDeployedCommit } catch { $deployedCommit = '' }
+                        try { $releaseMode = [string]$turneroPilot.releaseMode } catch { $releaseMode = '' }
+
+                        $blocking = New-Object System.Collections.Generic.List[string]
+                        if (-not $statusResolved) {
+                          $blocking.Add('profile_status_unresolved')
+                        }
+                        if (-not $catalogReady) {
+                          $blocking.Add('catalog_not_ready')
+                        }
+                        if (@($failures | Where-Object { [string]$_.Asset -eq 'turnero-pilot-profile-status' }).Count -gt 0) {
+                          $blocking.Add('verify_asset:turnero-pilot-profile-status')
+                        }
+                        if (@($failures | Where-Object { [string]$_.Asset -eq 'turnero-pilot-remote-verify' }).Count -gt 0) {
+                          $blocking.Add('verify_asset:turnero-pilot-remote-verify')
+                        }
+                        if ($releaseMode -eq 'web_pilot' -and $verifyRemoteRequired -and -not $remoteVerified) {
+                          $blocking.Add('remote_verify_failed')
+                        }
+
+                        if (-not [string]::IsNullOrWhiteSpace($releaseMode) -and $releaseMode -ne 'web_pilot') {
+                          $status = 'not_required'
+                          $reason = "release_mode:$releaseMode"
+                        } elseif ($blocking.Count -gt 0) {
+                          $status = 'blocked'
+                          $reason = ($blocking | Select-Object -Unique) -join ';'
+                        } else {
+                          $status = 'ready'
+                          $reason = 'ok'
+                        }
+                      }
+                    } catch {
+                      $status = 'unknown'
+                      $reason = 'verify_report_unreadable'
+                    }
+                  }
+
+                  $statusResolvedText = if ($statusResolved) { 'true' } else { 'false' }
+                  $verifyRemoteRequiredText = if ($verifyRemoteRequired) { 'true' } else { 'false' }
+                  $catalogReadyText = if ($catalogReady) { 'true' } else { 'false' }
+                  $remoteVerifiedText = if ($remoteVerified) { 'true' } else { 'false' }
+                  "TURNERO_PILOT_FAST_STATUS=$status" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TURNERO_PILOT_FAST_REASON=$reason" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TURNERO_PILOT_FAST_CLINIC_ID=$clinicId" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TURNERO_PILOT_FAST_PROFILE_FINGERPRINT=$profileFingerprint" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TURNERO_PILOT_FAST_STATUS_RESOLVED=$statusResolvedText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TURNERO_PILOT_FAST_VERIFY_REMOTE_REQUIRED=$verifyRemoteRequiredText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TURNERO_PILOT_FAST_RELEASE_MODE=$releaseMode" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TURNERO_PILOT_FAST_CATALOG_READY=$catalogReadyText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TURNERO_PILOT_FAST_REMOTE_VERIFIED=$remoteVerifiedText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TURNERO_PILOT_FAST_DEPLOYED_COMMIT=$deployedCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "status=$status" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  "reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  Write-Host "Turnero pilot fast => status=$status reason=$reason clinicId=$clinicId fingerprint=$profileFingerprint catalogReady=$catalogReadyText remoteVerified=$remoteVerifiedText deployedCommit=$deployedCommit"
+
+            - name: Escribir reporte turneroPilot fast
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  New-Item -ItemType Directory -Path verification -Force | Out-Null
+                  $report = [ordered]@{
+                    generatedAt = [DateTimeOffset]::UtcNow.ToString('o')
+                    workflow = 'post-deploy-fast'
+                    targetDomain = [string]$env:TARGET_DOMAIN
+                    turneroPilot = [ordered]@{
+                      status = [string]$env:TURNERO_PILOT_FAST_STATUS
+                      reason = [string]$env:TURNERO_PILOT_FAST_REASON
+                      clinicId = [string]$env:TURNERO_PILOT_FAST_CLINIC_ID
+                      profileFingerprint = [string]$env:TURNERO_PILOT_FAST_PROFILE_FINGERPRINT
+                      statusResolved = ([string]$env:TURNERO_PILOT_FAST_STATUS_RESOLVED).ToLowerInvariant() -eq 'true'
+                      verifyRemoteRequired = ([string]$env:TURNERO_PILOT_FAST_VERIFY_REMOTE_REQUIRED).ToLowerInvariant() -eq 'true'
+                      releaseMode = [string]$env:TURNERO_PILOT_FAST_RELEASE_MODE
+                      catalogReady = ([string]$env:TURNERO_PILOT_FAST_CATALOG_READY).ToLowerInvariant() -eq 'true'
+                      remoteVerified = ([string]$env:TURNERO_PILOT_FAST_REMOTE_VERIFIED).ToLowerInvariant() -eq 'true'
+                      deployedCommit = [string]$env:TURNERO_PILOT_FAST_DEPLOYED_COMMIT
+                    }
+                    sourceVerifyReport = 'verification/last-deploy-verify.json'
+                  }
+                  $report | ConvertTo-Json -Depth 8 | Set-Content -Path 'verification/last-turnero-pilot-fast.json' -Encoding utf8
+                  Write-Host 'Reporte turneroPilot fast escrito en verification/last-turnero-pilot-fast.json'
+
             - name: Resumen
               if: ${{ always() }}
               shell: pwsh
@@ -425,7 +548,28 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine fast failures: ``$env:TELEMEDICINE_FAST_FAILURES``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine fast non-tele failures: ``$env:TELEMEDICINE_FAST_NON_TELE_FAILURES``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Telemedicine fast step outcome: ``${{ steps.telemedicine_fast.outcome }}``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast status: ``$env:TURNERO_PILOT_FAST_STATUS``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast reason: ``$env:TURNERO_PILOT_FAST_REASON``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast clinicId: ``$env:TURNERO_PILOT_FAST_CLINIC_ID``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast fingerprint: ``$env:TURNERO_PILOT_FAST_PROFILE_FINGERPRINT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast status resolved: ``$env:TURNERO_PILOT_FAST_STATUS_RESOLVED``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast verify-remote required: ``$env:TURNERO_PILOT_FAST_VERIFY_REMOTE_REQUIRED``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast release mode: ``$env:TURNERO_PILOT_FAST_RELEASE_MODE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast catalog ready: ``$env:TURNERO_PILOT_FAST_CATALOG_READY``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast remote verified: ``$env:TURNERO_PILOT_FAST_REMOTE_VERIFIED``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast deployed commit: ``$env:TURNERO_PILOT_FAST_DEPLOYED_COMMIT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Reporte turnero pilot fast: ``verification/last-turnero-pilot-fast.json``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast step outcome: ``${{ steps.turnero_pilot_fast.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ job.status }}``"
+
+            - name: Publicar reporte turneroPilot fast
+              if: ${{ always() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: post-deploy-turnero-pilot-fast-report
+                  path: verification/last-turnero-pilot-fast.json
+                  if-no-files-found: warn
+                  retention-days: 14
 
             - name: Crear/actualizar incidente fast lane
               if: ${{ failure() && github.event_name != 'workflow_dispatch' && ((env.TELEMEDICINE_FAST_STATUS != 'degraded_only' && env.TELEMEDICINE_FAST_STATUS != 'unknown') || env.TELEMEDICINE_FAST_NON_TELE_FAILURES != '0') }}
@@ -454,6 +598,16 @@ jobs:
                   TELEMEDICINE_FAST_REASON: ${{ env.TELEMEDICINE_FAST_REASON }}
                   TELEMEDICINE_FAST_FAILURES: ${{ env.TELEMEDICINE_FAST_FAILURES }}
                   TELEMEDICINE_FAST_NON_TELE_FAILURES: ${{ env.TELEMEDICINE_FAST_NON_TELE_FAILURES }}
+                  TURNERO_PILOT_FAST_STATUS: ${{ env.TURNERO_PILOT_FAST_STATUS }}
+                  TURNERO_PILOT_FAST_REASON: ${{ env.TURNERO_PILOT_FAST_REASON }}
+                  TURNERO_PILOT_FAST_CLINIC_ID: ${{ env.TURNERO_PILOT_FAST_CLINIC_ID }}
+                  TURNERO_PILOT_FAST_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_FAST_PROFILE_FINGERPRINT }}
+                  TURNERO_PILOT_FAST_STATUS_RESOLVED: ${{ env.TURNERO_PILOT_FAST_STATUS_RESOLVED }}
+                  TURNERO_PILOT_FAST_VERIFY_REMOTE_REQUIRED: ${{ env.TURNERO_PILOT_FAST_VERIFY_REMOTE_REQUIRED }}
+                  TURNERO_PILOT_FAST_RELEASE_MODE: ${{ env.TURNERO_PILOT_FAST_RELEASE_MODE }}
+                  TURNERO_PILOT_FAST_CATALOG_READY: ${{ env.TURNERO_PILOT_FAST_CATALOG_READY }}
+                  TURNERO_PILOT_FAST_REMOTE_VERIFIED: ${{ env.TURNERO_PILOT_FAST_REMOTE_VERIFIED }}
+                  TURNERO_PILOT_FAST_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_FAST_DEPLOYED_COMMIT }}
                   JOB_STATUS: ${{ job.status }}
               with:
                   script: |
@@ -492,6 +646,16 @@ jobs:
                         `- telemedicine_fast_reason: ${process.env.TELEMEDICINE_FAST_REASON || 'n/a'}`,
                         `- telemedicine_fast_failures: ${process.env.TELEMEDICINE_FAST_FAILURES || '0'}`,
                         `- telemedicine_fast_non_tele_failures: ${process.env.TELEMEDICINE_FAST_NON_TELE_FAILURES || '0'}`,
+                        `- turnero_pilot_fast_status: ${process.env.TURNERO_PILOT_FAST_STATUS || 'n/a'}`,
+                        `- turnero_pilot_fast_reason: ${process.env.TURNERO_PILOT_FAST_REASON || 'n/a'}`,
+                        `- turnero_pilot_fast_clinic_id: ${process.env.TURNERO_PILOT_FAST_CLINIC_ID || 'n/a'}`,
+                        `- turnero_pilot_fast_profile_fingerprint: ${process.env.TURNERO_PILOT_FAST_PROFILE_FINGERPRINT || 'n/a'}`,
+                        `- turnero_pilot_fast_status_resolved: ${process.env.TURNERO_PILOT_FAST_STATUS_RESOLVED || 'false'}`,
+                        `- turnero_pilot_fast_verify_remote_required: ${process.env.TURNERO_PILOT_FAST_VERIFY_REMOTE_REQUIRED || 'false'}`,
+                        `- turnero_pilot_fast_release_mode: ${process.env.TURNERO_PILOT_FAST_RELEASE_MODE || 'n/a'}`,
+                        `- turnero_pilot_fast_catalog_ready: ${process.env.TURNERO_PILOT_FAST_CATALOG_READY || 'false'}`,
+                        `- turnero_pilot_fast_remote_verified: ${process.env.TURNERO_PILOT_FAST_REMOTE_VERIFIED || 'false'}`,
+                        `- turnero_pilot_fast_deployed_commit: ${process.env.TURNERO_PILOT_FAST_DEPLOYED_COMMIT || 'n/a'}`,
                         `- admin_rollout_outcome: ${process.env.ADMIN_ROLLOUT_OUTCOME || 'skipped'}`,
                         `- job_status: ${process.env.JOB_STATUS || 'n/a'}`
                       ].join('\n');

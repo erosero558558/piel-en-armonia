@@ -67,6 +67,12 @@ It should surface `jobId`, `failureReason`, `lastErrorMessage`,
 If you need observation mode without hiding the incident, run it with
 `-AllowDegradedPublicSync`.
 
+When `content/turnero/clinic-profile.json` is in `release.mode=web_pilot`,
+that same monitor now runs
+`node bin/turnero-clinic-profile.js verify-remote --base-url <domain> --json`
+and raises `turneroPilot` in the triage if the live host exposes another
+`clinic_id`, another `profileFingerprint`, or a pilot catalog/canon mismatch.
+
 The same monitor now also resolves open GitHub `production-alert` issues for
 `deploy-hosting`, `diagnose-host-connectivity`, `repair-git-sync`, and
 `self-hosted-runner`. Expect a `github.deployAlerts` line with live issue
@@ -85,6 +91,66 @@ alerts and fail by default while those incidents remain open. Use
 `-AllowOpenGitHubDeployAlerts` only for observation runs where you need the
 rest of the runtime evidence without muting the live GitHub incident.
 
+For the web pilot, `SMOKE-PRODUCCION.ps1` now also runs
+`node bin/turnero-clinic-profile.js verify-remote --base-url <domain> --json`
+whenever the active profile is `release.mode=web_pilot`, and fails if the live
+host exposes another `clinic_id`, another `profileFingerprint`, or another
+pilot catalog/canon than the local release.
+
+`GATE-POSTDEPLOY.ps1` now does the local half first: it resolves
+`content/turnero/clinic-profile.json`, confirms catalog alignment, and only
+then spends the full `verify + smoke + bench` run. That keeps broken pilot
+profiles from looking like generic runtime failures later in the gate.
+
+When the active `content/turnero/clinic-profile.json` is in `release.mode=web_pilot`,
+`VERIFICAR-DESPLIEGUE.ps1` also runs
+`node bin/turnero-clinic-profile.js verify-remote --base-url <domain> --json`
+and fails with `turnero-pilot-profile-status` or `turnero-pilot-remote-verify`
+if the live host exposes a different `clinic_id`, `profileFingerprint`, catalog
+status, or pilot canon than the local release.
+`verification/last-deploy-verify.json` now persists that snapshot as
+`turneroPilot`, and both `post-deploy-fast.yml` and `post-deploy-gate.yml`
+surface `Turnero pilot` lines in `GITHUB_STEP_SUMMARY` and incident bodies.
+Those summaries now also expose `statusResolved`, `verifyRemoteRequired`, and
+`releaseMode`, so ops can see whether the pilot was truly blocked or simply
+`not_required` for a non-`web_pilot` release without opening the raw JSON.
+Both lanes now also emit standalone workflow artifacts
+`verification/last-turnero-pilot-fast.json` and
+`verification/last-turnero-pilot-gate.json`, so the pilot verdict survives even
+when you only need the workflow evidence and not the full verify report.
+`repair-git-sync.yml` now emits the same verdict after self-heal as
+`verification/last-turnero-pilot-repair.json` plus the artifact
+`repair-turnero-pilot-report`, so ops can distinguish a repaired host from a
+host that remained on the wrong clinic/fingerprint after the git reset.
+`deploy-hosting.yml` now does the same on the local side: it resolves the
+active `clinic-profile` before publish, writes
+`.public-cutover/turnero-pilot-status.json`, and exposes that status in the
+deploy summary before dispatching the post-deploy workflows.
+After publish, `deploy-hosting.yml` also runs
+`node bin/turnero-clinic-profile.js verify-remote --base-url <domain> --json`,
+writes `.public-cutover/turnero-pilot-remote.json`, blocks the dispatch of
+`post-deploy-fast.yml` / `post-deploy-gate.yml` if the live host no longer
+matches the staged pilot profile, and fails the workflow with the remote
+reason in the summary.
+If that remote verify stays blocked, `deploy-hosting.yml` now raises
+`[ALERTA PROD] Deploy Hosting turneroPilot bloqueado` and closes it only when
+the next successful publish verifies the live clinic/fingerprint again.
+The manual Windows fallback `deploy-frontend-selfhosted.yml` now enforces the
+same pilot contract before the clinic can be opened: it resolves the active
+`clinic-profile`, writes `.selfhosted-cutover/turnero-pilot-status.json`,
+runs `node bin/turnero-clinic-profile.js verify-remote --base-url <domain> --json`
+after publish, writes `.selfhosted-cutover/turnero-pilot-remote.json`, uploads
+`verification/last-turnero-pilot-selfhosted.json`, and raises
+`[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado` if the live
+host no longer matches the expected clinic/fingerprint.
+That same manual lane now also raises
+`[ALERTA PROD] Deploy Frontend Self-Hosted ruta bloqueada` when the fallback
+itself fails during `build`, `deploy` or `validate`, so a broken Windows/manual
+publish path no longer looks like a silent operator-only failure.
+If a later `repair-git-sync.yml` run still leaves the pilot blocked, it now
+raises `[ALERTA PROD] Repair git sync turneroPilot bloqueado` and closes it
+only when repair returns the host to `ready` or `not_required`.
+
 Triage the canonical `publicSync` signals before touching the host:
 
 - `failureReason=working_tree_dirty` is the canonical first-pass classification for tracked repo drift on the VPS.
@@ -97,8 +163,15 @@ Triage the GitHub-side deploy corroboration in the same pass:
 - `github.deployAlerts transport blocked` maps to the open incident created by `deploy-hosting.yml` when the GitHub-hosted runner cannot open the transport port.
 - `github.deployAlerts deploy connectivity blocked` maps to `diagnose-host-connectivity.yml` proving that no configured target is reachable from GitHub-hosted infrastructure.
 - `github.deployAlerts self-hosted runner blocked` means the Windows fallback path is queued or otherwise unavailable, so the repo-side fallback is waiting on runner capacity.
+- `github.deployAlerts self-hosted deploy blocked` means `deploy-frontend-selfhosted.yml` ran but the manual Windows fallback itself failed during `build`, `deploy` or `validate`, so the lane exists but did not close the publish.
 - `github.deployAlerts repair git sync blocked` means repair still recommends the self-hosted fallback path and the incident remains open.
+- `github.deployAlerts turnero pilot blocked` means `deploy-hosting.yml` published a host that no longer matches the staged `clinic-profile` (`clinic_id`, `profileFingerprint` or catalog/canon drift), so the pilot must not be opened yet.
+- `diagnose-host-connectivity.yml` now enriches that same transport triage with the local `turneroPilot` identity (`clinicId`, `profileFingerprint`, `catalogReady`, `releaseMode`) inside `connectivity-report.json/.txt` and the connectivity incident body, so a blocked route can still be tied to the clinic that was about to go live.
+- When `deploy-hosting.yml` dispatches `diagnose-host-connectivity.yml`, it now also passes the expected pilot identity (`clinicId`, `profileFingerprint`, `releaseMode`), and the connectivity report records `turnero_pilot_expected_match` / `turnero_pilot_expected_reason` to expose any drift between the deploy attempt and the profile resolved by the diagnostic run.
 - `REPORTE-SEMANAL-PRODUCCION.ps1` persists the same GitHub deploy alert state in markdown/JSON as `githubDeployAlerts`, with warning codes `github_deploy_*`.
+- `prod-monitor.yml` can close that same `turnero pilot blocked` incident later, but only after rerunning `verify-remote` and confirming the live host matches the active pilot profile again.
+- `prod-monitor.yml` now also closes `[ALERTA PROD] Deploy Frontend Self-Hosted ruta bloqueada` once `public_main_sync` is healthy again, so a recovered site does not keep a stale manual-fallback incident open.
+- That same `prod-monitor.yml` recovery now writes `.public-cutover-monitor/turnero-pilot-recovery.json` and uploads `prod-monitor-turnero-pilot-recovery`, so the closing `verify-remote` evidence survives beyond the issue comment and step summary.
 - `VERIFICAR-DESPLIEGUE.ps1` persists the same incident state as failed assets `github-deploy-*`, so `verification/last-deploy-verify.json` now captures deploy-route blockers outside the host too.
 
 ## Success criteria

@@ -158,6 +158,11 @@ test('post-deploy-fast integra gate admin rollout con resumen operativo', () => 
         'falta step de evaluacion telemedicina en fast lane'
     );
     assert.equal(
+        stepNames.includes('Evaluar estado turneroPilot fast lane'),
+        true,
+        'falta step de evaluacion turneroPilot en fast lane'
+    );
+    assert.equal(
         raw.includes('ADMIN_ROLLOUT_STAGE_FAST'),
         true,
         'falta variable de etapa para gate admin UI en fast lane'
@@ -208,6 +213,61 @@ test('post-deploy-fast integra gate admin rollout con resumen operativo', () => 
         'falta linea de outcome telemedicina en resumen fast lane'
     );
     assert.equal(
+        raw.includes('TURNERO_PILOT_FAST_STATUS'),
+        true,
+        'falta env TURNERO_PILOT_FAST_STATUS en fast lane'
+    );
+    assert.equal(
+        raw.includes('Turnero pilot fast status:'),
+        true,
+        'falta linea de estado turneroPilot en resumen fast lane'
+    );
+    assert.equal(
+        raw.includes('Turnero pilot fast verify-remote required:'),
+        true,
+        'falta linea verify-remote required turneroPilot en resumen fast lane'
+    );
+    assert.equal(
+        raw.includes('Turnero pilot fast release mode:'),
+        true,
+        'falta linea release mode turneroPilot en resumen fast lane'
+    );
+    assert.equal(
+        raw.includes('Turnero pilot fast deployed commit:'),
+        true,
+        'falta linea de deployed commit turneroPilot en resumen fast lane'
+    );
+    assert.equal(
+        raw.includes('Reporte turnero pilot fast:'),
+        true,
+        'falta linea de reporte turneroPilot en resumen fast lane'
+    );
+    assert.equal(
+        raw.includes('turnero_pilot_fast_status:'),
+        true,
+        'falta trazabilidad de estado turneroPilot en incidente fast lane'
+    );
+    assert.equal(
+        raw.includes('TURNERO_PILOT_FAST_VERIFY_REMOTE_REQUIRED'),
+        true,
+        'falta env TURNERO_PILOT_FAST_VERIFY_REMOTE_REQUIRED en fast lane'
+    );
+    assert.equal(
+        raw.includes('TURNERO_PILOT_FAST_RELEASE_MODE'),
+        true,
+        'falta env TURNERO_PILOT_FAST_RELEASE_MODE en fast lane'
+    );
+    assert.equal(
+        raw.includes('turnero_pilot_fast_verify_remote_required:'),
+        true,
+        'falta trazabilidad verify_remote_required de turneroPilot en incidente fast lane'
+    );
+    assert.equal(
+        raw.includes('turnero_pilot_fast_release_mode:'),
+        true,
+        'falta trazabilidad release_mode de turneroPilot en incidente fast lane'
+    );
+    assert.equal(
         raw.includes('TELEMEDICINE_FAST_NON_TELE_FAILURES'),
         true,
         'falta trazabilidad de non-tele failures en fast lane'
@@ -233,6 +293,16 @@ test('post-deploy-fast integra gate admin rollout con resumen operativo', () => 
         'falta step de publicacion de reporte public_v4 rollout en fast lane'
     );
     assert.equal(
+        stepNames.includes('Escribir reporte turneroPilot fast'),
+        true,
+        'falta step de escritura de reporte turneroPilot en fast lane'
+    );
+    assert.equal(
+        stepNames.includes('Publicar reporte turneroPilot fast'),
+        true,
+        'falta step de publicacion de reporte turneroPilot en fast lane'
+    );
+    assert.equal(
         raw.includes('verification/last-admin-ui-rollout-gate-fast.json'),
         true,
         'falta ruta canonica del reporte admin rollout fast'
@@ -241,6 +311,16 @@ test('post-deploy-fast integra gate admin rollout con resumen operativo', () => 
         raw.includes('verification/last-public-v4-rollout-fast.json'),
         true,
         'falta ruta canonica del reporte public_v4 rollout fast'
+    );
+    assert.equal(
+        raw.includes('verification/last-turnero-pilot-fast.json'),
+        true,
+        'falta ruta canonica del reporte turneroPilot fast'
+    );
+    assert.equal(
+        raw.includes('post-deploy-turnero-pilot-fast-report'),
+        true,
+        'falta publicacion del artefacto turneroPilot fast'
     );
     assert.equal(
         raw.includes('-Stage $env:ADMIN_ROLLOUT_STAGE_FAST_EFFECTIVE'),

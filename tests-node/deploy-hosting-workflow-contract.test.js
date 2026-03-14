@@ -141,6 +141,61 @@ test('deploy-hosting contiene pasos de dispatch hacia post-deploy', () => {
     );
 });
 
+test('deploy-hosting resuelve y resume el clinic-profile del piloto web antes del publish', () => {
+    const { raw, parsed } = loadWorkflow();
+    const steps = parsed?.jobs?.['deploy-prod']?.steps || [];
+    const stepNames = steps.map((step) => String(step?.name || ''));
+
+    assert.equal(
+        stepNames.includes(
+            'Resolver clinic-profile del piloto web (deploy-hosting)'
+        ),
+        true,
+        'falta step de preflight clinic-profile en deploy-hosting'
+    );
+    assert.equal(
+        stepNames.includes('Verificar turneroPilot remoto deploy-hosting'),
+        true,
+        'falta step de verify-remote turneroPilot en deploy-hosting'
+    );
+    assert.equal(
+        stepNames.includes(
+            'Fail deploy-hosting when turneroPilot remoto bloquea release'
+        ),
+        true,
+        'falta step de fail final cuando verify-remote bloquea el piloto'
+    );
+
+    for (const snippet of [
+        'TURNERO_PILOT_DEPLOY_STATUS: unknown',
+        'TURNERO_PILOT_REMOTE_STATUS: unknown',
+        'node bin/turnero-clinic-profile.js status --json',
+        'node bin/turnero-clinic-profile.js verify-remote --base-url "${PROD_URL}" --json',
+        'turnero_pilot_deploy_status: \\`${TURNERO_PILOT_DEPLOY_STATUS}\\`',
+        'turnero_pilot_clinic_id: \\`${TURNERO_PILOT_CLINIC_ID}\\`',
+        'turnero_pilot_profile_fingerprint: \\`${TURNERO_PILOT_PROFILE_FINGERPRINT}\\`',
+        'turnero_pilot_remote_status: \\`${TURNERO_PILOT_REMOTE_STATUS}\\`',
+        'turnero_pilot_remote_deployed_commit: \\`${TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT}\\`',
+        'turnero_pilot_postdeploy_allowed: \\`${TURNERO_PILOT_POSTDEPLOY_ALLOWED}\\`',
+        'turnero_pilot_status_manifest: \\`.public-cutover/turnero-pilot-status.json\\`',
+        'turnero_pilot_remote_manifest: \\`.public-cutover/turnero-pilot-remote.json\\`',
+        'turnero_pilot: {',
+        "status: process.env.TURNERO_PILOT_DEPLOY_STATUS || 'unknown'",
+        'remote: {',
+        "status: process.env.TURNERO_PILOT_REMOTE_STATUS || 'unknown'",
+        'Turnero pilot deploy blocked (',
+        'Turnero pilot remote verify blocked deploy-hosting (',
+        "steps.resolve_postdeploy.outputs.run_fast == 'true' && env.TURNERO_PILOT_POSTDEPLOY_ALLOWED != 'false'",
+        "steps.resolve_postdeploy.outputs.run_gate == 'true' && env.TURNERO_PILOT_POSTDEPLOY_ALLOWED != 'false'",
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring turneroPilot en deploy-hosting: ${snippet}`
+        );
+    }
+});
+
 test('deploy-hosting clasifica bloqueos de conectividad del runner en el preflight de transporte', () => {
     const { raw } = loadWorkflow();
 
@@ -198,14 +253,20 @@ test('deploy-hosting gestiona incidente dedicado de transporte runner-host', () 
         "if: ${{ always() && env.FTP_DRY_RUN != 'true' && (env.FORCE_TRANSPORT_DEPLOY == 'true' || env.DEPLOY_METHOD != 'git-sync') && env.TRANSPORT_PREFLIGHT_REASON == 'ok' }}",
         "const title = '[ALERTA PROD] Deploy Hosting transporte bloqueado desde GitHub Runner';",
         'deploy-hosting-transport-signal:',
-        "const signal = `reason:${process.env.TRANSPORT_PREFLIGHT_REASON || 'unknown'}|target:${process.env.TRANSPORT_PREFLIGHT_TARGET || 'unknown'}`;",
+        "const signal = `reason:${process.env.TRANSPORT_PREFLIGHT_REASON || 'unknown'}|target:${process.env.TRANSPORT_PREFLIGHT_TARGET || 'unknown'}|clinic:${process.env.TURNERO_PILOT_CLINIC_ID || 'unknown'}|fp:${process.env.TURNERO_PILOT_PROFILE_FINGERPRINT || 'unknown'}|release:${process.env.TURNERO_PILOT_RELEASE_MODE || 'unknown'}`;",
         "`- transport_preflight_reason: ${process.env.TRANSPORT_PREFLIGHT_REASON || 'unknown'}`",
         "`- transport_preflight_target: ${process.env.TRANSPORT_PREFLIGHT_TARGET || 'unknown'}`",
+        "`- turnero_pilot_clinic_id: ${process.env.TURNERO_PILOT_CLINIC_ID || 'unknown'}`",
+        "`- turnero_pilot_profile_fingerprint: ${process.env.TURNERO_PILOT_PROFILE_FINGERPRINT || 'unknown'}`",
+        "`- turnero_pilot_release_mode: ${process.env.TURNERO_PILOT_RELEASE_MODE || 'unknown'}`",
         'Issue deploy-hosting transporte ya refleja la misma senal',
         'Issue deploy-hosting transporte creado',
         'Issue deploy-hosting transporte cerrado',
         'TRANSPORT_PREFLIGHT_REASON: ${{ env.TRANSPORT_PREFLIGHT_REASON }}',
         'TRANSPORT_PREFLIGHT_TARGET: ${{ env.TRANSPORT_PREFLIGHT_TARGET }}',
+        'TURNERO_PILOT_CLINIC_ID: ${{ env.TURNERO_PILOT_CLINIC_ID }}',
+        'TURNERO_PILOT_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_PROFILE_FINGERPRINT }}',
+        'TURNERO_PILOT_RELEASE_MODE: ${{ env.TURNERO_PILOT_RELEASE_MODE }}',
     ];
 
     for (const snippet of requiredSnippets) {
@@ -240,6 +301,9 @@ test('deploy-hosting dispara diagnostico de conectividad cuando falla el preflig
         "const workflowId = 'diagnose-host-connectivity.yml';",
         'const dispatchStartedAtIso = new Date(dispatchStartedAt).toISOString();',
         'workflow_id: workflowId',
+        "turnero_clinic_id: String(process.env.TURNERO_PILOT_CLINIC_ID || '')",
+        'turnero_profile_fingerprint: String(',
+        "turnero_release_mode: String(process.env.TURNERO_PILOT_RELEASE_MODE || '')",
         "Workflow ${workflowId} disparado desde deploy-hosting (run_id=${observedRun.id}, status=${observedRun.status}, match=${observedRun.head_sha === headSha ? 'head_sha' : 'dispatch_window'}, url=${observedRun.html_url}).",
         'Workflow ${workflowId} disparado desde deploy-hosting (run no observado aun).',
         'CONNECTIVITY_DIAGNOSE_RUN_ID_INPUT',
@@ -329,6 +393,44 @@ test('deploy-hosting evalua y gestiona incidente dedicado de telemedicina post-c
             raw.includes(snippet),
             true,
             `falta wiring de telemedicina deploy-hosting: ${snippet}`
+        );
+    }
+});
+
+test('deploy-hosting gestiona incidente dedicado de turneroPilot remoto post-cutover', () => {
+    const { raw, parsed } = loadWorkflow();
+    const steps = parsed?.jobs?.['deploy-prod']?.steps || [];
+    const stepNames = steps.map((step) => String(step?.name || ''));
+
+    for (const expectedStepName of [
+        'Crear/actualizar incidente turneroPilot deploy-hosting',
+        'Cerrar incidente turneroPilot deploy-hosting al recuperar',
+    ]) {
+        assert.equal(
+            stepNames.includes(expectedStepName),
+            true,
+            `falta step de incidente turneroPilot en deploy-hosting: ${expectedStepName}`
+        );
+    }
+
+    for (const snippet of [
+        "if: ${{ always() && env.FTP_DRY_RUN != 'true' && github.event_name != 'workflow_dispatch' && env.TURNERO_PILOT_RELEASE_MODE == 'web_pilot' && env.TURNERO_PILOT_REMOTE_STATUS == 'blocked' }}",
+        "if: ${{ success() && env.FTP_DRY_RUN != 'true' && github.event_name != 'workflow_dispatch' && env.TURNERO_PILOT_RELEASE_MODE == 'web_pilot' && (env.TURNERO_PILOT_REMOTE_STATUS == 'ready' || env.TURNERO_PILOT_REMOTE_STATUS == 'not_required') }}",
+        "const title = '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado';",
+        'deploy-hosting-turnero-pilot-signal:',
+        "const baseLabels = ['production-alert', 'deploy-hosting', 'turnero-pilot', 'severity:warning'];",
+        'Issue deploy-hosting turneroPilot ya refleja la misma senal',
+        'Issue deploy-hosting turneroPilot creado',
+        'Issue deploy-hosting turneroPilot cerrado',
+        'Recuperado automaticamente por verify-remote de deploy-hosting.',
+        'TURNERO_PILOT_REMOTE_CLINIC_ID: ${{ env.TURNERO_PILOT_REMOTE_CLINIC_ID }}',
+        'TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT }}',
+        'TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT }}',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring de incidente turneroPilot en deploy-hosting: ${snippet}`
         );
     }
 });
@@ -685,6 +787,78 @@ test('repair-git-sync evalua y gestiona incidente dedicado de telemedicina post-
     }
 });
 
+test('repair-git-sync evalua y gestiona incidente dedicado de turneroPilot post-repair', () => {
+    const { raw, parsed } = loadWorkflow(REPAIR_WORKFLOW_PATH);
+    const steps = parsed?.jobs?.repair?.steps || [];
+    const stepNames = steps.map((step) => String(step?.name || ''));
+
+    for (const expectedStepName of [
+        'Evaluar estado turneroPilot post-repair',
+        'Crear/actualizar incidente turneroPilot de repair',
+        'Cerrar incidente turneroPilot de repair al recuperar',
+        'Escribir reporte turneroPilot repair',
+        'Publicar reporte turneroPilot repair',
+    ]) {
+        assert.equal(
+            stepNames.includes(expectedStepName),
+            true,
+            `falta step de turneroPilot en repair-git-sync: ${expectedStepName}`
+        );
+    }
+
+    for (const snippet of [
+        'TURNERO_PILOT_REPAIR_STATUS: unknown',
+        'TURNERO_PILOT_REPAIR_REASON: not_evaluated',
+        "TURNERO_PILOT_REPAIR_STATUS_RESOLVED: 'false'",
+        "TURNERO_PILOT_REPAIR_VERIFY_REMOTE_REQUIRED: 'false'",
+        'TURNERO_PILOT_REPAIR_RELEASE_MODE: unknown',
+        "if: ${{ always() && github.event_name != 'workflow_dispatch' && env.TURNERO_PILOT_REPAIR_RELEASE_MODE == 'web_pilot' && env.TURNERO_PILOT_REPAIR_STATUS == 'blocked' }}",
+        "if: ${{ success() && github.event_name != 'workflow_dispatch' && env.TURNERO_PILOT_REPAIR_RELEASE_MODE == 'web_pilot' && (env.TURNERO_PILOT_REPAIR_STATUS == 'ready' || env.TURNERO_PILOT_REPAIR_STATUS == 'not_required') }}",
+        "const title = '[ALERTA PROD] Repair git sync turneroPilot bloqueado';",
+        'repair-git-sync-turnero-pilot-signal:',
+        "const baseLabels = ['production-alert', 'repair-git-sync', 'turnero-pilot', 'severity:warning'];",
+        'Issue repair-git-sync turneroPilot ya refleja la misma senal',
+        'Issue repair-git-sync turneroPilot creado',
+        'Issue repair-git-sync turneroPilot cerrado',
+        'Recuperado automaticamente por workflow de repair git sync (turneroPilot).',
+        'statusResolved = [bool]$turneroPilot.statusResolved',
+        'verifyRemoteRequired = [bool]$turneroPilot.verifyRemoteRequired',
+        "@($failures | Where-Object { [string]$_.Asset -eq 'turnero-pilot-profile-status' }).Count -gt 0",
+        "@($failures | Where-Object { [string]$_.Asset -eq 'turnero-pilot-remote-verify' }).Count -gt 0",
+        "$status = 'not_required'",
+        "$status = 'blocked'",
+        "$status = 'ready'",
+        'TURNERO_PILOT_REPAIR_CLINIC_ID=$clinicId',
+        'TURNERO_PILOT_REPAIR_PROFILE_FINGERPRINT=$profileFingerprint',
+        'TURNERO_PILOT_REPAIR_STATUS_RESOLVED=$statusResolvedText',
+        'TURNERO_PILOT_REPAIR_VERIFY_REMOTE_REQUIRED=$verifyRemoteRequiredText',
+        'TURNERO_PILOT_REPAIR_RELEASE_MODE=$releaseMode',
+        'TURNERO_PILOT_REPAIR_CATALOG_READY=$catalogReadyText',
+        'TURNERO_PILOT_REPAIR_REMOTE_VERIFIED=$remoteVerifiedText',
+        'TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT=$deployedCommit',
+        'verification/last-turnero-pilot-repair.json',
+        'repair-turnero-pilot-report',
+        'turnero_pilot_repair_status: \\`${TURNERO_PILOT_REPAIR_STATUS}\\`',
+        'turnero_pilot_repair_reason: \\`${TURNERO_PILOT_REPAIR_REASON}\\`',
+        'turnero_pilot_repair_clinic_id: \\`${TURNERO_PILOT_REPAIR_CLINIC_ID}\\`',
+        'turnero_pilot_repair_profile_fingerprint: \\`${TURNERO_PILOT_REPAIR_PROFILE_FINGERPRINT}\\`',
+        'turnero_pilot_repair_status_resolved: \\`${TURNERO_PILOT_REPAIR_STATUS_RESOLVED}\\`',
+        'turnero_pilot_repair_verify_remote_required: \\`${TURNERO_PILOT_REPAIR_VERIFY_REMOTE_REQUIRED}\\`',
+        'turnero_pilot_repair_release_mode: \\`${TURNERO_PILOT_REPAIR_RELEASE_MODE}\\`',
+        'turnero_pilot_repair_catalog_ready: \\`${TURNERO_PILOT_REPAIR_CATALOG_READY}\\`',
+        'turnero_pilot_repair_remote_verified: \\`${TURNERO_PILOT_REPAIR_REMOTE_VERIFIED}\\`',
+        'turnero_pilot_repair_deployed_commit: \\`${TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT}\\`',
+        'turnero_pilot_repair_step_outcome: \\`${{ steps.turnero_pilot_repair.outcome }}\\`',
+        'Reporte turnero pilot repair: \\`verification/last-turnero-pilot-repair.json\\`',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring de turneroPilot en repair-git-sync: ${snippet}`
+        );
+    }
+});
+
 test('repair-git-sync resincroniza el wrapper canonico del cron host y publica su estado', () => {
     const { raw, parsed } = loadWorkflow(REPAIR_WORKFLOW_PATH);
     const steps = parsed?.jobs?.repair?.steps || [];
@@ -774,11 +948,14 @@ test('repair-git-sync gestiona incidente dedicado cuando el fallback self-hosted
         "if: ${{ always() && (steps.transport_fallback.outputs.transport_fallback_recommended != 'true' || (steps.transport_fallback.outputs.self_hosted_fallback_dispatch_ready == 'true' && steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state != 'queued' && steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state != 'dispatched_not_observed')) }}",
         "const title = '[ALERTA PROD] Repair git sync self-hosted fallback sin runner';",
         'repair-git-sync-self-hosted-runner-signal:',
-        "const signal = `state:${process.env.SELF_HOSTED_FALLBACK_STATE || 'unknown'}|run_status:${process.env.SELF_HOSTED_FALLBACK_RUN_STATUS || 'unknown'}|reason:${process.env.TRANSPORT_FALLBACK_REASON || 'unknown'}`;",
+        "const signal = `state:${process.env.SELF_HOSTED_FALLBACK_STATE || 'unknown'}|run_status:${process.env.SELF_HOSTED_FALLBACK_RUN_STATUS || 'unknown'}|reason:${process.env.TRANSPORT_FALLBACK_REASON || 'unknown'}|clinic:${process.env.TURNERO_PILOT_REPAIR_CLINIC_ID || 'unknown'}|fp:${process.env.TURNERO_PILOT_REPAIR_PROFILE_FINGERPRINT || 'unknown'}|release:${process.env.TURNERO_PILOT_REPAIR_RELEASE_MODE || 'unknown'}`;",
         "`- self_hosted_fallback_state: ${process.env.SELF_HOSTED_FALLBACK_STATE || 'unknown'}`",
         "`- self_hosted_fallback_run_status: ${process.env.SELF_HOSTED_FALLBACK_RUN_STATUS || 'unknown'}`",
         "`- self_hosted_fallback_run_url: ${process.env.SELF_HOSTED_FALLBACK_RUN_URL || ''}`",
         "`- transport_fallback_reason: ${process.env.TRANSPORT_FALLBACK_REASON || 'unknown'}`",
+        "`- turnero_pilot_repair_clinic_id: ${process.env.TURNERO_PILOT_REPAIR_CLINIC_ID || 'unknown'}`",
+        "`- turnero_pilot_repair_profile_fingerprint: ${process.env.TURNERO_PILOT_REPAIR_PROFILE_FINGERPRINT || 'unknown'}`",
+        "`- turnero_pilot_repair_release_mode: ${process.env.TURNERO_PILOT_REPAIR_RELEASE_MODE || 'unknown'}`",
         "const baseLabels = ['production-alert', 'repair-git-sync', 'self-hosted-runner', 'severity:warning'];",
         'Issue repair-git-sync self-hosted fallback ya refleja la misma senal',
         'Issue repair-git-sync self-hosted fallback creado',
@@ -787,6 +964,9 @@ test('repair-git-sync gestiona incidente dedicado cuando el fallback self-hosted
         'SELF_HOSTED_FALLBACK_STATE: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_state }}',
         'SELF_HOSTED_FALLBACK_RUN_STATUS: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_run_status }}',
         'SELF_HOSTED_FALLBACK_RUN_URL: ${{ steps.self_hosted_fallback_dispatch.outputs.self_hosted_fallback_run_url }}',
+        'TURNERO_PILOT_REPAIR_CLINIC_ID: ${{ env.TURNERO_PILOT_REPAIR_CLINIC_ID }}',
+        'TURNERO_PILOT_REPAIR_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_REPAIR_PROFILE_FINGERPRINT }}',
+        'TURNERO_PILOT_REPAIR_RELEASE_MODE: ${{ env.TURNERO_PILOT_REPAIR_RELEASE_MODE }}',
     ]) {
         assert.equal(
             raw.includes(snippet),
@@ -801,6 +981,7 @@ test('diagnose-host-connectivity publica reporte estructurado y gestiona inciden
     const permissions = parsed?.permissions || {};
     const steps = parsed?.jobs?.diagnose?.steps || [];
     const stepNames = steps.map((step) => String(step?.name || ''));
+    const inputs = parsed?.on?.workflow_dispatch?.inputs || {};
 
     assert.equal(
         permissions.issues,
@@ -808,9 +989,26 @@ test('diagnose-host-connectivity publica reporte estructurado y gestiona inciden
         'diagnose-host-connectivity debe tener issues: write para incidentes automaticos'
     );
 
+    assert.equal(
+        typeof inputs.turnero_clinic_id === 'object',
+        true,
+        'diagnose-host-connectivity debe exponer input turnero_clinic_id'
+    );
+    assert.equal(
+        typeof inputs.turnero_profile_fingerprint === 'object',
+        true,
+        'diagnose-host-connectivity debe exponer input turnero_profile_fingerprint'
+    );
+    assert.equal(
+        typeof inputs.turnero_release_mode === 'object',
+        true,
+        'diagnose-host-connectivity debe exponer input turnero_release_mode'
+    );
+
     for (const expectedStepName of [
         'Diagnosticar puertos por origen de host',
         'Consolidar reporte de conectividad',
+        'Resolver turneroPilot local para diagnose',
         'Connectivity summary',
         'Crear/actualizar incidente de conectividad deploy host',
         'Cerrar incidente de conectividad deploy host al recuperar',
@@ -835,6 +1033,26 @@ test('diagnose-host-connectivity publica reporte estructurado y gestiona inciden
         "append(outputPath, 'reachable_any', payload.reachable_any ? 'true' : 'false');",
         "append(outputPath, 'issue_ready', payload.issue_ready ? 'true' : 'false');",
         "append(outputPath, 'open_targets', openTargets.join(','));",
+        'TURNERO_PILOT_DIAGNOSE_STATUS: unknown',
+        "TURNERO_PILOT_EXPECTED_CLINIC_ID: ${{ github.event.inputs.turnero_clinic_id || '' }}",
+        "TURNERO_PILOT_EXPECTED_PROFILE_FINGERPRINT: ${{ github.event.inputs.turnero_profile_fingerprint || '' }}",
+        "TURNERO_PILOT_EXPECTED_RELEASE_MODE: ${{ github.event.inputs.turnero_release_mode || '' }}",
+        'node bin/turnero-clinic-profile.js status --json',
+        "const reportPath = 'connectivity-report.json';",
+        'report.turneroPilot = {',
+        'expectedClinicId,',
+        'expectedProfileFingerprint,',
+        'expectedReleaseMode,',
+        'expectedMatch,',
+        'expectedReason,',
+        "append(outputPath, 'turnero_pilot_status', status);",
+        "append(outputPath, 'turnero_pilot_reason', reason);",
+        "append(outputPath, 'turnero_pilot_clinic_id', clinicId);",
+        "append(outputPath, 'turnero_pilot_profile_fingerprint', profileFingerprint);",
+        "append(outputPath, 'turnero_pilot_catalog_ready', catalogReadyText);",
+        "append(outputPath, 'turnero_pilot_release_mode', releaseMode);",
+        "append(outputPath, 'turnero_pilot_expected_match', expectedMatchText);",
+        "append(outputPath, 'turnero_pilot_expected_reason', expectedReason);",
         "if: ${{ always() && steps.connectivity_summary.outputs.issue_ready == 'true' }}",
         "if: ${{ always() && steps.connectivity_summary.outputs.reachable_any == 'true' }}",
         "const title = '[ALERTA PROD] Diagnose host connectivity sin ruta de deploy';",
@@ -847,6 +1065,20 @@ test('diagnose-host-connectivity publica reporte estructurado y gestiona inciden
         'configured_host_count: \\`${{ steps.connectivity_summary.outputs.configured_host_count }}\\`',
         'reachable_any: \\`${{ steps.connectivity_summary.outputs.reachable_any }}\\`',
         'open_targets: \\`${{ steps.connectivity_summary.outputs.open_targets }}\\`',
+        'turnero_pilot_status: \\`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_status }}\\`',
+        'turnero_pilot_reason: \\`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_reason }}\\`',
+        'turnero_pilot_clinic_id: \\`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_clinic_id }}\\`',
+        'turnero_pilot_profile_fingerprint: \\`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_profile_fingerprint }}\\`',
+        'turnero_pilot_catalog_ready: \\`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_catalog_ready }}\\`',
+        'turnero_pilot_release_mode: \\`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_release_mode }}\\`',
+        'turnero_pilot_expected_match: \\`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_expected_match }}\\`',
+        'turnero_pilot_expected_reason: \\`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_expected_reason }}\\`',
+        "`- turnero_pilot_status: ${process.env.TURNERO_PILOT_DIAGNOSE_STATUS || 'unknown'}`",
+        "`- turnero_pilot_reason: ${process.env.TURNERO_PILOT_DIAGNOSE_REASON || 'unknown'}`",
+        "`- turnero_pilot_clinic_id: ${process.env.TURNERO_PILOT_DIAGNOSE_CLINIC_ID || 'n/a'}`",
+        "`- turnero_pilot_profile_fingerprint: ${process.env.TURNERO_PILOT_DIAGNOSE_PROFILE_FINGERPRINT || 'n/a'}`",
+        "`- turnero_pilot_expected_match: ${process.env.TURNERO_PILOT_DIAGNOSE_EXPECTED_MATCH || 'false'}`",
+        "`- turnero_pilot_expected_reason: ${process.env.TURNERO_PILOT_DIAGNOSE_EXPECTED_REASON || 'not_evaluated'}`",
         'artifact_json: connectivity-report.json',
         'artifact_text: connectivity-report.txt',
     ]) {

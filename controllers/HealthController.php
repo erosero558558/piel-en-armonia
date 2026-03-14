@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../lib/TurneroClinicProfile.php';
 require_once __DIR__ . '/../lib/telemedicine/TelemedicineOpsSnapshot.php';
 require_once __DIR__ . '/../lib/PatientCaseService.php';
 require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
@@ -89,6 +90,7 @@ class HealthController
         $telemedicineSnapshot = class_exists('TelemedicineOpsSnapshot')
             ? TelemedicineOpsSnapshot::build($store)
             : ['configured' => false];
+        $turneroPilotSnapshot = read_turnero_clinic_profile_health_snapshot();
         $whatsappOpenclawSnapshot = function_exists('whatsapp_openclaw_health_snapshot')
             ? whatsapp_openclaw_health_snapshot($store)
             : ['configured' => false];
@@ -221,6 +223,9 @@ class HealthController
             'publicSyncRepoHygieneIssue' => (bool) ($publicSyncCheck['repoHygieneIssue'] ?? false),
             'publicSyncState' => (string) ($publicSyncCheck['state'] ?? 'unknown'),
             'publicSyncAgeSeconds' => $publicSyncCheck['ageSeconds'] ?? null,
+            'turneroPilotClinicId' => (string) ($turneroPilotSnapshot['clinicId'] ?? ''),
+            'turneroPilotReady' => (bool) ($turneroPilotSnapshot['ready'] ?? false),
+            'turneroPilotCatalogReady' => (bool) ($turneroPilotSnapshot['catalogReady'] ?? false),
         ]);
         $detailedPayload = [
             'ok' => true,
@@ -311,6 +316,7 @@ class HealthController
                 'telemedicine' => class_exists('TelemedicineOpsSnapshot')
                     ? TelemedicineOpsSnapshot::forHealth($telemedicineSnapshot)
                     : ['configured' => false],
+                'turneroPilot' => $turneroPilotSnapshot,
                 'whatsappOpenclaw' => $whatsappOpenclawSnapshot,
                 'leadOps' => $leadOpsSnapshot,
                 'backup' => $backupCheck,

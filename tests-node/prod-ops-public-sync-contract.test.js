@@ -37,6 +37,9 @@ test('prod smoke expone telemetria rica de publicSync', () => {
     const raw = load(SMOKE_PATH);
     const requiredSnippets = [
         'resource=health-diagnostics',
+        "$turneroClinicProfileScriptPath = Join-Path $repoRoot 'bin/turnero-clinic-profile.js'",
+        "$commonHttpPath = Join-Path $repoRoot 'bin/powershell/Common.Http.ps1'",
+        '. $commonHttpPath',
         "$lastErrorMessage = ''",
         "$currentHead = ''",
         "$remoteHead = ''",
@@ -57,6 +60,53 @@ test('prod smoke expone telemetria rica de publicSync', () => {
     }
 });
 
+test('prod smoke integra verify-remote del piloto web por clínica en la corrida manual', () => {
+    const raw = load(SMOKE_PATH);
+    const requiredSnippets = [
+        '$turneroPilotVerifyRequired = $false',
+        "Write-Host '[FAIL] turneroPilot clinic-profile status unresolved'",
+        'Write-Host "[FAIL] turneroPilot catalog drift (clinicId=$turneroPilotClinicId)"',
+        '[INFO] turneroPilot clinicId=$turneroPilotClinicId catalogMatch=$turneroPilotCatalogMatch',
+        '& node $turneroClinicProfileScriptPath verify-remote --base-url $base --json 2>&1',
+        '[INFO] turneroPilot remote clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady',
+        'Write-Host "[FAIL] turneroPilot remote mismatch (clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady)"',
+        "Write-Host '[INFO] turneroPilot verify-remote omitido: perfil activo no esta en modo web_pilot.'",
+        "Write-Host '[WARN] bin/turnero-clinic-profile.js no existe; se omite smoke turneroPilot.'",
+    ];
+
+    for (const snippet of requiredSnippets) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta snippet turneroPilot en SMOKE-PRODUCCION.ps1: ${snippet}`
+        );
+    }
+});
+
+test('prod smoke integra github.deployAlerts en el gate cron manual', () => {
+    const raw = load(SMOKE_PATH);
+    const requiredSnippets = [
+        "[string]$GitHubRepo = 'erosero558558/Aurora-Derm'",
+        '[switch]$AllowOpenGitHubDeployAlerts',
+        '$githubDeployAlerts = Get-GitHubProductionAlertSummary',
+        "$githubDeployAlertsSeverity = if ($AllowOpenGitHubDeployAlerts) { 'WARN' } else { 'FAIL' }",
+        '[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount selfHostedDeployCount=$githubDeployAlertsSelfHostedDeployCount turneroPilotCount=$githubDeployAlertsTurneroPilotCount issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel',
+        '[WARN] github.deployAlerts unreachable (repo=$GitHubRepo error=$githubDeployAlertsError)',
+        '[$githubDeployAlertsSeverity] github.deployAlerts open production alerts (count=$githubDeployAlertsRelevantCount issueNumbers=$githubDeployAlertsIssueNumbersLabel)',
+        '[$githubDeployAlertsSeverity] github.deployAlerts self-hosted runner blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)',
+        'selfHostedDeployCount=$githubDeployAlertsSelfHostedDeployCount',
+        '[$githubDeployAlertsSeverity] github.deployAlerts self-hosted deploy blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)',
+        '[$githubDeployAlertsSeverity] github.deployAlerts turnero pilot blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)',
+    ];
+
+    for (const snippet of requiredSnippets) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta snippet github.deployAlerts en SMOKE-PRODUCCION.ps1: ${snippet}`
+        );
+    }
+});
 test('prod verify propaga telemetria de publicSync a resultados y consola', () => {
     const raw = load(VERIFY_PATH);
     const requiredSnippets = [
@@ -113,6 +163,17 @@ test('prod verify expone postura auth y assets de enforcement', () => {
         '[WARN] health auth mode no recomendado (mode=$authMode expected=$authRecommendedMode)',
         '[WARN] health auth legacy_password sin 2FA',
         '[WARN] health auth hardening pendiente',
+        "[string]$GitHubRepo = 'erosero558558/Aurora-Derm'",
+        '[switch]$AllowOpenGitHubDeployAlerts',
+        '$githubDeployAlerts = Get-GitHubProductionAlertSummary',
+        '[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount selfHostedDeployCount=$githubDeployAlertsSelfHostedDeployCount turneroPilotCount=$githubDeployAlertsTurneroPilotCount issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel',
+        "Asset = 'github-deploy-alerts-open'",
+        "Asset = 'github-deploy-transport-blocked'",
+        "Asset = 'github-deploy-connectivity-blocked'",
+        "Asset = 'github-deploy-self-hosted-deploy-blocked'",
+        "Asset = 'github-deploy-turnero-pilot-blocked'",
+        '-GitHubRepo $GitHubRepo',
+        '-AllowOpenGitHubDeployAlerts:$AllowOpenGitHubDeployAlerts',
     ];
 
     for (const snippet of requiredSnippets) {
@@ -157,6 +218,33 @@ test('prod verify expone postura de cifrado en reposo y assets de enforcement', 
     }
 });
 
+test('prod verify corre verify-remote del piloto web por clínica cuando el perfil activo lo exige', () => {
+    const raw = load(VERIFY_PATH);
+    const requiredSnippets = [
+        "$turneroClinicProfileScriptPath = Join-Path $repoRoot 'bin/turnero-clinic-profile.js'",
+        '$turneroPilotVerifyRequired = $false',
+        "Asset = 'turnero-pilot-profile-status'",
+        "Asset = 'turnero-pilot-remote-verify'",
+        "$turneroPilotProfileFingerprint = ''",
+        '[INFO] turnero pilot profile active clinicId=$turneroPilotClinicId catalogMatch=$turneroPilotCatalogMatch',
+        '[INFO] turnero pilot remote clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady deployedCommit=$turneroPilotRemoteDeployedCommit',
+        '& node $turneroClinicProfileScriptPath verify-remote --base-url $base --json 2>&1',
+        '$verifyMetadata = [ordered]@{',
+        'turneroPilot = [pscustomobject]$turneroPilotReport',
+        '-Metadata $verifyMetadata',
+        "Write-Host '[INFO] turnero pilot verify-remote omitido: perfil activo no esta en modo web_pilot.'",
+        "Write-Host '[WARN] bin/turnero-clinic-profile.js no existe; se omite verify-remote del piloto.'",
+    ];
+
+    for (const snippet of requiredSnippets) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta snippet turneroPilot verify-remote en VERIFICAR-DESPLIEGUE.ps1: ${snippet}`
+        );
+    }
+});
+
 test('prod ops readme documenta triage de publicSync', () => {
     const raw = load(README_PATH);
     const requiredSnippets = [
@@ -175,6 +263,13 @@ test('prod ops readme documenta triage de publicSync', () => {
         'RequireStoreEncryption',
         'health-store-encryption-*',
         'storeEncryptionCompliant',
+        'github.deployAlerts',
+        'AllowOpenGitHubDeployAlerts',
+        'turnero-pilot-remote-verify',
+        'turnero pilot blocked',
+        'verify-remote',
+        'clinic-profile',
+        'turneroPilot',
     ];
 
     for (const snippet of requiredSnippets) {
@@ -203,6 +298,26 @@ test('prod verify expone diagnostico por asset cuando falla cache-header', () =>
             raw.includes(snippet),
             true,
             `falta diagnostico por asset en Common.Http.ps1: ${snippet}`
+        );
+    }
+});
+
+test('common http clasifica self-hosted route como deploy alert operativo', () => {
+    const raw = load(COMMON_HTTP_PATH);
+    const requiredSnippets = [
+        'selfHostedDeployCount = 0',
+        'hasSelfHostedDeployBlock = $false',
+        "$labelValues -contains 'self-hosted-route'",
+        "$categories.Add('self-hosted-deploy') | Out-Null",
+        '$summary.selfHostedDeployCount++',
+        '$summary.hasSelfHostedDeployBlock = [bool]($summary.selfHostedDeployCount -gt 0)',
+    ];
+
+    for (const snippet of requiredSnippets) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta clasificacion self-hosted deploy en Common.Http.ps1: ${snippet}`
         );
     }
 });

@@ -48,6 +48,22 @@ jobs:
             TELEMEDICINE_SELFHOSTED_REASON: not_evaluated
             TELEMEDICINE_SELFHOSTED_FAILURES: -1
             TELEMEDICINE_SELFHOSTED_NON_TELE_FAILURES: -1
+            TURNERO_PILOT_SELFHOSTED_STATUS: unknown
+            TURNERO_PILOT_SELFHOSTED_REASON: not_evaluated
+            TURNERO_PILOT_CLINIC_ID: ''
+            TURNERO_PILOT_MATCHING_PROFILE_ID: ''
+            TURNERO_PILOT_PROFILE_FINGERPRINT: ''
+            TURNERO_PILOT_CATALOG_READY: 'false'
+            TURNERO_PILOT_RELEASE_MODE: unknown
+            TURNERO_PILOT_REMOTE_STATUS: unknown
+            TURNERO_PILOT_REMOTE_REASON: not_evaluated
+            TURNERO_PILOT_REMOTE_CLINIC_ID: ''
+            TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT: ''
+            TURNERO_PILOT_REMOTE_CATALOG_READY: 'false'
+            TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT: ''
+            TURNERO_PILOT_REMOTE_VERIFIED: 'false'
+            SELFHOSTED_ROUTE_STATUS: unknown
+            SELFHOSTED_ROUTE_REASON: not_evaluated
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -63,6 +79,79 @@ jobs:
             - name: Install project dependencies
               shell: pwsh
               run: npm ci
+
+            - name: Resolve turneroPilot clinic profile (self-hosted deploy)
+              id: turnero_pilot_profile
+              shell: pwsh
+              run: |
+                  $ErrorActionPreference = 'Stop'
+                  New-Item -ItemType Directory -Force -Path '.selfhosted-cutover' | Out-Null
+                  $statusPath = '.selfhosted-cutover/turnero-pilot-status.json'
+                  $rawPath = '.selfhosted-cutover/turnero-pilot-status.raw.txt'
+                  $payload = & node bin/turnero-clinic-profile.js status --json 2> $rawPath
+                  $statusExit = $LASTEXITCODE
+                  if ($null -eq $payload) {
+                      '' | Out-File -FilePath $statusPath -Encoding utf8
+                  } else {
+                      ($payload -join [Environment]::NewLine) | Out-File -FilePath $statusPath -Encoding utf8
+                  }
+
+                  $parsed = $null
+                  try {
+                      $parsed = Get-Content -Raw -Path $statusPath -Encoding utf8 | ConvertFrom-Json
+                  } catch {
+                      $parsed = $null
+                  }
+
+                  $profileOk = ($parsed -and $parsed.ok -eq $true)
+                  $catalogReady = ($parsed -and $parsed.catalogReady -eq $true)
+                  $clinicId = if ($parsed -and $parsed.profile -and $parsed.profile.clinic_id) { [string]$parsed.profile.clinic_id } else { '' }
+                  $matchingProfileId = if ($parsed -and $parsed.matchingProfileId) { [string]$parsed.matchingProfileId } else { '' }
+                  $profileFingerprint = if ($parsed -and $parsed.profileFingerprint) { [string]$parsed.profileFingerprint } else { '' }
+                  $releaseMode = if ($parsed -and $parsed.profile -and $parsed.profile.release -and $parsed.profile.release.mode) { [string]$parsed.profile.release.mode } else { '' }
+
+                  $blocking = [System.Collections.Generic.List[string]]::new()
+                  if ($statusExit -ne 0 -and -not $parsed) {
+                      $blocking.Add('status_command_failed')
+                  }
+                  if (-not $profileOk) {
+                      $blocking.Add('profile_unresolved')
+                  }
+                  if ($releaseMode -eq 'web_pilot' -and -not $catalogReady) {
+                      $blocking.Add('catalog_not_ready')
+                  }
+
+                  $status = 'ready'
+                  $reason = 'ok'
+                  if ($releaseMode -and $releaseMode -ne 'web_pilot') {
+                      $status = 'not_required'
+                      $reason = "release_mode:$releaseMode"
+                  } elseif ($blocking.Count -gt 0) {
+                      $status = 'blocked'
+                      $reason = [string]::Join(';', $blocking)
+                  }
+                  $catalogReadyText = ([string]$catalogReady).ToLowerInvariant()
+                  $resolvedReleaseMode = if ($releaseMode) { $releaseMode } else { 'unknown' }
+
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_SELFHOSTED_STATUS=$status"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_SELFHOSTED_REASON=$reason"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_CLINIC_ID=$clinicId"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_MATCHING_PROFILE_ID=$matchingProfileId"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_PROFILE_FINGERPRINT=$profileFingerprint"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_CATALOG_READY=$catalogReadyText"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_RELEASE_MODE=$resolvedReleaseMode"
+
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "status=$status"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "reason=$reason"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "clinic_id=$clinicId"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "matching_profile_id=$matchingProfileId"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "profile_fingerprint=$profileFingerprint"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "catalog_ready=$catalogReadyText"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "release_mode=$resolvedReleaseMode"
+
+                  if ($status -eq 'blocked') {
+                      Write-Error "Turnero pilot self-hosted blocked ($reason) clinic_id=$(if ($clinicId) { $clinicId } else { 'unknown' }) release_mode=$(if ($releaseMode) { $releaseMode } else { 'unknown' })"
+                  }
 
             - name: Build Astro routes
               id: build_astro_routes
@@ -355,6 +444,151 @@ jobs:
                   "css=$css" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
                   "has_public_v4_flags=$hasV4" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
+            - name: Verify turneroPilot remote after self-hosted deploy
+              if: ${{ always() }}
+              id: turnero_pilot_remote
+              shell: pwsh
+              run: |
+                  $ErrorActionPreference = 'Stop'
+                  New-Item -ItemType Directory -Force -Path '.selfhosted-cutover' | Out-Null
+                  $remotePath = '.selfhosted-cutover/turnero-pilot-remote.json'
+                  $rawPath = '.selfhosted-cutover/turnero-pilot-remote.raw.txt'
+
+                  if ($env:TURNERO_PILOT_SELFHOSTED_STATUS -eq 'blocked') {
+                      $snapshot = [ordered]@{
+                          status = 'blocked'
+                          reason = "local_profile:$($env:TURNERO_PILOT_SELFHOSTED_REASON)"
+                          verified = $false
+                          release_mode = $env:TURNERO_PILOT_RELEASE_MODE
+                          clinic_id = $env:TURNERO_PILOT_CLINIC_ID
+                          profile_fingerprint = $env:TURNERO_PILOT_PROFILE_FINGERPRINT
+                          catalog_ready = ($env:TURNERO_PILOT_CATALOG_READY -eq 'true')
+                          deployed_commit = ''
+                          generated_at = [DateTime]::UtcNow.ToString('o')
+                      }
+                      $snapshot | ConvertTo-Json -Depth 8 | Out-File -FilePath $remotePath -Encoding utf8
+                      '' | Out-File -FilePath $rawPath -Encoding utf8
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_STATUS=blocked"
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_REASON=local_profile:$($env:TURNERO_PILOT_SELFHOSTED_REASON)"
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_CLINIC_ID=$($env:TURNERO_PILOT_CLINIC_ID)"
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT=$($env:TURNERO_PILOT_PROFILE_FINGERPRINT)"
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_CATALOG_READY=$($env:TURNERO_PILOT_CATALOG_READY)"
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT="
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_VERIFIED=false"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "status=blocked"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "reason=local_profile:$($env:TURNERO_PILOT_SELFHOSTED_REASON)"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "clinic_id=$($env:TURNERO_PILOT_CLINIC_ID)"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "profile_fingerprint=$($env:TURNERO_PILOT_PROFILE_FINGERPRINT)"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "catalog_ready=$($env:TURNERO_PILOT_CATALOG_READY)"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "deployed_commit="
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "verified=false"
+                      exit 0
+                  }
+
+                  if ($env:TURNERO_PILOT_RELEASE_MODE -ne 'web_pilot') {
+                      $snapshot = [ordered]@{
+                          status = 'not_required'
+                          reason = "release_mode:$($env:TURNERO_PILOT_RELEASE_MODE)"
+                          verified = $false
+                          release_mode = $env:TURNERO_PILOT_RELEASE_MODE
+                          clinic_id = $env:TURNERO_PILOT_CLINIC_ID
+                          profile_fingerprint = $env:TURNERO_PILOT_PROFILE_FINGERPRINT
+                          catalog_ready = ($env:TURNERO_PILOT_CATALOG_READY -eq 'true')
+                          deployed_commit = ''
+                          generated_at = [DateTime]::UtcNow.ToString('o')
+                      }
+                      $snapshot | ConvertTo-Json -Depth 8 | Out-File -FilePath $remotePath -Encoding utf8
+                      '' | Out-File -FilePath $rawPath -Encoding utf8
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_STATUS=not_required"
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_REASON=release_mode:$($env:TURNERO_PILOT_RELEASE_MODE)"
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_CLINIC_ID=$($env:TURNERO_PILOT_CLINIC_ID)"
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT=$($env:TURNERO_PILOT_PROFILE_FINGERPRINT)"
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_CATALOG_READY=$($env:TURNERO_PILOT_CATALOG_READY)"
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT="
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_VERIFIED=false"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "status=not_required"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "reason=release_mode:$($env:TURNERO_PILOT_RELEASE_MODE)"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "clinic_id=$($env:TURNERO_PILOT_CLINIC_ID)"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "profile_fingerprint=$($env:TURNERO_PILOT_PROFILE_FINGERPRINT)"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "catalog_ready=$($env:TURNERO_PILOT_CATALOG_READY)"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "deployed_commit="
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "verified=false"
+                      exit 0
+                  }
+
+                  $remotePayload = & node bin/turnero-clinic-profile.js verify-remote --base-url $env:TARGET_DOMAIN --json 2> $rawPath
+                  $verifyExit = $LASTEXITCODE
+                  if ($null -eq $remotePayload) {
+                      '' | Out-File -FilePath $remotePath -Encoding utf8
+                  } else {
+                      ($remotePayload -join [Environment]::NewLine) | Out-File -FilePath $remotePath -Encoding utf8
+                  }
+
+                  $payload = $null
+                  $rawStderr = ''
+                  try {
+                      $payload = Get-Content -Raw -Path $remotePath -Encoding utf8 | ConvertFrom-Json
+                  } catch {
+                      $payload = $null
+                  }
+                  try {
+                      $rawStderr = Get-Content -Raw -Path $rawPath -Encoding utf8
+                  } catch {
+                      $rawStderr = ''
+                  }
+
+                  $verified = ($verifyExit -eq 0 -and $payload -and $payload.ok -eq $true)
+                  $remoteClinicId = if ($payload -and $payload.turneroPilot -and $payload.turneroPilot.clinicId) { [string]$payload.turneroPilot.clinicId } else { '' }
+                  $remoteFingerprint = if ($payload -and $payload.turneroPilot -and $payload.turneroPilot.profileFingerprint) { [string]$payload.turneroPilot.profileFingerprint } else { '' }
+                  $remoteCatalogReady = ($payload -and $payload.turneroPilot -and $payload.turneroPilot.catalogReady -eq $true)
+                  $remoteDeployedCommit = if ($payload -and $payload.publicSync -and $payload.publicSync.deployedCommit) { [string]$payload.publicSync.deployedCommit } else { '' }
+                  if ($verified) {
+                      $status = 'ready'
+                      $reason = 'ok'
+                  } else {
+                      $status = 'blocked'
+                      if ($payload -and $payload.errors -and $payload.errors.Count -gt 0) {
+                          $reason = [string]::Join('; ', @($payload.errors | Select-Object -First 3))
+                      } elseif ($rawStderr) {
+                          $reason = $rawStderr.Trim()
+                      } else {
+                          $reason = "verify_remote_exit:$verifyExit"
+                      }
+                  }
+                  $reason = [regex]::Replace([string]$reason, '\s+', ' ').Trim()
+                  $remoteCatalogReadyText = ([string]$remoteCatalogReady).ToLowerInvariant()
+                  $verifiedText = ([string]$verified).ToLowerInvariant()
+
+                  $snapshot = [ordered]@{
+                      status = $status
+                      reason = $reason
+                      verified = $verified
+                      release_mode = $env:TURNERO_PILOT_RELEASE_MODE
+                      clinic_id = $remoteClinicId
+                      profile_fingerprint = $remoteFingerprint
+                      catalog_ready = $remoteCatalogReady
+                      deployed_commit = $remoteDeployedCommit
+                      generated_at = [DateTime]::UtcNow.ToString('o')
+                      result = $payload
+                      stderr = $rawStderr
+                  }
+                  $snapshot | ConvertTo-Json -Depth 12 | Out-File -FilePath $remotePath -Encoding utf8
+
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_STATUS=$status"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_REASON=$reason"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_CLINIC_ID=$remoteClinicId"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT=$remoteFingerprint"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_CATALOG_READY=$remoteCatalogReadyText"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT=$remoteDeployedCommit"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_VERIFIED=$verifiedText"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "status=$status"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "reason=$reason"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "clinic_id=$remoteClinicId"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "profile_fingerprint=$remoteFingerprint"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "catalog_ready=$remoteCatalogReadyText"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "deployed_commit=$remoteDeployedCommit"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "verified=$verifiedText"
+
             - name: Evaluate telemedicine health after frontend deploy
               if: ${{ always() }}
               id: telemedicine_selfhosted
@@ -463,6 +697,50 @@ jobs:
                   Add-Content -Path $env:GITHUB_ENV -Value "TELEMEDICINE_SELFHOSTED_REASON=$reason"
                   Add-Content -Path $env:GITHUB_ENV -Value "TELEMEDICINE_SELFHOSTED_FAILURES=$failures"
                   Add-Content -Path $env:GITHUB_ENV -Value "TELEMEDICINE_SELFHOSTED_NON_TELE_FAILURES=$nonTeleFailures"
+
+            - name: Evaluate self-hosted deploy route
+              if: ${{ always() }}
+              id: selfhosted_route
+              shell: pwsh
+              env:
+                  BUILD_ASTRO_OUTCOME: ${{ steps.build_astro_routes.outcome }}
+                  DEPLOY_BUNDLE_OUTCOME: ${{ steps.deploy_frontend_bundle.outcome }}
+                  VALIDATE_PUBLIC_FRONTEND_OUTCOME: ${{ steps.validate_public_frontend.outcome }}
+              run: |
+                  $ErrorActionPreference = 'Stop'
+                  function Normalize-Outcome {
+                      param([string]$Value)
+                      if ([string]::IsNullOrWhiteSpace($Value)) { return 'n/a' }
+                      return $Value.Trim().ToLowerInvariant()
+                  }
+
+                  $buildOutcome = Normalize-Outcome $env:BUILD_ASTRO_OUTCOME
+                  $deployOutcome = Normalize-Outcome $env:DEPLOY_BUNDLE_OUTCOME
+                  $validateOutcome = Normalize-Outcome $env:VALIDATE_PUBLIC_FRONTEND_OUTCOME
+                  $status = 'ready'
+                  $reason = 'ok'
+
+                  if ($buildOutcome -eq 'failure' -or $buildOutcome -eq 'cancelled') {
+                      $status = 'blocked'
+                      $reason = "build_astro_routes:$buildOutcome"
+                  } elseif ($deployOutcome -eq 'failure' -or $deployOutcome -eq 'cancelled') {
+                      $status = 'blocked'
+                      $reason = "deploy_frontend_bundle:$deployOutcome"
+                  } elseif ($validateOutcome -eq 'failure' -or $validateOutcome -eq 'cancelled') {
+                      $status = 'blocked'
+                      $reason = "validate_public_frontend:$validateOutcome"
+                  } elseif ($deployOutcome -eq 'skipped') {
+                      $status = 'blocked'
+                      $reason = 'deploy_frontend_bundle:skipped'
+                  } elseif ($validateOutcome -eq 'skipped') {
+                      $status = 'blocked'
+                      $reason = 'validate_public_frontend:skipped'
+                  }
+
+                  Add-Content -Path $env:GITHUB_ENV -Value "SELFHOSTED_ROUTE_STATUS=$status"
+                  Add-Content -Path $env:GITHUB_ENV -Value "SELFHOSTED_ROUTE_REASON=$reason"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "status=$status"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "reason=$reason"
 
             - name: Create or update telemedicine incident (self-hosted deploy)
               if: ${{ always() && (env.TELEMEDICINE_SELFHOSTED_STATUS == 'degraded' || env.TELEMEDICINE_SELFHOSTED_STATUS == 'unknown') }}
@@ -638,6 +916,382 @@ jobs:
                   TELEMEDICINE_SELFHOSTED_STATUS: ${{ env.TELEMEDICINE_SELFHOSTED_STATUS }}
                   TELEMEDICINE_SELFHOSTED_REASON: ${{ env.TELEMEDICINE_SELFHOSTED_REASON }}
 
+            - name: Create or update turneroPilot incident (self-hosted deploy)
+              if: ${{ always() && env.TURNERO_PILOT_RELEASE_MODE == 'web_pilot' && env.TURNERO_PILOT_REMOTE_STATUS == 'blocked' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+                      const signal = [
+                        `status:${process.env.TURNERO_PILOT_REMOTE_STATUS || 'unknown'}`,
+                        `reason:${process.env.TURNERO_PILOT_REMOTE_REASON || 'unknown'}`,
+                        `local_clinic:${process.env.TURNERO_PILOT_CLINIC_ID || 'unknown'}`,
+                        `remote_clinic:${process.env.TURNERO_PILOT_REMOTE_CLINIC_ID || 'unknown'}`,
+                        `local_fp:${process.env.TURNERO_PILOT_PROFILE_FINGERPRINT || 'unknown'}`,
+                        `remote_fp:${process.env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT || 'unknown'}`,
+                        `deployed:${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`
+                      ].join('|');
+                      const signalMarker = `<!-- deploy-frontend-selfhosted-turnero-pilot-signal:${signal} -->`;
+                      const baseLabels = ['production-alert', 'deploy-frontend-selfhosted', 'turnero-pilot', 'severity:warning'];
+
+                      const normalizeLabels = (labels) =>
+                        (labels || [])
+                          .map((item) => (typeof item === 'string' ? item : item?.name))
+                          .filter(Boolean);
+                      const mergedLabels = (labels) => Array.from(new Set([...normalizeLabels(labels), ...baseLabels]));
+                      const sameLabels = (a, b) => {
+                        const norm = (values) => Array.from(new Set(values)).sort();
+                        return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+                      };
+
+                      const incidentBody = [
+                        'El workflow `Deploy Frontend (Self-Hosted)` detecto que el host publicado no coincide con el `clinic-profile` del piloto web.',
+                        '',
+                        `- Fecha: ${now}`,
+                        `- Run: ${runUrl}`,
+                        `- Workflow: ${context.workflow}`,
+                        `- Branch: ${context.ref}`,
+                        `- target_domain: ${process.env.TARGET_DOMAIN || 'https://pielarmonia.com'}`,
+                        `- turnero_pilot_release_mode: ${process.env.TURNERO_PILOT_RELEASE_MODE || 'unknown'}`,
+                        `- turnero_pilot_local_status: ${process.env.TURNERO_PILOT_SELFHOSTED_STATUS || 'unknown'}`,
+                        `- turnero_pilot_local_reason: ${process.env.TURNERO_PILOT_SELFHOSTED_REASON || 'unknown'}`,
+                        `- turnero_pilot_local_clinic_id: ${process.env.TURNERO_PILOT_CLINIC_ID || 'unknown'}`,
+                        `- turnero_pilot_remote_clinic_id: ${process.env.TURNERO_PILOT_REMOTE_CLINIC_ID || 'unknown'}`,
+                        `- turnero_pilot_local_profile_fingerprint: ${process.env.TURNERO_PILOT_PROFILE_FINGERPRINT || 'unknown'}`,
+                        `- turnero_pilot_remote_profile_fingerprint: ${process.env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT || 'unknown'}`,
+                        `- turnero_pilot_remote_catalog_ready: ${process.env.TURNERO_PILOT_REMOTE_CATALOG_READY || 'false'}`,
+                        `- turnero_pilot_remote_deployed_commit: ${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`,
+                        `- turnero_pilot_remote_reason: ${process.env.TURNERO_PILOT_REMOTE_REASON || 'unknown'}`,
+                        '',
+                        signalMarker
+                      ].join('\n');
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (existing) {
+                        const existingBody = String(existing.body || '');
+                        const labels = mergedLabels(existing.labels);
+                        const labelsAlreadyApplied = sameLabels(normalizeLabels(existing.labels), labels);
+                        if (existingBody.includes(signalMarker)) {
+                          if (!labelsAlreadyApplied) {
+                            await github.rest.issues.update({
+                              owner,
+                              repo,
+                              issue_number: existing.number,
+                              labels
+                            });
+                          }
+                          core.info(`Issue deploy-frontend-selfhosted turneroPilot ya refleja la misma senal: #${existing.number}`);
+                          return;
+                        }
+                        await github.rest.issues.update({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body: incidentBody,
+                          labels
+                        });
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body: [
+                            'Incidente deploy-frontend-selfhosted turneroPilot actualizado por cambio de senal.',
+                            '',
+                            `- Fecha: ${now}`,
+                            `- Run: ${runUrl}`,
+                            `- turnero_pilot_remote_status: ${process.env.TURNERO_PILOT_REMOTE_STATUS || 'unknown'}`,
+                            `- turnero_pilot_remote_reason: ${process.env.TURNERO_PILOT_REMOTE_REASON || 'unknown'}`,
+                            `- turnero_pilot_remote_clinic_id: ${process.env.TURNERO_PILOT_REMOTE_CLINIC_ID || 'unknown'}`,
+                            `- turnero_pilot_remote_profile_fingerprint: ${process.env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT || 'unknown'}`,
+                            `- turnero_pilot_remote_deployed_commit: ${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`
+                          ].join('\n')
+                        });
+                        core.info(`Issue deploy-frontend-selfhosted turneroPilot actualizado: #${existing.number}`);
+                      } else {
+                        const created = await github.rest.issues.create({
+                          owner,
+                          repo,
+                          title,
+                          body: incidentBody,
+                          labels: baseLabels
+                        });
+                        core.info(`Issue deploy-frontend-selfhosted turneroPilot creado: #${created.data.number}`);
+                      }
+              env:
+                  TURNERO_PILOT_SELFHOSTED_STATUS: ${{ env.TURNERO_PILOT_SELFHOSTED_STATUS }}
+                  TURNERO_PILOT_SELFHOSTED_REASON: ${{ env.TURNERO_PILOT_SELFHOSTED_REASON }}
+                  TURNERO_PILOT_RELEASE_MODE: ${{ env.TURNERO_PILOT_RELEASE_MODE }}
+                  TURNERO_PILOT_CLINIC_ID: ${{ env.TURNERO_PILOT_CLINIC_ID }}
+                  TURNERO_PILOT_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_PROFILE_FINGERPRINT }}
+                  TURNERO_PILOT_REMOTE_STATUS: ${{ env.TURNERO_PILOT_REMOTE_STATUS }}
+                  TURNERO_PILOT_REMOTE_REASON: ${{ env.TURNERO_PILOT_REMOTE_REASON }}
+                  TURNERO_PILOT_REMOTE_CLINIC_ID: ${{ env.TURNERO_PILOT_REMOTE_CLINIC_ID }}
+                  TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT }}
+                  TURNERO_PILOT_REMOTE_CATALOG_READY: ${{ env.TURNERO_PILOT_REMOTE_CATALOG_READY }}
+                  TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT }}
+
+            - name: Close turneroPilot incident when recovered (self-hosted deploy)
+              if: ${{ success() && env.TURNERO_PILOT_RELEASE_MODE == 'web_pilot' && (env.TURNERO_PILOT_REMOTE_STATUS == 'ready' || env.TURNERO_PILOT_REMOTE_STATUS == 'not_required') }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (!existing) {
+                        core.info('No hay incidente deploy-frontend-selfhosted turneroPilot abierto para cerrar.');
+                        return;
+                      }
+
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        body: [
+                          'Recuperado automaticamente por deploy-frontend-selfhosted.',
+                          '',
+                          `- Fecha: ${now}`,
+                          `- Run: ${runUrl}`,
+                          `- turnero_pilot_remote_status: ${process.env.TURNERO_PILOT_REMOTE_STATUS || 'ready'}`,
+                          `- turnero_pilot_remote_reason: ${process.env.TURNERO_PILOT_REMOTE_REASON || 'ok'}`,
+                          `- turnero_pilot_remote_clinic_id: ${process.env.TURNERO_PILOT_REMOTE_CLINIC_ID || 'unknown'}`,
+                          `- turnero_pilot_remote_profile_fingerprint: ${process.env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT || 'unknown'}`,
+                          `- turnero_pilot_remote_deployed_commit: ${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`
+                        ].join('\n')
+                      });
+
+                      await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        state: 'closed'
+                      });
+                      core.info(`Issue deploy-frontend-selfhosted turneroPilot cerrado: #${existing.number}`);
+              env:
+                  TURNERO_PILOT_RELEASE_MODE: ${{ env.TURNERO_PILOT_RELEASE_MODE }}
+                  TURNERO_PILOT_REMOTE_STATUS: ${{ env.TURNERO_PILOT_REMOTE_STATUS }}
+                  TURNERO_PILOT_REMOTE_REASON: ${{ env.TURNERO_PILOT_REMOTE_REASON }}
+                  TURNERO_PILOT_REMOTE_CLINIC_ID: ${{ env.TURNERO_PILOT_REMOTE_CLINIC_ID }}
+                  TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT }}
+                  TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT }}
+
+            - name: Create or update self-hosted route incident
+              if: ${{ always() && env.SELFHOSTED_ROUTE_STATUS == 'blocked' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Deploy Frontend Self-Hosted ruta bloqueada';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+                      const signal = [
+                        `status:${process.env.SELFHOSTED_ROUTE_STATUS || 'unknown'}`,
+                        `reason:${process.env.SELFHOSTED_ROUTE_REASON || 'unknown'}`,
+                        `clinic:${process.env.TURNERO_PILOT_CLINIC_ID || 'unknown'}`,
+                        `fp:${process.env.TURNERO_PILOT_PROFILE_FINGERPRINT || 'unknown'}`,
+                        `release:${process.env.TURNERO_PILOT_RELEASE_MODE || 'unknown'}`
+                      ].join('|');
+                      const signalMarker = `<!-- deploy-frontend-selfhosted-route-signal:${signal} -->`;
+                      const baseLabels = ['production-alert', 'deploy-frontend-selfhosted', 'self-hosted-route', 'severity:warning'];
+
+                      const normalizeLabels = (labels) =>
+                        (labels || [])
+                          .map((item) => (typeof item === 'string' ? item : item?.name))
+                          .filter(Boolean);
+                      const mergedLabels = (labels) => Array.from(new Set([...normalizeLabels(labels), ...baseLabels]));
+                      const sameLabels = (a, b) => {
+                        const norm = (values) => Array.from(new Set(values)).sort();
+                        return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
+                      };
+
+                      const incidentBody = [
+                        'El workflow `Deploy Frontend (Self-Hosted)` no pudo completar la ruta manual de deploy.',
+                        '',
+                        `- Fecha: ${now}`,
+                        `- Run: ${runUrl}`,
+                        `- Workflow: ${context.workflow}`,
+                        `- Branch: ${context.ref}`,
+                        `- selfhosted_route_status: ${process.env.SELFHOSTED_ROUTE_STATUS || 'unknown'}`,
+                        `- selfhosted_route_reason: ${process.env.SELFHOSTED_ROUTE_REASON || 'unknown'}`,
+                        `- turnero_pilot_clinic_id: ${process.env.TURNERO_PILOT_CLINIC_ID || 'unknown'}`,
+                        `- turnero_pilot_profile_fingerprint: ${process.env.TURNERO_PILOT_PROFILE_FINGERPRINT || 'unknown'}`,
+                        `- turnero_pilot_release_mode: ${process.env.TURNERO_PILOT_RELEASE_MODE || 'unknown'}`,
+                        '',
+                        signalMarker
+                      ].join('\n');
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (existing) {
+                        const existingBody = String(existing.body || '');
+                        const labels = mergedLabels(existing.labels);
+                        const labelsAlreadyApplied = sameLabels(normalizeLabels(existing.labels), labels);
+                        if (existingBody.includes(signalMarker)) {
+                          if (!labelsAlreadyApplied) {
+                            await github.rest.issues.update({
+                              owner,
+                              repo,
+                              issue_number: existing.number,
+                              labels
+                            });
+                          }
+                          core.info(`Issue deploy-frontend-selfhosted route ya refleja la misma senal: #${existing.number}`);
+                          return;
+                        }
+                        await github.rest.issues.update({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body: incidentBody,
+                          labels
+                        });
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: existing.number,
+                          body: [
+                            'Incidente deploy-frontend-selfhosted ruta bloqueada actualizado por cambio de senal.',
+                            '',
+                            `- Fecha: ${now}`,
+                            `- Run: ${runUrl}`,
+                            `- selfhosted_route_status: ${process.env.SELFHOSTED_ROUTE_STATUS || 'unknown'}`,
+                            `- selfhosted_route_reason: ${process.env.SELFHOSTED_ROUTE_REASON || 'unknown'}`
+                          ].join('\n')
+                        });
+                        core.info(`Issue deploy-frontend-selfhosted route actualizado: #${existing.number}`);
+                      } else {
+                        const created = await github.rest.issues.create({
+                          owner,
+                          repo,
+                          title,
+                          body: incidentBody,
+                          labels: baseLabels
+                        });
+                        core.info(`Issue deploy-frontend-selfhosted route creado: #${created.data.number}`);
+                      }
+              env:
+                  SELFHOSTED_ROUTE_STATUS: ${{ env.SELFHOSTED_ROUTE_STATUS }}
+                  SELFHOSTED_ROUTE_REASON: ${{ env.SELFHOSTED_ROUTE_REASON }}
+                  TURNERO_PILOT_CLINIC_ID: ${{ env.TURNERO_PILOT_CLINIC_ID }}
+                  TURNERO_PILOT_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_PROFILE_FINGERPRINT }}
+                  TURNERO_PILOT_RELEASE_MODE: ${{ env.TURNERO_PILOT_RELEASE_MODE }}
+
+            - name: Close self-hosted route incident when recovered
+              if: ${{ success() && env.SELFHOSTED_ROUTE_STATUS == 'ready' }}
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Deploy Frontend Self-Hosted ruta bloqueada';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (!existing) {
+                        core.info('No hay incidente deploy-frontend-selfhosted route abierto para cerrar.');
+                        return;
+                      }
+
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        body: [
+                          'Recuperado automaticamente por deploy-frontend-selfhosted.',
+                          '',
+                          `- Fecha: ${now}`,
+                          `- Run: ${runUrl}`,
+                          `- selfhosted_route_status: ${process.env.SELFHOSTED_ROUTE_STATUS || 'ready'}`,
+                          `- selfhosted_route_reason: ${process.env.SELFHOSTED_ROUTE_REASON || 'ok'}`
+                        ].join('\n')
+                      });
+
+                      await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        state: 'closed'
+                      });
+                      core.info(`Issue deploy-frontend-selfhosted route cerrado: #${existing.number}`);
+              env:
+                  SELFHOSTED_ROUTE_STATUS: ${{ env.SELFHOSTED_ROUTE_STATUS }}
+                  SELFHOSTED_ROUTE_REASON: ${{ env.SELFHOSTED_ROUTE_REASON }}
+
+            - name: Write turneroPilot report (self-hosted deploy)
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  $ErrorActionPreference = 'Stop'
+                  New-Item -ItemType Directory -Force -Path 'verification' | Out-Null
+                  $report = [ordered]@{
+                      local = [ordered]@{
+                          status = $env:TURNERO_PILOT_SELFHOSTED_STATUS
+                          reason = $env:TURNERO_PILOT_SELFHOSTED_REASON
+                          clinicId = $env:TURNERO_PILOT_CLINIC_ID
+                          matchingProfileId = $env:TURNERO_PILOT_MATCHING_PROFILE_ID
+                          profileFingerprint = $env:TURNERO_PILOT_PROFILE_FINGERPRINT
+                          catalogReady = ($env:TURNERO_PILOT_CATALOG_READY -eq 'true')
+                          releaseMode = $env:TURNERO_PILOT_RELEASE_MODE
+                      }
+                      remote = [ordered]@{
+                          status = $env:TURNERO_PILOT_REMOTE_STATUS
+                          reason = $env:TURNERO_PILOT_REMOTE_REASON
+                          clinicId = $env:TURNERO_PILOT_REMOTE_CLINIC_ID
+                          profileFingerprint = $env:TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT
+                          catalogReady = ($env:TURNERO_PILOT_REMOTE_CATALOG_READY -eq 'true')
+                          deployedCommit = $env:TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT
+                          verified = ($env:TURNERO_PILOT_REMOTE_VERIFIED -eq 'true')
+                      }
+                      manifests = [ordered]@{
+                          local = '.selfhosted-cutover/turnero-pilot-status.json'
+                          remote = '.selfhosted-cutover/turnero-pilot-remote.json'
+                      }
+                      generatedAt = [DateTime]::UtcNow.ToString('o')
+                  }
+                  $report | ConvertTo-Json -Depth 12 | Out-File -FilePath 'verification/last-turnero-pilot-selfhosted.json' -Encoding utf8
+
+            - name: Upload turneroPilot report (self-hosted deploy)
+              if: ${{ always() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: deploy-frontend-selfhosted-turnero-pilot-report
+                  path: verification/last-turnero-pilot-selfhosted.json
+                  if-no-files-found: warn
+                  retention-days: 14
+
             - name: Deployment summary
               if: ${{ always() }}
               shell: pwsh
@@ -648,4 +1302,28 @@ jobs:
                   "- telemedicine_selfhosted_failures: ``$env:TELEMEDICINE_SELFHOSTED_FAILURES``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
                   "- telemedicine_selfhosted_non_tele_failures: ``$env:TELEMEDICINE_SELFHOSTED_NON_TELE_FAILURES``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
                   "- telemedicine_selfhosted_step_outcome: ``${{ steps.telemedicine_selfhosted.outcome }}``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- selfhosted_route_status: ``$env:SELFHOSTED_ROUTE_STATUS``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- selfhosted_route_reason: ``$env:SELFHOSTED_ROUTE_REASON``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_local_status: ``$env:TURNERO_PILOT_SELFHOSTED_STATUS``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_local_reason: ``$env:TURNERO_PILOT_SELFHOSTED_REASON``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_clinic_id: ``$env:TURNERO_PILOT_CLINIC_ID``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_profile_fingerprint: ``$env:TURNERO_PILOT_PROFILE_FINGERPRINT``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_catalog_ready: ``$env:TURNERO_PILOT_CATALOG_READY``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_release_mode: ``$env:TURNERO_PILOT_RELEASE_MODE``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_remote_status: ``$env:TURNERO_PILOT_REMOTE_STATUS``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_remote_reason: ``$env:TURNERO_PILOT_REMOTE_REASON``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_remote_clinic_id: ``$env:TURNERO_PILOT_REMOTE_CLINIC_ID``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_remote_profile_fingerprint: ``$env:TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_remote_catalog_ready: ``$env:TURNERO_PILOT_REMOTE_CATALOG_READY``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_remote_deployed_commit: ``$env:TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_remote_verified: ``$env:TURNERO_PILOT_REMOTE_VERIFIED``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_status_manifest: ``.selfhosted-cutover/turnero-pilot-status.json``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_remote_manifest: ``.selfhosted-cutover/turnero-pilot-remote.json``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_report: ``verification/last-turnero-pilot-selfhosted.json``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
                   "- result: ``${{ job.status }}``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
+            - name: Fail self-hosted deploy when turneroPilot blocks release
+              if: ${{ always() && env.TURNERO_PILOT_RELEASE_MODE == 'web_pilot' && env.TURNERO_PILOT_REMOTE_STATUS == 'blocked' }}
+              shell: pwsh
+              run: |
+                  throw "turneroPilot bloquea el release self-hosted ($env:TURNERO_PILOT_REMOTE_REASON)"

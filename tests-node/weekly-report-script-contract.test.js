@@ -197,6 +197,58 @@ test('weekly report script integra bloque public sync operativo', () => {
     );
 });
 
+test('weekly report script integra bloque turnero pilot por clínica', () => {
+    const rawReport = loadScript();
+    const rawWarnings = readFileSync(
+        resolve(__dirname, '..', 'bin', 'powershell', 'Common.Warnings.ps1'),
+        'utf8'
+    );
+    const requiredReportSnippets = [
+        "$turneroClinicProfileScriptPath = Join-Path $repoRoot 'bin/turnero-clinic-profile.js'",
+        '$turneroPilotVerifyRequired = $false',
+        'turnero_pilot_profile_status_unresolved',
+        'turnero_pilot_catalog_drift',
+        'turnero_pilot_remote_mismatch',
+        'turnero_pilot_verify_required=$turneroPilotVerifyRequired',
+        'turnero_pilot_remote_profile_source=$turneroPilotRemoteProfileSource',
+        'turnero_pilot_remote_admin_mode_default=$turneroPilotRemoteAdminModeDefault',
+    ];
+    const requiredWarningsSnippets = [
+        '## Turnero Pilot',
+        'turneroPilot = [ordered]@{',
+        'remoteOk = [bool]$turneroPilotRemoteOk',
+        'errors = @($turneroPilotErrors)',
+        "if ($WarningCode.StartsWith('turnero_pilot_')) {",
+    ];
+
+    for (const snippet of requiredReportSnippets) {
+        assert.equal(
+            rawReport.includes(snippet),
+            true,
+            `falta snippet turneroPilot en REPORTE-SEMANAL-PRODUCCION.ps1: ${snippet}`
+        );
+    }
+
+    for (const snippet of requiredWarningsSnippets) {
+        assert.equal(
+            rawWarnings.includes(snippet),
+            true,
+            `falta snippet turneroPilot en Common.Warnings.ps1: ${snippet}`
+        );
+    }
+
+    assert.match(
+        rawWarnings,
+        /if \(\$WarningCode\.StartsWith\('turnero_pilot_'\)\) \{\s+return 'turnero'/,
+        'turneroPilot debe mapearse a impacto turnero'
+    );
+    assert.match(
+        rawWarnings,
+        /if \(\$WarningCode\.StartsWith\('turnero_pilot_'\)\) \{\s+return 'docs\/TURNERO_WEB_PRODUCTION_CUT\.md'/,
+        'turneroPilot debe apuntar al corte canónico del piloto web'
+    );
+});
+
 test('weekly report script integra bloque GitHub deploy alerts operativo', () => {
     const rawReport = loadScript();
     const rawWarnings = readFileSync(
@@ -204,7 +256,7 @@ test('weekly report script integra bloque GitHub deploy alerts operativo', () =>
         'utf8'
     );
     const requiredReportSnippets = [
-        "[string]$GitHubRepo = 'erosero558558/piel-en-armonia'",
+        "[string]$GitHubRepo = 'erosero558558/Aurora-Derm'",
         '$githubDeployAlertsSummary = Get-GitHubProductionAlertSummary',
         'github_deploy_alerts_unreachable',
         'github_deploy_alerts_open_${githubDeployAlertsRelevantCount}',
@@ -212,6 +264,10 @@ test('weekly report script integra bloque GitHub deploy alerts operativo', () =>
         'github_deploy_connectivity_blocked',
         'github_deploy_repair_git_sync_blocked',
         'github_deploy_self_hosted_runner_blocked',
+        'github_deploy_self_hosted_deploy_blocked',
+        'github_deploy_turnero_pilot_blocked',
+        'github_deploy_self_hosted_deploy_count=$githubDeployAlertsSelfHostedDeployCount',
+        'github_deploy_turnero_pilot_count=$githubDeployAlertsTurneroPilotCount',
         'github_deploy_alerts_issue_numbers=$githubDeployAlertsIssueNumbersLabel',
         'github_deploy_alerts_issue_refs=$githubDeployAlertsIssueRefsLabel',
     ];
@@ -220,6 +276,10 @@ test('weekly report script integra bloque GitHub deploy alerts operativo', () =>
         'githubDeployAlerts = [ordered]@{',
         'transportCount = $githubDeployAlertsTransportCount',
         'selfHostedRunnerCount = $githubDeployAlertsSelfHostedRunnerCount',
+        'selfHostedDeployCount = $githubDeployAlertsSelfHostedDeployCount',
+        'turneroPilotCount = $githubDeployAlertsTurneroPilotCount',
+        'hasSelfHostedDeployBlock = [bool]$githubDeployAlertsHasSelfHostedDeployBlock',
+        'hasTurneroPilotBlock = [bool]$githubDeployAlertsHasTurneroPilotBlock',
         'issueRefs = @($githubDeployAlertsIssueRefs)',
         "if ($WarningCode -eq 'github_deploy_alerts_unreachable') {",
         "if ($WarningCode.StartsWith('github_deploy_')) {",

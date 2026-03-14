@@ -335,3 +335,102 @@ function read_turnero_clinic_profile_catalog_status(): array
         'ready' => $matchingProfileId !== '' && $matchesCatalog,
     ];
 }
+
+function turnero_clinic_profile_fingerprint(array $profile): string
+{
+    $normalized = turnero_clinic_profile_normalize($profile);
+    $source = implode('|', [
+        (string) ($normalized['clinic_id'] ?? ''),
+        (string) ($normalized['branding']['base_url'] ?? ''),
+        (string) ($normalized['consultorios']['c1']['label'] ?? ''),
+        (string) ($normalized['consultorios']['c1']['short_label'] ?? ''),
+        (string) ($normalized['consultorios']['c2']['label'] ?? ''),
+        (string) ($normalized['consultorios']['c2']['short_label'] ?? ''),
+        !empty($normalized['surfaces']['admin']['enabled']) ? '1' : '0',
+        (string) ($normalized['surfaces']['admin']['route'] ?? ''),
+        !empty($normalized['surfaces']['operator']['enabled']) ? '1' : '0',
+        (string) ($normalized['surfaces']['operator']['route'] ?? ''),
+        !empty($normalized['surfaces']['kiosk']['enabled']) ? '1' : '0',
+        (string) ($normalized['surfaces']['kiosk']['route'] ?? ''),
+        !empty($normalized['surfaces']['display']['enabled']) ? '1' : '0',
+        (string) ($normalized['surfaces']['display']['route'] ?? ''),
+        (string) ($normalized['release']['mode'] ?? ''),
+        (string) ($normalized['release']['admin_mode_default'] ?? ''),
+        !empty($normalized['release']['separate_deploy']) ? '1' : '0',
+        !empty($normalized['release']['native_apps_blocking']) ? '1' : '0',
+    ]);
+
+    $hash = 2166136261;
+    $length = strlen($source);
+    for ($index = 0; $index < $length; $index++) {
+        $hash ^= ord($source[$index]);
+        $hash = ($hash * 16777619) & 0xffffffff;
+    }
+
+    return str_pad(strtolower(dechex($hash)), 8, '0', STR_PAD_LEFT);
+}
+
+function read_turnero_clinic_profile_health_snapshot(): array
+{
+    $profile = read_turnero_clinic_profile();
+    $catalogStatus = read_turnero_clinic_profile_catalog_status();
+    $activePath = turnero_clinic_profile_path();
+    $profileSource = is_file($activePath) ? 'file' : 'defaults';
+    $release = isset($profile['release']) && is_array($profile['release'])
+        ? $profile['release']
+        : [];
+    $surfaces = isset($profile['surfaces']) && is_array($profile['surfaces'])
+        ? $profile['surfaces']
+        : [];
+
+    $surfaceSnapshot = [];
+    foreach (['admin', 'operator', 'kiosk', 'display'] as $surfaceKey) {
+        $surface = isset($surfaces[$surfaceKey]) && is_array($surfaces[$surfaceKey])
+            ? $surfaces[$surfaceKey]
+            : [];
+        $surfaceSnapshot[$surfaceKey] = [
+            'enabled' => (bool) ($surface['enabled'] ?? false),
+            'label' => (string) ($surface['label'] ?? ''),
+            'route' => (string) ($surface['route'] ?? ''),
+        ];
+    }
+
+    $releaseMode = (string) ($release['mode'] ?? '');
+    $adminModeDefault = (string) ($release['admin_mode_default'] ?? '');
+    $separateDeploy = (bool) ($release['separate_deploy'] ?? false);
+    $nativeAppsBlocking = (bool) ($release['native_apps_blocking'] ?? false);
+    $requiredRoutesReady = true;
+
+    foreach (['admin', 'operator', 'kiosk', 'display'] as $surfaceKey) {
+        $surface = $surfaceSnapshot[$surfaceKey];
+        if (!$surface['enabled'] || trim($surface['route']) === '') {
+            $requiredRoutesReady = false;
+            break;
+        }
+    }
+
+    $ready = $profileSource === 'file'
+        && !empty($profile['clinic_id'])
+        && $catalogStatus['ready'] === true
+        && $releaseMode === 'web_pilot'
+        && $adminModeDefault === 'basic'
+        && $separateDeploy === true
+        && $requiredRoutesReady;
+
+    return [
+        'configured' => true,
+        'ready' => $ready,
+        'profileSource' => $profileSource,
+        'clinicId' => (string) ($profile['clinic_id'] ?? ''),
+        'profileFingerprint' => turnero_clinic_profile_fingerprint($profile),
+        'catalogAvailable' => (bool) ($catalogStatus['catalogAvailable'] ?? false),
+        'catalogMatched' => (bool) ($catalogStatus['matchesCatalog'] ?? false),
+        'catalogReady' => (bool) ($catalogStatus['ready'] ?? false),
+        'catalogEntryId' => (string) ($catalogStatus['matchingProfileId'] ?? ''),
+        'releaseMode' => $releaseMode,
+        'adminModeDefault' => $adminModeDefault,
+        'separateDeploy' => $separateDeploy,
+        'nativeAppsBlocking' => $nativeAppsBlocking,
+        'surfaces' => $surfaceSnapshot,
+    ];
+}

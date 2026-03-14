@@ -111,6 +111,8 @@ Comandos operativos del perfil por clínica:
 - `node bin/turnero-clinic-profile.js validate --id <clinic_id> --json`
 - `node bin/turnero-clinic-profile.js stage --id <clinic_id> --json`
 - `node bin/turnero-clinic-profile.js status --json`
+- `node bin/turnero-clinic-profile.js verify-remote --base-url https://TU_DOMINIO --json`
+- `pwsh -File scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1 -Domain https://TU_DOMINIO`
 
 Debe evaluar seis señales antes de abrir una clínica real:
 
@@ -123,6 +125,19 @@ Debe evaluar seis señales antes de abrir una clínica real:
 
 Además, `perfil por clínica` solo cuenta como listo si viene del servidor; un perfil servido desde `fallback local` debe bloquear el go-live aunque la UI conserve contexto.
 Además, `perfil catalogado` solo cuenta como listo si el `clinic-profile.json` activo coincide byte a byte con una entrada válida bajo `content/turnero/clinic-profiles/*.json`; si no, el deploy sigue dependiendo de edición manual y el piloto debe quedar bloqueado.
+Además, `/api.php?resource=health` debe exponer `checks.turneroPilot` y ese snapshot debe coincidir con el perfil activo (`clinicId`, `profileFingerprint`, `profileSource=file`, `catalogReady=true`) antes de abrir la clínica.
+Además, `VERIFICAR-DESPLIEGUE.ps1` corre `verify-remote` automáticamente cuando el perfil activo está en `release.mode=web_pilot`, y debe fallar con `turnero-pilot-profile-status` o `turnero-pilot-remote-verify` si el host publicado no coincide.
+Además, `verification/last-deploy-verify.json` debe persistir un bloque `turneroPilot` con `clinicId`, `profileFingerprint`, `catalogReady`, `verifyRemoteRequired`, `remoteVerified` y `remoteDeployedCommit`, para que los workflows `post-deploy-fast` y `post-deploy-gate` publiquen un semáforo explícito del piloto por clínica.
+Además, `repair-git-sync.yml` debe reusar ese mismo bloque para escribir `verification/last-turnero-pilot-repair.json`, de forma que el self-heal deje evidencia explícita de si recuperó o no la clínica/firma/canon del piloto.
+Además, `deploy-hosting.yml` debe resolver el `clinic-profile` activo antes del publish, escribir `.public-cutover/turnero-pilot-status.json` y bloquear el deploy si el release `web_pilot` llega sin catálogo listo.
+Además, `deploy-hosting.yml` debe correr `verify-remote` después del publish, escribir `.public-cutover/turnero-pilot-remote.json`, bloquear el dispatch de `post-deploy-fast` / `post-deploy-gate` si el host publicado no coincide y marcar el workflow en fallo si la verificación remota queda en `blocked`.
+Además, ese mismatch remoto debe abrir un incidente dedicado `[ALERTA PROD] Deploy Hosting turneroPilot bloqueado`, para que el piloto por clínica no quede solo como fallo de workflow sin alerta operativa.
+Además, el fallback manual `deploy-frontend-selfhosted.yml` debe aplicar el mismo contrato y dejar evidencia propia (`.selfhosted-cutover/turnero-pilot-status.json`, `.selfhosted-cutover/turnero-pilot-remote.json`, `verification/last-turnero-pilot-selfhosted.json`) para que un publish manual no pueda saltarse la validación por clínica.
+Además, ese fallback manual debe abrir un incidente separado cuando la propia ruta `build/deploy/validate` queda bloqueada, para distinguir un mismatch del `clinic-profile` de un fallo del carril self-hosted.
+Además, si el mismatch persiste después del self-heal, debe abrir también `[ALERTA PROD] Repair git sync turneroPilot bloqueado`, para separar un publish incorrecto de un host que no logró recuperarse.
+Además, `prod-monitor.yml` debe persistir `.public-cutover-monitor/turnero-pilot-recovery.json` cuando cierre ese incidente por recuperación remota, para dejar evidencia estructurada del `verify-remote` saludable que reabrió el piloto.
+Además, `REPORTE-SEMANAL-PRODUCCION.ps1` debe publicar el bloque `Turnero Pilot` en markdown/JSON, con warnings `turnero_pilot_*`, para dejar trazabilidad semanal del `clinic-profile` activo y del resultado remoto de `verify-remote`.
+Además, `GATE-POSTDEPLOY.ps1` debe fallar desde el preflight local si el `clinic-profile` activo no resuelve o no coincide con catálogo, antes de gastar la corrida completa de `verify + smoke + bench`.
 Si un heartbeat de `operator`, `kiosk` o `display` reporta un `clinic_id` distinto al del perfil activo, el canon del piloto debe pasar a `Bloquea` aunque la ruta sea correcta.
 Si el heartbeat trae la misma clínica pero una `firma` de perfil distinta, también debe bloquearse: eso indica una superficie con configuración vieja frente al perfil activo.
 

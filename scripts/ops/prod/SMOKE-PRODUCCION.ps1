@@ -25,6 +25,7 @@ $ErrorActionPreference = 'Stop'
 $base = $Domain.TrimEnd('/')
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
 $commonHttpPath = Join-Path $repoRoot 'bin/powershell/Common.Http.ps1'
+$turneroClinicProfileScriptPath = Join-Path $repoRoot 'bin/turnero-clinic-profile.js'
 . $commonHttpPath
 $tmpRoot = [string]$env:TEMP
 if ([string]::IsNullOrWhiteSpace($tmpRoot)) {
@@ -814,6 +815,72 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
                     $contractFailures += 1
                 }
             }
+            if (Test-Path $turneroClinicProfileScriptPath) {
+                $turneroPilotStatusRaw = ''
+                $turneroPilotStatusExit = 0
+                $turneroPilotStatus = $null
+                $turneroPilotClinicId = ''
+                $turneroPilotCatalogMatch = $false
+                $turneroPilotVerifyRequired = $false
+
+                try {
+                    $turneroPilotStatusRaw = ((& node $turneroClinicProfileScriptPath status --json 2>&1) | Out-String).Trim()
+                    $turneroPilotStatusExit = $LASTEXITCODE
+                    if (-not [string]::IsNullOrWhiteSpace($turneroPilotStatusRaw)) {
+                        $turneroPilotStatus = $turneroPilotStatusRaw | ConvertFrom-Json
+                    }
+                } catch {
+                    $turneroPilotStatus = $null
+                }
+
+                if ($null -eq $turneroPilotStatus -or $turneroPilotStatusExit -ne 0) {
+                    Write-Host '[FAIL] turneroPilot clinic-profile status unresolved'
+                    $contractFailures += 1
+                } else {
+                    try { $turneroPilotClinicId = [string]$turneroPilotStatus.profile.clinic_id } catch { $turneroPilotClinicId = '' }
+                    try { $turneroPilotCatalogMatch = [bool]$turneroPilotStatus.matchesCatalog } catch { $turneroPilotCatalogMatch = $false }
+                    try { $turneroPilotVerifyRequired = ([bool]$turneroPilotStatus.ok) -and ([string]$turneroPilotStatus.profile.release.mode -eq 'web_pilot') } catch { $turneroPilotVerifyRequired = $false }
+
+                    if (-not $turneroPilotCatalogMatch) {
+                        Write-Host "[FAIL] turneroPilot catalog drift (clinicId=$turneroPilotClinicId)"
+                        $contractFailures += 1
+                    } elseif ($turneroPilotVerifyRequired) {
+                        Write-Host "[INFO] turneroPilot clinicId=$turneroPilotClinicId catalogMatch=$turneroPilotCatalogMatch"
+
+                        $turneroPilotVerifyRaw = ''
+                        $turneroPilotVerifyExit = 0
+                        $turneroPilotVerify = $null
+
+                        try {
+                            $turneroPilotVerifyRaw = ((& node $turneroClinicProfileScriptPath verify-remote --base-url $base --json 2>&1) | Out-String).Trim()
+                            $turneroPilotVerifyExit = $LASTEXITCODE
+                            if (-not [string]::IsNullOrWhiteSpace($turneroPilotVerifyRaw)) {
+                                $turneroPilotVerify = $turneroPilotVerifyRaw | ConvertFrom-Json
+                            }
+                        } catch {
+                            $turneroPilotVerify = $null
+                        }
+
+                        $turneroPilotRemoteClinicId = ''
+                        $turneroPilotRemoteFingerprint = ''
+                        $turneroPilotRemoteCatalogReady = $false
+                        try { $turneroPilotRemoteClinicId = [string]$turneroPilotVerify.turneroPilot.clinicId } catch { $turneroPilotRemoteClinicId = '' }
+                        try { $turneroPilotRemoteFingerprint = [string]$turneroPilotVerify.turneroPilot.profileFingerprint } catch { $turneroPilotRemoteFingerprint = '' }
+                        try { $turneroPilotRemoteCatalogReady = [bool]$turneroPilotVerify.turneroPilot.catalogReady } catch { $turneroPilotRemoteCatalogReady = $false }
+
+                        Write-Host "[INFO] turneroPilot remote clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady"
+
+                        if ($null -eq $turneroPilotVerify -or $turneroPilotVerifyExit -ne 0 -or -not [bool]$turneroPilotVerify.ok) {
+                            Write-Host "[FAIL] turneroPilot remote mismatch (clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady)"
+                            $contractFailures += 1
+                        }
+                    } else {
+                        Write-Host '[INFO] turneroPilot verify-remote omitido: perfil activo no esta en modo web_pilot.'
+                    }
+                }
+            } else {
+                Write-Host '[WARN] bin/turnero-clinic-profile.js no existe; se omite smoke turneroPilot.'
+            }
             $githubDeployAlerts = Get-GitHubProductionAlertSummary `
                 -Repo $GitHubRepo `
                 -ApiBase $GitHubApiBase `
@@ -826,6 +893,7 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
             $githubDeployAlertsConnectivityCount = 0
             $githubDeployAlertsRepairGitSyncCount = 0
             $githubDeployAlertsSelfHostedRunnerCount = 0
+            $githubDeployAlertsSelfHostedDeployCount = 0
             $githubDeployAlertsIssueNumbersLabel = 'none'
             $githubDeployAlertsIssueRefsLabel = 'none'
             $githubDeployAlertsError = ''
@@ -833,12 +901,15 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
             $githubDeployAlertsHasConnectivityBlock = $false
             $githubDeployAlertsHasRepairGitSyncBlock = $false
             $githubDeployAlertsHasSelfHostedRunnerBlock = $false
+            $githubDeployAlertsHasSelfHostedDeployBlock = $false
             try { $githubDeployAlertsFetchOk = [bool]$githubDeployAlerts.fetchOk } catch { $githubDeployAlertsFetchOk = $false }
             try { $githubDeployAlertsRelevantCount = [int]$githubDeployAlerts.relevantCount } catch { $githubDeployAlertsRelevantCount = 0 }
             try { $githubDeployAlertsTransportCount = [int]$githubDeployAlerts.transportCount } catch { $githubDeployAlertsTransportCount = 0 }
             try { $githubDeployAlertsConnectivityCount = [int]$githubDeployAlerts.connectivityCount } catch { $githubDeployAlertsConnectivityCount = 0 }
             try { $githubDeployAlertsRepairGitSyncCount = [int]$githubDeployAlerts.repairGitSyncCount } catch { $githubDeployAlertsRepairGitSyncCount = 0 }
             try { $githubDeployAlertsSelfHostedRunnerCount = [int]$githubDeployAlerts.selfHostedRunnerCount } catch { $githubDeployAlertsSelfHostedRunnerCount = 0 }
+            try { $githubDeployAlertsSelfHostedDeployCount = [int]$githubDeployAlerts.selfHostedDeployCount } catch { $githubDeployAlertsSelfHostedDeployCount = 0 }
+            try { $githubDeployAlertsTurneroPilotCount = [int]$githubDeployAlerts.turneroPilotCount } catch { $githubDeployAlertsTurneroPilotCount = 0 }
             try { $githubDeployAlertsIssueNumbersLabel = [string]$githubDeployAlerts.issueNumbersLabel } catch { $githubDeployAlertsIssueNumbersLabel = 'none' }
             try { $githubDeployAlertsIssueRefsLabel = [string]$githubDeployAlerts.issueRefsLabel } catch { $githubDeployAlertsIssueRefsLabel = 'none' }
             try { $githubDeployAlertsError = [string]$githubDeployAlerts.error } catch { $githubDeployAlertsError = '' }
@@ -846,8 +917,10 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
             try { $githubDeployAlertsHasConnectivityBlock = [bool]$githubDeployAlerts.hasConnectivityBlock } catch { $githubDeployAlertsHasConnectivityBlock = $false }
             try { $githubDeployAlertsHasRepairGitSyncBlock = [bool]$githubDeployAlerts.hasRepairGitSyncBlock } catch { $githubDeployAlertsHasRepairGitSyncBlock = $false }
             try { $githubDeployAlertsHasSelfHostedRunnerBlock = [bool]$githubDeployAlerts.hasSelfHostedRunnerBlock } catch { $githubDeployAlertsHasSelfHostedRunnerBlock = $false }
+            try { $githubDeployAlertsHasSelfHostedDeployBlock = [bool]$githubDeployAlerts.hasSelfHostedDeployBlock } catch { $githubDeployAlertsHasSelfHostedDeployBlock = $false }
+            try { $githubDeployAlertsHasTurneroPilotBlock = [bool]$githubDeployAlerts.hasTurneroPilotBlock } catch { $githubDeployAlertsHasTurneroPilotBlock = $false }
 
-            Write-Host "[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel"
+            Write-Host "[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount selfHostedDeployCount=$githubDeployAlertsSelfHostedDeployCount turneroPilotCount=$githubDeployAlertsTurneroPilotCount issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel"
             if (-not $githubDeployAlertsFetchOk) {
                 Write-Host "[WARN] github.deployAlerts unreachable (repo=$GitHubRepo error=$githubDeployAlertsError)"
             } elseif ($githubDeployAlertsRelevantCount -gt 0) {
@@ -864,6 +937,12 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
                 }
                 if ($githubDeployAlertsHasSelfHostedRunnerBlock) {
                     Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts self-hosted runner blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+                }
+                if ($githubDeployAlertsHasSelfHostedDeployBlock) {
+                    Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts self-hosted deploy blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+                }
+                if ($githubDeployAlertsHasTurneroPilotBlock) {
+                    Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts turnero pilot blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
                 }
 
                 if (-not $AllowOpenGitHubDeployAlerts) {

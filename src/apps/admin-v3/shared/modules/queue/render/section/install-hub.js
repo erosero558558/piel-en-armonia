@@ -299,6 +299,60 @@ function getTurneroPublicSyncStatus() {
     };
 }
 
+function getTurneroPilotHealthStatus() {
+    const health = getState().data.health;
+    const checks =
+        health?.checks && typeof health.checks === 'object'
+            ? health.checks
+            : null;
+    const turneroPilot =
+        checks?.turneroPilot && typeof checks.turneroPilot === 'object'
+            ? checks.turneroPilot
+            : null;
+    const rawSurfaces =
+        turneroPilot?.surfaces && typeof turneroPilot.surfaces === 'object'
+            ? turneroPilot.surfaces
+            : {};
+    const surfaces = Object.fromEntries(
+        ['admin', 'operator', 'kiosk', 'display'].map((surfaceKey) => {
+            const surface =
+                rawSurfaces[surfaceKey] &&
+                typeof rawSurfaces[surfaceKey] === 'object'
+                    ? rawSurfaces[surfaceKey]
+                    : {};
+            return [
+                surfaceKey,
+                {
+                    enabled: surface?.enabled === true,
+                    label: String(surface?.label || '').trim(),
+                    route: String(surface?.route || '').trim(),
+                },
+            ];
+        })
+    );
+
+    return {
+        available: Boolean(turneroPilot),
+        configured: turneroPilot?.configured === true,
+        ready: turneroPilot?.ready === true,
+        profileSource: String(turneroPilot?.profileSource || '')
+            .trim()
+            .toLowerCase(),
+        clinicId: String(turneroPilot?.clinicId || '').trim(),
+        profileFingerprint: String(
+            turneroPilot?.profileFingerprint || ''
+        ).trim(),
+        catalogReady: turneroPilot?.catalogReady === true,
+        catalogMatched: turneroPilot?.catalogMatched === true,
+        catalogEntryId: String(turneroPilot?.catalogEntryId || '').trim(),
+        releaseMode: String(turneroPilot?.releaseMode || '').trim(),
+        adminModeDefault: String(turneroPilot?.adminModeDefault || '').trim(),
+        separateDeploy: turneroPilot?.separateDeploy === true,
+        nativeAppsBlocking: turneroPilot?.nativeAppsBlocking === true,
+        surfaces,
+    };
+}
+
 function normalizeQueueAdminViewMode(value) {
     return String(value || '')
         .trim()
@@ -2408,6 +2462,7 @@ function buildQueueOpsPilot(manifest, detectedPlatform) {
         getTurneroClinicProfileCatalogStatus,
         getTurneroClinicBrandName,
         getTurneroPublicSyncStatus,
+        getTurneroPilotHealthStatus,
         hasRecentQueueSmokeSignal,
         buildPreparedSurfaceUrl,
         defaultAppDownloads: getDefaultAppDownloads(),

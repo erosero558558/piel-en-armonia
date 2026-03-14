@@ -211,9 +211,19 @@ test('post-deploy-gate ejecuta gate admin rollout y lo reporta en summary', () =
         'falta step de evaluacion telemedicina en post-deploy-gate'
     );
     assert.equal(
+        stepNames.includes('Evaluar estado turneroPilot del gate'),
+        true,
+        'falta step de evaluacion turneroPilot en post-deploy-gate'
+    );
+    assert.equal(
         stepNames.includes('Resumen telemedicina gate'),
         true,
         'falta step de resumen telemedicina en post-deploy-gate'
+    );
+    assert.equal(
+        stepNames.includes('Resumen turneroPilot gate'),
+        true,
+        'falta step de resumen turneroPilot en post-deploy-gate'
     );
     assert.equal(
         raw.includes('health-telemedicine-*'),
@@ -241,6 +251,61 @@ test('post-deploy-gate ejecuta gate admin rollout y lo reporta en summary', () =
         raw.includes('post-deploy-gate-telemedicine-signal'),
         true,
         'falta marker de senal para dedupe en incidente telemedicina de gate'
+    );
+    assert.equal(
+        raw.includes('TURNERO_PILOT_GATE_STATUS'),
+        true,
+        'falta env TURNERO_PILOT_GATE_STATUS en post-deploy-gate'
+    );
+    assert.equal(
+        raw.includes('Turnero pilot gate status:'),
+        true,
+        'falta linea de estado turneroPilot en summary del gate'
+    );
+    assert.equal(
+        raw.includes('Turnero pilot gate verify-remote required:'),
+        true,
+        'falta linea verify-remote required turneroPilot en summary del gate'
+    );
+    assert.equal(
+        raw.includes('Turnero pilot gate release mode:'),
+        true,
+        'falta linea release mode turneroPilot en summary del gate'
+    );
+    assert.equal(
+        raw.includes('Turnero pilot gate deployed commit:'),
+        true,
+        'falta linea de deployed commit turneroPilot en summary del gate'
+    );
+    assert.equal(
+        raw.includes('Reporte turnero pilot gate:'),
+        true,
+        'falta linea de reporte turneroPilot en summary del gate'
+    );
+    assert.equal(
+        raw.includes('turnero_pilot_gate_status:'),
+        true,
+        'falta trazabilidad de estado turneroPilot en incidente de gate'
+    );
+    assert.equal(
+        raw.includes('TURNERO_PILOT_GATE_VERIFY_REMOTE_REQUIRED'),
+        true,
+        'falta env TURNERO_PILOT_GATE_VERIFY_REMOTE_REQUIRED en post-deploy-gate'
+    );
+    assert.equal(
+        raw.includes('TURNERO_PILOT_GATE_RELEASE_MODE'),
+        true,
+        'falta env TURNERO_PILOT_GATE_RELEASE_MODE en post-deploy-gate'
+    );
+    assert.equal(
+        raw.includes('turnero_pilot_gate_verify_remote_required:'),
+        true,
+        'falta trazabilidad verify_remote_required de turneroPilot en incidente de gate'
+    );
+    assert.equal(
+        raw.includes('turnero_pilot_gate_release_mode:'),
+        true,
+        'falta trazabilidad release_mode de turneroPilot en incidente de gate'
     );
     assert.equal(
         raw.includes(
@@ -272,6 +337,26 @@ test('post-deploy-gate ejecuta gate admin rollout y lo reporta en summary', () =
         raw.includes('severity:warning'),
         true,
         'falta label de severidad warning en incidente telemedicina de gate'
+    );
+    assert.equal(
+        stepNames.includes('Escribir reporte turneroPilot gate'),
+        true,
+        'falta step de escritura de reporte turneroPilot en post-deploy-gate'
+    );
+    assert.equal(
+        stepNames.includes('Publicar reporte turneroPilot gate'),
+        true,
+        'falta step de publicacion de reporte turneroPilot en post-deploy-gate'
+    );
+    assert.equal(
+        raw.includes('verification/last-turnero-pilot-gate.json'),
+        true,
+        'falta ruta canonica de reporte turneroPilot en post-deploy-gate'
+    );
+    assert.equal(
+        raw.includes('post-deploy-turnero-pilot-gate-report'),
+        true,
+        'falta publicacion del artefacto turneroPilot gate'
     );
     assert.equal(
         raw.includes('Issue telemedicina gate ya refleja la misma senal'),
