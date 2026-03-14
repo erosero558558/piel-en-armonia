@@ -15,7 +15,7 @@ const t = new Map([
         ['4', 'clinical-history'],
         ['5', 'availability'],
     ]),
-    n = Object.freeze({
+    e = Object.freeze({
         '!': 'digit1',
         '@': 'digit2',
         '#': 'digit3',
@@ -23,7 +23,7 @@ const t = new Map([
         '%': 'digit5',
         '"': 'digit2',
     });
-function e(t) {
+function n(t) {
     document.documentElement.setAttribute(
         'data-admin-ready',
         t ? 'true' : 'false'
@@ -31,17 +31,27 @@ function e(t) {
 }
 !(async function () {
     (document.documentElement.setAttribute('data-admin-ui', 'sony_v3'),
-        document.documentElement.setAttribute('data-ops-tone', 'light'),
-        e(!1));
+        window.PielOpsTheme &&
+        'function' == typeof window.PielOpsTheme.initAutoOpsTheme
+            ? window.PielOpsTheme.initAutoOpsTheme({
+                  surface: 'admin',
+                  family: 'command',
+              })
+            : document.documentElement.hasAttribute('data-theme-mode') ||
+              document.documentElement.setAttribute(
+                  'data-theme-mode',
+                  'system'
+              ),
+        n(!1));
     const i = (function () {
-        const e = (e) => {
+        const n = (n) => {
             if (
                 'true' ===
                 document.documentElement.getAttribute('data-admin-ready')
             )
                 return;
             if (
-                (i = e.target) instanceof HTMLElement &&
+                (i = n.target) instanceof HTMLElement &&
                 (i.isContentEditable ||
                     Boolean(
                         i.closest(
@@ -51,23 +61,23 @@ function e(t) {
             )
                 return;
             var i;
-            const a = (function (e) {
-                if (!e.altKey || !e.shiftKey || e.ctrlKey || e.metaKey)
+            const a = (function (n) {
+                if (!n.altKey || !n.shiftKey || n.ctrlKey || n.metaKey)
                     return '';
-                const i = String(e.key || '').toLowerCase(),
-                    a = String(e.code || '').toLowerCase(),
+                const i = String(n.key || '').toLowerCase(),
+                    a = String(n.code || '').toLowerCase(),
                     o = [];
                 (a && o.push(a), i && o.push(i));
-                const c = n[i];
+                const c = e[i];
                 c && o.push(c);
-                for (const n of o) {
-                    const e = t.get(n);
-                    if (e) return e;
+                for (const e of o) {
+                    const n = t.get(e);
+                    if (n) return n;
                 }
                 return '';
-            })(e);
+            })(n);
             a &&
-                (e.preventDefault(),
+                (n.preventDefault(),
                 (function (t) {
                     if (t)
                         try {
@@ -77,39 +87,39 @@ function e(t) {
                 (function (t) {
                     if (t)
                         try {
-                            const n = new URL(window.location.href);
-                            ((n.hash = `#${t}`),
+                            const e = new URL(window.location.href);
+                            ((e.hash = `#${t}`),
                                 window.history.replaceState(
                                     null,
                                     '',
-                                    `${n.pathname}${n.search}${n.hash}`
+                                    `${e.pathname}${e.search}${e.hash}`
                                 ));
                         } catch (t) {}
                 })(a));
         };
         return (
-            window.addEventListener('keydown', e, !0),
-            () => window.removeEventListener('keydown', e, !0)
+            window.addEventListener('keydown', n, !0),
+            () => window.removeEventListener('keydown', n, !0)
         );
     })();
     try {
         (await (async function () {
-            const t = await import('./js/admin-chunks/index-MyvPG610.js');
-            await (async function (t, n = '') {
+            const t = await import('./js/admin-chunks/index-0Ee1JQrA.js');
+            await (async function (t, e = '') {
                 if (!t || 'object' != typeof t) return;
-                if (n) {
-                    const e = t[n];
-                    if ('function' == typeof e) return void (await e());
+                if (e) {
+                    const n = t[e];
+                    if ('function' == typeof n) return void (await n());
                 }
-                const e = t.default;
-                'function' != typeof e
-                    ? e && 'function' == typeof e.then && (await e)
-                    : await e();
+                const n = t.default;
+                'function' != typeof n
+                    ? n && 'function' == typeof n.then && (await n)
+                    : await n();
             })(t);
         })(),
-            e(!0));
+            n(!0));
     } catch (t) {
-        throw (e(!1), t);
+        throw (n(!1), t);
     } finally {
         i();
     }

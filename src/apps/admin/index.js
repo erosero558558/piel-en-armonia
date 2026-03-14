@@ -27,7 +27,20 @@ const SHIFTED_SHORTCUT_ALIASES = Object.freeze({
 
 function setDocumentVariant() {
     document.documentElement.setAttribute('data-admin-ui', 'sony_v3');
-    document.documentElement.setAttribute('data-ops-tone', 'light');
+    if (
+        window.PielOpsTheme &&
+        typeof window.PielOpsTheme.initAutoOpsTheme === 'function'
+    ) {
+        window.PielOpsTheme.initAutoOpsTheme({
+            surface: 'admin',
+            family: 'command',
+        });
+        return;
+    }
+
+    if (!document.documentElement.hasAttribute('data-theme-mode')) {
+        document.documentElement.setAttribute('data-theme-mode', 'system');
+    }
 }
 
 function setDocumentReadyState(ready) {

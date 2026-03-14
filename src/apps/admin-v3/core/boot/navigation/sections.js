@@ -12,7 +12,18 @@ import {
 import { renderAdminChrome, setActiveSection } from '../../../ui/frame.js';
 import { hasPendingAvailabilityChanges } from '../../../sections/availability.js';
 import { openClinicalHistorySession } from '../../../sections/clinical-history.js';
-import { persistUiPrefs } from '../ui-prefs.js';
+import {
+    persistUiPrefs,
+    readInitialThemeMode,
+    setThemeMode,
+} from '../ui-prefs.js';
+
+function syncAdminThemeForSection(section) {
+    const normalized = normalizeSection(section, 'dashboard');
+    const nextTheme =
+        normalized === 'queue' ? 'system' : readInitialThemeMode();
+    setThemeMode(nextTheme, { persist: false });
+}
 
 export function showSection(section) {
     const normalized = normalizeSection(section, 'dashboard');
@@ -24,6 +35,7 @@ export function showSection(section) {
         },
     }));
     setActiveSection(normalized);
+    syncAdminThemeForSection(normalized);
     renderAdminChrome(getState());
     setSectionHash(normalized);
     persistUiPrefs();

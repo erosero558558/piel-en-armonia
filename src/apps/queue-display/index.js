@@ -28,9 +28,6 @@ const DISPLAY_BELL_COOLDOWN_MS = 1200;
 const DISPLAY_BELL_BLOCKED_HINT_COOLDOWN_MS = 20000;
 const DISPLAY_HEARTBEAT_MS = 15000;
 
-document.documentElement.setAttribute('data-ops-tone', 'dark');
-document.body?.setAttribute('data-ops-tone', 'dark');
-
 const state = {
     lastCalledSignature: '',
     callBaselineReady: false,
@@ -58,6 +55,38 @@ const state = {
 };
 
 let displayHeartbeat = null;
+
+function initDisplayOpsTheme() {
+    if (
+        window.PielOpsTheme &&
+        typeof window.PielOpsTheme.initAutoOpsTheme === 'function'
+    ) {
+        return window.PielOpsTheme.initAutoOpsTheme({
+            surface: 'display',
+            family: 'ambient',
+            mode: 'system',
+        });
+    }
+
+    const tone = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches
+        ? 'dark'
+        : 'light';
+    document.documentElement.setAttribute('data-theme-mode', 'system');
+    document.documentElement.setAttribute('data-theme', tone);
+    document.documentElement.setAttribute('data-ops-tone', tone);
+    document.documentElement.setAttribute('data-ops-family', 'ambient');
+    if (document.body instanceof HTMLElement) {
+        document.body.setAttribute('data-ops-tone', tone);
+        document.body.setAttribute('data-ops-family', 'ambient');
+    }
+
+    return {
+        surface: 'display',
+        family: 'ambient',
+        mode: 'system',
+        tone,
+    };
+}
 
 function emitQueueOpsEvent(eventName, detail = {}) {
     try {
@@ -2038,6 +2067,7 @@ function updateClock() {
 }
 
 function initDisplay() {
+    initDisplayOpsTheme();
     document.body.dataset.displayMode = 'star';
     ensureDisplayStarStyles();
     updateClock();

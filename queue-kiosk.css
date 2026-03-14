@@ -1598,13 +1598,512 @@ body[data-ops-tone='dark'] .assistant-message-bot {
         rgb(255 255 255 / 2%);
 }
 
+body[data-ops-family='ambient'][data-ops-tone='light'].queue-kiosk-body {
+    background:
+        radial-gradient(circle at top left, rgb(63 111 157 / 12%), transparent 24%),
+        radial-gradient(circle at bottom right, rgb(202 214 226 / 45%), transparent 28%),
+        linear-gradient(180deg, #eef2f6 0%, #e7edf3 100%);
+    color: var(--text);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'].queue-kiosk-body::before,
+body[data-ops-family='ambient'][data-ops-tone='light'].queue-kiosk-body::after {
+    opacity: 0.8;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-header,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-layout {
+    color: var(--text);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-header {
+    border-bottom: 1px solid rgb(18 36 56 / 8%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(243 247 251 / 94%)),
+        radial-gradient(circle at top left, rgb(63 111 157 / 11%), transparent 36%);
+    box-shadow: 0 18px 42px rgb(18 36 56 / 10%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-brand strong {
+    color: #152636;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-header-note,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-brand span,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-clinic-context,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-profile-status,
+body[data-ops-family='ambient'][data-ops-tone='light'] .assistant-note {
+    color: rgb(73 91 110 / 86%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-header-help-btn,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-quick-action,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-form,
+body[data-ops-family='ambient'][data-ops-tone='light'] .ticket-result,
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-outbox-console,
+body[data-ops-family='ambient'][data-ops-tone='light'] .assistant-messages,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-card {
+    border-color: rgb(18 36 56 / 9%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(244 247 251 / 96%)),
+        radial-gradient(circle at top right, rgb(63 111 157 / 10%), transparent 34%);
+    box-shadow: 0 24px 54px rgb(18 36 56 / 10%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-checkin-card {
+    border-color: rgb(63 111 157 / 14%);
+    background:
+        radial-gradient(circle at top right, rgb(63 111 157 / 12%), transparent 34%),
+        linear-gradient(160deg, rgb(255 255 255 / 99%), rgb(244 248 252 / 97%));
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-checkin-card h1,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-card h2,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-card h3 {
+    color: #152636;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-next-step {
+    background:
+        linear-gradient(180deg, rgb(248 251 255 / 96%), rgb(239 244 249 / 94%)),
+        radial-gradient(circle at top right, rgb(63 111 157 / 10%), transparent 34%);
+    border: 1px solid rgb(18 36 56 / 8%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-next-step article {
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(243 247 252 / 94%)),
+        rgb(255 255 255 / 96%);
+    border: 1px solid rgb(18 36 56 / 8%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 75%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-next-step span {
+    color: #44607d;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-next-step strong {
+    color: #14283b;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-next-step p {
+    color: rgb(73 91 110 / 82%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-flow-cards article {
+    border: 1px solid rgb(18 36 56 / 8%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(245 248 252 / 94%)),
+        rgb(255 255 255 / 96%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-quick-action {
+    color: #17324a;
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(242 246 250 / 96%)),
+        rgb(255 255 255 / 96%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-quick-action[aria-pressed='true'],
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-quick-action[data-active='true'] {
+    border-color: rgb(35 78 121 / 18%);
+    background:
+        linear-gradient(180deg, rgb(35 78 121 / 12%), rgb(35 78 121 / 5%)),
+        rgb(255 255 255 / 97%);
+    color: #163b5d;
+    box-shadow: 0 20px 40px rgb(35 78 121 / 12%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-form input,
+body[data-ops-family='ambient'][data-ops-tone='light'] .assistant-form input {
+    border-color: rgb(18 36 56 / 10%);
+    background: rgb(255 255 255 / 98%);
+    color: #14283b;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-form button,
+body[data-ops-family='ambient'][data-ops-tone='light'] .assistant-form button,
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-outbox-btn {
+    border-color: rgb(35 78 121 / 16%);
+    background:
+        linear-gradient(180deg, rgb(35 78 121 / 12%), rgb(35 78 121 / 5%)),
+        rgb(255 255 255 / 98%);
+    color: #17324a;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .ticket-result-card {
+    border-color: rgb(35 78 121 / 14%);
+    background:
+        radial-gradient(circle at top right, rgb(35 78 121 / 11%), transparent 32%),
+        linear-gradient(165deg, rgb(255 255 255 / 99%), rgb(243 247 252 / 97%));
+    color: #14283b;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .ticket-result-main strong,
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-called-card strong,
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-kpi-row article strong {
+    color: #163b5d;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .ticket-result-main span,
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-called-card span,
+body[data-ops-family='ambient'][data-ops-tone='light'] .ticket-result-origin {
+    color: rgb(73 91 110 / 84%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-calling-now,
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-next-list li {
+    border: 1px solid rgb(18 36 56 / 8%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(244 247 251 / 94%)),
+        rgb(255 255 255 / 96%);
+    color: #17324a;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-next-list .ticket-position {
+    border-color: rgb(18 36 56 / 10%);
+    background: rgb(35 78 121 / 8%);
+    color: #345778;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .assistant-messages {
+    min-height: 236px;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .assistant-message-bot {
+    border-color: rgb(18 36 56 / 8%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(243 247 252 / 94%)),
+        rgb(255 255 255 / 95%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .assistant-message-user {
+    border-color: rgb(35 78 121 / 16%);
+    background:
+        linear-gradient(180deg, rgb(35 78 121 / 10%), rgb(35 78 121 / 4%)),
+        rgb(255 255 255 / 95%);
+}
+
 @media (prefers-reduced-motion: reduce) {
     body[data-ops-tone='dark'] .kiosk-card,
     body[data-ops-tone='dark'] .kiosk-quick-action,
     body[data-ops-tone='dark'] .kiosk-form button,
     body[data-ops-tone='dark'] .assistant-form button,
-    body[data-ops-tone='dark'] .queue-outbox-btn {
+    body[data-ops-tone='dark'] .queue-outbox-btn,
+    body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-card,
+    body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-quick-action,
+    body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-form button,
+    body[data-ops-family='ambient'][data-ops-tone='light']
+        .assistant-form button,
+    body[data-ops-family='ambient'][data-ops-tone='light'] .queue-outbox-btn {
         transition: none !important;
         animation: none !important;
+    }
+}
+
+/* Sony showroom clear polish: stronger hero, warmer guidance, less empty white space. */
+body[data-ops-family='ambient'][data-ops-tone='light'].queue-kiosk-body {
+    background:
+        radial-gradient(circle at top left, rgb(65 111 152 / 16%), transparent 22%),
+        radial-gradient(circle at top right, rgb(220 229 238 / 72%), transparent 30%),
+        radial-gradient(circle at bottom left, rgb(196 211 226 / 34%), transparent 24%),
+        linear-gradient(180deg, #edf3f8 0%, #e5ecf3 100%);
+    color: var(--text);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-header {
+    padding: 1rem 1.35rem;
+    position: relative;
+    top: auto;
+    border-bottom-color: rgb(19 36 54 / 8%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(242 247 251 / 95%)),
+        radial-gradient(circle at top left, rgb(65 111 152 / 12%), transparent 40%);
+    box-shadow: 0 22px 46px rgb(18 34 52 / 11%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-brand strong,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-card h1,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-card h2,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-card h3 {
+    color: #142635;
+    letter-spacing: 0.015em;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-stage-kicker {
+    color: #4b7194;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-header-note,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-brand span,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-clinic-context,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-profile-status,
+body[data-ops-family='ambient'][data-ops-tone='light'] .assistant-note,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-progress-hint {
+    color: #596d80;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-layout {
+    gap: 1.15rem;
+    padding: 1.05rem 1.1rem 1.3rem;
+    grid-template-columns: minmax(0, 1.78fr) minmax(360px, 0.95fr);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 30px;
+    padding: clamp(1.05rem, 2vw, 1.28rem);
+    border-color: rgb(19 36 54 / 8%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 99%), rgb(243 247 251 / 96%)),
+        radial-gradient(circle at top right, rgb(65 111 152 / 10%), transparent 34%);
+    box-shadow: 0 30px 64px rgb(18 34 52 / 11%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 1rem;
+    right: 1rem;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgb(36 81 124 / 46%), transparent 84%);
+    pointer-events: none;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-checkin-card {
+    display: grid;
+    gap: 0.96rem;
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 99%), rgb(242 247 251 / 96%)),
+        radial-gradient(circle at top right, rgb(36 81 124 / 11%), transparent 34%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-checkin-card::after {
+    content: '';
+    position: absolute;
+    top: -2.5rem;
+    right: -1.4rem;
+    width: 12rem;
+    height: 12rem;
+    border-radius: 999px;
+    background: rgb(65 111 152 / 10%);
+    filter: blur(18px);
+    pointer-events: none;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-checkin-card h1 {
+    font-size: clamp(1.92rem, 3vw, 2.46rem);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-checkin-card > p,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-clinic-context {
+    max-width: 70ch;
+    color: #55697d;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-flow-cards article {
+    padding: 0.74rem 0.82rem;
+    border-radius: 18px;
+    border-color: rgb(19 36 54 / 8%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(244 248 252 / 93%)),
+        radial-gradient(circle at top right, rgb(65 111 152 / 7%), transparent 34%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 76%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-flow-cards h3 {
+    font-size: 0.98rem;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-flow-cards p {
+    color: #607286;
+    line-height: 1.45;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-next-step {
+    gap: 0.78rem;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-next-step article {
+    position: relative;
+    gap: 0.28rem;
+    padding: 1rem 1.02rem;
+    border-radius: 20px;
+    border-color: rgb(19 36 54 / 8%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 97%), rgb(243 247 251 / 94%)),
+        radial-gradient(circle at top right, rgb(65 111 152 / 8%), transparent 34%);
+    box-shadow: 0 14px 28px rgb(18 34 52 / 7%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-next-step article::before {
+    content: '';
+    width: 2.4rem;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgb(36 81 124 / 44%), transparent 86%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-next-step span {
+    color: #4a7093;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-next-step strong {
+    color: #17324a;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-next-step p {
+    color: #607286;
+    line-height: 1.45;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-quick-action {
+    min-height: 72px;
+    padding: 0.84rem 0.98rem;
+    border-radius: 18px;
+    border-color: rgb(19 36 54 / 9%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(242 247 251 / 95%)),
+        rgb(255 255 255 / 95%);
+    box-shadow: 0 12px 24px rgb(18 34 52 / 7%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-quick-action[aria-pressed='true'],
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-quick-action[data-active='true'] {
+    border-color: rgb(36 81 124 / 20%);
+    background: linear-gradient(180deg, rgb(36 81 124 / 14%), rgb(36 81 124 / 5%));
+    color: #163a5a;
+    box-shadow: 0 18px 34px rgb(36 81 124 / 14%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-form {
+    border-radius: 22px;
+    border-color: rgb(19 36 54 / 8%);
+    padding: 0.94rem;
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(242 247 251 / 94%)),
+        radial-gradient(circle at top right, rgb(65 111 152 / 6%), transparent 34%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 78%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-form h2 {
+    color: #16304a;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-form label {
+    color: #5a6d80;
+    font-weight: 700;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-form input,
+body[data-ops-family='ambient'][data-ops-tone='light'] .assistant-form input {
+    min-height: 48px;
+    border-radius: 14px;
+    border-color: rgb(19 36 54 / 10%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 99%), rgb(246 249 252 / 96%)),
+        rgb(255 255 255 / 98%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 84%);
+    color: #17324a;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-form button,
+body[data-ops-family='ambient'][data-ops-tone='light'] .assistant-form button {
+    min-height: 48px;
+    border-color: rgb(36 81 124 / 22%);
+    background: linear-gradient(180deg, #2d5b84, #173a5d);
+    color: #f4f9fd;
+    box-shadow: 0 16px 30px rgb(23 58 93 / 20%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-outbox-btn,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-session-reset,
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-header-help-btn {
+    border-color: rgb(19 36 54 / 10%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(242 247 251 / 95%)),
+        rgb(255 255 255 / 95%);
+    color: #17324a;
+    box-shadow: 0 10px 22px rgb(18 34 52 / 7%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .ticket-result {
+    margin-top: 1rem;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .ticket-empty {
+    min-height: 220px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    border-style: solid;
+    border-color: rgb(19 36 54 / 8%);
+    border-radius: 22px;
+    padding: 1rem 1.1rem;
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 97%), rgb(243 247 251 / 94%)),
+        radial-gradient(circle at top right, rgb(65 111 152 / 8%), transparent 34%);
+    color: #617386;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .ticket-result-card {
+    border-radius: 22px;
+    padding: 1rem 1.05rem;
+    border-color: rgb(36 81 124 / 14%);
+    background:
+        radial-gradient(circle at top right, rgb(36 81 124 / 13%), transparent 32%),
+        linear-gradient(165deg, rgb(255 255 255 / 99%), rgb(243 247 252 / 96%));
+    box-shadow: 0 18px 34px rgb(18 34 52 / 9%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .ticket-result-main strong {
+    font-size: clamp(1.92rem, 3vw, 2.52rem);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-side {
+    gap: 0.92rem;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-setup-check,
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-kpi-row article,
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-called-card,
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-next-list li,
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-outbox-console,
+body[data-ops-family='ambient'][data-ops-tone='light'] .assistant-messages {
+    border-color: rgb(19 36 54 / 8%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 97%), rgb(243 247 251 / 94%)),
+        radial-gradient(circle at top right, rgb(65 111 152 / 7%), transparent 34%);
+    box-shadow: 0 14px 28px rgb(18 34 52 / 7%);
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-calling-now {
+    gap: 0.72rem;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-called-card {
+    border-radius: 18px;
+    padding: 0.82rem 0.92rem;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .queue-next-list li {
+    min-height: 66px;
+    border-radius: 16px;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .assistant-messages {
+    min-height: 250px;
+}
+
+body[data-ops-family='ambient'][data-ops-tone='light'] .assistant-message-user {
+    box-shadow: 0 10px 22px rgb(23 58 93 / 16%);
+}
+
+@media (max-width: 1180px) {
+    body[data-ops-family='ambient'][data-ops-tone='light'] .kiosk-layout {
+        grid-template-columns: 1fr;
     }
 }

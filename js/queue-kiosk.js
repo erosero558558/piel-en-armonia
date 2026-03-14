@@ -273,56 +273,52 @@
         k = 9e5,
         b = 'queueKioskOfflineOutbox',
         h = 'queueKioskPrinterState',
-        y = 'kioskStarInlineStyles';
-    (document.documentElement.setAttribute('data-ops-tone', 'dark'),
-        document.body?.setAttribute('data-ops-tone', 'dark'));
-    const v = {
-        queueState: null,
-        chatHistory: [],
-        assistantBusy: !1,
-        assistantSessionId: '',
-        assistantMetrics: {
-            intents: {},
-            helpReasons: {},
-            resolvedWithoutHuman: 0,
-            escalated: 0,
-            clinicalBlocked: 0,
-            fallback: 0,
-            errors: 0,
-            actioned: 0,
-            lastIntent: '',
-            lastLatencyMs: 0,
-            latencyTotalMs: 0,
-            latencySamples: 0,
-        },
-        queueTimerId: 0,
-        queuePollingEnabled: !1,
-        queueFailureStreak: 0,
-        queueRefreshBusy: !1,
-        queueManualRefreshBusy: !1,
-        queueLastHealthySyncAt: 0,
-        themeMode: 'system',
-        mediaQuery: null,
-        idleTimerId: 0,
-        idleTickId: 0,
-        idleDeadlineTs: 0,
-        idleResetMs: 9e4,
-        offlineOutbox: [],
-        offlineOutboxFlushBusy: !1,
-        lastConnectionState: '',
-        lastConnectionMessage: '',
-        printerState: null,
-        quickHelpOpen: !1,
-        selectedFlow: 'checkin',
-        welcomeDismissed: !1,
-        lastIssuedTicket: null,
-        lastHelpRequest: null,
-        seniorMode: !1,
-        voiceGuideSupported: !1,
-        voiceGuideBusy: !1,
-        voiceGuideUtterance: null,
-        clinicProfile: null,
-    };
+        y = 'kioskStarInlineStyles',
+        v = {
+            queueState: null,
+            chatHistory: [],
+            assistantBusy: !1,
+            assistantSessionId: '',
+            assistantMetrics: {
+                intents: {},
+                helpReasons: {},
+                resolvedWithoutHuman: 0,
+                escalated: 0,
+                clinicalBlocked: 0,
+                fallback: 0,
+                errors: 0,
+                actioned: 0,
+                lastIntent: '',
+                lastLatencyMs: 0,
+                latencyTotalMs: 0,
+                latencySamples: 0,
+            },
+            queueTimerId: 0,
+            queuePollingEnabled: !1,
+            queueFailureStreak: 0,
+            queueRefreshBusy: !1,
+            queueManualRefreshBusy: !1,
+            queueLastHealthySyncAt: 0,
+            idleTimerId: 0,
+            idleTickId: 0,
+            idleDeadlineTs: 0,
+            idleResetMs: 9e4,
+            offlineOutbox: [],
+            offlineOutboxFlushBusy: !1,
+            lastConnectionState: '',
+            lastConnectionMessage: '',
+            printerState: null,
+            quickHelpOpen: !1,
+            selectedFlow: 'checkin',
+            welcomeDismissed: !1,
+            lastIssuedTicket: null,
+            lastHelpRequest: null,
+            seniorMode: !1,
+            voiceGuideSupported: !1,
+            voiceGuideBusy: !1,
+            voiceGuideUtterance: null,
+            clinicProfile: null,
+        };
     let S = null;
     function w(e, t = !1) {
         return (
@@ -544,7 +540,7 @@
         return (
             !!e &&
             (te(e, 'error'),
-            B(
+            O(
                 'Este equipo queda bloqueado hasta cargar el perfil remoto correcto y la ruta canónica del piloto.',
                 'warn'
             ),
@@ -780,7 +776,7 @@
               }, {})
             : {};
     }
-    function B(e, t = 'info') {
+    function O(e, t = 'info') {
         const n = T('kioskProgressHint');
         if (!(n instanceof HTMLElement)) return;
         const i = ['info', 'warn', 'success'].includes(
@@ -793,7 +789,7 @@
                 'Paso 1 de 2: selecciona una opcion para comenzar.';
         ((n.dataset.tone = i), (n.textContent = a));
     }
-    function O(e, t = 'info') {
+    function B(e, t = 'info') {
         const n = T('kioskSeniorHint');
         if (!(n instanceof HTMLElement)) return;
         const i = ['info', 'warn', 'success'].includes(
@@ -823,7 +819,7 @@
                 (function (e) {
                     f(g, v.clinicProfile, e ? '1' : '0');
                 })(i),
-            O(
+            B(
                 i
                     ? 'Modo lectura grande activo. Botones y textos ampliados.'
                     : 'Modo lectura grande desactivado.',
@@ -876,7 +872,7 @@
                     'Guia por voz no disponible en este navegador. Usa ayuda rapida en pantalla.',
                     'info'
                 ),
-                O(
+                B(
                     'Sin voz guia en este equipo. Usa ayuda rapida o pide apoyo.',
                     'warn'
                 ),
@@ -933,7 +929,7 @@
                 P(),
                 window.speechSynthesis.speak(n),
                 te('Guia por voz iniciada.', 'info'),
-                O(
+                B(
                     'Escuchando guia por voz. Puedes seguir los pasos en pantalla.',
                     'success'
                 ),
@@ -1038,7 +1034,7 @@
                 (v.lastHelpRequest = i),
                 Q(n),
                 te(r, 'info'),
-                B(
+                O(
                     'Apoyo solicitado: recepcion te asistira para completar el turno.',
                     'warn'
                 ),
@@ -1063,7 +1059,7 @@
                     { ok: !1, queued: !1, message: i, helpRequest: null }
                 );
             }
-            const i = Be({
+            const i = Oe({
                 resource: 'queue-help-request',
                 body: o,
                 originLabel: 'Apoyo a recepcion',
@@ -1077,7 +1073,7 @@
                     'Apoyo guardado offline. Se notificara a recepcion al recuperar conexion.',
                     'info'
                 ),
-                B(
+                O(
                     'Apoyo pendiente de sincronizacion: si es urgente, acude al mostrador.',
                     'warn'
                 ),
@@ -1112,7 +1108,7 @@
             (i.dataset.open = a ? 'true' : 'false'),
             i.setAttribute('aria-expanded', String(a)),
             M('quick_help_toggled', { open: a, source: t }),
-            B(
+            O(
                 a
                     ? 'Guia abierta: elige opcion, completa datos y confirma ticket.'
                     : 'Paso 1 de 2: selecciona una opcion para comenzar.',
@@ -1144,7 +1140,7 @@
         const s = T('walkin' === n ? 'walkinInitials' : 'checkinPhone');
         (s instanceof HTMLInputElement && s.focus({ preventScroll: !1 }),
             t &&
-                B(
+                O(
                     'walkin' === n
                         ? 'Paso 2: escribe iniciales y pulsa "Generar turno".'
                         : 'Paso 2: escribe telefono, fecha y hora para check-in.',
@@ -1603,7 +1599,7 @@
                     : 'Pantalla limpiada. Lista para el siguiente paciente.',
                 'info'
             ),
-            B('Paso 1 de 2: selecciona una opcion para comenzar.', 'info'),
+            O('Paso 1 de 2: selecciona una opcion para comenzar.', 'info'),
             Se(),
             re());
     }
@@ -2040,7 +2036,7 @@
             })(t);
         return `${n}:${JSON.stringify(i)}`;
     }
-    function Be({
+    function Oe({
         resource: e,
         body: t,
         originLabel: n,
@@ -2094,7 +2090,7 @@
             u
         );
     }
-    async function Oe({
+    async function Be({
         source: e = 'auto',
         force: t = !1,
         maxItems: n = 4,
@@ -2132,7 +2128,7 @@
                                 `Apoyo sincronizado (${e.originLabel})`,
                                 'success'
                             ),
-                            B(
+                            O(
                                 'Apoyo enviado a recepcion correctamente.',
                                 'success'
                             ));
@@ -2203,7 +2199,7 @@
                     'Telefono, fecha y hora son obligatorios para check-in',
                     'error'
                 ),
-                void B(
+                void O(
                     'Completa telefono, fecha y hora para continuar.',
                     'warn'
                 )
@@ -2213,7 +2209,7 @@
             const e = { telefono: r, hora: s, fecha: c, patientInitials: l },
                 t = await Y('queue-checkin', { method: 'POST', body: e });
             (te('Check-in registrado correctamente', 'success'),
-                B(
+                O(
                     'Check-in completado. Conserva tu ticket y espera llamado.',
                     'success'
                 ),
@@ -2226,7 +2222,7 @@
                     ));
         } catch (e) {
             if (He(e)) {
-                const e = Be({
+                const e = Oe({
                     resource: 'queue-checkin',
                     body: {
                         telefono: r,
@@ -2256,14 +2252,14 @@
                                 : 'Check-in guardado offline. Se sincronizara automaticamente.',
                             'info'
                         ),
-                        void B(
+                        void O(
                             'Check-in guardado offline. Recepcion confirmara al reconectar.',
                             'warn'
                         )
                     );
             }
             (te(`No se pudo registrar el check-in: ${e.message}`, 'error'),
-                B(
+                O(
                     'No se pudo confirmar check-in. Intenta de nuevo o pide apoyo.',
                     'warn'
                 ));
@@ -2299,14 +2295,14 @@
         if (!r)
             return (
                 te('Ingresa iniciales o nombre para generar el turno', 'error'),
-                void B('Escribe iniciales para generar tu turno.', 'warn')
+                void O('Escribe iniciales para generar tu turno.', 'warn')
             );
         a instanceof HTMLButtonElement && (a.disabled = !0);
         try {
             const e = { patientInitials: r, name: o, phone: s },
                 t = await Y('queue-ticket', { method: 'POST', body: e });
             (te('Turno walk-in registrado correctamente', 'success'),
-                B(
+                O(
                     'Turno generado. Conserva tu ticket y espera llamado.',
                     'success'
                 ),
@@ -2319,7 +2315,7 @@
                     ));
         } catch (e) {
             if (He(e)) {
-                const e = Be({
+                const e = Oe({
                     resource: 'queue-ticket',
                     body: { patientInitials: r, name: o, phone: s },
                     originLabel: 'Turno sin cita',
@@ -2344,14 +2340,14 @@
                                 : 'Turno guardado offline. Se sincronizara automaticamente.',
                             'info'
                         ),
-                        void B(
+                        void O(
                             'Turno guardado offline. Recepcion lo sincronizara al reconectar.',
                             'warn'
                         )
                     );
             }
             (te(`No se pudo crear el turno: ${e.message}`, 'error'),
-                B(
+                O(
                     'No se pudo generar turno. Intenta de nuevo o pide apoyo.',
                     'warn'
                 ));
@@ -2889,7 +2885,7 @@
                 Se(),
                 void Fe()
             );
-        await Oe({ source: 'poll' });
+        await Be({ source: 'poll' });
         const e = await Ee();
         if (e.ok && !e.stale)
             ((v.queueFailureStreak = 0),
@@ -2920,7 +2916,7 @@
                 _e(!0),
                 ne('reconnecting', 'Refrescando manualmente...'));
             try {
-                await Oe({ source: 'manual' });
+                await Be({ source: 'manual' });
                 const e = await Ee();
                 if (e.ok && !e.stale)
                     return (
@@ -2975,107 +2971,139 @@
                 void Se());
     }
     document.addEventListener('DOMContentLoaded', function () {
-        ((
-            i ||
-            ((i = fetch('/content/turnero/clinic-profile.json', {
-                credentials: 'same-origin',
-                headers: { Accept: 'application/json' },
-            })
-                .then(async (e) => {
-                    if (!e.ok)
-                        throw new Error(`clinic_profile_http_${e.status}`);
-                    return e.json();
-                })
-                .then((e) => {
-                    const t = o(e);
-                    return {
-                        ...t,
-                        runtime_meta: {
-                            source: 'remote',
-                            profileFingerprint: c(t),
-                        },
-                    };
-                })
-                .catch(() => {
-                    const e = o(n);
-                    return {
-                        ...e,
-                        runtime_meta: {
-                            source: 'fallback_default',
-                            profileFingerprint: c(e),
-                        },
-                    };
-                })),
-            i)
-        ).then((e) => {
-            ((function (e) {
-                v.clinicProfile = e;
-                const t = r(e),
-                    n = s(e),
-                    i = String(e?.clinic_id || '').trim() || 'sin-clinic-id',
-                    a = String(e?.branding?.city || '').trim(),
-                    o = String(
-                        e?.surfaces?.kiosk?.route || '/kiosco-turnos.html'
-                    ).trim(),
-                    l = [C(1), C(2)].join(' · ');
-                document.title = `Kiosco de Turnos | ${t}`;
-                const u = document.querySelector('#kioskWelcomeScreen strong');
-                u instanceof HTMLElement &&
-                    (u.textContent = `Bienvenida a ${t}`);
-                const d = document.querySelector('.kiosk-brand strong');
-                d instanceof HTMLElement && (d.textContent = t);
-                const p = T('kioskClinicMeta');
-                p instanceof HTMLElement &&
-                    (p.textContent = [i, a || n].filter(Boolean).join(' · '));
-                const m = T('kioskClinicContext');
-                (m instanceof HTMLElement &&
-                    (m.textContent = `${n} · ${o} · ${l}`),
-                    (function (e) {
-                        const t = E(e),
-                            n = c(e).slice(0, 8),
-                            i = T('kioskProfileStatus');
-                        i instanceof HTMLElement &&
-                            ((i.dataset.state =
-                                'alert' === t.state
-                                    ? 'alert'
-                                    : 'ready' === t.state
-                                      ? 'ready'
-                                      : 'warning'),
-                            (i.textContent =
-                                'alert' === t.state
-                                    ? 'profile_missing' === t.reason
-                                        ? 'Bloqueado · perfil de respaldo · clinic-profile.json remoto ausente'
-                                        : `Bloqueado · ruta fuera de canon · se esperaba ${t.expectedRoute || '/kiosco-turnos.html'}`
-                                    : `Perfil remoto verificado · firma ${n} · canon ${t.expectedRoute || '/kiosco-turnos.html'}`));
-                    })(e));
-                const f = document.querySelector('.kiosk-header-note');
-                f instanceof HTMLElement &&
-                    (f.textContent = `Piloto web por clínica · ${a || n}`);
-            })(e),
-                N(
-                    m(g, v.clinicProfile, {
-                        fallbackValue: !1,
-                        normalizeValue: w,
-                    }),
-                    { persist: !1, source: 'clinic_profile' }
+        (!(function () {
+            if (
+                window.PielOpsTheme &&
+                'function' == typeof window.PielOpsTheme.initAutoOpsTheme
+            )
+                return window.PielOpsTheme.initAutoOpsTheme({
+                    surface: 'kiosk',
+                    family: 'ambient',
+                    mode: 'system',
+                });
+            const e = window.matchMedia?.('(prefers-color-scheme: dark)')
+                ?.matches
+                ? 'dark'
+                : 'light';
+            (document.documentElement.setAttribute('data-theme-mode', 'system'),
+                document.documentElement.setAttribute('data-theme', e),
+                document.documentElement.setAttribute('data-ops-tone', e),
+                document.documentElement.setAttribute(
+                    'data-ops-family',
+                    'ambient'
                 ),
-                (v.offlineOutbox = m(b, v.clinicProfile, {
-                    fallbackValue: [],
-                    normalizeValue: q,
-                })),
-                (v.printerState = m(h, v.clinicProfile, {
-                    fallbackValue: null,
-                    normalizeValue: _,
-                })),
-                ge(),
-                Se(),
-                ne('paused', 'Sincronizacion lista'),
-                ue('Esperando primera sincronizacion de cola...'),
-                Me(''),
-                !1 !== navigator.onLine && Oe({ source: 'startup', force: !0 }),
-                H().start({ immediate: !1 }),
-                We({ immediate: !0 }));
-        }),
+                document.body instanceof HTMLElement &&
+                    (document.body.setAttribute('data-ops-tone', e),
+                    document.body.setAttribute('data-ops-family', 'ambient')));
+        })(),
+            (
+                i ||
+                ((i = fetch('/content/turnero/clinic-profile.json', {
+                    credentials: 'same-origin',
+                    headers: { Accept: 'application/json' },
+                })
+                    .then(async (e) => {
+                        if (!e.ok)
+                            throw new Error(`clinic_profile_http_${e.status}`);
+                        return e.json();
+                    })
+                    .then((e) => {
+                        const t = o(e);
+                        return {
+                            ...t,
+                            runtime_meta: {
+                                source: 'remote',
+                                profileFingerprint: c(t),
+                            },
+                        };
+                    })
+                    .catch(() => {
+                        const e = o(n);
+                        return {
+                            ...e,
+                            runtime_meta: {
+                                source: 'fallback_default',
+                                profileFingerprint: c(e),
+                            },
+                        };
+                    })),
+                i)
+            ).then((e) => {
+                ((function (e) {
+                    v.clinicProfile = e;
+                    const t = r(e),
+                        n = s(e),
+                        i =
+                            String(e?.clinic_id || '').trim() ||
+                            'sin-clinic-id',
+                        a = String(e?.branding?.city || '').trim(),
+                        o = String(
+                            e?.surfaces?.kiosk?.route || '/kiosco-turnos.html'
+                        ).trim(),
+                        l = [C(1), C(2)].join(' · ');
+                    document.title = `Kiosco de Turnos | ${t}`;
+                    const u = document.querySelector(
+                        '#kioskWelcomeScreen strong'
+                    );
+                    u instanceof HTMLElement &&
+                        (u.textContent = `Bienvenida a ${t}`);
+                    const d = document.querySelector('.kiosk-brand strong');
+                    d instanceof HTMLElement && (d.textContent = t);
+                    const p = T('kioskClinicMeta');
+                    p instanceof HTMLElement &&
+                        (p.textContent = [i, a || n]
+                            .filter(Boolean)
+                            .join(' · '));
+                    const m = T('kioskClinicContext');
+                    (m instanceof HTMLElement &&
+                        (m.textContent = `${n} · ${o} · ${l}`),
+                        (function (e) {
+                            const t = E(e),
+                                n = c(e).slice(0, 8),
+                                i = T('kioskProfileStatus');
+                            i instanceof HTMLElement &&
+                                ((i.dataset.state =
+                                    'alert' === t.state
+                                        ? 'alert'
+                                        : 'ready' === t.state
+                                          ? 'ready'
+                                          : 'warning'),
+                                (i.textContent =
+                                    'alert' === t.state
+                                        ? 'profile_missing' === t.reason
+                                            ? 'Bloqueado · perfil de respaldo · clinic-profile.json remoto ausente'
+                                            : `Bloqueado · ruta fuera de canon · se esperaba ${t.expectedRoute || '/kiosco-turnos.html'}`
+                                        : `Perfil remoto verificado · firma ${n} · canon ${t.expectedRoute || '/kiosco-turnos.html'}`));
+                        })(e));
+                    const f = document.querySelector('.kiosk-header-note');
+                    f instanceof HTMLElement &&
+                        (f.textContent = `Piloto web por clínica · ${a || n}`);
+                })(e),
+                    N(
+                        m(g, v.clinicProfile, {
+                            fallbackValue: !1,
+                            normalizeValue: w,
+                        }),
+                        { persist: !1, source: 'clinic_profile' }
+                    ),
+                    (v.offlineOutbox = m(b, v.clinicProfile, {
+                        fallbackValue: [],
+                        normalizeValue: q,
+                    })),
+                    (v.printerState = m(h, v.clinicProfile, {
+                        fallbackValue: null,
+                        normalizeValue: _,
+                    })),
+                    ge(),
+                    Se(),
+                    ne('paused', 'Sincronizacion lista'),
+                    ue('Esperando primera sincronizacion de cola...'),
+                    Me(''),
+                    !1 !== navigator.onLine &&
+                        Be({ source: 'startup', force: !0 }),
+                    H().start({ immediate: !1 }),
+                    We({ immediate: !0 }));
+            }),
             (document.body.dataset.kioskMode = 'star'),
             (function () {
                 if (document.getElementById(y)) return;
@@ -3091,31 +3119,13 @@
                 return Math.min(k, Math.max(5e3, Math.round(t)));
             })()),
             (v.voiceGuideSupported = z()),
-            (function () {
-                const e = 'light';
-                var t;
-                (localStorage.setItem('kioskThemeMode', e),
-                    (t = e),
-                    (v.themeMode = t),
-                    (document.documentElement.dataset.theme = 'light'),
-                    document
-                        .querySelectorAll('[data-theme-mode]')
-                        .forEach((e) => {
-                            const n = e.getAttribute('data-theme-mode');
-                            (e.classList.toggle('is-active', n === t),
-                                e.setAttribute(
-                                    'aria-pressed',
-                                    String(n === t)
-                                ));
-                        }));
-            })(),
             N(!1, { persist: !1, source: 'init' }),
             P(),
             (function () {
                 const e = T('kioskWelcomeScreen');
                 e instanceof HTMLElement &&
                     (e.classList.add('is-visible'),
-                    B(
+                    O(
                         'Bienvenida: en segundos podras elegir tu tipo de atencion.',
                         'info'
                     ),
@@ -3201,7 +3211,7 @@
             oe(),
             ae(),
             U('checkin', { announce: !1 }),
-            B('Paso 1 de 2: selecciona una opcion para comenzar.', 'info'),
+            O('Paso 1 de 2: selecciona una opcion para comenzar.', 'info'),
             ['pointerdown', 'keydown', 'input', 'touchstart'].forEach((e) => {
                 document.addEventListener(
                     e,
@@ -3226,7 +3236,7 @@
         const d = T('queueOutboxRetryBtn');
         d instanceof HTMLButtonElement &&
             d.addEventListener('click', () => {
-                Oe({ source: 'operator', force: !0, maxItems: 25 });
+                Be({ source: 'operator', force: !0, maxItems: 25 });
             });
         const p = T('queueOutboxDropOldestBtn');
         p instanceof HTMLButtonElement &&
@@ -3256,7 +3266,7 @@
             }),
             window.addEventListener('online', () => {
                 v.clinicProfile &&
-                    (Oe({ source: 'online', force: !0 }),
+                    (Be({ source: 'online', force: !0 }),
                     We({ immediate: !0 }));
             }),
             window.addEventListener('offline', () => {
@@ -3293,7 +3303,7 @@
                                     void ce({ reason: 'manual' }))
                                   : 'keyy' === t
                                     ? (e.preventDefault(),
-                                      void Oe({
+                                      void Be({
                                           source: 'shortcut',
                                           force: !0,
                                           maxItems: 25,

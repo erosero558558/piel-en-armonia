@@ -74,14 +74,43 @@ const QUEUE_REFRESH_MS = 8000;
 const OPERATOR_HEARTBEAT_MS = 15000;
 const OPERATOR_PILOT_BLOCK_TOAST_COOLDOWN_MS = 2500;
 
-document.documentElement.setAttribute('data-ops-tone', 'light');
-document.body?.setAttribute('data-ops-tone', 'light');
-
 let refreshIntervalId = 0;
 let operatorHeartbeat = null;
 let operatorAuthPollPromise = null;
 let lastOperatorGuardToastAt = 0;
 let lastOperatorGuardToastKey = '';
+
+function initOperatorOpsTheme() {
+    if (
+        window.PielOpsTheme &&
+        typeof window.PielOpsTheme.initAutoOpsTheme === 'function'
+    ) {
+        return window.PielOpsTheme.initAutoOpsTheme({
+            surface: 'operator',
+            family: 'command',
+            mode: 'system',
+        });
+    }
+
+    const tone = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches
+        ? 'dark'
+        : 'light';
+    document.documentElement.setAttribute('data-theme-mode', 'system');
+    document.documentElement.setAttribute('data-theme', tone);
+    document.documentElement.setAttribute('data-ops-tone', tone);
+    document.documentElement.setAttribute('data-ops-family', 'command');
+    if (document.body instanceof HTMLElement) {
+        document.body.setAttribute('data-ops-tone', tone);
+        document.body.setAttribute('data-ops-family', 'command');
+    }
+
+    return {
+        surface: 'operator',
+        family: 'command',
+        mode: 'system',
+        tone,
+    };
+}
 
 function createEmptyNumpadValidationState() {
     return {
@@ -2100,6 +2129,7 @@ function attachVisibilityRefresh() {
 }
 
 async function boot() {
+    initOperatorOpsTheme();
     applyQueueRuntimeDefaults();
     operatorRuntime.queueAdapter = resolveOperatorQueueAdapter(
         getDesktopBridge(),
