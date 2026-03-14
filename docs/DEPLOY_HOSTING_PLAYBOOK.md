@@ -61,6 +61,9 @@ Notas:
 - El configurador deja dos capas de arranque:
   `Startup` + `HKCU\Run` para la sesion del operador, y una tarea `ONSTART`
   para el stack publico solo cuando se ejecuta con PowerShell elevada.
+- Para evitar el limite de 261 caracteres de `schtasks /TR`, el configurador
+  genera launchers cortos en `data/runtime/hosting/login-stack.cmd` y
+  `data/runtime/hosting/boot-stack.cmd`.
 - El boot task publico arranca `Caddy + php-cgi + cloudflared` sin bridge; el
   bridge OpenClaw sigue siendo de login del operador porque depende de su
   sesion OAuth local.

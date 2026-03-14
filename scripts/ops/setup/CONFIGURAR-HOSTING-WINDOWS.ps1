@@ -12,8 +12,11 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 $startScriptPath = Join-Path $repoRoot 'scripts\ops\setup\ARRANCAR-HOSTING-WINDOWS.ps1'
+$runtimeRoot = Join-Path $repoRoot 'data\runtime\hosting'
 $startupDir = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup'
 $startupCmdPath = Join-Path $startupDir 'Pielarmonia Hosting Stack.cmd'
+$loginLauncherPath = Join-Path $runtimeRoot 'login-stack.cmd'
+$bootLauncherPath = Join-Path $runtimeRoot 'boot-stack.cmd'
 $bootTaskName = 'Pielarmonia Hosting Stack'
 $runKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $runKeyName = 'PielarmoniaHostingStack'
@@ -57,6 +60,20 @@ function New-StartCommand {
     }
 
     return 'powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ' + ($escaped -join ' ')
+}
+
+function Write-LauncherScript {
+    param(
+        [string]$Path,
+        [string]$Command
+    )
+
+    $parentDir = Split-Path -Parent $Path
+    if (-not (Test-Path -LiteralPath $parentDir)) {
+        New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+    }
+
+    Set-Content -Path $Path -Value "@echo off`r`n$Command`r`n" -Encoding ASCII
 }
 
 function Invoke-Schtasks {
@@ -106,12 +123,19 @@ $commonStartArguments = @(
 
 $loginStartCommand = New-StartCommand -StartArguments $commonStartArguments
 $bootStartCommand = New-StartCommand -StartArguments ($commonStartArguments + @('-SkipBridge'))
+$loginLauncherCommand = ConvertTo-CommandToken -Value ([System.IO.Path]::GetFullPath($loginLauncherPath))
+$bootLauncherCommand = ConvertTo-CommandToken -Value ([System.IO.Path]::GetFullPath($bootLauncherPath))
+
+Write-LauncherScript -Path $loginLauncherPath -Command $loginStartCommand
+Write-LauncherScript -Path $bootLauncherPath -Command $bootStartCommand
+Write-Info "Launcher login actualizado: $loginLauncherPath"
+Write-Info "Launcher boot actualizado: $bootLauncherPath"
 
 if (-not (Test-Path -LiteralPath $startupDir)) {
     New-Item -ItemType Directory -Path $startupDir -Force | Out-Null
 }
 
-$startupCommand = $loginStartCommand
+$startupCommand = 'call ' + $loginLauncherCommand
 Set-Content -Path $startupCmdPath -Value "@echo off`r`n$startupCommand`r`n" -Encoding ASCII
 Write-Info "Startup shim actualizado: $startupCmdPath"
 
@@ -119,7 +143,11 @@ if (-not (Test-Path -LiteralPath $runKeyPath)) {
     New-Item -Path $runKeyPath -Force | Out-Null
 }
 
-New-ItemProperty -Path $runKeyPath -Name $runKeyName -Value $loginStartCommand -PropertyType String -Force | Out-Null
+if ($null -ne (Get-ItemProperty -Path $runKeyPath -Name $runKeyName -ErrorAction SilentlyContinue)) {
+    Set-ItemProperty -Path $runKeyPath -Name $runKeyName -Value $loginLauncherCommand
+} else {
+    New-ItemProperty -Path $runKeyPath -Name $runKeyName -Value $loginLauncherCommand -PropertyType String | Out-Null
+}
 Write-Info "Registro HKCU\\Run actualizado: $runKeyName"
 
 if (Test-IsElevated) {
@@ -130,7 +158,7 @@ if (Test-IsElevated) {
         '/RL', 'HIGHEST',
         '/RU', 'SYSTEM',
         '/TN', $bootTaskName,
-        '/TR', $bootStartCommand
+        '/TR', $bootLauncherCommand
     )
 
     try {
