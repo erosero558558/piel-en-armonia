@@ -1468,162 +1468,18 @@ jobs:
                   remote_path=".public-cutover/turnero-pilot-remote.json"
                   raw_path=".public-cutover/turnero-pilot-remote.raw.txt"
                   : > "${raw_path}"
-
-                  if [ "${TURNERO_PILOT_RELEASE_MODE}" != "web_pilot" ]; then
-                    node <<'NODE'
-                    const fs = require('node:fs');
-
-                    const outputPath = process.env.GITHUB_OUTPUT;
-                    const envPath = process.env.GITHUB_ENV;
-                    const remotePath = '.public-cutover/turnero-pilot-remote.json';
-                    const releaseMode = String(process.env.TURNERO_PILOT_RELEASE_MODE || 'unknown').trim() || 'unknown';
-                    const snapshot = {
-                      status: 'not_required',
-                      reason: `release_mode:${releaseMode}`,
-                      verified: false,
-                      release_mode: releaseMode,
-                      clinic_id: String(process.env.TURNERO_PILOT_CLINIC_ID || '').trim(),
-                      profile_fingerprint: String(process.env.TURNERO_PILOT_PROFILE_FINGERPRINT || '').trim(),
-                      catalog_ready: String(process.env.TURNERO_PILOT_CATALOG_READY || 'false').trim() === 'true',
-                      deployed_commit: '',
-                      generated_at: new Date().toISOString(),
-                    };
-
-                    fs.writeFileSync(remotePath, `${JSON.stringify(snapshot, null, 2)}\n`);
-
-                    const envLines = [
-                      'TURNERO_PILOT_REMOTE_STATUS=not_required',
-                      `TURNERO_PILOT_REMOTE_REASON=${snapshot.reason}`,
-                      `TURNERO_PILOT_REMOTE_CLINIC_ID=${snapshot.clinic_id}`,
-                      `TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT=${snapshot.profile_fingerprint}`,
-                      `TURNERO_PILOT_REMOTE_CATALOG_READY=${snapshot.catalog_ready ? 'true' : 'false'}`,
-                      'TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT=',
-                      'TURNERO_PILOT_REMOTE_VERIFIED=false',
-                      'TURNERO_PILOT_POSTDEPLOY_ALLOWED=true',
-                    ];
-
-                    if (envPath) {
-                      fs.appendFileSync(envPath, `${envLines.join('\n')}\n`);
-                    }
-                    if (outputPath) {
-                      fs.appendFileSync(
-                        outputPath,
-                        [
-                          'status=not_required',
-                          `reason=${snapshot.reason}`,
-                          `clinic_id=${snapshot.clinic_id}`,
-                          `profile_fingerprint=${snapshot.profile_fingerprint}`,
-                          `catalog_ready=${snapshot.catalog_ready ? 'true' : 'false'}`,
-                          'deployed_commit=',
-                          'verified=false',
-                          'postdeploy_allowed=true',
-                        ].join('\n') + '\n'
-                      );
-                    }
-                    NODE
-                    exit 0
+                  verify_exit=0
+                  if [ "${TURNERO_PILOT_RELEASE_MODE}" = "web_pilot" ]; then
+                    set +e
+                    node bin/turnero-clinic-profile.js verify-remote --base-url "${PROD_URL}" --json > "${remote_path}" 2> "${raw_path}"
+                    verify_exit=$?
+                    set -e
                   fi
 
-                  set +e
-                  node bin/turnero-clinic-profile.js verify-remote --base-url "${PROD_URL}" --json > "${remote_path}" 2> "${raw_path}"
-                  verify_exit=$?
-                  set -e
-                  export TURNERO_PILOT_REMOTE_VERIFY_EXIT="${verify_exit}"
-                  export TURNERO_PILOT_REMOTE_PATH="${remote_path}"
-                  export TURNERO_PILOT_REMOTE_RAW_PATH="${raw_path}"
-                  node <<'NODE'
-                  const fs = require('node:fs');
-
-                  const outputPath = process.env.GITHUB_OUTPUT;
-                  const envPath = process.env.GITHUB_ENV;
-                  const remotePath = process.env.TURNERO_PILOT_REMOTE_PATH;
-                  const rawPath = process.env.TURNERO_PILOT_REMOTE_RAW_PATH;
-                  const verifyExit = Number.parseInt(
-                    process.env.TURNERO_PILOT_REMOTE_VERIFY_EXIT || '1',
-                    10
-                  );
-
-                  let payload = null;
-                  let rawStderr = '';
-                  try {
-                    rawStderr = fs.readFileSync(rawPath, 'utf8').trim();
-                  } catch {}
-                  try {
-                    payload = JSON.parse(fs.readFileSync(remotePath, 'utf8'));
-                  } catch {}
-
-                  const sanitize = (value, fallback) => {
-                    const normalized = String(value || '')
-                      .replace(/\s+/g, ' ')
-                      .trim();
-                    return normalized || fallback;
-                  };
-
-                  const remoteClinicId = sanitize(payload?.turneroPilot?.clinicId, '');
-                  const remoteFingerprint = sanitize(
-                    payload?.turneroPilot?.profileFingerprint,
-                    ''
-                  );
-                  const remoteCatalogReady = payload?.turneroPilot?.catalogReady === true;
-                  const remoteDeployedCommit = sanitize(
-                    payload?.publicSync?.deployedCommit,
-                    ''
-                  );
-                  const verified = payload?.ok === true && verifyExit === 0;
-                  const reason = verified
-                    ? 'ok'
-                    : sanitize(
-                        Array.isArray(payload?.errors) && payload.errors.length > 0
-                          ? payload.errors.slice(0, 3).join('; ')
-                          : rawStderr || `verify_remote_exit:${verifyExit}`,
-                        'verify_remote_failed'
-                      );
-                  const status = verified ? 'ready' : 'blocked';
-                  const snapshot = {
-                    status,
-                    reason,
-                    verified,
-                    clinic_id: remoteClinicId,
-                    profile_fingerprint: remoteFingerprint,
-                    catalog_ready: remoteCatalogReady,
-                    deployed_commit: remoteDeployedCommit,
-                    generated_at: new Date().toISOString(),
-                    result: payload,
-                    stderr: rawStderr || '',
-                  };
-
-                  fs.writeFileSync(remotePath, `${JSON.stringify(snapshot, null, 2)}\n`);
-
-                  const envLines = [
-                    `TURNERO_PILOT_REMOTE_STATUS=${status}`,
-                    `TURNERO_PILOT_REMOTE_REASON=${reason}`,
-                    `TURNERO_PILOT_REMOTE_CLINIC_ID=${remoteClinicId}`,
-                    `TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT=${remoteFingerprint}`,
-                    `TURNERO_PILOT_REMOTE_CATALOG_READY=${remoteCatalogReady ? 'true' : 'false'}`,
-                    `TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT=${remoteDeployedCommit}`,
-                    `TURNERO_PILOT_REMOTE_VERIFIED=${verified ? 'true' : 'false'}`,
-                    `TURNERO_PILOT_POSTDEPLOY_ALLOWED=${verified ? 'true' : 'false'}`,
-                  ];
-
-                  if (envPath) {
-                    fs.appendFileSync(envPath, `${envLines.join('\n')}\n`);
-                  }
-                  if (outputPath) {
-                    fs.appendFileSync(
-                      outputPath,
-                      [
-                        `status=${status}`,
-                        `reason=${reason}`,
-                        `clinic_id=${remoteClinicId}`,
-                        `profile_fingerprint=${remoteFingerprint}`,
-                        `catalog_ready=${remoteCatalogReady ? 'true' : 'false'}`,
-                        `deployed_commit=${remoteDeployedCommit}`,
-                        `verified=${verified ? 'true' : 'false'}`,
-                        `postdeploy_allowed=${verified ? 'true' : 'false'}`,
-                      ].join('\n') + '\n'
-                    );
-                  }
-                  NODE
+                  node bin/write-turnero-pilot-remote-status.js \
+                    --remote-path "${remote_path}" \
+                    --raw-path "${raw_path}" \
+                    --verify-exit "${verify_exit}"
 
             - name: Resolver parametros de dispatch post-deploy
               if: ${{ env.FTP_DRY_RUN != 'true' }}

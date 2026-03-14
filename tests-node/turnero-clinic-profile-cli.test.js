@@ -262,3 +262,53 @@ test('CLI verify-remote falla cuando /health expone otra clínica', async () => 
         await closeServer(server);
     }
 });
+
+test('CLI verify-remote tolera health publico redactado y lo deja como warning', async () => {
+    const server = http.createServer((request, response) => {
+        if (request.url !== '/api.php?resource=health') {
+            response.writeHead(404, {
+                'Content-Type': 'application/json',
+                Connection: 'close',
+            });
+            response.end(JSON.stringify({ ok: false }));
+            return;
+        }
+
+        response.writeHead(200, {
+            'Content-Type': 'application/json',
+            Connection: 'close',
+        });
+        response.end(
+            JSON.stringify({
+                ok: true,
+                status: 'ok',
+                version: '20260314',
+            })
+        );
+    });
+
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+
+    try {
+        const result = await runCli([
+            'verify-remote',
+            '--base-url',
+            `http://127.0.0.1:${port}`,
+            '--json',
+        ]);
+
+        assert.equal(result.signal, null);
+        assert.equal(result.status, 0, result.stdout);
+        const payload = JSON.parse(result.stdout);
+        assert.equal(payload.ok, true);
+        assert.equal(payload.publicHealthRedacted, true);
+        assert.equal(payload.remoteResource, 'health');
+        assert.match(
+            payload.warnings.join('\n'),
+            /health remoto redactado sin diagnostics token/i
+        );
+    } finally {
+        await closeServer(server);
+    }
+});
