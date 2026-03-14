@@ -52,16 +52,30 @@ export async function bootAdminV3() {
     bindFrameHooks();
     document.body.classList.add('admin-v3-mode');
     document.body.classList.remove('admin-v2-mode');
-    document.body.dataset.opsTone = 'light';
-    document.documentElement.setAttribute('data-ops-tone', 'light');
+    document.body.dataset.opsFamily = 'command';
     attachActionListeners();
     hydrateAppointmentPreferences();
     hydrateCallbacksPreferences();
     hydrateAvailabilityPreferences();
     restoreUiPrefs();
 
-    const initialTheme = readInitialThemeMode();
-    setThemeMode(initialTheme);
+    if (
+        window.PielOpsTheme &&
+        typeof window.PielOpsTheme.initAutoOpsTheme === 'function'
+    ) {
+        window.PielOpsTheme.initAutoOpsTheme({
+            surface: 'admin',
+            family: 'command',
+        });
+    }
+
+    const initialTheme =
+        window.PielOpsTheme &&
+        typeof window.PielOpsTheme.isAdminQueueSurface === 'function' &&
+        window.PielOpsTheme.isAdminQueueSurface()
+            ? 'system'
+            : readInitialThemeMode();
+    setThemeMode(initialTheme, { persist: false });
     primeLoginSurface();
 
     attachInputListeners();

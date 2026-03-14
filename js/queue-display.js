@@ -7,15 +7,15 @@
             'function' == typeof crypto.randomUUID
         )
             return `${e}-${crypto.randomUUID()}`;
-        const n = Math.random().toString(36).slice(2, 10);
-        return `${e}-${Date.now().toString(36)}-${n}`;
+        const t = Math.random().toString(36).slice(2, 10);
+        return `${e}-${Date.now().toString(36)}-${t}`;
     }
-    function n(e, n, t, a) {
-        const o = 'function' == typeof t && t() ? t() : {},
+    function t(e, t, n, a) {
+        const o = 'function' == typeof n && n() ? n() : {},
             i = o.details && 'object' == typeof o.details ? o.details : {};
         return {
             surface: e,
-            deviceId: n,
+            deviceId: t,
             instance: String(o.instance || 'main'),
             deviceLabel: String(o.deviceLabel || ''),
             appMode: String(o.appMode || 'web'),
@@ -33,7 +33,7 @@
             details: i,
         };
     }
-    const t = Object.freeze({
+    const n = Object.freeze({
         schema: 'turnero-clinic-profile/v1',
         clinic_id: 'default-clinic',
         branding: {
@@ -77,40 +77,40 @@
         },
     });
     let a = null;
-    function o(e, n = '') {
-        return String(e ?? '').trim() || n;
+    function o(e, t = '') {
+        return String(e ?? '').trim() || t;
     }
     function i(e) {
-        const n = e && 'object' == typeof e ? e : {},
-            a = n.branding && 'object' == typeof n.branding ? n.branding : {},
+        const t = e && 'object' == typeof e ? e : {},
+            a = t.branding && 'object' == typeof t.branding ? t.branding : {},
             i =
-                n.consultorios && 'object' == typeof n.consultorios
-                    ? n.consultorios
+                t.consultorios && 'object' == typeof t.consultorios
+                    ? t.consultorios
                     : {},
-            l = n.surfaces && 'object' == typeof n.surfaces ? n.surfaces : {},
-            r = n.release && 'object' == typeof n.release ? n.release : {};
+            l = t.surfaces && 'object' == typeof t.surfaces ? t.surfaces : {},
+            r = t.release && 'object' == typeof t.release ? t.release : {};
         return {
-            schema: o(n.schema, t.schema),
-            clinic_id: o(n.clinic_id, t.clinic_id),
+            schema: o(t.schema, n.schema),
+            clinic_id: o(t.clinic_id, n.clinic_id),
             branding: {
-                name: o(a.name, t.branding.name),
-                short_name: o(a.short_name, o(a.name, t.branding.short_name)),
-                city: o(a.city, t.branding.city),
-                base_url: o(a.base_url, t.branding.base_url),
+                name: o(a.name, n.branding.name),
+                short_name: o(a.short_name, o(a.name, n.branding.short_name)),
+                city: o(a.city, n.branding.city),
+                base_url: o(a.base_url, n.branding.base_url),
             },
             consultorios: {
                 c1: {
-                    label: o(i?.c1?.label, t.consultorios.c1.label),
+                    label: o(i?.c1?.label, n.consultorios.c1.label),
                     short_label: o(
                         i?.c1?.short_label,
-                        t.consultorios.c1.short_label
+                        n.consultorios.c1.short_label
                     ),
                 },
                 c2: {
-                    label: o(i?.c2?.label, t.consultorios.c2.label),
+                    label: o(i?.c2?.label, n.consultorios.c2.label),
                     short_label: o(
                         i?.c2?.short_label,
-                        t.consultorios.c2.short_label
+                        n.consultorios.c2.short_label
                     ),
                 },
             },
@@ -119,36 +119,36 @@
                     enabled:
                         'boolean' != typeof l?.admin?.enabled ||
                         l.admin.enabled,
-                    label: o(l?.admin?.label, t.surfaces.admin.label),
-                    route: o(l?.admin?.route, t.surfaces.admin.route),
+                    label: o(l?.admin?.label, n.surfaces.admin.label),
+                    route: o(l?.admin?.route, n.surfaces.admin.route),
                 },
                 operator: {
                     enabled:
                         'boolean' != typeof l?.operator?.enabled ||
                         l.operator.enabled,
-                    label: o(l?.operator?.label, t.surfaces.operator.label),
-                    route: o(l?.operator?.route, t.surfaces.operator.route),
+                    label: o(l?.operator?.label, n.surfaces.operator.label),
+                    route: o(l?.operator?.route, n.surfaces.operator.route),
                 },
                 kiosk: {
                     enabled:
                         'boolean' != typeof l?.kiosk?.enabled ||
                         l.kiosk.enabled,
-                    label: o(l?.kiosk?.label, t.surfaces.kiosk.label),
-                    route: o(l?.kiosk?.route, t.surfaces.kiosk.route),
+                    label: o(l?.kiosk?.label, n.surfaces.kiosk.label),
+                    route: o(l?.kiosk?.route, n.surfaces.kiosk.route),
                 },
                 display: {
                     enabled:
                         'boolean' != typeof l?.display?.enabled ||
                         l.display.enabled,
-                    label: o(l?.display?.label, t.surfaces.display.label),
-                    route: o(l?.display?.route, t.surfaces.display.route),
+                    label: o(l?.display?.label, n.surfaces.display.label),
+                    route: o(l?.display?.route, n.surfaces.display.route),
                 },
             },
             release: {
-                mode: o(r.mode, t.release.mode),
+                mode: o(r.mode, n.release.mode),
                 admin_mode_default:
                     'expert' ===
-                    o(r.admin_mode_default, t.release.admin_mode_default)
+                    o(r.admin_mode_default, n.release.admin_mode_default)
                         ? 'expert'
                         : 'basic',
                 separate_deploy:
@@ -163,45 +163,45 @@
         };
     }
     function l(e) {
-        return o(e?.branding?.name, t.branding.name);
+        return o(e?.branding?.name, n.branding.name);
     }
     function r(e) {
         return o(e?.branding?.short_name, l(e));
     }
     function s(e) {
-        const n = i(e);
+        const t = i(e);
         return (function (e) {
-            let n = 2166136261;
-            for (let t = 0; t < e.length; t += 1)
-                ((n ^= e.charCodeAt(t)), (n = Math.imul(n, 16777619)));
-            return (n >>> 0).toString(16).padStart(8, '0');
+            let t = 2166136261;
+            for (let n = 0; n < e.length; n += 1)
+                ((t ^= e.charCodeAt(n)), (t = Math.imul(t, 16777619)));
+            return (t >>> 0).toString(16).padStart(8, '0');
         })(
             [
-                n.clinic_id,
-                n.branding.base_url,
-                n.consultorios.c1.label,
-                n.consultorios.c1.short_label,
-                n.consultorios.c2.label,
-                n.consultorios.c2.short_label,
-                n.surfaces.admin.enabled ? '1' : '0',
-                n.surfaces.admin.route,
-                n.surfaces.operator.enabled ? '1' : '0',
-                n.surfaces.operator.route,
-                n.surfaces.kiosk.enabled ? '1' : '0',
-                n.surfaces.kiosk.route,
-                n.surfaces.display.enabled ? '1' : '0',
-                n.surfaces.display.route,
-                n.release.mode,
-                n.release.admin_mode_default,
-                n.release.separate_deploy ? '1' : '0',
-                n.release.native_apps_blocking ? '1' : '0',
+                t.clinic_id,
+                t.branding.base_url,
+                t.consultorios.c1.label,
+                t.consultorios.c1.short_label,
+                t.consultorios.c2.label,
+                t.consultorios.c2.short_label,
+                t.surfaces.admin.enabled ? '1' : '0',
+                t.surfaces.admin.route,
+                t.surfaces.operator.enabled ? '1' : '0',
+                t.surfaces.operator.route,
+                t.surfaces.kiosk.enabled ? '1' : '0',
+                t.surfaces.kiosk.route,
+                t.surfaces.display.enabled ? '1' : '0',
+                t.surfaces.display.route,
+                t.release.mode,
+                t.release.admin_mode_default,
+                t.release.separate_deploy ? '1' : '0',
+                t.release.native_apps_blocking ? '1' : '0',
             ].join('|')
         );
     }
-    function c(e, n, a = {}) {
+    function c(e, t, a = {}) {
         const i = Boolean(a.short),
-            l = 2 === Number(n || 0) ? 'c2' : 'c1',
-            r = t.consultorios[l],
+            l = 2 === Number(t || 0) ? 'c2' : 'c1',
+            r = n.consultorios[l],
             s =
                 e?.consultorios && 'object' == typeof e.consultorios
                     ? e.consultorios[l]
@@ -209,16 +209,16 @@
         return i ? o(s?.short_label, r.short_label) : o(s?.label, r.label);
     }
     function d(e) {
-        const n = o(e);
-        if (!n) return '';
+        const t = o(e);
+        if (!t) return '';
         try {
-            const e = new URL(n, 'https://turnero.local');
+            const e = new URL(t, 'https://turnero.local');
             return `${e.pathname}${e.hash || ''}` || '/';
         } catch (e) {
-            return n;
+            return t;
         }
     }
-    function u(e, n, a = {}) {
+    function u(e, t, a = {}) {
         const l = i(e),
             c = (function (e) {
                 return {
@@ -234,8 +234,8 @@
                     ).trim(),
                 };
             })(e),
-            u = String(n).trim().toLowerCase(),
-            p = l.surfaces[u] || t.surfaces.operator,
+            u = String(t).trim().toLowerCase(),
+            p = l.surfaces[u] || n.surfaces.operator,
             m = !1 !== p.enabled,
             f = d(p.route),
             b = (function (e = {}) {
@@ -302,16 +302,16 @@
     function m(e) {
         if ('string' != typeof e || !e.trim()) return null;
         try {
-            const n = JSON.parse(e);
-            if (!n || 'object' != typeof n || Array.isArray(n)) return null;
+            const t = JSON.parse(e);
+            if (!t || 'object' != typeof t || Array.isArray(t)) return null;
             if (
-                n.values &&
-                'object' == typeof n.values &&
-                !Array.isArray(n.values)
+                t.values &&
+                'object' == typeof t.values &&
+                !Array.isArray(t.values)
             )
                 return {
-                    schema: String(n.schema || '').trim() || p,
-                    values: n.values,
+                    schema: String(t.schema || '').trim() || p,
+                    values: t.values,
                 };
         } catch (e) {
             return null;
@@ -319,39 +319,39 @@
         return null;
     }
     function f(e) {
-        const n = i(e);
-        return String(n?.clinic_id || '').trim() || 'default-clinic';
+        const t = i(e);
+        return String(t?.clinic_id || '').trim() || 'default-clinic';
     }
-    function b(e, n, t = {}) {
+    function b(e, t, n = {}) {
         const a =
-                'function' == typeof t.normalizeValue
-                    ? t.normalizeValue
+                'function' == typeof n.normalizeValue
+                    ? n.normalizeValue
                     : (e) => e,
-            o = Object.prototype.hasOwnProperty.call(t, 'fallbackValue')
-                ? t.fallbackValue
+            o = Object.prototype.hasOwnProperty.call(n, 'fallbackValue')
+                ? n.fallbackValue
                 : null,
-            i = f(n);
+            i = f(t);
         try {
-            const n = localStorage.getItem(String(e || ''));
-            if (null === n) return o;
-            const t = m(n);
-            return t
-                ? Object.prototype.hasOwnProperty.call(t.values, i)
-                    ? a(t.values[i], o)
+            const t = localStorage.getItem(String(e || ''));
+            if (null === t) return o;
+            const n = m(t);
+            return n
+                ? Object.prototype.hasOwnProperty.call(n.values, i)
+                    ? a(n.values[i], o)
                     : o
-                : a(n, o);
+                : a(t, o);
         } catch (e) {
             return o;
         }
     }
-    function g(e, n, t) {
-        const a = f(n),
+    function g(e, t, n) {
+        const a = f(t),
             o = String(e || '');
         if (!o) return !1;
         try {
             const e = m(localStorage.getItem(o)) || { schema: p, values: {} };
             return (
-                (e.values[a] = t),
+                (e.values[a] = n),
                 localStorage.setItem(o, JSON.stringify(e)),
                 !0
             );
@@ -363,36 +363,34 @@
         h = 'queueDisplayLastSnapshot',
         S = 'displayAnnouncementInlineStyles',
         v = 'displayStarInlineStyles',
-        w = 'display-bell-flash';
-    (document.documentElement.setAttribute('data-ops-tone', 'dark'),
-        document.body?.setAttribute('data-ops-tone', 'dark'));
-    const x = {
-        lastCalledSignature: '',
-        callBaselineReady: !1,
-        audioContext: null,
-        pollingId: 0,
-        clockId: 0,
-        pollingEnabled: !1,
-        failureStreak: 0,
-        refreshBusy: !1,
-        manualRefreshBusy: !1,
-        lastHealthySyncAt: 0,
-        bellMuted: !1,
-        lastSnapshot: null,
-        connectionState: 'paused',
-        lastConnectionMessage: '',
-        lastRenderedSignature: '',
-        bellFlashId: 0,
-        lastBellAt: 0,
-        lastBellBlockedHintAt: 0,
-        bellPrimed: !1,
-        lastBellSource: '',
-        lastBellOutcome: 'idle',
-        clinicProfile: null,
-        lastRenderedState: null,
-    };
-    let k = null;
-    function C(e, n = {}) {
+        w = 'display-bell-flash',
+        x = {
+            lastCalledSignature: '',
+            callBaselineReady: !1,
+            audioContext: null,
+            pollingId: 0,
+            clockId: 0,
+            pollingEnabled: !1,
+            failureStreak: 0,
+            refreshBusy: !1,
+            manualRefreshBusy: !1,
+            lastHealthySyncAt: 0,
+            bellMuted: !1,
+            lastSnapshot: null,
+            connectionState: 'paused',
+            lastConnectionMessage: '',
+            lastRenderedSignature: '',
+            bellFlashId: 0,
+            lastBellAt: 0,
+            lastBellBlockedHintAt: 0,
+            bellPrimed: !1,
+            lastBellSource: '',
+            lastBellOutcome: 'idle',
+            clinicProfile: null,
+            lastRenderedState: null,
+        };
+    let A = null;
+    function k(e, t = {}) {
         try {
             window.dispatchEvent(
                 new CustomEvent('piel:queue-ops', {
@@ -400,13 +398,13 @@
                         surface: 'display',
                         event: String(e || 'unknown'),
                         at: new Date().toISOString(),
-                        ...n,
+                        ...t,
                     },
                 })
             );
         } catch (e) {}
     }
-    function A(e) {
+    function C(e) {
         return document.getElementById(e);
     }
     function _(e) {
@@ -417,36 +415,36 @@
     function M(e = x.clinicProfile) {
         return u(e, 'display');
     }
-    function L() {
+    function T() {
         return 'alert' === M().state;
     }
-    function T(e, n = !1) {
+    function L(e, t = !1) {
         return (
             !0 === e ||
             1 === e ||
             '1' === e ||
             'true' === e ||
-            (!1 !== e && 0 !== e && '0' !== e && 'false' !== e && Boolean(n))
+            (!1 !== e && 0 !== e && '0' !== e && 'false' !== e && Boolean(t))
         );
     }
     function E(e) {
-        const n = (function (e) {
+        const t = (function (e) {
             if (!e) return null;
             if ('object' == typeof e) return e;
             if ('string' != typeof e || !e.trim()) return null;
             try {
-                const n = JSON.parse(e);
-                return n && 'object' == typeof n ? n : null;
+                const t = JSON.parse(e);
+                return t && 'object' == typeof t ? t : null;
             } catch (e) {
                 return null;
             }
         })(e);
-        if (!n || Array.isArray(n)) return null;
-        const t = Date.parse(String(n.savedAt || ''));
-        return Number.isFinite(t)
-            ? Date.now() - t > 216e5
+        if (!t || Array.isArray(t)) return null;
+        const n = Date.parse(String(t.savedAt || ''));
+        return Number.isFinite(n)
+            ? Date.now() - n > 216e5
                 ? null
-                : { savedAt: new Date(t).toISOString(), data: te(n.data || {}) }
+                : { savedAt: new Date(n).toISOString(), data: ne(t.data || {}) }
             : null;
     }
     function B() {
@@ -460,8 +458,8 @@
     }
     function N() {
         const e = String(x.connectionState || 'paused'),
-            n = Boolean(x.lastHealthySyncAt),
-            t = M(),
+            t = Boolean(x.lastHealthySyncAt),
+            n = M(),
             a = String(x.clinicProfile?.clinic_id || '').trim(),
             o = String(
                 x.clinicProfile?.branding?.name ||
@@ -475,8 +473,8 @@
         let r = 'warning',
             c = 'Sala TV pendiente de validación.';
         return (
-            'alert' === t.state
-                ? ((r = 'alert'), (c = t.detail))
+            'alert' === n.state
+                ? ((r = 'alert'), (c = n.detail))
                 : 'offline' === e
                   ? ((r = 'alert'),
                     (c =
@@ -487,7 +485,7 @@
                           'La campanilla está en silencio; reactivarla antes de operar.'))
                     : 'blocked' !== x.lastBellOutcome && x.bellPrimed
                       ? 'live' === e &&
-                        n &&
+                        t &&
                         ((r = 'ready'),
                         (c =
                             'Sala TV lista: cola en vivo, audio activo y respaldo local disponible.'))
@@ -516,41 +514,41 @@
                     bellMuted: Boolean(x.bellMuted),
                     bellPrimed: Boolean(x.bellPrimed),
                     bellOutcome: String(x.lastBellOutcome || 'idle'),
-                    healthySync: n,
+                    healthySync: t,
                     clinicId: a,
                     clinicName: o,
                     profileSource: l,
                     profileFingerprint: i,
-                    surfaceContractState: String(t.state || ''),
-                    surfaceRouteExpected: String(t.expectedRoute || ''),
-                    surfaceRouteCurrent: String(t.currentRoute || ''),
+                    surfaceContractState: String(n.state || ''),
+                    surfaceRouteExpected: String(n.expectedRoute || ''),
+                    surfaceRouteCurrent: String(n.currentRoute || ''),
                 },
             }
         );
     }
     function $() {
         return (
-            k ||
-            ((k = (function ({
-                surface: t,
+            A ||
+            ((A = (function ({
+                surface: n,
                 intervalMs: a = 15e3,
                 getPayload: o,
             } = {}) {
                 const i = (function (e) {
-                        const n = String(e || '')
+                        const t = String(e || '')
                             .trim()
                             .toLowerCase();
-                        return 'sala_tv' === n ? 'display' : n || 'operator';
-                    })(t),
-                    l = (function (n) {
-                        const t = `queueSurfaceDeviceIdV1:${n}`;
+                        return 'sala_tv' === t ? 'display' : t || 'operator';
+                    })(n),
+                    l = (function (t) {
+                        const n = `queueSurfaceDeviceIdV1:${t}`;
                         try {
-                            const a = localStorage.getItem(t);
+                            const a = localStorage.getItem(n);
                             if (a) return a;
-                            const o = e(n);
-                            return (localStorage.setItem(t, o), o);
-                        } catch (t) {
-                            return e(n);
+                            const o = e(t);
+                            return (localStorage.setItem(n, o), o);
+                        } catch (n) {
+                            return e(t);
                         }
                     })(i),
                     r = Math.max(5e3, Number(a || 15e3));
@@ -558,7 +556,7 @@
                     c = !1,
                     d = 0,
                     u = !1;
-                async function p(e = 'interval', { keepalive: t = !1 } = {}) {
+                async function p(e = 'interval', { keepalive: n = !1 } = {}) {
                     if (c) return !1;
                     c = !0;
                     try {
@@ -569,12 +567,12 @@
                                     {
                                         method: 'POST',
                                         credentials: 'same-origin',
-                                        keepalive: t,
+                                        keepalive: n,
                                         headers: {
                                             Accept: 'application/json',
                                             'Content-Type': 'application/json',
                                         },
-                                        body: JSON.stringify(n(i, l, o, e)),
+                                        body: JSON.stringify(t(i, l, o, e)),
                                     }
                                 )
                             ).ok && ((d = Date.now()), !0)
@@ -627,7 +625,7 @@
                     getDeviceId: () => l,
                 };
             })({ surface: 'display', intervalMs: 15e3, getPayload: N })),
-            k)
+            A)
         );
     }
     function R(e) {
@@ -639,22 +637,22 @@
             .replaceAll("'", '&#39;');
     }
     function H(e) {
-        const n = String(e || '')
+        const t = String(e || '')
             .trim()
             .toUpperCase();
-        return (n && n.replace(/[^A-Z0-9-]/g, '')) || '--';
+        return (t && t.replace(/[^A-Z0-9-]/g, '')) || '--';
     }
     function I(e) {
-        const n = String(e || '').trim();
-        if (!n) return '--';
-        const t = n
+        const t = String(e || '').trim();
+        if (!t) return '--';
+        const n = t
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
             .replace(/[^A-Za-z0-9\s-]/g, ' ')
             .replace(/\s+/g, ' ')
             .trim();
-        if (!t) return '--';
-        const a = t.split(/[\s-]+/).filter(Boolean);
+        if (!n) return '--';
+        const a = n.split(/[\s-]+/).filter(Boolean);
         let o = '';
         if (a.length >= 2)
             o = `${String(a[0] || '').charAt(0)}${String(a[a.length - 1] || '').charAt(0)}`;
@@ -666,49 +664,49 @@
         const i = o.toUpperCase().trim();
         return i ? i.slice(0, 3) : '--';
     }
-    function P(e, n) {
-        if (!e || 'object' != typeof e || !Array.isArray(n)) return [];
-        for (const t of n) if (t && Array.isArray(e[t])) return e[t];
+    function P(e, t) {
+        if (!e || 'object' != typeof e || !Array.isArray(t)) return [];
+        for (const n of t) if (n && Array.isArray(e[n])) return e[n];
         return [];
     }
-    function O(e, n) {
-        if (!e || 'object' != typeof e || !Array.isArray(n)) return null;
-        for (const t of n) {
-            if (!t) continue;
-            const n = e[t];
-            if (n && 'object' == typeof n && !Array.isArray(n)) return n;
+    function O(e, t) {
+        if (!e || 'object' != typeof e || !Array.isArray(t)) return null;
+        for (const n of t) {
+            if (!n) continue;
+            const t = e[n];
+            if (t && 'object' == typeof t && !Array.isArray(t)) return t;
         }
         return null;
     }
-    function D(e, n, t = 0) {
-        if (!e || 'object' != typeof e || !Array.isArray(n))
-            return Number(t || 0);
-        for (const t of n) {
-            if (!t) continue;
-            const n = Number(e[t]);
-            if (Number.isFinite(n)) return n;
+    function D(e, t, n = 0) {
+        if (!e || 'object' != typeof e || !Array.isArray(t))
+            return Number(n || 0);
+        for (const n of t) {
+            if (!n) continue;
+            const t = Number(e[n]);
+            if (Number.isFinite(t)) return t;
         }
-        return Number(t || 0);
+        return Number(n || 0);
     }
     function j(e) {
-        const n = e && 'object' == typeof e ? e : {},
-            t = O(n, ['counts']) || {},
-            a = D(n, ['waitingCount', 'waiting_count'], Number.NaN),
-            o = D(n, ['calledCount', 'called_count'], Number.NaN);
-        let i = P(n, [
+        const t = e && 'object' == typeof e ? e : {},
+            n = O(t, ['counts']) || {},
+            a = D(t, ['waitingCount', 'waiting_count'], Number.NaN),
+            o = D(t, ['calledCount', 'called_count'], Number.NaN);
+        let i = P(t, [
             'callingNow',
             'calling_now',
             'calledTickets',
             'called_tickets',
         ]);
         if (0 === i.length) {
-            const e = O(n, [
+            const e = O(t, [
                 'callingNowByConsultorio',
                 'calling_now_by_consultorio',
             ]);
             e && (i = Object.values(e).filter(Boolean));
         }
-        const l = P(n, [
+        const l = P(t, [
                 'nextTickets',
                 'next_tickets',
                 'waitingTickets',
@@ -716,13 +714,13 @@
             ]),
             r = Number.isFinite(a)
                 ? a
-                : D(t, ['waiting', 'waiting_count'], l.length),
+                : D(n, ['waiting', 'waiting_count'], l.length),
             s = Number.isFinite(o)
                 ? o
-                : D(t, ['called', 'called_count'], i.length);
+                : D(n, ['called', 'called_count'], i.length);
         return {
             updatedAt:
-                String(n.updatedAt || n.updated_at || '').trim() ||
+                String(t.updatedAt || t.updated_at || '').trim() ||
                 new Date().toISOString(),
             waitingCount: Math.max(0, Number(r || 0)),
             calledCount: Math.max(0, Number(s || 0)),
@@ -744,7 +742,7 @@
                   }))
                 : [],
             nextTickets: Array.isArray(l)
-                ? l.map((e, n) => ({
+                ? l.map((e, t) => ({
                       ...e,
                       id: Number(e?.id || e?.ticket_id || 0) || 0,
                       ticketCode: H(e?.ticketCode || e?.ticket_code || '--'),
@@ -754,14 +752,14 @@
                       position:
                           Number(e?.position || 0) > 0
                               ? Number(e.position)
-                              : n + 1,
+                              : t + 1,
                   }))
                 : [],
         };
     }
-    function q(e, n) {
-        const t = A('displayConnectionState');
-        if (!t) return;
+    function q(e, t) {
+        const n = C('displayConnectionState');
+        if (!n) return;
         const a = String(e || 'live').toLowerCase(),
             o = {
                 live: 'Conectado',
@@ -769,25 +767,25 @@
                 offline: 'Sin conexion',
                 paused: 'En pausa',
             },
-            i = String(n || '').trim() || o[a] || o.live,
+            i = String(t || '').trim() || o[a] || o.live,
             l = a !== x.connectionState || i !== x.lastConnectionMessage;
         ((x.connectionState = a),
             (x.lastConnectionMessage = i),
-            (t.dataset.state = a),
-            (t.textContent = i),
-            l && C('connection_state', { state: a, message: i }),
+            (n.dataset.state = a),
+            (n.textContent = i),
+            l && k('connection_state', { state: a, message: i }),
             W());
     }
     function V() {
-        let e = A('displayOpsHint');
+        let e = C('displayOpsHint');
         if (e) return e;
-        const n = A('displayUpdatedAt');
-        return n?.parentElement
+        const t = C('displayUpdatedAt');
+        return t?.parentElement
             ? ((e = document.createElement('span')),
               (e.id = 'displayOpsHint'),
               (e.className = 'display-updated-at'),
               (e.textContent = 'Estado operativo: inicializando...'),
-              n.insertAdjacentElement('afterend', e),
+              t.insertAdjacentElement('afterend', e),
               e)
             : null;
     }
@@ -799,10 +797,10 @@
             document.head.appendChild(e));
     }
     function F() {
-        let e = A('displayAnnouncement');
+        let e = C('displayAnnouncement');
         if (e instanceof HTMLElement) return e;
-        const n = document.querySelector('.display-layout');
-        return n instanceof HTMLElement
+        const t = document.querySelector('.display-layout');
+        return t instanceof HTMLElement
             ? ((function () {
                   if (document.getElementById(S)) return;
                   const e = document.createElement('style');
@@ -820,27 +818,27 @@
               e.setAttribute('aria-atomic', 'true'),
               (e.innerHTML =
                   '\n        <p class="display-announcement-label">Llamando ahora</p>\n        <p class="display-announcement-text">Esperando siguiente llamado...</p>\n        <p class="display-announcement-support">Consulta la pantalla para el consultorio asignado.</p>\n    '),
-              n.insertAdjacentElement('beforebegin', e),
+              t.insertAdjacentElement('beforebegin', e),
               e)
             : null;
     }
     function U(e) {
-        const n = F();
-        if (!(n instanceof HTMLElement)) return;
-        const t = n.querySelector('.display-announcement-text'),
-            a = n.querySelector('.display-announcement-support');
+        const t = F();
         if (!(t instanceof HTMLElement)) return;
+        const n = t.querySelector('.display-announcement-text'),
+            a = t.querySelector('.display-announcement-support');
+        if (!(n instanceof HTMLElement)) return;
         if (!e) {
-            (n.classList.add('is-idle'),
-                n.classList.remove('is-live'),
-                n.classList.remove('is-blocked'),
-                delete n.dataset.consultorio);
+            (t.classList.add('is-idle'),
+                t.classList.remove('is-live'),
+                t.classList.remove('is-blocked'),
+                delete t.dataset.consultorio);
             const e = 'Esperando siguiente llamado...',
                 o = 'Consulta la pantalla para el consultorio asignado.';
             return (
-                t.textContent !== e &&
-                    ((t.textContent = e),
-                    C('announcement_update', { mode: 'idle' })),
+                n.textContent !== e &&
+                    ((n.textContent = e),
+                    k('announcement_update', { mode: 'idle' })),
                 void (
                     a instanceof HTMLElement &&
                     a.textContent !== o &&
@@ -853,13 +851,13 @@
             l = H(e?.ticketCode || '--'),
             r = `${i} · Turno ${l}`,
             s = `Paciente ${I(e?.patientInitials || '--')}: pasa con calma al ${i}.`;
-        (n.classList.remove('is-idle'),
-            n.classList.add('is-live'),
-            n.classList.remove('is-blocked'),
-            (n.dataset.consultorio = String(o || '')),
-            t.textContent !== r &&
-                ((t.textContent = r),
-                C('announcement_update', {
+        (t.classList.remove('is-idle'),
+            t.classList.add('is-live'),
+            t.classList.remove('is-blocked'),
+            (t.dataset.consultorio = String(o || '')),
+            n.textContent !== r &&
+                ((n.textContent = r),
+                k('announcement_update', {
                     mode: 'live',
                     consultorio: o,
                     ticketCode: l,
@@ -869,18 +867,18 @@
                 (a.textContent = s));
     }
     function J(e) {
-        const n = V();
-        n && (n.textContent = String(e || '').trim() || 'Estado operativo');
+        const t = V();
+        t && (t.textContent = String(e || '').trim() || 'Estado operativo');
     }
     function W() {
-        const e = A('displaySetupTitle'),
-            n = A('displaySetupSummary'),
-            t = A('displaySetupChecks');
+        const e = C('displaySetupTitle'),
+            t = C('displaySetupSummary'),
+            n = C('displaySetupChecks');
         if (
             !(
                 e instanceof HTMLElement &&
-                n instanceof HTMLElement &&
-                t instanceof HTMLElement
+                t instanceof HTMLElement &&
+                n instanceof HTMLElement
             )
         )
             return;
@@ -976,8 +974,8 @@
                     (p =
                         'Haz una prueba sonora en la TCL C655 para desbloquear audio y confirmar volumen.')),
             (e.textContent = d),
-            (n.textContent = p),
-            (t.innerHTML = c
+            (t.textContent = p),
+            (n.innerHTML = c
                 .map(
                     (e) =>
                         `\n                <article class="display-setup-check" data-state="${R(e.state)}" role="listitem">\n                    <strong>${R(e.label)}</strong>\n                    <span>${R(e.detail)}</span>\n                </article>\n            `
@@ -988,10 +986,10 @@
             })('setup_status'));
     }
     function G() {
-        let e = A('displayMetrics');
+        let e = C('displayMetrics');
         if (e instanceof HTMLElement) return e;
-        const n = F();
-        return n instanceof HTMLElement
+        const t = F();
+        return t instanceof HTMLElement
             ? (z(),
               (e = document.createElement('section')),
               (e.id = 'displayMetrics'),
@@ -999,31 +997,31 @@
               e.setAttribute('aria-live', 'polite'),
               (e.innerHTML =
                   '\n        <span class="display-metric-chip" data-kind="waiting">\n            En cola\n            <strong data-metric="waiting">0</strong>\n        </span>\n        <span class="display-metric-chip" data-kind="active">\n            Llamando\n            <strong data-metric="active">0</strong>\n        </span>\n        <span class="display-metric-chip" data-kind="next">\n            Siguientes\n            <strong data-metric="next">0</strong>\n        </span>\n    '),
-              n.insertAdjacentElement('afterend', e),
+              t.insertAdjacentElement('afterend', e),
               e)
             : null;
     }
-    function K(e, n, t) {
+    function K(e, t, n) {
         if (!(e instanceof HTMLElement)) return;
-        const a = e.querySelector(`[data-metric="${n}"]`);
+        const a = e.querySelector(`[data-metric="${t}"]`);
         if (!(a instanceof HTMLElement)) return;
-        const o = String(Math.max(0, Number(t || 0)));
+        const o = String(Math.max(0, Number(n || 0)));
         a.textContent !== o && (a.textContent = o);
     }
     function Z(e) {
-        const n = G();
-        if (!(n instanceof HTMLElement)) return;
-        const t = j(e),
-            a = Number(t.waitingCount || 0),
-            o = Array.isArray(t.callingNow) ? t.callingNow.length : 0,
-            i = Array.isArray(t.nextTickets) ? t.nextTickets.length : 0;
-        (K(n, 'waiting', a), K(n, 'active', o), K(n, 'next', i));
+        const t = G();
+        if (!(t instanceof HTMLElement)) return;
+        const n = j(e),
+            a = Number(n.waitingCount || 0),
+            o = Array.isArray(n.callingNow) ? n.callingNow.length : 0,
+            i = Array.isArray(n.nextTickets) ? n.nextTickets.length : 0;
+        (K(t, 'waiting', a), K(t, 'active', o), K(t, 'next', i));
     }
     function Y() {
-        let e = A('displayManualRefreshBtn');
+        let e = C('displayManualRefreshBtn');
         if (e instanceof HTMLButtonElement) return e;
-        const n = document.querySelector('.display-clock-wrap');
-        return n
+        const t = document.querySelector('.display-clock-wrap');
+        return t
             ? ((e = document.createElement('button')),
               (e.id = 'displayManualRefreshBtn'),
               (e.type = 'button'),
@@ -1033,27 +1031,27 @@
                   'aria-label',
                   'Refrescar estado de turnos en pantalla'
               ),
-              n.appendChild(e),
+              t.appendChild(e),
               e)
             : null;
     }
     function Q(e) {
-        const n = Y();
-        n instanceof HTMLButtonElement &&
-            ((n.disabled = Boolean(e)),
-            (n.textContent = e ? 'Refrescando...' : 'Refrescar panel'));
+        const t = Y();
+        t instanceof HTMLButtonElement &&
+            ((t.disabled = Boolean(e)),
+            (t.textContent = e ? 'Refrescando...' : 'Refrescar panel'));
     }
     function X() {
-        let e = A('displayBellToggleBtn');
+        let e = C('displayBellToggleBtn');
         if (e instanceof HTMLButtonElement) return e;
-        const n = document.querySelector('.display-clock-wrap');
-        return n
+        const t = document.querySelector('.display-clock-wrap');
+        return t
             ? ((e = document.createElement('button')),
               (e.id = 'displayBellToggleBtn'),
               (e.type = 'button'),
               (e.className = 'display-control-btn display-control-btn-muted'),
               e.setAttribute('aria-label', 'Alternar campanilla de llamados'),
-              n.appendChild(e),
+              t.appendChild(e),
               e)
             : null;
     }
@@ -1070,13 +1068,13 @@
                 : 'Campanilla activa'),
             W());
     }
-    function ne() {
-        !(function (e, { announce: n = !1 } = {}) {
+    function te() {
+        !(function (e, { announce: t = !1 } = {}) {
             ((x.bellMuted = Boolean(e)),
                 g(y, x.clinicProfile, x.bellMuted ? '1' : '0'),
                 ee(),
-                C('bell_muted_changed', { muted: x.bellMuted, announce: n }),
-                n &&
+                k('bell_muted_changed', { muted: x.bellMuted, announce: t }),
+                t &&
                     J(
                         x.bellMuted
                             ? 'Campanilla en silencio. Puedes reactivarla con Alt+Shift+M.'
@@ -1084,43 +1082,43 @@
                     ));
         })(!x.bellMuted, { announce: !0 });
     }
-    function te(e) {
-        const n = j(e);
+    function ne(e) {
+        const t = j(e);
         return {
-            updatedAt: String(n.updatedAt || new Date().toISOString()),
-            waitingCount: Number(n.waitingCount || 0),
-            calledCount: Number(n.calledCount || 0),
-            callingNow: Array.isArray(n.callingNow) ? n.callingNow : [],
-            nextTickets: Array.isArray(n.nextTickets) ? n.nextTickets : [],
+            updatedAt: String(t.updatedAt || new Date().toISOString()),
+            waitingCount: Number(t.waitingCount || 0),
+            calledCount: Number(t.calledCount || 0),
+            callingNow: Array.isArray(t.callingNow) ? t.callingNow : [],
+            nextTickets: Array.isArray(t.nextTickets) ? t.nextTickets : [],
         };
     }
-    function ae(e, { mode: n = 'restore' } = {}) {
-        if (L()) return (le(), !1);
+    function ae(e, { mode: t = 'restore' } = {}) {
+        if (T()) return (le(), !1);
         if (!e?.data) return !1;
         ge(e.data);
-        const t = Math.max(0, Date.now() - Date.parse(String(e.savedAt || ''))),
-            a = se(t);
+        const n = Math.max(0, Date.now() - Date.parse(String(e.savedAt || ''))),
+            a = se(n);
         return (
             q('reconnecting', 'Respaldo local activo'),
             J(
-                'startup' === n
+                'startup' === t
                     ? `Mostrando respaldo local (${a}) mientras conecta.`
                     : `Sin backend. Mostrando ultimo estado local (${a}).`
             ),
-            C('snapshot_restored', { mode: n, ageMs: t }),
+            k('snapshot_restored', { mode: t, ageMs: n }),
             !0
         );
     }
     function oe() {
-        let e = A('displaySnapshotHint');
+        let e = C('displaySnapshotHint');
         if (e instanceof HTMLElement) return e;
-        const n = V();
-        return n?.parentElement
+        const t = V();
+        return t?.parentElement
             ? ((e = document.createElement('span')),
               (e.id = 'displaySnapshotHint'),
               (e.className = 'display-updated-at'),
               (e.textContent = 'Respaldo: sin datos locales'),
-              n.insertAdjacentElement('afterend', e),
+              t.insertAdjacentElement('afterend', e),
               e)
             : null;
     }
@@ -1129,10 +1127,10 @@
         if (!(e instanceof HTMLElement)) return;
         if (!x.lastSnapshot?.savedAt)
             return ((e.textContent = 'Respaldo: sin datos locales'), void W());
-        const n = Date.parse(String(x.lastSnapshot.savedAt || ''));
-        if (!Number.isFinite(n))
+        const t = Date.parse(String(x.lastSnapshot.savedAt || ''));
+        if (!Number.isFinite(t))
             return ((e.textContent = 'Respaldo: sin datos locales'), void W());
-        ((e.textContent = `Respaldo: ${se(Date.now() - n)} de antiguedad`),
+        ((e.textContent = `Respaldo: ${se(Date.now() - t)} de antiguedad`),
             W());
     }
     function le() {
@@ -1152,28 +1150,28 @@
             de('displayConsultorio1', null, _(1)),
             de('displayConsultorio2', null, _(2)),
             (function (e) {
-                const n = F();
-                if (!(n instanceof HTMLElement)) return;
-                const t = n.querySelector('.display-announcement-text'),
-                    a = n.querySelector('.display-announcement-support');
+                const t = F();
                 if (!(t instanceof HTMLElement)) return;
+                const n = t.querySelector('.display-announcement-text'),
+                    a = t.querySelector('.display-announcement-support');
+                if (!(n instanceof HTMLElement)) return;
                 const o = 'Pantalla bloqueada',
                     i =
                         String(e || '').trim() ||
                         'Corrige el perfil por clínica antes de usar esta TV.';
-                (n.classList.remove('is-live', 'is-idle'),
-                    n.classList.add('is-blocked'),
-                    delete n.dataset.consultorio,
-                    t.textContent !== o &&
-                        ((t.textContent = o),
-                        C('announcement_update', { mode: 'blocked' })),
+                (t.classList.remove('is-live', 'is-idle'),
+                    t.classList.add('is-blocked'),
+                    delete t.dataset.consultorio,
+                    n.textContent !== o &&
+                        ((n.textContent = o),
+                        k('announcement_update', { mode: 'blocked' })),
                     a instanceof HTMLElement &&
                         a.textContent !== i &&
                         (a.textContent = i));
             })(e));
-        const n = A('displayNextList');
-        (n &&
-            (n.innerHTML = `<li class="display-empty display-empty-blocked">${R(e || 'Pantalla bloqueada por configuración del piloto.')}</li>`),
+        const t = C('displayNextList');
+        (t &&
+            (t.innerHTML = `<li class="display-empty display-empty-blocked">${R(e || 'Pantalla bloqueada por configuración del piloto.')}</li>`),
             Z({ waitingCount: 0, callingNow: [], nextTickets: [] }),
             q('paused', 'Pantalla bloqueada'),
             J(e));
@@ -1181,14 +1179,14 @@
     function re({ announce: e = !1 } = {}) {
         ((x.lastSnapshot = null),
             (x.lastRenderedSignature = ''),
-            (function (e, n) {
-                const t = f(n),
+            (function (e, t) {
+                const n = f(t),
                     a = String(e);
                 if (!a) return !1;
                 try {
                     const e = m(localStorage.getItem(a));
                     return e
-                        ? (delete e.values[t],
+                        ? (delete e.values[n],
                           0 === Object.keys(e.values).length
                               ? (localStorage.removeItem(a), !0)
                               : (localStorage.setItem(a, JSON.stringify(e)),
@@ -1207,9 +1205,9 @@
                         de('displayConsultorio1', null, _(1)),
                         de('displayConsultorio2', null, _(2)),
                         U(null));
-                    const n = A('displayNextList');
-                    (n &&
-                        (n.innerHTML = `<li class="display-empty">${R(e)}</li>`),
+                    const t = C('displayNextList');
+                    (t &&
+                        (t.innerHTML = `<li class="display-empty">${R(e)}</li>`),
                         Z({
                             waitingCount: 0,
                             callingNow: [],
@@ -1223,14 +1221,14 @@
                 J(
                     'Respaldo local limpiado. Esperando datos en vivo del backend.'
                 ),
-            C('snapshot_cleared', { announce: e }));
+            k('snapshot_cleared', { announce: e }));
     }
     function se(e) {
-        const n = Math.max(0, Number(e || 0)),
-            t = Math.round(n / 1e3);
-        if (t < 60) return `${t}s`;
-        const a = Math.floor(t / 60),
-            o = t % 60;
+        const t = Math.max(0, Number(e || 0)),
+            n = Math.round(t / 1e3);
+        if (n < 60) return `${n}s`;
+        const a = Math.floor(n / 60),
+            o = n % 60;
         return o <= 0 ? `${a}m` : `${a}m ${o}s`;
     }
     function ce() {
@@ -1238,17 +1236,17 @@
             ? `hace ${se(Date.now() - x.lastHealthySyncAt)}`
             : 'sin sincronizacion confirmada';
     }
-    function de(e, n, t) {
-        const a = A(e);
+    function de(e, t, n) {
+        const a = C(e);
         if (!a) return;
-        if (!n)
-            return void (a.innerHTML = `\n            <article class="display-called-card is-empty">\n                <h3>${t}</h3>\n                <p>Sin llamado activo</p>\n            </article>\n        `);
-        const o = Date.parse(String(n.calledAt || '')),
+        if (!t)
+            return void (a.innerHTML = `\n            <article class="display-called-card is-empty">\n                <h3>${n}</h3>\n                <p>Sin llamado activo</p>\n            </article>\n        `);
+        const o = Date.parse(String(t.calledAt || '')),
             i =
                 Number.isFinite(o) && Date.now() - o <= 8e3
                     ? 'display-called-card is-live is-fresh'
                     : 'display-called-card is-live';
-        a.innerHTML = `\n        <article class="${i}">\n            <h3>${t}</h3>\n            <strong>${R(n.ticketCode || '--')}</strong>\n            <span>${R(n.patientInitials || '--')}</span>\n        </article>\n    `;
+        a.innerHTML = `\n        <article class="${i}">\n            <h3>${n}</h3>\n            <strong>${R(t.ticketCode || '--')}</strong>\n            <span>${R(t.patientInitials || '--')}</span>\n        </article>\n    `;
     }
     function ue(e) {
         return e
@@ -1264,7 +1262,7 @@
         (x.bellFlashId &&
             (window.clearTimeout(x.bellFlashId), (x.bellFlashId = 0)),
             document.body.classList.remove(w));
-        const e = A('displayAnnouncement');
+        const e = C('displayAnnouncement');
         e instanceof HTMLElement && e.classList.remove('is-bell');
     }
     async function me({ source: e = 'unknown' } = {}) {
@@ -1273,18 +1271,18 @@
                 (x.audioContext = new (
                     window.AudioContext || window.webkitAudioContext
                 )());
-            const n = x.audioContext;
+            const t = x.audioContext;
             return (
-                'suspended' === n.state && (await n.resume()),
-                (x.bellPrimed = 'running' === n.state),
-                C('bell_audio_primed', { source: e, running: x.bellPrimed }),
+                'suspended' === t.state && (await t.resume()),
+                (x.bellPrimed = 'running' === t.state),
+                k('bell_audio_primed', { source: e, running: x.bellPrimed }),
                 W(),
                 x.bellPrimed
             );
-        } catch (n) {
+        } catch (t) {
             return (
                 (x.bellPrimed = !1),
-                C('bell_audio_primed', { source: e, running: !1 }),
+                k('bell_audio_primed', { source: e, running: !1 }),
                 W(),
                 !1
             );
@@ -1300,57 +1298,57 @@
                 'Audio bloqueado por navegador. Toca "Probar campanilla" una vez para habilitar sonido.'
             ));
     }
-    async function be({ source: e = 'new_call', force: n = !1 } = {}) {
-        if (L()) return;
+    async function be({ source: e = 'new_call', force: t = !1 } = {}) {
+        if (T()) return;
         if (
             ((function () {
                 const e = document.body;
                 if (!(e instanceof HTMLElement)) return;
                 (pe(), e.offsetWidth, e.classList.add(w));
-                const n = A('displayAnnouncement');
-                (n instanceof HTMLElement && n.classList.add('is-bell'),
+                const t = C('displayAnnouncement');
+                (t instanceof HTMLElement && t.classList.add('is-bell'),
                     (x.bellFlashId = window.setTimeout(() => {
                         pe();
                     }, 1300)));
             })(),
-            x.bellMuted && !n)
+            x.bellMuted && !t)
         )
             return;
-        const t = Date.now();
-        if (!(!n && x.lastBellAt > 0 && t - x.lastBellAt < 1200))
+        const n = Date.now();
+        if (!(!t && x.lastBellAt > 0 && n - x.lastBellAt < 1200))
             try {
                 if (!(await me({ source: e })))
                     return ((x.lastBellSource = e), void fe());
-                const n = x.audioContext,
-                    t = n.currentTime,
-                    a = n.createOscillator(),
-                    o = n.createGain();
+                const t = x.audioContext,
+                    n = t.currentTime,
+                    a = t.createOscillator(),
+                    o = t.createGain();
                 ((a.type = 'sine'),
-                    a.frequency.setValueAtTime(932, t),
-                    o.gain.setValueAtTime(1e-4, t),
-                    o.gain.exponentialRampToValueAtTime(0.16, t + 0.02),
-                    o.gain.exponentialRampToValueAtTime(1e-4, t + 0.22),
+                    a.frequency.setValueAtTime(932, n),
+                    o.gain.setValueAtTime(1e-4, n),
+                    o.gain.exponentialRampToValueAtTime(0.16, n + 0.02),
+                    o.gain.exponentialRampToValueAtTime(1e-4, n + 0.22),
                     a.connect(o),
-                    o.connect(n.destination),
-                    a.start(t),
-                    a.stop(t + 0.24),
+                    o.connect(t.destination),
+                    a.start(n),
+                    a.stop(n + 0.24),
                     (x.lastBellAt = Date.now()),
                     (x.lastBellSource = e),
                     (x.lastBellOutcome = 'played'),
                     W(),
-                    C('bell_played', { source: e, muted: x.bellMuted }));
-            } catch (n) {
+                    k('bell_played', { source: e, muted: x.bellMuted }));
+            } catch (t) {
                 ((x.lastBellSource = e), fe());
             }
     }
     function ge(e) {
-        if (L()) return void le();
-        const n = j(e);
-        x.lastRenderedState = n;
-        const t = (function (e) {
-                const n = j(e),
-                    t = Array.isArray(n.callingNow)
-                        ? n.callingNow.map((e) => ({
+        if (T()) return void le();
+        const t = j(e);
+        x.lastRenderedState = t;
+        const n = (function (e) {
+                const t = j(e),
+                    n = Array.isArray(t.callingNow)
+                        ? t.callingNow.map((e) => ({
                               id: Number(e?.id || 0),
                               ticketCode: String(e?.ticketCode || ''),
                               patientInitials: String(e?.patientInitials || ''),
@@ -1358,8 +1356,8 @@
                               calledAt: String(e?.calledAt || ''),
                           }))
                         : [],
-                    a = Array.isArray(n.nextTickets)
-                        ? n.nextTickets
+                    a = Array.isArray(t.nextTickets)
+                        ? t.nextTickets
                               .slice(0, 8)
                               .map((e) => ({
                                   id: Number(e?.id || 0),
@@ -1370,74 +1368,74 @@
                                   position: Number(e?.position || 0),
                               }))
                         : [],
-                    o = String(n.updatedAt || '');
+                    o = String(t.updatedAt || '');
                 return JSON.stringify({
                     updatedAt: o,
-                    callingNow: t,
+                    callingNow: n,
                     nextTickets: a,
                 });
-            })(n),
-            a = t === x.lastRenderedSignature,
-            o = Array.isArray(n.callingNow) ? n.callingNow : [],
+            })(t),
+            a = n === x.lastRenderedSignature,
+            o = Array.isArray(t.callingNow) ? t.callingNow : [],
             i = { 1: null, 2: null };
         for (const e of o) {
-            const n = Number(e?.assignedConsultorio || 0);
-            (1 !== n && 2 !== n) || (i[n] = e);
+            const t = Number(e?.assignedConsultorio || 0);
+            (1 !== t && 2 !== t) || (i[t] = e);
         }
-        const l = (function (e, n) {
-            const t = Array.isArray(e) ? e.filter(Boolean) : [];
-            if (0 === t.length) return null;
-            let a = t[0],
+        const l = (function (e, t) {
+            const n = Array.isArray(e) ? e.filter(Boolean) : [];
+            if (0 === n.length) return null;
+            let a = n[0],
                 o = Number.NEGATIVE_INFINITY;
-            for (const e of t) {
-                const n = Date.parse(String(e?.calledAt || ''));
-                Number.isFinite(n) && n >= o && ((o = n), (a = e));
+            for (const e of n) {
+                const t = Date.parse(String(e?.calledAt || ''));
+                Number.isFinite(t) && t >= o && ((o = t), (a = e));
             }
-            return Number.isFinite(o) ? a : n[1] || n[2] || a;
+            return Number.isFinite(o) ? a : t[1] || t[2] || a;
         })(o, i);
         (a ||
             (de('displayConsultorio1', i[1], _(1)),
             de('displayConsultorio2', i[2], _(2)),
             (function (e) {
-                const n = A('displayNextList');
-                n &&
+                const t = C('displayNextList');
+                t &&
                     (Array.isArray(e) && 0 !== e.length
-                        ? (n.innerHTML = e
+                        ? (t.innerHTML = e
                               .slice(0, 8)
                               .map(
                                   (e) =>
                                       `\n                <li>\n                    <span class="next-code">${R(e.ticketCode || '--')}</span>\n                    <span class="next-initials">${R(e.patientInitials || '--')}</span>\n                    <span class="next-position">#${R(e.position || '-')}</span>\n                </li>\n            `
                               )
                               .join(''))
-                        : (n.innerHTML =
+                        : (t.innerHTML =
                               '<li class="display-empty">No hay turnos pendientes.</li>'));
-            })(n?.nextTickets || []),
+            })(t?.nextTickets || []),
             (function (e) {
-                const n = A('displayUpdatedAt');
-                if (!n) return;
-                const t = j(e),
-                    a = Date.parse(String(t.updatedAt || ''));
+                const t = C('displayUpdatedAt');
+                if (!t) return;
+                const n = j(e),
+                    a = Date.parse(String(n.updatedAt || ''));
                 Number.isFinite(a)
-                    ? (n.textContent = `Actualizado ${new Date(a).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`)
-                    : (n.textContent = 'Actualizacion pendiente');
-            })(n),
-            (x.lastRenderedSignature = t),
-            C('render_update', {
+                    ? (t.textContent = `Actualizado ${new Date(a).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`)
+                    : (t.textContent = 'Actualizacion pendiente');
+            })(t),
+            (x.lastRenderedSignature = n),
+            k('render_update', {
                 callingNowCount: o.length,
-                nextCount: Array.isArray(n?.nextTickets)
-                    ? n.nextTickets.length
+                nextCount: Array.isArray(t?.nextTickets)
+                    ? t.nextTickets.length
                     : 0,
             })),
             U(l),
-            Z(n));
+            Z(t));
         const r = (function (e) {
             return Array.isArray(e) && 0 !== e.length
                 ? e
                       .map((e) => {
-                          const n = String(e.assignedConsultorio || '-'),
-                              t = Number(e.id || 0),
+                          const t = String(e.assignedConsultorio || '-'),
+                              n = Number(e.id || 0),
                               a = H(e.ticketCode || '--');
-                          return `${n}:${t > 0 ? `id-${t}` : `code-${a}`}`;
+                          return `${t}:${n > 0 ? `id-${n}` : `code-${a}`}`;
                       })
                       .sort()
                       .join('|')
@@ -1450,34 +1448,34 @@
             );
         if (r !== x.lastCalledSignature) {
             const e = ue(x.lastCalledSignature),
-                n = ue(r),
-                t = [];
-            for (const a of n) e.has(a) || t.push(a);
-            (t.length > 0 && be({ source: 'new_call' }),
-                C('called_signature_changed', {
+                t = ue(r),
+                n = [];
+            for (const a of t) e.has(a) || n.push(a);
+            (n.length > 0 && be({ source: 'new_call' }),
+                k('called_signature_changed', {
                     signature: r,
-                    added_count: t.length,
+                    added_count: n.length,
                 }));
         }
         x.lastCalledSignature = r;
     }
     function ye() {
         const e = Math.max(0, Number(x.failureStreak || 0)),
-            n = 2500 * Math.pow(2, Math.min(e, 3));
-        return Math.min(15e3, n);
+            t = 2500 * Math.pow(2, Math.min(e, 3));
+        return Math.min(15e3, t);
     }
     function he() {
         x.pollingId && (window.clearTimeout(x.pollingId), (x.pollingId = 0));
     }
     function Se({ immediate: e = !1 } = {}) {
         if ((he(), !x.pollingEnabled)) return;
-        const n = e ? 0 : ye();
+        const t = e ? 0 : ye();
         x.pollingId = window.setTimeout(() => {
             we();
-        }, n);
+        }, t);
     }
     async function ve() {
-        if (L())
+        if (T())
             return (
                 le(),
                 {
@@ -1497,58 +1495,58 @@
                         const e = new URLSearchParams();
                         (e.set('resource', 'queue-state'),
                             e.set('t', String(Date.now())));
-                        const n = await fetch(`/api.php?${e.toString()}`, {
+                        const t = await fetch(`/api.php?${e.toString()}`, {
                                 method: 'GET',
                                 credentials: 'same-origin',
                                 headers: { Accept: 'application/json' },
                             }),
-                            t = await n.text();
+                            n = await t.text();
                         let a;
                         try {
-                            a = t ? JSON.parse(t) : {};
+                            a = n ? JSON.parse(n) : {};
                         } catch (e) {
                             throw new Error('Respuesta JSON invalida');
                         }
-                        if (!n.ok || !1 === a.ok)
-                            throw new Error(a.error || `HTTP ${n.status}`);
+                        if (!t.ok || !1 === a.ok)
+                            throw new Error(a.error || `HTTP ${t.status}`);
                         return a;
                     })()
                 ).data || {}
             );
             (ge(e),
                 (function (e) {
-                    const n = te(e),
-                        t = { savedAt: new Date().toISOString(), data: n };
-                    ((x.lastSnapshot = t), g(h, x.clinicProfile, t), ie());
+                    const t = ne(e),
+                        n = { savedAt: new Date().toISOString(), data: t };
+                    ((x.lastSnapshot = n), g(h, x.clinicProfile, n), ie());
                 })(e));
-            const n = (function (e) {
-                const n = j(e),
-                    t = Date.parse(String(n.updatedAt || ''));
-                if (!Number.isFinite(t))
+            const t = (function (e) {
+                const t = j(e),
+                    n = Date.parse(String(t.updatedAt || ''));
+                if (!Number.isFinite(n))
                     return { stale: !1, missingTimestamp: !0, ageMs: null };
-                const a = Math.max(0, Date.now() - t);
+                const a = Math.max(0, Date.now() - n);
                 return { stale: a >= 3e4, missingTimestamp: !1, ageMs: a };
             })(e);
             return {
                 ok: !0,
-                stale: Boolean(n.stale),
-                missingTimestamp: Boolean(n.missingTimestamp),
-                ageMs: n.ageMs,
+                stale: Boolean(t.stale),
+                missingTimestamp: Boolean(t.missingTimestamp),
+                ageMs: t.ageMs,
                 usedSnapshot: !1,
             };
         } catch (e) {
-            const n = ae(x.lastSnapshot, { mode: 'restore' });
-            if (!n) {
-                const n = A('displayNextList');
-                n &&
-                    (n.innerHTML = `<li class="display-empty">Sin conexion: ${R(e.message)}</li>`);
+            const t = ae(x.lastSnapshot, { mode: 'restore' });
+            if (!t) {
+                const t = C('displayNextList');
+                t &&
+                    (t.innerHTML = `<li class="display-empty">Sin conexion: ${R(e.message)}</li>`);
             }
             return {
                 ok: !1,
                 stale: !1,
                 reason: 'fetch_error',
                 errorMessage: e.message,
-                usedSnapshot: n,
+                usedSnapshot: t,
             };
         } finally {
             x.refreshBusy = !1;
@@ -1556,7 +1554,7 @@
     }
     async function we() {
         if (!x.pollingEnabled) return;
-        if (L()) return void le();
+        if (T()) return void le();
         if (document.hidden)
             return (
                 q('paused', 'En pausa (pestana oculta)'),
@@ -1581,20 +1579,20 @@
                 J(`Panel estable (${ce()}).`));
         else if (e.ok && e.stale) {
             x.failureStreak += 1;
-            const n = se(e.ageMs || 0);
-            (q('reconnecting', `Watchdog: datos estancados ${n}`),
-                J(`Datos estancados ${n}. Verifica fuente de cola.`));
+            const t = se(e.ageMs || 0);
+            (q('reconnecting', `Watchdog: datos estancados ${t}`),
+                J(`Datos estancados ${t}. Verifica fuente de cola.`));
         } else {
             if (((x.failureStreak += 1), e.usedSnapshot)) return void Se();
-            const n = Math.max(1, Math.ceil(ye() / 1e3));
-            (q('reconnecting', `Reconectando en ${n}s`),
-                J(`Conexion inestable. Reintento automatico en ${n}s.`));
+            const t = Math.max(1, Math.ceil(ye() / 1e3));
+            (q('reconnecting', `Reconectando en ${t}s`),
+                J(`Conexion inestable. Reintento automatico en ${t}s.`));
         }
         Se();
     }
     async function xe() {
         if (!x.manualRefreshBusy)
-            if (L()) le();
+            if (T()) le();
             else {
                 ((x.manualRefreshBusy = !0),
                     Q(!0),
@@ -1609,51 +1607,51 @@
                             void J(`Sincronizacion manual exitosa (${ce()}).`)
                         );
                     if (e.ok && e.stale) {
-                        const n = se(e.ageMs || 0);
+                        const t = se(e.ageMs || 0);
                         return (
                             q(
                                 'reconnecting',
-                                `Watchdog: datos estancados ${n}`
+                                `Watchdog: datos estancados ${t}`
                             ),
-                            void J(`Persisten datos estancados (${n}).`)
+                            void J(`Persisten datos estancados (${t}).`)
                         );
                     }
                     if (e.usedSnapshot) return;
-                    const n = Math.max(1, Math.ceil(ye() / 1e3));
+                    const t = Math.max(1, Math.ceil(ye() / 1e3));
                     (q(
                         !1 === navigator.onLine ? 'offline' : 'reconnecting',
                         !1 === navigator.onLine
                             ? 'Sin conexion'
-                            : `Reconectando en ${n}s`
+                            : `Reconectando en ${t}s`
                     ),
                         J(
                             !1 === navigator.onLine
                                 ? 'Sin internet. Llamado manual temporal.'
-                                : `Refresh manual sin exito. Reintento automatico en ${n}s.`
+                                : `Refresh manual sin exito. Reintento automatico en ${t}s.`
                         ));
                 } finally {
                     ((x.manualRefreshBusy = !1), Q(!1));
                 }
             }
     }
-    function ke({ immediate: e = !0 } = {}) {
+    function Ae({ immediate: e = !0 } = {}) {
         if (((x.pollingEnabled = !0), e))
             return (q('live', 'Sincronizando...'), void we());
         Se();
     }
-    function Ce({ reason: e = 'paused' } = {}) {
+    function ke({ reason: e = 'paused' } = {}) {
         ((x.pollingEnabled = !1), (x.failureStreak = 0), he());
-        const n = String(e || 'paused').toLowerCase();
-        return 'offline' === n
+        const t = String(e || 'paused').toLowerCase();
+        return 'offline' === t
             ? (q('offline', 'Sin conexion'),
               void J('Sin conexion. Mantener protocolo manual de llamados.'))
-            : 'hidden' === n
+            : 'hidden' === t
               ? (q('paused', 'En pausa (pestana oculta)'),
                 void J('Pantalla oculta. Reanuda al volver al frente.'))
               : (q('paused', 'En pausa'), void J('Sincronizacion pausada.'));
     }
-    function Ae() {
-        const e = A('displayClock');
+    function Ce() {
+        const e = C('displayClock');
         e &&
             (e.textContent = new Date().toLocaleTimeString('es-EC', {
                 hour: '2-digit',
@@ -1661,10 +1659,35 @@
             }));
     }
     document.addEventListener('DOMContentLoaded', function () {
-        ((document.body.dataset.displayMode = 'star'),
+        (!(function () {
+            if (
+                window.PielOpsTheme &&
+                'function' == typeof window.PielOpsTheme.initAutoOpsTheme
+            )
+                return window.PielOpsTheme.initAutoOpsTheme({
+                    surface: 'display',
+                    family: 'ambient',
+                    mode: 'system',
+                });
+            const e = window.matchMedia?.('(prefers-color-scheme: dark)')
+                ?.matches
+                ? 'dark'
+                : 'light';
+            (document.documentElement.setAttribute('data-theme-mode', 'system'),
+                document.documentElement.setAttribute('data-theme', e),
+                document.documentElement.setAttribute('data-ops-tone', e),
+                document.documentElement.setAttribute(
+                    'data-ops-family',
+                    'ambient'
+                ),
+                document.body instanceof HTMLElement &&
+                    (document.body.setAttribute('data-ops-tone', e),
+                    document.body.setAttribute('data-ops-family', 'ambient')));
+        })(),
+            (document.body.dataset.displayMode = 'star'),
             z(),
-            Ae(),
-            (x.clockId = window.setInterval(Ae, 1e3)),
+            Ce(),
+            (x.clockId = window.setInterval(Ce, 1e3)),
             V(),
             oe(),
             F(),
@@ -1674,16 +1697,16 @@
             e.addEventListener('click', () => {
                 xe();
             });
-        const n = X();
-        n instanceof HTMLButtonElement &&
-            n.addEventListener('click', () => {
-                ne();
+        const t = X();
+        t instanceof HTMLButtonElement &&
+            t.addEventListener('click', () => {
+                te();
             });
         const o = (function () {
-            let e = A('displayBellTestBtn');
+            let e = C('displayBellTestBtn');
             if (e instanceof HTMLButtonElement) return e;
-            const n = document.querySelector('.display-clock-wrap');
-            return n
+            const t = document.querySelector('.display-clock-wrap');
+            return t
                 ? ((e = document.createElement('button')),
                   (e.id = 'displayBellTestBtn'),
                   (e.type = 'button'),
@@ -1691,7 +1714,7 @@
                       'display-control-btn display-control-btn-muted'),
                   (e.textContent = 'Probar campanilla'),
                   e.setAttribute('aria-label', 'Probar campanilla de llamados'),
-                  n.appendChild(e),
+                  t.appendChild(e),
                   e)
                 : null;
         })();
@@ -1703,10 +1726,10 @@
                     ));
             });
         const d = (function () {
-            let e = A('displaySnapshotClearBtn');
+            let e = C('displaySnapshotClearBtn');
             if (e instanceof HTMLButtonElement) return e;
-            const n = document.querySelector('.display-clock-wrap');
-            return n
+            const t = document.querySelector('.display-clock-wrap');
+            return t
                 ? ((e = document.createElement('button')),
                   (e.id = 'displaySnapshotClearBtn'),
                   (e.type = 'button'),
@@ -1717,7 +1740,7 @@
                       'aria-label',
                       'Limpiar respaldo local del panel'
                   ),
-                  n.appendChild(e),
+                  t.appendChild(e),
                   e)
                 : null;
         })();
@@ -1737,34 +1760,34 @@
             window.addEventListener('keydown', u, { once: !0 }),
             document.addEventListener('visibilitychange', () => {
                 document.hidden
-                    ? Ce({ reason: 'hidden' })
-                    : x.clinicProfile && !L() && ke({ immediate: !0 });
+                    ? ke({ reason: 'hidden' })
+                    : x.clinicProfile && !T() && Ae({ immediate: !0 });
             }),
             window.addEventListener('online', () => {
-                x.clinicProfile && !L() && ke({ immediate: !0 });
+                x.clinicProfile && !T() && Ae({ immediate: !0 });
             }),
             window.addEventListener('offline', () => {
-                Ce({ reason: 'offline' });
+                ke({ reason: 'offline' });
             }),
             window.addEventListener('beforeunload', () => {
-                (Ce({ reason: 'paused' }),
-                    k?.stop(),
+                (ke({ reason: 'paused' }),
+                    A?.stop(),
                     x.clockId &&
                         (window.clearInterval(x.clockId), (x.clockId = 0)));
             }),
             window.addEventListener('keydown', (e) => {
                 if (!e.altKey || !e.shiftKey) return;
-                const n = String(e.code || '').toLowerCase();
-                return 'keyr' === n
+                const t = String(e.code || '').toLowerCase();
+                return 'keyr' === t
                     ? (e.preventDefault(), void xe())
-                    : 'keym' === n
-                      ? (e.preventDefault(), void ne())
-                      : 'keyb' === n
+                    : 'keym' === t
+                      ? (e.preventDefault(), void te())
+                      : 'keyb' === t
                         ? (e.preventDefault(),
                           be({ source: 'shortcut_test', force: !0 }),
                           void J('Campanilla de prueba ejecutada con teclado.'))
                         : void (
-                              'keyx' === n &&
+                              'keyx' === t &&
                               (e.preventDefault(), re({ announce: !0 }))
                           );
             }),
@@ -1780,17 +1803,17 @@
                         return e.json();
                     })
                     .then((e) => {
-                        const n = i(e);
+                        const t = i(e);
                         return {
-                            ...n,
+                            ...t,
                             runtime_meta: {
                                 source: 'remote',
-                                profileFingerprint: s(n),
+                                profileFingerprint: s(t),
                             },
                         };
                     })
                     .catch(() => {
-                        const e = i(t);
+                        const e = i(n);
                         return {
                             ...e,
                             runtime_meta: {
@@ -1803,8 +1826,8 @@
             ).then((e) => {
                 ((function (e) {
                     x.clinicProfile = e;
-                    const n = l(e),
-                        t = r(e),
+                    const t = l(e),
+                        n = r(e),
                         a =
                             String(e?.clinic_id || '').trim() ||
                             'sin-clinic-id',
@@ -1813,34 +1836,34 @@
                             c(e, 1, { short: !0 }),
                             c(e, 2, { short: !0 }),
                         ].join(' / ');
-                    document.title = `Sala de Espera | ${n}`;
+                    document.title = `Sala de Espera | ${t}`;
                     const d = document.querySelector('.display-brand strong');
-                    d instanceof HTMLElement && (d.textContent = n);
-                    const u = A('displayBrandMeta');
+                    d instanceof HTMLElement && (d.textContent = t);
+                    const u = C('displayBrandMeta');
                     u instanceof HTMLElement &&
                         (u.textContent = `Vista pacientes · ${i}`);
-                    const p = A('displayClinicMeta');
+                    const p = C('displayClinicMeta');
                     (p instanceof HTMLElement &&
-                        (p.textContent = [a, o || t]
+                        (p.textContent = [a, o || n]
                             .filter(Boolean)
                             .join(' · ')),
                         (function (e) {
-                            const n = M(e),
-                                t = s(e).slice(0, 8),
-                                a = A('displayProfileStatus');
+                            const t = M(e),
+                                n = s(e).slice(0, 8),
+                                a = C('displayProfileStatus');
                             a instanceof HTMLElement &&
                                 ((a.dataset.state =
-                                    'alert' === n.state
+                                    'alert' === t.state
                                         ? 'alert'
-                                        : 'ready' === n.state
+                                        : 'ready' === t.state
                                           ? 'ready'
                                           : 'warning'),
                                 (a.textContent =
-                                    'alert' === n.state
-                                        ? 'profile_missing' === n.reason
+                                    'alert' === t.state
+                                        ? 'profile_missing' === t.reason
                                             ? 'Bloqueado · perfil de respaldo · clinic-profile.json remoto ausente'
-                                            : `Bloqueado · ruta fuera de canon · se esperaba ${n.expectedRoute || '/sala-turnos.html'}`
-                                        : `Perfil remoto verificado · firma ${t} · canon ${n.expectedRoute || '/sala-turnos.html'}`));
+                                            : `Bloqueado · ruta fuera de canon · se esperaba ${t.expectedRoute || '/sala-turnos.html'}`
+                                        : `Perfil remoto verificado · firma ${n} · canon ${t.expectedRoute || '/sala-turnos.html'}`));
                         })(e),
                         x.lastRenderedState
                             ? ge(x.lastRenderedState)
@@ -1849,7 +1872,7 @@
                 })(e),
                     (x.bellMuted = b(y, x.clinicProfile, {
                         fallbackValue: !1,
-                        normalizeValue: T,
+                        normalizeValue: L,
                     })),
                     (x.lastSnapshot = b(h, x.clinicProfile, {
                         fallbackValue: null,
@@ -1861,11 +1884,11 @@
                     ie(),
                     W(),
                     $().start({ immediate: !1 }),
-                    L()
+                    T()
                         ? le()
                         : (ae(x.lastSnapshot, { mode: 'startup' }) ||
                               J('Esperando primera sincronizacion...'),
-                          ke({ immediate: !0 })));
+                          Ae({ immediate: !0 })));
             }));
     });
 })();

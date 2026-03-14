@@ -528,6 +528,13 @@ body.admin-v3-mode .admin-theme-btn[aria-pressed='true'] {
     border-color: var(--admin3-stage);
 }
 
+html[data-admin-section='queue'] .admin-theme-switcher-header,
+html[data-admin-section='queue'] .login-theme-bar,
+body[data-admin-section='queue'] .admin-theme-switcher-header,
+body[data-admin-section='queue'] .login-theme-bar {
+    display: none !important;
+}
+
 body.admin-v3-mode .icon {
     width: 18px;
     height: 18px;

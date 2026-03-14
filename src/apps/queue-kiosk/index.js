@@ -17,7 +17,6 @@ const CHAT_ENDPOINT = '/figo-chat.php';
 const QUEUE_POLL_MS = 2500;
 const QUEUE_POLL_MAX_MS = 15000;
 const QUEUE_STALE_THRESHOLD_MS = 30000;
-const THEME_STORAGE_KEY = 'kioskThemeMode';
 const KIOSK_SENIOR_MODE_STORAGE_KEY = 'queueKioskSeniorMode';
 const KIOSK_IDLE_RESET_DEFAULT_MS = 90000;
 const KIOSK_IDLE_RESET_MIN_MS = 5000;
@@ -38,9 +37,6 @@ const KIOSK_WELCOME_HIDE_MS = 1800;
 const KIOSK_WELCOME_REMOVE_MS = 2600;
 const KIOSK_VOICE_GUIDE_LANG = 'es-EC';
 const KIOSK_HEARTBEAT_MS = 15000;
-
-document.documentElement.setAttribute('data-ops-tone', 'dark');
-document.body?.setAttribute('data-ops-tone', 'dark');
 
 const state = {
     queueState: null,
@@ -67,8 +63,6 @@ const state = {
     queueRefreshBusy: false,
     queueManualRefreshBusy: false,
     queueLastHealthySyncAt: 0,
-    themeMode: 'system',
-    mediaQuery: null,
     idleTimerId: 0,
     idleTickId: 0,
     idleDeadlineTs: 0,
@@ -91,6 +85,38 @@ const state = {
 };
 
 let kioskHeartbeat = null;
+
+function initKioskOpsTheme() {
+    if (
+        window.PielOpsTheme &&
+        typeof window.PielOpsTheme.initAutoOpsTheme === 'function'
+    ) {
+        return window.PielOpsTheme.initAutoOpsTheme({
+            surface: 'kiosk',
+            family: 'ambient',
+            mode: 'system',
+        });
+    }
+
+    const tone = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches
+        ? 'dark'
+        : 'light';
+    document.documentElement.setAttribute('data-theme-mode', 'system');
+    document.documentElement.setAttribute('data-theme', tone);
+    document.documentElement.setAttribute('data-ops-tone', tone);
+    document.documentElement.setAttribute('data-ops-family', 'ambient');
+    if (document.body instanceof HTMLElement) {
+        document.body.setAttribute('data-ops-tone', tone);
+        document.body.setAttribute('data-ops-family', 'ambient');
+    }
+
+    return {
+        surface: 'kiosk',
+        family: 'ambient',
+        mode: 'system',
+        tone,
+    };
+}
 
 function parseStructuredStorageValue(rawValue) {
     if (!rawValue) return null;
@@ -3455,29 +3481,6 @@ function bindKioskActivitySignals() {
     });
 }
 
-function applyTheme(mode) {
-    state.themeMode = mode;
-    const root = document.documentElement;
-    const activeMode = 'light';
-    root.dataset.theme = activeMode;
-
-    document.querySelectorAll('[data-theme-mode]').forEach((button) => {
-        const buttonMode = button.getAttribute('data-theme-mode');
-        button.classList.toggle('is-active', buttonMode === mode);
-        button.setAttribute('aria-pressed', String(buttonMode === mode));
-    });
-}
-
-function setTheme(_mode) {
-    const normalized = 'light';
-    localStorage.setItem(THEME_STORAGE_KEY, normalized);
-    applyTheme(normalized);
-}
-
-function initTheme() {
-    setTheme('light');
-}
-
 function dismissWelcomeScreen({ reason = 'auto' } = {}) {
     if (state.welcomeDismissed) return;
     state.welcomeDismissed = true;
@@ -3725,6 +3728,7 @@ function stopQueuePolling({ reason = 'paused' } = {}) {
 }
 
 function initKiosk() {
+    initKioskOpsTheme();
     void loadTurneroClinicProfile().then((profile) => {
         applyKioskClinicProfile(profile);
         setSeniorModeEnabled(readSeniorModePreference(), {
@@ -3748,7 +3752,6 @@ function initKiosk() {
     ensureKioskStarStyles();
     state.idleResetMs = resolveIdleResetMs();
     state.voiceGuideSupported = supportsVoiceGuide();
-    initTheme();
     setSeniorModeEnabled(false, {
         persist: false,
         source: 'init',

@@ -3,6 +3,8 @@
     lang="es"
     data-admin-ui="sony_v3"
     data-admin-ready="false"
+    data-theme-mode="system"
+    data-ops-family="command"
     data-ops-tone="light"
 >
     <head>
@@ -14,6 +16,7 @@
         />
         <title>Nucleo Interno de Consultorio - Piel en Armonia</title>
         <link rel="icon" href="/favicon.ico" sizes="any" />
+        <script src="src/apps/queue-shared/ops-theme-global.js?v=turnero-20260314-auto-theme1"></script>
         <link
             rel="stylesheet"
         href="admin-v3.css?v=admin-v3-20260314-sony150"
@@ -26,7 +29,11 @@
         <script src="js/admin-preboot-shortcuts.js?v=admin-20260314-rc1-preboot1"></script>
         <script src="js/monitoring-loader.js" async></script>
     </head>
-    <body class="admin-body" data-ops-tone="light">
+    <body
+        class="admin-body"
+        data-ops-family="command"
+        data-ops-tone="light"
+    >
         <a href="#adminMainContent" class="admin-skip-link"
             >Saltar al contenido principal</a
         >
