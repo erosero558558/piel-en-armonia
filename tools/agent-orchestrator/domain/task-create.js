@@ -337,6 +337,11 @@ function normalizeTaskForCreateApply(rawTask, options = {}) {
             .trim()
             .toLowerCase(),
         strategy_reason: String(rawTask.strategy_reason || '').trim(),
+        exception_opened_at: String(rawTask.exception_opened_at || '').trim(),
+        exception_expires_at: String(rawTask.exception_expires_at || '').trim(),
+        exception_state: String(rawTask.exception_state || '')
+            .trim()
+            .toLowerCase(),
         files: Array.isArray(rawTask.files)
             ? rawTask.files.map((v) => String(v || '').trim()).filter(Boolean)
             : [],
@@ -615,6 +620,9 @@ function buildTaskCreatePreviewDiff(existingTask, previewTask, options = {}) {
         'subfront_id',
         'strategy_role',
         'strategy_reason',
+        'exception_opened_at',
+        'exception_expires_at',
+        'exception_state',
         'depends_on',
         'prompt',
     ];

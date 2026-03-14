@@ -1807,6 +1807,9 @@ async function handleTaskCreate(ctx) {
         subfront_id: '',
         strategy_role: '',
         strategy_reason: '',
+        exception_opened_at: '',
+        exception_expires_at: '',
+        exception_state: '',
         created_at: today,
         updated_at: today,
     };

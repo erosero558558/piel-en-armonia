@@ -74,10 +74,15 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
                 id: 'STRAT-2026-03-admin-operativo',
                 title: 'Admin operativo',
             },
+            next: {
+                id: 'STRAT-2026-03-admin-operativo-next',
+                title: 'Admin operativo siguiente',
+            },
             aligned_tasks: 1,
             support_tasks: 0,
             exception_tasks: 0,
             orphan_tasks: 0,
+            dispersion_score: 0,
             rows: [
                 {
                     subfront_id: 'SF-frontend-admin-operativo',
@@ -86,7 +91,10 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
                     primary_tasks: 1,
                     support_tasks: 0,
                     exception_tasks: 0,
+                    exception_expired_tasks: 0,
                     orphan_tasks: 0,
+                    aged_tasks: 0,
+                    wip_limit: 2,
                 },
             ],
         },
@@ -156,9 +164,10 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
 
     assert.match(output, /Agent Orchestrator Status/);
     assert.match(output, /Estrategia activa: STRAT-2026-03-admin-operativo/);
+    assert.match(output, /Draft siguiente: STRAT-2026-03-admin-operativo-next/);
     assert.match(
         output,
-        /Cobertura estrategia: aligned=1, support=0, exception=0, orphan=0/
+        /Cobertura estrategia: aligned=1, support=0, exception=0, orphan=0, dispersion=0/
     );
     assert.match(output, /Semaforo por dominio/);
     assert.match(output, /Aporte \(ranking por completado ponderado\)/);

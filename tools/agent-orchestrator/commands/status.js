@@ -141,6 +141,37 @@ async function handleStatusCommand(ctx) {
                   }),
               ]
             : [];
+    const strategyDiagnostics = [];
+    if (strategy?.active && strategy.orphan_tasks > 0) {
+        strategyDiagnostics.push(
+            domainDiagnostics.makeDiagnostic({
+                code: 'warn.board.strategy_orphan_active_task',
+                severity: 'warning',
+                source: 'status',
+                message: `Estrategia activa con ${strategy.orphan_tasks} tarea(s) huerfana(s)`,
+                task_ids: strategy.orphan_task_ids,
+                meta: {
+                    strategy_id: strategy.active.id,
+                    dispersion_score: strategy.dispersion_score,
+                },
+            })
+        );
+    }
+    if (strategy?.active && Number(strategy.exception_expired_tasks || 0) > 0) {
+        strategyDiagnostics.push(
+            domainDiagnostics.makeDiagnostic({
+                code: 'error.board.strategy_exception_expired',
+                severity: 'error',
+                source: 'status',
+                message: `Estrategia activa con ${strategy.exception_expired_tasks} exception(es) expirada(s)`,
+                task_ids: strategy.exception_expired_task_ids,
+                meta: {
+                    strategy_id: strategy.active.id,
+                    dispersion_score: strategy.dispersion_score,
+                },
+            })
+        );
+    }
 
     Object.assign(
         data,
@@ -154,6 +185,7 @@ async function handleStatusCommand(ctx) {
                 jobsSnapshot: jobs,
             }),
             ...terminalEvidenceDiagnostics,
+            ...strategyDiagnostics,
         ])
     );
 

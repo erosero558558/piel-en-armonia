@@ -10,7 +10,7 @@
  *   node agent-orchestrator.js conflicts [--strict]
  *   node agent-orchestrator.js handoffs <status|lint|create|close>
  *   node agent-orchestrator.js policy lint [--json]
- *   node agent-orchestrator.js strategy <status|set-active|close> [--json]
+ *   node agent-orchestrator.js strategy <status|preview|set-next|activate-next|set-active|close|intake> [--json]
  *   node agent-orchestrator.js codex-check
  *   node agent-orchestrator.js codex <start|stop> <CDX-ID> [--block C1] [--to done]
  *   node agent-orchestrator.js task <ls|claim|start|finish> [<AG-ID>] [...]
@@ -95,6 +95,11 @@ const PUBLISH_EVENTS_PATH = resolve(
     ROOT,
     'verification',
     'agent-publish-events.jsonl'
+);
+const STRATEGY_EVENTS_PATH = resolve(
+    ROOT,
+    'verification',
+    'agent-strategy-events.jsonl'
 );
 const DEFAULT_GITHUB_REPOSITORY =
     process.env.AGENT_GITHUB_REPOSITORY ||
@@ -435,11 +440,13 @@ function parseCodexActiveBlocks() {
 
 function parseCodexStrategyBlocks() {
     if (!existsSync(CODEX_PLAN_PATH)) {
-        return [];
+        return { active: [], next: [] };
     }
-    return coreParsers.parseCodexStrategyActiveBlocksContent(
-        readFileSync(CODEX_PLAN_PATH, 'utf8')
-    );
+    const raw = readFileSync(CODEX_PLAN_PATH, 'utf8');
+    return {
+        active: coreParsers.parseCodexStrategyActiveBlocksContent(raw),
+        next: coreParsers.parseCodexStrategyNextBlocksContent(raw),
+    };
 }
 
 function serializeHandoffs(data) {
@@ -978,18 +985,26 @@ function writeCodexActiveBlock(block, options = {}) {
     });
 }
 
-function writeStrategyActiveBlock(strategy) {
+function writeStrategyPlanBlocks(strategyState = {}) {
     if (!existsSync(CODEX_PLAN_PATH)) {
         throw new Error(`No existe ${CODEX_PLAN_PATH}`);
     }
     const raw = readFileSync(CODEX_PLAN_PATH, 'utf8');
-    const next = domainStrategy.upsertStrategyActiveBlock(raw, strategy, {
+    const next = domainStrategy.upsertStrategyBlocks(raw, strategyState, {
         quote,
         serializeArrayInline,
         currentDate,
     });
     writeFileSync(CODEX_PLAN_PATH, next, 'utf8');
     return next;
+}
+
+function writeStrategyActiveBlock(strategy) {
+    return writeStrategyPlanBlocks({ active: strategy });
+}
+
+function appendStrategySnapshot(entries) {
+    return coreIo.appendJsonlFile(STRATEGY_EVENTS_PATH, entries);
 }
 
 function nextHandoffId(handoffs) {
@@ -1436,6 +1451,7 @@ function cmdLeases(args) {
     return leasesCommandHandlers.handleLeasesCommand({
         args,
         parseFlags,
+        parseCsvList,
         parseBoard,
         ensureTask,
         currentDate,
@@ -1489,16 +1505,30 @@ async function cmdStrategy(args) {
     return strategyCommandHandlers.handleStrategyCommand({
         args,
         parseFlags,
+        parseCsvList,
         parseBoard,
+        parseHandoffs,
         buildStrategyCoverageSummary,
+        buildCoverageForStrategy: domainStrategy.buildCoverageForStrategy,
         buildStrategySeed: domainStrategy.buildStrategySeed,
+        buildStrategyPreview: domainStrategy.buildStrategyPreview,
+        buildStrategySeedCatalog: domainStrategy.buildStrategySeedCatalog,
+        buildStrategyIntakeTask: domainStrategy.buildStrategyIntakeTask,
         normalizeStrategyActive: domainStrategy.normalizeStrategyActive,
         validateStrategyConfiguration:
             domainStrategy.validateStrategyConfiguration,
         currentDate,
+        isoNow,
         detectDefaultOwner,
         writeBoardAndSync,
-        writeStrategyActiveBlock,
+        writeStrategyPlanBlocks,
+        appendStrategySnapshot,
+        nextAgentTaskId,
+        validateTaskGovernancePrechecks,
+        getBlockingConflictsForTask,
+        toTaskJson,
+        toTaskFullJson,
+        mapLaneToCodexInstance: domainTaskGuards.mapLaneToCodexInstance,
         parseExpectedBoardRevisionFlag,
         parseCodexStrategyBlocks,
         printJson: coreOutput.printJson,

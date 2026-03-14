@@ -50,33 +50,34 @@ function normalizeTaskScore(value, fallback = 0) {
     return Math.round(parsed);
 }
 
-function serializeStrategy(board, lines) {
-    const active = board?.strategy?.active;
-    if (!active || typeof active !== 'object') {
+function serializeStrategyRecord(lines, key, record) {
+    if (!record || typeof record !== 'object') {
+        lines.push(`  ${key}: null`);
         return;
     }
-    lines.push('');
-    lines.push('strategy:');
-    lines.push('  active:');
-    lines.push(`    id: ${active.id || ''}`);
-    lines.push(`    title: ${quote(active.title || '')}`);
-    lines.push(`    objective: ${quote(active.objective || '')}`);
-    lines.push(`    owner: ${active.owner || ''}`);
-    lines.push(`    status: ${active.status || 'active'}`);
-    lines.push(`    started_at: ${quote(active.started_at || '')}`);
-    lines.push(`    review_due_at: ${quote(active.review_due_at || '')}`);
-    if (active.closed_at) {
-        lines.push(`    closed_at: ${quote(active.closed_at)}`);
+    lines.push(`  ${key}:`);
+    lines.push(`    id: ${record.id || ''}`);
+    lines.push(`    title: ${quote(record.title || '')}`);
+    lines.push(`    objective: ${quote(record.objective || '')}`);
+    lines.push(`    owner: ${record.owner || ''}`);
+    lines.push(`    owner_policy: ${quote(record.owner_policy || '')}`);
+    lines.push(
+        `    status: ${record.status || (key === 'next' ? 'draft' : 'active')}`
+    );
+    lines.push(`    started_at: ${quote(record.started_at || '')}`);
+    lines.push(`    review_due_at: ${quote(record.review_due_at || '')}`);
+    if (record.closed_at) {
+        lines.push(`    closed_at: ${quote(record.closed_at)}`);
     }
-    if (active.close_reason) {
-        lines.push(`    close_reason: ${quote(active.close_reason)}`);
+    if (record.close_reason) {
+        lines.push(`    close_reason: ${quote(record.close_reason)}`);
     }
     lines.push(
-        `    exit_criteria: ${serializeArrayInline(active.exit_criteria || [])}`
+        `    exit_criteria: ${serializeArrayInline(record.exit_criteria || [])}`
     );
-    lines.push(`    success_signal: ${quote(active.success_signal || '')}`);
+    lines.push(`    success_signal: ${quote(record.success_signal || '')}`);
     lines.push('    subfronts:');
-    const subfronts = Array.isArray(active.subfronts) ? active.subfronts : [];
+    const subfronts = Array.isArray(record.subfronts) ? record.subfronts : [];
     for (const subfront of subfronts) {
         lines.push(`      - codex_instance: ${subfront.codex_instance || ''}`);
         lines.push(`        subfront_id: ${subfront.subfront_id || ''}`);
@@ -90,7 +91,34 @@ function serializeStrategy(board, lines) {
         lines.push(
             `        blocked_scopes: ${serializeArrayInline(subfront.blocked_scopes || [])}`
         );
+        lines.push(
+            `        wip_limit: ${normalizeTaskInt(subfront.wip_limit, 1)}`
+        );
+        lines.push(
+            `        default_acceptance_profile: ${quote(subfront.default_acceptance_profile || '')}`
+        );
+        lines.push(
+            `        exception_ttl_hours: ${normalizeTaskInt(subfront.exception_ttl_hours, 8)}`
+        );
     }
+}
+
+function serializeStrategy(board, lines) {
+    const hasStrategy =
+        (board?.strategy?.active &&
+            typeof board.strategy.active === 'object') ||
+        (board?.strategy?.next && typeof board.strategy.next === 'object') ||
+        String(board?.strategy?.updated_at || '').trim();
+    if (!hasStrategy) {
+        return;
+    }
+    lines.push('');
+    lines.push('strategy:');
+    serializeStrategyRecord(lines, 'active', board?.strategy?.active || null);
+    serializeStrategyRecord(lines, 'next', board?.strategy?.next || null);
+    lines.push(
+        `  updated_at: ${quote(String(board?.strategy?.updated_at || '').trim())}`
+    );
 }
 
 function serializeBoard(board, options = {}) {
@@ -200,6 +228,22 @@ function serializeBoard(board, options = {}) {
             if (String(task.strategy_reason || '').trim()) {
                 lines.push(
                     `    strategy_reason: ${quote(String(task.strategy_reason || '').trim())}`
+                );
+            }
+            const shouldEmitExceptionFields =
+                String(task.strategy_role || '').trim() === 'exception' ||
+                String(task.exception_opened_at || '').trim() ||
+                String(task.exception_expires_at || '').trim() ||
+                String(task.exception_state || '').trim();
+            if (shouldEmitExceptionFields) {
+                lines.push(
+                    `    exception_opened_at: ${quote(String(task.exception_opened_at || '').trim())}`
+                );
+                lines.push(
+                    `    exception_expires_at: ${quote(String(task.exception_expires_at || '').trim())}`
+                );
+                lines.push(
+                    `    exception_state: ${quote(String(task.exception_state || '').trim())}`
                 );
             }
         }

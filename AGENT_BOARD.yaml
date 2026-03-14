@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 673
+  revision: 674
   updated_at: 2026-03-14
 
 strategy:
@@ -16,6 +16,7 @@ strategy:
     title: "Admin operativo"
     objective: "Convertir el frente admin clinico, queue/turnero y OpenClaw UX en una entrega operable y visible, con soporte backend y runtime estrictamente alineado."
     owner: Ernesto
+    owner_policy: "detected_default_owner"
     status: active
     started_at: "2026-03-14"
     review_due_at: "2026-03-21"
@@ -26,20 +27,31 @@ strategy:
         subfront_id: SF-frontend-admin-operativo
         title: "Admin clinico, queue/turnero y OpenClaw UX"
         allowed_scopes: ["frontend-admin", "queue", "turnero"]
-        support_only_scopes: ["docs", "tests", "frontend-qa"]
+        support_only_scopes: ["docs", "frontend-qa"]
         blocked_scopes: ["frontend-public", "payments", "calendar"]
+        wip_limit: 1
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
       - codex_instance: codex_backend_ops
         subfront_id: SF-backend-admin-operativo
         title: "Auth, readiness, gates y backend de soporte directo"
         allowed_scopes: ["auth", "backend", "readiness", "gates"]
         support_only_scopes: ["deploy", "ops", "monitoring", "tests"]
         blocked_scopes: ["frontend-public", "frontend-admin", "payments", "calendar"]
+        wip_limit: 1
+        default_acceptance_profile: "backend_gate_checkpoint"
+        exception_ttl_hours: 6
       - codex_instance: codex_transversal
         subfront_id: SF-transversal-admin-operativo
         title: "Runtime/orquestacion solo como desbloqueo del frente"
         allowed_scopes: []
         support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
         blocked_scopes: ["frontend-public", "frontend-admin", "backend", "deploy", "auth"]
+        wip_limit: 1
+        default_acceptance_profile: "transversal_runtime_checkpoint"
+        exception_ttl_hours: 4
+  next: null
+  updated_at: "2026-03-14"
 
 tasks:
   - id: AG-001
@@ -713,6 +725,96 @@ tasks:
     prompt: "Endurecer operacion backend de telemedicina con snapshot reusable para health, metrics y admin data, de modo que staff vea review_required, staged uploads, counts por suitability y consistencia de linkage sin tocar frontend."
     created_at: 2026-03-03
     updated_at: 2026-03-03
+
+  - id: CDX-041
+    title: "Admin shell core daily-use: auth and readiness lane"
+    owner: Ernesto
+    executor: codex
+    status: in_progress
+    status_since_at: "2026-03-14T03:01:30-05:00"
+    risk: high
+    scope: auth
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    files: ["admin-auth.php", "controllers/AdminDataController.php", "lib/InternalConsoleReadiness.php", "tests/test_admin_auth_status.php", "tests/test_admin_auth_openclaw_facade.php", "tests/test_operator_auth.php", "tests/Integration/OperatorAuthControllerTest.php", "tests/Integration/ClinicalHistoryAdminReadModelTest.php", "verification/agent-runs/CDX-041.md"]
+    source_signal: manual
+    source_ref: "STRAT-2026-03-admin-operativo"
+    priority_score: 92
+    sla_due_at: "2026-03-21T23:59:59.000Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: true
+    acceptance: "OpenClaw queda como acceso primario del admin shell core, la contingencia web solo aparece cuando el backend la habilita, y /data + internalConsoleMeta sostienen dashboard, agenda, pendientes, horarios e historia clinica incluso bajo bloqueos clinicos."
+    acceptance_ref: "verification/agent-runs/CDX-041.md"
+    evidence_ref: "verification/agent-runs/CDX-041.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-backend-admin-operativo"
+    strategy_role: "primary"
+    depends_on: []
+    prompt: "Cerrar la lane backend de la primera ola Admin shell core: estabilizar admin-auth, OperatorAuthController, AdminDataController e InternalConsoleReadiness para uso diario interno con OpenClaw primario y contingencia web solo si el backend la anuncia."
+    created_at: 2026-03-14
+    updated_at: 2026-03-14
+
+  - id: CDX-042
+    title: "Admin shell core daily-use: frontend shell lane"
+    owner: Ernesto
+    executor: codex
+    status: in_progress
+    status_since_at: "2026-03-14T03:01:30-05:00"
+    risk: medium
+    scope: frontend-admin
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    files: ["admin.html", "src/apps/admin-v3/index.js", "src/apps/admin-v3/core", "src/apps/admin-v3/shared", "src/apps/admin-v3/ui", "src/apps/admin-v3/sections"]
+    source_signal: manual
+    source_ref: "STRAT-2026-03-admin-operativo"
+    priority_score: 88
+    sla_due_at: "2026-03-21T23:59:59.000Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El admin shell core queda visible y usable a diario: login/shell sin superficies legacy rotas, sidebar + hash sincronizados, quick command operativo, responsive tablet estable y estados vacios sin paneles quebrados en dashboard, agenda, pendientes, horarios e historia clinica."
+    acceptance_ref: "verification/agent-runs/CDX-042.md"
+    evidence_ref: "verification/agent-runs/CDX-042.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-frontend-admin-operativo"
+    strategy_role: "primary"
+    depends_on: []
+    prompt: "Cerrar la lane frontend de la primera ola Admin shell core: estabilizar admin.html y src/apps/admin-v3 para que el shell core sea visible y utilizable a diario sin abrir queue/turnero operativo."
+    created_at: 2026-03-14
+    updated_at: 2026-03-14
 
   - id: AG-009
     title: "Mobile UX phase 4: fix chat/header overlap and spacing consistency"

@@ -4,11 +4,30 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
+<!-- CODEX_ACTIVE
+codex_instance: codex_backend_ops
+block: A1-backend-auth
+task_id: CDX-041
+status: in_progress
+files: ["admin-auth.php", "controllers/AdminDataController.php", "lib/InternalConsoleReadiness.php", "tests/test_admin_auth_status.php", "tests/test_admin_auth_openclaw_facade.php", "tests/test_operator_auth.php", "tests/Integration/OperatorAuthControllerTest.php", "tests/Integration/ClinicalHistoryAdminReadModelTest.php", "verification/agent-runs/CDX-041.md"]
+updated_at: 2026-03-14
+-->
+
+<!-- CODEX_ACTIVE
+codex_instance: codex_frontend
+block: A1-frontend-shell
+task_id: CDX-042
+status: in_progress
+files: ["admin.html", "src/apps/admin-v3/index.js", "src/apps/admin-v3/core", "src/apps/admin-v3/shared", "src/apps/admin-v3/ui", "src/apps/admin-v3/sections"]
+updated_at: 2026-03-14
+-->
+
 <!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-admin-operativo
 title: "Admin operativo"
 status: active
 owner: Ernesto
+owner_policy: "detected_default_owner"
 objective: "Convertir el frente admin clinico, queue/turnero y OpenClaw UX en una entrega operable y visible, con soporte backend y runtime estrictamente alineado."
 started_at: "2026-03-14"
 review_due_at: "2026-03-21"
@@ -19,16 +38,19 @@ updated_at: "2026-03-14"
 
 ## Proposito
 
-- Blindar confiabilidad de reserva/chat/reprogramacion.
-- Convertir no-show en una senal tecnica medible y accionable.
-- Elevar observabilidad y guardrails de release sin romper contratos publicos.
+- Poner en uso diario interno el `Admin shell core` con `OpenClaw` como acceso primario del operador.
+- Sostener una contingencia web `clave + 2FA` solo cuando el backend la anuncie y sin degradar el shell principal.
+- Cerrar una primera ola visible en `dashboard`, `agenda`, `pendientes`, `horarios` e `historia clinica` sin abrir `queue/turnero` operativo todavia.
 
 ## Gobernanza
 
 - Este archivo es la fuente de control de la linea Codex.
 - Maximo un bloque `CODEX_STRATEGY_ACTIVE`.
+- Maximo un bloque `CODEX_STRATEGY_NEXT`.
 - Maximo un bloque `CODEX_ACTIVE` por `codex_instance`.
 - Maximo tres bloques `CODEX_ACTIVE` activos en total, uno por lane.
+- `CODEX_STRATEGY_NEXT` es draft: puede coexistir con la activa, pero no
+  gobierna tareas hasta promocion desde el board.
 - No se toman tareas del Operativo que ya esten `IN_PROGRESS`, salvo soporte de calidad (tests/guardrails).
 - Definicion de done por commit:
 - objetivo tecnico explicito.
@@ -38,9 +60,15 @@ updated_at: "2026-03-14"
 ## Estrategia madre activa
 
 - Estrategia activa: `STRAT-2026-03-admin-operativo`.
+- Draft siguiente: ninguno por ahora; cuando exista debe reflejarse como
+  `CODEX_STRATEGY_NEXT` y espejar `AGENT_BOARD.yaml.strategy.next`.
 - Objetivo: convertir `admin clinico + queue/turnero + OpenClaw UX` en una entrega operable, con soporte backend/runtime solo cuando desbloquea ese mismo frente.
 - Revision vigente: semanal; `carry-over` permitido si la salida sigue siendo la misma entrega operativa.
 - Regla de foco: cada hilo Codex toma un solo `subfront_id` valido y rechaza trabajo fuera del frente salvo `strategy_role=exception`.
+- Intake canonico: trabajo nuevo del frente debe entrar por `strategy intake`
+  o por tarea ya alineada al mismo `subfront_id`.
+- Exceptions: toda `exception` usa TTL del subfrente y, si expira, bloquea
+  `activate-next` o `close` hasta regularizacion.
 
 ## Tri-lane operativo vigente
 
@@ -59,9 +87,40 @@ updated_at: "2026-03-14"
 
 ## Distribucion de esfuerzo
 
-- 70% Confiabilidad + tests de agenda/chat/reprogramacion.
-- 20% Retencion tecnica orientada a no-show/recurrencia.
-- 10% Observabilidad y calidad de senales para decision operativa.
+- 50% Estabilidad visible del shell `sony_v3` para uso diario interno.
+- 35% Auth/readiness del nucleo interno (`admin-auth`, `/data`, `internalConsoleMeta`) y criterio de excepcion transversal solo si el runtime bloquea el acceso real.
+- 15% Checklist y gate de salida para operacion interna controlada.
+
+## A1 - Admin shell core de uso diario
+
+Estado: `IN_PROGRESS`
+Ventana: `2026-03-14` -> `2026-03-21`
+Objetivo:
+
+- Convertir la estrategia activa en dos lanes ejecutables y visibles sin abrir trabajo fuera del frente `admin operativo`.
+
+Lanes activos:
+
+- `CDX-041 / codex_backend_ops / SF-backend-admin-operativo`:
+  estabilizar `admin-auth.php`, `AdminDataController` e `InternalConsoleReadiness` para acceso diario interno con `OpenClaw` primario y contingencia web solo si el backend la habilita; `OperatorAuthController` solo entra por excepcion transversal si el runtime bloquea auth real.
+- `CDX-042 / codex_frontend / SF-frontend-admin-operativo`:
+  estabilizar `admin.html` y `src/apps/admin-v3/**` para que el shell core sea visible, navegable y utilizable a diario.
+
+Salida requerida:
+
+- Login estable con `OpenClaw` como camino principal.
+- `dashboard`, `appointments`, `callbacks`, `availability` y `clinical-history` navegables sin flujos rotos.
+- `quick command`, sidebar/hash y responsive tablet en verde.
+- `queue/turnero`, kiosco, TV y controles sensibles quedan fuera de esta ola.
+
+Gates de salida:
+
+- `npm run test:admin:openclaw-auth`
+- `npm run test:admin:runtime-smoke`
+- `php tests/test_admin_auth_status.php`
+- `php vendor/bin/phpunit --no-coverage tests/Integration/ClinicalHistoryAdminReadModelTest.php`
+- `npm run checklist:admin:openclaw-auth:local`
+- `npm run gate:admin:rollout:internal`
 
 ## Bloques
 

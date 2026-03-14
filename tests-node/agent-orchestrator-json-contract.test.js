@@ -251,6 +251,15 @@ function isMutatingCommandArgs(args = []) {
     if (command === 'handoffs') {
         return ['create', 'close'].includes(subcommand);
     }
+    if (command === 'strategy') {
+        return [
+            'set-active',
+            'set-next',
+            'activate-next',
+            'close',
+            'intake',
+        ].includes(subcommand);
+    }
     if (command === 'task') {
         if (['claim', 'start', 'finish'].includes(subcommand)) return true;
         if (subcommand !== 'create') return false;

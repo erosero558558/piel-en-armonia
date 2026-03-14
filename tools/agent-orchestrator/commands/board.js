@@ -70,23 +70,62 @@ async function handleBoardCommand(ctx) {
             typeof buildStrategyCoverageSummary === 'function'
                 ? buildStrategyCoverageSummary(board)
                 : null;
-        const strategyDiagnostics =
-            strategySummary?.active && strategySummary.orphan_tasks > 0
-                ? [
-                      makeDiagnostic({
-                          code: 'warn.board.strategy_orphan_active_task',
-                          severity: 'warning',
-                          source: 'board doctor',
-                          message: `Estrategia activa con ${strategySummary.orphan_tasks} tarea(s) huerfana(s)`,
-                          task_ids: strategySummary.orphan_task_ids,
-                          meta: {
-                              strategy_id: strategySummary.active.id,
-                              validation_errors:
-                                  strategySummary.validation_errors,
-                          },
-                      }),
-                  ]
-                : [];
+        const strategyDiagnostics = strategySummary?.active
+            ? [
+                  ...(strategySummary.orphan_tasks > 0
+                      ? [
+                            makeDiagnostic({
+                                code: 'warn.board.strategy_orphan_active_task',
+                                severity: 'warning',
+                                source: 'board doctor',
+                                message: `Estrategia activa con ${strategySummary.orphan_tasks} tarea(s) huerfana(s)`,
+                                task_ids: strategySummary.orphan_task_ids,
+                                meta: {
+                                    strategy_id: strategySummary.active.id,
+                                    validation_errors:
+                                        strategySummary.validation_errors,
+                                    dispersion_score:
+                                        strategySummary.dispersion_score,
+                                },
+                            }),
+                        ]
+                      : []),
+                  ...(Number(strategySummary.exception_open_tasks || 0) > 0
+                      ? [
+                            makeDiagnostic({
+                                code: 'warn.board.strategy_exception_open',
+                                severity: 'warning',
+                                source: 'board doctor',
+                                message: `Estrategia activa con ${strategySummary.exception_open_tasks} exception(es) abierta(s)`,
+                                task_ids:
+                                    strategySummary.exception_open_task_ids,
+                                meta: {
+                                    strategy_id: strategySummary.active.id,
+                                    dispersion_score:
+                                        strategySummary.dispersion_score,
+                                },
+                            }),
+                        ]
+                      : []),
+                  ...(Number(strategySummary.exception_expired_tasks || 0) > 0
+                      ? [
+                            makeDiagnostic({
+                                code: 'error.board.strategy_exception_expired',
+                                severity: 'error',
+                                source: 'board doctor',
+                                message: `Estrategia activa con ${strategySummary.exception_expired_tasks} exception(es) expirada(s)`,
+                                task_ids:
+                                    strategySummary.exception_expired_task_ids,
+                                meta: {
+                                    strategy_id: strategySummary.active.id,
+                                    dispersion_score:
+                                        strategySummary.dispersion_score,
+                                },
+                            }),
+                        ]
+                      : []),
+              ]
+            : [];
         const warnFirstDiagnostics = buildWarnFirstDiagnostics({
             source: 'board doctor',
             board,

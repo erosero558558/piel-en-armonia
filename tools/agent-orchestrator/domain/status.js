@@ -84,8 +84,18 @@ function renderStatusText(data, options = {}) {
             `Estrategia activa: ${data.strategy.active.id} (${data.strategy.active.title || 'sin titulo'})`
         );
         lines.push(
-            `Cobertura estrategia: aligned=${data.strategy.aligned_tasks ?? 0}, support=${data.strategy.support_tasks ?? 0}, exception=${data.strategy.exception_tasks ?? 0}, orphan=${data.strategy.orphan_tasks ?? 0}`
+            `Cobertura estrategia: aligned=${data.strategy.aligned_tasks ?? 0}, support=${data.strategy.support_tasks ?? 0}, exception=${data.strategy.exception_tasks ?? 0}, orphan=${data.strategy.orphan_tasks ?? 0}, dispersion=${data.strategy.dispersion_score ?? 0}`
         );
+        if (data?.strategy?.next) {
+            lines.push(
+                `Draft siguiente: ${data.strategy.next.id} (${data.strategy.next.title || 'sin titulo'})`
+            );
+        }
+        if (Number(data?.strategy?.exception_expired_tasks || 0) > 0) {
+            lines.push(
+                `Exceptions expiradas: ${data.strategy.exception_expired_tasks}`
+            );
+        }
     }
     if (data?.jobs) {
         lines.push(
