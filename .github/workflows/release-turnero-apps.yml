@@ -18,6 +18,21 @@ on:
                 required: true
                 default: 'https://pielarmonia.com/desktop-updates/'
                 type: string
+            surface_filter:
+                description: 'Filtrar superficies por id (ej. operator,kiosk,sala_tv)'
+                required: false
+                default: ''
+                type: string
+            target_filter:
+                description: 'Filtrar targets por id (ej. win,mac,android_tv)'
+                required: false
+                default: ''
+                type: string
+            skip_android:
+                description: 'Omitir builds Android y publicar solo surfaces desktop'
+                required: false
+                default: false
+                type: boolean
             publish_to_hosting:
                 description: 'Subir el bundle final al hosting productivo'
                 required: false
@@ -75,6 +90,8 @@ jobs:
         outputs:
             desktop_matrix: ${{ steps.plan.outputs.desktop_matrix }}
             android_matrix: ${{ steps.plan.outputs.android_matrix }}
+            desktop_count: ${{ steps.plan.outputs.desktop_count }}
+            android_count: ${{ steps.plan.outputs.android_count }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -87,12 +104,18 @@ jobs:
             - name: Resolve turnero surface matrices
               id: plan
               shell: bash
-              run: node bin/resolve-turnero-release-plan.js --github-output "$GITHUB_OUTPUT"
+              run: >
+                  node bin/resolve-turnero-release-plan.js
+                  --github-output "$GITHUB_OUTPUT"
+                  --surface-filter "${{ inputs.surface_filter }}"
+                  --target-filter "${{ inputs.target_filter }}"
+                  --skip-android "${{ inputs.skip_android }}"
 
     build-desktop:
         name: Build desktop ${{ matrix.surface }} (${{ matrix.platform }})
         needs:
             - resolve-release-plan
+        if: ${{ needs.resolve-release-plan.outputs.desktop_count != '0' }}
         runs-on: ${{ matrix.runner }}
         strategy:
             fail-fast: false
@@ -134,6 +157,7 @@ jobs:
         name: Build Android ${{ matrix.surface }} (${{ matrix.target_key }})
         needs:
             - resolve-release-plan
+        if: ${{ needs.resolve-release-plan.outputs.android_count != '0' }}
         runs-on: ${{ matrix.runner }}
         strategy:
             fail-fast: false
@@ -201,7 +225,14 @@ jobs:
     package-release:
         name: Package release bundle
         runs-on: ubuntu-latest
+        if: >-
+            ${{
+              always() &&
+              (needs.build-desktop.result == 'success' || needs.build-desktop.result == 'skipped') &&
+              (needs.build-android.result == 'success' || needs.build-android.result == 'skipped')
+            }}
         needs:
+            - resolve-release-plan
             - build-desktop
             - build-android
         steps:
@@ -214,12 +245,14 @@ jobs:
                   node-version: '20'
 
             - name: Download desktop artifacts
+              if: ${{ needs.resolve-release-plan.outputs.desktop_count != '0' }}
               uses: actions/download-artifact@v4
               with:
                   pattern: turnero-desktop-*
                   path: artifacts/desktop
 
             - name: Download Android artifacts
+              if: ${{ needs.resolve-release-plan.outputs.android_count != '0' }}
               uses: actions/download-artifact@v4
               with:
                   pattern: turnero-android-*
@@ -234,6 +267,8 @@ jobs:
                   --releasedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
                   --desktopRoot artifacts/desktop
                   --androidRoot artifacts/android
+                  --surfaces "${{ inputs.surface_filter }}"
+                  --targets "${{ inputs.target_filter }}"
                   --outputRoot release/turnero-apps
 
             - name: Upload release bundle
@@ -252,6 +287,9 @@ jobs:
                     echo "- Version: \`${{ inputs.release_version }}\`"
                     echo "- Base URL: \`${{ inputs.base_url }}\`"
                     echo "- Update base URL: \`${{ inputs.update_base_url }}\`"
+                    echo "- Surface filter: \`${{ inputs.surface_filter || 'all' }}\`"
+                    echo "- Target filter: \`${{ inputs.target_filter || 'all' }}\`"
+                    echo "- Skip Android: \`${{ inputs.skip_android }}\`"
                     echo
                     echo "### Files"
                     find release/turnero-apps -type f | sort

@@ -24,6 +24,8 @@ test('resolve-turnero-release-plan genera matrices desde el registry', () => {
     const desktop = payload.desktop_matrix?.include || [];
     const android = payload.android_matrix?.include || [];
 
+    assert.equal(payload.desktop_count, '4');
+    assert.equal(payload.android_count, '1');
     assert.equal(desktop.length, 4);
     assert.equal(
         desktop.some(
@@ -53,4 +55,40 @@ test('resolve-turnero-release-plan genera matrices desde el registry', () => {
         android[0].staged_artifact_path,
         'app/build/outputs/apk/release/TurneroSalaTV.apk'
     );
+});
+
+test('resolve-turnero-release-plan soporta filtrar operator/win y omitir android', () => {
+    const result = spawnSync(
+        process.execPath,
+        [
+            SCRIPT_PATH,
+            '--surface-filter',
+            'operator',
+            '--target-filter',
+            'win',
+            '--skip-android',
+            'true',
+        ],
+        {
+            cwd: resolve(__dirname, '..'),
+            encoding: 'utf8',
+        }
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const payload = JSON.parse(result.stdout);
+    const desktop = payload.desktop_matrix?.include || [];
+    const android = payload.android_matrix?.include || [];
+
+    assert.equal(payload.desktop_count, '1');
+    assert.equal(payload.android_count, '0');
+    assert.deepEqual(
+        desktop.map((entry) => entry.surface),
+        ['operator']
+    );
+    assert.deepEqual(
+        desktop.map((entry) => entry.platform),
+        ['win']
+    );
+    assert.deepEqual(android, []);
 });

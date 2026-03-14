@@ -31,6 +31,9 @@ test('release-turnero-apps expone inputs operativos de release y publicacion', (
         'release_version',
         'base_url',
         'update_base_url',
+        'surface_filter',
+        'target_filter',
+        'skip_android',
         'publish_to_hosting',
         'protocol',
         'server_port',
@@ -64,7 +67,8 @@ test('release-turnero-apps empaqueta bundle, publica APK y deja rutas de hosting
     const { raw } = loadWorkflow();
 
     for (const snippet of [
-        'node bin/resolve-turnero-release-plan.js --github-output "$GITHUB_OUTPUT"',
+        'node bin/resolve-turnero-release-plan.js',
+        '--github-output "$GITHUB_OUTPUT"',
         'node bin/stage-turnero-app-release.js',
         'turnero-apps-release-bundle',
         'actions/download-artifact@v4',
@@ -75,6 +79,11 @@ test('release-turnero-apps empaqueta bundle, publica APK y deja rutas de hosting
         'desktop-updates/stable/**/*',
         'app-downloads/pilot/**/*',
         'app-downloads/stable/**/*',
+        '--surface-filter "${{ inputs.surface_filter }}"',
+        '--target-filter "${{ inputs.target_filter }}"',
+        '--skip-android "${{ inputs.skip_android }}"',
+        '--surfaces "${{ inputs.surface_filter }}"',
+        '--targets "${{ inputs.target_filter }}"',
         'gradle -p "${{ matrix.gradle_project }}" "${{ matrix.build_task }}"',
         '${{ matrix.source_artifact }}',
         '${{ matrix.staged_artifact_path }}',

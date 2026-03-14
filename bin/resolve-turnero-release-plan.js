@@ -30,14 +30,56 @@ function parseArgs(argv) {
     return parsed;
 }
 
-function buildDesktopMatrix() {
+function normalizeId(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase();
+}
+
+function parseList(value) {
+    return Array.from(
+        new Set(
+            String(value || '')
+                .split(',')
+                .map((entry) => normalizeId(entry))
+                .filter(Boolean)
+        )
+    );
+}
+
+function parseBooleanLike(value, fallback = false) {
+    const normalized = normalizeId(value);
+    if (normalized === '') {
+        return Boolean(fallback);
+    }
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+        return true;
+    }
+    if (['0', 'false', 'no', 'off'].includes(normalized)) {
+        return false;
+    }
+    return Boolean(fallback);
+}
+
+function buildDesktopMatrix(options = {}) {
+    const surfaceFilter = Array.isArray(options.surfaceFilter)
+        ? options.surfaceFilter
+        : [];
+    const targetFilter = Array.isArray(options.targetFilter)
+        ? options.targetFilter
+        : [];
     return {
         include: listTurneroSurfaceDefinitions({ family: 'desktop' }).flatMap(
             (surface) =>
-                listTurneroTargetKeys(surface)
+                (surfaceFilter.length > 0 && !surfaceFilter.includes(surface.id)
+                    ? []
+                    : listTurneroTargetKeys(surface)
+                )
                     .filter(
                         (targetKey) =>
-                            targetKey === 'win' || targetKey === 'mac'
+                            (targetKey === 'win' || targetKey === 'mac') &&
+                            (targetFilter.length === 0 ||
+                                targetFilter.includes(targetKey))
                     )
                     .map((targetKey) => ({
                         surface: surface.id,
@@ -56,11 +98,25 @@ function buildDesktopMatrix() {
     };
 }
 
-function buildAndroidMatrix() {
+function buildAndroidMatrix(options = {}) {
+    if (options.skipAndroid === true) {
+        return { include: [] };
+    }
+    const surfaceFilter = Array.isArray(options.surfaceFilter)
+        ? options.surfaceFilter
+        : [];
+    const targetFilter = Array.isArray(options.targetFilter)
+        ? options.targetFilter
+        : [];
     const defaults = getTurneroRegistryDefaults();
     return {
-        include: listTurneroSurfaceDefinitions({ family: 'android' }).map(
-            (surface) => {
+        include: listTurneroSurfaceDefinitions({ family: 'android' })
+            .filter(
+                (surface) =>
+                    surfaceFilter.length === 0 ||
+                    surfaceFilter.includes(surface.id)
+            )
+            .flatMap((surface) => {
                 const targetKey = getTurneroDefaultTargetKey(surface, {
                     targetKey:
                         surface.android &&
@@ -68,6 +124,13 @@ function buildAndroidMatrix() {
                             ? surface.android.targetKey
                             : '',
                 });
+
+                if (
+                    targetFilter.length > 0 &&
+                    !targetFilter.includes(targetKey)
+                ) {
+                    return [];
+                }
 
                 return {
                     surface: surface.id,
@@ -111,8 +174,7 @@ function buildAndroidMatrix() {
                         surface.android?.surfacePath || surface.route || ''
                     ),
                 };
-            }
-        ),
+            }),
     };
 }
 
@@ -124,11 +186,23 @@ function formatGithubOutput(payload) {
 
 function main() {
     const args = parseArgs(process.argv.slice(2));
-    const desktopMatrix = buildDesktopMatrix();
-    const androidMatrix = buildAndroidMatrix();
+    const surfaceFilter = parseList(args['surface-filter']);
+    const targetFilter = parseList(args['target-filter']);
+    const skipAndroid = parseBooleanLike(args['skip-android']);
+    const desktopMatrix = buildDesktopMatrix({
+        surfaceFilter,
+        targetFilter,
+    });
+    const androidMatrix = buildAndroidMatrix({
+        surfaceFilter,
+        targetFilter,
+        skipAndroid,
+    });
     const payload = {
         desktop_matrix: desktopMatrix,
         android_matrix: androidMatrix,
+        desktop_count: String(desktopMatrix.include.length),
+        android_count: String(androidMatrix.include.length),
     };
 
     if (typeof args['github-output'] === 'string') {
