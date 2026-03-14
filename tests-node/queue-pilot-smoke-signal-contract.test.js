@@ -1,7 +1,21 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
-import { hasRecentQueueSmokeSignalForState } from '../src/apps/admin-v3/shared/modules/queue/render/section/install-hub/smoke-signal.js';
+let smokeSignalModulePromise = null;
+
+async function loadSmokeSignalModule() {
+    if (!smokeSignalModulePromise) {
+        const modulePath = path.resolve(
+            __dirname,
+            '../src/apps/admin-v3/shared/modules/queue/render/section/install-hub/smoke-signal.js'
+        );
+        smokeSignalModulePromise = import(pathToFileURL(modulePath).href);
+    }
+
+    return smokeSignalModulePromise;
+}
 
 function buildState(overrides = {}) {
     return {
@@ -18,7 +32,7 @@ function buildState(overrides = {}) {
     };
 }
 
-test('smoke signal ignores activity from another clinic', () => {
+test('smoke signal ignores activity from another clinic', async () => {
     const nowIso = new Date().toISOString();
     const state = buildState({
         queue: {
@@ -31,6 +45,7 @@ test('smoke signal ignores activity from another clinic', () => {
             ],
         },
     });
+    const { hasRecentQueueSmokeSignalForState } = await loadSmokeSignalModule();
 
     assert.equal(
         hasRecentQueueSmokeSignalForState(
@@ -42,7 +57,7 @@ test('smoke signal ignores activity from another clinic', () => {
     );
 });
 
-test('smoke signal accepts activity from the active clinic', () => {
+test('smoke signal accepts activity from the active clinic', async () => {
     const nowIso = new Date().toISOString();
     const state = buildState({
         queue: {
@@ -55,6 +70,7 @@ test('smoke signal accepts activity from the active clinic', () => {
             ],
         },
     });
+    const { hasRecentQueueSmokeSignalForState } = await loadSmokeSignalModule();
 
     assert.equal(
         hasRecentQueueSmokeSignalForState(
@@ -66,7 +82,7 @@ test('smoke signal accepts activity from the active clinic', () => {
     );
 });
 
-test('smoke signal ignores legacy activity without clinic id to avoid false green', () => {
+test('smoke signal ignores legacy activity without clinic id to avoid false green', async () => {
     const nowIso = new Date().toISOString();
     const state = buildState({
         queue: {
@@ -78,6 +94,7 @@ test('smoke signal ignores legacy activity without clinic id to avoid false gree
             ],
         },
     });
+    const { hasRecentQueueSmokeSignalForState } = await loadSmokeSignalModule();
 
     assert.equal(
         hasRecentQueueSmokeSignalForState(

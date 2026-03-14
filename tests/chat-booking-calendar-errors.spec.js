@@ -29,7 +29,7 @@ test.describe('Public V6 assistance fallback replaces legacy chat booking shell'
         await expect(page).toHaveURL(/\/en\/$/);
         await expectHeaderAssistanceSurfaces(page);
         await expect(page.locator('[data-v6-news-strip]')).toContainText(
-            'Even with online booking paused, your first step does not have to wait.'
+            'Clear clinical dermatology, ready to move you forward even while online booking is paused.'
         );
 
         const bookingStatus = page.locator('[data-v6-booking-status]');
@@ -56,7 +56,7 @@ test.describe('Public V6 assistance fallback replaces legacy chat booking shell'
         await expect(
             page
                 .locator('[data-v6-booking-status]')
-                .getByRole('link', { name: 'Open telemedicine' })
+                .getByRole('link', { name: 'Open teledermatology' })
         ).toHaveAttribute('href', '/en/telemedicine/');
         await expectLegacyChatBookingShellAbsent(page);
     });

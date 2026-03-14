@@ -20,20 +20,25 @@ export function toggleQueueOneTap() {
 }
 
 export function setQueuePracticeMode(enabled) {
+    const isPracticeEnabled = !!enabled;
     if (
         shouldBlockAdminQueueAction(
-            Boolean(enabled) ? 'queue-start-practice' : 'queue-stop-practice'
+            isPracticeEnabled ? 'queue-start-practice' : 'queue-stop-practice'
         )
     ) {
         notifyAdminQueuePilotBlocked(
-            Boolean(enabled) ? 'queue-start-practice' : 'queue-stop-practice'
+            isPracticeEnabled ? 'queue-start-practice' : 'queue-stop-practice'
         );
         return;
     }
-    const practiceMode = Boolean(enabled);
-    updateQueueUi({ practiceMode, pendingSensitiveAction: null });
+    updateQueueUi({
+        practiceMode: isPracticeEnabled,
+        pendingSensitiveAction: null,
+    });
     appendActivity(
-        practiceMode ? 'Modo practica activo' : 'Modo practica desactivado'
+        isPracticeEnabled
+            ? 'Modo practica activo'
+            : 'Modo practica desactivado'
     );
 }
 

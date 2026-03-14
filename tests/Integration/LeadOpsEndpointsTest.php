@@ -37,6 +37,9 @@ final class LeadOpsEndpointsTest extends TestCase
                     'hero' => 'Botox medico',
                     'summary' => 'Tratamiento de expresion',
                     'indications' => ['arrugas', 'botox'],
+                    'cta' => [
+                        'service_hint' => 'rejuvenecimiento',
+                    ],
                 ],
                 [
                     'slug' => 'acne-rosacea',
@@ -128,7 +131,7 @@ final class LeadOpsEndpointsTest extends TestCase
         $this->assertSame(2, count($response['payload']['data']['callbacks'] ?? []));
         $this->assertSame(501, (int) ($response['payload']['data']['callbacks'][0]['id'] ?? 0));
         $this->assertSame('hot', (string) ($response['payload']['data']['callbacks'][0]['leadOps']['priorityBand'] ?? ''));
-        $this->assertSame('Botox medico', (string) ($response['payload']['data']['callbacks'][0]['leadOps']['serviceHints'][0] ?? ''));
+        $this->assertSame('Rejuvenecimiento', (string) ($response['payload']['data']['callbacks'][0]['leadOps']['serviceHints'][0] ?? ''));
     }
 
     public function testPatchCallbacksAcceptsPartialLeadOpsAndPersistsOutcome(): void

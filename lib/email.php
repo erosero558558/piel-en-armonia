@@ -112,6 +112,17 @@ function send_mail(string $to, string $subject, string $body, bool $isHtml = fal
         return smtp_send_mail($to, $subject, $body, $isHtml, $attachments, $altBody);
     }
 
+    if (defined('TESTING_ENV') && TESTING_ENV === true) {
+        $GLOBALS['__TEST_EMAIL_OUTBOX'][] = [
+            'to' => $to,
+            'subject' => $subject,
+            'isHtml' => $isHtml,
+            'attachmentsCount' => count($attachments),
+            'altBody' => $altBody,
+        ];
+        return false;
+    }
+
     // Fallback a mail() nativo
     $from = AppConfig::getNoReplyEmail();
     $contentType = $isHtml ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';

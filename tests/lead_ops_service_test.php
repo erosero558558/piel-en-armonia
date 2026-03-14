@@ -16,6 +16,9 @@ file_put_contents($catalogPath, json_encode([
             'hero' => 'Botox medico',
             'summary' => 'Tratamiento de expresion',
             'indications' => ['arrugas', 'botox'],
+            'cta' => [
+                'service_hint' => 'rejuvenecimiento',
+            ],
         ],
         [
             'slug' => 'acne-rosacea',
@@ -113,7 +116,7 @@ try {
         'Urgent callback should receive a strong heuristic score'
     );
     leadops_assert_equals(
-        'Botox medico',
+        'Rejuvenecimiento',
         $enriched['leadOps']['serviceHints'][0] ?? '',
         'Service hint should reuse service priority signal'
     );
