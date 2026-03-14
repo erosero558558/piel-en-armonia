@@ -13850,133 +13850,77 @@ test.describe('Admin turnero sala', () => {
             window.__QUEUE_AUTO_REFRESH_INTERVAL_MS__ = 120;
         });
 
-        await installLegacyAdminAuthMock(page, {
-            csrfToken: 'csrf_queue_apps_hub',
-        });
+        await installQueueAdminAuthMock(page, 'csrf_queue_apps_hub');
 
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource === 'features') {
-                return json(route, {
-                    ok: true,
-                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
-                });
-            }
-
-            if (resource === 'data') {
+        await installQueueOperationalAppsApiMocks(page, {
+            queueSurfaceStatus: () => {
                 dataRequestCount += 1;
-                return json(route, {
-                    ok: true,
-                    data: {
-                        appointments: [],
-                        callbacks: [],
-                        reviews: [],
-                        availability: {},
-                        availabilityMeta: {
-                            source: 'store',
-                            mode: 'live',
-                            timezone: 'America/Guayaquil',
-                            calendarConfigured: true,
-                            calendarReachable: true,
-                            generatedAt: new Date().toISOString(),
-                        },
-                        queue_tickets: [],
-                        queueMeta: buildQueueMetaFromState({
-                            updatedAt: new Date().toISOString(),
-                            waitingCount: 0,
-                            calledCount: 0,
-                            counts: {
-                                waiting: 0,
-                                called: 0,
-                                completed: 0,
-                                no_show: 0,
-                                cancelled: 0,
+                const updatedAt = new Date().toISOString();
+                const operatorAge = dataRequestCount > 1 ? 3 : 8;
+                return buildQueueOperationalAppsSurfaceStatus({
+                    operator: buildQueueDesktopOperatorSurfaceStatus({
+                        updatedAt,
+                        status: 'ready',
+                        ageSec: operatorAge,
+                        summary:
+                            dataRequestCount > 1
+                                ? 'Equipo listo para operar en C1 fijo. Pulso renovado.'
+                                : 'Equipo listo para operar en C1 fijo.',
+                        latest: buildQueueDesktopOperatorInstance({
+                            deviceLabel: 'Operador C1 fijo',
+                            ageSec: operatorAge,
+                            details: {
+                                station: 'c1',
+                                stationMode: 'locked',
+                                oneTap: false,
+                                numpadSeen: true,
                             },
-                            callingNow: [],
-                            nextTickets: [],
                         }),
-                        queueSurfaceStatus: {
-                            operator: {
-                                surface: 'operator',
-                                label: 'Operador',
-                                status: 'ready',
-                                updatedAt: new Date().toISOString(),
-                                ageSec: dataRequestCount > 1 ? 3 : 8,
-                                stale: false,
-                                summary:
-                                    dataRequestCount > 1
-                                        ? 'Equipo listo para operar en C1 fijo. Pulso renovado.'
-                                        : 'Equipo listo para operar en C1 fijo.',
-                                latest: {
-                                    deviceLabel: 'Operador C1 fijo',
-                                    appMode: 'desktop',
-                                    ageSec: dataRequestCount > 1 ? 3 : 8,
-                                    details: {
-                                        station: 'c1',
-                                        stationMode: 'locked',
-                                        oneTap: false,
-                                        numpadSeen: true,
-                                    },
-                                },
-                                instances: [],
-                            },
-                            kiosk: {
-                                surface: 'kiosk',
-                                label: 'Kiosco',
-                                status: 'warning',
-                                updatedAt: new Date().toISOString(),
-                                ageSec: 18,
-                                stale: false,
-                                summary:
-                                    'Falta probar ticket térmico antes de abrir autoservicio.',
-                                latest: {
-                                    deviceLabel: 'Kiosco principal',
-                                    appMode: 'desktop',
-                                    ageSec: 18,
-                                    details: {
-                                        connection: 'live',
-                                        pendingOffline: 0,
-                                        printerPrinted: false,
-                                    },
-                                },
-                                instances: [],
-                            },
-                            display: {
-                                surface: 'display',
-                                label: 'Sala TV',
-                                status: 'ready',
-                                updatedAt: new Date().toISOString(),
-                                ageSec: 12,
-                                stale: false,
-                                summary:
-                                    'Sala TV lista: cola en vivo, audio activo y respaldo local disponible.',
-                                latest: {
-                                    deviceLabel: 'Sala TV TCL C655',
-                                    appMode: 'android_tv',
-                                    ageSec: 12,
-                                    details: {
-                                        connection: 'live',
-                                        bellMuted: false,
-                                        bellPrimed: true,
-                                    },
-                                },
-                                instances: [],
+                        instances: [],
+                    }),
+                    kiosk: buildQueueOperationalSurfaceStatusEntry('kiosk', {
+                        status: 'warning',
+                        updatedAt,
+                        ageSec: 18,
+                        stale: false,
+                        summary:
+                            'Falta probar ticket térmico antes de abrir autoservicio.',
+                        latest: {
+                            deviceLabel: 'Kiosco principal',
+                            appMode: 'desktop',
+                            ageSec: 18,
+                            details: {
+                                connection: 'live',
+                                pendingOffline: 0,
+                                printerPrinted: false,
                             },
                         },
-                    },
+                        instances: [],
+                    }),
+                    display: buildQueueOperationalSurfaceStatusEntry(
+                        'display',
+                        {
+                            status: 'ready',
+                            updatedAt,
+                            ageSec: 12,
+                            stale: false,
+                            summary:
+                                'Sala TV lista: cola en vivo, audio activo y respaldo local disponible.',
+                            latest: {
+                                deviceLabel: 'Sala TV TCL C655',
+                                appMode: 'android_tv',
+                                ageSec: 12,
+                                details: {
+                                    connection: 'live',
+                                    bellMuted: false,
+                                    bellPrimed: true,
+                                },
+                            },
+                            instances: [],
+                        }
+                    ),
                 });
-            }
-
-            if (resource === 'health') {
-                return json(route, { ok: true, status: 'ok' });
-            }
-
-            if (resource === 'funnel-metrics') {
-                return json(route, { ok: true, data: {} });
-            }
-
-            return json(route, { ok: true, data: {} });
+            },
         });
 
         await page.goto(adminUrl());
@@ -14772,12 +14716,9 @@ test.describe('Admin turnero sala', () => {
     }) => {
         const nowIso = new Date().toISOString();
         const operatorInstances = [
-            {
-                deviceLabel: 'Operador C1 fijo',
-                appMode: 'desktop',
+            buildQueueDesktopOperatorInstance({
+                station: 'c1',
                 ageSec: 4,
-                stale: false,
-                effectiveStatus: 'ready',
                 summary: 'Equipo listo para operar en C1 fijo.',
                 details: {
                     station: 'c1',
@@ -14789,9 +14730,6 @@ test.describe('Admin turnero sala', () => {
                     numpadRequired: 4,
                     numpadLabel: 'Numpad listo',
                     numpadSummary: 'Numpad listo · Numpad Enter, +, ., -',
-                    shellPackaged: true,
-                    shellPlatform: 'win32',
-                    shellUpdateChannel: 'stable',
                     shellUpdateMetadataUrl:
                         'https://pielarmonia.com/desktop-updates/pilot/operator/win/latest.yml',
                     shellInstallGuideUrl:
@@ -14799,12 +14737,10 @@ test.describe('Admin turnero sala', () => {
                     shellConfigPath:
                         'C:\\Users\\OperadorC1\\AppData\\Roaming\\TurneroOperador\\turnero-desktop.json',
                 },
-            },
-            {
-                deviceLabel: 'Operador C2 fijo',
-                appMode: 'desktop',
+            }),
+            buildQueueDesktopOperatorInstance({
+                station: 'c2',
                 ageSec: 6,
-                stale: false,
                 effectiveStatus: 'warning',
                 summary:
                     'Numpad 2/4 · faltan + y - antes de operar en C2 fijo.',
@@ -14818,9 +14754,6 @@ test.describe('Admin turnero sala', () => {
                     numpadRequired: 4,
                     numpadLabel: 'Numpad 2/4',
                     numpadSummary: 'Numpad 2/4 · faltan + y -',
-                    shellPackaged: true,
-                    shellPlatform: 'win32',
-                    shellUpdateChannel: 'stable',
                     shellUpdateMetadataUrl:
                         'https://pielarmonia.com/desktop-updates/pilot/operator/win/latest.yml',
                     shellInstallGuideUrl:
@@ -14828,124 +14761,24 @@ test.describe('Admin turnero sala', () => {
                     shellConfigPath:
                         'C:\\Users\\OperadorC2\\AppData\\Roaming\\TurneroOperador\\turnero-desktop.json',
                 },
-            },
+            }),
         ];
 
-        await installLegacyAdminAuthMock(page, {
-            csrfToken: 'csrf_queue_admin_dual_operator',
-        });
-
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-
-            if (resource === 'features') {
-                return json(route, {
-                    ok: true,
-                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
-                });
-            }
-
-            if (resource === 'data') {
-                return json(route, {
-                    ok: true,
-                    data: {
-                        appointments: [],
-                        callbacks: [],
-                        reviews: [],
-                        availability: {},
-                        availabilityMeta: {
-                            source: 'store',
-                            mode: 'live',
-                            timezone: 'America/Guayaquil',
-                            calendarConfigured: true,
-                            calendarReachable: true,
-                            generatedAt: nowIso,
-                        },
-                        queue_tickets: [],
-                        queueMeta: buildQueueMetaFromState({
-                            updatedAt: nowIso,
-                            waitingCount: 0,
-                            calledCount: 0,
-                            counts: {
-                                waiting: 0,
-                                called: 0,
-                                completed: 0,
-                                no_show: 0,
-                                cancelled: 0,
-                            },
-                            callingNow: [],
-                            nextTickets: [],
-                        }),
-                        queueSurfaceStatus: {
-                            operator: {
-                                surface: 'operator',
-                                label: 'Operador',
-                                status: 'warning',
-                                updatedAt: nowIso,
-                                ageSec: 4,
-                                stale: false,
-                                summary:
-                                    'Un equipo operador listo y otro con numpad pendiente.',
-                                latest: operatorInstances[0],
-                                instances: operatorInstances,
-                            },
-                            kiosk: {
-                                surface: 'kiosk',
-                                label: 'Kiosco',
-                                status: 'unknown',
-                                updatedAt: '',
-                                ageSec: 0,
-                                stale: true,
-                                summary: 'Sin heartbeat',
-                                latest: null,
-                                instances: [],
-                            },
-                            display: {
-                                surface: 'display',
-                                label: 'Sala TV',
-                                status: 'unknown',
-                                updatedAt: '',
-                                ageSec: 0,
-                                stale: true,
-                                summary: 'Sin heartbeat',
-                                latest: null,
-                                instances: [],
-                            },
-                        },
-                    },
-                });
-            }
-
-            if (resource === 'health') {
-                return json(route, { ok: true, status: 'ok' });
-            }
-
-            if (resource === 'funnel-metrics') {
-                return json(route, { ok: true, data: {} });
-            }
-
-            if (resource === 'queue-state') {
-                return json(route, {
-                    ok: true,
-                    data: {
-                        updatedAt: nowIso,
-                        waitingCount: 0,
-                        calledCount: 0,
-                        counts: {
-                            waiting: 0,
-                            called: 0,
-                            completed: 0,
-                            no_show: 0,
-                            cancelled: 0,
-                        },
-                        callingNow: [],
-                        nextTickets: [],
-                    },
-                });
-            }
-
-            return json(route, { ok: true, data: {} });
+        await installQueueAdminAuthMock(page, 'csrf_queue_admin_dual_operator');
+        await installQueueOperationalAppsApiMocks(page, {
+            updatedAt: nowIso,
+            queueState: buildQueueIdleState(nowIso),
+            queueSurfaceStatus: buildQueueOperationalAppsSurfaceStatus({
+                operator: buildQueueDesktopOperatorSurfaceStatus({
+                    updatedAt: nowIso,
+                    status: 'warning',
+                    ageSec: 4,
+                    summary:
+                        'Un equipo operador listo y otro con numpad pendiente.',
+                    latest: operatorInstances[0],
+                    instances: operatorInstances,
+                }),
+            }),
         });
 
         await page.goto(adminUrl());
