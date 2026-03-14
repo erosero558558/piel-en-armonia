@@ -742,6 +742,8 @@ jobs:
                   $remoteVerified = $false
                   $deployedCommit = ''
                   $releaseMode = ''
+                  $recoveryTargets = @()
+                  $recoveryTargetsLabel = 'none'
                   $reportPath = 'verification/last-deploy-verify.json'
 
                   if (Test-Path $reportPath) {
@@ -764,6 +766,13 @@ jobs:
                         try { $remoteVerified = [bool]$turneroPilot.remoteVerified } catch { $remoteVerified = $false }
                         try { $deployedCommit = [string]$turneroPilot.remoteDeployedCommit } catch { $deployedCommit = '' }
                         try { $releaseMode = [string]$turneroPilot.releaseMode } catch { $releaseMode = '' }
+                        if ($releaseMode -eq 'web_pilot') {
+                          $recoveryTargets = @(
+                            '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+                            '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'
+                          )
+                          $recoveryTargetsLabel = ($recoveryTargets -join '|')
+                        }
 
                         $blocking = New-Object System.Collections.Generic.List[string]
                         if (-not $statusResolved) {
@@ -813,9 +822,10 @@ jobs:
                   "TURNERO_PILOT_REPAIR_CATALOG_READY=$catalogReadyText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   "TURNERO_PILOT_REPAIR_REMOTE_VERIFIED=$remoteVerifiedText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   "TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT=$deployedCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TURNERO_PILOT_REPAIR_RECOVERY_TARGETS=$recoveryTargetsLabel" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   "status=$status" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
                   "reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-                  Write-Host "Turnero pilot repair => status=$status reason=$reason clinicId=$clinicId fingerprint=$profileFingerprint catalogReady=$catalogReadyText remoteVerified=$remoteVerifiedText deployedCommit=$deployedCommit"
+                  Write-Host "Turnero pilot repair => status=$status reason=$reason clinicId=$clinicId fingerprint=$profileFingerprint catalogReady=$catalogReadyText remoteVerified=$remoteVerifiedText deployedCommit=$deployedCommit recoveryTargets=$recoveryTargetsLabel"
 
             - name: Disparar diagnostico de conectividad desde repair
               id: connectivity_diagnose_dispatch
@@ -1625,6 +1635,7 @@ jobs:
                   TURNERO_PILOT_REPAIR_REMOTE_VERIFIED: ${{ env.TURNERO_PILOT_REPAIR_REMOTE_VERIFIED }}
                   TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT }}
                   TURNERO_PILOT_REPAIR_RELEASE_MODE: ${{ env.TURNERO_PILOT_REPAIR_RELEASE_MODE }}
+                  TURNERO_PILOT_REPAIR_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_REPAIR_RECOVERY_TARGETS }}
               with:
                   script: |
                       const owner = context.repo.owner;
@@ -1666,6 +1677,7 @@ jobs:
                         `- turnero_pilot_repair_catalog_ready: ${process.env.TURNERO_PILOT_REPAIR_CATALOG_READY || 'false'}`,
                         `- turnero_pilot_repair_remote_verified: ${process.env.TURNERO_PILOT_REPAIR_REMOTE_VERIFIED || 'false'}`,
                         `- turnero_pilot_repair_deployed_commit: ${process.env.TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT || 'unknown'}`,
+                        `- turnero_pilot_repair_recovery_targets: ${process.env.TURNERO_PILOT_REPAIR_RECOVERY_TARGETS || 'none'}`,
                         `- domain: ${process.env.TARGET_DOMAIN || 'https://pielarmonia.com'}`,
                         '',
                         signalMarker
@@ -1716,7 +1728,8 @@ jobs:
                             `- turnero_pilot_repair_reason: ${process.env.TURNERO_PILOT_REPAIR_REASON || 'unknown'}`,
                             `- turnero_pilot_repair_clinic_id: ${process.env.TURNERO_PILOT_REPAIR_CLINIC_ID || 'unknown'}`,
                             `- turnero_pilot_repair_profile_fingerprint: ${process.env.TURNERO_PILOT_REPAIR_PROFILE_FINGERPRINT || 'unknown'}`,
-                            `- turnero_pilot_repair_deployed_commit: ${process.env.TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT || 'unknown'}`
+                            `- turnero_pilot_repair_deployed_commit: ${process.env.TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT || 'unknown'}`,
+                            `- turnero_pilot_repair_recovery_targets: ${process.env.TURNERO_PILOT_REPAIR_RECOVERY_TARGETS || 'none'}`
                           ].join('\n')
                         });
                         core.info(`Issue repair-git-sync turneroPilot actualizado: #${existing.number}`);
@@ -1741,6 +1754,7 @@ jobs:
                   TURNERO_PILOT_REPAIR_CLINIC_ID: ${{ env.TURNERO_PILOT_REPAIR_CLINIC_ID }}
                   TURNERO_PILOT_REPAIR_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_REPAIR_PROFILE_FINGERPRINT }}
                   TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT }}
+                  TURNERO_PILOT_REPAIR_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_REPAIR_RECOVERY_TARGETS }}
               with:
                   script: |
                       const owner = context.repo.owner;
@@ -1775,7 +1789,8 @@ jobs:
                           `- turnero_pilot_repair_reason: ${process.env.TURNERO_PILOT_REPAIR_REASON || 'ok'}`,
                           `- turnero_pilot_repair_clinic_id: ${process.env.TURNERO_PILOT_REPAIR_CLINIC_ID || 'unknown'}`,
                           `- turnero_pilot_repair_profile_fingerprint: ${process.env.TURNERO_PILOT_REPAIR_PROFILE_FINGERPRINT || 'unknown'}`,
-                          `- turnero_pilot_repair_deployed_commit: ${process.env.TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT || 'unknown'}`
+                          `- turnero_pilot_repair_deployed_commit: ${process.env.TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT || 'unknown'}`,
+                          `- turnero_pilot_repair_recovery_targets: ${process.env.TURNERO_PILOT_REPAIR_RECOVERY_TARGETS || 'none'}`
                         ].join('\n')
                       });
 
@@ -1911,6 +1926,10 @@ jobs:
               shell: pwsh
               run: |
                   New-Item -ItemType Directory -Path verification -Force | Out-Null
+                  $recoveryTargets = @()
+                  if (-not [string]::IsNullOrWhiteSpace([string]$env:TURNERO_PILOT_REPAIR_RECOVERY_TARGETS) -and [string]$env:TURNERO_PILOT_REPAIR_RECOVERY_TARGETS -ne 'none') {
+                    $recoveryTargets = @([string]$env:TURNERO_PILOT_REPAIR_RECOVERY_TARGETS -split '\|' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+                  }
                   $report = [ordered]@{
                     generatedAt = [DateTimeOffset]::UtcNow.ToString('o')
                     workflow = 'repair-git-sync'
@@ -1926,6 +1945,7 @@ jobs:
                       catalogReady = ([string]$env:TURNERO_PILOT_REPAIR_CATALOG_READY).ToLowerInvariant() -eq 'true'
                       remoteVerified = ([string]$env:TURNERO_PILOT_REPAIR_REMOTE_VERIFIED).ToLowerInvariant() -eq 'true'
                       deployedCommit = [string]$env:TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT
+                      recoveryTargets = @($recoveryTargets)
                     }
                     sourceVerifyReport = 'verification/last-deploy-verify.json'
                   }
@@ -1962,6 +1982,7 @@ jobs:
                     echo "- turnero_pilot_repair_catalog_ready: \`${TURNERO_PILOT_REPAIR_CATALOG_READY}\`";
                     echo "- turnero_pilot_repair_remote_verified: \`${TURNERO_PILOT_REPAIR_REMOTE_VERIFIED}\`";
                     echo "- turnero_pilot_repair_deployed_commit: \`${TURNERO_PILOT_REPAIR_DEPLOYED_COMMIT}\`";
+                    echo "- turnero_pilot_repair_recovery_targets: \`${TURNERO_PILOT_REPAIR_RECOVERY_TARGETS}\`";
                     echo "- turnero_pilot_repair_step_outcome: \`${{ steps.turnero_pilot_repair.outcome }}\`";
                     echo "- Reporte turnero pilot repair: \`verification/last-turnero-pilot-repair.json\`";
                     echo "- connectivity_diagnose_dispatched: \`${{ steps.transport_fallback.outputs.connectivity_diagnose_dispatch_ready }}\`";

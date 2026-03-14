@@ -99,6 +99,9 @@ should close them so the next pass sees `github.deployAlerts relevantCount=0`.
 alerts and fail by default while those incidents remain open. Use
 `-AllowOpenGitHubDeployAlerts` only for observation runs where you need the
 rest of the runtime evidence without muting the live GitHub incident.
+`SMOKE-PRODUCCION.ps1` now also prints `turneroPilot recoveryTargets`, so the
+manual lane shows the same hosting/self-hosted closure context as monitor,
+verify, and the workflow artifacts.
 
 For the web pilot, `SMOKE-PRODUCCION.ps1` now also runs
 `node bin/turnero-clinic-profile.js verify-remote --base-url <domain> --json`
@@ -121,12 +124,13 @@ status, or pilot canon than the local release.
 `turneroPilot`, and both `post-deploy-fast.yml` and `post-deploy-gate.yml`
 surface `Turnero pilot` lines in `GITHUB_STEP_SUMMARY` and incident bodies.
 Those summaries now also expose `statusResolved`, `verifyRemoteRequired`, and
-`releaseMode`, so ops can see whether the pilot was truly blocked or simply
+`releaseMode`, and now also `recoveryTargets`, so ops can see whether the pilot was truly blocked or simply
 `not_required` for a non-`web_pilot` release without opening the raw JSON.
 Both lanes now also emit standalone workflow artifacts
 `verification/last-turnero-pilot-fast.json` and
 `verification/last-turnero-pilot-gate.json`, so the pilot verdict survives even
-when you only need the workflow evidence and not the full verify report.
+when you only need the workflow evidence and not the full verify report. Those
+artifacts now also persist the `recoveryTargets` carried by the web-pilot lane.
 The same verification lane also keeps storage posture visible through
 `storeEncryptionStatus`, `storeEncryptionRequired`, and
 `storeEncryptionCompliant`, so a healthy publish never hides storage drift in
@@ -180,12 +184,18 @@ Triage the GitHub-side deploy corroboration in the same pass:
 - `github.deployAlerts repair git sync blocked` means repair still recommends the self-hosted fallback path and the incident remains open.
 - `github.deployAlerts turnero pilot blocked` means `deploy-hosting.yml` published a host that no longer matches the staged `clinic-profile` (`clinic_id`, `profileFingerprint` or catalog/canon drift), so the pilot must not be opened yet.
 - `diagnose-host-connectivity.yml` now enriches that same transport triage with the local `turneroPilot` identity (`clinicId`, `profileFingerprint`, `catalogReady`, `releaseMode`) inside `connectivity-report.json/.txt` and the connectivity incident body, so a blocked route can still be tied to the clinic that was about to go live.
+- That same connectivity diagnose now also publishes `turnero_pilot_recovery_targets`, so the route report keeps the same hosting/self-hosted closure context as the rest of the web-pilot lane.
 - When `deploy-hosting.yml` dispatches `diagnose-host-connectivity.yml`, it now also passes the expected pilot identity (`clinicId`, `profileFingerprint`, `releaseMode`), and the connectivity report records `turnero_pilot_expected_match` / `turnero_pilot_expected_reason` to expose any drift between the deploy attempt and the profile resolved by the diagnostic run.
-- `REPORTE-SEMANAL-PRODUCCION.ps1` persists the same GitHub deploy alert state in markdown/JSON as `githubDeployAlerts`, with warning codes `github_deploy_*`.
-- `prod-monitor.yml` can close that same `turnero pilot blocked` incident later, but only after rerunning `verify-remote` and confirming the live host matches the active pilot profile again.
+- `deploy-hosting.yml` and `deploy-frontend-selfhosted.yml` now also persist `turneroPilot.recoveryTargets` in their own manifests/reports and incident bodies, so the deploy lane itself speaks the same recovery language as `post-deploy`, `repair`, `monitor`, and weekly reporting.
+- That same deploy lane now also mirrors `turnero_pilot_recovery_targets` in the transport/self-hosted-route incidents, so a blocked path still carries the expected pilot recovery context instead of only clinic/fingerprint metadata.
+- `REPORTE-SEMANAL-PRODUCCION.ps1` persists the same GitHub deploy alert state in markdown/JSON as `githubDeployAlerts`, with warning codes `github_deploy_*`, and now also exposes `turneroPilot.recoveryTargets` so the weekly triage keeps the same closure context as the monitor/workflows.
+- `prod-monitor.yml` can close that same `turnero pilot blocked` incident later, but only after rerunning `verify-remote` and confirming the live host matches the active pilot profile again. That recovery now applies to both `Deploy Hosting turneroPilot bloqueado` and `Deploy Frontend Self-Hosted turneroPilot bloqueado`.
+- `repair-git-sync.yml` now keeps those same `recoveryTargets` in `verification/last-turnero-pilot-repair.json` and in its step summary, so repair evidence also says which pilot incidents a healthy recovery covers.
 - `prod-monitor.yml` now also closes `[ALERTA PROD] Deploy Frontend Self-Hosted ruta bloqueada` once `public_main_sync` is healthy again, so a recovered site does not keep a stale manual-fallback incident open.
-- That same `prod-monitor.yml` recovery now writes `.public-cutover-monitor/turnero-pilot-recovery.json` and uploads `prod-monitor-turnero-pilot-recovery`, so the closing `verify-remote` evidence survives beyond the issue comment and step summary.
+- That same `prod-monitor.yml` recovery now writes `.public-cutover-monitor/turnero-pilot-recovery.json` and uploads `prod-monitor-turnero-pilot-recovery`, including the `recoveryTargets` array for the hosting/self-hosted turneroPilot incidents it is allowed to close, so the closing `verify-remote` evidence survives beyond the issue comment and step summary.
 - `VERIFICAR-DESPLIEGUE.ps1` persists the same incident state as failed assets `github-deploy-*`, so `verification/last-deploy-verify.json` now captures deploy-route blockers outside the host too.
+- `VERIFICAR-DESPLIEGUE.ps1` now also persists `turneroPilot.recoveryTargets`, so the verify snapshot says which hosting/self-hosted pilot incidents can be closed by the same healthy `verify-remote`.
+- `MONITOR-PRODUCCION.ps1` mirrors that context live in the console by printing `turneroPilot recoveryTargets` and appending them to the `github.deployAlerts turnero pilot blocked` failure line.
 
 ## Success criteria
 

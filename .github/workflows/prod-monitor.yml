@@ -195,6 +195,7 @@ jobs:
             TURNERO_PILOT_RECOVERY_CLINIC_ID: ''
             TURNERO_PILOT_RECOVERY_PROFILE_FINGERPRINT: ''
             TURNERO_PILOT_RECOVERY_DEPLOYED_COMMIT: ''
+            TURNERO_PILOT_RECOVERY_TARGETS: ''
             TURNERO_PILOT_RECOVERY_MANIFEST_PATH: .public-cutover-monitor/turnero-pilot-recovery.json
             ENABLE_PUBLIC_CUTOVER_MONITOR: ${{ github.event.inputs.enable_public_cutover_monitor || vars.PROD_MONITOR_ENABLE_PUBLIC_CUTOVER || 'false' }}
             PUBLIC_CUTOVER_STARTED_AT: ${{ github.event.inputs.public_cutover_started_at || vars.PUBLIC_CUTOVER_STARTED_AT || '' }}
@@ -577,6 +578,10 @@ jobs:
                   $clinicId = ''
                   $profileFingerprint = ''
                   $deployedCommit = ''
+                  $recoveryTargets = @(
+                    '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+                    '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'
+                  )
                   $repoRoot = (Get-Location).Path
                   $scriptPath = Join-Path $repoRoot 'bin/turnero-clinic-profile.js'
 
@@ -650,6 +655,7 @@ jobs:
                   "TURNERO_PILOT_RECOVERY_CLINIC_ID=$clinicId" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   "TURNERO_PILOT_RECOVERY_PROFILE_FINGERPRINT=$profileFingerprint" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   "TURNERO_PILOT_RECOVERY_DEPLOYED_COMMIT=$deployedCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TURNERO_PILOT_RECOVERY_TARGETS=$($recoveryTargets -join ', ')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
                   $manifestPath = [string]$env:TURNERO_PILOT_RECOVERY_MANIFEST_PATH
                   if ([string]::IsNullOrWhiteSpace($manifestPath)) {
@@ -672,6 +678,7 @@ jobs:
                       clinicId = $clinicId
                       profileFingerprint = $profileFingerprint
                       deployedCommit = $deployedCommit
+                      recoveryTargets = @($recoveryTargets)
                     }
                   }
                   $manifest | ConvertTo-Json -Depth 6 | Set-Content -Path $manifestPath -Encoding utf8
@@ -681,7 +688,8 @@ jobs:
                   "clinic_id=$clinicId" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
                   "profile_fingerprint=$profileFingerprint" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
                   "deployed_commit=$deployedCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-                  Write-Host "turnero pilot recovery => status=$status reason=$reason clinic_id=$clinicId deployed_commit=$deployedCommit"
+                  "recovery_targets=$($recoveryTargets -join ', ')" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                  Write-Host "turnero pilot recovery => status=$status reason=$reason clinic_id=$clinicId deployed_commit=$deployedCommit recovery_targets=$($recoveryTargets -join '; ')"
 
             - name: Upload turneroPilot recovery evidence
               if: ${{ always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && env.TARGET_DOMAIN == 'https://pielarmonia.com')) }}
@@ -1038,6 +1046,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- turnero_pilot_recovery_clinic_id: ``$env:TURNERO_PILOT_RECOVERY_CLINIC_ID``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- turnero_pilot_recovery_profile_fingerprint: ``$env:TURNERO_PILOT_RECOVERY_PROFILE_FINGERPRINT``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- turnero_pilot_recovery_deployed_commit: ``$env:TURNERO_PILOT_RECOVERY_DEPLOYED_COMMIT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- turnero_pilot_recovery_targets: ``$env:TURNERO_PILOT_RECOVERY_TARGETS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- turnero_pilot_recovery_manifest: ``$env:TURNERO_PILOT_RECOVERY_MANIFEST_PATH``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- turnero_pilot_recovery_step_outcome: ``${{ steps.turnero_pilot_recovery.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- enable_public_cutover_monitor: ``$env:ENABLE_PUBLIC_CUTOVER_MONITOR``"
@@ -1570,6 +1579,61 @@ jobs:
                         state: 'closed'
                       });
                       core.info(`Issue turneroPilot cerrado: #${existing.number}`);
+
+            - name: Cerrar incidente turneroPilot self-hosted al recuperar (solo schedule/default prod)
+              if: ${{ always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && env.TARGET_DOMAIN == 'https://pielarmonia.com')) && steps.turnero_pilot_recovery.outputs.status == 'healthy' }}
+              uses: actions/github-script@v7
+              env:
+                  TURNERO_PILOT_RECOVERY_STATUS: ${{ steps.turnero_pilot_recovery.outputs.status }}
+                  TURNERO_PILOT_RECOVERY_REASON: ${{ steps.turnero_pilot_recovery.outputs.reason }}
+                  TURNERO_PILOT_RECOVERY_CLINIC_ID: ${{ steps.turnero_pilot_recovery.outputs.clinic_id }}
+                  TURNERO_PILOT_RECOVERY_PROFILE_FINGERPRINT: ${{ steps.turnero_pilot_recovery.outputs.profile_fingerprint }}
+                  TURNERO_PILOT_RECOVERY_DEPLOYED_COMMIT: ${{ steps.turnero_pilot_recovery.outputs.deployed_commit }}
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const title = '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado';
+                      const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+                      const now = new Date().toISOString();
+
+                      const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+                        owner,
+                        repo,
+                        state: 'open',
+                        per_page: 100
+                      });
+
+                      const existing = openIssues.find((issue) => !issue.pull_request && issue.title === title);
+                      if (!existing) {
+                        core.info('No hay incidente turneroPilot self-hosted abierto para cerrar.');
+                        return;
+                      }
+
+                      await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        body: [
+                          'Cerrado automaticamente por prod-monitor al confirmar `verify-remote` saludable.',
+                          '',
+                          `- Fecha: ${now}`,
+                          `- Run: ${runUrl}`,
+                          `- turnero_pilot_recovery_status: ${process.env.TURNERO_PILOT_RECOVERY_STATUS || 'healthy'}`,
+                          `- turnero_pilot_recovery_reason: ${process.env.TURNERO_PILOT_RECOVERY_REASON || 'ok'}`,
+                          `- turnero_pilot_recovery_clinic_id: ${process.env.TURNERO_PILOT_RECOVERY_CLINIC_ID || 'n/a'}`,
+                          `- turnero_pilot_recovery_profile_fingerprint: ${process.env.TURNERO_PILOT_RECOVERY_PROFILE_FINGERPRINT || 'n/a'}`,
+                          `- turnero_pilot_recovery_deployed_commit: ${process.env.TURNERO_PILOT_RECOVERY_DEPLOYED_COMMIT || 'n/a'}`
+                        ].join('\n')
+                      });
+
+                      await github.rest.issues.update({
+                        owner,
+                        repo,
+                        issue_number: existing.number,
+                        state: 'closed'
+                      });
+                      core.info(`Issue turneroPilot self-hosted cerrado: #${existing.number}`);
 
             - name: Cerrar incidente post-cutover al recuperar (solo schedule)
               if: ${{ success() && github.event_name == 'schedule' && steps.public_cutover.outcome != 'failure' }}

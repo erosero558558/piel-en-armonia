@@ -400,6 +400,7 @@ jobs:
                   $remoteVerified = $false
                   $deployedCommit = ''
                   $releaseMode = ''
+                  $recoveryTargets = @()
                   $reportPath = 'verification/last-deploy-verify.json'
 
                   if (Test-Path $reportPath) {
@@ -422,6 +423,12 @@ jobs:
                         try { $remoteVerified = [bool]$turneroPilot.remoteVerified } catch { $remoteVerified = $false }
                         try { $deployedCommit = [string]$turneroPilot.remoteDeployedCommit } catch { $deployedCommit = '' }
                         try { $releaseMode = [string]$turneroPilot.releaseMode } catch { $releaseMode = '' }
+                        if ($releaseMode -eq 'web_pilot') {
+                          $recoveryTargets = @(
+                            '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+                            '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'
+                          )
+                        }
 
                         $blocking = New-Object System.Collections.Generic.List[string]
                         if (-not $statusResolved) {
@@ -471,6 +478,7 @@ jobs:
                   "TURNERO_PILOT_FAST_CATALOG_READY=$catalogReadyText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   "TURNERO_PILOT_FAST_REMOTE_VERIFIED=$remoteVerifiedText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   "TURNERO_PILOT_FAST_DEPLOYED_COMMIT=$deployedCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TURNERO_PILOT_FAST_RECOVERY_TARGETS=$($recoveryTargets -join ' | ')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   "status=$status" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
                   "reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
                   Write-Host "Turnero pilot fast => status=$status reason=$reason clinicId=$clinicId fingerprint=$profileFingerprint catalogReady=$catalogReadyText remoteVerified=$remoteVerifiedText deployedCommit=$deployedCommit"
@@ -495,6 +503,9 @@ jobs:
                       catalogReady = ([string]$env:TURNERO_PILOT_FAST_CATALOG_READY).ToLowerInvariant() -eq 'true'
                       remoteVerified = ([string]$env:TURNERO_PILOT_FAST_REMOTE_VERIFIED).ToLowerInvariant() -eq 'true'
                       deployedCommit = [string]$env:TURNERO_PILOT_FAST_DEPLOYED_COMMIT
+                      recoveryTargets = @(
+                        @([string]$env:TURNERO_PILOT_FAST_RECOVERY_TARGETS -split '\s+\|\s+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+                      )
                     }
                     sourceVerifyReport = 'verification/last-deploy-verify.json'
                   }
@@ -558,6 +569,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast catalog ready: ``$env:TURNERO_PILOT_FAST_CATALOG_READY``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast remote verified: ``$env:TURNERO_PILOT_FAST_REMOTE_VERIFIED``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast deployed commit: ``$env:TURNERO_PILOT_FAST_DEPLOYED_COMMIT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast recovery targets: ``$env:TURNERO_PILOT_FAST_RECOVERY_TARGETS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Reporte turnero pilot fast: ``verification/last-turnero-pilot-fast.json``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot fast step outcome: ``${{ steps.turnero_pilot_fast.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Resultado: ``${{ job.status }}``"
@@ -608,6 +620,7 @@ jobs:
                   TURNERO_PILOT_FAST_CATALOG_READY: ${{ env.TURNERO_PILOT_FAST_CATALOG_READY }}
                   TURNERO_PILOT_FAST_REMOTE_VERIFIED: ${{ env.TURNERO_PILOT_FAST_REMOTE_VERIFIED }}
                   TURNERO_PILOT_FAST_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_FAST_DEPLOYED_COMMIT }}
+                  TURNERO_PILOT_FAST_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_FAST_RECOVERY_TARGETS }}
                   JOB_STATUS: ${{ job.status }}
               with:
                   script: |
@@ -656,6 +669,7 @@ jobs:
                         `- turnero_pilot_fast_catalog_ready: ${process.env.TURNERO_PILOT_FAST_CATALOG_READY || 'false'}`,
                         `- turnero_pilot_fast_remote_verified: ${process.env.TURNERO_PILOT_FAST_REMOTE_VERIFIED || 'false'}`,
                         `- turnero_pilot_fast_deployed_commit: ${process.env.TURNERO_PILOT_FAST_DEPLOYED_COMMIT || 'n/a'}`,
+                        `- turnero_pilot_fast_recovery_targets: ${process.env.TURNERO_PILOT_FAST_RECOVERY_TARGETS || 'n/a'}`,
                         `- admin_rollout_outcome: ${process.env.ADMIN_ROLLOUT_OUTCOME || 'skipped'}`,
                         `- job_status: ${process.env.JOB_STATUS || 'n/a'}`
                       ].join('\n');

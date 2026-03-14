@@ -61,6 +61,8 @@ $turneroPilotReleaseGateRequired = $false
 $turneroPilotClinicId = ''
 $turneroPilotCatalogMatch = $false
 $turneroPilotProfileStatusResolved = $false
+$turneroPilotRecoveryTargets = @()
+$turneroPilotRecoveryTargetsLabel = 'none'
 
 if (Test-Path $turneroClinicProfileScriptPath) {
     $turneroPilotStatusRaw = ''
@@ -85,8 +87,15 @@ if (Test-Path $turneroClinicProfileScriptPath) {
         try { $turneroPilotClinicId = [string]$turneroPilotStatus.profile.clinic_id } catch { $turneroPilotClinicId = '' }
         try { $turneroPilotCatalogMatch = [bool]$turneroPilotStatus.matchesCatalog } catch { $turneroPilotCatalogMatch = $false }
         try { $turneroPilotReleaseGateRequired = ([bool]$turneroPilotStatus.ok) -and ([string]$turneroPilotStatus.profile.release.mode -eq 'web_pilot') } catch { $turneroPilotReleaseGateRequired = $false }
+        if ($turneroPilotReleaseGateRequired) {
+            $turneroPilotRecoveryTargets = @(
+                '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+                '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'
+            )
+            $turneroPilotRecoveryTargetsLabel = ($turneroPilotRecoveryTargets -join '|')
+        }
 
-        Write-Host "[INFO] turneroPilot gate clinicId=$turneroPilotClinicId statusResolved=$turneroPilotProfileStatusResolved catalogMatch=$turneroPilotCatalogMatch verifyRemoteEnforced=$turneroPilotReleaseGateRequired"
+        Write-Host "[INFO] turneroPilot gate clinicId=$turneroPilotClinicId statusResolved=$turneroPilotProfileStatusResolved catalogMatch=$turneroPilotCatalogMatch verifyRemoteEnforced=$turneroPilotReleaseGateRequired recoveryTargets=$turneroPilotRecoveryTargetsLabel"
 
         if (-not $turneroPilotProfileStatusResolved) {
             Write-Host '[FAIL] turneroPilot clinic-profile inválido antes del gate.' -ForegroundColor Red
@@ -193,7 +202,7 @@ if ($failures -gt 0) {
 }
 
 if ($turneroPilotReleaseGateRequired) {
-    Write-Host "Turnero pilot gate OK: clinicId=$turneroPilotClinicId, catalogMatch=$turneroPilotCatalogMatch, verifyRemoteEnforced=true." -ForegroundColor Green
+    Write-Host "Turnero pilot gate OK: clinicId=$turneroPilotClinicId, catalogMatch=$turneroPilotCatalogMatch, verifyRemoteEnforced=true, recoveryTargets=$turneroPilotRecoveryTargetsLabel." -ForegroundColor Green
 }
 
 Write-Host "Gate OK: despliegue validado." -ForegroundColor Green

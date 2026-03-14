@@ -37,6 +37,11 @@ function writeSnapshot(filePath, payload) {
 function appendGithubOutputs(snapshot) {
     const envPath = normalizeString(process.env.GITHUB_ENV);
     const outputPath = normalizeString(process.env.GITHUB_OUTPUT);
+    const recoveryTargetsLabel =
+        Array.isArray(snapshot.recovery_targets) &&
+        snapshot.recovery_targets.length > 0
+            ? snapshot.recovery_targets.join('|')
+            : 'none';
     const envLines = [
         `TURNERO_PILOT_REMOTE_STATUS=${snapshot.status}`,
         `TURNERO_PILOT_REMOTE_REASON=${snapshot.reason}`,
@@ -45,6 +50,7 @@ function appendGithubOutputs(snapshot) {
         `TURNERO_PILOT_REMOTE_CATALOG_READY=${snapshot.catalog_ready ? 'true' : 'false'}`,
         `TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT=${snapshot.deployed_commit}`,
         `TURNERO_PILOT_REMOTE_VERIFIED=${snapshot.verified ? 'true' : 'false'}`,
+        `TURNERO_PILOT_RECOVERY_TARGETS=${recoveryTargetsLabel}`,
         `TURNERO_PILOT_POSTDEPLOY_ALLOWED=${snapshot.postdeploy_allowed ? 'true' : 'false'}`,
     ];
     const outputLines = [
@@ -55,6 +61,7 @@ function appendGithubOutputs(snapshot) {
         `catalog_ready=${snapshot.catalog_ready ? 'true' : 'false'}`,
         `deployed_commit=${snapshot.deployed_commit}`,
         `verified=${snapshot.verified ? 'true' : 'false'}`,
+        `recovery_targets=${recoveryTargetsLabel}`,
         `postdeploy_allowed=${snapshot.postdeploy_allowed ? 'true' : 'false'}`,
     ];
 
@@ -71,6 +78,13 @@ function buildNotRequiredSnapshot() {
         process.env.TURNERO_PILOT_RELEASE_MODE,
         'unknown'
     );
+    const recoveryTargets = normalizeString(
+        process.env.TURNERO_PILOT_RECOVERY_TARGETS
+    )
+        .split('|')
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .filter((value) => value !== 'none');
     return {
         status: 'not_required',
         reason: `release_mode:${releaseMode}`,
@@ -84,6 +98,7 @@ function buildNotRequiredSnapshot() {
         catalog_ready:
             normalizeString(process.env.TURNERO_PILOT_CATALOG_READY) === 'true',
         deployed_commit: '',
+        recovery_targets: recoveryTargets,
         generated_at: new Date().toISOString(),
     };
 }
@@ -114,6 +129,13 @@ function buildVerifiedSnapshot(options) {
     const remoteDeployedCommit = normalizeString(
         payload?.publicSync?.deployedCommit
     );
+    const recoveryTargets = normalizeString(
+        process.env.TURNERO_PILOT_RECOVERY_TARGETS
+    )
+        .split('|')
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .filter((value) => value !== 'none');
     const verified = payload?.ok === true && verifyExit === 0;
     const reason = verified
         ? 'ok'
@@ -133,6 +155,7 @@ function buildVerifiedSnapshot(options) {
         profile_fingerprint: remoteFingerprint,
         catalog_ready: remoteCatalogReady,
         deployed_commit: remoteDeployedCommit,
+        recovery_targets: recoveryTargets,
         generated_at: new Date().toISOString(),
         result: payload,
         stderr: rawStderr || '',

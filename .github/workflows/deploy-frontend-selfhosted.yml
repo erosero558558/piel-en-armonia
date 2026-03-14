@@ -62,6 +62,7 @@ jobs:
             TURNERO_PILOT_REMOTE_CATALOG_READY: 'false'
             TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT: ''
             TURNERO_PILOT_REMOTE_VERIFIED: 'false'
+            TURNERO_PILOT_RECOVERY_TARGETS: none
             SELFHOSTED_ROUTE_STATUS: unknown
             SELFHOSTED_ROUTE_REASON: not_evaluated
         steps:
@@ -132,6 +133,31 @@ jobs:
                   }
                   $catalogReadyText = ([string]$catalogReady).ToLowerInvariant()
                   $resolvedReleaseMode = if ($releaseMode) { $releaseMode } else { 'unknown' }
+                  $recoveryTargets = @()
+                  if ($resolvedReleaseMode -eq 'web_pilot') {
+                      $recoveryTargets = @(
+                          '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+                          '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'
+                      )
+                  }
+                  $recoveryTargetsLabel = if ($recoveryTargets.Count -gt 0) {
+                      [string]::Join('|', $recoveryTargets)
+                  } else {
+                      'none'
+                  }
+                  $statusSnapshot = [ordered]@{
+                      status = $status
+                      reason = $reason
+                      clinic_id = $clinicId
+                      matching_profile_id = $matchingProfileId
+                      profile_fingerprint = $profileFingerprint
+                      catalog_ready = $catalogReady
+                      release_mode = $resolvedReleaseMode
+                      recovery_targets = @($recoveryTargets)
+                      generated_at = [DateTime]::UtcNow.ToString('o')
+                      result = $parsed
+                  }
+                  $statusSnapshot | ConvertTo-Json -Depth 12 | Out-File -FilePath $statusPath -Encoding utf8
 
                   Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_SELFHOSTED_STATUS=$status"
                   Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_SELFHOSTED_REASON=$reason"
@@ -140,6 +166,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_PROFILE_FINGERPRINT=$profileFingerprint"
                   Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_CATALOG_READY=$catalogReadyText"
                   Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_RELEASE_MODE=$resolvedReleaseMode"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_RECOVERY_TARGETS=$recoveryTargetsLabel"
 
                   Add-Content -Path $env:GITHUB_OUTPUT -Value "status=$status"
                   Add-Content -Path $env:GITHUB_OUTPUT -Value "reason=$reason"
@@ -148,6 +175,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_OUTPUT -Value "profile_fingerprint=$profileFingerprint"
                   Add-Content -Path $env:GITHUB_OUTPUT -Value "catalog_ready=$catalogReadyText"
                   Add-Content -Path $env:GITHUB_OUTPUT -Value "release_mode=$resolvedReleaseMode"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "recovery_targets=$recoveryTargetsLabel"
 
                   if ($status -eq 'blocked') {
                       Write-Error "Turnero pilot self-hosted blocked ($reason) clinic_id=$(if ($clinicId) { $clinicId } else { 'unknown' }) release_mode=$(if ($releaseMode) { $releaseMode } else { 'unknown' })"
@@ -453,6 +481,18 @@ jobs:
                   New-Item -ItemType Directory -Force -Path '.selfhosted-cutover' | Out-Null
                   $remotePath = '.selfhosted-cutover/turnero-pilot-remote.json'
                   $rawPath = '.selfhosted-cutover/turnero-pilot-remote.raw.txt'
+                  $recoveryTargets = @()
+                  if ($env:TURNERO_PILOT_RELEASE_MODE -eq 'web_pilot') {
+                      $recoveryTargets = @(
+                          '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+                          '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'
+                      )
+                  }
+                  $recoveryTargetsLabel = if ($recoveryTargets.Count -gt 0) {
+                      [string]::Join('|', $recoveryTargets)
+                  } else {
+                      'none'
+                  }
 
                   if ($env:TURNERO_PILOT_SELFHOSTED_STATUS -eq 'blocked') {
                       $snapshot = [ordered]@{
@@ -464,6 +504,7 @@ jobs:
                           profile_fingerprint = $env:TURNERO_PILOT_PROFILE_FINGERPRINT
                           catalog_ready = ($env:TURNERO_PILOT_CATALOG_READY -eq 'true')
                           deployed_commit = ''
+                          recovery_targets = @($recoveryTargets)
                           generated_at = [DateTime]::UtcNow.ToString('o')
                       }
                       $snapshot | ConvertTo-Json -Depth 8 | Out-File -FilePath $remotePath -Encoding utf8
@@ -475,6 +516,7 @@ jobs:
                       Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_CATALOG_READY=$($env:TURNERO_PILOT_CATALOG_READY)"
                       Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT="
                       Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_VERIFIED=false"
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_RECOVERY_TARGETS=$recoveryTargetsLabel"
                       Add-Content -Path $env:GITHUB_OUTPUT -Value "status=blocked"
                       Add-Content -Path $env:GITHUB_OUTPUT -Value "reason=local_profile:$($env:TURNERO_PILOT_SELFHOSTED_REASON)"
                       Add-Content -Path $env:GITHUB_OUTPUT -Value "clinic_id=$($env:TURNERO_PILOT_CLINIC_ID)"
@@ -482,6 +524,7 @@ jobs:
                       Add-Content -Path $env:GITHUB_OUTPUT -Value "catalog_ready=$($env:TURNERO_PILOT_CATALOG_READY)"
                       Add-Content -Path $env:GITHUB_OUTPUT -Value "deployed_commit="
                       Add-Content -Path $env:GITHUB_OUTPUT -Value "verified=false"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "recovery_targets=$recoveryTargetsLabel"
                       exit 0
                   }
 
@@ -495,6 +538,7 @@ jobs:
                           profile_fingerprint = $env:TURNERO_PILOT_PROFILE_FINGERPRINT
                           catalog_ready = ($env:TURNERO_PILOT_CATALOG_READY -eq 'true')
                           deployed_commit = ''
+                          recovery_targets = @($recoveryTargets)
                           generated_at = [DateTime]::UtcNow.ToString('o')
                       }
                       $snapshot | ConvertTo-Json -Depth 8 | Out-File -FilePath $remotePath -Encoding utf8
@@ -506,6 +550,7 @@ jobs:
                       Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_CATALOG_READY=$($env:TURNERO_PILOT_CATALOG_READY)"
                       Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT="
                       Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_VERIFIED=false"
+                      Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_RECOVERY_TARGETS=$recoveryTargetsLabel"
                       Add-Content -Path $env:GITHUB_OUTPUT -Value "status=not_required"
                       Add-Content -Path $env:GITHUB_OUTPUT -Value "reason=release_mode:$($env:TURNERO_PILOT_RELEASE_MODE)"
                       Add-Content -Path $env:GITHUB_OUTPUT -Value "clinic_id=$($env:TURNERO_PILOT_CLINIC_ID)"
@@ -513,6 +558,7 @@ jobs:
                       Add-Content -Path $env:GITHUB_OUTPUT -Value "catalog_ready=$($env:TURNERO_PILOT_CATALOG_READY)"
                       Add-Content -Path $env:GITHUB_OUTPUT -Value "deployed_commit="
                       Add-Content -Path $env:GITHUB_OUTPUT -Value "verified=false"
+                      Add-Content -Path $env:GITHUB_OUTPUT -Value "recovery_targets=$recoveryTargetsLabel"
                       exit 0
                   }
 
@@ -568,6 +614,7 @@ jobs:
                       profile_fingerprint = $remoteFingerprint
                       catalog_ready = $remoteCatalogReady
                       deployed_commit = $remoteDeployedCommit
+                      recovery_targets = @($recoveryTargets)
                       generated_at = [DateTime]::UtcNow.ToString('o')
                       result = $payload
                       stderr = $rawStderr
@@ -581,6 +628,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_CATALOG_READY=$remoteCatalogReadyText"
                   Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT=$remoteDeployedCommit"
                   Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_REMOTE_VERIFIED=$verifiedText"
+                  Add-Content -Path $env:GITHUB_ENV -Value "TURNERO_PILOT_RECOVERY_TARGETS=$recoveryTargetsLabel"
                   Add-Content -Path $env:GITHUB_OUTPUT -Value "status=$status"
                   Add-Content -Path $env:GITHUB_OUTPUT -Value "reason=$reason"
                   Add-Content -Path $env:GITHUB_OUTPUT -Value "clinic_id=$remoteClinicId"
@@ -588,6 +636,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_OUTPUT -Value "catalog_ready=$remoteCatalogReadyText"
                   Add-Content -Path $env:GITHUB_OUTPUT -Value "deployed_commit=$remoteDeployedCommit"
                   Add-Content -Path $env:GITHUB_OUTPUT -Value "verified=$verifiedText"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "recovery_targets=$recoveryTargetsLabel"
 
             - name: Evaluate telemedicine health after frontend deploy
               if: ${{ always() }}
@@ -966,6 +1015,7 @@ jobs:
                         `- turnero_pilot_remote_catalog_ready: ${process.env.TURNERO_PILOT_REMOTE_CATALOG_READY || 'false'}`,
                         `- turnero_pilot_remote_deployed_commit: ${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`,
                         `- turnero_pilot_remote_reason: ${process.env.TURNERO_PILOT_REMOTE_REASON || 'unknown'}`,
+                        `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_RECOVERY_TARGETS || 'none'}`,
                         '',
                         signalMarker
                       ].join('\n');
@@ -1013,7 +1063,8 @@ jobs:
                             `- turnero_pilot_remote_reason: ${process.env.TURNERO_PILOT_REMOTE_REASON || 'unknown'}`,
                             `- turnero_pilot_remote_clinic_id: ${process.env.TURNERO_PILOT_REMOTE_CLINIC_ID || 'unknown'}`,
                             `- turnero_pilot_remote_profile_fingerprint: ${process.env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT || 'unknown'}`,
-                            `- turnero_pilot_remote_deployed_commit: ${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`
+                            `- turnero_pilot_remote_deployed_commit: ${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`,
+                            `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_RECOVERY_TARGETS || 'none'}`
                           ].join('\n')
                         });
                         core.info(`Issue deploy-frontend-selfhosted turneroPilot actualizado: #${existing.number}`);
@@ -1039,6 +1090,7 @@ jobs:
                   TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT }}
                   TURNERO_PILOT_REMOTE_CATALOG_READY: ${{ env.TURNERO_PILOT_REMOTE_CATALOG_READY }}
                   TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT }}
+                  TURNERO_PILOT_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_RECOVERY_TARGETS }}
 
             - name: Close turneroPilot incident when recovered (self-hosted deploy)
               if: ${{ success() && env.TURNERO_PILOT_RELEASE_MODE == 'web_pilot' && (env.TURNERO_PILOT_REMOTE_STATUS == 'ready' || env.TURNERO_PILOT_REMOTE_STATUS == 'not_required') }}
@@ -1076,7 +1128,8 @@ jobs:
                           `- turnero_pilot_remote_reason: ${process.env.TURNERO_PILOT_REMOTE_REASON || 'ok'}`,
                           `- turnero_pilot_remote_clinic_id: ${process.env.TURNERO_PILOT_REMOTE_CLINIC_ID || 'unknown'}`,
                           `- turnero_pilot_remote_profile_fingerprint: ${process.env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT || 'unknown'}`,
-                          `- turnero_pilot_remote_deployed_commit: ${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`
+                          `- turnero_pilot_remote_deployed_commit: ${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`,
+                          `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_RECOVERY_TARGETS || 'none'}`
                         ].join('\n')
                       });
 
@@ -1094,6 +1147,7 @@ jobs:
                   TURNERO_PILOT_REMOTE_CLINIC_ID: ${{ env.TURNERO_PILOT_REMOTE_CLINIC_ID }}
                   TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT }}
                   TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT }}
+                  TURNERO_PILOT_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_RECOVERY_TARGETS }}
 
             - name: Create or update self-hosted route incident
               if: ${{ always() && env.SELFHOSTED_ROUTE_STATUS == 'blocked' }}
@@ -1137,6 +1191,7 @@ jobs:
                         `- turnero_pilot_clinic_id: ${process.env.TURNERO_PILOT_CLINIC_ID || 'unknown'}`,
                         `- turnero_pilot_profile_fingerprint: ${process.env.TURNERO_PILOT_PROFILE_FINGERPRINT || 'unknown'}`,
                         `- turnero_pilot_release_mode: ${process.env.TURNERO_PILOT_RELEASE_MODE || 'unknown'}`,
+                        `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_RECOVERY_TARGETS || 'none'}`,
                         '',
                         signalMarker
                       ].join('\n');
@@ -1181,7 +1236,8 @@ jobs:
                             `- Fecha: ${now}`,
                             `- Run: ${runUrl}`,
                             `- selfhosted_route_status: ${process.env.SELFHOSTED_ROUTE_STATUS || 'unknown'}`,
-                            `- selfhosted_route_reason: ${process.env.SELFHOSTED_ROUTE_REASON || 'unknown'}`
+                            `- selfhosted_route_reason: ${process.env.SELFHOSTED_ROUTE_REASON || 'unknown'}`,
+                            `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_RECOVERY_TARGETS || 'none'}`
                           ].join('\n')
                         });
                         core.info(`Issue deploy-frontend-selfhosted route actualizado: #${existing.number}`);
@@ -1201,6 +1257,7 @@ jobs:
                   TURNERO_PILOT_CLINIC_ID: ${{ env.TURNERO_PILOT_CLINIC_ID }}
                   TURNERO_PILOT_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_PROFILE_FINGERPRINT }}
                   TURNERO_PILOT_RELEASE_MODE: ${{ env.TURNERO_PILOT_RELEASE_MODE }}
+                  TURNERO_PILOT_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_RECOVERY_TARGETS }}
 
             - name: Close self-hosted route incident when recovered
               if: ${{ success() && env.SELFHOSTED_ROUTE_STATUS == 'ready' }}
@@ -1235,7 +1292,8 @@ jobs:
                           `- Fecha: ${now}`,
                           `- Run: ${runUrl}`,
                           `- selfhosted_route_status: ${process.env.SELFHOSTED_ROUTE_STATUS || 'ready'}`,
-                          `- selfhosted_route_reason: ${process.env.SELFHOSTED_ROUTE_REASON || 'ok'}`
+                          `- selfhosted_route_reason: ${process.env.SELFHOSTED_ROUTE_REASON || 'ok'}`,
+                          `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_RECOVERY_TARGETS || 'none'}`
                         ].join('\n')
                       });
 
@@ -1249,6 +1307,7 @@ jobs:
               env:
                   SELFHOSTED_ROUTE_STATUS: ${{ env.SELFHOSTED_ROUTE_STATUS }}
                   SELFHOSTED_ROUTE_REASON: ${{ env.SELFHOSTED_ROUTE_REASON }}
+                  TURNERO_PILOT_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_RECOVERY_TARGETS }}
 
             - name: Write turneroPilot report (self-hosted deploy)
               if: ${{ always() }}
@@ -1256,6 +1315,7 @@ jobs:
               run: |
                   $ErrorActionPreference = 'Stop'
                   New-Item -ItemType Directory -Force -Path 'verification' | Out-Null
+                  $recoveryTargets = @([string]$env:TURNERO_PILOT_RECOVERY_TARGETS -split '\|' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
                   $report = [ordered]@{
                       local = [ordered]@{
                           status = $env:TURNERO_PILOT_SELFHOSTED_STATUS
@@ -1275,6 +1335,7 @@ jobs:
                           deployedCommit = $env:TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT
                           verified = ($env:TURNERO_PILOT_REMOTE_VERIFIED -eq 'true')
                       }
+                      recoveryTargets = @($recoveryTargets)
                       manifests = [ordered]@{
                           local = '.selfhosted-cutover/turnero-pilot-status.json'
                           remote = '.selfhosted-cutover/turnero-pilot-remote.json'
@@ -1317,6 +1378,7 @@ jobs:
                   "- turnero_pilot_remote_catalog_ready: ``$env:TURNERO_PILOT_REMOTE_CATALOG_READY``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
                   "- turnero_pilot_remote_deployed_commit: ``$env:TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
                   "- turnero_pilot_remote_verified: ``$env:TURNERO_PILOT_REMOTE_VERIFIED``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+                  "- turnero_pilot_recovery_targets: ``$env:TURNERO_PILOT_RECOVERY_TARGETS``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
                   "- turnero_pilot_status_manifest: ``.selfhosted-cutover/turnero-pilot-status.json``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
                   "- turnero_pilot_remote_manifest: ``.selfhosted-cutover/turnero-pilot-remote.json``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
                   "- turnero_pilot_report: ``verification/last-turnero-pilot-selfhosted.json``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

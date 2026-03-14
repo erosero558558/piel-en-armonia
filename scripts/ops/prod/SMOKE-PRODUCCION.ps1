@@ -822,6 +822,8 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
                 $turneroPilotClinicId = ''
                 $turneroPilotCatalogMatch = $false
                 $turneroPilotVerifyRequired = $false
+                $turneroPilotRecoveryTargets = @()
+                $turneroPilotRecoveryTargetsLabel = 'none'
 
                 try {
                     $turneroPilotStatusRaw = ((& node $turneroClinicProfileScriptPath status --json 2>&1) | Out-String).Trim()
@@ -845,6 +847,11 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
                         Write-Host "[FAIL] turneroPilot catalog drift (clinicId=$turneroPilotClinicId)"
                         $contractFailures += 1
                     } elseif ($turneroPilotVerifyRequired) {
+                        $turneroPilotRecoveryTargets = @(
+                            '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+                            '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'
+                        )
+                        $turneroPilotRecoveryTargetsLabel = ($turneroPilotRecoveryTargets -join '|')
                         Write-Host "[INFO] turneroPilot clinicId=$turneroPilotClinicId catalogMatch=$turneroPilotCatalogMatch"
 
                         $turneroPilotVerifyRaw = ''
@@ -869,6 +876,7 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
                         try { $turneroPilotRemoteCatalogReady = [bool]$turneroPilotVerify.turneroPilot.catalogReady } catch { $turneroPilotRemoteCatalogReady = $false }
 
                         Write-Host "[INFO] turneroPilot remote clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady"
+                        Write-Host "[INFO] turneroPilot recoveryTargets=$turneroPilotRecoveryTargetsLabel"
 
                         if ($null -eq $turneroPilotVerify -or $turneroPilotVerifyExit -ne 0 -or -not [bool]$turneroPilotVerify.ok) {
                             Write-Host "[FAIL] turneroPilot remote mismatch (clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady)"
@@ -920,7 +928,7 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
             try { $githubDeployAlertsHasSelfHostedDeployBlock = [bool]$githubDeployAlerts.hasSelfHostedDeployBlock } catch { $githubDeployAlertsHasSelfHostedDeployBlock = $false }
             try { $githubDeployAlertsHasTurneroPilotBlock = [bool]$githubDeployAlerts.hasTurneroPilotBlock } catch { $githubDeployAlertsHasTurneroPilotBlock = $false }
 
-            Write-Host "[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount selfHostedDeployCount=$githubDeployAlertsSelfHostedDeployCount turneroPilotCount=$githubDeployAlertsTurneroPilotCount issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel"
+            Write-Host "[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount selfHostedDeployCount=$githubDeployAlertsSelfHostedDeployCount turneroPilotCount=$githubDeployAlertsTurneroPilotCount turneroPilotRecoveryTargets=$turneroPilotRecoveryTargetsLabel issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel"
             if (-not $githubDeployAlertsFetchOk) {
                 Write-Host "[WARN] github.deployAlerts unreachable (repo=$GitHubRepo error=$githubDeployAlertsError)"
             } elseif ($githubDeployAlertsRelevantCount -gt 0) {
@@ -942,7 +950,7 @@ if ($null -ne $healthResult -and $healthResult.Ok) {
                     Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts self-hosted deploy blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
                 }
                 if ($githubDeployAlertsHasTurneroPilotBlock) {
-                    Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts turnero pilot blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+                    Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts turnero pilot blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel recoveryTargets=$turneroPilotRecoveryTargetsLabel)"
                 }
 
                 if (-not $AllowOpenGitHubDeployAlerts) {

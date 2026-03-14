@@ -811,6 +811,7 @@ $serviceFunnelTopRowsBlock
 - turnero_pilot_remote_profile_source: $turneroPilotRemoteProfileSource
 - turnero_pilot_remote_release_mode: $turneroPilotRemoteReleaseMode
 - turnero_pilot_remote_admin_mode_default: $turneroPilotRemoteAdminModeDefault
+- turnero_pilot_recovery_targets: $($turneroPilotRecoveryTargets -join ', ')
 - turnero_pilot_errors: $($turneroPilotErrors -join ', ')
 
 ## GitHub Deploy Alerts
@@ -833,6 +834,7 @@ $serviceFunnelTopRowsBlock
 - github_deploy_has_self_hosted_runner_block: $githubDeployAlertsHasSelfHostedRunnerBlock
 - github_deploy_has_self_hosted_deploy_block: $githubDeployAlertsHasSelfHostedDeployBlock
 - github_deploy_has_turnero_pilot_block: $githubDeployAlertsHasTurneroPilotBlock
+- github_deploy_turnero_pilot_recovery_targets: $($turneroPilotRecoveryTargets -join ', ')
 - github_deploy_alerts_issue_numbers: $githubDeployAlertsIssueNumbersLabel
 - github_deploy_alerts_issue_refs: $githubDeployAlertsIssueRefsLabel
 
@@ -1192,6 +1194,7 @@ function New-WeeklyReportPayload {
             remoteProfileSource = $turneroPilotRemoteProfileSource
             remoteReleaseMode = $turneroPilotRemoteReleaseMode
             remoteAdminModeDefault = $turneroPilotRemoteAdminModeDefault
+            recoveryTargets = @($turneroPilotRecoveryTargets)
             errors = @($turneroPilotErrors)
         }
         githubDeployAlerts = [ordered]@{
@@ -1214,6 +1217,7 @@ function New-WeeklyReportPayload {
             hasSelfHostedRunnerBlock = [bool]$githubDeployAlertsHasSelfHostedRunnerBlock
             hasSelfHostedDeployBlock = [bool]$githubDeployAlertsHasSelfHostedDeployBlock
             hasTurneroPilotBlock = [bool]$githubDeployAlertsHasTurneroPilotBlock
+            turneroPilotRecoveryTargets = @($turneroPilotRecoveryTargets)
             issueNumbers = @($githubDeployAlertsIssueNumbers)
             issueUrls = @($githubDeployAlertsIssueUrls)
             issueRefs = @($githubDeployAlertsIssueRefs)

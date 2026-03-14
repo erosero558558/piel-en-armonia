@@ -68,11 +68,16 @@ test('prod monitor integra verify-remote del piloto web por clínica en el triag
     const raw = load(MONITOR_PATH);
     const requiredSnippets = [
         '$turneroPilotVerifyRequired = $false',
+        '$turneroPilotRecoveryTargets = @()',
+        "$turneroPilotRecoveryTargetsLabel = 'none'",
         "Add-MonitorFailure -Message '[FAIL] turneroPilot clinic-profile status unresolved' -AllowDegraded:$AllowDegradedPublicSync",
         'Add-MonitorFailure -Message "[FAIL] turneroPilot catalog drift (clinicId=$turneroPilotClinicId)" -AllowDegraded:$AllowDegradedPublicSync',
+        "'[ALERTA PROD] Deploy Hosting turneroPilot bloqueado'",
+        "'[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'",
         '[INFO] turneroPilot clinicId=$turneroPilotClinicId catalogMatch=$turneroPilotCatalogMatch',
         '& node $turneroClinicProfileScriptPath verify-remote --base-url $base --json 2>&1',
         '[INFO] turneroPilot remote clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady',
+        '[INFO] turneroPilot recoveryTargets=$turneroPilotRecoveryTargetsLabel',
         'Add-MonitorFailure -Message "[FAIL] turneroPilot remote mismatch (clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady)" -AllowDegraded:$AllowDegradedPublicSync',
         "Write-Host '[INFO] turneroPilot verify-remote omitido: perfil activo no esta en modo web_pilot.'",
         "Write-Host '[WARN] bin/turnero-clinic-profile.js no existe; se omite monitor turneroPilot.'",
@@ -102,7 +107,8 @@ test('prod monitor clasifica alertas GitHub de deploy dentro del mismo triage', 
         'selfHostedDeployCount=$githubDeployAlertsSelfHostedDeployCount',
         'Add-MonitorFailure -Message "[FAIL] github.deployAlerts self-hosted deploy blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync',
         'turneroPilotCount=$githubDeployAlertsTurneroPilotCount',
-        'Add-MonitorFailure -Message "[FAIL] github.deployAlerts turnero pilot blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync',
+        'turneroPilotRecoveryTargets=$turneroPilotRecoveryTargetsLabel',
+        'Add-MonitorFailure -Message "[FAIL] github.deployAlerts turnero pilot blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel recoveryTargets=$turneroPilotRecoveryTargetsLabel)" -AllowDegraded:$AllowDegradedPublicSync',
     ];
 
     for (const snippet of requiredSnippets) {

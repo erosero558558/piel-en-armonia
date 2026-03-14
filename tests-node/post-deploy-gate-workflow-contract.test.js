@@ -278,6 +278,11 @@ test('post-deploy-gate ejecuta gate admin rollout y lo reporta en summary', () =
         'falta linea de deployed commit turneroPilot en summary del gate'
     );
     assert.equal(
+        raw.includes('Turnero pilot gate recovery targets:'),
+        true,
+        'falta linea de recovery targets turneroPilot en summary del gate'
+    );
+    assert.equal(
         raw.includes('Reporte turnero pilot gate:'),
         true,
         'falta linea de reporte turneroPilot en summary del gate'
@@ -298,6 +303,11 @@ test('post-deploy-gate ejecuta gate admin rollout y lo reporta en summary', () =
         'falta env TURNERO_PILOT_GATE_RELEASE_MODE en post-deploy-gate'
     );
     assert.equal(
+        raw.includes('TURNERO_PILOT_GATE_RECOVERY_TARGETS'),
+        true,
+        'falta env TURNERO_PILOT_GATE_RECOVERY_TARGETS en post-deploy-gate'
+    );
+    assert.equal(
         raw.includes('turnero_pilot_gate_verify_remote_required:'),
         true,
         'falta trazabilidad verify_remote_required de turneroPilot en incidente de gate'
@@ -306,6 +316,23 @@ test('post-deploy-gate ejecuta gate admin rollout y lo reporta en summary', () =
         raw.includes('turnero_pilot_gate_release_mode:'),
         true,
         'falta trazabilidad release_mode de turneroPilot en incidente de gate'
+    );
+    assert.equal(
+        raw.includes('turnero_pilot_gate_recovery_targets:'),
+        true,
+        'falta trazabilidad recovery_targets de turneroPilot en incidente de gate'
+    );
+    assert.equal(
+        raw.includes('recoveryTargets = @('),
+        true,
+        'falta recoveryTargets en reporte turneroPilot gate'
+    );
+    assert.equal(
+        raw.includes(
+            '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'
+        ),
+        true,
+        'falta target self-hosted en recoveryTargets del gate'
     );
     assert.equal(
         raw.includes(

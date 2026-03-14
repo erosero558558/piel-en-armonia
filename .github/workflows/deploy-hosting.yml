@@ -475,6 +475,7 @@ jobs:
             TURNERO_PILOT_REMOTE_CATALOG_READY: 'false'
             TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT: ''
             TURNERO_PILOT_REMOTE_VERIFIED: 'false'
+            TURNERO_PILOT_RECOVERY_TARGETS: none
             TURNERO_PILOT_POSTDEPLOY_ALLOWED: 'true'
             TRANSPORT_PREFLIGHT_REASON: not_evaluated
             TRANSPORT_PREFLIGHT_TARGET: not_evaluated
@@ -570,6 +571,30 @@ jobs:
                     status = 'blocked';
                     reason = blocking.join(';');
                   }
+                  const recoveryTargets =
+                    releaseMode === 'web_pilot'
+                      ? [
+                          '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+                          '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado',
+                        ]
+                      : [];
+                  const recoveryTargetsLabel =
+                    recoveryTargets.length > 0 ? recoveryTargets.join('|') : 'none';
+                  const snapshot = {
+                    status,
+                    reason,
+                    clinic_id: clinicId,
+                    matching_profile_id: matchingProfileId,
+                    profile_fingerprint: profileFingerprint,
+                    catalog_ready: catalogReady,
+                    release_mode: releaseMode || 'unknown',
+                    recovery_targets: recoveryTargets,
+                    generated_at: new Date().toISOString(),
+                    result: payload,
+                    stderr: rawStderr || '',
+                  };
+
+                  fs.writeFileSync(statusPath, `${JSON.stringify(snapshot, null, 2)}\n`);
 
                   const envLines = [
                     `TURNERO_PILOT_DEPLOY_STATUS=${status}`,
@@ -579,6 +604,7 @@ jobs:
                     `TURNERO_PILOT_PROFILE_FINGERPRINT=${profileFingerprint}`,
                     `TURNERO_PILOT_CATALOG_READY=${catalogReady ? 'true' : 'false'}`,
                     `TURNERO_PILOT_RELEASE_MODE=${releaseMode || 'unknown'}`,
+                    `TURNERO_PILOT_RECOVERY_TARGETS=${recoveryTargetsLabel}`,
                   ];
 
                   if (envPath) {
@@ -595,6 +621,7 @@ jobs:
                         `profile_fingerprint=${profileFingerprint}`,
                         `catalog_ready=${catalogReady ? 'true' : 'false'}`,
                         `release_mode=${releaseMode || 'unknown'}`,
+                        `recovery_targets=${recoveryTargetsLabel}`,
                       ].join('\n') + '\n'
                     );
                   }
@@ -641,14 +668,22 @@ jobs:
                     node bin/write-transport-preflight.js \
                       --out ".public-cutover/transport-preflight.json" \
                       --reason "ok" \
-                      --reachable "true"
+                      --reachable "true" \
+                      --turnero-clinic-id "${TURNERO_PILOT_CLINIC_ID}" \
+                      --turnero-profile-fingerprint "${TURNERO_PILOT_PROFILE_FINGERPRINT}" \
+                      --turnero-release-mode "${TURNERO_PILOT_RELEASE_MODE}" \
+                      --turnero-recovery-targets "${TURNERO_PILOT_RECOVERY_TARGETS}"
                     echo "TCP OK en ${HOST}:${PORT}"
                   else
                     echo "TRANSPORT_PREFLIGHT_REASON=runner_tcp_unreachable" >> "$GITHUB_ENV"
                     node bin/write-transport-preflight.js \
                       --out ".public-cutover/transport-preflight.json" \
                       --reason "runner_tcp_unreachable" \
-                      --reachable "false"
+                      --reachable "false" \
+                      --turnero-clinic-id "${TURNERO_PILOT_CLINIC_ID}" \
+                      --turnero-profile-fingerprint "${TURNERO_PILOT_PROFILE_FINGERPRINT}" \
+                      --turnero-release-mode "${TURNERO_PILOT_RELEASE_MODE}" \
+                      --turnero-recovery-targets "${TURNERO_PILOT_RECOVERY_TARGETS}"
                     echo "::error::No se puede abrir ${HOST}:${PORT} desde GitHub Runner."
                     exit 1
                   fi
@@ -1072,6 +1107,7 @@ jobs:
                         `- turnero_pilot_clinic_id: ${process.env.TURNERO_PILOT_CLINIC_ID || 'unknown'}`,
                         `- turnero_pilot_profile_fingerprint: ${process.env.TURNERO_PILOT_PROFILE_FINGERPRINT || 'unknown'}`,
                         `- turnero_pilot_release_mode: ${process.env.TURNERO_PILOT_RELEASE_MODE || 'unknown'}`,
+                        `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_RECOVERY_TARGETS || 'none'}`,
                         `- connectivity_diagnose_run_status: ${process.env.CONNECTIVITY_DIAGNOSE_RUN_STATUS || 'not_requested'}`,
                         `- connectivity_diagnose_run_url: ${process.env.CONNECTIVITY_DIAGNOSE_RUN_URL || ''}`,
                         `- prod_url: ${process.env.PROD_URL || 'https://pielarmonia.com'}`,
@@ -1125,6 +1161,7 @@ jobs:
                             `- turnero_pilot_clinic_id: ${process.env.TURNERO_PILOT_CLINIC_ID || 'unknown'}`,
                             `- turnero_pilot_profile_fingerprint: ${process.env.TURNERO_PILOT_PROFILE_FINGERPRINT || 'unknown'}`,
                             `- turnero_pilot_release_mode: ${process.env.TURNERO_PILOT_RELEASE_MODE || 'unknown'}`,
+                            `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_RECOVERY_TARGETS || 'none'}`,
                             `- connectivity_diagnose_run_status: ${process.env.CONNECTIVITY_DIAGNOSE_RUN_STATUS || 'not_requested'}`,
                             `- connectivity_diagnose_run_url: ${process.env.CONNECTIVITY_DIAGNOSE_RUN_URL || ''}`
                           ].join('\n')
@@ -1146,6 +1183,7 @@ jobs:
                   TURNERO_PILOT_CLINIC_ID: ${{ env.TURNERO_PILOT_CLINIC_ID }}
                   TURNERO_PILOT_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_PROFILE_FINGERPRINT }}
                   TURNERO_PILOT_RELEASE_MODE: ${{ env.TURNERO_PILOT_RELEASE_MODE }}
+                  TURNERO_PILOT_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_RECOVERY_TARGETS }}
                   CONNECTIVITY_DIAGNOSE_RUN_STATUS: ${{ steps.connectivity_diagnose_status.outputs.connectivity_diagnose_run_status }}
                   CONNECTIVITY_DIAGNOSE_RUN_URL: ${{ steps.connectivity_diagnose_status.outputs.connectivity_diagnose_run_url }}
 
@@ -1186,7 +1224,8 @@ jobs:
                           `- transport_preflight_target: ${process.env.TRANSPORT_PREFLIGHT_TARGET || 'unknown'}`,
                           `- turnero_pilot_clinic_id: ${process.env.TURNERO_PILOT_CLINIC_ID || 'unknown'}`,
                           `- turnero_pilot_profile_fingerprint: ${process.env.TURNERO_PILOT_PROFILE_FINGERPRINT || 'unknown'}`,
-                          `- turnero_pilot_release_mode: ${process.env.TURNERO_PILOT_RELEASE_MODE || 'unknown'}`
+                          `- turnero_pilot_release_mode: ${process.env.TURNERO_PILOT_RELEASE_MODE || 'unknown'}`,
+                          `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_RECOVERY_TARGETS || 'none'}`
                         ].join('\n')
                       });
 
@@ -1203,6 +1242,7 @@ jobs:
                   TURNERO_PILOT_CLINIC_ID: ${{ env.TURNERO_PILOT_CLINIC_ID }}
                   TURNERO_PILOT_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_PROFILE_FINGERPRINT }}
                   TURNERO_PILOT_RELEASE_MODE: ${{ env.TURNERO_PILOT_RELEASE_MODE }}
+                  TURNERO_PILOT_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_RECOVERY_TARGETS }}
 
             - name: Preparar bundle de deploy (Prod)
               id: prepare_bundle_prod
@@ -1833,6 +1873,7 @@ jobs:
                     echo "- turnero_pilot_remote_catalog_ready: \`${TURNERO_PILOT_REMOTE_CATALOG_READY}\`"
                     echo "- turnero_pilot_remote_deployed_commit: \`${TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT}\`"
                     echo "- turnero_pilot_remote_verified: \`${TURNERO_PILOT_REMOTE_VERIFIED}\`"
+                    echo "- turnero_pilot_recovery_targets: \`${TURNERO_PILOT_RECOVERY_TARGETS}\`"
                     echo "- turnero_pilot_postdeploy_allowed: \`${TURNERO_PILOT_POSTDEPLOY_ALLOWED}\`"
                     echo "- turnero_pilot_status_manifest: \`.public-cutover/turnero-pilot-status.json\`"
                     echo "- turnero_pilot_remote_manifest: \`.public-cutover/turnero-pilot-remote.json\`"
@@ -1939,12 +1980,19 @@ jobs:
                   TURNERO_PILOT_REMOTE_CATALOG_READY: ${{ env.TURNERO_PILOT_REMOTE_CATALOG_READY }}
                   TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT }}
                   TURNERO_PILOT_REMOTE_VERIFIED: ${{ env.TURNERO_PILOT_REMOTE_VERIFIED }}
+                  TURNERO_PILOT_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_RECOVERY_TARGETS }}
                   TURNERO_PILOT_POSTDEPLOY_ALLOWED: ${{ env.TURNERO_PILOT_POSTDEPLOY_ALLOWED }}
               run: |
                   set -euo pipefail
                   mkdir -p .public-cutover
                   node <<'NODE'
                   const fs = require('node:fs');
+                  const turneroPilotRecoveryTargets = String(
+                    process.env.TURNERO_PILOT_RECOVERY_TARGETS || ''
+                  )
+                    .split('|')
+                    .map((value) => value.trim())
+                    .filter(Boolean);
 
                   const manifest = {
                     generated_at: new Date().toISOString(),
@@ -1979,6 +2027,7 @@ jobs:
                       profile_fingerprint: process.env.TURNERO_PILOT_PROFILE_FINGERPRINT || '',
                       catalog_ready: process.env.TURNERO_PILOT_CATALOG_READY || 'false',
                       release_mode: process.env.TURNERO_PILOT_RELEASE_MODE || 'unknown',
+                      recovery_targets: turneroPilotRecoveryTargets,
                       postdeploy_allowed: process.env.TURNERO_PILOT_POSTDEPLOY_ALLOWED || 'true',
                       remote: {
                         status: process.env.TURNERO_PILOT_REMOTE_STATUS || 'unknown',
@@ -2399,6 +2448,7 @@ jobs:
                         `- turnero_pilot_remote_catalog_ready: ${process.env.TURNERO_PILOT_REMOTE_CATALOG_READY || 'false'}`,
                         `- turnero_pilot_remote_deployed_commit: ${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`,
                         `- turnero_pilot_remote_reason: ${process.env.TURNERO_PILOT_REMOTE_REASON || 'unknown'}`,
+                        `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_RECOVERY_TARGETS || 'none'}`,
                         '',
                         signalMarker
                       ].join('\n');
@@ -2448,7 +2498,8 @@ jobs:
                             `- turnero_pilot_remote_reason: ${process.env.TURNERO_PILOT_REMOTE_REASON || 'unknown'}`,
                             `- turnero_pilot_remote_clinic_id: ${process.env.TURNERO_PILOT_REMOTE_CLINIC_ID || 'unknown'}`,
                             `- turnero_pilot_remote_profile_fingerprint: ${process.env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT || 'unknown'}`,
-                            `- turnero_pilot_remote_deployed_commit: ${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`
+                            `- turnero_pilot_remote_deployed_commit: ${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`,
+                            `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_RECOVERY_TARGETS || 'none'}`
                           ].join('\n')
                         });
                         core.info(`Issue deploy-hosting turneroPilot actualizado: #${existing.number}`);
@@ -2472,6 +2523,7 @@ jobs:
                   TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT }}
                   TURNERO_PILOT_REMOTE_CATALOG_READY: ${{ env.TURNERO_PILOT_REMOTE_CATALOG_READY }}
                   TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT }}
+                  TURNERO_PILOT_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_RECOVERY_TARGETS }}
 
             - name: Cerrar incidente turneroPilot deploy-hosting al recuperar
               if: ${{ success() && env.FTP_DRY_RUN != 'true' && github.event_name != 'workflow_dispatch' && env.TURNERO_PILOT_RELEASE_MODE == 'web_pilot' && (env.TURNERO_PILOT_REMOTE_STATUS == 'ready' || env.TURNERO_PILOT_REMOTE_STATUS == 'not_required') }}
@@ -2510,7 +2562,8 @@ jobs:
                           `- turnero_pilot_remote_reason: ${process.env.TURNERO_PILOT_REMOTE_REASON || 'ok'}`,
                           `- turnero_pilot_remote_clinic_id: ${process.env.TURNERO_PILOT_REMOTE_CLINIC_ID || 'unknown'}`,
                           `- turnero_pilot_remote_profile_fingerprint: ${process.env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT || 'unknown'}`,
-                          `- turnero_pilot_remote_deployed_commit: ${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`
+                          `- turnero_pilot_remote_deployed_commit: ${process.env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT || 'unknown'}`,
+                          `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_RECOVERY_TARGETS || 'none'}`
                         ].join('\n')
                       });
 
@@ -2528,6 +2581,7 @@ jobs:
                   TURNERO_PILOT_REMOTE_CLINIC_ID: ${{ env.TURNERO_PILOT_REMOTE_CLINIC_ID }}
                   TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT: ${{ env.TURNERO_PILOT_REMOTE_PROFILE_FINGERPRINT }}
                   TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT }}
+                  TURNERO_PILOT_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_RECOVERY_TARGETS }}
 
             - name: Production summary
               if: ${{ always() }}
@@ -2578,6 +2632,7 @@ jobs:
                     echo "- turnero_pilot_remote_catalog_ready: \`${TURNERO_PILOT_REMOTE_CATALOG_READY}\`";
                     echo "- turnero_pilot_remote_deployed_commit: \`${TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT}\`";
                     echo "- turnero_pilot_remote_verified: \`${TURNERO_PILOT_REMOTE_VERIFIED}\`";
+                    echo "- turnero_pilot_recovery_targets: \`${TURNERO_PILOT_RECOVERY_TARGETS}\`";
                     echo "- turnero_pilot_postdeploy_allowed: \`${TURNERO_PILOT_POSTDEPLOY_ALLOWED}\`";
                     echo "- turnero_pilot_status_manifest: \`.public-cutover/turnero-pilot-status.json\`";
                     echo "- turnero_pilot_remote_manifest: \`.public-cutover/turnero-pilot-remote.json\`";

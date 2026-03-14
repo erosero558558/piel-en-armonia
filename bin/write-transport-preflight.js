@@ -48,6 +48,25 @@ function buildTransportPreflightPayload(options = {}) {
     }
 
     const target = String(options.target ?? `${protocol}:${port}`).trim();
+    const turneroClinicId = String(
+        options['turnero-clinic-id'] ?? options.turneroClinicId ?? ''
+    ).trim();
+    const turneroProfileFingerprint = String(
+        options['turnero-profile-fingerprint'] ??
+            options.turneroProfileFingerprint ??
+            ''
+    ).trim();
+    const turneroReleaseMode = String(
+        options['turnero-release-mode'] ?? options.turneroReleaseMode ?? ''
+    ).trim();
+    const turneroRecoveryTargets = String(
+        options['turnero-recovery-targets'] ??
+            options.turneroRecoveryTargets ??
+            ''
+    )
+        .split('|')
+        .map((value) => value.trim())
+        .filter(Boolean);
 
     return {
         attempted: normalizeBoolean(options.attempted ?? 'true', 'attempted'),
@@ -56,6 +75,12 @@ function buildTransportPreflightPayload(options = {}) {
         protocol,
         port,
         target,
+        turnero_pilot: {
+            clinic_id: turneroClinicId,
+            profile_fingerprint: turneroProfileFingerprint,
+            release_mode: turneroReleaseMode,
+            recovery_targets: turneroRecoveryTargets,
+        },
         generated_at: new Date().toISOString(),
     };
 }

@@ -399,6 +399,8 @@ if ($null -ne $healthResult -and $healthResult.StatusCode -eq 200) {
                 $turneroPilotClinicId = ''
                 $turneroPilotCatalogMatch = $false
                 $turneroPilotVerifyRequired = $false
+                $turneroPilotRecoveryTargets = @()
+                $turneroPilotRecoveryTargetsLabel = 'none'
 
                 try {
                     $turneroPilotStatusRaw = ((& node $turneroClinicProfileScriptPath status --json 2>&1) | Out-String).Trim()
@@ -420,6 +422,11 @@ if ($null -ne $healthResult -and $healthResult.StatusCode -eq 200) {
                     if (-not $turneroPilotCatalogMatch) {
                         Add-MonitorFailure -Message "[FAIL] turneroPilot catalog drift (clinicId=$turneroPilotClinicId)" -AllowDegraded:$AllowDegradedPublicSync
                     } elseif ($turneroPilotVerifyRequired) {
+                        $turneroPilotRecoveryTargets = @(
+                            '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+                            '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'
+                        )
+                        $turneroPilotRecoveryTargetsLabel = ($turneroPilotRecoveryTargets -join '|')
                         Write-Host "[INFO] turneroPilot clinicId=$turneroPilotClinicId catalogMatch=$turneroPilotCatalogMatch"
 
                         $turneroPilotVerifyRaw = ''
@@ -444,6 +451,7 @@ if ($null -ne $healthResult -and $healthResult.StatusCode -eq 200) {
                         try { $turneroPilotRemoteCatalogReady = [bool]$turneroPilotVerify.turneroPilot.catalogReady } catch { $turneroPilotRemoteCatalogReady = $false }
 
                         Write-Host "[INFO] turneroPilot remote clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady"
+                        Write-Host "[INFO] turneroPilot recoveryTargets=$turneroPilotRecoveryTargetsLabel"
 
                         if ($null -eq $turneroPilotVerify -or $turneroPilotVerifyExit -ne 0 -or -not [bool]$turneroPilotVerify.ok) {
                             Add-MonitorFailure -Message "[FAIL] turneroPilot remote mismatch (clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady)" -AllowDegraded:$AllowDegradedPublicSync
@@ -496,7 +504,7 @@ if ($null -ne $healthResult -and $healthResult.StatusCode -eq 200) {
             try { $githubDeployAlertsIssueNumbersLabel = [string]$githubDeployAlertsSummary.issueNumbersLabel } catch { $githubDeployAlertsIssueNumbersLabel = 'none' }
             try { $githubDeployAlertsIssueRefsLabel = [string]$githubDeployAlertsSummary.issueRefsLabel } catch { $githubDeployAlertsIssueRefsLabel = 'none' }
 
-            Write-Host "[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount selfHostedDeployCount=$githubDeployAlertsSelfHostedDeployCount turneroPilotCount=$githubDeployAlertsTurneroPilotCount issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel"
+            Write-Host "[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount selfHostedDeployCount=$githubDeployAlertsSelfHostedDeployCount turneroPilotCount=$githubDeployAlertsTurneroPilotCount turneroPilotRecoveryTargets=$turneroPilotRecoveryTargetsLabel issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel"
 
             if (-not $githubDeployAlertsFetchOk) {
                 Write-Host "[WARN] github.deployAlerts unreachable (repo=$GitHubRepo error=$githubDeployAlertsError)"
@@ -520,7 +528,7 @@ if ($null -ne $healthResult -and $healthResult.StatusCode -eq 200) {
                 Add-MonitorFailure -Message "[FAIL] github.deployAlerts self-hosted deploy blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync
             }
             if ($githubDeployAlertsHasTurneroPilotBlock) {
-                Add-MonitorFailure -Message "[FAIL] github.deployAlerts turnero pilot blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)" -AllowDegraded:$AllowDegradedPublicSync
+                Add-MonitorFailure -Message "[FAIL] github.deployAlerts turnero pilot blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel recoveryTargets=$turneroPilotRecoveryTargetsLabel)" -AllowDegraded:$AllowDegradedPublicSync
             }
 
             $calendarSource = ''

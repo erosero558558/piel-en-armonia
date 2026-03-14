@@ -114,6 +114,7 @@ test('deploy-frontend-selfhosted resuelve y verifica turneroPilot con reporte de
         'TURNERO_PILOT_SELFHOSTED_REASON: not_evaluated',
         'TURNERO_PILOT_REMOTE_STATUS: unknown',
         'TURNERO_PILOT_REMOTE_REASON: not_evaluated',
+        'TURNERO_PILOT_RECOVERY_TARGETS: none',
         'node bin/turnero-clinic-profile.js status --json',
         'node bin/turnero-clinic-profile.js verify-remote --base-url $env:TARGET_DOMAIN --json',
         "TURNERO_PILOT_RELEASE_MODE == 'web_pilot' && env.TURNERO_PILOT_REMOTE_STATUS == 'blocked'",
@@ -122,6 +123,9 @@ test('deploy-frontend-selfhosted resuelve y verifica turneroPilot con reporte de
         'turnero_pilot_local_status: ``$env:TURNERO_PILOT_SELFHOSTED_STATUS``',
         'turnero_pilot_remote_status: ``$env:TURNERO_PILOT_REMOTE_STATUS``',
         'turnero_pilot_remote_deployed_commit: ``$env:TURNERO_PILOT_REMOTE_DEPLOYED_COMMIT``',
+        'turnero_pilot_recovery_targets: ``$env:TURNERO_PILOT_RECOVERY_TARGETS``',
+        'TURNERO_PILOT_RECOVERY_TARGETS=$recoveryTargetsLabel',
+        'recoveryTargets = @($recoveryTargets)',
         'turnero_pilot_report: ``verification/last-turnero-pilot-selfhosted.json``',
         'turnero_pilot_status_manifest: ``.selfhosted-cutover/turnero-pilot-status.json``',
         'turnero_pilot_remote_manifest: ``.selfhosted-cutover/turnero-pilot-remote.json``',
@@ -157,9 +161,11 @@ test('deploy-frontend-selfhosted gestiona incidente dedicado de turneroPilot', (
         'turnero_pilot_remote_clinic_id:',
         'turnero_pilot_remote_profile_fingerprint:',
         'turnero_pilot_remote_deployed_commit:',
+        'turnero_pilot_recovery_targets:',
         'Recuperado automaticamente por deploy-frontend-selfhosted.',
         "env.TURNERO_PILOT_RELEASE_MODE == 'web_pilot' && env.TURNERO_PILOT_REMOTE_STATUS == 'blocked'",
         "env.TURNERO_PILOT_RELEASE_MODE == 'web_pilot' && (env.TURNERO_PILOT_REMOTE_STATUS == 'ready' || env.TURNERO_PILOT_REMOTE_STATUS == 'not_required')",
+        'TURNERO_PILOT_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_RECOVERY_TARGETS }}',
     ]) {
         assert.equal(
             raw.includes(snippet),
@@ -196,10 +202,12 @@ test('deploy-frontend-selfhosted gestiona incidente de ruta bloqueada con contex
         'turnero_pilot_clinic_id:',
         'turnero_pilot_profile_fingerprint:',
         'turnero_pilot_release_mode:',
+        'turnero_pilot_recovery_targets:',
         "env.SELFHOSTED_ROUTE_STATUS == 'blocked'",
         "env.SELFHOSTED_ROUTE_STATUS == 'ready'",
         'selfhosted_route_status: ``$env:SELFHOSTED_ROUTE_STATUS``',
         'selfhosted_route_reason: ``$env:SELFHOSTED_ROUTE_REASON``',
+        'TURNERO_PILOT_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_RECOVERY_TARGETS }}',
     ]) {
         assert.equal(
             raw.includes(snippet),

@@ -238,6 +238,11 @@ test('post-deploy-fast integra gate admin rollout con resumen operativo', () => 
         'falta linea de deployed commit turneroPilot en resumen fast lane'
     );
     assert.equal(
+        raw.includes('Turnero pilot fast recovery targets:'),
+        true,
+        'falta linea de recovery targets turneroPilot en resumen fast lane'
+    );
+    assert.equal(
         raw.includes('Reporte turnero pilot fast:'),
         true,
         'falta linea de reporte turneroPilot en resumen fast lane'
@@ -258,6 +263,11 @@ test('post-deploy-fast integra gate admin rollout con resumen operativo', () => 
         'falta env TURNERO_PILOT_FAST_RELEASE_MODE en fast lane'
     );
     assert.equal(
+        raw.includes('TURNERO_PILOT_FAST_RECOVERY_TARGETS'),
+        true,
+        'falta env TURNERO_PILOT_FAST_RECOVERY_TARGETS en fast lane'
+    );
+    assert.equal(
         raw.includes('turnero_pilot_fast_verify_remote_required:'),
         true,
         'falta trazabilidad verify_remote_required de turneroPilot en incidente fast lane'
@@ -266,6 +276,23 @@ test('post-deploy-fast integra gate admin rollout con resumen operativo', () => 
         raw.includes('turnero_pilot_fast_release_mode:'),
         true,
         'falta trazabilidad release_mode de turneroPilot en incidente fast lane'
+    );
+    assert.equal(
+        raw.includes('turnero_pilot_fast_recovery_targets:'),
+        true,
+        'falta trazabilidad recovery_targets de turneroPilot en incidente fast lane'
+    );
+    assert.equal(
+        raw.includes('recoveryTargets = @('),
+        true,
+        'falta recoveryTargets en reporte turneroPilot fast'
+    );
+    assert.equal(
+        raw.includes(
+            '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'
+        ),
+        true,
+        'falta target self-hosted en recoveryTargets del fast lane'
     );
     assert.equal(
         raw.includes('TELEMEDICINE_FAST_NON_TELE_FAILURES'),

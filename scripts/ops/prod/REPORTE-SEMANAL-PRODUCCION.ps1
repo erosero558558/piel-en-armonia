@@ -574,6 +574,7 @@ $turneroPilotRemoteCatalogReady = $false
 $turneroPilotRemoteProfileSource = ''
 $turneroPilotRemoteReleaseMode = ''
 $turneroPilotRemoteAdminModeDefault = ''
+$turneroPilotRecoveryTargets = @()
 $turneroPilotErrors = New-Object System.Collections.Generic.List[string]
 if (Test-Path $turneroClinicProfileScriptPath) {
     $turneroPilotStatusRaw = ''
@@ -597,6 +598,12 @@ if (Test-Path $turneroClinicProfileScriptPath) {
         try { $turneroPilotClinicId = [string]$turneroPilotStatus.profile.clinic_id } catch { $turneroPilotClinicId = '' }
         try { $turneroPilotCatalogMatch = [bool]$turneroPilotStatus.matchesCatalog } catch { $turneroPilotCatalogMatch = $false }
         try { $turneroPilotVerifyRequired = ([bool]$turneroPilotStatus.ok) -and ([string]$turneroPilotStatus.profile.release.mode -eq 'web_pilot') } catch { $turneroPilotVerifyRequired = $false }
+        if ($turneroPilotVerifyRequired) {
+            $turneroPilotRecoveryTargets = @(
+                '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+                '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'
+            )
+        }
 
         if (-not $turneroPilotCatalogMatch) {
             $turneroPilotErrors.Add('catalog_drift')
@@ -1368,8 +1375,9 @@ Write-Host "public_sync_configured=$publicSyncConfigured public_sync_healthy=$pu
 Write-Host "public_sync_job_id=$publicSyncJobId public_sync_deployed_commit=$publicSyncDeployedCommit public_sync_current_head=$publicSyncCurrentHead public_sync_remote_head=$publicSyncRemoteHead public_sync_head_drift=$publicSyncHeadDrift public_sync_dirty_paths_sample=$publicSyncDirtyPathsSampleLabel"
 Write-Host "turnero_pilot_verify_required=$turneroPilotVerifyRequired turnero_pilot_profile_status_resolved=$turneroPilotProfileStatusResolved turnero_pilot_clinic_id=$turneroPilotClinicId turnero_pilot_catalog_match=$turneroPilotCatalogMatch turnero_pilot_remote_ok=$turneroPilotRemoteOk"
 Write-Host "turnero_pilot_remote_clinic_id=$turneroPilotRemoteClinicId turnero_pilot_remote_fingerprint=$turneroPilotRemoteFingerprint turnero_pilot_remote_catalog_ready=$turneroPilotRemoteCatalogReady turnero_pilot_remote_profile_source=$turneroPilotRemoteProfileSource turnero_pilot_remote_release_mode=$turneroPilotRemoteReleaseMode turnero_pilot_remote_admin_mode_default=$turneroPilotRemoteAdminModeDefault turnero_pilot_errors=$($turneroPilotErrors -join ',')"
+Write-Host "turnero_pilot_recovery_targets=$($turneroPilotRecoveryTargets -join '|')"
 Write-Host "github_deploy_alerts_repo=$GitHubRepo github_deploy_alerts_fetch_ok=$githubDeployAlertsFetchOk github_deploy_alerts_relevant_count=$githubDeployAlertsRelevantCount github_deploy_transport_count=$githubDeployAlertsTransportCount github_deploy_connectivity_count=$githubDeployAlertsConnectivityCount github_deploy_repair_git_sync_count=$githubDeployAlertsRepairGitSyncCount github_deploy_self_hosted_runner_count=$githubDeployAlertsSelfHostedRunnerCount github_deploy_self_hosted_deploy_count=$githubDeployAlertsSelfHostedDeployCount github_deploy_turnero_pilot_count=$githubDeployAlertsTurneroPilotCount"
-Write-Host "github_deploy_alerts_issue_numbers=$githubDeployAlertsIssueNumbersLabel github_deploy_alerts_issue_refs=$githubDeployAlertsIssueRefsLabel github_deploy_alerts_error=$githubDeployAlertsError"
+Write-Host "github_deploy_alerts_issue_numbers=$githubDeployAlertsIssueNumbersLabel github_deploy_alerts_issue_refs=$githubDeployAlertsIssueRefsLabel github_deploy_turnero_pilot_recovery_targets=$($turneroPilotRecoveryTargets -join '|') github_deploy_alerts_error=$githubDeployAlertsError"
 Write-Host "idempotency_requests_with_key=$idempotencyRequestsWithKey idempotency_conflict_rate_pct=$idempotencyConflictRatePct idempotency_replay_rate_pct=$idempotencyReplayRatePct"
 Write-Host "service_funnel_source=$serviceFunnelSource service_funnel_rows=$serviceFunnelRowsCount service_funnel_alert_count=$serviceFunnelAlertCount"
 Write-Host "services_catalog_source=$servicesCatalogSource services_catalog_version=$servicesCatalogVersion services_catalog_count=$servicesCatalogCount services_catalog_configured=$servicesCatalogConfigured"

@@ -1528,7 +1528,7 @@ try {
     try { $githubDeployAlertsHasSelfHostedDeployBlock = [bool]$githubDeployAlerts.hasSelfHostedDeployBlock } catch { $githubDeployAlertsHasSelfHostedDeployBlock = $false }
     try { $githubDeployAlertsHasTurneroPilotBlock = [bool]$githubDeployAlerts.hasTurneroPilotBlock } catch { $githubDeployAlertsHasTurneroPilotBlock = $false }
 
-    Write-Host "[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount selfHostedDeployCount=$githubDeployAlertsSelfHostedDeployCount turneroPilotCount=$githubDeployAlertsTurneroPilotCount issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel"
+    Write-Host "[INFO] github.deployAlerts fetchOk=$githubDeployAlertsFetchOk repo=$GitHubRepo relevantCount=$githubDeployAlertsRelevantCount transportCount=$githubDeployAlertsTransportCount connectivityCount=$githubDeployAlertsConnectivityCount repairGitSyncCount=$githubDeployAlertsRepairGitSyncCount selfHostedRunnerCount=$githubDeployAlertsSelfHostedRunnerCount selfHostedDeployCount=$githubDeployAlertsSelfHostedDeployCount turneroPilotCount=$githubDeployAlertsTurneroPilotCount turneroPilotRecoveryTargets=$turneroPilotRecoveryTargetsLabel issueNumbers=$githubDeployAlertsIssueNumbersLabel issueRefs=$githubDeployAlertsIssueRefsLabel"
     if (-not $githubDeployAlertsFetchOk) {
         Write-Host "[WARN] github.deployAlerts unreachable (repo=$GitHubRepo error=$githubDeployAlertsError)"
     } elseif ($githubDeployAlertsRelevantCount -gt 0) {
@@ -1550,7 +1550,7 @@ try {
             Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts self-hosted deploy blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
         }
         if ($githubDeployAlertsHasTurneroPilotBlock) {
-            Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts turnero pilot blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel)"
+            Write-Host "[$githubDeployAlertsSeverity] github.deployAlerts turnero pilot blocked (issueNumbers=$githubDeployAlertsIssueNumbersLabel recoveryTargets=$turneroPilotRecoveryTargetsLabel)"
         }
 
         if (-not $AllowOpenGitHubDeployAlerts) {
@@ -1781,6 +1781,8 @@ $turneroPilotRemoteAdminModeDefault = ''
 $turneroPilotRemoteSeparateDeploy = $false
 $turneroPilotRemoteNativeAppsBlocking = $false
 $turneroPilotRemoteDeployedCommit = ''
+$turneroPilotRecoveryTargets = @()
+$turneroPilotRecoveryTargetsLabel = 'none'
 
 if (Test-Path $turneroClinicProfileScriptPath) {
 
@@ -1825,6 +1827,11 @@ if (Test-Path $turneroClinicProfileScriptPath) {
                 RemoteUrl = $turneroClinicProfileScriptPath
             }
         } elseif ($turneroPilotVerifyRequired) {
+            $turneroPilotRecoveryTargets = @(
+                '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+                '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'
+            )
+            $turneroPilotRecoveryTargetsLabel = ($turneroPilotRecoveryTargets -join '|')
             Write-Host "[INFO] turnero pilot profile active clinicId=$turneroPilotClinicId catalogMatch=$turneroPilotCatalogMatch"
 
             $turneroPilotVerifyRaw = ''
@@ -1856,6 +1863,7 @@ if (Test-Path $turneroClinicProfileScriptPath) {
             try { $turneroPilotRemoteDeployedCommit = [string]$turneroPilotVerify.publicSync.deployedCommit } catch { $turneroPilotRemoteDeployedCommit = '' }
 
             Write-Host "[INFO] turnero pilot remote clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady deployedCommit=$turneroPilotRemoteDeployedCommit"
+            Write-Host "[INFO] turnero pilot recoveryTargets=$turneroPilotRecoveryTargetsLabel"
 
             if ($null -eq $turneroPilotVerify -or $turneroPilotVerifyExit -ne 0 -or -not [bool]$turneroPilotVerify.ok) {
                 $turneroPilotRemoteHash = if ($turneroPilotRemoteClinicId -or $turneroPilotRemoteFingerprint) {
@@ -2138,6 +2146,7 @@ $turneroPilotReport = [ordered]@{
     separateDeploy = $turneroPilotSeparateDeploy
     nativeAppsBlocking = $turneroPilotNativeAppsBlocking
     verifyRemoteRequired = $turneroPilotVerifyRequired
+    recoveryTargets = @($turneroPilotRecoveryTargets)
     remoteVerified = $turneroPilotRemoteVerified
     remoteClinicId = $turneroPilotRemoteClinicId
     remoteProfileFingerprint = $turneroPilotRemoteFingerprint

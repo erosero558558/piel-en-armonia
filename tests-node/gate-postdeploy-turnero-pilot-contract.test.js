@@ -24,13 +24,17 @@ test('gate postdeploy hace preflight local del clinic-profile antes de verificar
         "$repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\\..\\..')",
         "$turneroClinicProfileScriptPath = Join-Path $repoRoot 'bin/turnero-clinic-profile.js'",
         '$turneroPilotReleaseGateRequired = $false',
+        '$turneroPilotRecoveryTargets = @()',
+        "$turneroPilotRecoveryTargetsLabel = 'none'",
+        "'[ALERTA PROD] Deploy Hosting turneroPilot bloqueado'",
+        "'[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'",
         '& node $turneroClinicProfileScriptPath status --json 2>&1',
-        '[INFO] turneroPilot gate clinicId=$turneroPilotClinicId statusResolved=$turneroPilotProfileStatusResolved catalogMatch=$turneroPilotCatalogMatch verifyRemoteEnforced=$turneroPilotReleaseGateRequired',
+        '[INFO] turneroPilot gate clinicId=$turneroPilotClinicId statusResolved=$turneroPilotProfileStatusResolved catalogMatch=$turneroPilotCatalogMatch verifyRemoteEnforced=$turneroPilotReleaseGateRequired recoveryTargets=$turneroPilotRecoveryTargetsLabel',
         "Write-Host '[FAIL] turneroPilot clinic-profile status unresolved antes del gate.' -ForegroundColor Red",
         "Write-Host '[FAIL] turneroPilot clinic-profile inválido antes del gate.' -ForegroundColor Red",
         'Write-Host "[FAIL] turneroPilot catalog drift antes del gate (clinicId=$turneroPilotClinicId)." -ForegroundColor Red',
         "Write-Host '[WARN] bin/turnero-clinic-profile.js no existe; se omite preflight turneroPilot del gate.'",
-        'Turnero pilot gate OK: clinicId=$turneroPilotClinicId, catalogMatch=$turneroPilotCatalogMatch, verifyRemoteEnforced=true.',
+        'Turnero pilot gate OK: clinicId=$turneroPilotClinicId, catalogMatch=$turneroPilotCatalogMatch, verifyRemoteEnforced=true, recoveryTargets=$turneroPilotRecoveryTargetsLabel.',
     ];
 
     for (const snippet of requiredSnippets) {

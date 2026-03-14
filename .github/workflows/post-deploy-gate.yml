@@ -775,6 +775,7 @@ jobs:
                   $remoteVerified = $false
                   $deployedCommit = ''
                   $releaseMode = ''
+                  $recoveryTargets = @()
                   $reportPath = 'verification/last-deploy-verify.json'
 
                   if (Test-Path $reportPath) {
@@ -797,6 +798,12 @@ jobs:
                         try { $remoteVerified = [bool]$turneroPilot.remoteVerified } catch { $remoteVerified = $false }
                         try { $deployedCommit = [string]$turneroPilot.remoteDeployedCommit } catch { $deployedCommit = '' }
                         try { $releaseMode = [string]$turneroPilot.releaseMode } catch { $releaseMode = '' }
+                        if ($releaseMode -eq 'web_pilot') {
+                          $recoveryTargets = @(
+                            '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+                            '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado'
+                          )
+                        }
 
                         $blocking = New-Object System.Collections.Generic.List[string]
                         if (-not $statusResolved) {
@@ -846,6 +853,7 @@ jobs:
                   "TURNERO_PILOT_GATE_CATALOG_READY=$catalogReadyText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   "TURNERO_PILOT_GATE_REMOTE_VERIFIED=$remoteVerifiedText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   "TURNERO_PILOT_GATE_DEPLOYED_COMMIT=$deployedCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "TURNERO_PILOT_GATE_RECOVERY_TARGETS=$($recoveryTargets -join ' | ')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
                   "status=$status" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
                   "reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
                   Write-Host "Turnero pilot gate => status=$status reason=$reason clinicId=$clinicId fingerprint=$profileFingerprint catalogReady=$catalogReadyText remoteVerified=$remoteVerifiedText deployedCommit=$deployedCommit"
@@ -870,6 +878,9 @@ jobs:
                       catalogReady = ([string]$env:TURNERO_PILOT_GATE_CATALOG_READY).ToLowerInvariant() -eq 'true'
                       remoteVerified = ([string]$env:TURNERO_PILOT_GATE_REMOTE_VERIFIED).ToLowerInvariant() -eq 'true'
                       deployedCommit = [string]$env:TURNERO_PILOT_GATE_DEPLOYED_COMMIT
+                      recoveryTargets = @(
+                        @([string]$env:TURNERO_PILOT_GATE_RECOVERY_TARGETS -split '\s+\|\s+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+                      )
                     }
                     sourceVerifyReport = 'verification/last-deploy-verify.json'
                   }
@@ -890,6 +901,7 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot gate catalog ready: ``$env:TURNERO_PILOT_GATE_CATALOG_READY``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot gate remote verified: ``$env:TURNERO_PILOT_GATE_REMOTE_VERIFIED``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot gate deployed commit: ``$env:TURNERO_PILOT_GATE_DEPLOYED_COMMIT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot gate recovery targets: ``$env:TURNERO_PILOT_GATE_RECOVERY_TARGETS``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Reporte turnero pilot gate: ``verification/last-turnero-pilot-gate.json``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Turnero pilot gate step outcome: ``${{ steps.turnero_pilot_gate.outcome }}``"
 
@@ -943,6 +955,7 @@ jobs:
                   TURNERO_PILOT_GATE_CATALOG_READY: ${{ env.TURNERO_PILOT_GATE_CATALOG_READY }}
                   TURNERO_PILOT_GATE_REMOTE_VERIFIED: ${{ env.TURNERO_PILOT_GATE_REMOTE_VERIFIED }}
                   TURNERO_PILOT_GATE_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_GATE_DEPLOYED_COMMIT }}
+                  TURNERO_PILOT_GATE_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_GATE_RECOVERY_TARGETS }}
               with:
                   script: |
                       const owner = context.repo.owner;
@@ -994,7 +1007,8 @@ jobs:
                         `- turnero_pilot_gate_release_mode: ${process.env.TURNERO_PILOT_GATE_RELEASE_MODE || 'n/a'}`,
                         `- turnero_pilot_gate_catalog_ready: ${process.env.TURNERO_PILOT_GATE_CATALOG_READY || 'false'}`,
                         `- turnero_pilot_gate_remote_verified: ${process.env.TURNERO_PILOT_GATE_REMOTE_VERIFIED || 'false'}`,
-                        `- turnero_pilot_gate_deployed_commit: ${process.env.TURNERO_PILOT_GATE_DEPLOYED_COMMIT || 'n/a'}`
+                        `- turnero_pilot_gate_deployed_commit: ${process.env.TURNERO_PILOT_GATE_DEPLOYED_COMMIT || 'n/a'}`,
+                        `- turnero_pilot_gate_recovery_targets: ${process.env.TURNERO_PILOT_GATE_RECOVERY_TARGETS || 'n/a'}`
                       ].join('\n');
 
                       const diagnosticHints = [];

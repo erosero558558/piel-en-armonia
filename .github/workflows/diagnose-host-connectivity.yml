@@ -50,6 +50,7 @@ jobs:
             TURNERO_PILOT_DIAGNOSE_RELEASE_MODE: unknown
             TURNERO_PILOT_DIAGNOSE_EXPECTED_MATCH: 'false'
             TURNERO_PILOT_DIAGNOSE_EXPECTED_REASON: not_evaluated
+            TURNERO_PILOT_DIAGNOSE_RECOVERY_TARGETS: none
         steps:
             - name: Diagnosticar puertos por origen de host
               shell: bash
@@ -258,6 +259,7 @@ jobs:
                   let releaseMode = 'unknown';
                   let expectedMatch = false;
                   let expectedReason = 'no_expected_profile';
+                  let recoveryTargets = [];
                   const expectedClinicId = safeString(process.env.TURNERO_PILOT_EXPECTED_CLINIC_ID, '');
                   const expectedProfileFingerprint = safeString(
                     process.env.TURNERO_PILOT_EXPECTED_PROFILE_FINGERPRINT,
@@ -284,6 +286,12 @@ jobs:
                       } else {
                         status = 'ready';
                         reason = 'ok';
+                      }
+                      if (releaseMode === 'web_pilot') {
+                        recoveryTargets = [
+                          '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+                          '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado',
+                        ];
                       }
 
                       const expectedMismatches = [];
@@ -324,6 +332,7 @@ jobs:
 
                   const catalogReadyText = catalogReady ? 'true' : 'false';
                   const expectedMatchText = expectedMatch ? 'true' : 'false';
+                  const recoveryTargetsText = recoveryTargets.length > 0 ? recoveryTargets.join('|') : 'none';
                   append(outputPath, 'turnero_pilot_status', status);
                   append(outputPath, 'turnero_pilot_reason', reason);
                   append(outputPath, 'turnero_pilot_clinic_id', clinicId);
@@ -332,6 +341,7 @@ jobs:
                   append(outputPath, 'turnero_pilot_release_mode', releaseMode);
                   append(outputPath, 'turnero_pilot_expected_match', expectedMatchText);
                   append(outputPath, 'turnero_pilot_expected_reason', expectedReason);
+                  append(outputPath, 'turnero_pilot_recovery_targets', recoveryTargetsText);
 
                   append(envPath, 'TURNERO_PILOT_DIAGNOSE_STATUS', status);
                   append(envPath, 'TURNERO_PILOT_DIAGNOSE_REASON', reason);
@@ -341,6 +351,7 @@ jobs:
                   append(envPath, 'TURNERO_PILOT_DIAGNOSE_RELEASE_MODE', releaseMode);
                   append(envPath, 'TURNERO_PILOT_DIAGNOSE_EXPECTED_MATCH', expectedMatchText);
                   append(envPath, 'TURNERO_PILOT_DIAGNOSE_EXPECTED_REASON', expectedReason);
+                  append(envPath, 'TURNERO_PILOT_DIAGNOSE_RECOVERY_TARGETS', recoveryTargetsText);
 
                   const reportPath = 'connectivity-report.json';
                   if (fs.existsSync(reportPath)) {
@@ -358,6 +369,7 @@ jobs:
                         expectedReleaseMode,
                         expectedMatch,
                         expectedReason,
+                        recoveryTargets,
                       };
                       fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
                     } catch {}
@@ -375,6 +387,7 @@ jobs:
                       `- turnero_pilot_release_mode: ${releaseMode}`,
                       `- turnero_pilot_expected_match: ${expectedMatchText}`,
                       `- turnero_pilot_expected_reason: ${expectedReason}`,
+                      `- turnero_pilot_recovery_targets: ${recoveryTargetsText}`,
                     ].join('\n');
                     fs.appendFileSync(textPath, `${lines}\n`);
                   }
@@ -398,6 +411,7 @@ jobs:
                     echo "- turnero_pilot_release_mode: \`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_release_mode }}\`";
                     echo "- turnero_pilot_expected_match: \`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_expected_match }}\`";
                     echo "- turnero_pilot_expected_reason: \`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_expected_reason }}\`";
+                    echo "- turnero_pilot_recovery_targets: \`${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_recovery_targets }}\`";
                     echo "- report_json: \`connectivity-report.json\`";
                     echo "- report_text: \`connectivity-report.txt\`";
                   } >> "$GITHUB_STEP_SUMMARY"
@@ -423,6 +437,7 @@ jobs:
                   TURNERO_PILOT_DIAGNOSE_RELEASE_MODE: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_release_mode }}
                   TURNERO_PILOT_DIAGNOSE_EXPECTED_MATCH: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_expected_match }}
                   TURNERO_PILOT_DIAGNOSE_EXPECTED_REASON: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_expected_reason }}
+                  TURNERO_PILOT_DIAGNOSE_RECOVERY_TARGETS: ${{ steps.turnero_pilot_diagnose.outputs.turnero_pilot_recovery_targets }}
               run: |
                   set -euo pipefail
                   node <<'NODE'
@@ -495,6 +510,7 @@ jobs:
                         `- turnero_pilot_release_mode: ${process.env.TURNERO_PILOT_DIAGNOSE_RELEASE_MODE || 'unknown'}`,
                         `- turnero_pilot_expected_match: ${process.env.TURNERO_PILOT_DIAGNOSE_EXPECTED_MATCH || 'false'}`,
                         `- turnero_pilot_expected_reason: ${process.env.TURNERO_PILOT_DIAGNOSE_EXPECTED_REASON || 'not_evaluated'}`,
+                        `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_DIAGNOSE_RECOVERY_TARGETS || 'none'}`,
                         `- artifact_json: connectivity-report.json`,
                         `- artifact_text: connectivity-report.txt`,
                         '',
@@ -542,7 +558,8 @@ jobs:
                               `- turnero_pilot_clinic_id: ${process.env.TURNERO_PILOT_DIAGNOSE_CLINIC_ID || 'n/a'}`,
                               `- turnero_pilot_profile_fingerprint: ${process.env.TURNERO_PILOT_DIAGNOSE_PROFILE_FINGERPRINT || 'n/a'}`,
                               `- turnero_pilot_expected_match: ${process.env.TURNERO_PILOT_DIAGNOSE_EXPECTED_MATCH || 'false'}`,
-                              `- turnero_pilot_expected_reason: ${process.env.TURNERO_PILOT_DIAGNOSE_EXPECTED_REASON || 'not_evaluated'}`
+                              `- turnero_pilot_expected_reason: ${process.env.TURNERO_PILOT_DIAGNOSE_EXPECTED_REASON || 'not_evaluated'}`,
+                              `- turnero_pilot_recovery_targets: ${process.env.TURNERO_PILOT_DIAGNOSE_RECOVERY_TARGETS || 'none'}`
                             ].join('\n'),
                           },
                         });

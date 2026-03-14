@@ -212,11 +212,13 @@ test('weekly report script integra bloque turnero pilot por clínica', () => {
         'turnero_pilot_verify_required=$turneroPilotVerifyRequired',
         'turnero_pilot_remote_profile_source=$turneroPilotRemoteProfileSource',
         'turnero_pilot_remote_admin_mode_default=$turneroPilotRemoteAdminModeDefault',
+        'turnero_pilot_recovery_targets=$($turneroPilotRecoveryTargets -join',
     ];
     const requiredWarningsSnippets = [
         '## Turnero Pilot',
         'turneroPilot = [ordered]@{',
         'remoteOk = [bool]$turneroPilotRemoteOk',
+        'recoveryTargets = @($turneroPilotRecoveryTargets)',
         'errors = @($turneroPilotErrors)',
         "if ($WarningCode.StartsWith('turnero_pilot_')) {",
     ];
@@ -268,6 +270,7 @@ test('weekly report script integra bloque GitHub deploy alerts operativo', () =>
         'github_deploy_turnero_pilot_blocked',
         'github_deploy_self_hosted_deploy_count=$githubDeployAlertsSelfHostedDeployCount',
         'github_deploy_turnero_pilot_count=$githubDeployAlertsTurneroPilotCount',
+        'github_deploy_turnero_pilot_recovery_targets=$($turneroPilotRecoveryTargets -join',
         'github_deploy_alerts_issue_numbers=$githubDeployAlertsIssueNumbersLabel',
         'github_deploy_alerts_issue_refs=$githubDeployAlertsIssueRefsLabel',
     ];
@@ -278,6 +281,7 @@ test('weekly report script integra bloque GitHub deploy alerts operativo', () =>
         'selfHostedRunnerCount = $githubDeployAlertsSelfHostedRunnerCount',
         'selfHostedDeployCount = $githubDeployAlertsSelfHostedDeployCount',
         'turneroPilotCount = $githubDeployAlertsTurneroPilotCount',
+        'turneroPilotRecoveryTargets = @($turneroPilotRecoveryTargets)',
         'hasSelfHostedDeployBlock = [bool]$githubDeployAlertsHasSelfHostedDeployBlock',
         'hasTurneroPilotBlock = [bool]$githubDeployAlertsHasTurneroPilotBlock',
         'issueRefs = @($githubDeployAlertsIssueRefs)',

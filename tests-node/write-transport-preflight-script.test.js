@@ -26,6 +26,11 @@ test('write-transport-preflight compone target desde protocolo y puerto', () => 
         reachable: 'false',
         protocol: 'sftp',
         port: '22',
+        turneroClinicId: 'clinica-norte-demo',
+        turneroProfileFingerprint: 'fp-demo',
+        turneroReleaseMode: 'web_pilot',
+        turneroRecoveryTargets:
+            '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado|[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado',
     });
 
     assert.equal(payload.reachable, false);
@@ -34,6 +39,15 @@ test('write-transport-preflight compone target desde protocolo y puerto', () => 
     assert.equal(payload.port, '22');
     assert.equal(payload.target, 'sftp:22');
     assert.equal(payload.attempted, true);
+    assert.deepEqual(payload.turnero_pilot, {
+        clinic_id: 'clinica-norte-demo',
+        profile_fingerprint: 'fp-demo',
+        release_mode: 'web_pilot',
+        recovery_targets: [
+            '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+            '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado',
+        ],
+    });
 });
 
 test('write-transport-preflight persiste evidencia JSON canonica', () => {
@@ -52,6 +66,14 @@ test('write-transport-preflight persiste evidencia JSON canonica', () => {
             'ok',
             '--reachable',
             'true',
+            '--turnero-clinic-id',
+            'clinica-norte-demo',
+            '--turnero-profile-fingerprint',
+            'fp-demo',
+            '--turnero-release-mode',
+            'web_pilot',
+            '--turnero-recovery-targets',
+            '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado|[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado',
         ],
         {
             encoding: 'utf8',
@@ -71,6 +93,15 @@ test('write-transport-preflight persiste evidencia JSON canonica', () => {
     assert.equal(payload.protocol, 'ftps');
     assert.equal(payload.port, '21');
     assert.equal(payload.target, 'ftps:21');
+    assert.deepEqual(payload.turnero_pilot, {
+        clinic_id: 'clinica-norte-demo',
+        profile_fingerprint: 'fp-demo',
+        release_mode: 'web_pilot',
+        recovery_targets: [
+            '[ALERTA PROD] Deploy Hosting turneroPilot bloqueado',
+            '[ALERTA PROD] Deploy Frontend Self-Hosted turneroPilot bloqueado',
+        ],
+    });
 });
 
 test('write-transport-preflight valida flags booleanas', () => {
