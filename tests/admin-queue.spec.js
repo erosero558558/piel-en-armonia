@@ -13748,7 +13748,7 @@ test.describe('Admin turnero sala', () => {
         ).toContainText('firma');
     });
 
-    test('queue bloquea el piloto web si /health reporta otra clínica activa para el piloto', async ({
+    test('queue advierte en readiness si /health reporta otra clínica activa para el piloto', async ({
         page,
     }) => {
         const nowIso = new Date().toISOString();
@@ -14008,7 +14008,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText('Piloto web bloqueado');
+        ).toContainText('Piloto web casi listo');
         await expect(
             page.locator('#queueOpsPilotReadinessItem_health')
         ).toContainText('clinica-sur-real');

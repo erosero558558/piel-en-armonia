@@ -90,6 +90,13 @@ async function setupAdminApiMocks(page) {
     });
 }
 
+async function waitForAdminRuntimeReady(page) {
+    await expect(page.locator('html')).toHaveAttribute(
+        'data-admin-ready',
+        'true'
+    );
+}
+
 test.describe('Admin navigation desktop', () => {
     test('sidebar keeps section and hash in sync', async ({ page }) => {
         await setupAdminApiMocks(page);
@@ -138,6 +145,7 @@ test.describe('Admin navigation desktop', () => {
     }) => {
         await setupAdminApiMocks(page);
         await page.goto('/admin.html');
+        await waitForAdminRuntimeReady(page);
 
         await expect(page.locator('#adminCommandPalette')).toHaveClass(
             /is-hidden/
@@ -170,6 +178,7 @@ test.describe('Admin navigation desktop', () => {
     test('Alt+Shift+I abre el copiloto operativo', async ({ page }) => {
         await setupAdminApiMocks(page);
         await page.goto('/admin.html');
+        await waitForAdminRuntimeReady(page);
 
         await expect(
             page.locator('[data-action="open-agent-panel"]')

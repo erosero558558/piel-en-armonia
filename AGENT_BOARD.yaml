@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 651
+  revision: 657
   updated_at: 2026-03-14
 
 tasks:
@@ -23,10 +23,10 @@ tasks:
     domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
-    provider_mode: 
-    runtime_surface: 
-    runtime_transport: 
-    runtime_last_transport: 
+    provider_mode: ""
+    runtime_surface: ""
+    runtime_transport: ""
+    runtime_last_transport: ""
     files: ["backup-receiver.php", "verify-backup.php", "lib/backup.php", "tests/BackupReceiverTest.php", "env.example.php", "docs/RUNBOOKS.md"]
     source_signal: manual
     source_ref: ""
@@ -65,10 +65,10 @@ tasks:
     domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
-    provider_mode: 
-    runtime_surface: 
-    runtime_transport: 
-    runtime_last_transport: 
+    provider_mode: ""
+    runtime_surface: ""
+    runtime_transport: ""
+    runtime_last_transport: ""
     files: ["lib/ratelimit.php", "tests/RateLimiterTest.php", "tests/Security/RateLimiterTest.php", "tests/Unit/Security/RateLimiterTest.php", "env.example.php"]
     source_signal: manual
     source_ref: ""
@@ -107,10 +107,10 @@ tasks:
     domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
-    provider_mode: 
-    runtime_surface: 
-    runtime_transport: 
-    runtime_last_transport: 
+    provider_mode: ""
+    runtime_surface: ""
+    runtime_transport: ""
+    runtime_last_transport: ""
     files: ["docs/openapi.yaml", "README.md"]
     source_signal: manual
     source_ref: ""
@@ -149,10 +149,10 @@ tasks:
     domain_lane: backend_ops
     lane_lock: handoff_allowed
     cross_domain: true
-    provider_mode: 
-    runtime_surface: 
-    runtime_transport: 
-    runtime_last_transport: 
+    provider_mode: ""
+    runtime_surface: ""
+    runtime_transport: ""
+    runtime_last_transport: ""
     files: ["lib/mailer.php", "templates/email", "tests/MailerTest.php"]
     source_signal: manual
     source_ref: ""
@@ -191,10 +191,10 @@ tasks:
     domain_lane: backend_ops
     lane_lock: handoff_allowed
     cross_domain: true
-    provider_mode: 
-    runtime_surface: 
-    runtime_transport: 
-    runtime_last_transport: 
+    provider_mode: ""
+    runtime_surface: ""
+    runtime_transport: ""
+    runtime_last_transport: ""
     files: ["js/engines", "docs/dead-code-audit.md"]
     source_signal: manual
     source_ref: ""
@@ -233,10 +233,10 @@ tasks:
     domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
-    provider_mode: 
-    runtime_surface: 
-    runtime_transport: 
-    runtime_last_transport: 
+    provider_mode: ""
+    runtime_surface: ""
+    runtime_transport: ""
+    runtime_last_transport: ""
     files: [".editorconfig", ".gitattributes"]
     source_signal: manual
     source_ref: ""
@@ -10046,5 +10046,131 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-234.md"
     depends_on: []
     prompt: "Make Windows hosting stack boot without interactive login"
+    created_at: 2026-03-14
+    updated_at: 2026-03-14
+
+  - id: AG-235
+    title: "Stabilize admin quick-nav runtime-ready shortcuts"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-14T04:02:10.249Z"
+    risk: low
+    scope: frontend-qa
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    files: ["tests/admin-quick-nav.spec.js", "verification/agent-runs/AG-235.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-14T04:02:10.249Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Stabilize admin quick-nav runtime-ready shortcuts"
+    acceptance_ref: "verification/agent-runs/AG-235.md"
+    evidence_ref: "verification/agent-runs/AG-235.md"
+    depends_on: []
+    prompt: "Stabilize admin quick-nav runtime-ready shortcuts"
+    created_at: 2026-03-14
+    updated_at: 2026-03-14
+
+  - id: AG-236
+    title: "Alinear readiness health del piloto web en admin queue spec"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-14T04:00:44.133Z"
+    risk: low
+    scope: frontend-qa
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    files: ["tests/admin-queue.spec.js", "verification/agent-runs/AG-236.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-14T04:00:44.133Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Alinear readiness health del piloto web en admin queue spec"
+    acceptance_ref: "verification/agent-runs/AG-236.md"
+    evidence_ref: "verification/agent-runs/AG-236.md"
+    depends_on: []
+    prompt: "Alinear readiness health del piloto web en admin queue spec"
+    created_at: 2026-03-14
+    updated_at: 2026-03-14
+
+  - id: AG-237
+    title: "Consolidar mocks del piloto web en admin queue spec"
+    owner: Ernesto
+    executor: codex
+    status: in_progress
+    status_since_at: "2026-03-14T04:11:01.654Z"
+    risk: low
+    scope: frontend-qa
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    files: ["tests/admin-queue.spec.js", "verification/agent-runs/AG-237.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: "lease_AG-237_20260314041101654_43bafa"
+    lease_owner: "Ernesto"
+    lease_created_at: "2026-03-14T04:11:01.654Z"
+    heartbeat_at: "2026-03-14T04:11:01.654Z"
+    lease_expires_at: "2026-03-14T08:11:01.654Z"
+    lease_reason: "board_write"
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Consolidar mocks del piloto web en admin queue spec"
+    acceptance_ref: ""
+    evidence_ref: ""
+    depends_on: []
+    prompt: "Consolidar mocks del piloto web en admin queue spec"
     created_at: 2026-03-14
     updated_at: 2026-03-14
