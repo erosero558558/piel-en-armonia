@@ -145,6 +145,81 @@ function Wait-ForTcp {
     return $false
 }
 
+function Get-ListeningTcpProcess {
+    param([int]$Port)
+
+    return Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
+        Where-Object { $_.LocalAddress -eq '127.0.0.1' -and $_.LocalPort -eq $Port } |
+        Select-Object -First 1
+}
+
+function Get-ProcessByIdSafe {
+    param([int]$ProcessId)
+
+    return Get-CimInstance Win32_Process -Filter ("ProcessId = {0}" -f $ProcessId) -ErrorAction SilentlyContinue
+}
+
+function Stop-ProcessesById {
+    param(
+        [int[]]$ProcessIds,
+        [string]$Label
+    )
+
+    foreach ($processId in ($ProcessIds | Where-Object { $_ -gt 0 } | Sort-Object -Unique)) {
+        Write-Info ("Stopping {0} pid={1}" -f $Label, $processId)
+        Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Ensure-PhpCgiListener {
+    param(
+        [string]$PhpCgiExecutable,
+        [string]$WorkingDirectory,
+        [string]$StdOutPath,
+        [string]$StdErrPath
+    )
+
+    $phpNeedles = @('php-cgi.exe', '-b 127.0.0.1:9000')
+    $listener = Get-ListeningTcpProcess -Port 9000
+    if ($null -ne $listener) {
+        $listenerProcess = Get-ProcessByIdSafe -ProcessId $listener.OwningProcess
+        if ($null -eq $listenerProcess) {
+            throw 'El puerto 9000 esta ocupado por un proceso no resoluble.'
+        }
+
+        if ([string]::Equals([string]$listenerProcess.Name, 'php-cgi.exe', [System.StringComparison]::OrdinalIgnoreCase)) {
+            Write-Info ("PHP-CGI listener already active ({0})" -f $listener.OwningProcess)
+        } else {
+            throw ("El puerto 9000 ya esta ocupado por {0} (pid={1})." -f $listenerProcess.Name, $listener.OwningProcess)
+        }
+    } else {
+        Start-ManagedProcess `
+            -FilePath $PhpCgiExecutable `
+            -Arguments @('-b', '127.0.0.1:9000') `
+            -WorkingDirectory $WorkingDirectory `
+            -StdOutPath $StdOutPath `
+            -StdErrPath $StdErrPath `
+            -AlreadyRunningNeedles $phpNeedles `
+            -Label 'PHP-CGI' | Out-Null
+
+        if (-not (Wait-ForTcp -Port 9000)) {
+            throw 'PHP-CGI no quedo escuchando en 127.0.0.1:9000'
+        }
+    }
+
+    $activeListener = Get-ListeningTcpProcess -Port 9000
+    if ($null -eq $activeListener) {
+        throw 'PHP-CGI listener no esta disponible despues del bootstrap.'
+    }
+
+    $duplicates = Get-ProcessesByNeedle -Needles $phpNeedles |
+        Where-Object { $_.ProcessId -ne $activeListener.OwningProcess }
+
+    if ($duplicates.Count -gt 0) {
+        Stop-ProcessesById -ProcessIds ($duplicates | ForEach-Object { [int]$_.ProcessId }) -Label 'stale PHP-CGI duplicate'
+    }
+}
+
 function Start-ManagedProcess {
     param(
         [string]$FilePath,
@@ -200,18 +275,11 @@ if ($StopLegacy) {
     Stop-ProcessesByNeedle -Needles @('--url http://127.0.0.1:8011', $TunnelId, 'cloudflared.exe') -Label 'legacy cloudflared tunnel'
 }
 
-Start-ManagedProcess `
-    -FilePath $phpCgiExe `
-    -Arguments @('-b', '127.0.0.1:9000') `
+Ensure-PhpCgiListener `
+    -PhpCgiExecutable $phpCgiExe `
     -WorkingDirectory $repoRoot `
     -StdOutPath $phpStdOutPath `
-    -StdErrPath $phpStdErrPath `
-    -AlreadyRunningNeedles @('php-cgi.exe', '-b 127.0.0.1:9000') `
-    -Label 'PHP-CGI' | Out-Null
-
-if (-not (Wait-ForTcp -Port 9000)) {
-    throw 'PHP-CGI no quedo escuchando en 127.0.0.1:9000'
-}
+    -StdErrPath $phpStdErrPath
 
 Start-ManagedProcess `
     -FilePath $caddyExe `

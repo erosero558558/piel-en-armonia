@@ -23,10 +23,10 @@ tasks:
     domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
-    provider_mode: ""
-    runtime_surface: ""
-    runtime_transport: ""
-    runtime_last_transport: ""
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
     files: ["backup-receiver.php", "verify-backup.php", "lib/backup.php", "tests/BackupReceiverTest.php", "env.example.php", "docs/RUNBOOKS.md"]
     source_signal: manual
     source_ref: ""
@@ -65,10 +65,10 @@ tasks:
     domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
-    provider_mode: ""
-    runtime_surface: ""
-    runtime_transport: ""
-    runtime_last_transport: ""
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
     files: ["lib/ratelimit.php", "tests/RateLimiterTest.php", "tests/Security/RateLimiterTest.php", "tests/Unit/Security/RateLimiterTest.php", "env.example.php"]
     source_signal: manual
     source_ref: ""
@@ -107,10 +107,10 @@ tasks:
     domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
-    provider_mode: ""
-    runtime_surface: ""
-    runtime_transport: ""
-    runtime_last_transport: ""
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
     files: ["docs/openapi.yaml", "README.md"]
     source_signal: manual
     source_ref: ""
@@ -149,10 +149,10 @@ tasks:
     domain_lane: backend_ops
     lane_lock: handoff_allowed
     cross_domain: true
-    provider_mode: ""
-    runtime_surface: ""
-    runtime_transport: ""
-    runtime_last_transport: ""
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
     files: ["lib/mailer.php", "templates/email", "tests/MailerTest.php"]
     source_signal: manual
     source_ref: ""
@@ -191,10 +191,10 @@ tasks:
     domain_lane: backend_ops
     lane_lock: handoff_allowed
     cross_domain: true
-    provider_mode: ""
-    runtime_surface: ""
-    runtime_transport: ""
-    runtime_last_transport: ""
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
     files: ["js/engines", "docs/dead-code-audit.md"]
     source_signal: manual
     source_ref: ""
@@ -233,10 +233,10 @@ tasks:
     domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
-    provider_mode: ""
-    runtime_surface: ""
-    runtime_transport: ""
-    runtime_last_transport: ""
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
     files: [".editorconfig", ".gitattributes"]
     source_signal: manual
     source_ref: ""
@@ -10011,8 +10011,8 @@ tasks:
     title: "Make Windows hosting stack boot without interactive login"
     owner: ernes
     executor: codex
-    status: in_progress
-    status_since_at: "2026-03-14T03:54:04.209Z"
+    status: done
+    status_since_at: "2026-03-14T04:23:35.846Z"
     risk: high
     scope: deploy
     codex_instance: codex_backend_ops
@@ -10031,14 +10031,14 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: "lease_AG-232_20260314035404209_776746"
-    lease_owner: "ernes"
-    lease_created_at: "2026-03-14T03:54:04.209Z"
-    heartbeat_at: "2026-03-14T03:54:04.209Z"
-    lease_expires_at: "2026-03-14T07:54:04.209Z"
-    lease_reason: "board_write"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-14T04:23:35.846Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: high
     critical_zone: true
     acceptance: "Make Windows hosting stack boot without interactive login"
