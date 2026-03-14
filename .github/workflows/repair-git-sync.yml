@@ -65,6 +65,10 @@ jobs:
             HOST_CRON_WRAPPER_SYNC_REASON: not_evaluated
             HOST_CRON_WRAPPER_PATH: /root/sync-pielarmonia.sh
             HOST_CRON_WRAPPER_SOURCE: ''
+            HOST_PUBLIC_DEPLOY_STATE: not_evaluated
+            HOST_PUBLIC_DEPLOY_REASON: not_evaluated
+            HOST_PUBLIC_DEPLOY_SCRIPT: ''
+            HOST_PUBLIC_DEPLOY_TARGET_COMMIT: ''
             TELEMEDICINE_REPAIR_STATUS: unknown
             TELEMEDICINE_REPAIR_REASON: not_evaluated
             TELEMEDICINE_REPAIR_FAILURES: -1
@@ -161,6 +165,10 @@ jobs:
                   REPO_WRAPPER_PATH=""
                   WRAPPER_SYNC_STATE="not_evaluated"
                   WRAPPER_SYNC_REASON="not_evaluated"
+                  PUBLIC_DEPLOY_STATE="not_evaluated"
+                  PUBLIC_DEPLOY_REASON="not_evaluated"
+                  PUBLIC_DEPLOY_SCRIPT=""
+                  PUBLIC_DEPLOY_TARGET_COMMIT=""
 
                   normalize_url() {
                     echo "$1" | sed -e 's#^git@github.com:#https://github.com/#' -e 's#\.git$##'
@@ -244,6 +252,33 @@ jobs:
                     WRAPPER_SYNC_REASON="repo_wrapper_missing"
                     echo "WARN: wrapper canonico ausente en repo: $REPO_WRAPPER_PATH"
                   fi
+                  if [ -f "$TARGET_REPO/bin/deploy-public-v3-live.sh" ]; then
+                    PUBLIC_DEPLOY_SCRIPT="$TARGET_REPO/bin/deploy-public-v3-live.sh"
+                  elif [ -f "$TARGET_REPO/bin/deploy-public-v2-live.sh" ]; then
+                    PUBLIC_DEPLOY_SCRIPT="$TARGET_REPO/bin/deploy-public-v2-live.sh"
+                  else
+                    PUBLIC_DEPLOY_STATE="source_missing"
+                    PUBLIC_DEPLOY_REASON="deploy_script_missing"
+                  fi
+
+                  deploy_rc=0
+                  if [ -n "$PUBLIC_DEPLOY_SCRIPT" ]; then
+                    PUBLIC_DEPLOY_TARGET_COMMIT="$(git -C "$TARGET_REPO" rev-parse --short HEAD)"
+                    echo "Ejecutando deploy publico remoto: $PUBLIC_DEPLOY_SCRIPT (commit $PUBLIC_DEPLOY_TARGET_COMMIT)"
+                    if env \
+                      REPO="$TARGET_REPO" \
+                      TARGET_COMMIT="$PUBLIC_DEPLOY_TARGET_COMMIT" \
+                      INSTALL_DEPS=true \
+                      DISABLE_DESTRUCTIVE_SYNC_CRON=true \
+                      bash "$PUBLIC_DEPLOY_SCRIPT"; then
+                      PUBLIC_DEPLOY_STATE="executed"
+                      PUBLIC_DEPLOY_REASON="deploy_script_completed"
+                    else
+                      deploy_rc=$?
+                      PUBLIC_DEPLOY_STATE="failed"
+                      PUBLIC_DEPLOY_REASON="deploy_script_failed"
+                    fi
+                  fi
                   echo "HEAD remoto sincronizado:"
                   git -C "$TARGET_REPO" rev-parse --short HEAD
                   git -C "$TARGET_REPO" log -1 --format="%h %ci %s"
@@ -251,6 +286,13 @@ jobs:
                   printf '__REPAIR_META__ host_cron_wrapper_sync_reason=%s\n' "$WRAPPER_SYNC_REASON"
                   printf '__REPAIR_META__ host_cron_wrapper_path=%s\n' "$HOST_WRAPPER_PATH"
                   printf '__REPAIR_META__ host_cron_wrapper_source=%s\n' "$REPO_WRAPPER_PATH"
+                  printf '__REPAIR_META__ host_public_deploy_state=%s\n' "$PUBLIC_DEPLOY_STATE"
+                  printf '__REPAIR_META__ host_public_deploy_reason=%s\n' "$PUBLIC_DEPLOY_REASON"
+                  printf '__REPAIR_META__ host_public_deploy_script=%s\n' "$PUBLIC_DEPLOY_SCRIPT"
+                  printf '__REPAIR_META__ host_public_deploy_target_commit=%s\n' "$PUBLIC_DEPLOY_TARGET_COMMIT"
+                  if [ "$deploy_rc" -ne 0 ]; then
+                    exit "$deploy_rc"
+                  fi
                   REMOTE
 
                   remote_command="$(
@@ -287,8 +329,13 @@ jobs:
                   host_cron_wrapper_sync_reason='ssh_stdout_unavailable'
                   host_cron_wrapper_path="$PUBLIC_SYNC_HOST_WRAPPER_PATH"
                   host_cron_wrapper_source=''
+                  host_public_deploy_state='unknown'
+                  host_public_deploy_reason='ssh_stdout_unavailable'
+                  host_public_deploy_script=''
+                  host_public_deploy_target_commit=''
                   if [ -s "$ssh_stdout_file" ]; then
                     host_cron_wrapper_sync_reason='not_reported'
+                    host_public_deploy_reason='not_reported'
                   fi
 
                   while IFS= read -r line; do
@@ -305,6 +352,18 @@ jobs:
                       '__REPAIR_META__ host_cron_wrapper_source='*)
                         host_cron_wrapper_source="${line#*=}"
                         ;;
+                      '__REPAIR_META__ host_public_deploy_state='*)
+                        host_public_deploy_state="${line#*=}"
+                        ;;
+                      '__REPAIR_META__ host_public_deploy_reason='*)
+                        host_public_deploy_reason="${line#*=}"
+                        ;;
+                      '__REPAIR_META__ host_public_deploy_script='*)
+                        host_public_deploy_script="${line#*=}"
+                        ;;
+                      '__REPAIR_META__ host_public_deploy_target_commit='*)
+                        host_public_deploy_target_commit="${line#*=}"
+                        ;;
                     esac
                   done < "$ssh_stdout_file"
 
@@ -313,6 +372,10 @@ jobs:
                     echo "host_cron_wrapper_sync_reason=$host_cron_wrapper_sync_reason"
                     echo "host_cron_wrapper_path=$host_cron_wrapper_path"
                     echo "host_cron_wrapper_source=$host_cron_wrapper_source"
+                    echo "host_public_deploy_state=$host_public_deploy_state"
+                    echo "host_public_deploy_reason=$host_public_deploy_reason"
+                    echo "host_public_deploy_script=$host_public_deploy_script"
+                    echo "host_public_deploy_target_commit=$host_public_deploy_target_commit"
                   } >> "$GITHUB_OUTPUT"
 
                   {
@@ -320,6 +383,10 @@ jobs:
                     echo "HOST_CRON_WRAPPER_SYNC_REASON=$host_cron_wrapper_sync_reason"
                     echo "HOST_CRON_WRAPPER_PATH=$host_cron_wrapper_path"
                     echo "HOST_CRON_WRAPPER_SOURCE=$host_cron_wrapper_source"
+                    echo "HOST_PUBLIC_DEPLOY_STATE=$host_public_deploy_state"
+                    echo "HOST_PUBLIC_DEPLOY_REASON=$host_public_deploy_reason"
+                    echo "HOST_PUBLIC_DEPLOY_SCRIPT=$host_public_deploy_script"
+                    echo "HOST_PUBLIC_DEPLOY_TARGET_COMMIT=$host_public_deploy_target_commit"
                   } >> "$GITHUB_ENV"
 
                   if [ "$ssh_rc" -ne 0 ]; then
@@ -1960,11 +2027,15 @@ jobs:
                     echo "## Repair git sync";
                     echo "- target_domain: \`${TARGET_DOMAIN}\`";
                     echo "- trigger: \`${{ github.event_name }}\`";
-                    echo "- ssh_repair_outcome: \`${{ steps.ssh_repair.outcome }}\`";
-                    echo "- host_cron_wrapper_sync_state: \`${HOST_CRON_WRAPPER_SYNC_STATE}\`";
-                    echo "- host_cron_wrapper_sync_reason: \`${HOST_CRON_WRAPPER_SYNC_REASON}\`";
-                    echo "- host_cron_wrapper_path: \`${HOST_CRON_WRAPPER_PATH}\`";
-                    echo "- host_cron_wrapper_source: \`${HOST_CRON_WRAPPER_SOURCE}\`";
+                  echo "- ssh_repair_outcome: \`${{ steps.ssh_repair.outcome }}\`";
+                  echo "- host_cron_wrapper_sync_state: \`${HOST_CRON_WRAPPER_SYNC_STATE}\`";
+                  echo "- host_cron_wrapper_sync_reason: \`${HOST_CRON_WRAPPER_SYNC_REASON}\`";
+                  echo "- host_cron_wrapper_path: \`${HOST_CRON_WRAPPER_PATH}\`";
+                  echo "- host_cron_wrapper_source: \`${HOST_CRON_WRAPPER_SOURCE}\`";
+                  echo "- host_public_deploy_state: \`${HOST_PUBLIC_DEPLOY_STATE}\`";
+                  echo "- host_public_deploy_reason: \`${HOST_PUBLIC_DEPLOY_REASON}\`";
+                  echo "- host_public_deploy_script: \`${HOST_PUBLIC_DEPLOY_SCRIPT}\`";
+                  echo "- host_public_deploy_target_commit: \`${HOST_PUBLIC_DEPLOY_TARGET_COMMIT}\`";
                     echo "- verify_after_repair_outcome: \`${{ steps.verify_after_repair.outcome }}\`";
                     echo "- smoke_post_repair_outcome: \`${{ steps.smoke_post_repair.outcome }}\`";
                     echo "- telemedicine_repair_status: \`${TELEMEDICINE_REPAIR_STATUS}\`";
