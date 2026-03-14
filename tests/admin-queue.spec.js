@@ -323,6 +323,117 @@ function buildQueueStateFromTickets(queueTickets) {
     };
 }
 
+function buildQueueOperationalSurfaceStatusEntry(surface, options = {}) {
+    const labels = {
+        operator: 'Operador',
+        kiosk: 'Kiosco',
+        display: 'Sala TV',
+    };
+
+    return {
+        surface,
+        label: labels[surface] || surface,
+        status: 'unknown',
+        updatedAt: '',
+        ageSec: 0,
+        stale: true,
+        summary: 'Sin heartbeat',
+        latest: null,
+        instances: [],
+        ...options,
+    };
+}
+
+function buildQueueUnknownOperationalSurfaceStatus(surface, options = {}) {
+    return buildQueueOperationalSurfaceStatusEntry(surface, {
+        status: 'unknown',
+        updatedAt: '',
+        ageSec: 0,
+        stale: true,
+        summary: 'Sin heartbeat',
+        latest: null,
+        instances: [],
+        ...options,
+    });
+}
+
+function buildQueueDesktopOperatorInstance(options = {}) {
+    const detailsOverride =
+        options.details && typeof options.details === 'object'
+            ? options.details
+            : {};
+    const station = String(
+        detailsOverride.station || options.station || 'c1'
+    ).toLowerCase();
+    const ageSec = Number(options.ageSec === undefined ? 4 : options.ageSec);
+    const stationLabel = station.toUpperCase();
+    const oneTap =
+        detailsOverride.oneTap !== undefined
+            ? Boolean(detailsOverride.oneTap)
+            : Boolean(options.oneTap);
+
+    return {
+        deviceLabel: options.deviceLabel || `Operador ${stationLabel} fijo`,
+        appMode: 'desktop',
+        ageSec,
+        stale: false,
+        effectiveStatus: options.effectiveStatus || 'ready',
+        summary:
+            options.summary ||
+            `Equipo listo para operar en ${stationLabel} fijo.`,
+        details: {
+            station,
+            stationMode: 'locked',
+            oneTap,
+            numpadSeen: true,
+            numpadReady: true,
+            numpadProgress: 4,
+            numpadRequired: 4,
+            numpadLabel: 'Numpad listo',
+            numpadSummary: 'Numpad listo · Numpad Enter, +, ., -',
+            shellPackaged: true,
+            shellPlatform: 'win32',
+            shellUpdateChannel: 'stable',
+            ...detailsOverride,
+        },
+    };
+}
+
+function buildQueueDesktopOperatorSurfaceStatus(options = {}) {
+    const instances = Array.isArray(options.instances) ? options.instances : [];
+    const latest =
+        options.latest === undefined
+            ? instances[0] || null
+            : options.latest || null;
+    const updatedAt =
+        String(options.updatedAt || latest?.updatedAt || '').trim() ||
+        new Date().toISOString();
+
+    return buildQueueOperationalSurfaceStatusEntry('operator', {
+        status: latest ? 'ready' : 'unknown',
+        updatedAt,
+        ageSec: latest ? latest.ageSec || 0 : 0,
+        stale: false,
+        summary: latest ? latest.summary || '' : 'Sin heartbeat',
+        latest,
+        instances,
+        ...options,
+    });
+}
+
+function buildQueueOperationalAppsSurfaceStatus(options = {}) {
+    return {
+        operator:
+            options.operator ||
+            buildQueueUnknownOperationalSurfaceStatus('operator'),
+        kiosk:
+            options.kiosk || buildQueueUnknownOperationalSurfaceStatus('kiosk'),
+        display:
+            options.display ||
+            buildQueueUnknownOperationalSurfaceStatus('display'),
+    };
+}
+
 function resolveAdminQueueFixture(value) {
     return typeof value === 'function' ? value() : value;
 }
@@ -446,6 +557,36 @@ async function installQueuePilotApiMocks(page, options = {}) {
             ...(options.queueSurfaceStatus
                 ? { queueSurfaceStatus: options.queueSurfaceStatus }
                 : {}),
+        },
+        handleRoute: options.handleRoute || null,
+    });
+}
+
+async function installQueueOperationalAppsApiMocks(page, options = {}) {
+    const updatedAt =
+        String(options.updatedAt || '').trim() || new Date().toISOString();
+    const queueStateFixture =
+        options.queueState || buildQueueIdleState(updatedAt);
+
+    return installAdminQueueApiMocks(page, {
+        queueState: queueStateFixture,
+        healthPayload: options.healthPayload || { ok: true, status: 'ok' },
+        funnelMetrics: options.funnelMetrics || {},
+        dataOverrides: () => {
+            const extraDataOverrides = resolveAdminQueueFixture(
+                options.dataOverrides
+            );
+            const queueSurfaceStatus =
+                resolveAdminQueueFixture(options.queueSurfaceStatus) ||
+                buildQueueOperationalAppsSurfaceStatus();
+
+            return {
+                queueSurfaceStatus,
+                ...((extraDataOverrides &&
+                    typeof extraDataOverrides === 'object' &&
+                    extraDataOverrides) ||
+                    {}),
+            };
         },
         handleRoute: options.handleRoute || null,
     });
