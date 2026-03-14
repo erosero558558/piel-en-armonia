@@ -654,6 +654,7 @@ function getConfiguredStrategy(array $board): ?array
         'title' => trim((string) ($strategy['title'] ?? '')),
         'objective' => trim((string) ($strategy['objective'] ?? '')),
         'owner' => trim((string) ($strategy['owner'] ?? '')),
+        'owner_policy' => trim((string) ($strategy['owner_policy'] ?? '')),
         'status' => strtolower(trim((string) ($strategy['status'] ?? ''))),
         'started_at' => trim((string) ($strategy['started_at'] ?? '')),
         'review_due_at' => trim((string) ($strategy['review_due_at'] ?? '')),
@@ -2000,14 +2001,15 @@ foreach ($codexBlocksByInstance as $blockInstance => $block) {
     }
 }
 
+$configuredStrategy = getConfiguredStrategy($board);
 $activeStrategy = getActiveStrategy($board);
 $planStrategyBlock = count($codexStrategyBlocks) > 0 ? $codexStrategyBlocks[0] : null;
-if (is_array($activeStrategy)) {
+if (is_array($configuredStrategy)) {
     if (!is_array($planStrategyBlock)) {
-        $errors[] = 'AGENT_BOARD.yaml tiene strategy.active en status=active pero falta CODEX_STRATEGY_ACTIVE en PLAN_MAESTRO_CODEX_2026.md';
+        $errors[] = 'AGENT_BOARD.yaml tiene strategy.active configurada pero falta CODEX_STRATEGY_ACTIVE en PLAN_MAESTRO_CODEX_2026.md';
     } else {
         $boardSubfrontIds = [];
-        foreach (($activeStrategy['subfronts'] ?? []) as $subfront) {
+        foreach (($configuredStrategy['subfronts'] ?? []) as $subfront) {
             $subfrontId = trim((string) ($subfront['subfront_id'] ?? ''));
             if ($subfrontId !== '') {
                 $boardSubfrontIds[] = $subfrontId;
@@ -2021,24 +2023,27 @@ if (is_array($activeStrategy)) {
         )));
         sort($planSubfrontIds);
 
-        if (trim((string) ($planStrategyBlock['id'] ?? '')) !== (string) ($activeStrategy['id'] ?? '')) {
+        if (trim((string) ($planStrategyBlock['id'] ?? '')) !== (string) ($configuredStrategy['id'] ?? '')) {
             $errors[] = 'CODEX_STRATEGY_ACTIVE.id desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml';
         }
-        if (trim((string) ($planStrategyBlock['title'] ?? '')) !== (string) ($activeStrategy['title'] ?? '')) {
+        if (trim((string) ($planStrategyBlock['title'] ?? '')) !== (string) ($configuredStrategy['title'] ?? '')) {
             $errors[] = 'CODEX_STRATEGY_ACTIVE.title desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml';
         }
-        if (trim((string) ($planStrategyBlock['status'] ?? '')) !== (string) ($activeStrategy['status'] ?? '')) {
+        if (trim((string) ($planStrategyBlock['status'] ?? '')) !== (string) ($configuredStrategy['status'] ?? '')) {
             $errors[] = 'CODEX_STRATEGY_ACTIVE.status desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml';
         }
-        if (trim((string) ($planStrategyBlock['owner'] ?? '')) !== (string) ($activeStrategy['owner'] ?? '')) {
+        if (trim((string) ($planStrategyBlock['owner'] ?? '')) !== (string) ($configuredStrategy['owner'] ?? '')) {
             $errors[] = 'CODEX_STRATEGY_ACTIVE.owner desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml';
+        }
+        if (trim((string) ($planStrategyBlock['owner_policy'] ?? '')) !== (string) ($configuredStrategy['owner_policy'] ?? '')) {
+            $errors[] = 'CODEX_STRATEGY_ACTIVE.owner_policy desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml';
         }
         if ($planSubfrontIds !== $boardSubfrontIds) {
             $errors[] = 'CODEX_STRATEGY_ACTIVE.subfront_ids desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml';
         }
     }
 } elseif (is_array($planStrategyBlock)) {
-    $errors[] = 'PLAN_MAESTRO_CODEX_2026.md tiene CODEX_STRATEGY_ACTIVE pero AGENT_BOARD.yaml no tiene strategy.active en status=active';
+    $errors[] = 'PLAN_MAESTRO_CODEX_2026.md tiene CODEX_STRATEGY_ACTIVE pero AGENT_BOARD.yaml no tiene strategy.active configurada';
 }
 
 $requiredQueueMeta = ['task_id', 'risk', 'scope', 'files', 'acceptance_ref', 'dispatched_by', 'status'];
