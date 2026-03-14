@@ -1,57 +1,35 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-
-function json(route, payload, status = 200) {
-    return route.fulfill({
-        status,
-        contentType: 'application/json; charset=utf-8',
-        body: JSON.stringify(payload),
-    });
-}
+const {
+    installTurneroClinicProfileFailure,
+    installTurneroClinicProfileMock,
+    installTurneroQueueStateMock,
+} = require('./helpers/turnero-surface-mocks');
 
 test.describe('Sala turnos display', () => {
     test('aplica branding del perfil clinico en la cabecera de sala', async ({
         page,
     }) => {
-        await page.route(
-            /\/content\/turnero\/clinic-profile\.json(\?.*)?$/i,
-            async (route) =>
-                json(route, {
-                    clinic_id: 'clinica-norte-demo',
-                    branding: {
-                        name: 'Clinica Norte',
-                        short_name: 'Norte',
-                        city: 'Quito',
-                    },
-                    consultorios: {
-                        c1: { label: 'Dermatología 1', short_label: 'D1' },
-                        c2: { label: 'Dermatología 2', short_label: 'D2' },
-                    },
-                    surfaces: {
-                        display: {
-                            enabled: true,
-                            route: '/sala-turnos.html',
-                        },
-                    },
-                })
-        );
-
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource !== 'queue-state') {
-                return json(route, { ok: true, data: {} });
-            }
-
-            return json(route, {
-                ok: true,
-                data: {
-                    updatedAt: new Date().toISOString(),
-                    callingNow: [],
-                    nextTickets: [],
+        await installTurneroClinicProfileMock(page, {
+            clinic_id: 'clinica-norte-demo',
+            branding: {
+                name: 'Clinica Norte',
+                short_name: 'Norte',
+                city: 'Quito',
+            },
+            consultorios: {
+                c1: { label: 'Dermatología 1', short_label: 'D1' },
+                c2: { label: 'Dermatología 2', short_label: 'D2' },
+            },
+            surfaces: {
+                display: {
+                    enabled: true,
+                    route: '/sala-turnos.html',
                 },
-            });
+            },
         });
+
+        await installTurneroQueueStateMock(page);
 
         await page.goto('/sala-turnos.html');
 
@@ -73,56 +51,40 @@ test.describe('Sala turnos display', () => {
     test('degrada sala si la ruta del perfil no coincide con la superficie activa', async ({
         page,
     }) => {
-        let queueStateCalls = 0;
-        await page.route(
-            /\/content\/turnero\/clinic-profile\.json(\?.*)?$/i,
-            async (route) =>
-                json(route, {
-                    clinic_id: 'clinica-norte-demo',
-                    branding: {
-                        name: 'Clinica Norte',
-                        short_name: 'Norte',
-                    },
-                    surfaces: {
-                        display: {
-                            enabled: true,
-                            route: '/sala-alt.html',
-                        },
-                    },
-                })
-        );
-
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource !== 'queue-state') {
-                return json(route, { ok: true, data: {} });
-            }
-            queueStateCalls += 1;
-
-            return json(route, {
-                ok: true,
-                data: {
-                    updatedAt: new Date().toISOString(),
-                    callingNow: [
-                        {
-                            id: 91,
-                            ticketCode: 'A-091',
-                            patientInitials: 'JR',
-                            assignedConsultorio: 1,
-                            calledAt: new Date().toISOString(),
-                        },
-                    ],
-                    nextTickets: [
-                        {
-                            id: 92,
-                            ticketCode: 'A-092',
-                            patientInitials: 'LM',
-                            position: 1,
-                        },
-                    ],
+        await installTurneroClinicProfileMock(page, {
+            clinic_id: 'clinica-norte-demo',
+            branding: {
+                name: 'Clinica Norte',
+                short_name: 'Norte',
+            },
+            surfaces: {
+                display: {
+                    enabled: true,
+                    route: '/sala-alt.html',
                 },
-            });
+            },
+        });
+
+        const queueState = await installTurneroQueueStateMock(page, {
+            queueState: {
+                callingNow: [
+                    {
+                        id: 91,
+                        ticketCode: 'A-091',
+                        patientInitials: 'JR',
+                        assignedConsultorio: 1,
+                        calledAt: new Date().toISOString(),
+                    },
+                ],
+                nextTickets: [
+                    {
+                        id: 92,
+                        ticketCode: 'A-092',
+                        patientInitials: 'LM',
+                        position: 1,
+                    },
+                ],
+            },
         });
 
         await page.goto('/sala-turnos.html');
@@ -145,54 +107,34 @@ test.describe('Sala turnos display', () => {
         await expect(page.locator('#displayNextList')).toContainText(
             'Pantalla bloqueada'
         );
-        expect(queueStateCalls).toBe(0);
+        expect(queueState.getQueueStateCalls()).toBe(0);
     });
 
     test('degrada sala si clinic-profile.json no carga y queda en perfil de respaldo', async ({
         page,
     }) => {
-        let queueStateCalls = 0;
-        await page.route(
-            /\/content\/turnero\/clinic-profile\.json(\?.*)?$/i,
-            async (route) =>
-                route.fulfill({
-                    status: 404,
-                    contentType: 'application/json; charset=utf-8',
-                    body: JSON.stringify({ ok: false }),
-                })
-        );
+        await installTurneroClinicProfileFailure(page);
 
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource !== 'queue-state') {
-                return json(route, { ok: true, data: {} });
-            }
-            queueStateCalls += 1;
-
-            return json(route, {
-                ok: true,
-                data: {
-                    updatedAt: new Date().toISOString(),
-                    callingNow: [
-                        {
-                            id: 93,
-                            ticketCode: 'A-093',
-                            patientInitials: 'EP',
-                            assignedConsultorio: 2,
-                            calledAt: new Date().toISOString(),
-                        },
-                    ],
-                    nextTickets: [
-                        {
-                            id: 94,
-                            ticketCode: 'A-094',
-                            patientInitials: 'QV',
-                            position: 1,
-                        },
-                    ],
-                },
-            });
+        const queueState = await installTurneroQueueStateMock(page, {
+            queueState: {
+                callingNow: [
+                    {
+                        id: 93,
+                        ticketCode: 'A-093',
+                        patientInitials: 'EP',
+                        assignedConsultorio: 2,
+                        calledAt: new Date().toISOString(),
+                    },
+                ],
+                nextTickets: [
+                    {
+                        id: 94,
+                        ticketCode: 'A-094',
+                        patientInitials: 'QV',
+                        position: 1,
+                    },
+                ],
+            },
         });
 
         await page.goto('/sala-turnos.html');
@@ -215,53 +157,43 @@ test.describe('Sala turnos display', () => {
         await expect(page.locator('#displayNextList')).toContainText(
             'Pantalla bloqueada'
         );
-        expect(queueStateCalls).toBe(0);
+        expect(queueState.getQueueStateCalls()).toBe(0);
     });
 
     test('renderiza llamados activos y siguientes turnos', async ({ page }) => {
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource !== 'queue-state') {
-                return json(route, { ok: true, data: {} });
-            }
-
-            return json(route, {
-                ok: true,
-                data: {
-                    updatedAt: new Date().toISOString(),
-                    callingNow: [
-                        {
-                            id: 1,
-                            ticketCode: 'A-051',
-                            patientInitials: 'JP',
-                            assignedConsultorio: 1,
-                            calledAt: new Date().toISOString(),
-                        },
-                        {
-                            id: 2,
-                            ticketCode: 'A-052',
-                            patientInitials: 'MC',
-                            assignedConsultorio: 2,
-                            calledAt: new Date().toISOString(),
-                        },
-                    ],
-                    nextTickets: [
-                        {
-                            id: 3,
-                            ticketCode: 'A-053',
-                            patientInitials: 'EP',
-                            position: 1,
-                        },
-                        {
-                            id: 4,
-                            ticketCode: 'A-054',
-                            patientInitials: 'LR',
-                            position: 2,
-                        },
-                    ],
-                },
-            });
+        await installTurneroQueueStateMock(page, {
+            queueState: {
+                callingNow: [
+                    {
+                        id: 1,
+                        ticketCode: 'A-051',
+                        patientInitials: 'JP',
+                        assignedConsultorio: 1,
+                        calledAt: new Date().toISOString(),
+                    },
+                    {
+                        id: 2,
+                        ticketCode: 'A-052',
+                        patientInitials: 'MC',
+                        assignedConsultorio: 2,
+                        calledAt: new Date().toISOString(),
+                    },
+                ],
+                nextTickets: [
+                    {
+                        id: 3,
+                        ticketCode: 'A-053',
+                        patientInitials: 'EP',
+                        position: 1,
+                    },
+                    {
+                        id: 4,
+                        ticketCode: 'A-054',
+                        patientInitials: 'LR',
+                        position: 2,
+                    },
+                ],
+            },
         });
 
         await page.goto('/sala-turnos.html');
@@ -282,42 +214,33 @@ test.describe('Sala turnos display', () => {
     test('acepta queue-state snake_case para llamados y siguientes', async ({
         page,
     }) => {
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource !== 'queue-state') {
-                return json(route, { ok: true, data: {} });
-            }
-
-            return json(route, {
-                ok: true,
-                data: {
-                    updated_at: new Date().toISOString(),
-                    calling_now: [
-                        {
-                            id: 11,
-                            ticket_code: 'A-411',
-                            patient_initials: 'JK',
-                            assigned_consultorio: 1,
-                            called_at: new Date().toISOString(),
-                        },
-                        {
-                            id: 12,
-                            ticket_code: 'A-412',
-                            patient_initials: 'LM',
-                            assigned_consultorio: 2,
-                            called_at: new Date().toISOString(),
-                        },
-                    ],
-                    next_tickets: [
-                        {
-                            id: 13,
-                            ticket_code: 'A-413',
-                            patient_initials: 'PQ',
-                        },
-                    ],
-                },
-            });
+        await installTurneroQueueStateMock(page, {
+            queueState: () => ({
+                updated_at: new Date().toISOString(),
+                calling_now: [
+                    {
+                        id: 11,
+                        ticket_code: 'A-411',
+                        patient_initials: 'JK',
+                        assigned_consultorio: 1,
+                        called_at: new Date().toISOString(),
+                    },
+                    {
+                        id: 12,
+                        ticket_code: 'A-412',
+                        patient_initials: 'LM',
+                        assigned_consultorio: 2,
+                        called_at: new Date().toISOString(),
+                    },
+                ],
+                next_tickets: [
+                    {
+                        id: 13,
+                        ticket_code: 'A-413',
+                        patient_initials: 'PQ',
+                    },
+                ],
+            }),
         });
 
         await page.goto('/sala-turnos.html');
@@ -334,36 +257,14 @@ test.describe('Sala turnos display', () => {
     test('muestra watchdog degradado y recupera con refresh manual', async ({
         page,
     }) => {
-        let queueStateCalls = 0;
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource !== 'queue-state') {
-                return json(route, { ok: true, data: {} });
-            }
-
-            queueStateCalls += 1;
-            if (queueStateCalls === 1) {
-                return json(route, {
-                    ok: true,
-                    data: {
-                        updatedAt: new Date(
-                            Date.now() - 95 * 1000
-                        ).toISOString(),
-                        callingNow: [],
-                        nextTickets: [],
-                    },
-                });
-            }
-
-            return json(route, {
-                ok: true,
-                data: {
-                    updatedAt: new Date().toISOString(),
-                    callingNow: [],
-                    nextTickets: [],
-                },
-            });
+        await installTurneroQueueStateMock(page, {
+            queueState: ({ callCount }) => ({
+                updatedAt: new Date(
+                    Date.now() - (callCount === 1 ? 95 * 1000 : 0)
+                ).toISOString(),
+                callingNow: [],
+                nextTickets: [],
+            }),
         });
 
         await page.goto('/sala-turnos.html');
@@ -406,46 +307,32 @@ test.describe('Sala turnos display', () => {
     test('permite silenciar campanilla y mantiene preferencia local', async ({
         page,
     }) => {
-        await page.route(
-            /\/content\/turnero\/clinic-profile\.json(\?.*)?$/i,
-            async (route) =>
-                json(route, {
-                    clinic_id: 'clinica-norte-demo',
-                    branding: {
-                        name: 'Clinica Norte',
-                        short_name: 'Norte',
-                    },
-                    surfaces: {
-                        display: {
-                            enabled: true,
-                            route: '/sala-turnos.html',
-                        },
-                    },
-                })
-        );
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource !== 'queue-state') {
-                return json(route, { ok: true, data: {} });
-            }
-
-            return json(route, {
-                ok: true,
-                data: {
-                    updatedAt: new Date().toISOString(),
-                    callingNow: [
-                        {
-                            id: 1,
-                            ticketCode: 'A-301',
-                            patientInitials: 'EP',
-                            assignedConsultorio: 1,
-                            calledAt: new Date().toISOString(),
-                        },
-                    ],
-                    nextTickets: [],
+        await installTurneroClinicProfileMock(page, {
+            clinic_id: 'clinica-norte-demo',
+            branding: {
+                name: 'Clinica Norte',
+                short_name: 'Norte',
+            },
+            surfaces: {
+                display: {
+                    enabled: true,
+                    route: '/sala-turnos.html',
                 },
-            });
+            },
+        });
+        await installTurneroQueueStateMock(page, {
+            queueState: {
+                callingNow: [
+                    {
+                        id: 1,
+                        ticketCode: 'A-301',
+                        patientInitials: 'EP',
+                        assignedConsultorio: 1,
+                        calledAt: new Date().toISOString(),
+                    },
+                ],
+                nextTickets: [],
+            },
         });
 
         await page.goto('/sala-turnos.html');
@@ -513,31 +400,22 @@ test.describe('Sala turnos display', () => {
             );
         });
 
-        await page.route(
-            /\/content\/turnero\/clinic-profile\.json(\?.*)?$/i,
-            async (route) =>
-                json(route, {
-                    clinic_id: 'clinica-norte-demo',
-                    branding: {
-                        name: 'Clinica Norte',
-                        short_name: 'Norte',
-                    },
-                    surfaces: {
-                        display: {
-                            enabled: true,
-                            route: '/sala-turnos.html',
-                        },
-                    },
-                })
-        );
+        await installTurneroClinicProfileMock(page, {
+            clinic_id: 'clinica-norte-demo',
+            branding: {
+                name: 'Clinica Norte',
+                short_name: 'Norte',
+            },
+            surfaces: {
+                display: {
+                    enabled: true,
+                    route: '/sala-turnos.html',
+                },
+            },
+        });
 
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource !== 'queue-state') {
-                return json(route, { ok: true, data: {} });
-            }
-            return route.abort('failed');
+        await installTurneroQueueStateMock(page, {
+            queueStateAbortReason: 'failed',
         });
 
         await page.goto('/sala-turnos.html');
@@ -591,30 +469,20 @@ test.describe('Sala turnos display', () => {
             window.webkitAudioContext = FakeAudioContext;
         });
 
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource !== 'queue-state') {
-                return json(route, { ok: true, data: {} });
-            }
-
-            return json(route, {
-                ok: true,
-                data: {
-                    updatedAt: new Date().toISOString(),
-                    waitingCount: 1,
-                    calledCount: 0,
-                    callingNow: [],
-                    nextTickets: [
-                        {
-                            id: 91,
-                            ticketCode: 'A-091',
-                            patientInitials: 'TV',
-                            position: 1,
-                        },
-                    ],
-                },
-            });
+        await installTurneroQueueStateMock(page, {
+            queueState: {
+                waitingCount: 1,
+                calledCount: 0,
+                callingNow: [],
+                nextTickets: [
+                    {
+                        id: 91,
+                        ticketCode: 'A-091',
+                        patientInitials: 'TV',
+                        position: 1,
+                    },
+                ],
+            },
         });
 
         await page.goto('/sala-turnos.html');
@@ -667,13 +535,8 @@ test.describe('Sala turnos display', () => {
             );
         });
 
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource !== 'queue-state') {
-                return json(route, { ok: true, data: {} });
-            }
-            return route.abort('failed');
+        await installTurneroQueueStateMock(page, {
+            queueStateAbortReason: 'failed',
         });
 
         await page.goto('/sala-turnos.html');
@@ -720,31 +583,22 @@ test.describe('Sala turnos display', () => {
             );
         });
 
-        await page.route(
-            /\/content\/turnero\/clinic-profile\.json(\?.*)?$/i,
-            async (route) =>
-                json(route, {
-                    clinic_id: 'clinica-norte-demo',
-                    branding: {
-                        name: 'Clinica Norte',
-                        short_name: 'Norte',
-                    },
-                    surfaces: {
-                        display: {
-                            enabled: true,
-                            route: '/sala-turnos.html',
-                        },
-                    },
-                })
-        );
+        await installTurneroClinicProfileMock(page, {
+            clinic_id: 'clinica-norte-demo',
+            branding: {
+                name: 'Clinica Norte',
+                short_name: 'Norte',
+            },
+            surfaces: {
+                display: {
+                    enabled: true,
+                    route: '/sala-turnos.html',
+                },
+            },
+        });
 
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource !== 'queue-state') {
-                return json(route, { ok: true, data: {} });
-            }
-            return route.abort('failed');
+        await installTurneroQueueStateMock(page, {
+            queueStateAbortReason: 'failed',
         });
 
         await page.goto('/sala-turnos.html');
@@ -774,21 +628,7 @@ test.describe('Sala turnos display', () => {
     test('expone controles y regiones con atributos A11y esperados', async ({
         page,
     }) => {
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const url = new URL(route.request().url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource !== 'queue-state') {
-                return json(route, { ok: true, data: {} });
-            }
-            return json(route, {
-                ok: true,
-                data: {
-                    updatedAt: new Date().toISOString(),
-                    callingNow: [],
-                    nextTickets: [],
-                },
-            });
-        });
+        await installTurneroQueueStateMock(page);
 
         await page.goto('/sala-turnos.html');
 
