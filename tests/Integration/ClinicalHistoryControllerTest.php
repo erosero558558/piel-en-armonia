@@ -73,6 +73,9 @@ final class ClinicalHistoryControllerTest extends TestCase
             'PIELARMONIA_SKIP_ENV_FILE',
             'PIELARMONIA_AVAILABILITY_SOURCE',
             'PIELARMONIA_CLINICAL_HISTORY_FAKE_RESPONSE',
+            'PIELARMONIA_REQUIRE_DATA_ENCRYPTION',
+            'PIELARMONIA_FORCE_SQLITE_UNAVAILABLE',
+            'PIELARMONIA_DATA_ENCRYPTION_KEY',
             'FIGO_PROVIDER_MODE',
             'OPENCLAW_BRIDGE_SYNC_WAIT_MS',
             'OPENCLAW_GATEWAY_ENDPOINT',
@@ -91,6 +94,25 @@ final class ClinicalHistoryControllerTest extends TestCase
         }
 
         $this->removeDirectory($this->tempDir);
+    }
+
+    public function testClinicalHistoryBlocksWhenClinicalStorageIsNotReady(): void
+    {
+        $this->enableClinicalStorageGate();
+
+        $response = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionGet([])
+        );
+
+        self::assertSame(409, $response['status']);
+        self::assertFalse((bool) ($response['payload']['ok'] ?? true));
+        self::assertSame('clinical_storage_not_ready', (string) ($response['payload']['code'] ?? ''));
+        self::assertSame('clinical_history', (string) ($response['payload']['surface'] ?? ''));
+        self::assertFalse((bool) ($response['payload']['readiness']['clinicalData']['ready'] ?? true));
+        self::assertSame('blocked', (string) ($response['payload']['data']['ai']['mode'] ?? ''));
+        self::assertIsArray($response['payload']['data'] ?? null);
+        self::assertArrayHasKey('session', $response['payload']['data']);
+        self::assertNull($response['payload']['data']['session']);
     }
 
     public function testClinicalHistoryFlowSanitizesPatientPayloadAndExposesClinicianDraftToAdmin(): void
@@ -477,6 +499,17 @@ final class ClinicalHistoryControllerTest extends TestCase
         unset($job['errorCode'], $job['errorMessage'], $job['failedAt'], $job['expiredAt']);
 
         self::assertTrue(\figo_queue_write_job($job));
+    }
+
+    private function enableClinicalStorageGate(): void
+    {
+        putenv('PIELARMONIA_REQUIRE_DATA_ENCRYPTION=1');
+        putenv('PIELARMONIA_FORCE_SQLITE_UNAVAILABLE=1');
+        putenv('PIELARMONIA_DATA_ENCRYPTION_KEY');
+
+        if (\function_exists('get_db_connection')) {
+            \get_db_connection(null, true);
+        }
     }
 
     private function captureResponse(callable $callable, string $method = 'GET', ?array $body = null): array

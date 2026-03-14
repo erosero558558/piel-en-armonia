@@ -57,6 +57,9 @@ final class CaseMediaFlowControllerTest extends TestCase
             'PIELARMONIA_PUBLIC_CASE_MEDIA_DIR',
             'PIELARMONIA_PUBLIC_CASE_MEDIA_BASE_URL',
             'PIELARMONIA_MEDIA_FLOW_OPENCLAW_ENDPOINT',
+            'PIELARMONIA_REQUIRE_DATA_ENCRYPTION',
+            'PIELARMONIA_FORCE_SQLITE_UNAVAILABLE',
+            'PIELARMONIA_DATA_ENCRYPTION_KEY',
         ] as $key) {
             putenv($key);
         }
@@ -72,6 +75,26 @@ final class CaseMediaFlowControllerTest extends TestCase
         }
 
         $this->removeDirectory($this->tempDir);
+    }
+
+    public function testQueueBlocksWhenClinicalStorageIsNotReady(): void
+    {
+        $this->enableClinicalStorageGate();
+
+        $response = $this->captureResponse(static function (): void {
+            \CaseMediaFlowController::queue([
+                'store' => \read_store(),
+                'isAdmin' => true,
+            ]);
+        });
+
+        self::assertSame(409, $response['status']);
+        self::assertFalse((bool) ($response['payload']['ok'] ?? true));
+        self::assertSame('clinical_storage_not_ready', (string) ($response['payload']['code'] ?? ''));
+        self::assertSame('case_media_flow', (string) ($response['payload']['surface'] ?? ''));
+        self::assertFalse((bool) ($response['payload']['readiness']['clinicalData']['ready'] ?? true));
+        self::assertSame([], $response['payload']['data']['queue'] ?? null);
+        self::assertSame(0, (int) ($response['payload']['data']['summary']['totalCases'] ?? -1));
     }
 
     public function testProposalGenerationReflectsBlockedConsentPolicy(): void
@@ -184,6 +207,17 @@ final class CaseMediaFlowControllerTest extends TestCase
             'privatePath',
             json_encode($items[0], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
         );
+    }
+
+    private function enableClinicalStorageGate(): void
+    {
+        putenv('PIELARMONIA_REQUIRE_DATA_ENCRYPTION=1');
+        putenv('PIELARMONIA_FORCE_SQLITE_UNAVAILABLE=1');
+        putenv('PIELARMONIA_DATA_ENCRYPTION_KEY');
+
+        if (\function_exists('get_db_connection')) {
+            \get_db_connection(null, true);
+        }
     }
 
     private function seedStore(): void
