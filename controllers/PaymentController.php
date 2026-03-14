@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/storage.php';
+require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 require_once __DIR__ . '/../lib/telemedicine/LegacyTelemedicineBridge.php';
 require_once __DIR__ . '/../lib/telemedicine/ClinicalMediaService.php';
 $whatsappOpenclawBootstrap = __DIR__ . '/../lib/whatsapp_openclaw/bootstrap.php';
@@ -99,6 +100,24 @@ class PaymentController
                 'ok' => false,
                 'error' => 'Doctor invalido'
             ], 400);
+        }
+
+        if (TelemedicineChannelMapper::isTelemedicineService($appointment['service'])) {
+            self::requireClinicalStorageReady(
+                'payment_intent',
+                [
+                    'clientSecret' => '',
+                    'paymentIntentId' => '',
+                    'amount' => payment_expected_amount_cents(
+                        $appointment['service'],
+                        $appointment['date'] ?? null,
+                        $appointment['time'] ?? null
+                    ),
+                    'currency' => strtoupper(payment_currency()),
+                    'publishableKey' => payment_stripe_publishable_key(),
+                ],
+                'La telemedicina sigue bloqueada hasta habilitar almacenamiento clinico cifrado.'
+            );
         }
 
         $doctorForCollision = $requestedDoctor;
@@ -290,6 +309,19 @@ class PaymentController
             ], 400);
         }
 
+        self::requireClinicalStorageReady(
+            'transfer_proof',
+            [
+                'transferProofPath' => '',
+                'transferProofUrl' => '',
+                'transferProofName' => '',
+                'transferProofMime' => '',
+                'transferProofSize' => 0,
+                'transferProofUploadId' => 0,
+            ],
+            'El comprobante no puede registrarse hasta habilitar almacenamiento clinico cifrado.'
+        );
+
         try {
             $upload = save_transfer_proof_upload($_FILES['proof']);
         } catch (RuntimeException $e) {
@@ -439,6 +471,24 @@ class PaymentController
 
         $rawBody = file_get_contents('php://input');
         return is_string($rawBody) ? $rawBody : '';
+    }
+
+    private static function requireClinicalStorageReady(string $surface, array $data = [], string $error = ''): void
+    {
+        $readiness = internal_console_readiness_snapshot();
+        if (internal_console_clinical_data_ready($readiness)) {
+            return;
+        }
+
+        $payload = internal_console_clinical_guard_payload([
+            'surface' => $surface,
+            'data' => $data,
+        ]);
+        if ($error !== '') {
+            $payload['error'] = $error;
+        }
+
+        json_response($payload, 409);
     }
 
     private static function handleWhatsappCheckoutCompleted(array $session): void

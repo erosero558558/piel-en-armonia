@@ -16,6 +16,7 @@ final class TelemedicineLegacyBridgeTest extends TestCase
     protected function setUp(): void
     {
         unset($GLOBALS['__TEST_JSON_BODY'], $GLOBALS['__TEST_RESPONSE']);
+        $_FILES = [];
 
         $this->tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'telemedicine-bridge-' . bin2hex(random_bytes(6));
         $this->uploadDir = $this->tempDir . DIRECTORY_SEPARATOR . 'public-uploads';
@@ -60,6 +61,9 @@ final class TelemedicineLegacyBridgeTest extends TestCase
             'PIELARMONIA_AVAILABILITY_SOURCE',
             'PIELARMONIA_STRIPE_SECRET_KEY',
             'PIELARMONIA_STRIPE_PUBLISHABLE_KEY',
+            'PIELARMONIA_REQUIRE_DATA_ENCRYPTION',
+            'PIELARMONIA_FORCE_SQLITE_UNAVAILABLE',
+            'PIELARMONIA_DATA_ENCRYPTION_KEY',
         ] as $key) {
             putenv($key);
         }
@@ -68,6 +72,7 @@ final class TelemedicineLegacyBridgeTest extends TestCase
         }
         $this->removeDirectory($this->tempDir);
         unset($GLOBALS['__TEST_JSON_BODY'], $GLOBALS['__TEST_RESPONSE']);
+        $_FILES = [];
     }
 
     /**
@@ -105,6 +110,116 @@ final class TelemedicineLegacyBridgeTest extends TestCase
         $this->assertCount(1, $roundtrip['telemedicine_intakes']);
         $this->assertSame('awaiting_payment', $roundtrip['telemedicine_intakes'][0]['status']);
         $this->assertSame('secure_video', $roundtrip['telemedicine_intakes'][0]['channel']);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testPaymentIntentBlocksTelemedicineWhenClinicalStorageIsNotReady(): void
+    {
+        $this->enableClinicalStorageGate();
+
+        $futureDate = date('Y-m-d', strtotime('next monday'));
+        $store = \read_store();
+        $store['availability'][$futureDate] = ['10:00'];
+        \write_store($store, false);
+
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode([
+            'name' => 'Paciente Telemed Bloqueado',
+            'email' => 'telemed-blocked@example.com',
+            'phone' => '0999999999',
+            'date' => $futureDate,
+            'time' => '10:00',
+            'doctor' => 'rosero',
+            'service' => 'video',
+            'reason' => 'Seguimiento telemedicina bloqueado por storage.',
+            'privacyConsent' => true,
+        ], JSON_UNESCAPED_UNICODE);
+
+        try {
+            \PaymentController::createIntent(['store' => \read_store()]);
+            self::fail('Se esperaba TestingExitException');
+        } catch (\TestingExitException $e) {
+            $this->assertSame(409, $e->status);
+            $this->assertSame('clinical_storage_not_ready', (string) ($e->payload['code'] ?? ''));
+            $this->assertSame('payment_intent', (string) ($e->payload['surface'] ?? ''));
+            $this->assertSame('', (string) (($e->payload['data']['paymentIntentId'] ?? '')));
+        }
+
+        $roundtrip = \read_store();
+        $this->assertCount(0, $roundtrip['telemedicine_intakes']);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testTransferProofBlocksWhenClinicalStorageIsNotReady(): void
+    {
+        $this->enableClinicalStorageGate();
+
+        $_FILES['proof'] = [
+            'name' => 'proof.jpg',
+            'type' => 'image/jpeg',
+            'tmp_name' => $this->tempDir . DIRECTORY_SEPARATOR . 'fake-upload.jpg',
+            'error' => UPLOAD_ERR_OK,
+            'size' => 128,
+        ];
+
+        try {
+            \PaymentController::transferProof([]);
+            self::fail('Se esperaba TestingExitException');
+        } catch (\TestingExitException $e) {
+            $this->assertSame(409, $e->status);
+            $this->assertSame('clinical_storage_not_ready', (string) ($e->payload['code'] ?? ''));
+            $this->assertSame('transfer_proof', (string) ($e->payload['surface'] ?? ''));
+            $this->assertSame(0, (int) (($e->payload['data']['transferProofUploadId'] ?? 0)));
+        }
+
+        $roundtrip = \read_store();
+        $this->assertCount(0, $roundtrip['clinical_uploads']);
+        $this->assertSame([], array_values(array_diff(scandir($this->uploadDir) ?: [], ['.', '..'])));
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testAppointmentStoreBlocksTelemedicineWhenClinicalStorageIsNotReady(): void
+    {
+        $this->enableClinicalStorageGate();
+
+        $futureDate = date('Y-m-d', strtotime('next tuesday'));
+        $store = \read_store();
+        $store['availability'][$futureDate] = ['11:00'];
+        \write_store($store, false);
+
+        $GLOBALS['__TEST_JSON_BODY'] = json_encode([
+            'name' => 'Paciente Video Bloqueado',
+            'email' => 'video-blocked@example.com',
+            'phone' => '0988888888',
+            'date' => $futureDate,
+            'time' => '11:00',
+            'doctor' => 'rosero',
+            'service' => 'video',
+            'reason' => 'Reserva telemedicina bloqueada por storage.',
+            'affectedArea' => 'rostro',
+            'evolutionTime' => '3 semanas',
+            'privacyConsent' => true,
+            'paymentMethod' => 'cash',
+        ], JSON_UNESCAPED_UNICODE);
+
+        try {
+            \AppointmentController::store(['store' => \read_store()]);
+            self::fail('Se esperaba TestingExitException');
+        } catch (\TestingExitException $e) {
+            $this->assertSame(409, $e->status);
+            $this->assertSame('clinical_storage_not_ready', (string) ($e->payload['code'] ?? ''));
+            $this->assertSame('appointment_store', (string) ($e->payload['surface'] ?? ''));
+        }
+
+        $roundtrip = \read_store();
+        $this->assertCount(0, $roundtrip['appointments']);
+        $this->assertCount(0, $roundtrip['telemedicine_intakes']);
+        $this->assertCount(0, $roundtrip['clinical_uploads']);
     }
 
     /**
@@ -171,6 +286,17 @@ final class TelemedicineLegacyBridgeTest extends TestCase
         $privatePath = $roundtrip['clinical_uploads'][0]['privatePath'];
         $this->assertNotSame('', $privatePath);
         $this->assertFileExists($this->tempDir . DIRECTORY_SEPARATOR . $privatePath);
+    }
+
+    private function enableClinicalStorageGate(): void
+    {
+        putenv('PIELARMONIA_REQUIRE_DATA_ENCRYPTION=1');
+        putenv('PIELARMONIA_FORCE_SQLITE_UNAVAILABLE=1');
+        putenv('PIELARMONIA_DATA_ENCRYPTION_KEY');
+
+        if (function_exists('get_db_connection')) {
+            \get_db_connection(null, true);
+        }
     }
 
     private function removeDirectory(string $dir): void

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/BookingService.php';
+require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 
 class AppointmentController
 {
@@ -95,6 +96,17 @@ class AppointmentController
         $bookingService = new BookingService();
 
         $normalized = normalize_appointment($payload);
+        if (TelemedicineChannelMapper::isTelemedicineService((string) ($normalized['service'] ?? ''))) {
+            self::requireClinicalStorageReady(
+                'appointment_store',
+                [
+                    'data' => null,
+                    'emailSent' => false,
+                    'idempotentReplay' => false,
+                ],
+                'La reserva de telemedicina sigue bloqueada hasta habilitar almacenamiento clinico cifrado.'
+            );
+        }
         $lockDate = (string) ($normalized['date'] ?? '');
         $lockTime = (string) ($normalized['time'] ?? '');
 
@@ -250,6 +262,8 @@ class AppointmentController
         $lockResult = with_store_lock(function () use ($id, $payload) {
             $store = read_store();
             $patientCaseService = new PatientCaseService();
+            $shouldHydratePatientFlow = !function_exists('internal_console_clinical_data_ready')
+                || internal_console_clinical_data_ready();
             $found = false;
             $cancelledAppointment = null;
             $updatedAppointment = null;
@@ -303,13 +317,15 @@ class AppointmentController
                 return ['ok' => false, 'error' => 'Cita no encontrada', 'code' => 404];
             }
 
-            $store = $patientCaseService->hydrateStore($store);
-            $updatedAppointment = self::findAppointmentById($store, $id) ?? $updatedAppointment;
-            if (
-                is_array($updatedAppointment) &&
-                map_appointment_status((string) ($updatedAppointment['status'] ?? 'confirmed')) === 'cancelled'
-            ) {
-                $cancelledAppointment = $updatedAppointment;
+            if ($shouldHydratePatientFlow) {
+                $store = $patientCaseService->hydrateStore($store);
+                $updatedAppointment = self::findAppointmentById($store, $id) ?? $updatedAppointment;
+                if (
+                    is_array($updatedAppointment) &&
+                    map_appointment_status((string) ($updatedAppointment['status'] ?? 'confirmed')) === 'cancelled'
+                ) {
+                    $cancelledAppointment = $updatedAppointment;
+                }
             }
 
             if (!write_store($store)) {
@@ -665,6 +681,24 @@ class AppointmentController
                 'time' => (string) ($appointment['time'] ?? ''),
             ]);
         }
+    }
+
+    private static function requireClinicalStorageReady(string $surface, array $data = [], string $error = ''): void
+    {
+        $readiness = internal_console_readiness_snapshot();
+        if (internal_console_clinical_data_ready($readiness)) {
+            return;
+        }
+
+        $payload = internal_console_clinical_guard_payload([
+            'surface' => $surface,
+            'data' => $data,
+        ]);
+        if ($error !== '') {
+            $payload['error'] = $error;
+        }
+
+        json_response($payload, 409);
     }
 
     private static function inferErrorCode(int $statusCode, string $errorMessage): string

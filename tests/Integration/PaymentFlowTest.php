@@ -58,6 +58,10 @@ class PaymentFlowTest extends TestCase
         putenv('PIELARMONIA_STRIPE_WEBHOOK_SECRET');
         putenv('PIELARMONIA_AVAILABILITY_SOURCE');
 
+        if (\function_exists('get_db_connection')) {
+            \get_db_connection(null, true);
+        }
+
         $this->removeDirectory($this->tempDir);
         unset($GLOBALS['__TEST_JSON_BODY']);
         unset($GLOBALS['__TEST_RESPONSE']);

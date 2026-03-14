@@ -767,6 +767,10 @@ final class StorePersistence
 
     private static function hydratePatientFlowStore(array $store): array
     {
+        if (!StorageConfig::encryptionCompliant()) {
+            return $store;
+        }
+
         if (!class_exists('PatientCaseService')) {
             return $store;
         }
