@@ -215,7 +215,9 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_guidance');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_guidance',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -519,7 +521,9 @@ test.describe('Admin turnero sala', () => {
 
         syncQueueHelpState();
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_guidance_shortcuts');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_guidance_shortcuts',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -881,7 +885,9 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_schedule_conflict');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_schedule_conflict',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -1118,7 +1124,9 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_admin');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_admin',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -1335,7 +1343,9 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_triage');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_triage',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -1462,7 +1472,9 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_watchdog');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_watchdog',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -1591,7 +1603,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_shortcuts');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_shortcuts',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -1769,7 +1783,9 @@ test.describe('Admin turnero sala', () => {
         };
         let queueStateRequests = 0;
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_state_fallback');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_state_fallback',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -1886,7 +1902,9 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_meta_fallback');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_meta_fallback',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -2009,7 +2027,9 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_state_data_fallback');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_state_data_fallback',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -2101,7 +2121,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_burst');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_burst',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -2215,7 +2237,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_retry');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_retry',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -2347,7 +2371,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_parallel_rooms');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_parallel_rooms',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -2517,7 +2543,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_lifecycle');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_lifecycle',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -2729,7 +2757,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_dispatch');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_dispatch',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -2952,7 +2982,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_attention_deck');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_attention_deck',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -3210,7 +3242,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_resolution_deck');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_resolution_deck',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -3454,7 +3488,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_ticket_lookup');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_ticket_lookup',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -3703,7 +3739,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_ticket_route');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_ticket_route',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -3862,7 +3900,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_ticket_simulation');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_ticket_simulation',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -4040,7 +4080,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_next_turns');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_next_turns',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -4202,7 +4244,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_master_sequence');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_master_sequence',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -4364,7 +4408,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_blockers');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_blockers',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -4522,7 +4568,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_sla_deck');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_sla_deck',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -4685,7 +4733,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_coverage_deck');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_coverage_deck',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -4874,7 +4924,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_reserve_deck');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_reserve_deck',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -5056,7 +5108,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_general_guidance');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_general_guidance',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -5238,7 +5292,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_projected_deck');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_projected_deck',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -5409,7 +5465,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_incoming_deck');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_incoming_deck',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -5583,7 +5641,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_scenarios');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_scenarios',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -5754,7 +5814,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_reception_script');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_reception_script',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -5914,7 +5976,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_reception_collision');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_reception_collision',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -6080,7 +6144,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_reception_lights');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_reception_lights',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -6249,7 +6315,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_window_deck');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_window_deck',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -6417,7 +6485,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_desk_reply');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_desk_reply',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -6578,7 +6648,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_desk_fallback');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_desk_fallback',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -6736,7 +6808,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_desk_objections');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_desk_objections',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -6895,7 +6969,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_desk_closeout');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_desk_closeout',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -7058,13 +7134,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_recheck',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_desk_recheck');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -7227,13 +7297,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_shift',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_desk_shift');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -7394,13 +7458,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_promise',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_desk_promise');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -7541,13 +7599,7 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_escalation',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_desk_escalation');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -7688,12 +7740,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_escalation_talk',
-            })
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_desk_escalation_talk'
         );
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -7835,12 +7884,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_escalation_confirm',
-            })
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_desk_escalation_confirm'
         );
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -7982,12 +8028,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_escalation_followup',
-            })
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_desk_escalation_followup'
         );
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -8131,12 +8174,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_escalation_reopen',
-            })
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_desk_escalation_reopen'
         );
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -8278,12 +8318,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_escalation_limit',
-            })
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_desk_escalation_limit'
         );
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -8425,12 +8462,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_escalation_bridge',
-            })
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_desk_escalation_bridge'
         );
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -8573,12 +8607,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_escalation_brief',
-            })
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_desk_escalation_brief'
         );
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -8721,12 +8752,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_escalation_return',
-            })
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_desk_escalation_return'
         );
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -8869,12 +8897,9 @@ test.describe('Admin turnero sala', () => {
             window.localStorage.setItem('queueOpsFocusModeV1', 'operations');
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_desk_escalation_resolution',
-            })
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_desk_escalation_resolution'
         );
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -9014,7 +9039,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_wait_radar');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_wait_radar',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -9202,7 +9229,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_load_balance');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_load_balance',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -9385,7 +9414,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_priority_lane');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_priority_lane',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -9580,7 +9611,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_quick_trays');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_quick_trays',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -9725,7 +9758,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_active_tray');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_active_tray',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -9897,7 +9932,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_tray_burst');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_tray_burst',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -10118,7 +10155,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_station_c2');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_station_c2',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -10254,7 +10293,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_station_c1');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_station_c1',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -10378,7 +10419,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_one_tap_c2');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_one_tap_c2',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -10558,7 +10601,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_one_tap_only_call');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_one_tap_only_call',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -10681,7 +10726,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_station_override');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_station_override',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -10797,7 +10844,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_numpad_star_help');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_numpad_star_help',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -10946,7 +10995,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_numpad_star_confirm');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_numpad_star_confirm',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -11095,10 +11146,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(
-            page,
-            'csrf_queue_numpad_location_fallback'
-        );
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_numpad_location_fallback',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -11355,7 +11405,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_custom_call_key');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_custom_call_key',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -11553,7 +11605,9 @@ test.describe('Admin turnero sala', () => {
         ];
         let queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_practice_mode');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_practice_mode',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -11685,7 +11739,9 @@ test.describe('Admin turnero sala', () => {
         ];
         const queueState = buildQueueStateFromTickets(queueTickets);
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_filter_empty');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_filter_empty',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -11783,7 +11839,9 @@ test.describe('Admin turnero sala', () => {
         const queueState = buildQueueStateFromTickets(queueTickets);
         let reprintRequests = 0;
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_reprint_bulk');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_reprint_bulk',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const request = route.request();
@@ -11895,13 +11953,7 @@ test.describe('Admin turnero sala', () => {
             window.__QUEUE_AUTO_REFRESH_INTERVAL_MS__ = 120;
         });
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_admin_mode',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_admin_mode');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -12487,13 +12539,7 @@ test.describe('Admin turnero sala', () => {
             { today: todayLocal, now: nowIso }
         );
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_clinic_scope_reset',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_clinic_scope_reset');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -12802,9 +12848,9 @@ test.describe('Admin turnero sala', () => {
         expect(scopedState.domainView?.clinicId).toBe('clinica-norte-demo');
         expect(scopedState.domainView?.selection).toBe('auto');
         expect(scopedState.ticketLookup).toBeNull();
-        expect(scopedState.queueStationMode?.values?.['clinica-norte-demo']).toBe(
-            'free'
-        );
+        expect(
+            scopedState.queueStationMode?.values?.['clinica-norte-demo']
+        ).toBe('free');
         expect(
             scopedState.queueStationConsultorio?.values?.['clinica-norte-demo']
         ).toBe(1);
@@ -12853,13 +12899,7 @@ test.describe('Admin turnero sala', () => {
     }) => {
         const nowIso = new Date().toISOString();
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_pilot_route_alert',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_pilot_route_alert');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -13162,13 +13202,7 @@ test.describe('Admin turnero sala', () => {
             }
         );
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_pilot_local_profile',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_pilot_local_profile');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -13340,13 +13374,7 @@ test.describe('Admin turnero sala', () => {
     }) => {
         const nowIso = new Date().toISOString();
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_pilot_clinic_drift',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_pilot_clinic_drift');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -13577,12 +13605,9 @@ test.describe('Admin turnero sala', () => {
     }) => {
         const nowIso = new Date().toISOString();
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_pilot_profile_fingerprint',
-            })
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_pilot_profile_fingerprint'
         );
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -13805,12 +13830,9 @@ test.describe('Admin turnero sala', () => {
     }) => {
         const nowIso = new Date().toISOString();
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_pilot_profile_missing',
-            })
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_pilot_profile_missing'
         );
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -14061,13 +14083,7 @@ test.describe('Admin turnero sala', () => {
         ];
         const queueState = buildQueueStateFromTickets(queueTickets);
 
-        await page.route(/\/admin-auth\.php(\?.*)?$/i, async (route) =>
-            json(route, {
-                ok: true,
-                authenticated: true,
-                csrfToken: 'csrf_queue_admin_pilot_block',
-            })
-        );
+        await installQueueAdminAuthMock(page, 'csrf_queue_admin_pilot_block');
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -14315,7 +14331,9 @@ test.describe('Admin turnero sala', () => {
             window.__QUEUE_AUTO_REFRESH_INTERVAL_MS__ = 120;
         });
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_apps_hub');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_apps_hub',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -15294,7 +15312,9 @@ test.describe('Admin turnero sala', () => {
             },
         ];
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_admin_dual_operator');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_admin_dual_operator',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -15524,7 +15544,9 @@ test.describe('Admin turnero sala', () => {
             },
         };
 
-        await installQueueAdminAuthMock(page, 'csrf_queue_admin_boot_operator');
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_admin_boot_operator',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -15707,10 +15729,9 @@ test.describe('Admin turnero sala', () => {
             },
         };
 
-        await installQueueAdminAuthMock(
-            page,
-            'csrf_queue_admin_operator_retry'
-        );
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_admin_operator_retry',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -15893,10 +15914,9 @@ test.describe('Admin turnero sala', () => {
             },
         };
 
-        await installQueueAdminAuthMock(
-            page,
-            'csrf_queue_admin_operator_autostart'
-        );
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_admin_operator_autostart',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());
@@ -16078,10 +16098,9 @@ test.describe('Admin turnero sala', () => {
             },
         };
 
-        await installQueueAdminAuthMock(
-            page,
-            'csrf_queue_admin_operator_update'
-        );
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_queue_admin_operator_update',
+        });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
             const url = new URL(route.request().url());

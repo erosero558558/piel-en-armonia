@@ -21,6 +21,12 @@ const QUEUE_OPERATOR_SPEC_PATH = resolve(
     'tests',
     'queue-operator.spec.js'
 );
+const ADMIN_QUEUE_SPEC_PATH = resolve(
+    __dirname,
+    '..',
+    'tests',
+    'admin-queue.spec.js'
+);
 const SHARED_SESSION_SPEC_PATH = resolve(
     __dirname,
     '..',
@@ -220,9 +226,24 @@ test('installOperatorOpenClawAuthMock modela start/status/logout reutilizable', 
     assert.equal(session.getLastIssuedChallenge(), null);
 });
 
-test('queue-operator y shared-session consumen el helper compartido sin duplicar utilidades', () => {
+test('admin queue, queue-operator y shared-session consumen el helper compartido sin duplicar utilidades', () => {
+    const adminQueueSpec = readFileSync(ADMIN_QUEUE_SPEC_PATH, 'utf8');
     const queueOperatorSpec = readFileSync(QUEUE_OPERATOR_SPEC_PATH, 'utf8');
     const sharedSessionSpec = readFileSync(SHARED_SESSION_SPEC_PATH, 'utf8');
+
+    assert.match(
+        adminQueueSpec,
+        /const \{ installLegacyAdminAuthMock \} = require\('\.\/helpers\/admin-auth-mocks'\);/
+    );
+    assert.match(
+        adminQueueSpec,
+        /function installQueueAdminAuthMock\(page, csrfToken\)[\s\S]*?installLegacyAdminAuthMock\(page, \{ csrfToken \}\);/m
+    );
+    assert.match(
+        adminQueueSpec,
+        /await installQueueAdminAuthMock\(page, 'csrf_queue_desk_recheck'\);/
+    );
+    assert.doesNotMatch(adminQueueSpec, /page\.route\(\/\\\/admin-auth\\\.php/);
 
     assert.match(
         queueOperatorSpec,
