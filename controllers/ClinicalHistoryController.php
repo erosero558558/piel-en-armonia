@@ -3,11 +3,22 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/clinical_history/bootstrap.php';
+require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
 
 final class ClinicalHistoryController
 {
     public static function sessionGet(array $context): void
     {
+        self::requireClinicalStorageReady([
+            'session' => null,
+            'draft' => null,
+            'response' => null,
+            'events' => [],
+            'ai' => [
+                'mode' => 'blocked',
+            ],
+        ]);
+
         $service = new ClinicalHistoryService();
         $result = self::readStore(static function (array $store) use ($service): array {
             return $service->getSession($store, $_GET, false);
@@ -29,6 +40,16 @@ final class ClinicalHistoryController
 
     public static function sessionPost(array $context): void
     {
+        self::requireClinicalStorageReady([
+            'session' => null,
+            'draft' => null,
+            'response' => null,
+            'events' => [],
+            'ai' => [
+                'mode' => 'blocked',
+            ],
+        ]);
+
         $payload = require_json_body();
         $service = new ClinicalHistoryService();
         $result = self::mutateStore(static function (array $store) use ($service, $payload): array {
@@ -40,6 +61,16 @@ final class ClinicalHistoryController
 
     public static function messagePost(array $context): void
     {
+        self::requireClinicalStorageReady([
+            'session' => null,
+            'draft' => null,
+            'response' => null,
+            'events' => [],
+            'ai' => [
+                'mode' => 'blocked',
+            ],
+        ]);
+
         $payload = require_json_body();
         $service = new ClinicalHistoryService();
         $result = self::mutateStore(static function (array $store) use ($service, $payload): array {
@@ -54,6 +85,16 @@ final class ClinicalHistoryController
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
         }
+
+        self::requireClinicalStorageReady([
+            'session' => null,
+            'draft' => null,
+            'events' => [],
+            'response' => null,
+            'ai' => [
+                'mode' => 'blocked',
+            ],
+        ]);
 
         $service = new ClinicalHistoryService();
         $result = self::readStore(static function (array $store) use ($service): array {
@@ -79,6 +120,16 @@ final class ClinicalHistoryController
         if (($context['isAdmin'] ?? false) !== true) {
             json_response(['ok' => false, 'error' => 'No autorizado'], 401);
         }
+
+        self::requireClinicalStorageReady([
+            'session' => null,
+            'draft' => null,
+            'events' => [],
+            'response' => null,
+            'ai' => [
+                'mode' => 'blocked',
+            ],
+        ]);
 
         require_csrf();
 
@@ -194,5 +245,38 @@ final class ClinicalHistoryController
         }
 
         json_response($payload, (int) ($result['statusCode'] ?? 200));
+    }
+
+    /**
+     * @param array<string,mixed> $data
+     */
+    private static function requireClinicalStorageReady(array $data): void
+    {
+        $readiness = function_exists('internal_console_readiness_snapshot')
+            ? internal_console_readiness_snapshot()
+            : null;
+        $clinicalReady = function_exists('internal_console_clinical_data_ready')
+            ? internal_console_clinical_data_ready($readiness)
+            : (bool) ($readiness['clinicalData']['ready'] ?? true);
+
+        if ($clinicalReady) {
+            return;
+        }
+
+        $payload = function_exists('internal_console_clinical_guard_payload')
+            ? internal_console_clinical_guard_payload([
+                'surface' => 'clinical_history',
+                'data' => $data,
+            ])
+            : [
+                'ok' => false,
+                'code' => 'clinical_storage_not_ready',
+                'error' => 'Historias clinicas bloqueadas hasta habilitar almacenamiento cifrado.',
+                'readiness' => $readiness,
+                'surface' => 'clinical_history',
+                'data' => $data,
+            ];
+
+        json_response($payload, 409);
     }
 }
