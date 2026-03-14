@@ -84,6 +84,8 @@ test('release-turnero-apps empaqueta bundle, publica APK y deja rutas de hosting
         '--skip-android "${{ inputs.skip_android }}"',
         '--surfaces "${{ inputs.surface_filter }}"',
         '--targets "${{ inputs.target_filter }}"',
+        "needs.resolve-release-plan.outputs.android_count == '0'",
+        "needs.build-android.result == 'success'",
         'gradle -p "${{ matrix.gradle_project }}" "${{ matrix.build_task }}"',
         '${{ matrix.source_artifact }}',
         '${{ matrix.staged_artifact_path }}',

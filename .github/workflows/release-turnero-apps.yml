@@ -228,8 +228,11 @@ jobs:
         if: >-
             ${{
               always() &&
-              (needs.build-desktop.result == 'success' || needs.build-desktop.result == 'skipped') &&
-              (needs.build-android.result == 'success' || needs.build-android.result == 'skipped')
+              needs.build-desktop.result == 'success' &&
+              (
+                needs.resolve-release-plan.outputs.android_count == '0' ||
+                needs.build-android.result == 'success'
+              )
             }}
         needs:
             - resolve-release-plan
