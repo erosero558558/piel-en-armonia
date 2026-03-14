@@ -467,6 +467,17 @@ async function installAdminQueueApiMocks(page, options = {}) {
         funnelMetrics,
         defaultPayload,
         handleRoute: async (context) => {
+            if (typeof handleRoute === 'function') {
+                const handled = await handleRoute({
+                    ...context,
+                    getQueueState,
+                    getQueueTickets,
+                });
+                if (handled) {
+                    return true;
+                }
+            }
+
             if (context.resource === 'data') {
                 await context.fulfillJson(context.route, {
                     ok: true,
@@ -499,15 +510,6 @@ async function installAdminQueueApiMocks(page, options = {}) {
                     data: getQueueState(),
                 });
                 return true;
-            }
-
-            if (typeof handleRoute === 'function') {
-                const handled = await handleRoute({
-                    ...context,
-                    getQueueState,
-                    getQueueTickets,
-                });
-                return Boolean(handled);
             }
 
             return false;
@@ -2101,58 +2103,28 @@ test.describe('Admin turnero sala', () => {
         };
         let queueStateRequests = 0;
 
-        await installLegacyAdminAuthMock(page, {
-            csrfToken: 'csrf_queue_state_fallback',
-        });
+        await installQueueAdminAuthMock(page, 'csrf_queue_state_fallback');
+        await installAdminQueueApiMocks(page, {
+            handleRoute: async ({ resource, route, fulfillJson }) => {
+                if (resource === 'data') {
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: buildAdminDataPayload(),
+                    });
+                    return true;
+                }
 
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const request = route.request();
-            const url = new URL(request.url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource === 'features') {
-                return json(route, {
-                    ok: true,
-                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
-                });
-            }
+                if (resource === 'queue-state') {
+                    queueStateRequests += 1;
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: queueState,
+                    });
+                    return true;
+                }
 
-            if (resource === 'data') {
-                return json(route, {
-                    ok: true,
-                    data: {
-                        appointments: [],
-                        callbacks: [],
-                        reviews: [],
-                        availability: {},
-                        availabilityMeta: {
-                            source: 'store',
-                            mode: 'live',
-                            timezone: 'America/Guayaquil',
-                            calendarConfigured: true,
-                            calendarReachable: true,
-                            generatedAt: new Date().toISOString(),
-                        },
-                    },
-                });
-            }
-
-            if (resource === 'queue-state') {
-                queueStateRequests += 1;
-                return json(route, {
-                    ok: true,
-                    data: queueState,
-                });
-            }
-
-            if (resource === 'health') {
-                return json(route, { ok: true, status: 'ok' });
-            }
-
-            if (resource === 'funnel-metrics') {
-                return json(route, { ok: true, data: {} });
-            }
-
-            return json(route, { ok: true, data: {} });
+                return false;
+            },
         });
 
         await page.goto(adminUrl());
@@ -2220,63 +2192,34 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await installLegacyAdminAuthMock(page, {
-            csrfToken: 'csrf_queue_meta_fallback',
-        });
+        await installQueueAdminAuthMock(page, 'csrf_queue_meta_fallback');
+        await installAdminQueueApiMocks(page, {
+            handleRoute: async ({ resource, route, fulfillJson }) => {
+                if (resource === 'data') {
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: buildAdminDataPayload({
+                            queueMeta: queueMetaPayload,
+                        }),
+                    });
+                    return true;
+                }
 
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const request = route.request();
-            const url = new URL(request.url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource === 'features') {
-                return json(route, {
-                    ok: true,
-                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
-                });
-            }
-
-            if (resource === 'data') {
-                return json(route, {
-                    ok: true,
-                    data: {
-                        appointments: [],
-                        callbacks: [],
-                        reviews: [],
-                        availability: {},
-                        availabilityMeta: {
-                            source: 'store',
-                            mode: 'live',
-                            timezone: 'America/Guayaquil',
-                            calendarConfigured: true,
-                            calendarReachable: true,
-                            generatedAt: new Date().toISOString(),
+                if (resource === 'queue-state') {
+                    queueStateRequests += 1;
+                    await fulfillJson(
+                        route,
+                        {
+                            ok: false,
+                            error: 'queue-state should not be needed in this case',
                         },
-                        queueMeta: queueMetaPayload,
-                    },
-                });
-            }
+                        500
+                    );
+                    return true;
+                }
 
-            if (resource === 'queue-state') {
-                queueStateRequests += 1;
-                return json(
-                    route,
-                    {
-                        ok: false,
-                        error: 'queue-state should not be needed in this case',
-                    },
-                    500
-                );
-            }
-
-            if (resource === 'health') {
-                return json(route, { ok: true, status: 'ok' });
-            }
-
-            if (resource === 'funnel-metrics') {
-                return json(route, { ok: true, data: {} });
-            }
-
-            return json(route, { ok: true, data: {} });
+                return false;
+            },
         });
 
         await page.goto(adminUrl());
@@ -2345,63 +2288,34 @@ test.describe('Admin turnero sala', () => {
             ],
         };
 
-        await installLegacyAdminAuthMock(page, {
-            csrfToken: 'csrf_queue_state_data_fallback',
-        });
+        await installQueueAdminAuthMock(page, 'csrf_queue_state_data_fallback');
+        await installAdminQueueApiMocks(page, {
+            handleRoute: async ({ resource, route, fulfillJson }) => {
+                if (resource === 'data') {
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: buildAdminDataPayload({
+                            queue_state: queueStatePayload,
+                        }),
+                    });
+                    return true;
+                }
 
-        await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
-            const request = route.request();
-            const url = new URL(request.url());
-            const resource = url.searchParams.get('resource') || '';
-            if (resource === 'features') {
-                return json(route, {
-                    ok: true,
-                    data: { admin_sony_ui: ADMIN_UI_VARIANT === 'sony_v2' },
-                });
-            }
-
-            if (resource === 'data') {
-                return json(route, {
-                    ok: true,
-                    data: {
-                        appointments: [],
-                        callbacks: [],
-                        reviews: [],
-                        availability: {},
-                        availabilityMeta: {
-                            source: 'store',
-                            mode: 'live',
-                            timezone: 'America/Guayaquil',
-                            calendarConfigured: true,
-                            calendarReachable: true,
-                            generatedAt: new Date().toISOString(),
+                if (resource === 'queue-state') {
+                    queueStateRequests += 1;
+                    await fulfillJson(
+                        route,
+                        {
+                            ok: false,
+                            error: 'queue-state should not be needed for queue_state fallback',
                         },
-                        queue_state: queueStatePayload,
-                    },
-                });
-            }
+                        500
+                    );
+                    return true;
+                }
 
-            if (resource === 'queue-state') {
-                queueStateRequests += 1;
-                return json(
-                    route,
-                    {
-                        ok: false,
-                        error: 'queue-state should not be needed for queue_state fallback',
-                    },
-                    500
-                );
-            }
-
-            if (resource === 'health') {
-                return json(route, { ok: true, status: 'ok' });
-            }
-
-            if (resource === 'funnel-metrics') {
-                return json(route, { ok: true, data: {} });
-            }
-
-            return json(route, { ok: true, data: {} });
+                return false;
+            },
         });
 
         await page.goto(adminUrl());

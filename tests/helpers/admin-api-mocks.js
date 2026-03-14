@@ -143,6 +143,93 @@ function buildAdminFunnelMetricsFixture(overrides = {}) {
     };
 }
 
+function buildAdminAgentStatusPayload(overrides = {}) {
+    return {
+        ok: true,
+        data: {
+            session: null,
+            outbox: [],
+            health: {
+                relay: {
+                    mode: 'disabled',
+                },
+                counts: {
+                    messages: 0,
+                    turns: 0,
+                    toolCalls: 0,
+                    pendingApprovals: 0,
+                    outboxQueued: 0,
+                    outboxTotal: 0,
+                },
+            },
+            tools: [],
+            ...overrides,
+        },
+    };
+}
+
+function buildAdminAgentSnapshot(overrides = {}) {
+    const {
+        session: sessionOverride = {},
+        context: contextOverride = {},
+        messages = [],
+        turns = [],
+        toolCalls = [],
+        approvals = [],
+        events = [],
+        outbox = [],
+        health = {},
+        tools = [],
+        ...rest
+    } = overrides;
+
+    return {
+        session: {
+            sessionId: 'ags_test_001',
+            status: 'active',
+            riskMode: 'autopilot_partial',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            ...sessionOverride,
+        },
+        context: {
+            section: 'callbacks',
+            selectedEntity: {
+                type: 'callback',
+                id: 401,
+                label: 'Lead 401',
+            },
+            visibleIds: [401, 402],
+            ...contextOverride,
+        },
+        messages,
+        turns,
+        toolCalls,
+        approvals,
+        events,
+        outbox,
+        health: {
+            relay: {
+                mode: 'disabled',
+            },
+            counts: {
+                messages: messages.length,
+                turns: turns.length,
+                toolCalls: toolCalls.length,
+                pendingApprovals: approvals.filter(
+                    (item) => item.status === 'pending'
+                ).length,
+                outboxQueued: outbox.filter((item) => item.status === 'queued')
+                    .length,
+                outboxTotal: outbox.length,
+            },
+            ...health,
+        },
+        tools,
+        ...rest,
+    };
+}
+
 function buildAdminFeaturesPayload(overrides = {}) {
     const { data: dataOverride = {}, ...rest } = overrides;
 
@@ -272,6 +359,8 @@ async function installBasicAdminApiMocks(page, options = {}) {
 }
 
 module.exports = {
+    buildAdminAgentSnapshot,
+    buildAdminAgentStatusPayload,
     buildAdminAvailabilityMeta,
     buildAdminDataPayload,
     buildAdminDefaultPayload,

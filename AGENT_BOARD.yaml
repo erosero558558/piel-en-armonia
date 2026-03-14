@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 664
+  revision: 672
   updated_at: 2026-03-14
 
 tasks:
@@ -10298,5 +10298,89 @@ tasks:
     evidence_ref: "verification/agent-runs/AG-240.md"
     depends_on: []
     prompt: "Consolidar mocks de apps operativas desktop en admin queue spec"
+    created_at: 2026-03-14
+    updated_at: 2026-03-14
+
+  - id: AG-241
+    title: "Consolidar fallback mocks de queue-state en admin queue spec"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-14T05:07:07.261Z"
+    risk: low
+    scope: frontend-admin
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    files: ["tests/admin-queue.spec.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-14T05:07:07.261Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Consolidar fallback mocks de queue-state en admin queue spec"
+    acceptance_ref: "verification/agent-runs/AG-241.md"
+    evidence_ref: "verification/agent-runs/AG-241.md"
+    depends_on: []
+    prompt: "Consolidar fallback mocks de queue-state en admin queue spec"
+    created_at: 2026-03-14
+    updated_at: 2026-03-14
+
+  - id: AG-242
+    title: "Consolidate admin quick-nav copiloto mocks"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-14T05:07:17.909Z"
+    risk: medium
+    scope: tests
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    files: ["tests/helpers/admin-api-mocks.js", "tests/admin-quick-nav.spec.js", "tests-node/admin-api-mocks-helper.test.js", "verification/agent-runs/AG-242.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-14T05:07:17.909Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Consolidate admin quick-nav copiloto mocks"
+    acceptance_ref: "verification/agent-runs/AG-242.md"
+    evidence_ref: "verification/agent-runs/AG-242.md"
+    depends_on: []
+    prompt: "Consolidate admin quick-nav copiloto mocks"
     created_at: 2026-03-14
     updated_at: 2026-03-14
