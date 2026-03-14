@@ -222,17 +222,80 @@ jobs:
                   path: ${{ matrix.gradle_project }}/${{ matrix.staged_artifact_path }}
                   retention-days: 14
 
-    package-release:
-        name: Package release bundle
+    package-release-desktop-only:
+        name: Package release bundle (desktop-only)
         runs-on: ubuntu-latest
         if: >-
             ${{
               always() &&
               needs.build-desktop.result == 'success' &&
-              (
-                needs.resolve-release-plan.outputs.android_count == '0' ||
-                needs.build-android.result == 'success'
-              )
+              needs.resolve-release-plan.outputs.android_count == '0'
+            }}
+        needs:
+            - resolve-release-plan
+            - build-desktop
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: Download desktop artifacts
+              if: ${{ needs.resolve-release-plan.outputs.desktop_count != '0' }}
+              uses: actions/download-artifact@v4
+              with:
+                  pattern: turnero-desktop-*
+                  path: artifacts/desktop
+
+            - name: Stage app-downloads and desktop-updates bundle
+              shell: bash
+              run: >
+                  node bin/stage-turnero-app-release.js
+                  --version "${{ inputs.release_version }}"
+                  --baseUrl "${{ inputs.base_url }}"
+                  --releasedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+                  --desktopRoot artifacts/desktop
+                  --androidRoot artifacts/android
+                  --surfaces "${{ inputs.surface_filter }}"
+                  --targets "${{ inputs.target_filter }}"
+                  --outputRoot release/turnero-apps
+
+            - name: Upload release bundle
+              uses: actions/upload-artifact@v4
+              with:
+                  name: turnero-apps-release-bundle
+                  path: release/turnero-apps/
+                  retention-days: 14
+
+            - name: Publish workflow summary
+              shell: bash
+              run: |
+                  {
+                    echo "## Turnero apps bundle"
+                    echo
+                    echo "- Version: \`${{ inputs.release_version }}\`"
+                    echo "- Base URL: \`${{ inputs.base_url }}\`"
+                    echo "- Update base URL: \`${{ inputs.update_base_url }}\`"
+                    echo "- Surface filter: \`${{ inputs.surface_filter || 'all' }}\`"
+                    echo "- Target filter: \`${{ inputs.target_filter || 'all' }}\`"
+                    echo "- Skip Android: \`${{ inputs.skip_android }}\`"
+                    echo
+                    echo "### Files"
+                    find release/turnero-apps -type f | sort
+                  } >> "$GITHUB_STEP_SUMMARY"
+
+    package-release-full:
+        name: Package release bundle (full)
+        runs-on: ubuntu-latest
+        if: >-
+            ${{
+              always() &&
+              needs.build-desktop.result == 'success' &&
+              needs.resolve-release-plan.outputs.android_count != '0' &&
+              needs.build-android.result == 'success'
             }}
         needs:
             - resolve-release-plan
@@ -302,8 +365,17 @@ jobs:
         name: Publish bundle to hosting
         runs-on: ubuntu-latest
         needs:
-            - package-release
-        if: ${{ github.event.inputs.publish_to_hosting == 'true' }}
+            - package-release-desktop-only
+            - package-release-full
+        if: >-
+            ${{
+              always() &&
+              github.event.inputs.publish_to_hosting == 'true' &&
+              (
+                needs.package-release-desktop-only.result == 'success' ||
+                needs.package-release-full.result == 'success'
+              )
+            }}
         env:
             DEPLOY_PROTOCOL: ${{ github.event.inputs.protocol || 'ftps' }}
             FTP_SERVER_PORT: ${{ github.event.inputs.server_port || '21' }}
@@ -378,8 +450,17 @@ jobs:
         name: Publish GitHub release assets
         runs-on: ubuntu-latest
         needs:
-            - package-release
-        if: ${{ github.event.inputs.publish_github_release == 'true' }}
+            - package-release-desktop-only
+            - package-release-full
+        if: >-
+            ${{
+              always() &&
+              github.event.inputs.publish_github_release == 'true' &&
+              (
+                needs.package-release-desktop-only.result == 'success' ||
+                needs.package-release-full.result == 'success'
+              )
+            }}
         steps:
             - name: Download release bundle
               uses: actions/download-artifact@v4

@@ -58,7 +58,8 @@ test('release-turnero-apps habilita contents write y jobs canonicos', () => {
     assert.equal(typeof jobs['resolve-release-plan'], 'object');
     assert.equal(typeof jobs['build-desktop'], 'object');
     assert.equal(typeof jobs['build-android'], 'object');
-    assert.equal(typeof jobs['package-release'], 'object');
+    assert.equal(typeof jobs['package-release-desktop-only'], 'object');
+    assert.equal(typeof jobs['package-release-full'], 'object');
     assert.equal(typeof jobs['publish-to-hosting'], 'object');
     assert.equal(typeof jobs['publish-github-release'], 'object');
 });
@@ -85,7 +86,12 @@ test('release-turnero-apps empaqueta bundle, publica APK y deja rutas de hosting
         '--surfaces "${{ inputs.surface_filter }}"',
         '--targets "${{ inputs.target_filter }}"',
         "needs.resolve-release-plan.outputs.android_count == '0'",
+        "needs.resolve-release-plan.outputs.android_count != '0'",
         "needs.build-android.result == 'success'",
+        "needs.package-release-desktop-only.result == 'success'",
+        "needs.package-release-full.result == 'success'",
+        'package-release-desktop-only',
+        'package-release-full',
         'gradle -p "${{ matrix.gradle_project }}" "${{ matrix.build_task }}"',
         '${{ matrix.source_artifact }}',
         '${{ matrix.staged_artifact_path }}',
