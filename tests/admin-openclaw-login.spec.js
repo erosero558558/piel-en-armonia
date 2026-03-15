@@ -3,6 +3,20 @@ const { test, expect } = require('@playwright/test');
 const { installOpenClawAdminAuthMock } = require('./helpers/admin-auth-mocks');
 const { installBasicAdminApiMocks } = require('./helpers/admin-api-mocks');
 
+async function installBrokerRedirect(page, targetPath) {
+    await page.route('https://broker.example.test/**', async (route) => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'text/html; charset=utf-8',
+            body: `<!doctype html><meta charset="utf-8"><script>
+const referrer = String(document.referrer || '');
+const base = referrer ? new URL(referrer).origin : window.location.origin;
+window.location.replace(new URL(${JSON.stringify(targetPath)}, base).toString());
+</script>`,
+        });
+    });
+}
+
 test.describe('Admin OpenClaw login', () => {
     test.beforeEach(async ({ page }) => {
         await page.addInitScript(() => {
@@ -257,17 +271,7 @@ test.describe('Admin OpenClaw login', () => {
                     'https://broker.example.test/authorize?state=admin-web-broker',
             },
         });
-        await page.route('https://broker.example.test/**', async (route) => {
-            await route.fulfill({
-                status: 200,
-                contentType: 'text/html; charset=utf-8',
-                body: `<!doctype html><meta charset="utf-8"><script>
-const referrer = String(document.referrer || '');
-const base = referrer ? new URL(referrer).origin : window.location.origin;
-window.location.replace(new URL('/admin.html?callback=web_broker_success', base).toString());
-</script>`,
-            });
-        });
+        await installBrokerRedirect(page, '/admin.html?callback=web_broker_success');
 
         await page.goto('/admin.html');
 
@@ -383,17 +387,7 @@ window.location.replace(new URL(${JSON.stringify(targetPath)}, base).toString())
                     'https://broker.example.test/authorize?state=admin-web-broker-error',
             },
         });
-        await page.route('https://broker.example.test/**', async (route) => {
-            await route.fulfill({
-                status: 200,
-                contentType: 'text/html; charset=utf-8',
-                body: `<!doctype html><meta charset="utf-8"><script>
-const referrer = String(document.referrer || '');
-const base = referrer ? new URL(referrer).origin : window.location.origin;
-window.location.replace(new URL('/admin.html?callback=web_broker_error', base).toString());
-</script>`,
-            });
-        });
+        await installBrokerRedirect(page, '/admin.html?callback=web_broker_error');
 
         await page.goto('/admin.html');
         await page.locator('#loginBtn').click();
@@ -430,17 +424,10 @@ window.location.replace(new URL('/admin.html?callback=web_broker_error', base).t
                     'https://broker.example.test/authorize?state=admin-web-broker-unverified',
             },
         });
-        await page.route('https://broker.example.test/**', async (route) => {
-            await route.fulfill({
-                status: 200,
-                contentType: 'text/html; charset=utf-8',
-                body: `<!doctype html><meta charset="utf-8"><script>
-const referrer = String(document.referrer || '');
-const base = referrer ? new URL(referrer).origin : window.location.origin;
-window.location.replace(new URL('/admin.html?callback=web_broker_unverified', base).toString());
-</script>`,
-            });
-        });
+        await installBrokerRedirect(
+            page,
+            '/admin.html?callback=web_broker_unverified'
+        );
 
         await page.goto('/admin.html');
         await page.locator('#loginBtn').click();
@@ -472,17 +459,7 @@ window.location.replace(new URL('/admin.html?callback=web_broker_unverified', ba
                     'https://broker.example.test/authorize?state=admin-web-broker-claims',
             },
         });
-        await page.route('https://broker.example.test/**', async (route) => {
-            await route.fulfill({
-                status: 200,
-                contentType: 'text/html; charset=utf-8',
-                body: `<!doctype html><meta charset="utf-8"><script>
-const referrer = String(document.referrer || '');
-const base = referrer ? new URL(referrer).origin : window.location.origin;
-window.location.replace(new URL('/admin.html?callback=web_broker_claims', base).toString());
-</script>`,
-            });
-        });
+        await installBrokerRedirect(page, '/admin.html?callback=web_broker_claims');
 
         await page.goto('/admin.html');
         await page.locator('#loginBtn').click();
@@ -495,4 +472,94 @@ window.location.replace(new URL('/admin.html?callback=web_broker_claims', base).
         );
         await expect(page.locator('#adminOpenClawChallengeCard')).toBeHidden();
     });
+
+    const webBrokerTerminalCases = [
+        {
+            name: 'web broker muestra cuando el operador cancela el acceso antes de volver',
+            terminalStatus: 'cancelled',
+            terminalError:
+                'Se cerro el flujo de OpenClaw antes de terminar el acceso.',
+            callbackPath: '/admin.html?callback=web_broker_cancelled',
+            expectedTitle: 'Ingreso cancelado',
+            expectedMessage: 'cerro el flujo',
+        },
+        {
+            name: 'web broker muestra cuando el intento pendiente ya no es valido',
+            terminalStatus: 'invalid_state',
+            terminalError:
+                'El intento que estaba pendiente ya no es valido. Inicie uno nuevo para continuar.',
+            callbackPath: '/admin.html?callback=web_broker_invalid_state',
+            expectedTitle: 'Intento vencido',
+            expectedMessage: 'ya no es valido',
+        },
+        {
+            name: 'web broker muestra cuando OpenClaw web deja de responder',
+            terminalStatus: 'broker_unavailable',
+            terminalError:
+                'La redireccion web no pudo completarse. Reintente cuando OpenClaw vuelva a responder.',
+            callbackPath: '/admin.html?callback=web_broker_unavailable',
+            expectedTitle: 'OpenClaw web no respondio',
+            expectedMessage: 'no pudo completarse',
+        },
+        {
+            name: 'web broker muestra cuando falla el intercambio del retorno firmado',
+            terminalStatus: 'code_exchange_failed',
+            terminalError:
+                'OpenClaw regreso, pero no pudimos validar el retorno del acceso.',
+            callbackPath: '/admin.html?callback=web_broker_exchange_failed',
+            expectedTitle: 'No pudimos confirmar el retorno',
+            expectedMessage: 'no pudimos validar el retorno',
+        },
+    ];
+
+    for (const scenario of webBrokerTerminalCases) {
+        test(scenario.name, async ({ page }) => {
+            await installBasicAdminApiMocks(page, {
+                healthPayload: {
+                    status: 'ok',
+                },
+            });
+            await installOpenClawAdminAuthMock(page, {
+                transport: 'web_broker',
+                terminalStatus: scenario.terminalStatus,
+                terminalError: scenario.terminalError,
+                webBroker: {
+                    redirectUrl: `https://broker.example.test/authorize?state=${scenario.terminalStatus}`,
+                },
+            });
+            await installBrokerRedirect(page, scenario.callbackPath);
+
+            await page.goto('/admin.html');
+
+            await expect(page.locator('#adminLoginRouteTitle')).toHaveText(
+                'OpenClaw en navegador'
+            );
+            await expect(page.locator('#adminLoginSupportCopy')).toContainText(
+                'misma pestana'
+            );
+            await expect(page.locator('#adminLoginRouteMessage')).toContainText(
+                'No hace falta'
+            );
+
+            await page.locator('#loginBtn').click();
+
+            await expect(page.locator('#adminDashboard')).toHaveClass(
+                /is-hidden/
+            );
+            await expect(page.locator('#adminLoginStatusTitle')).toHaveText(
+                scenario.expectedTitle
+            );
+            await expect(page.locator('#adminLoginStatusMessage')).toContainText(
+                scenario.expectedMessage
+            );
+            await expect(page.locator('#adminOpenClawChallengeCard')).toBeHidden();
+            await expect(page.locator('#adminOpenClawHelperLink')).toBeHidden();
+            await expect(page.locator('#loginBtn')).toHaveText(
+                'Reintentar en OpenClaw'
+            );
+            await expect(page.locator('#adminLoginSupportCopy')).toContainText(
+                'misma pestana'
+            );
+        });
+    }
 });
