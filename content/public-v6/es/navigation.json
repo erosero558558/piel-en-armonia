@@ -85,12 +85,6 @@
                 "label": "Teledermatologia",
                 "href": "/es/telemedicina/",
                 "kind": "standard"
-            },
-            {
-                "id": "legal",
-                "label": "Legal",
-                "href": "/es/legal/terminos/",
-                "kind": "standard"
             }
         ],
         "searchEntries": [

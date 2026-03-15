@@ -85,12 +85,6 @@
                 "label": "Teledermatology",
                 "href": "/en/telemedicine/",
                 "kind": "standard"
-            },
-            {
-                "id": "followup",
-                "label": "Follow-up",
-                "href": "/en/services/piel-cabello-unas/",
-                "kind": "standard"
             }
         ],
         "searchEntries": [
