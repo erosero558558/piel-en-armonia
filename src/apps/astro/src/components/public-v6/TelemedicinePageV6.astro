@@ -1,4 +1,6 @@
 ---
+import '../../styles/public-v6/internal.css';
+
 import BookingStatusV6 from './BookingStatusV6.astro';
 import InternalStatementBandV6 from './InternalStatementBandV6.astro';
 import PageHeadV6 from './PageHeadV6.astro';
@@ -31,11 +33,15 @@ const blockModels = blocks
     .map((block, index) => {
         const title = normalizeText(block?.title);
         const mediaSrc = normalizeText(block?.image);
+        const mediaSrcSet = normalizeText(block?.srcset);
+        const mediaAlt = normalizeText(block?.alt) || title;
         const items = Array.isArray(block?.items) ? block.items.map(normalizeText).filter(Boolean) : [];
         return {
             title,
             items,
             mediaSrc,
+            mediaSrcSet,
+            mediaAlt,
             anchorId: `v6-tele-block-${index + 1}`,
         };
     })
@@ -46,6 +52,8 @@ const initiatives = initiativesRaw
         title: normalizeText(item?.title),
         copy: normalizeText(item?.copy),
         image: normalizeText(item?.image),
+        srcset: normalizeText(item?.srcset),
+        alt: normalizeText(item?.alt) || normalizeText(item?.title),
         href: normalizeHref(item?.href),
     }))
     .filter((item) => hasText(item.title) && hasText(item.copy) && hasText(item.image) && hasText(item.href));
@@ -84,6 +92,7 @@ const statement = {
     body: normalizeText(page.lead),
     signature: normalizeText(statementUi.signature),
     image: normalizeText(statementUi.image),
+    imageSrcset: normalizeText(statementUi.imageSrcset || statementUi.srcset),
     alt: normalizeText(statementUi.alt),
 };
 const lead = normalizeText(page.lead);
@@ -143,6 +152,7 @@ const heroBookingLabel =
                         alt={heroImageAlt}
                         sizes="(max-width: 1100px) 100vw, 62vw"
                         loading="eager"
+                        decoding="sync"
                         fetchpriority="high"
                     />
                 </figure>
@@ -244,7 +254,15 @@ const heroBookingLabel =
                                 {
                                     block.mediaSrc ? (
                                         <figure class="v6-tele-grid__media">
-                                            <img src={block.mediaSrc} alt={block.title} loading="lazy" decoding="async" />
+                                            <img
+                                                src={block.mediaSrc}
+                                                srcset={block.mediaSrcSet || undefined}
+                                                sizes="(max-width: 900px) 100vw, 40vw"
+                                                alt={block.mediaAlt}
+                                                loading="lazy"
+                                                decoding="async"
+                                                fetchpriority="low"
+                                            />
                                         </figure>
                                     ) : null
                                 }
@@ -275,7 +293,15 @@ const heroBookingLabel =
                         initiatives.map((item, index) => (
                             <a href={item.href} data-v6-tele-initiative>
                                 <figure>
-                                    <img src={item.image} alt={item.title} loading="lazy" decoding="async" />
+                                    <img
+                                        src={item.image}
+                                        srcset={item.srcset || undefined}
+                                        sizes="(max-width: 720px) 100vw, (max-width: 1100px) 50vw, 30vw"
+                                        alt={item.alt}
+                                        loading="lazy"
+                                        decoding="async"
+                                        fetchpriority="low"
+                                    />
                                 </figure>
                                 <div class="v6-tele-initiative-card__body">
                                     <p class="v6-tele-initiative-card__index">{String(index + 1).padStart(2, '0')}</p>

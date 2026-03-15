@@ -5,11 +5,11 @@
     "ui": {
         "menu": {
             "glance": "Vista rapida",
-            "checkpoints": "Lo importante",
-            "process": "Como lo abordamos",
+            "checkpoints": "Esto ordena primero",
+            "process": "Como se trabaja",
             "faq": "Preguntas frecuentes",
-            "related": "Servicios relacionados",
-            "booking": "Reserva online"
+            "related": "Cuando cambiar de ruta",
+            "booking": "Siguiente paso"
         },
         "breadcrumb": {
             "home": "Inicio",
@@ -17,8 +17,8 @@
         },
         "thesis": {
             "eyebrow": "Aurora Derm",
-            "titleSuffix": "con explicacion clara y seguimiento bien llevado",
-            "body": "Cada etapa le dice que mirar, que esperar y cuando conviene consulta presencial para cuidar el avance sin confundirle."
+            "titleSuffix": "con una ruta clara y un siguiente paso visible",
+            "body": "Esta ficha muestra que suele ordenar primero, como se trabaja, cuando conviene cambiar de ruta y cual deberia ser el siguiente paso para que nada se quede a medias."
         },
         "statement": {
             "eyebrow": "Lectura medica",
@@ -33,25 +33,25 @@
             "aria": "Secciones del servicio"
         },
         "glance": {
-            "routeType": "Tipo de atencion",
-            "checkpoints": "Lo importante",
+            "routeType": "Ruta sugerida",
+            "checkpoints": "Lo que ordena",
             "processStages": "Etapas del cuidado"
         },
         "sections": {
-            "checkpointsTitle": "Lo importante",
-            "processTitle": "Como lo abordamos",
+            "checkpointsTitle": "Esto ordena primero",
+            "processTitle": "Como se trabaja",
             "faqTitle": "Preguntas frecuentes",
-            "relatedTitle": "Servicios que suelen complementarlo"
+            "relatedTitle": "Cuando cambiar de ruta"
         },
         "faqPrefix": "P",
         "faqAnswerNote": "Respuesta orientativa; el plan final se define en consulta.",
-        "relatedCta": "Abrir servicio",
+        "relatedCta": "Abrir ruta",
         "bookingStatus": {
-            "eyebrow": "Primer paso",
+            "eyebrow": "Siguiente paso",
             "title": "Reserva online en mantenimiento",
-            "description": "Si aun no sabe si necesita venir al consultorio, puede empezar por teledermatologia y ordenar el caso con una primera orientacion.",
-            "ctaLabel": "Abrir teledermatologia",
-            "ctaHref": "/es/telemedicina/"
+            "description": "Si este servicio ya suena a la ruta correcta, el siguiente paso es abrir primera consulta. Si todavia compara opciones, teledermatologia orienta primero.",
+            "ctaLabel": "Abrir primera consulta",
+            "ctaHref": "/es/servicios/diagnostico-integral/"
         }
     },
     "services": [

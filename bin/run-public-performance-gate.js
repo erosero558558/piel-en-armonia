@@ -228,11 +228,15 @@ async function waitForHttpReady(urlString, timeoutMs) {
 }
 
 function startLocalPhpServer(repoRoot, host, port) {
-    return spawn('php', ['-S', `${host}:${port}`, '-t', '.'], {
-        cwd: repoRoot,
-        stdio: ['ignore', 'pipe', 'pipe'],
-        shell: false,
-    });
+    return spawn(
+        'php',
+        ['-S', `${host}:${port}`, '-t', '.', 'bin/local-stage-router.php'],
+        {
+            cwd: repoRoot,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            shell: false,
+        }
+    );
 }
 
 function joinRoute(baseUrl, routePath) {

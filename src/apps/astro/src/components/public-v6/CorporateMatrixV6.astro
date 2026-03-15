@@ -5,6 +5,7 @@ const cards = (Array.isArray(section.cards) ? section.cards : [])
     .map((card) => ({
         href: hasText(card?.href) ? card.href.trim() : '',
         image: hasText(card?.image) ? card.image.trim() : '',
+        srcset: hasText(card?.srcset) ? card.srcset.trim() : '',
         alt: hasText(card?.alt) ? card.alt.trim() : '',
         category: hasText(card?.category) ? card.category.trim() : '',
         title: hasText(card?.title) ? card.title.trim() : '',
@@ -34,7 +35,15 @@ const ctaLabel = hasText(section.ctaLabel) ? section.ctaLabel.trim() : '';
                     cards.map((card) => (
                         <a class="v6-corporate-matrix__card" href={card.href}>
                             <figure>
-                                <img src={card.image} alt={card.alt} loading="lazy" decoding="async" />
+                                <img
+                                    src={card.image}
+                                    srcset={card.srcset || undefined}
+                                    sizes="(max-width: 720px) 100vw, (max-width: 1100px) 50vw, 34vw"
+                                    alt={card.alt}
+                                    loading="lazy"
+                                    decoding="async"
+                                    fetchpriority="low"
+                                />
                             </figure>
                             <div class="v6-corporate-matrix__meta">
                                 {card.category ? <p><span>{card.category}</span></p> : null}

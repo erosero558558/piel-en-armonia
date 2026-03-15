@@ -12,6 +12,7 @@ const title = normalizeText(safeStatement.title);
 const body = normalizeText(safeStatement.body);
 const signature = normalizeText(safeStatement.signature);
 const image = normalizeText(safeStatement.image);
+const srcset = normalizeText(safeStatement.imageSrcset || safeStatement.srcset);
 const alt = normalizeText(safeStatement.alt);
 const hasMedia = Boolean(image);
 const hasContent = Boolean(eyebrow || title || body || signature);
@@ -28,7 +29,15 @@ const hasStatement = hasMedia || hasContent;
             {
                 hasMedia ? (
                     <figure class="v6-statement-band__media">
-                        <img src={image} alt={alt} loading="lazy" decoding="async" />
+                        <img
+                            src={image}
+                            srcset={srcset || undefined}
+                            sizes="(max-width: 900px) 100vw, 38vw"
+                            alt={alt}
+                            loading="lazy"
+                            decoding="async"
+                            fetchpriority="low"
+                        />
                     </figure>
                 ) : null
             }

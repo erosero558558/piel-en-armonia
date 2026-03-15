@@ -22,7 +22,7 @@
     "ui": {
         "menu": {
             "featured": "Where to start",
-            "initiatives": "Helpful support"
+            "initiatives": "Useful next moves"
         },
         "featured": {
             "eyebrow": "Where to start",
@@ -34,7 +34,7 @@
         "railAria": "Service sections",
         "initiatives": {
             "eyebrow": "Practical support",
-            "title": "Useful signals after you choose the route"
+            "title": "Practical next moves after you choose the route"
         }
     },
     "featured": [
@@ -158,57 +158,57 @@
     "initiatives": [
         {
             "category": "Follow-up",
-            "title": "Comparable clinical photos",
-            "copy": "Images taken under similar conditions help us read change with more precision.",
+            "title": "Document comparable change",
+            "copy": "Photos taken with similar light and distance help us decide whether this route is working or should shift.",
             "image": "/images/optimized/v6-clinic-home-followup.webp",
             "href": "/en/services/diagnostico-integral/"
         },
         {
-            "category": "Inflammation",
-            "title": "Active flare support",
-            "copy": "We adjust early when lesions return or the skin becomes more reactive.",
+            "category": "Relapse",
+            "title": "Reopen the route when the flare returns",
+            "copy": "If inflammation or symptoms come back, do not restart from zero. Re-enter through the closest route and adjust the next move.",
             "image": "/images/optimized/v6-clinic-granitos-brazos-piernas.webp",
             "href": "/en/services/acne-rosacea/"
         },
         {
-            "category": "Pediatric",
-            "title": "Family decisions with guidance",
-            "copy": "A clear home plan with warning signs and steps a family can realistically follow.",
+            "category": "Family",
+            "title": "Align who supports the care",
+            "copy": "In pediatric or longer routes it helps to align home, school, and follow-up so the plan can actually hold.",
             "image": "/images/optimized/v6-clinic-statement-family-support.webp",
             "href": "/en/services/dermatologia-pediatrica/"
         },
         {
-            "category": "Screening",
-            "title": "A lesion worth reviewing",
-            "copy": "We move faster when a mole or spot has changed in a recent way.",
+            "category": "Warning sign",
+            "title": "Do not delay a changing lesion",
+            "copy": "If a mole, spot, or lesion changed quickly, that route is no longer watch-and-wait. It needs prompt review.",
             "image": "/images/optimized/v6-clinic-cancer-piel.webp",
             "href": "/en/services/cancer-piel/"
         },
         {
-            "category": "Technology",
-            "title": "Phototype calibration",
-            "copy": "Energy, frequency, and recovery are tuned to your skin's measured response.",
+            "category": "Procedure",
+            "title": "Confirm whether technology really adds value",
+            "copy": "Before moving into laser or peels, it helps to confirm goal, recovery, and safety for your skin.",
             "image": "/images/optimized/v6-clinic-clinic-environment.webp",
             "href": "/en/services/laser-dermatologico/"
         },
         {
-            "category": "Rejuvenation",
-            "title": "Skin support by stages",
-            "copy": "Sessions are combined with honest expectations to improve texture, firmness, and skin quality.",
+            "category": "Follow-up",
+            "title": "Combine routes only when they help",
+            "copy": "Mesotherapy, biostimulation, or integrated follow-up are added when they clarify the process, not to duplicate visits.",
             "image": "/images/optimized/v6-clinic-statement-procedure-guidance.webp",
             "href": "/en/services/bioestimuladores-colageno/"
         },
         {
             "category": "Route change",
-            "title": "Change route on time",
-            "copy": "If the first option stops fitting, we redirect quickly into first visit or in-clinic evaluation.",
+            "title": "Change doors without losing context",
+            "copy": "If the first route stops fitting, move into first visit or integrated follow-up with the case already organized.",
             "image": "/images/optimized/v6-clinic-team-roundtable.webp",
             "href": "/en/services/diagnostico-integral/"
         },
         {
             "category": "Teledermatology",
-            "title": "Clinic handoff on time",
-            "copy": "Remote care keeps clear signals for moving into clinic when it is needed.",
+            "title": "Use remote care to decide the next move",
+            "copy": "Teledermatology can sustain follow-up and also confirm when it is time to move in-clinic.",
             "image": "/images/optimized/v6-clinic-hub-editorial-map.webp",
             "href": "/en/telemedicine/"
         }

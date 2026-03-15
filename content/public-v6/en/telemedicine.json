@@ -26,18 +26,18 @@
         },
         "thesis": {
             "eyebrow": "Remote clinical model",
-            "title": "Teledermatology when it helps and when it should switch routes",
-            "body": "We define what can be clarified remotely, what should not stay online, and when the correct next step is already an in-clinic review."
+            "title": "Teledermatology to start well, switch on time, and know next steps",
+            "body": "It clarifies when remote care helps, when it is no longer enough, and which next action keeps the case from staying half-decided."
         },
         "statement": {
             "eyebrow": "Remote review",
-            "title": "Teledermatology with clear limits and an in-clinic handoff when needed",
+            "title": "Teledermatology with clear limits, an in-clinic handoff, and a visible next action",
             "signature": "Hybrid model, Quito",
             "image": "/images/optimized/v6-clinic-consent-trust.webp",
             "alt": "Remote dermatology review with follow-up and adjustment"
         },
         "internalMessage": {
-            "description": "Remote guidance fits cases that can be read through good history and clear images; if risk signs appear, we move quickly into clinic."
+            "description": "Remote guidance works when there is a good history, useful photos, and a concrete question; if warning signs or meaningful uncertainty appear, we move quickly into clinic."
         },
         "rail": {
             "title": "Sections",
@@ -75,12 +75,12 @@
             ]
         },
         {
-            "title": "Move into clinic",
+            "title": "Move into clinic and next action",
             "items": [
                 "When the first remote read still leaves clinical doubt that should not be dragged out.",
                 "When the first plan does not respond as expected in the agreed review window.",
-                "When the case needs confirmation through direct examination or a procedure.",
-                "When the way the lesion behaves suggests the next step should not wait."
+                "When the case needs dermatoscopy, a procedure, or direct physical examination.",
+                "When the correct next step is already to open first visit instead of waiting longer online."
             ]
         }
     ],
@@ -99,13 +99,13 @@
         },
         {
             "title": "Watch for switching signals",
-            "copy": "Pain, bleeding, fast spread, or poor response are signs to move from remote care into clinic.",
+            "copy": "Pain, bleeding, fast spread, or poor response are signs to move from remote care into clinic without stretching the wait.",
             "image": "/images/optimized/v6-clinic-clinic-environment.webp",
             "href": "#v6-tele-block-3"
         },
         {
             "title": "Open first visit",
-            "copy": "When the decision already requires direct examination, the next step is not to wait but to open first visit.",
+            "copy": "When the decision already requires direct examination, the correct action is to open first visit instead of staying remote.",
             "image": "/images/optimized/v6-clinic-team-roundtable.webp",
             "href": "#v6-booking-status"
         }
