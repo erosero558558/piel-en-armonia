@@ -458,7 +458,7 @@ function applyHomeImageDecisions(payload, locale) {
         return {
             ...safeCard,
             image: resolved.src,
-            srcset: resolved.srcset,
+            srcset: resolved.srcset || normalizeText(safeCard.srcset),
             alt: resolved.alt,
             assetId: resolved.assetId,
             slotId,
@@ -484,7 +484,7 @@ function applyHomeImageDecisions(payload, locale) {
         return {
             ...safeCard,
             image: resolved.src,
-            srcset: resolved.srcset,
+            srcset: resolved.srcset || normalizeText(safeCard.srcset),
             alt: resolved.alt,
             assetId: resolved.assetId,
             slotId,
@@ -520,11 +520,13 @@ function applyHubImageDecisions(payload, locale) {
         const resolved = resolveV6SlotImage(slotId, locale, {
             fallbackAssetId: inferAssetIdFromImagePath(safeCard.image),
             fallbackSrc: safeCard.image,
+            fallbackSrcset: safeCard.srcset,
             fallbackAlt: safeCard.title,
         });
         return {
             ...safeCard,
             image: resolved.src,
+            srcset: resolved.srcset || normalizeText(safeCard.srcset),
             alt: resolved.alt,
             assetId: resolved.assetId,
             slotId,
@@ -545,11 +547,13 @@ function applyHubImageDecisions(payload, locale) {
             const resolved = resolveV6SlotImage(slotId, locale, {
                 fallbackAssetId: inferAssetIdFromImagePath(safeCard.image),
                 fallbackSrc: safeCard.image,
+                fallbackSrcset: safeCard.srcset,
                 fallbackAlt: safeCard.title,
             });
             return {
                 ...safeCard,
                 image: resolved.src,
+                srcset: resolved.srcset || normalizeText(safeCard.srcset),
                 alt: resolved.alt,
                 assetId: resolved.assetId,
                 slotId,
@@ -567,11 +571,13 @@ function applyHubImageDecisions(payload, locale) {
         const resolved = resolveV6SlotImage(slotId, locale, {
             fallbackAssetId: inferAssetIdFromImagePath(safeCard.image),
             fallbackSrc: safeCard.image,
+            fallbackSrcset: safeCard.srcset,
             fallbackAlt: safeCard.title,
         });
         return {
             ...safeCard,
             image: resolved.src,
+            srcset: resolved.srcset || normalizeText(safeCard.srcset),
             alt: resolved.alt,
             assetId: resolved.assetId,
             slotId,
@@ -617,15 +623,39 @@ function applyTelemedicineImageDecisions(payload, locale) {
         {
             fallbackAssetId: inferAssetIdFromImagePath(statement.image),
             fallbackSrc: statement.image,
+            fallbackSrcset: statement.imageSrcset || statement.srcset,
             fallbackAlt: statement.alt || statement.title || source.lead,
         }
     );
     statement.image = resolvedStatement.src;
+    statement.imageSrcset =
+        resolvedStatement.srcset ||
+        normalizeText(statement.imageSrcset || statement.srcset);
     statement.alt = resolvedStatement.alt;
     statement.assetId = resolvedStatement.assetId;
     statement.slotId = 'telemedicine.statement';
     ui.statement = statement;
     source.ui = ui;
+
+    const blocks = Array.isArray(source.blocks) ? source.blocks : [];
+    source.blocks = blocks.map((block, index) => {
+        const safeBlock = isObject(block) ? { ...block } : {};
+        const slotId = `telemedicine.blocks.${index}`;
+        const resolved = resolveV6SlotImage(slotId, locale, {
+            fallbackAssetId: inferAssetIdFromImagePath(safeBlock.image),
+            fallbackSrc: safeBlock.image,
+            fallbackSrcset: safeBlock.srcset,
+            fallbackAlt: safeBlock.alt || safeBlock.title,
+        });
+        return {
+            ...safeBlock,
+            image: resolved.src,
+            srcset: resolved.srcset || normalizeText(safeBlock.srcset),
+            alt: resolved.alt,
+            assetId: resolved.assetId,
+            slotId,
+        };
+    });
 
     const initiatives = Array.isArray(source.initiatives)
         ? source.initiatives
@@ -636,11 +666,13 @@ function applyTelemedicineImageDecisions(payload, locale) {
         const resolved = resolveV6SlotImage(slotId, locale, {
             fallbackAssetId: inferAssetIdFromImagePath(safeItem.image),
             fallbackSrc: safeItem.image,
+            fallbackSrcset: safeItem.srcset,
             fallbackAlt: safeItem.title,
         });
         return {
             ...safeItem,
             image: resolved.src,
+            srcset: resolved.srcset || normalizeText(safeItem.srcset),
             alt: resolved.alt,
             assetId: resolved.assetId,
             slotId,
@@ -871,6 +903,7 @@ function sanitizeEditorialCard(card, index) {
         copy: normalizeText(card?.copy),
         href,
         image,
+        srcset: normalizeText(card?.srcset),
         alt: normalizeText(card?.alt) || title,
     };
 }
@@ -903,6 +936,8 @@ function sanitizeHubCard(item) {
         title,
         copy: normalizeText(item?.copy),
         image,
+        srcset: normalizeText(item?.srcset),
+        alt: normalizeText(item?.alt) || title,
         href,
     };
 }

@@ -26,18 +26,18 @@
         },
         "thesis": {
             "eyebrow": "Modelo clinico remoto",
-            "title": "Teledermatologia cuando si orienta y cuando debe cambiar de ruta",
-            "body": "Definimos que puede aclararse a distancia, que no deberia quedarse remoto y en que momento el siguiente paso correcto ya es verle en consultorio."
+            "title": "Teledermatologia para empezar bien, cambiar a tiempo y saber que hacer ahora",
+            "body": "Aclara cuando remoto si ayuda, cuando ya no alcanza y que siguiente accion conviene tomar para no dejar el caso a medias."
         },
         "statement": {
             "eyebrow": "Revision remota",
-            "title": "Teledermatologia con limites claros y paso a consulta cuando hace falta",
+            "title": "Teledermatologia con limites claros, paso a consulta y siguiente accion cuando hace falta",
             "signature": "Modelo hibrido, Quito",
             "image": "/images/optimized/v6-clinic-consent-trust.webp",
             "alt": "Revision dermatologica remota con seguimiento y ajuste"
         },
         "internalMessage": {
-            "description": "La orientacion remota sirve para cuadros que pueden leerse con buena historia e imagenes claras; si aparecen senales de riesgo, cambiamos rapido a consulta presencial."
+            "description": "La orientacion remota sirve cuando hay buena historia, fotos utiles y una pregunta concreta; si aparecen senales de alarma o dudas clinicas relevantes, cambiamos pronto a consulta presencial."
         },
         "rail": {
             "title": "Secciones",
@@ -75,12 +75,12 @@
             ]
         },
         {
-            "title": "Paso a consulta presencial",
+            "title": "Paso a consulta presencial y siguiente accion",
             "items": [
                 "Si la primera lectura remota deja dudas clinicas que no conviene arrastrar.",
-                "Si el plan inicial no responde como se esperaba en el control acordado.",
-                "Si el caso pide confirmar con examen directo o procedimiento en consultorio.",
-                "Si el comportamiento de la lesion sugiere que el siguiente paso no debe esperar."
+                "Si el plan inicial no responde como se esperaba en el tiempo acordado.",
+                "Si el caso pide dermatoscopia, procedimiento o examen directo en consultorio.",
+                "Si ya ve que el siguiente paso correcto es abrir primera consulta y no seguir esperando."
             ]
         }
     ],
@@ -99,13 +99,13 @@
         },
         {
             "title": "Revise senales para cambiar",
-            "copy": "Dolor, sangrado, extension rapida o mala respuesta son senales para pasar de remoto a consulta.",
+            "copy": "Dolor, sangrado, extension rapida o mala respuesta son senales para pasar de remoto a consulta sin seguir dilatando.",
             "image": "/images/optimized/v6-clinic-clinic-environment.webp",
             "href": "#v6-tele-block-3"
         },
         {
             "title": "Abra la primera consulta",
-            "copy": "Cuando la decision ya pide examen directo, el siguiente paso no es esperar: es abrir primera consulta.",
+            "copy": "Cuando la decision ya pide examen directo, la accion correcta es abrir primera consulta y no quedarse solo en remoto.",
             "image": "/images/optimized/v6-clinic-team-roundtable.webp",
             "href": "#v6-booking-status"
         }

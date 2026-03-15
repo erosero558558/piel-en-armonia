@@ -67,16 +67,16 @@
     },
     "newsStrip": {
         "label": "Aurora Derm",
-        "headline": "Three clear ways to begin: first visit, indicated treatments, or teledermatology when you need to move today.",
+        "headline": "Start with first visit, treatments, or teledermatology; with online booking under maintenance, this page keeps the route clear.",
         "href": "/en/services/",
         "expandLabel": "Expand",
         "collapseLabel": "Collapse",
-        "detail": "Start with the route that sounds closest to what is happening now, then open the more specific options after that first decision is clear.",
+        "detail": "Choose the front door that sounds closest to what is happening now; while online booking under maintenance remains active, these routes keep the next step explicit.",
         "ctaLabel": "See specialties",
         "localeAria": "Language switch"
     },
     "editorial": {
-        "eyebrow": "Aurora Derm",
+        "eyebrow": "Master routes",
         "title": "Three master routes to begin without guesswork.",
         "deck": "If you need to sort symptoms, choose treatment, or start remotely, these are the three front doors.",
         "ctaLabel": "Open service",

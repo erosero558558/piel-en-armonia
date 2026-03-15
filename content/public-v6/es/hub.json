@@ -22,7 +22,7 @@
     "ui": {
         "menu": {
             "featured": "Para empezar",
-            "initiatives": "Ayuda concreta"
+            "initiatives": "Movimientos utiles"
         },
         "featured": {
             "eyebrow": "Para empezar",
@@ -33,8 +33,8 @@
         "ctaLabel": "Ver servicio",
         "railAria": "Secciones de servicios",
         "initiatives": {
-            "eyebrow": "Ayuda concreta",
-            "title": "Senales utiles despues de elegir la ruta"
+            "eyebrow": "Movimientos utiles",
+            "title": "Pasos practicos despues de elegir la ruta"
         }
     },
     "featured": [
@@ -158,57 +158,57 @@
     "initiatives": [
         {
             "category": "Seguimiento",
-            "title": "Fotos clinicas comparables",
-            "copy": "Imagenes tomadas en condiciones parecidas ayudan a leer el cambio con mas precision.",
+            "title": "Documente cambios comparables",
+            "copy": "Fotos tomadas con luz y distancia parecidas ayudan a decidir si esta ruta esta funcionando o si conviene moverla.",
             "image": "/images/optimized/v6-clinic-home-followup.webp",
             "href": "/es/servicios/diagnostico-integral/"
         },
         {
-            "category": "Inflamacion",
-            "title": "Apoyo en brote activo",
-            "copy": "Ajustamos temprano cuando las lesiones regresan o la piel se vuelve mas reactiva.",
+            "category": "Recaida",
+            "title": "Reabra la ruta cuando el brote vuelva",
+            "copy": "Si la inflamacion o el sintoma regresa, no reinicie todo: vuelva por la ruta mas cercana y ajustamos el siguiente paso.",
             "image": "/images/optimized/v6-clinic-granitos-brazos-piernas.webp",
             "href": "/es/servicios/acne-rosacea/"
         },
         {
-            "category": "Pediatria",
-            "title": "Decisiones familiares con guia",
-            "copy": "Un plan claro para casa, con senales de alarma y pasos que una familia si puede sostener.",
+            "category": "Familia",
+            "title": "Ordene quien acompana el cuidado",
+            "copy": "En rutas pediatricas o prolongadas conviene alinear casa, escuela y controles para sostener el plan.",
             "image": "/images/optimized/v6-clinic-statement-family-support.webp",
             "href": "/es/servicios/dermatologia-pediatrica/"
         },
         {
-            "category": "Tamizaje",
-            "title": "Una lesion que merece revision",
-            "copy": "Conviene revisar pronto cuando un lunar o una lesion cambiaron hace pocos dias o empezaron a sangrar.",
+            "category": "Alarma",
+            "title": "No demore una lesion que cambio",
+            "copy": "Si un lunar, una mancha o una lesion cambio rapido, esa ruta ya no es de espera: conviene revision pronta.",
             "image": "/images/optimized/v6-clinic-cancer-piel.webp",
             "href": "/es/servicios/cancer-piel/"
         },
         {
-            "category": "Tecnologia",
-            "title": "Calibracion por fototipo",
-            "copy": "Energia, frecuencia y recuperacion se ajustan a la respuesta medida de su piel.",
+            "category": "Procedimiento",
+            "title": "Confirme si la tecnologia si aporta",
+            "copy": "Antes de entrar a laser o peelings, conviene verificar objetivo, recuperacion y seguridad segun su piel.",
             "image": "/images/optimized/v6-clinic-clinic-environment.webp",
             "href": "/es/servicios/laser-dermatologico/"
         },
         {
-            "category": "Rejuvenecimiento",
-            "title": "Soporte de piel por etapas",
-            "copy": "Las sesiones se combinan con expectativas honestas para mejorar textura, firmeza y calidad cutanea.",
+            "category": "Seguimiento",
+            "title": "Combine rutas solo cuando suman",
+            "copy": "Mesoterapia, bioestimulacion o controles integrales se agregan cuando aclaran el proceso, no para duplicar visitas.",
             "image": "/images/optimized/v6-clinic-statement-procedure-guidance.webp",
             "href": "/es/servicios/bioestimuladores-colageno/"
         },
         {
             "category": "Cambio de ruta",
-            "title": "Cambiar de ruta a tiempo",
-            "copy": "Si la primera opcion deja de ajustarse, redirigimos rapido a primera consulta o a revision presencial.",
+            "title": "Cambie de puerta sin perder contexto",
+            "copy": "Si la ruta inicial ya no alcanza, salte a primera consulta o a seguimiento integral con el caso ya ordenado.",
             "image": "/images/optimized/v6-clinic-team-roundtable.webp",
             "href": "/es/servicios/diagnostico-integral/"
         },
         {
             "category": "Teledermatologia",
-            "title": "Paso a consulta sin demora",
-            "copy": "La atencion remota mantiene senales claras para pasar a consulta cuando haga falta.",
+            "title": "Use remoto para decidir el siguiente movimiento",
+            "copy": "La atencion a distancia sirve para sostener seguimiento y tambien para confirmar cuando ya toca consulta presencial.",
             "image": "/images/optimized/v6-clinic-hub-editorial-map.webp",
             "href": "/es/telemedicina/"
         }

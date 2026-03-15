@@ -39,6 +39,41 @@ const safePathname = normalizePath(pathname, safeLocale === 'en' ? '/en/' : '/es
 const xDefault = safeLocale === 'en' ? alternate : canonical;
 const fontsHref =
     'https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap';
+const parseSrcSetCandidates = (value) =>
+    normalizeText(value)
+        .split(',')
+        .map((entry) => {
+            const parts = entry.trim().split(/\s+/);
+            const href = normalizeText(parts[0]);
+            const width = Number.parseInt(String(parts[1] || '').replace(/w$/i, ''), 10);
+            return href
+                ? {
+                      href,
+                      width: Number.isFinite(width) ? width : null,
+                  }
+                : null;
+        })
+        .filter(Boolean);
+const pickPreloadImageHref = (src, srcset) => {
+    const fallback = normalizeText(src);
+    const candidates = parseSrcSetCandidates(srcset);
+    if (!candidates.length) {
+        return fallback;
+    }
+    const preferred =
+        candidates.find((candidate) => candidate.width === 800) ||
+        candidates.find(
+            (candidate) =>
+                typeof candidate.width === 'number' &&
+                candidate.width >= 760 &&
+                candidate.width <= 960
+        ) ||
+        candidates.find(
+            (candidate) => typeof candidate.width === 'number' && candidate.width > 800
+        ) ||
+        candidates[candidates.length - 1];
+    return preferred?.href || fallback;
+};
 const toOgImageUrl = (value) => {
     const raw = normalizeText(value);
     const fallback = '/images/optimized/v6-clinic-brand-hero-wide.jpg';
@@ -53,7 +88,7 @@ const toOgImageUrl = (value) => {
     return new URL(jpgPath, origin).toString();
 };
 
-const preloadHref = normalizeText(preloadImageSrc);
+const preloadHref = pickPreloadImageHref(preloadImageSrc, preloadImageSrcSet);
 const preloadSrcSet = normalizeText(preloadImageSrcSet);
 const preloadSizes = normalizeText(preloadImageSizes);
 const preloadType = normalizeText(preloadImageType);
@@ -106,7 +141,6 @@ const flagsJson = JSON.stringify(flags);
         }
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link rel="preload" as="style" href={fontsHref} />
         <link rel="stylesheet" href={fontsHref} media="print" onload="this.media='all'" />
         <noscript><link rel="stylesheet" href={fontsHref} /></noscript>
         <script src="/js/public-v6-shell.js?v=public-v6-shell-20260312-r1" defer></script>

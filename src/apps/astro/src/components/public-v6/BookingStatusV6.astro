@@ -1,4 +1,6 @@
 ---
+import '../../styles/public-v6/booking-status.css';
+
 const { status = {}, sectionId = '' } = Astro.props;
 const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
 const eyebrow = hasText(status.eyebrow) ? status.eyebrow.trim() : '';

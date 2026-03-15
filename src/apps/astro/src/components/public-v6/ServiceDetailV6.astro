@@ -1,4 +1,6 @@
 ---
+import '../../styles/public-v6/internal.css';
+
 import BookingStatusV6 from './BookingStatusV6.astro';
 import InternalStatementBandV6 from './InternalStatementBandV6.astro';
 import PageHeadV6 from './PageHeadV6.astro';
@@ -44,6 +46,7 @@ const serviceHeroImage = normalizeText(service.heroImage);
 const serviceHeroSrcset = normalizeText(service.heroImageSrcset);
 const serviceHeroAlt = normalizeText(service.heroAlt) || serviceTitle;
 const serviceStatementImage = normalizeText(service.statementImage);
+const serviceStatementSrcset = normalizeText(service.statementImageSrcset);
 const serviceStatementAlt = normalizeText(service.statementAlt);
 const checkpoints = Array.isArray(service.bullets) ? service.bullets.map(normalizeText).filter(Boolean) : [];
 const processSteps = Array.isArray(service.process) ? service.process.map(normalizeText).filter(Boolean) : [];
@@ -60,10 +63,11 @@ const safeRelated = (Array.isArray(related) ? related : [])
         const title = normalizeText(item?.title);
         const href = normalizeHref(item?.href);
         const heroImage = normalizeText(item?.cardImage || item?.heroImage);
+        const heroSrcset = normalizeText(item?.cardImageSrcset || item?.heroImageSrcset);
         const heroAlt = normalizeText(item?.cardAlt) || title;
         const category = normalizeText(item?.category);
         const summary = normalizeText(item?.summary);
-        return title && href && heroImage ? { title, href, heroImage, heroAlt, category, summary } : null;
+        return title && href && heroImage ? { title, href, heroImage, heroSrcset, heroAlt, category, summary } : null;
     })
     .filter(Boolean);
 const hasGlance = Boolean(serviceCategory || checkpoints.length || processSteps.length);
@@ -131,6 +135,7 @@ const statement = {
     body: serviceLead,
     signature: normalizeText(statementUi.signature),
     image: serviceStatementImage || normalizeText(statementUi.image),
+    imageSrcset: serviceStatementSrcset || normalizeText(statementUi.imageSrcset || statementUi.srcset),
     alt: serviceStatementAlt || normalizeText(statementUi.alt),
 };
 const relatedCta = normalizeText(ui.relatedCta);
@@ -190,6 +195,7 @@ const heroMenuItems = sectionMenuItems.slice(0, 3);
                         sizes="(max-width: 1100px) 100vw, 62vw"
                         alt={serviceHeroAlt}
                         loading="eager"
+                        decoding="sync"
                         fetchpriority="high"
                     />
                 </figure>
@@ -365,7 +371,15 @@ const heroMenuItems = sectionMenuItems.slice(0, 3);
                             safeRelated.map((item, index) => (
                                 <a href={item.href} class:list={[index === 0 && 'is-lead']}>
                                     <figure class="v6-related-grid__media">
-                                        <img src={item.heroImage} alt={item.title} loading="lazy" decoding="async" />
+                                        <img
+                                            src={item.heroImage}
+                                            srcset={item.heroSrcset || undefined}
+                                            sizes="(max-width: 720px) 100vw, (max-width: 1100px) 50vw, 30vw"
+                                            alt={item.heroAlt}
+                                            loading="lazy"
+                                            decoding="async"
+                                            fetchpriority="low"
+                                        />
                                     </figure>
                                     <div class="v6-related-grid__meta">
                                         <p class="v6-related-grid__index">{String(index + 1).padStart(2, '0')}</p>
