@@ -1,50 +1,68 @@
 const { test, expect } = require('@playwright/test');
 
-const pages = [
+const V6_ROUTES = [
     '/',
-    '/telemedicina.html',
-    '/servicios/acne.html',
-    '/servicios/laser.html',
+    '/en/telemedicine/',
+    '/es/servicios/acne-rosacea/',
+    '/en/services/laser-dermatologico/',
 ];
 
-test.describe('Script asset version parity', () => {
-    for (const path of pages) {
-        test(`page ${path} loads versioned script bundle`, async ({ page }) => {
-            await page.goto(path, { waitUntil: 'domcontentloaded' });
+test.describe('Public V6 script asset parity', () => {
+    test('selected V6 routes load the versioned public shell bundle', async ({
+        page,
+    }) => {
+        let expectedShell = null;
+
+        for (const route of V6_ROUTES) {
+            await page.goto(route, { waitUntil: 'domcontentloaded' });
 
             const scriptSources = await page.$$eval('script[src]', (nodes) =>
                 nodes.map((node) => node.getAttribute('src') || '')
             );
+            const publicShell = scriptSources.find((src) =>
+                src.includes('/js/public-v6-shell.js')
+            );
 
-            const mainScript = scriptSources.find((src) =>
-                src.includes('script.js')
-            );
-            expect(mainScript, `script.js missing on ${path}`).toBeTruthy();
             expect(
-                mainScript,
-                `script.js must be versioned on ${path}`
-            ).toContain('?v=');
-        });
-    }
-
-    test('landing pages load versioned bootstrap engine', async ({ page }) => {
-        const landingPages = ['/', '/telemedicina.html'];
-        for (const path of landingPages) {
-            await page.goto(path, { waitUntil: 'domcontentloaded' });
-            const scriptSources = await page.$$eval('script[src]', (nodes) =>
-                nodes.map((node) => node.getAttribute('src') || '')
-            );
-            const bootstrapScript = scriptSources.find((src) =>
-                src.includes('js/bootstrap-inline-engine.js')
-            );
-            expect(
-                bootstrapScript,
-                `js/bootstrap-inline-engine.js missing on ${path}`
+                publicShell,
+                `public-v6 shell missing on ${route}`
             ).toBeTruthy();
             expect(
-                bootstrapScript,
-                `js/bootstrap-inline-engine.js must be versioned on ${path}`
+                publicShell,
+                `public-v6 shell must be versioned on ${route}`
             ).toContain('?v=');
+
+            if (expectedShell === null) {
+                expectedShell = publicShell;
+                continue;
+            }
+
+            expect(
+                publicShell,
+                `public-v6 shell version drifted on ${route}`
+            ).toBe(expectedShell);
+        }
+    });
+
+    test('selected V6 routes do not regress to legacy public bundles', async ({
+        page,
+    }) => {
+        for (const route of V6_ROUTES) {
+            await page.goto(route, { waitUntil: 'domcontentloaded' });
+
+            const scriptSources = await page.$$eval('script[src]', (nodes) =>
+                nodes.map((node) => node.getAttribute('src') || '')
+            );
+            const legacyBundles = scriptSources.filter(
+                (src) =>
+                    src.includes('/script.js') ||
+                    src.includes('/js/bootstrap-inline-engine.js')
+            );
+
+            expect(
+                legacyBundles,
+                `legacy public bundles should stay absent on ${route}`
+            ).toEqual([]);
         }
     });
 });

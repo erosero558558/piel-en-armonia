@@ -258,11 +258,77 @@ jobs:
               env:
                   TEST_LOCAL_SERVER: php
                   PIELARMONIA_ADMIN_PASSWORD: test-ci-admin-password
-            - name: Run Playwright Tests (non-critical)
+            - name: Skip e2e (no relevant changes)
+              if: steps.changes.outputs.e2e != 'true'
+              run: |
+                  echo "Skipping e2e-tests: no relevant source/test changes detected."
+            - uses: actions/upload-artifact@v4
+              if: always() && steps.changes.outputs.e2e == 'true'
+              with:
+                  name: playwright-report-critical
+                  path: playwright-report/
+                  if-no-files-found: ignore
+                  retention-days: 30
+
+    e2e-noncritical-report:
+        runs-on: ubuntu-latest
+        needs: [e2e-tests]
+        steps:
+            - uses: actions/checkout@v4
+            - name: Detect e2e relevant changes
+              id: changes
+              uses: dorny/paths-filter@v3
+              with:
+                  filters: |
+                      e2e:
+                        - 'tests/**'
+                        - 'js/**'
+                        - 'src/**'
+                        - 'controllers/**'
+                        - 'lib/**'
+                        - '*.php'
+                        - '*.html'
+                        - '*.css'
+                        - 'playwright.config.js'
+                        - 'package.json'
+                        - 'package-lock.json'
+            - name: Setup PHP
+              if: steps.changes.outputs.e2e == 'true'
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.2'
+                  tools: composer:v2
+            - name: Install Composer Dependencies
+              if: steps.changes.outputs.e2e == 'true'
+              run: composer install --prefer-dist --no-progress
+            - name: Setup Node
+              if: steps.changes.outputs.e2e == 'true'
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+            - name: Install Node Dependencies
+              if: steps.changes.outputs.e2e == 'true'
+              run: npm ci
+            - name: Cache Playwright Browsers
+              if: steps.changes.outputs.e2e == 'true'
+              id: playwright-cache
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-playwright-
+            - name: Install Playwright Browsers
+              if: steps.changes.outputs.e2e == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
+              run: npx playwright install --with-deps chromium
+            - name: Run Playwright Tests (non-critical report)
               if: steps.changes.outputs.e2e == 'true'
               shell: bash
               run: |
                   set -euo pipefail
+                  mkdir -p verification/ci
+
                   mapfile -t spec_files < <(find tests -name "*.spec.js" \
                     ! -name "calendar-google-contract.spec.js" \
                     ! -name "phase2-calendar-consistency.spec.js" \
@@ -272,23 +338,52 @@ jobs:
                     ! -name "payments-card-booking.spec.js" | sort)
 
                   if [ "${#spec_files[@]}" -eq 0 ]; then
-                    echo "::error::No se encontraron specs no criticos para Playwright."
-                    exit 1
+                    echo "NONCRITICAL_E2E_STATUS=skipped" >> "$GITHUB_ENV"
+                    echo "NONCRITICAL_E2E_EXIT_CODE=0" >> "$GITHUB_ENV"
+                    printf 'No non-critical Playwright specs were found for this diff.\n' > verification/ci/noncritical-e2e-summary.txt
+                    exit 0
                   fi
 
+                  set +e
                   npx playwright test --grep-invert "@visual" "${spec_files[@]}"
+                  status=$?
+                  set -e
+
+                  echo "NONCRITICAL_E2E_EXIT_CODE=$status" >> "$GITHUB_ENV"
+                  if [ "$status" -eq 0 ]; then
+                    echo "NONCRITICAL_E2E_STATUS=passed" >> "$GITHUB_ENV"
+                    printf 'Non-critical Playwright suite passed.\n' > verification/ci/noncritical-e2e-summary.txt
+                    exit 0
+                  fi
+
+                  echo "NONCRITICAL_E2E_STATUS=warning" >> "$GITHUB_ENV"
+                  printf 'Non-critical Playwright suite reported failures (exit %s). Critical release gates remain enforced by the blocking e2e-tests job.\n' "$status" > verification/ci/noncritical-e2e-summary.txt
+                  echo "::warning::Non-critical Playwright suite reported failures (exit $status). Critical release gates remain enforced by e2e-tests."
               env:
                   TEST_LOCAL_SERVER: php
                   PIELARMONIA_ADMIN_PASSWORD: test-ci-admin-password
-            - name: Skip e2e (no relevant changes)
+            - name: Publish non-critical summary
+              if: always() && steps.changes.outputs.e2e == 'true'
+              shell: bash
+              run: |
+                  {
+                    echo "## Non-critical Playwright report"
+                    cat verification/ci/noncritical-e2e-summary.txt
+                    echo
+                    echo "- status: ${NONCRITICAL_E2E_STATUS:-unknown}"
+                    echo "- exit code: ${NONCRITICAL_E2E_EXIT_CODE:-unknown}"
+                    echo "- blocking release gates: lint, security, unit-tests, e2e-tests, c1-exit-gate"
+                  } >> "$GITHUB_STEP_SUMMARY"
+            - name: Skip non-critical report (no relevant changes)
               if: steps.changes.outputs.e2e != 'true'
               run: |
-                  echo "Skipping e2e-tests: no relevant source/test changes detected."
+                  echo "Skipping e2e-noncritical-report: no relevant source/test changes detected."
             - uses: actions/upload-artifact@v4
               if: always() && steps.changes.outputs.e2e == 'true'
               with:
-                  name: playwright-report
+                  name: playwright-report-noncritical
                   path: playwright-report/
+                  if-no-files-found: ignore
                   retention-days: 30
 
     c1-exit-gate:

@@ -1,56 +1,45 @@
 const { test, expect } = require('@playwright/test');
 
-// Updated to match the optimized minified CSS file
-const EXPECTED_DEFERRED_VERSION = 'ui-20260227-deferredfix1';
+const V6_ROUTES = [
+    '/',
+    '/en/telemedicine/',
+    '/es/servicios/acne-rosacea/',
+    '/en/services/laser-dermatologico/',
+];
 
-test('Homepage has correct deferred stylesheet version', async ({ page }) => {
-    await page.goto('/');
-    const link = page.locator(
-        'link[rel="preload"][as="style"][href*="styles-deferred.css"]'
-    );
-    await expect(link).toHaveAttribute(
-        'href',
-        new RegExp(EXPECTED_DEFERRED_VERSION)
-    );
-});
+function findAstroStylesheet(hrefs) {
+    return hrefs.find((href) => /\/_astro\/[^?#]+\.css(?:[?#].*)?$/.test(href));
+}
 
-test('Subpage (Telemedicina) has correct deferred stylesheet version', async ({
-    page,
-}) => {
-    await page.goto('/telemedicina.html');
-    const link = page.locator(
-        'link[rel="preload"][as="style"][href*="styles-deferred.css"]'
-    );
-    await expect(link).toHaveAttribute(
-        'href',
-        new RegExp(EXPECTED_DEFERRED_VERSION)
-    );
-});
+test.describe('Public V6 stylesheet parity', () => {
+    test('selected V6 routes reuse the same hashed Astro stylesheet', async ({
+        page,
+    }) => {
+        let expectedHref = null;
 
-test('Service page (Acne) has correct deferred stylesheet version', async ({
-    page,
-}) => {
-    await page.goto('/servicios/acne.html');
-    // Note: In subpages, the href might be relative (../styles-deferred.css...),
-    // but our regex check just looks for the version string presence.
-    const link = page.locator(
-        'link[rel="preload"][as="style"][href*="styles-deferred.css"]'
-    );
-    await expect(link).toHaveAttribute(
-        'href',
-        new RegExp(EXPECTED_DEFERRED_VERSION)
-    );
-});
+        for (const route of V6_ROUTES) {
+            await page.goto(route, { waitUntil: 'domcontentloaded' });
 
-test('Service page (Laser) has correct deferred stylesheet version', async ({
-    page,
-}) => {
-    await page.goto('/servicios/laser.html');
-    const link = page.locator(
-        'link[rel="preload"][as="style"][href*="styles-deferred.css"]'
-    );
-    await expect(link).toHaveAttribute(
-        'href',
-        new RegExp(EXPECTED_DEFERRED_VERSION)
-    );
+            const hrefs = await page.$$eval(
+                'link[rel="stylesheet"][href], link[rel="preload"][as="style"][href]',
+                (nodes) => nodes.map((node) => node.getAttribute('href') || '')
+            );
+            const astroStylesheet = findAstroStylesheet(hrefs);
+
+            expect(
+                astroStylesheet,
+                `hashed Astro stylesheet missing on ${route}`
+            ).toBeTruthy();
+
+            if (expectedHref === null) {
+                expectedHref = astroStylesheet;
+                continue;
+            }
+
+            expect(
+                astroStylesheet,
+                `public V6 stylesheet drifted on ${route}`
+            ).toBe(expectedHref);
+        }
+    });
 });
