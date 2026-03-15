@@ -2,6 +2,7 @@
 const { test, expect } = require('@playwright/test');
 const {
     buildOperatorAuthChallenge,
+    buildOpenClawBrokerRedirect,
     buildOperatorQueueState,
     buildOperatorQueueTicket,
     installLegacyAdminAuthMock,
@@ -168,6 +169,8 @@ async function setupOperatorAuthOperatorMocks(
         startPayload = null,
         startResponses = null,
         failQueueStateInitially = false,
+        transport = 'local_helper',
+        webBrokerRedirectUrl = '',
     } = {}
 ) {
     let failQueueState = Boolean(failQueueStateInitially);
@@ -175,6 +178,28 @@ async function setupOperatorAuthOperatorMocks(
     let queueState = buildOperatorQueueState(queueTickets);
 
     function buildStartResponse(payload = {}) {
+        const resolvedTransport =
+            String(payload.transport || transport).trim().toLowerCase() ===
+            'web_broker'
+                ? 'web_broker'
+                : 'local_helper';
+        if (resolvedTransport === 'web_broker') {
+            return {
+                ok: true,
+                authenticated: false,
+                mode: 'openclaw_chatgpt',
+                status: 'pending',
+                ...(payload || {}),
+                ...buildOpenClawBrokerRedirect({
+                    redirectUrl:
+                        payload.redirectUrl ||
+                        webBrokerRedirectUrl ||
+                        'https://broker.example.test/authorize?state=queue-operator-web-broker',
+                    expiresAt: payload.expiresAt,
+                }),
+            };
+        }
+
         const challenge = buildOperatorAuthChallenge(
             payload && payload.challenge ? payload.challenge : {}
         );
@@ -208,19 +233,29 @@ async function setupOperatorAuthOperatorMocks(
             authenticated: false,
             mode: 'openclaw_chatgpt',
             status: 'anonymous',
+            transport,
         },
         {
             ok: true,
             authenticated: false,
             mode: 'openclaw_chatgpt',
             status: 'pending',
-            challenge: startResponse.challenge,
+            transport,
+            ...(transport === 'web_broker'
+                ? {
+                      redirectUrl: startResponse.redirectUrl,
+                      expiresAt: startResponse.expiresAt,
+                  }
+                : {
+                      challenge: startResponse.challenge,
+                  }),
         },
         {
             ok: true,
             authenticated: true,
             mode: 'openclaw_chatgpt',
             status: 'autenticado',
+            transport,
             csrfToken: 'csrf_operator_auth',
             operator: {
                 email: 'operator@example.com',
@@ -232,6 +267,7 @@ async function setupOperatorAuthOperatorMocks(
     const heartbeatRequests = [];
     const queueCallNextRequests = [];
     const authSession = await installOperatorOpenClawAuthMock(page, {
+        transport,
         statusResponses: Array.isArray(statusResponses)
             ? statusResponses
             : defaultStatusResponses,
@@ -250,6 +286,30 @@ async function setupOperatorAuthOperatorMocks(
         heartbeatRequests,
         queueCallNextRequests,
     });
+
+    if (transport === 'web_broker') {
+        let brokerVisits = 0;
+        await page.route('https://broker.example.test/**', async (route) => {
+            brokerVisits += 1;
+            const targetPath =
+                brokerVisits === 1
+                    ? operatorUrl(
+                          'station=c2&lock=1&one_tap=1&resume=web_broker_pending'
+                      )
+                    : operatorUrl(
+                          'station=c2&lock=1&one_tap=1&callback=web_broker_success'
+                      );
+            await route.fulfill({
+                status: 200,
+                contentType: 'text/html; charset=utf-8',
+                body: `<!doctype html><meta charset="utf-8"><script>
+const referrer = String(document.referrer || '');
+const base = referrer ? new URL(referrer).origin : window.location.origin;
+window.location.replace(new URL(${JSON.stringify(targetPath)}, base).toString());
+</script>`,
+            });
+        });
+    }
 
     return {
         challenge: startResponse.challenge,
@@ -529,6 +589,53 @@ test.describe('Turnero Operador', () => {
         await expect(page.locator('#operatorApp')).toBeVisible();
         await expect(page.locator('#operatorActionTitle')).toContainText(
             'Siguiente: B-2201'
+        );
+    });
+
+    test('web broker del operador oculta helper manual y retoma el intento sin crear otro start', async ({
+        page,
+    }) => {
+        await installWindowOpenRecorder(page);
+        const { startRequests } = await setupOperatorAuthOperatorMocks(page, {
+            transport: 'web_broker',
+        });
+
+        await page.goto(operatorUrl('station=c2&lock=1&one_tap=1'));
+
+        await expect(page.locator('#operatorOpenClawFlow')).toBeVisible();
+        await expect(page.locator('#operatorOpenClawLinkRow')).toHaveClass(
+            /is-hidden/
+        );
+        await expect(page.locator('#operatorOpenClawManualRow')).toHaveClass(
+            /is-hidden/
+        );
+
+        await page.locator('#operatorOpenClawBtn').click();
+
+        await expect.poll(() => startRequests.length).toBe(1);
+        await expect(page.locator('#operatorOpenClawFlow')).toBeVisible();
+        await expect(page.locator('#operatorLoginStatusTitle')).toHaveText(
+            'Continua con OpenClaw'
+        );
+        await expect(page.locator('#operatorOpenClawBtn')).toHaveText(
+            'Continuar con OpenClaw'
+        );
+        await expect(page.locator('#operatorOpenClawLinkRow')).toHaveClass(
+            /is-hidden/
+        );
+        await expect(page.locator('#operatorOpenClawManualRow')).toHaveClass(
+            /is-hidden/
+        );
+        await expect
+            .poll(() => page.evaluate(() => window.__openedUrls.length))
+            .toBe(0);
+
+        await page.locator('#operatorOpenClawBtn').click();
+
+        await expect.poll(() => startRequests.length).toBe(1);
+        await expect(page.locator('#operatorApp')).toBeVisible();
+        await expect(page.locator('#operatorLoginView')).toHaveClass(
+            /is-hidden/
         );
     });
 

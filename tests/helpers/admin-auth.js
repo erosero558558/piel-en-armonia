@@ -267,8 +267,8 @@ async function startOpenClawChallenge(request) {
     }
 
     const csrfToken =
-        typeof preflight.body?.csrfToken === 'string'
-            ? preflight.body.csrfToken
+        typeof preflight.snapshot?.body?.csrfToken === 'string'
+            ? preflight.snapshot.body.csrfToken
             : '';
     if (!csrfToken) {
         return {
