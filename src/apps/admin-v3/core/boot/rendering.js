@@ -1,6 +1,5 @@
 import { getState } from '../../shared/core/store.js';
 import { renderAgentPanel } from '../../shared/modules/agent.js';
-import { createToast, setText } from '../../shared/ui/render.js';
 import {
     refreshAdminData,
     refreshStatusLabel,
@@ -13,14 +12,16 @@ import {
     syncQueueAutoRefresh,
 } from '../../shared/modules/queue.js';
 import { appendActivity as appendQueueActivity } from '../../shared/modules/queue/state.js';
+import { createToast, setText } from '../../shared/ui/render.js';
 import { renderAppointmentsSection } from '../../sections/appointments.js';
-import { renderCallbacksSection } from '../../sections/callbacks.js';
-import { renderClinicalHistorySection } from '../../sections/clinical-history.js';
 import {
     renderAvailabilitySection,
     syncAvailabilityFromData,
 } from '../../sections/availability.js';
+import { renderCallbacksSection } from '../../sections/callbacks.js';
+import { renderClinicalHistorySection } from '../../sections/clinical-history.js';
 import { renderDashboard } from '../../sections/dashboard.js';
+import { renderReviewsSection } from '../../sections/reviews.js';
 import { renderAdminChrome } from '../../ui/frame.js';
 
 export function refreshHeaderStatus() {
@@ -40,6 +41,7 @@ export function renderAllSections() {
     renderClinicalHistorySection();
     renderAppointmentsSection();
     renderCallbacksSection();
+    renderReviewsSection();
     renderAvailabilitySection();
     renderQueuePilotSection(appendQueueActivity);
     refreshHeaderStatus();
@@ -53,6 +55,8 @@ export async function refreshDataAndRender(showToast = false) {
     syncAvailabilityFromData();
     if (queueSectionActive) {
         applyQueueRuntimeDefaults();
+    }
+    if (queueSectionActive || !result?.preservedQueueData) {
         await hydrateQueueFromData();
     }
     renderAllSections();

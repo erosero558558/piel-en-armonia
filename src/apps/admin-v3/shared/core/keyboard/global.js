@@ -2,7 +2,7 @@ import { hasFocusedInput } from '../../ui/render.js';
 import { getState } from '../store.js';
 import {
     DEFAULT_QUICK_ACTIONS,
-    QUEUE_QUICK_ACTIONS,
+    QUEUE_QUICK_ACTION_OVERRIDES,
     SECTION_SHORTCUTS,
 } from './constants.js';
 import {
@@ -136,8 +136,12 @@ export function handleGlobalKeyboardShortcut(event, options) {
 }
 
 function resolveQuickActions(activeSection) {
-    if (activeSection === 'queue') {
-        return QUEUE_QUICK_ACTIONS;
+    if (activeSection !== 'queue') {
+        return DEFAULT_QUICK_ACTIONS;
     }
-    return DEFAULT_QUICK_ACTIONS;
+
+    return {
+        ...DEFAULT_QUICK_ACTIONS,
+        ...QUEUE_QUICK_ACTION_OVERRIDES,
+    };
 }

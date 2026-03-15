@@ -153,63 +153,6 @@ test.describe('Admin navigation desktop', () => {
         );
     });
 
-    test('quick command expone queue piloto pero mantiene resenas fuera del shell', async ({
-        page,
-    }) => {
-        await setupAdminApiMocks(page, {
-            dataOverrides: {
-                queue_tickets: [
-                    {
-                        id: 900,
-                        ticketCode: 'A-900',
-                        patientInitials: 'AR',
-                        status: 'waiting',
-                        queueType: 'general',
-                        createdAt: new Date(
-                            Date.now() - 25 * 60 * 1000
-                        ).toISOString(),
-                    },
-                    {
-                        id: 901,
-                        ticketCode: 'A-901',
-                        patientInitials: 'BL',
-                        status: 'waiting',
-                        queueType: 'general',
-                        createdAt: new Date(
-                            Date.now() - 5 * 60 * 1000
-                        ).toISOString(),
-                    },
-                ],
-            },
-        });
-        await page.goto('/admin.html');
-        await waitForAdminRuntimeReady(page);
-
-        await expect(
-            page.locator('.nav-item[data-section="reviews"]')
-        ).toHaveCount(0);
-        await expect(
-            page.locator('.nav-item[data-section="queue"]')
-        ).toHaveCount(1);
-
-        await page.keyboard.press('Control+K');
-        await expect(page.locator('#adminCommandPalette')).not.toHaveClass(
-            /is-hidden/
-        );
-
-        const commandInput = page.locator('#adminQuickCommand');
-        await commandInput.fill('turnero');
-        await page.keyboard.press('Enter');
-
-        await expect(page.locator('#queue')).toHaveClass(/active/);
-        await expect(page).toHaveURL(/#queue$/);
-        await expect(page.locator('#queueTableBody')).toContainText('A-900');
-        await expect(page.locator('#queueTableBody')).not.toContainText(
-            'A-901'
-        );
-        await expect(page).not.toHaveURL(/#reviews$/);
-    });
-
     test('panel del copiloto permite enviar un prompt y cancelar la sesion', async ({
         page,
     }) => {

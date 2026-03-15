@@ -6,6 +6,7 @@ import { getState, updateState } from '../../../shared/core/store.js';
 import {
     applyQueueRuntimeDefaults,
     hydrateQueueFromData,
+    refreshQueueState,
     shouldRefreshQueueOnSectionEnter,
     syncQueueAutoRefresh,
 } from '../../../shared/modules/queue.js';
@@ -63,6 +64,17 @@ export async function navigateToSection(section, options = {}) {
     }
 
     showSection(normalized);
+    syncQueueAutoRefresh({
+        immediate: normalized === 'queue',
+        reason: normalized === 'queue' ? 'section-enter' : 'section-exit',
+    });
+    if (
+        normalized === 'queue' &&
+        previousSection !== 'queue' &&
+        shouldRefreshQueueOnSectionEnter()
+    ) {
+        await refreshQueueState();
+    }
     if (normalized === 'clinical-history') {
         await openClinicalHistorySession();
     }

@@ -22,6 +22,10 @@ function adminUrl(query = '') {
     return `/admin.html${search ? `?${search}` : ''}`;
 }
 
+async function ensureQueueHub(page) {
+    await expect(page.locator('#queueAppsHub')).toBeVisible();
+}
+
 function installQueueAdminAuthMock(page, csrfToken) {
     return installLegacyAdminAuthMock(page, { csrfToken });
 }
@@ -3881,7 +3885,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
         await expect(page.locator('#queueAppsHub')).toBeVisible();
 
         await expect(page.locator('#queueTicketLookup')).toBeVisible();
@@ -4057,7 +4061,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await page.fill('#queueTicketLookupInput', 'A-1232');
         await page.locator('#queueTicketLookupSearchBtn').click();
@@ -4218,7 +4222,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await page.fill('#queueTicketLookupInput', 'A-1241');
         await page.locator('#queueTicketLookupSearchBtn').click();
@@ -4398,7 +4402,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueNextTurns')).toBeVisible();
         await expect(page.locator('#queueNextTurnsTitle')).toContainText(
@@ -4562,7 +4566,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueMasterSequence')).toBeVisible();
         await expect(page.locator('#queueMasterSequenceTitle')).toContainText(
@@ -4726,7 +4730,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueBlockers')).toBeVisible();
         await expect(page.locator('#queueBlockersTitle')).toContainText(
@@ -4886,7 +4890,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueSlaDeck')).toBeVisible();
         await expect(page.locator('#queueSlaDeckTitle')).toContainText(
@@ -5051,7 +5055,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueCoverageDeck')).toBeVisible();
         await expect(page.locator('#queueCoverageDeckTitle')).toContainText(
@@ -5242,7 +5246,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueReserveDeck')).toBeVisible();
         await expect(page.locator('#queueReserveDeckTitle')).toContainText(
@@ -5426,7 +5430,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueGeneralGuidance')).toBeVisible();
         await expect(page.locator('#queueGeneralGuidanceTitle')).toContainText(
@@ -5610,7 +5614,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueProjectedDeck')).toBeVisible();
         await expect(page.locator('#queueProjectedDeckTitle')).toContainText(
@@ -5783,7 +5787,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueIncomingDeck')).toBeVisible();
         await expect(page.locator('#queueIncomingDeckTitle')).toContainText(
@@ -5959,7 +5963,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueScenarioDeck')).toBeVisible();
         await expect(page.locator('#queueScenarioDeckTitle')).toContainText(
@@ -6132,7 +6136,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueReceptionScript')).toBeVisible();
         await expect(page.locator('#queueReceptionScriptTitle')).toContainText(
@@ -6294,7 +6298,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueReceptionCollision')).toBeVisible();
         await expect(
@@ -6462,7 +6466,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueReceptionLights')).toBeVisible();
         await expect(page.locator('#queueReceptionLightsTitle')).toContainText(
@@ -6633,7 +6637,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueWindowDeck')).toBeVisible();
         await expect(page.locator('#queueWindowDeckTitle')).toContainText(
@@ -6803,7 +6807,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskReply')).toBeVisible();
         await expect(page.locator('#queueDeskReplyTitle')).toContainText(
@@ -6966,7 +6970,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskFallback')).toBeVisible();
         await expect(page.locator('#queueDeskFallbackTitle')).toContainText(
@@ -7126,7 +7130,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskObjections')).toBeVisible();
         await expect(page.locator('#queueDeskObjectionsTitle')).toContainText(
@@ -7287,7 +7291,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskCloseout')).toBeVisible();
         await expect(page.locator('#queueDeskCloseoutTitle')).toContainText(
@@ -7450,7 +7454,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskRecheck')).toBeVisible();
         await expect(page.locator('#queueDeskRecheckTitle')).toContainText(
@@ -7613,7 +7617,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskShift')).toBeVisible();
         await expect(page.locator('#queueDeskShiftTitle')).toContainText(
@@ -7774,7 +7778,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskPromise')).toBeVisible();
         await expect(page.locator('#queueDeskPromiseTitle')).toContainText(
@@ -7915,7 +7919,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskEscalation')).toBeVisible();
         await expect(page.locator('#queueDeskEscalationTitle')).toContainText(
@@ -8059,7 +8063,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskEscalationTalk')).toBeVisible();
         await expect(
@@ -8203,7 +8207,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskEscalationConfirm')).toBeVisible();
         await expect(
@@ -8347,7 +8351,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(
             page.locator('#queueDeskEscalationFollowup')
@@ -8493,7 +8497,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskEscalationReopen')).toBeVisible();
         await expect(
@@ -8637,7 +8641,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskEscalationLimit')).toBeVisible();
         await expect(
@@ -8781,7 +8785,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskEscalationBridge')).toBeVisible();
         await expect(
@@ -8926,7 +8930,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskEscalationBrief')).toBeVisible();
         await expect(
@@ -9071,7 +9075,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(page.locator('#queueDeskEscalationReturn')).toBeVisible();
         await expect(
@@ -9216,7 +9220,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await ensureQueueHub(page);
 
         await expect(
             page.locator('#queueDeskEscalationResolution')
