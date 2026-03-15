@@ -80,7 +80,7 @@ jobs:
             ESCROW_PROVIDER: aws_s3
             ESCROW_ARCHIVE_DESTINATION: aws_s3_encrypted
             BACKUP_DRILL_ARTIFACT_ROOT: ${{ github.workspace }}/verification/patient-flow-os-backup-drill
-            BACKUP_DRILL_WORK_ROOT: ${{ runner.temp }}/patient-flow-os-backup-drill
+            BACKUP_DRILL_WORK_ROOT: ${{ github.workspace }}/.tmp/patient-flow-os-backup-drill
         steps:
             - name: Checkout
               uses: actions/checkout@v4

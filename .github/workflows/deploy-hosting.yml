@@ -23,24 +23,6 @@ on:
                     - ftps
                     - ftp
                     - sftp
-            server_port:
-                description: 'Puerto remoto (21 FTP/FTPS, 22 SFTP)'
-                required: false
-                default: '21'
-                type: string
-            security:
-                description: 'Validacion TLS para FTPS'
-                required: false
-                default: 'strict'
-                type: choice
-                options:
-                    - strict
-                    - loose
-            server_dir:
-                description: 'Directorio remoto en hosting'
-                required: false
-                default: '/public_html/'
-                type: string
             dry_run:
                 description: 'Simular deploy sin subir archivos'
                 required: false
@@ -53,11 +35,6 @@ on:
                 type: boolean
             allow_prod_without_staging:
                 description: 'Permitir prod sin staging (solo emergencia)'
-                required: false
-                default: false
-                type: boolean
-            clean_slate:
-                description: 'Eliminar archivos remotos no presentes (peligroso)'
                 required: false
                 default: false
                 type: boolean
@@ -96,16 +73,16 @@ on:
                 required: false
                 default: false
                 type: boolean
-            skip_public_conversion_smoke:
-                description: 'Omitir conversion smoke publico ES/EN en produccion (solo emergencia/backend)'
-                required: false
-                default: false
-                type: boolean
             postdeploy_fast_wait_seconds:
                 description: 'wait_seconds para post-deploy-fast (workflow_dispatch)'
                 required: false
                 default: '45'
                 type: string
+            skip_public_conversion_smoke:
+                description: 'Omitir conversion smoke publico ES/EN en produccion (solo emergencia/backend)'
+                required: false
+                default: false
+                type: boolean
             admin_rollout_stage:
                 description: 'Etapa admin rollout a propagar (internal|canary|general|rollback)'
                 required: false
@@ -180,11 +157,11 @@ jobs:
         env:
             # Staging Configuration
             DEPLOY_PROTOCOL: ${{ github.event.inputs.protocol || vars.STAGING_FTP_PROTOCOL || 'ftps' }}
-            FTP_SERVER_PORT: ${{ github.event.inputs.server_port || vars.STAGING_FTP_SERVER_PORT || '21' }}
-            FTP_SECURITY: ${{ github.event.inputs.security || vars.STAGING_FTP_SECURITY || 'strict' }}
-            FTP_SERVER_DIR: ${{ github.event.inputs.server_dir || vars.STAGING_FTP_SERVER_DIR || '/staging/' }}
+            FTP_SERVER_PORT: ${{ vars.STAGING_FTP_SERVER_PORT || '21' }}
+            FTP_SECURITY: ${{ vars.STAGING_FTP_SECURITY || 'strict' }}
+            FTP_SERVER_DIR: ${{ vars.STAGING_FTP_SERVER_DIR || '/staging/' }}
             FTP_DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
-            FTP_CLEAN_SLATE: ${{ github.event.inputs.clean_slate || 'false' }} # Careful with clean slate on staging if shared
+            FTP_CLEAN_SLATE: ${{ vars.FTP_CLEAN_SLATE || 'false' }} # Careful with clean slate on staging if shared
             STAGING_URL: ${{ vars.STAGING_URL || 'https://staging.pielarmonia.com' }}
             REQUIRE_STAGING_CANARY: ${{ github.event.inputs.require_staging_canary || vars.REQUIRE_STAGING_CANARY || 'true' }}
             ALLOW_PROD_WITHOUT_STAGING: ${{ github.event.inputs.allow_prod_without_staging || vars.ALLOW_PROD_WITHOUT_STAGING || 'false' }}
@@ -445,11 +422,11 @@ jobs:
             PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX: ${{ vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX || 'Bearer' }}
             FORCE_TRANSPORT_DEPLOY: ${{ github.event.inputs.force_transport_deploy || 'false' }}
             DEPLOY_PROTOCOL: ${{ github.event.inputs.protocol || vars.FTP_PROTOCOL || 'ftps' }}
-            FTP_SERVER_PORT: ${{ github.event.inputs.server_port || vars.FTP_SERVER_PORT || '21' }}
-            FTP_SECURITY: ${{ github.event.inputs.security || vars.FTP_SECURITY || 'strict' }}
-            FTP_SERVER_DIR: ${{ github.event.inputs.server_dir || vars.FTP_SERVER_DIR || '/public_html/' }}
+            FTP_SERVER_PORT: ${{ vars.FTP_SERVER_PORT || '21' }}
+            FTP_SECURITY: ${{ vars.FTP_SECURITY || 'strict' }}
+            FTP_SERVER_DIR: ${{ vars.FTP_SERVER_DIR || '/public_html/' }}
             FTP_DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
-            FTP_CLEAN_SLATE: ${{ github.event.inputs.clean_slate || 'false' }}
+            FTP_CLEAN_SLATE: ${{ vars.FTP_CLEAN_SLATE || 'false' }}
             GIT_SYNC_WAIT_SEC: ${{ vars.GIT_SYNC_WAIT_SEC || '75' }}
             PROD_URL: ${{ vars.PROD_URL || 'https://pielarmonia.com' }}
             REQUIRE_STAGING_CANARY: ${{ github.event.inputs.require_staging_canary || vars.REQUIRE_STAGING_CANARY || 'true' }}
@@ -459,13 +436,13 @@ jobs:
             DISPATCH_PUBLIC_CUTOVER_MONITOR: ${{ github.event.inputs.dispatch_public_cutover_monitor || 'true' }}
             ENABLE_PUBLIC_V4_ROLLOUT_MONITOR_PROPAGATED: ${{ github.event.inputs.enable_public_v4_rollout_monitor || vars.PROD_MONITOR_ENABLE_PUBLIC_V4_ROLLOUT || 'false' }}
             PUBLIC_V4_ROLLOUT_STAGE_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_stage || vars.PUBLIC_V4_ROLLOUT_STAGE || 'canary' }}
-            PUBLIC_V4_ROLLOUT_SURFACE_TEST_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_surface_test || vars.PUBLIC_V4_ROLLOUT_SURFACE_TEST || 'v4' }}
-            PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_surface_control || vars.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL || 'legacy' }}
-            PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_min_view_booking || vars.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING || '20' }}
-            PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_min_start_checkout || vars.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT || '10' }}
-            PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_max_confirmed_drop_pp || vars.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP || '8' }}
-            PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_min_confirmed_rate_pct || vars.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT || '20' }}
-            PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_PROPAGATED: ${{ github.event.inputs.public_v4_rollout_allow_missing_control || vars.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL || 'false' }}
+            PUBLIC_V4_ROLLOUT_SURFACE_TEST_PROPAGATED: ${{ vars.PUBLIC_V4_ROLLOUT_SURFACE_TEST || 'v4' }}
+            PUBLIC_V4_ROLLOUT_SURFACE_CONTROL_PROPAGATED: ${{ vars.PUBLIC_V4_ROLLOUT_SURFACE_CONTROL || 'legacy' }}
+            PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING_PROPAGATED: ${{ vars.PUBLIC_V4_ROLLOUT_MIN_VIEW_BOOKING || '20' }}
+            PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT_PROPAGATED: ${{ vars.PUBLIC_V4_ROLLOUT_MIN_START_CHECKOUT || '10' }}
+            PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP_PROPAGATED: ${{ vars.PUBLIC_V4_ROLLOUT_MAX_CONFIRMED_DROP_PP || '8' }}
+            PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT_PROPAGATED: ${{ vars.PUBLIC_V4_ROLLOUT_MIN_CONFIRMED_RATE_PCT || '20' }}
+            PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_PROPAGATED: ${{ vars.PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL || 'false' }}
             PUBLIC_CUTOVER_STARTED_AT: ''
             DISPATCH_EVENT_NAME: ${{ github.event_name }}
             RUN_POSTDEPLOY_FAST_INPUT: ${{ github.event.inputs.run_postdeploy_fast || '' }}
