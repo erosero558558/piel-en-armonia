@@ -75,10 +75,25 @@ function Invoke-CommandWithOutput {
         [string[]]$Arguments
     )
 
-    $output = & $FilePath @Arguments 2>&1
-    return [PSCustomObject]@{
-        ExitCode = $LASTEXITCODE
-        Output = @($output) -join [Environment]::NewLine
+    $previousNativeErrorPreference = $null
+    $nativePreferenceExists = $false
+
+    if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+        $nativePreferenceExists = $true
+        $previousNativeErrorPreference = $PSNativeCommandUseErrorActionPreference
+        $PSNativeCommandUseErrorActionPreference = $false
+    }
+
+    try {
+        $output = & $FilePath @Arguments 2>&1
+        return [PSCustomObject]@{
+            ExitCode = $LASTEXITCODE
+            Output = @($output) -join [Environment]::NewLine
+        }
+    } finally {
+        if ($nativePreferenceExists) {
+            $PSNativeCommandUseErrorActionPreference = $previousNativeErrorPreference
+        }
     }
 }
 
