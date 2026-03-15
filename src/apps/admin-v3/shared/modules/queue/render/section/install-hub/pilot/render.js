@@ -3,6 +3,20 @@ import {
     renderQueueOpsPilotActionMarkup,
 } from './actions.js';
 
+function buildPilotLeadSummary(pilot) {
+    const base = String(pilot.summary || '').trim();
+    const goLiveIssues = Array.isArray(pilot.goLiveIssues)
+        ? pilot.goLiveIssues.length
+        : 0;
+    const goLiveSuffix =
+        pilot.goLiveBlockingCount > 0
+            ? `${pilot.goLiveBlockingCount} bloqueo(s) siguen abiertos para el go-live.`
+            : goLiveIssues > 0
+              ? `${goLiveIssues} pendiente(s) menores siguen en cola antes de abrir la clinica.`
+              : 'Sin bloqueos de salida para este corte.';
+    return [base, goLiveSuffix].filter(Boolean).join(' ');
+}
+
 function renderPilotRolloutStations(pilot, escapeHtml) {
     if (
         !Array.isArray(pilot.rolloutStations) ||
@@ -39,6 +53,97 @@ function renderPilotRolloutStations(pilot, escapeHtml) {
     `;
 }
 
+function renderPilotFlow(pilot, escapeHtml) {
+    if (
+        !pilot?.pilotFlow ||
+        !Array.isArray(pilot.pilotFlow.phases) ||
+        pilot.pilotFlow.phases.length === 0
+    ) {
+        return '';
+    }
+
+    return `
+        <section
+            id="queueOpsPilotFlow"
+            class="queue-ops-pilot__flow"
+            aria-labelledby="queueOpsPilotFlowTitle"
+        >
+            <div class="queue-ops-pilot__flow-head">
+                <div>
+                    <p class="queue-app-card__eyebrow">Flow de apertura</p>
+                    <h6 id="queueOpsPilotFlowTitle">${escapeHtml(
+                        pilot.pilotFlow.title
+                    )}</h6>
+                    <p id="queueOpsPilotFlowSummary" class="queue-ops-pilot__flow-summary">${escapeHtml(
+                        pilot.pilotFlow.summary
+                    )}</p>
+                </div>
+                <div class="queue-ops-pilot__flow-meta">
+                    <span
+                        id="queueOpsPilotFlowProgress"
+                        class="queue-ops-pilot__flow-progress"
+                        data-state="${escapeHtml(
+                            pilot.pilotFlow.currentPhase.state
+                        )}"
+                    >
+                        ${escapeHtml(pilot.pilotFlow.progressLabel)}
+                    </span>
+                    <div class="queue-ops-pilot__flow-cta">
+                        ${renderQueueOpsPilotActionMarkup(
+                            pilot.pilotFlow.cta,
+                            'primary',
+                            {
+                                escapeHtml,
+                            }
+                        )}
+                    </div>
+                </div>
+            </div>
+            <div
+                id="queueOpsPilotFlowSteps"
+                class="queue-ops-pilot__flow-steps"
+                role="list"
+                aria-label="Secuencia de apertura clínica"
+            >
+                ${pilot.pilotFlow.phases
+                    .map(
+                        (phase) => `
+                            <a
+                                id="queueOpsPilotFlowPhase_${escapeHtml(
+                                    phase.id
+                                )}"
+                                class="queue-ops-pilot__flow-phase"
+                                href="${escapeHtml(phase.destination)}"
+                                data-state="${escapeHtml(phase.state)}"
+                                data-current="${phase.current ? 'true' : 'false'}"
+                                role="listitem"
+                                ${phase.current ? 'aria-current="step"' : ''}
+                            >
+                                <div class="queue-ops-pilot__flow-phase-head">
+                                    <span class="queue-ops-pilot__flow-phase-order">${escapeHtml(
+                                        String(phase.order).padStart(2, '0')
+                                    )}</span>
+                                    <span class="queue-ops-pilot__flow-phase-status">${escapeHtml(
+                                        phase.statusLabel
+                                    )}</span>
+                                </div>
+                                <strong>${escapeHtml(phase.label)}</strong>
+                                <span class="queue-ops-pilot__flow-phase-count">${escapeHtml(
+                                    phase.countLabel
+                                )}</span>
+                                <p>${escapeHtml(phase.summary)}</p>
+                            </a>
+                        `
+                    )
+                    .join('')}
+            </div>
+            <p id="queueOpsPilotFlowSupport" class="queue-ops-pilot__flow-support">${escapeHtml(
+                pilot.pilotFlow.support
+            )}</p>
+        </section>
+    `;
+}
+
 export function renderQueueOpsPilotView(manifest, detectedPlatform, deps) {
     const { buildQueueOpsPilot, setHtml, escapeHtml } = deps;
     const root = document.getElementById('queueOpsPilot');
@@ -47,22 +152,34 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps) {
     }
 
     const pilot = buildQueueOpsPilot(manifest, detectedPlatform);
+    const leadSummary = buildPilotLeadSummary(pilot);
     setHtml(
         '#queueOpsPilot',
         `
-            <section class="queue-ops-pilot__shell" data-state="${escapeHtml(pilot.tone)}">
+            <section class="queue-ops-pilot__shell" data-state="${escapeHtml(pilot.tone)}" aria-labelledby="queueOpsPilotTitle">
                 <div class="queue-ops-pilot__layout">
                     <div class="queue-ops-pilot__copy">
                         <p class="queue-app-card__eyebrow">${escapeHtml(pilot.eyebrow)}</p>
-                        <h5 id="queueOpsPilotTitle" class="queue-app-card__title">${escapeHtml(
+                        <p class="queue-ops-pilot__admin-hub">
+                            Hub piloto del admin v3
+                            <span>Corte activo · Quick-nav > Turnero</span>
+                        </p>
+                        <h5 id="queueOpsPilotTitle" class="queue-app-card__title" tabindex="-1">${escapeHtml(
                             pilot.title
                         )}</h5>
                         <p id="queueOpsPilotSummary" class="queue-ops-pilot__summary">${escapeHtml(
-                            pilot.summary
+                            leadSummary
                         )}</p>
-                        <p class="queue-ops-pilot__support">${escapeHtml(
-                            pilot.supportCopy
-                        )}</p>
+                        ${
+                            String(pilot.supportCopy || '').trim()
+                                ? `
+                                    <p class="queue-ops-pilot__support">${escapeHtml(
+                                        pilot.supportCopy
+                                    )}</p>
+                                `
+                                : ''
+                        }
+                        ${renderPilotFlow(pilot, escapeHtml)}
                         ${renderPilotRolloutStations(pilot, escapeHtml)}
                         <div class="queue-ops-pilot__actions">
                             ${renderQueueOpsPilotActionMarkup(

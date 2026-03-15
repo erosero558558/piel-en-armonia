@@ -2527,7 +2527,9 @@ function renderQueueOpsPilot(manifest, detectedPlatform) {
         renderQueuePlaybook,
         renderQueueOpsPilot,
         renderOpeningChecklist,
+        renderShiftHandoff,
         renderQueueOpsLog,
+        renderQueueHubDomainView,
     });
 }
 
@@ -3995,6 +3997,8 @@ function renderQueueOpsAlerts(manifest, detectedPlatform) {
 function buildQueueFocusMode(manifest, detectedPlatform) {
     return buildQueueFocusModeModule(manifest, detectedPlatform, {
         ensureOpsFocusMode,
+        buildQueueOpsPilot,
+        ensureOpsLogState,
         getQueueSyncHealth,
         getSortedWaitingTickets,
         getCalledTicketForConsultorio,
@@ -20661,6 +20665,7 @@ function renderQueueDispatchDeck(manifest, detectedPlatform) {
 function buildQueueQuickConsole(manifest, detectedPlatform) {
     return buildQueueQuickConsoleModule(manifest, detectedPlatform, {
         buildQueueFocusMode,
+        buildQueueOpsPilot,
         ensureInstallPreset,
         defaultAppDownloads: getDefaultAppDownloads(),
         buildPreparedSurfaceUrl,
@@ -20683,6 +20688,7 @@ function renderQueueQuickConsole(manifest, detectedPlatform) {
         appendOpsLogEntry,
         getInstallPresetLabel,
         renderQueueFocusMode,
+        renderQueueHubDomainView,
         renderQueueQuickConsole,
         renderQueuePlaybook,
         renderQueueOpsPilot,
@@ -20699,8 +20705,11 @@ function renderQueueQuickConsole(manifest, detectedPlatform) {
 function buildQueuePlaybook(manifest, detectedPlatform) {
     return buildQueuePlaybookModule(manifest, detectedPlatform, {
         buildQueueFocusMode,
+        buildQueueOpsPilot,
         buildPlaybookDefinitions,
         ensureOpsPlaybookState,
+        ensureOpeningChecklistState,
+        ensureShiftHandoffState,
     });
 }
 
@@ -20741,8 +20750,18 @@ function renderQueuePlaybook(manifest, detectedPlatform) {
         buildQueuePlaybook,
         buildQueuePlaybookAssist,
         setOpsPlaybookStep,
+        setOpeningChecklistStep,
+        applyOpeningChecklistSuggestions,
+        setShiftHandoffStep,
+        applyShiftHandoffSuggestions,
         appendOpsLogEntry,
+        renderQueueFocusMode,
+        renderQueueHubDomainView,
+        renderQueueQuickConsole,
         renderQueuePlaybook,
+        renderQueueOpsPilot,
+        renderOpeningChecklist,
+        renderShiftHandoff,
         renderQueueOpsLog,
         copyQueuePlaybookReport,
         resetOpsPlaybookMode,

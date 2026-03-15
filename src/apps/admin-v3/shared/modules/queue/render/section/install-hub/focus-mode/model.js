@@ -1,3 +1,11 @@
+function hasPilotHandoffEvidence(logState) {
+    return Array.isArray(logState?.items)
+        ? logState.items.some(
+              (item) => String(item?.source || '').trim() === 'pilot_handoff'
+          )
+        : false;
+}
+
 export function buildQueueFocusModeModel(manifest, detectedPlatform, deps) {
     const {
         ensureOpsFocusMode,
@@ -10,6 +18,8 @@ export function buildQueueFocusModeModel(manifest, detectedPlatform, deps) {
         shiftStepIds,
         getSurfaceTelemetryState,
         buildShiftHandoffAssist,
+        buildQueueOpsPilot,
+        ensureOpsLogState,
     } = deps;
     const selectedMode = ensureOpsFocusMode();
     const manifestReady = Boolean(manifest && typeof manifest === 'object');
@@ -34,6 +44,19 @@ export function buildQueueFocusModeModel(manifest, detectedPlatform, deps) {
     ).length;
     const hasOperationsLoad =
         waitingTickets.length > 0 || activeCalledCount > 0;
+    const pilot =
+        typeof buildQueueOpsPilot === 'function'
+            ? buildQueueOpsPilot(manifest, detectedPlatform)
+            : null;
+    const pilotFlow = pilot?.pilotFlow || null;
+    const pilotHandoffShared = hasPilotHandoffEvidence(
+        typeof ensureOpsLogState === 'function' ? ensureOpsLogState() : null
+    );
+    const openingFlowPending =
+        Array.isArray(pilotFlow?.phases) && pilotFlow.phases.length > 0
+            ? pilotFlow.phases.some((phase) => phase.state !== 'ready') ||
+              (pilotFlow.currentPhase?.id === 'handoff' && !pilotHandoffShared)
+            : openingPending > 0;
     const hasAlert =
         syncHealth.state === 'alert' ||
         [operator, kiosk, display].some(
@@ -45,10 +68,10 @@ export function buildQueueFocusModeModel(manifest, detectedPlatform, deps) {
     );
     const suggestedMode = hasAlert
         ? 'incidents'
-        : hasOperationsLoad
-          ? 'operations'
-          : openingPending > 0
-            ? 'opening'
+        : openingFlowPending
+          ? 'opening'
+          : hasOperationsLoad
+            ? 'operations'
             : queueClear && closingPending > 0
               ? 'closing'
               : 'operations';
@@ -62,11 +85,17 @@ export function buildQueueFocusModeModel(manifest, detectedPlatform, deps) {
             effectiveMode,
             title: 'Modo foco: Apertura',
             summary:
-                openingPending > 0
+                String(pilotFlow?.summary || '').trim() ||
+                (openingPending > 0
                     ? `Quedan ${openingPending} validaciones de apertura. Mantén visibles Operador, Telemetría y el checklist hasta dejar lista la mañana.`
-                    : 'La apertura ya está confirmada, pero puedes revisar el checklist o ajustar la instalación del equipo.',
-            primaryHref: '#queueOpeningChecklist',
-            primaryLabel: 'Ir a apertura diaria',
+                    : 'La apertura ya está confirmada, pero puedes revisar el checklist o ajustar la instalación del equipo.'),
+            primaryHref:
+                String(pilotFlow?.currentPhase?.destination || '').trim() ||
+                '#queueOpeningChecklist',
+            primaryLabel:
+                String(
+                    pilotFlow?.currentPhase?.destinationLabel || ''
+                ).trim() || 'Ir a apertura diaria',
         };
     }
 

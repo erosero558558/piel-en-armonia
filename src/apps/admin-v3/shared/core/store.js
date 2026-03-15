@@ -10,9 +10,12 @@ const initialState = {
         mode: 'legacy_password',
         recommendedMode: 'legacy_password',
         loginSurfaceMode: 'legacy_password',
+        transport: '',
         status: 'anonymous',
         configured: false,
         challenge: null,
+        redirectUrl: '',
+        attemptExpiresAt: '',
         helperUrlOpened: false,
         operator: null,
         fallbacks: {
@@ -27,6 +30,9 @@ const initialState = {
         openClawSnapshot: {
             status: 'anonymous',
             challenge: null,
+            transport: '',
+            redirectUrl: '',
+            expiresAt: '',
             lastError: '',
         },
         capabilities: {

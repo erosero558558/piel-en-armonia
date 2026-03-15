@@ -165,7 +165,20 @@ test.describe('Admin sony_v3 visual structure', () => {
         await expect(
             page.locator('#dashboardAdvancedAnalytics')
         ).not.toHaveJSProperty('open', true);
-        await expect(page.locator('.admin-quick-nav-item')).toHaveCount(0);
+        await expect(page.locator('.admin-quick-nav-item')).toHaveCount(3);
+        await expect(
+            page.locator('.admin-quick-nav-item[data-section="queue"]')
+        ).toContainText('Turnero');
+        await page
+            .locator('.admin-quick-nav-item[data-section="queue"]')
+            .click();
+        await expect(page.locator('#queueOpsPilotFlow')).toBeVisible();
+        await expect(page.locator('#queueOpsPilotFlowTitle')).toContainText(
+            'Paso actual'
+        );
+        await expect(
+            page.locator('#queueOpsPilotFlowSteps .queue-ops-pilot__flow-phase')
+        ).toHaveCount(4);
 
         const bgToken = await page.evaluate(() =>
             getComputedStyle(document.documentElement)

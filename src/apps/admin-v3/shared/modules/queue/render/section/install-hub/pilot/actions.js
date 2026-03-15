@@ -31,8 +31,11 @@ export function renderQueueOpsPilotActionMarkup(
             ${action.id ? `id="${escapeHtml(action.id)}"` : ''}
             href="${escapeHtml(action.href || '/')}"
             class="${className}"
-            target="_blank"
-            rel="noopener"
+            ${
+                String(action.href || '').startsWith('#')
+                    ? ''
+                    : 'target="_blank" rel="noopener"'
+            }
         >
             ${escapeHtml(action.label || 'Continuar')}
         </a>
@@ -52,8 +55,23 @@ export function bindQueueOpsPilotActions(manifest, detectedPlatform, deps) {
         renderQueuePlaybook,
         renderQueueOpsPilot,
         renderOpeningChecklist,
+        renderShiftHandoff,
         renderQueueOpsLog,
+        renderQueueHubDomainView,
     } = deps;
+
+    const focusPilotHeading = () => {
+        const pilotTitle = document.getElementById('queueOpsPilotTitle');
+        if (!(pilotTitle instanceof HTMLElement)) {
+            return;
+        }
+
+        pilotTitle.focus({ preventScroll: true });
+        pilotTitle.scrollIntoView({
+            block: 'start',
+            behavior: 'smooth',
+        });
+    };
 
     const copyHandoffButton = document.getElementById(
         'queueOpsPilotHandoffCopyBtn'
@@ -61,6 +79,9 @@ export function bindQueueOpsPilotActions(manifest, detectedPlatform, deps) {
     if (copyHandoffButton instanceof HTMLButtonElement) {
         copyHandoffButton.onclick = async () => {
             const pilot = buildQueueOpsPilot(manifest, detectedPlatform);
+            const clinicLabel =
+                pilot.handoffItems.find((item) => item.id === 'clinic')
+                    ?.value || pilot.title;
             const report = [
                 `Paquete de apertura - ${pilot.title}`,
                 pilot.handoffSummary,
@@ -69,8 +90,8 @@ export function bindQueueOpsPilotActions(manifest, detectedPlatform, deps) {
                 ),
                 '',
                 'Rutas canónicas:',
-                ...pilot.canonicalSurfaces.map((item) =>
-                    `- ${item.label}: ${item.url || item.route}`
+                ...pilot.canonicalSurfaces.map(
+                    (item) => `- ${item.label}: ${item.url || item.route}`
                 ),
                 '',
                 'Secuencia de smoke:',
@@ -83,19 +104,42 @@ export function bindQueueOpsPilotActions(manifest, detectedPlatform, deps) {
                 .trim();
             try {
                 await navigator.clipboard.writeText(report);
+                appendOpsLogEntry({
+                    tone: 'success',
+                    source: 'pilot_handoff',
+                    title: 'Handoff del piloto copiado',
+                    summary: `Se copió el paquete de apertura para ${clinicLabel}.`,
+                });
+                renderQueueFocusMode(manifest, detectedPlatform);
+                if (typeof renderQueueHubDomainView === 'function') {
+                    renderQueueHubDomainView();
+                }
+                renderQueueQuickConsole(manifest, detectedPlatform);
+                renderQueuePlaybook(manifest, detectedPlatform);
+                renderQueueOpsPilot(manifest, detectedPlatform);
+                renderOpeningChecklist(manifest, detectedPlatform);
+                renderShiftHandoff(manifest, detectedPlatform);
+                renderQueueOpsLog(manifest, detectedPlatform);
                 createToast('Paquete de apertura copiado', 'success');
             } catch (_error) {
-                createToast('No se pudo copiar el paquete de apertura', 'error');
+                createToast(
+                    'No se pudo copiar el paquete de apertura',
+                    'error'
+                );
             }
         };
     }
 
     const applyButton = document.getElementById('queueOpsPilotApplyBtn');
-    if (!(applyButton instanceof HTMLButtonElement)) {
+    const flowCtaButton = document.getElementById('queueOpsPilotFlowCta');
+    const hasBoundApplyButton =
+        applyButton instanceof HTMLButtonElement ||
+        flowCtaButton instanceof HTMLButtonElement;
+    if (!hasBoundApplyButton) {
         return;
     }
 
-    applyButton.onclick = () => {
+    const runApplySuggestions = () => {
         const assist = buildOpeningChecklistAssist(detectedPlatform);
         if (!assist.suggestedIds.length) {
             return;
@@ -110,10 +154,31 @@ export function bindQueueOpsPilotActions(manifest, detectedPlatform, deps) {
             )}.`,
         });
         renderQueueFocusMode(manifest, detectedPlatform);
+        if (typeof renderQueueHubDomainView === 'function') {
+            renderQueueHubDomainView();
+        }
         renderQueueQuickConsole(manifest, detectedPlatform);
         renderQueuePlaybook(manifest, detectedPlatform);
         renderQueueOpsPilot(manifest, detectedPlatform);
         renderOpeningChecklist(manifest, detectedPlatform);
+        renderShiftHandoff(manifest, detectedPlatform);
         renderQueueOpsLog(manifest, detectedPlatform);
+        focusPilotHeading();
     };
+
+    if (applyButton instanceof HTMLButtonElement) {
+        applyButton.onclick = runApplySuggestions;
+    }
+
+    const shouldBindFlowCta =
+        flowCtaButton instanceof HTMLButtonElement &&
+        (!flowCtaButton.dataset.action ||
+            flowCtaButton.dataset.action ===
+                (applyButton instanceof HTMLButtonElement
+                    ? applyButton.dataset.action
+                    : 'queue-pilot-apply-suggestions') ||
+            flowCtaButton.dataset.action === 'queue-pilot-apply-suggestions');
+    if (shouldBindFlowCta) {
+        flowCtaButton.onclick = runApplySuggestions;
+    }
 }

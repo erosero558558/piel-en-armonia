@@ -69,6 +69,47 @@ test.describe('Admin navigation desktop', () => {
         await expect(page.locator('#pageTitle')).toHaveText('Horarios');
     });
 
+    test('quick nav superior prioriza pendientes y turnero con el hub piloto visible', async ({
+        page,
+    }) => {
+        await setupAdminApiMocks(page);
+        await page.goto('/admin.html');
+        await waitForAdminRuntimeReady(page);
+
+        const quickNav = page.locator('#adminQuickNav');
+        await expect(quickNav).toBeVisible();
+        await expect(quickNav.locator('.admin-quick-nav-item')).toHaveCount(3);
+
+        const queueQuickNavItem = quickNav.locator(
+            '.admin-quick-nav-item[data-section="queue"]'
+        );
+        await expect(queueQuickNavItem).toContainText('Turnero');
+        await expect(queueQuickNavItem).toContainText('Alt+6');
+
+        await queueQuickNavItem.click();
+
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page).toHaveURL(/#queue$/);
+        await expect(queueQuickNavItem).toHaveClass(/active/);
+        await expect(queueQuickNavItem).toHaveAttribute('aria-pressed', 'true');
+        await expect(page.locator('#pageTitle')).toHaveText('Turnero avanzado');
+        await expect(page.locator('#queueOpsPilot')).toBeVisible();
+        await expect(page.locator('#queueOpsPilotTitle')).toBeVisible();
+        await expect(page.locator('#queueOpsPilotTitle')).toContainText(
+            /Siguiente paso|Apertura completada/
+        );
+        await expect(page.locator('.queue-ops-pilot__admin-hub')).toContainText(
+            'Hub piloto del admin v3'
+        );
+        await expect(page.locator('#queueOpsPilotFlow')).toBeVisible();
+        await expect(
+            page.locator('#queueOpsPilotFlowSteps .queue-ops-pilot__flow-phase')
+        ).toHaveCount(4);
+        await expect(
+            page.locator('#queueOpsPilotFlowPhase_readiness')
+        ).toContainText('Readiness');
+    });
+
     test('keyboard shortcuts navigate sections but ignore focused inputs', async ({
         page,
     }) => {

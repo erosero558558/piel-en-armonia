@@ -1,25 +1,42 @@
+import { buildLinkedPlaybookModeState } from './flow-sync.js';
+
 export function buildQueuePlaybookModel(manifest, detectedPlatform, deps) {
     const {
         buildQueueFocusMode,
+        buildQueueOpsPilot,
         buildPlaybookDefinitions,
         ensureOpsPlaybookState,
+        ensureOpeningChecklistState,
+        ensureShiftHandoffState,
     } = deps;
     const focus = buildQueueFocusMode(manifest, detectedPlatform);
     const definitions = buildPlaybookDefinitions(manifest, detectedPlatform);
     const mode = focus.effectiveMode;
     const steps = definitions[mode] || [];
     const state = ensureOpsPlaybookState();
-    const modeState =
+    const rawModeState =
         state.modes && typeof state.modes[mode] === 'object'
             ? state.modes[mode]
             : {};
+    const modeState = buildLinkedPlaybookModeState(mode, rawModeState, {
+        openingState: ensureOpeningChecklistState(),
+        shiftState: ensureShiftHandoffState(),
+    });
     const completedCount = steps.filter((step) =>
         Boolean(modeState[step.id])
     ).length;
     const nextStep = steps.find((step) => !modeState[step.id]) || null;
-    const summary = nextStep
-        ? `Siguiente paso: ${nextStep.title}. ${nextStep.detail}`
-        : 'La secuencia de este modo ya quedó completa. Puedes reiniciarla o pasar al siguiente momento del turno.';
+    const pilot =
+        typeof buildQueueOpsPilot === 'function'
+            ? buildQueueOpsPilot(manifest, detectedPlatform)
+            : null;
+    const pilotFlow = pilot?.pilotFlow || null;
+    const summary =
+        mode === 'opening' && pilotFlow
+            ? pilotFlow.summary
+            : nextStep
+              ? `Paso actual: ${nextStep.title}. ${nextStep.detail}`
+              : 'La secuencia de este modo ya quedó completa. Puedes reiniciarla o pasar al siguiente momento del turno.';
 
     return {
         mode,
@@ -30,6 +47,7 @@ export function buildQueuePlaybookModel(manifest, detectedPlatform, deps) {
         totalSteps: steps.length,
         nextStep,
         modeState,
+        pilotFlow: mode === 'opening' ? pilotFlow : null,
     };
 }
 

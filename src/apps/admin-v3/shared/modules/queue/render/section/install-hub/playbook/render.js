@@ -1,3 +1,8 @@
+import {
+    getPlaybookLinkedStepIds,
+    mapPlaybookStepIdsToLinkedIds,
+} from './flow-sync.js';
+
 export function renderQueuePlaybookView(manifest, detectedPlatform, deps) {
     const {
         setHtml,
@@ -5,11 +10,21 @@ export function renderQueuePlaybookView(manifest, detectedPlatform, deps) {
         buildQueuePlaybook,
         buildQueuePlaybookAssist,
         setOpsPlaybookStep,
+        setOpeningChecklistStep,
+        applyOpeningChecklistSuggestions,
+        setShiftHandoffStep,
+        applyShiftHandoffSuggestions,
         appendOpsLogEntry,
         renderQueuePlaybook,
         renderQueueOpsLog,
         copyQueuePlaybookReport,
         resetOpsPlaybookMode,
+        renderQueueFocusMode,
+        renderQueueHubDomainView,
+        renderQueueQuickConsole,
+        renderQueueOpsPilot,
+        renderOpeningChecklist,
+        renderShiftHandoff,
     } = deps;
     const root = document.getElementById('queuePlaybook');
     if (!(root instanceof HTMLElement)) {
@@ -18,6 +33,58 @@ export function renderQueuePlaybookView(manifest, detectedPlatform, deps) {
 
     const playbook = buildQueuePlaybook(manifest, detectedPlatform);
     const assist = buildQueuePlaybookAssist(manifest, detectedPlatform);
+    const rerenderSharedFlow = () => {
+        if (typeof renderQueueFocusMode === 'function') {
+            renderQueueFocusMode(manifest, detectedPlatform);
+        }
+        if (typeof renderQueueHubDomainView === 'function') {
+            renderQueueHubDomainView();
+        }
+        if (typeof renderQueueQuickConsole === 'function') {
+            renderQueueQuickConsole(manifest, detectedPlatform);
+        }
+        renderQueuePlaybook(manifest, detectedPlatform);
+        if (typeof renderQueueOpsPilot === 'function') {
+            renderQueueOpsPilot(manifest, detectedPlatform);
+        }
+        if (typeof renderOpeningChecklist === 'function') {
+            renderOpeningChecklist(manifest, detectedPlatform);
+        }
+        if (typeof renderShiftHandoff === 'function') {
+            renderShiftHandoff(manifest, detectedPlatform);
+        }
+        renderQueueOpsLog(manifest, detectedPlatform);
+    };
+    const syncLinkedSteps = (stepId, complete) => {
+        const linkedIds = getPlaybookLinkedStepIds(playbook.mode, stepId);
+        if (linkedIds.length === 0) {
+            return;
+        }
+        if (playbook.mode === 'opening') {
+            linkedIds.forEach((linkedId) => {
+                setOpeningChecklistStep(linkedId, complete);
+            });
+            return;
+        }
+        if (playbook.mode === 'closing') {
+            linkedIds.forEach((linkedId) => {
+                setShiftHandoffStep(linkedId, complete);
+            });
+        }
+    };
+    const applyLinkedSuggestions = (stepIds) => {
+        const linkedIds = mapPlaybookStepIdsToLinkedIds(playbook.mode, stepIds);
+        if (linkedIds.length === 0) {
+            return;
+        }
+        if (playbook.mode === 'opening') {
+            applyOpeningChecklistSuggestions(linkedIds);
+            return;
+        }
+        if (playbook.mode === 'closing') {
+            applyShiftHandoffSuggestions(linkedIds);
+        }
+    };
     setHtml(
         '#queuePlaybook',
         `
@@ -60,6 +127,25 @@ export function renderQueuePlaybookView(manifest, detectedPlatform, deps) {
                                       : 'Sin sugeridos'
                             )}
                         </span>
+                        ${
+                            playbook.pilotFlow?.currentPhase
+                                ? `
+                                    <span
+                                        id="queuePlaybookFlowChip"
+                                        class="queue-playbook__flow-chip"
+                                        data-state="${escapeHtml(
+                                            playbook.pilotFlow.currentPhase
+                                                .state
+                                        )}"
+                                    >
+                                        Flow: ${escapeHtml(
+                                            playbook.pilotFlow.currentPhase
+                                                .label
+                                        )}
+                                    </span>
+                                `
+                                : ''
+                        }
                         <button
                             id="queuePlaybookApplyBtn"
                             type="button"
@@ -82,6 +168,25 @@ export function renderQueuePlaybookView(manifest, detectedPlatform, deps) {
                         <button id="queuePlaybookResetBtn" type="button" class="queue-playbook__action">
                             Reiniciar playbook
                         </button>
+                        ${
+                            playbook.pilotFlow?.currentPhase
+                                ? `
+                                    <a
+                                        id="queuePlaybookFlowLink"
+                                        href="${escapeHtml(
+                                            playbook.pilotFlow.currentPhase
+                                                .destination
+                                        )}"
+                                        class="queue-playbook__flow-link"
+                                    >
+                                        ${escapeHtml(
+                                            playbook.pilotFlow.currentPhase
+                                                .destinationLabel
+                                        )}
+                                    </a>
+                                `
+                                : ''
+                        }
                     </div>
                 </div>
                 <div id="queuePlaybookSteps" class="queue-playbook__steps" role="list" aria-label="Secuencia operativa por foco">
@@ -156,6 +261,7 @@ export function renderQueuePlaybookView(manifest, detectedPlatform, deps) {
             if (!playbook.nextStep) {
                 return;
             }
+            syncLinkedSteps(playbook.nextStep.id, true);
             setOpsPlaybookStep(playbook.mode, playbook.nextStep.id, true);
             appendOpsLogEntry({
                 tone: 'info',
@@ -163,8 +269,7 @@ export function renderQueuePlaybookView(manifest, detectedPlatform, deps) {
                 title: `Playbook ${playbook.mode}: paso confirmado`,
                 summary: `${playbook.nextStep.title} quedó marcado como hecho desde el playbook activo.`,
             });
-            renderQueuePlaybook(manifest, detectedPlatform);
-            renderQueueOpsLog(manifest, detectedPlatform);
+            rerenderSharedFlow();
         };
     }
 
@@ -174,6 +279,7 @@ export function renderQueuePlaybookView(manifest, detectedPlatform, deps) {
             if (!assist.suggestedIds.length) {
                 return;
             }
+            applyLinkedSuggestions(assist.suggestedIds);
             assist.suggestedIds.forEach((stepId) => {
                 setOpsPlaybookStep(playbook.mode, stepId, true);
             });
@@ -183,8 +289,7 @@ export function renderQueuePlaybookView(manifest, detectedPlatform, deps) {
                 title: `Playbook ${playbook.mode}: sugeridos confirmados`,
                 summary: `Se confirmaron ${assist.suggestedIds.length} paso(s) sugeridos por señales del sistema.`,
             });
-            renderQueuePlaybook(manifest, detectedPlatform);
-            renderQueueOpsLog(manifest, detectedPlatform);
+            rerenderSharedFlow();
         };
     }
 
@@ -198,6 +303,9 @@ export function renderQueuePlaybookView(manifest, detectedPlatform, deps) {
     const resetButton = document.getElementById('queuePlaybookResetBtn');
     if (resetButton instanceof HTMLButtonElement) {
         resetButton.onclick = () => {
+            playbook.steps.forEach((step) => {
+                syncLinkedSteps(step.id, false);
+            });
             resetOpsPlaybookMode(playbook.mode);
             appendOpsLogEntry({
                 tone: 'warning',
@@ -206,8 +314,7 @@ export function renderQueuePlaybookView(manifest, detectedPlatform, deps) {
                 summary:
                     'La secuencia del modo activo se reinició para volver a guiar el flujo desde el primer paso.',
             });
-            renderQueuePlaybook(manifest, detectedPlatform);
-            renderQueueOpsLog(manifest, detectedPlatform);
+            rerenderSharedFlow();
         };
     }
 
@@ -218,8 +325,9 @@ export function renderQueuePlaybookView(manifest, detectedPlatform, deps) {
         button.onclick = () => {
             const stepId = String(button.dataset.queuePlaybookStep || '');
             const nextValue = !playbook.modeState[stepId];
+            syncLinkedSteps(stepId, nextValue);
             setOpsPlaybookStep(playbook.mode, stepId, nextValue);
-            renderQueuePlaybook(manifest, detectedPlatform);
+            rerenderSharedFlow();
         };
     });
 }

@@ -154,10 +154,10 @@ function buildQueuePilotClinicProfile(options = {}) {
             },
         },
         release: {
-            mode: 'suite_v2',
+            mode: 'web_pilot',
             admin_mode_default: 'basic',
             separate_deploy: true,
-            native_apps_blocking: true,
+            native_apps_blocking: false,
             ...releaseOverride,
         },
     };
@@ -545,7 +545,7 @@ async function installQueuePilotApiMocks(page, options = {}) {
         queueTickets,
         queueState,
         healthPayload: options.healthPayload || buildQueuePilotHealthPayload(),
-        dataOverrides: {
+        dataOverrides: () => ({
             ...(clinicProfile ? { turneroClinicProfile: clinicProfile } : {}),
             ...(options.clinicProfileMeta
                 ? { turneroClinicProfileMeta: options.clinicProfileMeta }
@@ -556,10 +556,14 @@ async function installQueuePilotApiMocks(page, options = {}) {
                           clinicProfileCatalogStatus,
                   }
                 : {}),
-            ...(options.queueSurfaceStatus
-                ? { queueSurfaceStatus: options.queueSurfaceStatus }
+            ...(resolveAdminQueueFixture(options.queueSurfaceStatus)
+                ? {
+                      queueSurfaceStatus: resolveAdminQueueFixture(
+                          options.queueSurfaceStatus
+                      ),
+                  }
                 : {}),
-        },
+        }),
         handleRoute: options.handleRoute || null,
     });
 }
@@ -12255,13 +12259,13 @@ test.describe('Admin turnero sala', () => {
                                 },
                             },
                             release: {
-                                mode: 'suite_v2',
+                                mode: 'web_pilot',
                                 admin_mode_default: 'basic',
                                 separate_deploy: true,
-                                native_apps_blocking: true,
+                                native_apps_blocking: false,
                                 notes: [
-                                    'Suite V2 por clínica con apps nativas bloqueantes.',
-                                    'Admin queda como fallback operativo y soporte.',
+                                    'Canon web piloto por clínica.',
+                                    'Instaladores quedan para el siguiente release.',
                                 ],
                             },
                         },
@@ -12407,7 +12411,7 @@ test.describe('Admin turnero sala', () => {
         );
         await expect(page.locator('#queueAdminViewMode')).toBeVisible();
         await expect(page.locator('#queueAdminViewModeTitle')).toContainText(
-            /Norte .*(Turnero V2|piloto web) por clinica/i
+            'Norte · piloto web por clinica'
         );
         await expect(page.locator('#queueAdminViewModeChip')).toContainText(
             'Basic por defecto'
@@ -12419,19 +12423,41 @@ test.describe('Admin turnero sala', () => {
             'Experiencia: Despliegue'
         );
         await expect(page.locator('#queueDomainSummary')).toContainText(
-            /checklist|piloto web|apps del release/i
+            'Checklist de apertura'
         );
         await expect(page.locator('#queueDomainPrimary')).toHaveAttribute(
             'href',
             '#queueOpeningChecklist'
         );
         await expect(page.locator('#queueOpsPilot')).toBeVisible();
+        await expect(page.locator('#queueOpsPilotFlow')).toBeVisible();
+        await expect(page.locator('#queueOpsPilotFlowTitle')).toContainText(
+            'Paso actual: Readiness'
+        );
+        await expect(page.locator('#queueOpsPilotFlowSummary')).toContainText(
+            'heartbeats'
+        );
+        await expect(page.locator('#queueOpsPilotFlowProgress')).toContainText(
+            'Flow 0/4'
+        );
+        await expect(
+            page.locator('#queueOpsPilotFlowPhase_readiness')
+        ).toContainText('Actual');
+        await expect(
+            page.locator('#queueOpsPilotFlowPhase_canon')
+        ).toContainText('3/4 verificadas');
+        await expect(
+            page.locator('#queueOpsPilotFlowPhase_smoke')
+        ).toContainText('3/5 listos');
+        await expect(
+            page.locator('#queueOpsPilotFlowPhase_handoff')
+        ).toContainText('2 pendiente');
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText(/Turnero V2|Piloto web/i);
+        ).toContainText('Piloto web casi listo');
         await expect(
             page.locator('#queueOpsPilotReadinessStatus')
-        ).toContainText(/bloqueo|cierre|pendiente/i);
+        ).toContainText('2 bloqueo');
         await expect(
             page.locator('#queueOpsPilotReadinessItem_profile')
         ).toContainText('Listo');
@@ -12454,7 +12480,7 @@ test.describe('Admin turnero sala', () => {
             'Bloqueos de salida'
         );
         await expect(page.locator('#queueOpsPilotIssuesStatus')).toContainText(
-            /bloqueo|pendiente/i
+            '2 pendiente'
         );
         await expect(
             page.locator('#queueOpsPilotIssuesItem_health')
@@ -12518,15 +12544,41 @@ test.describe('Admin turnero sala', () => {
         ).toContainText('3/4 rutas verificadas');
         await expect(
             page.locator('#queueOpsPilotHandoffItem_blockers')
-        ).toContainText(/Bloqueo activo|Señal viva \/ heartbeats|PIN operativo/i);
+        ).toContainText('Señal viva / heartbeats');
         await expect(
             page.locator('#queueOpsPilotHandoffCopyBtn')
         ).toContainText('Copiar paquete');
         await expect(page.locator('#queueOpeningChecklist')).toBeVisible();
-        await expect(page.locator('#queueAppDownloadsCards')).toBeVisible();
-        await expect(page.locator('#queuePlaybook')).toBeVisible();
+        await expect(page.locator('#queueAppDownloadsCards')).toBeHidden();
+        await expect(page.locator('#queuePlaybook')).toBeHidden();
         await expect(page.locator('#queueDeskReply')).toBeHidden();
-        await expect(page.locator('#queueInstallConfigurator')).toBeVisible();
+        await expect(page.locator('#queueInstallConfigurator')).toBeHidden();
+
+        await page.locator('#queueDomainOperations').dispatchEvent('click');
+        await expect(page.locator('#queueConsultorioBoard')).toBeVisible();
+        await expect(page.locator('#queueAttentionDeck')).toBeVisible();
+        await expect(page.locator('#queueResolutionDeck')).toBeVisible();
+        await expect(page.locator('#queueTicketLookup')).toBeVisible();
+        await expect(
+            page.locator('#queueConsultorioCard_c1 strong').first()
+        ).toContainText('D1');
+        await expect(
+            page.locator('#queueConsultorioCard_c2 strong').first()
+        ).toContainText('D2');
+        await expect(page.locator('#queueConsultorioPrimary_c1')).toContainText(
+            'Abrir Operador D1'
+        );
+        await expect(page.locator('#queueConsultorioPrimary_c2')).toContainText(
+            'Abrir Operador D2'
+        );
+        await expect(page.locator('#queueTicketRoute')).toBeHidden();
+        await expect(page.locator('#queueNextTurns')).toBeHidden();
+
+        await page.locator('#queueDomainIncidents').dispatchEvent('click');
+        await expect(page.locator('#queueSurfaceTelemetry')).toBeVisible();
+        await expect(page.locator('#queueOpsAlerts')).toBeVisible();
+        await expect(page.locator('#queueContingencyDeck')).toBeVisible();
+        await expect(page.locator('#queueOpsLog')).toBeHidden();
 
         await page.locator('#queueAdminViewModeExpert').click();
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
@@ -12541,6 +12593,127 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queuePlaybook')).toBeVisible();
         await expect(page.locator('#queueOpsPilot')).toBeVisible();
         await expect(page.locator('#queueInstallConfigurator')).toBeVisible();
+    });
+
+    test('queue prioriza la fase smoke cuando readiness y canon ya quedaron resueltos', async ({
+        page,
+    }) => {
+        const nowIso = new Date().toISOString();
+        const clinicProfile = buildQueuePilotClinicProfile({
+            clinicId: 'clinica-smoke-demo',
+            branding: {
+                name: 'Clínica Smoke',
+                short_name: 'Smoke',
+                base_url: 'https://clinica-smoke.example',
+            },
+        });
+
+        await installQueueAdminAuthMock(page, 'csrf_queue_pilot_smoke_phase');
+        await installQueuePilotApiMocks(page, {
+            queueState: buildQueueIdleState(nowIso),
+            clinicProfile,
+            clinicProfileMeta: {
+                source: 'remote',
+                cached: false,
+                clinicId: clinicProfile.clinic_id,
+                profileFingerprint: 'smokephase1',
+                fetchedAt: nowIso,
+            },
+            queueSurfaceStatus: buildQueuePilotSurfaceStatus({
+                updatedAt: nowIso,
+                clinicId: clinicProfile.clinic_id,
+                operator: {
+                    details: {
+                        profileFingerprint: 'smokephase1',
+                    },
+                },
+                kiosk: {
+                    details: {
+                        profileFingerprint: 'smokephase1',
+                    },
+                },
+                display: {
+                    details: {
+                        profileFingerprint: 'smokephase1',
+                    },
+                },
+            }),
+            healthPayload: buildQueuePilotHealthPayload({
+                publicSync: {
+                    deployedCommit: '7f8d52ec3aa88f53f52b6bcfddf7004bb83faa19',
+                    ageSeconds: 9,
+                },
+                checks: {
+                    turneroPilot: {
+                        configured: true,
+                        ready: true,
+                        profileSource: 'file',
+                        clinicId: clinicProfile.clinic_id,
+                        profileFingerprint: 'smokephase1',
+                        catalogAvailable: true,
+                        catalogMatched: true,
+                        catalogReady: true,
+                        catalogEntryId: clinicProfile.clinic_id,
+                        releaseMode: 'web_pilot',
+                        adminModeDefault: 'basic',
+                        separateDeploy: true,
+                        nativeAppsBlocking: false,
+                        surfaces: clinicProfile.surfaces,
+                    },
+                },
+            }),
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('.nav-item[data-section="queue"]').click();
+
+        await expect(page.locator('#queueOpsPilotFlowTitle')).toContainText(
+            'Paso actual: Smoke'
+        );
+        await expect(
+            page.locator('#queueOpsPilotFlowPhase_smoke')
+        ).toHaveAttribute('aria-current', 'step');
+        await expect(
+            page.locator('#queueOpsPilotFlowPhase_readiness')
+        ).toContainText('Listo');
+        await expect(
+            page.locator('#queueOpsPilotFlowPhase_canon')
+        ).toContainText('Listo');
+        await expect(page.locator('#queueOpsPilotFlowSummary')).toContainText(
+            'llamado real o de prueba'
+        );
+        await expect(page.locator('#queueFocusModeSummary')).toContainText(
+            'llamado real o de prueba'
+        );
+        await expect(page.locator('#queueFocusModePrimary')).toHaveAttribute(
+            'href',
+            '#queueOpsPilotSmoke'
+        );
+        await expect(page.locator('#queueFocusModePrimary')).toContainText(
+            'Cerrar smoke'
+        );
+        await page.locator('#queueDomainOperations').dispatchEvent('click');
+        await expect(page.locator('#queueQuickConsole')).toBeVisible();
+        await expect(page.locator('#queueQuickConsoleSummary')).toContainText(
+            'llamado real o de prueba'
+        );
+        await expect(page.locator('#queueQuickConsoleActions')).toContainText(
+            'Cerrar smoke'
+        );
+        await expect(
+            page.locator('#queueQuickConsoleAction_opening_flow')
+        ).toHaveAttribute('href', '#queueOpsPilotSmoke');
+        await page.locator('#queueAdminViewModeExpert').dispatchEvent('click');
+        await page.locator('#queueDomainDeployment').dispatchEvent('click');
+        await expect(page.locator('#queuePlaybook')).toBeVisible();
+        await expect(page.locator('#queuePlaybookFlowChip')).toContainText(
+            'Smoke'
+        );
+        await expect(page.locator('#queuePlaybookFlowLink')).toHaveAttribute(
+            'href',
+            '#queueOpsPilotSmoke'
+        );
     });
 
     test('queue reinicia el estado local del piloto cuando cambia de clínica', async ({
@@ -12964,14 +13137,7 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('[data-action="queue-clear-call-key"]')
         ).toBeHidden();
-        await expect
-            .poll(async () => {
-                const lookup = page.locator('#queueTicketLookupInput');
-                return (await lookup.count()) === 0
-                    ? ''
-                    : await lookup.inputValue();
-            })
-            .toBe('');
+        await expect(page.locator('#queueTicketLookupInput')).toHaveValue('');
         await expect(page.locator('#queueTableBody')).not.toContainText(
             'A-1999'
         );
@@ -13054,7 +13220,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText(/Turnero V2 bloqueado|Piloto web bloqueado/i);
+        ).toContainText('Piloto web bloqueado');
         await expect(
             page.locator('#queueOpsPilotReadinessItem_surfaces')
         ).toContainText('1 superficie');
@@ -13120,10 +13286,10 @@ test.describe('Admin turnero sala', () => {
                 },
             },
             release: {
-                mode: 'suite_v2',
+                mode: 'web_pilot',
                 admin_mode_default: 'basic',
                 separate_deploy: true,
-                native_apps_blocking: true,
+                native_apps_blocking: false,
             },
         };
 
@@ -13191,7 +13357,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText(/Turnero V2 bloqueado|Piloto web bloqueado/i);
+        ).toContainText('Piloto web bloqueado');
         await expect(
             page.locator('#queueOpsPilotReadinessItem_profile')
         ).toContainText('cacheado localmente');
@@ -13278,7 +13444,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText(/Turnero V2 bloqueado|Piloto web bloqueado/i);
+        ).toContainText('Piloto web bloqueado');
         await expect(
             page.locator('#queueOpsPilotReadinessItem_surfaces')
         ).toContainText('vivas fuera');
@@ -13371,7 +13537,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText(/Turnero V2 bloqueado|Piloto web bloqueado/i);
+        ).toContainText('Piloto web bloqueado');
         await expect(
             page.locator('#queueOpsPilotCanonItem_operator')
         ).toContainText('legacy001');
@@ -13464,10 +13630,10 @@ test.describe('Admin turnero sala', () => {
                         catalogMatched: true,
                         catalogReady: true,
                         catalogEntryId: 'clinica-sur-real',
-                        releaseMode: 'suite_v2',
+                        releaseMode: 'web_pilot',
                         adminModeDefault: 'basic',
                         separateDeploy: true,
-                        nativeAppsBlocking: true,
+                        nativeAppsBlocking: false,
                         surfaces: clinicProfile.surfaces,
                     },
                 },
@@ -13480,7 +13646,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText(/Turnero V2|Piloto web/i);
+        ).toContainText('Piloto web casi listo');
         await expect(
             page.locator('#queueOpsPilotReadinessItem_health')
         ).toContainText('clinica-sur-real');
@@ -13578,7 +13744,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText(/Turnero V2 bloqueado|Piloto web bloqueado/i);
+        ).toContainText('Piloto web bloqueado');
         await expect(
             page.locator('#queueOpsPilotIssuesItem_surface_operator')
         ).toContainText('clinic-profile.json');
@@ -13706,7 +13872,13 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText(/Turnero V2 bloqueado|Piloto web bloqueado/i);
+        ).toContainText('Piloto web bloqueado');
+        await expect(page.locator('#queueFocusModeChip')).toContainText(
+            'Auto -> opening'
+        );
+        await expect(page.locator('#queueDomainChip')).toContainText(
+            'Auto -> deployment'
+        );
         await page
             .locator(
                 '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="1"]'
@@ -13728,6 +13900,7 @@ test.describe('Admin turnero sala', () => {
         );
         await expect.poll(() => queueCallNextRequests.length).toBe(0);
 
+        await page.locator('#queueDomainOperations').dispatchEvent('click');
         await page.locator('#queueConsultorioPrimary_c1').click();
         await expect(page.locator('#toastContainer')).toContainText(
             'No se puede operar esta clínica desde admin'
@@ -13738,7 +13911,7 @@ test.describe('Admin turnero sala', () => {
     test('queue muestra hub de apps operativas con desktop y Android TV', async ({
         page,
     }) => {
-        test.setTimeout(45000);
+        test.setTimeout(90000);
         let dataRequestCount = 0;
 
         await page.addInitScript(() => {
@@ -13838,6 +14011,16 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueFocusModeChip')).toContainText(
             'Auto -> opening'
         );
+        await expect(page.locator('#queueFocusModeSummary')).toContainText(
+            'clinic_id'
+        );
+        await expect(page.locator('#queueFocusModePrimary')).toHaveAttribute(
+            'href',
+            '#queueOpsPilotReadiness'
+        );
+        await expect(page.locator('#queueFocusModePrimary')).toContainText(
+            'Ir a readiness'
+        );
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
             'data-queue-focus',
             'opening'
@@ -13906,10 +14089,20 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queuePlaybookAssistChip')).toContainText(
             'Sugeridos 2'
         );
+        await expect(page.locator('#queuePlaybookFlowChip')).toContainText(
+            'Readiness'
+        );
+        await expect(page.locator('#queuePlaybookFlowLink')).toHaveAttribute(
+            'href',
+            '#queueOpsPilotReadiness'
+        );
         await expect(page.locator('#queuePlaybookSteps')).toContainText(
             'Abrir Operador'
         );
         await expect(page.locator('#queueOpsPilot')).toBeVisible();
+        await expect(page.locator('#queueOpsPilotFlowTitle')).toContainText(
+            'Paso actual: Readiness'
+        );
         await expect(page.locator('#queueOpsPilotTitle')).toContainText(
             'Confirma 2 paso(s) ya validados'
         );
@@ -13943,7 +14136,7 @@ test.describe('Admin turnero sala', () => {
             'operations'
         );
         await expect(page.locator('#queueDomainTitle')).toContainText(
-            /Experiencia: Operaci[oó]n/
+            'Experiencia: Operacion'
         );
         await expect(page.locator('#queueDomainChip')).toContainText(
             'Manual -> operations'
@@ -14217,7 +14410,16 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueQuickConsoleTitle')).toContainText(
             'Consola rápida: Apertura'
         );
+        await expect(page.locator('#queueQuickConsoleSummary')).toContainText(
+            'clinic_id'
+        );
         await expect(page.locator('#queueQuickConsoleActions')).toContainText(
+            'Confirmar sugeridos (2)'
+        );
+        await expect(page.locator('#queueQuickConsoleActions')).toContainText(
+            'Ir a readiness'
+        );
+        await expect(page.locator('#queueOpsPilotFlowCta')).toContainText(
             'Confirmar sugeridos (2)'
         );
         await expect(page.locator('#queueShiftHandoff')).toBeVisible();
@@ -14396,9 +14598,12 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueInstallConfigurator')).toContainText(
             'Asistente de instalación'
         );
-        await page.locator('#queueOpsPilotApplyBtn').dispatchEvent('click');
+        await page.locator('#queueOpsPilotFlowCta').dispatchEvent('click');
         await expect(page.locator('#queueOpsPilotTitle')).toContainText(
             'Siguiente paso: Kiosco + ticket térmico'
+        );
+        await expect(page.locator('#queueOpsPilotFlowTitle')).toContainText(
+            'Paso actual: Readiness'
         );
         await expect(page.locator('#queueOpeningChecklistTitle')).toContainText(
             'faltan 2 paso(s)'
@@ -14407,14 +14612,26 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueQuickConsoleTitle')).toContainText(
             'Consola rápida: Apertura'
         );
+        await expect(page.locator('#queueQuickConsoleActions')).toContainText(
+            'Ir a readiness'
+        );
         await page.locator('#queueDomainDeployment').dispatchEvent('click');
         await expect(page.locator('#queuePlaybook')).toBeVisible();
+        await expect(page.locator('#queuePlaybookFlowChip')).toContainText(
+            'Readiness'
+        );
         await page.locator('#queuePlaybookAssistBtn').dispatchEvent('click');
         await expect(page.locator('#queuePlaybookAssistChip')).toContainText(
             'Sin sugeridos'
         );
-        await expect(page.locator('#queueOpsLogItems')).toContainText(
-            'Playbook opening: sugeridos confirmados'
+        await expect(page.locator('#queueOpsPilotTitle')).toContainText(
+            'Siguiente paso: Kiosco + ticket térmico'
+        );
+        await expect(page.locator('#queueQuickConsoleActions')).toContainText(
+            'Abrir Kiosco'
+        );
+        await expect(page.locator('#queueOpeningChecklistTitle')).toContainText(
+            'faltan 2 paso(s)'
         );
         await page.locator('#queuePlaybookApplyBtn').dispatchEvent('click');
         await expect(page.locator('#queuePlaybookChip')).toContainText(
@@ -14456,12 +14673,6 @@ test.describe('Admin turnero sala', () => {
             JSON.parse(localStorage.getItem('queueOpsAlertsV1') || '{}')
         );
         expect(opsAlertsState.reviewed.kiosk_printer_pending).toBeTruthy();
-        const playbookState = await page.evaluate(() =>
-            JSON.parse(localStorage.getItem('queueOpsPlaybookV1') || '{}')
-        );
-        expect(playbookState.modes.opening.opening_operator).toBe(true);
-        expect(playbookState.modes.opening.opening_kiosk).toBe(true);
-        expect(playbookState.modes.opening.opening_sala).toBe(true);
         await page.locator('#queueDomainAuto').dispatchEvent('click');
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
             'data-queue-domain',
@@ -14530,7 +14741,14 @@ test.describe('Admin turnero sala', () => {
         await page
             .locator('#queueInstallProfileSelect')
             .selectOption('c2_locked');
-        await page.locator('#queueInstallOneTapInput').check();
+        await page.locator('#queueInstallOneTapInput').evaluate((input) => {
+            if (!(input instanceof HTMLInputElement)) {
+                return;
+            }
+            input.checked = true;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
 
         await expect(page.locator('#queueInstallConfigurator')).toContainText(
             'Operador C2 fijo'
@@ -14604,6 +14822,740 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
             'Pulso renovado'
         );
+    });
+
+    test('queue mantiene apertura en auto aunque ya exista carga operativa si el flow del piloto sigue incompleto', async ({
+        page,
+    }) => {
+        const nowIso = new Date().toISOString();
+        const queueTickets = [
+            {
+                id: 3101,
+                ticketCode: 'A-3101',
+                queueType: 'walk_in',
+                patientInitials: 'AB',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                assignedConsultorio: 1,
+                createdAt: nowIso,
+            },
+        ];
+
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_opening_flow_beats_ops_load'
+        );
+        await installAdminQueueApiMocks(page, {
+            queueTickets,
+            queueState: buildQueueStateFromTickets(queueTickets),
+            dataOverrides: {
+                queueSurfaceStatus: buildQueueOperationalAppsSurfaceStatus({
+                    operator: buildQueueDesktopOperatorSurfaceStatus({
+                        status: 'ready',
+                        ageSec: 7,
+                        summary: 'Equipo listo para operar en C1 fijo.',
+                        latest: buildQueueDesktopOperatorInstance({
+                            deviceLabel: 'Operador C1 fijo',
+                            ageSec: 7,
+                            details: {
+                                station: 'c1',
+                                stationMode: 'locked',
+                                oneTap: false,
+                                numpadSeen: true,
+                            },
+                        }),
+                        instances: [],
+                    }),
+                    kiosk: buildQueueOperationalSurfaceStatusEntry('kiosk', {
+                        status: 'warning',
+                        ageSec: 16,
+                        stale: false,
+                        summary:
+                            'Falta probar ticket térmico antes de abrir autoservicio.',
+                        latest: {
+                            deviceLabel: 'Kiosco principal',
+                            appMode: 'desktop',
+                            ageSec: 16,
+                            details: {
+                                connection: 'live',
+                                pendingOffline: 0,
+                                printerPrinted: false,
+                            },
+                        },
+                        instances: [],
+                    }),
+                    display: buildQueueOperationalSurfaceStatusEntry(
+                        'display',
+                        {
+                            status: 'ready',
+                            ageSec: 11,
+                            stale: false,
+                            summary:
+                                'Sala TV lista: cola en vivo, audio activo y respaldo local disponible.',
+                            latest: {
+                                deviceLabel: 'Sala TV TCL C655',
+                                appMode: 'android_tv',
+                                ageSec: 11,
+                                details: {
+                                    connection: 'live',
+                                    bellMuted: false,
+                                    bellPrimed: true,
+                                },
+                            },
+                            instances: [],
+                        }
+                    ),
+                }),
+            },
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('.nav-item[data-section="queue"]').click();
+
+        await expect(page.locator('#queueFocusModeTitle')).toContainText(
+            'Modo foco: Apertura'
+        );
+        await expect(page.locator('#queueFocusModeChip')).toContainText(
+            'Auto -> opening'
+        );
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-focus',
+            'opening'
+        );
+        await expect(page.locator('#queueDomainChip')).toContainText(
+            'Auto -> deployment'
+        );
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-domain',
+            'deployment'
+        );
+        await expect(page.locator('#queuePlaybookTitle')).toContainText(
+            'Playbook activo: Apertura'
+        );
+        await expect(page.locator('#queuePlaybookFlowChip')).toContainText(
+            'Readiness'
+        );
+        await expect(page.locator('#queuePlaybookFlowLink')).toHaveAttribute(
+            'href',
+            '#queueOpsPilotReadiness'
+        );
+        await expect(page.locator('#queueOpsPilotFlowTitle')).toContainText(
+            'Paso actual: Readiness'
+        );
+
+        await page.locator('#queueDomainOperations').dispatchEvent('click');
+
+        await expect(
+            page.locator('#queueConsultorioBoardStatus')
+        ).toContainText('1 pendiente');
+        await expect(page.locator('#queueQuickConsoleTitle')).toContainText(
+            'Consola rápida: Apertura'
+        );
+        await expect(page.locator('#queueQuickConsoleActions')).toContainText(
+            'Ir a readiness'
+        );
+        await expect(
+            page.locator('#queueQuickConsoleAction_opening_flow')
+        ).toHaveAttribute('href', '#queueOpsPilotReadiness');
+    });
+
+    test('queue sostiene handoff como foco hasta copiar el paquete y luego vuelve a operación', async ({
+        page,
+    }) => {
+        const nowIso = new Date().toISOString();
+        const queueTickets = [
+            {
+                id: 3201,
+                ticketCode: 'A-3201',
+                queueType: 'appointment',
+                patientInitials: 'HF',
+                priorityClass: 'appt_current',
+                status: 'called',
+                assignedConsultorio: 1,
+                createdAt: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
+                calledAt: new Date(Date.now() - 45 * 1000).toISOString(),
+            },
+            {
+                id: 3202,
+                ticketCode: 'A-3202',
+                queueType: 'walk_in',
+                patientInitials: 'NX',
+                priorityClass: 'walk_in',
+                status: 'waiting',
+                assignedConsultorio: 1,
+                createdAt: nowIso,
+            },
+        ];
+        const clinicProfile = buildQueuePilotClinicProfile({
+            clinicId: 'clinica-handoff-demo',
+            branding: {
+                name: 'Clínica Handoff',
+                short_name: 'Handoff',
+                base_url: 'https://clinica-handoff.example',
+            },
+        });
+        let queueSurfaceStatusFixture = buildQueuePilotSurfaceStatus({
+            updatedAt: nowIso,
+            clinicId: clinicProfile.clinic_id,
+            operator: {
+                latest: {
+                    deviceLabel: 'Operador Handoff',
+                    details: {
+                        profileFingerprint: 'handoffpilot1',
+                        numpadSeen: true,
+                    },
+                },
+            },
+            kiosk: {
+                latest: {
+                    deviceLabel: 'Kiosco Handoff',
+                    details: {
+                        profileFingerprint: 'handoffpilot1',
+                        connection: 'live',
+                        printerPrinted: true,
+                    },
+                },
+            },
+            display: {
+                latest: {
+                    deviceLabel: 'Sala Handoff',
+                    details: {
+                        profileFingerprint: 'handoffpilot1',
+                        connection: 'live',
+                        bellMuted: false,
+                        bellPrimed: true,
+                    },
+                },
+            },
+        });
+
+        await page.addInitScript(() => {
+            window.__QUEUE_TEST_CLIPBOARD__ = [];
+            Object.defineProperty(navigator, 'clipboard', {
+                configurable: true,
+                value: {
+                    writeText: async (text) => {
+                        window.__QUEUE_TEST_CLIPBOARD__.push(
+                            String(text || '')
+                        );
+                    },
+                },
+            });
+        });
+
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_pilot_handoff_auto_focus'
+        );
+        await installQueuePilotApiMocks(page, {
+            queueTickets,
+            queueState: buildQueueStateFromTickets(queueTickets),
+            clinicProfile,
+            clinicProfileMeta: {
+                source: 'remote',
+                cached: false,
+                clinicId: clinicProfile.clinic_id,
+                profileFingerprint: 'handoffpilot1',
+                fetchedAt: nowIso,
+            },
+            queueSurfaceStatus: () => queueSurfaceStatusFixture,
+            healthPayload: buildQueuePilotHealthPayload({
+                publicSync: {
+                    deployedCommit: '9d2ce8bc7f2f5034f6f471234567890abcdef12',
+                    ageSeconds: 12,
+                },
+                checks: {
+                    turneroPilot: {
+                        configured: true,
+                        ready: true,
+                        profileSource: 'file',
+                        clinicId: clinicProfile.clinic_id,
+                        profileFingerprint: 'handoffpilot1',
+                        catalogAvailable: true,
+                        catalogMatched: true,
+                        catalogReady: true,
+                        catalogEntryId: clinicProfile.clinic_id,
+                        releaseMode: 'web_pilot',
+                        adminModeDefault: 'basic',
+                        separateDeploy: true,
+                        nativeAppsBlocking: false,
+                        surfaces: clinicProfile.surfaces,
+                    },
+                },
+            }),
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('.nav-item[data-section="queue"]').click();
+
+        await expect(page.locator('#queueOpsPilotFlowTitle')).toContainText(
+            'Paso actual: Handoff'
+        );
+        await expect(
+            page.locator('#queueOpsPilotFlowPhase_handoff')
+        ).toHaveAttribute('aria-current', 'step');
+        await expect(page.locator('#queueOpsPilotFlowSummary')).toContainText(
+            'Paquete listo para compartir'
+        );
+        await expect(page.locator('#queueFocusModeChip')).toContainText(
+            'Auto -> opening'
+        );
+        await expect(page.locator('#queueFocusModePrimary')).toHaveAttribute(
+            'href',
+            '#queueOpsPilotHandoff'
+        );
+        await expect(page.locator('#queueFocusModePrimary')).toContainText(
+            'Ir a paquete'
+        );
+        await expect(page.locator('#queueDomainChip')).toContainText(
+            'Auto -> deployment'
+        );
+        await expect(page.locator('#queuePlaybookFlowChip')).toContainText(
+            'Handoff'
+        );
+        await expect(page.locator('#queuePlaybookFlowLink')).toHaveAttribute(
+            'href',
+            '#queueOpsPilotHandoff'
+        );
+
+        await page.locator('#queueDomainOperations').dispatchEvent('click');
+        await expect(page.locator('#queueQuickConsoleTitle')).toContainText(
+            'Consola rápida: Apertura'
+        );
+        await expect(
+            page.locator('#queueQuickConsoleAction_opening_flow')
+        ).toHaveAttribute('href', '#queueOpsPilotHandoff');
+
+        await page.locator('#queueDomainAuto').dispatchEvent('click');
+        await page.locator('#queueOpsPilotHandoffCopyBtn').click();
+
+        await expect(page.locator('#toastContainer')).toContainText(
+            'Paquete de apertura copiado'
+        );
+        await expect(page.locator('#queueFocusModeChip')).toContainText(
+            'Auto -> operations'
+        );
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-focus',
+            'operations'
+        );
+        await expect(page.locator('#queueDomainChip')).toContainText(
+            'Auto -> operations'
+        );
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-domain',
+            'operations'
+        );
+        await expect(page.locator('#queueQuickConsoleTitle')).toContainText(
+            'Consola rápida: Operación'
+        );
+
+        const handoffSignals = await page.evaluate(() => ({
+            clipboard: Array.isArray(window.__QUEUE_TEST_CLIPBOARD__)
+                ? window.__QUEUE_TEST_CLIPBOARD__
+                : [],
+            opsLog: JSON.parse(localStorage.getItem('queueOpsLogV1') || '{}'),
+        }));
+        expect(handoffSignals.clipboard[0]).toContain('Paquete de apertura');
+        expect(handoffSignals.opsLog.items[0]?.source).toBe('pilot_handoff');
+        expect(handoffSignals.opsLog.items[0]?.title).toBe(
+            'Handoff del piloto copiado'
+        );
+        queueSurfaceStatusFixture = buildQueuePilotSurfaceStatus({
+            updatedAt: new Date().toISOString(),
+            clinicId: clinicProfile.clinic_id,
+            operator: {
+                latest: {
+                    deviceLabel: 'Operador Handoff',
+                    details: {
+                        profileFingerprint: 'handoffpilot1',
+                        numpadSeen: true,
+                    },
+                },
+            },
+            kiosk: {
+                latest: {
+                    deviceLabel: 'Kiosco Handoff',
+                    details: {
+                        profileFingerprint: 'handoffpilot1',
+                        connection: 'live',
+                        printerPrinted: true,
+                    },
+                },
+            },
+            display: {
+                status: 'warning',
+                summary: 'La Sala TV perdió la campanilla validada.',
+                latest: {
+                    deviceLabel: 'Sala Handoff',
+                    details: {
+                        profileFingerprint: 'handoffpilot1',
+                        connection: 'live',
+                        bellMuted: false,
+                        bellPrimed: false,
+                    },
+                },
+            },
+        });
+
+        await page.locator('#refreshAdminDataBtn').click();
+
+        await expect(page.locator('#queueFocusModeChip')).toContainText(
+            'Auto -> opening'
+        );
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-focus',
+            'opening'
+        );
+        await expect(page.locator('#queueDomainChip')).toContainText(
+            'Auto -> deployment'
+        );
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-domain',
+            'deployment'
+        );
+        await expect(page.locator('#queueFocusModePrimary')).toHaveAttribute(
+            'href',
+            '#queueOpsPilotReadiness'
+        );
+        await expect(page.locator('#queueOpsPilotFlowTitle')).toContainText(
+            'Paso actual: Readiness'
+        );
+    });
+
+    test('queue resetea la apertura real cuando el playbook se reinicia', async ({
+        page,
+    }) => {
+        test.setTimeout(60000);
+        let dataRequestCount = 0;
+
+        await page.addInitScript(() => {
+            window.__QUEUE_AUTO_REFRESH_INTERVAL_MS__ = 120;
+        });
+
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_apps_hub_playbook_reset'
+        );
+        await installQueueOperationalAppsApiMocks(page, {
+            queueSurfaceStatus: () => {
+                dataRequestCount += 1;
+                const updatedAt = new Date().toISOString();
+                const operatorAge = dataRequestCount > 1 ? 3 : 8;
+                return buildQueueOperationalAppsSurfaceStatus({
+                    operator: buildQueueDesktopOperatorSurfaceStatus({
+                        updatedAt,
+                        status: 'ready',
+                        ageSec: operatorAge,
+                        summary:
+                            dataRequestCount > 1
+                                ? 'Equipo listo para operar en C1 fijo. Pulso renovado.'
+                                : 'Equipo listo para operar en C1 fijo.',
+                        latest: buildQueueDesktopOperatorInstance({
+                            deviceLabel: 'Operador C1 fijo',
+                            ageSec: operatorAge,
+                            details: {
+                                station: 'c1',
+                                stationMode: 'locked',
+                                oneTap: false,
+                                numpadSeen: true,
+                            },
+                        }),
+                        instances: [],
+                    }),
+                    kiosk: buildQueueOperationalSurfaceStatusEntry('kiosk', {
+                        status: 'warning',
+                        updatedAt,
+                        ageSec: 18,
+                        stale: false,
+                        summary:
+                            'Falta probar ticket térmico antes de abrir autoservicio.',
+                        latest: {
+                            deviceLabel: 'Kiosco principal',
+                            appMode: 'desktop',
+                            ageSec: 18,
+                            details: {
+                                connection: 'live',
+                                pendingOffline: 0,
+                                printerPrinted: false,
+                            },
+                        },
+                        instances: [],
+                    }),
+                    display: buildQueueOperationalSurfaceStatusEntry(
+                        'display',
+                        {
+                            status: 'ready',
+                            updatedAt,
+                            ageSec: 12,
+                            stale: false,
+                            summary:
+                                'Sala TV lista: cola en vivo, audio activo y respaldo local disponible.',
+                            latest: {
+                                deviceLabel: 'Sala TV TCL C655',
+                                appMode: 'android_tv',
+                                ageSec: 12,
+                                details: {
+                                    connection: 'live',
+                                    bellMuted: false,
+                                    bellPrimed: true,
+                                },
+                            },
+                            instances: [],
+                        }
+                    ),
+                });
+            },
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('.nav-item[data-section="queue"]').click();
+
+        await expect(page.locator('#queuePlaybook')).toBeVisible();
+        await expect(page.locator('#queuePlaybookAssistChip')).toContainText(
+            'Sugeridos 2'
+        );
+
+        await page.locator('#queuePlaybookAssistBtn').dispatchEvent('click');
+        await page.locator('#queuePlaybookApplyBtn').dispatchEvent('click');
+
+        await expect(page.locator('#queuePlaybookChip')).toContainText(
+            'Secuencia completa'
+        );
+        await expect(page.locator('#queueOpsPilotTitle')).toContainText(
+            'Siguiente paso: Smoke final de apertura'
+        );
+        await expect(page.locator('#queueOpeningChecklistTitle')).toContainText(
+            'faltan 1 paso(s)'
+        );
+
+        await page.locator('#queuePlaybookResetBtn').dispatchEvent('click');
+
+        await expect(page.locator('#queuePlaybookChip')).toContainText(
+            'Paso 1/3'
+        );
+        await expect(page.locator('#queuePlaybookAssistChip')).toContainText(
+            'Sugeridos 2'
+        );
+        await expect(page.locator('#queueOpsPilotTitle')).toContainText(
+            'Confirma 2 paso(s) ya validados'
+        );
+        await expect(page.locator('#queueOpeningChecklistTitle')).toContainText(
+            'Apertura diaria asistida'
+        );
+
+        const openingChecklist = await page.evaluate(() =>
+            JSON.parse(localStorage.getItem('queueOpeningChecklistV1') || '{}')
+        );
+        expect(openingChecklist.steps.operator_ready).toBe(false);
+        expect(openingChecklist.steps.kiosk_ready).toBe(false);
+        expect(openingChecklist.steps.sala_ready).toBe(false);
+    });
+
+    test('queue resetea el relevo real cuando el playbook de cierre se reinicia', async ({
+        page,
+    }) => {
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_apps_hub_playbook_closing_reset'
+        );
+        await installQueueOperationalAppsApiMocks(page, {
+            queueSurfaceStatus: buildQueueOperationalAppsSurfaceStatus({
+                operator: buildQueueDesktopOperatorSurfaceStatus({
+                    status: 'ready',
+                    ageSec: 4,
+                    summary: 'Equipo listo para operar en C1 fijo.',
+                    latest: buildQueueDesktopOperatorInstance({
+                        deviceLabel: 'Operador C1 fijo',
+                        ageSec: 4,
+                        details: {
+                            station: 'c1',
+                            stationMode: 'locked',
+                            oneTap: false,
+                            numpadSeen: true,
+                        },
+                    }),
+                    instances: [],
+                }),
+                kiosk: buildQueueOperationalSurfaceStatusEntry('kiosk', {
+                    status: 'warning',
+                    ageSec: 12,
+                    stale: false,
+                    summary:
+                        'Kiosco estable para relevo, con cola en vivo y sin pendientes offline.',
+                    latest: {
+                        deviceLabel: 'Kiosco principal',
+                        appMode: 'desktop',
+                        ageSec: 12,
+                        details: {
+                            connection: 'live',
+                            pendingOffline: 0,
+                            printerPrinted: false,
+                        },
+                    },
+                    instances: [],
+                }),
+                display: buildQueueOperationalSurfaceStatusEntry('display', {
+                    status: 'ready',
+                    ageSec: 9,
+                    stale: false,
+                    summary: 'Sala TV lista para el siguiente turno.',
+                    latest: {
+                        deviceLabel: 'Sala TV TCL C655',
+                        appMode: 'android_tv',
+                        ageSec: 9,
+                        details: {
+                            connection: 'live',
+                            bellMuted: false,
+                            bellPrimed: true,
+                        },
+                    },
+                    instances: [],
+                }),
+            }),
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('.nav-item[data-section="queue"]').click();
+
+        await page.locator('#queueFocusModeClosing').dispatchEvent('click');
+        await expect(page.locator('#queueFocusModeChip')).toContainText(
+            'Manual -> closing'
+        );
+        await expect(page.locator('#queueQuickConsoleTitle')).toContainText(
+            'Consola rápida: Cierre'
+        );
+        await expect(page.locator('#queuePlaybookTitle')).toContainText(
+            'Playbook activo: Cierre'
+        );
+        await expect(page.locator('#queuePlaybookAssistChip')).toContainText(
+            'Sugeridos 3'
+        );
+
+        await page.locator('#queuePlaybookAssistBtn').dispatchEvent('click');
+
+        await expect(page.locator('#queuePlaybookChip')).toContainText(
+            'Secuencia completa'
+        );
+
+        let shiftHandoffChecklist = await page.evaluate(() =>
+            JSON.parse(localStorage.getItem('queueShiftHandoffV1') || '{}')
+        );
+        expect(shiftHandoffChecklist.steps.queue_clear).toBe(true);
+        expect(shiftHandoffChecklist.steps.operator_handoff).toBe(true);
+        expect(shiftHandoffChecklist.steps.kiosk_handoff).toBe(true);
+        expect(shiftHandoffChecklist.steps.sala_handoff).toBe(true);
+
+        await page.locator('#queuePlaybookResetBtn').dispatchEvent('click');
+
+        await expect(page.locator('#queuePlaybookChip')).toContainText(
+            'Paso 1/3'
+        );
+        await expect(page.locator('#queuePlaybookAssistChip')).toContainText(
+            'Sugeridos 3'
+        );
+
+        shiftHandoffChecklist = await page.evaluate(() =>
+            JSON.parse(localStorage.getItem('queueShiftHandoffV1') || '{}')
+        );
+        expect(shiftHandoffChecklist.steps.queue_clear).toBe(false);
+        expect(shiftHandoffChecklist.steps.operator_handoff).toBe(false);
+        expect(shiftHandoffChecklist.steps.kiosk_handoff).toBe(false);
+        expect(shiftHandoffChecklist.steps.sala_handoff).toBe(false);
+    });
+
+    test('queue quick console refresca queue-state en modo incidencias', async ({
+        page,
+    }) => {
+        let queueStateRequests = 0;
+
+        await installQueueAdminAuthMock(
+            page,
+            'csrf_queue_quick_console_refresh'
+        );
+        await installQueueOperationalAppsApiMocks(page, {
+            queueSurfaceStatus: buildQueueOperationalAppsSurfaceStatus({
+                operator: buildQueueDesktopOperatorSurfaceStatus({
+                    status: 'warning',
+                    ageSec: 11,
+                    summary: 'Operador con señal parcial para revisión.',
+                    latest: buildQueueDesktopOperatorInstance({
+                        deviceLabel: 'Operador C1 fijo',
+                        ageSec: 11,
+                        details: {
+                            station: 'c1',
+                            stationMode: 'locked',
+                            oneTap: false,
+                            numpadSeen: true,
+                        },
+                    }),
+                    instances: [],
+                }),
+                kiosk: buildQueueOperationalSurfaceStatusEntry('kiosk', {
+                    status: 'warning',
+                    ageSec: 16,
+                    stale: false,
+                    summary: 'Kiosco con señal parcial para incidencias.',
+                    latest: {
+                        deviceLabel: 'Kiosco principal',
+                        appMode: 'desktop',
+                        ageSec: 16,
+                        details: {
+                            connection: 'live',
+                            pendingOffline: 1,
+                            printerPrinted: false,
+                        },
+                    },
+                    instances: [],
+                }),
+                display: buildQueueOperationalSurfaceStatusEntry('display', {
+                    status: 'ready',
+                    ageSec: 10,
+                    stale: false,
+                    summary: 'Sala TV visible para soporte.',
+                    latest: {
+                        deviceLabel: 'Sala TV TCL C655',
+                        appMode: 'android_tv',
+                        ageSec: 10,
+                        details: {
+                            connection: 'live',
+                            bellMuted: false,
+                            bellPrimed: true,
+                        },
+                    },
+                    instances: [],
+                }),
+            }),
+            handleRoute: ({ resource }) => {
+                if (resource === 'queue-state') {
+                    queueStateRequests += 1;
+                }
+                return false;
+            },
+        });
+
+        await page.goto(adminUrl());
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await page.locator('.nav-item[data-section="queue"]').click();
+        await page.locator('#queueFocusModeIncidents').dispatchEvent('click');
+
+        await expect(page.locator('#queueQuickConsoleTitle')).toContainText(
+            'Consola rápida: Incidencias'
+        );
+        await expect(
+            page.locator('#queueQuickConsoleAction_refresh')
+        ).toContainText('Refrescar cola');
+
+        const requestsBeforeRefresh = queueStateRequests;
+        await page.locator('#queueQuickConsoleAction_refresh').click();
+
+        await expect
+            .poll(() => queueStateRequests)
+            .toBeGreaterThan(requestsBeforeRefresh);
     });
 
     test('admin muestra dos operadores Windows por estacion en operaciones e incidentes', async ({

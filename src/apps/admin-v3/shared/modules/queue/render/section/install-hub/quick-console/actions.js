@@ -39,6 +39,7 @@ export function bindQueueQuickConsoleActions(manifest, detectedPlatform, deps) {
         appendOpsLogEntry,
         getInstallPresetLabel,
         renderQueueFocusMode,
+        renderQueueHubDomainView,
         renderQueueQuickConsole,
         renderQueuePlaybook,
         renderQueueOpsPilot,
@@ -72,6 +73,9 @@ export function bindQueueQuickConsoleActions(manifest, detectedPlatform, deps) {
                 )}.`,
             });
             renderQueueFocusMode(manifest, detectedPlatform);
+            if (typeof renderQueueHubDomainView === 'function') {
+                renderQueueHubDomainView();
+            }
             renderQueueQuickConsole(manifest, detectedPlatform);
             renderQueuePlaybook(manifest, detectedPlatform);
             renderQueueOpsPilot(manifest, detectedPlatform);
@@ -115,8 +119,12 @@ export function bindQueueQuickConsoleActions(manifest, detectedPlatform, deps) {
                     'La consola rápida confirmó el relevo sugerido del turno.',
             });
             renderQueueFocusMode(manifest, detectedPlatform);
+            if (typeof renderQueueHubDomainView === 'function') {
+                renderQueueHubDomainView();
+            }
             renderQueueQuickConsole(manifest, detectedPlatform);
             renderQueuePlaybook(manifest, detectedPlatform);
+            renderQueueOpsPilot(manifest, detectedPlatform);
             renderShiftHandoff(manifest, detectedPlatform);
             renderQueueOpsLog(manifest, detectedPlatform);
         };

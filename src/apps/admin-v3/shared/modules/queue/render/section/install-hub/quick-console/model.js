@@ -1,6 +1,49 @@
+function buildOpeningPrimaryAction(pilot, openingAssist) {
+    const primaryAction =
+        pilot?.primaryAction && typeof pilot.primaryAction === 'object'
+            ? pilot.primaryAction
+            : null;
+
+    if (primaryAction?.kind === 'anchor') {
+        return {
+            id: 'queueQuickConsoleAction_opening_primary',
+            kind: 'anchor',
+            label:
+                String(primaryAction.label || '').trim() ||
+                'Abrir siguiente paso',
+            href: String(primaryAction.href || '').trim() || '#queueOpsPilot',
+            external: !String(primaryAction.href || '').startsWith('#'),
+        };
+    }
+
+    if (primaryAction?.kind === 'button' && primaryAction.action) {
+        return {
+            id: 'queueQuickConsoleAction_opening_refresh',
+            kind: 'button',
+            label:
+                String(primaryAction.label || '').trim() ||
+                'Actualizar apertura',
+            variant: 'primary',
+            action: primaryAction.action,
+        };
+    }
+
+    return {
+        id: 'queueQuickConsoleAction_opening_apply',
+        kind: 'button',
+        label:
+            String(primaryAction?.label || '').trim() ||
+            (openingAssist.suggestedCount > 0
+                ? `Confirmar sugeridos (${openingAssist.suggestedCount})`
+                : 'Sin sugeridos ahora'),
+        variant: 'primary',
+    };
+}
+
 export function buildQueueQuickConsoleModel(manifest, detectedPlatform, deps) {
     const {
         buildQueueFocusMode,
+        buildQueueOpsPilot,
         ensureInstallPreset,
         defaultAppDownloads,
         buildPreparedSurfaceUrl,
@@ -31,6 +74,11 @@ export function buildQueueQuickConsoleModel(manifest, detectedPlatform, deps) {
     const openingAssist = buildOpeningChecklistAssist(detectedPlatform);
     const handoffAssist = buildShiftHandoffAssist(detectedPlatform);
     const syncHealth = getQueueSyncHealth();
+    const pilot =
+        typeof buildQueueOpsPilot === 'function'
+            ? buildQueueOpsPilot(manifest, detectedPlatform)
+            : null;
+    const pilotFlow = pilot?.pilotFlow || null;
     const chips = [
         getInstallPresetLabel(detectedPlatform),
         syncHealth.badge,
@@ -40,46 +88,53 @@ export function buildQueueQuickConsoleModel(manifest, detectedPlatform, deps) {
     ];
 
     if (focus.effectiveMode === 'opening') {
+        const openingActions = [
+            buildOpeningPrimaryAction(pilot, openingAssist),
+            pilotFlow?.currentPhase
+                ? {
+                      id: 'queueQuickConsoleAction_opening_flow',
+                      kind: 'anchor',
+                      label: pilotFlow.currentPhase.destinationLabel,
+                      href: pilotFlow.currentPhase.destination,
+                  }
+                : null,
+            {
+                id: 'queueQuickConsoleAction_open_operator',
+                kind: 'anchor',
+                label: 'Abrir Operador',
+                href: operatorUrl,
+                external: true,
+            },
+            {
+                id: 'queueQuickConsoleAction_open_kiosk',
+                kind: 'anchor',
+                label: 'Abrir Kiosco',
+                href: kioskUrl,
+                external: true,
+            },
+            {
+                id: 'queueQuickConsoleAction_open_sala',
+                kind: 'anchor',
+                label: 'Abrir Sala TV',
+                href: salaUrl,
+                external: true,
+            },
+        ].filter(Boolean);
         return {
             tone: 'opening',
             title: 'Consola rápida: Apertura',
             summary:
-                openingAssist.suggestedCount > 0
+                String(pilotFlow?.summary || '').trim() ||
+                (openingAssist.suggestedCount > 0
                     ? 'Confirma pasos sugeridos o abre cada superficie sin bajar al resto del panel. Ideal para dejar listo Operador, Kiosco y Sala TV en menos clics.'
-                    : 'Abre cada superficie operativa o vuelve al checklist de apertura para completar las validaciones manuales pendientes.',
-            chips,
-            actions: [
-                {
-                    id: 'queueQuickConsoleAction_opening_apply',
-                    kind: 'button',
-                    label:
-                        openingAssist.suggestedCount > 0
-                            ? `Confirmar sugeridos (${openingAssist.suggestedCount})`
-                            : 'Sin sugeridos ahora',
-                    variant: 'primary',
-                },
-                {
-                    id: 'queueQuickConsoleAction_open_operator',
-                    kind: 'anchor',
-                    label: 'Abrir Operador',
-                    href: operatorUrl,
-                    external: true,
-                },
-                {
-                    id: 'queueQuickConsoleAction_open_kiosk',
-                    kind: 'anchor',
-                    label: 'Abrir Kiosco',
-                    href: kioskUrl,
-                    external: true,
-                },
-                {
-                    id: 'queueQuickConsoleAction_open_sala',
-                    kind: 'anchor',
-                    label: 'Abrir Sala TV',
-                    href: salaUrl,
-                    external: true,
-                },
-            ],
+                    : 'Abre cada superficie operativa o vuelve al checklist de apertura para completar las validaciones manuales pendientes.'),
+            chips: pilotFlow?.currentPhase
+                ? chips.concat([
+                      `Flow ${pilotFlow.currentPhase.order}/4`,
+                      pilotFlow.currentPhase.label,
+                  ])
+                : chips,
+            actions: openingActions,
         };
     }
 

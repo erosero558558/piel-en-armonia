@@ -303,6 +303,262 @@ function buildSmokeStepState(
     return 'warning';
 }
 
+function buildPilotFlowCountLabel(
+    readyCount,
+    totalCount,
+    emptyLabel = 'Sin datos'
+) {
+    if (!Number.isFinite(totalCount) || totalCount <= 0) {
+        return emptyLabel;
+    }
+    return `${Math.max(0, readyCount)}/${totalCount} listos`;
+}
+
+function buildPilotFlowCanonState(canonicalSurfaces) {
+    if (!Array.isArray(canonicalSurfaces) || canonicalSurfaces.length === 0) {
+        return 'warning';
+    }
+    if (canonicalSurfaces.some((surface) => surface.state === 'alert')) {
+        return 'alert';
+    }
+    if (canonicalSurfaces.every((surface) => surface.badge === 'Verificada')) {
+        return 'ready';
+    }
+    return 'warning';
+}
+
+function buildPilotFlowCanonSummary(canonicalSurfaces, canonicalSupport) {
+    if (!Array.isArray(canonicalSurfaces) || canonicalSurfaces.length === 0) {
+        return 'Todavía no hay superficies declaradas para validar el canon.';
+    }
+
+    const blockingSurface = canonicalSurfaces.find(
+        (surface) => surface.state === 'alert'
+    );
+    if (blockingSurface) {
+        return blockingSurface.detail;
+    }
+
+    const waitingSurface = canonicalSurfaces.find(
+        (surface) => surface.badge !== 'Verificada'
+    );
+    if (waitingSurface) {
+        return waitingSurface.detail || canonicalSupport;
+    }
+
+    return (
+        String(canonicalSupport || '').trim() ||
+        'El canon web ya quedó verificado en todas las superficies.'
+    );
+}
+
+function buildPilotFlowCurrentAction(model, currentPhase) {
+    const fallbackLabel =
+        String(currentPhase?.destinationLabel || '').trim() ||
+        `Ir a ${currentPhase?.label || 'detalle'}`;
+    const primaryAction =
+        model?.primaryAction && typeof model.primaryAction === 'object'
+            ? model.primaryAction
+            : null;
+
+    if (primaryAction?.kind === 'button') {
+        return {
+            kind: 'button',
+            id: 'queueOpsPilotFlowCta',
+            action: String(primaryAction.action || '').trim(),
+            label: String(primaryAction.label || '').trim() || fallbackLabel,
+        };
+    }
+
+    if (primaryAction?.kind === 'anchor') {
+        return {
+            kind: 'anchor',
+            id: 'queueOpsPilotFlowCta',
+            href:
+                String(primaryAction.href || '').trim() ||
+                String(currentPhase?.destination || '').trim() ||
+                '#queueOpsPilot',
+            label: String(primaryAction.label || '').trim() || fallbackLabel,
+        };
+    }
+
+    return {
+        kind: 'anchor',
+        id: 'queueOpsPilotFlowCta',
+        href:
+            String(currentPhase?.destination || '').trim() || '#queueOpsPilot',
+        label: fallbackLabel,
+    };
+}
+
+function attachPilotFlow(model) {
+    const readinessItems = Array.isArray(model?.readinessItems)
+        ? model.readinessItems
+        : [];
+    const readinessPhaseItems = readinessItems.filter(
+        (item) => item.id !== 'surfaces' && item.id !== 'smoke'
+    );
+    const readinessReadyCount = readinessPhaseItems.filter(
+        (item) => item.ready
+    ).length;
+    const readinessPendingItems = readinessPhaseItems.filter(
+        (item) => !item.ready
+    );
+    const readinessState =
+        readinessPendingItems.length === 0
+            ? 'ready'
+            : readinessPendingItems.some((item) => item.blocker)
+              ? 'alert'
+              : 'warning';
+    const firstReadinessPending = readinessPendingItems[0] || null;
+
+    const canonicalSurfaces = Array.isArray(model?.canonicalSurfaces)
+        ? model.canonicalSurfaces
+        : [];
+    const canonicalVerifiedCount = canonicalSurfaces.filter(
+        (surface) => surface.badge === 'Verificada'
+    ).length;
+    const canonicalState = buildPilotFlowCanonState(canonicalSurfaces);
+    const firstCanonicalPending =
+        canonicalSurfaces.find((surface) => surface.state === 'alert') ||
+        canonicalSurfaces.find((surface) => surface.badge !== 'Verificada') ||
+        null;
+
+    const smokeSteps = Array.isArray(model?.smokeSteps) ? model.smokeSteps : [];
+    const smokeReadyCount = smokeSteps.filter((step) => step.ready).length;
+    const firstSmokePending = smokeSteps.find((step) => !step.ready) || null;
+
+    const goLiveIssues = Array.isArray(model?.goLiveIssues)
+        ? model.goLiveIssues
+        : [];
+    const goLiveBlockingCount = goLiveIssues.filter(
+        (issue) => issue.state === 'alert'
+    ).length;
+    const firstGoLiveIssue =
+        goLiveIssues.find((issue) => issue.state === 'alert') ||
+        goLiveIssues[0] ||
+        null;
+
+    const phases = [
+        {
+            id: 'readiness',
+            label: 'Readiness',
+            state: readinessState,
+            summary:
+                firstReadinessPending?.detail ||
+                String(model?.readinessSummary || '').trim() ||
+                'El readiness del piloto ya quedó resuelto.',
+            countLabel: buildPilotFlowCountLabel(
+                readinessReadyCount,
+                readinessPhaseItems.length,
+                'Sin readiness'
+            ),
+            destination: '#queueOpsPilotReadiness',
+            destinationLabel: 'Ir a readiness',
+        },
+        {
+            id: 'canon',
+            label: 'Canon web',
+            state: canonicalState,
+            summary: buildPilotFlowCanonSummary(
+                canonicalSurfaces,
+                model?.canonicalSupport
+            ),
+            countLabel: canonicalSurfaces.length
+                ? `${canonicalVerifiedCount}/${canonicalSurfaces.length} verificadas`
+                : 'Sin canon',
+            destination: '#queueOpsPilotCanon',
+            destinationLabel:
+                firstCanonicalPending?.url &&
+                firstCanonicalPending.state === 'alert'
+                    ? 'Abrir superficie'
+                    : 'Ir a canon',
+        },
+        {
+            id: 'smoke',
+            label: 'Smoke',
+            state: String(model?.smokeState || 'warning').trim() || 'warning',
+            summary:
+                firstSmokePending?.detail ||
+                String(model?.smokeSummary || '').trim() ||
+                'La secuencia de smoke quedó resuelta.',
+            countLabel: buildPilotFlowCountLabel(
+                smokeReadyCount,
+                smokeSteps.length,
+                'Sin smoke'
+            ),
+            destination: '#queueOpsPilotSmoke',
+            destinationLabel:
+                String(firstSmokePending?.actionLabel || '').trim() ||
+                'Ir a smoke',
+        },
+        {
+            id: 'handoff',
+            label: 'Handoff',
+            state:
+                String(model?.goLiveIssueState || 'warning').trim() ||
+                'warning',
+            summary:
+                firstGoLiveIssue?.detail ||
+                String(
+                    goLiveIssues.length === 0
+                        ? model?.handoffSummary
+                        : model?.goLiveSummary
+                ).trim() ||
+                'El paquete de handoff ya quedó listo.',
+            countLabel:
+                goLiveIssues.length === 0
+                    ? 'Sin bloqueos'
+                    : goLiveBlockingCount > 0
+                      ? `${goLiveBlockingCount} bloqueo(s)`
+                      : `${goLiveIssues.length} pendiente(s)`,
+            destination: '#queueOpsPilotHandoff',
+            destinationLabel:
+                goLiveIssues.length === 0 ? 'Ir a paquete' : 'Ir a salida',
+        },
+    ].map((phase, index) => ({
+        ...phase,
+        order: index + 1,
+    }));
+
+    const firstPendingPhase = phases.find((phase) => phase.state !== 'ready');
+    const currentPhaseId = firstPendingPhase ? firstPendingPhase.id : 'handoff';
+    const decoratedPhases = phases.map((phase) => ({
+        ...phase,
+        current: phase.id === currentPhaseId,
+        statusLabel:
+            phase.id === currentPhaseId
+                ? 'Actual'
+                : phase.state === 'ready'
+                  ? 'Listo'
+                  : phase.state === 'alert'
+                    ? 'Bloquea'
+                    : 'Pendiente',
+    }));
+    const currentPhase =
+        decoratedPhases.find((phase) => phase.current) ||
+        decoratedPhases[decoratedPhases.length - 1];
+    const readyPhases = decoratedPhases.filter(
+        (phase) => phase.state === 'ready'
+    ).length;
+
+    return {
+        ...model,
+        pilotFlow: {
+            title: `Paso actual: ${currentPhase.label}`,
+            summary: currentPhase.summary,
+            support:
+                'Orden recomendado: Readiness -> Canon web -> Smoke -> Handoff.',
+            progressLabel: `Flow ${readyPhases}/${decoratedPhases.length}`,
+            readyCount: readyPhases,
+            totalPhases: decoratedPhases.length,
+            currentPhase,
+            phases: decoratedPhases,
+            cta: buildPilotFlowCurrentAction(model, currentPhase),
+        },
+    };
+}
+
 export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
     const {
         ensureOpeningChecklistState,
@@ -1359,7 +1615,7 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
               : '';
 
     if (syncHealth.state === 'alert') {
-        return {
+        return attachPilotFlow({
             ...sharedPilotPayload,
             tone: 'alert',
             eyebrow: 'Siguiente paso',
@@ -1379,11 +1635,11 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
                 href: '/admin.html#queue',
                 label: 'Abrir cola admin',
             },
-        };
+        });
     }
 
     if (suggestedCount > 0) {
-        return {
+        return attachPilotFlow({
             ...sharedPilotPayload,
             tone: missingOperatorStations.length > 0 ? 'warning' : 'suggested',
             eyebrow: 'Siguiente paso',
@@ -1416,11 +1672,11 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
                       href: '/admin.html#queue',
                       label: 'Volver a la cola',
                   },
-        };
+        });
     }
 
     if (pendingAfterSuggestions.length > 0) {
-        return {
+        return attachPilotFlow({
             ...sharedPilotPayload,
             tone: syncHealth.state === 'warning' ? 'warning' : 'active',
             eyebrow: 'Siguiente paso',
@@ -1461,10 +1717,10 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
                           href: '/admin.html#queue',
                           label: 'Abrir cola admin',
                       },
-        };
+        });
     }
 
-    return {
+    return attachPilotFlow({
         ...sharedPilotPayload,
         tone: 'ready',
         eyebrow: 'Operación lista',
@@ -1496,5 +1752,5 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
             ),
             label: 'Abrir operador',
         },
-    };
+    });
 }

@@ -1,6 +1,72 @@
 import { qs, qsa } from '../../shared/ui/render.js';
 import { SECTION_TITLES } from './config.js';
 
+const TOPBAR_QUICK_NAV_ITEMS = Object.freeze([
+    {
+        section: 'dashboard',
+        label: 'Inicio',
+        shortcut: 'Alt+1',
+        title: 'Abrir el resumen principal del admin',
+    },
+    {
+        section: 'callbacks',
+        label: 'Pendientes',
+        shortcut: 'Alt+3',
+        title: 'Abrir callbacks y pendientes de contacto',
+    },
+    {
+        section: 'queue',
+        label: 'Turnero',
+        shortcut: 'Alt+6',
+        title: 'Abrir el corte piloto del turnero en admin v3',
+    },
+]);
+
+function renderTopbarQuickNavMarkup() {
+    return TOPBAR_QUICK_NAV_ITEMS.map(
+        ({ section, label, shortcut, title }, index) => `
+            <button
+                type="button"
+                class="admin-quick-nav-item${index === 0 ? ' active' : ''}"
+                data-section="${section}"
+                aria-pressed="${index === 0 ? 'true' : 'false'}"
+                ${title ? `title="${title}"` : ''}
+                ${title ? `aria-label="${label}. ${title}"` : ''}
+            >
+                <span>${label}</span>
+                <span class="admin-quick-nav-shortcut">${shortcut}</span>
+            </button>
+        `
+    ).join('');
+}
+
+function ensureTopbarQuickNav() {
+    const topbar = qs('.admin-v3-topbar');
+    if (!(topbar instanceof HTMLElement)) {
+        return null;
+    }
+
+    const existing = qs('#adminQuickNav', topbar);
+    if (existing instanceof HTMLElement) {
+        return existing;
+    }
+
+    const quickNav = document.createElement('nav');
+    quickNav.id = 'adminQuickNav';
+    quickNav.className = 'admin-quick-nav';
+    quickNav.setAttribute('aria-label', 'Accesos rapidos del admin');
+    quickNav.innerHTML = renderTopbarQuickNavMarkup();
+
+    const actions = qs('.admin-v3-topbar__actions', topbar);
+    if (actions instanceof HTMLElement) {
+        topbar.insertBefore(quickNav, actions);
+        return quickNav;
+    }
+
+    topbar.appendChild(quickNav);
+    return quickNav;
+}
+
 export function showLoginView() {
     const login = qs('#loginScreen');
     const dashboard = qs('#adminDashboard');
@@ -52,10 +118,7 @@ export function hideAgentPanel() {
 }
 
 export function setActiveSection(section) {
-    document.documentElement.setAttribute('data-admin-section', section);
-    if (document.body instanceof HTMLElement) {
-        document.body.setAttribute('data-admin-section', section);
-    }
+    ensureTopbarQuickNav();
 
     qsa('.admin-section').forEach((node) => {
         node.classList.toggle('active', node.id === section);
