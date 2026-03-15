@@ -59,6 +59,32 @@ Reglas:
   `domain_lane=transversal_runtime` y `codex_instance=codex_transversal`.
 - `codex-check` debe bloquear si una tarea runtime activa apunta a una
   surface no saludable.
+- `runtime verify openclaw_chatgpt --json` es provider-wide: el provider queda
+  `ok=false` hasta que todas las surfaces requeridas esten sanas, aunque una
+  surface puntual ya este verde.
+- Leer primero `runtime.summary`:
+    - `state=healthy|degraded|unhealthy`
+    - `healthy_surfaces`, `degraded_surfaces`, `unhealthy_surfaces`
+    - `diagnostics[].reason` y `diagnostics[].next_action`
+- Interpretacion canonica para el corte admin operativo actual:
+    - `figo_queue=degraded(legacy_proxy_without_gateway)` significa que el bridge
+      responde, pero sigue en `providerMode=legacy_proxy` o sin
+      `gatewayConfigured=true`
+    - `leadops_worker=unhealthy(worker_disabled)` significa que la surface esta
+      deshabilitada/no configurada en `health`
+    - `operator_auth=healthy` significa que el auth facade OpenClaw esta sana y
+      no es el bloqueo del provider en ese momento
+    - `operator_auth=unhealthy(facade_only_rollout)` significa que
+      `admin-auth.php?action=status` ya expone contrato OpenClaw valido, pero
+      `/api.php?resource=operator-auth-status` sigue fuera del rollout canonico
+    - `operator_auth=unhealthy(auth_edge_failure)` significa que
+      tanto `/api.php?resource=operator-auth-status` como
+      `admin-auth.php?action=status` estan fallando por edge/origin y conviene
+      tratarlo primero como problema de Cloudflare/routing/origen
+    - `operator_auth=unhealthy(auth_status_http_530)` significa que
+      `/api.php?resource=operator-auth-status` esta fallando por edge/origin
+      (por ejemplo Cloudflare 530/1033); no leerlo como `mode mismatch` hasta
+      recuperar una respuesta JSON valida
 
 ## Branch slicing
 

@@ -1,164 +1,214 @@
 # Branch Slicing Guardrails
 
-This guide defines how to split large initiatives into reviewable slices before
-the branch grows across unrelated surfaces.
+This guide defines the canonical review cut for the shared-focus model.
+
+The hierarchy is:
+
+- `AGENTS.md` decides file ownership and lane constraints.
+- `AGENT_BOARD.yaml.strategy.active` decides the active strategy and subfront.
+- `focus_*` fields decide the current shared proof cut.
+- This document decides how a branch or PR must be sliced for review and rollback.
 
 ## Rule
 
 - One branch should answer one primary review question.
-- Keep lane ownership and branch slicing separate:
-    - `AGENTS.md` decides who owns the files.
-    - `TRI_LANE_RUNTIME_RUNBOOK.md` decides which Codex lane executes.
-    - This document decides how the initiative is cut for review and rollback.
-- If a change touches more than one major slice, split it unless the coupling is
-  explicit and unavoidable.
+- One branch or PR must map to exactly one `integration_slice`.
+- One branch or PR must map to exactly one `focus_step`.
+- If a change needs more than one `integration_slice`, split it unless the coupling is explicit and unavoidable.
+- If a branch cannot answer a single review question, it is too wide.
 
-## Preferred Slices
+`AGENTS.md` decides who owns the files.
+`TRI_LANE_RUNTIME_RUNBOOK.md` decides which Codex lane executes.
 
-### 1. Ops and deploy
+## Preferred Review Labels
 
-Use one branch when the main change lives in:
+Use these human-readable labels in PRs, branch naming and review chat even when
+the board stores a more specific `integration_slice` token:
 
-- `.github/workflows/**`
-- `scripts/ops/**`
-- `bin/powershell/**`
-- root PowerShell wrappers
-- deploy and production runbooks
+- `ops/deploy`
+- `queue runtime`
+- `desktop shells`
+- `tests`
+- `governance evidence`
 
-Keep here only the minimum docs and tests needed to prove the operational
-change.
+If the branch crosses `ops/deploy`, `queue runtime`, `desktop shells`,
+`tests` or `governance evidence`, split it unless the coupling is explicit and
+the rollback path stays the same.
+
+Suggested shorthand branch families:
+
+- `feature/queue-runtime-*`
+- `ops/*`
+- `docs/*` or `chore/*` for governance evidence
+
+## Canonical Integration Slices
+
+### 1. `frontend_runtime`
+
+Use this slice when the main change lives in:
+
+- `src/apps/**`
+- `templates/**`
+- `content/**`
+- `js/**`
+- `*.html`
+- public or admin browser runtime glue
 
 Suggested branch names:
 
-- `ops/deploy-health-signals`
-- `ops/postdeploy-entrypoints`
+- `focus/frontend-runtime-admin-queue-cut`
+- `focus/frontend-runtime-feedback-trim`
 
-### 2. Queue runtime
-
-Use one branch when the main change lives in:
+Repo-specific paths that usually stay in this cut:
 
 - `src/apps/admin-v3/**/queue/**`
 - `src/apps/queue-operator/**`
-- queue shells such as `operador-turnos.html`
-- queue-facing CSS and runtime glue
 
-Generated outputs that belong to this slice can travel with the source diff, but
-they do not justify bringing deploy or desktop work into the same branch.
+### 2. `backend_readiness`
+
+Use this slice when the main change lives in:
+
+- `controllers/**`
+- `lib/**`
+- `api.php`
+- `figo-*.php`
+- auth/readiness/backend support for the active proof
 
 Suggested branch names:
 
-- `feature/queue-runtime-install-hub-registry`
-- `feature/queue-runtime-operator-surface`
+- `focus/backend-readiness-admin-auth`
+- `focus/backend-readiness-queue-support`
 
-### 3. Desktop shells
+### 3. `runtime_support`
 
-Use one branch when the main change lives in:
+Use this slice when the main change lives in:
+
+- `figo-ai-bridge.php`
+- `lib/figo_queue.php`
+- `lib/auth.php`
+- `controllers/OperatorAuthController.php`
+- `controllers/LeadAiController.php`
+- `bin/lead-ai-worker.js`
+- runtime OpenClaw support needed to unblock the active proof
+
+Suggested branch names:
+
+- `focus/runtime-support-openclaw-auth`
+- `focus/runtime-support-queue-bridge`
+
+### 4. `ops_deploy`
+
+Use this slice when the main change lives in:
+
+- `.github/workflows/**`
+- deploy/ops scripts
+- monitoring or rollout hooks
+- production readiness checks tied directly to the active proof
+
+Suggested branch names:
+
+- `focus/ops-deploy-public-main-sync`
+- `focus/ops-deploy-admin-rollout-gate`
+
+### 5. `desktop_shells`
+
+Use this slice when the main change lives in:
 
 - `src/apps/turnero-desktop/**`
-- desktop packaging, release, or shell config
-- app-download catalogs that exist only to ship the desktop shells
-
-Do not bundle desktop packaging with admin queue refactors unless one change
-cannot ship without the other in the same release cut.
+- desktop shell packaging or release files
+- download catalogs that only exist to ship desktop shells
 
 Suggested branch names:
 
-- `feature/desktop-shell-release-contract`
-- `feature/desktop-shell-kiosk-sync`
+- `focus/desktop-shells-turnero-pilot`
+- `focus/desktop-shells-kiosk-cut`
 
-### 4. Tests
+### 6. `tests_quality`
 
-Use one branch when the main change is test structure or reliability:
+Use this slice when the main change is primarily validation, harnesses, fixtures, or reliability work:
 
 - `tests/**`
 - `tests-node/**`
-- shared fixtures, builders, helpers, or smoke harnesses
-
-Rules:
-
-- Keep capability tests with the runtime slice they validate if the test change
-  is small and local.
-- Move broad suite cleanup, fixture extraction, or reliability work into a
-  dedicated `tests/*` branch.
-- Do not hide a wide runtime refactor inside a "test cleanup" slice.
+- shared fixtures/builders/helpers
+- smoke coverage needed to prove the current `focus_step`
 
 Suggested branch names:
 
-- `tests/queue-fixtures-split`
-- `tests/playwright-reliability-queue`
+- `focus/tests-quality-admin-pilot-cut`
+- `focus/tests-quality-runtime-readiness`
 
-### 5. Governance evidence
+### 7. `governance_evidence`
 
-Use one branch when the main change is coordination, policy, or evidence:
+Use this slice when the main change is coordination, policy, or proof capture:
 
 - `agent-orchestrator.js`
 - `tools/agent-orchestrator/**`
 - `AGENTS.md`
 - `AGENT_BOARD.yaml`
+- `AGENT_DECISIONS.yaml`
 - `AGENT_HANDOFFS.yaml`
 - `verification/**`
-- audit and rollout docs such as `docs/REAL_DEBT_*.md`
+- governance/audit/runbook docs
 
-Keep governance evidence separate from runtime edits unless the same patch must
-prove a governance rule introduced by that runtime change.
+Short label mapping for review:
+
+- `ops/deploy` -> `ops_deploy`
+- `queue runtime` -> `frontend_runtime`, `backend_readiness` or `runtime_support`, depending on where the queue cut actually lives
+- `desktop shells` -> `desktop_shells`
+- `tests` -> `tests_quality`
+- `governance evidence` -> `governance_evidence`
 
 Suggested branch names:
 
-- `docs/governance-runtime-artifact-policy`
-- `chore/agent-summary-surface-cleanup`
+- `focus/governance-evidence-shared-focus-v2`
+- `focus/governance-evidence-audit-closeout`
 
 ## What Can Travel Together
 
-- Source files and their generated runtime outputs can travel together.
-- A small local test update can travel with the runtime slice it validates.
+- Source files and their direct generated outputs can travel together inside the same `integration_slice`.
+- A small local test change can travel with the runtime slice it validates.
 - A small doc change can travel with the slice it documents.
-- A handoff or governance evidence update can travel with a runtime slice only
-  when it is required to unblock that exact change.
+- Minimal board/evidence updates can travel with a runtime slice only when they are required to unblock that exact `focus_step`.
 
 ## What Should Stay Separate
 
-- `ops/deploy` from `queue runtime`
-- `queue runtime` from `desktop shells`
-- broad `tests` cleanup from feature delivery
-- `governance evidence` from unrelated runtime work
-- large artifact refreshes from source refactors unless the artifacts are the
-  direct output of that source change
+- `frontend_runtime` from `backend_readiness` unless one review question truly spans both.
+- `runtime_support` from `ops_deploy` unless the runtime change cannot be validated without the deploy change in the same cut.
+- `desktop_shells` from browser runtime work.
+- broad `tests_quality` cleanup from feature delivery.
+- `governance_evidence` from unrelated runtime work.
 
 ## Slicing Checklist
 
 Before opening or growing a branch:
 
-1. Name the dominant slice.
-2. List the touched paths and mark which of the five slices they belong to.
-3. If the branch crosses `ops/deploy`, `queue runtime`, `desktop shells`,
-   `tests`, or `governance evidence`, split it unless the coupling is explicit.
-4. Keep generated assets in the same slice as their source-of-truth modules.
-5. If a cross-lane branch is unavoidable, open the handoff required by
-   `AGENTS.md` and explain the coupling in the PR summary.
-6. If rollback would require different owners or different validation commands,
-   it should probably be more than one branch.
+1. Name the `focus_step` this branch supports.
+2. Name the single `integration_slice` this branch belongs to.
+3. List touched paths and confirm they stay inside that slice.
+4. If the branch crosses into a second slice, split it unless the coupling is explicit.
+5. If the branch crosses lanes, open the required handoff from `AGENTS.md`.
+6. If rollback, validation, or ownership differs across touched paths, it should probably be more than one branch.
 
 ## Example
 
 Bad mixed branch:
 
-- queue admin refactor in `src/apps/admin-v3/**`
-- operator shell tweaks in `src/apps/queue-operator/**`
-- desktop packaging in `src/apps/turnero-desktop/**`
-- production workflow edits in `.github/workflows/**`
-- Playwright cleanup in `tests/admin-queue.spec.js`
-- governance evidence refresh in `verification/**`
+- admin UI runtime edits in `src/apps/**`
+- auth/readiness PHP changes in `controllers/**`
+- deploy workflow edits in `.github/workflows/**`
+- governance updates in `AGENT_BOARD.yaml`
+- broad Playwright cleanup in `tests/**`
 
 Better split:
 
-1. `feature/queue-runtime-*`
-2. `feature/desktop-shell-*`
-3. `ops/*`
-4. `tests/*`
-5. `docs/*` or `chore/*` for governance evidence
+1. `focus/frontend-runtime-*`
+2. `focus/backend-readiness-*`
+3. `focus/ops-deploy-*`
+4. `focus/tests-quality-*`
+5. `focus/governance-evidence-*`
 
 ## Practical Default
 
-If you are unsure, start with the smallest branch that can pass its own
-validation without borrowing deploy, desktop, governance, and broad test
-changes from the rest of the initiative.
+If you are unsure, keep the smallest branch that can pass its own validation and can be described as:
+
+`one focus_step + one integration_slice + one review question`

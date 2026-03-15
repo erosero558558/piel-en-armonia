@@ -1,7 +1,6 @@
 'use strict';
 
 const terminalEvidence = require('../domain/evidence');
-const domainStrategy = require('../domain/strategy');
 
 async function handleTaskCommand(ctx) {
     const {
@@ -502,7 +501,6 @@ function applyDualCodexOverrides(task, flags = {}, helpers = {}) {
         isFlagEnabled = () => false,
         inferDomainLaneFromFiles = () => ({ lane: 'backend_ops' }),
         ensureTaskDualCodexDefaults = () => task,
-        skipLaneInference = false,
     } = helpers;
 
     const explicitCodexInstance = readStringFlag(
@@ -568,7 +566,6 @@ function applyDualCodexOverrides(task, flags = {}, helpers = {}) {
     }
 
     if (
-        !skipLaneInference &&
         !explicitDomainLane &&
         Array.isArray(task.files) &&
         task.files.length > 0
@@ -658,33 +655,6 @@ function applyFocusOverrides(task, flags = {}) {
     if (decisionRef) task.decision_ref = decisionRef;
     if (reworkParent) task.rework_parent = reworkParent;
     if (reworkReason) task.rework_reason = reworkReason;
-}
-
-function applyReleasePublishPreset(task) {
-    if (!task || typeof task !== 'object') return;
-    task.status = 'review';
-    task.strategy_role = 'exception';
-    task.strategy_reason = 'validated_release_promotion';
-    task.integration_slice = 'governance_evidence';
-    task.work_type = 'evidence';
-}
-
-function applyReleasePublishStrategyDefaults(board, task) {
-    if (!task || typeof task !== 'object') return;
-    const activeStrategy = domainStrategy.getActiveStrategy(board);
-    if (!activeStrategy) return;
-    if (!String(task.strategy_id || '').trim()) {
-        task.strategy_id = activeStrategy.id;
-    }
-    if (!String(task.subfront_id || '').trim()) {
-        const subfront = domainStrategy.getSubfrontByCodexInstance(
-            activeStrategy,
-            task.codex_instance
-        );
-        if (subfront?.subfront_id) {
-            task.subfront_id = subfront.subfront_id;
-        }
-    }
 }
 
 function applyBlockedReasonOverride(task, flags = {}, commandLabel) {
@@ -914,29 +884,7 @@ function handleTaskStart(ctx) {
             ? parseDecisions()
             : { decisions: [] };
 
-    const releasePublish = isFlagEnabled(
-        flags,
-        'release-publish',
-        'release_publish'
-    );
-    if (releasePublish && !/^(AG|CDX)-\d+$/i.test(String(taskId || '').trim())) {
-        throw new Error(
-            'task start --release-publish solo permite tareas existentes AG-* o CDX-*'
-        );
-    }
-    if (
-        releasePublish &&
-        Object.prototype.hasOwnProperty.call(flags, 'status') &&
-        String(flags.status || '').trim() !== 'review'
-    ) {
-        throw new Error(
-            'task start --release-publish fija status=review y no acepta otro status'
-        );
-    }
-
-    const nextStatus = String(
-        releasePublish ? 'review' : flags.status || 'in_progress'
-    ).trim();
+    const nextStatus = String(flags.status || 'in_progress').trim();
     if (!ACTIVE_STATUSES.has(nextStatus)) {
         throw new Error(
             `task start requiere status activo (${Array.from(ACTIVE_STATUSES).join(', ')})`
@@ -973,27 +921,13 @@ function handleTaskStart(ctx) {
     task.updated_at = currentDate();
 
     const handoffData = parseHandoffs();
-    const preserveFrontendReleaseLane = Boolean(
-        releasePublish &&
-            String(task.scope || '').trim().toLowerCase() ===
-                'frontend-public' &&
-            String(task.domain_lane || '').trim().toLowerCase() ===
-                'frontend_content' &&
-            String(task.codex_instance || '').trim().toLowerCase() ===
-                'codex_frontend'
-    );
     applyDualCodexOverrides(task, flags, {
         isFlagEnabled,
         inferDomainLaneFromFiles,
         ensureTaskDualCodexDefaults,
-        skipLaneInference: preserveFrontendReleaseLane,
     });
     applyStrategyOverrides(task, flags);
     applyFocusOverrides(task, flags);
-    if (releasePublish) {
-        applyReleasePublishPreset(task);
-        applyReleasePublishStrategyDefaults(board, task);
-    }
     applyBlockedReasonOverride(task, flags, 'task start');
     if (isRetiredExecutor(task.executor, RETIRED_TASK_EXECUTORS)) {
         throw createRetiredExecutorError(task.executor, 'task start');

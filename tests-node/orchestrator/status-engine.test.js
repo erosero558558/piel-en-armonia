@@ -127,6 +127,31 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
                 { id: 'runtime:openclaw_chatgpt', state: 'unverified' },
             ],
         },
+        focus: {
+            configured: {
+                id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                title: 'Admin operativo demostrable',
+                proof: 'Demo comun',
+                next_step: 'admin_queue_pilot_cut',
+                required_checks: [
+                    'job:public_main_sync',
+                    'runtime:openclaw_chatgpt',
+                ],
+            },
+            active: {
+                id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                next_step: 'admin_queue_pilot_cut',
+            },
+            active_tasks_total: 1,
+            aligned_tasks: 1,
+            active_slices: ['runtime_support'],
+            distinct_active_slices: 1,
+            decisions: { open: 1, overdue: 0 },
+            required_checks: [
+                { id: 'job:public_main_sync', state: 'red' },
+                { id: 'runtime:openclaw_chatgpt', state: 'unverified' },
+            ],
+        },
         byStatus: { in_progress: 1 },
         byExecutor: { codex: 1 },
         codex_instances: {
@@ -201,6 +226,11 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
     assert.match(
         output,
         /Cobertura estrategia: aligned=1, support=0, exception=0, orphan=0, dispersion=0, slot_tasks=0/
+    );
+    assert.match(output, /Foco compartido:/);
+    assert.match(
+        output,
+        /required_checks: job:public_main_sync=red, runtime:openclaw_chatgpt=unverified/
     );
     assert.match(output, /Foco compartido:/);
     assert.match(

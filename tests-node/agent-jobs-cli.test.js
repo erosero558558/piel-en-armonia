@@ -19,23 +19,6 @@ const REPO_ROOT = resolve(__dirname, '..');
 const ORCHESTRATOR_SOURCE = join(REPO_ROOT, 'agent-orchestrator.js');
 const ORCHESTRATOR_TOOLS_DIR = join(REPO_ROOT, 'tools', 'agent-orchestrator');
 const GOVERNANCE_POLICY_SOURCE = join(REPO_ROOT, 'governance-policy.json');
-const WORKSPACE_HYGIENE_SOURCE = join(
-    REPO_ROOT,
-    'bin',
-    'lib',
-    'workspace-hygiene.js'
-);
-const GENERATED_SITE_ROOT_SOURCE = join(
-    REPO_ROOT,
-    'bin',
-    'lib',
-    'generated-site-root.js'
-);
-const CLEAN_LOCAL_ARTIFACTS_SOURCE = join(
-    REPO_ROOT,
-    'bin',
-    'clean-local-artifacts.js'
-);
 
 function createFixtureDir() {
     const dir = mkdtempSync(join(tmpdir(), 'agent-jobs-cli-test-'));
@@ -44,19 +27,6 @@ function createFixtureDir() {
         recursive: true,
     });
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
-    mkdirSync(join(dir, 'bin', 'lib'), { recursive: true });
-    copyFileSync(
-        WORKSPACE_HYGIENE_SOURCE,
-        join(dir, 'bin', 'lib', 'workspace-hygiene.js')
-    );
-    copyFileSync(
-        GENERATED_SITE_ROOT_SOURCE,
-        join(dir, 'bin', 'lib', 'generated-site-root.js')
-    );
-    copyFileSync(
-        CLEAN_LOCAL_ARTIFACTS_SOURCE,
-        join(dir, 'bin', 'clean-local-artifacts.js')
-    );
     return dir;
 }
 
@@ -366,61 +336,4 @@ jobs:
         verify.job.status_path.endsWith('missing-public-sync-status.json'),
         true
     );
-});
-
-test('jobs verify distingue health publico stale cuando falta checks.publicSync', (t) => {
-    const dir = createFixtureDir();
-    t.after(() => cleanupFixtureDir(dir));
-    const healthUrl = `data:application/json,${encodeURIComponent(
-        JSON.stringify({
-            ok: true,
-            status: 'ok',
-            storageReady: true,
-            dataDirWritable: true,
-            timingMs: 14,
-            version: '20260314072914',
-            timestamp: '2026-03-14T11:10:00Z',
-        })
-    )}`;
-
-    writeFixtureFiles(dir);
-    writeFileSync(
-        join(dir, 'AGENT_JOBS.yaml'),
-        `version: 1
-updated_at: "2026-03-03T00:00:00Z"
-jobs:
-  - key: public_main_sync
-    job_id: "8d31e299-7e57-4959-80b5-aaa2d73e9674"
-    enabled: true
-    type: external_cron
-    owner: codex_backend_ops
-    environment: production
-    repo_path: /var/www/figo
-    branch: main
-    schedule: "* * * * *"
-    command: /root/sync-pielarmonia.sh
-    wrapper_fallback: /var/www/figo/bin/deploy-public-v3-cron-sync.sh
-    lock_file: /tmp/sync-pielarmonia.lock
-    log_path: /var/log/sync-pielarmonia.log
-    status_path: "${join(dir, 'runtime', 'missing-public-sync-status.json').replace(/\\/g, '/')}"
-    health_url: ${healthUrl}
-    expected_max_lag_seconds: 120
-    source_of_truth: host_cron
-    publish_strategy: main_auto_guarded
-`,
-        'utf8'
-    );
-
-    const verify = runCli(
-        dir,
-        ['jobs', 'verify', 'public_main_sync', '--json'],
-        1
-    );
-    assert.equal(verify.ok, false);
-    assert.equal(verify.job.verification_source, 'health_url');
-    assert.equal(verify.job.failure_reason, 'health_missing_public_sync');
-    assert.equal(verify.job.last_error_message, 'health_missing_public_sync');
-    assert.equal(verify.job.state, 'stale');
-    assert.equal(verify.job.verified, false);
-    assert.equal(verify.job.healthy, false);
 });

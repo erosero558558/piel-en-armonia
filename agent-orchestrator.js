@@ -98,11 +98,6 @@ const BOARD_EVENTS_PATH = resolve(
     'verification',
     'agent-board-events.jsonl'
 );
-const STRATEGY_EVENTS_PATH = resolve(
-    ROOT,
-    'verification',
-    'agent-strategy-events.jsonl'
-);
 const PUBLISH_EVENTS_PATH = resolve(
     ROOT,
     'verification',
@@ -178,9 +173,9 @@ const DEFAULT_GOVERNANCE_POLICY = {
         },
         quotas: {
             by_codex_instance: {
-                codex_backend_ops: 2,
-                codex_frontend: 2,
-                codex_transversal: 2,
+                codex_backend_ops: 1,
+                codex_frontend: 1,
+                codex_transversal: 1,
             },
         },
     },
@@ -234,10 +229,6 @@ const DEFAULT_GOVERNANCE_POLICY = {
                 enabled: true,
             },
             public_main_sync_telemetry_gap: {
-                severity: 'warning',
-                enabled: true,
-            },
-            publish_live_verification_pending: {
                 severity: 'warning',
                 enabled: true,
             },
@@ -302,14 +293,6 @@ const DEFAULT_GOVERNANCE_POLICY = {
                 payments: 2,
                 auth: 2,
                 default: 4,
-            },
-        },
-        codex_parallelism: {
-            slot_statuses: ['in_progress', 'review', 'blocked'],
-            by_codex_instance: {
-                codex_backend_ops: 2,
-                codex_frontend: 2,
-                codex_transversal: 2,
             },
         },
     },
@@ -430,40 +413,6 @@ function getGovernancePolicy() {
     });
 }
 
-function getCodexParallelismPolicy() {
-    const policy = getGovernancePolicy();
-    const raw = policy?.enforcement?.codex_parallelism || {};
-    const defaultCapacities = {
-        codex_backend_ops: 2,
-        codex_frontend: 2,
-        codex_transversal: 2,
-    };
-    const slotStatuses = Array.isArray(raw.slot_statuses)
-        ? raw.slot_statuses
-              .map((value) => String(value || '').trim())
-              .filter(Boolean)
-        : ['in_progress', 'review', 'blocked'];
-    const byCodexInstance = Object.fromEntries(
-        domainStrategy.DEFAULT_CODEX_INSTANCES.map((codexInstance) => {
-            const parsed = Number.parseInt(
-                String(raw?.by_codex_instance?.[codexInstance] ?? ''),
-                10
-            );
-            return [
-                codexInstance,
-                Number.isInteger(parsed) && parsed > 0
-                    ? parsed
-                    : defaultCapacities[codexInstance],
-            ];
-        })
-    );
-    return {
-        slot_statuses: slotStatuses,
-        slot_statuses_set: new Set(slotStatuses),
-        by_codex_instance: byCodexInstance,
-    };
-}
-
 function readGovernancePolicyStrict() {
     return corePolicy.readGovernancePolicyStrict({
         existsSync,
@@ -531,9 +480,9 @@ function parseCodexActiveBlocks() {
 
 function parseCodexStrategyBlocks() {
     if (!existsSync(CODEX_PLAN_PATH)) {
-        return { active: [], next: [] };
+        return [];
     }
-    return coreParsers.parseCodexStrategyBlocksContent(
+    return coreParsers.parseCodexStrategyActiveBlocksContent(
         readFileSync(CODEX_PLAN_PATH, 'utf8')
     );
 }
@@ -559,13 +508,6 @@ function parseJobs() {
         readFile: readFileSync,
         parseJobsContent: coreParsers.parseJobsContent,
         currentDate,
-    });
-}
-
-function loadPublishEvents() {
-    return coreIo.readJsonlFile(PUBLISH_EVENTS_PATH, {
-        exists: existsSync,
-        readFile: readFileSync,
     });
 }
 
@@ -702,11 +644,8 @@ function validateTaskGovernancePrechecks(board, task, options = {}) {
 }
 
 function buildStrategyCoverageSummary(board) {
-    const codexParallelism = getCodexParallelismPolicy();
     return domainStrategy.buildStrategyCoverageSummary(board, {
         activeStatuses: ACTIVE_STATUSES,
-        slotStatuses: codexParallelism.slot_statuses_set,
-        laneCapacities: codexParallelism.by_codex_instance,
         findCriticalScopeKeyword,
     });
 }
@@ -715,16 +654,6 @@ function buildFocusSummary(board, options = {}) {
     return domainFocus.buildFocusSummary(board, {
         ...options,
         activeStatuses: ACTIVE_STATUSES,
-    });
-}
-
-async function buildLiveFocusSummary(board, options = {}) {
-    return domainFocus.buildLiveFocusSummary(board, {
-        buildFocusSummary,
-        parseDecisions,
-        loadJobsSnapshot,
-        verifyOpenClawRuntime,
-        now: options.now,
     });
 }
 
@@ -1133,12 +1062,7 @@ function writeCodexActiveBlock(block, options = {}) {
         readFile: readFileSync,
         writeFile: writeFileSync,
         upsertCodexActiveBlock,
-        codexInstance:
-            options.codex_instance ||
-            options.codexInstance ||
-            block?.codex_instance ||
-            null,
-        taskId: options.task_id || options.taskId || block?.task_id || null,
+        codexInstance: options.codex_instance || block?.codex_instance || null,
     });
 }
 
@@ -1154,29 +1078,6 @@ function writeStrategyActiveBlock(strategy) {
     });
     writeFileSync(CODEX_PLAN_PATH, next, 'utf8');
     return next;
-}
-
-function writeStrategyPlanBlocks(strategyState = {}) {
-    if (!existsSync(CODEX_PLAN_PATH)) {
-        throw new Error(`No existe ${CODEX_PLAN_PATH}`);
-    }
-    const raw = readFileSync(CODEX_PLAN_PATH, 'utf8');
-    const next = domainStrategy.upsertStrategyBlocks(raw, strategyState, {
-        quote,
-        serializeArrayInline,
-        currentDate,
-    });
-    writeFileSync(CODEX_PLAN_PATH, next, 'utf8');
-    return next;
-}
-
-function appendStrategySnapshot(snapshot) {
-    if (!snapshot || typeof snapshot !== 'object') return;
-    mkdirSync(dirname(STRATEGY_EVENTS_PATH), { recursive: true });
-    writeFileSync(STRATEGY_EVENTS_PATH, `${JSON.stringify(snapshot)}\n`, {
-        encoding: 'utf8',
-        flag: 'a',
-    });
 }
 
 function nextHandoffId(handoffs) {
@@ -1445,12 +1346,10 @@ function buildWarnFirstDiagnostics({
     board = null,
     handoffData = null,
     decisionsData = null,
-    focusSummary = null,
     conflictAnalysis = null,
     metricsSnapshot = null,
     policyReport = null,
     jobsSnapshot = null,
-    publishEvents = null,
 }) {
     return domainDiagnostics.buildWarnFirstDiagnostics({
         source,
@@ -1458,12 +1357,10 @@ function buildWarnFirstDiagnostics({
         board,
         handoffData,
         decisionsData,
-        focusSummary,
         conflictAnalysis,
         metricsSnapshot,
         policyReport,
         jobsSnapshot,
-        publishEvents,
         activeStatuses: ACTIVE_STATUSES,
     });
 }
@@ -1509,10 +1406,8 @@ async function cmdStatus(args) {
         formatPpDelta,
         summarizeDiagnostics: domainDiagnostics.summarizeDiagnostics,
         buildWarnFirstDiagnostics,
-        buildLiveFocusSummary,
         getGovernancePolicy,
         loadJobsSnapshot,
-        loadPublishEvents,
         summarizeJobsSnapshot,
     });
 }
@@ -1576,7 +1471,6 @@ function cmdMetrics(args = []) {
         buildProviderModeSummary,
         buildRuntimeSurfaceSummary,
         buildFocusSummary,
-        buildLiveFocusSummary,
         parseDecisions,
         buildDomainHealth,
         existsSync,
@@ -1615,7 +1509,6 @@ function getHandoffLintErrors() {
 }
 
 function buildCodexCheckReport() {
-    const codexParallelism = getCodexParallelismPolicy();
     return domainCodexMirror.buildCodexCheckReport(
         {
             board: parseBoard(),
@@ -1627,10 +1520,8 @@ function buildCodexCheckReport() {
         {
             normalizePathToken,
             activeStatuses: ACTIVE_STATUSES,
-            slotStatuses: codexParallelism.slot_statuses_set,
             isExpired,
             findCriticalScopeKeyword,
-            codexParallelism,
         }
     );
 }
@@ -1669,7 +1560,6 @@ function cmdBoard(args) {
         attachDiagnostics,
         buildWarnFirstDiagnostics,
         buildFocusSummary,
-        buildLiveFocusSummary,
         parseDecisions,
         loadMetricsSnapshot,
         summarizeDiagnostics: domainDiagnostics.summarizeDiagnostics,
@@ -1688,7 +1578,6 @@ function cmdBoard(args) {
         readJsonlFile: coreIo.readJsonlFile,
         printJson: coreOutput.printJson,
         loadJobsSnapshot,
-        loadPublishEvents,
     });
 }
 
@@ -1696,30 +1585,17 @@ async function cmdStrategy(args) {
     return strategyCommandHandlers.handleStrategyCommand({
         args,
         parseFlags,
-        parseCsvList,
         parseBoard,
-        parseHandoffs,
         buildStrategyCoverageSummary,
-        buildCoverageForStrategy: domainStrategy.buildCoverageForStrategy,
         buildStrategySeed: domainStrategy.buildStrategySeed,
-        buildStrategyPreview: domainStrategy.buildStrategyPreview,
-        buildStrategySeedCatalog: domainStrategy.buildStrategySeedCatalog,
-        buildStrategyIntakeTask: domainStrategy.buildStrategyIntakeTask,
+        buildFocusSeed: domainFocus.buildFocusSeed,
         normalizeStrategyActive: domainStrategy.normalizeStrategyActive,
         validateStrategyConfiguration:
             domainStrategy.validateStrategyConfiguration,
         currentDate,
-        isoNow,
         detectDefaultOwner,
         writeBoardAndSync,
-        writeStrategyPlanBlocks,
-        appendStrategySnapshot,
-        nextAgentTaskId,
-        validateTaskGovernancePrechecks,
-        getBlockingConflictsForTask,
-        toTaskJson,
-        toTaskFullJson,
-        mapLaneToCodexInstance: domainTaskGuards.mapLaneToCodexInstance,
+        writeStrategyActiveBlock,
         parseExpectedBoardRevisionFlag,
         parseCodexStrategyBlocks,
         printJson: coreOutput.printJson,
@@ -1789,7 +1665,6 @@ async function cmdFocus(args) {
         parseFlags,
         parseBoard,
         buildFocusSummary,
-        buildLiveFocusSummary,
         parseDecisions,
         loadJobsSnapshot,
         verifyOpenClawRuntime,
@@ -2352,7 +2227,6 @@ const governanceRuntime =
         toConflictJsonRecord,
         attachDiagnostics,
         buildWarnFirstDiagnostics,
-        buildLiveFocusSummary,
         readGovernancePolicyStrict,
         validateGovernancePolicy,
         existsSync,
@@ -2384,7 +2258,6 @@ const governanceRuntime =
         parseCodexActiveBlocks,
         validateTaskGovernancePrechecks,
         buildBoardWipLimitDiagnostics,
-        getGovernancePolicy,
     });
 
 async function main() {

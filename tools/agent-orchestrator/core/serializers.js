@@ -50,119 +50,87 @@ function normalizeTaskScore(value, fallback = 0) {
     return Math.round(parsed);
 }
 
-function serializeStrategyRecord(lines, label, strategy, options = {}) {
-    const safe = strategy && typeof strategy === 'object' ? strategy : null;
-    if (!safe) {
-        lines.push(`  ${label}: null`);
+function serializeStrategy(board, lines) {
+    const active = board?.strategy?.active;
+    if (!active || typeof active !== 'object') {
         return;
     }
-    const defaultStatus = label === 'next' ? 'draft' : 'active';
-    lines.push(`  ${label}:`);
-    lines.push(`    id: ${safe.id || ''}`);
-    lines.push(`    title: ${quote(safe.title || '')}`);
-    lines.push(`    objective: ${quote(safe.objective || '')}`);
-    lines.push(`    owner: ${safe.owner || ''}`);
-    lines.push(`    owner_policy: ${quote(safe.owner_policy || '')}`);
-    lines.push(`    status: ${safe.status || defaultStatus}`);
-    lines.push(`    started_at: ${quote(safe.started_at || '')}`);
-    lines.push(`    review_due_at: ${quote(safe.review_due_at || '')}`);
-    lines.push(`    closed_at: ${quote(safe.closed_at || '')}`);
-    lines.push(`    close_reason: ${quote(safe.close_reason || '')}`);
+    lines.push('');
+    lines.push('strategy:');
+    lines.push('  active:');
+    lines.push(`    id: ${active.id || ''}`);
+    lines.push(`    title: ${quote(active.title || '')}`);
+    lines.push(`    objective: ${quote(active.objective || '')}`);
+    lines.push(`    owner: ${active.owner || ''}`);
+    lines.push(`    status: ${active.status || 'active'}`);
+    lines.push(`    started_at: ${quote(active.started_at || '')}`);
+    lines.push(`    review_due_at: ${quote(active.review_due_at || '')}`);
+    if (active.closed_at) {
+        lines.push(`    closed_at: ${quote(active.closed_at)}`);
+    }
+    if (active.close_reason) {
+        lines.push(`    close_reason: ${quote(active.close_reason)}`);
+    }
     lines.push(
-        `    exit_criteria: ${serializeArrayInline(safe.exit_criteria || [])}`
+        `    exit_criteria: ${serializeArrayInline(active.exit_criteria || [])}`
     );
-    lines.push(`    success_signal: ${quote(safe.success_signal || '')}`);
+    lines.push(`    success_signal: ${quote(active.success_signal || '')}`);
     const shouldEmitFocus =
-        Boolean(String(safe.focus_id || '').trim()) ||
-        Boolean(String(safe.focus_title || '').trim()) ||
-        Boolean(String(safe.focus_proof || '').trim()) ||
-        Boolean(String(safe.focus_next_step || '').trim()) ||
-        Boolean(String(safe.focus_status || '').trim());
+        Boolean(String(active.focus_id || '').trim()) ||
+        Boolean(String(active.focus_title || '').trim()) ||
+        Boolean(String(active.focus_proof || '').trim()) ||
+        Boolean(String(active.focus_next_step || '').trim()) ||
+        Boolean(String(active.focus_status || '').trim());
     if (shouldEmitFocus) {
-        lines.push(`    focus_id: ${quote(safe.focus_id || '')}`);
-        lines.push(`    focus_title: ${quote(safe.focus_title || '')}`);
-        lines.push(`    focus_summary: ${quote(safe.focus_summary || '')}`);
-        lines.push(`    focus_status: ${safe.focus_status || 'active'}`);
-        lines.push(`    focus_proof: ${quote(safe.focus_proof || '')}`);
+        lines.push(`    focus_id: ${quote(active.focus_id || '')}`);
+        lines.push(`    focus_title: ${quote(active.focus_title || '')}`);
+        lines.push(`    focus_summary: ${quote(active.focus_summary || '')}`);
+        lines.push(`    focus_status: ${active.focus_status || 'active'}`);
+        lines.push(`    focus_proof: ${quote(active.focus_proof || '')}`);
         lines.push(
-            `    focus_steps: ${serializeArrayInline(safe.focus_steps || [])}`
+            `    focus_steps: ${serializeArrayInline(active.focus_steps || [])}`
         );
-        lines.push(`    focus_next_step: ${quote(safe.focus_next_step || '')}`);
+        lines.push(
+            `    focus_next_step: ${quote(active.focus_next_step || '')}`
+        );
         lines.push(
             `    focus_required_checks: ${serializeArrayInline(
-                safe.focus_required_checks || []
+                active.focus_required_checks || []
             )}`
         );
         lines.push(
-            `    focus_non_goals: ${serializeArrayInline(
-                safe.focus_non_goals || []
-            )}`
+            `    focus_non_goals: ${serializeArrayInline(active.focus_non_goals || [])}`
         );
-        lines.push(`    focus_owner: ${quote(safe.focus_owner || '')}`);
+        lines.push(`    focus_owner: ${quote(active.focus_owner || '')}`);
         lines.push(
-            `    focus_review_due_at: ${quote(safe.focus_review_due_at || '')}`
+            `    focus_review_due_at: ${quote(active.focus_review_due_at || '')}`
         );
         lines.push(
-            `    focus_evidence_ref: ${quote(safe.focus_evidence_ref || '')}`
+            `    focus_evidence_ref: ${quote(active.focus_evidence_ref || '')}`
         );
         lines.push(
             `    focus_max_active_slices: ${normalizeTaskInt(
-                safe.focus_max_active_slices,
+                active.focus_max_active_slices,
                 3
             )}`
         );
     }
     lines.push('    subfronts:');
-    const subfronts = Array.isArray(safe.subfronts) ? safe.subfronts : [];
+    const subfronts = Array.isArray(active.subfronts) ? active.subfronts : [];
     for (const subfront of subfronts) {
         lines.push(`      - codex_instance: ${subfront.codex_instance || ''}`);
         lines.push(`        subfront_id: ${subfront.subfront_id || ''}`);
         lines.push(`        title: ${quote(subfront.title || '')}`);
         lines.push(
-            `        allowed_scopes: ${serializeArrayInline(
-                subfront.allowed_scopes || []
-            )}`
+            `        allowed_scopes: ${serializeArrayInline(subfront.allowed_scopes || [])}`
         );
         lines.push(
-            `        support_only_scopes: ${serializeArrayInline(
-                subfront.support_only_scopes || []
-            )}`
+            `        support_only_scopes: ${serializeArrayInline(subfront.support_only_scopes || [])}`
         );
         lines.push(
-            `        blocked_scopes: ${serializeArrayInline(
-                subfront.blocked_scopes || []
-            )}`
-        );
-        lines.push(
-            `        wip_limit: ${normalizeTaskInt(subfront.wip_limit, 1)}`
-        );
-        lines.push(
-            `        default_acceptance_profile: ${quote(
-                subfront.default_acceptance_profile || ''
-            )}`
-        );
-        lines.push(
-            `        exception_ttl_hours: ${normalizeTaskInt(
-                subfront.exception_ttl_hours,
-                0
-            )}`
+            `        blocked_scopes: ${serializeArrayInline(subfront.blocked_scopes || [])}`
         );
     }
-}
-
-function serializeStrategy(board, lines) {
-    const strategy =
-        board?.strategy && typeof board.strategy === 'object'
-            ? board.strategy
-            : null;
-    if (!strategy) {
-        return;
-    }
-    lines.push('');
-    lines.push('strategy:');
-    serializeStrategyRecord(lines, 'active', strategy.active);
-    serializeStrategyRecord(lines, 'next', strategy.next);
-    lines.push(`  updated_at: ${quote(strategy.updated_at || '')}`);
 }
 
 function serializeBoard(board, options = {}) {
@@ -273,36 +241,6 @@ function serializeBoard(board, options = {}) {
                 lines.push(
                     `    strategy_reason: ${quote(String(task.strategy_reason || '').trim())}`
                 );
-            }
-            const shouldEmitExceptionFields =
-                String(task.strategy_role || '').trim() === 'exception' ||
-                Boolean(
-                    String(task.exception_opened_at || '').trim() ||
-                    String(task.exception_expires_at || '').trim() ||
-                    String(task.exception_state || '').trim()
-                );
-            if (shouldEmitExceptionFields) {
-                if (String(task.exception_opened_at || '').trim()) {
-                    lines.push(
-                        `    exception_opened_at: ${quote(
-                            String(task.exception_opened_at || '').trim()
-                        )}`
-                    );
-                }
-                if (String(task.exception_expires_at || '').trim()) {
-                    lines.push(
-                        `    exception_expires_at: ${quote(
-                            String(task.exception_expires_at || '').trim()
-                        )}`
-                    );
-                }
-                if (String(task.exception_state || '').trim()) {
-                    lines.push(
-                        `    exception_state: ${quote(
-                            String(task.exception_state || '').trim()
-                        )}`
-                    );
-                }
             }
         }
         const shouldEmitFocusFields =

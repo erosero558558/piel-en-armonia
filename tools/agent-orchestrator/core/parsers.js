@@ -93,95 +93,90 @@ function normalizeStrategySubfront(subfront) {
                 .toLowerCase()
         )
         .filter(Boolean);
-    safe.wip_limit = String(safe.wip_limit || '').trim();
-    safe.default_acceptance_profile = String(
-        safe.default_acceptance_profile || ''
-    ).trim();
-    safe.exception_ttl_hours = String(safe.exception_ttl_hours || '').trim();
     return safe;
 }
 
-function normalizeStrategyRecord(record) {
-    if (!record || typeof record !== 'object') return null;
-    const safe = { ...record };
-    safe.id = String(safe.id || '').trim();
-    safe.title = String(safe.title || '').trim();
-    safe.objective = String(safe.objective || '').trim();
-    safe.owner = String(safe.owner || '').trim();
-    safe.owner_policy = String(safe.owner_policy || '').trim();
-    safe.status = String(safe.status || '')
+function normalizeBoardStrategy(strategy) {
+    if (!strategy || typeof strategy !== 'object') {
+        return { active: null };
+    }
+    const active =
+        strategy.active && typeof strategy.active === 'object'
+            ? { ...strategy.active }
+            : null;
+    if (!active) {
+        return { active: null };
+    }
+    active.id = String(active.id || '').trim();
+    active.title = String(active.title || '').trim();
+    active.objective = String(active.objective || '').trim();
+    active.owner = String(active.owner || '').trim();
+    active.status = String(active.status || '')
         .trim()
         .toLowerCase();
-    safe.started_at = String(safe.started_at || '').trim();
-    safe.review_due_at = String(safe.review_due_at || '').trim();
-    safe.closed_at = String(safe.closed_at || '').trim();
-    safe.close_reason = String(safe.close_reason || '').trim();
-    safe.success_signal = String(safe.success_signal || '').trim();
-    safe.focus_id = String(safe.focus_id || '').trim();
-    safe.focus_title = String(safe.focus_title || '').trim();
-    safe.focus_summary = String(safe.focus_summary || '').trim();
-    safe.focus_status = String(safe.focus_status || '')
+    active.started_at = String(active.started_at || '').trim();
+    active.review_due_at = String(active.review_due_at || '').trim();
+    active.closed_at = String(active.closed_at || '').trim();
+    active.close_reason = String(active.close_reason || '').trim();
+    active.success_signal = String(active.success_signal || '').trim();
+    active.focus_id = String(active.focus_id || '').trim();
+    active.focus_title = String(active.focus_title || '').trim();
+    active.focus_summary = String(active.focus_summary || '').trim();
+    active.focus_status = String(active.focus_status || '')
         .trim()
         .toLowerCase();
-    safe.focus_proof = String(safe.focus_proof || '').trim();
-    safe.focus_next_step = String(safe.focus_next_step || '').trim();
-    safe.focus_owner = String(safe.focus_owner || '').trim();
-    safe.focus_review_due_at = String(safe.focus_review_due_at || '').trim();
-    safe.focus_evidence_ref = String(safe.focus_evidence_ref || '').trim();
-    safe.focus_max_active_slices = String(
-        safe.focus_max_active_slices || ''
+    active.focus_proof = String(active.focus_proof || '').trim();
+    active.focus_next_step = String(active.focus_next_step || '').trim();
+    active.focus_owner = String(active.focus_owner || '').trim();
+    active.focus_review_due_at = String(
+        active.focus_review_due_at || ''
     ).trim();
-    if (!Array.isArray(safe.exit_criteria)) {
-        safe.exit_criteria = safe.exit_criteria
-            ? [String(safe.exit_criteria)]
+    active.focus_evidence_ref = String(active.focus_evidence_ref || '').trim();
+    active.focus_max_active_slices = String(
+        active.focus_max_active_slices || ''
+    ).trim();
+    if (!Array.isArray(active.exit_criteria)) {
+        active.exit_criteria = active.exit_criteria
+            ? [String(active.exit_criteria)]
             : [];
     }
-    safe.exit_criteria = safe.exit_criteria
+    active.exit_criteria = active.exit_criteria
         .map((value) => String(value || '').trim())
         .filter(Boolean);
-    if (!Array.isArray(safe.focus_steps)) {
-        safe.focus_steps = safe.focus_steps ? [String(safe.focus_steps)] : [];
-    }
-    if (!Array.isArray(safe.focus_required_checks)) {
-        safe.focus_required_checks = safe.focus_required_checks
-            ? [String(safe.focus_required_checks)]
+    if (!Array.isArray(active.focus_steps)) {
+        active.focus_steps = active.focus_steps
+            ? [String(active.focus_steps)]
             : [];
     }
-    if (!Array.isArray(safe.focus_non_goals)) {
-        safe.focus_non_goals = safe.focus_non_goals
-            ? [String(safe.focus_non_goals)]
+    if (!Array.isArray(active.focus_required_checks)) {
+        active.focus_required_checks = active.focus_required_checks
+            ? [String(active.focus_required_checks)]
             : [];
     }
-    safe.focus_steps = safe.focus_steps
+    if (!Array.isArray(active.focus_non_goals)) {
+        active.focus_non_goals = active.focus_non_goals
+            ? [String(active.focus_non_goals)]
+            : [];
+    }
+    active.focus_steps = active.focus_steps
         .map((value) => String(value || '').trim())
         .filter(Boolean);
-    safe.focus_required_checks = safe.focus_required_checks
+    active.focus_required_checks = active.focus_required_checks
         .map((value) =>
             String(value || '')
                 .trim()
                 .toLowerCase()
         )
         .filter(Boolean);
-    safe.focus_non_goals = safe.focus_non_goals
+    active.focus_non_goals = active.focus_non_goals
         .map((value) => String(value || '').trim())
         .filter(Boolean);
-    safe.subfronts = Array.isArray(safe.subfronts)
-        ? safe.subfronts
+    active.subfronts = Array.isArray(active.subfronts)
+        ? active.subfronts
               .map((subfront) => normalizeStrategySubfront(subfront))
               .filter(Boolean)
         : [];
-    return safe;
-}
-
-function normalizeBoardStrategy(strategy) {
-    if (!strategy || typeof strategy !== 'object') {
-        return { active: null, next: null, updated_at: '' };
-    }
-    return {
-        active: normalizeStrategyRecord(strategy.active),
-        next: normalizeStrategyRecord(strategy.next),
-        updated_at: String(strategy.updated_at || '').trim(),
-    };
+    return { active };
 }
 
 function escapeRegExp(value) {
@@ -215,30 +210,16 @@ function parseBoardContent(content, options = {}) {
     const board = {
         version: 1,
         policy: {},
-        strategy: { active: null, next: null, updated_at: '' },
+        strategy: { active: null },
         tasks: [],
     };
     let inPolicy = false;
     let inStrategy = false;
-    let inStrategyRecord = false;
+    let inStrategyActive = false;
     let inStrategySubfronts = false;
     let inTasks = false;
-    let strategyTargetKey = null;
     let strategySubfront = null;
     let task = null;
-
-    function flushStrategySubfront() {
-        if (
-            strategySubfront &&
-            strategyTargetKey &&
-            board.strategy &&
-            board.strategy[strategyTargetKey] &&
-            Array.isArray(board.strategy[strategyTargetKey].subfronts)
-        ) {
-            board.strategy[strategyTargetKey].subfronts.push(strategySubfront);
-        }
-        strategySubfront = null;
-    }
 
     for (const rawLine of lines) {
         const line = rawLine.replace(/\t/g, '    ');
@@ -246,35 +227,48 @@ function parseBoardContent(content, options = {}) {
         if (!trimmed || trimmed.startsWith('#')) continue;
 
         if (trimmed === 'policy:') {
-            flushStrategySubfront();
+            if (
+                strategySubfront &&
+                board.strategy &&
+                board.strategy.active &&
+                Array.isArray(board.strategy.active.subfronts)
+            ) {
+                board.strategy.active.subfronts.push(strategySubfront);
+                strategySubfront = null;
+            }
             inPolicy = true;
             inStrategy = false;
-            inStrategyRecord = false;
+            inStrategyActive = false;
             inStrategySubfronts = false;
-            strategyTargetKey = null;
             inTasks = false;
             continue;
         }
         if (trimmed === 'strategy:') {
             inStrategy = true;
-            inStrategyRecord = false;
+            inStrategyActive = false;
             inStrategySubfronts = false;
-            strategyTargetKey = null;
             inPolicy = false;
             inTasks = false;
             if (!board.strategy || typeof board.strategy !== 'object') {
-                board.strategy = { active: null, next: null, updated_at: '' };
+                board.strategy = { active: null };
             }
             continue;
         }
         if (trimmed === 'tasks:') {
-            flushStrategySubfront();
+            if (
+                strategySubfront &&
+                board.strategy &&
+                board.strategy.active &&
+                Array.isArray(board.strategy.active.subfronts)
+            ) {
+                board.strategy.active.subfronts.push(strategySubfront);
+                strategySubfront = null;
+            }
             inTasks = true;
             inPolicy = false;
             inStrategy = false;
-            inStrategyRecord = false;
+            inStrategyActive = false;
             inStrategySubfronts = false;
-            strategyTargetKey = null;
             if (task) {
                 board.tasks.push(task);
                 task = null;
@@ -283,50 +277,37 @@ function parseBoardContent(content, options = {}) {
         }
 
         if (inStrategy) {
-            const strategyProp = line.match(/^\s{2}([a-zA-Z_][\w-]*):\s*(.*)$/);
-            if (strategyProp) {
-                const key = String(strategyProp[1] || '').trim();
-                const value = String(strategyProp[2] || '').trim();
-                if (key === 'active' || key === 'next') {
-                    flushStrategySubfront();
-                    inStrategyRecord = true;
-                    strategyTargetKey = key;
-                    inStrategySubfronts = false;
-                    board.strategy[key] =
-                        value === 'null' ? null : { subfronts: [] };
-                    continue;
-                }
-                if (key === 'updated_at') {
-                    board.strategy.updated_at = parseScalar(value);
-                    continue;
-                }
-            }
-
-            if (
-                inStrategyRecord &&
-                strategyTargetKey &&
-                board.strategy[strategyTargetKey] &&
-                trimmed === 'subfronts:'
-            ) {
-                inStrategySubfronts = true;
-                if (
-                    !Array.isArray(board.strategy[strategyTargetKey].subfronts)
-                ) {
-                    board.strategy[strategyTargetKey].subfronts = [];
-                }
+            const activeMatch = line.match(/^\s{2}active:\s*(.*)$/);
+            if (activeMatch) {
+                const value = String(activeMatch[1] || '').trim();
+                inStrategyActive = true;
+                inStrategySubfronts = false;
+                strategySubfront = null;
+                board.strategy.active =
+                    value === 'null' ? null : { subfronts: [] };
                 continue;
             }
 
             if (
-                inStrategySubfronts &&
-                strategyTargetKey &&
-                board.strategy[strategyTargetKey]
+                inStrategyActive &&
+                board.strategy.active &&
+                trimmed === 'subfronts:'
             ) {
+                inStrategySubfronts = true;
+                if (!Array.isArray(board.strategy.active.subfronts)) {
+                    board.strategy.active.subfronts = [];
+                }
+                continue;
+            }
+
+            if (inStrategySubfronts && board.strategy.active) {
                 const subfrontStart = line.match(
                     /^\s{6}-\s+([a-zA-Z_][\w-]*):\s*(.*)$/
                 );
                 if (subfrontStart) {
-                    flushStrategySubfront();
+                    if (strategySubfront) {
+                        board.strategy.active.subfronts.push(strategySubfront);
+                    }
                     strategySubfront = {
                         [subfrontStart[1]]: parseScalar(subfrontStart[2]),
                     };
@@ -343,18 +324,14 @@ function parseBoardContent(content, options = {}) {
                 }
             }
 
-            if (
-                inStrategyRecord &&
-                strategyTargetKey &&
-                board.strategy[strategyTargetKey]
-            ) {
-                const recordProp = line.match(
+            if (inStrategyActive && board.strategy.active) {
+                const activeProp = line.match(
                     /^\s{4}([a-zA-Z_][\w-]*):\s*(.*)$/
                 );
-                if (recordProp) {
-                    board.strategy[strategyTargetKey][recordProp[1]] =
-                        parseScalar(recordProp[2]);
-                    continue;
+                if (activeProp) {
+                    board.strategy.active[activeProp[1]] = parseScalar(
+                        activeProp[2]
+                    );
                 }
             }
             continue;
@@ -388,7 +365,14 @@ function parseBoardContent(content, options = {}) {
         }
     }
 
-    flushStrategySubfront();
+    if (
+        strategySubfront &&
+        board.strategy &&
+        board.strategy.active &&
+        Array.isArray(board.strategy.active.subfronts)
+    ) {
+        board.strategy.active.subfronts.push(strategySubfront);
+    }
     if (task) board.tasks.push(task);
 
     for (const item of board.tasks) {
@@ -424,15 +408,6 @@ function parseBoardContent(content, options = {}) {
             .trim()
             .toLowerCase();
         item.strategy_reason = String(item.strategy_reason || '').trim();
-        item.exception_opened_at = String(
-            item.exception_opened_at || ''
-        ).trim();
-        item.exception_expires_at = String(
-            item.exception_expires_at || ''
-        ).trim();
-        item.exception_state = String(item.exception_state || '')
-            .trim()
-            .toLowerCase();
         item.focus_id = String(item.focus_id || '').trim();
         item.focus_step = String(item.focus_step || '').trim();
         item.integration_slice = String(item.integration_slice || '')
@@ -515,17 +490,12 @@ function parseCodexActiveBlocksContent(content) {
         if (!Array.isArray(block.files)) {
             block.files = block.files ? [String(block.files)] : [];
         }
-        block.codex_instance = String(
-            block.codex_instance || 'codex_backend_ops'
-        )
-            .trim()
-            .toLowerCase();
-        block.subfront_id = String(block.subfront_id || '').trim();
     }
     return blocks;
 }
 
-function normalizeCodexStrategyBlocks(blocks = []) {
+function parseCodexStrategyActiveBlocksContent(content) {
+    const blocks = parseCommentBlocksContent(content, 'CODEX_STRATEGY_ACTIVE');
     for (const block of blocks) {
         if (!Array.isArray(block.subfront_ids)) {
             block.subfront_ids = block.subfront_ids
@@ -540,25 +510,6 @@ function normalizeCodexStrategyBlocks(blocks = []) {
             .toLowerCase();
     }
     return blocks;
-}
-
-function parseCodexStrategyActiveBlocksContent(content) {
-    return normalizeCodexStrategyBlocks(
-        parseCommentBlocksContent(content, 'CODEX_STRATEGY_ACTIVE')
-    );
-}
-
-function parseCodexStrategyNextBlocksContent(content) {
-    return normalizeCodexStrategyBlocks(
-        parseCommentBlocksContent(content, 'CODEX_STRATEGY_NEXT')
-    );
-}
-
-function parseCodexStrategyBlocksContent(content) {
-    return {
-        active: parseCodexStrategyActiveBlocksContent(content),
-        next: parseCodexStrategyNextBlocksContent(content),
-    };
 }
 
 function parseSignalsContent(content) {
@@ -767,8 +718,6 @@ module.exports = {
     parseHandoffsContent,
     parseCodexActiveBlocksContent,
     parseCodexStrategyActiveBlocksContent,
-    parseCodexStrategyNextBlocksContent,
-    parseCodexStrategyBlocksContent,
     parseSignalsContent,
     parseJobsContent,
     parseDecisionsContent,

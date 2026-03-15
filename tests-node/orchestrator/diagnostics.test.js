@@ -67,10 +67,6 @@ const JOB_POLICY = {
                 enabled: true,
                 severity: 'warning',
             },
-            publish_live_verification_pending: {
-                enabled: true,
-                severity: 'warning',
-            },
         },
     },
 };
@@ -326,60 +322,6 @@ test('diagnostics preserva required_check runtime por surface en warnings del fo
     assert.equal(diag.meta.checks[0].id, 'runtime:operator_auth');
 });
 
-test('diagnostics reutiliza focusSummary live cuando se provee explicitamente', () => {
-    const list = diagnostics.buildWarnFirstDiagnostics({
-        source: 'status',
-        policy: POLICY,
-        focusSummary: {
-            configured: {
-                id: 'FOCUS-2026-03-admin-operativo-cut-1',
-                required_checks: [
-                    'job:public_main_sync',
-                    'runtime:operator_auth',
-                ],
-            },
-            idle: false,
-            missing_focus_task_ids: [],
-            outside_next_step_task_ids: [],
-            invalid_slice_task_ids: [],
-            too_many_active_slices: false,
-            required_checks: [
-                {
-                    id: 'job:public_main_sync',
-                    state: 'green',
-                    ok: true,
-                },
-                {
-                    id: 'runtime:operator_auth',
-                    state: 'green',
-                    ok: true,
-                },
-            ],
-            decisions: {
-                overdue: 0,
-                overdue_ids: [],
-            },
-            rework_without_reason_task_ids: [],
-        },
-        jobsSnapshot: [
-            {
-                key: 'public_main_sync',
-                configured: true,
-                verified: true,
-                healthy: true,
-            },
-        ],
-        activeStatuses: ACTIVE_STATUSES,
-    });
-
-    assert.equal(
-        list.some(
-            (item) => item.code === 'warn.focus.required_check_unverified'
-        ),
-        false
-    );
-});
-
 test('diagnostics no marca public_main_sync como unconfigured cuando no se cargo snapshot', () => {
     const list = diagnostics.buildWarnFirstDiagnostics({
         source: 'conflicts',
@@ -408,42 +350,6 @@ test('diagnostics prioriza failed sobre unconfigured cuando existe snapshot veri
 
     const codes = list.map((item) => item.code).sort();
     assert.deepEqual(codes, ['warn.jobs.public_main_sync_failed']);
-});
-
-test('diagnostics agrega warning de publish live pendiente por lane', () => {
-    const list = diagnostics.buildWarnFirstDiagnostics({
-        source: 'status',
-        policy: JOB_POLICY,
-        publishEvents: [
-            {
-                task_id: 'CDX-001',
-                task_family: 'cdx',
-                codex_instance: 'codex_frontend',
-                commit: 'abc1234',
-                live_status: 'pending',
-                verification_pending: true,
-                published_at: '2026-03-16T00:00:00Z',
-            },
-            {
-                task_id: 'CDX-000',
-                task_family: 'cdx',
-                codex_instance: 'codex_frontend',
-                commit: 'old1111',
-                live_status: 'confirmed',
-                verification_pending: false,
-                published_at: '2026-03-15T00:00:00Z',
-            },
-        ],
-        activeStatuses: ACTIVE_STATUSES,
-    });
-
-    const warning = list.find(
-        (item) => item.code === 'warn.publish.live_verification_pending'
-    );
-    assert.ok(warning);
-    assert.match(warning.message, /codex_frontend\/CDX-001@abc1234/i);
-    assert.deepEqual(warning.task_ids, ['CDX-001']);
-    assert.equal(warning.meta.entries[0].verification_pending, true);
 });
 
 test('diagnostics agrega señales canonicas de head drift y telemetry gap', () => {

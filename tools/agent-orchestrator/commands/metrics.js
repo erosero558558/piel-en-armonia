@@ -101,7 +101,7 @@ function handleMetricsBaselineCommand(ctx) {
     );
 }
 
-async function handleMetricsCommand(ctx) {
+function handleMetricsCommand(ctx) {
     const {
         args = [],
         handleMetricsBaselineCommand,
@@ -114,7 +114,6 @@ async function handleMetricsCommand(ctx) {
         buildProviderModeSummary,
         buildRuntimeSurfaceSummary,
         buildFocusSummary,
-        buildLiveFocusSummary,
         parseDecisions,
         buildDomainHealth,
         existsSync,
@@ -188,23 +187,17 @@ async function handleMetricsCommand(ctx) {
     const codexInstances = buildCodexInstanceSummary(board.tasks);
     const providerModes = buildProviderModeSummary(board.tasks);
     const runtimeSurfaces = buildRuntimeSurfaceSummary(board.tasks);
-    const now = new Date();
-    const focusData =
-        typeof buildLiveFocusSummary === 'function'
-            ? await buildLiveFocusSummary(board, { now })
-            : {
-                  summary:
-                      typeof buildFocusSummary === 'function'
-                          ? buildFocusSummary(board, {
-                                decisionsData:
-                                    typeof parseDecisions === 'function'
-                                        ? parseDecisions()
-                                        : { decisions: [] },
-                                now,
-                            })
-                          : null,
-              };
-    const focusSummary = focusData.summary || null;
+    const decisionsData =
+        typeof parseDecisions === 'function'
+            ? parseDecisions()
+            : { decisions: [] };
+    const focusSummary =
+        typeof buildFocusSummary === 'function'
+            ? buildFocusSummary(board, {
+                  decisionsData,
+                  now: new Date(),
+              })
+            : null;
     const domainHealth = buildDomainHealth(
         board.tasks,
         conflictAnalysis,
@@ -349,7 +342,6 @@ async function handleMetricsCommand(ctx) {
                       focusSummary.distinct_active_slices || 0,
               }
             : null,
-        focus_summary: focusSummary,
         baseline_contribution: baselineContribution,
         contribution_delta: contributionDelta,
         contribution_history: contributionHistorySummary,

@@ -31,49 +31,46 @@ Metas de operacion:
 - Lead time en tareas no criticas: < 1 dia.
 - Gate rojo por coordinacion: < 10% semanal.
 
-## Estrategia madre
+## Estrategia madre activa
 
 Cuando `AGENT_BOARD.yaml.strategy.active.status=active`, esa estrategia pasa a
-ser el marco obligatorio de direccion para toda ejecucion nueva del board,
-no solo de la linea Codex.
+ser el marco obligatorio de direccion para toda ejecucion nueva.
 
 Reglas:
 
 - Solo se permite una `strategy.active` a la vez.
-- `strategy.next` es opcional y solo funciona como draft/preparacion; no
-  gobierna tareas hasta promocion con `strategy activate-next`.
-- La estrategia activa define `1..n` subfrentes por
+- La estrategia activa define exactamente un subfrente por
   `codex_instance` (`codex_backend_ops`, `codex_frontend`,
-  `codex_transversal`); `subfront_id` sigue siendo el identificador canonico.
-- Toda tarea activa del board (`ready`, `in_progress`, `review`, `blocked`)
-  debe alinearse a `strategy.active`, aun si no es `CDX-*`.
-- `ready` se trata como cola alineada: no consume slot de ejecucion ni exige
-  bloque `CODEX_ACTIVE`; los slots del lane se consumen solo en
-  `in_progress`, `review` y `blocked`.
-- La superficie canonica para abrir trabajo nuevo alineado es
-  `node agent-orchestrator.js strategy intake ...`; `task create` queda como
-  compatibilidad y debe pasar la misma validacion o entrar como exception.
+  `codex_transversal`).
 - Todo hilo nuevo de Codex debe leer `strategy.active`, tomar un
   `subfront_id` valido para su lane y rechazar trabajo fuera de ese frente.
-- Si un `scope` admite mas de un subfrente candidato dentro del mismo lane,
-  `strategy intake` exige `--subfront-id` explicito.
-- Las tareas activas deben declarar `strategy_id`, `subfront_id`,
-  `strategy_role` y, si aplica, `strategy_reason`.
-- `strategy_role=exception` requiere siempre `strategy_reason`,
-  `exception_opened_at`, `exception_expires_at` y `exception_state`.
-- Las `exception` son auditables: expiran por TTL del subfrente, cuentan como
-  deuda operativa y bloquean `strategy activate-next` y `strategy close` si
-  quedan vencidas.
-- Excepcion formal permitida para publicar un release ya validado:
-  `strategy_reason=validated_release_promotion`, activada con
-  `task start <AG|CDX> --release-publish`, que fija `status=review`,
-  `work_type=evidence` e `integration_slice=governance_evidence`.
-- `wip_limit` por subfrente mide solo tareas que ocupan slot
-  (`in_progress|review|blocked`); `ready` no cuenta contra el WIP efectivo.
-- Las transiciones `set-active`, `set-next`, `activate-next` y `close` deben
-  dejar snapshot append-only en `verification/agent-strategy-events.jsonl`.
+- Las tareas en `ready`, `in_progress`, `review` o `blocked` deben declarar
+  `strategy_id`, `subfront_id`, `strategy_role` y, si aplica,
+  `strategy_reason`.
+- `strategy_role=exception` solo se permite para hotfix critico o soporte
+  directo al frente activo, y siempre requiere `strategy_reason` explicito.
 - Las tareas historicas terminales (`done`, `failed`) no requieren backfill
   obligatorio de estrategia.
+
+## Capa de foco compartido
+
+Cuando `strategy.active.status=active`, el sistema debe operar bajo la cadena:
+
+`estrategia madre -> foco compartido -> subfrente por lane -> tarea`
+
+Reglas:
+
+- El foco vive dentro de `AGENT_BOARD.yaml.strategy.active` con campos planos
+  `focus_*`.
+- Solo se permite un foco activo por estrategia activa.
+- El foco no abre lanes, scopes ni excepciones nuevas; solo coordina lo ya
+  permitido por `subfront_id`.
+- Si la estrategia activa existe, el sistema debe exponer `focus_id`,
+  `focus_proof` y `focus_next_step`.
+- La meta del foco es sostener una sola `prueba comun` visible para todos los
+  lanes.
+- Las decisiones del foco viven en `AGENT_DECISIONS.yaml` para no seguir
+  cargando `AGENT_BOARD.yaml`.
 
 ## Arbol de decision oficial (v2)
 
@@ -157,13 +154,7 @@ Particion operativa obligatoria entre tres instancias de Codex:
 - `codex_transversal`: `agent-orchestrator.js`, `AGENTS.md`,
   `AGENT_BOARD.yaml`, `AGENT_HANDOFFS.yaml`, `AGENT_JOBS.yaml`,
   `AGENT_SIGNALS.yaml`, `governance-policy.json`,
-  `docs/AGENT_ORCHESTRATION_RUNBOOK.md`,
-  `docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md`,
-  `docs/GITHUB_ACTIONS_DEPLOY.md`,
   `TRI_LANE_RUNTIME_RUNBOOK.md`, `PLAN_MAESTRO_CODEX_2026.md`,
-  `tests-node/agent-orchestrator-cli.test.js`,
-  `tests-node/orchestrator/**`,
-  `tests-node/publish-checkpoint-command.test.js`,
   `tools/agent-orchestrator/**`, `bin/validate-agent-governance.php`,
   `figo-ai-bridge.php`, `lib/figo_queue.php`, `lib/auth.php`,
   `controllers/OperatorAuthController.php`, `controllers/LeadAiController.php`,
@@ -184,23 +175,19 @@ Reglas:
 
 El tablero unico vive en `AGENT_BOARD.yaml`.
 
-Campos canonicos por tarea:
+Campos obligatorios por tarea:
 
 - `id`, `title`, `owner`, `executor`, `status`, `risk`, `scope`, `files`,
   `codex_instance`, `domain_lane`, `lane_lock`, `cross_domain`,
   `strategy_id`, `subfront_id`, `strategy_role`, `strategy_reason`,
-  `exception_opened_at`, `exception_expires_at`, `exception_state`,
+  `focus_id`, `focus_step`, `integration_slice`, `work_type`,
+  `expected_outcome`, `decision_ref`, `rework_parent`, `rework_reason`,
   `provider_mode`, `runtime_surface`, `runtime_transport`,
   `runtime_last_transport`,
   `source_signal`, `source_ref`, `priority_score`, `sla_due_at`,
   `last_attempt_at`, `attempts`, `blocked_reason`, `runtime_impact`,
   `critical_zone`, `acceptance`, `acceptance_ref`, `evidence_ref`,
   `depends_on`, `created_at`, `updated_at`.
-
-Regla de obligatoriedad:
-
-- `strategy_id`, `subfront_id` y `strategy_role` son obligatorios para tareas activas cuando existe `strategy.active`.
-- `strategy_reason` y `exception_*` solo son obligatorios cuando `strategy_role=exception`.
 
 Valores validos para coordinacion tri-lane:
 
@@ -211,6 +198,9 @@ Valores validos para coordinacion tri-lane:
 - `provider_mode`: `openclaw_chatgpt | ""`
 - `runtime_surface`: `figo_queue | leadops_worker | operator_auth | ""`
 - `runtime_transport`: `hybrid_http_cli | http_bridge | cli_helper | ""`
+- `work_type`: `forward | support | fix | refactor | decision | evidence`
+- `integration_slice`:
+  `frontend_runtime | backend_readiness | runtime_support | ops_deploy | desktop_shells | tests_quality | governance_evidence`
 
 Regla adicional:
 
@@ -221,6 +211,15 @@ Regla adicional:
 - Si existe `strategy.active` y la tarea esta en estado activo
   (`ready|in_progress|review|blocked`), debe alinearse con la estrategia
   activa y con el `subfront_id` correspondiente a su `codex_instance`.
+- Si existe foco activo y la tarea esta en estado activo, debe declarar
+  `focus_id`, `focus_step`, `integration_slice` y `work_type`.
+- `focus_id` de la tarea debe coincidir con `strategy.active.focus_id`.
+- `focus_step` de la tarea debe coincidir con `strategy.active.focus_next_step`.
+- `fix|refactor` requieren `rework_parent` o `rework_reason`.
+- `support|evidence|decision` solo se permiten si sostienen el
+  `focus_next_step` vigente.
+- No puede haber mas de `3` `integration_slice` activos a la vez dentro del
+  mismo foco.
 
 Estados permitidos:
 
@@ -230,6 +229,29 @@ Los cierres requieren evidencia:
 
 - `verification/agent-runs/<task_id>.md`
 - `acceptance_ref` en el task board.
+
+## Ledger de decisiones
+
+`AGENT_DECISIONS.yaml` es el ledger canonico de deuda de decision del foco
+compartido.
+
+Campos obligatorios por decision:
+
+- `id`, `strategy_id`, `focus_id`, `focus_step`, `title`, `owner`, `status`,
+  `due_at`, `recommended_option`, `selected_option`, `rationale`,
+  `related_tasks`, `opened_at`, `resolved_at`.
+
+Estados permitidos:
+
+- `open`, `decided`, `expired`
+
+Reglas:
+
+- Si una tarea activa depende de criterio, tradeoff o prioridad, debe declarar
+  `decision_ref`.
+- Las decisiones vencidas degradan el foco a `YELLOW`.
+- El gate solo bloquea por deuda de decision cuando se intenta cerrar un foco
+  sin checks/evidencia o con decision critica aun abierta.
 
 ## Operacion diaria
 
@@ -241,12 +263,16 @@ node agent-orchestrator.js status --explain-red
 node agent-orchestrator.js status --json --explain-red
 node agent-orchestrator.js strategy status
 node agent-orchestrator.js strategy status --json
-node agent-orchestrator.js strategy preview --seed admin-operativo --json
-node agent-orchestrator.js strategy set-next --seed admin-operativo --expect-rev 12 --json
-node agent-orchestrator.js strategy activate-next --reason kickoff_admin --expect-rev 12 --json
 node agent-orchestrator.js strategy set-active --seed admin-operativo --expect-rev 12 --json
 node agent-orchestrator.js strategy close --reason review_complete --expect-rev 12 --json
-node agent-orchestrator.js strategy intake --title "..." --scope frontend-admin --files src/apps/admin-v3/app.js --expect-rev 12 --json
+node agent-orchestrator.js focus status --json
+node agent-orchestrator.js focus set-active --expect-rev 12 --json
+node agent-orchestrator.js focus advance --next-step admin_queue_pilot_cut --expect-rev 12 --json
+node agent-orchestrator.js focus close --reason focus_complete --evidence verification/agent-runs/CDX-001.md --expect-rev 12 --json
+node agent-orchestrator.js focus check --json
+node agent-orchestrator.js decision ls --json
+node agent-orchestrator.js decision open --title "..." --recommended-option "..." --related-tasks CDX-001 --json
+node agent-orchestrator.js decision close DEC-001 --selected-option "..." --json
 node agent-orchestrator.js intake --strict
 node agent-orchestrator.js score
 node agent-orchestrator.js stale --strict
@@ -276,7 +302,6 @@ node agent-orchestrator.js runtime invoke AG-900 --expect-rev 12 --json
 node agent-orchestrator.js codex start CDX-001 --block C1
 node agent-orchestrator.js codex start CDX-001 --block C1 --expect-rev 12
 node agent-orchestrator.js codex stop CDX-001 --to review
-node agent-orchestrator.js codex stop CDX-001 --to blocked --blocked-reason remote_verify_smoke_gate_pending --expect-rev 12
 node agent-orchestrator.js board doctor
 node agent-orchestrator.js board doctor --json --profile ci
 node agent-orchestrator.js board events tail --json
@@ -287,6 +312,7 @@ node agent-orchestrator.js task ls --active --json
 node agent-orchestrator.js task ls --mine --active --json
 node agent-orchestrator.js task ls --executor codex --status in_progress --json
 node agent-orchestrator.js task create --title "..." --executor codex --files path/a,path/b --status ready --risk low --scope docs --json
+node agent-orchestrator.js task create --title "..." --executor codex --files path/a,path/b --status ready --focus-id FOCUS-... --focus-step admin_queue_pilot_cut --integration-slice governance_evidence --work-type forward --json
 node agent-orchestrator.js task create --title "..." --template docs --files docs/a.md --json
 node agent-orchestrator.js task create --title "..." --template bugfix --from-files --files lib/calendar/CalendarBookingService.php --executor codex --json
 node agent-orchestrator.js task create --interactive --json
@@ -302,12 +328,11 @@ node agent-orchestrator.js task create --apply verification/task-create-preview.
 node agent-orchestrator.js task create preview-file diff verification/task-create-preview.json --json --format compact
 node agent-orchestrator.js task create --apply verification/task-create-preview.json --force-id-remap --to backlog --claim-owner ernesto --json
 node agent-orchestrator.js task start AG-003 --status in_progress
-node agent-orchestrator.js task start AG-003 --release-publish --expect-rev 12 --json
+node agent-orchestrator.js task start AG-003 --status in_progress --focus-id FOCUS-... --focus-step admin_queue_pilot_cut --integration-slice backend_readiness --work-type fix --rework-reason "readiness drift" --expect-rev 12 --json
 node agent-orchestrator.js task start AG-003 --status in_progress --expect-rev 12 --json
 node agent-orchestrator.js task finish AG-003 --evidence verification/agent-runs/AG-003.md
 node agent-orchestrator.js task start AG-003 --json
 node agent-orchestrator.js sync
-node agent-orchestrator.js publish checkpoint AG-003 --summary "release-publish AG-003 ..." --expect-rev 12 --json
 node agent-orchestrator.js publish checkpoint CDX-001 --summary "..." --expect-rev 12 --json
 node agent-orchestrator.js close <task_id>
 node agent-orchestrator.js close AG-003 --json
@@ -333,26 +358,25 @@ npm run agent:gate
 
 Flujo recomendado:
 
-1. Preparar estrategia con `strategy preview -> strategy set-next -> strategy activate-next` cuando el frente cambie.
-2. Abrir trabajo nuevo con `strategy intake` siempre que exista `strategy.active`; usar `task create` solo si necesitas compatibilidad o un caso `exception`.
-3. Reservar trabajo en board (`AGENT_BOARD.yaml`) o usar `codex start` / `handoffs create`.
+1. Reservar trabajo en board (`AGENT_BOARD.yaml`) o usar `codex start` / `handoffs create`.
    Para tareas no-Codex, preferir `task claim/start/finish` en lugar de editar `status/owner` a mano.
    Para inspeccionar backlog/activos sin abrir YAML, usar `task ls` con filtros (`--active`, `--mine`, `--status`, `--executor`, `--scope`).
    Para crear tareas AG nuevas sin editar YAML, usar `task create` (auto-asigna `AG-###` siguiente salvo `--id`).
-4. Ejecutar `npm run agent:test` si cambiaste el orquestador/validadores.
-5. Ejecutar `npm run agent:gate` (o al menos `conflicts`, `handoffs lint`, `codex-check`).
+2. Ejecutar `npm run agent:test` si cambiaste el orquestador/validadores.
+3. Ejecutar `npm run agent:gate` (o al menos `conflicts`, `handoffs lint`, `codex-check`).
    Para diagnostico semantico del board (leases, stale, WIP, evidencia), ejecutar `node agent-orchestrator.js board doctor --json` (warn-first, no bloqueante por defecto).
-6. Si el cambio debe salir rapido a `main`, ejecutar `node agent-orchestrator.js publish checkpoint <AG-ID|CDX-ID> --summary "..." --expect-rev <rev> --json`.
-   Para promocion formal de release sobre una tarea existente, usar antes `node agent-orchestrator.js task start <AG-ID|CDX-ID> --release-publish --expect-rev <rev> --json`.
-7. Ejecutar `node agent-orchestrator.js sync` cuando haga falta refrescar tombstones/estado derivado.
-8. Ejecutar validaciones del cambio (`npm run lint`, tests aplicables).
-9. Confirmar evidencia y cerrar (`close`, `codex stop`, `handoffs close`) cuando aplique.
+4. Si el cambio debe salir rapido a `main`, ejecutar `node agent-orchestrator.js publish checkpoint <CDX-ID> --summary "..." --expect-rev <rev> --json`.
+5. Ejecutar `node agent-orchestrator.js sync` cuando haga falta refrescar tombstones/estado derivado.
+6. Ejecutar validaciones del cambio (`npm run lint`, tests aplicables).
+7. Confirmar evidencia y cerrar (`close`, `codex stop`, `handoffs close`) cuando aplique.
 
 Candado de concurrencia:
 
-- Toda mutacion de board/handoffs por CLI requiere `--expect-rev <n>` (claim/start/create/apply/finish/close/codex start-stop/leases/handoffs create-close/strategy set-active/set-next/activate-next/close/intake).
+- Toda mutacion de board/handoffs por CLI requiere `--expect-rev <n>` (claim/start/create/apply/finish/close/codex start-stop/leases/handoffs create-close).
 - Si no se envia `--expect-rev`, el comando debe fallar con `error_code=expect_rev_required`.
 - Obtener revision actual desde `AGENT_BOARD.yaml.policy.revision` o `node agent-orchestrator.js status --json`.
+- `focus set-active|advance|close` siguen el mismo candado porque mutan `AGENT_BOARD.yaml`.
+- `decision open|close` aceptan `--expect-rev` contra `AGENT_DECISIONS.yaml.policy.revision` cuando se necesita coordinacion conservadora sobre el ledger de decisiones.
 - Si un `rebase` deja conflicto textual **solo** en `policy.revision`, resolver rapido con `npm run agent:board:resolve-revision` y continuar (`git add AGENT_BOARD.yaml && git rebase --continue`).
 
 Runbook operativo tri-lane runtime:
@@ -375,17 +399,13 @@ Nota:
 - `metrics --dry-run` muestra preview de archivos runtime que escribiria y no persiste cambios.
 - `metrics baseline <show|set|reset>` permite gestionar baseline explicito en `verification/agent-metrics.json` (recomendado usar `set --from current` tras cambios estructurales del board/politica).
 - `task create`, `task claim` (si cambia `status` a activo) y `task start` aplican guardrails locales de gobernanza: validan `depends_on` (IDs existentes, sin duplicados) y bloquean scopes criticos asignados a ejecutores no permitidos (`codex`).
-- `strategy preview` valida seeds curados, scope ownership, impacto sobre
-  tareas activas y mirror esperado del plan antes de permitir promocion.
-- `strategy set-active` queda solo para bootstrap o entornos sin
-  `strategy.active`; el flujo normal es `set-next -> activate-next`.
-- `strategy status`, `status --json` y `board doctor --json` deben exponer
-  `strategy.next`, cobertura por subfrente, `lane_rows`, `slot_tasks`,
-  `lane_capacity`, `available_slots`, `subfront_count`, WIP vs `wip_limit`,
-  exceptions abiertas/expiradas, aged tasks y `dispersion_score`.
 - `task create`, `task claim` (si activa trabajo), `task start` y `codex start`
   bloquean tareas fuera de `strategy.active`, subfrentes ajenos a su lane y
   excepciones sin `strategy_reason`.
+- `task create`, `task claim`, `task start`, `codex start` y
+  `publish checkpoint` validan foco localmente: `focus_id`, `focus_step`,
+  `integration_slice`, compatibilidad de slice por lane y `rework_*` cuando
+  `work_type` es `fix|refactor`.
 - `task create --template <docs|bugfix|critical>` aplica defaults de `executor/status/risk/scope`; los flags explicitos sobreescriben la plantilla. `critical` exige `--scope` con keyword critica (`payments|auth|calendar|deploy|env|security`).
 - `task create --template <docs|bugfix|critical|runtime>` aplica defaults de `executor/status/risk/scope`; la plantilla `runtime` fija `scope=openclaw_runtime`, `domain_lane=transversal_runtime`, `codex_instance=codex_transversal`, `provider_mode=openclaw_chatgpt` y `runtime_transport=hybrid_http_cli`. Los flags explicitos sobreescriben la plantilla. `critical` exige `--scope` con keyword critica (`payments|auth|calendar|deploy|env|security`).
 - `task create --from-files` infiere `scope` y `risk` desde rutas de `files` (precedencia: flags explicitos > inferencia por files > template > defaults). Si detecta scope critico y no se paso `--executor`, puede autoajustar `executor` a `codex` para evitar fallo por guardrail.
@@ -411,6 +431,9 @@ Nota:
 - `status --json` y el summary exponen `domain_health` con semaforo por dominio (incluye `calendar`, `chat`, `payments`).
 - `metrics --json` persiste historico de salud por dominio en `verification/agent-domain-health-history.json` y el summary muestra tendencia (ventana 7d).
 - El summary/PR comment muestra score de salud por dominio ponderado (`calendar > chat > payments`) y alerta regresiones `GREEN->RED`.
+- `status`, `board doctor`, `metrics` y `summary` deben exponer el foco activo,
+  `focus_next_step`, checks requeridos, decisiones abiertas y ratio de
+  retrabajo del foco.
 - `status/conflicts/handoffs lint/policy lint/codex-check` en `--json` incluyen `diagnostics` + `warnings_count/errors_count` (warn-first, aditivo, sin cambiar hard blockers actuales).
 - `leases status --json` y `board doctor --json` incluyen `diagnostics` + `warnings_count/errors_count`; `board doctor` agrega `checks` y `leases` para diagnostico semantico del board (warn-first).
 - `task claim/start --json` y `dispatch --json` pueden incluir warnings WIP (`warn.board.wip_limit_*`) en `diagnostics` sin cambiar exit code.
@@ -435,26 +458,13 @@ Nota:
 - `PLAN_MAESTRO_CODEX_2026.md` sigue siendo la fuente de estrategia/evidencia de la linea Codex.
 - El bloque `CODEX_STRATEGY_ACTIVE` del plan debe espejar exactamente la
   `strategy.active` vigente del board.
-- El bloque `CODEX_STRATEGY_NEXT` del plan debe espejar exactamente
-  `strategy.next` cuando exista draft.
 - Toda ejecucion activa de Codex debe tener tarea espejo `CDX-*` en `AGENT_BOARD.yaml` con `executor: codex`.
-- Toda estrategia nueva o nueva ola debe arrancar activando primero sus tareas
-  espejo `CDX-*` por lane; las `AG-*` de apoyo no abren trabajo antes de que
-  exista al menos una `CDX-*` activa alineada al frente.
-- Maximo dos tareas `CDX-*` consumiendo slot por `codex_instance`
-  (`in_progress`, `review`, `blocked`).
-- Maximo seis tareas `CDX-*` consumiendo slot en total, dos por lane.
-- `ready` puede coexistir como cola alineada sin consumir slot ni requerir
-  bloque `CODEX_ACTIVE`.
+- Maximo una tarea `CDX-*` activa por `codex_instance`.
+- Maximo tres tareas `CDX-*` activas en total, una por lane.
 - El bloqueo por solape se decide por `files` en tareas activas del board (`ready`, `in_progress`, `review`, `blocked`).
 - Excepcion permitida: handoff temporal y explicito en `AGENT_HANDOFFS.yaml` (TTL + archivos acotados).
-- `CODEX_ACTIVE` se espeja por `task_id`, puede incluir `subfront_id` y puede
-  coexistir varias veces para el mismo `codex_instance` hasta el cap del lane.
-- Si hay drift entre los bloques `CODEX_ACTIVE` del plan Codex y los task
-  `CDX-*` espejo, CI debe fallar.
+- Si hay drift entre el bloque `CODEX_ACTIVE` del plan Codex y el task `CDX-*` espejo, CI debe fallar.
 - Si hay drift entre `CODEX_STRATEGY_ACTIVE` y `AGENT_BOARD.yaml.strategy.active`,
-  CI debe fallar.
-- Si hay drift entre `CODEX_STRATEGY_NEXT` y `AGENT_BOARD.yaml.strategy.next`,
   CI debe fallar.
 - `codex-check` debe bloquear si una tarea activa en `codex_transversal`
   depende de una `runtime_surface` no saludable.
@@ -472,8 +482,6 @@ CI valida automaticamente:
 - Integridad del espejo Codex (`PLAN_MAESTRO_CODEX_2026.md` <-> `AGENT_BOARD.yaml`).
 - Integridad del espejo de estrategia madre (`CODEX_STRATEGY_ACTIVE` <->
   `AGENT_BOARD.yaml.strategy.active`).
-- Integridad del draft de estrategia (`CODEX_STRATEGY_NEXT` <->
-  `AGENT_BOARD.yaml.strategy.next`).
 - Push directo a `main/staging` con cambio en `AGENT_BOARD.yaml` sin PR asociado (bloqueante).
 - Drift legacy de dual-lane/tri-lane en `AGENT_BOARD.yaml` (detector/normalizador en gobernanza).
 

@@ -20,7 +20,6 @@ strategy:
     title: "Admin operativo"
     objective: "Cerrar admin operativo"
     owner: ernesto
-    owner_policy: "detected_default_owner"
     status: active
     started_at: "2026-03-14"
     review_due_at: "2026-03-21"
@@ -46,31 +45,6 @@ strategy:
         allowed_scopes: ["frontend-admin", "queue"]
         support_only_scopes: ["docs"]
         blocked_scopes: ["payments"]
-        wip_limit: 2
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-  next:
-    id: STRAT-2026-04-admin-operativo
-    title: "Admin operativo siguiente"
-    objective: "Cerrar admin operativo"
-    owner: ernesto
-    owner_policy: "detected_default_owner"
-    status: draft
-    started_at: "2026-03-15"
-    review_due_at: "2026-03-22"
-    exit_criteria: ["tres"]
-    success_signal: "next-demo"
-    subfronts:
-      - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-admin-operativo
-        title: "Backend soporte"
-        allowed_scopes: ["backend"]
-        support_only_scopes: ["ops"]
-        blocked_scopes: ["frontend-public"]
-        wip_limit: 2
-        default_acceptance_profile: "backend_gate_checkpoint"
-        exception_ttl_hours: 6
-  updated_at: "2026-03-14"
 
 tasks:
   - id: AG-001
@@ -112,9 +86,7 @@ tasks:
     assert.equal(board.version, '1');
     assert.equal(board.policy.canonical, 'AGENTS.md');
     assert.equal(board.tasks.length, 1);
-    assert.equal(board.strategy.updated_at, '2026-03-14');
     assert.equal(board.strategy.active.id, 'STRAT-2026-03-admin-operativo');
-    assert.equal(board.strategy.active.owner_policy, 'detected_default_owner');
     assert.equal(
         board.strategy.active.focus_id,
         'FOCUS-2026-03-admin-operativo-cut-1'
@@ -127,16 +99,6 @@ tasks:
     assert.equal(
         board.strategy.active.subfronts[0].subfront_id,
         'SF-frontend-admin-operativo'
-    );
-    assert.equal(
-        board.strategy.active.subfronts[0].default_acceptance_profile,
-        'frontend_delivery_checkpoint'
-    );
-    assert.equal(board.strategy.next.id, 'STRAT-2026-04-admin-operativo');
-    assert.equal(board.strategy.next.status, 'draft');
-    assert.equal(
-        board.strategy.next.subfronts[0].subfront_id,
-        'SF-backend-admin-operativo'
     );
     assert.deepEqual(board.tasks[0].files, [
         'lib/calendar/A.php',
@@ -233,26 +195,6 @@ updated_at: 2026-02-26
     assert.equal(blocks[0].task_id, 'CDX-001');
     assert.deepEqual(blocks[0].files, ['AGENTS.md', 'agent-orchestrator.js']);
     assert.equal(blocks[1].status, 'review');
-});
-
-test('core-parsers parseCodexActiveBlocksContent normaliza codex_instance y subfront_id', () => {
-    const raw = `
-<!-- CODEX_ACTIVE
-codex_instance: CODEX_FRONTEND
-block: C1
-task_id: CDX-044
-subfront_id: SF-frontend-turnero-web-pilot
-status: review
-files: ["admin.html"]
-updated_at: 2026-03-14
--->
-`;
-
-    const blocks = parsers.parseCodexActiveBlocksContent(raw);
-    assert.equal(blocks.length, 1);
-    assert.equal(blocks[0].codex_instance, 'codex_frontend');
-    assert.equal(blocks[0].subfront_id, 'SF-frontend-turnero-web-pilot');
-    assert.deepEqual(blocks[0].files, ['admin.html']);
 });
 
 test('core-parsers parseCodexStrategyActiveBlocksContent parsea bloque de estrategia', () => {

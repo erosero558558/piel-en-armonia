@@ -85,7 +85,7 @@ function renderStatusText(data, options = {}) {
             `Estrategia activa: ${data.strategy.active.id} (${data.strategy.active.title || 'sin titulo'})`
         );
         lines.push(
-            `Cobertura estrategia: aligned=${data.strategy.aligned_tasks ?? 0}, support=${data.strategy.support_tasks ?? 0}, exception=${data.strategy.exception_tasks ?? 0}, orphan=${data.strategy.orphan_tasks ?? 0}, dispersion=${data.strategy.dispersion_score ?? 0}, slot_tasks=${data.strategy.slot_tasks ?? 0}`
+            `Cobertura estrategia: aligned=${data.strategy.aligned_tasks ?? 0}, support=${data.strategy.support_tasks ?? 0}, exception=${data.strategy.exception_tasks ?? 0}, orphan=${data.strategy.orphan_tasks ?? 0}`
         );
     }
     if (data?.focus?.configured) {
@@ -157,19 +157,7 @@ function renderStatusText(data, options = {}) {
         lines.push('Por subfrente:');
         for (const row of data.strategy.rows) {
             lines.push(
-                `- ${row.subfront_id}: active=${row.active_tasks}, slot=${row.slot_tasks ?? 0}, aligned=${row.aligned_tasks}, primary=${row.primary_tasks}, support=${row.support_tasks}, exception=${row.exception_tasks}, orphan=${row.orphan_tasks}`
-            );
-        }
-    }
-    if (
-        Array.isArray(data?.strategy?.lane_rows) &&
-        data.strategy.lane_rows.length > 0
-    ) {
-        lines.push('');
-        lines.push('Por lane:');
-        for (const row of data.strategy.lane_rows) {
-            lines.push(
-                `- ${row.codex_instance}: subfronts=${row.subfront_count}, slot=${row.slot_tasks}/${row.lane_capacity}, available=${row.available_slots}, active=${row.active_tasks}, orphan=${row.orphan_tasks}`
+                `- ${row.subfront_id}: active=${row.active_tasks}, aligned=${row.aligned_tasks}, primary=${row.primary_tasks}, support=${row.support_tasks}, exception=${row.exception_tasks}, orphan=${row.orphan_tasks}`
             );
         }
     }

@@ -33,15 +33,11 @@ Operar el sistema en modo `codex-only` con dos lanes humanos activos:
     - `node agent-orchestrator.js codex start <CDX-ID> --block <BLOCK> --expect-rev <n>`
 3. Implementar y validar gates por superficie.
 4. Publicar checkpoint:
-    - `node agent-orchestrator.js task start <AG-ID|CDX-ID> --release-publish --expect-rev <n> --json` cuando sea promocion formal de release
-    - `node agent-orchestrator.js publish checkpoint <AG-ID|CDX-ID> --summary "..." --expect-rev <n> --json`
-    - el comando publica source + evidencia, ignora ruido efimero de `.generated/site-root` y `_deploy_bundle`, y sincroniza `main` via `sync-main-safe`
-    - la verificacion live queda delegada al deploy/post-deploy; `public_main_sync` sigue como telemetria host-side, no como blocker del checkpoint local
+    - `node agent-orchestrator.js publish checkpoint <CDX-ID> --summary "..." --expect-rev <n> --json`
 5. Confirmar producción:
     - `curl -s https://pielarmonia.com/api.php?resource=health`
     - revisar `checks.publicSync.failureReason`, `checks.publicSync.currentHead`, `checks.publicSync.remoteHead`, `checks.publicSync.headDrift`, `checks.publicSync.telemetryGap`, `checks.publicSync.lastErrorMessage` y `checks.publicSync.dirtyPathsSample` cuando el cron quede `failed`
-    - si `node agent-orchestrator.js jobs verify public_main_sync --json` responde con `verification_source=health_url` y `failure_reason=health_missing_public_sync`, asumir primero rollout stale del `health` publico; confirmar `/api.php?resource=health` y desplegar `controllers/HealthController.php` actualizado antes de tratarlo como drift de repo
-    - si responde con `verification_source=registry_only` y `failure_reason=unverified`, asumir primero falta de telemetria viva o `health_url` inalcanzable; confirmar `/api.php?resource=health`, `/api.php?resource=health-diagnostics` y `/var/lib/pielarmonia/public-sync-status.json` antes de tratarlo como drift de repo
+    - si `node agent-orchestrator.js jobs verify public_main_sync --json` responde con `verification_source=registry_only` y `failure_reason=unverified`, asumir primero falta de telemetria viva o `health_url` inalcanzable; confirmar `/api.php?resource=health`, `/api.php?resource=health-diagnostics` y `/var/lib/pielarmonia/public-sync-status.json` antes de tratarlo como drift de repo
 
 ## Guardrails
 
@@ -61,7 +57,6 @@ Operar el sistema en modo `codex-only` con dos lanes humanos activos:
     - refrescar con `leases heartbeat <task_id> --ttl-hours 4 --expect-rev <n> --json`
 4. Si `jobs verify public_main_sync --json` falla:
     - revisar cron VPS, status file y `health`
-    - si `verification_source=health_url` y `failure_reason=health_missing_public_sync`, el host respondio pero sigue sin exponer `checks.publicSync`; tratarlo como rollout stale del contrato publico antes de culpar al cron o al repo
     - si `verification_source=registry_only` y `failure_reason=unverified`, el orquestador solo pudo usar el registro de `AGENT_JOBS.yaml`; tratarlo como telemetria host ausente o `health_url` inalcanzable hasta confirmar `health`, `health-diagnostics` y el status file local del VPS
     - comparar `checks.publicSync.currentHead` vs `checks.publicSync.remoteHead`; si `headDrift=true`, el host no coincide con el remoto aunque el cron ya tenga telemetría completa
     - si `telemetryGap=true`, tratarlo como runtime host desactualizado o incompleto: el cron falló sin exponer `currentHead`, `remoteHead` ni `dirtyPaths`
@@ -74,4 +69,3 @@ Operar el sistema en modo `codex-only` con dos lanes humanos activos:
 - Jobs tracked: `AGENT_JOBS.yaml`
 - Evidencias por tarea: `verification/agent-runs/<task_id>.md`
 - Eventos de publish: `verification/agent-publish-events.jsonl`
-- `publish checkpoint` puede devolver `live_status=pending` con `warning_code=publish_live_verification_pending` cuando el push a `main` ya salio pero la verificacion live todavia no confirma deploy.

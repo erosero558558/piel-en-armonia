@@ -171,6 +171,7 @@ test('publish checkpoint classifyPublishSurface y buildGateCommands cubren union
         'board-doctor',
         'conflicts',
         'codex-check',
+        'focus-check',
         'agent-test',
         'agent-validate',
         'lint-php',

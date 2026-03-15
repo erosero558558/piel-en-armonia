@@ -51,6 +51,17 @@ function strategyIsActive(board) {
     );
 }
 
+function hasRuntimeRequiredCheck(summary = {}) {
+    return Array.isArray(summary?.configured?.required_checks)
+        ? summary.configured.required_checks.some((item) =>
+              String(item || '')
+                  .trim()
+                  .toLowerCase()
+                  .startsWith('runtime:')
+          )
+        : false;
+}
+
 function hasActiveTasks(board) {
     return Array.isArray(board?.tasks)
         ? board.tasks.some((task) =>
@@ -63,64 +74,46 @@ function hasActiveTasks(board) {
         : false;
 }
 
-function strategyDeclaresFocusContract(board) {
-    const strategy = board?.strategy?.active;
-    if (!strategy || typeof strategy !== 'object') {
-        return false;
-    }
-
-    const scalarKeys = [
-        'focus_id',
-        'focus_title',
-        'focus_summary',
-        'focus_status',
-        'focus_proof',
-        'focus_next_step',
-        'focus_owner',
-        'focus_review_due_at',
-        'focus_evidence_ref',
-        'focus_max_active_slices',
-    ];
-    const arrayKeys = [
-        'focus_steps',
-        'focus_required_checks',
-        'focus_non_goals',
-    ];
-
-    return (
-        scalarKeys.some((key) => String(strategy[key] || '').trim() !== '') ||
-        arrayKeys.some(
-            (key) => Array.isArray(strategy[key]) && strategy[key].length > 0
-        )
-    );
-}
-
-async function resolveLiveFocusSummary(ctx, board) {
-    if (typeof ctx.buildLiveFocusSummary === 'function') {
-        return ctx.buildLiveFocusSummary(board, { now: new Date() });
-    }
-
+async function buildLiveFocusSummary(ctx, board) {
+    const {
+        buildFocusSummary,
+        parseDecisions,
+        loadJobsSnapshot,
+        verifyOpenClawRuntime,
+    } = ctx;
     const decisionsData =
-        typeof ctx.parseDecisions === 'function'
-            ? ctx.parseDecisions()
+        typeof parseDecisions === 'function'
+            ? parseDecisions()
             : { decisions: [] };
     const jobs =
-        typeof ctx.loadJobsSnapshot === 'function'
-            ? await ctx.loadJobsSnapshot()
-            : [];
-    const summary =
-        typeof ctx.buildFocusSummary === 'function'
-            ? ctx.buildFocusSummary(board, {
+        typeof loadJobsSnapshot === 'function' ? await loadJobsSnapshot() : [];
+    const initialSummary =
+        typeof buildFocusSummary === 'function'
+            ? buildFocusSummary(board, {
                   decisionsData,
                   jobsSnapshot: jobs,
                   now: new Date(),
               })
             : null;
-
+    const runtimeVerification =
+        initialSummary &&
+        hasRuntimeRequiredCheck(initialSummary) &&
+        typeof verifyOpenClawRuntime === 'function'
+            ? await verifyOpenClawRuntime()
+            : null;
+    const summary =
+        typeof buildFocusSummary === 'function'
+            ? buildFocusSummary(board, {
+                  decisionsData,
+                  jobsSnapshot: jobs,
+                  runtimeVerification,
+                  now: new Date(),
+              })
+            : null;
     return {
         decisionsData,
         jobs,
-        runtimeVerification: null,
+        runtimeVerification,
         summary,
     };
 }
@@ -198,8 +191,7 @@ function getStructuralFocusErrors(board, summary) {
     if (
         strategyIsActive(board) &&
         hasActiveTasks(board) &&
-        !summary?.configured &&
-        strategyDeclaresFocusContract(board)
+        !summary?.configured
     ) {
         errors.push('strategy_without_focus');
     }
@@ -256,7 +248,6 @@ async function handleFocusCommand(ctx) {
         parseFlags,
         parseBoard,
         buildFocusSummary,
-        buildLiveFocusSummary,
         parseDecisions,
         loadJobsSnapshot,
         verifyOpenClawRuntime,
@@ -286,9 +277,8 @@ async function handleFocusCommand(ctx) {
     }
 
     const board = parseBoard();
-    const baseData = await resolveLiveFocusSummary(
+    const baseData = await buildLiveFocusSummary(
         {
-            buildLiveFocusSummary,
             buildFocusSummary,
             parseDecisions,
             loadJobsSnapshot,

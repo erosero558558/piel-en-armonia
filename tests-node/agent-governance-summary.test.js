@@ -3,10 +3,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const http = require('node:http');
 const {
     mkdtempSync,
-    mkdirSync,
     writeFileSync,
     readFileSync,
     copyFileSync,
@@ -16,30 +14,13 @@ const {
 } = require('fs');
 const { tmpdir } = require('os');
 const { join, resolve } = require('path');
-const { spawnSync, spawn } = require('child_process');
+const { spawnSync } = require('child_process');
 
 const REPO_ROOT = resolve(__dirname, '..');
 const ORCHESTRATOR_SOURCE = join(REPO_ROOT, 'agent-orchestrator.js');
 const ORCHESTRATOR_TOOLS_DIR = join(REPO_ROOT, 'tools', 'agent-orchestrator');
 const GOVERNANCE_POLICY_SOURCE = join(REPO_ROOT, 'governance-policy.json');
 const SUMMARY_SCRIPT = join(REPO_ROOT, 'bin', 'agent-governance-summary.js');
-const WORKSPACE_HYGIENE_SOURCE = join(
-    REPO_ROOT,
-    'bin',
-    'lib',
-    'workspace-hygiene.js'
-);
-const GENERATED_SITE_ROOT_SOURCE = join(
-    REPO_ROOT,
-    'bin',
-    'lib',
-    'generated-site-root.js'
-);
-const CLEAN_LOCAL_ARTIFACTS_SOURCE = join(
-    REPO_ROOT,
-    'bin',
-    'clean-local-artifacts.js'
-);
 const DATE = '2026-02-24';
 
 function createFixtureDir() {
@@ -49,19 +30,6 @@ function createFixtureDir() {
         recursive: true,
     });
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
-    mkdirSync(join(dir, 'bin', 'lib'), { recursive: true });
-    copyFileSync(
-        WORKSPACE_HYGIENE_SOURCE,
-        join(dir, 'bin', 'lib', 'workspace-hygiene.js')
-    );
-    copyFileSync(
-        GENERATED_SITE_ROOT_SOURCE,
-        join(dir, 'bin', 'lib', 'generated-site-root.js')
-    );
-    copyFileSync(
-        CLEAN_LOCAL_ARTIFACTS_SOURCE,
-        join(dir, 'bin', 'clean-local-artifacts.js')
-    );
     return dir;
 }
 
@@ -142,10 +110,7 @@ Relacion con Operativo 2026:
     );
 }
 
-function writeFixtureFilesWithStrategy(
-    dir,
-    { runtimeRequiredCheck = 'runtime:openclaw_chatgpt' } = {}
-) {
+function writeFixtureFilesWithStrategy(dir) {
     const board = `
 version: 1
 policy:
@@ -171,7 +136,7 @@ strategy:
     focus_proof: "Demo comun"
     focus_steps: ["admin_queue_pilot_cut", "pilot_readiness_evidence"]
     focus_next_step: "admin_queue_pilot_cut"
-    focus_required_checks: ["job:public_main_sync", "${runtimeRequiredCheck}"]
+    focus_required_checks: ["job:public_main_sync", "runtime:openclaw_chatgpt"]
     focus_non_goals: ["rediseno_publico"]
     focus_owner: "ernesto"
     focus_review_due_at: "2026-03-21"
@@ -291,62 +256,6 @@ decisions:
     );
 }
 
-function writePublicSyncJobsFixture(dir) {
-    const runtimeDir = join(dir, 'runtime');
-    const statusPath = join(runtimeDir, 'public-sync-status.json');
-    mkdirSync(runtimeDir, { recursive: true });
-    const nowIso = new Date().toISOString();
-    writeFileSync(
-        statusPath,
-        `${JSON.stringify(
-            {
-                version: 1,
-                job_id: 'job-public-main-sync',
-                job_key: 'public_main_sync',
-                state: 'success',
-                checked_at: nowIso,
-                last_success_at: nowIso,
-                last_error_at: '',
-                last_error_message: '',
-                deployed_commit: 'abc1234',
-                current_head: 'abc1234',
-                remote_head: 'abc1234',
-                dirty_paths_count: 0,
-                dirty_paths_sample: [],
-                dirty_paths: [],
-            },
-            null,
-            2
-        )}\n`,
-        'utf8'
-    );
-    writeFileSync(
-        join(dir, 'AGENT_JOBS.yaml'),
-        `version: 1
-updated_at: "2026-03-11T00:00:00Z"
-jobs:
-  - key: public_main_sync
-    job_id: "job-public-main-sync"
-    enabled: true
-    type: external_cron
-    owner: codex_backend_ops
-    environment: production
-    repo_path: /var/www/figo
-    branch: main
-    schedule: "* * * * *"
-    command: /root/sync-pielarmonia.sh
-    wrapper_fallback: /var/www/figo/bin/deploy-public-v3-cron-sync.sh
-    lock_file: /tmp/sync-pielarmonia.lock
-    log_path: /var/log/sync-pielarmonia.log
-    status_path: "${statusPath.replace(/\\/g, '/')}"
-    expected_max_lag_seconds: 120
-    source_of_truth: host_cron
-    publish_strategy: main_auto_guarded
-`,
-        'utf8'
-    );
-}
-
 function writeFixtureFilesWithChatFailure(dir) {
     const board = `
 version: 1
@@ -435,153 +344,17 @@ Relacion con Operativo 2026:
     );
 }
 
-function runSummary(dir, args = [], envPatch = null) {
+function runSummary(dir, args = []) {
     const result = spawnSync(
         process.execPath,
         [SUMMARY_SCRIPT, '--root', dir, ...args],
         {
             cwd: REPO_ROOT,
             encoding: 'utf8',
-            env: envPatch ? { ...process.env, ...envPatch } : process.env,
         }
     );
     if (result.error) throw result.error;
     return result;
-}
-
-function runSummaryAsync(dir, args = [], envPatch = null) {
-    return new Promise((resolvePromise, rejectPromise) => {
-        const child = spawn(
-            process.execPath,
-            [SUMMARY_SCRIPT, '--root', dir, ...args],
-            {
-                cwd: REPO_ROOT,
-                env: envPatch ? { ...process.env, ...envPatch } : process.env,
-                stdio: ['ignore', 'pipe', 'pipe'],
-            }
-        );
-        let stdout = '';
-        let stderr = '';
-
-        child.stdout.setEncoding('utf8');
-        child.stderr.setEncoding('utf8');
-        child.stdout.on('data', (chunk) => {
-            stdout += chunk;
-        });
-        child.stderr.on('data', (chunk) => {
-            stderr += chunk;
-        });
-        child.on('error', (error) => rejectPromise(error));
-        child.on('close', (code, signal) => {
-            resolvePromise({
-                status: typeof code === 'number' ? code : 1,
-                signal: signal || null,
-                stdout,
-                stderr,
-            });
-        });
-    });
-}
-
-async function startRuntimeFixtureServer() {
-    const sockets = new Set();
-    const server = http.createServer((req, res) => {
-        const url = new URL(req.url, 'http://127.0.0.1');
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Connection', 'close');
-
-        if (
-            req.method === 'GET' &&
-            url.pathname === '/api.php' &&
-            url.searchParams.get('resource') === 'health'
-        ) {
-            res.statusCode = 200;
-            res.end(
-                JSON.stringify({
-                    ok: true,
-                    status: 'ok',
-                    checks: {
-                        leadOps: {
-                            configured: false,
-                            mode: 'disabled',
-                            degraded: false,
-                        },
-                    },
-                })
-            );
-            return;
-        }
-
-        if (
-            req.method === 'GET' &&
-            url.pathname === '/api.php' &&
-            url.searchParams.get('resource') === 'operator-auth-status'
-        ) {
-            res.statusCode = 200;
-            res.end(
-                JSON.stringify({
-                    ok: true,
-                    authenticated: false,
-                    status: 'anonymous',
-                    mode: 'openclaw_chatgpt',
-                    configured: true,
-                    recommendedMode: 'openclaw_chatgpt',
-                    capabilities: {
-                        adminAgent: false,
-                    },
-                    fallbacks: {
-                        legacy_password: {
-                            enabled: false,
-                            configured: false,
-                            requires2FA: true,
-                            available: false,
-                            reason: 'fallback_disabled',
-                        },
-                    },
-                })
-            );
-            return;
-        }
-
-        if (req.method === 'GET' && url.pathname === '/figo-ai-bridge.php') {
-            res.statusCode = 200;
-            res.end(
-                JSON.stringify({
-                    ok: true,
-                    provider: 'openclaw_queue',
-                    providerMode: 'legacy_proxy',
-                    gatewayConfigured: false,
-                    openclawReachable: null,
-                })
-            );
-            return;
-        }
-
-        res.statusCode = 404;
-        res.end(JSON.stringify({ ok: false, error: 'not_found' }));
-    });
-
-    server.on('connection', (socket) => {
-        sockets.add(socket);
-        socket.on('close', () => sockets.delete(socket));
-    });
-
-    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-    const address = server.address();
-    const baseUrl =
-        address && typeof address === 'object'
-            ? `http://127.0.0.1:${address.port}`
-            : 'http://127.0.0.1';
-
-    return {
-        baseUrl,
-        close: async () => {
-            for (const socket of sockets) socket.destroy();
-            await new Promise((resolve, reject) =>
-                server.close((error) => (error ? reject(error) : resolve()))
-            );
-        },
-    };
 }
 
 function assertSummaryJsonContractShape(parsed) {
@@ -800,56 +573,6 @@ test('agent-governance-summary expone estrategia activa en JSON y Markdown', (t)
         result.stdout,
         /Focus doctor:\s+`FOCUS-2026-03-admin-operativo-cut-1`/
     );
-});
-
-test('agent-governance-summary conserva operator_auth green y public_main_sync green en todas las superficies', async (t) => {
-    const dir = createFixtureDir();
-    const runtimeServer = await startRuntimeFixtureServer();
-    t.after(async () => {
-        await runtimeServer.close();
-        cleanupFixtureDir(dir);
-    });
-    writeFixtureFilesWithStrategy(dir, {
-        runtimeRequiredCheck: 'runtime:operator_auth',
-    });
-    writePublicSyncJobsFixture(dir);
-
-    const envPatch = {
-        OPENCLAW_RUNTIME_BASE_URL: runtimeServer.baseUrl,
-    };
-    let result = await runSummaryAsync(dir, ['--format', 'json'], envPatch);
-    assert.equal(result.status, 0, result.stderr || result.stdout);
-    let parsed = JSON.parse(result.stdout);
-    for (const payload of [
-        parsed.status.focus,
-        parsed.board_doctor.focus_summary,
-        parsed.metrics.focus_summary,
-    ]) {
-        assert.equal(payload.required_checks_ok, true);
-        assert.equal(
-            payload.required_checks.some(
-                (item) =>
-                    item.id === 'job:public_main_sync' && item.state === 'green'
-            ),
-            true
-        );
-        assert.equal(
-            payload.required_checks.some(
-                (item) =>
-                    item.id === 'runtime:operator_auth' &&
-                    item.state === 'green'
-            ),
-            true
-        );
-    }
-
-    result = await runSummaryAsync(dir, ['--format', 'markdown'], envPatch);
-    assert.equal(result.status, 0, result.stderr || result.stdout);
-    assert.match(
-        result.stdout,
-        /Focus checks:\s+`job:public_main_sync`=green, `runtime:operator_auth`=green/
-    );
-    assert.doesNotMatch(result.stdout, /runtime:operator_auth`=unverified/);
 });
 
 test('agent-governance-summary alerta regresion de dominio GREEN->RED en PR summary', (t) => {
