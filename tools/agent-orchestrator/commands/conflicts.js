@@ -9,6 +9,7 @@ async function handleConflictsCommand(ctx) {
         toConflictJsonRecord,
         attachDiagnostics,
         buildWarnFirstDiagnostics,
+        buildLiveFocusSummary,
         loadMetricsSnapshot,
         loadJobsSnapshot,
     } = ctx;
@@ -21,10 +22,15 @@ async function handleConflictsCommand(ctx) {
         typeof loadMetricsSnapshot === 'function'
             ? loadMetricsSnapshot()
             : null;
-    const jobsSnapshot =
-        typeof loadJobsSnapshot === 'function'
-            ? await loadJobsSnapshot()
+    const focusData =
+        typeof buildLiveFocusSummary === 'function'
+            ? await buildLiveFocusSummary(board, { now: new Date() })
             : null;
+    const jobsSnapshot = Array.isArray(focusData?.jobs)
+        ? focusData.jobs
+        : typeof loadJobsSnapshot === 'function'
+          ? await loadJobsSnapshot()
+          : null;
 
     const report = {
         version: 1,
@@ -43,6 +49,7 @@ async function handleConflictsCommand(ctx) {
             board,
             handoffData,
             conflictAnalysis: analysis,
+            focusSummary: focusData?.summary || null,
             metricsSnapshot,
             jobsSnapshot,
         })

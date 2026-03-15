@@ -101,7 +101,7 @@ function handleMetricsBaselineCommand(ctx) {
     );
 }
 
-function handleMetricsCommand(ctx) {
+async function handleMetricsCommand(ctx) {
     const {
         args = [],
         handleMetricsBaselineCommand,
@@ -113,6 +113,9 @@ function handleMetricsCommand(ctx) {
         buildCodexInstanceSummary,
         buildProviderModeSummary,
         buildRuntimeSurfaceSummary,
+        buildFocusSummary,
+        buildLiveFocusSummary,
+        parseDecisions,
         buildDomainHealth,
         existsSync,
         readFileSync,
@@ -185,6 +188,23 @@ function handleMetricsCommand(ctx) {
     const codexInstances = buildCodexInstanceSummary(board.tasks);
     const providerModes = buildProviderModeSummary(board.tasks);
     const runtimeSurfaces = buildRuntimeSurfaceSummary(board.tasks);
+    const now = new Date();
+    const focusData =
+        typeof buildLiveFocusSummary === 'function'
+            ? await buildLiveFocusSummary(board, { now })
+            : {
+                  summary:
+                      typeof buildFocusSummary === 'function'
+                          ? buildFocusSummary(board, {
+                                decisionsData:
+                                    typeof parseDecisions === 'function'
+                                        ? parseDecisions()
+                                        : { decisions: [] },
+                                now,
+                            })
+                          : null,
+              };
+    const focusSummary = focusData.summary || null;
     const domainHealth = buildDomainHealth(
         board.tasks,
         conflictAnalysis,
@@ -308,6 +328,28 @@ function handleMetricsCommand(ctx) {
         codex_instances: codexInstances,
         provider_modes: providerModes,
         runtime_surfaces: runtimeSurfaces,
+        focus: focusSummary
+            ? {
+                  focus_id: focusSummary.configured?.id || '',
+                  focus_status: focusSummary.configured?.status || '',
+                  focus_idle_windows: focusSummary.idle ? 1 : 0,
+                  focus_split_incidents:
+                      focusSummary.distinct_active_steps > 1 ? 1 : 0,
+                  rework_tasks_pct:
+                      focusSummary.active_tasks_total > 0
+                          ? Math.round(
+                                (focusSummary.rework_without_reason_task_ids
+                                    .length /
+                                    focusSummary.active_tasks_total) *
+                                    1000
+                            ) / 10
+                          : 0,
+                  open_decisions_overdue: focusSummary.decisions?.overdue || 0,
+                  distinct_active_slices:
+                      focusSummary.distinct_active_slices || 0,
+              }
+            : null,
+        focus_summary: focusSummary,
         baseline_contribution: baselineContribution,
         contribution_delta: contributionDelta,
         contribution_history: contributionHistorySummary,

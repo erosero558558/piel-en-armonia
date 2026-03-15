@@ -69,7 +69,7 @@ async function handleJobsCommand(ctx) {
     }
     if (!report.ok) {
         throw new Error(
-            `jobs verify fallo para ${job.key}: healthy=${job.healthy} repo_hygiene_issue=${job.repo_hygiene_issue} source=${job.verification_source}`
+            `jobs verify fallo para ${job.key}: healthy=${job.healthy} repo_hygiene_issue=${job.repo_hygiene_issue} source=${job.verification_source} failure_reason=${job.failure_reason || 'unknown'}`
         );
     }
     console.log(

@@ -121,6 +121,12 @@ function buildGateCommands(surface = {}) {
         'codex-check',
         '--json',
     ]);
+    add('focus-check', process.execPath, [
+        'agent-orchestrator.js',
+        'focus',
+        'check',
+        '--json',
+    ]);
 
     if (surface.orchestrator) {
         add('agent-test', process.platform === 'win32' ? 'npm.cmd' : 'npm', [
@@ -208,6 +214,17 @@ async function sleep(ms) {
     await new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
 
+function hasRuntimeRequiredCheck(summary = {}) {
+    return Array.isArray(summary?.configured?.required_checks)
+        ? summary.configured.required_checks.some((item) =>
+              String(item || '')
+                  .trim()
+                  .toLowerCase()
+                  .startsWith('runtime:')
+          )
+        : false;
+}
+
 async function waitForPublishedCommit(ctx, expectedCommit, maxWaitSeconds) {
     const { parseJobs, buildJobsSnapshot, findJobSnapshot } = ctx;
     const deadline = Date.now() + maxWaitSeconds * 1000;
@@ -236,9 +253,12 @@ async function handlePublishCommand(ctx) {
         parseFlags,
         parseBoard,
         ensureTask,
+        buildFocusSummary,
+        parseDecisions,
         parseJobs,
         buildJobsSnapshot,
         findJobSnapshot,
+        verifyOpenClawRuntime,
         printJson = (value) => console.log(JSON.stringify(value, null, 2)),
         rootPath,
         publishEventsPath,
@@ -319,6 +339,82 @@ async function handlePublishCommand(ctx) {
         error.error_code = 'invalid_status';
         throw error;
     }
+    let focusSummary = null;
+    if (typeof buildFocusSummary === 'function') {
+        const decisionsData =
+            typeof parseDecisions === 'function'
+                ? parseDecisions()
+                : { decisions: [] };
+        const jobsSnapshot =
+            typeof buildJobsSnapshot === 'function'
+                ? await buildJobsSnapshot(parseJobs())
+                : [];
+        const initialFocusSummary = buildFocusSummary(board, {
+            decisionsData,
+            jobsSnapshot,
+            now: new Date(),
+        });
+        const runtimeVerification =
+            initialFocusSummary &&
+            hasRuntimeRequiredCheck(initialFocusSummary) &&
+            typeof verifyOpenClawRuntime === 'function'
+                ? await verifyOpenClawRuntime()
+                : null;
+        focusSummary = buildFocusSummary(board, {
+            decisionsData,
+            jobsSnapshot,
+            runtimeVerification,
+            now: new Date(),
+        });
+        const strategyActive =
+            String(board?.strategy?.active?.status || '')
+                .trim()
+                .toLowerCase() === 'active';
+        if (strategyActive && !focusSummary?.configured) {
+            const error = new Error(
+                'publish checkpoint requiere foco configurado cuando hay strategy.active'
+            );
+            error.code = 'publish_checkpoint_outside_focus';
+            error.error_code = 'publish_checkpoint_outside_focus';
+            throw error;
+        }
+        if (focusSummary?.active) {
+            const focusId = String(focusSummary.active.id || '').trim();
+            const focusStep = String(
+                focusSummary.active.next_step || ''
+            ).trim();
+            if (String(task.focus_id || '').trim() !== focusId) {
+                const error = new Error(
+                    `publish checkpoint requiere task alineada al foco activo (${focusId})`
+                );
+                error.code = 'publish_checkpoint_outside_focus';
+                error.error_code = 'publish_checkpoint_outside_focus';
+                throw error;
+            }
+            if (String(task.focus_step || '').trim() !== focusStep) {
+                const error = new Error(
+                    `publish checkpoint requiere focus_step=${focusStep || 'n/a'}`
+                );
+                error.code = 'publish_checkpoint_outside_focus';
+                error.error_code = 'publish_checkpoint_outside_focus';
+                throw error;
+            }
+            const normalizedSummary = summary.toLowerCase();
+            if (
+                focusId &&
+                focusStep &&
+                !normalizedSummary.includes(focusId.toLowerCase()) &&
+                !normalizedSummary.includes(focusStep.toLowerCase())
+            ) {
+                const error = new Error(
+                    'publish checkpoint requiere --summary alineado a focus_id o focus_next_step'
+                );
+                error.code = 'publish_checkpoint_outside_focus';
+                error.error_code = 'publish_checkpoint_outside_focus';
+                throw error;
+            }
+        }
+    }
 
     const codexInstance = String(
         task.codex_instance || 'codex_backend_ops'
@@ -370,6 +466,7 @@ async function handlePublishCommand(ctx) {
         ...(Array.isArray(task.files) ? task.files : []),
         'agent_board.yaml',
         'agent_handoffs.yaml',
+        'agent_decisions.yaml',
         'plan_maestro_codex_2026.md',
         `verification/agent-runs/${normalizePathToken(taskId)}.md`,
     ].map((value) => normalizePathToken(value));
@@ -517,6 +614,9 @@ async function handlePublishCommand(ctx) {
         command: 'publish checkpoint',
         task_id: taskId,
         codex_instance: codexInstance,
+        focus_id: String(task.focus_id || '').trim() || null,
+        focus_step: String(task.focus_step || '').trim() || null,
+        focus_summary: focusSummary,
         commit: headSha,
         staged_files: stagedFiles,
         gates_run: gateCommands.map((item) => item.id),

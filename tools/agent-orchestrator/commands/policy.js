@@ -1,6 +1,6 @@
 'use strict';
 
-function handlePolicyCommand(ctx) {
+async function handlePolicyCommand(ctx) {
     const {
         args = [],
         readGovernancePolicyStrict,
@@ -9,6 +9,8 @@ function handlePolicyCommand(ctx) {
         governancePolicyPath,
         attachDiagnostics,
         buildWarnFirstDiagnostics,
+        parseBoard,
+        buildLiveFocusSummary,
     } = ctx;
     const subcommand = String(args[0] || '').trim() || 'lint';
     const wantsJson = args.includes('--json');
@@ -37,11 +39,18 @@ function handlePolicyCommand(ctx) {
         };
     }
 
+    const board = typeof parseBoard === 'function' ? parseBoard() : null;
+    const focusData =
+        board && typeof buildLiveFocusSummary === 'function'
+            ? await buildLiveFocusSummary(board, { now: new Date() })
+            : null;
     const reportWithDiagnostics = attachDiagnostics(
         report,
         buildWarnFirstDiagnostics({
             source: 'policy',
             policyReport: report,
+            focusSummary: focusData?.summary || null,
+            jobsSnapshot: focusData?.jobs || null,
         })
     );
 

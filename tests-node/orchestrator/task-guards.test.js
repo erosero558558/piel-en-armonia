@@ -39,6 +39,25 @@ function boardWithActiveStrategy() {
                 review_due_at: '2026-03-21',
                 exit_criteria: ['uno'],
                 success_signal: 'demo',
+                focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                focus_title: 'Admin operativo demostrable',
+                focus_summary: 'Corte comun',
+                focus_status: 'active',
+                focus_proof: 'Demo comun',
+                focus_steps: [
+                    'admin_queue_pilot_cut',
+                    'pilot_readiness_evidence',
+                ],
+                focus_next_step: 'admin_queue_pilot_cut',
+                focus_required_checks: [
+                    'job:public_main_sync',
+                    'runtime:openclaw_chatgpt',
+                ],
+                focus_non_goals: ['rediseno_publico'],
+                focus_owner: 'ernesto',
+                focus_review_due_at: '2026-03-21',
+                focus_evidence_ref: '',
+                focus_max_active_slices: 3,
                 subfronts: [
                     {
                         codex_instance: 'codex_frontend',
@@ -175,6 +194,119 @@ test('task-guards prechecks combinan scope guard y depends_on', () => {
                 }
             ),
         /task critica/
+    );
+});
+
+test('task-guards exige campos de foco para tarea activa bajo estrategia con foco', () => {
+    const board = boardWithActiveStrategy();
+
+    assert.throws(
+        () =>
+            validateTaskGovernancePrechecks(
+                board,
+                {
+                    id: 'AG-010',
+                    status: 'ready',
+                    scope: 'backend',
+                    executor: 'codex',
+                    codex_instance: 'codex_backend_ops',
+                    domain_lane: 'backend_ops',
+                    lane_lock: 'strict',
+                    cross_domain: false,
+                    files: ['controllers/AdminController.php'],
+                    depends_on: ['AG-001'],
+                    strategy_id: 'STRAT-2026-03-admin-operativo',
+                    subfront_id: 'SF-backend-admin-operativo',
+                    strategy_role: 'primary',
+                    runtime_impact: 'low',
+                    critical_zone: false,
+                },
+                {
+                    criticalScopeKeywords: CRITICAL_SCOPE_KEYWORDS,
+                    allowedExecutors: ALLOWED_EXECUTORS,
+                    activeStatuses: ACTIVE_STATUSES,
+                    handoffs: [],
+                }
+            ),
+        /foco|focus|integration_slice/i
+    );
+});
+
+test('task-guards bloquea integration_slice invalido para su lane', () => {
+    const board = boardWithActiveStrategy();
+
+    assert.throws(
+        () =>
+            validateTaskGovernancePrechecks(
+                board,
+                {
+                    id: 'AG-010',
+                    status: 'ready',
+                    scope: 'backend',
+                    executor: 'codex',
+                    codex_instance: 'codex_backend_ops',
+                    domain_lane: 'backend_ops',
+                    lane_lock: 'strict',
+                    cross_domain: false,
+                    files: ['controllers/AdminController.php'],
+                    depends_on: ['AG-001'],
+                    strategy_id: 'STRAT-2026-03-admin-operativo',
+                    subfront_id: 'SF-backend-admin-operativo',
+                    strategy_role: 'primary',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_step: 'admin_queue_pilot_cut',
+                    integration_slice: 'frontend_runtime',
+                    work_type: 'forward',
+                    runtime_impact: 'low',
+                    critical_zone: false,
+                },
+                {
+                    criticalScopeKeywords: CRITICAL_SCOPE_KEYWORDS,
+                    allowedExecutors: ALLOWED_EXECUTORS,
+                    activeStatuses: ACTIVE_STATUSES,
+                    handoffs: [],
+                }
+            ),
+        /fuera del lane/i
+    );
+});
+
+test('task-guards exige razon de retrabajo para work_type fix o refactor', () => {
+    const board = boardWithActiveStrategy();
+
+    assert.throws(
+        () =>
+            validateTaskGovernancePrechecks(
+                board,
+                {
+                    id: 'AG-010',
+                    status: 'ready',
+                    scope: 'backend',
+                    executor: 'codex',
+                    codex_instance: 'codex_backend_ops',
+                    domain_lane: 'backend_ops',
+                    lane_lock: 'strict',
+                    cross_domain: false,
+                    files: ['controllers/AdminController.php'],
+                    depends_on: ['AG-001'],
+                    strategy_id: 'STRAT-2026-03-admin-operativo',
+                    subfront_id: 'SF-backend-admin-operativo',
+                    strategy_role: 'primary',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_step: 'admin_queue_pilot_cut',
+                    integration_slice: 'backend_readiness',
+                    work_type: 'fix',
+                    runtime_impact: 'low',
+                    critical_zone: false,
+                },
+                {
+                    criticalScopeKeywords: CRITICAL_SCOPE_KEYWORDS,
+                    allowedExecutors: ALLOWED_EXECUTORS,
+                    activeStatuses: ACTIVE_STATUSES,
+                    handoffs: [],
+                }
+            ),
+        /rework_parent o rework_reason/i
     );
 });
 

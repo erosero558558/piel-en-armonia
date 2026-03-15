@@ -30,12 +30,17 @@ async function handleCodexCheckCommand(ctx) {
         parseHandoffs,
         loadMetricsSnapshot,
         loadJobsSnapshot,
+        buildLiveFocusSummary,
         verifyOpenClawRuntime,
         buildRuntimeBlockingErrors,
     } = ctx;
     const wantsJson = args.includes('--json');
     const board = parseBoard();
     const report = buildCodexCheckReport();
+    const focusData =
+        typeof buildLiveFocusSummary === 'function'
+            ? await buildLiveFocusSummary(board, { now: new Date() })
+            : null;
     const hasActiveRuntimeTask = Array.isArray(board?.tasks)
         ? board.tasks.some((task) => {
               const status = String(task?.status || '')
@@ -57,9 +62,10 @@ async function handleCodexCheckCommand(ctx) {
           })
         : false;
     const runtimeVerification =
-        hasActiveRuntimeTask && typeof verifyOpenClawRuntime === 'function'
+        focusData?.runtimeVerification ||
+        (hasActiveRuntimeTask && typeof verifyOpenClawRuntime === 'function'
             ? await verifyOpenClawRuntime()
-            : null;
+            : null);
     if (runtimeVerification) {
         const runtimeErrors =
             typeof buildRuntimeBlockingErrors === 'function'
@@ -80,16 +86,18 @@ async function handleCodexCheckCommand(ctx) {
         typeof loadMetricsSnapshot === 'function'
             ? loadMetricsSnapshot()
             : null;
-    const jobsSnapshot =
-        typeof loadJobsSnapshot === 'function'
-            ? await loadJobsSnapshot()
-            : null;
+    const jobsSnapshot = Array.isArray(focusData?.jobs)
+        ? focusData.jobs
+        : typeof loadJobsSnapshot === 'function'
+          ? await loadJobsSnapshot()
+          : null;
     const reportWithDiagnostics = attachDiagnostics(
         report,
         buildWarnFirstDiagnostics({
             source: 'codex-check',
             board,
             handoffData: parseHandoffs(),
+            focusSummary: focusData?.summary || null,
             metricsSnapshot,
             jobsSnapshot,
         })
@@ -120,6 +128,7 @@ async function handleCodexCommand(ctx) {
         ensureTask,
         parseBoard,
         parseHandoffs,
+        parseDecisions,
         ACTIVE_STATUSES,
         ALLOWED_STATUSES,
         parseCsvList,
@@ -137,7 +146,7 @@ async function handleCodexCommand(ctx) {
     const taskId = String(positionals[0] || flags.id || '').trim();
     if (!subcommand || !['start', 'stop'].includes(subcommand)) {
         throw new Error(
-            'Uso: node agent-orchestrator.js codex <start|stop> <CDX-001> [--block C1] [--to review|done|blocked] [--blocked-reason motivo]'
+            'Uso: node agent-orchestrator.js codex <start|stop> <CDX-001> [--block C1] [--to review|done|blocked]'
         );
     }
     if (!taskId) {
@@ -161,6 +170,10 @@ async function handleCodexCommand(ctx) {
             parseExpectedBoardRevisionFlag,
             { required: true, commandLabel: 'codex start' }
         );
+        const decisionsData =
+            typeof parseDecisions === 'function'
+                ? parseDecisions()
+                : { decisions: [] };
         const taskInstance = String(task.codex_instance || 'codex_backend_ops')
             .trim()
             .toLowerCase();
@@ -203,6 +216,7 @@ async function handleCodexCommand(ctx) {
                 handoffs: Array.isArray(handoffData?.handoffs)
                     ? handoffData.handoffs
                     : [],
+                decisionsData,
             });
         }
         writeBoard(board, {
@@ -236,9 +250,6 @@ async function handleCodexCommand(ctx) {
     }
 
     const nextStatus = String(flags.to || 'review').trim();
-    const nextBlockedReason = String(
-        flags['blocked-reason'] || flags.blocked_reason || ''
-    ).trim();
     const expectRevision = parseExpectedRevisionFromFlags(
         flags,
         parseExpectedBoardRevisionFlag,
@@ -248,10 +259,6 @@ async function handleCodexCommand(ctx) {
         throw new Error(`Status destino invalido: ${nextStatus}`);
     }
     task.status = nextStatus;
-    task.blocked_reason =
-        nextStatus === 'blocked'
-            ? nextBlockedReason || String(task.blocked_reason || '').trim()
-            : '';
     task.updated_at = currentDate();
     writeBoard(board, {
         command: 'codex stop',

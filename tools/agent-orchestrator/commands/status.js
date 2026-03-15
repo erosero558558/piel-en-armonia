@@ -14,6 +14,9 @@ async function handleStatusCommand(ctx) {
         buildProviderModeSummary,
         buildRuntimeSurfaceSummary,
         buildStrategyCoverageSummary,
+        buildFocusSummary,
+        buildLiveFocusSummary,
+        parseDecisions,
         loadMetricsSnapshot,
         normalizeContributionBaseline,
         buildContributionTrend,
@@ -54,6 +57,35 @@ async function handleStatusCommand(ctx) {
         contributionBaseline
     );
     const strategy = buildStrategyCoverageSummary(board);
+    const now = new Date();
+    const focusData =
+        typeof buildLiveFocusSummary === 'function'
+            ? await buildLiveFocusSummary(board, { now })
+            : {
+                  decisionsData:
+                      typeof parseDecisions === 'function'
+                          ? parseDecisions()
+                          : { decisions: [] },
+                  jobs:
+                      typeof loadJobsSnapshot === 'function'
+                          ? await loadJobsSnapshot()
+                          : [],
+                  runtimeVerification: null,
+                  summary:
+                      typeof buildFocusSummary === 'function'
+                          ? buildFocusSummary(board, {
+                                decisionsData:
+                                    typeof parseDecisions === 'function'
+                                        ? parseDecisions()
+                                        : { decisions: [] },
+                                jobsSnapshot:
+                                    typeof loadJobsSnapshot === 'function'
+                                        ? await loadJobsSnapshot()
+                                        : [],
+                                now,
+                            })
+                          : null,
+              };
     const domainHealth = buildDomainHealth(
         board.tasks,
         conflictAnalysis,
@@ -64,8 +96,11 @@ async function handleStatusCommand(ctx) {
     const domainHealthHistory = wantsExplainRed
         ? buildDomainHealthHistorySummary(loadDomainHealthHistory(), 7)
         : null;
-    const jobs =
-        typeof loadJobsSnapshot === 'function' ? await loadJobsSnapshot() : [];
+    const jobs = Array.isArray(focusData.jobs) ? focusData.jobs : [];
+    const decisionsData =
+        focusData.decisionsData && typeof focusData.decisionsData === 'object'
+            ? focusData.decisionsData
+            : { decisions: [] };
     const policy =
         typeof getGovernancePolicy === 'function'
             ? getGovernancePolicy()
@@ -82,6 +117,7 @@ async function handleStatusCommand(ctx) {
             byExecutor: getExecutorCounts(board.tasks),
         },
         strategy,
+        focus: focusData.summary,
         codex_instances: codexInstances,
         provider_modes: providerModes,
         runtime_surfaces: runtimeSurfaces,
@@ -141,37 +177,6 @@ async function handleStatusCommand(ctx) {
                   }),
               ]
             : [];
-    const strategyDiagnostics = [];
-    if (strategy?.active && strategy.orphan_tasks > 0) {
-        strategyDiagnostics.push(
-            domainDiagnostics.makeDiagnostic({
-                code: 'warn.board.strategy_orphan_active_task',
-                severity: 'warning',
-                source: 'status',
-                message: `Estrategia activa con ${strategy.orphan_tasks} tarea(s) huerfana(s)`,
-                task_ids: strategy.orphan_task_ids,
-                meta: {
-                    strategy_id: strategy.active.id,
-                    dispersion_score: strategy.dispersion_score,
-                },
-            })
-        );
-    }
-    if (strategy?.active && Number(strategy.exception_expired_tasks || 0) > 0) {
-        strategyDiagnostics.push(
-            domainDiagnostics.makeDiagnostic({
-                code: 'error.board.strategy_exception_expired',
-                severity: 'error',
-                source: 'status',
-                message: `Estrategia activa con ${strategy.exception_expired_tasks} exception(es) expirada(s)`,
-                task_ids: strategy.exception_expired_task_ids,
-                meta: {
-                    strategy_id: strategy.active.id,
-                    dispersion_score: strategy.dispersion_score,
-                },
-            })
-        );
-    }
 
     Object.assign(
         data,
@@ -180,12 +185,13 @@ async function handleStatusCommand(ctx) {
                 source: 'status',
                 board,
                 handoffData,
+                decisionsData,
+                focusSummary: focusData.summary,
                 conflictAnalysis,
                 metricsSnapshot,
                 jobsSnapshot: jobs,
             }),
             ...terminalEvidenceDiagnostics,
-            ...strategyDiagnostics,
         ])
     );
 

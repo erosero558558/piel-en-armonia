@@ -372,6 +372,47 @@ function normalizeSnapshotFromHealth(job, payload = {}) {
     return finalizeSnapshot(snapshot);
 }
 
+function normalizeSnapshotFromHealthMissingPublicSync(job, payload = {}) {
+    const checkedAt =
+        String(payload.timestamp || payload.checked_at || '').trim() ||
+        new Date().toISOString();
+    const snapshot = {
+        key: job.key,
+        job_id: String(job.job_id || '').trim(),
+        enabled: job.enabled,
+        type: job.type,
+        source_of_truth: job.source_of_truth,
+        verification_source: 'health_url',
+        verified: false,
+        configured: true,
+        healthy: false,
+        state: 'stale',
+        age_seconds: computeAgeSeconds(checkedAt),
+        expected_max_lag_seconds: Number(job.expected_max_lag_seconds || 0),
+        deployed_commit: '',
+        checked_at: checkedAt,
+        last_success_at: '',
+        last_error_at: checkedAt,
+        last_error_message: 'health_missing_public_sync',
+        repo_path: String(job.repo_path || '').trim(),
+        branch: String(job.branch || '').trim(),
+        status_path: String(job.status_path || '').trim(),
+        log_path: String(job.log_path || '').trim(),
+        lock_file: String(job.lock_file || '').trim(),
+        current_head: '',
+        remote_head: '',
+        duration_ms: null,
+        dirty_paths_count: 0,
+        dirty_paths_sample: [],
+        dirty_paths: [],
+        head_drift: false,
+        telemetry_gap: false,
+        details: payload,
+        failure_reason: 'health_missing_public_sync',
+    };
+    return finalizeSnapshot(snapshot);
+}
+
 async function resolveJobSnapshot(jobRaw, deps = {}) {
     const job = normalizeRegistryJob(jobRaw);
     const {
@@ -433,6 +474,10 @@ async function resolveJobSnapshot(jobRaw, deps = {}) {
                 if (publicSync && typeof publicSync === 'object') {
                     return normalizeSnapshotFromHealth(job, publicSync);
                 }
+                return normalizeSnapshotFromHealthMissingPublicSync(
+                    job,
+                    payload
+                );
             }
         } catch {
             // Fall through to registry-only mode.

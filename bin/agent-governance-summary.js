@@ -81,6 +81,34 @@ const DEFAULT_GOVERNANCE_POLICY = {
             },
             public_main_sync_stale: { severity: 'warning', enabled: true },
             public_main_sync_failed: { severity: 'warning', enabled: true },
+            strategy_without_focus: { severity: 'warning', enabled: true },
+            focus_without_active_tasks: {
+                severity: 'warning',
+                enabled: true,
+            },
+            missing_next_step: { severity: 'warning', enabled: true },
+            task_missing_focus_fields: {
+                severity: 'warning',
+                enabled: true,
+            },
+            task_outside_next_step: { severity: 'warning', enabled: true },
+            slice_not_allowed_for_lane: {
+                severity: 'warning',
+                enabled: true,
+            },
+            too_many_active_slices: {
+                severity: 'warning',
+                enabled: true,
+            },
+            required_check_unverified: {
+                severity: 'warning',
+                enabled: true,
+            },
+            decision_overdue: { severity: 'warning', enabled: true },
+            rework_without_reason: {
+                severity: 'warning',
+                enabled: true,
+            },
             wip_limit_executor: { severity: 'warning', enabled: true },
             wip_limit_scope: { severity: 'warning', enabled: true },
         },
@@ -591,13 +619,12 @@ function toMarkdown(report) {
     const codexCheck = report.codex_check || {};
     const boardDoctor = report.board_doctor || {};
     const delta = report.delta_summary || {};
+    const metrics = report.metrics || {};
     const contribution = report.contribution || {};
     const contributionHistory = report.contribution_history || {};
     const domainHealth = report.domain_health || {};
     const domainHealthHistory = report.domain_health_history || {};
-    const contributionDeltaMap = buildContributionDeltaMap(
-        report.metrics || {}
-    );
+    const contributionDeltaMap = buildContributionDeltaMap(metrics);
     const contributionRowsByExecutor = new Map(
         Array.isArray(contribution.executors)
             ? contribution.executors.map((row) => [
@@ -843,6 +870,24 @@ function toMarkdown(report) {
             `- Strategy: \`${status.strategy.active.id}\` (${status.strategy.active.title || 'sin titulo'}) | aligned=\`${status.strategy.aligned_tasks ?? 'n/a'}\` | support=\`${status.strategy.support_tasks ?? 'n/a'}\` | exception=\`${status.strategy.exception_tasks ?? 'n/a'}\` | orphan=\`${status.strategy.orphan_tasks ?? 'n/a'}\``
         );
     }
+    if (status.focus?.configured) {
+        lines.push(
+            `- Focus: \`${status.focus.configured.id}\` (${status.focus.configured.title || 'sin titulo'}) | next_step=\`${status.focus.configured.next_step || 'n/a'}\` | aligned=\`${status.focus.aligned_tasks ?? 0}\`/\`${status.focus.active_tasks_total ?? 0}\` | slices=\`${status.focus.distinct_active_slices ?? 0}\``
+        );
+        lines.push(
+            `- Focus checks: ${
+                Array.isArray(status.focus.required_checks) &&
+                status.focus.required_checks.length > 0
+                    ? status.focus.required_checks
+                          .map((item) => `\`${item.id}\`=${item.state}`)
+                          .join(', ')
+                    : 'none'
+            }`
+        );
+        lines.push(
+            `- Focus decisions: open=\`${status.focus.decisions?.open ?? 0}\`, overdue=\`${status.focus.decisions?.overdue ?? 0}\`, rework_ratio=\`${metrics.focus?.rework_tasks_pct ?? 'n/a'}%\``
+        );
+    }
     if (status.evidence_summary) {
         lines.push(
             `- Terminal evidence: aligned=\`${status.evidence_summary.aligned_count ?? 'n/a'}\`/\`${status.evidence_summary.terminal_tasks ?? 'n/a'}\`, missing_expected=\`${status.evidence_summary.missing_expected_count ?? 'n/a'}\`, debt=\`${status.evidence_summary.debt_count ?? 'n/a'}\`, sample=${Array.isArray(status.evidence_summary.sample_task_ids) && status.evidence_summary.sample_task_ids.length > 0 ? status.evidence_summary.sample_task_ids.map((id) => `\`${id}\``).join(', ') : 'none'}`
@@ -879,6 +924,11 @@ function toMarkdown(report) {
         if (boardDoctor.strategy_summary?.active) {
             lines.push(
                 `- Strategy doctor: \`${boardDoctor.strategy_summary.active.id}\` | aligned=\`${boardDoctor.strategy_summary.aligned_tasks ?? 'n/a'}\` | orphan=\`${boardDoctor.strategy_summary.orphan_tasks ?? 'n/a'}\` | exception=\`${boardDoctor.strategy_summary.exception_tasks ?? 'n/a'}\``
+            );
+        }
+        if (boardDoctor.focus_summary?.configured) {
+            lines.push(
+                `- Focus doctor: \`${boardDoctor.focus_summary.configured.id}\` | next_step=\`${boardDoctor.focus_summary.configured.next_step || 'n/a'}\` | aligned=\`${boardDoctor.focus_summary.aligned_tasks ?? 0}\`/\`${boardDoctor.focus_summary.active_tasks_total ?? 0}\` | slices=\`${boardDoctor.focus_summary.distinct_active_slices ?? 0}\` | decisions_overdue=\`${boardDoctor.focus_summary.decisions?.overdue ?? 0}\``
             );
         }
         if (boardDoctor.evidence_summary) {

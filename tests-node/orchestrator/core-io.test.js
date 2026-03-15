@@ -84,6 +84,49 @@ test('core-io writeSignalsFile serializa y persiste señales', () => {
     ]);
 });
 
+test('core-io readDecisionsFile usa fallback cuando no existe y writeDecisionsFile serializa', () => {
+    const fallback = coreIo.readDecisionsFile({
+        decisionsPath: 'AGENT_DECISIONS.yaml',
+        exists: () => false,
+        parseDecisionsContent: () => {
+            throw new Error('no deberia parsear');
+        },
+        currentDate: () => '2026-03-14',
+    });
+    assert.deepEqual(fallback, {
+        version: 1,
+        policy: {
+            owner_model: 'human_supervisor',
+            revision: 0,
+            updated_at: '2026-03-14',
+        },
+        decisions: [],
+    });
+
+    const writes = [];
+    const payload = {
+        version: 1,
+        policy: {
+            owner_model: 'human_supervisor',
+            revision: 1,
+            updated_at: '2026-03-14',
+        },
+        decisions: [],
+    };
+    const result = coreIo.writeDecisionsFile(payload, {
+        decisionsPath: 'AGENT_DECISIONS.yaml',
+        serializeDecisions: (data) => {
+            assert.equal(data, payload);
+            return 'serialized-decisions\n';
+        },
+        writeFile: (...args) => writes.push(args),
+    });
+    assert.equal(result, payload);
+    assert.deepEqual(writes, [
+        ['AGENT_DECISIONS.yaml', 'serialized-decisions\n', 'utf8'],
+    ]);
+});
+
 test('core-io resolveTaskEvidencePath respeta --evidence y fallback a evidenceDir', () => {
     const custom = coreIo.resolveTaskEvidencePath(
         'AG-001',

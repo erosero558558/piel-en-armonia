@@ -103,6 +103,51 @@ function writeJobsFile(data, deps = {}) {
     return data;
 }
 
+function readDecisionsFile(deps = {}) {
+    const {
+        decisionsPath,
+        exists = existsSync,
+        readFile = readFileSync,
+        parseDecisionsContent,
+        currentDate = () => '',
+    } = deps;
+    if (!decisionsPath) {
+        throw new Error('readDecisionsFile requiere decisionsPath');
+    }
+    if (typeof parseDecisionsContent !== 'function') {
+        throw new Error('readDecisionsFile requiere parseDecisionsContent');
+    }
+    if (!exists(decisionsPath)) {
+        return {
+            version: 1,
+            policy: {
+                owner_model: 'human_supervisor',
+                revision: 0,
+                updated_at: currentDate(),
+            },
+            decisions: [],
+        };
+    }
+    return parseDecisionsContent(readFile(decisionsPath, 'utf8'));
+}
+
+function writeDecisionsFile(data, deps = {}) {
+    const {
+        decisionsPath,
+        serializeDecisions,
+        writeFile = writeFileSync,
+    } = deps;
+    if (!decisionsPath) {
+        throw new Error('writeDecisionsFile requiere decisionsPath');
+    }
+    if (typeof serializeDecisions !== 'function') {
+        throw new Error('writeDecisionsFile requiere serializeDecisions');
+    }
+    ensureDirForFile(decisionsPath);
+    writeFile(decisionsPath, serializeDecisions(data), 'utf8');
+    return data;
+}
+
 function resolveTaskEvidencePath(taskId, flags = {}, deps = {}) {
     const { rootPath = '', evidenceDirPath, resolvePath } = deps;
     if (typeof resolvePath !== 'function') {
@@ -230,6 +275,8 @@ module.exports = {
     writeSignalsFile,
     readJobsFile,
     writeJobsFile,
+    readDecisionsFile,
+    writeDecisionsFile,
     appendJsonlFile,
     readJsonlFile,
     resolveTaskEvidencePath,

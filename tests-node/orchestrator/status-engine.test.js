@@ -74,15 +74,10 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
                 id: 'STRAT-2026-03-admin-operativo',
                 title: 'Admin operativo',
             },
-            next: {
-                id: 'STRAT-2026-03-admin-operativo-next',
-                title: 'Admin operativo siguiente',
-            },
             aligned_tasks: 1,
             support_tasks: 0,
             exception_tasks: 0,
             orphan_tasks: 0,
-            dispersion_score: 0,
             rows: [
                 {
                     subfront_id: 'SF-frontend-admin-operativo',
@@ -91,11 +86,33 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
                     primary_tasks: 1,
                     support_tasks: 0,
                     exception_tasks: 0,
-                    exception_expired_tasks: 0,
                     orphan_tasks: 0,
-                    aged_tasks: 0,
-                    wip_limit: 2,
                 },
+            ],
+        },
+        focus: {
+            configured: {
+                id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                title: 'Admin operativo demostrable',
+                proof: 'Demo comun',
+                next_step: 'admin_queue_pilot_cut',
+                required_checks: [
+                    'job:public_main_sync',
+                    'runtime:openclaw_chatgpt',
+                ],
+            },
+            active: {
+                id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                next_step: 'admin_queue_pilot_cut',
+            },
+            active_tasks_total: 1,
+            aligned_tasks: 1,
+            active_slices: ['runtime_support'],
+            distinct_active_slices: 1,
+            decisions: { open: 1, overdue: 0 },
+            required_checks: [
+                { id: 'job:public_main_sync', state: 'red' },
+                { id: 'runtime:openclaw_chatgpt', state: 'unverified' },
             ],
         },
         byStatus: { in_progress: 1 },
@@ -150,6 +167,10 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
     assert.equal(data.evidence_summary.debt_count, 1);
     assert.equal(data.strategy.active.id, 'STRAT-2026-03-admin-operativo');
     assert.equal(
+        data.focus.configured.id,
+        'FOCUS-2026-03-admin-operativo-cut-1'
+    );
+    assert.equal(
         data.codex_instances.rows[0].codex_instance,
         'codex_transversal'
     );
@@ -164,10 +185,15 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
 
     assert.match(output, /Agent Orchestrator Status/);
     assert.match(output, /Estrategia activa: STRAT-2026-03-admin-operativo/);
-    assert.match(output, /Draft siguiente: STRAT-2026-03-admin-operativo-next/);
+    assert.match(output, /Foco: FOCUS-2026-03-admin-operativo-cut-1/);
     assert.match(
         output,
-        /Cobertura estrategia: aligned=1, support=0, exception=0, orphan=0, dispersion=0/
+        /Cobertura estrategia: aligned=1, support=0, exception=0, orphan=0/
+    );
+    assert.match(output, /Foco compartido:/);
+    assert.match(
+        output,
+        /required_checks: job:public_main_sync=red, runtime:openclaw_chatgpt=unverified/
     );
     assert.match(output, /Semaforo por dominio/);
     assert.match(output, /Aporte \(ranking por completado ponderado\)/);
@@ -194,4 +220,28 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
     );
     assert.match(output, /Explain RED \(status\)/);
     assert.match(output, /\[GREEN\] #1 codex/);
+});
+
+test('status-engine renderiza required_checks runtime por surface sin asumir provider-wide', () => {
+    const output = statusEngine.renderStatusText({
+        focus: {
+            configured: {
+                id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                title: 'Admin operativo demostrable',
+                proof: 'Demo comun',
+                next_step: 'feedback_trim',
+            },
+            active_slices: ['governance_evidence'],
+            decisions: { open: 0, overdue: 0 },
+            required_checks: [
+                { id: 'job:public_main_sync', state: 'green' },
+                { id: 'runtime:operator_auth', state: 'green' },
+            ],
+        },
+    });
+
+    assert.match(
+        output,
+        /required_checks: job:public_main_sync=green, runtime:operator_auth=green/
+    );
 });

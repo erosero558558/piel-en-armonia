@@ -154,6 +154,46 @@
                 "severity": "warning",
                 "enabled": true
             },
+            "strategy_without_focus": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "focus_without_active_tasks": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "missing_next_step": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "task_missing_focus_fields": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "task_outside_next_step": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "slice_not_allowed_for_lane": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "too_many_active_slices": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "required_check_unverified": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "decision_overdue": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "rework_without_reason": {
+                "severity": "warning",
+                "enabled": true
+            },
             "wip_limit_executor": {
                 "severity": "warning",
                 "enabled": true

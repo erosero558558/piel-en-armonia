@@ -337,11 +337,18 @@ function normalizeTaskForCreateApply(rawTask, options = {}) {
             .trim()
             .toLowerCase(),
         strategy_reason: String(rawTask.strategy_reason || '').trim(),
-        exception_opened_at: String(rawTask.exception_opened_at || '').trim(),
-        exception_expires_at: String(rawTask.exception_expires_at || '').trim(),
-        exception_state: String(rawTask.exception_state || '')
+        focus_id: String(rawTask.focus_id || '').trim(),
+        focus_step: String(rawTask.focus_step || '').trim(),
+        integration_slice: String(rawTask.integration_slice || '')
             .trim()
             .toLowerCase(),
+        work_type: String(rawTask.work_type || '')
+            .trim()
+            .toLowerCase(),
+        expected_outcome: String(rawTask.expected_outcome || '').trim(),
+        decision_ref: String(rawTask.decision_ref || '').trim(),
+        rework_parent: String(rawTask.rework_parent || '').trim(),
+        rework_reason: String(rawTask.rework_reason || '').trim(),
         files: Array.isArray(rawTask.files)
             ? rawTask.files.map((v) => String(v || '').trim()).filter(Boolean)
             : [],
@@ -620,9 +627,14 @@ function buildTaskCreatePreviewDiff(existingTask, previewTask, options = {}) {
         'subfront_id',
         'strategy_role',
         'strategy_reason',
-        'exception_opened_at',
-        'exception_expires_at',
-        'exception_state',
+        'focus_id',
+        'focus_step',
+        'integration_slice',
+        'work_type',
+        'expected_outcome',
+        'decision_ref',
+        'rework_parent',
+        'rework_reason',
         'depends_on',
         'prompt',
     ];

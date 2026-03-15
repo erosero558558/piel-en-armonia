@@ -1,6 +1,7 @@
 'use strict';
 
 const domainStrategy = require('./strategy');
+const domainFocus = require('./focus');
 
 const DEFAULT_CRITICAL_SCOPE_KEYWORDS = [
     'payments',
@@ -741,6 +742,9 @@ function validateTaskGovernancePrechecks(board, task, options = {}) {
         findCriticalScopeKeyword: (scopeValue) =>
             findCriticalScopeKeyword(scopeValue, criticalScopeKeywords),
     });
+    domainFocus.ensureTaskFocusDefaults(board, task, {
+        activeStatuses,
+    });
     validateTaskExecutorScopeGuard(task, options);
     validateTaskDependsOn(board, task, options);
     validateTaskDualCodexGuard(board, task, options);
@@ -749,6 +753,11 @@ function validateTaskGovernancePrechecks(board, task, options = {}) {
         activeStatuses,
         findCriticalScopeKeyword: (scopeValue) =>
             findCriticalScopeKeyword(scopeValue, criticalScopeKeywords),
+    });
+    domainFocus.validateTaskFocusAlignment(board, task, {
+        ...options,
+        activeStatuses,
+        decisionsData: options.decisionsData,
     });
 }
 

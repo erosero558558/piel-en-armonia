@@ -25,6 +25,7 @@ async function handleTaskCommand(ctx) {
         loadTaskCreateApplyPayload,
         normalizeTaskForCreateApply,
         validateTaskGovernancePrechecks,
+        parseDecisions,
         getBlockingConflictsForTask,
         nextAgentTaskId,
         summarizeBlockingConflictsForTask,
@@ -72,7 +73,7 @@ async function handleTaskCommand(ctx) {
         )
     ) {
         throw new Error(
-            'Uso: node agent-orchestrator.js task <ls|create|claim|start|finish> [AG-001] [--owner x] [--executor y] [--status z] [--files a,b] [--template docs|bugfix|critical|runtime] [--codex-instance codex_backend_ops|codex_frontend|codex_transversal] [--domain-lane backend_ops|frontend_content|transversal_runtime] [--lane-lock strict|handoff_allowed] [--provider-mode openclaw_chatgpt] [--runtime-surface figo_queue|leadops_worker|operator_auth] [--runtime-transport hybrid_http_cli|http_bridge|cli_helper] [--strategy-id STRAT-...] [--subfront-id SF-...] [--strategy-role primary|support|exception] [--strategy-reason "..."] [--cross-domain true|false] [--evidence path] [--active|--mine]'
+            'Uso: node agent-orchestrator.js task <ls|create|claim|start|finish> [AG-001] [--owner x] [--executor y] [--status z] [--blocked-reason "..."] [--files a,b] [--template docs|bugfix|critical|runtime] [--codex-instance codex_backend_ops|codex_frontend|codex_transversal] [--domain-lane backend_ops|frontend_content|transversal_runtime] [--lane-lock strict|handoff_allowed] [--provider-mode openclaw_chatgpt] [--runtime-surface figo_queue|leadops_worker|operator_auth] [--runtime-transport hybrid_http_cli|http_bridge|cli_helper] [--strategy-id STRAT-...] [--subfront-id SF-...] [--strategy-role primary|support|exception] [--strategy-reason "..."] [--focus-id FOCUS-...] [--focus-step step] [--integration-slice frontend_runtime|backend_readiness|runtime_support|ops_deploy|desktop_shells|tests_quality|governance_evidence] [--work-type forward|support|fix|refactor|decision|evidence] [--expected-outcome "..."] [--decision-ref DEC-...] [--rework-parent AG-...] [--rework-reason "..."] [--cross-domain true|false] [--evidence path] [--active|--mine]'
         );
     }
 
@@ -104,6 +105,7 @@ async function handleTaskCommand(ctx) {
             loadTaskCreateApplyPayload,
             normalizeTaskForCreateApply,
             validateTaskGovernancePrechecks,
+            parseDecisions,
             ACTIVE_STATUSES,
             getBlockingConflictsForTask,
             toRelativeRepoPath,
@@ -165,6 +167,7 @@ async function handleTaskCommand(ctx) {
             ALLOWED_STATUSES,
             parseCsvList,
             validateTaskGovernancePrechecks,
+            parseDecisions,
             ACTIVE_STATUSES,
             isFlagEnabled,
             inferDomainLaneFromFiles,
@@ -196,6 +199,7 @@ async function handleTaskCommand(ctx) {
             ACTIVE_STATUSES,
             parseCsvList,
             validateTaskGovernancePrechecks,
+            parseDecisions,
             isFlagEnabled,
             inferDomainLaneFromFiles,
             ensureTaskDualCodexDefaults,
@@ -612,6 +616,77 @@ function applyStrategyOverrides(task, flags = {}) {
     }
 }
 
+function applyFocusOverrides(task, flags = {}) {
+    if (!task || typeof task !== 'object') return;
+    const focusId = readLiteralStringFlag(flags, 'focus-id', 'focus_id');
+    const focusStep = readLiteralStringFlag(flags, 'focus-step', 'focus_step');
+    const integrationSlice = readStringFlag(
+        flags,
+        'integration-slice',
+        'integration_slice'
+    );
+    const workType = readStringFlag(flags, 'work-type', 'work_type');
+    const expectedOutcome = readLiteralStringFlag(
+        flags,
+        'expected-outcome',
+        'expected_outcome'
+    );
+    const decisionRef = readLiteralStringFlag(
+        flags,
+        'decision-ref',
+        'decision_ref'
+    );
+    const reworkParent = readLiteralStringFlag(
+        flags,
+        'rework-parent',
+        'rework_parent'
+    );
+    const reworkReason = readLiteralStringFlag(
+        flags,
+        'rework-reason',
+        'rework_reason'
+    );
+
+    if (focusId) task.focus_id = focusId;
+    if (focusStep) task.focus_step = focusStep;
+    if (integrationSlice) task.integration_slice = integrationSlice;
+    if (workType) task.work_type = workType;
+    if (expectedOutcome) task.expected_outcome = expectedOutcome;
+    if (decisionRef) task.decision_ref = decisionRef;
+    if (reworkParent) task.rework_parent = reworkParent;
+    if (reworkReason) task.rework_reason = reworkReason;
+}
+
+function applyBlockedReasonOverride(task, flags = {}, commandLabel) {
+    if (!task || typeof task !== 'object') return;
+    const hasExplicitBlockedReason =
+        Object.prototype.hasOwnProperty.call(flags, 'blocked-reason') ||
+        Object.prototype.hasOwnProperty.call(flags, 'blocked_reason');
+    const explicitBlockedReason = String(
+        flags['blocked-reason'] || flags.blocked_reason || ''
+    ).trim();
+    const nextStatus = String(task.status || '').trim();
+
+    if (nextStatus !== 'blocked') {
+        if (hasExplicitBlockedReason && explicitBlockedReason) {
+            throw new Error(
+                `${commandLabel} solo acepta --blocked-reason cuando status=blocked`
+            );
+        }
+        task.blocked_reason = '';
+        return;
+    }
+
+    if (explicitBlockedReason) {
+        task.blocked_reason = explicitBlockedReason;
+    }
+    if (!String(task.blocked_reason || '').trim()) {
+        throw new Error(
+            `${commandLabel} requiere --blocked-reason cuando status=blocked`
+        );
+    }
+}
+
 function handleTaskClaim(ctx) {
     const {
         flags,
@@ -625,6 +700,7 @@ function handleTaskClaim(ctx) {
         ALLOWED_STATUSES,
         parseCsvList,
         validateTaskGovernancePrechecks,
+        parseDecisions,
         ACTIVE_STATUSES,
         isFlagEnabled,
         inferDomainLaneFromFiles,
@@ -643,6 +719,10 @@ function handleTaskClaim(ctx) {
 
     const board = parseBoard();
     const task = ensureTask(board, taskId);
+    const decisionsData =
+        typeof parseDecisions === 'function'
+            ? parseDecisions()
+            : { decisions: [] };
 
     const owner = detectDefaultOwner(task.owner);
     const ownerOverride = flags.owner ? String(flags.owner).trim() : owner;
@@ -684,6 +764,8 @@ function handleTaskClaim(ctx) {
         ensureTaskDualCodexDefaults,
     });
     applyStrategyOverrides(task, flags);
+    applyFocusOverrides(task, flags);
+    applyBlockedReasonOverride(task, flags, 'task claim');
     if (isRetiredExecutor(task.executor, RETIRED_TASK_EXECUTORS)) {
         throw createRetiredExecutorError(task.executor, 'task claim');
     }
@@ -691,6 +773,7 @@ function handleTaskClaim(ctx) {
     validateTaskGovernancePrechecks(board, task, {
         allowSelf: true,
         handoffs: handoffData.handoffs,
+        decisionsData,
     });
 
     if (ACTIVE_STATUSES.has(String(task.status || '').trim())) {
@@ -778,6 +861,7 @@ function handleTaskStart(ctx) {
         ACTIVE_STATUSES,
         parseCsvList,
         validateTaskGovernancePrechecks,
+        parseDecisions,
         isFlagEnabled,
         inferDomainLaneFromFiles,
         ensureTaskDualCodexDefaults,
@@ -795,6 +879,10 @@ function handleTaskStart(ctx) {
 
     const board = parseBoard();
     const task = ensureTask(board, taskId);
+    const decisionsData =
+        typeof parseDecisions === 'function'
+            ? parseDecisions()
+            : { decisions: [] };
 
     const nextStatus = String(flags.status || 'in_progress').trim();
     if (!ACTIVE_STATUSES.has(nextStatus)) {
@@ -839,12 +927,15 @@ function handleTaskStart(ctx) {
         ensureTaskDualCodexDefaults,
     });
     applyStrategyOverrides(task, flags);
+    applyFocusOverrides(task, flags);
+    applyBlockedReasonOverride(task, flags, 'task start');
     if (isRetiredExecutor(task.executor, RETIRED_TASK_EXECUTORS)) {
         throw createRetiredExecutorError(task.executor, 'task start');
     }
     validateTaskGovernancePrechecks(board, task, {
         allowSelf: true,
         handoffs: handoffData.handoffs,
+        decisionsData,
     });
 
     const blockingConflicts = getBlockingConflictsForTask(
@@ -1004,6 +1095,7 @@ async function handleTaskCreate(ctx) {
         wantsJson,
         parseBoard,
         parseHandoffs,
+        parseDecisions,
         loadTaskCreateApplyPayload,
         normalizeTaskForCreateApply,
         validateTaskGovernancePrechecks,
@@ -1080,6 +1172,10 @@ async function handleTaskCreate(ctx) {
         });
         const board = parseBoard();
         const handoffData = parseHandoffs();
+        const decisionsData =
+            typeof parseDecisions === 'function'
+                ? parseDecisions()
+                : { decisions: [] };
         const task = normalizeTaskForCreateApply(
             loaded.payload?.task_full || loaded.payload?.task
         );
@@ -1093,6 +1189,7 @@ async function handleTaskCreate(ctx) {
             }
         );
         applyStrategyOverrides(task, {});
+        applyFocusOverrides(task, {});
 
         const errors = [];
         const duplicateTask =
@@ -1107,6 +1204,7 @@ async function handleTaskCreate(ctx) {
         try {
             validateTaskGovernancePrechecks(board, task, {
                 handoffs: handoffData.handoffs,
+                decisionsData,
             });
         } catch (error) {
             governanceOk = false;
@@ -1378,6 +1476,10 @@ async function handleTaskCreate(ctx) {
         const sourcePayload = applyFile.payload || {};
         const board = parseBoard();
         const handoffData = parseHandoffs();
+        const decisionsData =
+            typeof parseDecisions === 'function'
+                ? parseDecisions()
+                : { decisions: [] };
         const task = normalizeTaskForCreateApply(
             sourcePayload.task_full || sourcePayload.task
         );
@@ -1416,8 +1518,10 @@ async function handleTaskCreate(ctx) {
             ensureTaskDualCodexDefaults,
         });
         applyStrategyOverrides(task, flags);
+        applyFocusOverrides(task, flags);
         validateTaskGovernancePrechecks(board, task, {
             handoffs: handoffData.handoffs,
+            decisionsData,
         });
         board.tasks.push(task);
 
@@ -1546,6 +1650,10 @@ async function handleTaskCreate(ctx) {
     }
 
     const board = parseBoard();
+    const decisionsData =
+        typeof parseDecisions === 'function'
+            ? parseDecisions()
+            : { decisions: [] };
     const template = resolveTaskCreateTemplate(flags.template);
     const requestedId = String(flags.id || '').trim();
     const newId = requestedId || nextAgentTaskId(board.tasks);
@@ -1807,9 +1915,14 @@ async function handleTaskCreate(ctx) {
         subfront_id: '',
         strategy_role: '',
         strategy_reason: '',
-        exception_opened_at: '',
-        exception_expires_at: '',
-        exception_state: '',
+        focus_id: '',
+        focus_step: '',
+        integration_slice: '',
+        work_type: '',
+        expected_outcome: '',
+        decision_ref: '',
+        rework_parent: '',
+        rework_reason: '',
         created_at: today,
         updated_at: today,
     };
@@ -1833,8 +1946,10 @@ async function handleTaskCreate(ctx) {
         ensureTaskDualCodexDefaults,
     });
     applyStrategyOverrides(task, flags);
+    applyFocusOverrides(task, flags);
     validateTaskGovernancePrechecks(board, task, {
         handoffs: handoffData.handoffs,
+        decisionsData,
     });
 
     board.tasks.push(task);

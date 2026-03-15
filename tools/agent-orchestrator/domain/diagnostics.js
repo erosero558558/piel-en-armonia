@@ -1,5 +1,7 @@
 'use strict';
 
+const domainFocus = require('./focus');
+
 function buildStatusRedExplanation(input = {}, deps = {}) {
     const {
         conflictAnalysis,
@@ -235,6 +237,9 @@ function buildPublicSyncFailureMessage(job = {}) {
     const failureReason = String(job.failure_reason || '').trim();
     if (failureReason) {
         parts.push(`reason=${failureReason}`);
+        if (failureReason === 'health_missing_public_sync') {
+            parts.push('action=deploy_health_public_sync_rollout');
+        }
     }
     if (job.head_drift) {
         parts.push('head_drift=true');
@@ -281,6 +286,8 @@ function buildWarnFirstDiagnostics(input = {}) {
         policy = null,
         board = null,
         handoffData = null,
+        decisionsData = null,
+        focusSummary = null,
         metricsSnapshot = null,
         policyReport = null,
         jobsSnapshot = null,
@@ -290,6 +297,15 @@ function buildWarnFirstDiagnostics(input = {}) {
     const diagnostics = [];
     const warnPolicyMap = getWarnPolicyMap(policy);
     const nowMs = now instanceof Date ? now.getTime() : Date.now();
+    const resolvedFocusSummary =
+        focusSummary && typeof focusSummary === 'object'
+            ? focusSummary
+            : domainFocus.buildFocusSummary(board, {
+                  activeStatuses,
+                  decisionsData,
+                  jobsSnapshot,
+                  now,
+              });
 
     if (warnPolicyEnabled(warnPolicyMap, 'active_broad_glob')) {
         const tasks = Array.isArray(board?.tasks) ? board.tasks : [];
@@ -456,6 +472,186 @@ function buildWarnFirstDiagnostics(input = {}) {
                 })
             );
         }
+    }
+
+    if (
+        warnPolicyEnabled(warnPolicyMap, 'strategy_without_focus') &&
+        board?.strategy?.active &&
+        !resolvedFocusSummary.configured
+    ) {
+        diagnostics.push(
+            makeDiagnostic({
+                code: 'warn.focus.strategy_without_focus',
+                severity: warnPolicySeverity(
+                    warnPolicyMap,
+                    'strategy_without_focus'
+                ),
+                source,
+                message: 'strategy.active no tiene foco compartido configurado',
+            })
+        );
+    }
+    if (
+        warnPolicyEnabled(warnPolicyMap, 'focus_without_active_tasks') &&
+        resolvedFocusSummary.idle
+    ) {
+        diagnostics.push(
+            makeDiagnostic({
+                code: 'warn.focus.focus_without_active_tasks',
+                severity: warnPolicySeverity(
+                    warnPolicyMap,
+                    'focus_without_active_tasks'
+                ),
+                source,
+                message: `focus ${resolvedFocusSummary.configured?.id || 'n/a'} activo sin tareas activas`,
+            })
+        );
+    }
+    if (
+        warnPolicyEnabled(warnPolicyMap, 'missing_next_step') &&
+        resolvedFocusSummary.configured &&
+        !resolvedFocusSummary.configured.next_step
+    ) {
+        diagnostics.push(
+            makeDiagnostic({
+                code: 'warn.focus.missing_next_step',
+                severity: warnPolicySeverity(
+                    warnPolicyMap,
+                    'missing_next_step'
+                ),
+                source,
+                message: 'focus configurado sin focus_next_step',
+            })
+        );
+    }
+    if (
+        warnPolicyEnabled(warnPolicyMap, 'task_missing_focus_fields') &&
+        resolvedFocusSummary.missing_focus_task_ids.length > 0
+    ) {
+        diagnostics.push(
+            makeDiagnostic({
+                code: 'warn.focus.task_missing_focus_fields',
+                severity: warnPolicySeverity(
+                    warnPolicyMap,
+                    'task_missing_focus_fields'
+                ),
+                source,
+                message: `Tareas activas sin foco completo: ${resolvedFocusSummary.missing_focus_task_ids.join(', ')}`,
+                task_ids: resolvedFocusSummary.missing_focus_task_ids,
+            })
+        );
+    }
+    if (
+        warnPolicyEnabled(warnPolicyMap, 'task_outside_next_step') &&
+        resolvedFocusSummary.outside_next_step_task_ids.length > 0
+    ) {
+        diagnostics.push(
+            makeDiagnostic({
+                code: 'warn.focus.task_outside_next_step',
+                severity: warnPolicySeverity(
+                    warnPolicyMap,
+                    'task_outside_next_step'
+                ),
+                source,
+                message: `Tareas activas fuera de focus_next_step: ${resolvedFocusSummary.outside_next_step_task_ids.join(', ')}`,
+                task_ids: resolvedFocusSummary.outside_next_step_task_ids,
+            })
+        );
+    }
+    if (
+        warnPolicyEnabled(warnPolicyMap, 'slice_not_allowed_for_lane') &&
+        resolvedFocusSummary.invalid_slice_task_ids.length > 0
+    ) {
+        diagnostics.push(
+            makeDiagnostic({
+                code: 'warn.focus.slice_not_allowed_for_lane',
+                severity: warnPolicySeverity(
+                    warnPolicyMap,
+                    'slice_not_allowed_for_lane'
+                ),
+                source,
+                message: `Tareas con integration_slice invalido para su lane: ${resolvedFocusSummary.invalid_slice_task_ids.join(', ')}`,
+                task_ids: resolvedFocusSummary.invalid_slice_task_ids,
+            })
+        );
+    }
+    if (
+        warnPolicyEnabled(warnPolicyMap, 'too_many_active_slices') &&
+        resolvedFocusSummary.too_many_active_slices
+    ) {
+        diagnostics.push(
+            makeDiagnostic({
+                code: 'warn.focus.too_many_active_slices',
+                severity: warnPolicySeverity(
+                    warnPolicyMap,
+                    'too_many_active_slices'
+                ),
+                source,
+                message: `Focus excede max_active_slices (${resolvedFocusSummary.distinct_active_slices}/${resolvedFocusSummary.configured?.max_active_slices || 3})`,
+                meta: {
+                    distinct_active_slices:
+                        resolvedFocusSummary.distinct_active_slices,
+                    max_active_slices:
+                        resolvedFocusSummary.configured?.max_active_slices || 3,
+                },
+            })
+        );
+    }
+    if (
+        warnPolicyEnabled(warnPolicyMap, 'required_check_unverified') &&
+        Array.isArray(resolvedFocusSummary.required_checks)
+    ) {
+        const pendingChecks = resolvedFocusSummary.required_checks.filter(
+            (item) => item.state === 'unverified' || item.state === 'red'
+        );
+        if (pendingChecks.length > 0) {
+            diagnostics.push(
+                makeDiagnostic({
+                    code: 'warn.focus.required_check_unverified',
+                    severity: warnPolicySeverity(
+                        warnPolicyMap,
+                        'required_check_unverified'
+                    ),
+                    source,
+                    message: `Required checks del foco no estan verdes: ${pendingChecks
+                        .map((item) => `${item.id}=${item.state}`)
+                        .join(', ')}`,
+                    meta: {
+                        checks: pendingChecks,
+                    },
+                })
+            );
+        }
+    }
+    if (
+        warnPolicyEnabled(warnPolicyMap, 'decision_overdue') &&
+        resolvedFocusSummary.decisions.overdue > 0
+    ) {
+        diagnostics.push(
+            makeDiagnostic({
+                code: 'warn.focus.decision_overdue',
+                severity: warnPolicySeverity(warnPolicyMap, 'decision_overdue'),
+                source,
+                message: `Decisiones abiertas vencidas para el foco: ${resolvedFocusSummary.decisions.overdue_ids.join(', ')}`,
+            })
+        );
+    }
+    if (
+        warnPolicyEnabled(warnPolicyMap, 'rework_without_reason') &&
+        resolvedFocusSummary.rework_without_reason_task_ids.length > 0
+    ) {
+        diagnostics.push(
+            makeDiagnostic({
+                code: 'warn.focus.rework_without_reason',
+                severity: warnPolicySeverity(
+                    warnPolicyMap,
+                    'rework_without_reason'
+                ),
+                source,
+                message: `Tareas fix/refactor sin causa de retrabajo: ${resolvedFocusSummary.rework_without_reason_task_ids.join(', ')}`,
+                task_ids: resolvedFocusSummary.rework_without_reason_task_ids,
+            })
+        );
     }
 
     const hasJobsSnapshot = Array.isArray(jobsSnapshot);

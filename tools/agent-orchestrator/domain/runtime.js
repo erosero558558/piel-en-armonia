@@ -529,9 +529,88 @@ async function verifyLeadOpsWorker(options = {}) {
 async function verifyOperatorAuth(options = {}) {
     const baseUrl = resolveRuntimeBaseUrl(options);
     const url = joinUrl(baseUrl, '/api.php?resource=operator-auth-status');
+    const facadeUrl = joinUrl(baseUrl, '/admin-auth.php?action=status');
     try {
         const response = await fetchJson(url, { fetchImpl: options.fetchImpl });
-        const payload = response.payload || {};
+        const payload =
+            response.payload && typeof response.payload === 'object'
+                ? response.payload
+                : null;
+        if (!response.ok || !payload) {
+            let facadeSnapshot = null;
+            try {
+                const facadeResponse = await fetchJson(facadeUrl, {
+                    fetchImpl: options.fetchImpl,
+                });
+                const facadePayload =
+                    facadeResponse.payload &&
+                    typeof facadeResponse.payload === 'object'
+                        ? facadeResponse.payload
+                        : null;
+                facadeSnapshot = {
+                    verification_url: facadeUrl,
+                    ok: Boolean(facadeResponse.ok),
+                    http_status: Number(facadeResponse.status || 0),
+                    raw_text: String(facadeResponse.raw_text || '').trim(),
+                    mode: facadePayload
+                        ? String(facadePayload.mode || '').trim()
+                        : '',
+                    status: facadePayload
+                        ? String(facadePayload.status || '').trim()
+                        : '',
+                    authenticated: facadePayload
+                        ? Boolean(facadePayload.authenticated)
+                        : false,
+                    contract_valid: Boolean(
+                        facadePayload &&
+                        typeof facadePayload === 'object' &&
+                        String(facadePayload.mode || '').trim() &&
+                        String(facadePayload.status || '').trim()
+                    ),
+                    details: facadePayload,
+                };
+            } catch (facadeError) {
+                facadeSnapshot = {
+                    verification_url: facadeUrl,
+                    ok: false,
+                    http_status: 0,
+                    raw_text: '',
+                    mode: '',
+                    status: '',
+                    authenticated: false,
+                    contract_valid: false,
+                    error: String(facadeError?.message || facadeError),
+                    details: null,
+                };
+            }
+            return {
+                surface: 'operator_auth',
+                healthy: false,
+                state: 'unhealthy',
+                verification_url: url,
+                transport: 'http_bridge',
+                mode: payload ? String(payload.mode || '').trim() : '',
+                status: payload ? String(payload.status || '').trim() : '',
+                authenticated: payload ? Boolean(payload.authenticated) : false,
+                http_status: Number(response.status || 0),
+                error: !response.ok
+                    ? `operator_auth_http_${Number(response.status || 0)}`
+                    : 'operator_auth_invalid_payload',
+                raw_text: String(response.raw_text || '').trim(),
+                facade_verification_url:
+                    facadeSnapshot?.verification_url || facadeUrl,
+                facade_ok: Boolean(facadeSnapshot?.ok),
+                facade_http_status: Number(facadeSnapshot?.http_status || 0),
+                facade_error: String(facadeSnapshot?.error || '').trim(),
+                facade_raw_text: String(facadeSnapshot?.raw_text || '').trim(),
+                facade_mode: String(facadeSnapshot?.mode || '').trim(),
+                facade_status: String(facadeSnapshot?.status || '').trim(),
+                facade_authenticated: Boolean(facadeSnapshot?.authenticated),
+                facade_contract_valid: Boolean(facadeSnapshot?.contract_valid),
+                facade_details: facadeSnapshot?.details || null,
+                details: payload,
+            };
+        }
         const mode = String(payload.mode || 'disabled').trim();
         const status = String(payload.status || '').trim();
         const healthy = Boolean(
@@ -549,6 +628,7 @@ async function verifyOperatorAuth(options = {}) {
             mode,
             status,
             authenticated: Boolean(payload.authenticated),
+            http_status: Number(response.status || 0),
             details: payload,
         };
     } catch (error) {
@@ -563,12 +643,287 @@ async function verifyOperatorAuth(options = {}) {
     }
 }
 
+function describeRuntimeSurface(surface = {}) {
+    const key = String(surface.surface || '').trim();
+    const state = String(surface.state || 'unknown').trim() || 'unknown';
+    const healthy = Boolean(surface.healthy);
+    if (!key) {
+        return {
+            surface: '',
+            state,
+            healthy,
+            blocking: !healthy,
+            reason: healthy ? 'healthy' : 'surface_unknown',
+            message: healthy ? 'surface healthy' : 'runtime surface unknown',
+            next_action: healthy ? '' : 'revisar configuracion de la surface',
+        };
+    }
+    if (healthy) {
+        return {
+            surface: key,
+            state,
+            healthy: true,
+            blocking: false,
+            reason: 'healthy',
+            message: `${key} healthy`,
+            next_action: '',
+        };
+    }
+
+    if (key === 'figo_queue') {
+        if (
+            String(surface.provider_mode || '').trim() === 'legacy_proxy' &&
+            surface.gateway_configured === false
+        ) {
+            return {
+                surface: key,
+                state,
+                healthy: false,
+                blocking: true,
+                reason: 'legacy_proxy_without_gateway',
+                message:
+                    'figo_queue degradado: bridge sigue en legacy_proxy sin gateway OpenClaw configurado',
+                next_action:
+                    'migrar figo-ai-bridge a provider_mode=openclaw_chatgpt y dejar gatewayConfigured=true',
+            };
+        }
+        if (surface.openclaw_reachable === false) {
+            return {
+                surface: key,
+                state,
+                healthy: false,
+                blocking: true,
+                reason: 'openclaw_unreachable',
+                message:
+                    'figo_queue unhealthy: el bridge no logra alcanzar OpenClaw',
+                next_action:
+                    'verificar conectividad y credenciales del bridge HTTP',
+            };
+        }
+        return {
+            surface: key,
+            state,
+            healthy: false,
+            blocking: true,
+            reason:
+                state === 'degraded' ? 'bridge_degraded' : 'bridge_unhealthy',
+            message:
+                state === 'degraded'
+                    ? 'figo_queue degradado: el bridge responde pero no confirma gateway/reachability completos'
+                    : 'figo_queue unhealthy: el bridge no esta respondiendo de forma valida',
+            next_action:
+                'revisar figo-ai-bridge.php y el estado del provider OpenClaw',
+        };
+    }
+
+    if (key === 'leadops_worker') {
+        if (surface.configured === false || surface.mode === 'disabled') {
+            return {
+                surface: key,
+                state,
+                healthy: false,
+                blocking: true,
+                reason: 'worker_disabled',
+                message:
+                    'leadops_worker unhealthy: la surface esta deshabilitada o no configurada en health',
+                next_action:
+                    'habilitar/configurar el worker o excluirlo del corte si no aplica',
+            };
+        }
+        if (surface.degraded) {
+            return {
+                surface: key,
+                state,
+                healthy: false,
+                blocking: true,
+                reason: 'worker_degraded',
+                message:
+                    'leadops_worker degradado: health reporta el worker en linea pero degradado',
+                next_action:
+                    'revisar backlog/timing del worker y su ruta de ejecucion',
+            };
+        }
+        return {
+            surface: key,
+            state,
+            healthy: false,
+            blocking: true,
+            reason: 'worker_unhealthy',
+            message:
+                'leadops_worker unhealthy: la surface no pasa la verificacion runtime',
+            next_action:
+                'revisar health.checks.leadOps y la ruta bin/lead-ai-worker.js',
+        };
+    }
+
+    if (key === 'operator_auth') {
+        if (
+            surface.facade_contract_valid &&
+            Number(surface.http_status || 0) >= 500
+        ) {
+            return {
+                surface: key,
+                state,
+                healthy: false,
+                blocking: true,
+                reason: 'facade_only_rollout',
+                message:
+                    'operator_auth unhealthy: la fachada admin-auth ya publica contrato OpenClaw pero operator-auth-status aun no',
+                next_action:
+                    'desplegar y estabilizar /api.php?resource=operator-auth-status para alinear el surface canonico',
+            };
+        }
+        if (
+            Number(surface.http_status || 0) >= 520 &&
+            Number(surface.facade_http_status || 0) >= 520
+        ) {
+            const edgeLabel =
+                String(surface.raw_text || '').includes('1033') ||
+                String(surface.facade_raw_text || '').includes('1033')
+                    ? 'Cloudflare 1033'
+                    : 'edge/origen';
+            return {
+                surface: key,
+                state,
+                healthy: false,
+                blocking: true,
+                reason: 'auth_edge_failure',
+                message: `operator_auth unhealthy: el edge esta devolviendo HTTP ${Number(surface.http_status || 0)} en operator-auth-status y ${Number(surface.facade_http_status || 0)} en admin-auth.php?action=status`,
+                next_action: `revisar ${edgeLabel}, routing y origen para /api.php?resource=operator-auth-status y /admin-auth.php?action=status`,
+            };
+        }
+        if (Number(surface.http_status || 0) > 0) {
+            return {
+                surface: key,
+                state,
+                healthy: false,
+                blocking: true,
+                reason: `auth_status_http_${Number(surface.http_status || 0)}`,
+                message: `operator_auth unhealthy: endpoint devolvio HTTP ${Number(surface.http_status || 0)}`,
+                next_action:
+                    'revisar Cloudflare/origen y la ruta /api.php?resource=operator-auth-status',
+            };
+        }
+        if (String(surface.error || '').trim()) {
+            return {
+                surface: key,
+                state,
+                healthy: false,
+                blocking: true,
+                reason: 'auth_status_unreachable',
+                message:
+                    'operator_auth unhealthy: el endpoint no respondio de forma valida',
+                next_action:
+                    'revisar Cloudflare/origen y la ruta /api.php?resource=operator-auth-status',
+            };
+        }
+        if (
+            String(surface.mode || '').trim() &&
+            String(surface.mode || '').trim() !== OPENCLAW_PROVIDER
+        ) {
+            return {
+                surface: key,
+                state,
+                healthy: false,
+                blocking: true,
+                reason: 'auth_mode_mismatch',
+                message:
+                    'operator_auth unhealthy: el modo expuesto no coincide con openclaw_chatgpt',
+                next_action:
+                    'alinear operator_auth al modo recomendado openclaw_chatgpt',
+            };
+        }
+        if (
+            String(surface.status || '').trim() ===
+            'operator_auth_not_configured'
+        ) {
+            return {
+                surface: key,
+                state,
+                healthy: false,
+                blocking: true,
+                reason: 'operator_auth_not_configured',
+                message:
+                    'operator_auth unhealthy: la facade existe pero no esta configurada',
+                next_action:
+                    'completar configuracion de operator auth antes del corte',
+            };
+        }
+        return {
+            surface: key,
+            state,
+            healthy: false,
+            blocking: true,
+            reason: 'operator_auth_unhealthy',
+            message:
+                'operator_auth unhealthy: la surface no cumple el contrato esperado',
+            next_action:
+                'revisar /api.php?resource=operator-auth-status y la configuracion auth',
+        };
+    }
+
+    return {
+        surface: key,
+        state,
+        healthy: false,
+        blocking: true,
+        reason: 'runtime_surface_unhealthy',
+        message: `${key} ${state}`,
+        next_action: 'revisar configuracion y health de la surface',
+    };
+}
+
+function summarizeRuntimeHealth(surfaces = []) {
+    const diagnostics = Array.isArray(surfaces)
+        ? surfaces.map((surface) => describeRuntimeSurface(surface))
+        : [];
+    const healthySurfaces = diagnostics
+        .filter((item) => item.healthy)
+        .map((item) => item.surface);
+    const degradedSurfaces = diagnostics
+        .filter((item) => item.state === 'degraded')
+        .map((item) => item.surface);
+    const unhealthySurfaces = diagnostics
+        .filter((item) => !item.healthy && item.state !== 'degraded')
+        .map((item) => item.surface);
+    const blockingSurfaces = diagnostics
+        .filter((item) => item.blocking)
+        .map((item) => item.surface);
+    const state =
+        unhealthySurfaces.length > 0
+            ? 'unhealthy'
+            : degradedSurfaces.length > 0
+              ? 'degraded'
+              : 'healthy';
+    const message = diagnostics
+        .map((item) =>
+            item.reason === 'healthy'
+                ? `${item.surface}=healthy`
+                : `${item.surface}=${item.state}(${item.reason})`
+        )
+        .join(', ');
+
+    return {
+        state,
+        healthy_surfaces: healthySurfaces,
+        degraded_surfaces: degradedSurfaces,
+        unhealthy_surfaces: unhealthySurfaces,
+        blocking_surfaces: blockingSurfaces,
+        healthy_count: healthySurfaces.length,
+        degraded_count: degradedSurfaces.length,
+        unhealthy_count: unhealthySurfaces.length,
+        diagnostics,
+        message,
+    };
+}
+
 async function verifyOpenClawRuntime(options = {}) {
     const surfaces = await Promise.all([
         verifyFigoQueue(options),
         verifyLeadOpsWorker(options),
         verifyOperatorAuth(options),
     ]);
+    const summary = summarizeRuntimeHealth(surfaces);
     const helperPath = resolve(
         options.rootPath || process.cwd(),
         'bin',
@@ -577,7 +932,9 @@ async function verifyOpenClawRuntime(options = {}) {
     const cliHelperConfigured = existsSync(helperPath);
     return {
         provider: OPENCLAW_PROVIDER,
-        ok: surfaces.every((surface) => surface.healthy),
+        ok: summary.state === 'healthy',
+        summary,
+        overall_state: summary.state,
         preferred_transport: 'http_bridge',
         default_transport: 'hybrid_http_cli',
         base_url: resolveRuntimeBaseUrl(options),

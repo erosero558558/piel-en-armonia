@@ -105,6 +105,13 @@ Add-ChecklistCommandBlock @(
     "curl -s $DiagnosticsUrl | jq '.checks.auth | {mode, status, configured, hardeningCompliant, recommendedMode, recommendedModeActive, twoFactorEnabled, operatorAuthEnabled, operatorAuthConfigured, legacyPasswordConfigured}'"
 )
 
+Add-ChecklistSection 'Health publico'
+Add-ChecklistBullet 'Confirma si el health publico ya expone checks.publicSync; si falta, el host sigue sirviendo un HealthController stale y jobs verify fallara con health_missing_public_sync o, si no logra leer el endpoint, quedara en registry_only/unverified aunque el cron exista.'
+Add-ChecklistCommandBlock @(
+    "curl -s $base/api.php?resource=health",
+    "curl -s $base/api.php?resource=health | jq '.checks.publicSync | {configured, jobId, state, healthy, operationallyHealthy, failureReason, lastErrorMessage}'"
+)
+
 Add-ChecklistSection 'Wrapper canonico y corrida forzada'
 Add-ChecklistBullet 'Si el wrapper no coincide o telemetryGap sigue true sin heads/dirty paths, reinstala el wrapper canonico antes de volver a diagnosticar.'
 Add-ChecklistCommandBlock @(
@@ -124,6 +131,7 @@ Add-ChecklistCommandBlock @(
 
 Add-ChecklistSection 'Interpretacion rapida'
 Add-ChecklistBullet 'wrapper_diff + telemetryGap=true: el host probablemente sigue ejecutando un wrapper stale o un entrypoint legacy.'
+Add-ChecklistBullet 'health publico sin checks.publicSync o sin jobId: desplegar controllers/HealthController.php actualizado antes de tratar el caso como drift del repo o cron roto.'
 Add-ChecklistBullet 'failureReason=working_tree_dirty + dirtyPathsCount>0 + telemetryGap=false: el cron tiene suficiente telemetria; limpia drift tracked en el VPS antes de culpar al workflow.'
 Add-ChecklistBullet 'currentHead != remoteHead: hay head drift real; no es solo working tree dirty.'
 Add-ChecklistBullet 'encryptionStatus=plaintext o encryptionCompliant=false: falta configurar o aplicar PIELARMONIA_DATA_ENCRYPTION_KEY / PIELARMONIA_REQUIRE_DATA_ENCRYPTION en el host.'
@@ -132,6 +140,7 @@ Add-ChecklistLine
 
 Add-ChecklistSection 'Criterio de cierre'
 Add-ChecklistBullet 'checks.publicSync.healthy=true'
+Add-ChecklistBullet 'health publico expone checks.publicSync.jobId=8d31e299-7e57-4959-80b5-aaa2d73e9674'
 Add-ChecklistBullet 'checks.publicSync.telemetryGap=false'
 Add-ChecklistBullet 'checks.publicSync.currentHead y checks.publicSync.remoteHead presentes y alineados'
 Add-ChecklistBullet 'checks.publicSync.dirtyPathsCount=0'

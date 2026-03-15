@@ -13,6 +13,7 @@ function createRuntimeGovernanceCommands(ctx = {}) {
                 toConflictJsonRecord: ctx.toConflictJsonRecord,
                 attachDiagnostics: ctx.attachDiagnostics,
                 buildWarnFirstDiagnostics: ctx.buildWarnFirstDiagnostics,
+                buildLiveFocusSummary: ctx.buildLiveFocusSummary,
             });
         },
 
@@ -25,6 +26,8 @@ function createRuntimeGovernanceCommands(ctx = {}) {
                 governancePolicyPath: ctx.governancePolicyPath,
                 attachDiagnostics: ctx.attachDiagnostics,
                 buildWarnFirstDiagnostics: ctx.buildWarnFirstDiagnostics,
+                parseBoard: ctx.parseBoard,
+                buildLiveFocusSummary: ctx.buildLiveFocusSummary,
             });
         },
 
@@ -35,6 +38,7 @@ function createRuntimeGovernanceCommands(ctx = {}) {
                 isExpired: ctx.isExpired,
                 attachDiagnostics: ctx.attachDiagnostics,
                 buildWarnFirstDiagnostics: ctx.buildWarnFirstDiagnostics,
+                buildLiveFocusSummary: ctx.buildLiveFocusSummary,
                 getHandoffLintErrors: ctx.getHandoffLintErrors,
                 parseFlags: ctx.parseFlags,
                 parseBoard: ctx.parseBoard,
@@ -67,6 +71,7 @@ function createRuntimeGovernanceCommands(ctx = {}) {
                 parseHandoffs: ctx.parseHandoffs,
                 loadMetricsSnapshot: ctx.loadMetricsSnapshot,
                 loadJobsSnapshot: ctx.loadJobsSnapshot,
+                buildLiveFocusSummary: ctx.buildLiveFocusSummary,
                 verifyOpenClawRuntime: ctx.verifyOpenClawRuntime,
                 buildRuntimeBlockingErrors: ctx.buildRuntimeBlockingErrors,
             });
@@ -79,6 +84,7 @@ function createRuntimeGovernanceCommands(ctx = {}) {
                 ensureTask: ctx.ensureTask,
                 parseBoard: ctx.parseBoard,
                 parseHandoffs: ctx.parseHandoffs,
+                parseDecisions: ctx.parseDecisions,
                 ACTIVE_STATUSES: ctx.ACTIVE_STATUSES,
                 ALLOWED_STATUSES: ctx.ALLOWED_STATUSES,
                 parseCsvList: ctx.parseCsvList,

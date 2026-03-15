@@ -71,13 +71,14 @@ function printHandoffsJsonError(error) {
     return payload;
 }
 
-function handleHandoffsCommand(ctx) {
+async function handleHandoffsCommand(ctx) {
     const {
         args,
         parseHandoffs,
         isExpired,
         attachDiagnostics,
         buildWarnFirstDiagnostics,
+        buildLiveFocusSummary,
         getHandoffLintErrors,
         parseFlags,
         parseBoard,
@@ -103,6 +104,12 @@ function handleHandoffsCommand(ctx) {
     const handoffData = parseHandoffs();
 
     if (subcommand === 'status') {
+        const board =
+            typeof parseBoard === 'function' ? parseBoard() : { tasks: [] };
+        const focusData =
+            typeof buildLiveFocusSummary === 'function'
+                ? await buildLiveFocusSummary(board, { now: new Date() })
+                : null;
         const total = handoffData.handoffs.length;
         const active = handoffData.handoffs.filter(
             (item) => String(item.status) === 'active'
@@ -132,6 +139,8 @@ function handleHandoffsCommand(ctx) {
             buildWarnFirstDiagnostics({
                 source: 'handoffs.status',
                 handoffData,
+                focusSummary: focusData?.summary || null,
+                jobsSnapshot: focusData?.jobs || null,
             })
         );
         if (wantsJson) {
@@ -148,6 +157,12 @@ function handleHandoffsCommand(ctx) {
     }
 
     if (subcommand === 'lint') {
+        const board =
+            typeof parseBoard === 'function' ? parseBoard() : { tasks: [] };
+        const focusData =
+            typeof buildLiveFocusSummary === 'function'
+                ? await buildLiveFocusSummary(board, { now: new Date() })
+                : null;
         const errors = getHandoffLintErrors();
         const report = {
             version: 1,
@@ -160,6 +175,8 @@ function handleHandoffsCommand(ctx) {
             buildWarnFirstDiagnostics({
                 source: 'handoffs.lint',
                 handoffData,
+                focusSummary: focusData?.summary || null,
+                jobsSnapshot: focusData?.jobs || null,
             })
         );
         if (wantsJson) {

@@ -10,8 +10,9 @@
  *   node agent-orchestrator.js conflicts [--strict]
  *   node agent-orchestrator.js handoffs <status|lint|create|close>
  *   node agent-orchestrator.js policy lint [--json]
- *   node agent-orchestrator.js strategy <status|preview|set-next|activate-next|set-active|close|intake> [--json]
- *   node agent-orchestrator.js focus [check] [--json]
+ *   node agent-orchestrator.js strategy <status|set-active|close> [--json]
+ *   node agent-orchestrator.js focus <status|set-active|advance|close|check> [--json]
+ *   node agent-orchestrator.js decision <ls|open|close> [--json]
  *   node agent-orchestrator.js codex-check
  *   node agent-orchestrator.js codex <start|stop> <CDX-ID> [--block C1] [--to done]
  *   node agent-orchestrator.js task <ls|claim|start|finish> [<AG-ID>] [...]
@@ -35,6 +36,8 @@ const domainConflicts = require('./tools/agent-orchestrator/domain/conflicts');
 const domainHandoffs = require('./tools/agent-orchestrator/domain/handoffs');
 const domainCodexMirror = require('./tools/agent-orchestrator/domain/codex-mirror');
 const domainStrategy = require('./tools/agent-orchestrator/domain/strategy');
+const domainFocus = require('./tools/agent-orchestrator/domain/focus');
+const domainDecisions = require('./tools/agent-orchestrator/domain/decisions');
 const domainTaskGuards = require('./tools/agent-orchestrator/domain/task-guards');
 const domainTaskCreate = require('./tools/agent-orchestrator/domain/task-create');
 const domainTaskShape = require('./tools/agent-orchestrator/domain/task-shape');
@@ -59,6 +62,8 @@ const taskCommandHandlers = require('./tools/agent-orchestrator/commands/task');
 const leasesCommandHandlers = require('./tools/agent-orchestrator/commands/leases');
 const boardCommandHandlers = require('./tools/agent-orchestrator/commands/board');
 const strategyCommandHandlers = require('./tools/agent-orchestrator/commands/strategy');
+const focusCommandHandlers = require('./tools/agent-orchestrator/commands/focus');
+const decisionCommandHandlers = require('./tools/agent-orchestrator/commands/decision');
 const jobsCommandHandlers = require('./tools/agent-orchestrator/commands/jobs');
 const publishCommandHandlers = require('./tools/agent-orchestrator/commands/publish');
 const runtimeCommandHandlers = require('./tools/agent-orchestrator/commands/runtime');
@@ -69,6 +74,7 @@ const runtimeIntakeCommands = require('./tools/agent-orchestrator/commands/runti
 const ROOT = __dirname;
 const BOARD_PATH = resolve(ROOT, 'AGENT_BOARD.yaml');
 const HANDOFFS_PATH = resolve(ROOT, 'AGENT_HANDOFFS.yaml');
+const DECISIONS_PATH = resolve(ROOT, 'AGENT_DECISIONS.yaml');
 const SIGNALS_PATH = resolve(ROOT, 'AGENT_SIGNALS.yaml');
 const JOBS_PATH = resolve(ROOT, 'AGENT_JOBS.yaml');
 const JULES_PATH = resolve(ROOT, 'JULES_TASKS.md');
@@ -96,11 +102,6 @@ const PUBLISH_EVENTS_PATH = resolve(
     ROOT,
     'verification',
     'agent-publish-events.jsonl'
-);
-const STRATEGY_EVENTS_PATH = resolve(
-    ROOT,
-    'verification',
-    'agent-strategy-events.jsonl'
 );
 const DEFAULT_GITHUB_REPOSITORY =
     process.env.AGENT_GITHUB_REPOSITORY ||
@@ -228,6 +229,34 @@ const DEFAULT_GOVERNANCE_POLICY = {
                 enabled: true,
             },
             public_main_sync_telemetry_gap: {
+                severity: 'warning',
+                enabled: true,
+            },
+            strategy_without_focus: { severity: 'warning', enabled: true },
+            focus_without_active_tasks: {
+                severity: 'warning',
+                enabled: true,
+            },
+            missing_next_step: { severity: 'warning', enabled: true },
+            task_missing_focus_fields: {
+                severity: 'warning',
+                enabled: true,
+            },
+            task_outside_next_step: { severity: 'warning', enabled: true },
+            slice_not_allowed_for_lane: {
+                severity: 'warning',
+                enabled: true,
+            },
+            too_many_active_slices: {
+                severity: 'warning',
+                enabled: true,
+            },
+            required_check_unverified: {
+                severity: 'warning',
+                enabled: true,
+            },
+            decision_overdue: { severity: 'warning', enabled: true },
+            rework_without_reason: {
                 severity: 'warning',
                 enabled: true,
             },
@@ -430,6 +459,16 @@ function parseHandoffs() {
     );
 }
 
+function parseDecisions() {
+    return coreIo.readDecisionsFile({
+        decisionsPath: DECISIONS_PATH,
+        exists: existsSync,
+        readFile: readFileSync,
+        parseDecisionsContent: coreParsers.parseDecisionsContent,
+        currentDate,
+    });
+}
+
 function parseCodexActiveBlocks() {
     if (!existsSync(CODEX_PLAN_PATH)) {
         return [];
@@ -441,13 +480,11 @@ function parseCodexActiveBlocks() {
 
 function parseCodexStrategyBlocks() {
     if (!existsSync(CODEX_PLAN_PATH)) {
-        return { active: [], next: [] };
+        return [];
     }
-    const raw = readFileSync(CODEX_PLAN_PATH, 'utf8');
-    return {
-        active: coreParsers.parseCodexStrategyActiveBlocksContent(raw),
-        next: coreParsers.parseCodexStrategyNextBlocksContent(raw),
-    };
+    return coreParsers.parseCodexStrategyActiveBlocksContent(
+        readFileSync(CODEX_PLAN_PATH, 'utf8')
+    );
 }
 
 function serializeHandoffs(data) {
@@ -479,6 +516,42 @@ function writeSignals(data) {
         signalsPath: SIGNALS_PATH,
         serializeSignals: (value) =>
             coreSerializers.serializeSignals(value, { currentDate }),
+        writeFile: writeFileSync,
+    });
+}
+
+function writeDecisions(data, options = {}) {
+    const { expectRevision = null } = options;
+    const prevData = existsSync(DECISIONS_PATH) ? parseDecisions() : null;
+    const prevRevision = parseBoardRevisionValue(prevData?.policy?.revision);
+    if (expectRevision !== null && expectRevision !== undefined) {
+        const expected = Number(expectRevision);
+        if (!Number.isInteger(expected) || expected < 0) {
+            const error = new Error('--expect-rev debe ser entero >= 0');
+            error.code = 'invalid_expect_rev';
+            error.error_code = 'invalid_expect_rev';
+            throw error;
+        }
+        if (expected !== prevRevision) {
+            const error = new Error(
+                `decisions revision mismatch: expected ${expected}, actual ${prevRevision}`
+            );
+            error.code = 'decisions_revision_mismatch';
+            error.error_code = 'decisions_revision_mismatch';
+            error.expected_revision = expected;
+            error.actual_revision = prevRevision;
+            throw error;
+        }
+    }
+    const safeData = data || { version: 1, policy: {}, decisions: [] };
+    safeData.policy = safeData.policy || {};
+    safeData.policy.owner_model =
+        String(safeData.policy.owner_model || '').trim() || 'human_supervisor';
+    safeData.policy.revision = prevRevision + 1;
+    safeData.policy.updated_at = currentDate();
+    return coreIo.writeDecisionsFile(safeData, {
+        decisionsPath: DECISIONS_PATH,
+        serializeDecisions: coreSerializers.serializeDecisions,
         writeFile: writeFileSync,
     });
 }
@@ -574,6 +647,23 @@ function buildStrategyCoverageSummary(board) {
     return domainStrategy.buildStrategyCoverageSummary(board, {
         activeStatuses: ACTIVE_STATUSES,
         findCriticalScopeKeyword,
+    });
+}
+
+function buildFocusSummary(board, options = {}) {
+    return domainFocus.buildFocusSummary(board, {
+        ...options,
+        activeStatuses: ACTIVE_STATUSES,
+    });
+}
+
+async function buildLiveFocusSummary(board, options = {}) {
+    return domainFocus.buildLiveFocusSummary(board, {
+        buildFocusSummary,
+        parseDecisions,
+        loadJobsSnapshot,
+        verifyOpenClawRuntime,
+        now: options.now,
     });
 }
 
@@ -986,26 +1076,18 @@ function writeCodexActiveBlock(block, options = {}) {
     });
 }
 
-function writeStrategyPlanBlocks(strategyState = {}) {
+function writeStrategyActiveBlock(strategy) {
     if (!existsSync(CODEX_PLAN_PATH)) {
         throw new Error(`No existe ${CODEX_PLAN_PATH}`);
     }
     const raw = readFileSync(CODEX_PLAN_PATH, 'utf8');
-    const next = domainStrategy.upsertStrategyBlocks(raw, strategyState, {
+    const next = domainStrategy.upsertStrategyActiveBlock(raw, strategy, {
         quote,
         serializeArrayInline,
         currentDate,
     });
     writeFileSync(CODEX_PLAN_PATH, next, 'utf8');
     return next;
-}
-
-function writeStrategyActiveBlock(strategy) {
-    return writeStrategyPlanBlocks({ active: strategy });
-}
-
-function appendStrategySnapshot(entries) {
-    return coreIo.appendJsonlFile(STRATEGY_EVENTS_PATH, entries);
 }
 
 function nextHandoffId(handoffs) {
@@ -1273,6 +1355,8 @@ function buildWarnFirstDiagnostics({
     source,
     board = null,
     handoffData = null,
+    decisionsData = null,
+    focusSummary = null,
     conflictAnalysis = null,
     metricsSnapshot = null,
     policyReport = null,
@@ -1283,6 +1367,8 @@ function buildWarnFirstDiagnostics({
         policy: getGovernancePolicy(),
         board,
         handoffData,
+        decisionsData,
+        focusSummary,
         conflictAnalysis,
         metricsSnapshot,
         policyReport,
@@ -1313,6 +1399,8 @@ async function cmdStatus(args) {
         buildProviderModeSummary,
         buildRuntimeSurfaceSummary,
         buildStrategyCoverageSummary,
+        buildFocusSummary,
+        parseDecisions,
         loadMetricsSnapshot,
         normalizeContributionBaseline,
         buildContributionTrend,
@@ -1330,66 +1418,11 @@ async function cmdStatus(args) {
         formatPpDelta,
         summarizeDiagnostics: domainDiagnostics.summarizeDiagnostics,
         buildWarnFirstDiagnostics,
+        buildLiveFocusSummary,
         getGovernancePolicy,
         loadJobsSnapshot,
         summarizeJobsSnapshot,
     });
-}
-
-function cmdFocus(args = []) {
-    const parsed = parseFlags(args);
-    const [subcommand = 'check'] = parsed.positionals;
-    const wantsJson = isFlagEnabled(parsed.flags, 'json');
-
-    if (!['check', 'status'].includes(String(subcommand || '').trim())) {
-        throw new Error(`Comando focus no soportado: ${subcommand}`);
-    }
-
-    const board = parseBoard();
-    const strategy = buildStrategyCoverageSummary(board);
-    const activeTasks = (Array.isArray(board.tasks) ? board.tasks : [])
-        .filter((task) =>
-            ACTIVE_STATUSES.has(String(task?.status || '').trim())
-        )
-        .map((task) => toTaskJson(task));
-    const codexActiveTasks = activeTasks.filter(
-        (task) =>
-            String(task?.executor || '')
-                .trim()
-                .toLowerCase() === 'codex'
-    );
-    const ok =
-        Boolean(strategy?.active) &&
-        Number(strategy?.orphan_tasks || 0) === 0 &&
-        Number(strategy?.exception_expired_tasks || 0) === 0;
-    const payload = {
-        version: 1,
-        ok,
-        command: 'focus',
-        subcommand,
-        strategy_id: String(strategy?.active?.id || ''),
-        active_task_count: activeTasks.length,
-        codex_active_task_count: codexActiveTasks.length,
-        orphan_tasks: Number(strategy?.orphan_tasks || 0),
-        exception_expired_tasks: Number(strategy?.exception_expired_tasks || 0),
-        active_tasks: activeTasks,
-        codex_active_tasks: codexActiveTasks,
-    };
-
-    if (wantsJson) {
-        coreOutput.printJson(payload);
-        return;
-    }
-
-    const lines = [
-        `focus ${ok ? 'OK' : 'WARN'}: strategy=${payload.strategy_id || 'none'} active=${payload.active_task_count} codex=${payload.codex_active_task_count}`,
-    ];
-    if (!ok) {
-        lines.push(
-            `  orphan_tasks=${payload.orphan_tasks} exception_expired_tasks=${payload.exception_expired_tasks}`
-        );
-    }
-    process.stdout.write(`${lines.join('\n')}\n`);
 }
 
 function safeNumber(value, fallback = 0) {
@@ -1450,6 +1483,9 @@ function cmdMetrics(args = []) {
         buildCodexInstanceSummary,
         buildProviderModeSummary,
         buildRuntimeSurfaceSummary,
+        buildFocusSummary,
+        buildLiveFocusSummary,
+        parseDecisions,
         buildDomainHealth,
         existsSync,
         readFileSync,
@@ -1508,7 +1544,6 @@ function cmdLeases(args) {
     return leasesCommandHandlers.handleLeasesCommand({
         args,
         parseFlags,
-        parseCsvList,
         parseBoard,
         ensureTask,
         currentDate,
@@ -1538,6 +1573,9 @@ function cmdBoard(args) {
         buildBoardDoctorReport: domainBoardDoctor.buildBoardDoctorReport,
         attachDiagnostics,
         buildWarnFirstDiagnostics,
+        buildFocusSummary,
+        buildLiveFocusSummary,
+        parseDecisions,
         loadMetricsSnapshot,
         summarizeDiagnostics: domainDiagnostics.summarizeDiagnostics,
         listBoardLeases: domainBoardLeases.listBoardLeases,
@@ -1562,30 +1600,17 @@ async function cmdStrategy(args) {
     return strategyCommandHandlers.handleStrategyCommand({
         args,
         parseFlags,
-        parseCsvList,
         parseBoard,
-        parseHandoffs,
         buildStrategyCoverageSummary,
-        buildCoverageForStrategy: domainStrategy.buildCoverageForStrategy,
         buildStrategySeed: domainStrategy.buildStrategySeed,
-        buildStrategyPreview: domainStrategy.buildStrategyPreview,
-        buildStrategySeedCatalog: domainStrategy.buildStrategySeedCatalog,
-        buildStrategyIntakeTask: domainStrategy.buildStrategyIntakeTask,
+        buildFocusSeed: domainFocus.buildFocusSeed,
         normalizeStrategyActive: domainStrategy.normalizeStrategyActive,
         validateStrategyConfiguration:
             domainStrategy.validateStrategyConfiguration,
         currentDate,
-        isoNow,
         detectDefaultOwner,
         writeBoardAndSync,
-        writeStrategyPlanBlocks,
-        appendStrategySnapshot,
-        nextAgentTaskId,
-        validateTaskGovernancePrechecks,
-        getBlockingConflictsForTask,
-        toTaskJson,
-        toTaskFullJson,
-        mapLaneToCodexInstance: domainTaskGuards.mapLaneToCodexInstance,
+        writeStrategyActiveBlock,
         parseExpectedBoardRevisionFlag,
         parseCodexStrategyBlocks,
         printJson: coreOutput.printJson,
@@ -1615,6 +1640,7 @@ async function cmdTask(args) {
         loadTaskCreateApplyPayload,
         normalizeTaskForCreateApply,
         validateTaskGovernancePrechecks,
+        parseDecisions,
         getBlockingConflictsForTask,
         nextAgentTaskId,
         summarizeBlockingConflictsForTask,
@@ -1644,6 +1670,44 @@ async function cmdTask(args) {
         getLastBoardWriteMeta,
         parseExpectedBoardRevisionFlag,
         buildBoardWipLimitDiagnostics,
+        printJson: coreOutput.printJson,
+    });
+}
+
+async function cmdFocus(args) {
+    return focusCommandHandlers.handleFocusCommand({
+        args,
+        parseFlags,
+        parseBoard,
+        buildFocusSummary,
+        buildLiveFocusSummary,
+        parseDecisions,
+        loadJobsSnapshot,
+        verifyOpenClawRuntime,
+        buildFocusSeed: domainFocus.buildFocusSeed,
+        normalizeStrategyActive: domainStrategy.normalizeStrategyActive,
+        validateStrategyConfiguration:
+            domainStrategy.validateStrategyConfiguration,
+        currentDate,
+        detectDefaultOwner,
+        writeBoardAndSync,
+        parseExpectedBoardRevisionFlag,
+        printJson: coreOutput.printJson,
+    });
+}
+
+async function cmdDecision(args) {
+    return decisionCommandHandlers.handleDecisionCommand({
+        args,
+        parseFlags,
+        parseBoard,
+        parseDecisions,
+        writeDecisions,
+        nextDecisionId: domainDecisions.nextDecisionId,
+        summarizeDecisions: domainDecisions.summarizeDecisions,
+        currentDate,
+        detectDefaultOwner,
+        parseExpectedBoardRevisionFlag,
         printJson: coreOutput.printJson,
     });
 }
@@ -1717,9 +1781,12 @@ async function cmdPublish(args) {
         parseFlags,
         parseBoard,
         ensureTask,
+        buildFocusSummary,
+        parseDecisions,
         parseJobs,
         buildJobsSnapshot: loadJobsSnapshot,
         findJobSnapshot: domainJobs.findJobSnapshot,
+        verifyOpenClawRuntime,
         printJson: coreOutput.printJson,
         rootPath: ROOT,
         publishEventsPath: PUBLISH_EVENTS_PATH,
@@ -2170,11 +2237,13 @@ const governanceRuntime =
         codexCommandHandlers,
         parseBoard,
         parseHandoffs,
+        parseDecisions,
         loadMetricsSnapshot,
         analyzeConflicts,
         toConflictJsonRecord,
         attachDiagnostics,
         buildWarnFirstDiagnostics,
+        buildLiveFocusSummary,
         readGovernancePolicyStrict,
         validateGovernancePolicy,
         existsSync,
@@ -2212,7 +2281,6 @@ async function main() {
     const [command = 'status', ...args] = process.argv.slice(2);
     const commands = {
         status: () => cmdStatus(args),
-        focus: () => cmdFocus(args),
         conflicts: () => governanceRuntime.conflicts(args),
         intake: () => runtimeIntake.intake(args),
         score: () => runtimeIntake.score(args),
@@ -2223,6 +2291,8 @@ async function main() {
         handoffs: () => governanceRuntime.handoffs(args),
         policy: () => governanceRuntime.policy(args),
         strategy: () => cmdStrategy(args),
+        focus: () => cmdFocus(args),
+        decision: () => cmdDecision(args),
         'codex-check': () => governanceRuntime.codexCheck(args),
         codex: () => governanceRuntime.codex(args),
         leases: () => cmdLeases(args),
@@ -2258,9 +2328,15 @@ main().catch((error) => {
             error_code: error?.error_code || error?.code || 'command_failed',
         };
         if (
-            ['task', 'handoffs', 'leases', 'codex', 'strategy'].includes(
-                command
-            ) &&
+            [
+                'task',
+                'handoffs',
+                'leases',
+                'codex',
+                'strategy',
+                'focus',
+                'decision',
+            ].includes(command) &&
             subcommand
         ) {
             payload.action = subcommand;

@@ -35,6 +35,7 @@ function buildStatusReport(input = {}) {
             byExecutor,
         },
         strategy: input.strategy || null,
+        focus: input.focus || null,
         codex_instances: input.codex_instances || null,
         provider_modes: input.provider_modes || null,
         runtime_surfaces: input.runtime_surfaces || null,
@@ -84,18 +85,16 @@ function renderStatusText(data, options = {}) {
             `Estrategia activa: ${data.strategy.active.id} (${data.strategy.active.title || 'sin titulo'})`
         );
         lines.push(
-            `Cobertura estrategia: aligned=${data.strategy.aligned_tasks ?? 0}, support=${data.strategy.support_tasks ?? 0}, exception=${data.strategy.exception_tasks ?? 0}, orphan=${data.strategy.orphan_tasks ?? 0}, dispersion=${data.strategy.dispersion_score ?? 0}`
+            `Cobertura estrategia: aligned=${data.strategy.aligned_tasks ?? 0}, support=${data.strategy.support_tasks ?? 0}, exception=${data.strategy.exception_tasks ?? 0}, orphan=${data.strategy.orphan_tasks ?? 0}`
         );
-        if (data?.strategy?.next) {
-            lines.push(
-                `Draft siguiente: ${data.strategy.next.id} (${data.strategy.next.title || 'sin titulo'})`
-            );
-        }
-        if (Number(data?.strategy?.exception_expired_tasks || 0) > 0) {
-            lines.push(
-                `Exceptions expiradas: ${data.strategy.exception_expired_tasks}`
-            );
-        }
+    }
+    if (data?.focus?.configured) {
+        lines.push(
+            `Foco: ${data.focus.configured.id || 'sin id'} (${data.focus.configured.title || 'sin titulo'})`
+        );
+        lines.push(
+            `Foco activo: ${data.focus.active ? 'si' : 'no'} | next_step=${data.focus.configured.next_step || 'n/a'} | active_tasks=${data.focus.active_tasks_total ?? 0} | aligned=${data.focus.aligned_tasks ?? 0} | slices=${data.focus.distinct_active_slices ?? 0}`
+        );
     }
     if (data?.jobs) {
         lines.push(
@@ -161,6 +160,33 @@ function renderStatusText(data, options = {}) {
                 `- ${row.subfront_id}: active=${row.active_tasks}, aligned=${row.aligned_tasks}, primary=${row.primary_tasks}, support=${row.support_tasks}, exception=${row.exception_tasks}, orphan=${row.orphan_tasks}`
             );
         }
+    }
+    if (data?.focus?.configured) {
+        lines.push('');
+        lines.push('Foco compartido:');
+        lines.push(`- proof: ${data.focus.configured.proof || 'n/a'}`);
+        lines.push(`- next_step: ${data.focus.configured.next_step || 'n/a'}`);
+        lines.push(
+            `- active_slices: ${
+                Array.isArray(data.focus.active_slices) &&
+                data.focus.active_slices.length > 0
+                    ? data.focus.active_slices.join(', ')
+                    : 'none'
+            }`
+        );
+        lines.push(
+            `- decisions: open=${data.focus.decisions?.open ?? 0}, overdue=${data.focus.decisions?.overdue ?? 0}`
+        );
+        lines.push(
+            `- required_checks: ${
+                Array.isArray(data.focus.required_checks) &&
+                data.focus.required_checks.length > 0
+                    ? data.focus.required_checks
+                          .map((item) => `${item.id}=${item.state}`)
+                          .join(', ')
+                    : 'none'
+            }`
+        );
     }
 
     if (Array.isArray(data?.domain_health?.ranking)) {

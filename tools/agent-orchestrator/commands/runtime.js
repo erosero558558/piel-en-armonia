@@ -81,17 +81,26 @@ async function handleRuntimeCommand(ctx) {
             return report;
         }
         if (!report.ok) {
+            const summaryMessage = String(
+                runtime?.summary?.message || ''
+            ).trim();
             throw new Error(
-                `runtime verify fallo para ${provider}: ${runtime.surfaces
-                    .filter((surface) => !surface.healthy)
-                    .map((surface) => surface.surface)
-                    .join(', ')}`
+                `runtime verify fallo para ${provider}: ${
+                    summaryMessage ||
+                    runtime.surfaces
+                        .filter((surface) => !surface.healthy)
+                        .map((surface) => surface.surface)
+                        .join(', ')
+                }`
             );
         }
         console.log(
-            `OK: ${provider} healthy en ${runtime.surfaces
-                .map((surface) => `${surface.surface}=${surface.state}`)
-                .join(', ')}`
+            `OK: ${provider} healthy en ${
+                String(runtime?.summary?.message || '').trim() ||
+                runtime.surfaces
+                    .map((surface) => `${surface.surface}=${surface.state}`)
+                    .join(', ')
+            }`
         );
         return report;
     }

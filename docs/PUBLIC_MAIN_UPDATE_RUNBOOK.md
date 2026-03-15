@@ -170,10 +170,38 @@ only when repair returns the host to `ready` or `not_required`.
 
 Triage the canonical `publicSync` signals before touching the host:
 
+- `verificationSource=health_url` with `failureReason=health_missing_public_sync` means the host answered `health`, but it is still serving a stale public contract without `checks.publicSync`. Fix that rollout before classifying the incident as repo drift.
+- `verificationSource=registry_only` with `failureReason=unverified` means `node agent-orchestrator.js jobs verify public_main_sync --json` could only confirm the registry entry and could not fetch live host telemetry. Treat that first as missing or unreachable runtime evidence from `health` / `health-diagnostics` or the VPS status file, not as repo drift.
 - `failureReason=working_tree_dirty` is the canonical first-pass classification for tracked repo drift on the VPS.
 - `headDrift=true` means `currentHead` and `remoteHead` diverge, so the host repo is behind or detached from the intended `main` commit.
 - `telemetryGap=true` means the cron failed without exposing `currentHead`, `remoteHead`, or dirty tracked paths; treat it first as incomplete host runtime telemetry from a stale `/root/sync-pielarmonia.sh` wrapper or other legacy host entrypoint until the updated wrapper is deployed.
 - `failureReason=working_tree_dirty` with `telemetryGap=false` means the cron had enough telemetry and `dirtyPathsCount` / `dirtyPathsSample` should identify the tracked drift to clean up.
+
+When `health_missing_public_sync` or `registry_only/unverified` appears, keep the first verification pass narrow:
+
+1. `curl -s https://pielarmonia.com/api.php?resource=health`
+2. `curl -s https://pielarmonia.com/api.php?resource=health-diagnostics`
+3. `cat /var/lib/pielarmonia/public-sync-status.json`
+4. confirm the host wrapper is the canonical `/root/sync-pielarmonia.sh` / `bin/deploy-public-v3-cron-sync.sh` pair
+
+If the public `health` payload still does not expose `checks.publicSync.jobId`,
+assume the live host has not picked up the updated `controllers/HealthController.php`
+yet. Fix that rollout first; otherwise `jobs verify public_main_sync --json`
+will keep failing with `failureReason=health_missing_public_sync` or, if the
+endpoint becomes unreachable, fall back to `verificationSource=registry_only`
+even when the cron exists and the VPS status file is healthy.
+
+For the host-side command checklist, use:
+
+```powershell
+pwsh -File scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1
+```
+
+The checklist closes only when `checks.publicSync.jobId` is visible in public
+`health` and `storeEncryptionCompliant=true` remains true in
+`health-diagnostics`.
+
+Only after those checks should you classify the incident as `headDrift`, `working_tree_dirty`, or a transport/runtime failure deeper in the host.
 
 Triage the GitHub-side deploy corroboration in the same pass:
 

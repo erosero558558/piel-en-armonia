@@ -50,34 +50,73 @@ function normalizeTaskScore(value, fallback = 0) {
     return Math.round(parsed);
 }
 
-function serializeStrategyRecord(lines, key, record) {
-    if (!record || typeof record !== 'object') {
-        lines.push(`  ${key}: null`);
+function serializeStrategy(board, lines) {
+    const active = board?.strategy?.active;
+    if (!active || typeof active !== 'object') {
         return;
     }
-    lines.push(`  ${key}:`);
-    lines.push(`    id: ${record.id || ''}`);
-    lines.push(`    title: ${quote(record.title || '')}`);
-    lines.push(`    objective: ${quote(record.objective || '')}`);
-    lines.push(`    owner: ${record.owner || ''}`);
-    lines.push(`    owner_policy: ${quote(record.owner_policy || '')}`);
-    lines.push(
-        `    status: ${record.status || (key === 'next' ? 'draft' : 'active')}`
-    );
-    lines.push(`    started_at: ${quote(record.started_at || '')}`);
-    lines.push(`    review_due_at: ${quote(record.review_due_at || '')}`);
-    if (record.closed_at) {
-        lines.push(`    closed_at: ${quote(record.closed_at)}`);
+    lines.push('');
+    lines.push('strategy:');
+    lines.push('  active:');
+    lines.push(`    id: ${active.id || ''}`);
+    lines.push(`    title: ${quote(active.title || '')}`);
+    lines.push(`    objective: ${quote(active.objective || '')}`);
+    lines.push(`    owner: ${active.owner || ''}`);
+    lines.push(`    status: ${active.status || 'active'}`);
+    lines.push(`    started_at: ${quote(active.started_at || '')}`);
+    lines.push(`    review_due_at: ${quote(active.review_due_at || '')}`);
+    if (active.closed_at) {
+        lines.push(`    closed_at: ${quote(active.closed_at)}`);
     }
-    if (record.close_reason) {
-        lines.push(`    close_reason: ${quote(record.close_reason)}`);
+    if (active.close_reason) {
+        lines.push(`    close_reason: ${quote(active.close_reason)}`);
     }
     lines.push(
-        `    exit_criteria: ${serializeArrayInline(record.exit_criteria || [])}`
+        `    exit_criteria: ${serializeArrayInline(active.exit_criteria || [])}`
     );
-    lines.push(`    success_signal: ${quote(record.success_signal || '')}`);
+    lines.push(`    success_signal: ${quote(active.success_signal || '')}`);
+    const shouldEmitFocus =
+        Boolean(String(active.focus_id || '').trim()) ||
+        Boolean(String(active.focus_title || '').trim()) ||
+        Boolean(String(active.focus_proof || '').trim()) ||
+        Boolean(String(active.focus_next_step || '').trim()) ||
+        Boolean(String(active.focus_status || '').trim());
+    if (shouldEmitFocus) {
+        lines.push(`    focus_id: ${quote(active.focus_id || '')}`);
+        lines.push(`    focus_title: ${quote(active.focus_title || '')}`);
+        lines.push(`    focus_summary: ${quote(active.focus_summary || '')}`);
+        lines.push(`    focus_status: ${active.focus_status || 'active'}`);
+        lines.push(`    focus_proof: ${quote(active.focus_proof || '')}`);
+        lines.push(
+            `    focus_steps: ${serializeArrayInline(active.focus_steps || [])}`
+        );
+        lines.push(
+            `    focus_next_step: ${quote(active.focus_next_step || '')}`
+        );
+        lines.push(
+            `    focus_required_checks: ${serializeArrayInline(
+                active.focus_required_checks || []
+            )}`
+        );
+        lines.push(
+            `    focus_non_goals: ${serializeArrayInline(active.focus_non_goals || [])}`
+        );
+        lines.push(`    focus_owner: ${quote(active.focus_owner || '')}`);
+        lines.push(
+            `    focus_review_due_at: ${quote(active.focus_review_due_at || '')}`
+        );
+        lines.push(
+            `    focus_evidence_ref: ${quote(active.focus_evidence_ref || '')}`
+        );
+        lines.push(
+            `    focus_max_active_slices: ${normalizeTaskInt(
+                active.focus_max_active_slices,
+                3
+            )}`
+        );
+    }
     lines.push('    subfronts:');
-    const subfronts = Array.isArray(record.subfronts) ? record.subfronts : [];
+    const subfronts = Array.isArray(active.subfronts) ? active.subfronts : [];
     for (const subfront of subfronts) {
         lines.push(`      - codex_instance: ${subfront.codex_instance || ''}`);
         lines.push(`        subfront_id: ${subfront.subfront_id || ''}`);
@@ -91,34 +130,7 @@ function serializeStrategyRecord(lines, key, record) {
         lines.push(
             `        blocked_scopes: ${serializeArrayInline(subfront.blocked_scopes || [])}`
         );
-        lines.push(
-            `        wip_limit: ${normalizeTaskInt(subfront.wip_limit, 1)}`
-        );
-        lines.push(
-            `        default_acceptance_profile: ${quote(subfront.default_acceptance_profile || '')}`
-        );
-        lines.push(
-            `        exception_ttl_hours: ${normalizeTaskInt(subfront.exception_ttl_hours, 8)}`
-        );
     }
-}
-
-function serializeStrategy(board, lines) {
-    const hasStrategy =
-        (board?.strategy?.active &&
-            typeof board.strategy.active === 'object') ||
-        (board?.strategy?.next && typeof board.strategy.next === 'object') ||
-        String(board?.strategy?.updated_at || '').trim();
-    if (!hasStrategy) {
-        return;
-    }
-    lines.push('');
-    lines.push('strategy:');
-    serializeStrategyRecord(lines, 'active', board?.strategy?.active || null);
-    serializeStrategyRecord(lines, 'next', board?.strategy?.next || null);
-    lines.push(
-        `  updated_at: ${quote(String(board?.strategy?.updated_at || '').trim())}`
-    );
 }
 
 function serializeBoard(board, options = {}) {
@@ -164,13 +176,11 @@ function serializeBoard(board, options = {}) {
         lines.push(`    domain_lane: ${task.domain_lane || 'backend_ops'}`);
         lines.push(`    lane_lock: ${task.lane_lock || 'strict'}`);
         lines.push(`    cross_domain: ${task.cross_domain ? 'true' : 'false'}`);
-        lines.push(`    provider_mode: ${quote(task.provider_mode || '')}`);
-        lines.push(`    runtime_surface: ${quote(task.runtime_surface || '')}`);
+        lines.push(`    provider_mode: ${task.provider_mode || ''}`);
+        lines.push(`    runtime_surface: ${task.runtime_surface || ''}`);
+        lines.push(`    runtime_transport: ${task.runtime_transport || ''}`);
         lines.push(
-            `    runtime_transport: ${quote(task.runtime_transport || '')}`
-        );
-        lines.push(
-            `    runtime_last_transport: ${quote(task.runtime_last_transport || '')}`
+            `    runtime_last_transport: ${task.runtime_last_transport || ''}`
         );
         lines.push(`    files: ${serializeArrayInline(task.files || [])}`);
         lines.push(`    source_signal: ${task.source_signal || 'manual'}`);
@@ -232,22 +242,56 @@ function serializeBoard(board, options = {}) {
                     `    strategy_reason: ${quote(String(task.strategy_reason || '').trim())}`
                 );
             }
-            const shouldEmitExceptionFields =
-                String(task.strategy_role || '').trim() === 'exception' ||
-                String(task.exception_opened_at || '').trim() ||
-                String(task.exception_expires_at || '').trim() ||
-                String(task.exception_state || '').trim();
-            if (shouldEmitExceptionFields) {
-                lines.push(
-                    `    exception_opened_at: ${quote(String(task.exception_opened_at || '').trim())}`
-                );
-                lines.push(
-                    `    exception_expires_at: ${quote(String(task.exception_expires_at || '').trim())}`
-                );
-                lines.push(
-                    `    exception_state: ${quote(String(task.exception_state || '').trim())}`
-                );
-            }
+        }
+        const shouldEmitFocusFields =
+            ['ready', 'in_progress', 'review', 'blocked'].includes(
+                String(task.status || '').trim()
+            ) ||
+            Boolean(
+                String(task.focus_id || '').trim() ||
+                String(task.focus_step || '').trim() ||
+                String(task.integration_slice || '').trim() ||
+                String(task.work_type || '').trim() ||
+                String(task.expected_outcome || '').trim() ||
+                String(task.decision_ref || '').trim() ||
+                String(task.rework_parent || '').trim() ||
+                String(task.rework_reason || '').trim()
+            );
+        if (shouldEmitFocusFields) {
+            lines.push(
+                `    focus_id: ${quote(String(task.focus_id || '').trim())}`
+            );
+            lines.push(
+                `    focus_step: ${quote(String(task.focus_step || '').trim())}`
+            );
+            lines.push(
+                `    integration_slice: ${quote(
+                    String(task.integration_slice || '').trim()
+                )}`
+            );
+            lines.push(
+                `    work_type: ${quote(String(task.work_type || '').trim())}`
+            );
+            lines.push(
+                `    expected_outcome: ${quote(
+                    String(task.expected_outcome || '').trim()
+                )}`
+            );
+            lines.push(
+                `    decision_ref: ${quote(
+                    String(task.decision_ref || '').trim()
+                )}`
+            );
+            lines.push(
+                `    rework_parent: ${quote(
+                    String(task.rework_parent || '').trim()
+                )}`
+            );
+            lines.push(
+                `    rework_reason: ${quote(
+                    String(task.rework_reason || '').trim()
+                )}`
+            );
         }
         lines.push(
             `    depends_on: ${serializeArrayInline(task.depends_on || [])}`
@@ -328,6 +372,47 @@ function serializeJobs(data, options = {}) {
     return `${lines.join('\n').trimEnd()}\n`;
 }
 
+function serializeDecisions(data, options = {}) {
+    const getDate = options.currentDate || currentDate;
+    const safe = data || { version: 1, policy: {}, decisions: [] };
+    const policy =
+        safe.policy && typeof safe.policy === 'object' ? safe.policy : {};
+    const lines = [];
+    lines.push(`version: ${safe.version || 1}`);
+    lines.push('policy:');
+    lines.push(`  owner_model: ${policy.owner_model || 'human_supervisor'}`);
+    lines.push(`  revision: ${normalizeTaskInt(policy.revision, 0)}`);
+    lines.push(`  updated_at: ${quote(policy.updated_at || getDate())}`);
+    lines.push('decisions:');
+    for (const decision of Array.isArray(safe.decisions)
+        ? safe.decisions
+        : []) {
+        lines.push(`  - id: ${decision.id || ''}`);
+        lines.push(`    strategy_id: ${quote(decision.strategy_id || '')}`);
+        lines.push(`    focus_id: ${quote(decision.focus_id || '')}`);
+        lines.push(`    focus_step: ${quote(decision.focus_step || '')}`);
+        lines.push(`    title: ${quote(decision.title || '')}`);
+        lines.push(`    owner: ${quote(decision.owner || '')}`);
+        lines.push(`    status: ${decision.status || 'open'}`);
+        lines.push(`    due_at: ${quote(decision.due_at || '')}`);
+        lines.push(
+            `    recommended_option: ${quote(decision.recommended_option || '')}`
+        );
+        lines.push(
+            `    selected_option: ${quote(decision.selected_option || '')}`
+        );
+        lines.push(`    rationale: ${quote(decision.rationale || '')}`);
+        lines.push(
+            `    related_tasks: ${serializeArrayInline(
+                decision.related_tasks || []
+            )}`
+        );
+        lines.push(`    opened_at: ${quote(decision.opened_at || '')}`);
+        lines.push(`    resolved_at: ${quote(decision.resolved_at || '')}`);
+    }
+    return `${lines.join('\n').trimEnd()}\n`;
+}
+
 module.exports = {
     quote,
     serializeArrayInline,
@@ -335,4 +420,5 @@ module.exports = {
     serializeBoard,
     serializeSignals,
     serializeJobs,
+    serializeDecisions,
 };

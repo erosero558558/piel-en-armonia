@@ -314,6 +314,38 @@ test('jobs-engine resolveJobSnapshot infiere telemetry_gap desde health_url lega
     assert.equal(snapshot.failure_reason, 'working_tree_dirty');
 });
 
+test('jobs-engine distingue health publico stale cuando falta checks.publicSync', async () => {
+    const snapshot = await jobs.resolveJobSnapshot(
+        {
+            key: 'public_main_sync',
+            job_id: '8d31e299-7e57-4959-80b5-aaa2d73e9674',
+            health_url: 'https://pielarmonia.com/api.php?resource=health',
+            repo_path: '/var/www/figo',
+            branch: 'main',
+            expected_max_lag_seconds: 120,
+        },
+        {
+            existsSync: () => false,
+            readFileSync: () => '',
+            fetchImpl: async () => ({
+                ok: true,
+                json: async () => ({
+                    ok: true,
+                    status: 'ok',
+                    timestamp: '2026-03-14T11:10:00Z',
+                }),
+            }),
+        }
+    );
+
+    assert.equal(snapshot.verification_source, 'health_url');
+    assert.equal(snapshot.verified, false);
+    assert.equal(snapshot.healthy, false);
+    assert.equal(snapshot.failure_reason, 'health_missing_public_sync');
+    assert.equal(snapshot.last_error_message, 'health_missing_public_sync');
+    assert.equal(snapshot.state, 'stale');
+});
+
 test('jobs-engine registry_only fallback y summary mantienen contrato estable', async () => {
     const snapshot = await jobs.resolveJobSnapshot(
         {

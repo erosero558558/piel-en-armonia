@@ -21,6 +21,7 @@ const http = require('http');
 const REPO_ROOT = resolve(__dirname, '..');
 const ORCHESTRATOR_SOURCE = join(REPO_ROOT, 'agent-orchestrator.js');
 const ORCHESTRATOR_TOOLS_DIR = join(REPO_ROOT, 'tools', 'agent-orchestrator');
+const GOVERNANCE_POLICY_SOURCE = join(REPO_ROOT, 'governance-policy.json');
 const OPENCLAW_RUNTIME_HELPER_SOURCE = join(
     REPO_ROOT,
     'bin',
@@ -40,6 +41,10 @@ function createFixtureDir() {
     cpSync(ORCHESTRATOR_TOOLS_DIR, join(dir, 'tools', 'agent-orchestrator'), {
         recursive: true,
     });
+    copyFileSync(
+        GOVERNANCE_POLICY_SOURCE,
+        join(dir, 'governance-policy.json')
+    );
     return dir;
 }
 
@@ -59,7 +64,7 @@ function installRuntimeHelperFixture(dir) {
     );
 }
 
-function writeFixtureFiles(dir, { board, handoffs, plan }) {
+function writeFixtureFiles(dir, { board, handoffs, plan, decisions = null }) {
     writeFileSync(join(dir, 'AGENT_BOARD.yaml'), `${board.trim()}\n`, 'utf8');
     writeFileSync(
         join(dir, 'AGENT_HANDOFFS.yaml'),
@@ -71,6 +76,13 @@ function writeFixtureFiles(dir, { board, handoffs, plan }) {
         `${plan.trim()}\n`,
         'utf8'
     );
+    if (decisions) {
+        writeFileSync(
+            join(dir, 'AGENT_DECISIONS.yaml'),
+            `${String(decisions).trim()}\n`,
+            'utf8'
+        );
+    }
 }
 
 function writePublicSyncJobsFixture(dir, options = {}) {
@@ -295,13 +307,7 @@ function isMutatingCommandArgs(args = []) {
         return ['create', 'close'].includes(subcommand);
     }
     if (command === 'strategy') {
-        return [
-            'set-active',
-            'set-next',
-            'activate-next',
-            'close',
-            'intake',
-        ].includes(subcommand);
+        return ['set-active', 'close'].includes(subcommand);
     }
     if (command === 'task') {
         if (['claim', 'start', 'finish'].includes(subcommand)) return true;
@@ -311,6 +317,9 @@ function isMutatingCommandArgs(args = []) {
         }
         if (args.includes('--validate-only')) return false;
         return true;
+    }
+    if (command === 'focus') {
+        return ['set-active', 'advance', 'close'].includes(subcommand);
     }
     return false;
 }
@@ -336,13 +345,6 @@ function parseJsonStdout(result) {
 
 function readBoard(dir) {
     return readFileSync(join(dir, 'AGENT_BOARD.yaml'), 'utf8');
-}
-
-function readStrategyEvents(dir) {
-    return readFileSync(
-        join(dir, 'verification', 'agent-strategy-events.jsonl'),
-        'utf8'
-    );
 }
 
 async function startRuntimeFixtureServer(options = {}) {
@@ -475,6 +477,12 @@ async function startRuntimeFixtureServer(options = {}) {
             url.searchParams.get('resource') === 'operator-auth-status'
         ) {
             res.statusCode = Number(options.operatorStatusCode ?? 200);
+            if (
+                Object.prototype.hasOwnProperty.call(options, 'operatorRawBody')
+            ) {
+                res.end(String(options.operatorRawBody || ''));
+                return;
+            }
             res.end(
                 JSON.stringify({
                     ok: true,
@@ -484,6 +492,44 @@ async function startRuntimeFixtureServer(options = {}) {
                     ...(options.operatorPayload || {}),
                 })
             );
+            return;
+        }
+        if (
+            req.method === 'GET' &&
+            url.pathname === '/admin-auth.php' &&
+            url.searchParams.get('action') === 'status'
+        ) {
+            res.statusCode = Number(options.operatorFacadeStatusCode ?? 404);
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    options,
+                    'operatorFacadeRawBody'
+                )
+            ) {
+                res.end(String(options.operatorFacadeRawBody || ''));
+                return;
+            }
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    options,
+                    'operatorFacadePayload'
+                )
+            ) {
+                res.end(
+                    JSON.stringify({
+                        ok: true,
+                        authenticated: false,
+                        status: 'anonymous',
+                        mode: 'openclaw_chatgpt',
+                        ...(options.operatorFacadePayload &&
+                        typeof options.operatorFacadePayload === 'object'
+                            ? options.operatorFacadePayload
+                            : {}),
+                    })
+                );
+                return;
+            }
+            res.end(JSON.stringify({ ok: false, error: 'not_found' }));
             return;
         }
 
@@ -630,11 +676,7 @@ function readDomainHealthHistory(dir) {
 function readBoardEvents(dir) {
     const path = join(dir, 'verification', 'agent-board-events.jsonl');
     if (!existsSync(path)) return [];
-    return parseJsonLines(readFileSync(path, 'utf8'));
-}
-
-function parseJsonLines(raw) {
-    return String(raw || '')
+    return readFileSync(path, 'utf8')
         .split(/\r?\n/)
         .map((line) => line.trim())
         .filter(Boolean)
@@ -691,42 +733,43 @@ strategy:
     title: "Admin operativo"
     objective: "Cerrar admin operativo"
     owner: ernesto
-    owner_policy: "detected_default_owner"
     status: active
     started_at: "2026-03-14"
     review_due_at: "2026-03-21"
     exit_criteria: ["uno"]
     success_signal: "demo"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_title: "Admin operativo demostrable"
+    focus_summary: "Corte comun"
+    focus_status: active
+    focus_proof: "Demo comun"
+    focus_steps: ["admin_queue_pilot_cut", "pilot_readiness_evidence", "feedback_trim"]
+    focus_next_step: "admin_queue_pilot_cut"
+    focus_required_checks: ["job:public_main_sync", "runtime:openclaw_chatgpt"]
+    focus_non_goals: ["rediseno_publico", "expansion_payments"]
+    focus_owner: "ernesto"
+    focus_review_due_at: "2026-03-21"
+    focus_evidence_ref: ""
+    focus_max_active_slices: 3
     subfronts:
       - codex_instance: codex_frontend
         subfront_id: SF-frontend-admin-operativo
         title: "Admin UX"
         allowed_scopes: ["frontend-admin", "queue"]
-        support_only_scopes: ["docs", "frontend-qa"]
+        support_only_scopes: ["docs", "tests", "frontend-qa"]
         blocked_scopes: ["payments"]
-        wip_limit: 1
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
       - codex_instance: codex_backend_ops
         subfront_id: SF-backend-admin-operativo
         title: "Backend soporte"
         allowed_scopes: ["auth", "backend", "readiness", "gates"]
         support_only_scopes: ["tests", "ops"]
         blocked_scopes: ["frontend-public"]
-        wip_limit: 1
-        default_acceptance_profile: "backend_gate_checkpoint"
-        exception_ttl_hours: 6
       - codex_instance: codex_transversal
         subfront_id: SF-transversal-admin-operativo
         title: "Runtime soporte"
         allowed_scopes: []
         support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
         blocked_scopes: ["backend", "auth"]
-        wip_limit: 1
-        default_acceptance_profile: "transversal_runtime_checkpoint"
-        exception_ttl_hours: 4
-  next: null
-  updated_at: "2026-03-14"
 `;
 }
 
@@ -760,7 +803,6 @@ tasks:
 function basePlanWithStrategyBlock(options = {}) {
     const title = String(options.title || 'Admin operativo');
     const owner = String(options.owner || 'ernesto');
-    const ownerPolicy = String(options.ownerPolicy || 'detected_default_owner');
     const status = String(options.status || 'active');
     const subfrontIds = Array.isArray(options.subfrontIds)
         ? options.subfrontIds
@@ -777,7 +819,6 @@ id: STRAT-2026-03-admin-operativo
 title: "${title}"
 status: ${status}
 owner: ${owner}
-owner_policy: "${ownerPolicy}"
 objective: "Cerrar admin operativo"
 started_at: "2026-03-14"
 review_due_at: "2026-03-21"
@@ -788,168 +829,6 @@ updated_at: ${DATE}
 
 Relacion con Operativo 2026:
 - Fixture de pruebas para estrategia activa.
-`;
-}
-
-function basePlanWithStrategyNextBlock(options = {}) {
-    const id = String(options.id || 'STRAT-2026-04-admin-operativo');
-    const title = String(options.title || 'Admin operativo siguiente');
-    const owner = String(options.owner || 'ernesto');
-    const ownerPolicy = String(options.ownerPolicy || 'detected_default_owner');
-    const status = String(options.status || 'draft');
-    const subfrontIds = Array.isArray(options.subfrontIds)
-        ? options.subfrontIds
-        : [
-              'SF-frontend-admin-operativo',
-              'SF-backend-admin-operativo',
-              'SF-transversal-admin-operativo',
-          ];
-    return `
-<!-- CODEX_STRATEGY_NEXT
-id: ${id}
-title: "${title}"
-status: ${status}
-owner: ${owner}
-owner_policy: "${ownerPolicy}"
-objective: "Cerrar admin operativo"
-started_at: "2026-03-14"
-review_due_at: "2026-03-21"
-success_signal: "demo"
-subfront_ids: [${subfrontIds.map((value) => `"${value}"`).join(', ')}]
-updated_at: ${DATE}
--->
-`;
-}
-
-function boardForStrategyExpiredExceptionFixture() {
-    return `
-version: 1
-policy:
-  canonical: AGENTS.md
-  autonomy: semi_autonomous_guardrails
-  kpi: reduce_rework
-  revision: 0
-  updated_at: ${DATE}
-${activeAdminStrategyYaml().trim()}
-tasks:
-  - id: AG-001
-    title: "Exception fixture"
-    owner: ernesto
-    executor: codex
-    status: blocked
-    risk: medium
-    scope: frontend-admin
-    codex_instance: codex_frontend
-    domain_lane: frontend_content
-    lane_lock: strict
-    cross_domain: false
-    strategy_id: STRAT-2026-03-admin-operativo
-    subfront_id: SF-frontend-admin-operativo
-    strategy_role: exception
-    strategy_reason: "soporte directo fuera del flujo normal"
-    exception_opened_at: "2000-01-01T00:00:00.000Z"
-    exception_expires_at: "2000-01-01T08:00:00.000Z"
-    exception_state: open
-    files: ["src/apps/admin-v3/app.js"]
-    acceptance: "ok"
-    acceptance_ref: "verification/agent-runs/AG-001.md"
-    depends_on: []
-    prompt: "do it"
-    created_at: ${DATE}
-    updated_at: ${DATE}
-`;
-}
-
-function boardForStrategyWithNextFixture() {
-    return `
-version: 1
-policy:
-  canonical: AGENTS.md
-  autonomy: semi_autonomous_guardrails
-  kpi: reduce_rework
-  revision: 0
-  updated_at: ${DATE}
-strategy:
-  active:
-    id: STRAT-2026-03-admin-operativo
-    title: "Admin operativo"
-    objective: "Cerrar admin operativo"
-    owner: ernesto
-    owner_policy: "detected_default_owner"
-    status: active
-    started_at: "2026-03-14"
-    review_due_at: "2026-03-21"
-    exit_criteria: ["uno"]
-    success_signal: "demo"
-    subfronts:
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-admin-operativo
-        title: "Admin UX"
-        allowed_scopes: ["frontend-admin", "queue"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["payments"]
-        wip_limit: 1
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-admin-operativo
-        title: "Backend soporte"
-        allowed_scopes: ["auth", "backend", "readiness", "gates"]
-        support_only_scopes: ["tests", "ops"]
-        blocked_scopes: ["frontend-public"]
-        wip_limit: 1
-        default_acceptance_profile: "backend_gate_checkpoint"
-        exception_ttl_hours: 6
-      - codex_instance: codex_transversal
-        subfront_id: SF-transversal-admin-operativo
-        title: "Runtime soporte"
-        allowed_scopes: []
-        support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
-        blocked_scopes: ["backend", "auth"]
-        wip_limit: 1
-        default_acceptance_profile: "transversal_runtime_checkpoint"
-        exception_ttl_hours: 4
-  next:
-    id: STRAT-2026-04-admin-operativo
-    title: "Admin operativo siguiente"
-    objective: "Cerrar admin operativo v2"
-    owner: ernesto
-    owner_policy: "detected_default_owner"
-    status: draft
-    started_at: "2026-03-20"
-    review_due_at: "2026-03-28"
-    exit_criteria: ["dos"]
-    success_signal: "demo siguiente"
-    subfronts:
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-admin-operativo
-        title: "Admin UX"
-        allowed_scopes: ["frontend-admin", "queue"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["payments"]
-        wip_limit: 1
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-admin-operativo
-        title: "Backend soporte"
-        allowed_scopes: ["auth", "backend", "readiness", "gates"]
-        support_only_scopes: ["tests", "ops"]
-        blocked_scopes: ["frontend-public"]
-        wip_limit: 1
-        default_acceptance_profile: "backend_gate_checkpoint"
-        exception_ttl_hours: 6
-      - codex_instance: codex_transversal
-        subfront_id: SF-transversal-admin-operativo
-        title: "Runtime soporte"
-        allowed_scopes: []
-        support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
-        blocked_scopes: ["backend", "auth"]
-        wip_limit: 1
-        default_acceptance_profile: "transversal_runtime_checkpoint"
-        exception_ttl_hours: 4
-  updated_at: "2026-03-14"
-tasks:
 `;
 }
 
@@ -1078,34 +957,17 @@ test('codex start/stop lifecycle mantiene espejo valido y actualiza CODEX_ACTIVE
     assert.match(plan, /status: in_progress/);
     assert.match(plan, /task_id: CDX-001/);
 
-    runCli(dir, [
-        'codex',
-        'stop',
-        'CDX-001',
-        '--to',
-        'blocked',
-        '--blocked-reason',
-        'awaiting_remote_verify',
-    ]);
-    runCli(dir, ['codex-check']);
-    plan = readPlan(dir);
-    assert.match(plan, /status: blocked/);
-    let board = readBoard(dir);
-    assert.match(board, /blocked_reason:\s*"awaiting_remote_verify"/);
-
     runCli(dir, ['codex', 'stop', 'CDX-001', '--to', 'review']);
     runCli(dir, ['codex-check']);
     plan = readPlan(dir);
     assert.match(plan, /status: review/);
-    board = readBoard(dir);
-    assert.match(board, /blocked_reason:\s*""/);
 
     runCli(dir, ['codex', 'stop', 'CDX-001', '--to', 'done']);
     runCli(dir, ['codex-check']);
     plan = readPlan(dir);
     assert.doesNotMatch(plan, /<!-- CODEX_ACTIVE/);
 
-    board = readBoard(dir);
+    const board = readBoard(dir);
     assert.match(board, /- id: CDX-001/);
     assert.match(board, /status: done/);
 });
@@ -1230,182 +1092,7 @@ test('strategy set-active/status/close mantiene board y mirror del plan', (t) =>
     plan = readPlan(dir);
     assert.match(board, /status:\s+closed/);
     assert.match(board, /close_reason:\s+"review_complete"/);
-    assert.match(plan, /<!-- CODEX_STRATEGY_ACTIVE/);
     assert.match(plan, /status: closed/);
-
-    runCli(dir, ['codex-check']);
-
-    const strategyEvents = parseJsonLines(readStrategyEvents(dir));
-    assert.deepEqual(
-        strategyEvents.map((event) => event.event_type),
-        ['strategy.set-active', 'strategy.close']
-    );
-});
-
-test('strategy preview/set-next/activate-next/intake mantienen draft, mirror y defaults', (t) => {
-    const dir = createFixtureDir();
-    t.after(() => cleanupFixtureDir(dir));
-
-    writeFixtureFiles(dir, {
-        board: boardForStrategySeedableFixture(),
-        handoffs: baseHandoffs(),
-        plan: basePlanWithoutCodexBlock(),
-    });
-
-    let result = runCli(dir, [
-        'strategy',
-        'preview',
-        '--seed',
-        'admin-operativo',
-        '--json',
-    ]);
-    let json = parseJsonStdout(result);
-    assert.equal(json.ok, true);
-    assert.equal(json.preview.activation_ready, true);
-    assert.equal(
-        json.preview.plan_block_expected.next.id,
-        'STRAT-2026-03-admin-operativo'
-    );
-
-    result = runCli(dir, [
-        'strategy',
-        'set-next',
-        '--seed',
-        'admin-operativo',
-        '--owner',
-        'ernesto',
-        '--json',
-    ]);
-    json = parseJsonStdout(result);
-    assert.equal(json.ok, true);
-    assert.equal(json.strategy.status, 'draft');
-    assert.equal(json.preview.activation_ready, true);
-
-    let board = readBoard(dir);
-    let plan = readPlan(dir);
-    assert.match(board, /next:\s*\n {4}id:\s+STRAT-2026-03-admin-operativo/);
-    assert.match(plan, /<!-- CODEX_STRATEGY_NEXT/);
-    assert.match(plan, /owner_policy: "detected_default_owner"/);
-
-    result = runCli(dir, [
-        'strategy',
-        'activate-next',
-        '--reason',
-        'kickoff',
-        '--json',
-    ]);
-    json = parseJsonStdout(result);
-    assert.equal(json.ok, true);
-    assert.equal(json.strategy.status, 'active');
-    assert.equal(json.reason, 'kickoff');
-    assert.equal(json.previous_active, null);
-
-    result = runCli(dir, ['strategy', 'status', '--json']);
-    json = parseJsonStdout(result);
-    assert.equal(json.strategy.active.id, 'STRAT-2026-03-admin-operativo');
-    assert.equal(json.strategy.next, null);
-    assert.equal(json.plan_blocks.active.length, 1);
-    assert.equal(json.plan_blocks.next.length, 0);
-
-    board = readBoard(dir);
-    plan = readPlan(dir);
-    assert.match(board, /status:\s+active/);
-    assert.match(plan, /<!-- CODEX_STRATEGY_ACTIVE/);
-    assert.doesNotMatch(plan, /<!-- CODEX_STRATEGY_NEXT/);
-
-    result = runCli(dir, [
-        'strategy',
-        'intake',
-        '--title',
-        'Admin shell polish',
-        '--scope',
-        'frontend-admin',
-        '--files',
-        'src/apps/admin-v3/app.js',
-        '--json',
-    ]);
-    json = parseJsonStdout(result);
-    assert.equal(json.ok, true);
-    assert.equal(json.task.strategy_id, 'STRAT-2026-03-admin-operativo');
-    assert.equal(json.task.subfront_id, 'SF-frontend-admin-operativo');
-    assert.equal(json.task.strategy_role, 'primary');
-    assert.equal(json.task.codex_instance, 'codex_frontend');
-    assert.equal(json.task.domain_lane, 'frontend_content');
-    assert.equal(json.task.lane_lock, 'strict');
-    assert.equal(
-        json.intake_defaults.acceptance_profile,
-        'frontend_delivery_checkpoint'
-    );
-    assert.deepEqual(json.intake_defaults.checklist, [
-        'UI visible y navegable',
-        'flujo principal sin regresiones',
-        'evidencia visual o smoke del frente',
-    ]);
-    assert.match(json.task_full.acceptance, /SF-frontend-admin-operativo/);
-    assert.match(
-        json.task_full.acceptance_ref,
-        /verification\/agent-runs\/AG-001\.md/
-    );
-
-    const strategyEvents = parseJsonLines(readStrategyEvents(dir));
-    assert.deepEqual(
-        strategyEvents.map((event) => event.event_type),
-        ['strategy.set-next', 'strategy.activate-next']
-    );
-});
-
-test('strategy activate-next bloquea exceptions expiradas del frente activo', (t) => {
-    const dir = createFixtureDir();
-    t.after(() => cleanupFixtureDir(dir));
-
-    writeFixtureFiles(dir, {
-        board: boardForStrategyExpiredExceptionFixture(),
-        handoffs: baseHandoffs(),
-        plan: basePlanWithStrategyBlock(),
-    });
-
-    let result = runCli(dir, [
-        'strategy',
-        'preview',
-        '--seed',
-        'admin-operativo',
-        '--json',
-    ]);
-    let json = parseJsonStdout(result);
-    assert.equal(json.ok, false);
-    assert.equal(json.preview.activation_ready, false);
-    assert.match(
-        json.preview.activation_blockers.join(' | '),
-        /exception\(es\) expirada\(s\)/i
-    );
-
-    result = runCli(dir, [
-        'strategy',
-        'set-next',
-        '--seed',
-        'admin-operativo',
-        '--owner',
-        'ernesto',
-        '--json',
-    ]);
-    json = parseJsonStdout(result);
-    assert.equal(json.ok, true);
-    assert.equal(json.preview.activation_ready, false);
-
-    result = runCli(
-        dir,
-        [
-            'strategy',
-            'activate-next',
-            '--reason',
-            'blocked_by_exception',
-            '--json',
-        ],
-        1
-    );
-    json = parseJsonStdout(result);
-    assert.equal(json.ok, false);
-    assert.match(json.error || '', /exceptions expiradas/i);
 });
 
 test('task create exige campos de estrategia cuando hay estrategia activa', (t) => {
@@ -1443,6 +1130,37 @@ test('task create exige campos de estrategia cuando hay estrategia activa', (t) 
     assert.equal(json.ok, false);
     assert.match(json.error || '', /requiere strategy_id/i);
 
+    result = runCli(
+        dir,
+        [
+            'task',
+            'create',
+            '--title',
+            'Frontend strat fixture',
+            '--executor',
+            'codex',
+            '--status',
+            'ready',
+            '--risk',
+            'low',
+            '--scope',
+            'frontend-admin',
+            '--files',
+            'src/apps/admin-v3/app.js',
+            '--strategy-id',
+            'STRAT-2026-03-admin-operativo',
+            '--subfront-id',
+            'SF-frontend-admin-operativo',
+            '--strategy-role',
+            'primary',
+            '--json',
+        ],
+        1
+    );
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, false);
+    assert.match(json.error || '', /focus_id|focus_step|integration_slice/i);
+
     result = runCli(dir, [
         'task',
         'create',
@@ -1464,6 +1182,14 @@ test('task create exige campos de estrategia cuando hay estrategia activa', (t) 
         'SF-frontend-admin-operativo',
         '--strategy-role',
         'primary',
+        '--focus-id',
+        'FOCUS-2026-03-admin-operativo-cut-1',
+        '--focus-step',
+        'admin_queue_pilot_cut',
+        '--integration-slice',
+        'frontend_runtime',
+        '--work-type',
+        'forward',
         '--json',
     ]);
     json = parseJsonStdout(result);
@@ -1471,6 +1197,10 @@ test('task create exige campos de estrategia cuando hay estrategia activa', (t) 
     assert.equal(json.task.strategy_id, 'STRAT-2026-03-admin-operativo');
     assert.equal(json.task.subfront_id, 'SF-frontend-admin-operativo');
     assert.equal(json.task.strategy_role, 'primary');
+    assert.equal(json.task.focus_id, 'FOCUS-2026-03-admin-operativo-cut-1');
+    assert.equal(json.task.focus_step, 'admin_queue_pilot_cut');
+    assert.equal(json.task.integration_slice, 'frontend_runtime');
+    assert.equal(json.task.work_type, 'forward');
 
     const statusJson = parseJsonStdout(runCli(dir, ['status', '--json']));
     assert.equal(
@@ -1478,6 +1208,354 @@ test('task create exige campos de estrategia cuando hay estrategia activa', (t) 
         'STRAT-2026-03-admin-operativo'
     );
     assert.equal(statusJson.strategy.aligned_tasks, 1);
+});
+
+test('focus status expone foco activo y checks requeridos', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForStrategyGuardFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithStrategyBlock(),
+    });
+    writePublicSyncJobsFixture(dir, {
+        state: 'failed',
+        checked_at: '2026-03-14T00:00:00Z',
+        current_head: 'abc1234',
+        remote_head: 'def5678',
+    });
+
+    const result = runCli(dir, ['focus', 'status', '--json']);
+    const json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(
+        json.focus.configured.id,
+        'FOCUS-2026-03-admin-operativo-cut-1'
+    );
+    assert.equal(json.focus.configured.next_step, 'admin_queue_pilot_cut');
+    assert.equal(json.focus.required_checks[0].id, 'job:public_main_sync');
+});
+
+test('focus status soporta required_checks runtime por surface sin heredar el rojo del provider completo', async (t) => {
+    const dir = createFixtureDir();
+    const runtimeServer = await startRuntimeFixtureServer({
+        figoGetPayload: {
+            providerMode: 'legacy_proxy',
+            gatewayConfigured: false,
+            openclawReachable: null,
+        },
+        healthPayload: {
+            leadOpsMode: 'disabled',
+            checks: {
+                leadOps: {
+                    configured: false,
+                    mode: 'disabled',
+                    degraded: false,
+                },
+            },
+        },
+    });
+    t.after(async () => {
+        await runtimeServer.close();
+        cleanupFixtureDir(dir);
+    });
+
+    writeFixtureFiles(dir, {
+        board: `
+version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  revision: 0
+  updated_at: ${DATE}
+${activeAdminStrategyYaml().replace('runtime:openclaw_chatgpt', 'runtime:operator_auth').trim()}
+tasks:
+`.trim(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithStrategyBlock(),
+    });
+    const nowIso = new Date().toISOString();
+    writePublicSyncJobsFixture(dir, {
+        state: 'success',
+        checked_at: nowIso,
+        last_success_at: nowIso,
+        last_error_at: '',
+        last_error_message: '',
+        deployed_commit: 'abc1234',
+        current_head: 'abc1234',
+        remote_head: 'abc1234',
+    });
+
+    const result = await runCliWithEnvAsync(
+        dir,
+        ['focus', 'status', '--json'],
+        {
+            OPENCLAW_RUNTIME_BASE_URL: runtimeServer.baseUrl,
+        }
+    );
+    const json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.focus.required_checks_ok, true);
+    assert.equal(
+        json.focus.required_checks.some(
+            (item) =>
+                item.id === 'runtime:operator_auth' && item.state === 'green'
+        ),
+        true
+    );
+    assert.equal(
+        json.focus.required_checks.some(
+            (item) =>
+                item.id === 'job:public_main_sync' && item.state === 'green'
+        ),
+        true
+    );
+});
+
+test('surfaces de gobernanza reutilizan el mismo focusSummary live para public_main_sync y operator_auth', async (t) => {
+    const dir = createFixtureDir();
+    const runtimeServer = await startRuntimeFixtureServer({
+        figoGetPayload: {
+            providerMode: 'legacy_proxy',
+            gatewayConfigured: false,
+            openclawReachable: null,
+        },
+        healthPayload: {
+            leadOpsMode: 'disabled',
+            checks: {
+                leadOps: {
+                    configured: false,
+                    mode: 'disabled',
+                    degraded: false,
+                },
+            },
+        },
+    });
+    t.after(async () => {
+        await runtimeServer.close();
+        cleanupFixtureDir(dir);
+    });
+
+    writeFixtureFiles(dir, {
+        board: `
+version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  revision: 0
+  updated_at: ${DATE}
+${activeAdminStrategyYaml().replace('runtime:openclaw_chatgpt', 'runtime:operator_auth').trim()}
+tasks:
+`.trim(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithStrategyBlock(),
+    });
+    const nowIso = new Date().toISOString();
+    writePublicSyncJobsFixture(dir, {
+        state: 'success',
+        checked_at: nowIso,
+        last_success_at: nowIso,
+        last_error_at: '',
+        last_error_message: '',
+        deployed_commit: 'abc1234',
+        current_head: 'abc1234',
+        remote_head: 'abc1234',
+    });
+
+    const envPatch = {
+        OPENCLAW_RUNTIME_BASE_URL: runtimeServer.baseUrl,
+    };
+    const focusJson = parseJsonStdout(
+        await runCliWithEnvAsync(dir, ['focus', 'status', '--json'], envPatch)
+    );
+    const statusJson = parseJsonStdout(
+        await runCliWithEnvAsync(dir, ['status', '--json'], envPatch)
+    );
+    const boardJson = parseJsonStdout(
+        await runCliWithEnvAsync(
+            dir,
+            ['board', 'doctor', '--json'],
+            envPatch
+        )
+    );
+    const metricsJson = parseJsonStdout(
+        await runCliWithEnvAsync(
+            dir,
+            ['metrics', '--json', '--no-write'],
+            envPatch
+        )
+    );
+    const conflictsJson = parseJsonStdout(
+        await runCliWithEnvAsync(dir, ['conflicts', '--json'], envPatch)
+    );
+    const handoffsStatusJson = parseJsonStdout(
+        await runCliWithEnvAsync(
+            dir,
+            ['handoffs', 'status', '--json'],
+            envPatch
+        )
+    );
+    const handoffsLintJson = parseJsonStdout(
+        await runCliWithEnvAsync(dir, ['handoffs', 'lint', '--json'], envPatch)
+    );
+    const policyJson = parseJsonStdout(
+        await runCliWithEnvAsync(dir, ['policy', 'lint', '--json'], envPatch)
+    );
+    const codexCheckJson = parseJsonStdout(
+        await runCliWithEnvAsync(dir, ['codex-check', '--json'], envPatch)
+    );
+
+    for (const payload of [
+        focusJson.focus,
+        statusJson.focus,
+        boardJson.focus_summary,
+        metricsJson.focus_summary,
+    ]) {
+        assert.equal(payload.required_checks_ok, true);
+        assert.equal(
+            payload.required_checks.some(
+                (item) =>
+                    item.id === 'job:public_main_sync' &&
+                    item.state === 'green'
+            ),
+            true
+        );
+        assert.equal(
+            payload.required_checks.some(
+                (item) =>
+                    item.id === 'runtime:operator_auth' &&
+                    item.state === 'green'
+            ),
+            true
+        );
+    }
+
+    for (const payload of [
+        statusJson,
+        boardJson,
+        conflictsJson,
+        handoffsStatusJson,
+        handoffsLintJson,
+        policyJson,
+        codexCheckJson,
+    ]) {
+        assert.equal(
+            Array.isArray(payload.diagnostics) &&
+                payload.diagnostics.some(
+                    (item) =>
+                        item.code === 'warn.focus.required_check_unverified'
+                ),
+            false
+        );
+    }
+});
+
+test('focus check bloquea drift estructural cuando una tarea activa no declara slice', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: `
+version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  revision: 0
+  updated_at: ${DATE}
+${activeAdminStrategyYaml().trim()}
+tasks:
+  - id: AG-010
+    title: "Backend active without slice"
+    owner: ernesto
+    executor: codex
+    status: in_progress
+    risk: medium
+    scope: backend
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    strategy_id: STRAT-2026-03-admin-operativo
+    subfront_id: SF-backend-admin-operativo
+    strategy_role: primary
+    files: ["controllers/AdminController.php"]
+    acceptance: "Fixture"
+    acceptance_ref: ""
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+`,
+        handoffs: baseHandoffs(),
+        plan: basePlanWithStrategyBlock(),
+    });
+    writePublicSyncJobsFixture(dir, {
+        state: 'healthy',
+        checked_at: '2026-03-14T00:00:00Z',
+        last_success_at: '2026-03-14T00:00:00Z',
+        current_head: 'abc1234',
+        remote_head: 'abc1234',
+    });
+
+    const result = runCli(dir, ['focus', 'check', '--json'], 1);
+    const json = parseJsonStdout(result);
+    assert.equal(json.ok, false);
+    assert.ok(json.structural_errors.includes('task_missing_focus_fields'));
+});
+
+test('decision open/ls/close mantiene ledger separado del board', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForStrategyGuardFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithStrategyBlock(),
+    });
+
+    let result = runCli(dir, [
+        'decision',
+        'open',
+        '--title',
+        'Resolver gate del corte',
+        '--recommended-option',
+        'repair_sync',
+        '--related-tasks',
+        'CDX-001',
+        '--json',
+    ]);
+    let json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.decision.id, 'DEC-001');
+    assert.equal(json.decision.strategy_id, 'STRAT-2026-03-admin-operativo');
+    assert.equal(json.decision.focus_id, 'FOCUS-2026-03-admin-operativo-cut-1');
+
+    result = runCli(dir, ['decision', 'ls', '--json']);
+    json = parseJsonStdout(result);
+    assert.equal(json.summary.open, 1);
+    assert.equal(json.decisions[0].id, 'DEC-001');
+
+    result = runCli(dir, [
+        'decision',
+        'close',
+        'DEC-001',
+        '--selected-option',
+        'repair_sync',
+        '--json',
+    ]);
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.decision.status, 'decided');
+
+    const decisionsRaw = readFileSync(
+        join(dir, 'AGENT_DECISIONS.yaml'),
+        'utf8'
+    );
+    assert.match(decisionsRaw, /status:\s+"decided"|status:\s+decided/);
 });
 
 test('task create bloquea subfrente ajeno y excepciones sin reason', (t) => {
@@ -1513,6 +1591,14 @@ test('task create bloquea subfrente ajeno y excepciones sin reason', (t) => {
             'SF-backend-admin-operativo',
             '--strategy-role',
             'primary',
+            '--focus-id',
+            'FOCUS-2026-03-admin-operativo-cut-1',
+            '--focus-step',
+            'admin_queue_pilot_cut',
+            '--integration-slice',
+            'frontend_runtime',
+            '--work-type',
+            'forward',
             '--json',
         ],
         1
@@ -1547,6 +1633,14 @@ test('task create bloquea subfrente ajeno y excepciones sin reason', (t) => {
             'SF-frontend-admin-operativo',
             '--strategy-role',
             'exception',
+            '--focus-id',
+            'FOCUS-2026-03-admin-operativo-cut-1',
+            '--focus-step',
+            'admin_queue_pilot_cut',
+            '--integration-slice',
+            'frontend_runtime',
+            '--work-type',
+            'forward',
             '--json',
         ],
         1
@@ -1577,27 +1671,6 @@ test('codex-check falla si CODEX_STRATEGY_ACTIVE deriva del board', (t) => {
     assert.equal(json.ok, false);
     assert.ok(json.error_count >= 1);
     assert.match(json.errors.join(' | '), /CODEX_STRATEGY_ACTIVE/i);
-});
-
-test('codex-check falla si CODEX_STRATEGY_NEXT deriva del board', (t) => {
-    const dir = createFixtureDir();
-    t.after(() => cleanupFixtureDir(dir));
-
-    writeFixtureFiles(dir, {
-        board: boardForStrategyWithNextFixture(),
-        handoffs: baseHandoffs(),
-        plan: `${basePlanWithStrategyBlock().trim()}\n\n${basePlanWithStrategyNextBlock(
-            {
-                owner: 'otro-owner',
-            }
-        ).trim()}\n`,
-    });
-
-    const result = runCli(dir, ['codex-check', '--json'], 1);
-    const json = parseJsonStdout(result);
-    assert.equal(json.ok, false);
-    assert.ok(json.error_count >= 1);
-    assert.match(json.errors.join(' | '), /CODEX_STRATEGY_NEXT/i);
 });
 
 test('handoffs create rechaza files fuera del solape real (incluye wildcard amplio)', (t) => {
@@ -1690,6 +1763,113 @@ test('task claim/start/finish actualiza board y evidencia sin editar YAML manual
     assert.match(
         readFileSync(join(dir, 'KIMI_TASKS.md'), 'utf8'),
         /Retired Derived Queue/
+    );
+});
+
+test('task claim/start soportan blocked_reason y evitan blocked sin contexto', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    let result = runCli(
+        dir,
+        [
+            'task',
+            'claim',
+            'AG-010',
+            '--owner',
+            'ernesto',
+            '--status',
+            'blocked',
+            '--blocked-reason',
+            'host_rollout_required',
+        ],
+        0
+    );
+    assert.match(
+        result.stdout,
+        /Task claim OK: AG-010 owner=ernesto status=blocked/
+    );
+
+    let board = readBoard(dir);
+    assert.match(board, /status: blocked/);
+    assert.match(board, /blocked_reason: "host_rollout_required"/);
+
+    result = runCli(dir, ['board', 'doctor', '--json']);
+    let json = parseJsonStdout(result);
+    assert.equal(
+        json.diagnostics.some(
+            (diagnostic) =>
+                diagnostic &&
+                diagnostic.code === 'warn.board.blocked_without_reason'
+        ),
+        false
+    );
+
+    result = runCli(
+        dir,
+        [
+            'task',
+            'claim',
+            'AG-010',
+            '--status',
+            'ready',
+            '--blocked-reason',
+            'should_fail_outside_blocked',
+        ],
+        1
+    );
+    assert.match(
+        result.stderr,
+        /task claim solo acepta --blocked-reason cuando status=blocked/i
+    );
+
+    result = runCli(dir, ['task', 'claim', 'AG-010', '--status', 'ready']);
+    assert.match(result.stdout, /Task claim OK: AG-010 owner=.* status=ready/);
+
+    board = readBoard(dir);
+    assert.match(board, /status: ready/);
+    assert.match(board, /blocked_reason: ""/);
+
+    result = runCli(
+        dir,
+        [
+            'task',
+            'start',
+            'AG-010',
+            '--status',
+            'blocked',
+            '--blocked-reason',
+            'awaiting_host_access',
+        ],
+        0
+    );
+    assert.match(result.stdout, /Task start OK: AG-010 -> blocked/);
+    board = readBoard(dir);
+    assert.match(board, /status: blocked/);
+    assert.match(board, /blocked_reason: "awaiting_host_access"/);
+
+    result = runCli(dir, [
+        'task',
+        'start',
+        'AG-010',
+        '--status',
+        'in_progress',
+    ]);
+    assert.match(result.stdout, /Task start OK: AG-010 -> in_progress/);
+    board = readBoard(dir);
+    assert.match(board, /status: in_progress/);
+    assert.match(board, /blocked_reason: ""/);
+
+    result = runCli(dir, ['task', 'start', 'AG-010', '--status', 'blocked'], 1);
+    assert.match(
+        result.stderr,
+        /task start requiere --blocked-reason cuando status=blocked/i
     );
 });
 
@@ -1996,9 +2176,9 @@ test('task create soporta --template runtime y completa defaults OpenClaw transv
     assert.match(board, /scope: openclaw_runtime/);
     assert.match(board, /domain_lane: transversal_runtime/);
     assert.match(board, /codex_instance: codex_transversal/);
-    assert.match(board, /provider_mode: "openclaw_chatgpt"/);
-    assert.match(board, /runtime_surface: "leadops_worker"/);
-    assert.match(board, /runtime_transport: "hybrid_http_cli"/);
+    assert.match(board, /provider_mode: openclaw_chatgpt/);
+    assert.match(board, /runtime_surface: leadops_worker/);
+    assert.match(board, /runtime_transport: hybrid_http_cli/);
     assert.match(board, /runtime_impact: high/);
     assert.match(board, /critical_zone: true/);
 });
@@ -4245,6 +4425,11 @@ tasks:
         verifyPayload.runtime.surfaces.every((surface) => surface.healthy),
         true
     );
+    assert.equal(verifyPayload.runtime.summary.state, 'healthy');
+    assert.equal(
+        verifyPayload.runtime.summary.healthy_surfaces.includes('figo_queue'),
+        true
+    );
 
     const invokePayload = parseJsonStdout(
         await runCliWithEnvAsync(
@@ -4258,13 +4443,283 @@ tasks:
     assert.equal(invokePayload.result.provider, 'openclaw_chatgpt');
     assert.equal(invokePayload.result.upstream_provider, 'openclaw_queue');
     assert.equal(invokePayload.result.runtime_transport, 'http_bridge');
-    assert.match(readBoard(dir), /runtime_last_transport: "http_bridge"/);
+    assert.match(readBoard(dir), /runtime_last_transport: http_bridge/);
     assert.equal(
         runtimeServer.requests.some(
             (request) =>
                 request.method === 'POST' &&
                 request.path === '/figo-ai-bridge.php'
         ),
+        true
+    );
+});
+
+test('runtime verify resume surfaces degradadas y explica por que openclaw_chatgpt queda rojo', async (t) => {
+    const dir = createFixtureDir();
+    const runtimeServer = await startRuntimeFixtureServer({
+        figoGetPayload: {
+            providerMode: 'legacy_proxy',
+            gatewayConfigured: false,
+            openclawReachable: null,
+        },
+        healthPayload: {
+            leadOpsMode: 'disabled',
+            checks: {
+                leadOps: {
+                    configured: false,
+                    mode: 'disabled',
+                    degraded: false,
+                },
+            },
+        },
+    });
+    t.after(async () => {
+        await runtimeServer.close();
+        cleanupFixtureDir(dir);
+    });
+
+    writeFixtureFiles(dir, {
+        board: boardForRuntimeTaskFixture({
+            id: 'AG-905',
+            title: 'Runtime degraded fixture',
+            runtimeSurface: 'figo_queue',
+            runtimeTransport: 'http_bridge',
+            files: ['figo-ai-bridge.php'],
+        }),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const verifyPayload = parseJsonStdout(
+        await runCliWithEnvAsync(
+            dir,
+            ['runtime', 'verify', 'openclaw_chatgpt', '--json'],
+            {
+                OPENCLAW_RUNTIME_BASE_URL: runtimeServer.baseUrl,
+            },
+            1
+        )
+    );
+
+    assert.equal(verifyPayload.ok, false);
+    assert.equal(verifyPayload.runtime.provider, 'openclaw_chatgpt');
+    assert.equal(verifyPayload.runtime.summary.state, 'unhealthy');
+    assert.deepEqual(verifyPayload.runtime.summary.degraded_surfaces, [
+        'figo_queue',
+    ]);
+    assert.deepEqual(verifyPayload.runtime.summary.unhealthy_surfaces, [
+        'leadops_worker',
+    ]);
+    assert.equal(
+        verifyPayload.runtime.summary.healthy_surfaces.includes(
+            'operator_auth'
+        ),
+        true
+    );
+    assert.equal(
+        verifyPayload.runtime.summary.diagnostics.some(
+            (item) =>
+                item.surface === 'figo_queue' &&
+                item.reason === 'legacy_proxy_without_gateway'
+        ),
+        true
+    );
+    assert.equal(
+        verifyPayload.runtime.summary.diagnostics.some(
+            (item) =>
+                item.surface === 'leadops_worker' &&
+                item.reason === 'worker_disabled'
+        ),
+        true
+    );
+    assert.match(
+        verifyPayload.runtime.summary.message,
+        /figo_queue=degraded\(legacy_proxy_without_gateway\)/
+    );
+    assert.match(
+        verifyPayload.runtime.summary.message,
+        /leadops_worker=unhealthy\(worker_disabled\)/
+    );
+    assert.match(
+        verifyPayload.runtime.summary.message,
+        /operator_auth=healthy/
+    );
+});
+
+test('runtime verify clasifica operator_auth caido por HTTP sin degradarlo a mode_mismatch', async (t) => {
+    const dir = createFixtureDir();
+    const runtimeServer = await startRuntimeFixtureServer({
+        operatorStatusCode: 530,
+        operatorRawBody: 'error code: 1033',
+    });
+    t.after(async () => {
+        await runtimeServer.close();
+        cleanupFixtureDir(dir);
+    });
+
+    writeFixtureFiles(dir, {
+        board: boardForRuntimeTaskFixture({
+            id: 'AG-906',
+            title: 'Operator auth runtime http fixture',
+            runtimeSurface: 'operator_auth',
+            runtimeTransport: 'http_bridge',
+            files: ['lib/auth.php'],
+        }),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const verifyPayload = parseJsonStdout(
+        await runCliWithEnvAsync(
+            dir,
+            ['runtime', 'verify', 'openclaw_chatgpt', '--json'],
+            {
+                OPENCLAW_RUNTIME_BASE_URL: runtimeServer.baseUrl,
+            },
+            1
+        )
+    );
+
+    assert.equal(verifyPayload.ok, false);
+    assert.equal(
+        verifyPayload.runtime.summary.diagnostics.some(
+            (item) =>
+                item.surface === 'operator_auth' &&
+                item.reason === 'auth_status_http_530'
+        ),
+        true
+    );
+    assert.match(
+        verifyPayload.runtime.summary.message,
+        /operator_auth=unhealthy\(auth_status_http_530\)/
+    );
+    assert.equal(
+        verifyPayload.runtime.summary.diagnostics.some(
+            (item) => item.reason === 'auth_mode_mismatch'
+        ),
+        false
+    );
+});
+
+test('runtime verify clasifica operator_auth edge failure cuando canonico y fachada caen por 530', async (t) => {
+    const dir = createFixtureDir();
+    const runtimeServer = await startRuntimeFixtureServer({
+        operatorStatusCode: 530,
+        operatorRawBody: 'error code: 1033',
+        operatorFacadeStatusCode: 530,
+        operatorFacadeRawBody: 'error code: 1033',
+    });
+    t.after(async () => {
+        await runtimeServer.close();
+        cleanupFixtureDir(dir);
+    });
+
+    writeFixtureFiles(dir, {
+        board: boardForRuntimeTaskFixture({
+            id: 'AG-907',
+            title: 'Operator auth edge failure fixture',
+            runtimeSurface: 'operator_auth',
+            runtimeTransport: 'http_bridge',
+            files: ['lib/auth.php'],
+        }),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const verifyPayload = parseJsonStdout(
+        await runCliWithEnvAsync(
+            dir,
+            ['runtime', 'verify', 'openclaw_chatgpt', '--json'],
+            {
+                OPENCLAW_RUNTIME_BASE_URL: runtimeServer.baseUrl,
+            },
+            1
+        )
+    );
+
+    assert.equal(verifyPayload.ok, false);
+    assert.equal(
+        verifyPayload.runtime.summary.diagnostics.some(
+            (item) =>
+                item.surface === 'operator_auth' &&
+                item.reason === 'auth_edge_failure'
+        ),
+        true
+    );
+    assert.match(
+        verifyPayload.runtime.summary.message,
+        /operator_auth=unhealthy\(auth_edge_failure\)/
+    );
+    assert.equal(
+        verifyPayload.runtime.surfaces.find(
+            (item) => item.surface === 'operator_auth'
+        ).facade_http_status,
+        530
+    );
+});
+
+test('runtime verify clasifica facade_only_rollout cuando solo admin-auth expone contrato OpenClaw', async (t) => {
+    const dir = createFixtureDir();
+    const runtimeServer = await startRuntimeFixtureServer({
+        operatorStatusCode: 503,
+        operatorPayload: {
+            ok: false,
+            error: 'operator_auth_not_configured',
+        },
+        operatorFacadeStatusCode: 200,
+        operatorFacadePayload: {
+            ok: true,
+            authenticated: false,
+            status: 'anonymous',
+            mode: 'openclaw_chatgpt',
+            configured: true,
+        },
+    });
+    t.after(async () => {
+        await runtimeServer.close();
+        cleanupFixtureDir(dir);
+    });
+
+    writeFixtureFiles(dir, {
+        board: boardForRuntimeTaskFixture({
+            id: 'AG-908',
+            title: 'Operator auth facade-only rollout fixture',
+            runtimeSurface: 'operator_auth',
+            runtimeTransport: 'http_bridge',
+            files: ['lib/auth.php'],
+        }),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const verifyPayload = parseJsonStdout(
+        await runCliWithEnvAsync(
+            dir,
+            ['runtime', 'verify', 'openclaw_chatgpt', '--json'],
+            {
+                OPENCLAW_RUNTIME_BASE_URL: runtimeServer.baseUrl,
+            },
+            1
+        )
+    );
+
+    assert.equal(verifyPayload.ok, false);
+    assert.equal(
+        verifyPayload.runtime.summary.diagnostics.some(
+            (item) =>
+                item.surface === 'operator_auth' &&
+                item.reason === 'facade_only_rollout'
+        ),
+        true
+    );
+    assert.match(
+        verifyPayload.runtime.summary.message,
+        /operator_auth=unhealthy\(facade_only_rollout\)/
+    );
+    assert.equal(
+        verifyPayload.runtime.surfaces.find(
+            (item) => item.surface === 'operator_auth'
+        ).facade_contract_valid,
         true
     );
 });
@@ -4381,7 +4836,7 @@ test('runtime invoke cae a cli_helper cuando http_bridge falla', async (t) => {
         ),
         true
     );
-    assert.match(readBoard(dir), /runtime_last_transport: "cli_helper"/);
+    assert.match(readBoard(dir), /runtime_last_transport: cli_helper/);
     assert.equal(
         runtimeServer.requests.some(
             (request) =>

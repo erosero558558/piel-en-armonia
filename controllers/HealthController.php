@@ -432,7 +432,12 @@ class HealthController
      *   legacyPasswordConfigured:bool,
      *   twoFactorEnabled:bool,
      *   operatorAuthEnabled:bool,
-     *   operatorAuthConfigured:bool
+     *   operatorAuthConfigured:bool,
+     *   brokerTrustConfigured:bool,
+     *   brokerIssuerPinned:bool,
+     *   brokerAudiencePinned:bool,
+     *   brokerJwksConfigured:bool,
+     *   brokerEmailVerifiedRequired:bool
      * }
      */
     private static function collectAuthSnapshot(): array
@@ -462,8 +467,19 @@ class HealthController
         $status = $configured
             ? 'configured'
             : ($operatorAuthEnabled ? 'operator_auth_not_configured' : 'legacy_auth_not_configured');
+        $brokerTrustConfigured = (bool) ($operatorAuthConfig['brokerTrustConfigured'] ?? false);
+        $brokerIssuerPinned = (bool) ($operatorAuthConfig['brokerIssuerPinned'] ?? false);
+        $brokerAudiencePinned = (bool) ($operatorAuthConfig['brokerAudiencePinned'] ?? false);
+        $brokerJwksConfigured = (bool) ($operatorAuthConfig['brokerJwksConfigured'] ?? false);
+        $brokerEmailVerifiedRequired = (bool) ($operatorAuthConfig['brokerEmailVerifiedRequired'] ?? true);
         $hardeningCompliant = $configured && (
-            ($operatorAuthEnabled && $mode === $recommendedMode)
+            ($operatorAuthEnabled
+                && $mode === $recommendedMode
+                && $brokerTrustConfigured
+                && $brokerIssuerPinned
+                && $brokerAudiencePinned
+                && $brokerJwksConfigured
+                && $brokerEmailVerifiedRequired)
             || (!$operatorAuthEnabled && $mode === 'legacy_password' && $twoFactorEnabled)
         );
 
@@ -478,6 +494,11 @@ class HealthController
             'twoFactorEnabled' => $twoFactorEnabled,
             'operatorAuthEnabled' => $operatorAuthEnabled,
             'operatorAuthConfigured' => $operatorAuthConfigured,
+            'brokerTrustConfigured' => $brokerTrustConfigured,
+            'brokerIssuerPinned' => $brokerIssuerPinned,
+            'brokerAudiencePinned' => $brokerAudiencePinned,
+            'brokerJwksConfigured' => $brokerJwksConfigured,
+            'brokerEmailVerifiedRequired' => $brokerEmailVerifiedRequired,
             'operatorAuthMissing' => is_array($operatorAuthConfig['missing'] ?? null)
                 ? array_values($operatorAuthConfig['missing'])
                 : [],
@@ -491,94 +512,85 @@ class HealthController
      */
     private static function publicPayload(array $detailedPayload): array
     {
-        $checks = is_array($detailedPayload['checks'] ?? null)
-            ? $detailedPayload['checks']
-            : [];
-
-        return [
+        $payload = [
             'ok' => (bool) ($detailedPayload['ok'] ?? false),
             'status' => (string) ($detailedPayload['status'] ?? 'unknown'),
             'storageReady' => (bool) ($detailedPayload['storageReady'] ?? false),
             'dataDirWritable' => (bool) ($detailedPayload['dataDirWritable'] ?? false),
             'timingMs' => (int) ($detailedPayload['timingMs'] ?? 0),
             'version' => (string) ($detailedPayload['version'] ?? app_runtime_version()),
-            'checks' => [
-                'turneroPilot' => self::publicTurneroPilotCheck(
-                    is_array($checks['turneroPilot'] ?? null) ? $checks['turneroPilot'] : []
-                ),
-                'publicSync' => self::publicPublicSyncCheck(
-                    is_array($checks['publicSync'] ?? null) ? $checks['publicSync'] : []
-                ),
-            ],
             'timestamp' => (string) ($detailedPayload['timestamp'] ?? local_date('c')),
         ];
-    }
+        foreach (self::publicCalendarSummaryFields($detailedPayload) as $key => $value) {
+            $payload[$key] = $value;
+        }
 
-    /**
-     * @param array<string,mixed> $turneroPilot
-     * @return array<string,mixed>
-     */
-    private static function publicTurneroPilotCheck(array $turneroPilot): array
-    {
-        $surfaces = [];
-        $surfaceSnapshot = is_array($turneroPilot['surfaces'] ?? null)
-            ? $turneroPilot['surfaces']
-            : [];
-
-        foreach (['admin', 'operator', 'kiosk', 'display'] as $surfaceKey) {
-            $surface = is_array($surfaceSnapshot[$surfaceKey] ?? null)
-                ? $surfaceSnapshot[$surfaceKey]
-                : [];
-            $surfaces[$surfaceKey] = [
-                'enabled' => (bool) ($surface['enabled'] ?? false),
-                'label' => (string) ($surface['label'] ?? ''),
-                'route' => (string) ($surface['route'] ?? ''),
+        $publicSync = self::publicSyncSummaryPayload(
+            $detailedPayload['checks']['publicSync'] ?? null
+        );
+        if ($publicSync !== null) {
+            $payload['checks'] = [
+                'publicSync' => $publicSync,
             ];
         }
 
-        return [
-            'configured' => (bool) ($turneroPilot['configured'] ?? false),
-            'ready' => (bool) ($turneroPilot['ready'] ?? false),
-            'profileSource' => (string) ($turneroPilot['profileSource'] ?? ''),
-            'clinicId' => (string) ($turneroPilot['clinicId'] ?? ''),
-            'profileFingerprint' => (string) ($turneroPilot['profileFingerprint'] ?? ''),
-            'catalogAvailable' => (bool) ($turneroPilot['catalogAvailable'] ?? false),
-            'catalogMatched' => (bool) ($turneroPilot['catalogMatched'] ?? false),
-            'catalogReady' => (bool) ($turneroPilot['catalogReady'] ?? false),
-            'catalogEntryId' => (string) ($turneroPilot['catalogEntryId'] ?? ''),
-            'releaseMode' => (string) ($turneroPilot['releaseMode'] ?? ''),
-            'adminModeDefault' => (string) ($turneroPilot['adminModeDefault'] ?? ''),
-            'separateDeploy' => (bool) ($turneroPilot['separateDeploy'] ?? false),
-            'nativeAppsBlocking' => (bool) ($turneroPilot['nativeAppsBlocking'] ?? false),
-            'surfaces' => $surfaces,
-        ];
+        return $payload;
     }
 
-    /**
-     * @param array<string,mixed> $publicSync
-     * @return array<string,mixed>
-     */
-    private static function publicPublicSyncCheck(array $publicSync): array
+    private static function publicCalendarSummaryFields(array $detailedPayload): array
     {
-        $ageSeconds = null;
-        if (array_key_exists('ageSeconds', $publicSync) && $publicSync['ageSeconds'] !== null) {
-            $ageSeconds = (int) $publicSync['ageSeconds'];
+        $fields = [
+            'calendarConfigured',
+            'calendarReachable',
+            'calendarMode',
+            'calendarSource',
+            'calendarAuth',
+            'calendarTokenHealthy',
+            'calendarLastSuccessAt',
+            'calendarLastErrorAt',
+            'calendarLastErrorReason',
+        ];
+        $payload = [];
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $detailedPayload)) {
+                $payload[$field] = $detailedPayload[$field];
+            }
+        }
+
+        return $payload;
+    }
+
+    private static function publicSyncSummaryPayload($raw): ?array
+    {
+        if (!is_array($raw)) {
+            return null;
         }
 
         return [
-            'configured' => (bool) ($publicSync['configured'] ?? false),
-            'jobKey' => (string) ($publicSync['jobKey'] ?? 'public_main_sync'),
-            'state' => (string) ($publicSync['state'] ?? 'unknown'),
-            'healthy' => (bool) ($publicSync['healthy'] ?? false),
-            'operationallyHealthy' => (bool) ($publicSync['operationallyHealthy'] ?? false),
-            'ageSeconds' => $ageSeconds,
-            'expectedMaxLagSeconds' => max(1, (int) ($publicSync['expectedMaxLagSeconds'] ?? 120)),
-            'lastCheckedAt' => (string) ($publicSync['lastCheckedAt'] ?? ''),
-            'lastSuccessAt' => (string) ($publicSync['lastSuccessAt'] ?? ''),
-            'lastErrorAt' => (string) ($publicSync['lastErrorAt'] ?? ''),
-            'failureReason' => (string) ($publicSync['failureReason'] ?? ''),
-            'deployedCommit' => (string) ($publicSync['deployedCommit'] ?? ''),
-            'headDrift' => (bool) ($publicSync['headDrift'] ?? false),
+            'configured' => (bool) ($raw['configured'] ?? false),
+            'jobId' => (string) ($raw['jobId'] ?? ''),
+            'healthy' => (bool) ($raw['healthy'] ?? false),
+            'operationallyHealthy' => (bool) ($raw['operationallyHealthy'] ?? false),
+            'repoHygieneIssue' => (bool) ($raw['repoHygieneIssue'] ?? false),
+            'state' => (string) ($raw['state'] ?? 'unknown'),
+            'ageSeconds' => array_key_exists('ageSeconds', $raw)
+                ? $raw['ageSeconds']
+                : null,
+            'expectedMaxLagSeconds' => (int) ($raw['expectedMaxLagSeconds'] ?? 120),
+            'lastCheckedAt' => (string) ($raw['lastCheckedAt'] ?? ''),
+            'lastSuccessAt' => (string) ($raw['lastSuccessAt'] ?? ''),
+            'lastErrorAt' => (string) ($raw['lastErrorAt'] ?? ''),
+            'lastErrorMessage' => (string) ($raw['lastErrorMessage'] ?? ''),
+            'failureReason' => (string) ($raw['failureReason'] ?? ''),
+            'deployedCommit' => (string) ($raw['deployedCommit'] ?? ''),
+            'currentHead' => (string) ($raw['currentHead'] ?? ''),
+            'remoteHead' => (string) ($raw['remoteHead'] ?? ''),
+            'headDrift' => (bool) ($raw['headDrift'] ?? false),
+            'telemetryGap' => (bool) ($raw['telemetryGap'] ?? false),
+            'dirtyPathsCount' => (int) ($raw['dirtyPathsCount'] ?? 0),
+            'dirtyPathsSample' => is_array($raw['dirtyPathsSample'] ?? null)
+                ? array_values($raw['dirtyPathsSample'])
+                : [],
         ];
     }
 

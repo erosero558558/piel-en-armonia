@@ -3,6 +3,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { spawnSync } = require('node:child_process');
 const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 
@@ -74,12 +75,6 @@ test('prod smoke integra verify-remote del piloto web por clínica en la corrida
         '& node $turneroClinicProfileScriptPath verify-remote --base-url $base --json 2>&1',
         '[INFO] turneroPilot remote clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady',
         '[INFO] turneroPilot recoveryTargets=$turneroPilotRecoveryTargetsLabel',
-        '$turneroPilotRemoteHealthRedacted = $false',
-        '$turneroPilotRemoteDiagnosticsAuthorized = $false',
-        "$turneroPilotRemoteResource = 'health'",
-        'try { $turneroPilotRemoteHealthRedacted = [bool]$turneroPilotVerify.publicHealthRedacted } catch { $turneroPilotRemoteHealthRedacted = $false }',
-        'Write-Host "[FAIL] turneroPilot remote health redacted (resource=$turneroPilotRemoteResource diagnosticsAuthorized=$turneroPilotRemoteDiagnosticsAuthorized)"',
-        '$turneroPilotRemoteVerificationBlocked = (',
         'Write-Host "[FAIL] turneroPilot remote mismatch (clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady)"',
         "Write-Host '[INFO] turneroPilot verify-remote omitido: perfil activo no esta en modo web_pilot.'",
         "Write-Host '[WARN] bin/turnero-clinic-profile.js no existe; se omite smoke turneroPilot.'",
@@ -128,9 +123,11 @@ test('prod verify propaga telemetria de publicSync a resultados y consola', () =
         '$publicSyncDirtyPathsCount = 0',
         '$publicSyncDirtyPathsSample = @()',
         '$publicSyncTelemetryGap = (',
+        '[WARN] health no incluye checks.publicSync; el host probablemente sigue con HealthController stale',
         '[INFO] public sync lastErrorMessage=$publicSyncLastErrorMessage currentHead=$publicSyncCurrentHead remoteHead=$publicSyncRemoteHead headDrift=$publicSyncHeadDrift dirtyPathsCount=$publicSyncDirtyPathsCount',
         'dirtyPathsSample=$publicSyncDirtyPathsSampleLabel',
         "Asset = 'health-public-sync-working-tree-dirty'",
+        "Detail = 'health publico sin checks.publicSync; desplegar controllers/HealthController.php actualizado antes de clasificar public_main_sync'",
         'RemoteHash = if ($publicSyncState) { "${publicSyncState}:$publicSyncLastErrorMessage" } else { \'false\' }',
     ];
 
@@ -245,17 +242,8 @@ test('prod verify corre verify-remote del piloto web por clínica cuando el perf
         '[INFO] turnero pilot remote clinicId=$turneroPilotRemoteClinicId fingerprint=$turneroPilotRemoteFingerprint catalogReady=$turneroPilotRemoteCatalogReady deployedCommit=$turneroPilotRemoteDeployedCommit',
         '[INFO] turnero pilot recoveryTargets=$turneroPilotRecoveryTargetsLabel',
         '& node $turneroClinicProfileScriptPath verify-remote --base-url $base --json 2>&1',
-        '$turneroPilotRemoteHealthRedacted = $false',
-        '$turneroPilotRemoteDiagnosticsAuthorized = $false',
-        "$turneroPilotRemoteResource = 'health'",
-        'try { $turneroPilotRemoteHealthRedacted = [bool]$turneroPilotVerify.publicHealthRedacted } catch { $turneroPilotRemoteHealthRedacted = $false }',
-        'Write-Host "[FAIL] turnero pilot remote health redacted (resource=$turneroPilotRemoteResource diagnosticsAuthorized=$turneroPilotRemoteDiagnosticsAuthorized)"',
-        '$turneroPilotRemoteVerificationBlocked = (',
         '$verifyMetadata = [ordered]@{',
         'turneroPilot = [pscustomobject]$turneroPilotReport',
-        'remotePublicHealthRedacted = $turneroPilotRemoteHealthRedacted',
-        'remoteDiagnosticsAuthorized = $turneroPilotRemoteDiagnosticsAuthorized',
-        'remoteResource = $turneroPilotRemoteResource',
         'recoveryTargets = @($turneroPilotRecoveryTargets)',
         '-Metadata $verifyMetadata',
         "Write-Host '[INFO] turnero pilot verify-remote omitido: perfil activo no esta en modo web_pilot.'",
@@ -294,7 +282,6 @@ test('prod ops readme documenta triage de publicSync', () => {
         'turnero-pilot-remote-verify',
         'turnero pilot blocked',
         'verify-remote',
-        'publicHealthRedacted=true',
         'clinic-profile',
         'turneroPilot',
     ];
@@ -306,6 +293,58 @@ test('prod ops readme documenta triage de publicSync', () => {
             `falta snippet de documentacion publicSync en scripts/ops/prod/README.md: ${snippet}`
         );
     }
+});
+
+test('HealthController expone checks.publicSync en health publico sin rutas internas', () => {
+    const phpScript = `
+        $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'health-public-sync-' . bin2hex(random_bytes(6));
+        mkdir($tempDir, 0777, true);
+        putenv('PIELARMONIA_DATA_DIR=' . $tempDir);
+        ini_set('log_errors', '1');
+        ini_set('error_log', $tempDir . DIRECTORY_SEPARATOR . 'php-error.log');
+        if (!defined('TESTING_ENV')) {
+            define('TESTING_ENV', true);
+        }
+        require 'api-lib.php';
+        require 'controllers/HealthController.php';
+        ensure_data_file();
+        try {
+            HealthController::check([
+                'store' => read_store(),
+                'requestStartedAt' => microtime(true),
+                'method' => 'GET',
+                'resource' => 'health',
+                'diagnosticsAuthorized' => false,
+            ]);
+        } catch (TestingExitException $e) {
+            echo json_encode($e->payload);
+        }
+    `;
+
+    const result = spawnSync('php', ['-r', phpScript], {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+
+    const payload = JSON.parse(result.stdout);
+    const snapshot = payload?.checks?.publicSync;
+
+    assert.equal(payload.ok, true);
+    assert.equal(payload.status, 'ok');
+    assert.equal(snapshot?.configured, true);
+    assert.equal(snapshot?.jobId, '8d31e299-7e57-4959-80b5-aaa2d73e9674');
+    assert.equal(typeof snapshot?.healthy, 'boolean');
+    assert.equal(typeof snapshot?.repoHygieneIssue, 'boolean');
+    assert.equal(typeof snapshot?.state, 'string');
+    assert.equal(typeof snapshot?.expectedMaxLagSeconds, 'number');
+    assert.equal(Array.isArray(snapshot?.dirtyPathsSample), true);
+    assert.equal('repoPath' in snapshot, false);
+    assert.equal('statusPath' in snapshot, false);
+    assert.equal('logPath' in snapshot, false);
+    assert.equal('lockFile' in snapshot, false);
+    assert.equal('dirtyPaths' in snapshot, false);
 });
 
 test('prod verify expone diagnostico por asset cuando falla cache-header', () => {

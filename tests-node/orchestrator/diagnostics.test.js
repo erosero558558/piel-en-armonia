@@ -17,6 +17,25 @@ const POLICY = {
             },
             metrics_baseline_missing: { enabled: true, severity: 'warning' },
             policy_unknown_keys: { enabled: true, severity: 'warning' },
+            strategy_without_focus: { enabled: true, severity: 'warning' },
+            focus_without_active_tasks: { enabled: true, severity: 'warning' },
+            missing_next_step: { enabled: true, severity: 'warning' },
+            task_missing_focus_fields: {
+                enabled: true,
+                severity: 'warning',
+            },
+            task_outside_next_step: { enabled: true, severity: 'warning' },
+            slice_not_allowed_for_lane: {
+                enabled: true,
+                severity: 'warning',
+            },
+            too_many_active_slices: { enabled: true, severity: 'warning' },
+            required_check_unverified: {
+                enabled: true,
+                severity: 'warning',
+            },
+            decision_overdue: { enabled: true, severity: 'warning' },
+            rework_without_reason: { enabled: true, severity: 'warning' },
         },
     },
 };
@@ -93,6 +112,137 @@ test('diagnostics buildWarnFirstDiagnostics genera warnings policy-driven', () =
     ]);
 });
 
+test('diagnostics buildWarnFirstDiagnostics agrega señales de foco compartido', () => {
+    const list = diagnostics.buildWarnFirstDiagnostics({
+        source: 'status',
+        policy: POLICY,
+        board: {
+            strategy: {
+                active: {
+                    id: 'STRAT-2026-03-admin-operativo',
+                    title: 'Admin operativo',
+                    status: 'active',
+                    owner: 'ernesto',
+                    started_at: '2026-03-14',
+                    review_due_at: '2026-03-21',
+                    exit_criteria: ['uno'],
+                    success_signal: 'demo',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_title: 'Admin operativo demostrable',
+                    focus_summary: 'Corte comun',
+                    focus_status: 'active',
+                    focus_proof: 'Demo comun',
+                    focus_steps: ['admin_queue_pilot_cut'],
+                    focus_next_step: 'admin_queue_pilot_cut',
+                    focus_required_checks: [
+                        'job:public_main_sync',
+                        'runtime:openclaw_chatgpt',
+                    ],
+                    focus_non_goals: ['rediseno_publico'],
+                    focus_owner: 'ernesto',
+                    focus_review_due_at: '2026-03-21',
+                    focus_evidence_ref: '',
+                    focus_max_active_slices: 1,
+                    subfronts: [],
+                },
+            },
+            tasks: [
+                {
+                    id: 'CDX-001',
+                    status: 'in_progress',
+                    codex_instance: 'codex_frontend',
+                    domain_lane: 'frontend_content',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_step: 'admin_queue_pilot_cut',
+                    integration_slice: 'frontend_runtime',
+                    work_type: 'forward',
+                    rework_parent: '',
+                    rework_reason: '',
+                },
+                {
+                    id: 'CDX-002',
+                    status: 'in_progress',
+                    codex_instance: 'codex_frontend',
+                    domain_lane: 'frontend_content',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_step: 'admin_queue_pilot_cut',
+                    integration_slice: 'governance_evidence',
+                    work_type: 'forward',
+                    rework_parent: '',
+                    rework_reason: '',
+                },
+                {
+                    id: 'CDX-003',
+                    status: 'in_progress',
+                    codex_instance: 'codex_frontend',
+                    domain_lane: 'frontend_content',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_step: 'otro_step',
+                    integration_slice: 'frontend_runtime',
+                    work_type: 'forward',
+                    rework_parent: '',
+                    rework_reason: '',
+                },
+                {
+                    id: 'CDX-004',
+                    status: 'in_progress',
+                    codex_instance: 'codex_frontend',
+                    domain_lane: 'frontend_content',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_step: 'admin_queue_pilot_cut',
+                    integration_slice: 'backend_readiness',
+                    work_type: 'forward',
+                    rework_parent: '',
+                    rework_reason: '',
+                },
+                {
+                    id: 'CDX-005',
+                    status: 'in_progress',
+                    codex_instance: 'codex_frontend',
+                    domain_lane: 'frontend_content',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_step: 'admin_queue_pilot_cut',
+                    integration_slice: 'tests_quality',
+                    work_type: 'fix',
+                    rework_parent: '',
+                    rework_reason: '',
+                },
+            ],
+        },
+        decisionsData: {
+            decisions: [
+                {
+                    id: 'DEC-001',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    status: 'open',
+                    due_at: '2026-03-01',
+                },
+            ],
+        },
+        jobsSnapshot: [
+            {
+                key: 'public_main_sync',
+                configured: true,
+                verified: true,
+                healthy: false,
+            },
+        ],
+        activeStatuses: ACTIVE_STATUSES,
+        now: new Date('2026-03-14T00:00:00.000Z'),
+    });
+
+    const codes = list.map((item) => item.code).sort();
+    assert.deepEqual(codes, [
+        'warn.focus.decision_overdue',
+        'warn.focus.required_check_unverified',
+        'warn.focus.rework_without_reason',
+        'warn.focus.slice_not_allowed_for_lane',
+        'warn.focus.task_outside_next_step',
+        'warn.focus.too_many_active_slices',
+        'warn.metrics.baseline_missing',
+    ]);
+});
+
 test('diagnostics attachDiagnostics agrega counts aditivos', () => {
     const report = diagnostics.attachDiagnostics({ version: 1, ok: true }, [
         { code: 'warn.x', severity: 'warning', source: 'status', message: 'x' },
@@ -102,6 +252,128 @@ test('diagnostics attachDiagnostics agrega counts aditivos', () => {
     assert.equal(report.errors_count, 1);
     assert.equal(Array.isArray(report.diagnostics), true);
     assert.equal(report.diagnostics.length, 2);
+});
+
+test('diagnostics preserva required_check runtime por surface en warnings del foco', () => {
+    const list = diagnostics.buildWarnFirstDiagnostics({
+        source: 'status',
+        policy: POLICY,
+        board: {
+            strategy: {
+                active: {
+                    id: 'STRAT-2026-03-admin-operativo',
+                    title: 'Admin operativo',
+                    status: 'active',
+                    owner: 'ernesto',
+                    started_at: '2026-03-14',
+                    review_due_at: '2026-03-21',
+                    exit_criteria: ['uno'],
+                    success_signal: 'demo',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_title: 'Admin operativo demostrable',
+                    focus_summary: 'Corte comun',
+                    focus_status: 'active',
+                    focus_proof: 'Demo comun',
+                    focus_steps: ['feedback_trim'],
+                    focus_next_step: 'feedback_trim',
+                    focus_required_checks: [
+                        'job:public_main_sync',
+                        'runtime:operator_auth',
+                    ],
+                    focus_non_goals: ['rediseno_publico'],
+                    focus_owner: 'ernesto',
+                    focus_review_due_at: '2026-03-21',
+                    focus_evidence_ref: '',
+                    focus_max_active_slices: 3,
+                    subfronts: [],
+                },
+            },
+            tasks: [
+                {
+                    id: 'CDX-001',
+                    status: 'in_progress',
+                    codex_instance: 'codex_frontend',
+                    domain_lane: 'frontend_content',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_step: 'feedback_trim',
+                    integration_slice: 'frontend_runtime',
+                    work_type: 'forward',
+                    rework_parent: '',
+                    rework_reason: '',
+                },
+            ],
+        },
+        jobsSnapshot: [
+            {
+                key: 'public_main_sync',
+                configured: true,
+                verified: true,
+                healthy: true,
+            },
+        ],
+        activeStatuses: ACTIVE_STATUSES,
+    });
+
+    const diag = list.find(
+        (item) => item.code === 'warn.focus.required_check_unverified'
+    );
+    assert.ok(diag);
+    assert.match(diag.message, /runtime:operator_auth=unverified/);
+    assert.equal(diag.meta.checks[0].id, 'runtime:operator_auth');
+});
+
+test('diagnostics reutiliza focusSummary live cuando se provee explicitamente', () => {
+    const list = diagnostics.buildWarnFirstDiagnostics({
+        source: 'status',
+        policy: POLICY,
+        focusSummary: {
+            configured: {
+                id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                required_checks: [
+                    'job:public_main_sync',
+                    'runtime:operator_auth',
+                ],
+            },
+            idle: false,
+            missing_focus_task_ids: [],
+            outside_next_step_task_ids: [],
+            invalid_slice_task_ids: [],
+            too_many_active_slices: false,
+            required_checks: [
+                {
+                    id: 'job:public_main_sync',
+                    state: 'green',
+                    ok: true,
+                },
+                {
+                    id: 'runtime:operator_auth',
+                    state: 'green',
+                    ok: true,
+                },
+            ],
+            decisions: {
+                overdue: 0,
+                overdue_ids: [],
+            },
+            rework_without_reason_task_ids: [],
+        },
+        jobsSnapshot: [
+            {
+                key: 'public_main_sync',
+                configured: true,
+                verified: true,
+                healthy: true,
+            },
+        ],
+        activeStatuses: ACTIVE_STATUSES,
+    });
+
+    assert.equal(
+        list.some(
+            (item) => item.code === 'warn.focus.required_check_unverified'
+        ),
+        false
+    );
 });
 
 test('diagnostics no marca public_main_sync como unconfigured cuando no se cargo snapshot', () => {

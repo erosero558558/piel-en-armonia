@@ -43,10 +43,14 @@ test('public sync host checklist script expone comandos canonicos de triage host
         "curl -s $DiagnosticsUrl | jq '.checks.publicSync | {configured, jobId, state, healthy, operationallyHealthy, repoHygieneIssue, ageSeconds, expectedMaxLagSeconds, lastCheckedAt, lastSuccessAt, lastErrorAt, failureReason, lastErrorMessage, currentHead, remoteHead, dirtyPathsCount, dirtyPathsSample}'",
         "curl -s $DiagnosticsUrl | jq '.checks.storage | {backend, source, encrypted, encryptionConfigured, encryptionRequired, encryptionStatus, encryptionCompliant}'",
         "curl -s $DiagnosticsUrl | jq '.checks.auth | {mode, status, configured, hardeningCompliant, recommendedMode, recommendedModeActive, twoFactorEnabled, operatorAuthEnabled, operatorAuthConfigured, legacyPasswordConfigured}'",
+        "curl -s $base/api.php?resource=health",
+        "curl -s $base/api.php?resource=health | jq '.checks.publicSync | {configured, jobId, state, healthy, operationallyHealthy, failureReason, lastErrorMessage}'",
+        'health publico sin checks.publicSync o sin jobId',
         'install -m 0755 $CanonicalWrapperPath $WrapperPath',
         '/usr/bin/flock -n $LockPath $WrapperPath',
         'PIELARMONIA_DATA_ENCRYPTION_KEY',
         'PIELARMONIA_REQUIRE_DATA_ENCRYPTION',
+        'health publico expone checks.publicSync.jobId=8d31e299-7e57-4959-80b5-aaa2d73e9674',
         'checks.storage.encryptionCompliant=true',
         'checks.publicSync.telemetryGap=false',
     ];
@@ -77,6 +81,7 @@ test('surface operativa documenta el checklist host-side de public sync', () => 
     const requiredRunbookSnippets = [
         'pwsh -File scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1',
         'storeEncryptionCompliant=true',
+        'checks.publicSync.jobId',
     ];
 
     for (const snippet of requiredReadmeSnippets) {
