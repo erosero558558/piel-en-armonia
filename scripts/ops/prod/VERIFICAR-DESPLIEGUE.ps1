@@ -143,6 +143,73 @@ function Resolve-RequireOperatorAuthFlag {
     return $false
 }
 
+function Test-BooleanLike {
+    param(
+        [string]$Value,
+        [bool]$Default = $false
+    )
+
+    $normalized = ([string]$Value).Trim().ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($normalized)) {
+        return $Default
+    }
+    if ($normalized -in @('1', 'true', 'yes', 'on')) {
+        return $true
+    }
+    if ($normalized -in @('0', 'false', 'no', 'off')) {
+        return $false
+    }
+    return $Default
+}
+
+function Resolve-RequireOperatorAuthFlag {
+    param(
+        [switch]$ExplicitFlag
+    )
+
+    if ($ExplicitFlag) {
+        return $true
+    }
+
+    $explicitCandidates = @(
+        $env:ADMIN_ROLLOUT_REQUIRE_OPENCLAW_AUTH_EFFECTIVE,
+        $env:ADMIN_ROLLOUT_REQUIRE_OPENCLAW_AUTH_PRECHECK_EFFECTIVE,
+        $env:ADMIN_ROLLOUT_REQUIRE_OPENCLAW_AUTH_INPUT,
+        $env:ADMIN_ROLLOUT_REQUIRE_OPENCLAW_AUTH_FAST_EFFECTIVE,
+        $env:ADMIN_ROLLOUT_REQUIRE_OPENCLAW_AUTH_FAST,
+        $env:ADMIN_ROLLOUT_REQUIRE_OPENCLAW_AUTH
+    )
+
+    foreach ($candidate in $explicitCandidates) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$candidate)) {
+            return (Test-BooleanLike -Value ([string]$candidate) -Default:$false)
+        }
+    }
+
+    $stageCandidates = @(
+        $env:ADMIN_ROLLOUT_STAGE_EFFECTIVE,
+        $env:ADMIN_ROLLOUT_STAGE_INPUT,
+        $env:ADMIN_ROLLOUT_STAGE_FAST_EFFECTIVE,
+        $env:ADMIN_ROLLOUT_STAGE_FAST,
+        $env:ADMIN_ROLLOUT_STAGE
+    )
+
+    foreach ($candidate in $stageCandidates) {
+        $normalized = ([string]$candidate).Trim().ToLowerInvariant()
+        if ([string]::IsNullOrWhiteSpace($normalized)) {
+            continue
+        }
+        if ($normalized -in @('stable', 'general', 'canary')) {
+            return $true
+        }
+        if ($normalized -in @('internal', 'rollback')) {
+            return $false
+        }
+    }
+
+    return $false
+}
+
 function Invoke-HeadCheck {
     param(
         [string]$Name,

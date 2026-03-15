@@ -15,22 +15,6 @@ Entrypoints estables:
 Los archivos de raiz se mantienen como wrappers compatibles para no romper
 `package.json`, workflows ni uso manual existente.
 
-Hosting Windows canonico:
-
-- El origen Windows ya no debe servir desde el workspace de trabajo. El repo
-  publico vive en el mirror limpio `C:\dev\pielarmonia-clean-main`.
-- `CONFIGURAR-HOSTING-WINDOWS.ps1` registra un supervisor dedicado
-  (`Pielarmonia Hosting Supervisor`) y un reconciliador por minuto
-  (`Pielarmonia Hosting Main Sync`).
-- El deploy local del host se pinnea en
-  `C:\ProgramData\Pielarmonia\hosting\release-target.json`; el sync no sigue
-  `origin/main` flotante.
-- `REPARAR-HOSTING-WINDOWS.ps1` es el entrypoint canonico para stale lock,
-  restart, reinstalacion del supervisor y smoke local post-repair.
-- `SMOKE-HOSTING-WINDOWS.ps1` valida `health-diagnostics`,
-  `admin-auth.php?action=status` con `transport=web_broker` y ausencia de
-  referencias activas a `127.0.0.1:4173` en los shells publicados.
-
 Los checks canonicos de runtime publico resuelven engines solo desde
 `js/engines/**`. Los residuos JS legacy de raiz (`booking-engine.js`,
 `utils.js`, `*-engine.js`) deben quedar archivados fuera del carril activo.
@@ -39,7 +23,7 @@ Adopcion operativa de `public_main_sync`:
 
 - `MONITOR-PRODUCCION.ps1` hace triage rapido de `checks.publicSync`; trata `healthy=false`, `headDrift`, `telemetryGap` y `jobId` invalido como fallo operativo, pero deja `repoHygieneIssue=true` como warning visible cuando el unico problema es `working_tree_dirty` con telemetria suficiente. `-AllowDegradedPublicSync` deja la corrida en modo observacion sin tapar el diagnostico.
 - `MONITOR-PRODUCCION.ps1` y `REPORTE-SEMANAL-PRODUCCION.ps1` consumen `health-diagnostics` para triage operativo detallado; `health` queda como surface publica para smoke, headers y checks anonimos.
-- Si el `clinic-profile` activo esta en `release.mode=web_pilot`, `MONITOR-PRODUCCION.ps1`, `SMOKE-PRODUCCION.ps1` y `VERIFICAR-DESPLIEGUE.ps1` ejecutan `bin/turnero-clinic-profile.js verify-remote --base-url <dominio>` y bloquean cuando el host publicado no coincide en `clinic_id`, `profileFingerprint`, catalogo o canon del piloto. Si `verify-remote` responde `publicHealthRedacted=true`, el lane no cuenta eso como verificacion valida: la identidad remota del piloto debe quedar visible via `health-diagnostics` o por `checks.turneroPilot/checks.publicSync`.
+- Si el `clinic-profile` activo esta en `release.mode=web_pilot`, `MONITOR-PRODUCCION.ps1`, `SMOKE-PRODUCCION.ps1` y `VERIFICAR-DESPLIEGUE.ps1` ejecutan `bin/turnero-clinic-profile.js verify-remote --base-url <dominio>` y bloquean cuando el host publicado no coincide en `clinic_id`, `profileFingerprint`, catalogo o canon del piloto.
 - `SMOKE-PRODUCCION.ps1 -RequireCronReady` valida `checks.publicSync` con `jobId`, `healthy`, `ageSeconds` y telemetria runtime (`state`, `lastErrorMessage`, `currentHead`, `remoteHead`, `dirtyPathsCount`, `dirtyPathsSample`); tambien resuelve `github.deployAlerts`, expone `turneroPilotRecoveryTargets` cuando el release activo es `web_pilot`, y falla si quedan incidentes GitHub abiertos de transporte/conectividad, salvo `-AllowOpenGitHubDeployAlerts`.
 - `SMOKE-PRODUCCION.ps1` y `VERIFICAR-DESPLIEGUE.ps1` separan `health` (headers/contrato publico) de `health-diagnostics` (backup/publicSync/telemedicina), para no depender de que el endpoint publico siga exponiendo telemetria interna.
 - `VERIFICAR-DESPLIEGUE.ps1 -RequireCronReady` propaga fallas como assets `health-public-sync-*`, incluyendo `working-tree-dirty`, `head-drift` y `telemetry-gap`; ademas agrega assets `github-deploy-*`, `turnero-pilot-profile-status` y `turnero-pilot-remote-verify` para incidentes o drift del piloto.
@@ -66,13 +50,10 @@ Adopcion operativa de `public_main_sync`:
 - `MONITOR-PRODUCCION.ps1` y `VERIFICAR-DESPLIEGUE.ps1` tambien consumen `checks.storage` para exponer `backend`, `source`, `encrypted`, `encryptionConfigured`, `encryptionRequired`, `encryptionStatus` y `encryptionCompliant`.
 - `MONITOR-PRODUCCION.ps1` deja el cifrado en reposo visible por default y permite endurecer con `-RequireStoreEncryption`; aun sin ese flag, si el runtime ya marca `encryptionRequired=true`, el monitor falla cuando `encryptionCompliant=false`. `VERIFICAR-DESPLIEGUE.ps1` traduce ese guardrail a `health-store-encryption-*`.
 - `SMOKE-PRODUCCION.ps1`, `VERIFICAR-DESPLIEGUE.ps1` y `GATE-POSTDEPLOY.ps1` aceptan `-RequireTurneroWebSurfaces` para bloquear si faltan `/operador-turnos.html`, `/kiosco-turnos.html` o `/sala-turnos.html`.
-- `verify:prod:turnero:web-pilot`, `smoke:prod:turnero:web-pilot` y `gate:prod:turnero:web-pilot` son el carril canonico del piloto web por clinica: usan solo `-RequireTurneroWebSurfaces` y dejan el carril nativo fuera del bloqueo.
 - Los mismos entrypoints aceptan `-RequireTurneroOperatorPilot` para bloquear si el piloto Windows del operador no publica `app-downloads`, `latest.yml` e instalador en `pilot`.
-- `verify:prod:turnero:operator:pilot`, `smoke:prod:turnero:operator:pilot` y `gate:prod:turnero:operator:pilot` quedan para el release ampliado del lane nativo/operator pilot.
 - `check-public-routing-smoke.js` trata `/operador-turnos.html`, `/kiosco-turnos.html` y `/sala-turnos.html` como rutas publicas obligatorias; si una cae en redirect o 404, staging/prod no deben pasar.
 - `CHECKLIST-HOST-PUBLIC-SYNC.ps1` imprime un checklist host-side reutilizable para comparar `/root/sync-pielarmonia.sh` contra el wrapper canonico, capturar `public-sync-status.json`, revisar `health-diagnostics` y validar `storeEncryptionCompliant`.
-- Ese mismo checklist ya incluye snapshot de `.generated/site-root/` y `_deploy_bundle/`, para que el triage host-side no dependa de asumir outputs generados solo en el repo root.
-- El perfil productivo canonico de auth es `PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt` + `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=web_broker` + `PIELARMONIA_ADMIN_EMAIL=<correo_operativo>` + `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST=<correo_operativo>` + `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`.
+- El perfil productivo canonico de auth es `PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt` + `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=web_broker` + `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=true`.
 - En ese perfil, `MONITOR-PRODUCCION.ps1` y `VERIFICAR-DESPLIEGUE.ps1` activan `RequireOperatorAuth` automaticamente cuando la politica efectiva del rollout admin exige OpenClaw.
 - `post-deploy-fast.yml` y `post-deploy-gate.yml` publican ademas un reporte de smoke live del broker web; el corte productivo espera `callback_ok=true`, `shared_session_ok=true` y `logout_ok=true`.
 
@@ -100,9 +81,6 @@ Cuando necesites intervenir el VPS sin improvisar comandos, usa:
 - `npm run gate:admin:rollout:openclaw:node`
 - `npm run diagnose:admin:openclaw-auth:rollout:node`
 - `npm run smoke:admin:openclaw-auth:live:node`
-- `npm run verify:prod:turnero:web-pilot`
-- `npm run smoke:prod:turnero:web-pilot`
-- `npm run gate:prod:turnero:web-pilot`
 - `npm run verify:prod:turnero:operator:pilot`
 - `npm run smoke:prod:turnero:operator:pilot`
 - `npm run gate:prod:turnero:operator:pilot`

@@ -66,9 +66,7 @@ Compatibilidad opcional:
 
 - `PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt`
 - `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=web_broker`
-- `PIELARMONIA_ADMIN_EMAIL=<correo_operativo>`
-- `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST=<correo_operativo>`
-- `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`
+- `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=true`
 - `PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL=https://TU_DOMINIO`
 - `OPENCLAW_AUTH_BROKER_AUTHORIZE_URL`
 - `OPENCLAW_AUTH_BROKER_TOKEN_URL`
@@ -81,7 +79,7 @@ Compatibilidad opcional:
   `OPENCLAW_AUTH_BROKER_SMOKE_PASSWORD`,
   `OPENCLAW_AUTH_BROKER_SMOKE_TOTP_SECRET`,
   `OPENCLAW_AUTH_BROKER_SMOKE_EXPECTED_EMAIL`
-- opcional solo para soporte local/manual: `PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN`, `PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET`
+- opcional solo para soporte local/manual: `PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN`, `PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET`, `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST`
 - opcional solo para contingencia legacy: `PIELARMONIA_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=true`, `PIELARMONIA_ADMIN_PASSWORD` o `PIELARMONIA_ADMIN_PASSWORD_HASH`, `PIELARMONIA_ADMIN_2FA_SECRET`
 - opcional: `PIELARMONIA_ADMIN_EMAIL` (para alertas de nuevas citas)
 - opcional: `PIELARMONIA_EMAIL_FROM`
@@ -112,21 +110,6 @@ Compatibilidad opcional:
     - `storeEncrypted`
     - `figoConfigured`
     - `figoRecursiveConfig`
-
-4. Si el origen productivo actual es Windows, verifica tambien la capa de
-   hosting local antes de abrir trafico:
-
-- Existe `C:\ProgramData\Pielarmonia\hosting\release-target.json` con
-  `target_commit`.
-- Existe `C:\ProgramData\Pielarmonia\hosting\main-sync-status.json` y no queda
-  atascado en `state=locked` sin `lock_owner_pid` valido.
-- La tarea `Pielarmonia Hosting Supervisor` esta `Ready` y la tarea
-  `Pielarmonia Hosting Main Sync` corre cada 1 minuto.
-- El runtime servible sale desde `C:\dev\pielarmonia-clean-main`, no desde el
-  workspace de desarrollo.
-- Si algo falla, el entrypoint canonico de recovery es
-  `scripts/ops/setup/REPARAR-HOSTING-WINDOWS.ps1`; no improvisar `git pull`
-  ni reinicios manuales sobre el workspace activo.
 
 ## 2. Pruebas del panel admin
 

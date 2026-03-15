@@ -11,14 +11,13 @@ Si desde tu PC no puedes subir por FTP/SFTP, usa el workflow:
 - `.github/workflows/deploy-hosting.yml`
 - `docs/GITHUB_ACTIONS_DEPLOY.md` (paso a paso)
 
-El camino canonico hoy es publicar desde el bundle/stage generado por CI
-(`_deploy_bundle/` + `.generated/site-root/`) y dejar el git-sync host-side
-solo como telemetria/fallback legacy. Para validar la salida usa:
+Si tu hosting ya tiene sincronizacion por Git (pull automatico), ese metodo es el recomendado y mas seguro.
+En ese caso ejecuta el gate automatico con:
 
 - `.github/workflows/post-deploy-fast.yml` (se dispara en push a `main`, valida `verify+smoke` en modo rapido).
 - `.github/workflows/nightly-stability.yml` (23:00 America/Guayaquil, corre gate completo + suites criticas).
 - `.github/workflows/post-deploy-gate.yml` (modo manual/full regression).
-- `.github/workflows/repair-git-sync.yml` (si el gate falla o el host legacy queda stale, intenta reparar sync por SSH en servidor).
+- `.github/workflows/repair-git-sync.yml` (si el gate falla en `main`, intenta reparar sync por SSH con `git fetch/reset` en servidor).
   Para monitoreo continuo, habilita:
 - `.github/workflows/prod-monitor.yml` (salud + latencia cada 30 minutos).
 
@@ -34,61 +33,22 @@ Uso:
 - Manual: Actions -> `Deploy Hosting (Canary Pipeline)` -> `Run workflow`.
 - Prueba sin cambios: `dry_run = true`.
 - Si falla `Timeout (control socket)`: prueba `protocol=sftp`, `server_port=22` (o `protocol=ftp`, `server_port=21`).
-- Si necesitas fallback host-side, `deploy-public-v3-live.sh` ya prefiere
-  `.generated/site-root/` para outputs generados y cae a copias root solo por
-  compatibilidad.
 
-## Cutover rapido en Windows con mirror limpio
+## Cutover rapido en Windows con este workspace
 
-Si el hosting viejo va a desaparecer y necesitas servir `pielarmonia.com`
-desde Windows, no sirvas trafico desde el workspace de trabajo.
-La ruta canonica es mantener un mirror limpio en
-`C:\dev\pielarmonia-clean-main` y usar el workspace solo para operar el sync:
+Si el hosting viejo va a desaparecer y necesitas servir `pielarmonia.com` desde
+`C:\dev\pielarmonia-workspace`, la ruta canonica en Windows es:
 
 - `ops/caddy/Caddyfile` para edge local y redirects canonicos.
 - `php-cgi.exe` en `127.0.0.1:9000` como backend FastCGI.
 - `cloudflared` para exponer el mismo dominio sin depender de NAT/router.
-- `scripts/ops/setup/SUPERVISAR-HOSTING-WINDOWS.ps1` como supervisor dedicado del stack.
-- `scripts/ops/setup/Windows.Hosting.Common.ps1` como capa canonica de
-  compatibilidad Windows PowerShell 5.1 para procesos, puertos, tareas,
-  JSON, hashing y HTTP.
-- `scripts/ops/setup/SINCRONIZAR-HOSTING-WINDOWS.ps1` para consumir
-  `release-target.json`, correr `discover -> preflight -> apply -> restart ->
-  validate -> rollback` y reinyectar
-  `C:\ProgramData\Pielarmonia\hosting\env.php` sin seguir `origin/main`
-  flotante.
-- `scripts/ops/setup/CONFIGURAR-HOSTING-WINDOWS.ps1` para registrar:
-  `Pielarmonia Hosting Supervisor` en boot/login, `Pielarmonia Hosting Main Sync`
-  cada 1 minuto via Task Scheduler y los launchers cortos del mirror.
-- `scripts/ops/setup/REPARAR-HOSTING-WINDOWS.ps1` como entrypoint unico de
-  recovery para `discover -> preflight -> quiesce -> apply -> reinstall ->
-  validate`, con `-PreflightOnly` y sin tumbar trafico si el preflight falla.
-- `scripts/ops/setup/SMOKE-HOSTING-WINDOWS.ps1` como smoke canonico del host:
-  valida `health-diagnostics`, `admin-auth.php?action=status` con
-  `transport=web_broker` y ausencia de referencias activas a `127.0.0.1:4173`.
+- `scripts/ops/setup/CONFIGURAR-HOSTING-WINDOWS.ps1` para autoarranque y cutover.
 
 Secuencia recomendada:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ops\setup\CONFIGURAR-HOSTING-WINDOWS.ps1 -RouteDns -OverwriteDns -StartNow
 ```
-
-Notas operativas:
-
-- Linux ya tiene el cron canonico `public_main_sync` cada minuto; no dupliques
-  otro cron en ese host.
-- En Windows usa Task Scheduler sobre el mirror limpio, no `git pull` ni
-  `git reset` sobre el workspace activo.
-- El deploy Windows ya no sigue `origin/main` a ciegas: el runtime servible se
-  pinnea en `C:\ProgramData\Pielarmonia\hosting\release-target.json` y el sync
-  solo promueve ese `target_commit`.
-- `main-sync-status.json` y `hosting-supervisor-status.json` son la fuente de
-  verdad operativa: deben exponer `desired/current/previous_commit`,
-  `service_state`, `health_ok`, `auth_contract_ok`, `lock_*`,
-  `rollback_*` y los timestamps de ultimo deploy sano/fallido.
-- El supervisor es el runtime principal; Task Scheduler queda como bootstrap y
-  watchdog. La tarea legacy `Pielarmonia Hosting Stack` ya no es el entrypoint
-  operativo.
 
 Notas:
 
@@ -98,38 +58,15 @@ Notas:
   `https://pielarmonia.com`.
 - El entrypoint publico sale por Cloudflare Tunnel; no hace falta publicar
   `8011`, `4173` ni `9000`.
-- El configurador deja tres capas coordinadas:
-  `Startup` + `HKCU\Run` para bootstrap de sesion, una tarea `ONSTART`
-  (`Pielarmonia Hosting Supervisor`) para el supervisor del stack y una tarea
-  `MINUTE/1` (`Pielarmonia Hosting Main Sync`) para reconciliar el mirror.
+- El configurador deja dos capas de arranque:
+  `Startup` + `HKCU\Run` para la sesion del operador, y una tarea `ONSTART`
+  para el stack publico solo cuando se ejecuta con PowerShell elevada.
 - Para evitar el limite de 261 caracteres de `schtasks /TR`, el configurador
-  genera launchers cortos en `data/runtime/hosting/supervisor.cmd`,
-  `data/runtime/hosting/main-sync.cmd`, `data/runtime/hosting/repair-hosting.cmd`
-  y mantiene `login-stack.cmd` / `boot-stack.cmd` solo como shims compatibles.
+  genera launchers cortos en `data/runtime/hosting/login-stack.cmd` y
+  `data/runtime/hosting/boot-stack.cmd`.
 - El perfil productivo canonico de auth es `web_broker`; el helper local en
   `127.0.0.1:4173` queda solo para soporte manual/laptop cuando se habilita
   explicitamente `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=local_helper`.
-- En produccion `web_broker`, el supervisor, el sync y el smoke local validan
-  que `admin-auth.php?action=status` publique `transport=web_broker`; si el
-  contrato falta o reaparece `local_helper`, el host marca fallo en cerrado.
-
-Recovery canonico:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ops\setup\REPARAR-HOSTING-WINDOWS.ps1
-```
-
-Preflight canonico sin tocar trafico:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ops\setup\REPARAR-HOSTING-WINDOWS.ps1 -PreflightOnly
-```
-
-Promocion manual del HEAD remoto durante una ventana de mantenimiento:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ops\setup\REPARAR-HOSTING-WINDOWS.ps1 -PromoteCurrentRemoteHead
-```
 
 ## Archivos a subir
 
@@ -240,9 +177,7 @@ Configura estas variables en tu hosting:
 
 - `PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt`
 - `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=web_broker`
-- `PIELARMONIA_ADMIN_EMAIL=<correo_operativo>`
-- `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST=<correo_operativo>`
-- `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`
+- `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=true`
 - `PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL=https://pielarmonia.com`
 - `OPENCLAW_AUTH_BROKER_AUTHORIZE_URL`
 - `OPENCLAW_AUTH_BROKER_TOKEN_URL`
@@ -292,8 +227,7 @@ Importante:
 - Ya no existe fallback `admin123`, incluso en local.
 - En produccion, el login admin/turnero debe entrar por OpenClaw `web_broker`.
 - `PIELARMONIA_ADMIN_PASSWORD` o `PIELARMONIA_ADMIN_PASSWORD_HASH` solo son obligatorios si vas a exponer la contingencia legacy.
-- En el perfil restringido recomendado, `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST` debe contener la cuenta operativa autorizada.
-- `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=true` queda solo como opt-in para entornos que quieran permitir cualquier identidad verificada por el broker.
+- `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST` no es requisito del corte cuando `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=true`.
 - Para notificaciones por email al administrador, configura `PIELARMONIA_ADMIN_EMAIL`.
 - Para cifrado de datos en reposo, configura `PIELARMONIA_DATA_ENCRYPTION_KEY` (32 bytes o texto que se deriva a SHA-256).
 - Si no puedes usar variables de entorno, tambien puedes crear `data/figo-config.json`.

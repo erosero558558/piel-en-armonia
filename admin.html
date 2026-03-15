@@ -1,12 +1,5 @@
 <!doctype html>
-<html
-    lang="es"
-    data-admin-ui="sony_v3"
-    data-admin-ready="false"
-    data-theme-mode="system"
-    data-ops-family="command"
-    data-ops-tone="light"
->
+<html lang="es" data-admin-ui="sony_v3" data-admin-ready="false">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,48 +9,22 @@
         />
         <title>Nucleo Interno de Consultorio - Piel en Armonia</title>
         <link rel="icon" href="/favicon.ico" sizes="any" />
-        <script src="src/apps/queue-shared/ops-theme-global.js?v=turnero-20260314-auto-theme1"></script>
         <link
             rel="stylesheet"
-        href="admin-v3.css?v=admin-v3-20260314-sony150"
+        href="admin-v3.css?v=admin-v3-20260314-openclaw-fallback1"
             id="adminV3Styles"
         />
         <link
             rel="stylesheet"
-            href="queue-ops.css?v=queue-ops-20260314-sony150"
+            href="queue-ops.css?v=queue-ops-20260310-apps1"
         />
-        <script src="js/admin-preboot-shortcuts.js?v=admin-20260314-rc1-preboot1"></script>
+        <script src="js/admin-preboot-shortcuts.js?v=admin-20260310-v3-inert1"></script>
         <script src="js/monitoring-loader.js" async></script>
     </head>
-    <body
-        class="admin-body"
-        data-ops-family="command"
-        data-ops-tone="light"
-    >
+    <body class="admin-body">
         <a href="#adminMainContent" class="admin-skip-link"
             >Saltar al contenido principal</a
         >
-        <section
-            class="turnero-stage-chrome turnero-stage-chrome--ops"
-            data-turnero-stage-chrome
-            data-turnero-stage-surface="admin"
-        >
-            <div class="turnero-stage-chrome__copy">
-                <p class="turnero-stage-chrome__eyebrow">Aurora Derm · clinica piloto</p>
-                <strong data-turnero-stage-label>Recepcion</strong>
-                <span data-turnero-stage-order
-                    >Etapa 02 / 04 · Llegada -> Recepcion -> Sala -> Gerencia</span
-                >
-            </div>
-            <div class="turnero-stage-chrome__actions">
-                <a href="/es/software/turnero-clinicas/" data-turnero-stage-entry
-                    >Abrir narrativa del producto</a
-                >
-                <a href="/sala-turnos.html" data-turnero-stage-next
-                    >Siguiente: sala de espera</a
-                >
-            </div>
-        </section>
 
         <div id="loginScreen" class="login-screen"></div>
         <div id="adminDashboard" class="admin-dashboard is-hidden"></div>
@@ -70,7 +37,7 @@
         ></div>
 
         <script
-            src="admin.js?v=admin-20260315-openclaw-failclosed1"
+            src="admin.js?v=admin-20260314-queue-pilot-flow1"
             type="module"
         ></script>
     </body>

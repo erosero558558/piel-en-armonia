@@ -84,22 +84,7 @@ function testOperatorAuthContractPayload(payload) {
 
     return (
         Object.prototype.hasOwnProperty.call(payload, 'mode') &&
-        Object.prototype.hasOwnProperty.call(payload, 'status') &&
-        Object.prototype.hasOwnProperty.call(payload, 'transport')
-    );
-}
-
-function looksLikeOpenClawTransportDrift(snapshot) {
-    if (!snapshot || typeof snapshot !== 'object') {
-        return false;
-    }
-
-    return (
-        snapshot.reachable === true &&
-        snapshot.json_valid === true &&
-        stringValue(snapshot.mode) === 'openclaw_chatgpt' &&
-        stringValue(snapshot.transport) === '' &&
-        stringValue(snapshot.status) !== ''
+        Object.prototype.hasOwnProperty.call(payload, 'status')
     );
 }
 
@@ -151,21 +136,6 @@ function normalizeOperatorAuthSnapshot(url, name, response) {
         broker_client_id_configured: configuration
             ? booleanValue(configuration.brokerClientIdConfigured)
             : false,
-        broker_trust_configured: configuration
-            ? booleanValue(configuration.brokerTrustConfigured)
-            : false,
-        broker_issuer_pinned: configuration
-            ? booleanValue(configuration.brokerIssuerPinned)
-            : false,
-        broker_audience_pinned: configuration
-            ? booleanValue(configuration.brokerAudiencePinned)
-            : false,
-        broker_jwks_configured: configuration
-            ? booleanValue(configuration.brokerJwksConfigured)
-            : false,
-        broker_email_verified_required: configuration
-            ? booleanValue(configuration.brokerEmailVerifiedRequired, true)
-            : true,
         missing: configuration ? ensureArray(configuration.missing) : [],
     };
 }
@@ -182,14 +152,6 @@ function mergeResolvedSnapshot(resolved, snapshot, source) {
     resolved.recommended_mode = stringValue(snapshot.recommended_mode);
     resolved.helper_base_url = stringValue(snapshot.helper_base_url);
     resolved.missing = ensureArray(snapshot.missing);
-    resolved.broker_trust_configured =
-        snapshot.broker_trust_configured === true;
-    resolved.broker_issuer_pinned = snapshot.broker_issuer_pinned === true;
-    resolved.broker_audience_pinned =
-        snapshot.broker_audience_pinned === true;
-    resolved.broker_jwks_configured = snapshot.broker_jwks_configured === true;
-    resolved.broker_email_verified_required =
-        snapshot.broker_email_verified_required !== false;
 }
 
 function addDiagnosticWarning(report, message) {
@@ -211,11 +173,6 @@ function formatMissingOperatorAuthEnv(missing) {
         broker_token_url: 'OPENCLAW_AUTH_BROKER_TOKEN_URL',
         broker_userinfo_url: 'OPENCLAW_AUTH_BROKER_USERINFO_URL',
         broker_client_id: 'OPENCLAW_AUTH_BROKER_CLIENT_ID',
-        broker_jwks_url: 'OPENCLAW_AUTH_BROKER_JWKS_URL',
-        broker_expected_issuer: 'OPENCLAW_AUTH_BROKER_EXPECTED_ISSUER',
-        broker_expected_audience: 'OPENCLAW_AUTH_BROKER_EXPECTED_AUDIENCE',
-        broker_require_email_verified:
-            'OPENCLAW_AUTH_BROKER_REQUIRE_EMAIL_VERIFIED=true',
     };
 
     return ensureArray(missing).map((item) => labels[item] || item);
@@ -263,16 +220,6 @@ function resolveOpenClawRolloutState(report) {
             return report;
         }
 
-        if (
-            resolved.transport !== 'web_broker' &&
-            resolved.transport !== 'local_helper'
-        ) {
-            report.diagnosis = 'transport_misconfigured';
-            report.next_action =
-                'Corregir el contrato OpenClaw para que admin-auth.php?action=status y operator-auth-status publiquen transport=web_broker o transport=local_helper.';
-            return report;
-        }
-
         if (resolved.configured !== true) {
             const missingEnv = formatMissingOperatorAuthEnv(resolved.missing);
             report.diagnosis = 'openclaw_not_configured';
@@ -282,20 +229,6 @@ function resolveOpenClawRolloutState(report) {
                     : resolved.transport === 'web_broker'
                       ? 'Completar broker OAuth/OpenID y callback remoto del rollout OpenClaw en el entorno remoto.'
                       : 'Completar bridge, helper y allowlist del rollout OpenClaw en el entorno remoto.';
-            return report;
-        }
-
-        if (
-            resolved.transport === 'web_broker' &&
-            (resolved.broker_trust_configured !== true ||
-                resolved.broker_issuer_pinned !== true ||
-                resolved.broker_audience_pinned !== true ||
-                resolved.broker_jwks_configured !== true ||
-                resolved.broker_email_verified_required !== true)
-        ) {
-            report.diagnosis = 'openclaw_not_configured';
-            report.next_action =
-                'Completar trust OIDC del broker: JWKS, issuer, audience y email verificado obligatorio antes de pasar a openclaw_ready.';
             return report;
         }
 
@@ -313,16 +246,6 @@ function resolveOpenClawRolloutState(report) {
                 ? 'El rollout OpenClaw web_broker ya esta listo; continuar con smoke web y gate admin.'
                 : 'El rollout OpenClaw ya esta listo; continuar con smoke humano y gate admin.';
         report.ok = true;
-        return report;
-    }
-
-    if (
-        looksLikeOpenClawTransportDrift(primary) ||
-        looksLikeOpenClawTransportDrift(facade)
-    ) {
-        report.diagnosis = 'transport_misconfigured';
-        report.next_action =
-            'Corregir el contrato OpenClaw para que admin-auth.php?action=status y operator-auth-status publiquen transport=web_broker o transport=local_helper.';
         return report;
     }
 
