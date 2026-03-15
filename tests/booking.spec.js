@@ -48,15 +48,15 @@ test.describe('Reserva online en mantenimiento', () => {
 
         const newsStrip = page.locator('[data-v6-news-strip]');
         await expect(newsStrip).toContainText(
-            'Aunque la agenda web siga en pausa, su primer paso no tiene por que esperar.'
+            'Dermatologia clara para empezar hoy, aunque la reserva web siga en mantenimiento.'
         );
 
         await page.locator('[data-v6-news-toggle]').click();
         const newsPanel = page.locator('[data-v6-news-panel]');
         await expect(newsPanel).toBeVisible();
-        await expect(newsPanel).toContainText('telemedicina');
+        await expect(newsPanel).toContainText('teledermatologia');
         await expect(
-            newsPanel.getByRole('link', { name: 'Ver servicios' })
+            newsPanel.getByRole('link', { name: 'Ver especialidades' })
         ).toHaveAttribute('href', '/es/servicios/');
 
         await expectLegacyBookingShellAbsent(page);
@@ -66,12 +66,12 @@ test.describe('Reserva online en mantenimiento', () => {
             'Reserva online en mantenimiento'
         );
 
-        const telemedicineCta = bookingStatus.getByRole('link', {
-            name: 'Abrir telemedicina',
+        const firstVisitCta = bookingStatus.getByRole('link', {
+            name: 'Abrir primera consulta',
         });
-        await expect(telemedicineCta).toHaveAttribute(
+        await expect(firstVisitCta).toHaveAttribute(
             'href',
-            '/es/telemedicina/'
+            '/es/servicios/diagnostico-integral/'
         );
 
         await page.locator('[data-v6-search-open]').first().click();
@@ -84,7 +84,7 @@ test.describe('Reserva online en mantenimiento', () => {
             '[data-v6-search-results] a[href="/es/telemedicina/"]'
         );
         await expect(telemedicineResult).toBeVisible();
-        await expect(telemedicineResult).toContainText('Telemedicina');
+        await expect(telemedicineResult).toContainText('Teledermatologia');
 
         await Promise.all([
             page.waitForURL(/\/es\/telemedicina\/$/),
@@ -93,7 +93,7 @@ test.describe('Reserva online en mantenimiento', () => {
 
         await expect(page).toHaveURL(/\/es\/telemedicina\/$/);
         await expect(page.locator('h1')).toContainText(
-            'Telemedicina dermatologica en Quito'
+            'Teledermatologia en Quito'
         );
     });
 
@@ -118,10 +118,12 @@ test.describe('Reserva online en mantenimiento', () => {
         await expect(bookingStatus).toContainText(
             'Reserva online en mantenimiento'
         );
-        await expect(bookingStatus).toContainText('empiece por telemedicina');
+        await expect(bookingStatus).toContainText(
+            'puede empezar por teledermatologia'
+        );
 
         const telemedicineLink = bookingStatus.getByRole('link', {
-            name: 'Abrir telemedicina',
+            name: 'Abrir teledermatologia',
         });
         await expect(telemedicineLink).toHaveAttribute(
             'href',
@@ -135,7 +137,7 @@ test.describe('Reserva online en mantenimiento', () => {
         await openPublicRoute(page, '/es/telemedicina/');
 
         await expect(page.locator('h1')).toContainText(
-            'Telemedicina dermatologica en Quito'
+            'Teledermatologia en Quito'
         );
         await expectLegacyBookingShellAbsent(page);
 
@@ -143,7 +145,7 @@ test.describe('Reserva online en mantenimiento', () => {
         const pageMenuPanel = page.locator('[data-v6-page-menu-panel]');
         await expect(pageMenuPanel).toBeVisible();
         await expect(
-            pageMenuPanel.getByRole('link', { name: 'Reserva online' })
+            pageMenuPanel.getByRole('link', { name: 'Siguiente paso' })
         ).toHaveAttribute('href', '#v6-booking-status');
 
         const bookingStatus = page.locator('[data-v6-booking-status]');
@@ -151,25 +153,23 @@ test.describe('Reserva online en mantenimiento', () => {
             'Reserva online en mantenimiento'
         );
 
-        const servicesLink = bookingStatus.getByRole('link', {
-            name: 'Ver servicios',
+        const firstVisitLink = bookingStatus.getByRole('link', {
+            name: 'Abrir primera consulta',
         });
-        await expect(servicesLink).toHaveAttribute('href', '/es/servicios/');
+        await expect(firstVisitLink).toHaveAttribute(
+            'href',
+            '/es/servicios/diagnostico-integral/'
+        );
 
         await Promise.all([
-            page.waitForURL(/\/es\/servicios\/$/),
-            servicesLink.click(),
+            page.waitForURL(/\/es\/servicios\/diagnostico-integral\/$/),
+            firstVisitLink.click(),
         ]);
 
-        await expect(page).toHaveURL(/\/es\/servicios\/$/);
-        await expect(page.locator('h1')).toContainText(
-            'Servicios dermatologicos'
+        await expect(page).toHaveURL(
+            /\/es\/servicios\/diagnostico-integral\/$/
         );
-        await expect(
-            page.locator('[data-v6-hub-featured-card]').first()
-        ).toBeVisible();
-        await expect(
-            page.locator('[data-v6-catalog-card]').first()
-        ).toBeVisible();
+        await expect(page.locator('h1')).toContainText('Diagnostico integral');
+        await expect(page.locator('[data-v6-internal-hero]')).toBeVisible();
     });
 });

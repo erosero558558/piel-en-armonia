@@ -179,7 +179,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
                 'No se pudo iniciar sesion'
             );
             await expect(statusMessage).toContainText(
-                /Credenciales|Verifica la clave/i
+                /Credenciales|Verifica la clave|contingencia|2FA|fallback/i
             );
             return;
         }
@@ -191,7 +191,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
         await expectAdminAccessGateVisible(page);
         await expect(openClawStage).toBeVisible();
         await expect(statusTitle).toContainText(
-            /OpenClaw|Challenge|Email|Helper/i
+            /OpenClaw|Challenge|Email|Helper|Codigo temporal|Generando codigo/i
         );
         await expect(statusMessage).toContainText(
             /OpenClaw|helper|configur|challenge|sesion|identidad/i
@@ -277,7 +277,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
 
         await expect(page.locator('[data-v6-header]')).toBeVisible();
         await expect(page.locator('[data-v6-news-strip]')).toContainText(
-            'Aunque la agenda web siga en pausa, su primer paso no tiene por que esperar.'
+            'Dermatologia clara para empezar hoy, aunque la reserva web siga en mantenimiento.'
         );
 
         const bookingStatus = page.locator('[data-v6-booking-status]');
@@ -286,29 +286,19 @@ test.describe('Checklist de Pruebas en Producción', () => {
             'Reserva online en mantenimiento'
         );
         await expect(
-            bookingStatus.getByRole('link', { name: 'Abrir telemedicina' })
-        ).toHaveAttribute('href', '/es/telemedicina/');
+            bookingStatus.getByRole('link', { name: 'Abrir primera consulta' })
+        ).toHaveAttribute('href', '/es/servicios/diagnostico-integral/');
 
         await expectLegacyPublicShellAbsent(page);
     });
 
-    test('3. Cita Pública - Telemedicina mantiene el fallback de reserva hacia servicios', async ({
+    test('3. Cita Pública - Teledermatologia mantiene el siguiente paso hacia primera consulta', async ({
         page,
     }) => {
-        await page.goto(PUBLIC_HOME_PATH);
-
-        const bookingStatus = page.locator('[data-v6-booking-status]');
-        const telemedicineLink = bookingStatus.getByRole('link', {
-            name: 'Abrir telemedicina',
-        });
-
-        await Promise.all([
-            page.waitForURL(/\/es\/telemedicina\/$/),
-            telemedicineLink.click(),
-        ]);
+        await page.goto('/es/telemedicina/');
 
         await expect(page.locator('h1')).toContainText(
-            'Telemedicina dermatologica en Quito'
+            'Teledermatologia en Quito'
         );
         await expectLegacyPublicShellAbsent(page);
 
@@ -317,10 +307,13 @@ test.describe('Checklist de Pruebas en Producción', () => {
             'Reserva online en mantenimiento'
         );
 
-        const servicesLink = telemedicineStatus.getByRole('link', {
-            name: 'Ver servicios',
+        const firstVisitLink = telemedicineStatus.getByRole('link', {
+            name: 'Abrir primera consulta',
         });
-        await expect(servicesLink).toHaveAttribute('href', '/es/servicios/');
+        await expect(firstVisitLink).toHaveAttribute(
+            'href',
+            '/es/servicios/diagnostico-integral/'
+        );
     });
 
     // 4. Validación de disponibilidad

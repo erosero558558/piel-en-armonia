@@ -29,17 +29,16 @@ test.describe('Public V6 assistance fallback replaces legacy chat booking shell'
         await expect(page).toHaveURL(/\/en\/$/);
         await expectHeaderAssistanceSurfaces(page);
         await expect(page.locator('[data-v6-news-strip]')).toContainText(
-            'Clear clinical dermatology, ready to move you forward even while online booking is paused.'
+            'Three clear ways to begin: first visit, indicated treatments, or teledermatology when you need to move today.'
         );
 
         const bookingStatus = page.locator('[data-v6-booking-status]');
         await expect(bookingStatus).toContainText(
             'Online booking under maintenance'
         );
-        await expect(bookingStatus.getByRole('link')).toHaveAttribute(
-            'href',
-            '/en/telemedicine/'
-        );
+        await expect(
+            bookingStatus.getByRole('link', { name: 'Open first visit' })
+        ).toHaveAttribute('href', '/en/services/diagnostico-integral/');
         await expectLegacyChatBookingShellAbsent(page);
     });
 
@@ -56,8 +55,8 @@ test.describe('Public V6 assistance fallback replaces legacy chat booking shell'
         await expect(
             page
                 .locator('[data-v6-booking-status]')
-                .getByRole('link', { name: 'Open teledermatology' })
-        ).toHaveAttribute('href', '/en/telemedicine/');
+                .getByRole('link', { name: 'Open first visit' })
+        ).toHaveAttribute('href', '/en/services/diagnostico-integral/');
         await expectLegacyChatBookingShellAbsent(page);
     });
 
@@ -85,7 +84,7 @@ test.describe('Public V6 assistance fallback replaces legacy chat booking shell'
         ]);
 
         await expect(page.locator('h1')).toContainText(
-            'Telemedicina dermatologica en Quito'
+            'Teledermatologia en Quito'
         );
         await expectLegacyChatBookingShellAbsent(page);
     });
@@ -97,7 +96,7 @@ test.describe('Public V6 assistance fallback replaces legacy chat booking shell'
 
         await expectHeaderAssistanceSurfaces(page);
         await expect(page.locator('h1')).toContainText(
-            'Telemedicina dermatologica en Quito'
+            'Teledermatologia en Quito'
         );
         await expect(page.locator('[data-v6-booking-status]')).toContainText(
             'Reserva online en mantenimiento'
@@ -105,8 +104,8 @@ test.describe('Public V6 assistance fallback replaces legacy chat booking shell'
         await expect(
             page
                 .locator('[data-v6-booking-status]')
-                .getByRole('link', { name: 'Ver servicios' })
-        ).toHaveAttribute('href', '/es/servicios/');
+                .getByRole('link', { name: 'Abrir primera consulta' })
+        ).toHaveAttribute('href', '/es/servicios/diagnostico-integral/');
         await expectLegacyChatBookingShellAbsent(page);
     });
 });
