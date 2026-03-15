@@ -621,11 +621,15 @@ jobs:
                       $rawStderr = ''
                   }
 
-                  $verified = ($verifyExit -eq 0 -and $payload -and $payload.ok -eq $true)
+                  $publicHealthRedacted = ($payload -and $payload.publicHealthRedacted -eq $true)
                   $remoteClinicId = if ($payload -and $payload.turneroPilot -and $payload.turneroPilot.clinicId) { [string]$payload.turneroPilot.clinicId } else { '' }
                   $remoteFingerprint = if ($payload -and $payload.turneroPilot -and $payload.turneroPilot.profileFingerprint) { [string]$payload.turneroPilot.profileFingerprint } else { '' }
                   $remoteCatalogReady = ($payload -and $payload.turneroPilot -and $payload.turneroPilot.catalogReady -eq $true)
                   $remoteDeployedCommit = if ($payload -and $payload.publicSync -and $payload.publicSync.deployedCommit) { [string]$payload.publicSync.deployedCommit } else { '' }
+                  $remoteResource = if ($payload -and $payload.remoteResource) { [string]$payload.remoteResource } else { 'health' }
+                  $remoteIdentityReady = (-not [string]::IsNullOrWhiteSpace($remoteClinicId)) -and (-not [string]::IsNullOrWhiteSpace($remoteFingerprint)) -and $remoteCatalogReady
+                  $remoteDeployedCommitReady = -not [string]::IsNullOrWhiteSpace($remoteDeployedCommit)
+                  $verified = ($verifyExit -eq 0 -and $payload -and $payload.ok -eq $true -and -not $publicHealthRedacted -and $remoteIdentityReady -and $remoteDeployedCommitReady)
                   if ($verified) {
                       $status = 'ready'
                       $reason = 'ok'
@@ -633,10 +637,33 @@ jobs:
                       $status = 'blocked'
                       if ($payload -and $payload.errors -and $payload.errors.Count -gt 0) {
                           $reason = [string]::Join('; ', @($payload.errors | Select-Object -First 3))
-                      } elseif ($rawStderr) {
-                          $reason = $rawStderr.Trim()
                       } else {
-                          $reason = "verify_remote_exit:$verifyExit"
+                          $reasonParts = New-Object System.Collections.Generic.List[string]
+                          if ($verifyExit -ne 0) {
+                              $reasonParts.Add("verify_remote_exit:$verifyExit")
+                          }
+                          if ($publicHealthRedacted) {
+                              $reasonParts.Add("public_health_redacted:$remoteResource")
+                          }
+                          if ([string]::IsNullOrWhiteSpace($remoteClinicId)) {
+                              $reasonParts.Add('remote_clinic_id_missing')
+                          }
+                          if ([string]::IsNullOrWhiteSpace($remoteFingerprint)) {
+                              $reasonParts.Add('remote_profile_fingerprint_missing')
+                          }
+                          if (-not $remoteCatalogReady) {
+                              $reasonParts.Add('remote_catalog_not_ready')
+                          }
+                          if (-not $remoteDeployedCommitReady) {
+                              $reasonParts.Add('remote_deployed_commit_missing')
+                          }
+                          if ($reasonParts.Count -gt 0) {
+                              $reason = [string]::Join('; ', @($reasonParts | Select-Object -Unique))
+                          } elseif ($rawStderr) {
+                              $reason = $rawStderr.Trim()
+                          } else {
+                              $reason = "verify_remote_exit:$verifyExit"
+                          }
                       }
                   }
                   $reason = [regex]::Replace([string]$reason, '\s+', ' ').Trim()

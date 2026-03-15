@@ -129,6 +129,12 @@ function buildVerifiedSnapshot(options) {
     const remoteDeployedCommit = normalizeString(
         payload?.publicSync?.deployedCommit
     );
+    const publicHealthRedacted = payload?.publicHealthRedacted === true;
+    const remoteResource = normalizeString(payload?.remoteResource, 'health');
+    const remoteIdentityReady = Boolean(
+        remoteClinicId && remoteFingerprint && remoteCatalogReady
+    );
+    const remoteDeployCommitReady = Boolean(remoteDeployedCommit);
     const recoveryTargets = normalizeString(
         process.env.TURNERO_PILOT_RECOVERY_TARGETS
     )
@@ -136,15 +142,50 @@ function buildVerifiedSnapshot(options) {
         .map((value) => value.trim())
         .filter(Boolean)
         .filter((value) => value !== 'none');
-    const verified = payload?.ok === true && verifyExit === 0;
-    const reason = verified
-        ? 'ok'
-        : normalizeString(
-              Array.isArray(payload?.errors) && payload.errors.length > 0
-                  ? payload.errors.slice(0, 3).join('; ')
-                  : rawStderr || `verify_remote_exit:${verifyExit}`,
-              'verify_remote_failed'
-          );
+    const verified =
+        payload?.ok === true &&
+        verifyExit === 0 &&
+        !publicHealthRedacted &&
+        remoteIdentityReady &&
+        remoteDeployCommitReady;
+    let reason = 'ok';
+    if (!verified) {
+        const payloadErrors =
+            Array.isArray(payload?.errors) && payload.errors.length > 0
+                ? payload.errors
+                      .slice(0, 3)
+                      .map((value) => normalizeString(value))
+                : [];
+        if (payloadErrors.length > 0) {
+            reason = payloadErrors.join('; ');
+        } else {
+            const derivedReasons = [];
+            if (verifyExit !== 0) {
+                derivedReasons.push(`verify_remote_exit:${verifyExit}`);
+            }
+            if (publicHealthRedacted) {
+                derivedReasons.push(`public_health_redacted:${remoteResource}`);
+            }
+            if (!remoteClinicId) {
+                derivedReasons.push('remote_clinic_id_missing');
+            }
+            if (!remoteFingerprint) {
+                derivedReasons.push('remote_profile_fingerprint_missing');
+            }
+            if (!remoteCatalogReady) {
+                derivedReasons.push('remote_catalog_not_ready');
+            }
+            if (!remoteDeployCommitReady) {
+                derivedReasons.push('remote_deployed_commit_missing');
+            }
+            reason = normalizeString(
+                derivedReasons.filter(Boolean).join('; ') ||
+                    rawStderr ||
+                    `verify_remote_exit:${verifyExit}`,
+                'verify_remote_failed'
+            );
+        }
+    }
 
     return {
         status: verified ? 'ready' : 'blocked',
