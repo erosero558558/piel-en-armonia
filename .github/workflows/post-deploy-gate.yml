@@ -41,21 +41,6 @@ on:
                 required: false
                 default: '2500'
                 type: string
-            skip_asset_hash_checks:
-                description: 'Omitir validacion de hashes de assets'
-                required: false
-                default: false
-                type: boolean
-            force_asset_hash_checks:
-                description: 'Forzar hashes bloqueantes (ignora ventana warning)'
-                required: false
-                default: false
-                type: boolean
-            asset_hash_warning_until:
-                description: 'Fecha limite de warning hash (ISO 8601)'
-                required: false
-                default: '2026-03-08T23:59:59-05:00'
-                type: string
             skip_figo_post_bench:
                 description: 'Omitir benchmark de figo-post'
                 required: false
@@ -171,16 +156,16 @@ jobs:
             BENCH_RUNS_LIGHT: ${{ vars.BENCH_RUNS_LIGHT || '10' }}
             WAIT_SECONDS: ${{ github.event.inputs.wait_seconds || vars.WAIT_SECONDS || '90' }}
             WAIT_SECONDS_LIGHT: ${{ vars.WAIT_SECONDS_LIGHT || '30' }}
-            ASSET_HASH_RETRY_COUNT: ${{ github.event.inputs.asset_hash_retry_count || vars.ASSET_HASH_RETRY_COUNT || '2' }}
-            ASSET_HASH_RETRY_DELAY_SEC: ${{ github.event.inputs.asset_hash_retry_delay_sec || vars.ASSET_HASH_RETRY_DELAY_SEC || '4' }}
+            ASSET_HASH_RETRY_COUNT: ${{ vars.ASSET_HASH_RETRY_COUNT || '2' }}
+            ASSET_HASH_RETRY_DELAY_SEC: ${{ vars.ASSET_HASH_RETRY_DELAY_SEC || '4' }}
             VERIFY_RETRY_ATTEMPTS: ${{ github.event.inputs.verify_retry_attempts || vars.VERIFY_RETRY_ATTEMPTS || '2' }}
             VERIFY_RETRY_DELAY_SEC: ${{ github.event.inputs.verify_retry_delay_sec || vars.VERIFY_RETRY_DELAY_SEC || '75' }}
             CORE_P95_MAX_MS: ${{ github.event.inputs.core_p95_max_ms || vars.CORE_P95_MAX_MS || '800' }}
             FIGO_POST_P95_MAX_MS: ${{ github.event.inputs.figo_post_p95_max_ms || vars.FIGO_POST_P95_MAX_MS || '2500' }}
             EVENT_NAME: ${{ github.event_name }}
-            SKIP_ASSET_HASH_CHECKS_INPUT: ${{ github.event.inputs.skip_asset_hash_checks || 'false' }}
-            FORCE_ASSET_HASH_CHECKS_INPUT: ${{ github.event.inputs.force_asset_hash_checks || 'false' }}
-            ASSET_HASH_WARNING_UNTIL_INPUT: ${{ github.event.inputs.asset_hash_warning_until || vars.ASSET_HASH_WARNING_UNTIL || '2026-03-08T23:59:59-05:00' }}
+            SKIP_ASSET_HASH_CHECKS_INPUT: ${{ vars.SKIP_ASSET_HASH_CHECKS || 'false' }}
+            FORCE_ASSET_HASH_CHECKS_INPUT: ${{ vars.FORCE_ASSET_HASH_CHECKS || 'false' }}
+            ASSET_HASH_WARNING_UNTIL_INPUT: ${{ vars.ASSET_HASH_WARNING_UNTIL || '2026-03-08T23:59:59-05:00' }}
             SKIP_FIGO_POST_BENCH_INPUT: ${{ github.event.inputs.skip_figo_post_bench || 'false' }}
             ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME || 'PROD' }}
             REQUIRE_GOOGLE_CALENDAR: ${{ github.event.inputs.require_google_calendar || vars.REQUIRE_GOOGLE_CALENDAR || 'false' }}
