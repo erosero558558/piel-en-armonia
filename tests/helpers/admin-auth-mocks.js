@@ -156,6 +156,7 @@ function buildOperatorOpenClawAnonymousPayload(overrides = {}) {
         transport: overrides.transport || 'local_helper',
         status: 'anonymous',
         recommendedMode: 'openclaw_chatgpt',
+        csrfToken: 'csrf_operator_auth',
         fallbacks: buildLegacyFallbackPayload(overrides.fallbacks),
         ...overrides,
     };
@@ -169,6 +170,7 @@ function buildOperatorOpenClawPendingPayload(challenge, overrides = {}) {
         transport: overrides.transport || 'local_helper',
         status: 'pending',
         recommendedMode: 'openclaw_chatgpt',
+        csrfToken: 'csrf_operator_auth',
         fallbacks: buildLegacyFallbackPayload(overrides.fallbacks),
         ...overrides,
     };

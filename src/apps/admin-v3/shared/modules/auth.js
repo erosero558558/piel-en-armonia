@@ -311,7 +311,10 @@ function applyAuthPayload(payload, fallbackMode = 'legacy_password') {
                   currentAuth.transport || 'local_helper'
               )
             : '';
-    const csrfToken = authenticated ? String(payload?.csrfToken || '') : '';
+    const csrfToken = String(
+        payload?.csrfToken ||
+            (authenticated ? '' : currentAuth.csrfToken || '')
+    );
     const status = String(
         payload?.status || (authenticated ? 'autenticado' : 'anonymous')
     ).trim();

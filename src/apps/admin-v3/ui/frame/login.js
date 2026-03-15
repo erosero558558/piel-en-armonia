@@ -391,7 +391,9 @@ export function setLoginSubmittingState(submitting, options = {}) {
               status === 'invalid_state' ||
               status === 'broker_unavailable' ||
               status === 'code_exchange_failed' ||
-              status === 'identity_missing'
+              status === 'identity_missing' ||
+              status === 'identity_unverified' ||
+              status === 'broker_claims_invalid'
             : status === 'openclaw_no_logueado' ||
               status === 'email_no_permitido' ||
               status === 'challenge_expirado' ||
@@ -400,7 +402,9 @@ export function setLoginSubmittingState(submitting, options = {}) {
               status === 'invalid_state' ||
               status === 'broker_unavailable' ||
               status === 'code_exchange_failed' ||
-              status === 'identity_missing';
+              status === 'identity_missing' ||
+              status === 'identity_unverified' ||
+              status === 'broker_claims_invalid';
     const requires2FA =
         mode === 'legacy_password'
             ? Boolean(group && !group.classList.contains('is-hidden'))

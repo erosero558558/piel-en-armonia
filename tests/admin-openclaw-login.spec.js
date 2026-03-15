@@ -411,4 +411,88 @@ window.location.replace(new URL('/admin.html?callback=web_broker_error', base).t
             'Reintentar en OpenClaw'
         );
     });
+
+    test('web broker muestra cuando el broker no confirma email verificado', async ({
+        page,
+    }) => {
+        await installBasicAdminApiMocks(page, {
+            healthPayload: {
+                status: 'ok',
+            },
+        });
+        await installOpenClawAdminAuthMock(page, {
+            transport: 'web_broker',
+            terminalStatus: 'identity_unverified',
+            terminalError:
+                'OpenClaw autentico la cuenta, pero no confirmo un email verificado para este panel.',
+            webBroker: {
+                redirectUrl:
+                    'https://broker.example.test/authorize?state=admin-web-broker-unverified',
+            },
+        });
+        await page.route('https://broker.example.test/**', async (route) => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'text/html; charset=utf-8',
+                body: `<!doctype html><meta charset="utf-8"><script>
+const referrer = String(document.referrer || '');
+const base = referrer ? new URL(referrer).origin : window.location.origin;
+window.location.replace(new URL('/admin.html?callback=web_broker_unverified', base).toString());
+</script>`,
+            });
+        });
+
+        await page.goto('/admin.html');
+        await page.locator('#loginBtn').click();
+
+        await expect(page.locator('#adminLoginStatusTitle')).toHaveText(
+            'Email no verificado'
+        );
+        await expect(page.locator('#adminLoginStatusMessage')).toContainText(
+            'email verificado'
+        );
+        await expect(page.locator('#adminOpenClawChallengeCard')).toBeHidden();
+    });
+
+    test('web broker muestra cuando los claims firmados no pasan validacion', async ({
+        page,
+    }) => {
+        await installBasicAdminApiMocks(page, {
+            healthPayload: {
+                status: 'ok',
+            },
+        });
+        await installOpenClawAdminAuthMock(page, {
+            transport: 'web_broker',
+            terminalStatus: 'broker_claims_invalid',
+            terminalError:
+                'No pudimos validar los claims firmados que devolvio OpenClaw para este acceso.',
+            webBroker: {
+                redirectUrl:
+                    'https://broker.example.test/authorize?state=admin-web-broker-claims',
+            },
+        });
+        await page.route('https://broker.example.test/**', async (route) => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'text/html; charset=utf-8',
+                body: `<!doctype html><meta charset="utf-8"><script>
+const referrer = String(document.referrer || '');
+const base = referrer ? new URL(referrer).origin : window.location.origin;
+window.location.replace(new URL('/admin.html?callback=web_broker_claims', base).toString());
+</script>`,
+            });
+        });
+
+        await page.goto('/admin.html');
+        await page.locator('#loginBtn').click();
+
+        await expect(page.locator('#adminLoginStatusTitle')).toHaveText(
+            'Identidad no confiable'
+        );
+        await expect(page.locator('#adminLoginStatusMessage')).toContainText(
+            'claims firmados'
+        );
+        await expect(page.locator('#adminOpenClawChallengeCard')).toBeHidden();
+    });
 });

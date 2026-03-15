@@ -12,10 +12,7 @@ import {
     useLegacyFallbackLoginSurface,
     usePrimaryLoginSurface,
 } from '../../shared/modules/auth.js';
-import {
-    applyQueueRuntimeDefaults,
-    renderQueueSection,
-} from '../../shared/modules/queue.js';
+import { syncQueueAutoRefresh } from '../../shared/modules/queue.js';
 import {
     focusLoginField,
     hideCommandPalette,
@@ -45,13 +42,6 @@ const OPENCLAW_TERMINAL_STATUSES = new Set([
 
 let openClawPollTimer = 0;
 let openClawPolling = false;
-
-function syncQueueRuntimeDefaultsAfterBoot() {
-    applyQueueRuntimeDefaults();
-    if (getState().ui.activeSection === 'queue') {
-        renderQueueSection();
-    }
-}
 
 function normalizeAuthStatus(status) {
     return String(status || 'anonymous')
@@ -194,6 +184,22 @@ function buildOpenClawFeedback(auth) {
                     auth.lastError ||
                     'OpenClaw devolvio una identidad incompleta para este panel.',
             };
+        case 'identity_unverified':
+            return {
+                tone: 'danger',
+                title: 'Email no verificado',
+                message:
+                    auth.lastError ||
+                    'OpenClaw autentico la cuenta, pero no confirmo un email verificado para este panel.',
+            };
+        case 'broker_claims_invalid':
+            return {
+                tone: 'danger',
+                title: 'Identidad no confiable',
+                message:
+                    auth.lastError ||
+                    'No pudimos validar los claims firmados que devolvio OpenClaw para este acceso.',
+            };
         default:
             return {
                 tone: 'neutral',
@@ -321,7 +327,10 @@ async function finishAuthenticatedLogin(toastMessage = 'Sesion iniciada') {
     });
     resetLoginForm({ clearPassword: true });
     await refreshDataAndRender(false);
-    syncQueueRuntimeDefaultsAfterBoot();
+    syncQueueAutoRefresh({
+        immediate: getState().ui.activeSection === 'queue',
+        reason: 'login',
+    });
     createToast(toastMessage, 'success');
 }
 
@@ -649,7 +658,6 @@ export async function bootAuthenticatedUi() {
     showDashboardView();
     hideCommandPalette();
     await refreshDataAndRender(false);
-    syncQueueRuntimeDefaultsAfterBoot();
 }
 
 export function resumeOpenClawPolling() {

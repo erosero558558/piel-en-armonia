@@ -266,7 +266,21 @@ async function startOpenClawChallenge(request) {
         return preflight;
     }
 
+    const csrfToken =
+        typeof preflight.body?.csrfToken === 'string'
+            ? preflight.body.csrfToken
+            : '';
+    if (!csrfToken) {
+        return {
+            ok: false,
+            reason: 'admin-auth status no devolvio csrfToken para iniciar OpenClaw.',
+        };
+    }
+
     const response = await request.post('/admin-auth.php?action=start', {
+        headers: {
+            'X-CSRF-Token': csrfToken,
+        },
         data: {},
     });
     const body = await safeJson(response);
