@@ -229,16 +229,21 @@ function Invoke-HostingJsonRequest {
         $payload = ConvertFrom-JsonCompat -Text $response.Body -Depth $Depth
     }
 
+    $errorText = ''
+    if ($response.Ok) {
+        if ($null -eq $payload) {
+            $errorText = 'JSON invalido'
+        }
+    } else {
+        $errorText = $response.Error
+    }
+
     return [PSCustomObject]@{
         Ok = $response.Ok -and ($null -ne $payload)
         StatusCode = $response.StatusCode
         Body = $response.Body
         Payload = $payload
-        Error = if ($response.Ok) {
-            if ($null -eq $payload) { 'JSON invalido' } else { '' }
-        } else {
-            $response.Error
-        }
+        Error = $errorText
     }
 }
 
@@ -553,4 +558,225 @@ function Remove-HostingScheduledTaskIfPresent {
     }
 
     return $false
+}
+
+function Get-HostingPathAgeSeconds {
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return 0
+    }
+
+    try {
+        $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+        return [int][Math]::Max(0, ([DateTimeOffset]::Now - [DateTimeOffset]$item.LastWriteTimeUtc).TotalSeconds)
+    } catch {
+        return 0
+    }
+}
+
+function Get-HostingLockInfoPath {
+    param([string]$LockDirectoryPath)
+
+    return Join-Path $LockDirectoryPath 'owner.json'
+}
+
+function Get-HostingDirectoryLockSnapshot {
+    param(
+        [string]$LockDirectoryPath,
+        [int]$TtlSeconds = 600,
+        [int]$GraceSeconds = 5
+    )
+
+    $lockExists = Test-Path -LiteralPath $LockDirectoryPath
+    $infoPath = Get-HostingLockInfoPath -LockDirectoryPath $LockDirectoryPath
+    $snapshot = [ordered]@{
+        exists = $lockExists
+        owner_pid = 0
+        started_at = ''
+        age_seconds = 0
+        owner_active = $false
+        stale = $false
+        lock_state = 'missing'
+        lock_reason = ''
+        info_path = $infoPath
+    }
+
+    if (-not $lockExists) {
+        return [PSCustomObject]$snapshot
+    }
+
+    $snapshot.lock_state = 'present'
+    $snapshot.lock_reason = 'metadata_missing'
+    $snapshot.age_seconds = Get-HostingPathAgeSeconds -Path $LockDirectoryPath
+
+    $payload = Read-HostingJsonFileSafe -Path $infoPath
+    if ($null -ne $payload) {
+        try { $snapshot.owner_pid = [int]$payload.owner_pid } catch {}
+        try { $snapshot.started_at = [string]$payload.started_at } catch {}
+        try {
+            if (-not [string]::IsNullOrWhiteSpace([string]$payload.lock_reason)) {
+                $snapshot.lock_reason = [string]$payload.lock_reason
+            } elseif (-not [string]::IsNullOrWhiteSpace([string]$payload.reason)) {
+                $snapshot.lock_reason = [string]$payload.reason
+            }
+        } catch {}
+        try {
+            if (-not [string]::IsNullOrWhiteSpace([string]$payload.lock_state)) {
+                $snapshot.lock_state = [string]$payload.lock_state
+            }
+        } catch {}
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($snapshot.started_at)) {
+        try {
+            $startedAt = [DateTimeOffset]::Parse($snapshot.started_at)
+            $snapshot.age_seconds = [int][Math]::Max(0, ([DateTimeOffset]::Now - $startedAt).TotalSeconds)
+        } catch {
+            $snapshot.started_at = ''
+        }
+    }
+
+    if ($snapshot.owner_pid -gt 0) {
+        $snapshot.owner_active = Test-HostingProcessExists -ProcessId $snapshot.owner_pid
+        if ($snapshot.owner_active) {
+            $snapshot.lock_state = 'owned'
+            if ([string]::IsNullOrWhiteSpace($snapshot.lock_reason)) {
+                $snapshot.lock_reason = 'owned_by_process'
+            }
+        } else {
+            $snapshot.lock_state = 'stale_owner_missing'
+            if ([string]::IsNullOrWhiteSpace($snapshot.lock_reason)) {
+                $snapshot.lock_reason = 'owner_missing'
+            }
+            $snapshot.stale = $true
+        }
+    } else {
+        if ($snapshot.age_seconds -ge $GraceSeconds) {
+            $snapshot.lock_state = 'stale_metadata_missing'
+            if ([string]::IsNullOrWhiteSpace($snapshot.lock_reason)) {
+                $snapshot.lock_reason = 'metadata_missing'
+            }
+            $snapshot.stale = $true
+        } else {
+            $snapshot.lock_state = 'transient'
+            if ([string]::IsNullOrWhiteSpace($snapshot.lock_reason)) {
+                $snapshot.lock_reason = 'metadata_missing'
+            }
+        }
+    }
+
+    if (($snapshot.owner_pid -gt 0) -and ($snapshot.age_seconds -ge $TtlSeconds)) {
+        $snapshot.lock_state = 'stale_ttl'
+        $snapshot.lock_reason = 'ttl_expired'
+        $snapshot.stale = $true
+    }
+
+    return [PSCustomObject]$snapshot
+}
+
+function Remove-HostingDirectoryLock {
+    param(
+        [string]$LockDirectoryPath,
+        [int]$OwnerPid = 0,
+        [switch]$Force
+    )
+
+    if (-not (Test-Path -LiteralPath $LockDirectoryPath)) {
+        return $false
+    }
+
+    $snapshot = Get-HostingDirectoryLockSnapshot -LockDirectoryPath $LockDirectoryPath
+    $canRemove = $Force.IsPresent
+    if (-not $canRemove) {
+        if ($snapshot.owner_pid -le 0) {
+            $canRemove = $true
+        } elseif ($OwnerPid -gt 0 -and $snapshot.owner_pid -eq $OwnerPid) {
+            $canRemove = $true
+        } elseif (-not (Test-HostingProcessExists -ProcessId $snapshot.owner_pid)) {
+            $canRemove = $true
+        }
+    }
+
+    if (-not $canRemove) {
+        return $false
+    }
+
+    try {
+        Remove-Item -LiteralPath $LockDirectoryPath -Recurse -Force -ErrorAction Stop
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Acquire-HostingDirectoryLock {
+    param(
+        [string]$LockDirectoryPath,
+        [int]$TtlSeconds = 600,
+        [int]$GraceSeconds = 5,
+        [string]$Reason = ''
+    )
+
+    Ensure-HostingParentDirectory -Path $LockDirectoryPath
+
+    foreach ($attempt in 1..3) {
+        try {
+            New-Item -ItemType Directory -Path $LockDirectoryPath -ErrorAction Stop | Out-Null
+            $startedAt = [DateTimeOffset]::Now.ToString('o')
+            $lockReason = $Reason
+            if ([string]::IsNullOrWhiteSpace($lockReason)) {
+                $lockReason = 'lock_acquired'
+            }
+            Write-HostingJsonFile -Path (Get-HostingLockInfoPath -LockDirectoryPath $LockDirectoryPath) -Payload ([ordered]@{
+                owner_pid = $PID
+                started_at = $startedAt
+                lock_state = 'owned'
+                lock_reason = $lockReason
+            })
+            return [PSCustomObject]@{
+                Acquired = $true
+                Snapshot = [PSCustomObject]@{
+                    exists = $true
+                    owner_pid = $PID
+                    started_at = $startedAt
+                    age_seconds = 0
+                    owner_active = $true
+                    stale = $false
+                    lock_state = 'owned'
+                    lock_reason = $lockReason
+                    info_path = (Get-HostingLockInfoPath -LockDirectoryPath $LockDirectoryPath)
+                }
+            }
+        } catch {
+            $snapshot = Get-HostingDirectoryLockSnapshot `
+                -LockDirectoryPath $LockDirectoryPath `
+                -TtlSeconds $TtlSeconds `
+                -GraceSeconds $GraceSeconds
+
+            if ($snapshot.stale -and $attempt -lt 3) {
+                Remove-HostingDirectoryLock -LockDirectoryPath $LockDirectoryPath -Force | Out-Null
+                Start-Sleep -Milliseconds 250
+                continue
+            }
+
+            if (($snapshot.owner_pid -le 0) -and ($snapshot.lock_state -eq 'transient') -and $attempt -lt 3) {
+                Start-Sleep -Milliseconds 250
+                continue
+            }
+
+            return [PSCustomObject]@{
+                Acquired = $false
+                Snapshot = $snapshot
+            }
+        }
+    }
+
+    return [PSCustomObject]@{
+        Acquired = $false
+        Snapshot = (Get-HostingDirectoryLockSnapshot `
+            -LockDirectoryPath $LockDirectoryPath `
+            -TtlSeconds $TtlSeconds `
+            -GraceSeconds $GraceSeconds)
+    }
 }

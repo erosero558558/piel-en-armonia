@@ -8,12 +8,20 @@ param(
     [string]$ReleaseTargetPath = 'C:\ProgramData\Pielarmonia\hosting\release-target.json',
     [switch]$RouteDns,
     [switch]$OverwriteDns,
+    [switch]$BootstrapMirrorNow,
+    [switch]$StartSupervisorNow,
+    [switch]$SkipBootstrapSync,
     [switch]$StartNow
 )
 
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'
+if (-not (Test-Path -LiteralPath $commonScriptPath)) {
+    throw "No existe el modulo comun de hosting Windows: $commonScriptPath"
+}
+. $commonScriptPath
 $bootstrapSyncScriptPath = Join-Path $repoRoot 'scripts\ops\setup\SINCRONIZAR-HOSTING-WINDOWS.ps1'
 $mirrorRepoPathResolved = [System.IO.Path]::GetFullPath($MirrorRepoPath)
 $mirrorStartScriptPath = Join-Path $mirrorRepoPathResolved 'scripts\ops\setup\ARRANCAR-HOSTING-WINDOWS.ps1'
@@ -151,6 +159,11 @@ function Invoke-BootstrapSync {
     }
 }
 
+if ($StartNow) {
+    $BootstrapMirrorNow = $true
+    $StartSupervisorNow = $true
+}
+
 if (-not (Test-Path -LiteralPath $bootstrapSyncScriptPath)) {
     throw "No existe el script de sync canonico: $bootstrapSyncScriptPath"
 }
@@ -164,7 +177,12 @@ $cloudflaredExePath = (Get-Command cloudflared -ErrorAction Stop).Source
 $phpCgiExePath = (Get-Command 'php-cgi' -ErrorAction Stop).Source
 
 $mirrorRepoReady = Test-Path -LiteralPath (Join-Path $mirrorRepoPathResolved '.git')
-if (-not $mirrorRepoReady -or $StartNow) {
+if ((-not $mirrorRepoReady) -and $SkipBootstrapSync) {
+    throw "No existe el mirror limpio en $mirrorRepoPathResolved y se solicito -SkipBootstrapSync."
+}
+
+$shouldBootstrapMirror = $BootstrapMirrorNow -or ((-not $mirrorRepoReady) -and (-not $SkipBootstrapSync))
+if ($shouldBootstrapMirror) {
     Invoke-BootstrapSync `
         -ScriptPath $bootstrapSyncScriptPath `
         -MirrorPath $mirrorRepoPathResolved `
@@ -313,7 +331,7 @@ if (Test-IsElevated) {
     Write-Warning 'La sesion actual no esta elevada. Startup + HKCU\\Run lanzaran el supervisor al iniciar sesion, pero las tareas de supervisor/sync requieren reejecutar este script como Administrador.'
 }
 
-if ($StartNow) {
+if ($StartSupervisorNow) {
     Start-Process -FilePath $supervisorLauncherPath -WindowStyle Hidden | Out-Null
     Write-Info 'Supervisor lanzado en la sesion actual.'
 }

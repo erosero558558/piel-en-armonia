@@ -39,7 +39,7 @@ $repairScriptPath = Join-Path $mirrorRepoPathResolved 'scripts\ops\setup\REPARAR
 $smokeScriptPath = Join-Path $mirrorRepoPathResolved 'scripts\ops\setup\SMOKE-HOSTING-WINDOWS.ps1'
 $mainSyncStatusPath = Join-Path ([System.IO.Path]::GetDirectoryName($statusPathResolved)) 'main-sync-status.json'
 $lockPath = $statusPathResolved + '.lock'
-$lockInfoPath = $lockPath + '.json'
+$lockInfoPath = Get-HostingLockInfoPath -LockDirectoryPath $lockPath
 $powershellExe = (Get-Command powershell -ErrorAction Stop).Source
 
 function Write-Info {
@@ -59,88 +59,39 @@ function Get-LockSnapshot {
         [int]$TtlSeconds
     )
 
-    $snapshot = [ordered]@{
-        owner_pid = 0
-        started_at = ''
-        age_seconds = 0
-        owner_active = $false
-        stale = $false
-    }
-
-    $payload = Read-HostingJsonFileSafe -Path $InfoPath
-    if ($null -ne $payload) {
-        try { $snapshot.owner_pid = [int]$payload.owner_pid } catch {}
-        try { $snapshot.started_at = [string]$payload.started_at } catch {}
-    }
-
-    if ($snapshot.owner_pid -gt 0) {
-        $snapshot.owner_active = Test-HostingProcessExists -ProcessId $snapshot.owner_pid
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($snapshot.started_at)) {
-        try {
-            $started = [DateTimeOffset]::Parse($snapshot.started_at)
-            $snapshot.age_seconds = [int][Math]::Max(0, ([DateTimeOffset]::Now - $started).TotalSeconds)
-        } catch {
-            $snapshot.age_seconds = 0
-        }
-    }
-
-    $snapshot.stale =
-        (($snapshot.owner_pid -gt 0) -and (-not $snapshot.owner_active)) -or
-        (($snapshot.age_seconds -gt 0) -and ($snapshot.age_seconds -ge $TtlSeconds))
-
-    return [PSCustomObject]$snapshot
+    $lockDirectoryPath = Split-Path -Parent $InfoPath
+    return Get-HostingDirectoryLockSnapshot `
+        -LockDirectoryPath $lockDirectoryPath `
+        -TtlSeconds $TtlSeconds `
+        -GraceSeconds 5
 }
 
 function Clear-SupervisorLockArtifacts {
-    foreach ($path in @($lockPath, $lockInfoPath)) {
-        if (Test-Path -LiteralPath $path) {
-            Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+    if (Test-Path -LiteralPath $lockPath) {
+        Remove-HostingDirectoryLock -LockDirectoryPath $lockPath -Force | Out-Null
+        if (Test-Path -LiteralPath $lockPath) {
+            Remove-Item -LiteralPath $lockPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    foreach ($legacyPath in @($lockInfoPath, ($lockPath + '.json'))) {
+        if (Test-Path -LiteralPath $legacyPath) {
+            Remove-Item -LiteralPath $legacyPath -Force -ErrorAction SilentlyContinue
         }
     }
 }
 
 function Acquire-SupervisorLock {
-    foreach ($attempt in 1..2) {
-        try {
-            $stream = [System.IO.File]::Open($lockPath, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
-            Write-HostingJsonFile -Path $lockInfoPath -Payload ([ordered]@{
-                owner_pid = $PID
-                started_at = [DateTimeOffset]::Now.ToString('o')
-            })
-            return [PSCustomObject]@{
-                Acquired = $true
-                Stream = $stream
-                Snapshot = [PSCustomObject]@{
-                    owner_pid = $PID
-                    started_at = [DateTimeOffset]::Now.ToString('o')
-                    age_seconds = 0
-                    owner_active = $true
-                    stale = $false
-                }
-            }
-        } catch {
-            $snapshot = Get-LockSnapshot -InfoPath $lockInfoPath -TtlSeconds $LockTtlSeconds
-            if ($snapshot.stale -and $attempt -eq 1) {
-                Write-Info ("Supervisor detecto stale lock owner_pid={0} age_seconds={1}; se libera." -f $snapshot.owner_pid, $snapshot.age_seconds)
-                Clear-SupervisorLockArtifacts
-                Start-Sleep -Milliseconds 200
-                continue
-            }
-
-            return [PSCustomObject]@{
-                Acquired = $false
-                Stream = $null
-                Snapshot = $snapshot
-            }
-        }
-    }
+    $result = Acquire-HostingDirectoryLock `
+        -LockDirectoryPath $lockPath `
+        -TtlSeconds $LockTtlSeconds `
+        -GraceSeconds 5 `
+        -Reason 'hosting_supervisor'
 
     return [PSCustomObject]@{
-        Acquired = $false
+        Acquired = $result.Acquired
         Stream = $null
-        Snapshot = (Get-LockSnapshot -InfoPath $lockInfoPath -TtlSeconds $LockTtlSeconds)
+        Snapshot = $result.Snapshot
     }
 }
 
@@ -175,9 +126,14 @@ function Invoke-LocalHealth {
         -Headers @{ Accept = 'application/json' } `
         -TimeoutSec 15
 
+    $healthError = ''
+    if ((-not $response.Ok) -and (-not [string]::IsNullOrWhiteSpace($response.Error))) {
+        $healthError = $response.Error
+    }
+
     return [PSCustomObject]@{
         Ok = ($response.Ok -and $response.Payload.ok -eq $true)
-        Error = if ($response.Ok -or [string]::IsNullOrWhiteSpace($response.Error)) { '' } else { $response.Error }
+        Error = $healthError
     }
 }
 
@@ -194,12 +150,29 @@ function Invoke-LocalAuth {
         ([string]$payload.transport -eq 'web_broker') -and
         ([string]$payload.status -ne 'transport_misconfigured')
 
+    $authMode = ''
+    $authTransport = ''
+    $authStatus = ''
+    if ($null -ne $payload) {
+        $authMode = [string]$payload.mode
+        $authTransport = [string]$payload.transport
+        $authStatus = [string]$payload.status
+    }
+    $authError = ''
+    if (-not $ok) {
+        if (-not [string]::IsNullOrWhiteSpace($response.Error)) {
+            $authError = $response.Error
+        } else {
+            $authError = 'Contrato OpenClaw invalido en supervisor.'
+        }
+    }
+
     return [PSCustomObject]@{
         Ok = $ok
-        Mode = if ($null -eq $payload) { '' } else { [string]$payload.mode }
-        Transport = if ($null -eq $payload) { '' } else { [string]$payload.transport }
-        Status = if ($null -eq $payload) { '' } else { [string]$payload.status }
-        Error = if ($ok) { '' } elseif (-not [string]::IsNullOrWhiteSpace($response.Error)) { $response.Error } else { 'Contrato OpenClaw invalido en supervisor.' }
+        Mode = $authMode
+        Transport = $authTransport
+        Status = $authStatus
+        Error = $authError
     }
 }
 
@@ -232,9 +205,15 @@ function Invoke-HostingSmoke {
             -PassThru
 
         $payload = Read-HostingJsonFileSafe -Path $reportPath
+        $smokeError = ''
+        if ($null -eq $payload) {
+            $smokeError = 'No se genero reporte de smoke.'
+        } else {
+            $smokeError = [string]$payload.error
+        }
         return [PSCustomObject]@{
             Ok = ($result.ExitCode -eq 0) -and ($null -ne $payload) -and ($payload.ok -eq $true)
-            Error = if ($null -eq $payload) { 'No se genero reporte de smoke.' } else { [string]$payload.error }
+            Error = $smokeError
         }
     } finally {
         if (Test-Path -LiteralPath $reportPath) {
@@ -326,13 +305,21 @@ try {
     Ensure-HostingParentDirectory -Path $statusPathResolved
     $lockResult = Acquire-SupervisorLock
     if (-not $lockResult.Acquired) {
+        $deployState = 'waiting_for_lock'
+        $repairErrorText = 'supervisor_already_running'
+        $lastFailureReason = 'supervisor_already_running'
+        if ([int]$lockResult.Snapshot.owner_pid -le 0) {
+            $deployState = 'lock_invalid'
+            $repairErrorText = 'supervisor_lock_invalid'
+            $lastFailureReason = 'supervisor_lock_invalid'
+        }
         $status = [ordered]@{
             ok = $false
             timestamp = [DateTimeOffset]::Now.ToString('o')
             desired_commit = Get-DesiredCommit
             current_commit = ''
             previous_commit = ''
-            deploy_state = 'waiting_for_lock'
+            deploy_state = $deployState
             service_state = 'unknown'
             health_ok = $false
             auth_contract_ok = $false
@@ -343,20 +330,26 @@ try {
             degraded = $true
             repair_attempted = $false
             last_repair_at = ''
-            repair_error = 'supervisor_already_running'
+            repair_error = $repairErrorText
+            lock_state = [string]$lockResult.Snapshot.lock_state
+            lock_reason = [string]$lockResult.Snapshot.lock_reason
             lock_owner_pid = [int]$lockResult.Snapshot.owner_pid
             lock_started_at = [string]$lockResult.Snapshot.started_at
             lock_age_seconds = [int]$lockResult.Snapshot.age_seconds
             rollback_performed = $false
             rollback_reason = ''
             last_successful_deploy_at = ''
-            last_failure_reason = 'supervisor_already_running'
+            last_failure_reason = $lastFailureReason
             mirror_repo_path = $mirrorRepoPathResolved
             release_target_path = $releaseTargetPathResolved
             external_env_path = $externalEnvPathResolved
         }
         Write-HostingJsonFile -Path $statusPathResolved -Payload $status
-        Write-Info ("Otro supervisor sigue activo; owner_pid={0} age_seconds={1}" -f $status.lock_owner_pid, $status.lock_age_seconds)
+        if ($status.lock_owner_pid -gt 0) {
+            Write-Info ("Otro supervisor sigue activo; owner_pid={0} age_seconds={1}" -f $status.lock_owner_pid, $status.lock_age_seconds)
+        } else {
+            Write-Info ("Lock invalido del supervisor; state={0} reason={1}" -f $status.lock_state, $status.lock_reason)
+        }
         exit 0
     }
 
@@ -409,14 +402,29 @@ try {
 
         $syncStatus = Read-HostingJsonFileSafe -Path $mainSyncStatusPath
         $lockSnapshot = Get-LockSnapshot -InfoPath $lockInfoPath -TtlSeconds $LockTtlSeconds
-        $supervisorState = if ($repairAttempted -and [string]::IsNullOrWhiteSpace($repairError)) {
-            'recovering'
+        if ($repairAttempted -and [string]::IsNullOrWhiteSpace($repairError)) {
+            $supervisorState = 'recovering'
         } elseif ($degraded -and -not [string]::IsNullOrWhiteSpace($repairError)) {
-            'failed'
+            $supervisorState = 'failed'
         } elseif ($degraded) {
-            'degraded'
+            $supervisorState = 'degraded'
         } else {
-            'running'
+            $supervisorState = 'running'
+        }
+        if ($degraded) {
+            $deployState = 'degraded'
+        } else {
+            $deployState = 'current'
+        }
+        if ($lastRepairAt -eq [DateTimeOffset]::MinValue) {
+            $lastRepairAtText = ''
+        } else {
+            $lastRepairAtText = $lastRepairAt.ToString('o')
+        }
+        if (-not [string]::IsNullOrWhiteSpace($repairError)) {
+            $lastFailureReason = $repairError
+        } else {
+            $lastFailureReason = ''
         }
 
         $status = [ordered]@{
@@ -425,7 +433,7 @@ try {
             desired_commit = Get-DesiredCommit
             current_commit = ''
             previous_commit = ''
-            deploy_state = if ($degraded) { 'degraded' } else { 'current' }
+            deploy_state = $deployState
             service_state = [string]$service.State
             health_ok = $health.Ok -eq $true
             auth_contract_ok = $auth.Ok -eq $true
@@ -436,15 +444,17 @@ try {
             supervisor_state = $supervisorState
             degraded = $degraded
             repair_attempted = $repairAttempted
-            last_repair_at = if ($lastRepairAt -eq [DateTimeOffset]::MinValue) { '' } else { $lastRepairAt.ToString('o') }
+            last_repair_at = $lastRepairAtText
             repair_error = $repairError
+            lock_state = [string]$lockSnapshot.lock_state
+            lock_reason = [string]$lockSnapshot.lock_reason
             lock_owner_pid = [int]$lockSnapshot.owner_pid
             lock_started_at = [string]$lockSnapshot.started_at
             lock_age_seconds = [int]$lockSnapshot.age_seconds
             rollback_performed = $false
             rollback_reason = ''
             last_successful_deploy_at = ''
-            last_failure_reason = if (-not [string]::IsNullOrWhiteSpace($repairError)) { $repairError } else { '' }
+            last_failure_reason = $lastFailureReason
             php_pids = @($service.PhpPids)
             caddy_pids = @($service.CaddyPids)
             cloudflared_pids = @($service.CloudflaredPids)

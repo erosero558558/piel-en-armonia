@@ -38,7 +38,7 @@ $resolvedOperatorUserProfile = if ([string]::IsNullOrWhiteSpace($OperatorUserPro
 $mirrorEnvPath = Join-Path $mirrorRepoPathResolved 'env.php'
 $mirrorStartScriptPath = Join-Path $mirrorRepoPathResolved 'scripts\ops\setup\ARRANCAR-HOSTING-WINDOWS.ps1'
 $lockPath = $statusPathResolved + '.lock'
-$lockInfoPath = $lockPath + '.json'
+$lockInfoPath = Get-HostingLockInfoPath -LockDirectoryPath $lockPath
 $gitExe = (Get-Command git -ErrorAction Stop).Source
 $powershellExe = (Get-Command powershell -ErrorAction Stop).Source
 
@@ -101,38 +101,11 @@ function Get-LockSnapshot {
         [int]$TtlSeconds
     )
 
-    $snapshot = [ordered]@{
-        owner_pid = 0
-        started_at = ''
-        age_seconds = 0
-        owner_active = $false
-        stale = $false
-    }
-
-    $payload = Read-HostingJsonFileSafe -Path $InfoPath
-    if ($null -ne $payload) {
-        try { $snapshot.owner_pid = [int]$payload.owner_pid } catch {}
-        try { $snapshot.started_at = [string]$payload.started_at } catch {}
-    }
-
-    if ($snapshot.owner_pid -gt 0) {
-        $snapshot.owner_active = Test-HostingProcessExists -ProcessId $snapshot.owner_pid
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($snapshot.started_at)) {
-        try {
-            $started = [DateTimeOffset]::Parse($snapshot.started_at)
-            $snapshot.age_seconds = [int][Math]::Max(0, ([DateTimeOffset]::Now - $started).TotalSeconds)
-        } catch {
-            $snapshot.age_seconds = 0
-        }
-    }
-
-    $snapshot.stale =
-        (($snapshot.owner_pid -gt 0) -and (-not $snapshot.owner_active)) -or
-        (($snapshot.age_seconds -gt 0) -and ($snapshot.age_seconds -ge $TtlSeconds))
-
-    return [PSCustomObject]$snapshot
+    $lockDirectoryPath = Split-Path -Parent $InfoPath
+    return Get-HostingDirectoryLockSnapshot `
+        -LockDirectoryPath $lockDirectoryPath `
+        -TtlSeconds $TtlSeconds `
+        -GraceSeconds 5
 }
 
 function Clear-SyncLockArtifacts {
@@ -141,9 +114,16 @@ function Clear-SyncLockArtifacts {
         [string]$CurrentLockInfoPath
     )
 
-    foreach ($path in @($CurrentLockPath, $CurrentLockInfoPath)) {
-        if (Test-Path -LiteralPath $path) {
-            Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+    if (Test-Path -LiteralPath $CurrentLockPath) {
+        Remove-HostingDirectoryLock -LockDirectoryPath $CurrentLockPath -Force | Out-Null
+        if (Test-Path -LiteralPath $CurrentLockPath) {
+            Remove-Item -LiteralPath $CurrentLockPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    foreach ($legacyPath in @($CurrentLockInfoPath, ($CurrentLockPath + '.json'))) {
+        if (Test-Path -LiteralPath $legacyPath) {
+            Remove-Item -LiteralPath $legacyPath -Force -ErrorAction SilentlyContinue
         }
     }
 }
@@ -155,46 +135,16 @@ function Acquire-SyncLock {
         [int]$TtlSeconds
     )
 
-    foreach ($attempt in 1..2) {
-        try {
-            $stream = [System.IO.File]::Open($CurrentLockPath, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
-            $payload = [ordered]@{
-                owner_pid = $PID
-                started_at = [DateTimeOffset]::Now.ToString('o')
-            }
-            Write-HostingJsonFile -Path $CurrentLockInfoPath -Payload $payload
-            return [PSCustomObject]@{
-                Acquired = $true
-                Stream = $stream
-                Snapshot = [PSCustomObject]@{
-                    owner_pid = $PID
-                    started_at = $payload.started_at
-                    age_seconds = 0
-                    owner_active = $true
-                    stale = $false
-                }
-            }
-        } catch {
-            $snapshot = Get-LockSnapshot -InfoPath $CurrentLockInfoPath -TtlSeconds $TtlSeconds
-            if ($snapshot.stale -and $attempt -eq 1) {
-                Write-Info ("Stale lock detectado; se libera lock owner_pid={0} age_seconds={1}" -f $snapshot.owner_pid, $snapshot.age_seconds)
-                Clear-SyncLockArtifacts -CurrentLockPath $CurrentLockPath -CurrentLockInfoPath $CurrentLockInfoPath
-                Start-Sleep -Milliseconds 200
-                continue
-            }
-
-            return [PSCustomObject]@{
-                Acquired = $false
-                Stream = $null
-                Snapshot = $snapshot
-            }
-        }
-    }
+    $result = Acquire-HostingDirectoryLock `
+        -LockDirectoryPath $CurrentLockPath `
+        -TtlSeconds $TtlSeconds `
+        -GraceSeconds 5 `
+        -Reason 'main_sync'
 
     return [PSCustomObject]@{
-        Acquired = $false
+        Acquired = $result.Acquired
         Stream = $null
-        Snapshot = (Get-LockSnapshot -InfoPath $CurrentLockInfoPath -TtlSeconds $TtlSeconds)
+        Snapshot = $result.Snapshot
     }
 }
 
@@ -229,10 +179,16 @@ function Invoke-HealthDiagnostics {
         -Url 'http://127.0.0.1/api.php?resource=health-diagnostics' `
         -Headers @{ Accept = 'application/json' } `
         -TimeoutSec 20
+
+    $healthError = ''
+    if ((-not $response.Ok) -and (-not [string]::IsNullOrWhiteSpace($response.Error))) {
+        $healthError = $response.Error
+    }
+
     return [PSCustomObject]@{
         Ok = ($response.Ok -and $response.Payload.ok -eq $true)
         Payload = $response.Payload
-        Error = if ($response.Ok -or [string]::IsNullOrWhiteSpace($response.Error)) { '' } else { $response.Error }
+        Error = $healthError
     }
 }
 
@@ -253,10 +209,20 @@ function Invoke-OperatorAuthStatus {
         [string]::Equals($mode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -and
         $transportValid -and
         (-not [string]::Equals($status, 'transport_misconfigured', [System.StringComparison]::OrdinalIgnoreCase))
+
+    $authError = ''
+    if (-not $ok) {
+        if (-not [string]::IsNullOrWhiteSpace($response.Error)) {
+            $authError = $response.Error
+        } else {
+            $authError = 'admin-auth.php?action=status no publico un contrato OpenClaw valido.'
+        }
+    }
+
     return [PSCustomObject]@{
         Ok = $ok
         Payload = $payload
-        Error = if ($ok) { '' } elseif (-not [string]::IsNullOrWhiteSpace($response.Error)) { $response.Error } else { 'admin-auth.php?action=status no publico un contrato OpenClaw valido.' }
+        Error = $authError
     }
 }
 
@@ -270,10 +236,15 @@ function Update-ReleaseTarget {
         [string]$PreviousTargetCommit = ''
     )
 
+    $resolvedSourceRunId = $SourceRunId
+    if ([string]::IsNullOrWhiteSpace($resolvedSourceRunId)) {
+        $resolvedSourceRunId = 'windows_hosting_sync'
+    }
+
     $payload = [ordered]@{
         target_commit = $TargetCommit
         approved_at = [DateTimeOffset]::Now.ToString('o')
-        source_run_id = if ([string]::IsNullOrWhiteSpace($SourceRunId)) { 'windows_hosting_sync' } else { $SourceRunId }
+        source_run_id = $resolvedSourceRunId
         approved_by = $ApprovedBy
     }
 
@@ -436,6 +407,8 @@ $status = [ordered]@{
     auth_transport = ''
     auth_status = ''
     service_state = 'unknown'
+    lock_state = 'missing'
+    lock_reason = ''
     lock_owner_pid = 0
     lock_started_at = ''
     lock_age_seconds = 0
@@ -471,17 +444,29 @@ try {
         -TtlSeconds $LockTtlSeconds
 
     if (-not $lockResult.Acquired) {
-        $status.state = 'locked'
-        $status.deploy_state = 'waiting_for_lock'
-        $status.error = 'sync_already_running'
-        $status.last_failure_reason = $status.error
         $status.lock_owner_pid = [int]$lockResult.Snapshot.owner_pid
         $status.lock_started_at = [string]$lockResult.Snapshot.started_at
         $status.lock_age_seconds = [int]$lockResult.Snapshot.age_seconds
+        $status.lock_state = [string]$lockResult.Snapshot.lock_state
+        $status.lock_reason = [string]$lockResult.Snapshot.lock_reason
+        if ($status.lock_owner_pid -gt 0) {
+            $status.state = 'locked'
+            $status.deploy_state = 'waiting_for_lock'
+            $status.error = 'sync_already_running'
+        } else {
+            $status.state = 'failed'
+            $status.deploy_state = 'lock_invalid'
+            $status.error = 'sync_lock_invalid'
+        }
+        $status.last_failure_reason = $status.error
         $validation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
         Set-StatusFromValidation -CurrentStatus $status -Validation $validation
         Write-Status -Payload $status
-        Write-Info ("Otro ciclo de sync sigue en ejecucion; owner_pid={0} age_seconds={1}" -f $status.lock_owner_pid, $status.lock_age_seconds)
+        if ($status.lock_owner_pid -gt 0) {
+            Write-Info ("Otro ciclo de sync sigue en ejecucion; owner_pid={0} age_seconds={1}" -f $status.lock_owner_pid, $status.lock_age_seconds)
+        } else {
+            Write-Info ("Lock invalido detectado; state={0} reason={1}" -f $status.lock_state, $status.lock_reason)
+        }
         exit 0
     }
 
@@ -489,6 +474,8 @@ try {
     $status.lock_owner_pid = $PID
     $status.lock_started_at = [DateTimeOffset]::Now.ToString('o')
     $status.lock_age_seconds = 0
+    $status.lock_state = 'owned'
+    $status.lock_reason = 'main_sync'
     $status.state = 'preflight'
     $status.deploy_state = 'preflight'
 
@@ -605,10 +592,10 @@ try {
     Set-StatusFromValidation -CurrentStatus $status -Validation $postValidation
 
     if (-not $postValidation.Ok) {
-        $originalFailure = if ($postValidation.Health.Ok -ne $true) {
-            "El health local no quedo sano en el mirror. $([string]$postValidation.Health.Error)"
+        if ($postValidation.Health.Ok -ne $true) {
+            $originalFailure = "El health local no quedo sano en el mirror. $([string]$postValidation.Health.Error)"
         } else {
-            "El contrato de auth no quedo sano en el mirror. $([string]$postValidation.Auth.Error)"
+            $originalFailure = "El contrato de auth no quedo sano en el mirror. $([string]$postValidation.Auth.Error)"
         }
 
         if (
@@ -667,8 +654,13 @@ try {
     }
 
     $status.ok = $true
-    $status.state = if ($status.restarted) { 'updated' } else { 'idle' }
-    $status.deploy_state = if ($status.restarted) { 'desired_commit_applied' } else { 'current' }
+    if ($status.restarted) {
+        $status.state = 'updated'
+        $status.deploy_state = 'desired_commit_applied'
+    } else {
+        $status.state = 'idle'
+        $status.deploy_state = 'current'
+    }
     $status.last_successful_deploy_at = [DateTimeOffset]::Now.ToString('o')
     $status.last_failure_reason = ''
     Write-Status -Payload $status
@@ -689,17 +681,20 @@ try {
     Write-Info ("Sync fallido: {0}" -f $status.error)
     throw
 } finally {
+    $lockSnapshot = Get-LockSnapshot -InfoPath $lockInfoPath -TtlSeconds $LockTtlSeconds
+    if (($lockSnapshot.owner_pid -eq 0) -or ($lockSnapshot.owner_pid -eq $PID) -or (-not (Test-HostingProcessExists -ProcessId $lockSnapshot.owner_pid))) {
+        Clear-SyncLockArtifacts -CurrentLockPath $lockPath -CurrentLockInfoPath $lockInfoPath
+        if ($status.lock_owner_pid -eq $PID) {
+            $status.lock_state = 'unlocked'
+            $status.lock_reason = ''
+            $status.lock_owner_pid = 0
+            $status.lock_started_at = ''
+            $status.lock_age_seconds = 0
+            Write-Status -Payload $status
+        }
+    }
+
     if ($null -ne $lockStream) {
         $lockStream.Dispose()
-    }
-
-    $lockSnapshot = Read-HostingJsonFileSafe -Path $lockInfoPath
-    $ownerPid = 0
-    if ($null -ne $lockSnapshot) {
-        try { $ownerPid = [int]$lockSnapshot.owner_pid } catch { $ownerPid = 0 }
-    }
-
-    if (($ownerPid -eq 0) -or ($ownerPid -eq $PID) -or (-not (Test-HostingProcessExists -ProcessId $ownerPid))) {
-        Clear-SyncLockArtifacts -CurrentLockPath $lockPath -CurrentLockInfoPath $lockInfoPath
     }
 }

@@ -61,7 +61,7 @@ function load(filePath) {
     return readFileSync(filePath, 'utf8');
 }
 
-test('Windows V2 define modulo comun de compatibilidad para PowerShell 5.1', () => {
+test('Windows V3 define modulo comun de compatibilidad y locks robustos para PowerShell 5.1', () => {
     const raw = load(COMMON_SCRIPT_PATH);
     const requiredSnippets = [
         'function ConvertFrom-JsonCompat',
@@ -81,6 +81,12 @@ test('Windows V2 define modulo comun de compatibilidad para PowerShell 5.1', () 
         'function Stop-HostingScheduledTaskIfPresent',
         'function Remove-HostingScheduledTaskIfPresent',
         'schtasks.exe',
+        'function Get-HostingLockInfoPath',
+        'function Get-HostingDirectoryLockSnapshot',
+        'function Remove-HostingDirectoryLock',
+        'function Acquire-HostingDirectoryLock',
+        "lock_state = 'missing'",
+        "lock_reason = ''",
     ];
 
     for (const snippet of requiredSnippets) {
@@ -92,12 +98,15 @@ test('Windows V2 define modulo comun de compatibilidad para PowerShell 5.1', () 
     }
 });
 
-test('sync V2 usa release pin, preflight y status operativo ampliado', () => {
+test('sync V3 usa release pin, lock directory y status operativo ampliado', () => {
     const raw = load(SYNC_SCRIPT_PATH);
     const requiredSnippets = [
         "[switch]$PreflightOnly",
         "$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'",
         'Acquire-SyncLock',
+        'Get-HostingLockInfoPath -LockDirectoryPath $lockPath',
+        'Acquire-HostingDirectoryLock',
+        'Remove-HostingDirectoryLock',
         "state = 'discovering'",
         "deploy_state = 'discover'",
         "state = 'preflight'",
@@ -118,6 +127,8 @@ test('sync V2 usa release pin, preflight y status operativo ampliado', () => {
         'current_commit =',
         'previous_commit =',
         'service_state =',
+        'lock_state =',
+        'lock_reason =',
         'lock_owner_pid =',
         'lock_started_at =',
         'lock_age_seconds =',
@@ -128,6 +139,9 @@ test('sync V2 usa release pin, preflight y status operativo ampliado', () => {
         'Release target bootstrapeado',
         'Desired commit {0} fallo validacion; se ejecuta rollback automatico',
         'Preflight OK: desired={0} current={1} service_state={2}',
+        "sync_lock_invalid",
+        "Lock invalido detectado; state={0} reason={1}",
+        "lock_state = 'unlocked'",
     ];
 
     for (const snippet of requiredSnippets) {
@@ -139,9 +153,13 @@ test('sync V2 usa release pin, preflight y status operativo ampliado', () => {
     }
 });
 
-test('config V2 registra solo supervisor y sync y mantiene repair launcher', () => {
+test('config V3 desacopla bootstrap del mirror y arranque del supervisor', () => {
     const raw = load(CONFIG_SCRIPT_PATH);
     const requiredSnippets = [
+        "$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'",
+        '[switch]$BootstrapMirrorNow',
+        '[switch]$StartSupervisorNow',
+        '[switch]$SkipBootstrapSync',
         "$mirrorSupervisorScriptPath = Join-Path $mirrorRepoPathResolved 'scripts\\ops\\setup\\SUPERVISAR-HOSTING-WINDOWS.ps1'",
         "$mirrorRepairScriptPath = Join-Path $mirrorRepoPathResolved 'scripts\\ops\\setup\\REPARAR-HOSTING-WINDOWS.ps1'",
         "$supervisorTaskName = 'Pielarmonia Hosting Supervisor'",
@@ -153,6 +171,9 @@ test('config V2 registra solo supervisor y sync y mantiene repair launcher', () 
         'Tarea legacy eliminada',
         'Tarea programada de supervisor instalada',
         'Tarea programada de sync instalada',
+        'No existe el mirror limpio en $mirrorRepoPathResolved y se solicito -SkipBootstrapSync.',
+        '$BootstrapMirrorNow = $true',
+        '$StartSupervisorNow = $true',
     ];
 
     for (const snippet of requiredSnippets) {
@@ -164,7 +185,7 @@ test('config V2 registra solo supervisor y sync y mantiene repair launcher', () 
     }
 });
 
-test('repair, supervisor, start y smoke usan contrato V2 fail-safe', () => {
+test('repair, supervisor, start y smoke usan contrato V3 fail-safe', () => {
     const required = [
         {
             filePath: REPAIR_SCRIPT_PATH,
@@ -175,13 +196,19 @@ test('repair, supervisor, start y smoke usan contrato V2 fail-safe', () => {
                 "phase = 'preflight'",
                 "phase = 'quiesce'",
                 "phase = 'apply'",
-                "phase = 'reinstall'",
-                "phase = 'validate'",
+                "phase = 'validate_stack'",
+                "phase = 'configure_runtime'",
+                "phase = 'validate_supervisor'",
+                "phase = 'final_smoke'",
                 "phase = 'completed'",
                 'Invoke-SyncScript -CurrentPreflightOnly',
                 'Preflight de reparacion OK; no se tocaron procesos activos.',
-                'Clear-HostingLocks',
-                'Supervisor lanzado en la sesion actual tras la reparacion.',
+                'Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir',
+                'Invoke-ConfigScript -SkipBootstrapSync -StartSupervisorNow',
+                'Wait-ForSupervisorReady -SupervisorStatusPath $supervisorStatusPath',
+                'supervisor_boot_failed',
+                'supervisor_auth_contract_failed',
+                'supervisor_service_stopped',
                 'Reparacion completada con health/auth/smoke locales en verde.',
             ],
         },
@@ -192,13 +219,17 @@ test('repair, supervisor, start y smoke usan contrato V2 fail-safe', () => {
                 "[int]$LockTtlSeconds = 600",
                 'Acquire-SupervisorLock',
                 'Get-LockSnapshot',
+                'Acquire-HostingDirectoryLock',
+                'Remove-HostingDirectoryLock',
                 'Invoke-HostingSmoke',
                 'Invoke-Repair',
                 "supervisor_state = 'failed'",
-                "supervisorState = if ($repairAttempted -and [string]::IsNullOrWhiteSpace($repairError))",
+                '$supervisorState = \'recovering\'',
                 'desired_commit = Get-DesiredCommit',
                 'current_commit =',
                 'previous_commit =',
+                'lock_state =',
+                'lock_reason =',
                 'lock_owner_pid =',
                 'lock_started_at =',
                 'lock_age_seconds =',
@@ -230,6 +261,9 @@ test('repair, supervisor, start y smoke usan contrato V2 fail-safe', () => {
                 '$adminJs = Invoke-TextFetch -Url "$base/admin.js"',
                 '$operatorJs = Invoke-TextFetch -Url "$base/js/queue-operator.js"',
                 'Smoke local OK: transport={0}',
+                '$healthDetail = $healthResponse.Error',
+                '$authDetail = $statusResponse.Error',
+                '$localhostDetail = \'Sin referencias activas al helper local.\'',
             ],
         },
     ];
@@ -243,5 +277,52 @@ test('repair, supervisor, start y smoke usan contrato V2 fail-safe', () => {
                 `falta snippet V2 en ${entry.filePath}: ${snippet}`
             );
         }
+    }
+});
+
+test('repair V3 mantiene orden serial: preflight, quiesce, apply, smoke, config, supervisor, smoke final', () => {
+    const raw = load(REPAIR_SCRIPT_PATH);
+    const orderedSnippets = [
+        '$preflightResult = Invoke-SyncScript -CurrentPreflightOnly',
+        "phase = 'quiesce'",
+        'Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir',
+        "phase = 'apply'",
+        '$syncResult = Invoke-SyncScript',
+        "phase = 'validate_stack'",
+        'Invoke-LocalSmoke -ScriptPath $smokeScriptPath',
+        "phase = 'configure_runtime'",
+        'Invoke-ConfigScript -SkipBootstrapSync -StartSupervisorNow',
+        "phase = 'validate_supervisor'",
+        'Wait-ForSupervisorReady -SupervisorStatusPath $supervisorStatusPath',
+        "phase = 'final_smoke'",
+        'Invoke-LocalSmoke -ScriptPath $smokeScriptPath',
+    ];
+
+    let previousIndex = -1;
+    for (const snippet of orderedSnippets) {
+        const nextIndex = raw.indexOf(snippet, previousIndex + 1);
+        assert.notEqual(nextIndex, -1, `falta snippet de orden en repair V3: ${snippet}`);
+        assert.ok(nextIndex > previousIndex, `orden incorrecto en repair V3 alrededor de: ${snippet}`);
+        previousIndex = nextIndex;
+    }
+});
+
+test('entrypoints criticos de Windows no dejan if parentetizado en posiciones fragiles', () => {
+    const criticalPaths = [
+        COMMON_SCRIPT_PATH,
+        SYNC_SCRIPT_PATH,
+        CONFIG_SCRIPT_PATH,
+        SUPERVISOR_SCRIPT_PATH,
+        REPAIR_SCRIPT_PATH,
+        START_SCRIPT_PATH,
+        SMOKE_SCRIPT_PATH,
+    ];
+    const riskyPattern = /\(\s*if\s*\(/;
+    const detailPattern = /-Detail\s+\(\s*if\s*\(/;
+
+    for (const filePath of criticalPaths) {
+        const raw = load(filePath);
+        assert.equal(detailPattern.test(raw), false, `patron -Detail (if prohibido en ${filePath}`);
+        assert.equal(riskyPattern.test(raw), false, `if parentetizado prohibido en ${filePath}`);
     }
 });

@@ -66,11 +66,15 @@ if ($healthResponse.Ok) {
 } else {
     $errors.Add(("health-diagnostics fallo: {0}" -f $healthResponse.Error)) | Out-Null
 }
+$healthDetail = $healthResponse.Error
+if ($null -ne $healthPayload) {
+    $healthDetail = "status=$($healthPayload.status)"
+}
 Add-SmokeCheck `
     -Collection $checks `
     -Name 'health-diagnostics' `
     -Ok ($null -ne $healthPayload -and $healthPayload.ok -eq $true) `
-    -Detail (if ($null -ne $healthPayload) { "status=$($healthPayload.status)" } else { $healthResponse.Error })
+    -Detail $healthDetail
 
 $statusResponse = Invoke-TextFetch -Url "$base/admin-auth.php?action=status" -Headers @{ Accept = 'application/json' }
 $statusPayload = $null
@@ -87,15 +91,15 @@ $authOk =
     ([string]$statusPayload.mode -eq $ExpectedAuthMode) -and
     ([string]$statusPayload.transport -eq $ExpectedTransport) -and
     ([string]$statusPayload.status -ne 'transport_misconfigured')
+$authDetail = $statusResponse.Error
+if ($null -ne $statusPayload) {
+    $authDetail = "mode=$([string]$statusPayload.mode) transport=$([string]$statusPayload.transport) status=$([string]$statusPayload.status)"
+}
 Add-SmokeCheck `
     -Collection $checks `
     -Name 'admin-auth-status' `
     -Ok $authOk `
-    -Detail (if ($null -ne $statusPayload) {
-        "mode=$([string]$statusPayload.mode) transport=$([string]$statusPayload.transport) status=$([string]$statusPayload.status)"
-    } else {
-        $statusResponse.Error
-    })
+    -Detail $authDetail
 
 $adminHtml = Invoke-TextFetch -Url "$base/admin.html"
 $adminJs = Invoke-TextFetch -Url "$base/admin.js"
@@ -108,13 +112,21 @@ foreach ($response in @($adminHtml, $adminJs, $operatorHtml, $operatorJs)) {
         break
     }
 }
+$localhostDetail = 'Sin referencias activas al helper local.'
+if ($localhostLeakDetected) {
+    $localhostDetail = 'Se detecto referencia activa a 127.0.0.1:4173 en el shell publicado.'
+}
 Add-SmokeCheck `
     -Collection $checks `
     -Name 'localhost-leak' `
     -Ok (-not $localhostLeakDetected) `
-    -Detail (if ($localhostLeakDetected) { 'Se detecto referencia activa a 127.0.0.1:4173 en el shell publicado.' } else { 'Sin referencias activas al helper local.' })
+    -Detail $localhostDetail
 
 $allOk = ($checks | Where-Object { $_.ok -ne $true }).Count -eq 0
+$reportError = ''
+if (-not $allOk) {
+    $reportError = (@($errors) -join ' | ')
+}
 $report = [ordered]@{
     ok = $allOk
     timestamp = [DateTimeOffset]::Now.ToString('o')
@@ -122,7 +134,7 @@ $report = [ordered]@{
     expected_auth_mode = $ExpectedAuthMode
     expected_transport = $ExpectedTransport
     checks = @($checks)
-    error = if ($allOk) { '' } else { (@($errors) -join ' | ') }
+    error = $reportError
 }
 
 if (-not [string]::IsNullOrWhiteSpace($ReportPath)) {

@@ -137,12 +137,29 @@ function Invoke-LocalAuthContract {
         ([string]$payload.transport -eq 'web_broker') -and
         ([string]$payload.status -ne 'transport_misconfigured')
 
+    $authMode = ''
+    $authTransport = ''
+    $authStatus = ''
+    if ($null -ne $payload) {
+        $authMode = [string]$payload.mode
+        $authTransport = [string]$payload.transport
+        $authStatus = [string]$payload.status
+    }
+    $authError = ''
+    if (-not $ok) {
+        if (-not [string]::IsNullOrWhiteSpace($response.Error)) {
+            $authError = $response.Error
+        } else {
+            $authError = 'Contrato OpenClaw invalido.'
+        }
+    }
+
     return [PSCustomObject]@{
         Ok = $ok
-        Mode = if ($null -eq $payload) { '' } else { [string]$payload.mode }
-        Transport = if ($null -eq $payload) { '' } else { [string]$payload.transport }
-        Status = if ($null -eq $payload) { '' } else { [string]$payload.status }
-        Error = if ($ok) { '' } elseif (-not [string]::IsNullOrWhiteSpace($response.Error)) { $response.Error } else { 'Contrato OpenClaw invalido.' }
+        Mode = $authMode
+        Transport = $authTransport
+        Status = $authStatus
+        Error = $authError
     }
 }
 
@@ -152,9 +169,14 @@ function Invoke-LocalHealthCheck {
         -Headers @{ Accept = 'application/json' } `
         -TimeoutSec 15
 
+    $healthError = ''
+    if ((-not $response.Ok) -and (-not [string]::IsNullOrWhiteSpace($response.Error))) {
+        $healthError = $response.Error
+    }
+
     return [PSCustomObject]@{
         Ok = ($response.Ok -and $response.Payload.ok -eq $true)
-        Error = if ($response.Ok -or [string]::IsNullOrWhiteSpace($response.Error)) { '' } else { $response.Error }
+        Error = $healthError
     }
 }
 
@@ -209,23 +231,88 @@ function Stop-TaskIfPresent {
     }
 }
 
+function Remove-TaskIfPresent {
+    param([string]$TaskName)
+
+    if (Remove-HostingScheduledTaskIfPresent -TaskName $TaskName) {
+        Write-Info ("Tarea eliminada durante rollback de control plane: {0}" -f $TaskName)
+    }
+}
+
 function Clear-HostingLocks {
     param([string]$HostingDir)
 
     $lockPatterns = @(
         'main-sync-status.json.lock',
-        'main-sync-status.json.lock.json',
         'hosting-supervisor-status.json.lock',
+        'main-sync-status.json.lock.json',
         'hosting-supervisor-status.json.lock.json'
     )
 
     foreach ($pattern in $lockPatterns) {
         $candidate = Join-Path $HostingDir $pattern
         if (Test-Path -LiteralPath $candidate) {
-            Remove-Item -LiteralPath $candidate -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $candidate -Recurse -Force -ErrorAction SilentlyContinue
             Write-Info ("Lock eliminado: {0}" -f $candidate)
         }
     }
+}
+
+function Disable-ControlPlane {
+    param(
+        [string[]]$CurrentTaskNames,
+        [string]$HostingDir,
+        [switch]$RemoveTasks
+    )
+
+    foreach ($taskName in $CurrentTaskNames) {
+        Stop-TaskIfPresent -TaskName $taskName
+        if ($RemoveTasks) {
+            Remove-TaskIfPresent -TaskName $taskName
+        }
+    }
+
+    Stop-HostingProcessesByNeedle -Needles @('SUPERVISAR-HOSTING-WINDOWS.ps1') -Label 'Hosting supervisor'
+    Clear-HostingLocks -HostingDir $HostingDir
+}
+
+function Wait-ForSupervisorReady {
+    param(
+        [string]$SupervisorStatusPath,
+        [int]$TimeoutSeconds = 45
+    )
+
+    $deadline = [DateTimeOffset]::Now.AddSeconds($TimeoutSeconds)
+    $lastPayload = $null
+
+    while ([DateTimeOffset]::Now -lt $deadline) {
+        $payload = Read-HostingJsonFileSafe -Path $SupervisorStatusPath
+        if ($null -ne $payload) {
+            $lastPayload = $payload
+            $supervisorState = [string]$payload.supervisor_state
+            $serviceState = [string]$payload.service_state
+            $authContractOk = ($payload.auth_contract_ok -eq $true)
+            if ((@('running', 'recovering') -contains $supervisorState) -and $authContractOk -and ($serviceState -ne 'stopped')) {
+                return $payload
+            }
+        }
+
+        Start-Sleep -Seconds 2
+    }
+
+    if ($null -eq $lastPayload) {
+        throw 'supervisor_boot_failed'
+    }
+
+    if ($lastPayload.auth_contract_ok -ne $true) {
+        throw 'supervisor_auth_contract_failed'
+    }
+
+    if ([string]$lastPayload.service_state -eq 'stopped') {
+        throw 'supervisor_service_stopped'
+    }
+
+    throw ("supervisor_state_invalid:{0}" -f [string]$lastPayload.supervisor_state)
 }
 
 function New-SyncArguments {
@@ -264,6 +351,11 @@ function Invoke-SyncScript {
 }
 
 function Invoke-ConfigScript {
+    param(
+        [switch]$SkipBootstrapSync,
+        [switch]$StartSupervisorNow
+    )
+
     $arguments = New-Object 'System.Collections.Generic.List[string]'
     foreach ($token in @(
         '-NoProfile',
@@ -277,6 +369,12 @@ function Invoke-ConfigScript {
         '-OperatorUserProfile', $resolvedOperatorUserProfile
     )) {
         $arguments.Add([string]$token) | Out-Null
+    }
+    if ($SkipBootstrapSync) {
+        $arguments.Add('-SkipBootstrapSync') | Out-Null
+    }
+    if ($StartSupervisorNow) {
+        $arguments.Add('-StartSupervisorNow') | Out-Null
     }
 
     return Invoke-HostingCommandWithOutput -FilePath $powershellExe -Arguments $arguments
@@ -305,13 +403,21 @@ $status = [ordered]@{
     rollback_reason = ''
     last_successful_deploy_at = ''
     last_failure_reason = ''
+    supervisor_status_path = ''
+    supervisor_state = ''
     error = ''
 }
+
+$automationConfigured = $false
+$hostingDir = ''
+$supervisorStatusPath = ''
 
 try {
     Ensure-HostingParentDirectory -Path $statusPathResolved
     Ensure-HostingParentDirectory -Path $releaseTargetPathResolved
     $hostingDir = Split-Path -Parent $releaseTargetPathResolved
+    $supervisorStatusPath = Join-Path $hostingDir 'hosting-supervisor-status.json'
+    $status.supervisor_status_path = $supervisorStatusPath
 
     $status.current_commit = Get-CurrentCommitSafe -RepoPath $mirrorRepoPathResolved
     $status.previous_commit = $status.current_commit
@@ -358,12 +464,7 @@ try {
     }
 
     $status.phase = 'quiesce'
-    foreach ($taskName in $taskNames) {
-        Stop-TaskIfPresent -TaskName $taskName
-    }
-    Stop-HostingProcessesByNeedle -Needles @('SUPERVISAR-HOSTING-WINDOWS.ps1') -Label 'Hosting supervisor'
-    Stop-HostingProcessesByNeedle -Needles @('openclaw-auth-helper.js') -Label 'OpenClaw auth helper'
-    Clear-HostingLocks -HostingDir $hostingDir
+    Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir
 
     $status.phase = 'apply'
     $syncResult = Invoke-SyncScript
@@ -374,21 +475,7 @@ try {
         Write-Info $syncResult.Output.Trim()
     }
 
-    $status.phase = 'reinstall'
-    $configResult = Invoke-ConfigScript
-    if ($configResult.ExitCode -ne 0) {
-        throw ("CONFIGURAR-HOSTING-WINDOWS.ps1 no pudo reinstalar el supervisor. {0}" -f $configResult.Output.Trim())
-    }
-    if (-not [string]::IsNullOrWhiteSpace($configResult.Output)) {
-        Write-Info $configResult.Output.Trim()
-    }
-
-    if (Test-Path -LiteralPath $supervisorLauncherPath) {
-        Start-Process -FilePath $supervisorLauncherPath -WindowStyle Hidden | Out-Null
-        Write-Info 'Supervisor lanzado en la sesion actual tras la reparacion.'
-    }
-
-    $status.phase = 'validate'
+    $status.phase = 'validate_stack'
     Invoke-LocalSmoke -ScriptPath $smokeScriptPath
 
     $syncStatusPath = Join-Path $hostingDir 'main-sync-status.json'
@@ -419,6 +506,29 @@ try {
         $status.auth_status = [string]$auth.Status
     }
 
+    $status.phase = 'configure_runtime'
+    $automationConfigured = $true
+    $configResult = Invoke-ConfigScript -SkipBootstrapSync -StartSupervisorNow
+    if ($configResult.ExitCode -ne 0) {
+        throw ("CONFIGURAR-HOSTING-WINDOWS.ps1 no pudo reinstalar el supervisor. {0}" -f $configResult.Output.Trim())
+    }
+    if (-not [string]::IsNullOrWhiteSpace($configResult.Output)) {
+        Write-Info $configResult.Output.Trim()
+    }
+
+    $status.phase = 'start_supervisor'
+    $status.phase = 'validate_supervisor'
+    $supervisorStatus = Wait-ForSupervisorReady -SupervisorStatusPath $supervisorStatusPath
+    $status.supervisor_state = [string]$supervisorStatus.supervisor_state
+    $status.service_state = [string]$supervisorStatus.service_state
+    $status.auth_contract_ok = ($supervisorStatus.auth_contract_ok -eq $true)
+    $status.auth_mode = [string]$supervisorStatus.auth_mode
+    $status.auth_transport = [string]$supervisorStatus.auth_transport
+    $status.auth_status = [string]$supervisorStatus.auth_status
+
+    $status.phase = 'final_smoke'
+    Invoke-LocalSmoke -ScriptPath $smokeScriptPath
+
     $status.ok = $true
     $status.repaired = $true
     $status.phase = 'completed'
@@ -428,6 +538,9 @@ try {
 } catch {
     $status.error = $_.Exception.Message
     $status.last_failure_reason = $status.error
+    if (($status.phase -ne 'discover') -and ($status.phase -ne 'preflight') -and ($status.phase -ne 'preflight_ready')) {
+        Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir -RemoveTasks:$automationConfigured
+    }
     $status.phase = if (($status.phase -eq 'discover') -or ($status.phase -eq 'preflight')) { 'failed_preflight' } else { 'failed' }
     Write-Status -Payload $status
     Write-Info ("Reparacion fallida: {0}" -f $status.error)
