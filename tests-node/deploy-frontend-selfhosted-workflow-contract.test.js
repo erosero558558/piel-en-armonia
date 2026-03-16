@@ -6,6 +6,9 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('fs');
 const { resolve } = require('path');
 const yaml = require('yaml');
+const {
+    buildDeployBundleManifest,
+} = require('../bin/lib/deploy-bundle-contract.js');
 
 const WORKFLOW_PATH = resolve(
     __dirname,
@@ -78,14 +81,15 @@ test('deploy-frontend-selfhosted evalua y gestiona incidente dedicado de telemed
         'TELEMEDICINE_SELFHOSTED_REASON',
         'TELEMEDICINE_SELFHOSTED_FAILURES',
         'TELEMEDICINE_SELFHOSTED_NON_TELE_FAILURES',
-        'id: build_astro_routes',
+        'id: prepare_deploy_bundle',
         'id: deploy_frontend_bundle',
         'id: validate_public_frontend',
-        'BUILD_ASTRO_OUTCOME: ${{ steps.build_astro_routes.outcome }}',
+        'PREPARE_DEPLOY_BUNDLE_OUTCOME: ${{ steps.prepare_deploy_bundle.outcome }}',
         'DEPLOY_BUNDLE_OUTCOME: ${{ steps.deploy_frontend_bundle.outcome }}',
         'VALIDATE_PUBLIC_FRONTEND_OUTCOME: ${{ steps.validate_public_frontend.outcome }}',
         'function Count-NonTeleFailures',
         '$nonTeleFailures = Count-NonTeleFailures @(',
+        '$env:PREPARE_DEPLOY_BUNDLE_OUTCOME',
         "non_tele:${process.env.TELEMEDICINE_SELFHOSTED_NON_TELE_FAILURES || '-1'}",
         '[ALERTA PROD] Deploy Frontend Self-Hosted telemedicina degradada',
         'deploy-frontend-selfhosted-telemedicine-signal:',
@@ -164,32 +168,72 @@ test('deploy-frontend-selfhosted resuelve y verifica turneroPilot con reporte de
 
 test('deploy-frontend-selfhosted publica las superficies canonicas del turnero y el bundle desktop oficial', () => {
     const { raw } = loadWorkflow();
+    const bundlePaths = buildDeployBundleManifest({
+        includeTooling: true,
+    }).map((entry) => entry.relativePath);
 
     for (const snippet of [
-        "'fonts'",
-        "'images'",
-        "'content'",
-        "'js'",
-        "'app-downloads'",
-        "'desktop-updates'",
-        "'admin-v3.css'",
-        "'operador-turnos.html'",
-        "'kiosco-turnos.html'",
-        "'sala-turnos.html'",
-        "'queue-ops.css'",
-        "'queue-kiosk.css'",
-        "'queue-display.css'",
-        "'styles.css'",
-        "'styles-deferred.css'",
-        "'script.js'",
-        "'sw.js'",
-        "'manifest.json'",
-        "'favicon.ico'",
+        'fonts',
+        'images/optimized',
+        'content/index.json',
+        'js',
+        'app-downloads',
+        'desktop-updates',
+        'admin-v3.css',
+        'operador-turnos.html',
+        'kiosco-turnos.html',
+        'sala-turnos.html',
+        'queue-ops.css',
+        'queue-kiosk.css',
+        'queue-display.css',
+        'styles.css',
+        'styles-deferred.css',
+        'script.js',
+        'sw.js',
+        'manifest.json',
+        'favicon.ico',
+    ]) {
+        assert.equal(
+            bundlePaths.some(
+                (entry) => entry === snippet || entry.startsWith(`${snippet}/`)
+            ),
+            true,
+            `falta artefacto publico canonico en deploy-frontend-selfhosted: ${snippet}`
+        );
+    }
+
+    assert.equal(
+        raw.includes('DEPLOY_STAGE_ROOT'),
+        true,
+        'deploy-frontend-selfhosted debe publicar desde DEPLOY_STAGE_ROOT'
+    );
+    for (const snippet of [
+        'id: prepare_deploy_bundle',
+        "'bin/prepare-deploy-bundle.js'",
+        "'--include-tooling'",
+        "'--output-dir'",
+        "'_deploy_bundle'",
+        "'--skip-build'",
+        'const stageRoot = path.resolve(process.env.DEPLOY_STAGE_ROOT || \'\');',
+        'return walkFiles(rootPath);',
+        'path.relative(deployRoot, localFile).replace(/\\\\/g, \'/\')',
     ]) {
         assert.equal(
             raw.includes(snippet),
             true,
-            `falta artefacto publico canonico en deploy-frontend-selfhosted: ${snippet}`
+            `falta wiring bundle/stage en deploy-frontend-selfhosted: ${snippet}`
+        );
+    }
+    for (const legacySnippet of [
+        'Build Astro routes',
+        'npm run astro:sync',
+        "const candidates = [",
+        "const cwd = process.cwd();",
+    ]) {
+        assert.equal(
+            raw.includes(legacySnippet),
+            false,
+            `deploy-frontend-selfhosted no debe volver al flujo legacy: ${legacySnippet}`
         );
     }
 });

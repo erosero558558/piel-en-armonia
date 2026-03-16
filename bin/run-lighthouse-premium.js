@@ -233,7 +233,7 @@ function resolveLighthouseRuntimeConfig(repoRoot, env) {
                 ...restCollect,
                 ...(useLocalServer
                     ? {
-                          startServerCommand: `php -S ${localHost}:${localPort} -t .`,
+                          startServerCommand: `php -S ${localHost}:${localPort} -t . bin/local-stage-router.php`,
                       }
                     : {}),
                 url: resolvedUrls,

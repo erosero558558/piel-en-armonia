@@ -48,9 +48,9 @@ mkdir -p "$(dirname "$OUTPUT_FILE")"
 
 if [[ "$BENCHMARK_START_LOCAL_SERVER" == "true" || "$BENCHMARK_START_LOCAL_SERVER" == "1" ]]; then
     BASE_URL="$DEFAULT_BASE_URL"
-    ENVIRONMENT_LABEL="Local (php -S ${BENCHMARK_LOCAL_HOST}:${BENCHMARK_LOCAL_PORT})"
+    ENVIRONMENT_LABEL="Local (php -S ${BENCHMARK_LOCAL_HOST}:${BENCHMARK_LOCAL_PORT} con local-stage-router)"
     echo "Starting local PHP server on ${BASE_URL} ..."
-    php -S "${BENCHMARK_LOCAL_HOST}:${BENCHMARK_LOCAL_PORT}" -t . > /dev/null 2>&1 &
+    php -S "${BENCHMARK_LOCAL_HOST}:${BENCHMARK_LOCAL_PORT}" -t . bin/local-stage-router.php > /dev/null 2>&1 &
     echo $! > "$PID_FILE"
     SERVER_STARTED="1"
 else

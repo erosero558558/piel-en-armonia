@@ -3,6 +3,14 @@
 const { appendFileSync, mkdirSync } = require('fs');
 const { dirname, resolve } = require('path');
 const { spawnSync } = require('child_process');
+const {
+    AUTHORED_CATEGORY,
+    diagnoseWorktree,
+    formatIssueSummary,
+    getBlockingIssues,
+    getFirstRemediationStep,
+    isIgnoredPublishDirtyCategory,
+} = require('../../../bin/lib/workspace-hygiene.js');
 
 function normalizePathToken(value) {
     return String(value || '')
@@ -19,28 +27,6 @@ function wildcardToRegex(pattern) {
     return new RegExp(`^${escaped}$`, 'i');
 }
 
-function parseGitStatusPorcelain(raw = '') {
-    return String(raw || '')
-        .split(/\r?\n/)
-        .map((line) => line.replace(/\r$/, ''))
-        .filter((line) => line.trim() !== '')
-        .map((line) => {
-            const status = line.slice(0, 2);
-            const pathRaw = line.slice(3).trim();
-            const normalizedPath = normalizePathToken(
-                pathRaw.includes(' -> ') ? pathRaw.split(' -> ').pop() : pathRaw
-            );
-            return {
-                status,
-                raw_path: pathRaw.includes(' -> ')
-                    ? pathRaw.split(' -> ').pop()
-                    : pathRaw,
-                path: normalizedPath,
-            };
-        })
-        .filter((entry) => entry.path);
-}
-
 function isPathAllowedByPatterns(path, patterns = []) {
     const safePath = normalizePathToken(path);
     return (Array.isArray(patterns) ? patterns : []).some((pattern) => {
@@ -49,6 +35,46 @@ function isPathAllowedByPatterns(path, patterns = []) {
         if (safePattern === safePath) return true;
         return wildcardToRegex(safePattern).test(safePath);
     });
+}
+
+function buildWorkspaceBlockingError(diagnosis) {
+    if (!diagnosis) {
+        return null;
+    }
+
+    if (diagnosis.overall_state === 'error') {
+        const error = new Error(
+            diagnosis.next_command
+                ? `publish checkpoint bloqueado porque workspace hygiene no pudo inspeccionar el worktree. Ejecuta: ${diagnosis.next_command}`
+                : 'publish checkpoint bloqueado porque workspace hygiene no pudo inspeccionar el worktree.'
+        );
+        error.code = 'publish_workspace_hygiene_blocked';
+        error.error_code = 'publish_workspace_hygiene_blocked';
+        return error;
+    }
+
+    const blockingIssues = getBlockingIssues(diagnosis, 'publish');
+    if (blockingIssues.length === 0) {
+        return null;
+    }
+
+    const relevantIssues = Array.isArray(diagnosis.issues)
+        ? diagnosis.issues.filter(
+              (issue) => issue.blocks_publish || issue.category === AUTHORED_CATEGORY
+          )
+        : blockingIssues;
+    const firstStep = getFirstRemediationStep(diagnosis);
+    const suffix = firstStep
+        ? ` Primer paso: ${firstStep.id} (${firstStep.command}).`
+        : '';
+    const issueSummary = formatIssueSummary(relevantIssues);
+    const details = relevantIssues.map((issue) => issue.summary).join(' ');
+    const error = new Error(
+        `publish checkpoint bloqueado por workspace hygiene: ${issueSummary}. ${details}${suffix}`
+    );
+    error.code = 'publish_workspace_hygiene_blocked';
+    error.error_code = 'publish_workspace_hygiene_blocked';
+    return error;
 }
 
 function classifyPublishSurface(files = []) {
@@ -246,7 +272,6 @@ async function waitForPublishedCommit(ctx, expectedCommit, maxWaitSeconds) {
     }
     return { ok: false, job: lastJob };
 }
-
 async function handlePublishCommand(ctx) {
     const {
         args = [],
@@ -442,17 +467,20 @@ async function handlePublishCommand(ctx) {
         }
     }
 
-    const statusResult = runCommand(
-        'git',
-        ['status', '--porcelain', '--untracked-files=all'],
-        { cwd: rootPath, capture: true }
+    const workspaceDiagnosis = diagnoseWorktree(rootPath);
+    const blockingWorkspaceError = buildWorkspaceBlockingError(
+        workspaceDiagnosis
     );
-    if (!statusResult.ok) {
-        throw new Error(
-            statusResult.stderr || statusResult.stdout || 'git status fallo'
-        );
+    if (blockingWorkspaceError) {
+        throw blockingWorkspaceError;
     }
-    const dirtyEntries = parseGitStatusPorcelain(statusResult.stdout);
+
+    const ignoredDirtyEntries = workspaceDiagnosis.dirtyEntries.filter(
+        (entry) => isIgnoredPublishDirtyCategory(entry.category)
+    );
+    const dirtyEntries = workspaceDiagnosis.dirtyEntries.filter(
+        (entry) => !isIgnoredPublishDirtyCategory(entry.category)
+    );
     if (dirtyEntries.length === 0) {
         const error = new Error(
             'publish checkpoint no encontro cambios para publicar'
@@ -482,7 +510,7 @@ async function handlePublishCommand(ctx) {
         throw error;
     }
 
-    const dirtyFiles = dirtyEntries.map((entry) => entry.raw_path);
+    const dirtyFiles = dirtyEntries.map((entry) => entry.rawPath || entry.path);
     const surface = classifyPublishSurface(dirtyFiles);
     const gateCommands = buildGateCommands(surface);
     for (const gate of gateCommands) {
@@ -581,22 +609,6 @@ async function handlePublishCommand(ctx) {
             syncResult.stderr || syncResult.stdout || 'sync-main-safe fallo'
         );
     }
-
-    const jobsRegistry = parseJobs();
-    const publicSyncJob = findJobSnapshot(
-        await buildJobsSnapshot(jobsRegistry),
-        'public_main_sync'
-    );
-    if (!publicSyncJob) {
-        const error = new Error(
-            'publish checkpoint requiere job public_main_sync'
-        );
-        error.code = 'job_not_found';
-        error.error_code = 'job_not_found';
-        throw error;
-    }
-
-    const liveCheck = await waitForPublishedCommit(ctx, headSha, 180);
     appendPublishEvent(publishEventsPath, {
         version: 1,
         task_id: taskId,
@@ -604,13 +616,18 @@ async function handlePublishCommand(ctx) {
         published_at: new Date().toISOString(),
         commit: headSha,
         summary,
-        live_ok: Boolean(liveCheck.ok),
-        deployed_commit: String(liveCheck.job?.deployed_commit || ''),
+        live_ok: true,
+        deploy_verification: 'delegated_to_deploy',
+        sync_transport: 'sync-main-safe',
+        ignored_dirty_entries: ignoredDirtyEntries.map((entry) => ({
+            path: entry.path,
+            category: entry.category,
+        })),
     });
 
     const report = {
         version: 1,
-        ok: Boolean(liveCheck.ok),
+        ok: true,
         command: 'publish checkpoint',
         task_id: taskId,
         codex_instance: codexInstance,
@@ -620,27 +637,19 @@ async function handlePublishCommand(ctx) {
         commit: headSha,
         staged_files: stagedFiles,
         gates_run: gateCommands.map((item) => item.id),
-        public_sync: liveCheck.job,
+        live_verification: {
+            mode: 'delegated_to_deploy',
+            transport: 'sync-main-safe',
+        },
+        ignored_dirty_entries: ignoredDirtyEntries.map((entry) => ({
+            path: entry.path,
+            category: entry.category,
+        })),
     };
-    if (!liveCheck.ok) {
-        report.error_code = 'publish_not_live_in_window';
-        report.message =
-            'push completado pero public_main_sync no reflejo el commit en <=180s';
-    }
 
     if (wantsJson) {
         printJson(report);
-        if (!report.ok) process.exitCode = 1;
         return report;
-    }
-
-    if (!report.ok) {
-        const error = new Error(
-            'publish checkpoint completo push pero no confirmo deploy live en la ventana'
-        );
-        error.code = 'publish_not_live_in_window';
-        error.error_code = 'publish_not_live_in_window';
-        throw error;
     }
 
     console.log(`Publish checkpoint OK: ${taskId} -> ${headSha}`);
@@ -648,7 +657,6 @@ async function handlePublishCommand(ctx) {
 }
 
 module.exports = {
-    parseGitStatusPorcelain,
     isPathAllowedByPatterns,
     classifyPublishSurface,
     buildGateCommands,

@@ -86,6 +86,36 @@ test('deploy-staging incluye validacion de routing y conversion ES/EN post-deplo
     );
 });
 
+test('deploy-staging publica desde el bundle canonico y no desde el repo root', () => {
+    const { raw, parsed } = loadWorkflow(STAGING_WORKFLOW_PATH);
+    const steps = parsed?.jobs?.deploy?.steps || [];
+    const names = stepNames(steps);
+
+    assert.equal(
+        names.includes('Prepare canonical deploy bundle'),
+        true,
+        'falta step de armado del bundle canonico en deploy-staging'
+    );
+
+    for (const snippet of [
+        'node bin/prepare-deploy-bundle.js --include-tooling --output-dir _deploy_bundle --json > _deploy_bundle/deploy-bundle.json',
+        'DEPLOY_STAGE_DIR=',
+        'local-dir: ./${{ env.DEPLOY_STAGE_DIR }}/',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `deploy-staging debe usar el stage/bundle canonico: ${snippet}`
+        );
+    }
+
+    assert.doesNotMatch(
+        raw,
+        /npm run astro:sync|local-dir:\s*\.\/$|local-dir:\s*\.\/\s|exclude:\s*\|/u,
+        'deploy-staging no debe seguir desplegando el repo root ni excluyendo manualmente basura del checkout'
+    );
+});
+
 test('deploy-staging evalua y gestiona incidente dedicado de telemedicina post-smoke', () => {
     const { raw, parsed } = loadWorkflow(STAGING_WORKFLOW_PATH);
     const steps = parsed?.jobs?.deploy?.steps || [];
@@ -381,7 +411,7 @@ test('deploy-hosting publica fallback manual cuando git-sync no materializa Publ
 
     for (const snippet of [
         'bash ./bin/deploy-public-v3-live.sh',
-        'El script recompone \\`es/\\`, \\`en/\\`, \\`_astro/\\`, valida \\`/usr/sbin/nginx -t\\` y recarga Nginx.',
+        'El script valida outputs generados desde \\`.generated/site-root/\\` (o copias root de compatibilidad), luego ejecuta \\`/usr/sbin/nginx -t\\` y recarga Nginx.',
         'Tambien corrige redirects canonicos para evitar \\`:8080\\` detras de Cloudflare.',
         'Compat temporal: \\`deploy-public-v2-live.sh\\` existe como shim y delega a V3.',
     ]) {

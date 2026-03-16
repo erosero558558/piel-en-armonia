@@ -14,9 +14,11 @@ const {
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const { spawnSync } = require('node:child_process');
+const {
+    LEGACY_GENERATED_ROOT_IGNORE_PATTERNS,
+} = require('../bin/lib/generated-site-root.js');
 
 const { parseFlags } = require('../tools/agent-orchestrator/core/flags');
-const { findJobSnapshot } = require('../tools/agent-orchestrator/domain/jobs');
 const {
     classifyPublishSurface,
     buildGateCommands,
@@ -29,6 +31,11 @@ function createRepoFixture() {
     mkdirSync(join(root, 'docs'), { recursive: true });
     mkdirSync(join(root, 'verification', 'agent-runs'), { recursive: true });
 
+    writeFileSync(
+        join(root, '.gitignore'),
+        `${LEGACY_GENERATED_ROOT_IGNORE_PATTERNS.join('\n')}\n`,
+        'utf8'
+    );
     writeFileSync(
         join(root, 'agent-orchestrator.js'),
         `#!/usr/bin/env node
@@ -51,6 +58,7 @@ console.log(JSON.stringify({ version: 1, ok: true, message: 'fixture sync ok' })
         'utf8'
     );
     writeFileSync(join(root, 'README.md'), '# fixture\n', 'utf8');
+    writeFileSync(join(root, 'script.js'), 'console.log("fixture");\n', 'utf8');
     writeFileSync(join(root, 'docs', 'in-scope.md'), '# scope\n', 'utf8');
     writeFileSync(
         join(root, 'verification', 'agent-runs', 'CDX-900.md'),
@@ -61,7 +69,19 @@ console.log(JSON.stringify({ version: 1, ok: true, message: 'fixture sync ok' })
     runGit(root, ['init']);
     runGit(root, ['config', 'user.email', 'fixture@example.com']);
     runGit(root, ['config', 'user.name', 'Fixture']);
-    runGit(root, ['add', '.']);
+    runGit(
+        root,
+        [
+            'add',
+            '.gitignore',
+            'agent-orchestrator.js',
+            'bin/sync-main-safe.js',
+            'README.md',
+            'docs/in-scope.md',
+            'verification/agent-runs/CDX-900.md',
+        ]
+    );
+    runGit(root, ['add', '-f', 'script.js']);
     runGit(root, ['commit', '-m', 'fixture init']);
 
     return root;
@@ -97,17 +117,6 @@ function buildPublishContext(root, overrides = {}) {
             },
         ],
     };
-    const registry = {
-        jobs: [
-            {
-                key: 'public_main_sync',
-                job_id: '8d31e299-7e57-4959-80b5-aaa2d73e9674',
-                enabled: true,
-                type: 'external_cron',
-                expected_max_lag_seconds: 120,
-            },
-        ],
-    };
     let printed = null;
     return {
         args: [
@@ -123,24 +132,6 @@ function buildPublishContext(root, overrides = {}) {
         parseBoard: () => board,
         ensureTask: (currentBoard, taskId) =>
             currentBoard.tasks.find((task) => task.id === taskId),
-        parseJobs: () => registry,
-        buildJobsSnapshot: async () => [
-            {
-                key: 'public_main_sync',
-                job_id: '8d31e299-7e57-4959-80b5-aaa2d73e9674',
-                enabled: true,
-                verified: true,
-                healthy: false,
-                type: 'external_cron',
-                state: 'unknown',
-                age_seconds: null,
-                expected_max_lag_seconds: 120,
-                deployed_commit: '',
-                verification_source: 'health_url',
-                source_of_truth: 'host_cron',
-            },
-        ],
-        findJobSnapshot,
         printJson(value) {
             printed = value;
         },
@@ -204,61 +195,138 @@ test('publish checkpoint falla si hay cambios fuera de scope', async () => {
     }
 });
 
-test('publish checkpoint devuelve publish_not_live_in_window si el cron no refleja el commit', async () => {
+test('publish checkpoint ignora stage root y bundle y delega la verificacion live al deploy', async () => {
     const root = createRepoFixture();
-    const evidencePath = join(root, 'verification', 'agent-runs', 'CDX-900.md');
-    const originalNow = Date.now;
-    const originalSetTimeout = global.setTimeout;
-    const originalExitCode = process.exitCode;
-    let fakeNow = 1_000_000_000_000;
-
     try {
-        writeFileSync(evidencePath, '# CDX-900 updated\n', 'utf8');
-
-        Date.now = () => {
-            const current = fakeNow;
-            fakeNow += 16_000;
-            return current;
-        };
-        global.setTimeout = (callback, _ms, ...args) => {
-            callback(...args);
-            return 0;
-        };
-
-        const ctx = buildPublishContext(root, {
-            parseBoard: () => ({
-                policy: { revision: 7 },
-                tasks: [
-                    {
-                        id: 'CDX-900',
-                        executor: 'codex',
-                        status: 'in_progress',
-                        codex_instance: 'codex_backend_ops',
-                        files: ['verification/agent-runs/CDX-900.md'],
-                    },
-                ],
-            }),
+        writeFileSync(join(root, 'docs', 'in-scope.md'), '# updated scope\n', 'utf8');
+        writeFileSync(join(root, 'jules_tasks.md'), '# queue dirty\n', 'utf8');
+        mkdirSync(join(root, '.generated', 'site-root', 'es'), {
+            recursive: true,
         });
+        mkdirSync(join(root, '_deploy_bundle', 'snapshot'), {
+            recursive: true,
+        });
+        writeFileSync(
+            join(root, '.generated', 'site-root', 'es', 'index.html'),
+            '<html>generated</html>\n',
+            'utf8'
+        );
+        writeFileSync(
+            join(root, '_deploy_bundle', 'snapshot', 'manifest.txt'),
+            'bundle noise\n',
+            'utf8'
+        );
 
+        const ctx = buildPublishContext(root);
         const report = await handlePublishCommand(ctx);
-        assert.equal(report.ok, false);
-        assert.equal(report.error_code, 'publish_not_live_in_window');
+
+        assert.equal(report.ok, true);
         assert.equal(report.command, 'publish checkpoint');
         assert.equal(report.task_id, 'CDX-900');
         assert.equal(report.codex_instance, 'codex_backend_ops');
+        assert.equal(report.live_verification.mode, 'delegated_to_deploy');
+        assert.equal(report.live_verification.transport, 'sync-main-safe');
+        assert.deepEqual(report.gates_run, [
+            'board-doctor',
+            'conflicts',
+            'codex-check',
+            'focus-check',
+        ]);
+        assert.equal(report.staged_files.includes('docs/in-scope.md'), true);
+        assert.deepEqual(
+            report.ignored_dirty_entries.map((entry) => entry.category).sort(),
+            ['deploy_bundle', 'derived_queue']
+        );
+        assert.deepEqual(ctx.getPrinted(), report);
+        assert.equal(existsSync(ctx.publishEventsPath), true);
+
+        const eventsRaw = readFileSync(ctx.publishEventsPath, 'utf8');
+        assert.match(eventsRaw, /"deploy_verification":"delegated_to_deploy"/);
+        assert.match(eventsRaw, /"live_ok":true/);
+        assert.match(eventsRaw, /"sync_transport":"sync-main-safe"/);
         assert.equal(
-            report.staged_files.includes('verification/agent-runs/cdx-900.md'),
+            runGit(root, ['show', '--stat', '--format=%s', 'HEAD']).stdout.includes(
+                'chore(codex-publish): checkpoint CDX-900'
+            ),
             true
         );
-        assert.equal(existsSync(ctx.publishEventsPath), true);
-        assert.match(
-            readFileSync(ctx.publishEventsPath, 'utf8'),
-            /"live_ok":false/
+    } finally {
+        cleanupRepoFixture(root);
+    }
+});
+
+test('publish checkpoint bloquea legacy generated root trackeado fuera de scope', async () => {
+    const root = createRepoFixture();
+    try {
+        writeFileSync(
+            join(root, 'script.js'),
+            'console.log("fixture dirty");\n',
+            'utf8'
+        );
+        const ctx = buildPublishContext(root);
+
+        await assert.rejects(
+            () => handlePublishCommand(ctx),
+            (error) => {
+                assert.equal(
+                    error.error_code,
+                    'publish_workspace_hygiene_blocked'
+                );
+                assert.match(error.message, /legacy_generated_root/i);
+                assert.match(error.message, /legacy:generated-root:apply/i);
+                return true;
+            }
         );
     } finally {
-        Date.now = originalNow;
-        global.setTimeout = originalSetTimeout;
-        process.exitCode = originalExitCode;
+        cleanupRepoFixture(root);
+    }
+});
+
+test('publish checkpoint bloquea legacy_generated_root_deindexed con mensaje accionable', async () => {
+    const root = createRepoFixture();
+    try {
+        runGit(root, ['rm', '--cached', '-f', '--', 'script.js']);
+        const ctx = buildPublishContext(root);
+
+        await assert.rejects(
+            () => handlePublishCommand(ctx),
+            (error) => {
+                assert.equal(
+                    error.error_code,
+                    'publish_workspace_hygiene_blocked'
+                );
+                assert.match(error.message, /legacy_generated_root_deindexed/i);
+                assert.match(error.message, /git commit -m/i);
+                return true;
+            }
+        );
+    } finally {
+        cleanupRepoFixture(root);
+    }
+});
+
+test('publish checkpoint menciona authored y deindexado legacy cuando ambos bloquean', async () => {
+    const root = createRepoFixture();
+    try {
+        runGit(root, ['rm', '--cached', '-f', '--', 'script.js']);
+        writeFileSync(join(root, 'README.md'), '# dirty outside scope\n', 'utf8');
+        const ctx = buildPublishContext(root);
+
+        await assert.rejects(
+            () => handlePublishCommand(ctx),
+            (error) => {
+                assert.equal(
+                    error.error_code,
+                    'publish_workspace_hygiene_blocked'
+                );
+                assert.match(error.message, /legacy_generated_root_deindexed/i);
+                assert.match(error.message, /authored/i);
+                assert.match(error.message, /Primer paso/i);
+                assert.match(error.message, /git commit -m/i);
+                return true;
+            }
+        );
+    } finally {
         cleanupRepoFixture(root);
     }
 });

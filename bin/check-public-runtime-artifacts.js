@@ -4,10 +4,14 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const {
+    GENERATED_SITE_ROOT,
+    REPO_ROOT,
+} = require('./lib/generated-site-root.js');
+const {
     inspectPublicRuntimeArtifacts,
 } = require('./lib/public-runtime-artifacts.js');
 
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = REPO_ROOT;
 const DEFAULT_OUTPUT = path.join(
     ROOT,
     'verification',
@@ -17,7 +21,8 @@ const DEFAULT_OUTPUT = path.join(
 
 function parseArgs(argv) {
     const args = {
-        root: ROOT,
+        root: GENERATED_SITE_ROOT,
+        supportRoot: '',
         output: DEFAULT_OUTPUT,
         json: false,
         quiet: false,
@@ -38,6 +43,23 @@ function parseArgs(argv) {
 
         if (token.startsWith('--root=')) {
             args.root = path.resolve(ROOT, token.slice('--root='.length).trim());
+            continue;
+        }
+
+        if (token === '--support-root') {
+            const nextValue = String(argv[index + 1] || '').trim();
+            if (nextValue) {
+                args.supportRoot = path.resolve(ROOT, nextValue);
+                index += 1;
+            }
+            continue;
+        }
+
+        if (token.startsWith('--support-root=')) {
+            args.supportRoot = path.resolve(
+                ROOT,
+                token.slice('--support-root='.length).trim()
+            );
             continue;
         }
 
@@ -78,33 +100,46 @@ function writeReport(outputPath, report) {
 
 function main() {
     const args = parseArgs(process.argv.slice(2));
-    const inspection = inspectPublicRuntimeArtifacts({ root: args.root });
+    const inspectionRoot = args.root
+        ? path.resolve(args.root)
+        : GENERATED_SITE_ROOT;
+    const supportRoot = args.supportRoot
+        ? path.resolve(args.supportRoot)
+        : inspectionRoot === GENERATED_SITE_ROOT
+          ? ROOT
+          : inspectionRoot;
+    const inspectionWithSupport = inspectPublicRuntimeArtifacts({
+        root: inspectionRoot,
+        supportRoot,
+    });
     const report = {
         generatedAt: new Date().toISOString(),
         reportPath: args.output,
-        passed: inspection.passed,
-        rootPath: inspection.rootPath,
-        entryPath: inspection.entryRelativePath,
-        chunksDir: inspection.chunksDirRelativePath,
-        enginesDir: inspection.enginesDirRelativePath,
-        rootJsFiles: inspection.rootJsFiles,
+        passed: inspectionWithSupport.passed,
+        rootPath: inspectionWithSupport.rootPath,
+        supportRootPath: inspectionWithSupport.supportRootPath,
+        entryPath: inspectionWithSupport.entryRelativePath,
+        chunksDir: inspectionWithSupport.chunksDirRelativePath,
+        enginesDir: inspectionWithSupport.enginesDirRelativePath,
+        rootJsFiles: inspectionWithSupport.rootJsFiles,
         legacyRootRuntimeArtifactsPresent:
-            inspection.legacyRootRuntimeArtifactsPresent,
-        chunkFilesCount: inspection.chunkFilesCount,
-        reachableChunkCount: inspection.reachableChunkCount,
-        engineFilesCount: inspection.engineFilesCount,
-        engineFilesOnDisk: inspection.engineFilesOnDisk,
-        referencedEngineFiles: inspection.referencedEngineFiles,
-        missingReferencedEngineFiles: inspection.missingReferencedEngineFiles,
-        supportAssets: inspection.supportAssets,
-        missingSupportAssets: inspection.missingSupportAssets,
-        activeShellChunks: inspection.activeShellChunks,
-        allChunks: inspection.allChunks,
-        reachableChunks: inspection.reachableChunks,
-        staleChunks: inspection.staleChunks,
-        missingReferencedChunks: inspection.missingReferencedChunks,
-        mergeConflictFindings: inspection.mergeConflictFindings,
-        diagnostics: inspection.diagnostics,
+            inspectionWithSupport.legacyRootRuntimeArtifactsPresent,
+        chunkFilesCount: inspectionWithSupport.chunkFilesCount,
+        reachableChunkCount: inspectionWithSupport.reachableChunkCount,
+        engineFilesCount: inspectionWithSupport.engineFilesCount,
+        engineFilesOnDisk: inspectionWithSupport.engineFilesOnDisk,
+        referencedEngineFiles: inspectionWithSupport.referencedEngineFiles,
+        missingReferencedEngineFiles:
+            inspectionWithSupport.missingReferencedEngineFiles,
+        supportAssets: inspectionWithSupport.supportAssets,
+        missingSupportAssets: inspectionWithSupport.missingSupportAssets,
+        activeShellChunks: inspectionWithSupport.activeShellChunks,
+        allChunks: inspectionWithSupport.allChunks,
+        reachableChunks: inspectionWithSupport.reachableChunks,
+        staleChunks: inspectionWithSupport.staleChunks,
+        missingReferencedChunks: inspectionWithSupport.missingReferencedChunks,
+        mergeConflictFindings: inspectionWithSupport.mergeConflictFindings,
+        diagnostics: inspectionWithSupport.diagnostics,
     };
 
     writeReport(args.output, report);

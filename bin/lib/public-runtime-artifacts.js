@@ -124,6 +124,9 @@ function inspectPublicRuntimeArtifacts(options = {}) {
     const rootPath = options.root
         ? resolve(options.root)
         : resolve(__dirname, '..', '..');
+    const supportRootPath = options.supportRoot
+        ? resolve(options.supportRoot)
+        : rootPath;
     const entryPath = resolve(rootPath, options.entryPath || 'script.js');
     const chunksDir = resolve(rootPath, options.chunksDir || 'js/chunks');
     const enginesDir = resolve(rootPath, options.enginesDir || 'js/engines');
@@ -156,7 +159,11 @@ function inspectPublicRuntimeArtifacts(options = {}) {
         'styles-deferred.css',
     ].map((relativePath) => ({
         relativePath,
-        exists: existsSync(resolve(rootPath, relativePath)),
+        exists: existsSync(resolve(supportRootPath, relativePath)),
+        resolvedPath: toRepoRelativePath(
+            resolve(supportRootPath, relativePath),
+            supportRootPath
+        ),
     }));
     const missingSupportAssets = supportAssets
         .filter((entry) => !entry.exists)
@@ -297,6 +304,7 @@ function inspectPublicRuntimeArtifacts(options = {}) {
 
     return {
         rootPath,
+        supportRootPath,
         entryPath,
         entryRelativePath,
         entryExists,

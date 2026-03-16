@@ -48,10 +48,22 @@ Comandos:
 
 - `npm run check:local:artifacts`
 - `npm run clean:local:artifacts`
+- `npm run workspace:hygiene:doctor`
+- `npm run workspace:hygiene:status`
+- `npm run workspace:hygiene:fix`
+- `npm run legacy:generated-root:status`
+- `npm run legacy:generated-root:check`
+- `npm run legacy:generated-root:apply`
 
 Notas:
 
 - Limpia solo artefactos locales efimeros: `cookies.txt`, `.lighthouseci/`, `lhci_reports/`, `_deploy_bundle/`, `playwright-report/`, `test-results/`, `php_server.log`, `.php-cs-fixer.cache`, `.phpunit.cache/`, `coverage.xml`, `.tmp-calendar-write-report.json`, `.codex-public-paths.txt`, `build_analysis.txt`, `conflict_branches.txt`, `stats.html`, `styles.min.css`, `styles.optimized.css`, `styles-critical.min.css` y `styles-deferred.min.css`.
+- `workspace:hygiene:doctor` es la vista canonica V3: recorre todos los worktrees, ordena por severidad usando `overall_state`, agrega `issues[]` por categoria y expone `remediation_plan[]` por fases.
+- `workspace:hygiene:status` y `workspace:hygiene:fix` son aliases de compatibilidad del doctor.
+- `workspace:hygiene:doctor --json` entrega el schema compacto para tooling; usa `--include-entries` solo cuando necesites los `dirty_entries[]` completos para debugging.
+- `workspace:hygiene:fix` limpia solo ruido efimero/staged como `.generated/site-root/` y `_deploy_bundle/`; no borra source authored.
+- `legacy_generated_root` recomienda `npm run legacy:generated-root:apply`.
+- `legacy_generated_root_deindexed` significa deindexado staged pendiente de commit o stash; sigue bloqueando publish/sync.
 - No toca `verification/agent-runs/` ni otros artefactos canonicos de evidencia.
 - Los snapshots historicos equivalentes viven bajo `docs/archive/root-history/**`.
 

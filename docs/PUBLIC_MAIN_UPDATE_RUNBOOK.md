@@ -7,10 +7,13 @@ Routine GitHub uploads should use a dedicated branch and the workflow documented
 ## Source of truth
 
 - current public source: V6 Astro + `content/public-v6/**`
-- generated artifacts committed to the repo: `es/**`, `en/**`, `_astro/**`
-- generated runtime artifacts committed to the repo: `script.js`, `styles.css`, `styles-deferred.css`, `js/chunks/**`, `js/engines/**`
+- generated deploy artifacts staged in `.generated/site-root/`: `es/**`, `en/**`, `_astro/**`
+- generated runtime graph staged in `.generated/site-root/`: `script.js`, `js/chunks/**`, `js/engines/**`
+- authored support layer that still lives in repo root: `styles.css`, `styles-deferred.css`, `sw.js`
+- transport bundle: `_deploy_bundle/`
 - production repo: `/var/www/figo`
-- publish mechanism: git-sync cron
+- publish mechanism: `publish checkpoint` + deploy/post-deploy
+- host-side legacy telemetry/fallback: git-sync cron
 - job key: `public_main_sync`
 - job id: `8d31e299-7e57-4959-80b5-aaa2d73e9674`
 - lock: `/tmp/sync-pielarmonia.lock`
@@ -27,16 +30,27 @@ npm run check:public:v6:artifacts
 npm run gate:public:v6:canonical-publish
 ```
 
-`build:public:v6` is the canonical public runner. It validates V6 content, builds Astro, syncs root artifacts, and writes `verification/public-v6-canonical/build-report.json`.
+`build:public:v6` is the canonical public runner. It validates V6 content,
+builds Astro, stages generated artifacts into `.generated/site-root/`, and
+writes `verification/public-v6-canonical/build-report.json`.
 
-2. Push the verified commit to `main`.
+2. Publish source or build the deploy bundle:
 
-3. Let the host sync promote the committed public artifacts.
+```bash
+node agent-orchestrator.js publish checkpoint <CDX-ID> --summary "..." --expect-rev <rev> --json
+# or
+npm run bundle:deploy
+```
 
-The host sync now deploys the versioned public artifacts already committed in
-`main`. It does not rebuild Astro on the VPS during cron sync.
+`publish checkpoint` no longer waits on `public_main_sync`; live confirmation
+belongs to deploy/post-deploy. `bundle:deploy` is the canonical transport
+package path.
 
-4. If you need to force the host sync:
+3. Let deploy/post-deploy confirm the live state. Use `public_main_sync` only
+as host-side telemetry or when you intentionally need the legacy git-sync
+fallback path.
+
+4. If you intentionally need to force the legacy host sync:
 
 ```bash
 /usr/bin/flock -n /tmp/sync-pielarmonia.lock /root/sync-pielarmonia.sh
@@ -52,6 +66,18 @@ repo, compare both files directly:
 ```bash
 sha256sum /root/sync-pielarmonia.sh /var/www/figo/bin/deploy-public-v3-cron-sync.sh
 ```
+
+For the same host-side triage, the canonical checklist now snapshots
+`.generated/site-root/` and `_deploy_bundle/` together with
+`public-sync-status.json`, so generated staging noise is not mistaken for
+authored repo drift.
+
+```bash
+pwsh -File scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1
+```
+
+Use that checklist as the host-side closure contract too:
+`checks.storage.storeEncryptionCompliant=true`.
 
 5. Verify host state:
 

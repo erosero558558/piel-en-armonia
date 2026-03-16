@@ -38,8 +38,14 @@ require_cmd() {
 
 ensure_clean_worktree() {
     local status_output
+    if command -v node >/dev/null 2>&1 && [ -f "./bin/workspace-hygiene.js" ]; then
+        node ./bin/workspace-hygiene.js fix --quiet >/dev/null 2>&1 || true
+    fi
     status_output="$(git status --short)"
     if [ -n "$status_output" ]; then
+        if command -v node >/dev/null 2>&1 && [ -f "./bin/workspace-hygiene.js" ]; then
+            node ./bin/workspace-hygiene.js status || true
+        fi
         echo "$status_output" >&2
         fail "Worktree must be clean before starting or publishing a branch."
     fi

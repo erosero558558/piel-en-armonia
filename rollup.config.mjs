@@ -1,9 +1,13 @@
 import resolve from '@rollup/plugin-node-resolve';
 import strip from '@rollup/plugin-strip';
 import terser from '@rollup/plugin-terser';
+import path from 'node:path';
 
 const stripDebugFromBundles =
     String(process.env.ROLLUP_STRIP_DEBUG || 'true').toLowerCase() !== 'false';
+const stageRoot = path.resolve(
+    process.env.PIELARMONIA_STAGE_ROOT || '.generated/site-root'
+);
 
 const minify = terser({
     compress: {
@@ -35,7 +39,7 @@ export default [
     {
         input: 'src/apps/admin/index.js',
         output: {
-            dir: '.',
+            dir: stageRoot,
             entryFileNames: 'admin.js',
             chunkFileNames: 'js/admin-chunks/[name]-[hash].js',
             format: 'es',
@@ -47,7 +51,7 @@ export default [
     {
         input: 'src/apps/booking/ui-entry.js',
         output: {
-            file: 'js/engines/booking-ui.js',
+            file: path.join(stageRoot, 'js/engines/booking-ui.js'),
             format: 'es',
             sourcemap: false,
         },
@@ -58,7 +62,7 @@ export default [
     {
         input: 'src/apps/booking/engine.js',
         output: {
-            file: 'js/engines/booking-engine.js',
+            file: path.join(stageRoot, 'js/engines/booking-engine.js'),
             format: 'es',
             sourcemap: false,
         },
@@ -68,7 +72,7 @@ export default [
     {
         input: 'src/apps/booking/components/calendar.js',
         output: {
-            file: 'js/booking-calendar.js',
+            file: path.join(stageRoot, 'js/booking-calendar.js'),
             format: 'es',
             sourcemap: false,
         },
@@ -78,7 +82,7 @@ export default [
     {
         input: 'src/apps/chat/ui-engine.js',
         output: {
-            file: 'js/engines/chat-ui-engine.js',
+            file: path.join(stageRoot, 'js/engines/chat-ui-engine.js'),
             format: 'iife',
             sourcemap: false,
         },
@@ -88,7 +92,7 @@ export default [
     {
         input: 'src/apps/chat/widget-engine.js',
         output: {
-            file: 'js/engines/chat-widget-engine.js',
+            file: path.join(stageRoot, 'js/engines/chat-widget-engine.js'),
             format: 'iife',
             sourcemap: false,
         },
@@ -98,7 +102,7 @@ export default [
     {
         input: 'src/apps/chat/booking-engine.js',
         output: {
-            file: 'js/engines/chat-booking-engine.js',
+            file: path.join(stageRoot, 'js/engines/chat-booking-engine.js'),
             format: 'iife',
             sourcemap: false,
         },
@@ -108,7 +112,7 @@ export default [
     {
         input: 'src/apps/chat/engine.js',
         output: {
-            file: 'js/engines/chat-engine.js',
+            file: path.join(stageRoot, 'js/engines/chat-engine.js'),
             format: 'iife',
             sourcemap: false,
         },
@@ -118,7 +122,7 @@ export default [
     {
         input: 'src/apps/analytics/engine.js',
         output: {
-            file: 'js/engines/analytics-engine.js',
+            file: path.join(stageRoot, 'js/engines/analytics-engine.js'),
             format: 'iife',
             sourcemap: false,
         },
@@ -128,7 +132,7 @@ export default [
     {
         input: 'src/bundles/booking-utils.js',
         output: {
-            file: 'js/engines/booking-utils.js',
+            file: path.join(stageRoot, 'js/engines/booking-utils.js'),
             format: 'iife',
             sourcemap: false,
         },
@@ -138,7 +142,7 @@ export default [
     {
         input: 'src/bundles/data.js',
         output: {
-            file: 'js/engines/data-bundle.js',
+            file: path.join(stageRoot, 'js/engines/data-bundle.js'),
             format: 'iife',
             sourcemap: false,
         },
@@ -148,7 +152,7 @@ export default [
     {
         input: 'src/bundles/ui.js',
         output: {
-            file: 'js/engines/ui-bundle.js',
+            file: path.join(stageRoot, 'js/engines/ui-bundle.js'),
             format: 'iife',
             sourcemap: false,
         },
@@ -158,7 +162,7 @@ export default [
     {
         input: 'src/bundles/engagement.js',
         output: {
-            file: 'js/engines/engagement-bundle.js',
+            file: path.join(stageRoot, 'js/engines/engagement-bundle.js'),
             format: 'iife',
             sourcemap: false,
         },
@@ -168,7 +172,7 @@ export default [
     {
         input: 'src/bundles/engagement-forms.js',
         output: {
-            file: 'js/engines/engagement-forms-bundle.js',
+            file: path.join(stageRoot, 'js/engines/engagement-forms-bundle.js'),
             format: 'iife',
             sourcemap: false,
         },
@@ -178,7 +182,7 @@ export default [
     {
         input: 'src/apps/queue-kiosk/index.js',
         output: {
-            file: 'js/queue-kiosk.js',
+            file: path.join(stageRoot, 'js/queue-kiosk.js'),
             format: 'iife',
             sourcemap: false,
         },
@@ -188,7 +192,7 @@ export default [
     {
         input: 'src/apps/queue-display/index.js',
         output: {
-            file: 'js/queue-display.js',
+            file: path.join(stageRoot, 'js/queue-display.js'),
             format: 'iife',
             sourcemap: false,
         },
@@ -198,7 +202,7 @@ export default [
     {
         input: 'js/main.js',
         output: {
-            dir: '.',
+            dir: stageRoot,
             entryFileNames: 'script.js',
             chunkFileNames: 'js/chunks/[name]-[hash].js',
             format: 'es',

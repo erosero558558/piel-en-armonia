@@ -165,6 +165,37 @@ test('deploy-hosting contiene pasos de dispatch hacia post-deploy', () => {
     );
 });
 
+test('deploy-hosting construye y publica desde el bundle canonico, no desde el repo root', () => {
+    const { raw } = loadWorkflow();
+
+    for (const snippet of [
+        'node bin/prepare-deploy-bundle.js --include-tooling --output-dir _deploy_bundle --json',
+        'DEPLOY_STAGE_DIR=${stage_dir}',
+        'local-dir: ./${{ env.DEPLOY_STAGE_DIR }}/',
+        'find "${DEPLOY_STAGE_DIR}" -maxdepth 2 -type f | head -n 30',
+        'mirror -R --delete --verbose ${DEPLOY_STAGE_DIR}/ ${FTP_SERVER_DIR}',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `deploy-hosting debe usar el bundle canonico: ${snippet}`
+        );
+    }
+
+    for (const legacySnippet of [
+        'npm run astro:sync',
+        'rsync -a --delete',
+        'local-dir: ./_deploy_bundle/',
+        'mirror -R --delete --verbose _deploy_bundle/ ${FTP_SERVER_DIR}',
+    ]) {
+        assert.equal(
+            raw.includes(legacySnippet),
+            false,
+            `deploy-hosting no debe volver al flujo legacy: ${legacySnippet}`
+        );
+    }
+});
+
 test('deploy-hosting resuelve y resume el clinic-profile del piloto web antes del publish', () => {
     const { raw, parsed } = loadWorkflow();
     const steps = parsed?.jobs?.['deploy-prod']?.steps || [];

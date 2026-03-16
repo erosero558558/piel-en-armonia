@@ -40,7 +40,7 @@ gobernanza operativa de Piel en Armonia.
 
 1. `npm install`
 2. `npx playwright install`
-3. Terminal 1: `php -S 127.0.0.1:8011 -t .`
+3. Terminal 1: `php -S 127.0.0.1:8011 -t . bin/local-stage-router.php`
 4. Terminal 2: `npm run openclaw:auth:start`
 5. Abrir:
     - Publico gateway: `http://127.0.0.1:8011`
@@ -53,6 +53,7 @@ gobernanza operativa de Piel en Armonia.
 Notas de testing local:
 
 - `npx playwright test` levanta un servidor fresco en `127.0.0.1:8011` por defecto.
+- El router local sirve PHP/authored files desde el repo y los outputs generados desde `.generated/site-root`.
 - Para apuntar las suites a un servidor ya levantado usa `TEST_BASE_URL=http://127.0.0.1:8011`.
 - La reutilizacion de servidor queda en opt-in con `TEST_REUSE_EXISTING_SERVER=1`.
 - `npm run benchmark:local` reutiliza `TEST_BASE_URL` o levanta `127.0.0.1:8011` si no le pasas host.
@@ -79,6 +80,12 @@ Higiene local:
 
 - `npm run check:local:artifacts`
 - `npm run clean:local:artifacts`
+- `npm run workspace:hygiene:doctor`
+- `npm run workspace:hygiene:status`
+- `npm run workspace:hygiene:fix`
+- `npm run legacy:generated-root:status`
+- `npm run legacy:generated-root:check`
+- `npm run legacy:generated-root:apply`
 - Limpia `cookies.txt`, `.lighthouseci/`, `lhci_reports/`, `_deploy_bundle/`,
   `playwright-report/`, `test-results/`, `php_server.log`,
   `.php-cs-fixer.cache`, `.phpunit.cache/`, `coverage.xml`,
@@ -87,6 +94,23 @@ Higiene local:
   `conflict_branches.txt`, `stats.html`, `styles.min.css`,
   `styles.optimized.css`, `styles-critical.min.css` y
   `styles-deferred.min.css`.
+- `workspace:hygiene:*` clasifica y limpia tambien ruido efimero de
+  `.generated/site-root/` y `_deploy_bundle/` sin tocar source authored.
+- `workspace:hygiene:doctor` es la entrada canonica V3: inspecciona todos los
+  worktrees, devuelve `overall_state`, agrega `issues[]` por categoria y ordena
+  un `remediation_plan[]` estable por fases.
+- `workspace:hygiene:status` y `workspace:hygiene:fix` quedan como aliases de
+  compatibilidad sobre el mismo motor del doctor.
+- `workspace:hygiene:doctor --json` entrega el payload compacto para tooling; si
+  necesitas el dump completo de paths usa `--include-entries`.
+- `legacy:generated-root:*` inspecciona y desindexa solo las copias trackeadas
+  legacy de `es/**`, `en/**`, `_astro/**`, `script.js`, `admin.js`,
+  `js/chunks/**`, `js/engines/**`, `js/admin-chunks/**`,
+  `js/booking-calendar.js`, `js/queue-kiosk.js` y `js/queue-display.js`,
+  preservando los archivos locales.
+- Si `doctor` reporta `legacy_generated_root_deindexed`, ese issue sigue
+  bloqueando `publish checkpoint` y `git:sync:main:safe` hasta confirmar o
+  apartar esas eliminaciones staged.
 - No toca `verification/agent-runs/` ni evidencia canonica.
 
 ## Flujos rapidos
@@ -166,7 +190,7 @@ Higiene local:
 
 ## Reglas practicas
 
-- No editar a mano `es/**`, `en/**`, `_astro/**`, `styles.css`, `styles-deferred.css`, `script.js`, `js/chunks/**` ni `js/engines/**`; son artefactos versionados de deploy/runtime. Revisalos como outputs y valida con `docs/RUNTIME_ARTIFACT_POLICY.md`, `npm run check:runtime:artifacts` o `npm run check:deploy:artifacts`.
+- No editar a mano `es/**`, `en/**`, `_astro/**`, `styles.css`, `styles-deferred.css`, `script.js`, `js/chunks/**` ni `js/engines/**`; son artefactos generados de deploy/runtime. Revisalos como outputs y valida con `docs/RUNTIME_ARTIFACT_POLICY.md`, `npm run check:runtime:artifacts` o `npm run check:deploy:artifacts`.
 - Si una iniciativa toca ops, queue runtime, desktop, tests o governance al mismo tiempo, cortala con `docs/BRANCH_SLICING_GUARDRAILS.md` antes de crecer el diff.
 - No reactivar `legacy` ni `sony_v2` en admin; el rollback es `revert + deploy`.
 - Si tocas orquestacion o board, sigue `AGENTS.md` y valida con `npm run agent:gate`.

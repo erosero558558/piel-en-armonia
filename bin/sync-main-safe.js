@@ -4,6 +4,18 @@
 const { spawnSync } = require('child_process');
 const { existsSync } = require('fs');
 const { resolve } = require('path');
+const {
+    classifyDirtyEntries,
+    diagnoseWorktree,
+    DOCTOR_STATE_ERROR,
+    fixWorkspace,
+    formatIssueSummary,
+    getBlockingIssues,
+    getFirstRemediationStep,
+    isEphemeralDirtyCategory,
+    parseGitStatusPorcelain,
+    summarizeDirtyEntries,
+} = require('./lib/workspace-hygiene.js');
 
 const DEFAULT_OPTIONS = {
     remote: 'origin',
@@ -12,6 +24,7 @@ const DEFAULT_OPTIONS = {
     boardPath: 'AGENT_BOARD.yaml',
     autoStash: true,
     autoDiscardDerivedQueueNoise: true,
+    autoFixWorkspaceHygiene: true,
     push: true,
     maxSyncAttempts: 3,
     dryRun: false,
@@ -51,6 +64,10 @@ function parseArgs(argv = []) {
         }
         if (arg === '--no-auto-discard-derived-queue-noise') {
             opts.autoDiscardDerivedQueueNoise = false;
+            continue;
+        }
+        if (arg === '--no-workspace-hygiene-fix') {
+            opts.autoFixWorkspaceHygiene = false;
             continue;
         }
         if (arg === '--no-push') {
@@ -142,6 +159,66 @@ function shouldDiscardDerivedQueueNoise(statusOutput) {
     const files = parseDirtyFiles(statusOutput);
     if (files.length === 0) return false;
     return files.every((file) => DERIVED_QUEUE_FILES.has(file));
+}
+
+function classifyDirtyStatus(statusOutput) {
+    return classifyDirtyEntries(parseGitStatusPorcelain(statusOutput));
+}
+
+function hasEphemeralDirtyEntries(dirtyEntries = []) {
+    return dirtyEntries.some((entry) =>
+        isEphemeralDirtyCategory(entry.category)
+    );
+}
+
+function buildWorkspaceHygieneStep(hygieneResult, options = {}) {
+    return {
+        name: 'workspace_hygiene_fix',
+        ok: true,
+        code: 0,
+        stdout: '',
+        stderr: '',
+        command: 'node bin/workspace-hygiene.js doctor --current-only --apply-safe',
+        dryRun: Boolean(options.dryRun),
+        removed: Array.isArray(hygieneResult?.removed)
+            ? hygieneResult.removed
+            : [],
+        overall_state: String(hygieneResult?.overall_state || ''),
+        issue_counts: hygieneResult?.issue_counts || {},
+        remediation_plan: Array.isArray(hygieneResult?.remediation_plan)
+            ? hygieneResult.remediation_plan
+            : [],
+        next_command: String(hygieneResult?.next_command || ''),
+        authored_dirty: Array.isArray(hygieneResult?.authoredEntries)
+            ? hygieneResult.authoredEntries.length
+            : 0,
+        dirty_summary: summarizeDirtyEntries(hygieneResult?.dirtyEntries || []),
+    };
+}
+
+function buildWorkspaceBlockingMessage(diagnosis) {
+    if (!diagnosis || diagnosis.overall_state === undefined) {
+        return '';
+    }
+
+    if (diagnosis.overall_state === DOCTOR_STATE_ERROR) {
+        return diagnosis.next_command
+            ? `workspace hygiene no pudo inspeccionar el worktree. Siguiente comando: ${diagnosis.next_command}`
+            : 'workspace hygiene no pudo inspeccionar el worktree.';
+    }
+
+    const blockingIssues = getBlockingIssues(diagnosis, 'sync');
+    if (blockingIssues.length === 0) {
+        return '';
+    }
+
+    const issueSummary = formatIssueSummary(blockingIssues);
+    const firstStep = getFirstRemediationStep(diagnosis);
+    const firstStepText = firstStep
+        ? ` Primer paso: ${firstStep.id} (${firstStep.command}).`
+        : '';
+    const details = blockingIssues.map((issue) => issue.summary).join(' ');
+    return `workspace hygiene bloquea sync-main-safe por ${issueSummary}. ${details}${firstStepText}`;
 }
 
 function getUnmergedFiles(runner, options) {
@@ -347,11 +424,59 @@ function run(argv = process.argv.slice(2), deps = {}) {
             );
         }
 
+        const workspaceDoctor =
+            deps.workspaceDoctor ||
+            ((rootPath) => diagnoseWorktree(rootPath));
         let currentStatus = statusResult;
-        let isDirty = parseLines(currentStatus.stdout).length > 0;
+        let diagnosis = workspaceDoctor(repoRoot);
+        let dirtyEntries = Array.isArray(diagnosis?.dirtyEntries)
+            ? diagnosis.dirtyEntries
+            : classifyDirtyStatus(currentStatus.stdout);
+        let isDirty = dirtyEntries.length > 0;
 
         if (
             isDirty &&
+            options.autoFixWorkspaceHygiene &&
+            hasEphemeralDirtyEntries(dirtyEntries)
+        ) {
+            const workspaceFix =
+                deps.workspaceFix ||
+                ((rootPath, fixOptions) => fixWorkspace(rootPath, fixOptions));
+            const hygieneResult = workspaceFix(repoRoot, {
+                includeDerivedQueue: options.autoDiscardDerivedQueueNoise,
+            });
+            result.steps.push(
+                buildWorkspaceHygieneStep(hygieneResult, options)
+            );
+
+            const statusAfterHygieneFix = runner(
+                'git',
+                ['status', '--porcelain'],
+                options
+            );
+            result.steps.push({
+                name: 'status_after_workspace_hygiene_fix',
+                ...statusAfterHygieneFix,
+            });
+            if (!statusAfterHygieneFix.ok) {
+                throw new Error(
+                    `git status post-workspace-hygiene fallo: ${
+                        statusAfterHygieneFix.stderr ||
+                        statusAfterHygieneFix.stdout
+                    }`
+                );
+            }
+            currentStatus = statusAfterHygieneFix;
+            diagnosis = workspaceDoctor(repoRoot);
+            dirtyEntries = Array.isArray(diagnosis?.dirtyEntries)
+                ? diagnosis.dirtyEntries
+                : classifyDirtyStatus(currentStatus.stdout);
+            isDirty = dirtyEntries.length > 0;
+        }
+
+        if (
+            isDirty &&
+            !options.autoFixWorkspaceHygiene &&
             options.autoDiscardDerivedQueueNoise &&
             shouldDiscardDerivedQueueNoise(currentStatus.stdout)
         ) {
@@ -385,7 +510,18 @@ function run(argv = process.argv.slice(2), deps = {}) {
                 );
             }
             currentStatus = statusAfterDiscard;
-            isDirty = parseLines(currentStatus.stdout).length > 0;
+            diagnosis = workspaceDoctor(repoRoot);
+            dirtyEntries = Array.isArray(diagnosis?.dirtyEntries)
+                ? diagnosis.dirtyEntries
+                : classifyDirtyStatus(currentStatus.stdout);
+            isDirty = dirtyEntries.length > 0;
+        }
+
+        const workspaceBlockingMessage = buildWorkspaceBlockingMessage(
+            diagnosis
+        );
+        if (workspaceBlockingMessage) {
+            throw new Error(workspaceBlockingMessage);
         }
 
         if (isDirty && options.autoStash) {
@@ -404,7 +540,13 @@ function run(argv = process.argv.slice(2), deps = {}) {
             result.stash.created = true;
             result.stash.ref = 'stash@{0}';
         } else if (isDirty && !options.autoStash) {
-            throw new Error('working tree sucio y --no-stash activo');
+            const dirtySummary = diagnosis?.summary || summarizeDirtyEntries(dirtyEntries);
+            const categories = Object.entries(dirtySummary.byCategory || {})
+                .map(([category, count]) => `${category}=${count}`)
+                .join(', ');
+            throw new Error(
+                `working tree sucio y --no-stash activo${categories ? ` (${categories})` : ''}`
+            );
         }
 
         const maxSyncAttempts = Math.max(
@@ -502,9 +644,13 @@ if (require.main === module) {
 }
 
 module.exports = {
+    buildWorkspaceBlockingMessage,
+    buildWorkspaceHygieneStep,
+    classifyDirtyStatus,
     parseArgs,
     parseLines,
     parseDirtyFiles,
+    hasEphemeralDirtyEntries,
     shouldDiscardDerivedQueueNoise,
     discardDerivedQueueNoise,
     normalizePath,

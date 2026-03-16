@@ -1,6 +1,14 @@
 // @ts-check
 const { defineConfig } = require('@playwright/test');
 const { spawnSync } = require('node:child_process');
+const path = require('node:path');
+
+const ROOT_DIR = __dirname;
+const LOCAL_STAGE_ROUTER_PATH = path.join(ROOT_DIR, 'bin', 'local-stage-router.php');
+
+function shellQuote(value) {
+    return `"${String(value || '').replace(/"/g, '\\"')}"`;
+}
 
 function parsePortEnv(value, fallback) {
     const parsed = Number.parseInt(String(value || '').trim(), 10);
@@ -44,8 +52,8 @@ const usePhpServer =
     (localServerPreference !== 'python' && hasPhpRuntime());
 
 const localServerCommand = usePhpServer
-    ? `php -S 127.0.0.1:${localServerPort} -t .`
-    : `python -m http.server ${localServerPort} --bind 127.0.0.1`;
+    ? `php -S 127.0.0.1:${localServerPort} -t ${shellQuote(ROOT_DIR)} ${shellQuote(LOCAL_STAGE_ROUTER_PATH)}`
+    : `python -m http.server ${localServerPort} --bind 127.0.0.1 --directory ${shellQuote(ROOT_DIR)}`;
 
 module.exports = defineConfig({
     testDir: './tests',

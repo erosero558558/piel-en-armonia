@@ -185,13 +185,33 @@ jobs:
                       Write-Error "Turnero pilot self-hosted blocked ($reason) clinic_id=$(if ($clinicId) { $clinicId } else { 'unknown' }) release_mode=$(if ($releaseMode) { $releaseMode } else { 'unknown' })"
                   }
 
-            - name: Build Astro routes
-              id: build_astro_routes
-              if: ${{ env.RUN_BUILD_INPUT == 'true' }}
+            - name: Preparar bundle canonico de deploy
+              id: prepare_deploy_bundle
               shell: pwsh
               run: |
-                  npm run astro:build
-                  npm run astro:sync
+                  $ErrorActionPreference = 'Stop'
+                  Remove-Item -Recurse -Force '_deploy_bundle' -ErrorAction SilentlyContinue
+                  New-Item -ItemType Directory -Force -Path '_deploy_bundle' | Out-Null
+                  $bundleArgs = @(
+                      'bin/prepare-deploy-bundle.js',
+                      '--include-tooling',
+                      '--output-dir',
+                      '_deploy_bundle',
+                      '--json'
+                  )
+                  if ($env:RUN_BUILD_INPUT -ne 'true') {
+                      $bundleArgs += '--skip-build'
+                  }
+
+                  $bundleJson = & node @bundleArgs
+                  if ($LASTEXITCODE -ne 0) {
+                      throw 'No se pudo preparar el bundle canonico de deploy.'
+                  }
+
+                  $bundleJsonText = ($bundleJson -join [Environment]::NewLine)
+                  $bundleJsonText | Out-File -FilePath '_deploy_bundle/deploy-bundle.json' -Encoding utf8
+                  $bundle = $bundleJsonText | ConvertFrom-Json
+                  Add-Content -Path $env:GITHUB_ENV -Value "DEPLOY_STAGE_ROOT=$($bundle.stageRoot)"
 
             - name: Install deploy transport dependencies
               shell: pwsh
@@ -210,6 +230,7 @@ jobs:
                   const protocolInput = String(process.env.DEPLOY_PROTOCOL_INPUT || 'auto').toLowerCase();
                   const remoteDirInput = String(process.env.REMOTE_DIR_INPUT || '/public_html/');
                   const hostRaw = process.env.FTP_SERVER_SECRET || process.env.SSH_HOST_SECRET || '';
+                  const stageRoot = path.resolve(process.env.DEPLOY_STAGE_ROOT || '');
                   const ftpUser = process.env.FTP_USERNAME_SECRET || '';
                   const ftpPassword = process.env.FTP_PASSWORD_SECRET || '';
                   const sftpUser = process.env.SSH_USERNAME_SECRET || ftpUser;
@@ -241,58 +262,15 @@ jobs:
                     return out;
                   }
 
-                  function collectDeployFiles() {
-                    const candidates = [
-                      'es',
-                      'en',
-                      '_astro',
-                      'fonts',
-                      'images',
-                      'content',
-                      'js',
-                      'app-downloads',
-                      'desktop-updates',
-                      'index.php',
-                      'index.html',
-                      'styles.css',
-                      'styles-deferred.css',
-                      'script.js',
-                      'sw.js',
-                      'manifest.json',
-                      'favicon.ico',
-                      'admin-v3.css',
-                      'operador-turnos.html',
-                      'kiosco-turnos.html',
-                      'sala-turnos.html',
-                      'queue-ops.css',
-                      'queue-kiosk.css',
-                      'queue-display.css'
-                    ];
-                    const files = [];
-                    const seen = new Set();
-                    for (const entry of candidates) {
-                      const full = path.resolve(entry);
-                      if (!fs.existsSync(full)) continue;
-                      const stat = fs.statSync(full);
-                      if (stat.isDirectory()) {
-                        for (const nestedFile of walkFiles(full)) {
-                          const normalized = path.normalize(nestedFile);
-                          if (seen.has(normalized)) continue;
-                          seen.add(normalized);
-                          files.push(nestedFile);
-                        }
-                      } else {
-                        const normalized = path.normalize(full);
-                        if (seen.has(normalized)) continue;
-                        seen.add(normalized);
-                        files.push(full);
-                      }
+                  function collectDeployFiles(rootPath) {
+                    if (!rootPath || !fs.existsSync(rootPath)) {
+                      throw new Error(`No existe DEPLOY_STAGE_ROOT: ${rootPath || 'missing'}`);
                     }
-                    return files;
+                    return walkFiles(rootPath);
                   }
 
-                  function toRemotePath(localFile, remoteBase, cwd) {
-                    const rel = path.relative(cwd, localFile).replace(/\\/g, '/');
+                  function toRemotePath(localFile, remoteBase, deployRoot) {
+                    const rel = path.relative(deployRoot, localFile).replace(/\\/g, '/');
                     return `${remoteBase}${rel}`;
                   }
 
@@ -308,7 +286,7 @@ jobs:
                     }
                   }
 
-                  async function deployViaSftp({ host, port, username, password, remoteBase, files, cwd }) {
+                  async function deployViaSftp({ host, port, username, password, remoteBase, files, deployRoot }) {
                     const client = new SftpClient();
                     await client.connect({
                       host,
@@ -320,7 +298,7 @@ jobs:
                     try {
                       await ensureSftpDir(client, remoteBase);
                       for (const localFile of files) {
-                        const remotePath = toRemotePath(localFile, remoteBase, cwd);
+                        const remotePath = toRemotePath(localFile, remoteBase, deployRoot);
                         const remoteParent = path.posix.dirname(remotePath);
                         await ensureSftpDir(client, remoteParent);
                         await client.fastPut(localFile, remotePath);
@@ -331,7 +309,7 @@ jobs:
                     }
                   }
 
-                  async function deployViaFtp({ host, port, username, password, secure, remoteBase, files, cwd }) {
+                  async function deployViaFtp({ host, port, username, password, secure, remoteBase, files, deployRoot }) {
                     const client = new ftp.Client(30000);
                     client.ftp.verbose = false;
                     await client.access({
@@ -345,7 +323,7 @@ jobs:
                       await client.ensureDir(remoteBase);
                       await client.cd('/');
                       for (const localFile of files) {
-                        const remotePath = toRemotePath(localFile, remoteBase, cwd);
+                        const remotePath = toRemotePath(localFile, remoteBase, deployRoot);
                         const remoteParent = path.posix.dirname(remotePath);
                         await client.ensureDir(remoteParent);
                         await client.uploadFrom(localFile, remotePath);
@@ -451,10 +429,10 @@ jobs:
                   }
 
                   (async () => {
-                    const cwd = process.cwd();
-                    const files = collectDeployFiles();
+                    const deployRoot = stageRoot;
+                    const files = collectDeployFiles(deployRoot);
                     if (!files.length) {
-                      throw new Error('No hay archivos frontend para publicar.');
+                      throw new Error(`No hay archivos frontend para publicar en ${deployRoot}.`);
                     }
 
                     const remoteBase = normalizeRemoteDir(remoteDirInput);
@@ -470,7 +448,7 @@ jobs:
                         password: selected.password,
                         remoteBase,
                         files,
-                        cwd,
+                        deployRoot,
                       });
                     } else {
                       await deployViaFtp({
@@ -481,7 +459,7 @@ jobs:
                         secure: selected.mode === 'ftps',
                         remoteBase,
                         files,
-                        cwd,
+                        deployRoot,
                       });
                     }
                   })().catch((error) => {
@@ -708,7 +686,7 @@ jobs:
               id: telemedicine_selfhosted
               shell: pwsh
               env:
-                  BUILD_ASTRO_OUTCOME: ${{ steps.build_astro_routes.outcome }}
+                  PREPARE_DEPLOY_BUNDLE_OUTCOME: ${{ steps.prepare_deploy_bundle.outcome }}
                   DEPLOY_BUNDLE_OUTCOME: ${{ steps.deploy_frontend_bundle.outcome }}
                   VALIDATE_PUBLIC_FRONTEND_OUTCOME: ${{ steps.validate_public_frontend.outcome }}
               run: |
@@ -741,7 +719,7 @@ jobs:
                   $reason = 'health_unavailable'
                   $failures = -1
                   $nonTeleFailures = Count-NonTeleFailures @(
-                      $env:BUILD_ASTRO_OUTCOME,
+                      $env:PREPARE_DEPLOY_BUNDLE_OUTCOME,
                       $env:DEPLOY_BUNDLE_OUTCOME,
                       $env:VALIDATE_PUBLIC_FRONTEND_OUTCOME
                   )
@@ -817,7 +795,7 @@ jobs:
               id: selfhosted_route
               shell: pwsh
               env:
-                  BUILD_ASTRO_OUTCOME: ${{ steps.build_astro_routes.outcome }}
+                  PREPARE_DEPLOY_BUNDLE_OUTCOME: ${{ steps.prepare_deploy_bundle.outcome }}
                   DEPLOY_BUNDLE_OUTCOME: ${{ steps.deploy_frontend_bundle.outcome }}
                   VALIDATE_PUBLIC_FRONTEND_OUTCOME: ${{ steps.validate_public_frontend.outcome }}
               run: |
@@ -828,7 +806,7 @@ jobs:
                       return $Value.Trim().ToLowerInvariant()
                   }
 
-                  $buildOutcome = Normalize-Outcome $env:BUILD_ASTRO_OUTCOME
+                  $buildOutcome = Normalize-Outcome $env:PREPARE_DEPLOY_BUNDLE_OUTCOME
                   $deployOutcome = Normalize-Outcome $env:DEPLOY_BUNDLE_OUTCOME
                   $validateOutcome = Normalize-Outcome $env:VALIDATE_PUBLIC_FRONTEND_OUTCOME
                   $status = 'ready'

@@ -1,6 +1,8 @@
 param(
     [string]$Domain = 'https://pielarmonia.com',
     [string]$RepoPath = '/var/www/figo',
+    [string]$GeneratedSiteRoot = '/var/www/figo/.generated/site-root',
+    [string]$DeployBundlePath = '/var/www/figo/_deploy_bundle',
     [string]$WrapperPath = '/root/sync-pielarmonia.sh',
     [string]$CanonicalWrapperPath = '/var/www/figo/bin/deploy-public-v3-cron-sync.sh',
     [string]$StatusPath = '/var/lib/pielarmonia/public-sync-status.json',
@@ -68,6 +70,8 @@ if ($Format -eq 'markdown') {
 Add-ChecklistBullet "generatedAt: $generatedAt"
 Add-ChecklistBullet "domain: $base"
 Add-ChecklistBullet "repoPath: $RepoPath"
+Add-ChecklistBullet "generatedSiteRoot: $GeneratedSiteRoot"
+Add-ChecklistBullet "deployBundlePath: $DeployBundlePath"
 Add-ChecklistBullet "wrapperPath: $WrapperPath"
 Add-ChecklistBullet "canonicalWrapperPath: $CanonicalWrapperPath"
 Add-ChecklistBullet "statusPath: $StatusPath"
@@ -81,19 +85,22 @@ Add-ChecklistCommandBlock @(
     "sha256sum $WrapperPath $CanonicalWrapperPath",
     "cmp -s $WrapperPath $CanonicalWrapperPath && echo wrapper_match || echo wrapper_diff",
     "stat $WrapperPath $CanonicalWrapperPath",
+    "ls -ld $GeneratedSiteRoot $DeployBundlePath 2>/dev/null || true",
     "cat $StatusPath",
     "tail -n 50 $LogPath"
 )
 
 Add-ChecklistSection 'Snapshot del repo live'
-Add-ChecklistBullet 'Verifica drift tracked, HEAD local del VPS y referencia remota de main en el mismo pase.'
+Add-ChecklistBullet 'Verifica drift tracked, HEAD local del VPS, referencia remota de main y si el stage/bundle canonico quedaron presentes o como ruido efimero.'
 Add-ChecklistCommandBlock @(
     "cd $RepoPath",
     'git status --short',
     'git rev-parse HEAD',
     'git rev-parse origin/main',
     'git diff --name-only',
-    'git ls-files -m'
+    'git ls-files -m',
+    "find $GeneratedSiteRoot -maxdepth 2 -type f | head -n 20",
+    "find $DeployBundlePath -maxdepth 2 -type f | head -n 20"
 )
 
 Add-ChecklistSection 'Diagnostics runtime'
@@ -117,6 +124,7 @@ Add-ChecklistBullet 'Si el wrapper no coincide o telemetryGap sigue true sin hea
 Add-ChecklistCommandBlock @(
     "install -m 0755 $CanonicalWrapperPath $WrapperPath",
     "/usr/bin/flock -n $LockPath $WrapperPath",
+    "ls -ld $GeneratedSiteRoot $DeployBundlePath 2>/dev/null || true",
     "cat $StatusPath",
     "tail -n 50 $LogPath",
     "curl -s $DiagnosticsUrl | jq '.checks.publicSync | {state, healthy, operationallyHealthy, failureReason, currentHead, remoteHead, dirtyPathsCount}'"
@@ -133,6 +141,7 @@ Add-ChecklistSection 'Interpretacion rapida'
 Add-ChecklistBullet 'wrapper_diff + telemetryGap=true: el host probablemente sigue ejecutando un wrapper stale o un entrypoint legacy.'
 Add-ChecklistBullet 'health publico sin checks.publicSync o sin jobId: desplegar controllers/HealthController.php actualizado antes de tratar el caso como drift del repo o cron roto.'
 Add-ChecklistBullet 'failureReason=working_tree_dirty + dirtyPathsCount>0 + telemetryGap=false: el cron tiene suficiente telemetria; limpia drift tracked en el VPS antes de culpar al workflow.'
+Add-ChecklistBullet 'si dirtyPathsSample solo muestra `.generated/site-root/**` o `_deploy_bundle/**` despues de una corrida forzada, el wrapper del host probablemente sigue desalineado con la politica canonica de higiene.'
 Add-ChecklistBullet 'currentHead != remoteHead: hay head drift real; no es solo working tree dirty.'
 Add-ChecklistBullet 'encryptionStatus=plaintext o encryptionCompliant=false: falta configurar o aplicar PIELARMONIA_DATA_ENCRYPTION_KEY / PIELARMONIA_REQUIRE_DATA_ENCRYPTION en el host.'
 Add-ChecklistBullet 'mode=legacy_password + twoFactorEnabled=false: auth sigue por debajo del baseline recomendado aunque el runtime este operativo.'

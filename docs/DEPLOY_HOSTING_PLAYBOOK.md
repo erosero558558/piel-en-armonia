@@ -11,13 +11,14 @@ Si desde tu PC no puedes subir por FTP/SFTP, usa el workflow:
 - `.github/workflows/deploy-hosting.yml`
 - `docs/GITHUB_ACTIONS_DEPLOY.md` (paso a paso)
 
-Si tu hosting ya tiene sincronizacion por Git (pull automatico), ese metodo es el recomendado y mas seguro.
-En ese caso ejecuta el gate automatico con:
+El camino canonico hoy es publicar desde el bundle/stage generado por CI
+(`_deploy_bundle/` + `.generated/site-root/`) y dejar el git-sync host-side
+solo como telemetria/fallback legacy. Para validar la salida usa:
 
 - `.github/workflows/post-deploy-fast.yml` (se dispara en push a `main`, valida `verify+smoke` en modo rapido).
 - `.github/workflows/nightly-stability.yml` (23:00 America/Guayaquil, corre gate completo + suites criticas).
 - `.github/workflows/post-deploy-gate.yml` (modo manual/full regression).
-- `.github/workflows/repair-git-sync.yml` (si el gate falla en `main`, intenta reparar sync por SSH con `git fetch/reset` en servidor).
+- `.github/workflows/repair-git-sync.yml` (si el gate falla o el host legacy queda stale, intenta reparar sync por SSH en servidor).
   Para monitoreo continuo, habilita:
 - `.github/workflows/prod-monitor.yml` (salud + latencia cada 30 minutos).
 
@@ -33,6 +34,9 @@ Uso:
 - Manual: Actions -> `Deploy Hosting (Canary Pipeline)` -> `Run workflow`.
 - Prueba sin cambios: `dry_run = true`.
 - Si falla `Timeout (control socket)`: prueba `protocol=sftp`, `server_port=22` (o `protocol=ftp`, `server_port=21`).
+- Si necesitas fallback host-side, `deploy-public-v3-live.sh` ya prefiere
+  `.generated/site-root/` para outputs generados y cae a copias root solo por
+  compatibilidad.
 
 ## Cutover rapido en Windows con mirror limpio
 

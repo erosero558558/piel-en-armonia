@@ -98,7 +98,7 @@ composer_generated_vendor_path_allowed() {
 
 canonical_derived_path_allowed() {
     case "$1" in
-        es/*|en/*|_astro/*|script.js|styles.css|styles-deferred.css|js/chunks/*|js/engines/*)
+        es/*|en/*|_astro/*|script.js|styles.css|styles-deferred.css|js/chunks/*|js/engines/*|.generated/site-root|.generated/site-root/*|_deploy_bundle|_deploy_bundle/*)
             return 0
             ;;
         *)

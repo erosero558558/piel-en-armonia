@@ -347,8 +347,14 @@ test('script.js references the canonical engine directory and deferred styleshee
 });
 
 test('build-public-v6 runner preserves canonical sequence and report output', () => {
+    const packageJson = JSON.parse(read('package.json'));
     const runner = read(path.join('bin', 'build-public-v6.js'));
 
+    assert.equal(
+        packageJson.scripts['stage:site-root'],
+        'node src/apps/astro/scripts/sync-dist.mjs',
+        'package.json debe exponer stage:site-root como stage canonico del sitio generado'
+    );
     assert.match(
         runner,
         /content:public-v6:validate/u,
@@ -357,13 +363,13 @@ test('build-public-v6 runner preserves canonical sequence and report output', ()
     assert.match(runner, /astro:build/u, 'runner must build Astro artifacts');
     assert.match(
         runner,
-        /astro:sync/u,
-        'runner must sync dist artifacts to root'
+        /stage:site-root/u,
+        'runner must stage dist artifacts into .generated/site-root'
     );
     assert.match(
         runner,
         /check:public:v6:artifacts/u,
-        'runner must verify root artifacts against dist'
+        'runner must verify staged artifacts against dist'
     );
     assert.match(
         runner,

@@ -8,6 +8,7 @@ NGINX_BIN="${NGINX_BIN:-/usr/sbin/nginx}"
 INSTALL_DEPS="${INSTALL_DEPS:-true}"
 DISABLE_DESTRUCTIVE_SYNC_CRON="${DISABLE_DESTRUCTIVE_SYNC_CRON:-true}"
 LOCAL_VERIFY_BASE_URL="${LOCAL_VERIFY_BASE_URL:-http://127.0.0.1:8080}"
+GENERATED_SITE_ROOT="${GENERATED_SITE_ROOT:-$REPO/.generated/site-root}"
 LOCAL_VERIFY_BASE_URL="${LOCAL_VERIFY_BASE_URL%/}"
 
 require_cmd() {
@@ -24,6 +25,22 @@ require_cmd perl
 require_cmd systemctl
 test -x "$NGINX_BIN"
 test -d "$REPO"
+
+resolve_generated_checkout_path() {
+    local relative_path="$1"
+
+    if [ -e "$GENERATED_SITE_ROOT/$relative_path" ]; then
+        printf '%s\n' "$GENERATED_SITE_ROOT/$relative_path"
+        return 0
+    fi
+
+    if [ -e "$REPO/$relative_path" ]; then
+        printf '%s\n' "$REPO/$relative_path"
+        return 0
+    fi
+
+    return 1
+}
 
 collect_generated_vendor_metadata_files() {
     local generated_files=(
@@ -66,21 +83,36 @@ reset_generated_vendor_metadata() {
 }
 
 verify_canonical_public_artifacts() {
-    local required_paths=(
+    local required_generated_paths=(
         "es/index.html"
         "en/index.html"
         "_astro"
         "script.js"
+        "admin.js"
+        "js/chunks"
+        "js/engines"
+        "js/admin-chunks"
+        "js/booking-calendar.js"
+        "js/queue-kiosk.js"
+        "js/queue-display.js"
+    )
+    local required_repo_paths=(
         "styles.css"
         "styles-deferred.css"
+        "sw.js"
+        "js/public-v6-shell.js"
+        "js/admin-preboot-shortcuts.js"
+        "js/admin-runtime.js"
+        "js/monitoring-loader.js"
+        "js/queue-operator.js"
+        "admin.html"
+        "admin-v3.css"
         "operador-turnos.html"
         "kiosco-turnos.html"
         "sala-turnos.html"
         "queue-ops.css"
         "queue-kiosk.css"
         "queue-display.css"
-        "js/chunks"
-        "js/engines"
         "app-downloads/index.php"
         "app-downloads/app-downloads.css"
         "app-downloads/app-downloads.js"
@@ -93,18 +125,32 @@ verify_canonical_public_artifacts() {
         "desktop-updates/pilot/operator/win/TurneroOperadorSetup.exe.blockmap"
     )
     local required_path
-    for required_path in "${required_paths[@]}"; do
+    local resolved_generated_path=""
+    for required_path in "${required_generated_paths[@]}"; do
+        if ! resolved_generated_path="$(resolve_generated_checkout_path "$required_path")"; then
+            echo "Missing canonical generated public artifact: $required_path (expected in $GENERATED_SITE_ROOT or $REPO)" >&2
+            exit 1
+        fi
+    done
+
+    for required_path in "${required_repo_paths[@]}"; do
         if [ ! -e "$REPO/$required_path" ]; then
             echo "Missing canonical public artifact: $REPO/$required_path" >&2
             exit 1
         fi
     done
 
-    echo "Canonical public artifacts present in repo checkout."
+    echo "Canonical public artifacts present in repo checkout or $GENERATED_SITE_ROOT."
 }
 
 normalize_public_web_tree_permissions() {
     local public_dirs=(
+        "$GENERATED_SITE_ROOT/es"
+        "$GENERATED_SITE_ROOT/en"
+        "$GENERATED_SITE_ROOT/_astro"
+        "$GENERATED_SITE_ROOT/js/chunks"
+        "$GENERATED_SITE_ROOT/js/engines"
+        "$GENERATED_SITE_ROOT/js/admin-chunks"
         "$REPO/es"
         "$REPO/en"
         "$REPO/_astro"
@@ -113,11 +159,23 @@ normalize_public_web_tree_permissions() {
         "$REPO/desktop-updates"
     )
     local public_files=(
-        "$REPO/index.html"
+        "$GENERATED_SITE_ROOT/script.js"
+        "$GENERATED_SITE_ROOT/admin.js"
+        "$GENERATED_SITE_ROOT/js/booking-calendar.js"
+        "$GENERATED_SITE_ROOT/js/queue-kiosk.js"
+        "$GENERATED_SITE_ROOT/js/queue-display.js"
         "$REPO/index.php"
         "$REPO/script.js"
         "$REPO/styles.css"
         "$REPO/styles-deferred.css"
+        "$REPO/sw.js"
+        "$REPO/js/public-v6-shell.js"
+        "$REPO/admin.html"
+        "$REPO/admin-v3.css"
+        "$REPO/js/admin-preboot-shortcuts.js"
+        "$REPO/js/admin-runtime.js"
+        "$REPO/js/monitoring-loader.js"
+        "$REPO/js/queue-operator.js"
         "$REPO/operador-turnos.html"
         "$REPO/kiosco-turnos.html"
         "$REPO/sala-turnos.html"
@@ -142,6 +200,42 @@ normalize_public_web_tree_permissions() {
     done
 
     echo "Normalized public web tree permissions."
+}
+
+describe_public_web_tree() {
+    local describe_paths=(
+        "$GENERATED_SITE_ROOT/es"
+        "$GENERATED_SITE_ROOT/en"
+        "$GENERATED_SITE_ROOT/_astro"
+        "$GENERATED_SITE_ROOT/js/chunks"
+        "$GENERATED_SITE_ROOT/js/engines"
+        "$GENERATED_SITE_ROOT/js/admin-chunks"
+        "$GENERATED_SITE_ROOT/script.js"
+        "$GENERATED_SITE_ROOT/admin.js"
+        "$REPO/es"
+        "$REPO/en"
+        "$REPO/_astro"
+        "$REPO/js/chunks"
+        "$REPO/js/engines"
+        "$REPO/app-downloads"
+        "$REPO/desktop-updates"
+        "$REPO/admin.html"
+        "$REPO/operador-turnos.html"
+        "$REPO/kiosco-turnos.html"
+        "$REPO/sala-turnos.html"
+    )
+    local existing_paths=()
+    local describe_path=""
+
+    for describe_path in "${describe_paths[@]}"; do
+        if [ -e "$describe_path" ]; then
+            existing_paths+=("$describe_path")
+        fi
+    done
+
+    if [ "${#existing_paths[@]}" -gt 0 ]; then
+        ls -ld "${existing_paths[@]}"
+    fi
 }
 
 cd "$REPO"
@@ -189,7 +283,7 @@ fi
 echo "== Verify canonical public artifacts =="
 verify_canonical_public_artifacts
 normalize_public_web_tree_permissions
-ls -ld "$REPO/es" "$REPO/en" "$REPO/_astro" "$REPO/js/chunks" "$REPO/js/engines" "$REPO/app-downloads" "$REPO/desktop-updates" "$REPO/operador-turnos.html" "$REPO/kiosco-turnos.html" "$REPO/sala-turnos.html"
+describe_public_web_tree
 
 if [ -f "$SITE_PATH" ]; then
     echo "== Patch live Nginx redirect safety =="
@@ -210,6 +304,7 @@ systemctl reload nginx
 echo "== Local verify =="
 echo "Local verify target: $LOCAL_VERIFY_BASE_URL"
 curl -I "$LOCAL_VERIFY_BASE_URL/"
+curl -I "$LOCAL_VERIFY_BASE_URL/admin.html"
 curl -I "$LOCAL_VERIFY_BASE_URL/es/"
 curl -I "$LOCAL_VERIFY_BASE_URL/en/"
 curl -I "$LOCAL_VERIFY_BASE_URL/telemedicina.html"
@@ -223,6 +318,7 @@ curl -I "$LOCAL_VERIFY_BASE_URL/app-downloads/pilot/operator/win/TurneroOperador
 
 echo "== Public verify =="
 curl -I https://pielarmonia.com/
+curl -I https://pielarmonia.com/admin.html
 curl -I https://pielarmonia.com/es/
 curl -I https://pielarmonia.com/en/
 curl -I https://pielarmonia.com/telemedicina.html

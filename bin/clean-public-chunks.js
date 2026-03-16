@@ -3,6 +3,7 @@
 
 const { unlinkSync } = require('node:fs');
 const { resolve } = require('node:path');
+const { GENERATED_SITE_ROOT } = require('./lib/generated-site-root.js');
 const {
     inspectPublicRuntimeArtifacts,
 } = require('./lib/public-runtime-artifacts.js');
@@ -50,7 +51,7 @@ function parseCliArgs(argv) {
 const cli = parseCliArgs(process.argv.slice(2));
 const ROOT = cli.root
     ? resolve(process.cwd(), cli.root)
-    : resolve(__dirname, '..');
+    : GENERATED_SITE_ROOT;
 const dryRun = cli.dryRun;
 const strict = cli.strict;
 const quiet = cli.quiet;
@@ -66,7 +67,10 @@ function warn(message) {
 }
 
 function main() {
-    const inspection = inspectPublicRuntimeArtifacts({ root: ROOT });
+    const inspection = inspectPublicRuntimeArtifacts({
+        root: ROOT,
+        supportRoot: resolve(__dirname, '..'),
+    });
 
     if (!inspection.entryExists) {
         warn('[public-chunks] script.js no existe, no se ejecuta limpieza.');

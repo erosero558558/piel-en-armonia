@@ -16,7 +16,7 @@ const REPORT_DEFAULT = path.join(
 function parseArgs(argv) {
     const args = {
         validate: true,
-        sync: true,
+        stage: true,
         check: true,
         report: REPORT_DEFAULT,
         json: false,
@@ -28,8 +28,8 @@ function parseArgs(argv) {
             args.validate = false;
             continue;
         }
-        if (token === '--skip-sync') {
-            args.sync = false;
+        if (token === '--skip-stage' || token === '--skip-sync') {
+            args.stage = false;
             continue;
         }
         if (token === '--skip-check') {
@@ -132,8 +132,8 @@ function main() {
 
         runStep('astro:build', ['astro:build'], report);
 
-        if (args.sync) {
-            runStep('astro:sync', ['astro:sync'], report);
+        if (args.stage) {
+            runStep('stage:site-root', ['stage:site-root'], report);
         }
 
         if (args.check) {

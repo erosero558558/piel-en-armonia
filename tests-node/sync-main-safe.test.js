@@ -5,9 +5,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+    buildWorkspaceBlockingMessage,
+    classifyDirtyStatus,
     parseArgs,
     parseLines,
     parseDirtyFiles,
+    hasEphemeralDirtyEntries,
     shouldDiscardDerivedQueueNoise,
     normalizePath,
     isOnlyBoardConflict,
@@ -23,6 +26,7 @@ test('sync-main-safe parseArgs aplica defaults', () => {
     assert.equal(opts.boardPath, 'AGENT_BOARD.yaml');
     assert.equal(opts.autoStash, true);
     assert.equal(opts.autoDiscardDerivedQueueNoise, true);
+    assert.equal(opts.autoFixWorkspaceHygiene, true);
     assert.equal(opts.push, true);
     assert.equal(opts.maxSyncAttempts, 3);
     assert.equal(opts.dryRun, false);
@@ -41,6 +45,7 @@ test('sync-main-safe parseArgs reconoce flags principales', () => {
         'HEAD',
         '--no-stash',
         '--no-auto-discard-derived-queue-noise',
+        '--no-workspace-hygiene-fix',
         '--no-push',
         '--max-sync-attempts',
         '5',
@@ -53,6 +58,7 @@ test('sync-main-safe parseArgs reconoce flags principales', () => {
     assert.equal(opts.boardPath, 'AGENT_BOARD.yaml');
     assert.equal(opts.autoStash, false);
     assert.equal(opts.autoDiscardDerivedQueueNoise, false);
+    assert.equal(opts.autoFixWorkspaceHygiene, false);
     assert.equal(opts.push, false);
     assert.equal(opts.maxSyncAttempts, 5);
     assert.equal(opts.dryRun, true);
@@ -89,6 +95,37 @@ test('sync-main-safe detecta ruido derivado en colas jules/kimi', () => {
     assert.equal(shouldDiscardDerivedQueueNoise(' M JULES_TASKS.md\n'), true);
     assert.equal(
         shouldDiscardDerivedQueueNoise(' M JULES_TASKS.md\n M foo.txt\n'),
+        false
+    );
+});
+
+test('sync-main-safe clasifica ruido efimero por categoria de higiene', () => {
+    const dirtyEntries = classifyDirtyStatus(
+        ' M docs/readme.md\n M script.js\n?? .generated/site-root/es/index.html\n?? _deploy_bundle/out.zip\n'
+    );
+    assert.deepEqual(
+        dirtyEntries.map((entry) => ({
+            path: entry.path,
+            category: entry.category,
+        })),
+        [
+            { path: 'docs/readme.md', category: 'authored' },
+            { path: 'script.js', category: 'legacy_generated_root' },
+            {
+                path: '.generated/site-root/es/index.html',
+                category: 'generated_stage',
+            },
+            {
+                path: '_deploy_bundle/out.zip',
+                category: 'deploy_bundle',
+            },
+        ]
+    );
+    assert.equal(hasEphemeralDirtyEntries(dirtyEntries), true);
+    assert.equal(
+        hasEphemeralDirtyEntries([
+            { path: 'script.js', category: 'legacy_generated_root' },
+        ]),
         false
     );
 });
@@ -155,6 +192,16 @@ test('sync-main-safe reintenta fetch/rebase/push tras rechazo retryable', () => 
 
     const code = run(['--max-sync-attempts', '3', '--json'], {
         runner: fakeRunner,
+        workspaceDoctor() {
+            return {
+                overall_state: 'clean',
+                dirtyEntries: [],
+                issue_counts: {},
+                issues: [],
+                remediation_plan: [],
+                next_command: '',
+            };
+        },
     });
     assert.equal(code, 0);
     assert.equal(pushCount, 2);
@@ -164,9 +211,10 @@ test('sync-main-safe reintenta fetch/rebase/push tras rechazo retryable', () => 
     );
 });
 
-test('sync-main-safe descarta ruido de colas derivadas antes de sincronizar', () => {
+test('sync-main-safe limpia ruido efimero con workspace hygiene antes de sincronizar', () => {
     const calls = [];
     let statusCount = 0;
+    const workspaceFixCalls = [];
 
     const fakeRunner = (program, args) => {
         const command = `${program} ${args.join(' ')}`;
@@ -181,13 +229,13 @@ test('sync-main-safe descarta ruido de colas derivadas antes de sincronizar', ()
             return {
                 ok: true,
                 code: 0,
-                stdout: statusCount === 1 ? ' M JULES_TASKS.md\n' : '',
+                stdout:
+                    statusCount === 1
+                        ? '?? .generated/site-root/es/index.html\n'
+                        : '',
                 stderr: '',
                 command,
             };
-        }
-        if (args[0] === 'restore') {
-            return { ok: true, code: 0, stdout: '', stderr: '', command };
         }
         if (args[0] === 'fetch') {
             return { ok: true, code: 0, stdout: '', stderr: '', command };
@@ -205,16 +253,211 @@ test('sync-main-safe descarta ruido de colas derivadas antes de sincronizar', ()
         return { ok: true, code: 0, stdout: '', stderr: '', command };
     };
 
-    const code = run(['--json'], { runner: fakeRunner });
+    const code = run(['--json'], {
+        runner: fakeRunner,
+        workspaceDoctor: (() => {
+            let callCount = 0;
+            return () => {
+                callCount += 1;
+                if (callCount === 1) {
+                    return {
+                        overall_state: 'fixable',
+                        dirtyEntries: [
+                            {
+                                path: '.generated/site-root/es/index.html',
+                                rawPath: '.generated/site-root/es/index.html',
+                                status: '??',
+                                category: 'generated_stage',
+                            },
+                        ],
+                        issue_counts: { generated_stage: 1 },
+                        issues: [
+                            {
+                                category: 'generated_stage',
+                                severity: 'fixable',
+                                count: 1,
+                                paths_sample: ['.generated/site-root/es/index.html'],
+                                remaining_count: 0,
+                                blocks_publish: false,
+                                blocks_sync: false,
+                                blocks_ci: false,
+                                suggested_command: 'npm run workspace:hygiene:fix',
+                                summary:
+                                    'Hay 1 output(s) generados bajo `.generated/site-root/` listos para limpieza segura.',
+                            },
+                        ],
+                        remediation_plan: [
+                            {
+                                id: 'apply_safe',
+                                summary:
+                                    'Limpia `.generated/site-root/`, `_deploy_bundle/`, artefactos locales y colas derivadas sin tocar source authored.',
+                                command: 'npm run workspace:hygiene:fix',
+                            },
+                            {
+                                id: 'rerun_doctor',
+                                summary:
+                                    'Vuelve a correr el doctor para confirmar el estado final del workspace.',
+                                command: 'npm run workspace:hygiene:doctor',
+                            },
+                        ],
+                        next_command: 'npm run workspace:hygiene:fix',
+                    };
+                }
+                return {
+                    overall_state: 'clean',
+                    dirtyEntries: [],
+                    issue_counts: {},
+                    issues: [],
+                    remediation_plan: [],
+                    next_command: '',
+                };
+            };
+        })(),
+        workspaceFix(_repoRoot, options) {
+            workspaceFixCalls.push(options);
+            return {
+                path: process.cwd(),
+                removed: ['.generated/site-root'],
+                dirtyEntries: [],
+                authoredEntries: [],
+                overall_state: 'clean',
+                issue_counts: {},
+                issues: [],
+                remediation_plan: [],
+                next_command: '',
+                ok: true,
+            };
+        },
+    });
     assert.equal(code, 0);
+    assert.equal(workspaceFixCalls.length, 1);
     assert.equal(
-        calls.some((entry) =>
-            entry.startsWith(
-                'git restore --worktree --source=HEAD -- jules_tasks.md'
-            )
-        ),
-        true
+        calls.some((entry) => entry.startsWith('git stash push')),
+        false
     );
+    assert.deepEqual(workspaceFixCalls, [{ includeDerivedQueue: true }]);
+});
+
+test('sync-main-safe buildWorkspaceBlockingMessage explica issues blocking legacy', () => {
+    const message = buildWorkspaceBlockingMessage({
+        overall_state: 'blocked',
+        issue_counts: { legacy_generated_root_deindexed: 2, authored: 1 },
+        issues: [
+            {
+                category: 'legacy_generated_root_deindexed',
+                severity: 'blocking',
+                count: 2,
+                paths_sample: ['script.js'],
+                remaining_count: 1,
+                blocks_publish: true,
+                blocks_sync: true,
+                blocks_ci: true,
+                suggested_command:
+                    'git commit -m "chore(frontend): deindex legacy generated root outputs"',
+                summary:
+                    'Hay 2 eliminacion(es) staged del deindexado legacy pendientes de commit o stash.',
+            },
+            {
+                category: 'authored',
+                severity: 'blocking',
+                count: 1,
+                paths_sample: ['README.md'],
+                remaining_count: 0,
+                blocks_publish: true,
+                blocks_sync: true,
+                blocks_ci: true,
+                suggested_command: 'git status --short',
+                summary:
+                    'Hay 1 cambio(s) authored fuera del ruido efimero permitido.',
+            },
+        ],
+        remediation_plan: [
+            {
+                id: 'commit_or_stash_legacy_deindex',
+                summary:
+                    'Confirma o aparta las eliminaciones staged del deindexado legacy antes de publicar o sincronizar.',
+                command:
+                    'git commit -m "chore(frontend): deindex legacy generated root outputs"',
+            },
+            {
+                id: 'review_authored_changes',
+                summary:
+                    'Revisa o mueve los cambios authored antes de intentar publish o sync.',
+                command: 'git status --short',
+            },
+        ],
+        next_command:
+            'git commit -m "chore(frontend): deindex legacy generated root outputs"',
+    });
+
+    assert.match(message, /legacy_generated_root_deindexed/);
+    assert.match(message, /authored/);
+    assert.match(message, /Primer paso/);
+});
+
+test('sync-main-safe bloquea legacy_generated_root_deindexed antes de stash', () => {
+    const calls = [];
+    const fakeRunner = (program, args) => {
+        const command = `${program} ${args.join(' ')}`;
+        calls.push(command);
+        if (program === 'git' && args[0] === 'status') {
+            return {
+                ok: true,
+                code: 0,
+                stdout: 'D  script.js\n',
+                stderr: '',
+                command,
+            };
+        }
+        return { ok: true, code: 0, stdout: '', stderr: '', command };
+    };
+
+    const code = run(['--json'], {
+        runner: fakeRunner,
+        workspaceDoctor() {
+            return {
+                overall_state: 'blocked',
+                dirtyEntries: [
+                    {
+                        path: 'script.js',
+                        rawPath: 'script.js',
+                        status: 'D ',
+                        category: 'legacy_generated_root_deindexed',
+                    },
+                ],
+                issue_counts: { legacy_generated_root_deindexed: 1 },
+                issues: [
+                    {
+                        category: 'legacy_generated_root_deindexed',
+                        severity: 'blocking',
+                        count: 1,
+                        paths_sample: ['script.js'],
+                        remaining_count: 0,
+                        blocks_publish: true,
+                        blocks_sync: true,
+                        blocks_ci: true,
+                        suggested_command:
+                            'git commit -m "chore(frontend): deindex legacy generated root outputs"',
+                        summary:
+                            'Hay 1 eliminacion(es) staged del deindexado legacy pendientes de commit o stash.',
+                    },
+                ],
+                remediation_plan: [
+                    {
+                        id: 'commit_or_stash_legacy_deindex',
+                        summary:
+                            'Confirma o aparta las eliminaciones staged del deindexado legacy antes de publicar o sincronizar.',
+                        command:
+                            'git commit -m "chore(frontend): deindex legacy generated root outputs"',
+                    },
+                ],
+                next_command:
+                    'git commit -m "chore(frontend): deindex legacy generated root outputs"',
+            };
+        },
+    });
+
+    assert.equal(code, 1);
     assert.equal(
         calls.some((entry) => entry.startsWith('git stash push')),
         false

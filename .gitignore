@@ -9,11 +9,23 @@ cookies.txt
 
 # Node / Tests
 node_modules/
+.generated/
 test-results/
 playwright-report/
 lhci_reports/
 .lighthouseci/
 _deploy_bundle/
+es/
+en/
+_astro/
+script.js
+admin.js
+js/chunks/
+js/engines/
+js/admin-chunks/
+js/booking-calendar.js
+js/queue-kiosk.js
+js/queue-display.js
 verification/
 !verification/
 verification/*

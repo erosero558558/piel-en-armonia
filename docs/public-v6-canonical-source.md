@@ -2,7 +2,7 @@
 
 This document freezes the public web contract for the V6 cutover.
 
-The source-vs-output review policy for committed runtime artifacts lives in
+The source-vs-output review policy for staged runtime artifacts lives in
 `docs/RUNTIME_ARTIFACT_POLICY.md`.
 
 ## Canonical authoring source
@@ -22,7 +22,9 @@ Only these paths define the public website:
 
 ## Generated deploy artifacts
 
-These paths stay versioned because production publishes from git-sync, but they are output only and must not be edited by hand:
+These paths are generated outputs. The canonical build writes them into
+`.generated/site-root/` and the deploy bundle copies them into
+`_deploy_bundle/`. They must not be edited by hand from the repo root:
 
 - `es/**`
 - `en/**`
@@ -32,7 +34,8 @@ Generation flow:
 
 1. `npm run build:public:v6`
 2. `npm run check:public:v6:artifacts`
-3. Commit artifacts to `main`
+3. `npm run bundle:deploy`
+4. publish source or deploy the generated bundle
 
 Photo contract:
 
@@ -46,7 +49,7 @@ Photo contract:
 
 1. `content:public-v6:validate`
 2. `astro:build`
-3. `astro:sync`
+3. `stage:site-root`
 4. `check:public:v6:artifacts --skip-build`
 
 It also writes:
@@ -55,28 +58,35 @@ It also writes:
 
 ## Versioned public gateway runtime
 
-These paths also stay versioned because the root public gateway publishes from git-sync, but they are generated runtime artifacts and must not be edited by hand:
+The generated runtime graph now lives in `.generated/site-root/` before deploy.
+These files are formalized generated outputs and must not be edited by hand:
 
-- `styles.css`
-- `styles-deferred.css`
 - `script.js`
 - `js/chunks/**`
 - `js/engines/**`
+- `js/booking-calendar.js`
 
 The gateway no longer accepts root legacy runtime files such as
 `booking-engine.js` or `utils.js`. Historical residues live only in
 `js/archive/root-legacy/**`.
+
+For this migration pass, the gateway support layer remains authored from the
+repo root:
+
+- `styles.css`
+- `styles-deferred.css`
+- `sw.js`
 
 Canonical runtime flow:
 
 1. `npm run build`
 2. `npm run check:public:runtime:artifacts`
 3. `npm run check:runtime:artifacts`
-4. Commit artifacts to `main`
+4. `npm run bundle:deploy`
 
 `check:public:runtime:artifacts` is the canonical verifier. It enforces:
 
-- `styles.css` and `styles-deferred.css` are present for the root gateway support layer
+- `styles.css` and `styles-deferred.css` are present for the authored gateway support layer
 - exactly one active `shell-*.js` chunk reachable from `script.js`
 - no stale chunks left in `js/chunks/**`
 - any engine file referenced from `script.js` exists in `js/engines/**`
@@ -127,11 +137,16 @@ The redirect contract lives in:
 The official publish path is:
 
 1. Edit V6 source files.
-2. Generate V6 artifacts.
-3. push to main
-4. cron git-sync updates `/var/www/figo`
+2. Generate V6 artifacts into `.generated/site-root/`.
+3. Validate runtime and deploy artifacts.
+4. Build `_deploy_bundle/` for transport deploys or run `publish checkpoint` for source publication.
+5. Let deploy/post-deploy confirm the live state.
 
-GitHub Actions validate and provide transport fallback, but they do not replace `main` as the source of truth.
+GitHub Actions and the deploy bundle are the operational source of truth for
+generated outputs. `public_main_sync` remains host-side telemetry and should
+not be used as the local publish gate. A plain `push to main` is not the
+canonical release action for Public V6, and the old `cron git-sync` path is
+documentation-only historical context rather than the release contract.
 
 ## Green checks for public web
 

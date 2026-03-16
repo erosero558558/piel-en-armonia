@@ -82,10 +82,21 @@ jobs:
             - name: Install Node Dependencies
               run: npm ci
 
-            - name: Build Astro public routes
+            - name: Prepare canonical deploy bundle
+              shell: bash
               run: |
-                  npm run astro:build
-                  npm run astro:sync
+                  set -euo pipefail
+                  rm -rf _deploy_bundle
+                  mkdir -p _deploy_bundle
+                  node bin/prepare-deploy-bundle.js --include-tooling --output-dir _deploy_bundle --json > _deploy_bundle/deploy-bundle.json
+                  stage_dir="$(node <<'NODE'
+                  const fs = require('node:fs');
+                  const path = require('node:path');
+                  const bundle = JSON.parse(fs.readFileSync('_deploy_bundle/deploy-bundle.json', 'utf8'));
+                  process.stdout.write(path.relative(process.cwd(), bundle.stageRoot).replace(/\\/g, '/'));
+                  NODE
+                  )"
+                  echo "DEPLOY_STAGE_DIR=${stage_dir}" >> "$GITHUB_ENV"
 
             - name: Install Playwright (chromium) for acceptance gate
               if: ${{ env.FTP_DRY_RUN != 'true' }}
@@ -136,30 +147,12 @@ jobs:
                   port: ${{ env.FTP_SERVER_PORT }}
                   security: ${{ env.FTP_SECURITY }}
                   server-dir: ${{ env.FTP_SERVER_DIR }}
-                  local-dir: ./
+                  local-dir: ./${{ env.DEPLOY_STAGE_DIR }}/
                   dangerous-clean-slate: ${{ env.FTP_CLEAN_SLATE }}
                   dry-run: ${{ env.FTP_DRY_RUN }}
                   timeout: 120000
                   log-level: verbose
                   state-name: .ftp-deploy-sync-state.json
-                  exclude: |
-                      **/.git*
-                      **/.github/**
-                      **/.vscode/**
-                      **/.claude/**
-                      **/node_modules/**
-                      **/test-results/**
-                      **/tests/**
-                      **/playwright-report/**
-                      **/_deploy_bundle/**
-                      **/verification/**
-                      **/data/**
-                      **/uploads/**
-                      **/env.php
-                      **/php.log
-                      **/*.log
-                      **/*.zip
-                      **/*.ps1
 
             - name: Smoke rapido de endpoints publicos
               id: smoke_staging

@@ -109,7 +109,7 @@ test('deploy-public-v3-cron-sync solo autolimpia ruido derivado canonico antes d
     for (const snippet of [
         'composer_generated_vendor_path_allowed() {',
         'canonical_derived_path_allowed() {',
-        'es/*|en/*|_astro/*|script.js|styles.css|styles-deferred.css|js/chunks/*|js/engines/*)',
+        'es/*|en/*|_astro/*|script.js|styles.css|styles-deferred.css|js/chunks/*|js/engines/*|.generated/site-root|.generated/site-root/*|_deploy_bundle|_deploy_bundle/*)',
         'vendor/autoload.php|vendor/bin/*|vendor/composer/autoload_classmap.php|vendor/composer/autoload_files.php|vendor/composer/autoload_namespaces.php|vendor/composer/autoload_psr4.php|vendor/composer/autoload_real.php|vendor/composer/autoload_static.php|vendor/composer/installed.php|vendor/composer/installed.json|vendor/composer/InstalledVersions.php|vendor/composer/platform_check.php)',
         'composer_generated_vendor_path_allowed "$1"',
         'collect_dirty_paths() {',

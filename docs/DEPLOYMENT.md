@@ -27,15 +27,19 @@ El workflow `.github/workflows/deploy-hosting.yml` se encarga de:
 1.  Checkout del código.
 2.  Instalación de dependencias (`npm ci` + `composer install --no-dev`).
 3.  Build estatico de `Public V6` (`npm run build:public:v6`), generando
-    `es/**`, `en/**`, `_astro/**` y manteniendo `js/public-v6-shell.js`.
+    `.generated/site-root/` como stage canonico de `es/**`, `en/**`,
+    `_astro/**` y runtimes formalizados; `js/public-v6-shell.js` y los
+    assets authored de soporte siguen viviendo en el repo.
 4.  Canary de staging y gate de aceptación cuando staging está configurado.
-5.  Publicación a producción por `git-sync`, FTP o SFTP según la configuración activa.
+5.  Publicación a producción por bundle canónico (`_deploy_bundle/`) y deploy
+    hosting/self-hosted según la configuración activa.
 6.  Smoke post-deploy de routing público, conversión pública y manifiesto de cutover.
 7.  Dispatch opcional de post-deploy (`post-deploy-fast.yml` y `post-deploy-gate.yml`) con propagación de `admin_rollout_stage`, flags del gate admin UI y politica efectiva de OpenClaw (`require_openclaw_auth`, `require_openclaw_live_smoke`).
 
-Cuando la estrategia activa es `git-sync`, el host promueve los artefactos
-versionados ya comprometidos en `main`; no recompila Astro en el VPS durante el
-cron de publicación.
+Cuando la estrategia activa es `git-sync`, el host solo hace sync del source y
+mantiene `public_main_sync` como telemetría/fallback host-side; la fuente
+primaria de publicación ya no son artifacts generados comprometidos en `main`.
+El cron host-side no recompila Astro en el VPS durante la publicación.
 
 ### Dispatch Post-Deploy desde Deploy Hosting
 
@@ -64,8 +68,9 @@ Si `git-sync` no replica `origin/main` o GitHub runners no alcanzan el hosting, 
 
 El wrapper `bin/deploy-public-v3-live.sh` resetea el repo al commit objetivo,
 instala dependencias PHP si hace falta, verifica que existan los artefactos
-versionados de publicación y luego recarga Nginx. No regenera los artefactos
-V6 en el servidor.
+versionados de publicación en `.generated/site-root/` o en copias root de
+compatibilidad y luego recarga Nginx. No regenera los artefactos V6 en el
+servidor.
 
 Contrato operativo local:
 

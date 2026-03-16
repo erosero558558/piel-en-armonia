@@ -123,12 +123,8 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
-            - name: Rebuild public routes (legacy + Astro)
-              run: |
-                  npm run build:html
-                  npm run services:build
-                  npm run astro:build
-                  npm run astro:sync
+            - name: Build canonical staged frontend outputs
+              run: npm run build
 
             - name: Install Playwright (chromium)
               run: npx playwright install --with-deps chromium

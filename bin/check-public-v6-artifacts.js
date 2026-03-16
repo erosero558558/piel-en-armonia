@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
+const { GENERATED_SITE_ROOT } = require('./lib/generated-site-root.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const DIST_ROOT = path.join(ROOT, 'src', 'apps', 'astro', 'dist');
@@ -79,7 +80,7 @@ function listFilesRecursive(baseDir, currentDir = baseDir, collector = []) {
 
 function compareEntry(entry) {
     const distDir = path.join(DIST_ROOT, entry);
-    const repoDir = path.join(ROOT, entry);
+    const repoDir = path.join(GENERATED_SITE_ROOT, entry);
     const distFiles = listFilesRecursive(distDir);
     const repoFiles = listFilesRecursive(repoDir);
 

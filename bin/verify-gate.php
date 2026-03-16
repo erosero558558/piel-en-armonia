@@ -6,6 +6,8 @@ $domain = 'https://pielarmonia.com';
 $checks = [];
 $failures = 0;
 $diagnosticsToken = trim((string) (getenv('PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN') ?: getenv('PIELARMONIA_CRON_SECRET') ?: ''));
+$repoRoot = realpath(__DIR__ . '/..');
+$generatedSiteRoot = $repoRoot ? ($repoRoot . DIRECTORY_SEPARATOR . '.generated' . DIRECTORY_SEPARATOR . 'site-root') : '';
 
 function check($name, $callback)
 {
@@ -88,6 +90,105 @@ function fetchHeaders($url, array $headers = [])
     $headers = substr($response, 0, $headerSize);
     curl_close($ch);
     return $headers;
+}
+
+function normalize_content(string $content): string
+{
+    return str_replace(["\r\n", "\r"], "\n", $content);
+}
+
+function build_asset_url(string $domain, string $assetRef): string
+{
+    if (preg_match('/^https?:\/\//i', $assetRef)) {
+        return $assetRef;
+    }
+
+    return $domain . '/' . ltrim($assetRef, '/');
+}
+
+function resolve_local_asset_path(array $candidates): ?string
+{
+    foreach ($candidates as $candidate) {
+        if (is_string($candidate) && $candidate !== '' && file_exists($candidate)) {
+            return $candidate;
+        }
+    }
+
+    return null;
+}
+
+function detect_local_asset_candidates(string $assetRef): array
+{
+    global $repoRoot, $generatedSiteRoot;
+
+    $assetPath = parse_url($assetRef, PHP_URL_PATH);
+    if (!is_string($assetPath) || $assetPath === '') {
+        $assetPath = $assetRef;
+    }
+
+    $relative = ltrim($assetPath, '/');
+    $relativeFs = str_replace('/', DIRECTORY_SEPARATOR, $relative);
+    $stagePath = $generatedSiteRoot !== '' ? ($generatedSiteRoot . DIRECTORY_SEPARATOR . $relativeFs) : '';
+    $repoPath = $repoRoot ? ($repoRoot . DIRECTORY_SEPARATOR . $relativeFs) : $relativeFs;
+
+    if (preg_match('/^script\.js$/i', $relative)) {
+        return array_values(array_filter([
+            $generatedSiteRoot !== '' ? ($generatedSiteRoot . DIRECTORY_SEPARATOR . 'script.js') : '',
+            $repoRoot ? ($repoRoot . DIRECTORY_SEPARATOR . 'script.js') : '',
+        ]));
+    }
+
+    if (preg_match('/^js\/public-v6-shell\.js$/i', $relative)) {
+        return array_values(array_filter([
+            $repoRoot ? ($repoRoot . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'public-v6-shell.js') : '',
+            $generatedSiteRoot !== '' ? ($generatedSiteRoot . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'public-v6-shell.js') : '',
+        ]));
+    }
+
+    if (preg_match('/^styles\.css$/i', $relative)) {
+        return array_values(array_filter([
+            $repoRoot ? ($repoRoot . DIRECTORY_SEPARATOR . 'styles.css') : '',
+            $stagePath,
+        ]));
+    }
+
+    if (preg_match('/^_astro\/.+\.css$/i', $relative)) {
+        return array_values(array_filter([
+            $stagePath,
+            $repoPath,
+        ]));
+    }
+
+    return array_values(array_filter([
+        $stagePath,
+        $repoPath,
+    ]));
+}
+
+function check_asset_hash(string $label, string $assetUrl, array $localCandidates): void
+{
+    check($label, function () use ($assetUrl, $localCandidates) {
+        $localPath = resolve_local_asset_path($localCandidates);
+        if ($localPath === null) {
+            echo " (Local file missing: " . implode(' | ', $localCandidates) . ') ';
+            return false;
+        }
+
+        $localHash = hash('sha256', normalize_content((string) file_get_contents($localPath)));
+        $res = fetch($assetUrl);
+        if ($res['code'] !== 200) {
+            echo " (Remote fetch failed: HTTP " . $res['code'] . ') ';
+            return false;
+        }
+
+        $remoteHash = hash('sha256', normalize_content((string) $res['body']));
+        if ($localHash !== $remoteHash) {
+            echo " (Hash mismatch. Local: " . substr($localHash, 0, 8) . ", Remote: " . substr($remoteHash, 0, 8) . ') ';
+            return false;
+        }
+
+        return true;
+    });
 }
 
 echo "== Verifying Gate: Prod Strict ==\n";
@@ -175,77 +276,34 @@ $indexRes = fetch($domain . '/');
 if ($indexRes['code'] === 200) {
     $remoteIndex = $indexRes['body'];
 
-    // Extract script.js
-    if (preg_match('/<script[^>]+src="([^"]*script\.js[^"]*)"/', $remoteIndex, $matches)) {
-        $scriptUrl = $matches[1];
-        // Handle relative URL
-        if (strpos($scriptUrl, 'http') !== 0) {
-            $scriptUrl = $domain . '/' . ltrim($scriptUrl, '/');
-        }
+    if (preg_match('/<script[^>]+src="([^"]*(?:script\.js|public-v6-shell\.js)[^"]*)"/', $remoteIndex, $matches)) {
+        $scriptRef = $matches[1];
+        $scriptUrl = build_asset_url($domain, $scriptRef);
+        $scriptPath = parse_url($scriptRef, PHP_URL_PATH);
+        $scriptLabel = $scriptPath ? basename($scriptPath) : 'app-script';
 
-        check('Asset Hash: script.js', function () use ($scriptUrl) {
-            if (!file_exists('script.js')) {
-                echo " (Local file missing) ";
-                return false;
-            }
-
-            // Normalize local file (CRLF -> LF)
-            $localContent = file_get_contents('script.js');
-            $localContent = str_replace(["\r\n", "\r"], "\n", $localContent);
-            $localHash = hash('sha256', $localContent);
-
-            $res = fetch($scriptUrl);
-            if ($res['code'] !== 200) {
-                echo " (Remote fetch failed) ";
-                return false;
-            }
-
-            $remoteContent = $res['body'];
-            $remoteContent = str_replace(["\r\n", "\r"], "\n", $remoteContent);
-            $remoteHash = hash('sha256', $remoteContent);
-
-            if ($localHash !== $remoteHash) {
-                echo " (Hash mismatch. Local: " . substr($localHash, 0, 8) . ", Remote: " . substr($remoteHash, 0, 8) . ") ";
-                return false;
-            }
-            return true;
-        });
+        check_asset_hash(
+            'Asset Hash: ' . $scriptLabel,
+            $scriptUrl,
+            detect_local_asset_candidates($scriptRef)
+        );
     } else {
-        echo "WARNING: script.js not found in remote index.html\n";
+        echo "WARNING: app script not found in remote index.html\n";
     }
 
-    // Extract styles.css
-    if (preg_match('/<link[^>]+href="([^"]*styles\.css[^"]*)"/', $remoteIndex, $matches)) {
-        $styleUrl = $matches[1];
-        if (strpos($styleUrl, 'http') !== 0) {
-            $styleUrl = $domain . '/' . ltrim($styleUrl, '/');
-        }
+    if (preg_match('/<link[^>]+href="([^"]*(?:styles\.css|_astro\/[^"]+\.css)[^"]*)"/', $remoteIndex, $matches)) {
+        $styleRef = $matches[1];
+        $styleUrl = build_asset_url($domain, $styleRef);
+        $stylePath = parse_url($styleRef, PHP_URL_PATH);
+        $styleLabel = $stylePath ? basename($stylePath) : 'app-style';
 
-        check('Asset Hash: styles.css', function () use ($styleUrl) {
-            if (!file_exists('styles.css')) {
-                echo " (Local file missing) ";
-                return false;
-            }
-
-            $localContent = file_get_contents('styles.css');
-            $localContent = str_replace(["\r\n", "\r"], "\n", $localContent);
-            $localHash = hash('sha256', $localContent);
-
-            $res = fetch($styleUrl);
-            if ($res['code'] !== 200) {
-                return false;
-            }
-
-            $remoteContent = $res['body'];
-            $remoteContent = str_replace(["\r\n", "\r"], "\n", $remoteContent);
-            $remoteHash = hash('sha256', $remoteContent);
-
-            if ($localHash !== $remoteHash) {
-                echo " (Hash mismatch) ";
-                return false;
-            }
-            return true;
-        });
+        check_asset_hash(
+            'Asset Hash: ' . $styleLabel,
+            $styleUrl,
+            detect_local_asset_candidates($styleRef)
+        );
+    } else {
+        echo "WARNING: app stylesheet not found in remote index.html\n";
     }
 }
 

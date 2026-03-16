@@ -8,6 +8,7 @@ const {
     unlinkSync,
 } = require('node:fs');
 const { relative, resolve } = require('node:path');
+const { GENERATED_SITE_ROOT } = require('./lib/generated-site-root.js');
 
 function parseCliArgs(argv) {
     const options = {
@@ -52,7 +53,7 @@ function parseCliArgs(argv) {
 const cli = parseCliArgs(process.argv.slice(2));
 const ROOT = cli.root
     ? resolve(process.cwd(), cli.root)
-    : resolve(__dirname, '..');
+    : GENERATED_SITE_ROOT;
 const ADMIN_ENTRY = resolve(ROOT, 'admin.js');
 const ADMIN_CHUNKS_DIR = resolve(ROOT, 'js', 'admin-chunks');
 const MERGE_CONFLICT_MARKER_PATTERN = /^(<{7,}.*|={7,}|>{7,}.*)$/m;

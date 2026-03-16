@@ -6,6 +6,9 @@ const assert = require('node:assert/strict');
 const { existsSync, readFileSync, readdirSync } = require('fs');
 const { execFileSync } = require('child_process');
 const { resolve } = require('path');
+const {
+    buildDeployBundleManifest,
+} = require('../bin/lib/deploy-bundle-contract.js');
 
 const REPO_ROOT = resolve(__dirname, '..');
 
@@ -400,6 +403,17 @@ test('frontera de js en raiz queda explicita y limitada', () => {
             `scripts/archive/README.md debe documentar ${file}`
         );
     }
+
+    assert.equal(
+        rootSurfaces.includes('`.generated/site-root/`'),
+        true,
+        'docs/ROOT_SURFACES.md debe distinguir el stage root generado de las copias legacy en raiz'
+    );
+    assert.doesNotMatch(
+        rootSurfaces,
+        /permanecen en raiz por contrato de hosting\/runtime/u,
+        'docs/ROOT_SURFACES.md no debe seguir describiendo script.js/admin.js root como fuente primaria del contrato'
+    );
 });
 
 test('frontera de html css php y ps1 en raiz queda explicita y limitada', () => {
@@ -717,7 +731,6 @@ test('frontera de directorios en raiz queda explicita y limitada', () => {
     const gitignore = readRepoFile('.gitignore');
     const trackedRootDirectories = listTrackedRootDirectories();
     const expectedTrackedRootDirectories = [
-        '_astro',
         '.claude',
         '.github',
         '.husky',
@@ -730,8 +743,6 @@ test('frontera de directorios en raiz queda explicita y limitada', () => {
         'data',
         'desktop-updates',
         'docs',
-        'en',
-        'es',
         'fonts',
         'grafana',
         'images',
@@ -790,6 +801,19 @@ test('frontera de directorios en raiz queda explicita y limitada', () => {
         true,
         '.gitignore debe ignorar %TEMP%/ como scratch local'
     );
+
+    for (const entry of ['_astro', 'en', 'es']) {
+        assert.equal(
+            trackedRootDirectories.includes(entry),
+            false,
+            `${entry} no debe seguir trackeado como directorio root canonico`
+        );
+        assert.equal(
+            gitignore.includes(`${entry}/`),
+            true,
+            `.gitignore debe ignorar ${entry}/`
+        );
+    }
 });
 
 test('docs canonicos de ops preservan contratos clave del runtime actual', () => {
@@ -1210,9 +1234,9 @@ test('runtime publico y bundle de deploy consumen docs canonicos, no shims markd
     const chatEngine = readRepoFile('src/apps/chat/engine.js');
     const chatShell = readRepoFile('src/apps/chat/shell.js');
     const scriptBundle = readRepoFile('script.js');
-    const deployBundle = readRepoFile(
-        'scripts/ops/deploy/PREPARAR-PAQUETE-DESPLIEGUE.ps1'
-    );
+    const deployBundlePaths = buildDeployBundleManifest({
+        includeTooling: true,
+    }).map((entry) => entry.relativePath);
     const deployReadme = readRepoFile('scripts/ops/deploy/README.md');
     const publicCanonicalSource = readRepoFile(
         'docs/public-v6-canonical-source.md'
@@ -1275,7 +1299,7 @@ test('runtime publico y bundle de deploy consumen docs canonicos, no shims markd
     ];
     for (const entry of requiredDeployDocs) {
         assert.equal(
-            deployBundle.includes(entry),
+            deployBundlePaths.includes(entry.replace(/'/g, '')),
             true,
             `bundle de deploy debe incluir ${entry}`
         );
@@ -1289,7 +1313,7 @@ test('runtime publico y bundle de deploy consumen docs canonicos, no shims markd
         "'js/engines'",
     ]) {
         assert.equal(
-            deployBundle.includes(entry),
+            deployBundlePaths.includes(entry.replace(/'/g, '')),
             true,
             `bundle de deploy debe incluir ${entry} para el runtime publico`
         );
@@ -1305,7 +1329,7 @@ test('runtime publico y bundle de deploy consumen docs canonicos, no shims markd
     ];
     for (const entry of forbiddenLegacyRootEngines) {
         assert.equal(
-            deployBundle.includes(entry),
+            deployBundlePaths.includes(entry.replace(/'/g, '')),
             false,
             `bundle de deploy no debe seguir dependiendo del root legacy ${entry}`
         );
@@ -1317,7 +1341,7 @@ test('runtime publico y bundle de deploy consumen docs canonicos, no shims markd
     ];
     for (const entry of forbiddenRootShims) {
         assert.equal(
-            deployBundle.includes(entry),
+            deployBundlePaths.includes(entry.replace(/'/g, '')),
             false,
             `bundle de deploy no debe depender del shim ${entry}`
         );
@@ -1531,9 +1555,10 @@ test('runtime publico y verificacion prod no aceptan residuos JS legacy de raiz'
 test('verify deploy soporta layout publico v6 y rutas locales canonicas', () => {
     const raw = readRepoFile('scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1');
     const requiredEntries = [
-        "Join-Path $repoRoot 'es/index.html'",
-        "Join-Path $repoRoot 'en/index.html'",
-        "Join-Path $repoRoot 'script.js'",
+        "Join-Path $repoRoot '.generated/site-root'",
+        "Join-Path $generatedSiteRoot 'es/index.html'",
+        "Join-Path $generatedSiteRoot 'en/index.html'",
+        "Join-Path $generatedSiteRoot 'script.js'",
         "Join-Path $PSScriptRoot 'SMOKE-PRODUCCION.ps1'",
         'public-v6-shell\\.js',
         '_astro/[^"]+\\.css',
@@ -1555,9 +1580,45 @@ test('verify deploy soporta layout publico v6 y rutas locales canonicas', () => 
         'VERIFICAR-DESPLIEGUE no debe depender solo de index.html en raiz'
     );
     assert.equal(
+        raw.includes("LocalPath = 'script.js'"),
+        false,
+        'VERIFICAR-DESPLIEGUE no debe hashear script.js desde root como fuente primaria'
+    );
+    assert.equal(
         raw.includes('& .\\SMOKE-PRODUCCION.ps1'),
         false,
         'VERIFICAR-DESPLIEGUE no debe reentrar a SMOKE-PRODUCCION por wrapper root'
+    );
+});
+
+test('verify gate soporta shell publico V6 y assets stageados sin depender del root legacy', () => {
+    const raw = readRepoFile('bin/verify-gate.php');
+
+    for (const entry of [
+        ".generated' . DIRECTORY_SEPARATOR . 'site-root'",
+        'function detect_local_asset_candidates',
+        'public-v6-shell\\.js',
+        '_astro\\/.+\\.css',
+        'Asset Hash: ',
+        'detect_local_asset_candidates($scriptRef)',
+        'detect_local_asset_candidates($styleRef)',
+    ]) {
+        assert.equal(
+            raw.includes(entry),
+            true,
+            `bin/verify-gate.php debe incluir ${entry}`
+        );
+    }
+
+    assert.equal(
+        raw.includes("file_exists('script.js')"),
+        false,
+        'bin/verify-gate.php no debe depender solo de script.js en raiz'
+    );
+    assert.equal(
+        raw.includes("file_exists('styles.css')"),
+        false,
+        'bin/verify-gate.php no debe depender solo de styles.css en raiz'
     );
 });
 
@@ -1598,23 +1659,23 @@ test('legacy admin css sale de la raiz activa y el bundle de deploy usa estilos 
         'falta aclaracion de assets admin canonicos en scripts/ops/deploy/README.md'
     );
 
-    const deployBundle = readRepoFile(
-        'scripts/ops/deploy/PREPARAR-PAQUETE-DESPLIEGUE.ps1'
+    const deployBundleContract = readRepoFile(
+        'bin/lib/deploy-bundle-contract.js'
     );
     const deployDoc = readRepoFile('docs/DEPLOY_HOSTING_PLAYBOOK.md');
 
     assert.equal(
-        deployBundle.includes("'admin-v3.css'"),
+        deployBundleContract.includes("'admin-v3.css'"),
         true,
         'bundle de deploy debe incluir admin-v3.css'
     );
     assert.equal(
-        deployBundle.includes("'queue-ops.css'"),
+        deployBundleContract.includes("'queue-ops.css'"),
         true,
         'bundle de deploy debe incluir queue-ops.css'
     );
     assert.equal(
-        deployBundle.includes("'admin.css'"),
+        deployBundleContract.includes("'admin.css'"),
         false,
         'bundle de deploy no debe incluir admin.css legacy'
     );
@@ -1817,9 +1878,11 @@ test('docs locales y pentests apuntan al host canonico 127.0.0.1:8011 o aceptan 
     const operationsIndex = readRepoFile('docs/OPERATIONS_INDEX.md');
     const pentestP0 = readRepoFile('tests/pentest_p0.php');
     const penetration = readRepoFile('tests/penetration_test.php');
+    const localStageRouterCommand =
+        'php -S 127.0.0.1:8011 -t . bin/local-stage-router.php';
 
     assert.equal(
-        readme.includes('php -S 127.0.0.1:8011 -t .'),
+        readme.includes(localStageRouterCommand),
         true,
         'README.md debe usar 127.0.0.1:8011 como setup local canonico'
     );
@@ -1844,7 +1907,7 @@ test('docs locales y pentests apuntan al host canonico 127.0.0.1:8011 o aceptan 
         'README.md debe documentar TEST_LOCAL_SERVER_PORT'
     );
     assert.equal(
-        serverLocal.includes('php -S 127.0.0.1:8011 -t .'),
+        serverLocal.includes(localStageRouterCommand),
         true,
         'docs/LOCAL_SERVER.md debe usar 127.0.0.1:8011 como arranque canonico'
     );
@@ -1947,9 +2010,11 @@ test('docs activas distinguen desarrollo local canonico del verify live del depl
     );
     const opsIndex = readRepoFile('scripts/ops/README.md');
     const deployScript = readRepoFile('bin/deploy-public-v3-live.sh');
+    const localStageRouterCommand =
+        'php -S 127.0.0.1:8011 -t . bin/local-stage-router.php';
 
     assert.equal(
-        contributing.includes('php -S 127.0.0.1:8011 -t .'),
+        contributing.includes(localStageRouterCommand),
         true,
         'CONTRIBUTING debe fijar 127.0.0.1:8011 como setup local'
     );
@@ -1959,7 +2024,7 @@ test('docs activas distinguen desarrollo local canonico del verify live del depl
         'CONTRIBUTING debe documentar TEST_BASE_URL'
     );
     assert.equal(
-        disasterRecovery.includes('php -S 127.0.0.1:8011 -t .'),
+        disasterRecovery.includes(localStageRouterCommand),
         true,
         'DISASTER_RECOVERY debe usar 127.0.0.1:8011 en simulacros locales'
     );
@@ -1977,6 +2042,21 @@ test('docs activas distinguen desarrollo local canonico del verify live del depl
         deployment.includes('LOCAL_VERIFY_BASE_URL'),
         true,
         'DEPLOYMENT debe distinguir el verify live via LOCAL_VERIFY_BASE_URL'
+    );
+    assert.equal(
+        deployment.includes('.generated/site-root/'),
+        true,
+        'DEPLOYMENT debe documentar el stage root canonico'
+    );
+    assert.equal(
+        deployment.includes('_deploy_bundle/'),
+        true,
+        'DEPLOYMENT debe documentar el bundle canonico de deploy'
+    );
+    assert.doesNotMatch(
+        deployment,
+        /artefactos generados comprometidos en `main`|artifacts generated committed in main/u,
+        'DEPLOYMENT no debe volver al contrato legacy de artifacts generados comprometidos en main'
     );
     assert.equal(
         opsIndex.includes('LOCAL_VERIFY_BASE_URL'),
@@ -2035,6 +2115,42 @@ test('docs activas distinguen desarrollo local canonico del verify live del depl
     );
 });
 
+test('local-stage-router prioriza el stage root para outputs generados y deja fallback al repo para authored assets', () => {
+    const router = readRepoFile('bin/local-stage-router.php');
+
+    for (const snippet of [
+        "'.generated' . DIRECTORY_SEPARATOR . 'site-root'",
+        'function resolveStageCandidate',
+        'function isGeneratedStagePath',
+        "'es'",
+        "'en'",
+        "'_astro'",
+        "'script.js'",
+        "'admin.js'",
+        "'js/chunks'",
+        "'js/engines'",
+        "'js/admin-chunks'",
+        "'js/booking-calendar.js'",
+        "'js/queue-kiosk.js'",
+        "'js/queue-display.js'",
+        'if ($stageCandidate !== false && isGeneratedStagePath($normalizedPath))',
+    ]) {
+        assert.equal(
+            router.includes(snippet),
+            true,
+            `bin/local-stage-router.php debe priorizar el stage generado: ${snippet}`
+        );
+    }
+
+    assert.equal(
+        router.includes(
+            '$repoCandidate = realpath($repoRoot . DIRECTORY_SEPARATOR . $normalizedPath);'
+        ),
+        true,
+        'bin/local-stage-router.php debe conservar fallback al repo para assets authored'
+    );
+});
+
 test('tooling local de performance usa el host canonico y expone benchmark reutilizable', () => {
     const readme = readRepoFile('README.md');
     const serverLocal = readRepoFile('docs/LOCAL_SERVER.md');
@@ -2080,6 +2196,7 @@ test('tooling local de performance usa el host canonico y expone benchmark reuti
         'mkdir -p "$(dirname "$OUTPUT_FILE")"',
         'Using existing host: ${BASE_URL}',
         'Starting local PHP server on ${BASE_URL} ...',
+        'bin/local-stage-router.php',
     ]) {
         assert.equal(
             benchmarkScript.includes(snippet),
@@ -2122,14 +2239,16 @@ test('lighthouse local y docs operativas distinguen QA canonico frente a puertos
     const monitoring = readRepoFile('docs/MONITORING_SETUP.md');
     const deployGuide = readRepoFile('docs/DEPLOY_HOSTING_PLAYBOOK.md');
     const operationsIndex = readRepoFile('docs/OPERATIONS_INDEX.md');
+    const localStageRouterCommand =
+        '"php -S 127.0.0.1:8011 -t . bin/local-stage-router.php"';
 
     assert.equal(
-        defaultLhci.includes('"php -S 127.0.0.1:8011 -t ."'),
+        defaultLhci.includes(localStageRouterCommand),
         true,
         '.lighthouserc.json debe usar 127.0.0.1:8011 como host local canonico'
     );
     assert.equal(
-        premiumLhci.includes('"php -S 127.0.0.1:8011 -t ."'),
+        premiumLhci.includes(localStageRouterCommand),
         true,
         'lighthouserc.premium.json debe usar 127.0.0.1:8011 como host local canonico'
     );
@@ -2151,6 +2270,7 @@ test('lighthouse local y docs operativas distinguen QA canonico frente a puertos
         'TEST_BASE_URL',
         'lighthouserc.premium.runtime.json',
         'LIGHTHOUSE_START_LOCAL_SERVER=0 requires LIGHTHOUSE_BASE_URL or TEST_BASE_URL',
+        'bin/local-stage-router.php',
     ]) {
         assert.equal(
             premiumRunner.includes(snippet),
@@ -2310,6 +2430,7 @@ test('artefactos locales efimeros salen del repo activo y tienen limpieza canoni
     for (const snippet of [
         '"check:local:artifacts": "node bin/clean-local-artifacts.js --dry-run"',
         '"clean:local:artifacts": "node bin/clean-local-artifacts.js"',
+        '"workspace:hygiene:doctor": "node bin/workspace-hygiene.js doctor --all-worktrees"',
     ]) {
         assert.equal(
             packageJson.includes(snippet),
@@ -2348,6 +2469,11 @@ test('artefactos locales efimeros salen del repo activo y tienen limpieza canoni
     }
 
     assert.equal(
+        readme.includes('npm run workspace:hygiene:doctor'),
+        true,
+        'README.md debe documentar el doctor canonico de workspace hygiene'
+    );
+    assert.equal(
         readme.includes('npm run check:local:artifacts'),
         true,
         'README.md debe documentar el dry-run de limpieza local'
@@ -2358,6 +2484,11 @@ test('artefactos locales efimeros salen del repo activo y tienen limpieza canoni
         'README.md debe documentar la limpieza local'
     );
     assert.equal(
+        operationsIndex.includes('npm run workspace:hygiene:doctor'),
+        true,
+        'OPERATIONS_INDEX debe documentar el doctor canonico de workspace hygiene'
+    );
+    assert.equal(
         operationsIndex.includes('npm run check:local:artifacts'),
         true,
         'OPERATIONS_INDEX debe documentar el dry-run de limpieza local'
@@ -2366,6 +2497,56 @@ test('artefactos locales efimeros salen del repo activo y tienen limpieza canoni
         operationsIndex.includes('npm run clean:local:artifacts'),
         true,
         'OPERATIONS_INDEX debe documentar la limpieza local'
+    );
+    assert.equal(
+        readme.includes('overall_state'),
+        true,
+        'README.md debe documentar el contrato V3 del doctor'
+    );
+    assert.equal(
+        readme.includes('issues[]'),
+        true,
+        'README.md debe documentar la agregacion por issues del doctor'
+    );
+    assert.equal(
+        readme.includes('remediation_plan[]'),
+        true,
+        'README.md debe documentar el plan de remediacion del doctor'
+    );
+    assert.equal(
+        readme.includes('--include-entries'),
+        true,
+        'README.md debe documentar el modo expandido del doctor'
+    );
+    assert.equal(
+        readme.includes('legacy_generated_root_deindexed'),
+        true,
+        'README.md debe documentar el bloqueo por deindexado legacy pendiente'
+    );
+    assert.equal(
+        operationsIndex.includes('overall_state'),
+        true,
+        'OPERATIONS_INDEX debe documentar el contrato V3 del doctor'
+    );
+    assert.equal(
+        operationsIndex.includes('issues[]'),
+        true,
+        'OPERATIONS_INDEX debe documentar la agregacion por issues del doctor'
+    );
+    assert.equal(
+        operationsIndex.includes('remediation_plan[]'),
+        true,
+        'OPERATIONS_INDEX debe documentar el plan de remediacion del doctor'
+    );
+    assert.equal(
+        operationsIndex.includes('--include-entries'),
+        true,
+        'OPERATIONS_INDEX debe documentar el modo expandido del doctor'
+    );
+    assert.equal(
+        operationsIndex.includes('legacy_generated_root_deindexed'),
+        true,
+        'OPERATIONS_INDEX debe documentar el bloqueo por deindexado legacy pendiente'
     );
     assert.equal(
         runbooks.includes('npm run clean:local:artifacts'),

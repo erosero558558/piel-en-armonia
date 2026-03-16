@@ -6,7 +6,7 @@ Current reality:
 
 - the current public source is V6
 - the deploy script publishes V6 artifacts from `main`
-- `es/**`, `en/**` and `_astro/**` are the only public artifacts expected in the repo root
+- generated public artifacts can live in `.generated/site-root/`, with repo-root copies kept only as compatibility fallback on hosts not migrated yet
 
 ## Target host
 
@@ -49,10 +49,12 @@ LOCAL_VERIFY_BASE_URL=http://127.0.0.1:8081 bash ./bin/deploy-public-v3-live.sh
 
 ```bash
 cd /var/www/figo
-test -f es/index.html && echo ES_OK
-test -f en/index.html && echo EN_OK
-test -d _astro && echo ASTRO_OK
-ls -ld es en _astro
+test -f .generated/site-root/es/index.html || test -f es/index.html && echo ES_OK
+test -f .generated/site-root/en/index.html || test -f en/index.html && echo EN_OK
+test -d .generated/site-root/_astro || test -d _astro && echo ASTRO_OK
+test -f .generated/site-root/script.js || test -f script.js && echo SCRIPT_OK
+ls -ld .generated/site-root/es .generated/site-root/en .generated/site-root/_astro 2>/dev/null || true
+ls -ld es en _astro 2>/dev/null || true
 ```
 
 ## Verify live routing
@@ -78,6 +80,7 @@ Expected:
 
 - The wrapper name is legacy.
 - The public artifact set is V6.
+- `deploy-public-v3-live.sh` prefers `.generated/site-root/` for generated assets and falls back to repo-root copies only for compatibility.
 - `LOCAL_VERIFY_BASE_URL` only controls the local Nginx-served host checked on the VPS.
 - `TEST_BASE_URL` stays reserved for local test/audit suites outside this deploy wrapper.
 - Legacy public HTML files such as root `index.html`, `telemedicina.html`, `servicios/**/*.html` and `ninos/**/*.html` are redirect-only and should not exist as authoring source anymore.

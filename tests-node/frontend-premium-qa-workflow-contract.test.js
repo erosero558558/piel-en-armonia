@@ -172,3 +172,25 @@ test('frontend premium QA fija host y puertos canonicos para lighthouse y perfor
         'falta LIGHTHOUSE_LOCAL_SERVER_PORT explicito en workflow'
     );
 });
+
+test('frontend premium QA construye el stage canonico y no invoca scripts legacy inexistentes', () => {
+    const { raw, parsed } = loadWorkflow();
+    const steps = parsed?.jobs?.['premium-qa']?.steps || [];
+    const stepNames = getStepNames(steps);
+
+    assert.equal(
+        stepNames.includes('Build canonical staged frontend outputs'),
+        true,
+        'falta el build canonico del frontend stageado'
+    );
+    assert.equal(
+        raw.includes('run: npm run build'),
+        true,
+        'frontend premium QA debe usar npm run build'
+    );
+    assert.doesNotMatch(
+        raw,
+        /npm run build:html|npm run services:build|npm run astro:sync/u,
+        'frontend premium QA no debe seguir invocando scripts legacy de rebuild'
+    );
+});
