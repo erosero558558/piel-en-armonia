@@ -11,7 +11,7 @@ param(
     [string]$CloudflaredExePath = '',
     [string]$PhpCgiExePath = '',
     [int]$LoopDelaySeconds = 15,
-    [int]$RepairCooldownSeconds = 90,
+    [int]$RepairCooldownSeconds = 300,
     [int]$LockTtlSeconds = 600,
     [switch]$RunOnce,
     [switch]$Quiet
@@ -41,6 +41,8 @@ $mainSyncStatusPath = Join-Path ([System.IO.Path]::GetDirectoryName($statusPathR
 $lockPath = $statusPathResolved + '.lock'
 $lockInfoPath = Get-HostingLockInfoPath -LockDirectoryPath $lockPath
 $powershellExe = (Get-Command powershell -ErrorAction Stop).Source
+$repairTimeoutSeconds = 300
+$smokeTimeoutSeconds = 45
 
 function Write-Info {
     param([string]$Message)
@@ -188,9 +190,9 @@ function Invoke-HostingSmoke {
 
     $reportPath = Join-Path ([System.IO.Path]::GetTempPath()) ("hosting-smoke-" + [Guid]::NewGuid().ToString('N') + '.json')
     try {
-        $result = Start-Process `
+        $result = Invoke-HostingCommandWithOutput `
             -FilePath $powershellExe `
-            -ArgumentList @(
+            -Arguments @(
                 '-NoProfile',
                 '-ExecutionPolicy', 'Bypass',
                 '-File', $ScriptPath,
@@ -200,9 +202,16 @@ function Invoke-HostingSmoke {
                 '-ReportPath', $reportPath,
                 '-Quiet'
             ) `
-            -NoNewWindow `
-            -Wait `
-            -PassThru
+            -TimeoutSeconds $smokeTimeoutSeconds `
+            -HeartbeatPath $statusPathResolved `
+            -Label 'SMOKE-HOSTING-WINDOWS.ps1'
+
+        if ($result.TimedOut -eq $true) {
+            return [PSCustomObject]@{
+                Ok = $false
+                Error = 'smoke_timeout'
+            }
+        }
 
         $payload = Read-HostingJsonFileSafe -Path $reportPath
         $smokeError = ''
@@ -248,16 +257,22 @@ function Invoke-Repair {
     Add-HostingOptionalNamedArgument -Arguments $arguments -Name '-CloudflaredExePath' -Value $CloudflaredExePath
     Add-HostingOptionalNamedArgument -Arguments $arguments -Name '-PhpCgiExePath' -Value $PhpCgiExePath
 
-    $result = Start-Process `
+    $result = Invoke-HostingCommandWithOutput `
         -FilePath $powershellExe `
-        -ArgumentList $arguments `
-        -NoNewWindow `
-        -Wait `
-        -PassThru
+        -Arguments $arguments `
+        -TimeoutSeconds $repairTimeoutSeconds `
+        -HeartbeatPath $statusPathResolved `
+        -Label 'REPARAR-HOSTING-WINDOWS.ps1' `
+        -StatusFilesToWatch @($mainSyncStatusPath)
 
+    if ($result.TimedOut -eq $true) {
+        throw 'repair_timeout'
+    }
     if ($result.ExitCode -ne 0) {
         throw 'REPARAR-HOSTING-WINDOWS.ps1 no pudo recuperar el servicio.'
     }
+
+    return $result
 }
 
 function Get-DesiredCommit {
@@ -304,6 +319,9 @@ function Merge-SyncStatus {
 
 $lockStream = $null
 $lastRepairAt = [DateTimeOffset]::MinValue
+$lastRepairTimedOut = $false
+$lastRepairError = ''
+$lastRepairChildPid = 0
 
 try {
     Ensure-HostingParentDirectory -Path $statusPathResolved
@@ -329,6 +347,8 @@ try {
         $status = [ordered]@{
             ok = $false
             timestamp = [DateTimeOffset]::Now.ToString('o')
+            phase_heartbeat_at = [DateTimeOffset]::Now.ToString('o')
+            status_source = 'supervisor_runtime'
             desired_commit = Get-DesiredCommit
             sync_state = ''
             sync_deploy_state = ''
@@ -347,6 +367,8 @@ try {
             degraded = $true
             repair_attempted = $false
             last_repair_at = ''
+            repair_timeout = $false
+            repair_child_pid = 0
             repair_error = 'supervisor_already_running'
             lock_state = [string]$lockResult.Snapshot.lock_state
             lock_reason = [string]$lockResult.Snapshot.lock_reason
@@ -405,14 +427,20 @@ try {
         $degraded = ($service.State -ne 'running') -or (-not $health.Ok) -or (-not $auth.Ok) -or (-not $smoke.Ok) -or $syncDegraded
         $repairAttempted = $false
         $repairError = ''
+        $repairTimedOut = $false
+        $repairChildPid = 0
 
         if ($degraded) {
             $age = ([DateTimeOffset]::Now - $lastRepairAt).TotalSeconds
             if ($age -ge $RepairCooldownSeconds) {
                 $repairAttempted = $true
                 try {
-                    Invoke-Repair -ScriptPath $repairScriptPath
+                    $repairResult = Invoke-Repair -ScriptPath $repairScriptPath
+                    try { $repairChildPid = [int]$repairResult.ProcessId } catch {}
                     $lastRepairAt = [DateTimeOffset]::Now
+                    $lastRepairTimedOut = $false
+                    $lastRepairError = ''
+                    $lastRepairChildPid = $repairChildPid
                     $service = Get-ServiceState -CurrentTunnelId $TunnelId
                     $health = Invoke-LocalHealth
                     $auth = Invoke-LocalAuth
@@ -447,13 +475,31 @@ try {
                 } catch {
                     $repairError = $_.Exception.Message
                     $lastRepairAt = [DateTimeOffset]::Now
+                    $repairTimedOut = [string]::Equals($repairError, 'repair_timeout', [System.StringComparison]::OrdinalIgnoreCase)
+                    $lastRepairTimedOut = $repairTimedOut
+                    $lastRepairError = $repairError
+                    if ($repairTimedOut) {
+                        $currentSupervisorStatus = Read-HostingJsonFileSafe -Path $statusPathResolved
+                        if ($null -ne $currentSupervisorStatus) {
+                            try { $repairChildPid = [int]$currentSupervisorStatus.child_pid } catch {}
+                        }
+                    }
+                    $lastRepairChildPid = $repairChildPid
                     Write-Info ("Supervisor no pudo reparar el hosting: {0}" -f $repairError)
                 }
             }
         }
 
         $lockSnapshot = Get-LockSnapshot -InfoPath $lockInfoPath -TtlSeconds $LockTtlSeconds
-        if ($repairAttempted -and [string]::IsNullOrWhiteSpace($repairError)) {
+        $repairCooldownActive =
+            $lastRepairTimedOut -and
+            ($lastRepairAt -ne [DateTimeOffset]::MinValue) -and
+            (([DateTimeOffset]::Now - $lastRepairAt).TotalSeconds -lt $RepairCooldownSeconds)
+        if ($repairTimedOut) {
+            $supervisorState = 'failed'
+        } elseif ($repairCooldownActive) {
+            $supervisorState = 'failed'
+        } elseif ($repairAttempted -and [string]::IsNullOrWhiteSpace($repairError)) {
             $supervisorState = 'recovering'
         } elseif ($degraded -and -not [string]::IsNullOrWhiteSpace($repairError)) {
             $supervisorState = 'failed'
@@ -474,13 +520,24 @@ try {
         }
         if (-not [string]::IsNullOrWhiteSpace($repairError)) {
             $lastFailureReason = $repairError
+        } elseif ($repairCooldownActive) {
+            $lastFailureReason = $lastRepairError
         } else {
             $lastFailureReason = ''
+        }
+        $statusRepairTimeout = $repairTimedOut -or $repairCooldownActive
+        if ($repairChildPid -le 0) {
+            $repairChildPid = $lastRepairChildPid
+        }
+        if ([string]::IsNullOrWhiteSpace($repairError) -and $repairCooldownActive) {
+            $repairError = $lastRepairError
         }
 
         $status = [ordered]@{
             ok = (-not $degraded)
             timestamp = [DateTimeOffset]::Now.ToString('o')
+            phase_heartbeat_at = [DateTimeOffset]::Now.ToString('o')
+            status_source = 'supervisor_runtime'
             desired_commit = Get-DesiredCommit
             sync_state = ''
             sync_deploy_state = ''
@@ -500,6 +557,8 @@ try {
             degraded = $degraded
             repair_attempted = $repairAttempted
             last_repair_at = $lastRepairAtText
+            repair_timeout = $statusRepairTimeout
+            repair_child_pid = $repairChildPid
             repair_error = $repairError
             lock_state = [string]$lockSnapshot.lock_state
             lock_reason = [string]$lockSnapshot.lock_reason

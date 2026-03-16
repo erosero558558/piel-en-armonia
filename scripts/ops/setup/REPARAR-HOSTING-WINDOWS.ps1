@@ -46,6 +46,12 @@ $taskNames = @(
     'Pielarmonia Hosting Main Sync',
     'Pielarmonia Hosting Stack'
 )
+$arrancarTimeoutSeconds = 90
+$syncPreflightTimeoutSeconds = 90
+$syncApplyTimeoutSeconds = 240
+$configTimeoutSeconds = 90
+$smokeTimeoutSeconds = 45
+$supervisorReadyTimeoutSeconds = 60
 
 function Write-Info {
     param([string]$Message)
@@ -67,6 +73,7 @@ function Invoke-Git {
 function Write-Status {
     param([hashtable]$Payload)
 
+    $Payload.timestamp = [DateTimeOffset]::Now.ToString('o')
     Write-HostingJsonFile -Path $statusPathResolved -Payload $Payload
 }
 
@@ -181,15 +188,18 @@ function Invoke-LocalHealthCheck {
 }
 
 function Invoke-LocalSmoke {
-    param([string]$ScriptPath)
+    param(
+        [string]$ScriptPath,
+        [int]$TimeoutSeconds = 45
+    )
 
     if (-not (Test-Path -LiteralPath $ScriptPath)) {
         throw "No existe el smoke canonico: $ScriptPath"
     }
 
-    $result = Start-Process `
+    $result = Invoke-HostingCommandWithOutput `
         -FilePath $powershellExe `
-        -ArgumentList @(
+        -Arguments @(
             '-NoProfile',
             '-ExecutionPolicy', 'Bypass',
             '-File', $ScriptPath,
@@ -198,13 +208,18 @@ function Invoke-LocalSmoke {
             '-ExpectedTransport', 'web_broker',
             '-Quiet'
         ) `
-        -NoNewWindow `
-        -Wait `
-        -PassThru
+        -TimeoutSeconds $TimeoutSeconds `
+        -HeartbeatPath $statusPathResolved `
+        -Label 'SMOKE-HOSTING-WINDOWS.ps1'
 
+    if ($result.TimedOut -eq $true) {
+        throw 'smoke_timeout'
+    }
     if ($result.ExitCode -ne 0) {
         throw 'El smoke local del hosting no quedo sano despues de reparar.'
     }
+
+    return $result
 }
 
 function Update-StatusFromSyncPayload {
@@ -404,13 +419,21 @@ function Disable-ControlPlane {
 function Wait-ForSupervisorReady {
     param(
         [string]$SupervisorStatusPath,
-        [int]$TimeoutSeconds = 45
+        [int]$TimeoutSeconds = 60,
+        [string]$HeartbeatPath = ''
     )
 
     $deadline = [DateTimeOffset]::Now.AddSeconds($TimeoutSeconds)
     $lastPayload = $null
 
     while ([DateTimeOffset]::Now -lt $deadline) {
+        if (-not [string]::IsNullOrWhiteSpace($HeartbeatPath)) {
+            Set-HostingJsonFields -Path $HeartbeatPath -Fields ([ordered]@{
+                phase_heartbeat_at = [DateTimeOffset]::Now.ToString('o')
+                phase_timeout_seconds = $TimeoutSeconds
+                timed_out = $false
+            })
+        }
         $payload = Read-HostingJsonFileSafe -Path $SupervisorStatusPath
         if ($null -ne $payload) {
             $lastPayload = $payload
@@ -469,10 +492,24 @@ function New-SyncArguments {
 }
 
 function Invoke-SyncScript {
-    param([switch]$CurrentPreflightOnly)
+    param(
+        [switch]$CurrentPreflightOnly,
+        [string]$SyncStatusWatchPath = ''
+    )
 
     $arguments = New-SyncArguments -CurrentPreflightOnly:$CurrentPreflightOnly
-    return Invoke-HostingCommandWithOutput -FilePath $powershellExe -Arguments $arguments
+    $timeoutSeconds = $syncApplyTimeoutSeconds
+    if ($CurrentPreflightOnly) {
+        $timeoutSeconds = $syncPreflightTimeoutSeconds
+    }
+
+    return Invoke-HostingCommandWithOutput `
+        -FilePath $powershellExe `
+        -Arguments $arguments `
+        -TimeoutSeconds $timeoutSeconds `
+        -HeartbeatPath $statusPathResolved `
+        -Label 'SINCRONIZAR-HOSTING-WINDOWS.ps1' `
+        -StatusFilesToWatch @($SyncStatusWatchPath)
 }
 
 function Invoke-ConfigScript {
@@ -502,13 +539,64 @@ function Invoke-ConfigScript {
         $arguments.Add('-StartSupervisorNow') | Out-Null
     }
 
-    return Invoke-HostingCommandWithOutput -FilePath $powershellExe -Arguments $arguments
+    return Invoke-HostingCommandWithOutput `
+        -FilePath $powershellExe `
+        -Arguments $arguments `
+        -TimeoutSeconds $configTimeoutSeconds `
+        -HeartbeatPath $statusPathResolved `
+        -Label 'CONFIGURAR-HOSTING-WINDOWS.ps1' `
+        -StatusFilesToWatch @($supervisorStatusPath)
+}
+
+function Set-RepairPhase {
+    param(
+        [hashtable]$CurrentStatus,
+        [string]$Phase,
+        [int]$TimeoutSeconds = 0,
+        [string]$ChildScript = ''
+    )
+
+    $now = [DateTimeOffset]::Now.ToString('o')
+    $CurrentStatus.phase = $Phase
+    $CurrentStatus.phase_started_at = $now
+    $CurrentStatus.phase_heartbeat_at = $now
+    $CurrentStatus.phase_timeout_seconds = $TimeoutSeconds
+    $CurrentStatus.child_script = $ChildScript
+    $CurrentStatus.child_pid = 0
+    $CurrentStatus.child_exit_code = ''
+    $CurrentStatus.timed_out = $false
+    Write-Status -Payload $CurrentStatus
+}
+
+function Update-RepairChildResult {
+    param(
+        [hashtable]$CurrentStatus,
+        [object]$Result
+    )
+
+    if ($null -eq $Result) {
+        return
+    }
+
+    $CurrentStatus.phase_heartbeat_at = [DateTimeOffset]::Now.ToString('o')
+    try { $CurrentStatus.child_pid = [int]$Result.ProcessId } catch {}
+    try { $CurrentStatus.child_exit_code = [int]$Result.ExitCode } catch {}
+    $CurrentStatus.timed_out = ($Result.TimedOut -eq $true)
+    Write-Status -Payload $CurrentStatus
 }
 
 $status = [ordered]@{
     ok = $false
     timestamp = [DateTimeOffset]::Now.ToString('o')
     phase = 'discover'
+    phase_started_at = [DateTimeOffset]::Now.ToString('o')
+    phase_heartbeat_at = [DateTimeOffset]::Now.ToString('o')
+    phase_timeout_seconds = 0
+    child_script = ''
+    child_pid = 0
+    child_exit_code = ''
+    timed_out = $false
+    status_source = 'repair_runtime'
     mirror_repo_path = $mirrorRepoPathResolved
     release_target_path = $releaseTargetPathResolved
     external_env_path = $externalEnvPathResolved
@@ -562,6 +650,7 @@ try {
     $status.auth_mode = [string]$auth.Mode
     $status.auth_transport = [string]$auth.Transport
     $status.auth_status = [string]$auth.Status
+    Write-Status -Payload $status
 
     if ([string]::IsNullOrWhiteSpace($TargetCommit) -and $PromoteCurrentRemoteHead) {
         $TargetCommit = Resolve-RemoteHead -RepoPath $mirrorRepoPathResolved -BranchName 'main'
@@ -578,17 +667,26 @@ try {
         try { $status.desired_commit = [string]$releaseTargetPayload.target_commit } catch {}
     }
 
-    $status.phase = 'sanitize_legacy_state'
+    Set-RepairPhase -CurrentStatus $status -Phase 'sanitize_legacy_state'
     $sanitizeResult = Sanitize-LegacyHostingState -HostingDir $hostingDir
     $status.sanitize_repaired = ($sanitizeResult.repaired -eq $true)
     $status.sanitize_removed_paths = @($sanitizeResult.removed_paths)
     $status.sanitize_error = [string]$sanitizeResult.error
+    Write-Status -Payload $status
     if ($sanitizeResult.remaining_invalid_lock -eq $true) {
         throw 'sync_lock_unrecoverable'
     }
 
-    $status.phase = 'preflight'
-    $preflightResult = Invoke-SyncScript -CurrentPreflightOnly
+    Set-RepairPhase `
+        -CurrentStatus $status `
+        -Phase 'preflight' `
+        -TimeoutSeconds $syncPreflightTimeoutSeconds `
+        -ChildScript 'SINCRONIZAR-HOSTING-WINDOWS.ps1'
+    $preflightResult = Invoke-SyncScript -CurrentPreflightOnly -SyncStatusWatchPath $syncStatusPath
+    Update-RepairChildResult -CurrentStatus $status -Result $preflightResult
+    if ($preflightResult.TimedOut -eq $true) {
+        throw 'sync_timeout'
+    }
     if ($preflightResult.ExitCode -ne 0) {
         throw ("Preflight del sync fallido. {0}" -f $preflightResult.Output.Trim())
     }
@@ -599,17 +697,25 @@ try {
 
     if ($PreflightOnly) {
         $status.ok = $true
-        $status.phase = 'preflight_ready'
+        Set-RepairPhase -CurrentStatus $status -Phase 'preflight_ready'
         Write-Status -Payload $status
         Write-Info 'Preflight de reparacion OK; no se tocaron procesos activos.'
         exit 0
     }
 
-    $status.phase = 'quiesce'
+    Set-RepairPhase -CurrentStatus $status -Phase 'quiesce'
     Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir
 
-    $status.phase = 'apply'
-    $syncResult = Invoke-SyncScript
+    Set-RepairPhase `
+        -CurrentStatus $status `
+        -Phase 'apply' `
+        -TimeoutSeconds $syncApplyTimeoutSeconds `
+        -ChildScript 'SINCRONIZAR-HOSTING-WINDOWS.ps1'
+    $syncResult = Invoke-SyncScript -SyncStatusWatchPath $syncStatusPath
+    Update-RepairChildResult -CurrentStatus $status -Result $syncResult
+    if ($syncResult.TimedOut -eq $true) {
+        throw 'sync_timeout'
+    }
     if ($syncResult.ExitCode -ne 0) {
         throw ("SINCRONIZAR-HOSTING-WINDOWS.ps1 no pudo recuperar el servicio. {0}" -f $syncResult.Output.Trim())
     }
@@ -633,12 +739,25 @@ try {
     }
     Assert-SyncStatusHealthy -SyncStatus $syncStatus
 
-    $status.phase = 'validate_stack'
-    Invoke-LocalSmoke -ScriptPath $smokeScriptPath
+    Set-RepairPhase `
+        -CurrentStatus $status `
+        -Phase 'validate_stack' `
+        -TimeoutSeconds $smokeTimeoutSeconds `
+        -ChildScript 'SMOKE-HOSTING-WINDOWS.ps1'
+    $smokeResult = Invoke-LocalSmoke -ScriptPath $smokeScriptPath -TimeoutSeconds $smokeTimeoutSeconds
+    Update-RepairChildResult -CurrentStatus $status -Result $smokeResult
 
-    $status.phase = 'configure_runtime'
+    Set-RepairPhase `
+        -CurrentStatus $status `
+        -Phase 'configure_runtime' `
+        -TimeoutSeconds $configTimeoutSeconds `
+        -ChildScript 'CONFIGURAR-HOSTING-WINDOWS.ps1'
     $automationConfigured = $true
     $configResult = Invoke-ConfigScript -SkipBootstrapSync -StartSupervisorNow
+    Update-RepairChildResult -CurrentStatus $status -Result $configResult
+    if ($configResult.TimedOut -eq $true) {
+        throw 'config_timeout'
+    }
     if ($configResult.ExitCode -ne 0) {
         throw ("CONFIGURAR-HOSTING-WINDOWS.ps1 no pudo reinstalar el supervisor. {0}" -f $configResult.Output.Trim())
     }
@@ -646,28 +765,43 @@ try {
         Write-Info $configResult.Output.Trim()
     }
 
-    $status.phase = 'start_supervisor'
-    $status.phase = 'validate_supervisor'
-    $supervisorStatus = Wait-ForSupervisorReady -SupervisorStatusPath $supervisorStatusPath
+    Set-RepairPhase -CurrentStatus $status -Phase 'start_supervisor'
+    Set-RepairPhase `
+        -CurrentStatus $status `
+        -Phase 'validate_supervisor' `
+        -TimeoutSeconds $supervisorReadyTimeoutSeconds `
+        -ChildScript 'Wait-ForSupervisorReady'
+    $supervisorStatus = Wait-ForSupervisorReady `
+        -SupervisorStatusPath $supervisorStatusPath `
+        -TimeoutSeconds $supervisorReadyTimeoutSeconds `
+        -HeartbeatPath $statusPathResolved
     $status.supervisor_state = [string]$supervisorStatus.supervisor_state
     $status.service_state = [string]$supervisorStatus.service_state
     $status.auth_contract_ok = ($supervisorStatus.auth_contract_ok -eq $true)
     $status.auth_mode = [string]$supervisorStatus.auth_mode
     $status.auth_transport = [string]$supervisorStatus.auth_transport
     $status.auth_status = [string]$supervisorStatus.auth_status
+    $status.phase_heartbeat_at = [DateTimeOffset]::Now.ToString('o')
+    Write-Status -Payload $status
 
-    $status.phase = 'final_smoke'
-    Invoke-LocalSmoke -ScriptPath $smokeScriptPath
+    Set-RepairPhase `
+        -CurrentStatus $status `
+        -Phase 'final_smoke' `
+        -TimeoutSeconds $smokeTimeoutSeconds `
+        -ChildScript 'SMOKE-HOSTING-WINDOWS.ps1'
+    $finalSmokeResult = Invoke-LocalSmoke -ScriptPath $smokeScriptPath -TimeoutSeconds $smokeTimeoutSeconds
+    Update-RepairChildResult -CurrentStatus $status -Result $finalSmokeResult
 
     $status.ok = $true
     $status.repaired = $true
-    $status.phase = 'completed'
+    Set-RepairPhase -CurrentStatus $status -Phase 'completed'
     $status.error = ''
     Write-Status -Payload $status
     Write-Info 'Reparacion completada con health/auth/smoke locales en verde.'
 } catch {
     $status.error = $_.Exception.Message
     $status.last_failure_reason = $status.error
+    $status.timed_out = @('sync_timeout', 'config_timeout', 'smoke_timeout') -contains $status.error
     if (($status.phase -ne 'discover') -and ($status.phase -ne 'sanitize_legacy_state') -and ($status.phase -ne 'preflight') -and ($status.phase -ne 'preflight_ready')) {
         Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir -RemoveTasks:$automationConfigured
     }

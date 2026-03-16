@@ -590,15 +590,18 @@ if ($StopLegacy) {
     Stop-ProcessesByNeedle -Needles @('--url http://127.0.0.1:8011', $TunnelId, 'cloudflared.exe') -Label 'legacy cloudflared tunnel'
 }
 
+Write-Info 'phase=sync_env'
 Sync-ExternalEnvFile -SourcePath $externalEnvPathResolved -DestinationPath $mirrorEnvPath | Out-Null
 $bootstrapConfig = Get-EffectiveOperatorAuthBootstrapConfig
 
+Write-Info 'phase=refresh_php'
 Ensure-PhpCgiListener `
     -PhpCgiExecutable $phpCgiExe `
     -WorkingDirectory $repoRoot `
     -StdOutPath $phpStdOutPath `
     -StdErrPath $phpStdErrPath
 
+Write-Info 'phase=refresh_caddy'
 Ensure-CaddyAndBackendReady `
     -CaddyExecutable $caddyExe `
     -WorkingDirectory $repoRoot `
@@ -612,11 +615,13 @@ $null = Refresh-OperatorAuthRuntime `
     -BootstrapMode ([string]$bootstrapConfig.Mode) `
     -BootstrapTransport ([string]$bootstrapConfig.Transport)
 
+Write-Info 'phase=resolve_transport'
 $operatorAuthTransport = Resolve-OperatorAuthTransport `
     -BootstrapMode ([string]$bootstrapConfig.Mode) `
     -BootstrapTransport ([string]$bootstrapConfig.Transport)
 Write-Info ("Operator auth transport detectado: {0}" -f $operatorAuthTransport)
 
+Write-Info 'phase=start_tunnel'
 Ensure-CloudflaredTunnel `
     -CloudflaredExecutable $cloudflaredExe `
     -WorkingDirectory $repoRoot `
@@ -633,4 +638,14 @@ if (-not $SkipBridge -or $operatorAuthTransport -eq 'local_helper') {
     Write-Info 'OpenClaw auth helper omitido en modo boot/public stack.'
 }
 
+$finalStatusPayload = Get-OperatorAuthStatusPayload
+$bootstrapContractDeferred = $false
+if (
+    ($null -eq $finalStatusPayload -or [string]::IsNullOrWhiteSpace([string]$finalStatusPayload.transport)) -and
+    [string]::Equals([string]$bootstrapConfig.Mode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -and
+    [string]::Equals([string]$bootstrapConfig.Transport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase)
+) {
+    $bootstrapContractDeferred = $true
+}
+Write-Info ("phase=ready bootstrap_contract_deferred={0} final_mode={1} final_transport={2}" -f $bootstrapContractDeferred, [string]$finalStatusPayload.mode, [string]$finalStatusPayload.transport)
 Write-Info ("Stack listo. Public domain esperado: https://{0}" -f $PublicDomain)

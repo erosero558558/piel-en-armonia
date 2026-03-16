@@ -61,15 +61,18 @@ function load(filePath) {
     return readFileSync(filePath, 'utf8');
 }
 
-test('Windows V5 define modulo comun de compatibilidad y saneamiento de locks legacy', () => {
+test('Windows V6 define modulo comun de compatibilidad, saneamiento y wrapper con timeout', () => {
     const raw = load(COMMON_SCRIPT_PATH);
     const requiredSnippets = [
         'function ConvertFrom-JsonCompat',
         'function Read-HostingJsonFileSafe',
         'function Write-HostingJsonFile',
+        'function Set-HostingJsonFields',
         'function Get-HostingFileSha256',
         'function Invoke-HostingHttpRequest',
         'function Invoke-HostingJsonRequest',
+        'function Stop-HostingProcessTree',
+        'function Write-HostingCommandHeartbeat',
         'function Get-HostingProcessSnapshots',
         'Get-CimInstance Win32_Process',
         'Get-WmiObject Win32_Process',
@@ -86,6 +89,15 @@ test('Windows V5 define modulo comun de compatibilidad y saneamiento de locks le
         'function Remove-HostingDirectoryLock',
         'function Repair-HostingLegacyLocks',
         'function Acquire-HostingDirectoryLock',
+        '[int]$TimeoutSeconds = 0',
+        "[string]$HeartbeatPath = ''",
+        "[string]$Label = ''",
+        '[string[]]$StatusFilesToWatch = @()',
+        '[bool]$KillTreeOnTimeout = $true',
+        'taskkill.exe',
+        'TimedOut = ($timedOut -eq $true)',
+        'ProcessId = $processId',
+        'DurationSeconds = [int][Math]::Ceiling($stopwatch.Elapsed.TotalSeconds)',
         "lock_state = 'missing'",
         "lock_reason = ''",
         "legacy_file_lock",
@@ -100,7 +112,7 @@ test('Windows V5 define modulo comun de compatibilidad y saneamiento de locks le
     }
 });
 
-test('sync V5 usa release pin, sanea locks legacy y falla duro solo si quedan irrecuperables', () => {
+test('sync V6 usa release pin, sanea locks legacy, expone heartbeat y corta restart colgado', () => {
     const raw = load(SYNC_SCRIPT_PATH);
     const requiredSnippets = [
         "[switch]$PreflightOnly",
@@ -109,22 +121,26 @@ test('sync V5 usa release pin, sanea locks legacy y falla duro solo si quedan ir
         'Get-HostingLockInfoPath -LockDirectoryPath $lockPath',
         'Acquire-HostingDirectoryLock',
         'Remove-HostingDirectoryLock',
-        "state = 'discovering'",
-        "deploy_state = 'discover'",
-        "state = 'preflight'",
-        "deploy_state = 'preflight'",
+        'phase_started_at = [DateTimeOffset]::Now.ToString(\'o\')',
+        'phase_heartbeat_at = [DateTimeOffset]::Now.ToString(\'o\')',
+        'phase_timeout_seconds = 0',
+        'timed_out = $false',
+        'Set-SyncPhase',
+        "Set-SyncPhase -CurrentStatus $status -State 'discovering' -DeployState 'discover'",
+        "Set-SyncPhase -CurrentStatus $status -State 'preflight' -DeployState 'preflight'",
         'Get-GitRevisionOrThrow',
         'Invoke-ValidateMirror -CurrentTunnelId $TunnelId',
-        "state = 'preflight_ready'",
-        "deploy_state = 'preflight_ready'",
-        "state = 'applying'",
-        "deploy_state = 'apply'",
-        "state = 'restarting'",
-        "deploy_state = 'restart'",
-        "state = 'validating'",
-        "deploy_state = 'validate'",
-        "state = 'rollback'",
-        "deploy_state = 'rollback'",
+        'Wait-ForMirrorValidation',
+        "Set-SyncPhase -CurrentStatus $status -State 'preflight_ready' -DeployState 'preflight_ready'",
+        "Set-SyncPhase -CurrentStatus $status -State 'applying' -DeployState 'apply'",
+        "Set-SyncPhase -CurrentStatus $status -State 'restarting' -DeployState 'restart'",
+        "Set-SyncPhase -CurrentStatus $status -State 'validating' -DeployState 'validate'",
+        "Set-SyncPhase -CurrentStatus $status -State 'rollback' -DeployState 'rollback'",
+        'TimeoutSeconds $arrancarTimeoutSeconds',
+        'HeartbeatPath $statusPathResolved',
+        "throw 'sync_restart_timeout'",
+        "deploy_state = 'restart_timeout'",
+        'sync_post_restart_contract_invalid',
         'desired_commit =',
         'current_commit =',
         'previous_commit =',
@@ -192,24 +208,33 @@ test('config V3 desacopla bootstrap del mirror y arranque del supervisor', () =>
     }
 });
 
-test('repair, supervisor, start y smoke usan contrato V5 fail-safe', () => {
+test('repair, supervisor, start y smoke usan contrato V6 fail-safe y observable', () => {
     const required = [
         {
             filePath: REPAIR_SCRIPT_PATH,
             snippets: [
                 "[switch]$PreflightOnly",
                 "$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'",
+                "status_source = 'repair_runtime'",
                 "phase = 'discover'",
-                "phase = 'sanitize_legacy_state'",
-                "phase = 'preflight'",
-                "phase = 'quiesce'",
-                "phase = 'apply'",
-                "phase = 'validate_stack'",
-                "phase = 'configure_runtime'",
-                "phase = 'validate_supervisor'",
-                "phase = 'final_smoke'",
-                "phase = 'completed'",
+                "Set-RepairPhase -CurrentStatus $status -Phase 'sanitize_legacy_state'",
+                "Set-RepairPhase",
+                "Set-RepairPhase -CurrentStatus $status -Phase 'preflight_ready'",
+                "Set-RepairPhase -CurrentStatus $status -Phase 'quiesce'",
+                "Set-RepairPhase -CurrentStatus $status -Phase 'completed'",
+                'phase_started_at = [DateTimeOffset]::Now.ToString(\'o\')',
+                'phase_heartbeat_at = [DateTimeOffset]::Now.ToString(\'o\')',
+                'phase_timeout_seconds = 0',
+                "child_script = ''",
+                'child_pid = 0',
+                "child_exit_code = ''",
+                'timed_out = $false',
+                'Set-RepairPhase',
+                'Update-RepairChildResult',
                 'Invoke-SyncScript -CurrentPreflightOnly',
+                'sync_timeout',
+                'config_timeout',
+                'smoke_timeout',
                 'Preflight de reparacion OK; no se tocaron procesos activos.',
                 'Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir',
                 'Sanitize-LegacyHostingState -HostingDir $hostingDir',
@@ -218,7 +243,7 @@ test('repair, supervisor, start y smoke usan contrato V5 fail-safe', () => {
                 'sync_status_invalid:',
                 'sync_lock_unrecoverable',
                 'Invoke-ConfigScript -SkipBootstrapSync -StartSupervisorNow',
-                'Wait-ForSupervisorReady -SupervisorStatusPath $supervisorStatusPath',
+                '-SupervisorStatusPath $supervisorStatusPath',
                 'supervisor_boot_failed',
                 'supervisor_auth_contract_failed',
                 'supervisor_service_stopped',
@@ -230,6 +255,8 @@ test('repair, supervisor, start y smoke usan contrato V5 fail-safe', () => {
             snippets: [
                 "$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'",
                 "[int]$LockTtlSeconds = 600",
+                '[int]$RepairCooldownSeconds = 300',
+                '$repairTimeoutSeconds = 300',
                 'Acquire-SupervisorLock',
                 'Get-LockSnapshot',
                 'Acquire-HostingDirectoryLock',
@@ -238,6 +265,10 @@ test('repair, supervisor, start y smoke usan contrato V5 fail-safe', () => {
                 'Invoke-HostingSmoke',
                 'Invoke-Repair',
                 'supervisor_lock_unrecoverable',
+                'repair_timeout',
+                'repair_child_pid',
+                "status_source = 'supervisor_runtime'",
+                'phase_heartbeat_at = [DateTimeOffset]::Now.ToString(\'o\')',
                 "supervisor_state = 'failed'",
                 '$supervisorState = \'recovering\'',
                 'desired_commit = Get-DesiredCommit',
@@ -272,6 +303,12 @@ test('repair, supervisor, start y smoke usan contrato V5 fail-safe', () => {
                 'function Get-EffectiveOperatorAuthBootstrapConfig',
                 'function Sync-ExternalEnvFile',
                 'function Refresh-OperatorAuthRuntime',
+                "phase=sync_env",
+                "phase=refresh_php",
+                "phase=refresh_caddy",
+                "phase=resolve_transport",
+                "phase=start_tunnel",
+                'bootstrap_contract_deferred',
                 'Operator auth transport detectado',
                 'Se asume web_broker desde env.php efectivo durante bootstrap.',
                 'OpenClaw auth helper omitido; transport activo:',
@@ -307,25 +344,25 @@ test('repair, supervisor, start y smoke usan contrato V5 fail-safe', () => {
     }
 });
 
-test('repair V5 sanea estado legacy antes del preflight y valida main-sync-status antes del primer smoke', () => {
+test('repair V6 sanea estado legacy antes del preflight y valida main-sync-status antes del primer smoke', () => {
     const raw = load(REPAIR_SCRIPT_PATH);
     const orderedSnippets = [
-        "phase = 'sanitize_legacy_state'",
+        "Set-RepairPhase -CurrentStatus $status -Phase 'sanitize_legacy_state'",
         'Sanitize-LegacyHostingState -HostingDir $hostingDir',
         '$preflightResult = Invoke-SyncScript -CurrentPreflightOnly',
-        "phase = 'quiesce'",
+        "Set-RepairPhase -CurrentStatus $status -Phase 'quiesce'",
         'Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir',
-        "phase = 'apply'",
+        "Set-RepairPhase",
         '$syncResult = Invoke-SyncScript',
         '$syncStatus = Read-HostingJsonFileSafe -Path $syncStatusPath',
         'Assert-SyncStatusHealthy -SyncStatus $syncStatus',
-        "phase = 'validate_stack'",
+        "Phase 'validate_stack'",
         'Invoke-LocalSmoke -ScriptPath $smokeScriptPath',
-        "phase = 'configure_runtime'",
+        "Phase 'configure_runtime'",
         'Invoke-ConfigScript -SkipBootstrapSync -StartSupervisorNow',
-        "phase = 'validate_supervisor'",
-        'Wait-ForSupervisorReady -SupervisorStatusPath $supervisorStatusPath',
-        "phase = 'final_smoke'",
+        "Phase 'validate_supervisor'",
+        '-SupervisorStatusPath $supervisorStatusPath',
+        "Phase 'final_smoke'",
         'Invoke-LocalSmoke -ScriptPath $smokeScriptPath',
     ];
 
@@ -345,10 +382,12 @@ test('smoke V4 evita el patron de reporte fragil para Windows PowerShell 5.1', (
     assert.equal(raw.includes('$checkItems = @()'), true);
 });
 
-test('sync V5 no deja state=locked con owner_pid invalido y expone lock_repaired', () => {
+test('sync V6 no deja state=locked con owner_pid invalido y expone timeout/heartbeat', () => {
     const raw = load(SYNC_SCRIPT_PATH);
     assert.equal(raw.includes("if ($status.lock_owner_pid -gt 0) {\n            $status.state = 'locked'"), true);
     assert.equal(raw.includes("throw 'sync_lock_unrecoverable'"), true);
+    assert.equal(raw.includes("throw 'sync_restart_timeout'"), true);
+    assert.equal(raw.includes('phase_heartbeat_at = [DateTimeOffset]::Now.ToString(\'o\')'), true);
     assert.equal(raw.includes('lock_repaired = $false'), true);
     assert.equal(raw.includes("if (-not (Test-Path -LiteralPath $lockPath)) {\n            $status.lock_state = 'unlocked'"), true);
 });

@@ -41,6 +41,8 @@ $lockPath = $statusPathResolved + '.lock'
 $lockInfoPath = Get-HostingLockInfoPath -LockDirectoryPath $lockPath
 $gitExe = (Get-Command git -ErrorAction Stop).Source
 $powershellExe = (Get-Command powershell -ErrorAction Stop).Source
+$arrancarTimeoutSeconds = 90
+$validationTimeoutSeconds = 45
 
 function Write-Info {
     param([string]$Message)
@@ -56,6 +58,7 @@ function Write-Info {
 function Write-Status {
     param([hashtable]$Payload)
 
+    $Payload.timestamp = [DateTimeOffset]::Now.ToString('o')
     Write-HostingJsonFile -Path $statusPathResolved -Payload $Payload
 }
 
@@ -322,7 +325,15 @@ function Invoke-StartMirrorStack {
     Add-HostingOptionalNamedArgument -Arguments $arguments -Name '-CloudflaredExePath' -Value $CurrentCloudflaredExePath
     Add-HostingOptionalNamedArgument -Arguments $arguments -Name '-PhpCgiExePath' -Value $CurrentPhpCgiExePath
 
-    $result = Invoke-HostingCommandWithOutput -FilePath $powershellExe -Arguments $arguments
+    $result = Invoke-HostingCommandWithOutput `
+        -FilePath $powershellExe `
+        -Arguments $arguments `
+        -TimeoutSeconds $arrancarTimeoutSeconds `
+        -HeartbeatPath $statusPathResolved `
+        -Label 'ARRANCAR-HOSTING-WINDOWS.ps1'
+    if ($result.TimedOut -eq $true) {
+        throw 'sync_restart_timeout'
+    }
     if ($result.ExitCode -ne 0) {
         if (-not [string]::IsNullOrWhiteSpace($result.Output)) {
             Write-Info $result.Output.Trim()
@@ -333,6 +344,8 @@ function Invoke-StartMirrorStack {
     if (-not [string]::IsNullOrWhiteSpace($result.Output)) {
         Write-Info $result.Output.Trim()
     }
+
+    return $result
 }
 
 function Invoke-ValidateMirror {
@@ -365,6 +378,54 @@ function Set-StatusFromValidation {
     }
 }
 
+function Set-SyncPhase {
+    param(
+        [hashtable]$CurrentStatus,
+        [string]$State,
+        [string]$DeployState,
+        [int]$TimeoutSeconds = 0
+    )
+
+    $now = [DateTimeOffset]::Now.ToString('o')
+    $CurrentStatus.state = $State
+    $CurrentStatus.deploy_state = $DeployState
+    $CurrentStatus.phase_started_at = $now
+    $CurrentStatus.phase_heartbeat_at = $now
+    $CurrentStatus.phase_timeout_seconds = $TimeoutSeconds
+    $CurrentStatus.timed_out = $false
+    Write-Status -Payload $CurrentStatus
+}
+
+function Wait-ForMirrorValidation {
+    param(
+        [string]$CurrentTunnelId,
+        [int]$TimeoutSeconds = 45
+    )
+
+    $deadline = [DateTimeOffset]::Now.AddSeconds($TimeoutSeconds)
+    $lastValidation = $null
+
+    while ([DateTimeOffset]::Now -lt $deadline) {
+        $lastValidation = Invoke-ValidateMirror -CurrentTunnelId $CurrentTunnelId
+        if ($lastValidation.Ok) {
+            return $lastValidation
+        }
+
+        Set-HostingJsonFields -Path $statusPathResolved -Fields ([ordered]@{
+            phase_heartbeat_at = [DateTimeOffset]::Now.ToString('o')
+            phase_timeout_seconds = $TimeoutSeconds
+            timed_out = $false
+        })
+        Start-Sleep -Seconds 2
+    }
+
+    if ($null -eq $lastValidation) {
+        return Invoke-ValidateMirror -CurrentTunnelId $CurrentTunnelId
+    }
+
+    return $lastValidation
+}
+
 $existingStatus = Read-HostingJsonFileSafe -Path $statusPathResolved
 $existingReleaseTarget = Read-HostingJsonFileSafe -Path $releaseTargetPathResolved
 $previousSuccessfulCommit = ''
@@ -385,6 +446,10 @@ $status = [ordered]@{
     deploy_state = 'starting'
     timestamp = [DateTimeOffset]::Now.ToString('o')
     status_source = 'sync_runtime'
+    phase_started_at = [DateTimeOffset]::Now.ToString('o')
+    phase_heartbeat_at = [DateTimeOffset]::Now.ToString('o')
+    phase_timeout_seconds = 0
+    timed_out = $false
     mirror_repo_path = $mirrorRepoPathResolved
     external_env_path = $externalEnvPathResolved
     release_target_path = $releaseTargetPathResolved
@@ -432,15 +497,15 @@ if ($null -ne $existingReleaseTarget) {
 $lockStream = $null
 
 try {
-    $status.state = 'discovering'
-    $status.deploy_state = 'discover'
     Ensure-HostingParentDirectory -Path $statusPathResolved
     Ensure-HostingParentDirectory -Path $lockPath
     Ensure-HostingParentDirectory -Path $releaseTargetPathResolved
+    Set-SyncPhase -CurrentStatus $status -State 'discovering' -DeployState 'discover'
 
     $lockRepair = Repair-HostingLegacyLocks -LockPaths @($lockPath) -TtlSeconds $LockTtlSeconds -GraceSeconds 5
     $status.lock_repaired = ($lockRepair.repaired -eq $true)
     $status.lock_repair_reason = [string]$lockRepair.repair_reason
+    Write-Status -Payload $status
     if ($lockRepair.remaining_invalid_lock) {
         $status.state = 'failed'
         $status.deploy_state = 'lock_invalid'
@@ -509,8 +574,7 @@ try {
     $status.lock_age_seconds = 0
     $status.lock_state = 'owned'
     $status.lock_reason = 'main_sync'
-    $status.state = 'preflight'
-    $status.deploy_state = 'preflight'
+    Set-SyncPhase -CurrentStatus $status -State 'preflight' -DeployState 'preflight'
 
     if (-not (Test-Path -LiteralPath $externalEnvPathResolved)) {
         throw "No existe el env externo canonico: $externalEnvPathResolved"
@@ -570,17 +634,16 @@ try {
 
     $preflightValidation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
     Set-StatusFromValidation -CurrentStatus $status -Validation $preflightValidation
+    Write-Status -Payload $status
     if ($PreflightOnly) {
         $status.ok = $true
-        $status.state = 'preflight_ready'
-        $status.deploy_state = 'preflight_ready'
+        Set-SyncPhase -CurrentStatus $status -State 'preflight_ready' -DeployState 'preflight_ready'
         Write-Status -Payload $status
         Write-Info ("Preflight OK: desired={0} current={1} service_state={2}" -f $status.desired_commit, $status.previous_commit, $status.service_state)
         return
     }
 
-    $status.state = 'applying'
-    $status.deploy_state = 'apply'
+    Set-SyncPhase -CurrentStatus $status -State 'applying' -DeployState 'apply'
     $checkoutResult = Invoke-Git -Arguments @('-C', $mirrorRepoPathResolved, 'checkout', '--force', $Branch)
     if ($checkoutResult.ExitCode -ne 0) {
         throw ("No se pudo cambiar el mirror a la rama $Branch. {0}" -f $checkoutResult.Output.Trim())
@@ -602,11 +665,11 @@ try {
 
     $preValidation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
     Set-StatusFromValidation -CurrentStatus $status -Validation $preValidation
+    Write-Status -Payload $status
 
     $needsRestart = $status.cloned -or $status.head_changed -or $status.env_changed -or (-not $preValidation.Ok)
     if ($needsRestart) {
-        $status.state = 'restarting'
-        $status.deploy_state = 'restart'
+        Set-SyncPhase -CurrentStatus $status -State 'restarting' -DeployState 'restart' -TimeoutSeconds $arrancarTimeoutSeconds
         Invoke-StartMirrorStack `
             -StartScriptPath $mirrorStartScriptPath `
             -CurrentPublicDomain $PublicDomain `
@@ -617,26 +680,27 @@ try {
             -CurrentPhpCgiExePath $PhpCgiExePath
 
         $status.restarted = $true
+        $status.phase_heartbeat_at = [DateTimeOffset]::Now.ToString('o')
+        Write-Status -Payload $status
     }
 
-    $status.state = 'validating'
-    $status.deploy_state = 'validate'
-    $postValidation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
+    Set-SyncPhase -CurrentStatus $status -State 'validating' -DeployState 'validate' -TimeoutSeconds $validationTimeoutSeconds
+    $postValidation = Wait-ForMirrorValidation -CurrentTunnelId $TunnelId -TimeoutSeconds $validationTimeoutSeconds
     Set-StatusFromValidation -CurrentStatus $status -Validation $postValidation
+    Write-Status -Payload $status
 
     if (-not $postValidation.Ok) {
         if ($postValidation.Health.Ok -ne $true) {
             $originalFailure = "El health local no quedo sano en el mirror. $([string]$postValidation.Health.Error)"
         } else {
-            $originalFailure = "El contrato de auth no quedo sano en el mirror. $([string]$postValidation.Auth.Error)"
+            $originalFailure = 'sync_post_restart_contract_invalid'
         }
 
         if (
             (-not [string]::IsNullOrWhiteSpace($previousSuccessfulCommit)) -and
             ($previousSuccessfulCommit -ne $status.desired_commit)
         ) {
-            $status.state = 'rollback'
-            $status.deploy_state = 'rollback'
+            Set-SyncPhase -CurrentStatus $status -State 'rollback' -DeployState 'rollback'
             Write-Info ("Desired commit {0} fallo validacion; se ejecuta rollback automatico a {1}" -f $status.desired_commit, $previousSuccessfulCommit)
             $rollbackReset = Invoke-Git -Arguments @('-C', $mirrorRepoPathResolved, 'reset', '--hard', $previousSuccessfulCommit)
             if ($rollbackReset.ExitCode -ne 0) {
@@ -672,8 +736,7 @@ try {
             $status.current_commit = $previousSuccessfulCommit
             $status.current_head = $previousSuccessfulCommit
             $status.head_changed = $false
-            $status.state = 'rolled_back'
-            $status.deploy_state = 'rollback_succeeded'
+            Set-SyncPhase -CurrentStatus $status -State 'rolled_back' -DeployState 'rollback_succeeded'
             $status.last_failure_reason = $originalFailure
             $status.last_successful_deploy_at = [DateTimeOffset]::Now.ToString('o')
             Set-StatusFromValidation -CurrentStatus $status -Validation $rollbackValidation
@@ -688,11 +751,9 @@ try {
 
     $status.ok = $true
     if ($status.restarted) {
-        $status.state = 'updated'
-        $status.deploy_state = 'desired_commit_applied'
+        Set-SyncPhase -CurrentStatus $status -State 'updated' -DeployState 'desired_commit_applied'
     } else {
-        $status.state = 'idle'
-        $status.deploy_state = 'current'
+        Set-SyncPhase -CurrentStatus $status -State 'idle' -DeployState 'current'
     }
     $status.last_successful_deploy_at = [DateTimeOffset]::Now.ToString('o')
     $status.last_failure_reason = ''
@@ -701,9 +762,18 @@ try {
 } catch {
     $status.ok = $false
     $status.state = 'failed'
-    $status.deploy_state = 'failed'
     $status.error = $_.Exception.Message
-    $status.last_failure_reason = $status.error
+    if ([string]::Equals($status.error, 'sync_restart_timeout', [System.StringComparison]::OrdinalIgnoreCase)) {
+        $status.deploy_state = 'restart_timeout'
+        $status.last_failure_reason = 'sync_restart_timeout'
+        $status.timed_out = $true
+    } elseif ([string]::Equals($status.error, 'sync_post_restart_contract_invalid', [System.StringComparison]::OrdinalIgnoreCase)) {
+        $status.deploy_state = 'validate'
+        $status.last_failure_reason = 'sync_post_restart_contract_invalid'
+    } else {
+        $status.deploy_state = 'failed'
+        $status.last_failure_reason = $status.error
+    }
     if ([string]::IsNullOrWhiteSpace($status.current_commit)) {
         $status.current_commit = Get-GitHeadSafe -RepoPath $mirrorRepoPathResolved
         $status.current_head = $status.current_commit

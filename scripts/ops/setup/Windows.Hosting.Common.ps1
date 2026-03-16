@@ -61,6 +61,31 @@ function Write-HostingJsonFile {
     Set-Content -Path $Path -Value $json -Encoding UTF8
 }
 
+function Set-HostingJsonFields {
+    param(
+        [string]$Path,
+        [hashtable]$Fields
+    )
+
+    $payload = [ordered]@{}
+    $existing = Read-HostingJsonFileSafe -Path $Path
+    if ($existing -is [System.Collections.IDictionary]) {
+        foreach ($key in $existing.Keys) {
+            $payload[[string]$key] = $existing[$key]
+        }
+    } elseif ($null -ne $existing) {
+        foreach ($property in $existing.PSObject.Properties) {
+            $payload[[string]$property.Name] = $property.Value
+        }
+    }
+
+    foreach ($key in $Fields.Keys) {
+        $payload[[string]$key] = $Fields[$key]
+    }
+
+    Write-HostingJsonFile -Path $Path -Payload $payload
+}
+
 function Add-HostingOptionalNamedArgument {
     param(
         [System.Collections.Generic.List[string]]$Arguments,
@@ -112,23 +137,143 @@ function Get-HostingFileSha256 {
     }
 }
 
+function Stop-HostingProcessTree {
+    param(
+        [int]$ProcessId,
+        [switch]$KillTree
+    )
+
+    if ($ProcessId -le 0) {
+        return
+    }
+
+    if ($KillTree) {
+        $taskkillCommand = Get-Command taskkill.exe -ErrorAction SilentlyContinue
+        if ($null -ne $taskkillCommand) {
+            try {
+                & $taskkillCommand.Source /T /F /PID $ProcessId *> $null
+            } catch {
+            }
+        }
+    }
+
+    if (Test-HostingProcessExists -ProcessId $ProcessId) {
+        try {
+            Stop-Process -Id $ProcessId -Force -ErrorAction SilentlyContinue
+        } catch {
+        }
+    }
+}
+
+function Write-HostingCommandHeartbeat {
+    param(
+        [string]$Path,
+        [string]$Label,
+        [int]$ProcessId,
+        [int]$TimeoutSeconds = 0,
+        [switch]$TimedOut,
+        [int]$ExitCode = [int]::MinValue,
+        [string[]]$StatusFilesToWatch = @()
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return
+    }
+
+    $fields = [ordered]@{
+        phase_heartbeat_at = [DateTimeOffset]::Now.ToString('o')
+        timed_out = ($TimedOut -eq $true)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Label)) {
+        $fields.child_script = $Label
+    }
+    if ($ProcessId -gt 0) {
+        $fields.child_pid = $ProcessId
+    }
+    if ($TimeoutSeconds -gt 0) {
+        $fields.phase_timeout_seconds = $TimeoutSeconds
+    }
+    if ($ExitCode -ne [int]::MinValue) {
+        $fields.child_exit_code = $ExitCode
+    }
+    if (($StatusFilesToWatch | Measure-Object).Count -gt 0) {
+        $fields.child_watch_files = @($StatusFilesToWatch | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    }
+
+    Set-HostingJsonFields -Path $Path -Fields $fields
+}
+
 function Invoke-HostingCommandWithOutput {
     param(
         [string]$FilePath,
-        [string[]]$Arguments
+        [string[]]$Arguments,
+        [int]$TimeoutSeconds = 0,
+        [string]$HeartbeatPath = '',
+        [string]$Label = '',
+        [string[]]$StatusFilesToWatch = @(),
+        [bool]$KillTreeOnTimeout = $true
     )
 
     $stdoutPath = [System.IO.Path]::GetTempFileName()
     $stderrPath = [System.IO.Path]::GetTempFileName()
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $timedOut = $false
+    $process = $null
+    $lastHeartbeatAt = [DateTimeOffset]::MinValue
     try {
         $process = Start-Process `
             -FilePath $FilePath `
             -ArgumentList $Arguments `
             -NoNewWindow `
-            -Wait `
             -PassThru `
             -RedirectStandardOutput $stdoutPath `
             -RedirectStandardError $stderrPath
+
+        Write-HostingCommandHeartbeat `
+            -Path $HeartbeatPath `
+            -Label $Label `
+            -ProcessId $process.Id `
+            -TimeoutSeconds $TimeoutSeconds `
+            -TimedOut:$false `
+            -StatusFilesToWatch $StatusFilesToWatch
+
+        while ($true) {
+            $process.Refresh()
+            if ($process.HasExited) {
+                break
+            }
+
+            $now = [DateTimeOffset]::Now
+            if (($lastHeartbeatAt -eq [DateTimeOffset]::MinValue) -or (($now - $lastHeartbeatAt).TotalSeconds -ge 5)) {
+                Write-HostingCommandHeartbeat `
+                    -Path $HeartbeatPath `
+                    -Label $Label `
+                    -ProcessId $process.Id `
+                    -TimeoutSeconds $TimeoutSeconds `
+                    -TimedOut:$false `
+                    -StatusFilesToWatch $StatusFilesToWatch
+                $lastHeartbeatAt = $now
+            }
+
+            if (($TimeoutSeconds -gt 0) -and ($stopwatch.Elapsed.TotalSeconds -ge $TimeoutSeconds)) {
+                $timedOut = $true
+                Stop-HostingProcessTree -ProcessId $process.Id -KillTree:$KillTreeOnTimeout
+                Start-Sleep -Milliseconds 500
+                break
+            }
+
+            Start-Sleep -Milliseconds 500
+        }
+
+        if ($null -ne $process) {
+            try {
+                if (-not $process.HasExited) {
+                    [void]$process.WaitForExit(5000)
+                    $process.Refresh()
+                }
+            } catch {
+            }
+        }
 
         $chunks = @()
         foreach ($path in @($stdoutPath, $stderrPath)) {
@@ -140,11 +285,39 @@ function Invoke-HostingCommandWithOutput {
             }
         }
 
+        $exitCode = -1
+        if ($null -ne $process) {
+            try {
+                if ($process.HasExited) {
+                    $exitCode = [int]$process.ExitCode
+                }
+            } catch {
+            }
+        }
+
+        $processId = 0
+        if ($null -ne $process) {
+            $processId = [int]$process.Id
+        }
+
+        Write-HostingCommandHeartbeat `
+            -Path $HeartbeatPath `
+            -Label $Label `
+            -ProcessId $processId `
+            -TimeoutSeconds $TimeoutSeconds `
+            -TimedOut:$timedOut `
+            -ExitCode $exitCode `
+            -StatusFilesToWatch $StatusFilesToWatch
+
         return [PSCustomObject]@{
-            ExitCode = $process.ExitCode
+            ExitCode = $exitCode
             Output = $chunks -join [Environment]::NewLine
+            TimedOut = ($timedOut -eq $true)
+            ProcessId = $processId
+            DurationSeconds = [int][Math]::Ceiling($stopwatch.Elapsed.TotalSeconds)
         }
     } finally {
+        $stopwatch.Stop()
         foreach ($path in @($stdoutPath, $stderrPath)) {
             if (Test-Path -LiteralPath $path) {
                 Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
