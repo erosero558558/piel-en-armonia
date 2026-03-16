@@ -127,3 +127,33 @@ test('policy-config acepta sections agents y publishing sin marcarlas como unkno
         'public_main_sync'
     );
 });
+
+test('policy-config valida codex_parallelism y expone el payload efectivo', () => {
+    const report = validateGovernancePolicy(
+        {
+            version: 1,
+            enforcement: {
+                codex_parallelism: {
+                    slot_statuses: ['in_progress', 'review', 'blocked'],
+                    by_codex_instance: {
+                        codex_backend_ops: 2,
+                        codex_frontend: 2,
+                        codex_transversal: 2,
+                    },
+                },
+            },
+        },
+        { defaultPolicy: DEFAULT_POLICY, policyExists: true }
+    );
+
+    assert.equal(report.ok, true);
+    assert.deepEqual(
+        report.effective.enforcement.codex_parallelism.slot_statuses,
+        ['in_progress', 'review', 'blocked']
+    );
+    assert.equal(
+        report.effective.enforcement.codex_parallelism.by_codex_instance
+            .codex_frontend,
+        2
+    );
+});

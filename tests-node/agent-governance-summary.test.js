@@ -23,6 +23,23 @@ const ORCHESTRATOR_SOURCE = join(REPO_ROOT, 'agent-orchestrator.js');
 const ORCHESTRATOR_TOOLS_DIR = join(REPO_ROOT, 'tools', 'agent-orchestrator');
 const GOVERNANCE_POLICY_SOURCE = join(REPO_ROOT, 'governance-policy.json');
 const SUMMARY_SCRIPT = join(REPO_ROOT, 'bin', 'agent-governance-summary.js');
+const WORKSPACE_HYGIENE_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'lib',
+    'workspace-hygiene.js'
+);
+const GENERATED_SITE_ROOT_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'lib',
+    'generated-site-root.js'
+);
+const CLEAN_LOCAL_ARTIFACTS_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'clean-local-artifacts.js'
+);
 const DATE = '2026-02-24';
 
 function createFixtureDir() {
@@ -32,6 +49,19 @@ function createFixtureDir() {
         recursive: true,
     });
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
+    mkdirSync(join(dir, 'bin', 'lib'), { recursive: true });
+    copyFileSync(
+        WORKSPACE_HYGIENE_SOURCE,
+        join(dir, 'bin', 'lib', 'workspace-hygiene.js')
+    );
+    copyFileSync(
+        GENERATED_SITE_ROOT_SOURCE,
+        join(dir, 'bin', 'lib', 'generated-site-root.js')
+    );
+    copyFileSync(
+        CLEAN_LOCAL_ARTIFACTS_SOURCE,
+        join(dir, 'bin', 'clean-local-artifacts.js')
+    );
     return dir;
 }
 
@@ -426,9 +456,7 @@ function runSummaryAsync(dir, args = [], envPatch = null) {
             [SUMMARY_SCRIPT, '--root', dir, ...args],
             {
                 cwd: REPO_ROOT,
-                env: envPatch
-                    ? { ...process.env, ...envPatch }
-                    : process.env,
+                env: envPatch ? { ...process.env, ...envPatch } : process.env,
                 stdio: ['ignore', 'pipe', 'pipe'],
             }
         );
@@ -801,8 +829,7 @@ test('agent-governance-summary conserva operator_auth green y public_main_sync g
         assert.equal(
             payload.required_checks.some(
                 (item) =>
-                    item.id === 'job:public_main_sync' &&
-                    item.state === 'green'
+                    item.id === 'job:public_main_sync' && item.state === 'green'
             ),
             true
         );

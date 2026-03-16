@@ -19,6 +19,23 @@ const REPO_ROOT = resolve(__dirname, '..');
 const ORCHESTRATOR_SOURCE = join(REPO_ROOT, 'agent-orchestrator.js');
 const ORCHESTRATOR_TOOLS_DIR = join(REPO_ROOT, 'tools', 'agent-orchestrator');
 const GOVERNANCE_POLICY_SOURCE = join(REPO_ROOT, 'governance-policy.json');
+const WORKSPACE_HYGIENE_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'lib',
+    'workspace-hygiene.js'
+);
+const GENERATED_SITE_ROOT_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'lib',
+    'generated-site-root.js'
+);
+const CLEAN_LOCAL_ARTIFACTS_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'clean-local-artifacts.js'
+);
 
 function createFixtureDir() {
     const dir = mkdtempSync(join(tmpdir(), 'agent-jobs-cli-test-'));
@@ -27,6 +44,19 @@ function createFixtureDir() {
         recursive: true,
     });
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
+    mkdirSync(join(dir, 'bin', 'lib'), { recursive: true });
+    copyFileSync(
+        WORKSPACE_HYGIENE_SOURCE,
+        join(dir, 'bin', 'lib', 'workspace-hygiene.js')
+    );
+    copyFileSync(
+        GENERATED_SITE_ROOT_SOURCE,
+        join(dir, 'bin', 'lib', 'generated-site-root.js')
+    );
+    copyFileSync(
+        CLEAN_LOCAL_ARTIFACTS_SOURCE,
+        join(dir, 'bin', 'clean-local-artifacts.js')
+    );
     return dir;
 }
 

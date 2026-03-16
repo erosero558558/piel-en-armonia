@@ -27,6 +27,23 @@ const OPENCLAW_RUNTIME_HELPER_SOURCE = join(
     'bin',
     'openclaw-runtime-helper.js'
 );
+const WORKSPACE_HYGIENE_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'lib',
+    'workspace-hygiene.js'
+);
+const GENERATED_SITE_ROOT_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'lib',
+    'generated-site-root.js'
+);
+const CLEAN_LOCAL_ARTIFACTS_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'clean-local-artifacts.js'
+);
 const LEADOPS_HELPER_SOURCE = join(
     REPO_ROOT,
     'bin',
@@ -44,6 +61,19 @@ function createFixtureDir() {
         recursive: true,
     });
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
+    mkdirSync(join(dir, 'bin', 'lib'), { recursive: true });
+    copyFileSync(
+        WORKSPACE_HYGIENE_SOURCE,
+        join(dir, 'bin', 'lib', 'workspace-hygiene.js')
+    );
+    copyFileSync(
+        GENERATED_SITE_ROOT_SOURCE,
+        join(dir, 'bin', 'lib', 'generated-site-root.js')
+    );
+    copyFileSync(
+        CLEAN_LOCAL_ARTIFACTS_SOURCE,
+        join(dir, 'bin', 'clean-local-artifacts.js')
+    );
     return dir;
 }
 
@@ -622,6 +652,11 @@ test('JSON contract minimo estable para status/conflicts/handoffs/codex-check/le
         assert.equal(Array.isArray(codexCheck.errors), true);
         assert.equal(typeof codexCheck.summary, 'object');
         assert.equal(Array.isArray(codexCheck.codex_task_ids), true);
+        assert.equal(typeof codexCheck.summary.lane_capacity, 'object');
+        assert.equal(typeof codexCheck.summary.available_slots, 'object');
+        assert.equal(Array.isArray(codexCheck.summary.slot_statuses), true);
+        assert.equal(Array.isArray(codexCheck.plan_blocks), true);
+        assert.equal(typeof codexCheck.plan_blocks[0].subfront_id, 'string');
         assert.equal(Array.isArray(codexCheck.diagnostics), true);
 
         const leasesStatus = runJson(dir, ['leases', 'status']);

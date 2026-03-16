@@ -15,7 +15,11 @@ Fuente actual:
 
 Reglas de migracion:
 
-- Mantener `executor=codex`, `CDX-*` y `CODEX_ACTIVE`.
+- Mantener `executor=codex`, `CDX-*` y `CODEX_ACTIVE`, pero con la semantica
+  vigente: espejo por `task_id`, `subfront_id` cuando exista y hasta `2`
+  slots por `codex_instance` en `in_progress|review|blocked`.
+- `ready` queda como cola alineada y no consume slot ni exige bloque
+  `CODEX_ACTIVE`.
 - Tratar `openclaw_chatgpt` como runtime interno transversal, no como plugin externo.
 - Toda tarea runtime OpenClaw nueva debe vivir en
   `domain_lane=transversal_runtime` y `codex_instance=codex_transversal`.

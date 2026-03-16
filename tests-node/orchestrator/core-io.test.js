@@ -193,6 +193,34 @@ test('core-io writeCodexActiveBlockFile usa upsert y persiste contenido', () => 
     ]);
 });
 
+test('core-io writeCodexActiveBlockFile reenvia taskId y codexInstance al borrar por task_id', () => {
+    const writes = [];
+    const next = coreIo.writeCodexActiveBlockFile(null, {
+        codexPlanPath: 'PLAN_MAESTRO_CODEX_2026.md',
+        exists: () => true,
+        readFile: () => '# Plan\n<!-- CODEX_ACTIVE -->\n',
+        codexInstance: 'codex_frontend',
+        taskId: 'CDX-044',
+        upsertCodexActiveBlock: (raw, block, deps) => {
+            assert.equal(raw, '# Plan\n<!-- CODEX_ACTIVE -->\n');
+            assert.equal(block, null);
+            assert.equal(deps.codexInstance, 'codex_frontend');
+            assert.equal(deps.codex_instance, 'codex_frontend');
+            assert.equal(deps.taskId, 'CDX-044');
+            assert.equal(deps.task_id, 'CDX-044');
+            return '# Plan\n';
+        },
+        writeFile: (...args) => writes.push(args),
+    });
+
+    assert.equal(next, '# Plan\n');
+    assert.deepEqual(writes[0], [
+        'PLAN_MAESTRO_CODEX_2026.md',
+        '# Plan\n',
+        'utf8',
+    ]);
+});
+
 test('core-io syncDerivedQueuesFiles preserva tombstones legacy y puede silenciar log', () => {
     const writes = [];
     const logs = [];

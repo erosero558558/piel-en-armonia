@@ -8,6 +8,7 @@ Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite po
 codex_instance: codex_backend_ops
 block: A2-BE
 task_id: CDX-043
+subfront_id: SF-backend-turnero-web-pilot
 status: blocked
 files: ["api.php", "controllers/AdminDataController.php", "controllers/QueueController.php", "lib/TurneroClinicProfile.php", "lib/QueueSurfaceStatusStore.php", "lib/QueueService.php", "bin/turnero-clinic-profile.js", "scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1", "tests/test_queue_service.php", "tests/test_figo_queue_core.php", "verification/agent-runs/CDX-043.md"]
 updated_at: 2026-03-14
@@ -17,6 +18,7 @@ updated_at: 2026-03-14
 codex_instance: codex_frontend
 block: C1
 task_id: CDX-044
+subfront_id: SF-frontend-turnero-web-pilot
 status: review
 files: ["admin.html", "operador-turnos.html", "kiosco-turnos.html", "sala-turnos.html", "src/apps/admin-v3/shared/core/router.js", "src/apps/admin-v3/shared/modules/queue", "src/apps/admin-v3/core/boot/navigation/sections.js", "src/apps/admin-v3/core/boot/navigation/commands.js", "src/apps/admin-v3/core/boot/listeners/action-groups/queue", "src/apps/admin-v3/ui/frame/templates/sections/queue", "src/apps/queue-operator", "src/apps/queue-kiosk", "src/apps/queue-display", "src/apps/queue-shared"]
 updated_at: 2026-03-14
@@ -47,8 +49,15 @@ updated_at: "2026-03-14"
 - Este archivo es la fuente de control de la linea Codex.
 - Maximo un bloque `CODEX_STRATEGY_ACTIVE`.
 - Maximo un bloque `CODEX_STRATEGY_NEXT`.
-- Maximo un bloque `CODEX_ACTIVE` por `codex_instance`.
-- Maximo tres bloques `CODEX_ACTIVE` activos en total, uno por lane.
+- Una sola `strategy.active` puede abrir `1..n` subfrentes por
+  `codex_instance`; el paralelismo vive dentro de la estrategia activa.
+- Maximo dos bloques `CODEX_ACTIVE` consumiendo slot por `codex_instance`
+  (`in_progress`, `review`, `blocked`).
+- Maximo seis bloques `CODEX_ACTIVE` consumiendo slot en total, dos por lane.
+- `ready` queda como cola alineada: no consume slot ni requiere bloque
+  `CODEX_ACTIVE`.
+- Cada bloque `CODEX_ACTIVE` espeja una tarea por `task_id`; puede incluir
+  `subfront_id` y coexistir con otros bloques del mismo lane hasta el cap.
 - `CODEX_STRATEGY_NEXT` es draft: puede coexistir con la activa, pero no
   gobierna tareas hasta promocion desde el board.
 - No se toman tareas del Operativo que ya esten `IN_PROGRESS`, salvo soporte de calidad (tests/guardrails).
@@ -63,9 +72,14 @@ updated_at: "2026-03-14"
 - Draft siguiente: ninguno por ahora.
 - Objetivo: reabrir `queue/turnero` como un piloto web por clinica demostrable en `admin basic`, `operator`, `kiosk` y `display`, con `clinic-profile` como fuente de verdad.
 - Revision vigente: semanal; `carry-over` permitido si la salida sigue siendo la misma entrega operativa.
-- Regla de foco: cada hilo Codex toma un solo `subfront_id` valido y rechaza trabajo fuera del frente salvo `strategy_role=exception`.
+- Regla de foco: cada hilo Codex toma un solo `subfront_id` valido y rechaza
+  trabajo fuera del frente salvo `strategy_role=exception`; un mismo lane puede
+  correr varios hilos en paralelo mientras no exceda `2` slots y no haya
+  solape de archivos.
 - Intake canonico: trabajo nuevo del frente debe entrar por `strategy intake`
   o por tarea ya alineada al mismo `subfront_id`.
+- Si un `scope` same-lane es ambiguo entre varios subfrentes candidatos,
+  `strategy intake` exige `--subfront-id` explicito.
 - Exceptions: toda `exception` usa TTL del subfrente y, si expira, bloquea
   `activate-next` o `close` hasta regularizacion.
 

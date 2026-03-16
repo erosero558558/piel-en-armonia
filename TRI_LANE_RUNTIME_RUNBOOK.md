@@ -20,6 +20,20 @@ Codex sin solapes y con OpenClaw integrado como runtime transversal nativo.
   `controllers/LeadAiController.php`, `bin/lead-ai-worker.js`,
   `bin/lib/lead-ai-worker.js`
 
+## Capacidad y slots
+
+- Cada `codex_instance` dispone de `2` slots de ejecucion.
+- Solo consumen slot los estados `in_progress`, `review` y `blocked`.
+- `ready` funciona como cola alineada del lane: no consume slot y no exige
+  bloque `CODEX_ACTIVE`.
+- Una misma `strategy.active` puede tener varios `subfronts` por lane; el
+  fallback `codex_instance -> subfront_id` solo es valido cuando el lane tiene
+  un unico subfrente.
+- Si un `scope` del lane coincide con mas de un subfrente candidato,
+  `strategy intake` debe recibir `--subfront-id`.
+- `CODEX_ACTIVE` se espeja por `task_id`, puede incluir `subfront_id` y puede
+  coexistir varias veces para el mismo lane hasta el cap de `2`.
+
 ## Runtime OpenClaw
 
 Provider canonico:
@@ -63,20 +77,37 @@ Reglas:
    `node agent-orchestrator.js codex-check --json`
 2. Verificar runtime OpenClaw si la tarea es transversal:
    `node agent-orchestrator.js runtime verify openclaw_chatgpt --json`
-3. Tomar tarea con lane fija:
+3. Tomar tarea con lane fija y `subfront_id` valido:
    backend: `codex_instance=codex_backend_ops`, `domain_lane=backend_ops`
    frontend: `codex_instance=codex_frontend`, `domain_lane=frontend_content`
    transversal: `codex_instance=codex_transversal`, `domain_lane=transversal_runtime`
-4. Trabajar y validar.
-5. Si hay cruce de dominio:
+4. Si la estrategia activa tiene varios subfrentes en ese lane, abrir la tarea
+   con `strategy intake --subfront-id ...`; si solo hay uno, el fallback sigue
+   permitido.
+5. Trabajar y validar.
+6. Al pasar una tarea a `in_progress`, `review` o `blocked`, confirmar que el
+   lane no excede `2` slots y que el mirror `CODEX_ACTIVE` queda alineado.
+7. Si hay cruce de dominio:
    crear handoff `active` con archivos acotados y `expires_at`
    cerrar handoff al terminar
-6. Antes de merge:
+8. Antes de merge:
    `node agent-orchestrator.js handoffs lint --json`
    `npm run agent:test`
    `npm run agent:gate`
 
 ## Ejemplos
+
+### Intake canonico con scope ambiguo
+
+```bash
+node agent-orchestrator.js strategy intake \
+  --title "Hardening del shell admin operativo" \
+  --scope frontend-admin \
+  --subfront-id SF-frontend-admin-operativo \
+  --files src/apps/admin-v3/app.js,src/apps/admin-v3/ui/frame/frame-shell.js \
+  --expect-rev 12 \
+  --json
+```
 
 ### Crear tarea backend
 

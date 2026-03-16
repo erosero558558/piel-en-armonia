@@ -199,6 +199,7 @@ function writeCodexActiveBlockFile(block, deps = {}) {
         writeFile = writeFileSync,
         upsertCodexActiveBlock,
         codexInstance = null,
+        taskId = null,
     } = deps;
     if (!codexPlanPath) {
         throw new Error('writeCodexActiveBlockFile requiere codexPlanPath');
@@ -212,7 +213,12 @@ function writeCodexActiveBlockFile(block, deps = {}) {
         throw new Error(`No existe ${codexPlanPath}`);
     }
     const raw = readFile(codexPlanPath, 'utf8');
-    const next = upsertCodexActiveBlock(raw, block, { codexInstance });
+    const next = upsertCodexActiveBlock(raw, block, {
+        codexInstance,
+        codex_instance: codexInstance,
+        taskId,
+        task_id: taskId,
+    });
     writeFile(codexPlanPath, next, 'utf8');
     return next;
 }

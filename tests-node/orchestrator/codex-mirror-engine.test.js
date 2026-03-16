@@ -10,6 +10,9 @@ const {
     buildCodexCheckReport,
 } = require('../../tools/agent-orchestrator/domain/codex-mirror');
 const {
+    validateStrategyConfiguration,
+} = require('../../tools/agent-orchestrator/domain/strategy');
+const {
     normalizePathToken,
 } = require('../../tools/agent-orchestrator/domain/conflicts');
 
@@ -36,7 +39,18 @@ function buildValidStrategyState() {
                     allowed_scopes: ['frontend-admin'],
                     support_only_scopes: ['docs'],
                     blocked_scopes: ['payments'],
-                    wip_limit: 1,
+                    wip_limit: 2,
+                    default_acceptance_profile: 'frontend_delivery_checkpoint',
+                    exception_ttl_hours: 8,
+                },
+                {
+                    codex_instance: 'codex_frontend',
+                    subfront_id: 'SF-frontend-queue-turnero-operativo',
+                    title: 'Queue UX',
+                    allowed_scopes: ['queue', 'turnero'],
+                    support_only_scopes: ['docs'],
+                    blocked_scopes: ['calendar'],
+                    wip_limit: 2,
                     default_acceptance_profile: 'frontend_delivery_checkpoint',
                     exception_ttl_hours: 8,
                 },
@@ -47,7 +61,7 @@ function buildValidStrategyState() {
                     allowed_scopes: ['backend'],
                     support_only_scopes: ['tests'],
                     blocked_scopes: ['frontend-public'],
-                    wip_limit: 1,
+                    wip_limit: 2,
                     default_acceptance_profile: 'backend_gate_checkpoint',
                     exception_ttl_hours: 6,
                 },
@@ -58,7 +72,7 @@ function buildValidStrategyState() {
                     allowed_scopes: [],
                     support_only_scopes: ['openclaw_runtime'],
                     blocked_scopes: ['auth'],
-                    wip_limit: 1,
+                    wip_limit: 2,
                     default_acceptance_profile:
                         'transversal_runtime_checkpoint',
                     exception_ttl_hours: 4,
@@ -84,7 +98,18 @@ function buildValidStrategyState() {
                     allowed_scopes: ['frontend-admin'],
                     support_only_scopes: ['docs'],
                     blocked_scopes: ['payments'],
-                    wip_limit: 1,
+                    wip_limit: 2,
+                    default_acceptance_profile: 'frontend_delivery_checkpoint',
+                    exception_ttl_hours: 8,
+                },
+                {
+                    codex_instance: 'codex_frontend',
+                    subfront_id: 'SF-frontend-queue-turnero-operativo',
+                    title: 'Queue UX',
+                    allowed_scopes: ['queue', 'turnero'],
+                    support_only_scopes: ['docs'],
+                    blocked_scopes: ['calendar'],
+                    wip_limit: 2,
                     default_acceptance_profile: 'frontend_delivery_checkpoint',
                     exception_ttl_hours: 8,
                 },
@@ -95,7 +120,7 @@ function buildValidStrategyState() {
                     allowed_scopes: ['backend'],
                     support_only_scopes: ['tests'],
                     blocked_scopes: ['frontend-public'],
-                    wip_limit: 1,
+                    wip_limit: 2,
                     default_acceptance_profile: 'backend_gate_checkpoint',
                     exception_ttl_hours: 6,
                 },
@@ -106,7 +131,7 @@ function buildValidStrategyState() {
                     allowed_scopes: [],
                     support_only_scopes: ['openclaw_runtime'],
                     blocked_scopes: ['auth'],
-                    wip_limit: 1,
+                    wip_limit: 2,
                     default_acceptance_profile:
                         'transversal_runtime_checkpoint',
                     exception_ttl_hours: 4,
@@ -239,7 +264,7 @@ test('codex-mirror engine detecta drift de status y file no reservado', () => {
     );
 });
 
-test('codex-mirror engine detecta doble in_progress por codex_instance', () => {
+test('codex-mirror engine detecta cuando un lane excede sus 2 slots', () => {
     const report = buildCodexCheckReport(
         {
             board: {
@@ -254,9 +279,16 @@ test('codex-mirror engine detecta doble in_progress por codex_instance', () => {
                     {
                         id: 'AG-900',
                         executor: 'codex',
-                        status: 'in_progress',
+                        status: 'review',
                         codex_instance: 'codex_backend_ops',
                         files: ['agent-orchestrator.js'],
+                    },
+                    {
+                        id: 'AG-901',
+                        executor: 'codex',
+                        status: 'blocked',
+                        codex_instance: 'codex_backend_ops',
+                        files: ['controllers/AdminController.php'],
                     },
                 ],
             },
@@ -274,7 +306,7 @@ test('codex-mirror engine detecta doble in_progress por codex_instance', () => {
     assert.equal(report.ok, false);
     assert.equal(
         report.errors.some((e) =>
-            /Mas de una tarea in_progress para codex_backend_ops/i.test(
+            /Mas de 2 slot\(s\) ocupados para codex_backend_ops/i.test(
                 String(e)
             )
         ),
@@ -317,7 +349,7 @@ test('codex-mirror engine exige handoff activo para cross_domain activo', () => 
     );
 });
 
-test('codex-mirror engine tolera tres bloques CODEX_ACTIVE y runtime transversal saludable', () => {
+test('codex-mirror engine tolera ready sin bloque y varios bloques same-lane dentro del cap', () => {
     const report = buildCodexCheckReport(
         {
             board: {
@@ -351,6 +383,14 @@ test('codex-mirror engine tolera tres bloques CODEX_ACTIVE y runtime transversal
                         runtime_impact: 'high',
                         files: ['figo-ai-bridge.php'],
                     },
+                    {
+                        id: 'CDX-004',
+                        executor: 'codex',
+                        status: 'blocked',
+                        codex_instance: 'codex_frontend',
+                        domain_lane: 'frontend_content',
+                        files: ['src/apps/admin-v3/app.js'],
+                    },
                 ],
             },
             blocks: [
@@ -372,10 +412,10 @@ test('codex-mirror engine tolera tres bloques CODEX_ACTIVE y runtime transversal
                 },
                 {
                     block: 'C3',
-                    codex_instance: 'codex_transversal',
-                    task_id: 'CDX-003',
-                    status: 'ready',
-                    files: ['figo-ai-bridge.php'],
+                    codex_instance: 'codex_frontend',
+                    task_id: 'CDX-004',
+                    status: 'blocked',
+                    files: ['src/apps/admin-v3/app.js'],
                     updated_at: '2026-02-25',
                 },
             ],
@@ -391,7 +431,8 @@ test('codex-mirror engine tolera tres bloques CODEX_ACTIVE y runtime transversal
 
     assert.equal(report.ok, true);
     assert.equal(report.summary.plan_blocks, 3);
-    assert.equal(report.summary.codex_active, 3);
+    assert.equal(report.summary.codex_active, 4);
+    assert.equal(report.summary.codex_slot_tasks, 3);
 });
 
 test('codex-mirror engine valida espejo de strategy active y next alineados', () => {
@@ -494,5 +535,145 @@ test('codex-mirror engine detecta drift en CODEX_STRATEGY_NEXT', () => {
             /CODEX_STRATEGY_NEXT\.owner desalineado/i.test(String(error))
         ),
         true
+    );
+});
+
+test('strategy validation tolera blocked_scopes cross-lane usados como guardrail', () => {
+    const board = {
+        strategy: {
+            updated_at: '2026-03-15',
+            active: {
+                id: 'STRAT-2026-03-turnero-web-pilot',
+                title: 'Turnero web por clinica',
+                objective: 'Piloto web por clinica',
+                owner: 'ernesto',
+                owner_policy: 'detected_default_owner',
+                status: 'active',
+                started_at: '2026-03-14',
+                review_due_at: '2026-03-28',
+                exit_criteria: ['uno'],
+                success_signal: 'demo',
+                subfronts: [
+                    {
+                        codex_instance: 'codex_frontend',
+                        subfront_id: 'SF-frontend-turnero-web-pilot',
+                        title: 'Frontend',
+                        allowed_scopes: ['frontend-admin', 'queue', 'turnero'],
+                        support_only_scopes: ['docs', 'frontend-qa'],
+                        blocked_scopes: [
+                            'frontend-public',
+                            'payments',
+                            'calendar',
+                        ],
+                        wip_limit: 1,
+                        default_acceptance_profile:
+                            'frontend_delivery_checkpoint',
+                        exception_ttl_hours: 8,
+                    },
+                    {
+                        codex_instance: 'codex_backend_ops',
+                        subfront_id: 'SF-backend-turnero-web-pilot',
+                        title: 'Backend',
+                        allowed_scopes: [
+                            'backend',
+                            'readiness',
+                            'gates',
+                            'deploy',
+                            'ops',
+                        ],
+                        support_only_scopes: ['monitoring', 'tests'],
+                        blocked_scopes: [
+                            'frontend-public',
+                            'frontend-admin',
+                            'payments',
+                            'calendar',
+                            'auth',
+                        ],
+                        wip_limit: 1,
+                        default_acceptance_profile: 'backend_gate_checkpoint',
+                        exception_ttl_hours: 6,
+                    },
+                    {
+                        codex_instance: 'codex_transversal',
+                        subfront_id: 'SF-transversal-turnero-web-pilot',
+                        title: 'Transversal',
+                        allowed_scopes: [],
+                        support_only_scopes: [
+                            'openclaw_runtime',
+                            'codex-governance',
+                            'tooling',
+                        ],
+                        blocked_scopes: [
+                            'frontend-public',
+                            'frontend-admin',
+                            'backend',
+                            'deploy',
+                            'auth',
+                            'queue',
+                            'turnero',
+                        ],
+                        wip_limit: 1,
+                        default_acceptance_profile:
+                            'transversal_runtime_checkpoint',
+                        exception_ttl_hours: 4,
+                    },
+                ],
+            },
+        },
+    };
+
+    const errors = validateStrategyConfiguration(board);
+    assert.deepEqual(errors, []);
+});
+
+test('strategy validation rechaza mezcla same-lane entre claim y blocked_scope', () => {
+    const board = {
+        strategy: {
+            updated_at: '2026-03-15',
+            active: {
+                id: 'STRAT-2026-03-admin-operativo',
+                title: 'Admin operativo',
+                objective: 'Admin operativo',
+                owner: 'ernesto',
+                owner_policy: 'detected_default_owner',
+                status: 'active',
+                started_at: '2026-03-14',
+                review_due_at: '2026-03-21',
+                exit_criteria: ['uno'],
+                success_signal: 'demo',
+                subfronts: [
+                    {
+                        codex_instance: 'codex_frontend',
+                        subfront_id: 'SF-frontend-admin-operativo',
+                        title: 'Admin',
+                        allowed_scopes: ['frontend-admin'],
+                        support_only_scopes: [],
+                        blocked_scopes: [],
+                        wip_limit: 2,
+                        default_acceptance_profile:
+                            'frontend_delivery_checkpoint',
+                        exception_ttl_hours: 8,
+                    },
+                    {
+                        codex_instance: 'codex_frontend',
+                        subfront_id: 'SF-frontend-queue-turnero-operativo',
+                        title: 'Queue',
+                        allowed_scopes: ['queue'],
+                        support_only_scopes: [],
+                        blocked_scopes: ['frontend-admin'],
+                        wip_limit: 2,
+                        default_acceptance_profile:
+                            'frontend_delivery_checkpoint',
+                        exception_ttl_hours: 8,
+                    },
+                ],
+            },
+        },
+    };
+
+    const errors = validateStrategyConfiguration(board);
+    assert.match(
+        errors.join('\n'),
+        /scope frontend-admin asignado de forma ambigua/
     );
 });

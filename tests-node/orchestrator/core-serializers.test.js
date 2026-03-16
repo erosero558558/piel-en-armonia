@@ -108,8 +108,11 @@ test('core-serializers serializeBoard roundtrip basico con currentDate inyectado
                 scope: 'governance',
                 strategy_id: 'STRAT-2026-03-admin-operativo',
                 subfront_id: 'SF-frontend-admin-operativo',
-                strategy_role: 'support',
+                strategy_role: 'exception',
                 strategy_reason: 'soporte directo al frente activo',
+                exception_opened_at: '2000-01-01T00:00:00.000Z',
+                exception_expires_at: '2000-01-01T08:00:00.000Z',
+                exception_state: 'expired',
                 focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
                 focus_step: 'admin_queue_pilot_cut',
                 integration_slice: 'governance_evidence',
@@ -136,6 +139,9 @@ test('core-serializers serializeBoard roundtrip basico con currentDate inyectado
     assert.match(yaml, /strategy:/);
     assert.match(yaml, /focus_id:\s+"FOCUS-2026-03-admin-operativo-cut-1"/);
     assert.match(yaml, /subfront_id:\s+SF-frontend-admin-operativo/);
+    assert.match(yaml, /exception_opened_at:\s+"2000-01-01T00:00:00.000Z"/);
+    assert.match(yaml, /exception_expires_at:\s+"2000-01-01T08:00:00.000Z"/);
+    assert.match(yaml, /exception_state:\s+"expired"/);
     assert.match(yaml, /title:\s+"Task \\"uno\\""/);
     assert.match(yaml, /files:\s+\["agent-orchestrator\.js"\]/);
 
@@ -157,11 +163,20 @@ test('core-serializers serializeBoard roundtrip basico con currentDate inyectado
     assert.equal(parsed.tasks[0].cross_domain, false);
     assert.equal(parsed.tasks[0].strategy_id, 'STRAT-2026-03-admin-operativo');
     assert.equal(parsed.tasks[0].subfront_id, 'SF-frontend-admin-operativo');
-    assert.equal(parsed.tasks[0].strategy_role, 'support');
+    assert.equal(parsed.tasks[0].strategy_role, 'exception');
     assert.equal(
         parsed.tasks[0].strategy_reason,
         'soporte directo al frente activo'
     );
+    assert.equal(
+        parsed.tasks[0].exception_opened_at,
+        '2000-01-01T00:00:00.000Z'
+    );
+    assert.equal(
+        parsed.tasks[0].exception_expires_at,
+        '2000-01-01T08:00:00.000Z'
+    );
+    assert.equal(parsed.tasks[0].exception_state, 'expired');
     assert.equal(parsed.tasks[0].focus_step, 'admin_queue_pilot_cut');
     assert.equal(parsed.tasks[0].integration_slice, 'governance_evidence');
     assert.equal(parsed.tasks[0].work_type, 'support');
