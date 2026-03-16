@@ -461,6 +461,20 @@ function resolveTaskExceptionState(task, subfront, options = {}) {
     return task;
 }
 
+function isReleasePromotionExceptionTask(task) {
+    if (!task || typeof task !== 'object') return false;
+    return (
+        normalizeOptionalToken(task.strategy_role) === 'exception' &&
+        String(task.strategy_reason || '').trim() ===
+            'validated_release_promotion' &&
+        String(task.status || '').trim() === 'review' &&
+        normalizeOptionalToken(task.work_type) === 'evidence' &&
+        normalizeOptionalToken(task.integration_slice) ===
+            'governance_evidence' &&
+        normalizeOptionalToken(task.executor) === 'codex'
+    );
+}
+
 function ensureTaskStrategyDefaults(board, task, options = {}) {
     if (!task || typeof task !== 'object') return task;
     const activeStatuses = options.activeStatuses || ACTIVE_TASK_STATUSES;
@@ -709,7 +723,11 @@ function validateTaskStrategyAlignment(board, task, options = {}) {
         );
     }
 
-    if (subfront.blocked_scopes.includes(scope)) {
+    const isReleasePromotionException = isReleasePromotionExceptionTask(task);
+    if (
+        subfront.blocked_scopes.includes(scope) &&
+        !isReleasePromotionException
+    ) {
         throw createStrategyError(
             taskId,
             'scope_blocked',
@@ -727,6 +745,9 @@ function validateTaskStrategyAlignment(board, task, options = {}) {
                 'strategy_reason_required',
                 'strategy_role=exception requiere strategy_reason'
             );
+        }
+        if (isReleasePromotionException) {
+            return { strategy, subfront };
         }
         resolveTaskExceptionState(task, subfront, options);
         if (!ALLOWED_EXCEPTION_STATES.has(task.exception_state)) {
@@ -1556,6 +1577,7 @@ module.exports = {
     getSubfrontById,
     getSubfrontByCodexInstance,
     getTaskSubfront,
+    isReleasePromotionExceptionTask,
     ensureTaskStrategyDefaults,
     validateStrategyConfiguration,
     validateTaskStrategyAlignment,

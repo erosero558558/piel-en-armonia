@@ -280,6 +280,51 @@ function buildPublicSyncRepoHygieneMessage(job = {}) {
     return parts.join(' ');
 }
 
+function isPublishVerificationPending(event = {}) {
+    return (
+        String(event.live_status || '')
+            .trim()
+            .toLowerCase() === 'pending' ||
+        Boolean(event.verification_pending) ||
+        String(event.warning_code || '').trim() ===
+            'publish_live_verification_pending'
+    );
+}
+
+function collectLatestPendingPublishEvents(publishEvents = []) {
+    const latestByLane = new Map();
+    for (const event of Array.isArray(publishEvents) ? publishEvents : []) {
+        const lane = String(event?.codex_instance || '').trim();
+        if (!lane) continue;
+        const previous = latestByLane.get(lane);
+        const previousMs = Date.parse(String(previous?.published_at || ''));
+        const currentMs = Date.parse(String(event?.published_at || ''));
+        if (
+            previous &&
+            Number.isFinite(previousMs) &&
+            Number.isFinite(currentMs) &&
+            currentMs < previousMs
+        ) {
+            continue;
+        }
+        latestByLane.set(lane, event);
+    }
+    return Array.from(latestByLane.values()).filter((event) =>
+        isPublishVerificationPending(event)
+    );
+}
+
+function buildPendingPublishMessage(events = []) {
+    return `Publish con verificacion live pendiente: ${events
+        .map((event) => {
+            const lane = String(event.codex_instance || '').trim() || 'unknown';
+            const taskId = String(event.task_id || '').trim() || 'n/a';
+            const commit = String(event.commit || '').trim();
+            return commit ? `${lane}/${taskId}@${commit}` : `${lane}/${taskId}`;
+        })
+        .join(', ')}`;
+}
+
 function buildWarnFirstDiagnostics(input = {}) {
     const {
         source = 'status',
@@ -291,6 +336,7 @@ function buildWarnFirstDiagnostics(input = {}) {
         metricsSnapshot = null,
         policyReport = null,
         jobsSnapshot = null,
+        publishEvents = null,
         activeStatuses = new Set(),
         now = new Date(),
     } = input;
@@ -787,6 +833,46 @@ function buildWarnFirstDiagnostics(input = {}) {
                 meta: buildPublicSyncDiagnosticMeta(publicSyncJob),
             })
         );
+    }
+    if (
+        warnPolicyEnabled(
+            warnPolicyMap,
+            'publish_live_verification_pending'
+        )
+    ) {
+        const pendingPublishEvents =
+            collectLatestPendingPublishEvents(publishEvents);
+        if (pendingPublishEvents.length > 0) {
+            diagnostics.push(
+                makeDiagnostic({
+                    code: 'warn.publish.live_verification_pending',
+                    severity: warnPolicySeverity(
+                        warnPolicyMap,
+                        'publish_live_verification_pending'
+                    ),
+                    source,
+                    message: buildPendingPublishMessage(pendingPublishEvents),
+                    task_ids: pendingPublishEvents.map((event) =>
+                        String(event.task_id || '')
+                    ),
+                    meta: {
+                        entries: pendingPublishEvents.map((event) => ({
+                            task_id: String(event.task_id || ''),
+                            task_family: String(event.task_family || ''),
+                            codex_instance: String(
+                                event.codex_instance || ''
+                            ),
+                            commit: String(event.commit || ''),
+                            published_at: String(event.published_at || ''),
+                            live_status: String(event.live_status || ''),
+                            verification_pending: Boolean(
+                                event.verification_pending
+                            ),
+                        })),
+                    },
+                })
+            );
+        }
     }
 
     return diagnostics;

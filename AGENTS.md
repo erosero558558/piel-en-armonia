@@ -64,6 +64,10 @@ Reglas:
 - Las `exception` son auditables: expiran por TTL del subfrente, cuentan como
   deuda operativa y bloquean `strategy activate-next` y `strategy close` si
   quedan vencidas.
+- Excepcion formal permitida para publicar un release ya validado:
+  `strategy_reason=validated_release_promotion`, activada con
+  `task start <AG|CDX> --release-publish`, que fija `status=review`,
+  `work_type=evidence` e `integration_slice=governance_evidence`.
 - `wip_limit` por subfrente mide solo tareas que ocupan slot
   (`in_progress|review|blocked`); `ready` no cuenta contra el WIP efectivo.
 - Las transiciones `set-active`, `set-next`, `activate-next` y `close` deben
@@ -153,7 +157,13 @@ Particion operativa obligatoria entre tres instancias de Codex:
 - `codex_transversal`: `agent-orchestrator.js`, `AGENTS.md`,
   `AGENT_BOARD.yaml`, `AGENT_HANDOFFS.yaml`, `AGENT_JOBS.yaml`,
   `AGENT_SIGNALS.yaml`, `governance-policy.json`,
+  `docs/AGENT_ORCHESTRATION_RUNBOOK.md`,
+  `docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md`,
+  `docs/GITHUB_ACTIONS_DEPLOY.md`,
   `TRI_LANE_RUNTIME_RUNBOOK.md`, `PLAN_MAESTRO_CODEX_2026.md`,
+  `tests-node/agent-orchestrator-cli.test.js`,
+  `tests-node/orchestrator/**`,
+  `tests-node/publish-checkpoint-command.test.js`,
   `tools/agent-orchestrator/**`, `bin/validate-agent-governance.php`,
   `figo-ai-bridge.php`, `lib/figo_queue.php`, `lib/auth.php`,
   `controllers/OperatorAuthController.php`, `controllers/LeadAiController.php`,
@@ -292,10 +302,12 @@ node agent-orchestrator.js task create --apply verification/task-create-preview.
 node agent-orchestrator.js task create preview-file diff verification/task-create-preview.json --json --format compact
 node agent-orchestrator.js task create --apply verification/task-create-preview.json --force-id-remap --to backlog --claim-owner ernesto --json
 node agent-orchestrator.js task start AG-003 --status in_progress
+node agent-orchestrator.js task start AG-003 --release-publish --expect-rev 12 --json
 node agent-orchestrator.js task start AG-003 --status in_progress --expect-rev 12 --json
 node agent-orchestrator.js task finish AG-003 --evidence verification/agent-runs/AG-003.md
 node agent-orchestrator.js task start AG-003 --json
 node agent-orchestrator.js sync
+node agent-orchestrator.js publish checkpoint AG-003 --summary "release-publish AG-003 ..." --expect-rev 12 --json
 node agent-orchestrator.js publish checkpoint CDX-001 --summary "..." --expect-rev 12 --json
 node agent-orchestrator.js close <task_id>
 node agent-orchestrator.js close AG-003 --json
@@ -330,7 +342,8 @@ Flujo recomendado:
 4. Ejecutar `npm run agent:test` si cambiaste el orquestador/validadores.
 5. Ejecutar `npm run agent:gate` (o al menos `conflicts`, `handoffs lint`, `codex-check`).
    Para diagnostico semantico del board (leases, stale, WIP, evidencia), ejecutar `node agent-orchestrator.js board doctor --json` (warn-first, no bloqueante por defecto).
-6. Si el cambio debe salir rapido a `main`, ejecutar `node agent-orchestrator.js publish checkpoint <CDX-ID> --summary "..." --expect-rev <rev> --json`.
+6. Si el cambio debe salir rapido a `main`, ejecutar `node agent-orchestrator.js publish checkpoint <AG-ID|CDX-ID> --summary "..." --expect-rev <rev> --json`.
+   Para promocion formal de release sobre una tarea existente, usar antes `node agent-orchestrator.js task start <AG-ID|CDX-ID> --release-publish --expect-rev <rev> --json`.
 7. Ejecutar `node agent-orchestrator.js sync` cuando haga falta refrescar tombstones/estado derivado.
 8. Ejecutar validaciones del cambio (`npm run lint`, tests aplicables).
 9. Confirmar evidencia y cerrar (`close`, `codex stop`, `handoffs close`) cuando aplique.

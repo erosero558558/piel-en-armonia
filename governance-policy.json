@@ -154,6 +154,10 @@
                 "severity": "warning",
                 "enabled": true
             },
+            "publish_live_verification_pending": {
+                "severity": "warning",
+                "enabled": true
+            },
             "strategy_without_focus": {
                 "severity": "warning",
                 "enabled": true

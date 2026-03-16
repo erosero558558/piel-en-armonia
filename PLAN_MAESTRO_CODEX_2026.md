@@ -29,7 +29,7 @@ id: STRAT-2026-03-turnero-web-pilot
 title: "Turnero web por clinica"
 status: active
 owner: Ernesto
-owner_policy: "detected_default_owner"
+owner_policy: ""
 objective: "Reabrir queue/turnero como un piloto web por clinica demostrable en admin basic, operador, kiosco y sala, usando clinic-profile como fuente de verdad y bloqueando superficies fuera de canon."
 started_at: "2026-03-14"
 review_due_at: "2026-03-28"

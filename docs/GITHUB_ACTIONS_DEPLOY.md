@@ -91,10 +91,15 @@ Si falla un workflow de salud programado, crea/actualiza issue de incidente auto
 
 Para la publicacion rapida desde el orquestador, el camino operativo es:
 
-1. `node agent-orchestrator.js publish checkpoint <CDX-ID> --summary "..." --expect-rev <rev> --json`
-2. el comando crea el checkpoint y sincroniza `main` via `sync-main-safe`
-3. esperar la validacion de deploy/post-deploy y confirmar por `https://pielarmonia.com/api.php?resource=health`
-4. usar `public_main_sync` como telemetria host-side complementaria, no como gate local del checkpoint
+1. `node agent-orchestrator.js task start <AG-ID|CDX-ID> --release-publish --expect-rev <rev> --json` cuando se trate de una promocion formal de release
+2. `node agent-orchestrator.js publish checkpoint <AG-ID|CDX-ID> --summary "release-publish ..." --expect-rev <rev> --json`
+3. el comando crea el checkpoint y sincroniza `main` via `sync-main-safe`
+4. esperar confirmacion por `https://pielarmonia.com/api.php?resource=health`
+5. validar `checks.publicSync.deployedCommit == SHA publicado`
+
+Si el push salio pero `public_main_sync` todavia no confirma deploy, el
+checkpoint devuelve `live_status=pending` y deja warning no bloqueante para
+seguir la verificacion live despues.
 
 Variable recomendada para fase de agenda real:
 

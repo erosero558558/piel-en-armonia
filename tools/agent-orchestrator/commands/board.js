@@ -31,6 +31,7 @@ async function handleBoardCommand(ctx) {
         readJsonlFile,
         printJson = (v) => console.log(JSON.stringify(v, null, 2)),
         loadJobsSnapshot,
+        loadPublishEvents,
     } = ctx;
     const subcommand = String(args[0] || 'doctor')
         .trim()
@@ -105,6 +106,10 @@ async function handleBoardCommand(ctx) {
                 ? buildStrategyCoverageSummary(board)
                 : null;
         const focusSummary = focusData.summary;
+        const publishEvents =
+            typeof loadPublishEvents === 'function'
+                ? loadPublishEvents()
+                : [];
         const strategyDiagnostics =
             strategySummary?.active && strategySummary.orphan_tasks > 0
                 ? [
@@ -134,6 +139,7 @@ async function handleBoardCommand(ctx) {
                     ? loadMetricsSnapshot()
                     : null,
             jobsSnapshot: jobs,
+            publishEvents,
         });
         const mergedDiagnostics = [
             ...(Array.isArray(baseReport.diagnostics)

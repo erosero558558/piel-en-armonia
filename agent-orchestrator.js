@@ -237,6 +237,10 @@ const DEFAULT_GOVERNANCE_POLICY = {
                 severity: 'warning',
                 enabled: true,
             },
+            publish_live_verification_pending: {
+                severity: 'warning',
+                enabled: true,
+            },
             strategy_without_focus: { severity: 'warning', enabled: true },
             focus_without_active_tasks: {
                 severity: 'warning',
@@ -555,6 +559,13 @@ function parseJobs() {
         readFile: readFileSync,
         parseJobsContent: coreParsers.parseJobsContent,
         currentDate,
+    });
+}
+
+function loadPublishEvents() {
+    return coreIo.readJsonlFile(PUBLISH_EVENTS_PATH, {
+        exists: existsSync,
+        readFile: readFileSync,
     });
 }
 
@@ -1439,6 +1450,7 @@ function buildWarnFirstDiagnostics({
     metricsSnapshot = null,
     policyReport = null,
     jobsSnapshot = null,
+    publishEvents = null,
 }) {
     return domainDiagnostics.buildWarnFirstDiagnostics({
         source,
@@ -1451,6 +1463,7 @@ function buildWarnFirstDiagnostics({
         metricsSnapshot,
         policyReport,
         jobsSnapshot,
+        publishEvents,
         activeStatuses: ACTIVE_STATUSES,
     });
 }
@@ -1499,6 +1512,7 @@ async function cmdStatus(args) {
         buildLiveFocusSummary,
         getGovernancePolicy,
         loadJobsSnapshot,
+        loadPublishEvents,
         summarizeJobsSnapshot,
     });
 }
@@ -1674,6 +1688,7 @@ function cmdBoard(args) {
         readJsonlFile: coreIo.readJsonlFile,
         printJson: coreOutput.printJson,
         loadJobsSnapshot,
+        loadPublishEvents,
     });
 }
 

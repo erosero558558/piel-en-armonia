@@ -37,6 +37,7 @@ async function handleStatusCommand(ctx) {
         loadJobsSnapshot,
         summarizeJobsSnapshot,
         getGovernancePolicy,
+        loadPublishEvents,
     } = ctx;
     const wantsJson = args.includes('--json');
     const wantsExplainRed = args.includes('--explain-red');
@@ -105,6 +106,8 @@ async function handleStatusCommand(ctx) {
         typeof getGovernancePolicy === 'function'
             ? getGovernancePolicy()
             : null;
+    const publishEvents =
+        typeof loadPublishEvents === 'function' ? loadPublishEvents() : [];
     const evidenceReport = evidenceDiagnostics.buildTerminalEvidenceReport(
         board.tasks
     );
@@ -190,6 +193,7 @@ async function handleStatusCommand(ctx) {
                 conflictAnalysis,
                 metricsSnapshot,
                 jobsSnapshot: jobs,
+                publishEvents,
             }),
             ...terminalEvidenceDiagnostics,
         ])

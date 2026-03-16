@@ -33,7 +33,8 @@ Operar el sistema en modo `codex-only` con dos lanes humanos activos:
     - `node agent-orchestrator.js codex start <CDX-ID> --block <BLOCK> --expect-rev <n>`
 3. Implementar y validar gates por superficie.
 4. Publicar checkpoint:
-    - `node agent-orchestrator.js publish checkpoint <CDX-ID> --summary "..." --expect-rev <n> --json`
+    - `node agent-orchestrator.js task start <AG-ID|CDX-ID> --release-publish --expect-rev <n> --json` cuando sea promocion formal de release
+    - `node agent-orchestrator.js publish checkpoint <AG-ID|CDX-ID> --summary "..." --expect-rev <n> --json`
     - el comando publica source + evidencia, ignora ruido efimero de `.generated/site-root` y `_deploy_bundle`, y sincroniza `main` via `sync-main-safe`
     - la verificacion live queda delegada al deploy/post-deploy; `public_main_sync` sigue como telemetria host-side, no como blocker del checkpoint local
 5. Confirmar producción:
@@ -73,3 +74,4 @@ Operar el sistema en modo `codex-only` con dos lanes humanos activos:
 - Jobs tracked: `AGENT_JOBS.yaml`
 - Evidencias por tarea: `verification/agent-runs/<task_id>.md`
 - Eventos de publish: `verification/agent-publish-events.jsonl`
+- `publish checkpoint` puede devolver `live_status=pending` con `warning_code=publish_live_verification_pending` cuando el push a `main` ya salio pero la verificacion live todavia no confirma deploy.

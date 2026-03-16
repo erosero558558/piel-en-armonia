@@ -22,6 +22,23 @@ const REPO_ROOT = resolve(__dirname, '..');
 const ORCHESTRATOR_SOURCE = join(REPO_ROOT, 'agent-orchestrator.js');
 const ORCHESTRATOR_TOOLS_DIR = join(REPO_ROOT, 'tools', 'agent-orchestrator');
 const GOVERNANCE_POLICY_SOURCE = join(REPO_ROOT, 'governance-policy.json');
+const WORKSPACE_HYGIENE_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'lib',
+    'workspace-hygiene.js'
+);
+const GENERATED_SITE_ROOT_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'lib',
+    'generated-site-root.js'
+);
+const CLEAN_LOCAL_ARTIFACTS_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'clean-local-artifacts.js'
+);
 const OPENCLAW_RUNTIME_HELPER_SOURCE = join(
     REPO_ROOT,
     'bin',
@@ -60,6 +77,18 @@ function createFixtureDir() {
     });
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
     mkdirSync(join(dir, 'bin', 'lib'), { recursive: true });
+    copyFileSync(
+        WORKSPACE_HYGIENE_SOURCE,
+        join(dir, 'bin', 'lib', 'workspace-hygiene.js')
+    );
+    copyFileSync(
+        GENERATED_SITE_ROOT_SOURCE,
+        join(dir, 'bin', 'lib', 'generated-site-root.js')
+    );
+    copyFileSync(
+        CLEAN_LOCAL_ARTIFACTS_SOURCE,
+        join(dir, 'bin', 'clean-local-artifacts.js')
+    );
     copyFileSync(
         WORKSPACE_HYGIENE_SOURCE,
         join(dir, 'bin', 'lib', 'workspace-hygiene.js')
@@ -176,6 +205,18 @@ jobs:
     source_of_truth: host_cron
     publish_strategy: main_auto_guarded
 `,
+        'utf8'
+    );
+}
+
+function writePublishEventsFixture(dir, events = []) {
+    const verificationDir = join(dir, 'verification');
+    mkdirSync(verificationDir, { recursive: true });
+    writeFileSync(
+        join(dir, 'verification', 'agent-publish-events.jsonl'),
+        `${events.map((event) => JSON.stringify(event)).join('\n')}${
+            events.length ? '\n' : ''
+        }`,
         'utf8'
     );
 }
@@ -860,6 +901,36 @@ policy:
   updated_at: ${DATE}
 ${activeAdminStrategyYaml().trim()}
 tasks:
+`;
+}
+
+function boardForReleasePublishFixture() {
+    return `
+version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  revision: 0
+  updated_at: ${DATE}
+${activeAdminStrategyYaml().trim()}
+tasks:
+  - id: AG-256
+    title: "Release publish fixture"
+    owner: ernesto
+    executor: codex
+    status: backlog
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: ["controllers/AdminController.php"]
+    depends_on: []
+    critical_zone: false
+    runtime_impact: low
+    updated_at: ${DATE}
 `;
 }
 
@@ -2537,6 +2608,40 @@ test('task claim/start soportan blocked_reason y evitan blocked sin contexto', (
         result.stderr,
         /task start requiere --blocked-reason cuando status=blocked/i
     );
+});
+
+test('task start --release-publish fija el preset de excepcion formal de release', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForReleasePublishFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithStrategyBlock(),
+    });
+
+    const result = runCli(dir, [
+        'task',
+        'start',
+        'AG-256',
+        '--release-publish',
+        '--json',
+    ]);
+    const json = parseJsonStdout(result);
+
+    assert.equal(json.ok, true);
+    assert.equal(json.task.status, 'review');
+    assert.equal(json.task.strategy_id, 'STRAT-2026-03-admin-operativo');
+    assert.equal(json.task.subfront_id, 'SF-backend-admin-operativo');
+    assert.equal(json.task.strategy_role, 'exception');
+    assert.equal(
+        json.task.strategy_reason,
+        'validated_release_promotion'
+    );
+    assert.equal(json.task.focus_id, 'FOCUS-2026-03-admin-operativo-cut-1');
+    assert.equal(json.task.focus_step, 'admin_queue_pilot_cut');
+    assert.equal(json.task.integration_slice, 'governance_evidence');
+    assert.equal(json.task.work_type, 'evidence');
 });
 
 test('task start bloquea activar una tarea si genera conflicto blocking', (t) => {
@@ -4624,6 +4729,57 @@ test('status reclasifica working_tree_dirty con dirty paths como repo hygiene wa
     assert.match(repoHygiene.message, /repo hygiene issue/);
     assert.equal(repoHygiene.meta.repo_hygiene_issue, true);
     assert.equal(repoHygiene.meta.operationally_healthy, true);
+});
+
+test('status y board doctor exponen publish live pendiente como warning no bloqueante', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForConflictFixture({ codexStatus: 'review' }),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithCodexBlock({ status: 'review' }),
+    });
+    writeGovernancePolicy(dir, {
+        version: 1,
+        enforcement: {
+            warning_policies: {
+                publish_live_verification_pending: {
+                    enabled: true,
+                    severity: 'warning',
+                },
+            },
+        },
+    });
+    writePublishEventsFixture(dir, [
+        {
+            version: 1,
+            task_id: 'AG-256',
+            task_family: 'ag',
+            codex_instance: 'codex_frontend',
+            published_at: '2026-03-16T00:00:00Z',
+            commit: 'abc1234',
+            live_status: 'pending',
+            verification_pending: true,
+            warning_code: 'publish_live_verification_pending',
+        },
+    ]);
+
+    let json = parseJsonStdout(runCli(dir, ['status', '--json']));
+    assert.equal(
+        json.diagnostics.some(
+            (item) =>
+                item.code === 'warn.publish.live_verification_pending'
+        ),
+        true
+    );
+
+    json = parseJsonStdout(runCli(dir, ['board', 'doctor', '--json']));
+    const warning = json.diagnostics.find(
+        (item) => item.code === 'warn.publish.live_verification_pending'
+    );
+    assert.ok(warning);
+    assert.match(warning.message, /codex_frontend\/AG-256@abc1234/i);
 });
 
 test('handoffs create/close escriben eventos append-only en board events', (t) => {

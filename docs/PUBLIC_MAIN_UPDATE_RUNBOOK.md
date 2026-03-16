@@ -37,14 +37,18 @@ writes `verification/public-v6-canonical/build-report.json`.
 2. Publish source or build the deploy bundle:
 
 ```bash
-node agent-orchestrator.js publish checkpoint <CDX-ID> --summary "..." --expect-rev <rev> --json
+node agent-orchestrator.js task start <AG-ID|CDX-ID> --release-publish --expect-rev <rev> --json
+node agent-orchestrator.js publish checkpoint <AG-ID|CDX-ID> --summary "release-publish ..." --expect-rev <rev> --json
 # or
 npm run bundle:deploy
 ```
 
 `publish checkpoint` no longer waits on `public_main_sync`; live confirmation
-belongs to deploy/post-deploy. `bundle:deploy` is the canonical transport
-package path.
+belongs to deploy/post-deploy. Si el push ya entro a `main` pero la
+telemetria todavia no confirma deploy, el comando devuelve
+`live_status=pending` y `warning_code=publish_live_verification_pending`
+sin revertir el publish. `bundle:deploy` es la ruta canónica del paquete de
+transporte.
 
 3. Let deploy/post-deploy confirm the live state. Use `public_main_sync` only
 as host-side telemetry or when you intentionally need the legacy git-sync

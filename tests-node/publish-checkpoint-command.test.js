@@ -65,6 +65,11 @@ console.log(JSON.stringify({ version: 1, ok: true, message: 'fixture sync ok' })
         '# CDX-900\n',
         'utf8'
     );
+    writeFileSync(
+        join(root, 'verification', 'agent-runs', 'AG-900.md'),
+        '# AG-900\n',
+        'utf8'
+    );
 
     runGit(root, ['init']);
     runGit(root, ['config', 'user.email', 'fixture@example.com']);
@@ -79,6 +84,7 @@ console.log(JSON.stringify({ version: 1, ok: true, message: 'fixture sync ok' })
             'README.md',
             'docs/in-scope.md',
             'verification/agent-runs/CDX-900.md',
+            'verification/agent-runs/AG-900.md',
         ]
     );
     runGit(root, ['add', '-f', 'script.js']);
@@ -105,25 +111,28 @@ function runGit(root, args) {
 }
 
 function buildPublishContext(root, overrides = {}) {
+    const taskId = String(overrides.taskId || 'CDX-900');
+    const task = {
+        id: taskId,
+        executor: 'codex',
+        status: 'in_progress',
+        codex_instance: 'codex_backend_ops',
+        files: ['docs/in-scope.md'],
+        ...(overrides.task && typeof overrides.task === 'object'
+            ? overrides.task
+            : {}),
+    };
     const board = {
         policy: { revision: 7 },
-        tasks: [
-            {
-                id: 'CDX-900',
-                executor: 'codex',
-                status: 'in_progress',
-                codex_instance: 'codex_backend_ops',
-                files: ['docs/in-scope.md'],
-            },
-        ],
+        tasks: [task],
     };
     let printed = null;
     return {
         args: [
             'checkpoint',
-            'CDX-900',
+            taskId,
             '--summary',
-            'fixture publish',
+            String(overrides.summary || 'fixture publish'),
             '--expect-rev',
             '7',
             '--json',
@@ -139,7 +148,11 @@ function buildPublishContext(root, overrides = {}) {
             return printed;
         },
         rootPath: root,
-        publishEventsPath: join(root, 'verification', 'publish-events.jsonl'),
+        publishEventsPath: join(
+            root,
+            'verification',
+            'agent-publish-events.jsonl'
+        ),
         ...overrides,
     };
 }
@@ -161,7 +174,6 @@ test('publish checkpoint classifyPublishSurface y buildGateCommands cubren union
         'board-doctor',
         'conflicts',
         'codex-check',
-        'focus-check',
         'agent-test',
         'agent-validate',
         'lint-php',
@@ -169,6 +181,28 @@ test('publish checkpoint classifyPublishSurface y buildGateCommands cubren union
         'lint-js',
         'public-v6-artifacts-check',
         'smoke-public-routing',
+    ]);
+});
+
+test('publish checkpoint no trata JS de gobernanza como frontend visible', () => {
+    const surface = classifyPublishSurface([
+        'agent-orchestrator.js',
+        'tests-node/publish-checkpoint-command.test.js',
+        'AGENTS.md',
+    ]);
+    assert.deepEqual(surface, {
+        orchestrator: true,
+        backend: false,
+        frontend: false,
+    });
+
+    const gates = buildGateCommands(surface).map((item) => item.id);
+    assert.deepEqual(gates, [
+        'board-doctor',
+        'conflicts',
+        'codex-check',
+        'agent-test',
+        'agent-validate',
     ]);
 });
 
@@ -223,14 +257,21 @@ test('publish checkpoint ignora stage root y bundle y delega la verificacion liv
         assert.equal(report.ok, true);
         assert.equal(report.command, 'publish checkpoint');
         assert.equal(report.task_id, 'CDX-900');
+        assert.equal(report.task_family, 'cdx');
         assert.equal(report.codex_instance, 'codex_backend_ops');
+        assert.equal(report.release_exception, false);
+        assert.equal(report.live_status, 'pending');
+        assert.equal(report.verification_pending, true);
+        assert.equal(
+            report.warning_code,
+            'publish_live_verification_pending'
+        );
         assert.equal(report.live_verification.mode, 'delegated_to_deploy');
         assert.equal(report.live_verification.transport, 'sync-main-safe');
         assert.deepEqual(report.gates_run, [
             'board-doctor',
             'conflicts',
             'codex-check',
-            'focus-check',
         ]);
         assert.equal(report.staged_files.includes('docs/in-scope.md'), true);
         assert.deepEqual(
@@ -242,6 +283,9 @@ test('publish checkpoint ignora stage root y bundle y delega la verificacion liv
 
         const eventsRaw = readFileSync(ctx.publishEventsPath, 'utf8');
         assert.match(eventsRaw, /"deploy_verification":"delegated_to_deploy"/);
+        assert.match(eventsRaw, /"task_family":"cdx"/);
+        assert.match(eventsRaw, /"live_status":"pending"/);
+        assert.match(eventsRaw, /"verification_pending":true/);
         assert.match(eventsRaw, /"live_ok":true/);
         assert.match(eventsRaw, /"sync_transport":"sync-main-safe"/);
         assert.equal(
@@ -249,6 +293,78 @@ test('publish checkpoint ignora stage root y bundle y delega la verificacion liv
                 'chore(codex-publish): checkpoint CDX-900'
             ),
             true
+        );
+    } finally {
+        cleanupRepoFixture(root);
+    }
+});
+
+test('publish checkpoint acepta AG-* release-publish y devuelve pending sin fallar', async () => {
+    const root = createRepoFixture();
+    try {
+        writeFileSync(join(root, 'docs', 'in-scope.md'), '# updated scope\n', 'utf8');
+        const ctx = buildPublishContext(root, {
+            taskId: 'AG-900',
+            summary: 'release-publish AG-900 aurora-derm-trust-conversion',
+            task: {
+                status: 'review',
+                codex_instance: 'codex_frontend',
+                scope: 'frontend-public',
+                strategy_role: 'exception',
+                strategy_reason: 'validated_release_promotion',
+                integration_slice: 'governance_evidence',
+                work_type: 'evidence',
+            },
+        });
+
+        const report = await handlePublishCommand(ctx);
+
+        assert.equal(report.ok, true);
+        assert.equal(report.task_id, 'AG-900');
+        assert.equal(report.task_family, 'ag');
+        assert.equal(report.release_exception, true);
+        assert.equal(report.live_status, 'pending');
+        assert.equal(report.verification_pending, true);
+        assert.equal(
+            report.warning_code,
+            'publish_live_verification_pending'
+        );
+        assert.equal(
+            runGit(root, ['show', '--stat', '--format=%s', 'HEAD']).stdout.includes(
+                'chore(codex-publish): checkpoint AG-900'
+            ),
+            true
+        );
+    } finally {
+        cleanupRepoFixture(root);
+    }
+});
+
+test('publish checkpoint release-publish exige marcador explicito en summary', async () => {
+    const root = createRepoFixture();
+    try {
+        writeFileSync(join(root, 'docs', 'in-scope.md'), '# updated scope\n', 'utf8');
+        const ctx = buildPublishContext(root, {
+            taskId: 'AG-900',
+            summary: 'aurora derm trust conversion',
+            task: {
+                status: 'review',
+                codex_instance: 'codex_frontend',
+                scope: 'frontend-public',
+                strategy_role: 'exception',
+                strategy_reason: 'validated_release_promotion',
+                integration_slice: 'governance_evidence',
+                work_type: 'evidence',
+            },
+        });
+
+        await assert.rejects(
+            () => handlePublishCommand(ctx),
+            (error) => {
+                assert.equal(error.error_code, 'invalid_summary');
+                assert.match(error.message, /release-publish/i);
+                return true;
+            }
         );
     } finally {
         cleanupRepoFixture(root);

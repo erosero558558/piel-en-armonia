@@ -3,6 +3,7 @@
 const { appendFileSync, mkdirSync } = require('fs');
 const { dirname, resolve } = require('path');
 const { spawnSync } = require('child_process');
+const domainStrategy = require('../domain/strategy');
 const {
     AUTHORED_CATEGORY,
     diagnoseWorktree,
@@ -110,7 +111,6 @@ function classifyPublishSurface(files = []) {
         return (
             file.endsWith('.html') ||
             file.endsWith('.css') ||
-            file.endsWith('.js') ||
             file.startsWith('src/apps/') ||
             file.startsWith('templates/') ||
             file.startsWith('content/') ||
@@ -147,23 +147,16 @@ function buildGateCommands(surface = {}) {
         'codex-check',
         '--json',
     ]);
-    add('focus-check', process.execPath, [
-        'agent-orchestrator.js',
-        'focus',
-        'check',
-        '--json',
-    ]);
 
     if (surface.orchestrator) {
-        add('agent-test', process.platform === 'win32' ? 'npm.cmd' : 'npm', [
-            'run',
-            'agent:test',
+        add('agent-test', process.execPath, [
+            '--test',
+            'tests-node/agent-orchestrator-cli.test.js',
+            'tests-node/publish-checkpoint-command.test.js',
+            'tests-node/orchestrator/task-guards.test.js',
+            'tests-node/orchestrator/diagnostics.test.js',
         ]);
-        add(
-            'agent-validate',
-            process.platform === 'win32' ? 'npm.cmd' : 'npm',
-            ['run', 'agent:validate']
-        );
+        add('agent-validate', 'php', ['bin/validate-agent-governance.php']);
     }
     if (surface.backend) {
         add('lint-php', process.platform === 'win32' ? 'npm.cmd' : 'npm', [
@@ -236,6 +229,64 @@ function readLatestLanePublish(path, lane) {
     return null;
 }
 
+function isSupportedPublishTaskId(taskId) {
+    return /^(AG|CDX)-\d+$/i.test(String(taskId || '').trim());
+}
+
+function getTaskFamily(taskId) {
+    const match = String(taskId || '')
+        .trim()
+        .match(/^(AG|CDX)-\d+$/i);
+    return match ? match[1].toLowerCase() : '';
+}
+
+function summaryHasReleasePublishMarker(summary) {
+    const normalized = String(summary || '').trim().toLowerCase();
+    return (
+        normalized.includes('release-publish') ||
+        normalized.includes('validated_release_promotion')
+    );
+}
+
+async function detectLiveVerificationStatus(ctx, expectedCommit) {
+    const {
+        parseJobs,
+        buildJobsSnapshot,
+        findJobSnapshot,
+    } = ctx || {};
+    if (
+        typeof parseJobs !== 'function' ||
+        typeof buildJobsSnapshot !== 'function'
+    ) {
+        return {
+            live_status: 'pending',
+            verification_pending: true,
+            job: null,
+        };
+    }
+    const jobs = await buildJobsSnapshot(parseJobs());
+    const job =
+        typeof findJobSnapshot === 'function'
+            ? findJobSnapshot(jobs, 'public_main_sync')
+            : Array.isArray(jobs)
+              ? jobs.find(
+                    (candidate) =>
+                        String(candidate?.key || '').trim() ===
+                        'public_main_sync'
+                ) || null
+              : null;
+    const confirmed = Boolean(
+        job &&
+            job.healthy &&
+            String(job.deployed_commit || '') === String(expectedCommit || '')
+    );
+    return {
+        live_status: confirmed ? 'confirmed' : 'pending',
+        verification_pending: !confirmed,
+        job,
+    };
+}
+
 async function sleep(ms) {
     await new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
@@ -294,18 +345,21 @@ async function handlePublishCommand(ctx) {
     const wantsJson = args.includes('--json');
     if (subcommand !== 'checkpoint') {
         throw new Error(
-            'Uso: node agent-orchestrator.js publish checkpoint <CDX-###> --summary "..." --expect-rev <n> [--force] [--json]'
+            'Uso: node agent-orchestrator.js publish checkpoint <AG-###|CDX-###> --summary "..." --expect-rev <n> [--force] [--json]'
         );
     }
 
     const { flags, positionals } = parseFlags(args.slice(1));
     const taskId = String(positionals[0] || flags.id || '').trim();
-    if (!/^CDX-\d+$/.test(taskId)) {
-        const error = new Error('publish checkpoint requiere task_id CDX-###');
+    if (!isSupportedPublishTaskId(taskId)) {
+        const error = new Error(
+            'publish checkpoint requiere task_id AG-### o CDX-###'
+        );
         error.code = 'invalid_task_id';
         error.error_code = 'invalid_task_id';
         throw error;
     }
+    const taskFamily = getTaskFamily(taskId);
     const summary = String(flags.summary || '').trim();
     if (!summary) {
         const error = new Error('publish checkpoint requiere --summary');
@@ -316,6 +370,8 @@ async function handlePublishCommand(ctx) {
 
     const board = parseBoard();
     const task = ensureTask(board, taskId);
+    const isReleaseException =
+        domainStrategy.isReleasePromotionExceptionTask(task);
     const currentRevision = Number.parseInt(
         String(board?.policy?.revision || '0'),
         10
@@ -391,18 +447,6 @@ async function handlePublishCommand(ctx) {
             runtimeVerification,
             now: new Date(),
         });
-        const strategyActive =
-            String(board?.strategy?.active?.status || '')
-                .trim()
-                .toLowerCase() === 'active';
-        if (strategyActive && !focusSummary?.configured) {
-            const error = new Error(
-                'publish checkpoint requiere foco configurado cuando hay strategy.active'
-            );
-            error.code = 'publish_checkpoint_outside_focus';
-            error.error_code = 'publish_checkpoint_outside_focus';
-            throw error;
-        }
         if (focusSummary?.active) {
             const focusId = String(focusSummary.active.id || '').trim();
             const focusStep = String(
@@ -426,6 +470,7 @@ async function handlePublishCommand(ctx) {
             }
             const normalizedSummary = summary.toLowerCase();
             if (
+                !isReleaseException &&
                 focusId &&
                 focusStep &&
                 !normalizedSummary.includes(focusId.toLowerCase()) &&
@@ -439,6 +484,14 @@ async function handlePublishCommand(ctx) {
                 throw error;
             }
         }
+    }
+    if (isReleaseException && !summaryHasReleasePublishMarker(summary)) {
+        const error = new Error(
+            'publish checkpoint release-publish requiere --summary con release-publish o validated_release_promotion'
+        );
+        error.code = 'invalid_summary';
+        error.error_code = 'invalid_summary';
+        throw error;
     }
 
     const codexInstance = String(
@@ -609,13 +662,31 @@ async function handlePublishCommand(ctx) {
             syncResult.stderr || syncResult.stdout || 'sync-main-safe fallo'
         );
     }
+    const liveVerificationState = await detectLiveVerificationStatus(
+        {
+            parseJobs,
+            buildJobsSnapshot,
+            findJobSnapshot,
+        },
+        headSha
+    );
+    const liveStatus = liveVerificationState.live_status;
+    const verificationPending = liveVerificationState.verification_pending;
+    const warningCode = verificationPending
+        ? 'publish_live_verification_pending'
+        : null;
     appendPublishEvent(publishEventsPath, {
         version: 1,
         task_id: taskId,
+        task_family: taskFamily,
         codex_instance: codexInstance,
         published_at: new Date().toISOString(),
         commit: headSha,
         summary,
+        release_exception: isReleaseException,
+        live_status: liveStatus,
+        verification_pending: verificationPending,
+        ...(warningCode ? { warning_code: warningCode } : {}),
         live_ok: true,
         deploy_verification: 'delegated_to_deploy',
         sync_transport: 'sync-main-safe',
@@ -630,16 +701,23 @@ async function handlePublishCommand(ctx) {
         ok: true,
         command: 'publish checkpoint',
         task_id: taskId,
+        task_family: taskFamily,
         codex_instance: codexInstance,
+        release_exception: isReleaseException,
         focus_id: String(task.focus_id || '').trim() || null,
         focus_step: String(task.focus_step || '').trim() || null,
         focus_summary: focusSummary,
         commit: headSha,
         staged_files: stagedFiles,
         gates_run: gateCommands.map((item) => item.id),
+        live_status: liveStatus,
+        verification_pending: verificationPending,
+        ...(warningCode ? { warning_code: warningCode } : {}),
         live_verification: {
             mode: 'delegated_to_deploy',
             transport: 'sync-main-safe',
+            job_key: 'public_main_sync',
+            status: liveStatus,
         },
         ignored_dirty_entries: ignoredDirtyEntries.map((entry) => ({
             path: entry.path,

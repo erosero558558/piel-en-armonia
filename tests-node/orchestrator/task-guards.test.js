@@ -271,6 +271,123 @@ test('task-guards bloquea integration_slice invalido para su lane', () => {
     );
 });
 
+test('task-guards bloquea scope bloqueado por subfrente en flujo normal', () => {
+    const board = boardWithActiveStrategy();
+
+    assert.throws(
+        () =>
+            validateTaskGovernancePrechecks(
+                board,
+                {
+                    id: 'AG-011',
+                    status: 'review',
+                    scope: 'frontend-public',
+                    executor: 'codex',
+                    codex_instance: 'codex_backend_ops',
+                    domain_lane: 'backend_ops',
+                    lane_lock: 'strict',
+                    cross_domain: false,
+                    files: ['controllers/AdminController.php'],
+                    depends_on: ['AG-001'],
+                    strategy_id: 'STRAT-2026-03-admin-operativo',
+                    subfront_id: 'SF-backend-admin-operativo',
+                    strategy_role: 'primary',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_step: 'admin_queue_pilot_cut',
+                    integration_slice: 'backend_readiness',
+                    work_type: 'forward',
+                    runtime_impact: 'low',
+                    critical_zone: false,
+                },
+                {
+                    criticalScopeKeywords: CRITICAL_SCOPE_KEYWORDS,
+                    allowedExecutors: ALLOWED_EXECUTORS,
+                    activeStatuses: ACTIVE_STATUSES,
+                    handoffs: [],
+                }
+            ),
+        /scope bloqueado por subfrente/i
+    );
+});
+
+test('task-guards permite release-publish validado sobre scope bloqueado', () => {
+    const board = boardWithActiveStrategy();
+
+    assert.doesNotThrow(() =>
+        validateTaskGovernancePrechecks(
+            board,
+            {
+                id: 'AG-012',
+                status: 'review',
+                scope: 'frontend-public',
+                executor: 'codex',
+                codex_instance: 'codex_backend_ops',
+                domain_lane: 'backend_ops',
+                lane_lock: 'strict',
+                cross_domain: false,
+                files: ['controllers/AdminController.php'],
+                depends_on: ['AG-001'],
+                strategy_id: 'STRAT-2026-03-admin-operativo',
+                subfront_id: 'SF-backend-admin-operativo',
+                strategy_role: 'exception',
+                strategy_reason: 'validated_release_promotion',
+                focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                focus_step: 'admin_queue_pilot_cut',
+                integration_slice: 'governance_evidence',
+                work_type: 'evidence',
+                runtime_impact: 'low',
+                critical_zone: false,
+            },
+            {
+                criticalScopeKeywords: CRITICAL_SCOPE_KEYWORDS,
+                allowedExecutors: ALLOWED_EXECUTORS,
+                activeStatuses: ACTIVE_STATUSES,
+                handoffs: [],
+            }
+        )
+    );
+});
+
+test('task-guards mantiene bloqueado cualquier exception no release sobre blocked_scopes', () => {
+    const board = boardWithActiveStrategy();
+
+    assert.throws(
+        () =>
+            validateTaskGovernancePrechecks(
+                board,
+                {
+                    id: 'AG-013',
+                    status: 'review',
+                    scope: 'frontend-public',
+                    executor: 'codex',
+                    codex_instance: 'codex_backend_ops',
+                    domain_lane: 'backend_ops',
+                    lane_lock: 'strict',
+                    cross_domain: false,
+                    files: ['controllers/AdminController.php'],
+                    depends_on: ['AG-001'],
+                    strategy_id: 'STRAT-2026-03-admin-operativo',
+                    subfront_id: 'SF-backend-admin-operativo',
+                    strategy_role: 'exception',
+                    strategy_reason: 'support direct front',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_step: 'admin_queue_pilot_cut',
+                    integration_slice: 'governance_evidence',
+                    work_type: 'evidence',
+                    runtime_impact: 'low',
+                    critical_zone: false,
+                },
+                {
+                    criticalScopeKeywords: CRITICAL_SCOPE_KEYWORDS,
+                    allowedExecutors: ALLOWED_EXECUTORS,
+                    activeStatuses: ACTIVE_STATUSES,
+                    handoffs: [],
+                }
+            ),
+        /scope bloqueado por subfrente/i
+    );
+});
+
 test('task-guards exige razon de retrabajo para work_type fix o refactor', () => {
     const board = boardWithActiveStrategy();
 
