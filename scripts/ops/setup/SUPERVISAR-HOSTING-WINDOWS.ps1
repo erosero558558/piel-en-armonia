@@ -26,6 +26,8 @@ if (-not (Test-Path -LiteralPath $commonScriptPath)) {
 . $commonScriptPath
 
 $mirrorRepoPathResolved = [System.IO.Path]::GetFullPath($MirrorRepoPath)
+$runtimePaths = Get-HostingRuntimePaths -RepoRoot $mirrorRepoPathResolved
+$expectedCaddyRuntimeConfigPath = [string]$runtimePaths.CaddyRuntimeConfigPath
 $statusPathResolved = [System.IO.Path]::GetFullPath($StatusPath)
 $logPathResolved = [System.IO.Path]::GetFullPath($LogPath)
 $releaseTargetPathResolved = [System.IO.Path]::GetFullPath($ReleaseTargetPath)
@@ -101,7 +103,7 @@ function Get-ServiceState {
     param([string]$CurrentTunnelId)
 
     $phpProcesses = Get-HostingProcessesByNeedle -Needles @('php-cgi.exe', '-b 127.0.0.1:9000')
-    $caddyProcesses = Get-HostingProcessesByNeedle -Needles @('caddy.exe', 'ops\caddy\Caddyfile', 'run')
+    $caddyProcesses = Get-HostingProcessesByNeedle -Needles @('caddy.exe', 'run')
     $cloudflaredProcesses = Get-HostingProcessesByNeedle -Needles @('cloudflared.exe', $CurrentTunnelId, '--url http://127.0.0.1')
     $helperProcesses = Get-HostingProcessesByNeedle -Needles @('openclaw-auth-helper.js')
 
@@ -287,6 +289,17 @@ function Get-DesiredCommit {
     }
 }
 
+function Invoke-LocalRuntimeFingerprintStatus {
+    param([string]$ExpectedDesiredCommit = '')
+
+    $fingerprint = Invoke-HostingRuntimeFingerprint -BaseUrl 'http://127.0.0.1' -TimeoutSec 10
+    return (Test-HostingRuntimeFingerprintMatch `
+            -Fingerprint $fingerprint `
+            -ExpectedSiteRoot $mirrorRepoPathResolved `
+            -ExpectedDesiredCommit $ExpectedDesiredCommit `
+            -ExpectedRuntimeConfigPath $expectedCaddyRuntimeConfigPath)
+}
+
 function Merge-SyncStatus {
     param(
         [hashtable]$CurrentStatus,
@@ -308,6 +321,10 @@ function Merge-SyncStatus {
     try { $CurrentStatus.service_state = [string]$SyncStatus.service_state } catch {}
     try { $CurrentStatus.health_ok = ($SyncStatus.health_ok -eq $true) } catch {}
     try { $CurrentStatus.auth_contract_ok = ($SyncStatus.auth_contract_ok -eq $true) } catch {}
+    try { $CurrentStatus.site_root_ok = ($SyncStatus.site_root_ok -eq $true) } catch {}
+    try { $CurrentStatus.served_site_root = [string]$SyncStatus.served_site_root } catch {}
+    try { $CurrentStatus.served_commit = [string]$SyncStatus.served_commit } catch {}
+    try { $CurrentStatus.caddy_runtime_config_path = [string]$SyncStatus.caddy_runtime_config_path } catch {}
     try { $CurrentStatus.auth_mode = [string]$SyncStatus.auth_mode } catch {}
     try { $CurrentStatus.auth_transport = [string]$SyncStatus.auth_transport } catch {}
     try { $CurrentStatus.auth_status = [string]$SyncStatus.auth_status } catch {}
@@ -360,6 +377,10 @@ try {
             service_state = 'unknown'
             health_ok = $false
             auth_contract_ok = $false
+            site_root_ok = $false
+            served_site_root = ''
+            served_commit = ''
+            caddy_runtime_config_path = $expectedCaddyRuntimeConfigPath
             auth_mode = ''
             auth_transport = ''
             auth_status = ''
@@ -395,6 +416,8 @@ try {
         $service = Get-ServiceState -CurrentTunnelId $TunnelId
         $health = Invoke-LocalHealth
         $auth = Invoke-LocalAuth
+        $desiredCommit = Get-DesiredCommit
+        $runtime = Invoke-LocalRuntimeFingerprintStatus -ExpectedDesiredCommit $desiredCommit
         $smoke = if ($health.Ok -and $auth.Ok) {
             Invoke-HostingSmoke -ScriptPath $smokeScriptPath
         } else {
@@ -412,19 +435,22 @@ try {
             $syncCurrentCommit = ''
             $syncLockRepaired = $false
             $syncLockReason = ''
+            $syncSiteRootOk = $false
             try { $syncState = [string]$syncStatus.state } catch {}
             try { $syncDeployState = [string]$syncStatus.deploy_state } catch {}
             try { $syncCurrentCommit = [string]$syncStatus.current_commit } catch {}
             try { $syncLockRepaired = ($syncStatus.lock_repaired -eq $true) } catch {}
             try { $syncLockReason = [string]$syncStatus.lock_repair_reason } catch {}
+            try { $syncSiteRootOk = ($syncStatus.site_root_ok -eq $true) } catch {}
             $syncDegraded =
                 (@('failed', 'locked') -contains $syncState) -or
                 [string]::Equals($syncDeployState, 'lock_invalid', [System.StringComparison]::OrdinalIgnoreCase) -or
                 [string]::IsNullOrWhiteSpace($syncCurrentCommit) -or
+                (-not $syncSiteRootOk) -or
                 ((-not $syncLockRepaired) -and (-not [string]::IsNullOrWhiteSpace($syncLockReason)))
         }
 
-        $degraded = ($service.State -ne 'running') -or (-not $health.Ok) -or (-not $auth.Ok) -or (-not $smoke.Ok) -or $syncDegraded
+        $degraded = ($service.State -ne 'running') -or (-not $health.Ok) -or (-not $runtime.Ok) -or (-not $auth.Ok) -or (-not $smoke.Ok) -or $syncDegraded
         $repairAttempted = $false
         $repairError = ''
         $repairTimedOut = $false
@@ -444,6 +470,8 @@ try {
                     $service = Get-ServiceState -CurrentTunnelId $TunnelId
                     $health = Invoke-LocalHealth
                     $auth = Invoke-LocalAuth
+                    $desiredCommit = Get-DesiredCommit
+                    $runtime = Invoke-LocalRuntimeFingerprintStatus -ExpectedDesiredCommit $desiredCommit
                     $smoke = if ($health.Ok -and $auth.Ok) {
                         Invoke-HostingSmoke -ScriptPath $smokeScriptPath
                     } else {
@@ -460,18 +488,21 @@ try {
                         $syncCurrentCommit = ''
                         $syncLockRepaired = $false
                         $syncLockReason = ''
+                        $syncSiteRootOk = $false
                         try { $syncState = [string]$syncStatus.state } catch {}
                         try { $syncDeployState = [string]$syncStatus.deploy_state } catch {}
                         try { $syncCurrentCommit = [string]$syncStatus.current_commit } catch {}
                         try { $syncLockRepaired = ($syncStatus.lock_repaired -eq $true) } catch {}
                         try { $syncLockReason = [string]$syncStatus.lock_repair_reason } catch {}
+                        try { $syncSiteRootOk = ($syncStatus.site_root_ok -eq $true) } catch {}
                         $syncDegraded =
                             (@('failed', 'locked') -contains $syncState) -or
                             [string]::Equals($syncDeployState, 'lock_invalid', [System.StringComparison]::OrdinalIgnoreCase) -or
                             [string]::IsNullOrWhiteSpace($syncCurrentCommit) -or
+                            (-not $syncSiteRootOk) -or
                             ((-not $syncLockRepaired) -and (-not [string]::IsNullOrWhiteSpace($syncLockReason)))
                     }
-                    $degraded = ($service.State -ne 'running') -or (-not $health.Ok) -or (-not $auth.Ok) -or (-not $smoke.Ok) -or $syncDegraded
+                    $degraded = ($service.State -ne 'running') -or (-not $health.Ok) -or (-not $runtime.Ok) -or (-not $auth.Ok) -or (-not $smoke.Ok) -or $syncDegraded
                 } catch {
                     $repairError = $_.Exception.Message
                     $lastRepairAt = [DateTimeOffset]::Now
@@ -538,7 +569,7 @@ try {
             timestamp = [DateTimeOffset]::Now.ToString('o')
             phase_heartbeat_at = [DateTimeOffset]::Now.ToString('o')
             status_source = 'supervisor_runtime'
-            desired_commit = Get-DesiredCommit
+            desired_commit = $desiredCommit
             sync_state = ''
             sync_deploy_state = ''
             lock_repaired = ($supervisorLockRepair.repaired -eq $true)
@@ -549,6 +580,10 @@ try {
             service_state = [string]$service.State
             health_ok = $health.Ok -eq $true
             auth_contract_ok = $auth.Ok -eq $true
+            site_root_ok = ($runtime.Ok -eq $true)
+            served_site_root = [string]$runtime.SiteRoot
+            served_commit = if (-not [string]::IsNullOrWhiteSpace([string]$runtime.CurrentCommit)) { [string]$runtime.CurrentCommit } else { [string]$runtime.DesiredCommit }
+            caddy_runtime_config_path = [string]$runtime.CaddyRuntimeConfigPath
             auth_mode = [string]$auth.Mode
             auth_transport = [string]$auth.Transport
             auth_status = [string]$auth.Status

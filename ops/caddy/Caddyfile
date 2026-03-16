@@ -50,6 +50,14 @@ http://pielarmonia.com, http://127.0.0.1, http://localhost {
 	@blockedFiles path /.editorconfig /.gitattributes /.gitignore /.htaccess /.lighthouserc.json /.php-cs-fixer.cache /.php-cs-fixer.dist.php /.prettierignore /.prettierrc /AGENT_BOARD.yaml /AGENT_HANDOFFS.yaml /AGENT_JOBS.yaml /AGENT_SIGNALS.yaml /AGENTS.md /CLAUDE.md /JULES_TASKS.md /KIMI_TASKS.md /README.md /SERVIDOR-LOCAL.md /composer.json /composer.lock /env.example.php /env.php /eslint.config.js /governance-policy.json /package-lock.json /package.json /phpunit.xml /playwright.config.js /psalm.xml /rollup.config.mjs /api-lib.php /api-router.php /figo-brain.php /payment-lib.php
 	@blockedRootArtifacts path_regexp blockedRootArtifacts ^/(?:[^/]+\.(?:log|md|ps1)|Dockerfile|docker-compose(?:\.[^/]+)?\.yml)$
 	@blockedDirs path_regexp blockedDirs ^/(?:\.claude|\.codex|\.git|\.github|\.husky|\.vscode|bin|components|content|controllers|data|docs|grafana|k8s|lib|node_modules|release|scripts|src|templates|tests|tools|vendor|verification)(?:/.*)?$
+	@hostingRuntimeLocal {
+		path /__hosting/runtime /hosting-runtime.php
+		remote_ip 127.0.0.1/32 ::1/128
+	}
+	@hostingRuntimeBlocked {
+		path /__hosting/runtime /hosting-runtime.php
+		not remote_ip 127.0.0.1/32 ::1/128
+	}
 
 	@health path /healthz
 	@root path /
@@ -70,13 +78,15 @@ http://pielarmonia.com, http://127.0.0.1, http://localhost {
 		path_regexp legacyRoot ^/([a-z0-9-]+)\.html$
 		not path /admin.html /operador-turnos.html /kiosco-turnos.html /sala-turnos.html /stats.html
 	}
-	@publicPhp path /index.php /api.php /admin-auth.php /figo-chat.php /figo-backend.php /figo-ai-bridge.php /backup-receiver.php /cron.php /legacy.php /verify-backup.php /check-ai-response.php /app-downloads/index.php
+	@publicPhp path /index.php /api.php /admin-auth.php /figo-chat.php /figo-backend.php /figo-ai-bridge.php /backup-receiver.php /cron.php /hosting-runtime.php /legacy.php /verify-backup.php /check-ai-response.php /app-downloads/index.php
 
 	route {
 		respond @health "ok" 200
 		respond @blockedFiles 403
 		respond @blockedRootArtifacts 403
 		respond @blockedDirs 403
+		respond @hostingRuntimeBlocked 403
+		rewrite @hostingRuntimeLocal /hosting-runtime.php
 
 		redir @root https://pielarmonia.com/es/{?query} permanent
 		redir @legacyIndex https://pielarmonia.com/es/{?query} permanent

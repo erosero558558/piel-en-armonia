@@ -19,11 +19,14 @@ if (-not (Test-Path -LiteralPath $commonScriptPath)) {
 . $commonScriptPath
 
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
-$runtimeRoot = Join-Path $repoRoot 'data\runtime\hosting'
-$logRoot = Join-Path $runtimeRoot 'logs'
-$pidRoot = Join-Path $runtimeRoot 'pids'
+$runtimePaths = Get-HostingRuntimePaths -RepoRoot $repoRoot
+$runtimeRoot = [string]$runtimePaths.RuntimeRoot
+$logRoot = [string]$runtimePaths.LogsRoot
+$pidRoot = [string]$runtimePaths.PidRoot
 $mirrorEnvPath = Join-Path $repoRoot 'env.php'
-$caddyConfigPath = Join-Path $repoRoot 'ops\caddy\Caddyfile'
+$caddyTemplatePath = [string]$runtimePaths.CaddyTemplatePath
+$caddyRuntimeConfigPath = [string]$runtimePaths.CaddyRuntimeConfigPath
+$caddyAccessLogPath = [string]$runtimePaths.CaddyAccessLogPath
 $helperScriptPath = Join-Path $repoRoot 'scripts\ops\admin\INICIAR-OPENCLAW-AUTH-HELPER.ps1'
 $externalEnvPathResolved = [System.IO.Path]::GetFullPath($ExternalEnvPath)
 $resolvedOperatorUserProfile = if ([string]::IsNullOrWhiteSpace($OperatorUserProfile)) {
@@ -197,10 +200,26 @@ function Get-OperatorAuthStatusPayload {
         -Headers @{ Accept = 'application/json' }
 }
 
+function Get-LocalRuntimeFingerprintStatus {
+    param(
+        [string]$ExpectedSiteRoot,
+        [string]$ExpectedRuntimeConfigPath
+    )
+
+    $fingerprint = Invoke-HostingRuntimeFingerprint -BaseUrl 'http://127.0.0.1' -TimeoutSec 5
+    return (Test-HostingRuntimeFingerprintMatch `
+            -Fingerprint $fingerprint `
+            -ExpectedSiteRoot $ExpectedSiteRoot `
+            -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath)
+}
+
 function Refresh-OperatorAuthRuntime {
     param(
         [string]$PhpCgiExecutable,
         [string]$CaddyExecutable,
+        [string]$CurrentConfigPath,
+        [string]$ExpectedSiteRoot,
+        [string]$ExpectedRuntimeConfigPath,
         [string]$BootstrapMode,
         [string]$BootstrapTransport
     )
@@ -235,13 +254,15 @@ function Refresh-OperatorAuthRuntime {
     }
 
     Write-Info 'Contrato OpenClaw local sigue sin transport; se reinicia Caddy y se reconsulta.'
-    Stop-ProcessesByNeedle -Needles @($caddyConfigPath, 'caddy.exe', 'run') -Label 'Caddy auth refresh'
+    Stop-ProcessesByNeedle -Needles @('caddy.exe', 'run') -Label 'Caddy auth refresh'
     Ensure-CaddyAndBackendReady `
         -CaddyExecutable $CaddyExecutable `
         -WorkingDirectory $repoRoot `
         -StdOutPath $caddyStdOutPath `
         -StdErrPath $caddyStdErrPath `
-        -CurrentConfigPath $caddyConfigPath
+        -CurrentConfigPath $CurrentConfigPath `
+        -ExpectedSiteRoot $ExpectedSiteRoot `
+        -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath
     return Get-OperatorAuthStatusPayload
 }
 
@@ -407,20 +428,32 @@ function Ensure-CaddyEdge {
         [string]$WorkingDirectory,
         [string]$StdOutPath,
         [string]$StdErrPath,
-        [string]$CurrentConfigPath
+        [string]$CurrentConfigPath,
+        [string]$ExpectedSiteRoot,
+        [string]$ExpectedRuntimeConfigPath
     )
 
-    $needles = @($CurrentConfigPath, 'caddy.exe', 'run')
+    $needles = @('caddy.exe', 'run')
     $existing = Get-HostingProcessesByNeedle -Needles $needles
     $healthy = Wait-ForHttp -Url 'http://127.0.0.1/healthz' -Attempts 2 -DelayMs 250
+    $runtimeStatus = $null
+    if ($healthy) {
+        $runtimeStatus = Get-LocalRuntimeFingerprintStatus `
+            -ExpectedSiteRoot $ExpectedSiteRoot `
+            -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath
+    }
 
-    if (($existing.Count -gt 0) -and $healthy) {
+    if (($existing.Count -gt 0) -and $healthy -and ($null -ne $runtimeStatus) -and ($runtimeStatus.Ok -eq $true)) {
         $pids = ($existing | ForEach-Object { [string]$_.ProcessId } | Sort-Object) -join ', '
         Write-Info ("Caddy edge already running ({0})" -f $pids)
         return
     }
 
-    if (($existing.Count -gt 0) -and (-not $healthy)) {
+    if (($existing.Count -gt 0) -and $healthy -and ($null -ne $runtimeStatus) -and ($runtimeStatus.Ok -ne $true)) {
+        Write-Info ("Caddy edge activo con runtime distinto; site_root={0} config={1}" -f [string]$runtimeStatus.SiteRoot, [string]$runtimeStatus.CaddyRuntimeConfigPath)
+        Stop-ProcessesById -ProcessIds ($existing | ForEach-Object { [int]$_.ProcessId }) -Label 'mismatched Caddy edge'
+        Start-Sleep -Milliseconds 400
+    } elseif (($existing.Count -gt 0) -and (-not $healthy)) {
         Stop-ProcessesById -ProcessIds ($existing | ForEach-Object { [int]$_.ProcessId }) -Label 'unhealthy Caddy edge'
         Start-Sleep -Milliseconds 400
     }
@@ -436,6 +469,13 @@ function Ensure-CaddyEdge {
 
     if (-not (Wait-ForHttp -Url 'http://127.0.0.1/healthz')) {
         throw 'Caddy no responde en http://127.0.0.1/healthz'
+    }
+
+    $postStartRuntime = Get-LocalRuntimeFingerprintStatus `
+        -ExpectedSiteRoot $ExpectedSiteRoot `
+        -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath
+    if ($postStartRuntime.Ok -ne $true) {
+        throw ("site_root_mismatch expected_root={0} served_root={1} runtime_config={2}" -f $ExpectedSiteRoot, [string]$postStartRuntime.SiteRoot, [string]$postStartRuntime.CaddyRuntimeConfigPath)
     }
 }
 
@@ -505,7 +545,9 @@ function Ensure-CaddyAndBackendReady {
         [string]$WorkingDirectory,
         [string]$StdOutPath,
         [string]$StdErrPath,
-        [string]$CurrentConfigPath
+        [string]$CurrentConfigPath,
+        [string]$ExpectedSiteRoot,
+        [string]$ExpectedRuntimeConfigPath
     )
 
     Ensure-CaddyEdge `
@@ -513,7 +555,9 @@ function Ensure-CaddyAndBackendReady {
         -WorkingDirectory $WorkingDirectory `
         -StdOutPath $StdOutPath `
         -StdErrPath $StdErrPath `
-        -CurrentConfigPath $CurrentConfigPath
+        -CurrentConfigPath $CurrentConfigPath `
+        -ExpectedSiteRoot $ExpectedSiteRoot `
+        -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath
 }
 
 function Ensure-OperatorTransportReady {
@@ -563,8 +607,8 @@ function Start-ManagedProcess {
     return $true
 }
 
-if (-not (Test-Path -LiteralPath $caddyConfigPath)) {
-    throw "No existe el Caddyfile canonico: $caddyConfigPath"
+if (-not (Test-Path -LiteralPath $caddyTemplatePath)) {
+    throw "No existe el Caddyfile canonico: $caddyTemplatePath"
 }
 
 if (-not (Test-Path -LiteralPath $cloudflaredCredPath)) {
@@ -594,6 +638,13 @@ Write-Info 'phase=sync_env'
 Sync-ExternalEnvFile -SourcePath $externalEnvPathResolved -DestinationPath $mirrorEnvPath | Out-Null
 $bootstrapConfig = Get-EffectiveOperatorAuthBootstrapConfig
 
+Write-Info 'phase=render_caddy'
+$runtimeConfig = New-HostingRuntimeCaddyConfig `
+    -TemplatePath $caddyTemplatePath `
+    -RuntimeConfigPath $caddyRuntimeConfigPath `
+    -SiteRootPath $repoRoot `
+    -AccessLogPath $caddyAccessLogPath
+
 Write-Info 'phase=refresh_php'
 Ensure-PhpCgiListener `
     -PhpCgiExecutable $phpCgiExe `
@@ -607,11 +658,24 @@ Ensure-CaddyAndBackendReady `
     -WorkingDirectory $repoRoot `
     -StdOutPath $caddyStdOutPath `
     -StdErrPath $caddyStdErrPath `
-    -CurrentConfigPath $caddyConfigPath
+    -CurrentConfigPath $runtimeConfig.Path `
+    -ExpectedSiteRoot $repoRoot `
+    -ExpectedRuntimeConfigPath $runtimeConfig.Path
+
+Write-Info 'phase=validate_site_root'
+$runtimeStatus = Get-LocalRuntimeFingerprintStatus `
+    -ExpectedSiteRoot $repoRoot `
+    -ExpectedRuntimeConfigPath $runtimeConfig.Path
+if ($runtimeStatus.Ok -ne $true) {
+    throw ("site_root_mismatch expected_root={0} served_root={1} runtime_config={2}" -f $repoRoot, [string]$runtimeStatus.SiteRoot, [string]$runtimeStatus.CaddyRuntimeConfigPath)
+}
 
 $null = Refresh-OperatorAuthRuntime `
     -PhpCgiExecutable $phpCgiExe `
     -CaddyExecutable $caddyExe `
+    -CurrentConfigPath $runtimeConfig.Path `
+    -ExpectedSiteRoot $repoRoot `
+    -ExpectedRuntimeConfigPath $runtimeConfig.Path `
     -BootstrapMode ([string]$bootstrapConfig.Mode) `
     -BootstrapTransport ([string]$bootstrapConfig.Transport)
 

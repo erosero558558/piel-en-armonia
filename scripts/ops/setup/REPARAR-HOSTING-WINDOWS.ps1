@@ -30,6 +30,8 @@ $externalEnvPathResolved = [System.IO.Path]::GetFullPath($ExternalEnvPath)
 $releaseTargetPathResolved = [System.IO.Path]::GetFullPath($ReleaseTargetPath)
 $statusPathResolved = [System.IO.Path]::GetFullPath($StatusPath)
 $logPathResolved = [System.IO.Path]::GetFullPath($LogPath)
+$runtimePaths = Get-HostingRuntimePaths -RepoRoot $mirrorRepoPathResolved
+$expectedCaddyRuntimeConfigPath = [string]$runtimePaths.CaddyRuntimeConfigPath
 $resolvedOperatorUserProfile = if ([string]::IsNullOrWhiteSpace($OperatorUserProfile)) {
     $env:USERPROFILE
 } else {
@@ -119,7 +121,7 @@ function Get-ServiceStateSafe {
     param([string]$CurrentTunnelId)
 
     $phpProcesses = Get-HostingProcessesByNeedle -Needles @('php-cgi.exe', '-b 127.0.0.1:9000')
-    $caddyProcesses = Get-HostingProcessesByNeedle -Needles @('caddy.exe', 'ops\caddy\Caddyfile', 'run')
+    $caddyProcesses = Get-HostingProcessesByNeedle -Needles @('caddy.exe', 'run')
     $cloudflaredProcesses = Get-HostingProcessesByNeedle -Needles @('cloudflared.exe', $CurrentTunnelId, '--url http://127.0.0.1')
 
     if (($phpProcesses.Count -gt 0) -and ($caddyProcesses.Count -gt 0) -and ($cloudflaredProcesses.Count -gt 0)) {
@@ -187,6 +189,17 @@ function Invoke-LocalHealthCheck {
     }
 }
 
+function Invoke-LocalRuntimeFingerprintStatus {
+    param([string]$ExpectedDesiredCommit = '')
+
+    $fingerprint = Invoke-HostingRuntimeFingerprint -BaseUrl 'http://127.0.0.1' -TimeoutSec 10
+    return (Test-HostingRuntimeFingerprintMatch `
+            -Fingerprint $fingerprint `
+            -ExpectedSiteRoot $mirrorRepoPathResolved `
+            -ExpectedDesiredCommit $ExpectedDesiredCommit `
+            -ExpectedRuntimeConfigPath $expectedCaddyRuntimeConfigPath)
+}
+
 function Invoke-LocalSmoke {
     param(
         [string]$ScriptPath,
@@ -243,6 +256,10 @@ function Update-StatusFromSyncPayload {
     try { $CurrentStatus.service_state = [string]$SyncStatus.service_state } catch {}
     try { $CurrentStatus.health_ok = ($SyncStatus.health_ok -eq $true) } catch {}
     try { $CurrentStatus.auth_contract_ok = ($SyncStatus.auth_contract_ok -eq $true) } catch {}
+    try { $CurrentStatus.site_root_ok = ($SyncStatus.site_root_ok -eq $true) } catch {}
+    try { $CurrentStatus.served_site_root = [string]$SyncStatus.served_site_root } catch {}
+    try { $CurrentStatus.served_commit = [string]$SyncStatus.served_commit } catch {}
+    try { $CurrentStatus.caddy_runtime_config_path = [string]$SyncStatus.caddy_runtime_config_path } catch {}
     try { $CurrentStatus.auth_mode = [string]$SyncStatus.auth_mode } catch {}
     try { $CurrentStatus.auth_transport = [string]$SyncStatus.auth_transport } catch {}
     try { $CurrentStatus.auth_status = [string]$SyncStatus.auth_status } catch {}
@@ -261,13 +278,20 @@ function Assert-SyncStatusHealthy {
     $syncDeployState = ''
     $syncCurrentCommit = ''
     $syncAuthContractOk = $false
+    $syncSiteRootOk = $false
+    $syncError = ''
     try { $syncOk = ($SyncStatus.ok -eq $true) } catch {}
     try { $syncState = [string]$SyncStatus.state } catch {}
     try { $syncDeployState = [string]$SyncStatus.deploy_state } catch {}
     try { $syncCurrentCommit = [string]$SyncStatus.current_commit } catch {}
     try { $syncAuthContractOk = ($SyncStatus.auth_contract_ok -eq $true) } catch {}
+    try { $syncSiteRootOk = ($SyncStatus.site_root_ok -eq $true) } catch {}
+    try { $syncError = [string]$SyncStatus.error } catch {}
 
     if (-not $syncOk) {
+        if ([string]::Equals($syncError, 'site_root_mismatch', [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw 'site_root_mismatch'
+        }
         throw 'sync_status_invalid:not_ok'
     }
     if (@('failed', 'locked') -contains $syncState) {
@@ -278,6 +302,9 @@ function Assert-SyncStatusHealthy {
     }
     if ([string]::IsNullOrWhiteSpace($syncCurrentCommit)) {
         throw 'sync_status_invalid:current_commit_missing'
+    }
+    if (-not $syncSiteRootOk) {
+        throw 'site_root_mismatch'
     }
     if (-not $syncAuthContractOk) {
         throw 'sync_status_invalid:auth_contract'
@@ -640,6 +667,10 @@ $status = [ordered]@{
     service_state = 'unknown'
     health_ok = $false
     auth_contract_ok = $false
+    site_root_ok = $false
+    served_site_root = ''
+    served_commit = ''
+    caddy_runtime_config_path = ''
     auth_mode = ''
     auth_transport = ''
     auth_status = ''
@@ -694,6 +725,12 @@ try {
     if ($null -ne $releaseTargetPayload) {
         try { $status.desired_commit = [string]$releaseTargetPayload.target_commit } catch {}
     }
+    $runtime = Invoke-LocalRuntimeFingerprintStatus -ExpectedDesiredCommit $status.desired_commit
+    $status.site_root_ok = ($runtime.Ok -eq $true)
+    $status.served_site_root = [string]$runtime.SiteRoot
+    $status.served_commit = if (-not [string]::IsNullOrWhiteSpace([string]$runtime.CurrentCommit)) { [string]$runtime.CurrentCommit } else { [string]$runtime.DesiredCommit }
+    $status.caddy_runtime_config_path = [string]$runtime.CaddyRuntimeConfigPath
+    Write-Status -Payload $status
 
     Set-RepairPhase -CurrentStatus $status -Phase 'sanitize_legacy_state'
     $sanitizeResult = Sanitize-LegacyHostingState -HostingDir $hostingDir
@@ -741,17 +778,25 @@ try {
         -ChildScript 'SINCRONIZAR-HOSTING-WINDOWS.ps1'
     $syncResult = Invoke-SyncScript -SyncStatusWatchPath $syncStatusPath
     Update-RepairChildResult -CurrentStatus $status -Result $syncResult
+    $syncStatus = Read-HostingJsonFileSafe -Path $syncStatusPath
+    if ($null -ne $syncStatus) {
+        Update-StatusFromSyncPayload -CurrentStatus $status -SyncStatus $syncStatus
+        Write-Status -Payload $status
+    }
     if ($syncResult.TimedOut -eq $true) {
         throw 'sync_timeout'
     }
     if ($syncResult.ExitCode -ne 0) {
-        throw ("SINCRONIZAR-HOSTING-WINDOWS.ps1 no pudo recuperar el servicio. {0}" -f $syncResult.Output.Trim())
+        $syncFailure = $syncResult.Output.Trim()
+        if (($null -ne $syncStatus) -and (-not [string]::IsNullOrWhiteSpace([string]$syncStatus.error))) {
+            $syncFailure = [string]$syncStatus.error
+        }
+        throw ("SINCRONIZAR-HOSTING-WINDOWS.ps1 no pudo recuperar el servicio. {0}" -f $syncFailure)
     }
     if (-not [string]::IsNullOrWhiteSpace($syncResult.Output)) {
         Write-Info $syncResult.Output.Trim()
     }
 
-    $syncStatus = Read-HostingJsonFileSafe -Path $syncStatusPath
     if ($null -ne $syncStatus) {
         Update-StatusFromSyncPayload -CurrentStatus $status -SyncStatus $syncStatus
     } else {
@@ -833,7 +878,9 @@ try {
     if (($status.phase -ne 'discover') -and ($status.phase -ne 'sanitize_legacy_state') -and ($status.phase -ne 'preflight') -and ($status.phase -ne 'preflight_ready')) {
         Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir -RemoveTasks:$automationConfigured
     }
-    $status.phase = if (($status.phase -eq 'discover') -or ($status.phase -eq 'sanitize_legacy_state') -or ($status.phase -eq 'preflight')) { 'failed_preflight' } else { 'failed' }
+    if (($status.phase -eq 'discover') -or ($status.phase -eq 'sanitize_legacy_state') -or ($status.phase -eq 'preflight')) {
+        $status.phase = 'failed_preflight'
+    }
     Write-Status -Payload $status
     Write-Info ("Reparacion fallida: {0}" -f $status.error)
     throw

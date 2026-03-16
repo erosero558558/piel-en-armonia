@@ -86,6 +86,106 @@ function Set-HostingJsonFields {
     Write-HostingJsonFile -Path $Path -Payload $payload
 }
 
+function Get-HostingRuntimePaths {
+    param([string]$RepoRoot)
+
+    $resolvedRepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
+    $runtimeRoot = Join-Path $resolvedRepoRoot 'data\runtime\hosting'
+    $logsRoot = Join-Path $runtimeRoot 'logs'
+    $pidRoot = Join-Path $runtimeRoot 'pids'
+
+    return [PSCustomObject]@{
+        RepoRoot = $resolvedRepoRoot
+        RuntimeRoot = $runtimeRoot
+        LogsRoot = $logsRoot
+        PidRoot = $pidRoot
+        CaddyTemplatePath = Join-Path $resolvedRepoRoot 'ops\caddy\Caddyfile'
+        CaddyRuntimeConfigPath = Join-Path $runtimeRoot 'Caddyfile.runtime'
+        CaddyAccessLogPath = Join-Path $runtimeRoot 'caddy-access.log'
+    }
+}
+
+function Convert-HostingPathToCaddyLiteral {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return ''
+    }
+
+    return ([System.IO.Path]::GetFullPath($Path)).Replace('\', '/')
+}
+
+function Normalize-HostingPath {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return ''
+    }
+
+    try {
+        $resolved = [System.IO.Path]::GetFullPath($Path)
+    } catch {
+        $resolved = $Path
+    }
+
+    return ($resolved.TrimEnd('\', '/')).Replace('/', '\').ToLowerInvariant()
+}
+
+function Test-HostingPathEquivalent {
+    param(
+        [string]$LeftPath,
+        [string]$RightPath
+    )
+
+    $leftNormalized = Normalize-HostingPath -Path $LeftPath
+    $rightNormalized = Normalize-HostingPath -Path $RightPath
+    if ([string]::IsNullOrWhiteSpace($leftNormalized) -or [string]::IsNullOrWhiteSpace($rightNormalized)) {
+        return $false
+    }
+
+    return $leftNormalized -eq $rightNormalized
+}
+
+function New-HostingRuntimeCaddyConfig {
+    param(
+        [string]$TemplatePath,
+        [string]$RuntimeConfigPath,
+        [string]$SiteRootPath,
+        [string]$AccessLogPath
+    )
+
+    if (-not (Test-Path -LiteralPath $TemplatePath)) {
+        throw "No existe el template canonico de Caddy: $TemplatePath"
+    }
+
+    $template = Get-Content -LiteralPath $TemplatePath -Raw
+    $siteRootLiteral = Convert-HostingPathToCaddyLiteral -Path $SiteRootPath
+    $accessLogLiteral = Convert-HostingPathToCaddyLiteral -Path $AccessLogPath
+
+    $runtimeConfig = $template.Replace(
+        '{$PIELARMONIA_WORKSPACE_ROOT:C:/dev/pielarmonia-workspace}',
+        $siteRootLiteral
+    ).Replace(
+        '{$PIELARMONIA_CADDY_ACCESS_LOG:C:/dev/pielarmonia-workspace/data/runtime/hosting/caddy-access.log}',
+        $accessLogLiteral
+    )
+
+    Ensure-HostingParentDirectory -Path $RuntimeConfigPath
+    $existing = ''
+    if (Test-Path -LiteralPath $RuntimeConfigPath) {
+        $existing = Get-Content -LiteralPath $RuntimeConfigPath -Raw
+    }
+    if ($existing -ne $runtimeConfig) {
+        Set-Content -LiteralPath $RuntimeConfigPath -Value $runtimeConfig -Encoding ASCII
+    }
+
+    return [PSCustomObject]@{
+        Path = $RuntimeConfigPath
+        SiteRoot = $siteRootLiteral
+        AccessLogPath = $accessLogLiteral
+    }
+}
+
 function Add-HostingOptionalNamedArgument {
     param(
         [System.Collections.Generic.List[string]]$Arguments,
@@ -417,6 +517,138 @@ function Invoke-HostingJsonRequest {
         Body = $response.Body
         Payload = $payload
         Error = $errorText
+    }
+}
+
+function Invoke-HostingRuntimeFingerprint {
+    param(
+        [string]$BaseUrl = 'http://127.0.0.1',
+        [int]$TimeoutSec = 10
+    )
+
+    $trimmedBaseUrl = [string]$BaseUrl
+    if ([string]::IsNullOrWhiteSpace($trimmedBaseUrl)) {
+        $trimmedBaseUrl = 'http://127.0.0.1'
+    }
+    $trimmedBaseUrl = $trimmedBaseUrl.TrimEnd('/')
+
+    $response = Invoke-HostingJsonRequest `
+        -Url ($trimmedBaseUrl + '/__hosting/runtime') `
+        -Headers @{ Accept = 'application/json' } `
+        -TimeoutSec $TimeoutSec
+
+    $payload = $response.Payload
+    $siteRoot = ''
+    $currentCommit = ''
+    $desiredCommit = ''
+    $statusSource = ''
+    $runtimeConfigPath = ''
+    if ($null -ne $payload) {
+        try { $siteRoot = [string]$payload.site_root } catch {}
+        try { $currentCommit = [string]$payload.current_commit } catch {}
+        try { $desiredCommit = [string]$payload.desired_commit } catch {}
+        try { $statusSource = [string]$payload.status_source } catch {}
+        try { $runtimeConfigPath = [string]$payload.caddy_runtime_config_path } catch {}
+    }
+
+    $ok =
+        $response.Ok -and
+        ($null -ne $payload) -and
+        ($payload.ok -eq $true) -and
+        (-not [string]::IsNullOrWhiteSpace($siteRoot))
+
+    return [PSCustomObject]@{
+        Ok = $ok
+        Payload = $payload
+        Error = if ($response.Ok) { '' } else { [string]$response.Error }
+        SiteRoot = $siteRoot
+        CurrentCommit = $currentCommit
+        DesiredCommit = $desiredCommit
+        StatusSource = $statusSource
+        CaddyRuntimeConfigPath = $runtimeConfigPath
+    }
+}
+
+function Test-HostingRuntimeFingerprintMatch {
+    param(
+        [object]$Fingerprint,
+        [string]$ExpectedSiteRoot,
+        [string]$ExpectedCurrentCommit = '',
+        [string]$ExpectedDesiredCommit = '',
+        [string]$ExpectedRuntimeConfigPath = ''
+    )
+
+    $siteRoot = ''
+    $currentCommit = ''
+    $desiredCommit = ''
+    $runtimeConfigPath = ''
+    $statusSource = ''
+    $fingerprintError = ''
+    $fingerprintOk = $false
+    if ($null -ne $Fingerprint) {
+        try { $siteRoot = [string]$Fingerprint.SiteRoot } catch {}
+        try { $currentCommit = [string]$Fingerprint.CurrentCommit } catch {}
+        try { $desiredCommit = [string]$Fingerprint.DesiredCommit } catch {}
+        try { $runtimeConfigPath = [string]$Fingerprint.CaddyRuntimeConfigPath } catch {}
+        try { $statusSource = [string]$Fingerprint.StatusSource } catch {}
+        try { $fingerprintError = [string]$Fingerprint.Error } catch {}
+        try { $fingerprintOk = ($Fingerprint.Ok -eq $true) } catch {}
+    }
+
+    $siteRootOk = $fingerprintOk -and (Test-HostingPathEquivalent -LeftPath $siteRoot -RightPath $ExpectedSiteRoot)
+    $runtimeConfigOk = $true
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedRuntimeConfigPath)) {
+        $runtimeConfigOk =
+            $fingerprintOk -and
+            (Test-HostingPathEquivalent -LeftPath $runtimeConfigPath -RightPath $ExpectedRuntimeConfigPath)
+    }
+
+    $expectedCommits = @()
+    foreach ($candidateCommit in @($ExpectedCurrentCommit, $ExpectedDesiredCommit)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$candidateCommit)) {
+            $expectedCommits += [string]$candidateCommit
+        }
+    }
+    $commitOk = $true
+    if ($expectedCommits.Count -gt 0) {
+        $commitOk = $false
+        foreach ($candidateCommit in ($expectedCommits | Sort-Object -Unique)) {
+            if (
+                [string]::Equals($currentCommit, $candidateCommit, [System.StringComparison]::OrdinalIgnoreCase) -or
+                [string]::Equals($desiredCommit, $candidateCommit, [System.StringComparison]::OrdinalIgnoreCase)
+            ) {
+                $commitOk = $true
+                break
+            }
+        }
+    }
+
+    $error = ''
+    if (-not $fingerprintOk) {
+        if (-not [string]::IsNullOrWhiteSpace($fingerprintError)) {
+            $error = [string]$fingerprintError
+        } else {
+            $error = 'runtime_fingerprint_unavailable'
+        }
+    } elseif (-not $siteRootOk) {
+        $error = 'site_root_mismatch'
+    } elseif (-not $runtimeConfigOk) {
+        $error = 'caddy_runtime_config_mismatch'
+    } elseif (-not $commitOk) {
+        $error = 'served_commit_mismatch'
+    }
+
+    return [PSCustomObject]@{
+        Ok = $fingerprintOk -and $siteRootOk -and $runtimeConfigOk -and $commitOk
+        Error = $error
+        SiteRootOk = $siteRootOk
+        CommitOk = $commitOk
+        RuntimeConfigOk = $runtimeConfigOk
+        SiteRoot = $siteRoot
+        CurrentCommit = $currentCommit
+        DesiredCommit = $desiredCommit
+        StatusSource = $statusSource
+        CaddyRuntimeConfigPath = $runtimeConfigPath
     }
 }
 

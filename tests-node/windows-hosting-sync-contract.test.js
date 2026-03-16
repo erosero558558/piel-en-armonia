@@ -14,6 +14,8 @@ const COMMON_SCRIPT_PATH = resolve(
     'setup',
     'Windows.Hosting.Common.ps1'
 );
+const CADDYFILE_PATH = resolve(REPO_ROOT, 'ops', 'caddy', 'Caddyfile');
+const HOSTING_RUNTIME_PHP_PATH = resolve(REPO_ROOT, 'hosting-runtime.php');
 const SYNC_SCRIPT_PATH = resolve(
     REPO_ROOT,
     'scripts',
@@ -61,7 +63,7 @@ function load(filePath) {
     return readFileSync(filePath, 'utf8');
 }
 
-test('Windows V6 define modulo comun de compatibilidad, saneamiento y wrapper con timeout', () => {
+test('Windows V7 define modulo comun de compatibilidad, runtime Caddy y wrapper con timeout', () => {
     const raw = load(COMMON_SCRIPT_PATH);
     const requiredSnippets = [
         'function ConvertFrom-JsonCompat',
@@ -89,6 +91,14 @@ test('Windows V6 define modulo comun de compatibilidad, saneamiento y wrapper co
         'function Remove-HostingDirectoryLock',
         'function Repair-HostingLegacyLocks',
         'function Acquire-HostingDirectoryLock',
+        'function Get-HostingRuntimePaths',
+        "CaddyRuntimeConfigPath = Join-Path $runtimeRoot 'Caddyfile.runtime'",
+        'function Convert-HostingPathToCaddyLiteral',
+        'function New-HostingRuntimeCaddyConfig',
+        'function Invoke-HostingRuntimeFingerprint',
+        "-Url ($trimmedBaseUrl + '/__hosting/runtime')",
+        'function Test-HostingRuntimeFingerprintMatch',
+        "$error = 'site_root_mismatch'",
         '[int]$TimeoutSeconds = 0',
         "[string]$HeartbeatPath = ''",
         "[string]$Label = ''",
@@ -112,11 +122,15 @@ test('Windows V6 define modulo comun de compatibilidad, saneamiento y wrapper co
     }
 });
 
-test('sync V6 usa release pin, sanea locks legacy, expone heartbeat y corta restart colgado', () => {
+test('sync V7 usa runtime Caddy fijo, valida fingerprint local y corta restart colgado', () => {
     const raw = load(SYNC_SCRIPT_PATH);
     const requiredSnippets = [
         "[switch]$PreflightOnly",
         "$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'",
+        'Get-HostingRuntimePaths -RepoRoot $mirrorRepoPathResolved',
+        'New-HostingRuntimeCaddyConfig',
+        'Invoke-HostingRuntimeFingerprint',
+        'Test-HostingRuntimeFingerprintMatch',
         'Acquire-SyncLock',
         'Get-HostingLockInfoPath -LockDirectoryPath $lockPath',
         'Acquire-HostingDirectoryLock',
@@ -129,7 +143,7 @@ test('sync V6 usa release pin, sanea locks legacy, expone heartbeat y corta rest
         "Set-SyncPhase -CurrentStatus $status -State 'discovering' -DeployState 'discover'",
         "Set-SyncPhase -CurrentStatus $status -State 'preflight' -DeployState 'preflight'",
         'Get-GitRevisionOrThrow',
-        'Invoke-ValidateMirror -CurrentTunnelId $TunnelId',
+        'Invoke-ValidateMirror `',
         'Wait-ForMirrorValidation',
         "Set-SyncPhase -CurrentStatus $status -State 'preflight_ready' -DeployState 'preflight_ready'",
         "Set-SyncPhase -CurrentStatus $status -State 'applying' -DeployState 'apply'",
@@ -141,9 +155,14 @@ test('sync V6 usa release pin, sanea locks legacy, expone heartbeat y corta rest
         "throw 'sync_restart_timeout'",
         "deploy_state = 'restart_timeout'",
         'sync_post_restart_contract_invalid',
+        'site_root_mismatch',
         'desired_commit =',
         'current_commit =',
         'previous_commit =',
+        'site_root_ok = $false',
+        "served_site_root = ''",
+        "served_commit = ''",
+        'caddy_runtime_config_path = $expectedCaddyRuntimeConfigPath',
         'service_state =',
         'lock_state =',
         'lock_reason =',
@@ -153,6 +172,8 @@ test('sync V6 usa release pin, sanea locks legacy, expone heartbeat y corta rest
         'lock_repaired = $false',
         'lock_repair_reason =',
         "status_source = 'sync_runtime'",
+        'ExpectedSiteRoot $mirrorRepoPathResolved',
+        'ExpectedRuntimeConfigPath $runtimeConfig.Path',
         'rollback_performed = $false',
         'rollback_reason =',
         'last_successful_deploy_at =',
@@ -208,7 +229,7 @@ test('config V3 desacopla bootstrap del mirror y arranque del supervisor', () =>
     }
 });
 
-test('repair, supervisor, start y smoke usan contrato V6 fail-safe y observable', () => {
+test('repair, supervisor, start y smoke usan contrato V7 fail-safe, observable y con site_root', () => {
     const required = [
         {
             filePath: REPAIR_SCRIPT_PATH,
@@ -244,6 +265,12 @@ test('repair, supervisor, start y smoke usan contrato V6 fail-safe y observable'
                 'Update-StatusFromSyncPayload -CurrentStatus $status -SyncStatus $syncStatus',
                 'Assert-SyncStatusHealthy -SyncStatus $syncStatus',
                 'sync_status_invalid:',
+                'site_root_mismatch',
+                'site_root_ok = $false',
+                "served_site_root = ''",
+                "served_commit = ''",
+                "caddy_runtime_config_path = ''",
+                'Invoke-LocalRuntimeFingerprintStatus',
                 'sync_lock_unrecoverable',
                 'Invoke-ConfigScript -SkipBootstrapSync -StartSupervisorNow',
                 '-SupervisorStatusPath $supervisorStatusPath',
@@ -257,6 +284,8 @@ test('repair, supervisor, start y smoke usan contrato V6 fail-safe y observable'
             filePath: SUPERVISOR_SCRIPT_PATH,
             snippets: [
                 "$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'",
+                'Get-HostingRuntimePaths -RepoRoot $mirrorRepoPathResolved',
+                'Invoke-LocalRuntimeFingerprintStatus',
                 "[int]$LockTtlSeconds = 600",
                 '[int]$RepairCooldownSeconds = 300',
                 '$repairTimeoutSeconds = 300',
@@ -286,6 +315,10 @@ test('repair, supervisor, start y smoke usan contrato V6 fail-safe y observable'
                 'lock_owner_pid =',
                 'lock_started_at =',
                 'lock_age_seconds =',
+                'site_root_ok = ($runtime.Ok -eq $true)',
+                'served_site_root = [string]$runtime.SiteRoot',
+                'served_commit = if (-not [string]::IsNullOrWhiteSpace([string]$runtime.CurrentCommit))',
+                'caddy_runtime_config_path = [string]$runtime.CaddyRuntimeConfigPath',
                 'rollback_performed = $false',
                 'rollback_reason =',
                 'last_successful_deploy_at =',
@@ -298,6 +331,9 @@ test('repair, supervisor, start y smoke usan contrato V6 fail-safe y observable'
             snippets: [
                 "$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'",
                 "[string]$ExternalEnvPath = 'C:\\ProgramData\\Pielarmonia\\hosting\\env.php'",
+                'Get-HostingRuntimePaths -RepoRoot $repoRoot',
+                'New-HostingRuntimeCaddyConfig',
+                'Get-LocalRuntimeFingerprintStatus',
                 'function Ensure-CaddyEdge',
                 'function Ensure-CloudflaredTunnel',
                 'function Ensure-LocalHelper',
@@ -307,13 +343,16 @@ test('repair, supervisor, start y smoke usan contrato V6 fail-safe y observable'
                 'function Sync-ExternalEnvFile',
                 'function Refresh-OperatorAuthRuntime',
                 "phase=sync_env",
+                "phase=render_caddy",
                 "phase=refresh_php",
                 "phase=refresh_caddy",
+                "phase=validate_site_root",
                 "phase=resolve_transport",
                 "phase=start_tunnel",
                 'bootstrap_contract_deferred',
                 'Operator auth transport detectado',
                 'Se asume web_broker desde env.php efectivo durante bootstrap.',
+                'site_root_mismatch expected_root=',
                 'OpenClaw auth helper omitido; transport activo:',
             ],
         },
@@ -385,7 +424,37 @@ test('smoke V4 evita el patron de reporte fragil para Windows PowerShell 5.1', (
     assert.equal(raw.includes('$checkItems = @()'), true);
 });
 
-test('sync V6 no deja state=locked con owner_pid invalido y expone timeout/heartbeat', () => {
+test('runtime Caddy y fingerprint local de hosting quedan expuestos en el repo', () => {
+    const caddyRaw = load(CADDYFILE_PATH);
+    const runtimeRaw = load(HOSTING_RUNTIME_PHP_PATH);
+
+    for (const snippet of [
+        '@hostingRuntimeLocal',
+        '@hostingRuntimeBlocked',
+        'path /__hosting/runtime /hosting-runtime.php',
+        'remote_ip 127.0.0.1/32 ::1/128',
+        'respond @hostingRuntimeBlocked 403',
+        'rewrite @hostingRuntimeLocal /hosting-runtime.php',
+        '/hosting-runtime.php',
+    ]) {
+        assert.equal(caddyRaw.includes(snippet), true, `falta routing local de runtime: ${snippet}`);
+    }
+
+    for (const snippet of [
+        "header('Content-Type: application/json; charset=utf-8');",
+        "return in_array($remote, ['127.0.0.1', '::1', '::ffff:127.0.0.1'], true);",
+        "'C:\\\\ProgramData\\\\Pielarmonia\\\\hosting\\\\release-target.json'",
+        "'hosting_runtime_fingerprint'",
+        "'site_root'",
+        "'current_commit'",
+        "'desired_commit'",
+        "'caddy_runtime_config_path'",
+    ]) {
+        assert.equal(runtimeRaw.includes(snippet), true, `falta fingerprint PHP: ${snippet}`);
+    }
+});
+
+test('sync V7 no deja state=locked con owner_pid invalido y expone timeout, heartbeat y site_root', () => {
     const raw = load(SYNC_SCRIPT_PATH);
     assert.equal(raw.includes("if ($status.lock_owner_pid -gt 0) {\n            $status.state = 'locked'"), true);
     assert.equal(raw.includes("throw 'sync_lock_unrecoverable'"), true);
@@ -393,11 +462,14 @@ test('sync V6 no deja state=locked con owner_pid invalido y expone timeout/heart
     assert.equal(raw.includes('phase_heartbeat_at = [DateTimeOffset]::Now.ToString(\'o\')'), true);
     assert.equal(raw.includes('lock_repaired = $false'), true);
     assert.equal(raw.includes("if (-not (Test-Path -LiteralPath $lockPath)) {\n            $status.lock_state = 'unlocked'"), true);
+    assert.equal(raw.includes('site_root_ok = $false'), true);
+    assert.equal(raw.includes('site_root_mismatch'), true);
 });
 
 test('entrypoints criticos de Windows no dejan if parentetizado en posiciones fragiles', () => {
     const criticalPaths = [
         COMMON_SCRIPT_PATH,
+        CADDYFILE_PATH,
         SYNC_SCRIPT_PATH,
         CONFIG_SCRIPT_PATH,
         SUPERVISOR_SCRIPT_PATH,

@@ -26,6 +26,10 @@ if (-not (Test-Path -LiteralPath $commonScriptPath)) {
 . $commonScriptPath
 
 $mirrorRepoPathResolved = [System.IO.Path]::GetFullPath($MirrorRepoPath)
+$runtimePaths = Get-HostingRuntimePaths -RepoRoot $mirrorRepoPathResolved
+$expectedCaddyRuntimeConfigPath = [string]$runtimePaths.CaddyRuntimeConfigPath
+$expectedCaddyTemplatePath = [string]$runtimePaths.CaddyTemplatePath
+$expectedCaddyAccessLogPath = [string]$runtimePaths.CaddyAccessLogPath
 $statusPathResolved = [System.IO.Path]::GetFullPath($StatusPath)
 $logPathResolved = [System.IO.Path]::GetFullPath($LogPath)
 $externalEnvPathResolved = [System.IO.Path]::GetFullPath($ExternalEnvPath)
@@ -155,7 +159,7 @@ function Get-ServiceSnapshot {
     param([string]$CurrentTunnelId)
 
     $phpProcesses = Get-HostingProcessesByNeedle -Needles @('php-cgi.exe', '-b 127.0.0.1:9000')
-    $caddyProcesses = Get-HostingProcessesByNeedle -Needles @('caddy.exe', 'ops\caddy\Caddyfile', 'run')
+    $caddyProcesses = Get-HostingProcessesByNeedle -Needles @('caddy.exe', 'run')
     $cloudflaredProcesses = Get-HostingProcessesByNeedle -Needles @('cloudflared.exe', $CurrentTunnelId, '--url http://127.0.0.1')
     $helperProcesses = Get-HostingProcessesByNeedle -Needles @('openclaw-auth-helper.js')
 
@@ -315,6 +319,7 @@ function Invoke-StartMirrorStack {
         '-File', $StartScriptPath,
         '-PublicDomain', $CurrentPublicDomain,
         '-TunnelId', $CurrentTunnelId,
+        '-ExternalEnvPath', $externalEnvPathResolved,
         '-OperatorUserProfile', $CurrentOperatorUserProfile,
         '-StopLegacy',
         '-Quiet'
@@ -349,16 +354,31 @@ function Invoke-StartMirrorStack {
 }
 
 function Invoke-ValidateMirror {
-    param([string]$CurrentTunnelId)
+    param(
+        [string]$CurrentTunnelId,
+        [string]$ExpectedSiteRoot,
+        [string]$ExpectedCurrentCommit = '',
+        [string]$ExpectedDesiredCommit = '',
+        [string]$ExpectedRuntimeConfigPath = ''
+    )
 
     $service = Get-ServiceSnapshot -CurrentTunnelId $CurrentTunnelId
     $health = Invoke-HealthDiagnostics
     $authContract = Invoke-OperatorAuthStatus
+    $runtimeFingerprint = Invoke-HostingRuntimeFingerprint -BaseUrl 'http://127.0.0.1' -TimeoutSec 10
+    $runtime = Test-HostingRuntimeFingerprintMatch `
+        -Fingerprint $runtimeFingerprint `
+        -ExpectedSiteRoot $ExpectedSiteRoot `
+        -ExpectedCurrentCommit $ExpectedCurrentCommit `
+        -ExpectedDesiredCommit $ExpectedDesiredCommit `
+        -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath
+
     return [PSCustomObject]@{
-        Ok = ($health.Ok -eq $true) -and ($authContract.Ok -eq $true)
+        Ok = ($health.Ok -eq $true) -and ($runtime.Ok -eq $true) -and ($authContract.Ok -eq $true)
         Health = $health
         Auth = $authContract
         Service = $service
+        Runtime = $runtime
     }
 }
 
@@ -371,6 +391,12 @@ function Set-StatusFromValidation {
     $CurrentStatus.health_ok = $Validation.Health.Ok -eq $true
     $CurrentStatus.auth_contract_ok = $Validation.Auth.Ok -eq $true
     $CurrentStatus.service_state = [string]$Validation.Service.State
+    if ($null -ne $Validation.Runtime) {
+        $CurrentStatus.site_root_ok = ($Validation.Runtime.Ok -eq $true)
+        $CurrentStatus.served_site_root = [string]$Validation.Runtime.SiteRoot
+        $CurrentStatus.served_commit = if (-not [string]::IsNullOrWhiteSpace([string]$Validation.Runtime.CurrentCommit)) { [string]$Validation.Runtime.CurrentCommit } else { [string]$Validation.Runtime.DesiredCommit }
+        $CurrentStatus.caddy_runtime_config_path = [string]$Validation.Runtime.CaddyRuntimeConfigPath
+    }
     if ($Validation.Auth.Payload) {
         $CurrentStatus.auth_mode = [string]$Validation.Auth.Payload.mode
         $CurrentStatus.auth_transport = [string]$Validation.Auth.Payload.transport
@@ -399,6 +425,10 @@ function Set-SyncPhase {
 function Wait-ForMirrorValidation {
     param(
         [string]$CurrentTunnelId,
+        [string]$ExpectedSiteRoot,
+        [string]$ExpectedCurrentCommit = '',
+        [string]$ExpectedDesiredCommit = '',
+        [string]$ExpectedRuntimeConfigPath = '',
         [int]$TimeoutSeconds = 45
     )
 
@@ -406,7 +436,12 @@ function Wait-ForMirrorValidation {
     $lastValidation = $null
 
     while ([DateTimeOffset]::Now -lt $deadline) {
-        $lastValidation = Invoke-ValidateMirror -CurrentTunnelId $CurrentTunnelId
+        $lastValidation = Invoke-ValidateMirror `
+            -CurrentTunnelId $CurrentTunnelId `
+            -ExpectedSiteRoot $ExpectedSiteRoot `
+            -ExpectedCurrentCommit $ExpectedCurrentCommit `
+            -ExpectedDesiredCommit $ExpectedDesiredCommit `
+            -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath
         if ($lastValidation.Ok) {
             return $lastValidation
         }
@@ -420,7 +455,12 @@ function Wait-ForMirrorValidation {
     }
 
     if ($null -eq $lastValidation) {
-        return Invoke-ValidateMirror -CurrentTunnelId $CurrentTunnelId
+        return Invoke-ValidateMirror `
+            -CurrentTunnelId $CurrentTunnelId `
+            -ExpectedSiteRoot $ExpectedSiteRoot `
+            -ExpectedCurrentCommit $ExpectedCurrentCommit `
+            -ExpectedDesiredCommit $ExpectedDesiredCommit `
+            -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath
     }
 
     return $lastValidation
@@ -466,6 +506,10 @@ $status = [ordered]@{
     cloned = $false
     health_ok = $false
     auth_contract_ok = $false
+    site_root_ok = $false
+    served_site_root = ''
+    served_commit = ''
+    caddy_runtime_config_path = $expectedCaddyRuntimeConfigPath
     auth_mode = ''
     auth_transport = ''
     auth_status = ''
@@ -513,7 +557,12 @@ try {
         $status.last_failure_reason = $status.error
         $status.lock_state = 'lock_invalid'
         $status.lock_reason = if (-not [string]::IsNullOrWhiteSpace([string]$lockRepair.error)) { [string]$lockRepair.error } else { 'lock_unrecoverable' }
-        $validation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
+        $validation = Invoke-ValidateMirror `
+            -CurrentTunnelId $TunnelId `
+            -ExpectedSiteRoot $mirrorRepoPathResolved `
+            -ExpectedCurrentCommit $status.current_commit `
+            -ExpectedDesiredCommit $status.desired_commit `
+            -ExpectedRuntimeConfigPath $expectedCaddyRuntimeConfigPath
         Set-StatusFromValidation -CurrentStatus $status -Validation $validation
         Write-Status -Payload $status
         throw 'sync_lock_unrecoverable'
@@ -556,7 +605,12 @@ try {
             $status.error = 'sync_lock_unrecoverable'
         }
         $status.last_failure_reason = $status.error
-        $validation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
+        $validation = Invoke-ValidateMirror `
+            -CurrentTunnelId $TunnelId `
+            -ExpectedSiteRoot $mirrorRepoPathResolved `
+            -ExpectedCurrentCommit $status.current_commit `
+            -ExpectedDesiredCommit $status.desired_commit `
+            -ExpectedRuntimeConfigPath $expectedCaddyRuntimeConfigPath
         Set-StatusFromValidation -CurrentStatus $status -Validation $validation
         Write-Status -Payload $status
         if ($status.lock_owner_pid -gt 0) {
@@ -632,7 +686,19 @@ try {
         -Revision $status.desired_commit `
         -ErrorMessage 'No se pudo resolver desired_commit en el mirror.')
 
-    $preflightValidation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
+    $runtimeConfig = New-HostingRuntimeCaddyConfig `
+        -TemplatePath $expectedCaddyTemplatePath `
+        -RuntimeConfigPath $expectedCaddyRuntimeConfigPath `
+        -SiteRootPath $mirrorRepoPathResolved `
+        -AccessLogPath $expectedCaddyAccessLogPath
+    $status.caddy_runtime_config_path = [string]$runtimeConfig.Path
+
+    $preflightValidation = Invoke-ValidateMirror `
+        -CurrentTunnelId $TunnelId `
+        -ExpectedSiteRoot $mirrorRepoPathResolved `
+        -ExpectedCurrentCommit $currentHeadBefore `
+        -ExpectedDesiredCommit $status.desired_commit `
+        -ExpectedRuntimeConfigPath $runtimeConfig.Path
     Set-StatusFromValidation -CurrentStatus $status -Validation $preflightValidation
     Write-Status -Payload $status
     if ($PreflightOnly) {
@@ -663,7 +729,19 @@ try {
     $mirrorEnvHashAfter = Get-HostingFileSha256 -Path $mirrorEnvPath
     $status.env_changed = ($mirrorEnvHashBefore -ne $mirrorEnvHashAfter) -or ($externalEnvHash -ne $mirrorEnvHashBefore)
 
-    $preValidation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
+    $runtimeConfig = New-HostingRuntimeCaddyConfig `
+        -TemplatePath $expectedCaddyTemplatePath `
+        -RuntimeConfigPath $expectedCaddyRuntimeConfigPath `
+        -SiteRootPath $mirrorRepoPathResolved `
+        -AccessLogPath $expectedCaddyAccessLogPath
+    $status.caddy_runtime_config_path = [string]$runtimeConfig.Path
+
+    $preValidation = Invoke-ValidateMirror `
+        -CurrentTunnelId $TunnelId `
+        -ExpectedSiteRoot $mirrorRepoPathResolved `
+        -ExpectedCurrentCommit $status.current_commit `
+        -ExpectedDesiredCommit $status.desired_commit `
+        -ExpectedRuntimeConfigPath $runtimeConfig.Path
     Set-StatusFromValidation -CurrentStatus $status -Validation $preValidation
     Write-Status -Payload $status
 
@@ -685,12 +763,20 @@ try {
     }
 
     Set-SyncPhase -CurrentStatus $status -State 'validating' -DeployState 'validate' -TimeoutSeconds $validationTimeoutSeconds
-    $postValidation = Wait-ForMirrorValidation -CurrentTunnelId $TunnelId -TimeoutSeconds $validationTimeoutSeconds
+    $postValidation = Wait-ForMirrorValidation `
+        -CurrentTunnelId $TunnelId `
+        -ExpectedSiteRoot $mirrorRepoPathResolved `
+        -ExpectedCurrentCommit $status.current_commit `
+        -ExpectedDesiredCommit $status.desired_commit `
+        -ExpectedRuntimeConfigPath $runtimeConfig.Path `
+        -TimeoutSeconds $validationTimeoutSeconds
     Set-StatusFromValidation -CurrentStatus $status -Validation $postValidation
     Write-Status -Payload $status
 
     if (-not $postValidation.Ok) {
-        if ($postValidation.Health.Ok -ne $true) {
+        if (($null -ne $postValidation.Runtime) -and ($postValidation.Runtime.Ok -ne $true)) {
+            $originalFailure = 'site_root_mismatch'
+        } elseif ($postValidation.Health.Ok -ne $true) {
             $originalFailure = "El health local no quedo sano en el mirror. $([string]$postValidation.Health.Error)"
         } else {
             $originalFailure = 'sync_post_restart_contract_invalid'
@@ -717,7 +803,12 @@ try {
                 -CurrentCloudflaredExePath $CloudflaredExePath `
                 -CurrentPhpCgiExePath $PhpCgiExePath
 
-            $rollbackValidation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
+            $rollbackValidation = Invoke-ValidateMirror `
+                -CurrentTunnelId $TunnelId `
+                -ExpectedSiteRoot $mirrorRepoPathResolved `
+                -ExpectedCurrentCommit $previousSuccessfulCommit `
+                -ExpectedDesiredCommit $previousSuccessfulCommit `
+                -ExpectedRuntimeConfigPath $runtimeConfig.Path
             if (-not $rollbackValidation.Ok) {
                 throw ("{0} Rollback automatico no recupero servicio." -f $originalFailure)
             }
@@ -778,7 +869,12 @@ try {
         $status.current_commit = Get-GitHeadSafe -RepoPath $mirrorRepoPathResolved
         $status.current_head = $status.current_commit
     }
-    $validation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
+    $validation = Invoke-ValidateMirror `
+        -CurrentTunnelId $TunnelId `
+        -ExpectedSiteRoot $mirrorRepoPathResolved `
+        -ExpectedCurrentCommit $status.current_commit `
+        -ExpectedDesiredCommit $status.desired_commit `
+        -ExpectedRuntimeConfigPath $expectedCaddyRuntimeConfigPath
     Set-StatusFromValidation -CurrentStatus $status -Validation $validation
     Write-Status -Payload $status
     Write-Info ("Sync fallido: {0}" -f $status.error)
