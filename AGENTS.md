@@ -42,16 +42,21 @@ Reglas:
 - Solo se permite una `strategy.active` a la vez.
 - `strategy.next` es opcional y solo funciona como draft/preparacion; no
   gobierna tareas hasta promocion con `strategy activate-next`.
-- La estrategia activa define exactamente un subfrente por
+- La estrategia activa define `1..n` subfrentes por
   `codex_instance` (`codex_backend_ops`, `codex_frontend`,
-  `codex_transversal`).
+  `codex_transversal`); `subfront_id` sigue siendo el identificador canonico.
 - Toda tarea activa del board (`ready`, `in_progress`, `review`, `blocked`)
   debe alinearse a `strategy.active`, aun si no es `CDX-*`.
+- `ready` se trata como cola alineada: no consume slot de ejecucion ni exige
+  bloque `CODEX_ACTIVE`; los slots del lane se consumen solo en
+  `in_progress`, `review` y `blocked`.
 - La superficie canonica para abrir trabajo nuevo alineado es
   `node agent-orchestrator.js strategy intake ...`; `task create` queda como
   compatibilidad y debe pasar la misma validacion o entrar como exception.
 - Todo hilo nuevo de Codex debe leer `strategy.active`, tomar un
   `subfront_id` valido para su lane y rechazar trabajo fuera de ese frente.
+- Si un `scope` admite mas de un subfrente candidato dentro del mismo lane,
+  `strategy intake` exige `--subfront-id` explicito.
 - Las tareas activas deben declarar `strategy_id`, `subfront_id`,
   `strategy_role` y, si aplica, `strategy_reason`.
 - `strategy_role=exception` requiere siempre `strategy_reason`,
@@ -59,6 +64,8 @@ Reglas:
 - Las `exception` son auditables: expiran por TTL del subfrente, cuentan como
   deuda operativa y bloquean `strategy activate-next` y `strategy close` si
   quedan vencidas.
+- `wip_limit` por subfrente mide solo tareas que ocupan slot
+  (`in_progress|review|blocked`); `ready` no cuenta contra el WIP efectivo.
 - Las transiciones `set-active`, `set-next`, `activate-next` y `close` deben
   dejar snapshot append-only en `verification/agent-strategy-events.jsonl`.
 - Las tareas historicas terminales (`done`, `failed`) no requieren backfill
@@ -360,8 +367,9 @@ Nota:
 - `strategy set-active` queda solo para bootstrap o entornos sin
   `strategy.active`; el flujo normal es `set-next -> activate-next`.
 - `strategy status`, `status --json` y `board doctor --json` deben exponer
-  `strategy.next`, cobertura por subfrente, WIP vs `wip_limit`, exceptions
-  abiertas/expiradas, aged tasks y `dispersion_score`.
+  `strategy.next`, cobertura por subfrente, `lane_rows`, `slot_tasks`,
+  `lane_capacity`, `available_slots`, `subfront_count`, WIP vs `wip_limit`,
+  exceptions abiertas/expiradas, aged tasks y `dispersion_score`.
 - `task create`, `task claim` (si activa trabajo), `task start` y `codex start`
   bloquean tareas fuera de `strategy.active`, subfrentes ajenos a su lane y
   excepciones sin `strategy_reason`.
@@ -420,11 +428,17 @@ Nota:
 - Toda estrategia nueva o nueva ola debe arrancar activando primero sus tareas
   espejo `CDX-*` por lane; las `AG-*` de apoyo no abren trabajo antes de que
   exista al menos una `CDX-*` activa alineada al frente.
-- Maximo una tarea `CDX-*` activa por `codex_instance`.
-- Maximo tres tareas `CDX-*` activas en total, una por lane.
+- Maximo dos tareas `CDX-*` consumiendo slot por `codex_instance`
+  (`in_progress`, `review`, `blocked`).
+- Maximo seis tareas `CDX-*` consumiendo slot en total, dos por lane.
+- `ready` puede coexistir como cola alineada sin consumir slot ni requerir
+  bloque `CODEX_ACTIVE`.
 - El bloqueo por solape se decide por `files` en tareas activas del board (`ready`, `in_progress`, `review`, `blocked`).
 - Excepcion permitida: handoff temporal y explicito en `AGENT_HANDOFFS.yaml` (TTL + archivos acotados).
-- Si hay drift entre el bloque `CODEX_ACTIVE` del plan Codex y el task `CDX-*` espejo, CI debe fallar.
+- `CODEX_ACTIVE` se espeja por `task_id`, puede incluir `subfront_id` y puede
+  coexistir varias veces para el mismo `codex_instance` hasta el cap del lane.
+- Si hay drift entre los bloques `CODEX_ACTIVE` del plan Codex y los task
+  `CDX-*` espejo, CI debe fallar.
 - Si hay drift entre `CODEX_STRATEGY_ACTIVE` y `AGENT_BOARD.yaml.strategy.active`,
   CI debe fallar.
 - Si hay drift entre `CODEX_STRATEGY_NEXT` y `AGENT_BOARD.yaml.strategy.next`,

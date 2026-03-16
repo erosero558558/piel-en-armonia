@@ -34,6 +34,8 @@ Operar el sistema en modo `codex-only` con dos lanes humanos activos:
 3. Implementar y validar gates por superficie.
 4. Publicar checkpoint:
     - `node agent-orchestrator.js publish checkpoint <CDX-ID> --summary "..." --expect-rev <n> --json`
+    - el comando publica source + evidencia, ignora ruido efimero de `.generated/site-root` y `_deploy_bundle`, y sincroniza `main` via `sync-main-safe`
+    - la verificacion live queda delegada al deploy/post-deploy; `public_main_sync` sigue como telemetria host-side, no como blocker del checkpoint local
 5. Confirmar producción:
     - `curl -s https://pielarmonia.com/api.php?resource=health`
     - revisar `checks.publicSync.failureReason`, `checks.publicSync.currentHead`, `checks.publicSync.remoteHead`, `checks.publicSync.headDrift`, `checks.publicSync.telemetryGap`, `checks.publicSync.lastErrorMessage` y `checks.publicSync.dirtyPathsSample` cuando el cron quede `failed`

@@ -82,10 +82,22 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
                 {
                     subfront_id: 'SF-frontend-admin-operativo',
                     active_tasks: 1,
+                    slot_tasks: 0,
                     aligned_tasks: 1,
                     primary_tasks: 1,
                     support_tasks: 0,
                     exception_tasks: 0,
+                    orphan_tasks: 0,
+                },
+            ],
+            lane_rows: [
+                {
+                    codex_instance: 'codex_frontend',
+                    subfront_count: 2,
+                    slot_tasks: 0,
+                    lane_capacity: 2,
+                    available_slots: 2,
+                    active_tasks: 1,
                     orphan_tasks: 0,
                 },
             ],
@@ -188,7 +200,7 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
     assert.match(output, /Foco: FOCUS-2026-03-admin-operativo-cut-1/);
     assert.match(
         output,
-        /Cobertura estrategia: aligned=1, support=0, exception=0, orphan=0/
+        /Cobertura estrategia: aligned=1, support=0, exception=0, orphan=0, dispersion=0, slot_tasks=0/
     );
     assert.match(output, /Foco compartido:/);
     assert.match(
@@ -201,7 +213,12 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
     assert.match(output, /Por subfrente:/);
     assert.match(
         output,
-        /SF-frontend-admin-operativo: active=1, aligned=1, primary=1, support=0, exception=0, orphan=0/
+        /SF-frontend-admin-operativo: active=1, slot=0, aligned=1, primary=1, support=0, exception=0, orphan=0/
+    );
+    assert.match(output, /Por lane:/);
+    assert.match(
+        output,
+        /codex_frontend: subfronts=2, slot=0\/2, available=2, active=1, orphan=0/
     );
     assert.match(output, /Por codex_instance:/);
     assert.match(

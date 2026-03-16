@@ -52,9 +52,9 @@
         },
         "quotas": {
             "by_codex_instance": {
-                "codex_backend_ops": 1,
-                "codex_frontend": 1,
-                "codex_transversal": 1
+                "codex_backend_ops": 2,
+                "codex_frontend": 2,
+                "codex_transversal": 2
             }
         }
     },
@@ -235,6 +235,14 @@
                 "payments": 2,
                 "auth": 2,
                 "default": 4
+            }
+        },
+        "codex_parallelism": {
+            "slot_statuses": ["in_progress", "review", "blocked"],
+            "by_codex_instance": {
+                "codex_backend_ops": 2,
+                "codex_frontend": 2,
+                "codex_transversal": 2
             }
         }
     }

@@ -20,6 +20,41 @@ function parseExpectedRevisionFromFlags(
     return parsed;
 }
 
+function getCodexParallelismPolicy(getGovernancePolicy) {
+    const policy =
+        typeof getGovernancePolicy === 'function' ? getGovernancePolicy() : {};
+    const raw = policy?.enforcement?.codex_parallelism || {};
+    const slotStatuses = Array.isArray(raw.slot_statuses)
+        ? raw.slot_statuses
+              .map((value) => String(value || '').trim())
+              .filter(Boolean)
+        : ['in_progress', 'review', 'blocked'];
+    const byCodexInstance = {
+        codex_backend_ops: Number.parseInt(
+            String(raw?.by_codex_instance?.codex_backend_ops ?? '2'),
+            10
+        ),
+        codex_frontend: Number.parseInt(
+            String(raw?.by_codex_instance?.codex_frontend ?? '2'),
+            10
+        ),
+        codex_transversal: Number.parseInt(
+            String(raw?.by_codex_instance?.codex_transversal ?? '2'),
+            10
+        ),
+    };
+    for (const [key, value] of Object.entries(byCodexInstance)) {
+        if (!Number.isInteger(value) || value <= 0) {
+            byCodexInstance[key] = 2;
+        }
+    }
+    return {
+        slot_statuses: slotStatuses,
+        slot_statuses_set: new Set(slotStatuses),
+        by_codex_instance: byCodexInstance,
+    };
+}
+
 async function handleCodexCheckCommand(ctx) {
     const {
         args = [],
@@ -140,6 +175,7 @@ async function handleCodexCommand(ctx) {
         parseExpectedBoardRevisionFlag,
         buildBoardWipLimitDiagnostics,
         runCodexCheck,
+        getGovernancePolicy,
     } = ctx;
     const subcommand = args[0];
     const { positionals, flags } = parseFlags(args.slice(1));
@@ -165,6 +201,7 @@ async function handleCodexCommand(ctx) {
     if (subcommand === 'start') {
         const block = String(flags.block || 'C1').trim();
         const filesOverride = flags.files ? parseCsvList(flags.files) : null;
+        const codexParallelism = getCodexParallelismPolicy(getGovernancePolicy);
         const expectRevision = parseExpectedRevisionFromFlags(
             flags,
             parseExpectedBoardRevisionFlag,
@@ -179,13 +216,19 @@ async function handleCodexCommand(ctx) {
             .toLowerCase();
         const codexTasks = board.tasks.filter((item) => {
             if (String(item.id || '') === taskId) return false;
-            if (String(item.status || '') !== 'in_progress') return false;
             if (
                 String(item.executor || '')
                     .trim()
                     .toLowerCase() !== 'codex'
             )
                 return false;
+            if (
+                !codexParallelism.slot_statuses_set.has(
+                    String(item.status || '').trim()
+                )
+            ) {
+                return false;
+            }
             const itemInstance = String(
                 item.codex_instance || 'codex_backend_ops'
             )
@@ -193,9 +236,12 @@ async function handleCodexCommand(ctx) {
                 .toLowerCase();
             return itemInstance === taskInstance;
         });
-        if (codexTasks.length > 0) {
+        const laneCapacity = Number(
+            codexParallelism.by_codex_instance?.[taskInstance] || 2
+        );
+        if (codexTasks.length >= laneCapacity) {
             throw new Error(
-                `No se puede iniciar ${taskId}; ya hay task codex in_progress en ${taskInstance}: ${codexTasks
+                `No se puede iniciar ${taskId}; ${taskInstance} ya ocupa ${codexTasks.length}/${laneCapacity} slot(s): ${codexTasks
                     .map((item) => item.id)
                     .join(', ')}`
             );
@@ -237,6 +283,7 @@ async function handleCodexCommand(ctx) {
             codex_instance: taskInstance,
             block,
             task_id: taskId,
+            subfront_id: String(task.subfront_id || '').trim(),
             status: 'in_progress',
             files: task.files || [],
             updated_at: currentDate(),
@@ -250,6 +297,10 @@ async function handleCodexCommand(ctx) {
     }
 
     const nextStatus = String(flags.to || 'review').trim();
+    const nextBlockedReason = String(
+        flags['blocked-reason'] || flags.blocked_reason || ''
+    ).trim();
+    const codexParallelism = getCodexParallelismPolicy(getGovernancePolicy);
     const expectRevision = parseExpectedRevisionFromFlags(
         flags,
         parseExpectedBoardRevisionFlag,
@@ -259,6 +310,10 @@ async function handleCodexCommand(ctx) {
         throw new Error(`Status destino invalido: ${nextStatus}`);
     }
     task.status = nextStatus;
+    task.blocked_reason =
+        nextStatus === 'blocked'
+            ? nextBlockedReason || String(task.blocked_reason || '').trim()
+            : '';
     task.updated_at = currentDate();
     writeBoard(board, {
         command: 'codex stop',
@@ -266,31 +321,38 @@ async function handleCodexCommand(ctx) {
         expectRevision,
     });
 
-    if (ACTIVE_STATUSES.has(nextStatus)) {
+    if (codexParallelism.slot_statuses_set.has(nextStatus)) {
         const taskInstance = String(task.codex_instance || 'codex_backend_ops')
             .trim()
             .toLowerCase();
         const existingBlock =
             parseCodexActiveBlocks().find(
+                (item) => String(item.task_id || '').trim() === taskId
+            ) ||
+            parseCodexActiveBlocks().find(
                 (item) =>
                     String(item.codex_instance || 'codex_backend_ops')
                         .trim()
                         .toLowerCase() === taskInstance
-            ) || {};
+            ) ||
+            {};
         writeCodexActiveBlock({
             codex_instance: taskInstance,
             block: String(flags.block || existingBlock.block || 'C1'),
             task_id: taskId,
+            subfront_id: String(task.subfront_id || '').trim(),
             status: nextStatus,
             files: task.files || [],
             updated_at: currentDate(),
         });
     } else {
-        writeCodexActiveBlock(null, {
-            codex_instance: String(task.codex_instance || 'codex_backend_ops')
-                .trim()
-                .toLowerCase(),
-        });
+        const remainingBlocks = parseCodexActiveBlocks().filter(
+            (item) => String(item.task_id || '').trim() !== taskId
+        );
+        writeCodexActiveBlock(null);
+        for (const remainingBlock of remainingBlocks) {
+            writeCodexActiveBlock(remainingBlock);
+        }
     }
     await runCodexCheck();
     console.log(`Codex stop OK: ${taskId} -> ${nextStatus}`);

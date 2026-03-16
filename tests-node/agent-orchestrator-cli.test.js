@@ -27,6 +27,23 @@ const OPENCLAW_RUNTIME_HELPER_SOURCE = join(
     'bin',
     'openclaw-runtime-helper.js'
 );
+const WORKSPACE_HYGIENE_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'lib',
+    'workspace-hygiene.js'
+);
+const GENERATED_SITE_ROOT_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'lib',
+    'generated-site-root.js'
+);
+const CLEAN_LOCAL_ARTIFACTS_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'clean-local-artifacts.js'
+);
 const LEADOPS_HELPER_SOURCE = join(
     REPO_ROOT,
     'bin',
@@ -41,9 +58,19 @@ function createFixtureDir() {
     cpSync(ORCHESTRATOR_TOOLS_DIR, join(dir, 'tools', 'agent-orchestrator'), {
         recursive: true,
     });
+    copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
+    mkdirSync(join(dir, 'bin', 'lib'), { recursive: true });
     copyFileSync(
-        GOVERNANCE_POLICY_SOURCE,
-        join(dir, 'governance-policy.json')
+        WORKSPACE_HYGIENE_SOURCE,
+        join(dir, 'bin', 'lib', 'workspace-hygiene.js')
+    );
+    copyFileSync(
+        GENERATED_SITE_ROOT_SOURCE,
+        join(dir, 'bin', 'lib', 'generated-site-root.js')
+    );
+    copyFileSync(
+        CLEAN_LOCAL_ARTIFACTS_SOURCE,
+        join(dir, 'bin', 'clean-local-artifacts.js')
     );
     return dir;
 }
@@ -345,6 +372,21 @@ function parseJsonStdout(result) {
 
 function readBoard(dir) {
     return readFileSync(join(dir, 'AGENT_BOARD.yaml'), 'utf8');
+}
+
+function readStrategyEvents(dir) {
+    return readFileSync(
+        join(dir, 'verification', 'agent-strategy-events.jsonl'),
+        'utf8'
+    );
+}
+
+function parseJsonLines(raw) {
+    return String(raw || '')
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => JSON.parse(line));
 }
 
 async function startRuntimeFixtureServer(options = {}) {
@@ -733,6 +775,7 @@ strategy:
     title: "Admin operativo"
     objective: "Cerrar admin operativo"
     owner: ernesto
+    owner_policy: "detected_default_owner"
     status: active
     started_at: "2026-03-14"
     review_due_at: "2026-03-21"
@@ -755,21 +798,41 @@ strategy:
       - codex_instance: codex_frontend
         subfront_id: SF-frontend-admin-operativo
         title: "Admin UX"
-        allowed_scopes: ["frontend-admin", "queue"]
-        support_only_scopes: ["docs", "tests", "frontend-qa"]
+        allowed_scopes: ["frontend-admin"]
+        support_only_scopes: ["docs", "frontend-qa"]
         blocked_scopes: ["payments"]
+        wip_limit: 2
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
+      - codex_instance: codex_frontend
+        subfront_id: SF-frontend-queue-turnero-operativo
+        title: "Queue y turnero UX"
+        allowed_scopes: ["queue", "turnero"]
+        support_only_scopes: ["docs", "frontend-qa"]
+        blocked_scopes: ["calendar"]
+        wip_limit: 2
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
       - codex_instance: codex_backend_ops
         subfront_id: SF-backend-admin-operativo
         title: "Backend soporte"
         allowed_scopes: ["auth", "backend", "readiness", "gates"]
         support_only_scopes: ["tests", "ops"]
-        blocked_scopes: ["frontend-public"]
+        blocked_scopes: ["frontend-public", "security"]
+        wip_limit: 2
+        default_acceptance_profile: "backend_gate_checkpoint"
+        exception_ttl_hours: 6
       - codex_instance: codex_transversal
         subfront_id: SF-transversal-admin-operativo
         title: "Runtime soporte"
         allowed_scopes: []
         support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
-        blocked_scopes: ["backend", "auth"]
+        blocked_scopes: ["legacy-runtime"]
+        wip_limit: 2
+        default_acceptance_profile: "transversal_runtime_checkpoint"
+        exception_ttl_hours: 4
+  next: null
+  updated_at: "2026-03-14"
 `;
 }
 
@@ -808,6 +871,7 @@ function basePlanWithStrategyBlock(options = {}) {
         ? options.subfrontIds
         : [
               'SF-frontend-admin-operativo',
+              'SF-frontend-queue-turnero-operativo',
               'SF-backend-admin-operativo',
               'SF-transversal-admin-operativo',
           ];
@@ -819,6 +883,7 @@ id: STRAT-2026-03-admin-operativo
 title: "${title}"
 status: ${status}
 owner: ${owner}
+owner_policy: "detected_default_owner"
 objective: "Cerrar admin operativo"
 started_at: "2026-03-14"
 review_due_at: "2026-03-21"
@@ -832,6 +897,185 @@ Relacion con Operativo 2026:
 `;
 }
 
+function basePlanWithStrategyNextBlock(options = {}) {
+    const id = String(options.id || 'STRAT-2026-04-admin-operativo');
+    const title = String(options.title || 'Admin operativo siguiente');
+    const owner = String(options.owner || 'ernesto');
+    const ownerPolicy = String(options.ownerPolicy || 'detected_default_owner');
+    const status = String(options.status || 'draft');
+    const subfrontIds = Array.isArray(options.subfrontIds)
+        ? options.subfrontIds
+        : [
+              'SF-frontend-admin-operativo',
+              'SF-frontend-queue-turnero-operativo',
+              'SF-backend-admin-operativo',
+              'SF-transversal-admin-operativo',
+          ];
+    return `
+<!-- CODEX_STRATEGY_NEXT
+id: ${id}
+title: "${title}"
+status: ${status}
+owner: ${owner}
+owner_policy: "${ownerPolicy}"
+objective: "Cerrar admin operativo"
+started_at: "2026-03-14"
+review_due_at: "2026-03-21"
+success_signal: "demo"
+subfront_ids: [${subfrontIds.map((value) => `"${value}"`).join(', ')}]
+updated_at: ${DATE}
+-->
+`;
+}
+function boardForStrategyExpiredExceptionFixture() {
+    return `
+version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  revision: 0
+  updated_at: ${DATE}
+${activeAdminStrategyYaml().trim()}
+tasks:
+  - id: AG-001
+    title: "Exception fixture"
+    owner: ernesto
+    executor: codex
+    status: blocked
+    risk: medium
+    scope: frontend-admin
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    strategy_id: STRAT-2026-03-admin-operativo
+    subfront_id: SF-frontend-admin-operativo
+    strategy_role: exception
+    strategy_reason: "soporte directo fuera del flujo normal"
+    exception_opened_at: "2000-01-01T00:00:00.000Z"
+    exception_expires_at: "2000-01-01T08:00:00.000Z"
+    exception_state: open
+    files: ["src/apps/admin-v3/app.js"]
+    acceptance: "ok"
+    acceptance_ref: "verification/agent-runs/AG-001.md"
+    depends_on: []
+    prompt: "do it"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+`;
+}
+
+function boardForStrategyWithNextFixture() {
+    return `
+version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  revision: 0
+  updated_at: ${DATE}
+strategy:
+  active:
+    id: STRAT-2026-03-admin-operativo
+    title: "Admin operativo"
+    objective: "Cerrar admin operativo"
+    owner: ernesto
+    owner_policy: "detected_default_owner"
+    status: active
+    started_at: "2026-03-14"
+    review_due_at: "2026-03-21"
+    exit_criteria: ["uno"]
+    success_signal: "demo"
+    subfronts:
+      - codex_instance: codex_frontend
+        subfront_id: SF-frontend-admin-operativo
+        title: "Admin UX"
+        allowed_scopes: ["frontend-admin"]
+        support_only_scopes: ["docs", "frontend-qa"]
+        blocked_scopes: ["payments"]
+        wip_limit: 2
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
+      - codex_instance: codex_frontend
+        subfront_id: SF-frontend-queue-turnero-operativo
+        title: "Queue y turnero UX"
+        allowed_scopes: ["queue", "turnero"]
+        support_only_scopes: ["docs", "frontend-qa"]
+        blocked_scopes: ["calendar"]
+        wip_limit: 2
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
+      - codex_instance: codex_backend_ops
+        subfront_id: SF-backend-admin-operativo
+        title: "Backend soporte"
+        allowed_scopes: ["auth", "backend", "readiness", "gates"]
+        support_only_scopes: ["tests", "ops"]
+        blocked_scopes: ["frontend-public", "security"]
+        wip_limit: 2
+        default_acceptance_profile: "backend_gate_checkpoint"
+        exception_ttl_hours: 6
+      - codex_instance: codex_transversal
+        subfront_id: SF-transversal-admin-operativo
+        title: "Runtime soporte"
+        allowed_scopes: []
+        support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
+        blocked_scopes: ["legacy-runtime"]
+        wip_limit: 2
+        default_acceptance_profile: "transversal_runtime_checkpoint"
+        exception_ttl_hours: 4
+  next:
+    id: STRAT-2026-04-admin-operativo
+    title: "Admin operativo siguiente"
+    objective: "Cerrar admin operativo v2"
+    owner: ernesto
+    owner_policy: "detected_default_owner"
+    status: draft
+    started_at: "2026-03-20"
+    review_due_at: "2026-03-28"
+    exit_criteria: ["dos"]
+    success_signal: "demo siguiente"
+    subfronts:
+      - codex_instance: codex_frontend
+        subfront_id: SF-frontend-admin-operativo
+        title: "Admin UX"
+        allowed_scopes: ["frontend-admin"]
+        support_only_scopes: ["docs", "frontend-qa"]
+        blocked_scopes: ["payments"]
+        wip_limit: 2
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
+      - codex_instance: codex_frontend
+        subfront_id: SF-frontend-queue-turnero-operativo
+        title: "Queue y turnero UX"
+        allowed_scopes: ["queue", "turnero"]
+        support_only_scopes: ["docs", "frontend-qa"]
+        blocked_scopes: ["calendar"]
+        wip_limit: 2
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
+      - codex_instance: codex_backend_ops
+        subfront_id: SF-backend-admin-operativo
+        title: "Backend soporte"
+        allowed_scopes: ["auth", "backend", "readiness", "gates"]
+        support_only_scopes: ["tests", "ops"]
+        blocked_scopes: ["frontend-public", "security"]
+        wip_limit: 2
+        default_acceptance_profile: "backend_gate_checkpoint"
+        exception_ttl_hours: 6
+      - codex_instance: codex_transversal
+        subfront_id: SF-transversal-admin-operativo
+        title: "Runtime soporte"
+        allowed_scopes: []
+        support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
+        blocked_scopes: ["legacy-runtime"]
+        wip_limit: 2
+        default_acceptance_profile: "transversal_runtime_checkpoint"
+        exception_ttl_hours: 4
+  updated_at: "2026-03-14"
+tasks:
+`;
+}
 function boardForCodexLifecycle() {
     return `
 version: 1
@@ -849,6 +1093,73 @@ tasks:
     executor: codex
     status: done
     files: ["tests/chat-booking-calendar-errors.spec.js", "tests/cookie-consent.spec.js"]
+`;
+}
+
+function boardForCodexParallelismFixture() {
+    return `
+version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  revision: 0
+  updated_at: ${DATE}
+tasks:
+  - id: CDX-010
+    title: "Backend slot 1"
+    owner: ernesto
+    executor: codex
+    status: ready
+    risk: medium
+    scope: backend
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: ["controllers/SlotOneController.php"]
+    acceptance: "ok"
+    acceptance_ref: "verification/agent-runs/CDX-010.md"
+    depends_on: []
+    prompt: "slot one"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+  - id: CDX-011
+    title: "Backend slot 2"
+    owner: ernesto
+    executor: codex
+    status: ready
+    risk: medium
+    scope: backend
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: ["controllers/SlotTwoController.php"]
+    acceptance: "ok"
+    acceptance_ref: "verification/agent-runs/CDX-011.md"
+    depends_on: []
+    prompt: "slot two"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+  - id: CDX-012
+    title: "Backend slot 3"
+    owner: ernesto
+    executor: codex
+    status: ready
+    risk: medium
+    scope: backend
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    files: ["controllers/SlotThreeController.php"]
+    acceptance: "ok"
+    acceptance_ref: "verification/agent-runs/CDX-012.md"
+    depends_on: []
+    prompt: "slot three"
+    created_at: ${DATE}
+    updated_at: ${DATE}
 `;
 }
 
@@ -972,6 +1283,47 @@ test('codex start/stop lifecycle mantiene espejo valido y actualiza CODEX_ACTIVE
     assert.match(board, /status: done/);
 });
 
+test('codex start permite dos slots por lane, review y blocked ocupan slot, ready libera el bloque', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForCodexParallelismFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    runCli(dir, ['codex', 'start', 'CDX-010', '--block', 'C1']);
+    runCli(dir, ['codex', 'stop', 'CDX-010', '--to', 'review']);
+    runCli(dir, ['codex', 'start', 'CDX-011', '--block', 'C2']);
+    runCli(dir, [
+        'codex',
+        'stop',
+        'CDX-011',
+        '--to',
+        'blocked',
+        '--blocked-reason',
+        'awaiting_smoke',
+    ]);
+    runCli(dir, ['codex-check']);
+
+    let result = runCli(dir, ['codex', 'start', 'CDX-012', '--block', 'C3'], 1);
+    assert.match(result.stderr, /ya ocupa 2\/2 slot\(s\)/i);
+
+    runCli(dir, ['codex', 'stop', 'CDX-010', '--to', 'ready']);
+    runCli(dir, ['codex-check']);
+
+    let plan = readPlan(dir);
+    assert.doesNotMatch(plan, /task_id: CDX-010/);
+    assert.match(plan, /task_id: CDX-011/);
+
+    runCli(dir, ['codex', 'start', 'CDX-012', '--block', 'C3']);
+    runCli(dir, ['codex-check']);
+    plan = readPlan(dir);
+    assert.match(plan, /task_id: CDX-011/);
+    assert.match(plan, /task_id: CDX-012/);
+});
+
 test('conflicts --strict se exime por handoff valido y vuelve a bloquear tras close', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
@@ -1054,6 +1406,8 @@ test('strategy set-active/status/close mantiene board y mirror del plan', (t) =>
         'admin-operativo',
         '--owner',
         'ernesto',
+        '--expect-rev',
+        '0',
         '--json',
     ]);
     let json = parseJsonStdout(result);
@@ -1076,6 +1430,8 @@ test('strategy set-active/status/close mantiene board y mirror del plan', (t) =>
         'close',
         '--reason',
         'review_complete',
+        '--expect-rev',
+        '1',
         '--json',
     ]);
     json = parseJsonStdout(result);
@@ -1093,6 +1449,305 @@ test('strategy set-active/status/close mantiene board y mirror del plan', (t) =>
     assert.match(board, /status:\s+closed/);
     assert.match(board, /close_reason:\s+"review_complete"/);
     assert.match(plan, /status: closed/);
+
+    runCli(dir, ['codex-check']);
+
+    const strategyEvents = parseJsonLines(readStrategyEvents(dir));
+    assert.deepEqual(
+        strategyEvents.map((event) => event.event_type),
+        ['strategy.set-active', 'strategy.close']
+    );
+});
+
+test('strategy preview/set-next/activate-next/intake mantienen draft, mirror y defaults', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForStrategySeedableFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    let result = runCli(dir, [
+        'strategy',
+        'preview',
+        '--seed',
+        'admin-operativo',
+        '--json',
+    ]);
+    let json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.preview.activation_ready, true);
+    assert.equal(
+        json.preview.plan_block_expected.next.id,
+        'STRAT-2026-03-admin-operativo'
+    );
+
+    result = runCli(dir, [
+        'strategy',
+        'set-next',
+        '--seed',
+        'admin-operativo',
+        '--owner',
+        'ernesto',
+        '--expect-rev',
+        '0',
+        '--json',
+    ]);
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.strategy.status, 'draft');
+    assert.equal(json.preview.activation_ready, true);
+
+    let board = readBoard(dir);
+    let plan = readPlan(dir);
+    assert.match(board, /next:\s*\n {4}id:\s+STRAT-2026-03-admin-operativo/);
+    assert.match(plan, /<!-- CODEX_STRATEGY_NEXT/);
+    assert.match(plan, /owner_policy: "detected_default_owner"/);
+
+    result = runCli(dir, [
+        'strategy',
+        'activate-next',
+        '--reason',
+        'kickoff',
+        '--expect-rev',
+        '1',
+        '--json',
+    ]);
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.strategy.status, 'active');
+    assert.equal(json.reason, 'kickoff');
+    assert.equal(json.previous_active, null);
+
+    result = runCli(dir, ['strategy', 'status', '--json']);
+    json = parseJsonStdout(result);
+    assert.equal(json.strategy.active.id, 'STRAT-2026-03-admin-operativo');
+    assert.equal(json.strategy.next, null);
+    assert.equal(json.plan_blocks.active.length, 1);
+    assert.equal(json.plan_blocks.next.length, 0);
+
+    board = readBoard(dir);
+    plan = readPlan(dir);
+    assert.match(board, /status:\s+active/);
+    assert.match(plan, /<!-- CODEX_STRATEGY_ACTIVE/);
+    assert.doesNotMatch(plan, /<!-- CODEX_STRATEGY_NEXT/);
+
+    result = runCli(dir, [
+        'strategy',
+        'intake',
+        '--title',
+        'Admin shell polish',
+        '--scope',
+        'frontend-admin',
+        '--files',
+        'src/apps/admin-v3/app.js',
+        '--expect-rev',
+        '2',
+        '--json',
+    ]);
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.task.strategy_id, 'STRAT-2026-03-admin-operativo');
+    assert.equal(json.task.subfront_id, 'SF-frontend-admin-operativo');
+    assert.equal(json.task.strategy_role, 'primary');
+    assert.equal(json.task.codex_instance, 'codex_frontend');
+    assert.equal(json.task.domain_lane, 'frontend_content');
+    assert.equal(json.task.lane_lock, 'strict');
+    assert.equal(
+        json.intake_defaults.acceptance_profile,
+        'frontend_delivery_checkpoint'
+    );
+    assert.deepEqual(json.intake_defaults.checklist, [
+        'UI visible y navegable',
+        'flujo principal sin regresiones',
+        'evidencia visual o smoke del frente',
+    ]);
+    assert.match(json.task_full.acceptance, /SF-frontend-admin-operativo/);
+    assert.match(
+        json.task_full.acceptance_ref,
+        /verification\/agent-runs\/AG-001\.md/
+    );
+
+    const strategyEvents = parseJsonLines(readStrategyEvents(dir));
+    assert.deepEqual(
+        strategyEvents.map((event) => event.event_type),
+        ['strategy.set-next', 'strategy.activate-next']
+    );
+});
+
+test('strategy intake exige --subfront-id cuando el scope same-lane es ambiguo', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForStrategySeedableFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    runCli(dir, [
+        'strategy',
+        'set-active',
+        '--seed',
+        'admin-operativo',
+        '--owner',
+        'ernesto',
+        '--expect-rev',
+        '0',
+        '--json',
+    ]);
+
+    let result = runCli(
+        dir,
+        [
+            'strategy',
+            'intake',
+            '--title',
+            'Documentar frente activo',
+            '--scope',
+            'docs',
+            '--files',
+            'src/apps/admin-v3/docs-support.js',
+            '--expect-rev',
+            '1',
+            '--json',
+        ],
+        1
+    );
+    let json = parseJsonStdout(result);
+    assert.equal(json.ok, false);
+    assert.match(json.error || '', /scope docs ambiguo/i);
+
+    result = runCli(dir, [
+        'strategy',
+        'intake',
+        '--title',
+        'Documentar frente activo',
+        '--scope',
+        'docs',
+        '--subfront-id',
+        'SF-frontend-admin-operativo',
+        '--files',
+        'src/apps/admin-v3/docs-support.js',
+        '--expect-rev',
+        '1',
+        '--json',
+    ]);
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.task.subfront_id, 'SF-frontend-admin-operativo');
+    assert.equal(json.task.strategy_role, 'support');
+});
+
+test('strategy status, status y board doctor exponen lane_rows y capacidad disponible', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForStrategySeedableFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    runCli(dir, [
+        'strategy',
+        'set-active',
+        '--seed',
+        'admin-operativo',
+        '--owner',
+        'ernesto',
+        '--expect-rev',
+        '0',
+        '--json',
+    ]);
+
+    const strategyStatus = parseJsonStdout(
+        runCli(dir, ['strategy', 'status', '--json'])
+    );
+    assert.equal(strategyStatus.strategy.subfront_count, 4);
+    assert.equal(strategyStatus.strategy.lane_capacity.codex_frontend, 2);
+    assert.equal(strategyStatus.strategy.available_slots.codex_frontend, 2);
+    assert.equal(Array.isArray(strategyStatus.strategy.lane_rows), true);
+    assert.equal(
+        strategyStatus.strategy.lane_rows.find(
+            (row) => row.codex_instance === 'codex_frontend'
+        ).subfront_count,
+        2
+    );
+
+    const statusJson = parseJsonStdout(runCli(dir, ['status', '--json']));
+    assert.equal(statusJson.strategy.subfront_count, 4);
+    assert.equal(statusJson.strategy.lane_capacity.codex_backend_ops, 2);
+    assert.equal(Array.isArray(statusJson.strategy.lane_rows), true);
+
+    const doctorJson = parseJsonStdout(
+        runCli(dir, ['board', 'doctor', '--json'])
+    );
+    assert.equal(
+        doctorJson.strategy_summary.available_slots.codex_transversal,
+        2
+    );
+    assert.equal(Array.isArray(doctorJson.strategy_summary.lane_rows), true);
+});
+
+test('strategy activate-next bloquea exceptions expiradas del frente activo', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForStrategyExpiredExceptionFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithStrategyBlock(),
+    });
+
+    let result = runCli(dir, [
+        'strategy',
+        'preview',
+        '--seed',
+        'admin-operativo',
+        '--json',
+    ]);
+    let json = parseJsonStdout(result);
+    assert.equal(json.ok, false);
+    assert.equal(json.preview.activation_ready, false);
+    assert.match(
+        json.preview.activation_blockers.join(' | '),
+        /exception\(es\) expirada\(s\)/i
+    );
+
+    result = runCli(dir, [
+        'strategy',
+        'set-next',
+        '--seed',
+        'admin-operativo',
+        '--owner',
+        'ernesto',
+        '--expect-rev',
+        '0',
+        '--json',
+    ]);
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.preview.activation_ready, false);
+
+    result = runCli(
+        dir,
+        [
+            'strategy',
+            'activate-next',
+            '--reason',
+            'blocked_by_exception',
+            '--expect-rev',
+            '1',
+            '--json',
+        ],
+        1
+    );
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, false);
+    assert.match(json.error || '', /exceptions expiradas/i);
 });
 
 test('task create exige campos de estrategia cuando hay estrategia activa', (t) => {
@@ -1375,11 +2030,7 @@ tasks:
         await runCliWithEnvAsync(dir, ['status', '--json'], envPatch)
     );
     const boardJson = parseJsonStdout(
-        await runCliWithEnvAsync(
-            dir,
-            ['board', 'doctor', '--json'],
-            envPatch
-        )
+        await runCliWithEnvAsync(dir, ['board', 'doctor', '--json'], envPatch)
     );
     const metricsJson = parseJsonStdout(
         await runCliWithEnvAsync(
@@ -1418,8 +2069,7 @@ tasks:
         assert.equal(
             payload.required_checks.some(
                 (item) =>
-                    item.id === 'job:public_main_sync' &&
-                    item.state === 'green'
+                    item.id === 'job:public_main_sync' && item.state === 'green'
             ),
             true
         );
@@ -1505,6 +2155,22 @@ tasks:
     const json = parseJsonStdout(result);
     assert.equal(json.ok, false);
     assert.ok(json.structural_errors.includes('task_missing_focus_fields'));
+});
+
+test('focus check no falla solo porque una estrategia activa todavia no declara foco', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForStrategyGuardFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithStrategyBlock(),
+    });
+
+    const result = runCli(dir, ['focus', 'check', '--json']);
+    const json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.deepEqual(json.structural_errors, []);
 });
 
 test('decision open/ls/close mantiene ledger separado del board', (t) => {

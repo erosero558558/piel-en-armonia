@@ -405,6 +405,7 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
             const boardLeases = enforcement.board_leases;
             const boardDoctor = enforcement.board_doctor;
             const wipLimits = enforcement.wip_limits;
+            const codexParallelism = enforcement.codex_parallelism;
             if (
                 !branchProfiles ||
                 typeof branchProfiles !== 'object' ||
@@ -726,6 +727,66 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
                     'enforcement.wip_limits'
                 );
             }
+            if (
+                codexParallelism !== undefined &&
+                (!codexParallelism ||
+                    typeof codexParallelism !== 'object' ||
+                    Array.isArray(codexParallelism))
+            ) {
+                errors.push('enforcement.codex_parallelism debe ser objeto');
+            } else if (
+                codexParallelism &&
+                typeof codexParallelism === 'object' &&
+                !Array.isArray(codexParallelism)
+            ) {
+                if (
+                    Object.prototype.hasOwnProperty.call(
+                        codexParallelism,
+                        'slot_statuses'
+                    )
+                ) {
+                    if (!Array.isArray(codexParallelism.slot_statuses)) {
+                        errors.push(
+                            'enforcement.codex_parallelism.slot_statuses debe ser array'
+                        );
+                    } else if (codexParallelism.slot_statuses.length === 0) {
+                        errors.push(
+                            'enforcement.codex_parallelism.slot_statuses no puede ser vacio'
+                        );
+                    }
+                }
+                if (
+                    Object.prototype.hasOwnProperty.call(
+                        codexParallelism,
+                        'by_codex_instance'
+                    )
+                ) {
+                    const value = codexParallelism.by_codex_instance;
+                    if (
+                        !value ||
+                        typeof value !== 'object' ||
+                        Array.isArray(value)
+                    ) {
+                        errors.push(
+                            'enforcement.codex_parallelism.by_codex_instance debe ser objeto'
+                        );
+                    } else {
+                        for (const [name, rawLimit] of Object.entries(value)) {
+                            const n = Number(rawLimit);
+                            if (!Number.isFinite(n) || n <= 0) {
+                                errors.push(
+                                    `enforcement.codex_parallelism.by_codex_instance.${name} invalido (${rawLimit})`
+                                );
+                            }
+                        }
+                    }
+                }
+                warnUnknownKeys(
+                    sourcePolicy?.enforcement?.codex_parallelism,
+                    ['slot_statuses', 'by_codex_instance'],
+                    'enforcement.codex_parallelism'
+                );
+            }
             warnUnknownKeys(
                 sourcePolicy?.enforcement,
                 [
@@ -734,6 +795,7 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
                     'board_leases',
                     'board_doctor',
                     'wip_limits',
+                    'codex_parallelism',
                 ],
                 'enforcement'
             );
@@ -895,6 +957,13 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
                               !Array.isArray(enforcement.wip_limits)
                                   ? enforcement.wip_limits
                                   : {},
+                          codex_parallelism:
+                              enforcement.codex_parallelism &&
+                              typeof enforcement.codex_parallelism ===
+                                  'object' &&
+                              !Array.isArray(enforcement.codex_parallelism)
+                                  ? enforcement.codex_parallelism
+                                  : {},
                       }
                     : {
                           branch_profiles: {},
@@ -902,6 +971,7 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
                           board_leases: {},
                           board_doctor: {},
                           wip_limits: {},
+                          codex_parallelism: {},
                       },
         },
         source: {

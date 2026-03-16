@@ -6,7 +6,53 @@ const {
 } = require('./task-guards');
 const domainStrategy = require('./strategy');
 
-const MAX_CODEX_ACTIVE_BLOCKS = 3;
+const DEFAULT_SLOT_STATUSES = new Set(['in_progress', 'review', 'blocked']);
+
+function normalizeStatusesSet(statuses, fallbackStatuses) {
+    const safeFallback = Array.from(
+        fallbackStatuses || DEFAULT_SLOT_STATUSES
+    ).map((value) => String(value || '').trim());
+    const safeStatuses = Array.isArray(statuses)
+        ? statuses
+        : statuses instanceof Set
+          ? Array.from(statuses)
+          : [];
+    const normalized = safeStatuses
+        .map((value) => String(value || '').trim())
+        .filter(Boolean);
+    return new Set(normalized.length > 0 ? normalized : safeFallback);
+}
+
+function normalizeCodexParallelism(parallelism = {}) {
+    const defaultCapacities = {
+        codex_backend_ops: 2,
+        codex_frontend: 2,
+        codex_transversal: 2,
+    };
+    const slotStatuses = normalizeStatusesSet(
+        parallelism?.slot_statuses,
+        DEFAULT_SLOT_STATUSES
+    );
+    const byCodexInstance = {};
+    for (const codexInstance of domainStrategy.DEFAULT_CODEX_INSTANCES) {
+        const rawValue = Number.parseInt(
+            String(parallelism?.by_codex_instance?.[codexInstance] ?? ''),
+            10
+        );
+        byCodexInstance[codexInstance] =
+            Number.isInteger(rawValue) && rawValue > 0
+                ? rawValue
+                : defaultCapacities[codexInstance];
+    }
+    return {
+        slot_statuses: Array.from(slotStatuses),
+        by_codex_instance: byCodexInstance,
+        total_capacity: Object.values(byCodexInstance).reduce(
+            (acc, value) => acc + Number(value || 0),
+            0
+        ),
+    };
+}
 
 function serializeBlock(block, deps = {}) {
     const {
@@ -22,6 +68,9 @@ function serializeBlock(block, deps = {}) {
     );
     lines.push(`block: ${block.block || 'C1'}`);
     lines.push(`task_id: ${block.task_id}`);
+    if (String(block.subfront_id || '').trim()) {
+        lines.push(`subfront_id: ${block.subfront_id}`);
+    }
     lines.push(`status: ${block.status}`);
     lines.push(`files: ${serializeArrayInline(block.files || [])}`);
     lines.push(`updated_at: ${block.updated_at || currentDate()}`);
@@ -58,6 +107,7 @@ function parseBlocks(raw = '') {
         )
             .trim()
             .toLowerCase();
+        block.subfront_id = String(block.subfront_id || '').trim();
         blocks.push(block);
     }
     return blocks;
@@ -67,25 +117,48 @@ function upsertCodexActiveBlock(planRaw, block, deps = {}) {
     const {
         buildComment = (value) => serializeBlock(value, deps),
         anchorText = 'Relacion con Operativo 2026:',
-        codexInstance = block?.codex_instance || null,
+        codexInstance = block?.codex_instance ||
+            deps.codex_instance ||
+            deps.codexInstance ||
+            null,
+        taskId = block?.task_id || deps.task_id || deps.taskId || null,
     } = deps;
     const withoutBlocks = String(planRaw || '').replace(
         /<!--\s*CODEX_ACTIVE\s*\n[\s\S]*?-->\s*/g,
         ''
     );
     const existingBlocks = parseBlocks(planRaw).filter((item) => {
-        if (!codexInstance) return false;
-        return (
-            String(item.codex_instance || 'codex_backend_ops') !==
-            String(codexInstance || 'codex_backend_ops')
-        );
+        if (!block && !taskId && !codexInstance) {
+            return false;
+        }
+        const sameTask =
+            taskId &&
+            String(item.task_id || '').trim() === String(taskId || '').trim();
+        if (sameTask) {
+            return false;
+        }
+        if (!taskId && codexInstance) {
+            return (
+                String(item.codex_instance || 'codex_backend_ops') !==
+                String(codexInstance || 'codex_backend_ops')
+            );
+        }
+        return true;
     });
     const nextBlocks = block ? [...existingBlocks, block] : existingBlocks;
-    nextBlocks.sort((left, right) =>
-        String(left.codex_instance || '').localeCompare(
+    nextBlocks.sort((left, right) => {
+        const byInstance = String(left.codex_instance || '').localeCompare(
             String(right.codex_instance || '')
-        )
-    );
+        );
+        if (byInstance !== 0) return byInstance;
+        const byTaskId = String(left.task_id || '').localeCompare(
+            String(right.task_id || '')
+        );
+        if (byTaskId !== 0) return byTaskId;
+        return String(left.block || '').localeCompare(
+            String(right.block || '')
+        );
+    });
     const comments = nextBlocks.map((item) => buildComment(item)).join('\n\n');
     if (!comments) {
         return withoutBlocks.replace(/\n{3,}/g, '\n\n');
@@ -119,11 +192,20 @@ function buildCodexCheckReport(input = {}, deps = {}) {
     const {
         normalizePathToken,
         activeStatuses,
+        slotStatuses,
         isExpired,
         findCriticalScopeKeyword = () => null,
+        codexParallelism,
     } = deps;
     const tasks = Array.isArray(board?.tasks) ? board.tasks : [];
-    const codexBlocks = Array.isArray(blocks) ? blocks : [];
+    const codexBlocks = (Array.isArray(blocks) ? blocks : []).map((block) => ({
+        ...block,
+        codex_instance: String(block?.codex_instance || 'codex_backend_ops')
+            .trim()
+            .toLowerCase(),
+        subfront_id: String(block?.subfront_id || '').trim(),
+        files: Array.isArray(block?.files) ? block.files : [],
+    }));
     const codexStrategyBlocks = strategyBlocks || {};
     const codexStrategyActiveBlocks = Array.isArray(codexStrategyBlocks.active)
         ? codexStrategyBlocks.active
@@ -134,6 +216,11 @@ function buildCodexCheckReport(input = {}, deps = {}) {
         ? codexStrategyBlocks.next
         : [];
     const safeHandoffs = Array.isArray(handoffs) ? handoffs : [];
+    const normalizedParallelism = normalizeCodexParallelism(codexParallelism);
+    const slotStatusesSet = normalizeStatusesSet(
+        slotStatuses,
+        normalizedParallelism.slot_statuses
+    );
     const isExpiredFn =
         typeof isExpired === 'function'
             ? isExpired
@@ -159,14 +246,32 @@ function buildCodexCheckReport(input = {}, deps = {}) {
     const activeCodexTasks = codexTasks.filter((task) =>
         activeStatuses.has(task.status)
     );
+    const slotCodexTasks = codexTasks.filter((task) =>
+        slotStatusesSet.has(String(task?.status || '').trim())
+    );
     const codexExecutionTasks = tasks.filter(
         (task) =>
             String(task?.executor || '')
                 .trim()
                 .toLowerCase() === 'codex'
     );
+    const codexSlotTasksByInstance = codexExecutionTasks
+        .filter((task) =>
+            slotStatusesSet.has(String(task?.status || '').trim())
+        )
+        .reduce((acc, task) => {
+            const key = String(task?.codex_instance || 'codex_backend_ops')
+                .trim()
+                .toLowerCase();
+            acc[key] = [
+                ...(Array.isArray(acc[key]) ? acc[key] : []),
+                String(task?.id || ''),
+            ];
+            return acc;
+        }, {});
+
     const codexInProgressByInstance = codexExecutionTasks
-        .filter((task) => String(task?.status || '') === 'in_progress')
+        .filter((task) => String(task?.status || '').trim() === 'in_progress')
         .reduce((acc, task) => {
             const key = String(task?.codex_instance || 'codex_backend_ops')
                 .trim()
@@ -175,34 +280,57 @@ function buildCodexCheckReport(input = {}, deps = {}) {
             return acc;
         }, {});
 
-    for (const [instance, count] of Object.entries(codexInProgressByInstance)) {
-        if (count > 1) {
+    for (const [instance, taskIds] of Object.entries(
+        codexSlotTasksByInstance
+    )) {
+        const laneCapacity = Number(
+            normalizedParallelism.by_codex_instance?.[instance] || 0
+        );
+        if (taskIds.length > laneCapacity) {
             errors.push(
-                `Mas de una tarea in_progress para ${instance} (${count})`
+                `Mas de ${laneCapacity} slot(s) ocupados para ${instance} (${taskIds.length}): ${taskIds.join(', ')}`
             );
         }
     }
 
-    const seenBlockInstances = new Map();
+    const seenBlockTaskIds = new Map();
+    const blockCountsByInstance = new Map();
     for (const block of codexBlocks) {
+        const taskId = String(block?.task_id || '').trim();
         const instance = String(block?.codex_instance || 'codex_backend_ops')
             .trim()
             .toLowerCase();
-        seenBlockInstances.set(
+        if (taskId) {
+            seenBlockTaskIds.set(
+                taskId,
+                (seenBlockTaskIds.get(taskId) || 0) + 1
+            );
+        }
+        blockCountsByInstance.set(
             instance,
-            (seenBlockInstances.get(instance) || 0) + 1
+            (blockCountsByInstance.get(instance) || 0) + 1
         );
     }
-    for (const [instance, count] of seenBlockInstances.entries()) {
+    for (const [taskId, count] of seenBlockTaskIds.entries()) {
         if (count > 1) {
             errors.push(
-                `Mas de un bloque CODEX_ACTIVE para ${instance} en ${codexPlanPath}`
+                `Mas de un bloque CODEX_ACTIVE para ${taskId} en ${codexPlanPath}`
             );
         }
     }
-    if (codexBlocks.length > MAX_CODEX_ACTIVE_BLOCKS) {
+    for (const [instance, count] of blockCountsByInstance.entries()) {
+        const laneCapacity = Number(
+            normalizedParallelism.by_codex_instance?.[instance] || 0
+        );
+        if (count > laneCapacity) {
+            errors.push(
+                `Mas de ${laneCapacity} bloques CODEX_ACTIVE para ${instance} en ${codexPlanPath}`
+            );
+        }
+    }
+    if (codexBlocks.length > normalizedParallelism.total_capacity) {
         errors.push(
-            `Mas de ${MAX_CODEX_ACTIVE_BLOCKS} bloques CODEX_ACTIVE en ${codexPlanPath}`
+            `Mas de ${normalizedParallelism.total_capacity} bloques CODEX_ACTIVE en ${codexPlanPath}`
         );
     }
 
@@ -276,31 +404,18 @@ function buildCodexCheckReport(input = {}, deps = {}) {
         }
     }
 
-    const blockByInstance = new Map(
-        codexBlocks.map((block) => [
-            String(block.codex_instance || 'codex_backend_ops')
-                .trim()
-                .toLowerCase(),
-            block,
-        ])
+    const blockByTaskId = new Map(
+        codexBlocks.map((block) => [String(block.task_id || '').trim(), block])
     );
 
-    for (const task of activeCodexTasks) {
+    for (const task of slotCodexTasks) {
         const instance = String(task.codex_instance || 'codex_backend_ops')
             .trim()
             .toLowerCase();
-        const block = blockByInstance.get(instance);
+        const block = blockByTaskId.get(String(task.id || '').trim());
         if (!block) {
             errors.push(
-                `Hay tarea CDX activa sin bloque CODEX_ACTIVE para ${instance}: ${task.id}`
-            );
-            continue;
-        }
-        if (
-            String(block.task_id || '').trim() !== String(task.id || '').trim()
-        ) {
-            errors.push(
-                `${instance}: task_id desalineado plan(${String(block.task_id || '')}) != board(${task.id})`
+                `Hay tarea CDX consumiendo slot sin bloque CODEX_ACTIVE para ${task.id}`
             );
             continue;
         }
@@ -316,6 +431,22 @@ function buildCodexCheckReport(input = {}, deps = {}) {
             ? block.files.map(normalizePathToken)
             : [];
         const boardFiles = new Set((task.files || []).map(normalizePathToken));
+        if (
+            String(block.codex_instance || '')
+                .trim()
+                .toLowerCase() !== instance
+        ) {
+            errors.push(
+                `${task.id}: codex_instance desalineado plan(${String(block.codex_instance || '')}) != board(${instance})`
+            );
+        }
+        const blockSubfrontId = String(block.subfront_id || '').trim();
+        const taskSubfrontId = String(task.subfront_id || '').trim();
+        if (blockSubfrontId && blockSubfrontId !== taskSubfrontId) {
+            errors.push(
+                `${task.id}: subfront_id desalineado plan(${blockSubfrontId}) != board(${taskSubfrontId || 'vacio'})`
+            );
+        }
         for (const file of blockFiles) {
             if (!boardFiles.has(file)) {
                 errors.push(
@@ -357,10 +488,24 @@ function buildCodexCheckReport(input = {}, deps = {}) {
                 `${task.id}: codex_instance desalineado plan(${instance}) != board(${task.codex_instance || 'codex_backend_ops'})`
             );
         }
+        const blockSubfrontId = String(block.subfront_id || '').trim();
+        const taskSubfrontId = String(task.subfront_id || '').trim();
+        if (blockSubfrontId && blockSubfrontId !== taskSubfrontId) {
+            errors.push(
+                `${task.id}: subfront_id desalineado plan(${blockSubfrontId}) != board(${taskSubfrontId || 'vacio'})`
+            );
+        }
+        if (!slotStatusesSet.has(String(task.status || '').trim())) {
+            errors.push(
+                `${task.id}: CODEX_ACTIVE solo aplica a estados con slot (${String(task.status || '').trim() || 'vacio'})`
+            );
+        }
     }
 
     const strategySummary = domainStrategy.buildStrategyCoverageSummary(board, {
         activeStatuses,
+        slotStatuses: slotStatusesSet,
+        laneCapacities: normalizedParallelism.by_codex_instance,
         findCriticalScopeKeyword,
     });
     const configuredStrategy = strategySummary.configured;
@@ -532,8 +677,14 @@ function buildCodexCheckReport(input = {}, deps = {}) {
             codex_executor_tasks_total: codexExecutionTasks.length,
             codex_in_progress: codexInProgress.length,
             codex_active: activeCodexTasks.length,
+            codex_slot_tasks: slotCodexTasks.length,
             plan_blocks: codexBlocks.length,
             codex_in_progress_by_instance: codexInProgressByInstance,
+            codex_slot_tasks_by_instance: Object.fromEntries(
+                Object.entries(codexSlotTasksByInstance).map(
+                    ([instance, taskIds]) => [instance, taskIds.length]
+                )
+            ),
             codex_active_by_instance: activeCodexTasks.reduce((acc, task) => {
                 const instance = String(
                     task?.codex_instance || 'codex_backend_ops'
@@ -543,6 +694,26 @@ function buildCodexCheckReport(input = {}, deps = {}) {
                 acc[instance] = (acc[instance] || 0) + 1;
                 return acc;
             }, {}),
+            lane_capacity: normalizedParallelism.by_codex_instance,
+            available_slots: Object.fromEntries(
+                domainStrategy.DEFAULT_CODEX_INSTANCES.map((codexInstance) => {
+                    const capacity = Number(
+                        normalizedParallelism.by_codex_instance?.[
+                            codexInstance
+                        ] || 0
+                    );
+                    const used = Number(
+                        Object.prototype.hasOwnProperty.call(
+                            codexSlotTasksByInstance,
+                            codexInstance
+                        )
+                            ? codexSlotTasksByInstance[codexInstance].length
+                            : 0
+                    );
+                    return [codexInstance, Math.max(0, capacity - used)];
+                })
+            ),
+            slot_statuses: normalizedParallelism.slot_statuses,
         },
         strategy: {
             configured: strategySummary.configured,
@@ -550,6 +721,7 @@ function buildCodexCheckReport(input = {}, deps = {}) {
             next: strategySummary.next,
             updated_at: strategySummary.updated_at,
             active_tasks_total: strategySummary.active_tasks_total,
+            slot_tasks: strategySummary.slot_tasks,
             aligned_tasks: strategySummary.aligned_tasks,
             primary_tasks: strategySummary.primary_tasks,
             support_tasks: strategySummary.support_tasks,
@@ -588,15 +760,21 @@ function buildCodexCheckReport(input = {}, deps = {}) {
                           : [],
                   }
                 : null,
+            lane_capacity: strategySummary.lane_capacity,
+            available_slots: strategySummary.available_slots,
+            subfront_count: strategySummary.subfront_count,
+            lane_rows: strategySummary.lane_rows,
             rows: strategySummary.rows,
         },
         codex_task_ids: codexTasks.map((task) => String(task.id)),
         codex_in_progress_ids: codexInProgress.map((task) => String(task.id)),
         codex_active_ids: activeCodexTasks.map((task) => String(task.id)),
+        codex_slot_task_ids: slotCodexTasks.map((task) => String(task.id)),
         plan_blocks: codexBlocks.map((block) => ({
             codex_instance: String(block.codex_instance || ''),
             block: String(block.block || ''),
             task_id: String(block.task_id || ''),
+            subfront_id: String(block.subfront_id || ''),
             status: String(block.status || ''),
             files: Array.isArray(block.files) ? block.files : [],
             updated_at: String(block.updated_at || ''),

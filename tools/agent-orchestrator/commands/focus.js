@@ -63,6 +63,38 @@ function hasActiveTasks(board) {
         : false;
 }
 
+function strategyDeclaresFocusContract(board) {
+    const strategy = board?.strategy?.active;
+    if (!strategy || typeof strategy !== 'object') {
+        return false;
+    }
+
+    const scalarKeys = [
+        'focus_id',
+        'focus_title',
+        'focus_summary',
+        'focus_status',
+        'focus_proof',
+        'focus_next_step',
+        'focus_owner',
+        'focus_review_due_at',
+        'focus_evidence_ref',
+        'focus_max_active_slices',
+    ];
+    const arrayKeys = [
+        'focus_steps',
+        'focus_required_checks',
+        'focus_non_goals',
+    ];
+
+    return (
+        scalarKeys.some((key) => String(strategy[key] || '').trim() !== '') ||
+        arrayKeys.some(
+            (key) => Array.isArray(strategy[key]) && strategy[key].length > 0
+        )
+    );
+}
+
 async function resolveLiveFocusSummary(ctx, board) {
     if (typeof ctx.buildLiveFocusSummary === 'function') {
         return ctx.buildLiveFocusSummary(board, { now: new Date() });
@@ -166,7 +198,8 @@ function getStructuralFocusErrors(board, summary) {
     if (
         strategyIsActive(board) &&
         hasActiveTasks(board) &&
-        !summary?.configured
+        !summary?.configured &&
+        strategyDeclaresFocusContract(board)
     ) {
         errors.push('strategy_without_focus');
     }
