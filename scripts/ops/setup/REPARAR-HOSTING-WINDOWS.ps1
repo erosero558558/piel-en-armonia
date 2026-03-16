@@ -304,19 +304,82 @@ function Remove-TaskIfPresent {
 function Clear-HostingLocks {
     param([string]$HostingDir)
 
-    $lockPatterns = @(
-        'main-sync-status.json.lock',
-        'hosting-supervisor-status.json.lock',
-        'main-sync-status.json.lock.json',
-        'hosting-supervisor-status.json.lock.json'
+    $lockPaths = @(
+        (Join-Path $HostingDir 'main-sync-status.json.lock'),
+        (Join-Path $HostingDir 'hosting-supervisor-status.json.lock')
     )
-
-    foreach ($pattern in $lockPatterns) {
-        $candidate = Join-Path $HostingDir $pattern
-        if (Test-Path -LiteralPath $candidate) {
-            Remove-Item -LiteralPath $candidate -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Info ("Lock eliminado: {0}" -f $candidate)
+    $repair = Repair-HostingLegacyLocks -LockPaths $lockPaths
+    foreach ($removedPath in @($repair.removed_paths)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$removedPath)) {
+            Write-Info ("Lock eliminado: {0}" -f [string]$removedPath)
         }
+    }
+}
+
+function Remove-InvalidHostingStatusFile {
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $false
+    }
+
+    $payload = Read-HostingJsonFileSafe -Path $Path
+    if ($null -eq $payload) {
+        return $false
+    }
+
+    $lockOwnerPid = 0
+    $lockState = ''
+    $lockReason = ''
+    $state = ''
+    $currentCommit = ''
+    try { $lockOwnerPid = [int]$payload.lock_owner_pid } catch {}
+    try { $lockState = [string]$payload.lock_state } catch {}
+    try { $lockReason = [string]$payload.lock_reason } catch {}
+    try { $state = [string]$payload.state } catch {}
+    try { $currentCommit = [string]$payload.current_commit } catch {}
+
+    $invalidLockState = @('stale_legacy_file', 'stale_metadata_missing', 'transient', 'present', 'lock_invalid') -contains $lockState
+    $invalidLockReason = @('legacy_file_lock', 'metadata_missing', 'lock_unrecoverable') -contains $lockReason
+    $invalidState = (@('failed', 'locked') -contains $state) -and [string]::IsNullOrWhiteSpace($currentCommit)
+    if (($lockOwnerPid -le 0) -and ($invalidLockState -or $invalidLockReason -or $invalidState)) {
+        Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+        return $true
+    }
+
+    return $false
+}
+
+function Sanitize-LegacyHostingState {
+    param([string]$HostingDir)
+
+    $lockPaths = @(
+        (Join-Path $HostingDir 'main-sync-status.json.lock'),
+        (Join-Path $HostingDir 'hosting-supervisor-status.json.lock')
+    )
+    $repair = Repair-HostingLegacyLocks -LockPaths $lockPaths
+    $removedPaths = New-Object System.Collections.ArrayList
+    foreach ($removedPath in @($repair.removed_paths)) {
+        $removedPaths.Add([string]$removedPath) | Out-Null
+        Write-Info ("Lock eliminado: {0}" -f [string]$removedPath)
+    }
+
+    foreach ($statusPath in @(
+        (Join-Path $HostingDir 'main-sync-status.json'),
+        (Join-Path $HostingDir 'hosting-supervisor-status.json')
+    )) {
+        if (Remove-InvalidHostingStatusFile -Path $statusPath) {
+            $removedPaths.Add([string]$statusPath) | Out-Null
+            Write-Info ("Status legacy eliminado: {0}" -f [string]$statusPath)
+        }
+    }
+
+    return [PSCustomObject]@{
+        repaired = (($repair.repaired -eq $true) -or ($removedPaths.Count -gt 0))
+        removed_paths = @($removedPaths)
+        remaining_invalid_lock = ($repair.remaining_invalid_lock -eq $true)
+        repair_reason = [string]$repair.repair_reason
+        error = [string]$repair.error
     }
 }
 
@@ -455,6 +518,9 @@ $status = [ordered]@{
     sync_status_path = ''
     sync_state = ''
     sync_deploy_state = ''
+    sanitize_repaired = $false
+    sanitize_removed_paths = @()
+    sanitize_error = ''
     service_state = 'unknown'
     health_ok = $false
     auth_contract_ok = $false
@@ -510,6 +576,15 @@ try {
     $releaseTargetPayload = Read-HostingJsonFileSafe -Path $releaseTargetPathResolved
     if ($null -ne $releaseTargetPayload) {
         try { $status.desired_commit = [string]$releaseTargetPayload.target_commit } catch {}
+    }
+
+    $status.phase = 'sanitize_legacy_state'
+    $sanitizeResult = Sanitize-LegacyHostingState -HostingDir $hostingDir
+    $status.sanitize_repaired = ($sanitizeResult.repaired -eq $true)
+    $status.sanitize_removed_paths = @($sanitizeResult.removed_paths)
+    $status.sanitize_error = [string]$sanitizeResult.error
+    if ($sanitizeResult.remaining_invalid_lock -eq $true) {
+        throw 'sync_lock_unrecoverable'
     }
 
     $status.phase = 'preflight'
@@ -593,10 +668,10 @@ try {
 } catch {
     $status.error = $_.Exception.Message
     $status.last_failure_reason = $status.error
-    if (($status.phase -ne 'discover') -and ($status.phase -ne 'preflight') -and ($status.phase -ne 'preflight_ready')) {
+    if (($status.phase -ne 'discover') -and ($status.phase -ne 'sanitize_legacy_state') -and ($status.phase -ne 'preflight') -and ($status.phase -ne 'preflight_ready')) {
         Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir -RemoveTasks:$automationConfigured
     }
-    $status.phase = if (($status.phase -eq 'discover') -or ($status.phase -eq 'preflight')) { 'failed_preflight' } else { 'failed' }
+    $status.phase = if (($status.phase -eq 'discover') -or ($status.phase -eq 'sanitize_legacy_state') -or ($status.phase -eq 'preflight')) { 'failed_preflight' } else { 'failed' }
     Write-Status -Payload $status
     Write-Info ("Reparacion fallida: {0}" -f $status.error)
     throw

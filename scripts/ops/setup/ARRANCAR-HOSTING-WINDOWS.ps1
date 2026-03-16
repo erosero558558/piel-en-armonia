@@ -1,6 +1,7 @@
 param(
     [string]$PublicDomain = 'pielarmonia.com',
     [string]$TunnelId = 'a2067e67-a462-41de-9d43-97cd7df4bda0',
+    [string]$ExternalEnvPath = 'C:\ProgramData\Pielarmonia\hosting\env.php',
     [string]$OperatorUserProfile = '',
     [string]$CaddyExePath = '',
     [string]$CloudflaredExePath = '',
@@ -21,8 +22,10 @@ $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
 $runtimeRoot = Join-Path $repoRoot 'data\runtime\hosting'
 $logRoot = Join-Path $runtimeRoot 'logs'
 $pidRoot = Join-Path $runtimeRoot 'pids'
+$mirrorEnvPath = Join-Path $repoRoot 'env.php'
 $caddyConfigPath = Join-Path $repoRoot 'ops\caddy\Caddyfile'
 $helperScriptPath = Join-Path $repoRoot 'scripts\ops\admin\INICIAR-OPENCLAW-AUTH-HELPER.ps1'
+$externalEnvPathResolved = [System.IO.Path]::GetFullPath($ExternalEnvPath)
 $resolvedOperatorUserProfile = if ([string]::IsNullOrWhiteSpace($OperatorUserProfile)) {
     $env:USERPROFILE
 } else {
@@ -106,8 +109,146 @@ function Invoke-JsonGetSafe {
     return $response.Payload
 }
 
+function Read-PhpEnvFileValues {
+    param([string]$Path)
+
+    $parsed = @{}
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $parsed
+    }
+
+    try {
+        $lines = Get-Content -LiteralPath $Path
+    } catch {
+        return $parsed
+    }
+
+    foreach ($line in $lines) {
+        $match = [regex]::Match([string]$line, '^\s*putenv\(\s*([''"])([A-Z0-9_]+)=([\s\S]*?)\1\s*\)\s*;\s*$')
+        if (-not $match.Success) {
+            continue
+        }
+
+        $key = [string]$match.Groups[2].Value.Trim()
+        $value = [string]$match.Groups[3].Value
+        $value = $value.Replace("\'", "'").Replace('\"', '"').Trim()
+        if (-not [string]::IsNullOrWhiteSpace($key)) {
+            $parsed[$key] = $value
+        }
+    }
+
+    return $parsed
+}
+
+function Get-EffectiveOperatorAuthBootstrapConfig {
+    $envSources = @()
+    foreach ($candidatePath in @($mirrorEnvPath, $externalEnvPathResolved)) {
+        if ([string]::IsNullOrWhiteSpace($candidatePath)) {
+            continue
+        }
+        $envSources += ,(Read-PhpEnvFileValues -Path $candidatePath)
+    }
+
+    $effective = @{}
+    foreach ($source in $envSources) {
+        foreach ($key in $source.Keys) {
+            $effective[$key] = [string]$source[$key]
+        }
+    }
+
+    if (-not $effective.ContainsKey('PIELARMONIA_OPERATOR_AUTH_MODE')) {
+        $effective['PIELARMONIA_OPERATOR_AUTH_MODE'] = [string]$env:PIELARMONIA_OPERATOR_AUTH_MODE
+    }
+    if (-not $effective.ContainsKey('PIELARMONIA_OPERATOR_AUTH_TRANSPORT')) {
+        $effective['PIELARMONIA_OPERATOR_AUTH_TRANSPORT'] = [string]$env:PIELARMONIA_OPERATOR_AUTH_TRANSPORT
+    }
+
+    return [PSCustomObject]@{
+        Mode = [string]$effective['PIELARMONIA_OPERATOR_AUTH_MODE']
+        Transport = [string]$effective['PIELARMONIA_OPERATOR_AUTH_TRANSPORT']
+    }
+}
+
+function Sync-ExternalEnvFile {
+    param(
+        [string]$SourcePath,
+        [string]$DestinationPath
+    )
+
+    if (-not (Test-Path -LiteralPath $SourcePath)) {
+        return $false
+    }
+
+    $sourceHash = Get-HostingFileSha256 -Path $SourcePath
+    $destinationHash = Get-HostingFileSha256 -Path $DestinationPath
+    if ($sourceHash -eq $destinationHash) {
+        return $false
+    }
+
+    Ensure-HostingParentDirectory -Path $DestinationPath
+    Copy-Item -LiteralPath $SourcePath -Destination $DestinationPath -Force
+    Write-Info ("env.php externo sincronizado: {0} -> {1}" -f $SourcePath, $DestinationPath)
+    return $true
+}
+
+function Get-OperatorAuthStatusPayload {
+    return Invoke-JsonGetSafe `
+        -Url 'http://127.0.0.1/admin-auth.php?action=status' `
+        -Headers @{ Accept = 'application/json' }
+}
+
+function Refresh-OperatorAuthRuntime {
+    param(
+        [string]$PhpCgiExecutable,
+        [string]$CaddyExecutable,
+        [string]$BootstrapMode,
+        [string]$BootstrapTransport
+    )
+
+    $payload = Get-OperatorAuthStatusPayload
+    $transport = ''
+    if ($null -ne $payload) {
+        $transport = [string]$payload.transport
+    }
+    if (-not [string]::IsNullOrWhiteSpace($transport)) {
+        return $payload
+    }
+
+    $bootstrapWebBroker =
+        [string]::Equals($BootstrapMode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -and
+        [string]::Equals($BootstrapTransport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase)
+
+    if (-not $bootstrapWebBroker) {
+        return $payload
+    }
+
+    Write-Info 'Contrato OpenClaw local sin transport; se reinicia PHP-CGI para refrescar env.'
+    Stop-ProcessesByNeedle -Needles @('php-cgi.exe', '-b 127.0.0.1:9000') -Label 'PHP-CGI auth refresh'
+    Ensure-PhpCgiListener `
+        -PhpCgiExecutable $PhpCgiExecutable `
+        -WorkingDirectory $repoRoot `
+        -StdOutPath $phpStdOutPath `
+        -StdErrPath $phpStdErrPath
+    $payload = Get-OperatorAuthStatusPayload
+    if (($null -ne $payload) -and (-not [string]::IsNullOrWhiteSpace([string]$payload.transport))) {
+        return $payload
+    }
+
+    Write-Info 'Contrato OpenClaw local sigue sin transport; se reinicia Caddy y se reconsulta.'
+    Stop-ProcessesByNeedle -Needles @($caddyConfigPath, 'caddy.exe', 'run') -Label 'Caddy auth refresh'
+    Ensure-CaddyAndBackendReady `
+        -CaddyExecutable $CaddyExecutable `
+        -WorkingDirectory $repoRoot `
+        -StdOutPath $caddyStdOutPath `
+        -StdErrPath $caddyStdErrPath `
+        -CurrentConfigPath $caddyConfigPath
+    return Get-OperatorAuthStatusPayload
+}
+
 function Resolve-OperatorAuthTransport {
     param(
+        [string]$BootstrapMode = '',
+        [string]$BootstrapTransport = '',
         [string]$Fallback = 'local_helper',
         [int]$Attempts = 10,
         [int]$DelayMs = 500
@@ -137,6 +278,14 @@ function Resolve-OperatorAuthTransport {
             [string]::Equals($mode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -or
             [string]::Equals($status, 'transport_misconfigured', [System.StringComparison]::OrdinalIgnoreCase)
         ) {
+            if (
+                [string]::Equals($BootstrapMode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -and
+                [string]::Equals($BootstrapTransport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase)
+            ) {
+                Write-Info 'Se asume web_broker desde env.php efectivo durante bootstrap.'
+                return 'web_broker'
+            }
+
             throw 'admin-auth.php?action=status no publico un transport valido para OpenClaw. Corrige el runtime antes de iniciar el stack.'
         }
 
@@ -144,6 +293,12 @@ function Resolve-OperatorAuthTransport {
     }
 
     $envTransport = [string]$env:PIELARMONIA_OPERATOR_AUTH_TRANSPORT
+    if (
+        [string]::Equals($BootstrapMode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -and
+        [string]::Equals($BootstrapTransport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase)
+    ) {
+        return 'web_broker'
+    }
     if ([string]::Equals($envTransport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase)) {
         return 'web_broker'
     }
@@ -435,6 +590,9 @@ if ($StopLegacy) {
     Stop-ProcessesByNeedle -Needles @('--url http://127.0.0.1:8011', $TunnelId, 'cloudflared.exe') -Label 'legacy cloudflared tunnel'
 }
 
+Sync-ExternalEnvFile -SourcePath $externalEnvPathResolved -DestinationPath $mirrorEnvPath | Out-Null
+$bootstrapConfig = Get-EffectiveOperatorAuthBootstrapConfig
+
 Ensure-PhpCgiListener `
     -PhpCgiExecutable $phpCgiExe `
     -WorkingDirectory $repoRoot `
@@ -448,7 +606,15 @@ Ensure-CaddyAndBackendReady `
     -StdErrPath $caddyStdErrPath `
     -CurrentConfigPath $caddyConfigPath
 
-$operatorAuthTransport = Resolve-OperatorAuthTransport
+$null = Refresh-OperatorAuthRuntime `
+    -PhpCgiExecutable $phpCgiExe `
+    -CaddyExecutable $caddyExe `
+    -BootstrapMode ([string]$bootstrapConfig.Mode) `
+    -BootstrapTransport ([string]$bootstrapConfig.Transport)
+
+$operatorAuthTransport = Resolve-OperatorAuthTransport `
+    -BootstrapMode ([string]$bootstrapConfig.Mode) `
+    -BootstrapTransport ([string]$bootstrapConfig.Transport)
 Write-Info ("Operator auth transport detectado: {0}" -f $operatorAuthTransport)
 
 Ensure-CloudflaredTunnel `

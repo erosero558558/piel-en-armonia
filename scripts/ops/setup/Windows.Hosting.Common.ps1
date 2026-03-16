@@ -728,6 +728,93 @@ function Remove-HostingDirectoryLock {
     }
 }
 
+function Repair-HostingLegacyLocks {
+    param(
+        [string[]]$LockPaths,
+        [int]$TtlSeconds = 600,
+        [int]$GraceSeconds = 5
+    )
+
+    $removedPaths = New-Object System.Collections.ArrayList
+    $remainingPaths = New-Object System.Collections.ArrayList
+    $repairReasons = New-Object System.Collections.ArrayList
+    $repaired = $false
+    $remainingInvalidLock = $false
+    $errorText = ''
+
+    foreach ($lockPath in ($LockPaths | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)) {
+        $snapshot = Get-HostingDirectoryLockSnapshot `
+            -LockDirectoryPath $lockPath `
+            -TtlSeconds $TtlSeconds `
+            -GraceSeconds $GraceSeconds
+
+        $legacyPaths = @(
+            $lockPath,
+            (Get-HostingLockInfoPath -LockDirectoryPath $lockPath),
+            ($lockPath + '.json')
+        ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique
+
+        $shouldRepair = $false
+        if ($snapshot.exists) {
+            if ($snapshot.stale -or ($snapshot.owner_pid -le 0) -or ($snapshot.path_kind -ne 'directory')) {
+                $shouldRepair = $true
+            }
+        } else {
+            foreach ($legacyPath in $legacyPaths) {
+                if (Test-Path -LiteralPath $legacyPath) {
+                    $shouldRepair = $true
+                    break
+                }
+            }
+        }
+
+        if ($shouldRepair) {
+            foreach ($legacyPath in $legacyPaths) {
+                if (-not (Test-Path -LiteralPath $legacyPath)) {
+                    continue
+                }
+
+                try {
+                    Remove-Item -LiteralPath $legacyPath -Recurse -Force -ErrorAction Stop
+                    $removedPaths.Add([string]$legacyPath) | Out-Null
+                    $repaired = $true
+                } catch {
+                    if ([string]::IsNullOrWhiteSpace($errorText)) {
+                        $errorText = $_.Exception.Message
+                    }
+                }
+            }
+
+            $reason = [string]$snapshot.lock_reason
+            if ([string]::IsNullOrWhiteSpace($reason)) {
+                $reason = [string]$snapshot.lock_state
+            }
+            if ([string]::IsNullOrWhiteSpace($reason)) {
+                $reason = 'legacy_lock_artifact'
+            }
+            $repairReasons.Add($reason) | Out-Null
+        }
+
+        $postSnapshot = Get-HostingDirectoryLockSnapshot `
+            -LockDirectoryPath $lockPath `
+            -TtlSeconds $TtlSeconds `
+            -GraceSeconds $GraceSeconds
+        if ($postSnapshot.exists -and ($postSnapshot.owner_pid -le 0) -and ($postSnapshot.path_kind -ne 'directory' -or $postSnapshot.stale -or ($postSnapshot.lock_state -ne 'owned'))) {
+            $remainingInvalidLock = $true
+            $remainingPaths.Add([string]$lockPath) | Out-Null
+        }
+    }
+
+    return [PSCustomObject]@{
+        repaired = $repaired
+        removed_paths = @($removedPaths)
+        remaining_invalid_lock = $remainingInvalidLock
+        remaining_paths = @($remainingPaths)
+        repair_reason = (@($repairReasons) | Sort-Object -Unique) -join ','
+        error = $errorText
+    }
+}
+
 function Acquire-HostingDirectoryLock {
     param(
         [string]$LockDirectoryPath,

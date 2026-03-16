@@ -285,6 +285,8 @@ function Merge-SyncStatus {
     try { $CurrentStatus.desired_commit = [string]$SyncStatus.desired_commit } catch {}
     try { $CurrentStatus.sync_state = [string]$SyncStatus.state } catch {}
     try { $CurrentStatus.sync_deploy_state = [string]$SyncStatus.deploy_state } catch {}
+    try { $CurrentStatus.lock_repaired = ($SyncStatus.lock_repaired -eq $true) } catch {}
+    try { $CurrentStatus.lock_repair_reason = [string]$SyncStatus.lock_repair_reason } catch {}
     try { $CurrentStatus.current_commit = [string]$SyncStatus.current_commit } catch {}
     try { $CurrentStatus.previous_commit = [string]$SyncStatus.previous_commit } catch {}
     try { $CurrentStatus.deploy_state = [string]$SyncStatus.deploy_state } catch {}
@@ -305,11 +307,24 @@ $lastRepairAt = [DateTimeOffset]::MinValue
 
 try {
     Ensure-HostingParentDirectory -Path $statusPathResolved
+    $supervisorLockRepair = Repair-HostingLegacyLocks -LockPaths @($lockPath) -TtlSeconds $LockTtlSeconds -GraceSeconds 5
+    if ($supervisorLockRepair.remaining_invalid_lock -eq $true) {
+        throw 'supervisor_lock_unrecoverable'
+    }
     $lockResult = Acquire-SupervisorLock
     if (-not $lockResult.Acquired) {
         if ([int]$lockResult.Snapshot.owner_pid -le 0) {
+            $retryRepair = Repair-HostingLegacyLocks -LockPaths @($lockPath) -TtlSeconds $LockTtlSeconds -GraceSeconds 5
+            if (-not $retryRepair.remaining_invalid_lock) {
+                $lockResult = Acquire-SupervisorLock
+            }
+        }
+    }
+
+    if (-not $lockResult.Acquired) {
+        if ([int]$lockResult.Snapshot.owner_pid -le 0) {
             Write-Info ("Lock invalido del supervisor; state={0} reason={1}" -f $lockResult.Snapshot.lock_state, $lockResult.Snapshot.lock_reason)
-            throw 'supervisor_lock_corrupt'
+            throw 'supervisor_lock_unrecoverable'
         }
         $status = [ordered]@{
             ok = $false
@@ -317,6 +332,8 @@ try {
             desired_commit = Get-DesiredCommit
             sync_state = ''
             sync_deploy_state = ''
+            lock_repaired = ($supervisorLockRepair.repaired -eq $true)
+            lock_repair_reason = [string]$supervisorLockRepair.repair_reason
             current_commit = ''
             previous_commit = ''
             deploy_state = 'waiting_for_lock'
@@ -371,13 +388,18 @@ try {
             $syncState = ''
             $syncDeployState = ''
             $syncCurrentCommit = ''
+            $syncLockRepaired = $false
+            $syncLockReason = ''
             try { $syncState = [string]$syncStatus.state } catch {}
             try { $syncDeployState = [string]$syncStatus.deploy_state } catch {}
             try { $syncCurrentCommit = [string]$syncStatus.current_commit } catch {}
+            try { $syncLockRepaired = ($syncStatus.lock_repaired -eq $true) } catch {}
+            try { $syncLockReason = [string]$syncStatus.lock_repair_reason } catch {}
             $syncDegraded =
                 (@('failed', 'locked') -contains $syncState) -or
                 [string]::Equals($syncDeployState, 'lock_invalid', [System.StringComparison]::OrdinalIgnoreCase) -or
-                [string]::IsNullOrWhiteSpace($syncCurrentCommit)
+                [string]::IsNullOrWhiteSpace($syncCurrentCommit) -or
+                ((-not $syncLockRepaired) -and (-not [string]::IsNullOrWhiteSpace($syncLockReason)))
         }
 
         $degraded = ($service.State -ne 'running') -or (-not $health.Ok) -or (-not $auth.Ok) -or (-not $smoke.Ok) -or $syncDegraded
@@ -408,13 +430,18 @@ try {
                         $syncState = ''
                         $syncDeployState = ''
                         $syncCurrentCommit = ''
+                        $syncLockRepaired = $false
+                        $syncLockReason = ''
                         try { $syncState = [string]$syncStatus.state } catch {}
                         try { $syncDeployState = [string]$syncStatus.deploy_state } catch {}
                         try { $syncCurrentCommit = [string]$syncStatus.current_commit } catch {}
+                        try { $syncLockRepaired = ($syncStatus.lock_repaired -eq $true) } catch {}
+                        try { $syncLockReason = [string]$syncStatus.lock_repair_reason } catch {}
                         $syncDegraded =
                             (@('failed', 'locked') -contains $syncState) -or
                             [string]::Equals($syncDeployState, 'lock_invalid', [System.StringComparison]::OrdinalIgnoreCase) -or
-                            [string]::IsNullOrWhiteSpace($syncCurrentCommit)
+                            [string]::IsNullOrWhiteSpace($syncCurrentCommit) -or
+                            ((-not $syncLockRepaired) -and (-not [string]::IsNullOrWhiteSpace($syncLockReason)))
                     }
                     $degraded = ($service.State -ne 'running') -or (-not $health.Ok) -or (-not $auth.Ok) -or (-not $smoke.Ok) -or $syncDegraded
                 } catch {
@@ -457,6 +484,8 @@ try {
             desired_commit = Get-DesiredCommit
             sync_state = ''
             sync_deploy_state = ''
+            lock_repaired = ($supervisorLockRepair.repaired -eq $true)
+            lock_repair_reason = [string]$supervisorLockRepair.repair_reason
             current_commit = ''
             previous_commit = ''
             deploy_state = $deployState

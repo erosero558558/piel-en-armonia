@@ -384,6 +384,7 @@ $status = [ordered]@{
     state = 'starting'
     deploy_state = 'starting'
     timestamp = [DateTimeOffset]::Now.ToString('o')
+    status_source = 'sync_runtime'
     mirror_repo_path = $mirrorRepoPathResolved
     external_env_path = $externalEnvPathResolved
     release_target_path = $releaseTargetPathResolved
@@ -409,6 +410,8 @@ $status = [ordered]@{
     lock_owner_pid = 0
     lock_started_at = ''
     lock_age_seconds = 0
+    lock_repaired = $false
+    lock_repair_reason = ''
     rollback_performed = $false
     rollback_reason = ''
     last_successful_deploy_at = $previousSuccessfulAt
@@ -435,10 +438,42 @@ try {
     Ensure-HostingParentDirectory -Path $lockPath
     Ensure-HostingParentDirectory -Path $releaseTargetPathResolved
 
+    $lockRepair = Repair-HostingLegacyLocks -LockPaths @($lockPath) -TtlSeconds $LockTtlSeconds -GraceSeconds 5
+    $status.lock_repaired = ($lockRepair.repaired -eq $true)
+    $status.lock_repair_reason = [string]$lockRepair.repair_reason
+    if ($lockRepair.remaining_invalid_lock) {
+        $status.state = 'failed'
+        $status.deploy_state = 'lock_invalid'
+        $status.error = 'sync_lock_unrecoverable'
+        $status.last_failure_reason = $status.error
+        $status.lock_state = 'lock_invalid'
+        $status.lock_reason = if (-not [string]::IsNullOrWhiteSpace([string]$lockRepair.error)) { [string]$lockRepair.error } else { 'lock_unrecoverable' }
+        $validation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
+        Set-StatusFromValidation -CurrentStatus $status -Validation $validation
+        Write-Status -Payload $status
+        throw 'sync_lock_unrecoverable'
+    }
+
     $lockResult = Acquire-SyncLock `
         -CurrentLockPath $lockPath `
         -CurrentLockInfoPath $lockInfoPath `
         -TtlSeconds $LockTtlSeconds
+
+    if (-not $lockResult.Acquired) {
+        if ([int]$lockResult.Snapshot.owner_pid -le 0) {
+            $retryRepair = Repair-HostingLegacyLocks -LockPaths @($lockPath) -TtlSeconds $LockTtlSeconds -GraceSeconds 5
+            if ($retryRepair.repaired -eq $true) {
+                $status.lock_repaired = $true
+                $status.lock_repair_reason = [string]$retryRepair.repair_reason
+            }
+            if (-not $retryRepair.remaining_invalid_lock) {
+                $lockResult = Acquire-SyncLock `
+                    -CurrentLockPath $lockPath `
+                    -CurrentLockInfoPath $lockInfoPath `
+                    -TtlSeconds $LockTtlSeconds
+            }
+        }
+    }
 
     if (-not $lockResult.Acquired) {
         $status.lock_owner_pid = [int]$lockResult.Snapshot.owner_pid
@@ -453,7 +488,7 @@ try {
         } else {
             $status.state = 'failed'
             $status.deploy_state = 'lock_invalid'
-            $status.error = 'sync_lock_corrupt'
+            $status.error = 'sync_lock_unrecoverable'
         }
         $status.last_failure_reason = $status.error
         $validation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
@@ -464,7 +499,7 @@ try {
             exit 0
         } else {
             Write-Info ("Lock invalido detectado; state={0} reason={1}" -f $status.lock_state, $status.lock_reason)
-            throw 'sync_lock_corrupt'
+            throw 'sync_lock_unrecoverable'
         }
     }
 

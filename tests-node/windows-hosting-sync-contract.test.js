@@ -61,7 +61,7 @@ function load(filePath) {
     return readFileSync(filePath, 'utf8');
 }
 
-test('Windows V3 define modulo comun de compatibilidad y locks robustos para PowerShell 5.1', () => {
+test('Windows V5 define modulo comun de compatibilidad y saneamiento de locks legacy', () => {
     const raw = load(COMMON_SCRIPT_PATH);
     const requiredSnippets = [
         'function ConvertFrom-JsonCompat',
@@ -84,9 +84,11 @@ test('Windows V3 define modulo comun de compatibilidad y locks robustos para Pow
         'function Get-HostingLockInfoPath',
         'function Get-HostingDirectoryLockSnapshot',
         'function Remove-HostingDirectoryLock',
+        'function Repair-HostingLegacyLocks',
         'function Acquire-HostingDirectoryLock',
         "lock_state = 'missing'",
         "lock_reason = ''",
+        "legacy_file_lock",
     ];
 
     for (const snippet of requiredSnippets) {
@@ -98,7 +100,7 @@ test('Windows V3 define modulo comun de compatibilidad y locks robustos para Pow
     }
 });
 
-test('sync V4 usa release pin, lock directory y falla duro si el lock queda corrupto', () => {
+test('sync V5 usa release pin, sanea locks legacy y falla duro solo si quedan irrecuperables', () => {
     const raw = load(SYNC_SCRIPT_PATH);
     const requiredSnippets = [
         "[switch]$PreflightOnly",
@@ -132,6 +134,9 @@ test('sync V4 usa release pin, lock directory y falla duro si el lock queda corr
         'lock_owner_pid =',
         'lock_started_at =',
         'lock_age_seconds =',
+        'lock_repaired = $false',
+        'lock_repair_reason =',
+        "status_source = 'sync_runtime'",
         'rollback_performed = $false',
         'rollback_reason =',
         'last_successful_deploy_at =',
@@ -139,8 +144,9 @@ test('sync V4 usa release pin, lock directory y falla duro si el lock queda corr
         'Release target bootstrapeado',
         'Desired commit {0} fallo validacion; se ejecuta rollback automatico',
         'Preflight OK: desired={0} current={1} service_state={2}',
-        "sync_lock_corrupt",
-        "throw 'sync_lock_corrupt'",
+        'Repair-HostingLegacyLocks -LockPaths @($lockPath)',
+        "sync_lock_unrecoverable",
+        "throw 'sync_lock_unrecoverable'",
         "Lock invalido detectado; state={0} reason={1}",
         "lock_state = 'unlocked'",
     ];
@@ -186,7 +192,7 @@ test('config V3 desacopla bootstrap del mirror y arranque del supervisor', () =>
     }
 });
 
-test('repair, supervisor, start y smoke usan contrato V4 fail-safe', () => {
+test('repair, supervisor, start y smoke usan contrato V5 fail-safe', () => {
     const required = [
         {
             filePath: REPAIR_SCRIPT_PATH,
@@ -194,6 +200,7 @@ test('repair, supervisor, start y smoke usan contrato V4 fail-safe', () => {
                 "[switch]$PreflightOnly",
                 "$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'",
                 "phase = 'discover'",
+                "phase = 'sanitize_legacy_state'",
                 "phase = 'preflight'",
                 "phase = 'quiesce'",
                 "phase = 'apply'",
@@ -205,9 +212,11 @@ test('repair, supervisor, start y smoke usan contrato V4 fail-safe', () => {
                 'Invoke-SyncScript -CurrentPreflightOnly',
                 'Preflight de reparacion OK; no se tocaron procesos activos.',
                 'Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir',
+                'Sanitize-LegacyHostingState -HostingDir $hostingDir',
                 'Update-StatusFromSyncPayload -CurrentStatus $status -SyncStatus $syncStatus',
                 'Assert-SyncStatusHealthy -SyncStatus $syncStatus',
                 'sync_status_invalid:',
+                'sync_lock_unrecoverable',
                 'Invoke-ConfigScript -SkipBootstrapSync -StartSupervisorNow',
                 'Wait-ForSupervisorReady -SupervisorStatusPath $supervisorStatusPath',
                 'supervisor_boot_failed',
@@ -225,14 +234,17 @@ test('repair, supervisor, start y smoke usan contrato V4 fail-safe', () => {
                 'Get-LockSnapshot',
                 'Acquire-HostingDirectoryLock',
                 'Remove-HostingDirectoryLock',
+                'Repair-HostingLegacyLocks -LockPaths @($lockPath)',
                 'Invoke-HostingSmoke',
                 'Invoke-Repair',
-                'supervisor_lock_corrupt',
+                'supervisor_lock_unrecoverable',
                 "supervisor_state = 'failed'",
                 '$supervisorState = \'recovering\'',
                 'desired_commit = Get-DesiredCommit',
                 'sync_state =',
                 'sync_deploy_state =',
+                'lock_repaired =',
+                'lock_repair_reason =',
                 'current_commit =',
                 'previous_commit =',
                 'lock_state =',
@@ -251,11 +263,17 @@ test('repair, supervisor, start y smoke usan contrato V4 fail-safe', () => {
             filePath: START_SCRIPT_PATH,
             snippets: [
                 "$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'",
+                "[string]$ExternalEnvPath = 'C:\\ProgramData\\Pielarmonia\\hosting\\env.php'",
                 'function Ensure-CaddyEdge',
                 'function Ensure-CloudflaredTunnel',
                 'function Ensure-LocalHelper',
                 'function Ensure-OperatorTransportReady',
+                'function Read-PhpEnvFileValues',
+                'function Get-EffectiveOperatorAuthBootstrapConfig',
+                'function Sync-ExternalEnvFile',
+                'function Refresh-OperatorAuthRuntime',
                 'Operator auth transport detectado',
+                'Se asume web_broker desde env.php efectivo durante bootstrap.',
                 'OpenClaw auth helper omitido; transport activo:',
             ],
         },
@@ -289,9 +307,11 @@ test('repair, supervisor, start y smoke usan contrato V4 fail-safe', () => {
     }
 });
 
-test('repair V4 valida main-sync-status antes del primer smoke y mantiene el orden serial', () => {
+test('repair V5 sanea estado legacy antes del preflight y valida main-sync-status antes del primer smoke', () => {
     const raw = load(REPAIR_SCRIPT_PATH);
     const orderedSnippets = [
+        "phase = 'sanitize_legacy_state'",
+        'Sanitize-LegacyHostingState -HostingDir $hostingDir',
         '$preflightResult = Invoke-SyncScript -CurrentPreflightOnly',
         "phase = 'quiesce'",
         'Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir',
@@ -325,10 +345,11 @@ test('smoke V4 evita el patron de reporte fragil para Windows PowerShell 5.1', (
     assert.equal(raw.includes('$checkItems = @()'), true);
 });
 
-test('sync V4 no deja state=locked con owner_pid invalido y libera el lock al terminar', () => {
+test('sync V5 no deja state=locked con owner_pid invalido y expone lock_repaired', () => {
     const raw = load(SYNC_SCRIPT_PATH);
     assert.equal(raw.includes("if ($status.lock_owner_pid -gt 0) {\n            $status.state = 'locked'"), true);
-    assert.equal(raw.includes("throw 'sync_lock_corrupt'"), true);
+    assert.equal(raw.includes("throw 'sync_lock_unrecoverable'"), true);
+    assert.equal(raw.includes('lock_repaired = $false'), true);
     assert.equal(raw.includes("if (-not (Test-Path -LiteralPath $lockPath)) {\n            $status.lock_state = 'unlocked'"), true);
 });
 
