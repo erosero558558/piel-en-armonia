@@ -5,6 +5,7 @@ param(
     [string]$OperatorUserProfile = '',
     [string]$MirrorRepoPath = 'C:\dev\pielarmonia-clean-main',
     [string]$ExternalEnvPath = 'C:\ProgramData\Pielarmonia\hosting\env.php',
+    [string]$ReleaseTargetPath = 'C:\ProgramData\Pielarmonia\hosting\release-target.json',
     [switch]$RouteDns,
     [switch]$OverwriteDns,
     [switch]$StartNow
@@ -17,16 +18,21 @@ $bootstrapSyncScriptPath = Join-Path $repoRoot 'scripts\ops\setup\SINCRONIZAR-HO
 $mirrorRepoPathResolved = [System.IO.Path]::GetFullPath($MirrorRepoPath)
 $mirrorStartScriptPath = Join-Path $mirrorRepoPathResolved 'scripts\ops\setup\ARRANCAR-HOSTING-WINDOWS.ps1'
 $mirrorSyncScriptPath = Join-Path $mirrorRepoPathResolved 'scripts\ops\setup\SINCRONIZAR-HOSTING-WINDOWS.ps1'
+$mirrorSupervisorScriptPath = Join-Path $mirrorRepoPathResolved 'scripts\ops\setup\SUPERVISAR-HOSTING-WINDOWS.ps1'
+$mirrorRepairScriptPath = Join-Path $mirrorRepoPathResolved 'scripts\ops\setup\REPARAR-HOSTING-WINDOWS.ps1'
 $runtimeRoot = Join-Path $repoRoot 'data\runtime\hosting'
 $startupDir = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup'
-$startupCmdPath = Join-Path $startupDir 'Pielarmonia Hosting Stack.cmd'
+$startupCmdPath = Join-Path $startupDir 'Pielarmonia Hosting Supervisor.cmd'
 $loginLauncherPath = Join-Path $runtimeRoot 'login-stack.cmd'
 $bootLauncherPath = Join-Path $runtimeRoot 'boot-stack.cmd'
+$supervisorLauncherPath = Join-Path $runtimeRoot 'supervisor.cmd'
 $mainSyncLauncherPath = Join-Path $runtimeRoot 'main-sync.cmd'
-$bootTaskName = 'Pielarmonia Hosting Stack'
+$repairLauncherPath = Join-Path $runtimeRoot 'repair-hosting.cmd'
+$supervisorTaskName = 'Pielarmonia Hosting Supervisor'
 $mainSyncTaskName = 'Pielarmonia Hosting Main Sync'
+$legacyBootTaskName = 'Pielarmonia Hosting Stack'
 $runKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-$runKeyName = 'PielarmoniaHostingStack'
+$runKeyName = 'PielarmoniaHostingSupervisor'
 $resolvedOperatorUserProfile = if ([string]::IsNullOrWhiteSpace($OperatorUserProfile)) {
     $env:USERPROFILE
 } else {
@@ -113,6 +119,7 @@ function Invoke-BootstrapSync {
         [string]$ScriptPath,
         [string]$MirrorPath,
         [string]$EnvPath,
+        [string]$CurrentReleaseTargetPath,
         [string]$Domain,
         [string]$CurrentTunnelId,
         [string]$CurrentOperatorUserProfile,
@@ -127,12 +134,14 @@ function Invoke-BootstrapSync {
         '-File', $ScriptPath,
         '-MirrorRepoPath', $MirrorPath,
         '-ExternalEnvPath', $EnvPath,
+        '-ReleaseTargetPath', $CurrentReleaseTargetPath,
         '-PublicDomain', $Domain,
         '-TunnelId', $CurrentTunnelId,
         '-OperatorUserProfile', $CurrentOperatorUserProfile,
         '-CaddyExePath', $CurrentCaddyExePath,
         '-CloudflaredExePath', $CurrentCloudflaredExePath,
-        '-PhpCgiExePath', $CurrentPhpCgiExePath
+        '-PhpCgiExePath', $CurrentPhpCgiExePath,
+        '-BootstrapReleaseTargetIfMissing'
     )
 
     Write-Info "Bootstrapping mirror limpio: $MirrorPath"
@@ -160,6 +169,7 @@ if (-not $mirrorRepoReady -or $StartNow) {
         -ScriptPath $bootstrapSyncScriptPath `
         -MirrorPath $mirrorRepoPathResolved `
         -EnvPath $ExternalEnvPath `
+        -CurrentReleaseTargetPath $ReleaseTargetPath `
         -Domain $PublicDomain `
         -CurrentTunnelId $TunnelId `
         -CurrentOperatorUserProfile $resolvedOperatorUserProfile `
@@ -168,29 +178,30 @@ if (-not $mirrorRepoReady -or $StartNow) {
         -CurrentPhpCgiExePath $phpCgiExePath
 }
 
-if (-not (Test-Path -LiteralPath $mirrorStartScriptPath)) {
-    throw "El mirror limpio no expone ARRANCAR-HOSTING-WINDOWS.ps1: $mirrorStartScriptPath"
+foreach ($requiredPath in @($mirrorStartScriptPath, $mirrorSyncScriptPath, $mirrorSupervisorScriptPath, $mirrorRepairScriptPath)) {
+    if (-not (Test-Path -LiteralPath $requiredPath)) {
+        throw "El mirror limpio no expone el script requerido: $requiredPath"
+    }
 }
 
-if (-not (Test-Path -LiteralPath $mirrorSyncScriptPath)) {
-    throw "El mirror limpio no expone SINCRONIZAR-HOSTING-WINDOWS.ps1: $mirrorSyncScriptPath"
-}
-
-$commonStartArguments = @(
-    $mirrorStartScriptPath,
+$commonSupervisorArguments = @(
+    $mirrorSupervisorScriptPath,
+    '-MirrorRepoPath', $mirrorRepoPathResolved,
+    '-ExternalEnvPath', $ExternalEnvPath,
+    '-ReleaseTargetPath', $ReleaseTargetPath,
     '-PublicDomain', $PublicDomain,
     '-TunnelId', $TunnelId,
     '-OperatorUserProfile', $resolvedOperatorUserProfile,
     '-CaddyExePath', $caddyExePath,
     '-CloudflaredExePath', $cloudflaredExePath,
     '-PhpCgiExePath', $phpCgiExePath,
-    '-StopLegacy',
     '-Quiet'
 )
 $commonSyncArguments = @(
     $mirrorSyncScriptPath,
     '-MirrorRepoPath', $mirrorRepoPathResolved,
     '-ExternalEnvPath', $ExternalEnvPath,
+    '-ReleaseTargetPath', $ReleaseTargetPath,
     '-PublicDomain', $PublicDomain,
     '-TunnelId', $TunnelId,
     '-OperatorUserProfile', $resolvedOperatorUserProfile,
@@ -199,26 +210,41 @@ $commonSyncArguments = @(
     '-PhpCgiExePath', $phpCgiExePath,
     '-Quiet'
 )
+$commonRepairArguments = @(
+    $mirrorRepairScriptPath,
+    '-MirrorRepoPath', $mirrorRepoPathResolved,
+    '-ExternalEnvPath', $ExternalEnvPath,
+    '-ReleaseTargetPath', $ReleaseTargetPath,
+    '-PublicDomain', $PublicDomain,
+    '-TunnelId', $TunnelId,
+    '-OperatorUserProfile', $resolvedOperatorUserProfile,
+    '-CaddyExePath', $caddyExePath,
+    '-CloudflaredExePath', $cloudflaredExePath,
+    '-PhpCgiExePath', $phpCgiExePath
+)
 
-$loginStartCommand = New-StartCommand -StartArguments $commonStartArguments
-$bootStartCommand = New-StartCommand -StartArguments ($commonStartArguments + @('-SkipBridge'))
+$supervisorCommand = New-StartCommand -StartArguments $commonSupervisorArguments
 $mainSyncCommand = New-StartCommand -StartArguments $commonSyncArguments
-$loginLauncherCommand = ConvertTo-CommandToken -Value ([System.IO.Path]::GetFullPath($loginLauncherPath))
-$bootLauncherCommand = ConvertTo-CommandToken -Value ([System.IO.Path]::GetFullPath($bootLauncherPath))
+$repairCommand = New-StartCommand -StartArguments $commonRepairArguments
+$supervisorLauncherCommand = ConvertTo-CommandToken -Value ([System.IO.Path]::GetFullPath($supervisorLauncherPath))
 $mainSyncLauncherCommand = ConvertTo-CommandToken -Value ([System.IO.Path]::GetFullPath($mainSyncLauncherPath))
 
-Write-LauncherScript -Path $loginLauncherPath -Command $loginStartCommand
-Write-LauncherScript -Path $bootLauncherPath -Command $bootStartCommand
+Write-LauncherScript -Path $supervisorLauncherPath -Command $supervisorCommand
 Write-LauncherScript -Path $mainSyncLauncherPath -Command $mainSyncCommand
+Write-LauncherScript -Path $repairLauncherPath -Command $repairCommand
+Write-LauncherScript -Path $loginLauncherPath -Command ("call " + $supervisorLauncherCommand)
+Write-LauncherScript -Path $bootLauncherPath -Command ("call " + $supervisorLauncherCommand)
+Write-Info "Launcher supervisor actualizado: $supervisorLauncherPath"
+Write-Info "Launcher sync actualizado: $mainSyncLauncherPath"
+Write-Info "Launcher repair actualizado: $repairLauncherPath"
 Write-Info "Launcher login actualizado: $loginLauncherPath"
 Write-Info "Launcher boot actualizado: $bootLauncherPath"
-Write-Info "Launcher main sync actualizado: $mainSyncLauncherPath"
 
 if (-not (Test-Path -LiteralPath $startupDir)) {
     New-Item -ItemType Directory -Path $startupDir -Force | Out-Null
 }
 
-$startupCommand = 'call ' + $loginLauncherCommand
+$startupCommand = 'call ' + $supervisorLauncherCommand
 Set-Content -Path $startupCmdPath -Value "@echo off`r`n$startupCommand`r`n" -Encoding ASCII
 Write-Info "Startup shim actualizado: $startupCmdPath"
 
@@ -227,21 +253,21 @@ if (-not (Test-Path -LiteralPath $runKeyPath)) {
 }
 
 if ($null -ne (Get-ItemProperty -Path $runKeyPath -Name $runKeyName -ErrorAction SilentlyContinue)) {
-    Set-ItemProperty -Path $runKeyPath -Name $runKeyName -Value $loginLauncherCommand
+    Set-ItemProperty -Path $runKeyPath -Name $runKeyName -Value $supervisorLauncherCommand
 } else {
-    New-ItemProperty -Path $runKeyPath -Name $runKeyName -Value $loginLauncherCommand -PropertyType String | Out-Null
+    New-ItemProperty -Path $runKeyPath -Name $runKeyName -Value $supervisorLauncherCommand -PropertyType String | Out-Null
 }
 Write-Info "Registro HKCU\\Run actualizado: $runKeyName"
 
 if (Test-IsElevated) {
-    $bootTaskArgs = @(
+    $supervisorTaskArgs = @(
         '/Create',
         '/F',
         '/SC', 'ONSTART',
         '/RL', 'HIGHEST',
         '/RU', 'SYSTEM',
-        '/TN', $bootTaskName,
-        '/TR', $bootLauncherCommand
+        '/TN', $supervisorTaskName,
+        '/TR', $supervisorLauncherCommand
     )
     $mainSyncTaskArgs = @(
         '/Create',
@@ -255,14 +281,22 @@ if (Test-IsElevated) {
     )
 
     try {
-        $bootTaskResult = Invoke-Schtasks -Arguments $bootTaskArgs
-        if ($bootTaskResult.ExitCode -eq 0) {
-            Write-Info "Tarea programada de boot instalada: $bootTaskName"
-        } else {
-            Write-Warning ("No se pudo registrar la tarea de boot sin login. {0}" -f $bootTaskResult.Output.Trim())
+        $legacyDelete = Invoke-Schtasks -Arguments @('/Delete', '/F', '/TN', $legacyBootTaskName)
+        if ($legacyDelete.ExitCode -eq 0) {
+            Write-Info "Tarea legacy eliminada: $legacyBootTaskName"
         }
     } catch {
-        Write-Warning ("No se pudo registrar la tarea de boot sin login. {0}" -f $_.Exception.Message.Trim())
+    }
+
+    try {
+        $supervisorTaskResult = Invoke-Schtasks -Arguments $supervisorTaskArgs
+        if ($supervisorTaskResult.ExitCode -eq 0) {
+            Write-Info "Tarea programada de supervisor instalada: $supervisorTaskName"
+        } else {
+            Write-Warning ("No se pudo registrar la tarea de supervisor. {0}" -f $supervisorTaskResult.Output.Trim())
+        }
+    } catch {
+        Write-Warning ("No se pudo registrar la tarea de supervisor. {0}" -f $_.Exception.Message.Trim())
     }
 
     try {
@@ -276,7 +310,12 @@ if (Test-IsElevated) {
         Write-Warning ("No se pudo registrar la tarea de sync por minuto. {0}" -f $_.Exception.Message.Trim())
     }
 } else {
-    Write-Warning 'La sesion actual no esta elevada. El stack queda resiliente al iniciar sesion via Startup + HKCU\\Run, pero el arranque pre-login y el sync por minuto requieren reejecutar este script como Administrador.'
+    Write-Warning 'La sesion actual no esta elevada. Startup + HKCU\\Run lanzaran el supervisor al iniciar sesion, pero las tareas de supervisor/sync requieren reejecutar este script como Administrador.'
+}
+
+if ($StartNow) {
+    Start-Process -FilePath $supervisorLauncherPath -WindowStyle Hidden | Out-Null
+    Write-Info 'Supervisor lanzado en la sesion actual.'
 }
 
 if ($RouteDns) {

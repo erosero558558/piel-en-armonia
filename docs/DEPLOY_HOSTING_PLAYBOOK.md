@@ -44,12 +44,15 @@ La ruta canonica es mantener un mirror limpio en
 - `ops/caddy/Caddyfile` para edge local y redirects canonicos.
 - `php-cgi.exe` en `127.0.0.1:9000` como backend FastCGI.
 - `cloudflared` para exponer el mismo dominio sin depender de NAT/router.
+- `scripts/ops/setup/SUPERVISAR-HOSTING-WINDOWS.ps1` como supervisor dedicado del stack.
 - `scripts/ops/setup/SINCRONIZAR-HOSTING-WINDOWS.ps1` para clonar/resetear `origin/main`,
   reinyectar `C:\ProgramData\Pielarmonia\hosting\env.php` y reiniciar solo si
   cambia el `HEAD` o el hash del `env.php`.
 - `scripts/ops/setup/CONFIGURAR-HOSTING-WINDOWS.ps1` para registrar:
-  `Pielarmonia Hosting Stack` en boot/login y `Pielarmonia Hosting Main Sync`
-  cada 1 minuto via Task Scheduler.
+  `Pielarmonia Hosting Supervisor` en boot/login, `Pielarmonia Hosting Main Sync`
+  cada 1 minuto via Task Scheduler y los launchers cortos del mirror.
+- `scripts/ops/setup/REPARAR-HOSTING-WINDOWS.ps1` como entrypoint unico de
+  recovery para stale lock, restart y smoke local.
 
 Secuencia recomendada:
 
@@ -63,6 +66,9 @@ Notas operativas:
   otro cron en ese host.
 - En Windows usa Task Scheduler sobre el mirror limpio, no `git pull` ni
   `git reset` sobre el workspace activo.
+- El deploy Windows ya no sigue `origin/main` a ciegas: el runtime servible se
+  pinnea en `C:\ProgramData\Pielarmonia\hosting\release-target.json` y el sync
+  solo promueve ese `target_commit`.
 
 Notas:
 
@@ -72,15 +78,32 @@ Notas:
   `https://pielarmonia.com`.
 - El entrypoint publico sale por Cloudflare Tunnel; no hace falta publicar
   `8011`, `4173` ni `9000`.
-- El configurador deja dos capas de arranque:
-  `Startup` + `HKCU\Run` para la sesion del operador, y una tarea `ONSTART`
-  para el stack publico solo cuando se ejecuta con PowerShell elevada.
+- El configurador deja tres capas coordinadas:
+  `Startup` + `HKCU\Run` para bootstrap de sesion, una tarea `ONSTART`
+  (`Pielarmonia Hosting Supervisor`) para el supervisor del stack y una tarea
+  `MINUTE/1` (`Pielarmonia Hosting Main Sync`) para reconciliar el mirror.
 - Para evitar el limite de 261 caracteres de `schtasks /TR`, el configurador
-  genera launchers cortos en `data/runtime/hosting/login-stack.cmd` y
-  `data/runtime/hosting/boot-stack.cmd`.
+  genera launchers cortos en `data/runtime/hosting/supervisor.cmd`,
+  `data/runtime/hosting/main-sync.cmd`, `data/runtime/hosting/repair-hosting.cmd`
+  y mantiene `login-stack.cmd` / `boot-stack.cmd` solo como shims compatibles.
 - El perfil productivo canonico de auth es `web_broker`; el helper local en
   `127.0.0.1:4173` queda solo para soporte manual/laptop cuando se habilita
   explicitamente `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=local_helper`.
+- En produccion `web_broker`, el supervisor, el sync y el smoke local validan
+  que `admin-auth.php?action=status` publique `transport=web_broker`; si el
+  contrato falta o reaparece `local_helper`, el host marca fallo en cerrado.
+
+Recovery canonico:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ops\setup\REPARAR-HOSTING-WINDOWS.ps1
+```
+
+Promocion manual del HEAD remoto durante una ventana de mantenimiento:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ops\setup\REPARAR-HOSTING-WINDOWS.ps1 -PromoteCurrentRemoteHead
+```
 
 ## Archivos a subir
 

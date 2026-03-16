@@ -3,6 +3,7 @@ param(
     [string]$ExternalEnvPath = 'C:\ProgramData\Pielarmonia\hosting\env.php',
     [string]$StatusPath = 'C:\ProgramData\Pielarmonia\hosting\main-sync-status.json',
     [string]$LogPath = 'C:\ProgramData\Pielarmonia\hosting\main-sync.log',
+    [string]$ReleaseTargetPath = 'C:\ProgramData\Pielarmonia\hosting\release-target.json',
     [string]$RepoUrl = 'https://github.com/erosero558558/piel-en-armonia.git',
     [string]$Branch = 'main',
     [string]$PublicDomain = 'pielarmonia.com',
@@ -11,6 +12,8 @@ param(
     [string]$CaddyExePath = '',
     [string]$CloudflaredExePath = '',
     [string]$PhpCgiExePath = '',
+    [int]$LockTtlSeconds = 600,
+    [switch]$BootstrapReleaseTargetIfMissing,
     [switch]$Quiet
 )
 
@@ -20,6 +23,7 @@ $mirrorRepoPathResolved = [System.IO.Path]::GetFullPath($MirrorRepoPath)
 $statusPathResolved = [System.IO.Path]::GetFullPath($StatusPath)
 $logPathResolved = [System.IO.Path]::GetFullPath($LogPath)
 $externalEnvPathResolved = [System.IO.Path]::GetFullPath($ExternalEnvPath)
+$releaseTargetPathResolved = [System.IO.Path]::GetFullPath($ReleaseTargetPath)
 $resolvedOperatorUserProfile = if ([string]::IsNullOrWhiteSpace($OperatorUserProfile)) {
     $env:USERPROFILE
 } else {
@@ -28,6 +32,7 @@ $resolvedOperatorUserProfile = if ([string]::IsNullOrWhiteSpace($OperatorUserPro
 $mirrorEnvPath = Join-Path $mirrorRepoPathResolved 'env.php'
 $mirrorStartScriptPath = Join-Path $mirrorRepoPathResolved 'scripts\ops\setup\ARRANCAR-HOSTING-WINDOWS.ps1'
 $lockPath = $statusPathResolved + '.lock'
+$lockInfoPath = $lockPath + '.json'
 $gitExe = (Get-Command git -ErrorAction Stop).Source
 $powershellExe = (Get-Command powershell -ErrorAction Stop).Source
 
@@ -51,12 +56,39 @@ function Write-Info {
     }
 }
 
+function Read-JsonFileSafe {
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $null
+    }
+
+    try {
+        $raw = Get-Content -LiteralPath $Path -Raw
+        if ([string]::IsNullOrWhiteSpace($raw)) {
+            return $null
+        }
+        return (($raw -replace "^\uFEFF", '') | ConvertFrom-Json -Depth 20)
+    } catch {
+        return $null
+    }
+}
+
+function Write-JsonFile {
+    param(
+        [string]$Path,
+        [hashtable]$Payload
+    )
+
+    Ensure-ParentDirectory -Path $Path
+    $json = $Payload | ConvertTo-Json -Depth 20
+    Set-Content -Path $Path -Value $json -Encoding UTF8
+}
+
 function Write-Status {
     param([hashtable]$Payload)
 
-    Ensure-ParentDirectory -Path $statusPathResolved
-    $json = $Payload | ConvertTo-Json -Depth 8
-    Set-Content -Path $statusPathResolved -Value $json -Encoding UTF8
+    Write-JsonFile -Path $statusPathResolved -Payload $Payload
 }
 
 function Get-FileHashSafe {
@@ -136,6 +168,187 @@ function Get-GitHeadSafe {
     return [string]($result.Output.Trim())
 }
 
+function Get-GitRevisionOrThrow {
+    param(
+        [string]$RepoPath,
+        [string]$Revision,
+        [string]$ErrorMessage
+    )
+
+    $result = Invoke-Git -Arguments @('-C', $RepoPath, 'rev-parse', $Revision)
+    if ($result.ExitCode -ne 0) {
+        throw ("{0} {1}" -f $ErrorMessage, $result.Output.Trim())
+    }
+
+    return [string]($result.Output.Trim())
+}
+
+function Test-ProcessExists {
+    param([int]$ProcessId)
+
+    if ($ProcessId -le 0) {
+        return $false
+    }
+
+    try {
+        return $null -ne (Get-Process -Id $ProcessId -ErrorAction Stop)
+    } catch {
+        return $false
+    }
+}
+
+function Get-LockSnapshot {
+    param(
+        [string]$InfoPath,
+        [int]$TtlSeconds
+    )
+
+    $snapshot = [ordered]@{
+        owner_pid = 0
+        started_at = ''
+        age_seconds = 0
+        owner_active = $false
+        stale = $false
+    }
+
+    $payload = Read-JsonFileSafe -Path $InfoPath
+    if ($null -ne $payload) {
+        try { $snapshot.owner_pid = [int]$payload.owner_pid } catch {}
+        try { $snapshot.started_at = [string]$payload.started_at } catch {}
+    }
+
+    if ($snapshot.owner_pid -gt 0) {
+        $snapshot.owner_active = Test-ProcessExists -ProcessId $snapshot.owner_pid
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($snapshot.started_at)) {
+        try {
+            $started = [DateTimeOffset]::Parse($snapshot.started_at)
+            $snapshot.age_seconds = [int][Math]::Max(0, ([DateTimeOffset]::Now - $started).TotalSeconds)
+        } catch {
+            $snapshot.age_seconds = 0
+        }
+    }
+
+    $snapshot.stale =
+        (($snapshot.owner_pid -gt 0) -and (-not $snapshot.owner_active)) -or
+        (($snapshot.age_seconds -gt 0) -and ($snapshot.age_seconds -ge $TtlSeconds))
+
+    return [PSCustomObject]$snapshot
+}
+
+function Clear-SyncLockArtifacts {
+    param(
+        [string]$CurrentLockPath,
+        [string]$CurrentLockInfoPath
+    )
+
+    foreach ($path in @($CurrentLockPath, $CurrentLockInfoPath)) {
+        if (Test-Path -LiteralPath $path) {
+            Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function Acquire-SyncLock {
+    param(
+        [string]$CurrentLockPath,
+        [string]$CurrentLockInfoPath,
+        [int]$TtlSeconds
+    )
+
+    foreach ($attempt in 1..2) {
+        try {
+            $stream = [System.IO.File]::Open($CurrentLockPath, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+            $payload = [ordered]@{
+                owner_pid = $PID
+                started_at = [DateTimeOffset]::Now.ToString('o')
+            }
+            Write-JsonFile -Path $CurrentLockInfoPath -Payload $payload
+            return [PSCustomObject]@{
+                Acquired = $true
+                Stream = $stream
+                Snapshot = [PSCustomObject]@{
+                    owner_pid = $PID
+                    started_at = $payload.started_at
+                    age_seconds = 0
+                    owner_active = $true
+                    stale = $false
+                }
+            }
+        } catch {
+            $snapshot = Get-LockSnapshot -InfoPath $CurrentLockInfoPath -TtlSeconds $TtlSeconds
+            if ($snapshot.stale -and $attempt -eq 1) {
+                Write-Info ("Stale lock detectado; se libera lock owner_pid={0} age_seconds={1}" -f $snapshot.owner_pid, $snapshot.age_seconds)
+                Clear-SyncLockArtifacts -CurrentLockPath $CurrentLockPath -CurrentLockInfoPath $CurrentLockInfoPath
+                Start-Sleep -Milliseconds 200
+                continue
+            }
+
+            return [PSCustomObject]@{
+                Acquired = $false
+                Stream = $null
+                Snapshot = $snapshot
+            }
+        }
+    }
+
+    return [PSCustomObject]@{
+        Acquired = $false
+        Stream = $null
+        Snapshot = (Get-LockSnapshot -InfoPath $CurrentLockInfoPath -TtlSeconds $TtlSeconds)
+    }
+}
+
+function Get-ProcessesByNeedle {
+    param([string[]]$Needles)
+
+    return @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+        $commandLine = [string]$_.CommandLine
+        if ([string]::IsNullOrWhiteSpace($commandLine)) {
+            return $false
+        }
+
+        foreach ($needle in $Needles) {
+            if ([string]::IsNullOrWhiteSpace($needle)) {
+                continue
+            }
+
+            if ($commandLine.IndexOf($needle, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+                return $false
+            }
+        }
+
+        return $true
+    })
+}
+
+function Get-ServiceSnapshot {
+    param([string]$CurrentTunnelId)
+
+    $phpProcesses = Get-ProcessesByNeedle -Needles @('php-cgi.exe', '-b 127.0.0.1:9000')
+    $caddyProcesses = Get-ProcessesByNeedle -Needles @('caddy.exe', 'ops\caddy\Caddyfile', 'run')
+    $cloudflaredProcesses = Get-ProcessesByNeedle -Needles @('cloudflared.exe', $CurrentTunnelId, '--url http://127.0.0.1')
+    $helperProcesses = Get-ProcessesByNeedle -Needles @('openclaw-auth-helper.js')
+
+    $primaryHealthy = ($phpProcesses.Count -gt 0) -and ($caddyProcesses.Count -gt 0) -and ($cloudflaredProcesses.Count -gt 0)
+    $state = if ($primaryHealthy) {
+        'running'
+    } elseif (($phpProcesses.Count + $caddyProcesses.Count + $cloudflaredProcesses.Count) -gt 0) {
+        'degraded'
+    } else {
+        'stopped'
+    }
+
+    return [PSCustomObject]@{
+        State = $state
+        PhpPids = @($phpProcesses | ForEach-Object { [int]$_.ProcessId })
+        CaddyPids = @($caddyProcesses | ForEach-Object { [int]$_.ProcessId })
+        CloudflaredPids = @($cloudflaredProcesses | ForEach-Object { [int]$_.ProcessId })
+        HelperPids = @($helperProcesses | ForEach-Object { [int]$_.ProcessId })
+    }
+}
+
 function Invoke-HealthDiagnostics {
     try {
         $response = Invoke-WebRequest `
@@ -190,6 +403,68 @@ function Invoke-OperatorAuthStatus {
     }
 }
 
+function Update-ReleaseTarget {
+    param(
+        [string]$Path,
+        [string]$TargetCommit,
+        [string]$SourceRunId,
+        [string]$ApprovedBy = 'windows_hosting_sync',
+        [string]$RollbackReason = '',
+        [string]$PreviousTargetCommit = ''
+    )
+
+    $payload = [ordered]@{
+        target_commit = $TargetCommit
+        approved_at = [DateTimeOffset]::Now.ToString('o')
+        source_run_id = if ([string]::IsNullOrWhiteSpace($SourceRunId)) { 'windows_hosting_sync' } else { $SourceRunId }
+        approved_by = $ApprovedBy
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($RollbackReason)) {
+        $payload.rollback_reason = $RollbackReason
+    }
+    if (-not [string]::IsNullOrWhiteSpace($PreviousTargetCommit)) {
+        $payload.previous_target_commit = $PreviousTargetCommit
+    }
+
+    Write-JsonFile -Path $Path -Payload $payload
+    return $payload
+}
+
+function Resolve-DesiredCommit {
+    param(
+        [string]$CurrentReleaseTargetPath,
+        [string]$CurrentRemoteHead,
+        [switch]$AllowBootstrap
+    )
+
+    $releaseTarget = Read-JsonFileSafe -Path $CurrentReleaseTargetPath
+    $targetCommit = ''
+
+    if ($null -ne $releaseTarget) {
+        try { $targetCommit = [string]$releaseTarget.target_commit } catch { $targetCommit = '' }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($targetCommit)) {
+        if (-not $AllowBootstrap) {
+            throw "No existe release-target canonico en $CurrentReleaseTargetPath. Inicializa el pin con REPARAR-HOSTING-WINDOWS.ps1 o CONFIGURAR-HOSTING-WINDOWS.ps1."
+        }
+
+        $releaseTarget = Update-ReleaseTarget `
+            -Path $CurrentReleaseTargetPath `
+            -TargetCommit $CurrentRemoteHead `
+            -SourceRunId 'bootstrap_local' `
+            -ApprovedBy 'windows_hosting_sync_bootstrap'
+        $targetCommit = $CurrentRemoteHead
+        Write-Info ("Release target bootstrapeado en {0}: {1}" -f $CurrentReleaseTargetPath, $targetCommit)
+    }
+
+    return [PSCustomObject]@{
+        TargetCommit = $targetCommit
+        Payload = $releaseTarget
+    }
+}
+
 function Invoke-StartMirrorStack {
     param(
         [string]$StartScriptPath,
@@ -232,14 +507,63 @@ function Invoke-StartMirrorStack {
     }
 }
 
+function Invoke-ValidateMirror {
+    param([string]$CurrentTunnelId)
+
+    $service = Get-ServiceSnapshot -CurrentTunnelId $CurrentTunnelId
+    $health = Invoke-HealthDiagnostics
+    $authContract = Invoke-OperatorAuthStatus
+    return [PSCustomObject]@{
+        Ok = ($health.Ok -eq $true) -and ($authContract.Ok -eq $true)
+        Health = $health
+        Auth = $authContract
+        Service = $service
+    }
+}
+
+function Set-StatusFromValidation {
+    param(
+        [hashtable]$CurrentStatus,
+        [PSCustomObject]$Validation
+    )
+
+    $CurrentStatus.health_ok = $Validation.Health.Ok -eq $true
+    $CurrentStatus.auth_contract_ok = $Validation.Auth.Ok -eq $true
+    $CurrentStatus.service_state = [string]$Validation.Service.State
+    if ($Validation.Auth.Payload) {
+        $CurrentStatus.auth_mode = [string]$Validation.Auth.Payload.mode
+        $CurrentStatus.auth_transport = [string]$Validation.Auth.Payload.transport
+        $CurrentStatus.auth_status = [string]$Validation.Auth.Payload.status
+    }
+}
+
+$existingStatus = Read-JsonFileSafe -Path $statusPathResolved
+$existingReleaseTarget = Read-JsonFileSafe -Path $releaseTargetPathResolved
+$previousSuccessfulCommit = ''
+$previousSuccessfulAt = ''
+if ($null -ne $existingStatus) {
+    try {
+        if (($existingStatus.ok -eq $true) -and ($existingStatus.health_ok -eq $true) -and ($existingStatus.auth_contract_ok -eq $true)) {
+            $previousSuccessfulCommit = [string]$existingStatus.current_commit
+            $previousSuccessfulAt = [string]$existingStatus.last_successful_deploy_at
+        }
+    } catch {
+    }
+}
+
 $status = [ordered]@{
     ok = $false
     state = 'starting'
+    deploy_state = 'starting'
     timestamp = [DateTimeOffset]::Now.ToString('o')
     mirror_repo_path = $mirrorRepoPathResolved
     external_env_path = $externalEnvPathResolved
+    release_target_path = $releaseTargetPathResolved
     repo_url = $RepoUrl
     branch = $Branch
+    desired_commit = ''
+    previous_commit = ''
+    current_commit = ''
     previous_head = ''
     current_head = ''
     head_changed = $false
@@ -251,34 +575,62 @@ $status = [ordered]@{
     auth_mode = ''
     auth_transport = ''
     auth_status = ''
+    service_state = 'unknown'
+    lock_owner_pid = 0
+    lock_started_at = ''
+    lock_age_seconds = 0
+    rollback_performed = $false
+    rollback_reason = ''
+    last_successful_deploy_at = $previousSuccessfulAt
+    last_failure_reason = ''
     error = ''
+}
+
+if ($null -ne $existingStatus) {
+    try { $status.current_commit = [string]$existingStatus.current_commit } catch {}
+    try { $status.current_head = [string]$existingStatus.current_head } catch {}
+    try { $status.previous_commit = [string]$existingStatus.previous_commit } catch {}
+    try { $status.previous_head = [string]$existingStatus.previous_head } catch {}
+}
+if ($null -ne $existingReleaseTarget) {
+    try { $status.desired_commit = [string]$existingReleaseTarget.target_commit } catch {}
 }
 
 $lockStream = $null
 
 try {
     Ensure-ParentDirectory -Path $statusPathResolved
-    Ensure-ParentDirectory -Path $logPathResolved
     Ensure-ParentDirectory -Path $lockPath
+    Ensure-ParentDirectory -Path $releaseTargetPathResolved
 
-    try {
-        $lockStream = [System.IO.File]::Open($lockPath, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
-    } catch {
+    $lockResult = Acquire-SyncLock `
+        -CurrentLockPath $lockPath `
+        -CurrentLockInfoPath $lockInfoPath `
+        -TtlSeconds $LockTtlSeconds
+
+    if (-not $lockResult.Acquired) {
         $status.state = 'locked'
-        $status.ok = $true
+        $status.deploy_state = 'waiting_for_lock'
         $status.error = 'sync_already_running'
+        $status.last_failure_reason = $status.error
+        $status.lock_owner_pid = [int]$lockResult.Snapshot.owner_pid
+        $status.lock_started_at = [string]$lockResult.Snapshot.started_at
+        $status.lock_age_seconds = [int]$lockResult.Snapshot.age_seconds
+        $validation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
+        Set-StatusFromValidation -CurrentStatus $status -Validation $validation
         Write-Status -Payload $status
-        Write-Info 'Otro ciclo de sync sigue en ejecucion; este intento se omite.'
+        Write-Info ("Otro ciclo de sync sigue en ejecucion; owner_pid={0} age_seconds={1}" -f $status.lock_owner_pid, $status.lock_age_seconds)
         exit 0
     }
+
+    $lockStream = $lockResult.Stream
+    $status.lock_owner_pid = $PID
+    $status.lock_started_at = [DateTimeOffset]::Now.ToString('o')
+    $status.lock_age_seconds = 0
 
     if (-not (Test-Path -LiteralPath $externalEnvPathResolved)) {
         throw "No existe el env externo canonico: $externalEnvPathResolved"
     }
-
-    $status.previous_head = Get-GitHeadSafe -RepoPath $mirrorRepoPathResolved
-    $mirrorEnvHashBefore = Get-FileHashSafe -Path $mirrorEnvPath
-    $externalEnvHash = Get-FileHashSafe -Path $externalEnvPathResolved
 
     if (Test-Path -LiteralPath $mirrorRepoPathResolved) {
         if (-not (Test-Path -LiteralPath (Join-Path $mirrorRepoPathResolved '.git'))) {
@@ -306,25 +658,52 @@ try {
         throw ("No se pudo actualizar origin en el mirror. {0}" -f $fetchResult.Output.Trim())
     }
 
+    $remoteHead = Get-GitRevisionOrThrow `
+        -RepoPath $mirrorRepoPathResolved `
+        -Revision ("origin/{0}" -f $Branch) `
+        -ErrorMessage 'No se pudo resolver el remote head del mirror.'
+
+    $targetResolution = Resolve-DesiredCommit `
+        -CurrentReleaseTargetPath $releaseTargetPathResolved `
+        -CurrentRemoteHead $remoteHead `
+        -AllowBootstrap:$BootstrapReleaseTargetIfMissing
+
+    $status.desired_commit = [string]$targetResolution.TargetCommit
+
+    $currentHeadBefore = Get-GitHeadSafe -RepoPath $mirrorRepoPathResolved
+    $status.previous_commit = $currentHeadBefore
+    $status.previous_head = $currentHeadBefore
+    if ([string]::IsNullOrWhiteSpace($previousSuccessfulCommit)) {
+        $previousSuccessfulCommit = $currentHeadBefore
+    }
+
+    $mirrorEnvHashBefore = Get-FileHashSafe -Path $mirrorEnvPath
+    $externalEnvHash = Get-FileHashSafe -Path $externalEnvPathResolved
+
     $checkoutResult = Invoke-Git -Arguments @('-C', $mirrorRepoPathResolved, 'checkout', '--force', $Branch)
     if ($checkoutResult.ExitCode -ne 0) {
         throw ("No se pudo cambiar el mirror a la rama $Branch. {0}" -f $checkoutResult.Output.Trim())
     }
 
-    $resetResult = Invoke-Git -Arguments @('-C', $mirrorRepoPathResolved, 'reset', '--hard', "origin/$Branch")
+    $resetResult = Invoke-Git -Arguments @('-C', $mirrorRepoPathResolved, 'reset', '--hard', $status.desired_commit)
     if ($resetResult.ExitCode -ne 0) {
-        throw ("No se pudo alinear el mirror contra origin/$Branch. {0}" -f $resetResult.Output.Trim())
+        throw ("No se pudo alinear el mirror contra desired_commit. {0}" -f $resetResult.Output.Trim())
     }
 
     Copy-Item -LiteralPath $externalEnvPathResolved -Destination $mirrorEnvPath -Force
 
-    $status.current_head = Get-GitHeadSafe -RepoPath $mirrorRepoPathResolved
-    $status.head_changed = $status.previous_head -ne $status.current_head
+    $status.current_commit = Get-GitHeadSafe -RepoPath $mirrorRepoPathResolved
+    $status.current_head = $status.current_commit
+    $status.head_changed = $status.previous_commit -ne $status.current_commit
 
     $mirrorEnvHashAfter = Get-FileHashSafe -Path $mirrorEnvPath
-    $status.env_changed = $mirrorEnvHashBefore -ne $mirrorEnvHashAfter
+    $status.env_changed = ($mirrorEnvHashBefore -ne $mirrorEnvHashAfter) -or ($externalEnvHash -ne $mirrorEnvHashBefore)
 
-    if ($status.cloned -or $status.head_changed -or $status.env_changed) {
+    $preValidation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
+    Set-StatusFromValidation -CurrentStatus $status -Validation $preValidation
+
+    $needsRestart = $status.cloned -or $status.head_changed -or $status.env_changed -or (-not $preValidation.Ok)
+    if ($needsRestart) {
         Invoke-StartMirrorStack `
             -StartScriptPath $mirrorStartScriptPath `
             -CurrentPublicDomain $PublicDomain `
@@ -335,40 +714,105 @@ try {
             -CurrentPhpCgiExePath $PhpCgiExePath
 
         $status.restarted = $true
-        $status.state = 'updated'
-    } else {
-        $status.state = 'idle'
     }
 
-    $health = Invoke-HealthDiagnostics
-    if ($health.Ok -ne $true) {
-        throw ("El health local no quedo sano en el mirror. {0}" -f [string]$health.Error)
-    }
-    $status.health_ok = $true
+    $postValidation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
+    Set-StatusFromValidation -CurrentStatus $status -Validation $postValidation
 
-    $authContract = Invoke-OperatorAuthStatus
-    $status.auth_contract_ok = $authContract.Ok -eq $true
-    if ($authContract.Payload) {
-        $status.auth_mode = [string]$authContract.Payload.mode
-        $status.auth_transport = [string]$authContract.Payload.transport
-        $status.auth_status = [string]$authContract.Payload.status
-    }
-    if ($authContract.Ok -ne $true) {
-        throw ("El contrato de auth no quedo sano en el mirror. {0}" -f [string]$authContract.Error)
+    if (-not $postValidation.Ok) {
+        $originalFailure = if ($postValidation.Health.Ok -ne $true) {
+            "El health local no quedo sano en el mirror. $([string]$postValidation.Health.Error)"
+        } else {
+            "El contrato de auth no quedo sano en el mirror. $([string]$postValidation.Auth.Error)"
+        }
+
+        if (
+            (-not [string]::IsNullOrWhiteSpace($previousSuccessfulCommit)) -and
+            ($previousSuccessfulCommit -ne $status.desired_commit)
+        ) {
+            Write-Info ("Desired commit {0} fallo validacion; se ejecuta rollback automatico a {1}" -f $status.desired_commit, $previousSuccessfulCommit)
+            $rollbackReset = Invoke-Git -Arguments @('-C', $mirrorRepoPathResolved, 'reset', '--hard', $previousSuccessfulCommit)
+            if ($rollbackReset.ExitCode -ne 0) {
+                throw ("{0} Rollback no pudo alinear el mirror. {1}" -f $originalFailure, $rollbackReset.Output.Trim())
+            }
+
+            Copy-Item -LiteralPath $externalEnvPathResolved -Destination $mirrorEnvPath -Force
+            Invoke-StartMirrorStack `
+                -StartScriptPath $mirrorStartScriptPath `
+                -CurrentPublicDomain $PublicDomain `
+                -CurrentTunnelId $TunnelId `
+                -CurrentOperatorUserProfile $resolvedOperatorUserProfile `
+                -CurrentCaddyExePath $CaddyExePath `
+                -CurrentCloudflaredExePath $CloudflaredExePath `
+                -CurrentPhpCgiExePath $PhpCgiExePath
+
+            $rollbackValidation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
+            if (-not $rollbackValidation.Ok) {
+                throw ("{0} Rollback automatico no recupero servicio." -f $originalFailure)
+            }
+
+            Update-ReleaseTarget `
+                -Path $releaseTargetPathResolved `
+                -TargetCommit $previousSuccessfulCommit `
+                -SourceRunId 'auto_rollback' `
+                -ApprovedBy 'windows_hosting_sync' `
+                -RollbackReason $originalFailure `
+                -PreviousTargetCommit $status.desired_commit | Out-Null
+
+            $status.rollback_performed = $true
+            $status.rollback_reason = $originalFailure
+            $status.desired_commit = $previousSuccessfulCommit
+            $status.current_commit = $previousSuccessfulCommit
+            $status.current_head = $previousSuccessfulCommit
+            $status.head_changed = $false
+            $status.state = 'rolled_back'
+            $status.deploy_state = 'rollback_succeeded'
+            $status.last_failure_reason = $originalFailure
+            $status.last_successful_deploy_at = [DateTimeOffset]::Now.ToString('o')
+            Set-StatusFromValidation -CurrentStatus $status -Validation $rollbackValidation
+            $status.ok = $true
+            Write-Status -Payload $status
+            Write-Info ("Rollback completado: desired_commit repinneado a {0}" -f $status.desired_commit)
+            return
+        }
+
+        throw $originalFailure
     }
 
     $status.ok = $true
+    $status.state = if ($status.restarted) { 'updated' } else { 'idle' }
+    $status.deploy_state = if ($status.restarted) { 'desired_commit_applied' } else { 'current' }
+    $status.last_successful_deploy_at = [DateTimeOffset]::Now.ToString('o')
+    $status.last_failure_reason = ''
     Write-Status -Payload $status
-    Write-Info ("Sync completado: state={0} head={1} transport={2}" -f $status.state, $status.current_head, $status.auth_transport)
+    Write-Info ("Sync completado: state={0} desired={1} current={2} transport={3}" -f $status.state, $status.desired_commit, $status.current_commit, $status.auth_transport)
 } catch {
     $status.ok = $false
     $status.state = 'failed'
+    $status.deploy_state = 'failed'
     $status.error = $_.Exception.Message
+    $status.last_failure_reason = $status.error
+    if ([string]::IsNullOrWhiteSpace($status.current_commit)) {
+        $status.current_commit = Get-GitHeadSafe -RepoPath $mirrorRepoPathResolved
+        $status.current_head = $status.current_commit
+    }
+    $validation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
+    Set-StatusFromValidation -CurrentStatus $status -Validation $validation
     Write-Status -Payload $status
     Write-Info ("Sync fallido: {0}" -f $status.error)
     throw
 } finally {
     if ($null -ne $lockStream) {
         $lockStream.Dispose()
+    }
+
+    $lockSnapshot = Read-JsonFileSafe -Path $lockInfoPath
+    $ownerPid = 0
+    if ($null -ne $lockSnapshot) {
+        try { $ownerPid = [int]$lockSnapshot.owner_pid } catch { $ownerPid = 0 }
+    }
+
+    if (($ownerPid -eq 0) -or ($ownerPid -eq $PID) -or (-not (Test-ProcessExists -ProcessId $ownerPid))) {
+        Clear-SyncLockArtifacts -CurrentLockPath $lockPath -CurrentLockInfoPath $lockInfoPath
     }
 }

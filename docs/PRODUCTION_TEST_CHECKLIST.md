@@ -113,6 +113,21 @@ Compatibilidad opcional:
     - `figoConfigured`
     - `figoRecursiveConfig`
 
+4. Si el origen productivo actual es Windows, verifica tambien la capa de
+   hosting local antes de abrir trafico:
+
+- Existe `C:\ProgramData\Pielarmonia\hosting\release-target.json` con
+  `target_commit`.
+- Existe `C:\ProgramData\Pielarmonia\hosting\main-sync-status.json` y no queda
+  atascado en `state=locked` sin `lock_owner_pid` valido.
+- La tarea `Pielarmonia Hosting Supervisor` esta `Ready` y la tarea
+  `Pielarmonia Hosting Main Sync` corre cada 1 minuto.
+- El runtime servible sale desde `C:\dev\pielarmonia-clean-main`, no desde el
+  workspace de desarrollo.
+- Si algo falla, el entrypoint canonico de recovery es
+  `scripts/ops/setup/REPARAR-HOSTING-WINDOWS.ps1`; no improvisar `git pull`
+  ni reinicios manuales sobre el workspace activo.
+
 ## 2. Pruebas del panel admin
 
 1. Abre `https://TU_DOMINIO/admin.html`.
