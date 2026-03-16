@@ -639,6 +639,181 @@ test.describe('Turnero Operador', () => {
         );
     });
 
+    const operatorWebBrokerTerminalCases = [
+        {
+            name: 'web broker del operador muestra identidad incompleta sin helper manual',
+            terminalStatus: 'identity_missing',
+            terminalError:
+                'OpenClaw no devolvio una identidad utilizable para este turnero.',
+            expectedTitle: 'Identidad incompleta',
+            expectedMessage: 'no devolvio una identidad',
+            expectedSummary: 'cuenta que publique email valido',
+            expectedHelperMeta: 'pedira otra vez la identidad',
+            expectedPrimaryLabel: 'Reintentar',
+        },
+        {
+            name: 'web broker del operador muestra email no verificado sin helper manual',
+            terminalStatus: 'identity_unverified',
+            terminalError:
+                'OpenClaw autentico la cuenta, pero no confirmo un email verificado para este turnero.',
+            expectedTitle: 'Email no verificado',
+            expectedMessage: 'email verificado',
+            expectedSummary: 'cuenta con email verificado',
+            expectedHelperMeta: 'validacion fuerte del broker web',
+            expectedPrimaryLabel: 'Reintentar',
+        },
+        {
+            name: 'web broker del operador muestra claims invalidos sin helper manual',
+            terminalStatus: 'broker_claims_invalid',
+            terminalError:
+                'No se pudieron validar los claims firmados que OpenClaw devolvio para este acceso.',
+            expectedTitle: 'Identidad no confiable',
+            expectedMessage: 'claims firmados',
+            expectedSummary: 'configuracion OIDC del broker',
+            expectedHelperMeta: 'id_token firmado',
+            expectedPrimaryLabel: 'Reintentar',
+        },
+        {
+            name: 'web broker del operador muestra cuando el login se cancela antes de volver',
+            terminalStatus: 'cancelled',
+            terminalError:
+                'Cancelaste el login web de OpenClaw antes de volver al turnero.',
+            expectedTitle: 'Login cancelado',
+            expectedMessage: 'antes de volver al turnero',
+            expectedSummary: 'intento nuevo en esta misma pantalla',
+            expectedHelperMeta: 'otra vez el broker web',
+            expectedPrimaryLabel: 'Continuar con OpenClaw',
+        },
+        {
+            name: 'web broker del operador muestra cuando el intento ya no es valido',
+            terminalStatus: 'invalid_state',
+            terminalError:
+                'El intento web ya no es valido. Genera uno nuevo para seguir.',
+            expectedTitle: 'Intento expirado',
+            expectedMessage: 'ya no es valido',
+            expectedSummary: 'no pudo retomar la sesion previa',
+            expectedHelperMeta: 'redireccion nueva para este equipo',
+            expectedPrimaryLabel: 'Reintentar',
+        },
+        {
+            name: 'web broker del operador muestra cuando OpenClaw no responde',
+            terminalStatus: 'broker_unavailable',
+            terminalError:
+                'OpenClaw no respondio a tiempo durante el login web.',
+            expectedTitle: 'Broker no disponible',
+            expectedMessage: 'no respondio a tiempo',
+            expectedSummary: 'vuelve a intentarlo desde esta misma pantalla',
+            expectedHelperMeta: 'No hace falta helper local',
+            expectedPrimaryLabel: 'Reintentar',
+        },
+        {
+            name: 'web broker del operador muestra cuando falla el intercambio del codigo',
+            terminalStatus: 'code_exchange_failed',
+            terminalError:
+                'No se pudo intercambiar el codigo devuelto por OpenClaw.',
+            expectedTitle: 'Codigo no validado',
+            expectedMessage: 'codigo devuelto por OpenClaw',
+            expectedSummary: 'emita otro codigo',
+            expectedHelperMeta: 'nueva redireccion al broker web',
+            expectedPrimaryLabel: 'Reintentar',
+        },
+    ];
+
+    for (const scenario of operatorWebBrokerTerminalCases) {
+        test(scenario.name, async ({ page }) => {
+            await installWindowOpenRecorder(page);
+            const redirectUrl = `https://broker.example.test/authorize?state=queue-operator-${scenario.terminalStatus}`;
+            const { startRequests } = await setupOperatorAuthOperatorMocks(page, {
+                transport: 'web_broker',
+                statusResponses: [
+                    {
+                        ok: true,
+                        authenticated: false,
+                        mode: 'openclaw_chatgpt',
+                        status: 'anonymous',
+                        transport: 'web_broker',
+                    },
+                    {
+                        ok: true,
+                        authenticated: false,
+                        mode: 'openclaw_chatgpt',
+                        status: 'pending',
+                        transport: 'web_broker',
+                        ...buildOpenClawBrokerRedirect({
+                            redirectUrl,
+                        }),
+                    },
+                    {
+                        ok: true,
+                        authenticated: false,
+                        mode: 'openclaw_chatgpt',
+                        status: scenario.terminalStatus,
+                        transport: 'web_broker',
+                        error: scenario.terminalError,
+                    },
+                ],
+                startPayload: {
+                    transport: 'web_broker',
+                    redirectUrl,
+                },
+            });
+
+            await page.goto(operatorUrl('station=c2&lock=1&one_tap=1'));
+
+            await expect(page.locator('#operatorOpenClawFlow')).toBeVisible();
+            await expect(page.locator('#operatorOpenClawLinkRow')).toHaveClass(
+                /is-hidden/
+            );
+            await expect(page.locator('#operatorOpenClawManualRow')).toHaveClass(
+                /is-hidden/
+            );
+
+            await page.locator('#operatorOpenClawBtn').click();
+
+            await expect.poll(() => startRequests.length).toBe(1);
+            await expect(page.locator('#operatorLoginStatusTitle')).toHaveText(
+                'Continua con OpenClaw'
+            );
+            await expect(page.locator('#operatorOpenClawBtn')).toHaveText(
+                'Continuar con OpenClaw'
+            );
+
+            await page.locator('#operatorOpenClawBtn').click();
+
+            await expect.poll(() => startRequests.length).toBe(1);
+            await expect(page.locator('#operatorLoginView')).toBeVisible();
+            await expect(page.locator('#operatorApp')).toHaveClass(/is-hidden/);
+            await expect(page.locator('#operatorLoginStatusTitle')).toHaveText(
+                scenario.expectedTitle
+            );
+            await expect(page.locator('#operatorLoginStatusMessage')).toContainText(
+                scenario.expectedMessage
+            );
+            await expect(page.locator('#operatorOpenClawSummary')).toContainText(
+                scenario.expectedSummary
+            );
+            await expect(page.locator('#operatorOpenClawHelperMeta')).toContainText(
+                scenario.expectedHelperMeta
+            );
+            await expect(page.locator('#operatorOpenClawBtn')).toHaveText(
+                scenario.expectedPrimaryLabel
+            );
+            await expect(page.locator('#operatorOpenClawRetryBtn')).toBeVisible();
+            await expect(page.locator('#operatorOpenClawLinkRow')).toHaveClass(
+                /is-hidden/
+            );
+            await expect(page.locator('#operatorOpenClawManualRow')).toHaveClass(
+                /is-hidden/
+            );
+            await expect(
+                page.locator('#operatorOpenClawHelperLink')
+            ).toHaveAttribute('href', '#');
+            await expect
+                .poll(() => page.evaluate(() => window.__openedUrls.length))
+                .toBe(0);
+        });
+    }
+
     test('reutiliza la sesion OpenClaw y tras logout mantiene el mismo modo de acceso', async ({
         page,
     }) => {
