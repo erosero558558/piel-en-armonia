@@ -44,23 +44,6 @@ const OPENCLAW_RUNTIME_HELPER_SOURCE = join(
     'bin',
     'openclaw-runtime-helper.js'
 );
-const WORKSPACE_HYGIENE_SOURCE = join(
-    REPO_ROOT,
-    'bin',
-    'lib',
-    'workspace-hygiene.js'
-);
-const GENERATED_SITE_ROOT_SOURCE = join(
-    REPO_ROOT,
-    'bin',
-    'lib',
-    'generated-site-root.js'
-);
-const CLEAN_LOCAL_ARTIFACTS_SOURCE = join(
-    REPO_ROOT,
-    'bin',
-    'clean-local-artifacts.js'
-);
 const LEADOPS_HELPER_SOURCE = join(
     REPO_ROOT,
     'bin',
@@ -77,18 +60,6 @@ function createFixtureDir() {
     });
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
     mkdirSync(join(dir, 'bin', 'lib'), { recursive: true });
-    copyFileSync(
-        WORKSPACE_HYGIENE_SOURCE,
-        join(dir, 'bin', 'lib', 'workspace-hygiene.js')
-    );
-    copyFileSync(
-        GENERATED_SITE_ROOT_SOURCE,
-        join(dir, 'bin', 'lib', 'generated-site-root.js')
-    );
-    copyFileSync(
-        CLEAN_LOCAL_ARTIFACTS_SOURCE,
-        join(dir, 'bin', 'clean-local-artifacts.js')
-    );
     copyFileSync(
         WORKSPACE_HYGIENE_SOURCE,
         join(dir, 'bin', 'lib', 'workspace-hygiene.js')
