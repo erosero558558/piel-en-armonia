@@ -207,6 +207,68 @@ function Invoke-LocalSmoke {
     }
 }
 
+function Update-StatusFromSyncPayload {
+    param(
+        [hashtable]$CurrentStatus,
+        [object]$SyncStatus
+    )
+
+    if ($null -eq $SyncStatus) {
+        return
+    }
+
+    try { $CurrentStatus.sync_state = [string]$SyncStatus.state } catch {}
+    try { $CurrentStatus.sync_deploy_state = [string]$SyncStatus.deploy_state } catch {}
+    try { $CurrentStatus.desired_commit = [string]$SyncStatus.desired_commit } catch {}
+    try { $CurrentStatus.current_commit = [string]$SyncStatus.current_commit } catch {}
+    try { $CurrentStatus.previous_commit = [string]$SyncStatus.previous_commit } catch {}
+    try { $CurrentStatus.last_successful_deploy_at = [string]$SyncStatus.last_successful_deploy_at } catch {}
+    try { $CurrentStatus.rollback_performed = ($SyncStatus.rollback_performed -eq $true) } catch {}
+    try { $CurrentStatus.rollback_reason = [string]$SyncStatus.rollback_reason } catch {}
+    try { $CurrentStatus.service_state = [string]$SyncStatus.service_state } catch {}
+    try { $CurrentStatus.health_ok = ($SyncStatus.health_ok -eq $true) } catch {}
+    try { $CurrentStatus.auth_contract_ok = ($SyncStatus.auth_contract_ok -eq $true) } catch {}
+    try { $CurrentStatus.auth_mode = [string]$SyncStatus.auth_mode } catch {}
+    try { $CurrentStatus.auth_transport = [string]$SyncStatus.auth_transport } catch {}
+    try { $CurrentStatus.auth_status = [string]$SyncStatus.auth_status } catch {}
+    try { $CurrentStatus.last_failure_reason = [string]$SyncStatus.last_failure_reason } catch {}
+}
+
+function Assert-SyncStatusHealthy {
+    param([object]$SyncStatus)
+
+    if ($null -eq $SyncStatus) {
+        throw 'sync_status_invalid:missing'
+    }
+
+    $syncOk = $false
+    $syncState = ''
+    $syncDeployState = ''
+    $syncCurrentCommit = ''
+    $syncAuthContractOk = $false
+    try { $syncOk = ($SyncStatus.ok -eq $true) } catch {}
+    try { $syncState = [string]$SyncStatus.state } catch {}
+    try { $syncDeployState = [string]$SyncStatus.deploy_state } catch {}
+    try { $syncCurrentCommit = [string]$SyncStatus.current_commit } catch {}
+    try { $syncAuthContractOk = ($SyncStatus.auth_contract_ok -eq $true) } catch {}
+
+    if (-not $syncOk) {
+        throw 'sync_status_invalid:not_ok'
+    }
+    if (@('failed', 'locked') -contains $syncState) {
+        throw ("sync_status_invalid:state_{0}" -f $syncState)
+    }
+    if ([string]::Equals($syncDeployState, 'lock_invalid', [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'sync_status_invalid:lock_invalid'
+    }
+    if ([string]::IsNullOrWhiteSpace($syncCurrentCommit)) {
+        throw 'sync_status_invalid:current_commit_missing'
+    }
+    if (-not $syncAuthContractOk) {
+        throw 'sync_status_invalid:auth_contract'
+    }
+}
+
 function Write-ReleaseTarget {
     param(
         [string]$Path,
@@ -390,6 +452,9 @@ $status = [ordered]@{
     desired_commit = ''
     current_commit = ''
     previous_commit = ''
+    sync_status_path = ''
+    sync_state = ''
+    sync_deploy_state = ''
     service_state = 'unknown'
     health_ok = $false
     auth_contract_ok = $false
@@ -417,7 +482,9 @@ try {
     Ensure-HostingParentDirectory -Path $releaseTargetPathResolved
     $hostingDir = Split-Path -Parent $releaseTargetPathResolved
     $supervisorStatusPath = Join-Path $hostingDir 'hosting-supervisor-status.json'
+    $syncStatusPath = Join-Path $hostingDir 'main-sync-status.json'
     $status.supervisor_status_path = $supervisorStatusPath
+    $status.sync_status_path = $syncStatusPath
 
     $status.current_commit = Get-CurrentCommitSafe -RepoPath $mirrorRepoPathResolved
     $status.previous_commit = $status.current_commit
@@ -475,25 +542,9 @@ try {
         Write-Info $syncResult.Output.Trim()
     }
 
-    $status.phase = 'validate_stack'
-    Invoke-LocalSmoke -ScriptPath $smokeScriptPath
-
-    $syncStatusPath = Join-Path $hostingDir 'main-sync-status.json'
     $syncStatus = Read-HostingJsonFileSafe -Path $syncStatusPath
     if ($null -ne $syncStatus) {
-        try { $status.desired_commit = [string]$syncStatus.desired_commit } catch {}
-        try { $status.current_commit = [string]$syncStatus.current_commit } catch {}
-        try { $status.previous_commit = [string]$syncStatus.previous_commit } catch {}
-        try { $status.last_successful_deploy_at = [string]$syncStatus.last_successful_deploy_at } catch {}
-        try { $status.rollback_performed = ($syncStatus.rollback_performed -eq $true) } catch {}
-        try { $status.rollback_reason = [string]$syncStatus.rollback_reason } catch {}
-        try { $status.service_state = [string]$syncStatus.service_state } catch {}
-        try { $status.health_ok = ($syncStatus.health_ok -eq $true) } catch {}
-        try { $status.auth_contract_ok = ($syncStatus.auth_contract_ok -eq $true) } catch {}
-        try { $status.auth_mode = [string]$syncStatus.auth_mode } catch {}
-        try { $status.auth_transport = [string]$syncStatus.auth_transport } catch {}
-        try { $status.auth_status = [string]$syncStatus.auth_status } catch {}
-        try { $status.last_failure_reason = [string]$syncStatus.last_failure_reason } catch {}
+        Update-StatusFromSyncPayload -CurrentStatus $status -SyncStatus $syncStatus
     } else {
         $status.current_commit = Get-CurrentCommitSafe -RepoPath $mirrorRepoPathResolved
         $status.service_state = Get-ServiceStateSafe -CurrentTunnelId $TunnelId
@@ -505,6 +556,10 @@ try {
         $status.auth_transport = [string]$auth.Transport
         $status.auth_status = [string]$auth.Status
     }
+    Assert-SyncStatusHealthy -SyncStatus $syncStatus
+
+    $status.phase = 'validate_stack'
+    Invoke-LocalSmoke -ScriptPath $smokeScriptPath
 
     $status.phase = 'configure_runtime'
     $automationConfigured = $true

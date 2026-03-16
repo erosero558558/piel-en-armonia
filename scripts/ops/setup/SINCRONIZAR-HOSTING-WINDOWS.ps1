@@ -201,13 +201,10 @@ function Invoke-OperatorAuthStatus {
     $mode = [string]($payload.mode)
     $transport = [string]($payload.transport)
     $status = [string]($payload.status)
-    $transportValid =
-        [string]::Equals($transport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase) -or
-        [string]::Equals($transport, 'local_helper', [System.StringComparison]::OrdinalIgnoreCase)
     $ok =
         $response.Ok -and
         [string]::Equals($mode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -and
-        $transportValid -and
+        [string]::Equals($transport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase) -and
         (-not [string]::Equals($status, 'transport_misconfigured', [System.StringComparison]::OrdinalIgnoreCase))
 
     $authError = ''
@@ -456,7 +453,7 @@ try {
         } else {
             $status.state = 'failed'
             $status.deploy_state = 'lock_invalid'
-            $status.error = 'sync_lock_invalid'
+            $status.error = 'sync_lock_corrupt'
         }
         $status.last_failure_reason = $status.error
         $validation = Invoke-ValidateMirror -CurrentTunnelId $TunnelId
@@ -464,10 +461,11 @@ try {
         Write-Status -Payload $status
         if ($status.lock_owner_pid -gt 0) {
             Write-Info ("Otro ciclo de sync sigue en ejecucion; owner_pid={0} age_seconds={1}" -f $status.lock_owner_pid, $status.lock_age_seconds)
+            exit 0
         } else {
             Write-Info ("Lock invalido detectado; state={0} reason={1}" -f $status.lock_state, $status.lock_reason)
+            throw 'sync_lock_corrupt'
         }
-        exit 0
     }
 
     $lockStream = $lockResult.Stream
@@ -684,7 +682,7 @@ try {
     $lockSnapshot = Get-LockSnapshot -InfoPath $lockInfoPath -TtlSeconds $LockTtlSeconds
     if (($lockSnapshot.owner_pid -eq 0) -or ($lockSnapshot.owner_pid -eq $PID) -or (-not (Test-HostingProcessExists -ProcessId $lockSnapshot.owner_pid))) {
         Clear-SyncLockArtifacts -CurrentLockPath $lockPath -CurrentLockInfoPath $lockInfoPath
-        if ($status.lock_owner_pid -eq $PID) {
+        if (-not (Test-Path -LiteralPath $lockPath)) {
             $status.lock_state = 'unlocked'
             $status.lock_reason = ''
             $status.lock_owner_pid = 0

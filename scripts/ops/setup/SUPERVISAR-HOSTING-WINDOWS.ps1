@@ -283,6 +283,8 @@ function Merge-SyncStatus {
     }
 
     try { $CurrentStatus.desired_commit = [string]$SyncStatus.desired_commit } catch {}
+    try { $CurrentStatus.sync_state = [string]$SyncStatus.state } catch {}
+    try { $CurrentStatus.sync_deploy_state = [string]$SyncStatus.deploy_state } catch {}
     try { $CurrentStatus.current_commit = [string]$SyncStatus.current_commit } catch {}
     try { $CurrentStatus.previous_commit = [string]$SyncStatus.previous_commit } catch {}
     try { $CurrentStatus.deploy_state = [string]$SyncStatus.deploy_state } catch {}
@@ -305,21 +307,19 @@ try {
     Ensure-HostingParentDirectory -Path $statusPathResolved
     $lockResult = Acquire-SupervisorLock
     if (-not $lockResult.Acquired) {
-        $deployState = 'waiting_for_lock'
-        $repairErrorText = 'supervisor_already_running'
-        $lastFailureReason = 'supervisor_already_running'
         if ([int]$lockResult.Snapshot.owner_pid -le 0) {
-            $deployState = 'lock_invalid'
-            $repairErrorText = 'supervisor_lock_invalid'
-            $lastFailureReason = 'supervisor_lock_invalid'
+            Write-Info ("Lock invalido del supervisor; state={0} reason={1}" -f $lockResult.Snapshot.lock_state, $lockResult.Snapshot.lock_reason)
+            throw 'supervisor_lock_corrupt'
         }
         $status = [ordered]@{
             ok = $false
             timestamp = [DateTimeOffset]::Now.ToString('o')
             desired_commit = Get-DesiredCommit
+            sync_state = ''
+            sync_deploy_state = ''
             current_commit = ''
             previous_commit = ''
-            deploy_state = $deployState
+            deploy_state = 'waiting_for_lock'
             service_state = 'unknown'
             health_ok = $false
             auth_contract_ok = $false
@@ -330,7 +330,7 @@ try {
             degraded = $true
             repair_attempted = $false
             last_repair_at = ''
-            repair_error = $repairErrorText
+            repair_error = 'supervisor_already_running'
             lock_state = [string]$lockResult.Snapshot.lock_state
             lock_reason = [string]$lockResult.Snapshot.lock_reason
             lock_owner_pid = [int]$lockResult.Snapshot.owner_pid
@@ -339,17 +339,13 @@ try {
             rollback_performed = $false
             rollback_reason = ''
             last_successful_deploy_at = ''
-            last_failure_reason = $lastFailureReason
+            last_failure_reason = 'supervisor_already_running'
             mirror_repo_path = $mirrorRepoPathResolved
             release_target_path = $releaseTargetPathResolved
             external_env_path = $externalEnvPathResolved
         }
         Write-HostingJsonFile -Path $statusPathResolved -Payload $status
-        if ($status.lock_owner_pid -gt 0) {
-            Write-Info ("Otro supervisor sigue activo; owner_pid={0} age_seconds={1}" -f $status.lock_owner_pid, $status.lock_age_seconds)
-        } else {
-            Write-Info ("Lock invalido del supervisor; state={0} reason={1}" -f $status.lock_state, $status.lock_reason)
-        }
+        Write-Info ("Otro supervisor sigue activo; owner_pid={0} age_seconds={1}" -f $status.lock_owner_pid, $status.lock_age_seconds)
         exit 0
     }
 
@@ -369,7 +365,22 @@ try {
             }
         }
 
-        $degraded = ($service.State -ne 'running') -or (-not $health.Ok) -or (-not $auth.Ok) -or (-not $smoke.Ok)
+        $syncStatus = Read-HostingJsonFileSafe -Path $mainSyncStatusPath
+        $syncDegraded = $false
+        if ($null -ne $syncStatus) {
+            $syncState = ''
+            $syncDeployState = ''
+            $syncCurrentCommit = ''
+            try { $syncState = [string]$syncStatus.state } catch {}
+            try { $syncDeployState = [string]$syncStatus.deploy_state } catch {}
+            try { $syncCurrentCommit = [string]$syncStatus.current_commit } catch {}
+            $syncDegraded =
+                (@('failed', 'locked') -contains $syncState) -or
+                [string]::Equals($syncDeployState, 'lock_invalid', [System.StringComparison]::OrdinalIgnoreCase) -or
+                [string]::IsNullOrWhiteSpace($syncCurrentCommit)
+        }
+
+        $degraded = ($service.State -ne 'running') -or (-not $health.Ok) -or (-not $auth.Ok) -or (-not $smoke.Ok) -or $syncDegraded
         $repairAttempted = $false
         $repairError = ''
 
@@ -391,7 +402,21 @@ try {
                             Error = 'health/auth aun no estan sanos.'
                         }
                     }
-                    $degraded = ($service.State -ne 'running') -or (-not $health.Ok) -or (-not $auth.Ok) -or (-not $smoke.Ok)
+                    $syncStatus = Read-HostingJsonFileSafe -Path $mainSyncStatusPath
+                    $syncDegraded = $false
+                    if ($null -ne $syncStatus) {
+                        $syncState = ''
+                        $syncDeployState = ''
+                        $syncCurrentCommit = ''
+                        try { $syncState = [string]$syncStatus.state } catch {}
+                        try { $syncDeployState = [string]$syncStatus.deploy_state } catch {}
+                        try { $syncCurrentCommit = [string]$syncStatus.current_commit } catch {}
+                        $syncDegraded =
+                            (@('failed', 'locked') -contains $syncState) -or
+                            [string]::Equals($syncDeployState, 'lock_invalid', [System.StringComparison]::OrdinalIgnoreCase) -or
+                            [string]::IsNullOrWhiteSpace($syncCurrentCommit)
+                    }
+                    $degraded = ($service.State -ne 'running') -or (-not $health.Ok) -or (-not $auth.Ok) -or (-not $smoke.Ok) -or $syncDegraded
                 } catch {
                     $repairError = $_.Exception.Message
                     $lastRepairAt = [DateTimeOffset]::Now
@@ -400,7 +425,6 @@ try {
             }
         }
 
-        $syncStatus = Read-HostingJsonFileSafe -Path $mainSyncStatusPath
         $lockSnapshot = Get-LockSnapshot -InfoPath $lockInfoPath -TtlSeconds $LockTtlSeconds
         if ($repairAttempted -and [string]::IsNullOrWhiteSpace($repairError)) {
             $supervisorState = 'recovering'
@@ -431,6 +455,8 @@ try {
             ok = (-not $degraded)
             timestamp = [DateTimeOffset]::Now.ToString('o')
             desired_commit = Get-DesiredCommit
+            sync_state = ''
+            sync_deploy_state = ''
             current_commit = ''
             previous_commit = ''
             deploy_state = $deployState

@@ -98,7 +98,7 @@ test('Windows V3 define modulo comun de compatibilidad y locks robustos para Pow
     }
 });
 
-test('sync V3 usa release pin, lock directory y status operativo ampliado', () => {
+test('sync V4 usa release pin, lock directory y falla duro si el lock queda corrupto', () => {
     const raw = load(SYNC_SCRIPT_PATH);
     const requiredSnippets = [
         "[switch]$PreflightOnly",
@@ -139,7 +139,8 @@ test('sync V3 usa release pin, lock directory y status operativo ampliado', () =
         'Release target bootstrapeado',
         'Desired commit {0} fallo validacion; se ejecuta rollback automatico',
         'Preflight OK: desired={0} current={1} service_state={2}',
-        "sync_lock_invalid",
+        "sync_lock_corrupt",
+        "throw 'sync_lock_corrupt'",
         "Lock invalido detectado; state={0} reason={1}",
         "lock_state = 'unlocked'",
     ];
@@ -185,7 +186,7 @@ test('config V3 desacopla bootstrap del mirror y arranque del supervisor', () =>
     }
 });
 
-test('repair, supervisor, start y smoke usan contrato V3 fail-safe', () => {
+test('repair, supervisor, start y smoke usan contrato V4 fail-safe', () => {
     const required = [
         {
             filePath: REPAIR_SCRIPT_PATH,
@@ -204,6 +205,9 @@ test('repair, supervisor, start y smoke usan contrato V3 fail-safe', () => {
                 'Invoke-SyncScript -CurrentPreflightOnly',
                 'Preflight de reparacion OK; no se tocaron procesos activos.',
                 'Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir',
+                'Update-StatusFromSyncPayload -CurrentStatus $status -SyncStatus $syncStatus',
+                'Assert-SyncStatusHealthy -SyncStatus $syncStatus',
+                'sync_status_invalid:',
                 'Invoke-ConfigScript -SkipBootstrapSync -StartSupervisorNow',
                 'Wait-ForSupervisorReady -SupervisorStatusPath $supervisorStatusPath',
                 'supervisor_boot_failed',
@@ -223,9 +227,12 @@ test('repair, supervisor, start y smoke usan contrato V3 fail-safe', () => {
                 'Remove-HostingDirectoryLock',
                 'Invoke-HostingSmoke',
                 'Invoke-Repair',
+                'supervisor_lock_corrupt',
                 "supervisor_state = 'failed'",
                 '$supervisorState = \'recovering\'',
                 'desired_commit = Get-DesiredCommit',
+                'sync_state =',
+                'sync_deploy_state =',
                 'current_commit =',
                 'previous_commit =',
                 'lock_state =',
@@ -260,6 +267,8 @@ test('repair, supervisor, start y smoke usan contrato V3 fail-safe', () => {
                 '127\\.0\\.0\\.1:4173',
                 '$adminJs = Invoke-TextFetch -Url "$base/admin.js"',
                 '$operatorJs = Invoke-TextFetch -Url "$base/js/queue-operator.js"',
+                '$checkItems = @()',
+                'Write-HostingJsonFile -Path $ReportPath -Payload $report',
                 'Smoke local OK: transport={0}',
                 '$healthDetail = $healthResponse.Error',
                 '$authDetail = $statusResponse.Error',
@@ -280,7 +289,7 @@ test('repair, supervisor, start y smoke usan contrato V3 fail-safe', () => {
     }
 });
 
-test('repair V3 mantiene orden serial: preflight, quiesce, apply, smoke, config, supervisor, smoke final', () => {
+test('repair V4 valida main-sync-status antes del primer smoke y mantiene el orden serial', () => {
     const raw = load(REPAIR_SCRIPT_PATH);
     const orderedSnippets = [
         '$preflightResult = Invoke-SyncScript -CurrentPreflightOnly',
@@ -288,6 +297,8 @@ test('repair V3 mantiene orden serial: preflight, quiesce, apply, smoke, config,
         'Disable-ControlPlane -CurrentTaskNames $taskNames -HostingDir $hostingDir',
         "phase = 'apply'",
         '$syncResult = Invoke-SyncScript',
+        '$syncStatus = Read-HostingJsonFileSafe -Path $syncStatusPath',
+        'Assert-SyncStatusHealthy -SyncStatus $syncStatus',
         "phase = 'validate_stack'",
         'Invoke-LocalSmoke -ScriptPath $smokeScriptPath',
         "phase = 'configure_runtime'",
@@ -305,6 +316,20 @@ test('repair V3 mantiene orden serial: preflight, quiesce, apply, smoke, config,
         assert.ok(nextIndex > previousIndex, `orden incorrecto en repair V3 alrededor de: ${snippet}`);
         previousIndex = nextIndex;
     }
+});
+
+test('smoke V4 evita el patron de reporte fragil para Windows PowerShell 5.1', () => {
+    const raw = load(SMOKE_SCRIPT_PATH);
+    assert.equal(raw.includes('$report = [ordered]@{'), false);
+    assert.equal(raw.includes('checks = @($checks)'), false);
+    assert.equal(raw.includes('$checkItems = @()'), true);
+});
+
+test('sync V4 no deja state=locked con owner_pid invalido y libera el lock al terminar', () => {
+    const raw = load(SYNC_SCRIPT_PATH);
+    assert.equal(raw.includes("if ($status.lock_owner_pid -gt 0) {\n            $status.state = 'locked'"), true);
+    assert.equal(raw.includes("throw 'sync_lock_corrupt'"), true);
+    assert.equal(raw.includes("if (-not (Test-Path -LiteralPath $lockPath)) {\n            $status.lock_state = 'unlocked'"), true);
 });
 
 test('entrypoints criticos de Windows no dejan if parentetizado en posiciones fragiles', () => {

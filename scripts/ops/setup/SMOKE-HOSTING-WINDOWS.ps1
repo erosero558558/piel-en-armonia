@@ -40,21 +40,21 @@ function Invoke-TextFetch {
 
 function Add-SmokeCheck {
     param(
-        [System.Collections.Generic.List[object]]$Collection,
+        [System.Collections.ArrayList]$Collection,
         [string]$Name,
         [bool]$Ok,
         [string]$Detail
     )
 
-    $Collection.Add([PSCustomObject]@{
+    $Collection.Add(@{
         name = $Name
         ok = $Ok
         detail = $Detail
     }) | Out-Null
 }
 
-$checks = New-Object 'System.Collections.Generic.List[object]'
-$errors = New-Object 'System.Collections.Generic.List[string]'
+$checks = New-Object System.Collections.ArrayList
+$errors = New-Object System.Collections.ArrayList
 
 $healthResponse = Invoke-TextFetch -Url "$base/api.php?resource=health-diagnostics" -Headers @{ Accept = 'application/json' }
 $healthPayload = $null
@@ -127,22 +127,26 @@ $reportError = ''
 if (-not $allOk) {
     $reportError = (@($errors) -join ' | ')
 }
-$report = [ordered]@{
+$checkItems = @()
+foreach ($check in $checks) {
+    $checkItems += @{
+        name = [string]$check.name
+        ok = ($check.ok -eq $true)
+        detail = [string]$check.detail
+    }
+}
+$report = @{
     ok = $allOk
     timestamp = [DateTimeOffset]::Now.ToString('o')
     base_url = $base
     expected_auth_mode = $ExpectedAuthMode
     expected_transport = $ExpectedTransport
-    checks = @($checks)
+    checks = $checkItems
     error = $reportError
 }
 
 if (-not [string]::IsNullOrWhiteSpace($ReportPath)) {
-    $parent = Split-Path -Parent $ReportPath
-    if (-not [string]::IsNullOrWhiteSpace($parent) -and -not (Test-Path -LiteralPath $parent)) {
-        New-Item -ItemType Directory -Path $parent -Force | Out-Null
-    }
-    $report | ConvertTo-Json -Depth 10 | Set-Content -Path $ReportPath -Encoding UTF8
+    Write-HostingJsonFile -Path $ReportPath -Payload $report
 }
 
 if ($allOk) {

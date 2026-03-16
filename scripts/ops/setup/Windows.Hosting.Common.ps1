@@ -592,6 +592,7 @@ function Get-HostingDirectoryLockSnapshot {
     $infoPath = Get-HostingLockInfoPath -LockDirectoryPath $LockDirectoryPath
     $snapshot = [ordered]@{
         exists = $lockExists
+        path_kind = 'missing'
         owner_pid = 0
         started_at = ''
         age_seconds = 0
@@ -606,9 +607,26 @@ function Get-HostingDirectoryLockSnapshot {
         return [PSCustomObject]$snapshot
     }
 
+    $lockItem = $null
+    try {
+        $lockItem = Get-Item -LiteralPath $LockDirectoryPath -Force -ErrorAction Stop
+    } catch {
+        $snapshot.exists = $false
+        return [PSCustomObject]$snapshot
+    }
+
     $snapshot.lock_state = 'present'
     $snapshot.lock_reason = 'metadata_missing'
     $snapshot.age_seconds = Get-HostingPathAgeSeconds -Path $LockDirectoryPath
+    if ($lockItem.PSIsContainer) {
+        $snapshot.path_kind = 'directory'
+    } else {
+        $snapshot.path_kind = 'file'
+        $snapshot.lock_state = 'stale_legacy_file'
+        $snapshot.lock_reason = 'legacy_file_lock'
+        $snapshot.stale = $true
+        return [PSCustomObject]$snapshot
+    }
 
     $payload = Read-HostingJsonFileSafe -Path $infoPath
     if ($null -ne $payload) {
@@ -720,7 +738,8 @@ function Acquire-HostingDirectoryLock {
 
     Ensure-HostingParentDirectory -Path $LockDirectoryPath
 
-    foreach ($attempt in 1..3) {
+    $maxAttempts = [int][Math]::Max(3, ([Math]::Ceiling([double]$GraceSeconds * 4.0) + 1))
+    foreach ($attempt in 1..$maxAttempts) {
         try {
             New-Item -ItemType Directory -Path $LockDirectoryPath -ErrorAction Stop | Out-Null
             $startedAt = [DateTimeOffset]::Now.ToString('o')
@@ -754,13 +773,13 @@ function Acquire-HostingDirectoryLock {
                 -TtlSeconds $TtlSeconds `
                 -GraceSeconds $GraceSeconds
 
-            if ($snapshot.stale -and $attempt -lt 3) {
+            if ($snapshot.stale -and $attempt -lt $maxAttempts) {
                 Remove-HostingDirectoryLock -LockDirectoryPath $LockDirectoryPath -Force | Out-Null
                 Start-Sleep -Milliseconds 250
                 continue
             }
 
-            if (($snapshot.owner_pid -le 0) -and ($snapshot.lock_state -eq 'transient') -and $attempt -lt 3) {
+            if (($snapshot.owner_pid -le 0) -and ($snapshot.lock_state -eq 'transient') -and $attempt -lt $maxAttempts) {
                 Start-Sleep -Milliseconds 250
                 continue
             }
