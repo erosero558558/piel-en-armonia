@@ -192,6 +192,8 @@ test('deploy-frontend-selfhosted publica las superficies canonicas del turnero y
         'sw.js',
         'manifest.json',
         'favicon.ico',
+        'admin.html',
+        'admin.js',
     ]) {
         assert.equal(
             bundlePaths.some(
