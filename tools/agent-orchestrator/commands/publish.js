@@ -219,7 +219,9 @@ function getTaskFamily(taskId) {
 }
 
 function summaryHasReleasePublishMarker(summary) {
-    const normalized = String(summary || '').trim().toLowerCase();
+    const normalized = String(summary || '')
+        .trim()
+        .toLowerCase();
     return (
         normalized.includes('release-publish') ||
         normalized.includes('validated_release_promotion')
@@ -227,11 +229,7 @@ function summaryHasReleasePublishMarker(summary) {
 }
 
 async function detectLiveVerificationStatus(ctx, expectedCommit) {
-    const {
-        parseJobs,
-        buildJobsSnapshot,
-        findJobSnapshot,
-    } = ctx || {};
+    const { parseJobs, buildJobsSnapshot, findJobSnapshot } = ctx || {};
     if (
         typeof parseJobs !== 'function' ||
         typeof buildJobsSnapshot !== 'function'
@@ -255,8 +253,8 @@ async function detectLiveVerificationStatus(ctx, expectedCommit) {
               : null;
     const confirmed = Boolean(
         job &&
-            job.healthy &&
-            String(job.deployed_commit || '') === String(expectedCommit || '')
+        job.healthy &&
+        String(job.deployed_commit || '') === String(expectedCommit || '')
     );
     return {
         live_status: confirmed ? 'confirmed' : 'pending',
@@ -265,9 +263,6 @@ async function detectLiveVerificationStatus(ctx, expectedCommit) {
     };
 }
 
-async function sleep(ms) {
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
-}
 function hasRuntimeRequiredCheck(summary = {}) {
     return Array.isArray(summary?.configured?.required_checks)
         ? summary.configured.required_checks.some((item) =>
@@ -288,6 +283,7 @@ async function handlePublishCommand(ctx) {
         parseDecisions,
         parseJobs,
         buildJobsSnapshot,
+        findJobSnapshot,
         verifyOpenClawRuntime,
         printJson = (value) => console.log(JSON.stringify(value, null, 2)),
         rootPath,
