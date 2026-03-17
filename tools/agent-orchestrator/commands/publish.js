@@ -5,11 +5,11 @@ const { dirname, resolve } = require('path');
 const { spawnSync } = require('child_process');
 const domainStrategy = require('../domain/strategy');
 const {
-    AUTHORED_CATEGORY,
     diagnoseWorktree,
     formatIssueSummary,
     getBlockingIssues,
     getFirstRemediationStep,
+    isPathAllowedByPatterns,
     isIgnoredPublishDirtyCategory,
 } = require('../../../bin/lib/workspace-hygiene.js');
 
@@ -19,23 +19,6 @@ function normalizePathToken(value) {
         .replace(/\\/g, '/')
         .replace(/^\.\//, '')
         .toLowerCase();
-}
-
-function wildcardToRegex(pattern) {
-    const escaped = String(pattern || '')
-        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-        .replace(/\*/g, '.*');
-    return new RegExp(`^${escaped}$`, 'i');
-}
-
-function isPathAllowedByPatterns(path, patterns = []) {
-    const safePath = normalizePathToken(path);
-    return (Array.isArray(patterns) ? patterns : []).some((pattern) => {
-        const safePattern = normalizePathToken(pattern);
-        if (!safePattern) return false;
-        if (safePattern === safePath) return true;
-        return wildcardToRegex(safePattern).test(safePath);
-    });
 }
 
 function buildWorkspaceBlockingError(diagnosis) {
@@ -59,17 +42,12 @@ function buildWorkspaceBlockingError(diagnosis) {
         return null;
     }
 
-    const relevantIssues = Array.isArray(diagnosis.issues)
-        ? diagnosis.issues.filter(
-              (issue) => issue.blocks_publish || issue.category === AUTHORED_CATEGORY
-          )
-        : blockingIssues;
     const firstStep = getFirstRemediationStep(diagnosis);
     const suffix = firstStep
         ? ` Primer paso: ${firstStep.id} (${firstStep.command}).`
         : '';
-    const issueSummary = formatIssueSummary(relevantIssues);
-    const details = relevantIssues.map((issue) => issue.summary).join(' ');
+    const issueSummary = formatIssueSummary(blockingIssues);
+    const details = blockingIssues.map((issue) => issue.summary).join(' ');
     const error = new Error(
         `publish checkpoint bloqueado por workspace hygiene: ${issueSummary}. ${details}${suffix}`
     );
@@ -241,7 +219,9 @@ function getTaskFamily(taskId) {
 }
 
 function summaryHasReleasePublishMarker(summary) {
-    const normalized = String(summary || '').trim().toLowerCase();
+    const normalized = String(summary || '')
+        .trim()
+        .toLowerCase();
     return (
         normalized.includes('release-publish') ||
         normalized.includes('validated_release_promotion')
@@ -249,11 +229,7 @@ function summaryHasReleasePublishMarker(summary) {
 }
 
 async function detectLiveVerificationStatus(ctx, expectedCommit) {
-    const {
-        parseJobs,
-        buildJobsSnapshot,
-        findJobSnapshot,
-    } = ctx || {};
+    const { parseJobs, buildJobsSnapshot, findJobSnapshot } = ctx || {};
     if (
         typeof parseJobs !== 'function' ||
         typeof buildJobsSnapshot !== 'function'
@@ -277,18 +253,14 @@ async function detectLiveVerificationStatus(ctx, expectedCommit) {
               : null;
     const confirmed = Boolean(
         job &&
-            job.healthy &&
-            String(job.deployed_commit || '') === String(expectedCommit || '')
+        job.healthy &&
+        String(job.deployed_commit || '') === String(expectedCommit || '')
     );
     return {
         live_status: confirmed ? 'confirmed' : 'pending',
         verification_pending: !confirmed,
         job,
     };
-}
-
-async function sleep(ms) {
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
 
 function hasRuntimeRequiredCheck(summary = {}) {
@@ -300,28 +272,6 @@ function hasRuntimeRequiredCheck(summary = {}) {
                   .startsWith('runtime:')
           )
         : false;
-}
-
-async function waitForPublishedCommit(ctx, expectedCommit, maxWaitSeconds) {
-    const { parseJobs, buildJobsSnapshot, findJobSnapshot } = ctx;
-    const deadline = Date.now() + maxWaitSeconds * 1000;
-    let lastJob = null;
-    while (Date.now() <= deadline) {
-        const jobs = await buildJobsSnapshot(parseJobs());
-        lastJob = findJobSnapshot(jobs, 'public_main_sync') || null;
-        if (
-            lastJob &&
-            lastJob.healthy &&
-            String(lastJob.job_id || '') ===
-                '8d31e299-7e57-4959-80b5-aaa2d73e9674' &&
-            String(lastJob.deployed_commit || '') ===
-                String(expectedCommit || '')
-        ) {
-            return { ok: true, job: lastJob };
-        }
-        await sleep(15000);
-    }
-    return { ok: false, job: lastJob };
 }
 async function handlePublishCommand(ctx) {
     const {
@@ -520,10 +470,22 @@ async function handlePublishCommand(ctx) {
         }
     }
 
-    const workspaceDiagnosis = diagnoseWorktree(rootPath);
-    const blockingWorkspaceError = buildWorkspaceBlockingError(
-        workspaceDiagnosis
-    );
+    const allowedPatterns = [
+        ...(Array.isArray(task.files) ? task.files : []),
+        'agent_board.yaml',
+        'agent_handoffs.yaml',
+        'agent_decisions.yaml',
+        'plan_maestro_codex_2026.md',
+        `verification/agent-runs/${normalizePathToken(taskId)}.md`,
+    ].map((value) => normalizePathToken(value));
+
+    const workspaceDiagnosis = diagnoseWorktree(rootPath, {
+        board,
+        scopeTask: task,
+        scopePatterns: allowedPatterns,
+    });
+    const blockingWorkspaceError =
+        buildWorkspaceBlockingError(workspaceDiagnosis);
     if (blockingWorkspaceError) {
         throw blockingWorkspaceError;
     }
@@ -540,26 +502,6 @@ async function handlePublishCommand(ctx) {
         );
         error.code = 'no_changes_to_publish';
         error.error_code = 'no_changes_to_publish';
-        throw error;
-    }
-
-    const allowedPatterns = [
-        ...(Array.isArray(task.files) ? task.files : []),
-        'agent_board.yaml',
-        'agent_handoffs.yaml',
-        'agent_decisions.yaml',
-        'plan_maestro_codex_2026.md',
-        `verification/agent-runs/${normalizePathToken(taskId)}.md`,
-    ].map((value) => normalizePathToken(value));
-    const outsideScope = dirtyEntries.filter(
-        (entry) => !isPathAllowedByPatterns(entry.path, allowedPatterns)
-    );
-    if (outsideScope.length > 0) {
-        const error = new Error(
-            `publish checkpoint encontro cambios fuera de scope: ${outsideScope.map((item) => item.path).join(', ')}`
-        );
-        error.code = 'publish_dirty_outside_scope';
-        error.error_code = 'publish_dirty_outside_scope';
         throw error;
     }
 
@@ -581,7 +523,7 @@ async function handlePublishCommand(ctx) {
         }
     }
 
-    const addResult = runCommand('git', ['add', '-f', '--', ...dirtyFiles], {
+    const addResult = runCommand('git', ['add', '--', ...dirtyFiles], {
         cwd: rootPath,
         capture: true,
     });
