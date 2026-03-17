@@ -35,6 +35,8 @@ jobs:
     log_path: /var/log/sync-pielarmonia.log
     status_path: /var/lib/pielarmonia/public-sync-status.json
     health_url: https://pielarmonia.com/api.php?resource=health
+    diagnostics_url: https://pielarmonia.com/api.php?resource=health-diagnostics
+    diagnostics_token_env: PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN
     expected_max_lag_seconds: 120
     source_of_truth: host_cron
     publish_strategy: main_auto_guarded
@@ -58,12 +60,20 @@ jobs:
         serialized,
         /status_path: \/var\/lib\/pielarmonia\/public-sync-status\.json/
     );
+    assert.match(
+        serialized,
+        /diagnostics_url: https:\/\/pielarmonia\.com\/api\.php\?resource=health-diagnostics/
+    );
 
     const roundtrip = parsers.parseJobsContent(serialized);
     assert.equal(roundtrip.jobs.length, 1);
     assert.equal(
         roundtrip.jobs[0].health_url,
         'https://pielarmonia.com/api.php?resource=health'
+    );
+    assert.equal(
+        roundtrip.jobs[0].diagnostics_url,
+        'https://pielarmonia.com/api.php?resource=health-diagnostics'
     );
 });
 
@@ -369,8 +379,7 @@ test('jobs-engine acepta compatibilidad legacy cuando health publica publicSync 
                     publicSyncHealthy: true,
                     publicSyncOperationallyHealthy: true,
                     publicSyncState: 'healthy',
-                    publicSyncJobId:
-                        '8d31e299-7e57-4959-80b5-aaa2d73e9674',
+                    publicSyncJobId: '8d31e299-7e57-4959-80b5-aaa2d73e9674',
                     publicSyncAgeSeconds: 45,
                     publicSyncExpectedMaxLagSeconds: 120,
                     publicSyncLastCheckedAt: '2026-03-14T11:10:00Z',
@@ -387,6 +396,70 @@ test('jobs-engine acepta compatibilidad legacy cuando health publica publicSync 
     assert.equal(snapshot.failure_reason, '');
     assert.equal(snapshot.state, 'healthy');
     assert.equal(snapshot.age_seconds, 45);
+});
+
+test('jobs-engine usa health-diagnostics cuando health publico no expone checks.publicSync', async () => {
+    let calls = 0;
+    const fetchImpl = async (url) => {
+        calls += 1;
+        if (String(url).includes('resource=health-diagnostics')) {
+            return {
+                ok: true,
+                async json() {
+                    return {
+                        checks: {
+                            publicSync: {
+                                configured: true,
+                                healthy: true,
+                                operationallyHealthy: true,
+                                state: 'ok',
+                                jobId: '8d31e299-7e57-4959-80b5-aaa2d73e9674',
+                                ageSeconds: 14,
+                                expectedMaxLagSeconds: 120,
+                                lastCheckedAt: '2026-03-16T10:00:00Z',
+                                lastSuccessAt: '2026-03-16T10:00:00Z',
+                                deployedCommit: 'diag1234',
+                            },
+                        },
+                    };
+                },
+            };
+        }
+
+        return {
+            ok: true,
+            async json() {
+                return {
+                    ok: true,
+                    status: 'ok',
+                    timestamp: '2026-03-16T10:00:00Z',
+                };
+            },
+        };
+    };
+
+    const snapshot = await jobs.resolveJobSnapshot(
+        {
+            key: 'public_main_sync',
+            job_id: '8d31e299-7e57-4959-80b5-aaa2d73e9674',
+            health_url: 'https://pielarmonia.com/api.php?resource=health',
+            diagnostics_url:
+                'https://pielarmonia.com/api.php?resource=health-diagnostics',
+            expected_max_lag_seconds: 120,
+        },
+        {
+            existsSync: () => false,
+            readFileSync: () => '',
+            fetchImpl,
+        }
+    );
+
+    assert.equal(calls, 2);
+    assert.equal(snapshot.verification_source, 'health_diagnostics');
+    assert.equal(snapshot.verified, true);
+    assert.equal(snapshot.healthy, true);
+    assert.equal(snapshot.deployed_commit, 'diag1234');
+    assert.equal(snapshot.failure_reason, '');
 });
 
 test('jobs-engine registry_only fallback y summary mantienen contrato estable', async () => {

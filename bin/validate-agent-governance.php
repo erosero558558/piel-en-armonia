@@ -116,6 +116,11 @@ function parseBooleanLike($value, bool $fallback = false): bool
     return $fallback;
 }
 
+function normalizeOptionalToken(string $value): string
+{
+    return strtolower(trim($value));
+}
+
 /**
  * @return array{version:mixed, policy:array<string,mixed>, strategy:array<string,mixed>, tasks:array<int,array<string,mixed>>}
  */
@@ -125,13 +130,14 @@ function parseBoardYaml(string $content): array
     $board = [
         'version' => 1,
         'policy' => [],
-        'strategy' => ['active' => null],
+        'strategy' => ['active' => null, 'next' => null],
         'tasks' => [],
     ];
 
     $inPolicy = false;
     $inStrategy = false;
-    $inStrategyActive = false;
+    $inStrategyRecord = false;
+    $strategyRecordKey = null;
     $inStrategySubfronts = false;
     $strategySubfront = null;
     $inTasks = false;
@@ -147,15 +153,17 @@ function parseBoardYaml(string $content): array
         if ($trimmed === 'policy:') {
             if (
                 is_array($strategySubfront) &&
-                is_array($board['strategy']['active'] ?? null) &&
-                is_array($board['strategy']['active']['subfronts'] ?? null)
+                is_string($strategyRecordKey) &&
+                is_array($board['strategy'][$strategyRecordKey] ?? null) &&
+                is_array($board['strategy'][$strategyRecordKey]['subfronts'] ?? null)
             ) {
-                $board['strategy']['active']['subfronts'][] = $strategySubfront;
+                $board['strategy'][$strategyRecordKey]['subfronts'][] = $strategySubfront;
                 $strategySubfront = null;
             }
             $inPolicy = true;
             $inStrategy = false;
-            $inStrategyActive = false;
+            $inStrategyRecord = false;
+            $strategyRecordKey = null;
             $inStrategySubfronts = false;
             $inTasks = false;
             continue;
@@ -164,25 +172,28 @@ function parseBoardYaml(string $content): array
         if ($trimmed === 'strategy:') {
             $inPolicy = false;
             $inStrategy = true;
-            $inStrategyActive = false;
+            $inStrategyRecord = false;
+            $strategyRecordKey = null;
             $inStrategySubfronts = false;
             $inTasks = false;
-            $board['strategy'] = ['active' => null];
+            $board['strategy'] = ['active' => null, 'next' => null];
             continue;
         }
 
         if ($trimmed === 'tasks:') {
             if (
                 is_array($strategySubfront) &&
-                is_array($board['strategy']['active'] ?? null) &&
-                is_array($board['strategy']['active']['subfronts'] ?? null)
+                is_string($strategyRecordKey) &&
+                is_array($board['strategy'][$strategyRecordKey] ?? null) &&
+                is_array($board['strategy'][$strategyRecordKey]['subfronts'] ?? null)
             ) {
-                $board['strategy']['active']['subfronts'][] = $strategySubfront;
+                $board['strategy'][$strategyRecordKey]['subfronts'][] = $strategySubfront;
                 $strategySubfront = null;
             }
             $inPolicy = false;
             $inStrategy = false;
-            $inStrategyActive = false;
+            $inStrategyRecord = false;
+            $strategyRecordKey = null;
             $inStrategySubfronts = false;
             $inTasks = true;
             if (is_array($task)) {
@@ -203,31 +214,47 @@ function parseBoardYaml(string $content): array
         }
 
         if ($inStrategy) {
-            if (preg_match('/^\s{2}active:\s*(.*)$/', $line, $m) === 1) {
+            if (preg_match('/^\s{2}(active|next):\s*(.*)$/', $line, $m) === 1) {
                 $value = trim((string) $m[1]);
-                $inStrategyActive = true;
+                if (
+                    is_array($strategySubfront) &&
+                    is_string($strategyRecordKey) &&
+                    is_array($board['strategy'][$strategyRecordKey] ?? null) &&
+                    is_array($board['strategy'][$strategyRecordKey]['subfronts'] ?? null)
+                ) {
+                    $board['strategy'][$strategyRecordKey]['subfronts'][] = $strategySubfront;
+                    $strategySubfront = null;
+                }
+                $strategyRecordKey = trim((string) $m[1]);
+                $value = trim((string) $m[2]);
+                $inStrategyRecord = true;
                 $inStrategySubfronts = false;
                 $strategySubfront = null;
-                $board['strategy']['active'] = $value === 'null' ? null : ['subfronts' => []];
+                $board['strategy'][$strategyRecordKey] = $value === 'null' ? null : ['subfronts' => []];
                 continue;
             }
 
             if (
-                $inStrategyActive &&
-                is_array($board['strategy']['active'] ?? null) &&
+                $inStrategyRecord &&
+                is_string($strategyRecordKey) &&
+                is_array($board['strategy'][$strategyRecordKey] ?? null) &&
                 trim($line) === 'subfronts:'
             ) {
                 $inStrategySubfronts = true;
-                if (!is_array($board['strategy']['active']['subfronts'] ?? null)) {
-                    $board['strategy']['active']['subfronts'] = [];
+                if (!is_array($board['strategy'][$strategyRecordKey]['subfronts'] ?? null)) {
+                    $board['strategy'][$strategyRecordKey]['subfronts'] = [];
                 }
                 continue;
             }
 
-            if ($inStrategySubfronts && is_array($board['strategy']['active'] ?? null)) {
+            if (
+                $inStrategySubfronts &&
+                is_string($strategyRecordKey) &&
+                is_array($board['strategy'][$strategyRecordKey] ?? null)
+            ) {
                 if (preg_match('/^\s{6}-\s+([a-zA-Z_][\w-]*):\s*(.*)$/', $line, $m) === 1) {
                     if (is_array($strategySubfront)) {
-                        $board['strategy']['active']['subfronts'][] = $strategySubfront;
+                        $board['strategy'][$strategyRecordKey]['subfronts'][] = $strategySubfront;
                     }
                     $strategySubfront = [(string) $m[1] => parseScalar((string) $m[2])];
                     continue;
@@ -242,11 +269,12 @@ function parseBoardYaml(string $content): array
             }
 
             if (
-                $inStrategyActive &&
-                is_array($board['strategy']['active'] ?? null) &&
+                $inStrategyRecord &&
+                is_string($strategyRecordKey) &&
+                is_array($board['strategy'][$strategyRecordKey] ?? null) &&
                 preg_match('/^\s{4}([a-zA-Z_][\w-]*):\s*(.*)$/', $line, $m) === 1
             ) {
-                $board['strategy']['active'][(string) $m[1]] = parseScalar((string) $m[2]);
+                $board['strategy'][$strategyRecordKey][(string) $m[1]] = parseScalar((string) $m[2]);
             }
             continue;
         }
@@ -274,10 +302,11 @@ function parseBoardYaml(string $content): array
 
     if (
         is_array($strategySubfront) &&
-        is_array($board['strategy']['active'] ?? null) &&
-        is_array($board['strategy']['active']['subfronts'] ?? null)
+        is_string($strategyRecordKey) &&
+        is_array($board['strategy'][$strategyRecordKey] ?? null) &&
+        is_array($board['strategy'][$strategyRecordKey]['subfronts'] ?? null)
     ) {
-        $board['strategy']['active']['subfronts'][] = $strategySubfront;
+        $board['strategy'][$strategyRecordKey]['subfronts'][] = $strategySubfront;
     }
 
     return $board;
@@ -589,6 +618,36 @@ function parseCodexStrategyActiveBlocks(string $content): array
 }
 
 /**
+ * @return array<int,array<string,mixed>>
+ */
+function parseCodexStrategyNextBlocks(string $content): array
+{
+    $blocks = [];
+    if (
+        preg_match_all('/<!--\s*CODEX_STRATEGY_NEXT\s*\n([\s\S]*?)-->/', $content, $matches, PREG_SET_ORDER) !== 1 &&
+        empty($matches)
+    ) {
+        return $blocks;
+    }
+
+    foreach ($matches as $match) {
+        $block = [];
+        foreach (explode("\n", (string) ($match[1] ?? '')) as $line) {
+            if (preg_match('/^([a-zA-Z_][\w-]*):\s*(.*)$/', trim($line), $m) === 1) {
+                $block[(string) $m[1]] = parseScalar((string) $m[2]);
+            }
+        }
+        if (!is_array($block['subfront_ids'] ?? null)) {
+            $block['subfront_ids'] = isset($block['subfront_ids']) ? [(string) $block['subfront_ids']] : [];
+        }
+        $block['status'] = strtolower(trim((string) ($block['status'] ?? '')));
+        $blocks[] = $block;
+    }
+
+    return $blocks;
+}
+
+/**
  * @return array<string,mixed>|null
  */
 function normalizeStrategySubfrontShape($subfront): ?array
@@ -669,6 +728,53 @@ function getConfiguredStrategy(array $board): ?array
 /**
  * @return array<string,mixed>|null
  */
+function getConfiguredNextStrategy(array $board): ?array
+{
+    $strategy = $board['strategy']['next'] ?? null;
+    if (!is_array($strategy)) {
+        return null;
+    }
+
+    $subfronts = [];
+    foreach (($strategy['subfronts'] ?? []) as $subfront) {
+        $normalized = normalizeStrategySubfrontShape($subfront);
+        if ($normalized !== null) {
+            $subfronts[] = $normalized;
+        }
+    }
+
+    $exitCriteria = $strategy['exit_criteria'] ?? [];
+    if (!is_array($exitCriteria)) {
+        $exitCriteria = [$exitCriteria];
+    }
+    $normalizedExitCriteria = [];
+    foreach ($exitCriteria as $criterion) {
+        $clean = trim((string) $criterion);
+        if ($clean !== '') {
+            $normalizedExitCriteria[] = $clean;
+        }
+    }
+
+    return [
+        'id' => trim((string) ($strategy['id'] ?? '')),
+        'title' => trim((string) ($strategy['title'] ?? '')),
+        'objective' => trim((string) ($strategy['objective'] ?? '')),
+        'owner' => trim((string) ($strategy['owner'] ?? '')),
+        'owner_policy' => trim((string) ($strategy['owner_policy'] ?? '')),
+        'status' => strtolower(trim((string) ($strategy['status'] ?? ''))),
+        'started_at' => trim((string) ($strategy['started_at'] ?? '')),
+        'review_due_at' => trim((string) ($strategy['review_due_at'] ?? '')),
+        'closed_at' => trim((string) ($strategy['closed_at'] ?? '')),
+        'close_reason' => trim((string) ($strategy['close_reason'] ?? '')),
+        'exit_criteria' => $normalizedExitCriteria,
+        'success_signal' => trim((string) ($strategy['success_signal'] ?? '')),
+        'subfronts' => $subfronts,
+    ];
+}
+
+/**
+ * @return array<string,mixed>|null
+ */
 function getActiveStrategy(array $board): ?array
 {
     $strategy = getConfiguredStrategy($board);
@@ -683,71 +789,180 @@ function getActiveStrategy(array $board): ?array
  */
 function validateStrategyConfiguration(array $board, array $allowedCodexInstances): array
 {
-    $strategy = getConfiguredStrategy($board);
-    if (!is_array($strategy)) {
-        return [];
-    }
-
     $errors = [];
-    if (($strategy['id'] ?? '') === '') {
-        $errors[] = 'strategy.active requiere id';
-    }
-    if (($strategy['title'] ?? '') === '') {
-        $errors[] = 'strategy.active requiere title';
-    }
-    if (($strategy['objective'] ?? '') === '') {
-        $errors[] = 'strategy.active requiere objective';
-    }
-    if (($strategy['owner'] ?? '') === '') {
-        $errors[] = 'strategy.active requiere owner';
-    }
-    if (!in_array($strategy['status'] ?? '', ['active', 'closed'], true)) {
-        $errors[] = 'strategy.active tiene status invalido';
-    }
-    if (($strategy['started_at'] ?? '') === '') {
-        $errors[] = 'strategy.active requiere started_at';
-    }
-    if (($strategy['review_due_at'] ?? '') === '') {
-        $errors[] = 'strategy.active requiere review_due_at';
-    }
-    if (count($strategy['exit_criteria'] ?? []) === 0) {
-        $errors[] = 'strategy.active requiere exit_criteria no vacio';
-    }
-    if (($strategy['success_signal'] ?? '') === '') {
-        $errors[] = 'strategy.active requiere success_signal';
-    }
 
-    $countsByInstance = [];
-    $seenSubfrontIds = [];
-    foreach (($strategy['subfronts'] ?? []) as $subfront) {
-        $subfrontId = (string) ($subfront['subfront_id'] ?? '');
-        $codexInstance = (string) ($subfront['codex_instance'] ?? '');
-        if ($subfrontId === '') {
-            $errors[] = 'strategy.active.subfronts requiere subfront_id';
-        } elseif (isset($seenSubfrontIds[$subfrontId])) {
-            $errors[] = "strategy.active duplica subfront_id ({$subfrontId})";
-        } else {
-            $seenSubfrontIds[$subfrontId] = true;
+    $collectScopeOwnershipConflicts = static function (?array $strategy): array {
+        if (!is_array($strategy)) {
+            return [];
         }
-        if ($codexInstance === '') {
-            $errors[] = "strategy.active.subfront {$subfrontId} requiere codex_instance";
-        } elseif (!in_array($codexInstance, $allowedCodexInstances, true)) {
-            $errors[] = "strategy.active.subfront {$subfrontId} tiene codex_instance invalido ({$codexInstance})";
-        } else {
-            $countsByInstance[$codexInstance] = (int) ($countsByInstance[$codexInstance] ?? 0) + 1;
-        }
-        if (trim((string) ($subfront['title'] ?? '')) === '') {
-            $errors[] = "strategy.active.subfront {$subfrontId} requiere title";
-        }
-    }
 
-    if (($strategy['status'] ?? '') === 'active') {
-        foreach ($allowedCodexInstances as $codexInstance) {
-            $count = (int) ($countsByInstance[$codexInstance] ?? 0);
-            if ($count !== 1) {
-                $errors[] = "strategy.active requiere exactamente un subfront para {$codexInstance} (actual: {$count})";
+        $strategyId = trim((string) ($strategy['id'] ?? ''));
+        if ($strategyId === '') {
+            return [];
+        }
+
+        $ownershipClaims = [];
+        $blockedScopes = [];
+        $scopeErrors = [];
+
+        foreach (($strategy['subfronts'] ?? []) as $subfront) {
+            $subfrontId = trim((string) ($subfront['subfront_id'] ?? ''));
+            $codexInstance = trim((string) ($subfront['codex_instance'] ?? ''));
+            $localScopes = [];
+            $buckets = [
+                'allowed_scopes' => is_array($subfront['allowed_scopes'] ?? null) ? $subfront['allowed_scopes'] : [],
+                'support_only_scopes' => is_array($subfront['support_only_scopes'] ?? null) ? $subfront['support_only_scopes'] : [],
+                'blocked_scopes' => is_array($subfront['blocked_scopes'] ?? null) ? $subfront['blocked_scopes'] : [],
+            ];
+
+            foreach ($buckets as $bucket => $scopes) {
+                foreach ($scopes as $scopeValue) {
+                    $scope = trim((string) $scopeValue);
+                    if ($scope === '') {
+                        continue;
+                    }
+                    if (isset($localScopes[$scope])) {
+                        $scopeErrors[] = "{$strategyId}: subfront {$subfrontId} repite scope {$scope} entre {$localScopes[$scope]} y {$bucket}";
+                        continue;
+                    }
+                    $localScopes[$scope] = $bucket;
+                }
+            }
+
+            foreach ($buckets as $bucket => $scopes) {
+                foreach ($scopes as $scopeValue) {
+                    $scope = trim((string) $scopeValue);
+                    if ($scope === '') {
+                        continue;
+                    }
+
+                    if ($bucket === 'blocked_scopes') {
+                        foreach (($ownershipClaims[$scope] ?? []) as $owner) {
+                            if (($owner['codex_instance'] ?? '') !== $codexInstance) {
+                                continue;
+                            }
+                            $scopeErrors[] = "{$strategyId}: scope {$scope} asignado de forma ambigua a {$owner['subfront_id']} y {$subfrontId}";
+                        }
+                        $blockedScopes[$scope] ??= [];
+                        $blockedScopes[$scope][] = [
+                            'subfront_id' => $subfrontId,
+                            'codex_instance' => $codexInstance,
+                            'bucket' => $bucket,
+                        ];
+                        continue;
+                    }
+
+                    foreach (($ownershipClaims[$scope] ?? []) as $owner) {
+                        if (($owner['codex_instance'] ?? '') === $codexInstance) {
+                            continue;
+                        }
+                        $scopeErrors[] = "{$strategyId}: scope {$scope} asignado de forma ambigua a {$owner['subfront_id']} y {$subfrontId}";
+                    }
+                    foreach (($blockedScopes[$scope] ?? []) as $blockedOwner) {
+                        if (($blockedOwner['codex_instance'] ?? '') !== $codexInstance) {
+                            continue;
+                        }
+                        $scopeErrors[] = "{$strategyId}: scope {$scope} asignado de forma ambigua a {$blockedOwner['subfront_id']} y {$subfrontId}";
+                    }
+
+                    $ownershipClaims[$scope] ??= [];
+                    $ownershipClaims[$scope][] = [
+                        'subfront_id' => $subfrontId,
+                        'codex_instance' => $codexInstance,
+                        'bucket' => $bucket,
+                    ];
+                }
             }
         }
+
+        return $scopeErrors;
+    };
+
+    $validateStrategyRecord = static function (?array $strategy, string $label, array $validStatuses) use ($allowedCodexInstances): array {
+        if (!is_array($strategy)) {
+            return [];
+        }
+
+        $localErrors = [];
+        if (($strategy['id'] ?? '') === '') {
+            $localErrors[] = "{$label} requiere id";
+        }
+        if (($strategy['title'] ?? '') === '') {
+            $localErrors[] = "{$label} requiere title";
+        }
+        if (($strategy['objective'] ?? '') === '') {
+            $localErrors[] = "{$label} requiere objective";
+        }
+        if (($strategy['owner'] ?? '') === '') {
+            $localErrors[] = "{$label} requiere owner";
+        }
+        if (!in_array($strategy['status'] ?? '', $validStatuses, true)) {
+            $localErrors[] = "{$label} tiene status invalido";
+        }
+        if (($strategy['started_at'] ?? '') === '') {
+            $localErrors[] = "{$label} requiere started_at";
+        }
+        if (($strategy['review_due_at'] ?? '') === '') {
+            $localErrors[] = "{$label} requiere review_due_at";
+        }
+        if (count($strategy['exit_criteria'] ?? []) === 0) {
+            $localErrors[] = "{$label} requiere exit_criteria no vacio";
+        }
+        if (($strategy['success_signal'] ?? '') === '') {
+            $localErrors[] = "{$label} requiere success_signal";
+        }
+
+        $countsByInstance = [];
+        $seenSubfrontIds = [];
+        foreach (($strategy['subfronts'] ?? []) as $subfront) {
+            $subfrontId = (string) ($subfront['subfront_id'] ?? '');
+            $codexInstance = (string) ($subfront['codex_instance'] ?? '');
+            if ($subfrontId === '') {
+                $localErrors[] = "{$label}.subfronts requiere subfront_id";
+            } elseif (isset($seenSubfrontIds[$subfrontId])) {
+                $localErrors[] = "{$label} duplica subfront_id ({$subfrontId})";
+            } else {
+                $seenSubfrontIds[$subfrontId] = true;
+            }
+            if ($codexInstance === '') {
+                $localErrors[] = "{$label}.subfront {$subfrontId} requiere codex_instance";
+            } elseif (!in_array($codexInstance, $allowedCodexInstances, true)) {
+                $localErrors[] = "{$label}.subfront {$subfrontId} tiene codex_instance invalido ({$codexInstance})";
+            } else {
+                $countsByInstance[$codexInstance] = (int) ($countsByInstance[$codexInstance] ?? 0) + 1;
+            }
+            if (trim((string) ($subfront['title'] ?? '')) === '') {
+                $localErrors[] = "{$label}.subfront {$subfrontId} requiere title";
+            }
+        }
+
+        foreach ($allowedCodexInstances as $codexInstance) {
+            $count = (int) ($countsByInstance[$codexInstance] ?? 0);
+            if ($count < 1) {
+                $localErrors[] = "{$label} requiere al menos un subfront para {$codexInstance} (actual: {$count})";
+            }
+        }
+
+        return $localErrors;
+    };
+
+    $activeStrategy = getConfiguredStrategy($board);
+    $nextStrategy = getConfiguredNextStrategy($board);
+    $errors = array_merge(
+        $errors,
+        $validateStrategyRecord($activeStrategy, 'strategy.active', ['active', 'closed']),
+        $collectScopeOwnershipConflicts($activeStrategy),
+        $validateStrategyRecord($nextStrategy, 'strategy.next', ['draft']),
+        $collectScopeOwnershipConflicts($nextStrategy)
+    );
+
+    if (
+        is_array($activeStrategy) &&
+        is_array($nextStrategy) &&
+        trim((string) ($activeStrategy['id'] ?? '')) !== '' &&
+        (string) ($activeStrategy['id'] ?? '') === (string) ($nextStrategy['id'] ?? '')
+    ) {
+        $errors[] = 'strategy.active y strategy.next no pueden compartir id';
     }
 
     return $errors;
@@ -786,6 +1001,10 @@ function findStrategySubfront(?array $strategy, array $task): ?array
 
 function isAllowedStrategyException(array $task, array $criticalScopes): bool
 {
+    if (isReleasePromotionExceptionTask($task)) {
+        return true;
+    }
+
     $scope = strtolower(trim((string) ($task['scope'] ?? '')));
     $runtimeImpact = strtolower(trim((string) ($task['runtime_impact'] ?? '')));
     if ((bool) ($task['critical_zone'] ?? false) || $runtimeImpact === 'high') {
@@ -827,6 +1046,16 @@ function isAllowedStrategyException(array $task, array $criticalScopes): bool
     return false;
 }
 
+function isReleasePromotionExceptionTask(array $task): bool
+{
+    return normalizeOptionalToken((string) ($task['strategy_role'] ?? '')) === 'exception'
+        && trim((string) ($task['strategy_reason'] ?? '')) === 'validated_release_promotion'
+        && trim((string) ($task['status'] ?? '')) === 'review'
+        && normalizeOptionalToken((string) ($task['work_type'] ?? '')) === 'evidence'
+        && normalizeOptionalToken((string) ($task['integration_slice'] ?? '')) === 'governance_evidence'
+        && normalizeOptionalToken((string) ($task['executor'] ?? '')) === 'codex';
+}
+
 /**
  * @return array<int,string>
  */
@@ -849,6 +1078,7 @@ function validateTaskStrategyAlignment(array $board, array $task, array $critica
     $strategyRole = strtolower(trim((string) ($task['strategy_role'] ?? '')));
     $strategyReason = trim((string) ($task['strategy_reason'] ?? ''));
     $scope = strtolower(trim((string) ($task['scope'] ?? '')));
+    $isReleasePromotionException = isReleasePromotionExceptionTask($task);
 
     if ($strategyId === '') {
         $errors[] = "Task {$id} activa requiere strategy_id";
@@ -879,14 +1109,14 @@ function validateTaskStrategyAlignment(array $board, array $task, array $critica
     $allowedScopes = is_array($subfront['allowed_scopes'] ?? null) ? $subfront['allowed_scopes'] : [];
     $supportOnlyScopes = is_array($subfront['support_only_scopes'] ?? null) ? $subfront['support_only_scopes'] : [];
     $blockedScopes = is_array($subfront['blocked_scopes'] ?? null) ? $subfront['blocked_scopes'] : [];
-    if (in_array($scope, $blockedScopes, true)) {
+    if (in_array($scope, $blockedScopes, true) && !$isReleasePromotionException) {
         $errors[] = "Task {$id} usa scope bloqueado por subfront {$subfrontId}";
     }
 
     if ($strategyRole === 'exception') {
         if ($strategyReason === '') {
             $errors[] = "Task {$id} con strategy_role=exception requiere strategy_reason";
-        } elseif (!isAllowedStrategyException($task, $criticalScopes)) {
+        } elseif (!$isReleasePromotionException && !isAllowedStrategyException($task, $criticalScopes)) {
             $errors[] = "Task {$id} exception solo permitido para hotfix critico o soporte directo al frente activo";
         }
         return $errors;
@@ -936,9 +1166,15 @@ function classifyFileLaneForDualCodex(string $rawFile): string
         'agent_jobs.yaml',
         'agent_signals.yaml',
         'governance-policy.json',
+        'docs/agent_orchestration_runbook.md',
+        'docs/public_main_update_runbook.md',
+        'docs/github_actions_deploy.md',
         'dual_codex_runbook.md',
         'tri_lane_runtime_runbook.md',
         'plan_maestro_codex_2026.md',
+        'tests-node/agent-orchestrator-cli.test.js',
+        'tests-node/orchestrator/**',
+        'tests-node/publish-checkpoint-command.test.js',
         'tools/agent-orchestrator/**',
         'bin/validate-agent-governance.php',
         'figo-ai-bridge.php',
@@ -995,6 +1231,51 @@ function classifyFileLaneForDualCodex(string $rawFile): string
         return 'backend_ops';
     }
     return $matchesFrontend ? 'frontend_content' : 'backend_ops';
+}
+
+/**
+ * @return array<int,string>
+ */
+function frontendPublicReleaseSupportPatterns(): array
+{
+    return [
+        'tests-node/public-v6-*.test.js',
+        'tests/booking.spec.js',
+        'tests/chat-booking-calendar-errors.spec.js',
+        'tests/checklist-production.spec.js',
+        'tests/deferred-shell-static-fallback.spec.js',
+        'tests/funnel-tracking.spec.js',
+        'tests/public-v6-case-stories.spec.js',
+        'tests/public-v6-news-strip.spec.js',
+        'verification/public-v6-canonical/**',
+        'package.json',
+    ];
+}
+
+function isFrontendPublicReleaseSupportTask(array $task): bool
+{
+    return normalizeOptionalToken((string) ($task['strategy_role'] ?? '')) === 'exception'
+        && trim((string) ($task['strategy_reason'] ?? '')) === 'validated_release_promotion'
+        && trim((string) ($task['status'] ?? '')) === 'review'
+        && normalizeOptionalToken((string) ($task['work_type'] ?? '')) === 'evidence'
+        && normalizeOptionalToken((string) ($task['integration_slice'] ?? '')) === 'governance_evidence'
+        && normalizeOptionalToken((string) ($task['scope'] ?? '')) === 'frontend-public'
+        && normalizeOptionalToken((string) ($task['codex_instance'] ?? '')) === 'codex_frontend'
+        && normalizeOptionalToken((string) ($task['domain_lane'] ?? '')) === 'frontend_content';
+}
+
+function isFrontendPublicReleaseSupportFile(string $rawFile): bool
+{
+    $file = normalizePathToken($rawFile);
+    if ($file === '') {
+        return false;
+    }
+    foreach (frontendPublicReleaseSupportPatterns() as $pattern) {
+        if (preg_match(wildcardToRegex($pattern), $file) === 1) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -1329,7 +1610,11 @@ foreach ($board['tasks'] as $idx => $task) {
     if (!is_array($task['files'] ?? null)) {
         $errors[] = "Task {$id} debe definir files como lista YAML inline.";
     } elseif ($shouldValidateDual && !$crossDomain) {
+        $allowFrontendReleaseSupport = isFrontendPublicReleaseSupportTask($task);
         foreach ($task['files'] as $rawFile) {
+            if ($allowFrontendReleaseSupport && isFrontendPublicReleaseSupportFile((string) $rawFile)) {
+                continue;
+            }
             $fileLane = classifyFileLaneForDualCodex((string) $rawFile);
             if (!$isRuntimeTask && $domainLane === 'backend_ops' && $fileLane === 'transversal_runtime') {
                 continue;
@@ -1745,6 +2030,32 @@ if (is_array($governancePolicy)) {
                     }
                 }
             }
+
+            $codexParallelism = $enforcement['codex_parallelism'] ?? null;
+            if ($codexParallelism !== null) {
+                if (!is_array($codexParallelism)) {
+                    $errors[] = 'governance-policy.json requiere enforcement.codex_parallelism como objeto';
+                } else {
+                    if (array_key_exists('slot_statuses', $codexParallelism)) {
+                        if (!is_array($codexParallelism['slot_statuses'])) {
+                            $errors[] = 'governance-policy.json requiere enforcement.codex_parallelism.slot_statuses como lista';
+                        } elseif (count($codexParallelism['slot_statuses']) === 0) {
+                            $errors[] = 'governance-policy.json requiere enforcement.codex_parallelism.slot_statuses no vacia';
+                        }
+                    }
+                    if (array_key_exists('by_codex_instance', $codexParallelism)) {
+                        if (!is_array($codexParallelism['by_codex_instance'])) {
+                            $errors[] = 'governance-policy.json requiere enforcement.codex_parallelism.by_codex_instance como objeto';
+                        } else {
+                            foreach ($codexParallelism['by_codex_instance'] as $instance => $limitValue) {
+                                if (!is_numeric($limitValue) || (float) $limitValue <= 0) {
+                                    $errors[] = "governance-policy.json tiene enforcement.codex_parallelism.by_codex_instance.{$instance} invalido";
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -1878,12 +2189,34 @@ foreach ($board['tasks'] as $task) {
 
 $codexBlocks = $codexPlanRaw !== '' ? parseCodexActiveBlocks($codexPlanRaw) : [];
 $codexStrategyBlocks = $codexPlanRaw !== '' ? parseCodexStrategyActiveBlocks($codexPlanRaw) : [];
+$codexStrategyNextBlocks = $codexPlanRaw !== '' ? parseCodexStrategyNextBlocks($codexPlanRaw) : [];
 $codexTasks = [];
 $codexInProgress = [];
 $codexActive = [];
+$codexSlotTasks = [];
 $codexInProgressByInstance = [];
 $codexActiveByInstance = [];
+$codexSlotByInstance = [];
 $allowedCodexInstances = ['codex_backend_ops', 'codex_frontend', 'codex_transversal'];
+$codexParallelismPolicy = is_array($governancePolicy['enforcement']['codex_parallelism'] ?? null)
+    ? $governancePolicy['enforcement']['codex_parallelism']
+    : [];
+$codexSlotStatuses = is_array($codexParallelismPolicy['slot_statuses'] ?? null)
+    ? array_values(array_filter(array_map(
+        static fn ($value): string => strtolower(trim((string) $value)),
+        $codexParallelismPolicy['slot_statuses']
+    )))
+    : ['in_progress', 'review', 'blocked'];
+if (count($codexSlotStatuses) === 0) {
+    $codexSlotStatuses = ['in_progress', 'review', 'blocked'];
+}
+$codexLaneCapacities = [];
+foreach ($allowedCodexInstances as $codexInstanceKey) {
+    $rawLaneCapacity = $codexParallelismPolicy['by_codex_instance'][$codexInstanceKey] ?? 2;
+    $laneCapacity = is_numeric($rawLaneCapacity) ? (int) $rawLaneCapacity : 2;
+    $codexLaneCapacities[$codexInstanceKey] = $laneCapacity > 0 ? $laneCapacity : 2;
+}
+$codexTotalLaneCapacity = array_sum($codexLaneCapacities);
 foreach ($board['tasks'] as $task) {
     $id = (string) ($task['id'] ?? '');
     if (!str_starts_with($id, 'CDX-')) {
@@ -1912,35 +2245,38 @@ foreach ($board['tasks'] as $task) {
             $codexActiveByInstance[$codexInstance][] = $id;
         }
     }
-}
-
-if (count($codexInProgress) > 3) {
-    $errors[] = 'Mas de tres tareas CDX in_progress: ' . implode(', ', $codexInProgress);
-}
-foreach ($codexInProgressByInstance as $codexInstance => $taskIds) {
-    if (count($taskIds) > 1) {
-        $errors[] = "Mas de una tarea CDX in_progress para {$codexInstance}: " . implode(', ', $taskIds);
-    }
-}
-if (count($codexActive) > 3) {
-    $errors[] = 'Mas de tres tareas CDX activas: ' . implode(', ', $codexActive);
-}
-foreach ($codexActiveByInstance as $codexInstance => $taskIds) {
-    if (count($taskIds) > 1) {
-        $errors[] = "Mas de una tarea CDX activa para {$codexInstance}: " . implode(', ', $taskIds);
+    if (in_array($status, $codexSlotStatuses, true)) {
+        $codexSlotTasks[] = $id;
+        if ($codexInstance === '') {
+            $errors[] = "Task {$id} consumiendo slot requiere codex_instance";
+        } else {
+            $codexSlotByInstance[$codexInstance][] = $id;
+        }
     }
 }
 
-if (count($codexBlocks) > 3) {
-    $errors[] = 'PLAN_MAESTRO_CODEX_2026.md contiene mas de tres bloques CODEX_ACTIVE';
+foreach ($codexSlotByInstance as $codexInstance => $taskIds) {
+    $laneCapacity = (int) ($codexLaneCapacities[$codexInstance] ?? 2);
+    if (count($taskIds) > $laneCapacity) {
+        $errors[] = "Mas de {$laneCapacity} slot(s) ocupados para {$codexInstance}: " . implode(', ', $taskIds);
+    }
+}
+
+if (count($codexBlocks) > $codexTotalLaneCapacity) {
+    $errors[] = "PLAN_MAESTRO_CODEX_2026.md contiene mas de {$codexTotalLaneCapacity} bloques CODEX_ACTIVE";
 }
 if (count($codexStrategyBlocks) > 1) {
     $errors[] = 'PLAN_MAESTRO_CODEX_2026.md contiene mas de un bloque CODEX_STRATEGY_ACTIVE';
 }
+if (count($codexStrategyNextBlocks) > 1) {
+    $errors[] = 'PLAN_MAESTRO_CODEX_2026.md contiene mas de un bloque CODEX_STRATEGY_NEXT';
+}
 
-$codexBlocksByInstance = [];
+$codexBlocksByTaskId = [];
+$codexBlockCountByInstance = [];
 foreach ($codexBlocks as $block) {
     $blockInstance = trim((string) ($block['codex_instance'] ?? ''));
+    $blockTaskId = trim((string) ($block['task_id'] ?? ''));
     if ($blockInstance === '') {
         $errors[] = 'CODEX_ACTIVE.codex_instance vacio en PLAN_MAESTRO_CODEX_2026.md';
         continue;
@@ -1949,33 +2285,42 @@ foreach ($codexBlocks as $block) {
         $errors[] = "CODEX_ACTIVE.codex_instance invalido: {$blockInstance}";
         continue;
     }
-    if (isset($codexBlocksByInstance[$blockInstance])) {
-        $errors[] = "PLAN_MAESTRO_CODEX_2026.md contiene mas de un bloque CODEX_ACTIVE para {$blockInstance}";
-        continue;
+    if ($blockTaskId === '') {
+        $errors[] = "CODEX_ACTIVE.task_id vacio para {$blockInstance} en PLAN_MAESTRO_CODEX_2026.md";
+    } elseif (isset($codexBlocksByTaskId[$blockTaskId])) {
+        $errors[] = "PLAN_MAESTRO_CODEX_2026.md contiene mas de un bloque CODEX_ACTIVE para {$blockTaskId}";
     }
-    $codexBlocksByInstance[$blockInstance] = $block;
+    $codexBlocksByTaskId[$blockTaskId] = $block;
+    $codexBlockCountByInstance[$blockInstance] = (int) ($codexBlockCountByInstance[$blockInstance] ?? 0) + 1;
 }
 
-if (count($codexBlocksByInstance) === 0) {
-    if (!empty($codexActive)) {
-        $errors[] = 'Hay tareas CDX activas sin bloque CODEX_ACTIVE: ' . implode(', ', $codexActive);
-    }
-}
-
-foreach ($codexActiveByInstance as $codexInstance => $taskIds) {
-    if (!isset($codexBlocksByInstance[$codexInstance])) {
-        $errors[] = "Hay tarea CDX activa sin bloque CODEX_ACTIVE para {$codexInstance}: " . implode(', ', $taskIds);
+foreach ($codexBlockCountByInstance as $blockInstance => $count) {
+    $laneCapacity = (int) ($codexLaneCapacities[$blockInstance] ?? 2);
+    if ($count > $laneCapacity) {
+        $errors[] = "PLAN_MAESTRO_CODEX_2026.md contiene mas de {$laneCapacity} bloques CODEX_ACTIVE para {$blockInstance}";
     }
 }
 
-foreach ($codexBlocksByInstance as $blockInstance => $block) {
+if (count($codexBlocksByTaskId) === 0) {
+    if (!empty($codexSlotTasks)) {
+        $errors[] = 'Hay tareas CDX consumiendo slot sin bloque CODEX_ACTIVE: ' . implode(', ', $codexSlotTasks);
+    }
+}
+
+foreach ($codexSlotTasks as $taskId) {
+    if (!isset($codexBlocksByTaskId[$taskId])) {
+        $errors[] = "Hay tarea CDX consumiendo slot sin bloque CODEX_ACTIVE para {$taskId}";
+    }
+}
+
+foreach ($codexBlocks as $block) {
+    $blockInstance = trim((string) ($block['codex_instance'] ?? ''));
     $blockTaskId = trim((string) ($block['task_id'] ?? ''));
     $blockStatus = trim((string) ($block['status'] ?? ''));
     $boardTask = $taskMap[$blockTaskId] ?? null;
+    $blockSubfrontId = trim((string) ($block['subfront_id'] ?? ''));
 
-    if ($blockTaskId === '') {
-        $errors[] = "CODEX_ACTIVE.task_id vacio para {$blockInstance} en PLAN_MAESTRO_CODEX_2026.md";
-    } elseif (preg_match('/^CDX-\d+$/', $blockTaskId) !== 1) {
+    if ($blockTaskId !== '' && preg_match('/^CDX-\d+$/', $blockTaskId) !== 1) {
         $errors[] = "CODEX_ACTIVE.task_id invalido para {$blockInstance}: {$blockTaskId}";
     }
 
@@ -1991,60 +2336,75 @@ foreach ($codexBlocksByInstance as $blockInstance => $block) {
         if (trim((string) ($boardTask['codex_instance'] ?? '')) !== $blockInstance) {
             $errors[] = "Task {$blockTaskId} tiene codex_instance desalineado entre CODEX_ACTIVE y AGENT_BOARD";
         }
+        if (
+            $blockSubfrontId !== '' &&
+            $blockSubfrontId !== trim((string) ($boardTask['subfront_id'] ?? ''))
+        ) {
+            $errors[] = "Task {$blockTaskId} tiene subfront_id desalineado entre CODEX_ACTIVE y AGENT_BOARD";
+        }
+        if (!in_array(strtolower($blockStatus), $codexSlotStatuses, true)) {
+            $errors[] = "Task {$blockTaskId} tiene bloque CODEX_ACTIVE en status sin slot";
+        }
+        if (!in_array(strtolower(trim((string) ($boardTask['status'] ?? ''))), $codexSlotStatuses, true)) {
+            $errors[] = "Task {$blockTaskId} no debe conservar CODEX_ACTIVE en status sin slot";
+        }
 
         // Nota H6: la comparacion detallada de files entre CODEX_ACTIVE y AGENT_BOARD
         // queda canonica en Node (`codex-check`). PHP conserva existencia/estatus/executor.
     }
-
-    if (isActiveStatus($blockStatus) && empty($codexActiveByInstance[$blockInstance])) {
-        $errors[] = "CODEX_ACTIVE indica status activo pero no hay tarea CDX activa para {$blockInstance} en AGENT_BOARD";
-    }
 }
 
 $configuredStrategy = getConfiguredStrategy($board);
-$activeStrategy = getActiveStrategy($board);
+$configuredNextStrategy = getConfiguredNextStrategy($board);
 $planStrategyBlock = count($codexStrategyBlocks) > 0 ? $codexStrategyBlocks[0] : null;
-if (is_array($configuredStrategy)) {
-    if (!is_array($planStrategyBlock)) {
-        $errors[] = 'AGENT_BOARD.yaml tiene strategy.active configurada pero falta CODEX_STRATEGY_ACTIVE en PLAN_MAESTRO_CODEX_2026.md';
-    } else {
+$planNextStrategyBlock = count($codexStrategyNextBlocks) > 0 ? $codexStrategyNextBlocks[0] : null;
+$compareStrategyMirror = static function (?array $boardStrategy, ?array $planBlock, string $boardLabel, string $planLabel) use (&$errors): void {
+    if (is_array($boardStrategy)) {
+        if (!is_array($planBlock)) {
+            $errors[] = "AGENT_BOARD.yaml tiene {$boardLabel} configurada pero falta {$planLabel} en PLAN_MAESTRO_CODEX_2026.md";
+            return;
+        }
+
         $boardSubfrontIds = [];
-        foreach (($configuredStrategy['subfronts'] ?? []) as $subfront) {
+        foreach (($boardStrategy['subfronts'] ?? []) as $subfront) {
             $subfrontId = trim((string) ($subfront['subfront_id'] ?? ''));
             if ($subfrontId !== '') {
                 $boardSubfrontIds[] = $subfrontId;
             }
         }
         sort($boardSubfrontIds);
-        $planSubfrontIds = is_array($planStrategyBlock['subfront_ids'] ?? null) ? $planStrategyBlock['subfront_ids'] : [];
+        $planSubfrontIds = is_array($planBlock['subfront_ids'] ?? null) ? $planBlock['subfront_ids'] : [];
         $planSubfrontIds = array_values(array_filter(array_map(
             static fn ($value): string => trim((string) $value),
             $planSubfrontIds
         )));
         sort($planSubfrontIds);
 
-        if (trim((string) ($planStrategyBlock['id'] ?? '')) !== (string) ($configuredStrategy['id'] ?? '')) {
-            $errors[] = 'CODEX_STRATEGY_ACTIVE.id desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml';
+        if (trim((string) ($planBlock['id'] ?? '')) !== (string) ($boardStrategy['id'] ?? '')) {
+            $errors[] = "{$planLabel}.id desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml";
         }
-        if (trim((string) ($planStrategyBlock['title'] ?? '')) !== (string) ($configuredStrategy['title'] ?? '')) {
-            $errors[] = 'CODEX_STRATEGY_ACTIVE.title desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml';
+        if (trim((string) ($planBlock['title'] ?? '')) !== (string) ($boardStrategy['title'] ?? '')) {
+            $errors[] = "{$planLabel}.title desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml";
         }
-        if (trim((string) ($planStrategyBlock['status'] ?? '')) !== (string) ($configuredStrategy['status'] ?? '')) {
-            $errors[] = 'CODEX_STRATEGY_ACTIVE.status desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml';
+        if (trim((string) ($planBlock['status'] ?? '')) !== (string) ($boardStrategy['status'] ?? '')) {
+            $errors[] = "{$planLabel}.status desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml";
         }
-        if (trim((string) ($planStrategyBlock['owner'] ?? '')) !== (string) ($configuredStrategy['owner'] ?? '')) {
-            $errors[] = 'CODEX_STRATEGY_ACTIVE.owner desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml';
-        }
-        if (trim((string) ($planStrategyBlock['owner_policy'] ?? '')) !== (string) ($configuredStrategy['owner_policy'] ?? '')) {
-            $errors[] = 'CODEX_STRATEGY_ACTIVE.owner_policy desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml';
+        if (trim((string) ($planBlock['owner'] ?? '')) !== (string) ($boardStrategy['owner'] ?? '')) {
+            $errors[] = "{$planLabel}.owner desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml";
         }
         if ($planSubfrontIds !== $boardSubfrontIds) {
-            $errors[] = 'CODEX_STRATEGY_ACTIVE.subfront_ids desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml';
+            $errors[] = "{$planLabel}.subfront_ids desalineado entre PLAN_MAESTRO_CODEX_2026.md y AGENT_BOARD.yaml";
         }
+        return;
     }
-} elseif (is_array($planStrategyBlock)) {
-    $errors[] = 'PLAN_MAESTRO_CODEX_2026.md tiene CODEX_STRATEGY_ACTIVE pero AGENT_BOARD.yaml no tiene strategy.active configurada';
-}
+
+    if (is_array($planBlock)) {
+        $errors[] = "PLAN_MAESTRO_CODEX_2026.md tiene {$planLabel} pero AGENT_BOARD.yaml no tiene {$boardLabel} configurada";
+    }
+};
+
+$compareStrategyMirror($configuredStrategy, $planStrategyBlock, 'strategy.active', 'CODEX_STRATEGY_ACTIVE');
+$compareStrategyMirror($configuredNextStrategy, $planNextStrategyBlock, 'strategy.next', 'CODEX_STRATEGY_NEXT');
 
 $requiredQueueMeta = ['task_id', 'risk', 'scope', 'files', 'acceptance_ref', 'dispatched_by', 'status'];
 $julesTasks = parseTaskBlocks($julesRaw);

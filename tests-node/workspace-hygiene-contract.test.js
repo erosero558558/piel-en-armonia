@@ -421,6 +421,7 @@ test('frontera de js en raiz queda explicita y limitada', () => {
         .filter((entry) => entry.endsWith('.js'))
         .sort();
     const expectedRootJs = [
+        'admin.js',
         'agent-orchestrator.js',
         'eslint.config.js',
         'playwright.config.js',
@@ -619,6 +620,7 @@ test('frontera de json yaml yml txt y toml en raiz queda explicita y limitada', 
     ].sort();
     const expectedRootYaml = [
         'AGENT_BOARD.yaml',
+        'AGENT_DECISIONS.yaml',
         'AGENT_HANDOFFS.yaml',
         'AGENT_JOBS.yaml',
         'AGENT_SIGNALS.yaml',

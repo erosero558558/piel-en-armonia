@@ -677,3 +677,56 @@ test('strategy validation rechaza mezcla same-lane entre claim y blocked_scope',
         /scope frontend-admin asignado de forma ambigua/
     );
 });
+
+test('strategy validation tolera overlap support_only cross-lane y completa defaults canonicos', () => {
+    const board = {
+        policy: {
+            updated_at: '2026-03-17',
+        },
+        strategy: {
+            active: {
+                id: 'STRAT-2026-03-admin-operativo',
+                title: 'Admin operativo',
+                objective: 'Admin operativo',
+                owner: 'ernesto',
+                status: 'active',
+                started_at: '2026-03-14',
+                review_due_at: '2026-03-21',
+                exit_criteria: ['uno'],
+                success_signal: 'demo',
+                subfronts: [
+                    {
+                        codex_instance: 'codex_frontend',
+                        subfront_id: 'SF-frontend-admin-operativo',
+                        title: 'Admin',
+                        allowed_scopes: ['frontend-admin'],
+                        support_only_scopes: ['docs', 'tests'],
+                        blocked_scopes: [],
+                        wip_limit: 1,
+                    },
+                    {
+                        codex_instance: 'codex_backend_ops',
+                        subfront_id: 'SF-backend-admin-operativo',
+                        title: 'Backend',
+                        allowed_scopes: ['backend'],
+                        support_only_scopes: ['tests'],
+                        blocked_scopes: [],
+                        wip_limit: 1,
+                    },
+                    {
+                        codex_instance: 'codex_transversal',
+                        subfront_id: 'SF-transversal-admin-operativo',
+                        title: 'Runtime',
+                        allowed_scopes: [],
+                        support_only_scopes: ['tooling'],
+                        blocked_scopes: [],
+                        wip_limit: 1,
+                    },
+                ],
+            },
+        },
+    };
+
+    const errors = validateStrategyConfiguration(board);
+    assert.deepEqual(errors, []);
+});

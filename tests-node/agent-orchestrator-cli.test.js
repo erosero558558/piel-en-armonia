@@ -41,10 +41,7 @@ function createFixtureDir() {
     cpSync(ORCHESTRATOR_TOOLS_DIR, join(dir, 'tools', 'agent-orchestrator'), {
         recursive: true,
     });
-    copyFileSync(
-        GOVERNANCE_POLICY_SOURCE,
-        join(dir, 'governance-policy.json')
-    );
+    copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
     return dir;
 }
 
@@ -728,11 +725,13 @@ Relacion con Operativo 2026:
 function activeAdminStrategyYaml() {
     return `
 strategy:
+  updated_at: "2026-03-16"
   active:
     id: STRAT-2026-03-admin-operativo
     title: "Admin operativo"
     objective: "Cerrar admin operativo"
     owner: ernesto
+    owner_policy: "detected_default_owner"
     status: active
     started_at: "2026-03-14"
     review_due_at: "2026-03-21"
@@ -756,20 +755,23 @@ strategy:
         subfront_id: SF-frontend-admin-operativo
         title: "Admin UX"
         allowed_scopes: ["frontend-admin", "queue"]
-        support_only_scopes: ["docs", "tests", "frontend-qa"]
+        support_only_scopes: ["docs", "frontend-qa"]
         blocked_scopes: ["payments"]
+        default_acceptance_profile: "frontend_delivery_checkpoint"
       - codex_instance: codex_backend_ops
         subfront_id: SF-backend-admin-operativo
         title: "Backend soporte"
         allowed_scopes: ["auth", "backend", "readiness", "gates"]
         support_only_scopes: ["tests", "ops"]
         blocked_scopes: ["frontend-public"]
+        default_acceptance_profile: "backend_gate_checkpoint"
       - codex_instance: codex_transversal
         subfront_id: SF-transversal-admin-operativo
         title: "Runtime soporte"
         allowed_scopes: []
         support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
         blocked_scopes: ["backend", "auth"]
+        default_acceptance_profile: "transversal_runtime_checkpoint"
 `;
 }
 
@@ -803,6 +805,7 @@ tasks:
 function basePlanWithStrategyBlock(options = {}) {
     const title = String(options.title || 'Admin operativo');
     const owner = String(options.owner || 'ernesto');
+    const ownerPolicy = String(options.ownerPolicy || 'detected_default_owner');
     const status = String(options.status || 'active');
     const subfrontIds = Array.isArray(options.subfrontIds)
         ? options.subfrontIds
@@ -819,6 +822,7 @@ id: STRAT-2026-03-admin-operativo
 title: "${title}"
 status: ${status}
 owner: ${owner}
+owner_policy: "${ownerPolicy}"
 objective: "Cerrar admin operativo"
 started_at: "2026-03-14"
 review_due_at: "2026-03-21"
@@ -1202,12 +1206,49 @@ test('task create exige campos de estrategia cuando hay estrategia activa', (t) 
     assert.equal(json.task.integration_slice, 'frontend_runtime');
     assert.equal(json.task.work_type, 'forward');
 
+    result = runCli(dir, [
+        'task',
+        'create',
+        '--title',
+        'Frontend future-ready fixture',
+        '--executor',
+        'codex',
+        '--status',
+        'ready',
+        '--risk',
+        'low',
+        '--scope',
+        'frontend-admin',
+        '--files',
+        'src/apps/admin-v3/future-ready.js',
+        '--strategy-id',
+        'STRAT-2026-03-admin-operativo',
+        '--subfront-id',
+        'SF-frontend-admin-operativo',
+        '--strategy-role',
+        'primary',
+        '--focus-id',
+        'FOCUS-2026-03-admin-operativo-cut-1',
+        '--focus-step',
+        'feedback_trim',
+        '--integration-slice',
+        'frontend_runtime',
+        '--work-type',
+        'forward',
+        '--json',
+    ]);
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.task.focus_step, 'feedback_trim');
+
     const statusJson = parseJsonStdout(runCli(dir, ['status', '--json']));
     assert.equal(
         statusJson.strategy.active.id,
         'STRAT-2026-03-admin-operativo'
     );
-    assert.equal(statusJson.strategy.aligned_tasks, 1);
+    assert.equal(statusJson.strategy.aligned_tasks, 2);
+    assert.equal(statusJson.focus.aligned_tasks, 1);
+    assert.deepEqual(statusJson.focus.outside_next_step_task_ids, []);
 });
 
 test('focus status expone foco activo y checks requeridos', (t) => {
@@ -1375,11 +1416,7 @@ tasks:
         await runCliWithEnvAsync(dir, ['status', '--json'], envPatch)
     );
     const boardJson = parseJsonStdout(
-        await runCliWithEnvAsync(
-            dir,
-            ['board', 'doctor', '--json'],
-            envPatch
-        )
+        await runCliWithEnvAsync(dir, ['board', 'doctor', '--json'], envPatch)
     );
     const metricsJson = parseJsonStdout(
         await runCliWithEnvAsync(
@@ -1418,8 +1455,7 @@ tasks:
         assert.equal(
             payload.required_checks.some(
                 (item) =>
-                    item.id === 'job:public_main_sync' &&
-                    item.state === 'green'
+                    item.id === 'job:public_main_sync' && item.state === 'green'
             ),
             true
         );

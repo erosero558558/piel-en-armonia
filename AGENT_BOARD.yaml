@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 724
+  revision: 729
   updated_at: 2026-03-17
 
 strategy:
@@ -16,8 +16,9 @@ strategy:
     title: "Admin operativo"
     objective: "Convertir el frente admin clinico, queue/turnero y OpenClaw UX en una entrega operable y visible, con soporte backend y runtime estrictamente alineado."
     owner: Ernesto
+    owner_policy: "detected_default_owner"
     status: active
-    started_at: "2026-03-14"
+    started_at: "2026-03-17"
     review_due_at: "2026-03-21"
     exit_criteria: ["Admin clinico y queue/turnero navegables sin flujos rotos", "Auth/readiness/gates en verde para el frente activo", "Runtime OpenClaw solo usado como desbloqueo directo del mismo objetivo"]
     success_signal: "Un mismo corte operativo puede demostrarse de punta a punta sin abrir trabajo fuera del frente admin operativo."
@@ -27,32 +28,52 @@ strategy:
     focus_status: active
     focus_proof: "Operador inicia sesion, entra al admin, usa quick-nav, revisa queue/turnero piloto y el corte queda respaldado por runtime/deploy verificables"
     focus_steps: ["admin_queue_pilot_cut", "pilot_readiness_evidence", "feedback_trim"]
-    focus_next_step: "feedback_trim"
+    focus_next_step: "admin_queue_pilot_cut"
     focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]
     focus_non_goals: ["rediseno_publico", "expansion_payments", "refactor_orchestrator_no_bloqueante", "modularizacion_fuera_del_corte"]
-    focus_owner: "deck"
+    focus_owner: "Ernesto"
     focus_review_due_at: "2026-03-21"
     focus_evidence_ref: ""
     focus_max_active_slices: 3
     subfronts:
       - codex_instance: codex_frontend
         subfront_id: SF-frontend-admin-operativo
-        title: "Admin clinico, queue/turnero y OpenClaw UX"
-        allowed_scopes: ["frontend-admin", "queue", "turnero"]
-        support_only_scopes: ["docs", "tests", "frontend-qa"]
-        blocked_scopes: ["frontend-public", "payments", "calendar"]
+        title: "Admin clinico y shell principal"
+        allowed_scopes: ["frontend-admin"]
+        support_only_scopes: ["docs", "frontend-qa"]
+        blocked_scopes: ["payments"]
+        wip_limit: 2
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
+      - codex_instance: codex_frontend
+        subfront_id: SF-frontend-queue-turnero-operativo
+        title: "Queue, turnero y OpenClaw UX de soporte"
+        allowed_scopes: ["queue", "turnero"]
+        support_only_scopes: ["docs", "frontend-qa"]
+        blocked_scopes: ["calendar"]
+        wip_limit: 2
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
       - codex_instance: codex_backend_ops
         subfront_id: SF-backend-admin-operativo
         title: "Auth, readiness, gates y backend de soporte directo"
         allowed_scopes: ["auth", "backend", "readiness", "gates"]
         support_only_scopes: ["deploy", "ops", "monitoring", "tests"]
-        blocked_scopes: ["frontend-public", "frontend-admin", "payments", "calendar"]
+        blocked_scopes: ["frontend-public", "security"]
+        wip_limit: 2
+        default_acceptance_profile: "backend_gate_checkpoint"
+        exception_ttl_hours: 6
       - codex_instance: codex_transversal
         subfront_id: SF-transversal-admin-operativo
         title: "Runtime/orquestacion solo como desbloqueo del frente"
         allowed_scopes: []
         support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
-        blocked_scopes: ["frontend-public", "frontend-admin", "backend", "deploy", "auth"]
+        blocked_scopes: ["legacy-runtime"]
+        wip_limit: 2
+        default_acceptance_profile: "transversal_runtime_checkpoint"
+        exception_ttl_hours: 4
+  next: null
+  updated_at: "2026-03-17"
 
 tasks:
   - id: AG-001
@@ -11069,8 +11090,8 @@ tasks:
     title: "OpenClaw web broker auth: UI admin y turnero"
     owner: deck
     executor: codex
-    status: in_progress
-    status_since_at: "2026-03-14T22:16:33.878Z"
+    status: ready
+    status_since_at: "2026-03-17T04:34:00.213Z"
     risk: high
     scope: frontend-admin
     codex_instance: codex_frontend
@@ -11089,14 +11110,14 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: "lease_AG-255_20260314221633878_f30edc"
-    lease_owner: "deck"
-    lease_created_at: "2026-03-14T22:16:33.878Z"
-    heartbeat_at: "2026-03-17T03:48:48.777Z"
-    lease_expires_at: "2026-03-17T07:48:48.777Z"
-    lease_reason: "leases_heartbeat"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-17T04:34:00.213Z"
+    lease_cleared_reason: "status_exit:ready"
     runtime_impact: low
     critical_zone: false
     acceptance: "OpenClaw web broker auth: UI admin y turnero"
@@ -11211,4 +11232,57 @@ tasks:
     depends_on: []
     prompt: "Windows hosting V2 stabilization for OpenClaw"
     created_at: 2026-03-16
+    updated_at: 2026-03-17
+
+  - id: AG-258
+    title: "Rollout publico de health/publicSync y verificacion host-side"
+    owner: deck
+    executor: codex
+    status: in_progress
+    status_since_at: "2026-03-17T04:34:43.402Z"
+    risk: high
+    scope: deploy
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    files: ["controllers/HealthController.php", ".github/workflows/deploy-hosting.yml", ".github/workflows/deploy-frontend-selfhosted.yml", ".github/workflows/post-deploy-fast.yml", ".github/workflows/post-deploy-gate.yml", ".github/workflows/prod-monitor.yml", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: "lease_AG-258_20260317043443402_a9c1a3"
+    lease_owner: "deck"
+    lease_created_at: "2026-03-17T04:34:43.402Z"
+    heartbeat_at: "2026-03-17T04:37:14.512Z"
+    lease_expires_at: "2026-03-17T08:37:14.512Z"
+    lease_reason: "leases_heartbeat"
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: high
+    critical_zone: true
+    acceptance: "Rollout publico de health/publicSync y verificacion host-side"
+    acceptance_ref: ""
+    evidence_ref: ""
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-backend-admin-operativo"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "admin_queue_pilot_cut"
+    integration_slice: "ops_deploy"
+    work_type: "support"
+    expected_outcome: "El deploy publica checks.publicSync en health publico y public_main_sync queda verificable desde health_url sin depender solo de health-diagnostics."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: []
+    prompt: "Rollout publico de health/publicSync y verificacion host-side"
+    created_at: 2026-03-17
     updated_at: 2026-03-17

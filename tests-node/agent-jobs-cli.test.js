@@ -19,6 +19,12 @@ const REPO_ROOT = resolve(__dirname, '..');
 const ORCHESTRATOR_SOURCE = join(REPO_ROOT, 'agent-orchestrator.js');
 const ORCHESTRATOR_TOOLS_DIR = join(REPO_ROOT, 'tools', 'agent-orchestrator');
 const GOVERNANCE_POLICY_SOURCE = join(REPO_ROOT, 'governance-policy.json');
+const BIN_LIB_SOURCE = join(REPO_ROOT, 'bin', 'lib');
+const CLEAN_LOCAL_ARTIFACTS_SOURCE = join(
+    REPO_ROOT,
+    'bin',
+    'clean-local-artifacts.js'
+);
 
 function createFixtureDir() {
     const dir = mkdtempSync(join(tmpdir(), 'agent-jobs-cli-test-'));
@@ -26,6 +32,13 @@ function createFixtureDir() {
     cpSync(ORCHESTRATOR_TOOLS_DIR, join(dir, 'tools', 'agent-orchestrator'), {
         recursive: true,
     });
+    cpSync(BIN_LIB_SOURCE, join(dir, 'bin', 'lib'), {
+        recursive: true,
+    });
+    copyFileSync(
+        CLEAN_LOCAL_ARTIFACTS_SOURCE,
+        join(dir, 'bin', 'clean-local-artifacts.js')
+    );
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
     return dir;
 }
@@ -125,6 +138,32 @@ function runCli(dir, args, expectedStatus = 0) {
         {
             cwd: dir,
             encoding: 'utf8',
+        }
+    );
+
+    if (result.error) {
+        throw result.error;
+    }
+
+    assert.equal(
+        result.status,
+        expectedStatus,
+        `Unexpected exit for ${args.join(' ')}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`
+    );
+    return JSON.parse(String(result.stdout || ''));
+}
+
+function runCliWithEnv(dir, args, envPatch = {}, expectedStatus = 0) {
+    const result = spawnSync(
+        process.execPath,
+        [join(dir, 'agent-orchestrator.js'), ...args],
+        {
+            cwd: dir,
+            encoding: 'utf8',
+            env: {
+                ...process.env,
+                ...envPatch,
+            },
         }
     );
 
@@ -393,4 +432,93 @@ jobs:
     assert.equal(verify.job.state, 'stale');
     assert.equal(verify.job.verified, false);
     assert.equal(verify.job.healthy, false);
+});
+
+test('jobs verify usa health-diagnostics autorizado cuando health publico aun no expone publicSync', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+    const healthUrl = `data:application/json,${encodeURIComponent(
+        JSON.stringify({
+            ok: true,
+            status: 'ok',
+            storageReady: true,
+            dataDirWritable: true,
+            timingMs: 14,
+            version: '20260314072914',
+            timestamp: '2026-03-14T11:10:00Z',
+        })
+    )}`;
+    const diagnosticsUrl = `data:application/json,${encodeURIComponent(
+        JSON.stringify({
+            ok: true,
+            status: 'ok',
+            checks: {
+                publicSync: {
+                    configured: true,
+                    jobId: '8d31e299-7e57-4959-80b5-aaa2d73e9674',
+                    healthy: true,
+                    operationallyHealthy: true,
+                    repoHygieneIssue: false,
+                    state: 'ok',
+                    ageSeconds: 19,
+                    expectedMaxLagSeconds: 120,
+                    lastCheckedAt: '2026-03-14T11:09:41Z',
+                    lastSuccessAt: '2026-03-14T11:09:41Z',
+                    lastErrorAt: '',
+                    lastErrorMessage: '',
+                    failureReason: '',
+                    deployedCommit: 'diag1234',
+                    currentHead: 'diag1234',
+                    remoteHead: 'diag1234',
+                    headDrift: false,
+                    telemetryGap: false,
+                    dirtyPathsCount: 0,
+                    dirtyPathsSample: [],
+                },
+            },
+        })
+    )}`;
+
+    writeFixtureFiles(dir);
+    writeFileSync(
+        join(dir, 'AGENT_JOBS.yaml'),
+        `version: 1
+updated_at: "2026-03-03T00:00:00Z"
+jobs:
+  - key: public_main_sync
+    job_id: "8d31e299-7e57-4959-80b5-aaa2d73e9674"
+    enabled: true
+    type: external_cron
+    owner: codex_backend_ops
+    environment: production
+    repo_path: /var/www/figo
+    branch: main
+    schedule: "* * * * *"
+    command: /root/sync-pielarmonia.sh
+    wrapper_fallback: /var/www/figo/bin/deploy-public-v3-cron-sync.sh
+    lock_file: /tmp/sync-pielarmonia.lock
+    log_path: /var/log/sync-pielarmonia.log
+    status_path: "${join(dir, 'runtime', 'missing-public-sync-status.json').replace(/\\/g, '/')}"
+    health_url: ${healthUrl}
+    diagnostics_url: ${diagnosticsUrl}
+    diagnostics_token_env: PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN
+    expected_max_lag_seconds: 120
+    source_of_truth: host_cron
+    publish_strategy: main_auto_guarded
+`,
+        'utf8'
+    );
+
+    const verify = runCliWithEnv(
+        dir,
+        ['jobs', 'verify', 'public_main_sync', '--json'],
+        {
+            PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN: 'fixture-token',
+        }
+    );
+    assert.equal(verify.ok, true);
+    assert.equal(verify.job.verification_source, 'health_diagnostics');
+    assert.equal(verify.job.verified, true);
+    assert.equal(verify.job.healthy, true);
+    assert.equal(verify.job.deployed_commit, 'diag1234');
 });

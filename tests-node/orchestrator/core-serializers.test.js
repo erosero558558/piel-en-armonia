@@ -61,6 +61,7 @@ test('core-serializers serializeBoard roundtrip basico con currentDate inyectado
                 title: 'Admin operativo',
                 objective: 'Cerrar admin operativo',
                 owner: 'ernesto',
+                owner_policy: 'detected_default_owner',
                 status: 'active',
                 started_at: '2026-03-14',
                 review_due_at: '2026-03-21',
@@ -93,9 +94,52 @@ test('core-serializers serializeBoard roundtrip basico con currentDate inyectado
                         allowed_scopes: ['frontend-admin'],
                         support_only_scopes: ['docs'],
                         blocked_scopes: ['payments'],
+                        wip_limit: 2,
+                        default_acceptance_profile:
+                            'frontend_delivery_checkpoint',
+                        exception_ttl_hours: 8,
                     },
                 ],
             },
+            next: {
+                id: 'STRAT-2026-03-admin-operativo',
+                title: 'Admin operativo draft',
+                objective: 'Cerrar admin operativo sin ambiguedad',
+                owner: 'ernesto',
+                owner_policy: 'detected_default_owner',
+                status: 'draft',
+                started_at: '2026-03-17',
+                review_due_at: '2026-03-21',
+                exit_criteria: ['uno'],
+                success_signal: 'demo draft',
+                focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                focus_title: 'Admin draft',
+                focus_summary: 'Corte draft',
+                focus_status: 'active',
+                focus_proof: 'Demo draft',
+                focus_steps: ['admin_queue_pilot_cut', 'feedback_trim'],
+                focus_next_step: 'feedback_trim',
+                focus_required_checks: ['job:public_main_sync'],
+                focus_non_goals: ['rediseno_publico'],
+                focus_owner: 'ernesto',
+                focus_review_due_at: '2026-03-21',
+                focus_evidence_ref: '',
+                focus_max_active_slices: 3,
+                subfronts: [
+                    {
+                        codex_instance: 'codex_backend_ops',
+                        subfront_id: 'SF-backend-admin-operativo',
+                        title: 'Backend',
+                        allowed_scopes: ['auth'],
+                        support_only_scopes: ['tests'],
+                        blocked_scopes: ['frontend-public'],
+                        wip_limit: 2,
+                        default_acceptance_profile: 'backend_gate_checkpoint',
+                        exception_ttl_hours: 6,
+                    },
+                ],
+            },
+            updated_at: '2026-03-17',
         },
         tasks: [
             {
@@ -134,7 +178,10 @@ test('core-serializers serializeBoard roundtrip basico con currentDate inyectado
     assert.match(yaml, /^version: 1/m);
     assert.match(yaml, /revision:\s+7/);
     assert.match(yaml, /strategy:/);
+    assert.match(yaml, /owner_policy:\s+"detected_default_owner"/);
     assert.match(yaml, /focus_id:\s+"FOCUS-2026-03-admin-operativo-cut-1"/);
+    assert.match(yaml, /next:\n\s+id:\s+STRAT-2026-03-admin-operativo/);
+    assert.match(yaml, /updated_at:\s+"2026-03-17"/);
     assert.match(yaml, /subfront_id:\s+SF-frontend-admin-operativo/);
     assert.match(yaml, /title:\s+"Task \\"uno\\""/);
     assert.match(yaml, /files:\s+\["agent-orchestrator\.js"\]/);
@@ -145,10 +192,19 @@ test('core-serializers serializeBoard roundtrip basico con currentDate inyectado
     assert.equal(parsed.tasks.length, 1);
     assert.equal(parsed.policy.revision, '7');
     assert.equal(parsed.strategy.active.id, 'STRAT-2026-03-admin-operativo');
+    assert.equal(parsed.strategy.active.owner_policy, 'detected_default_owner');
     assert.equal(
         parsed.strategy.active.focus_id,
         'FOCUS-2026-03-admin-operativo-cut-1'
     );
+    assert.equal(parsed.strategy.active.subfronts[0].wip_limit, '2');
+    assert.equal(
+        parsed.strategy.active.subfronts[0].default_acceptance_profile,
+        'frontend_delivery_checkpoint'
+    );
+    assert.equal(parsed.strategy.next.id, 'STRAT-2026-03-admin-operativo');
+    assert.equal(parsed.strategy.next.status, 'draft');
+    assert.equal(parsed.strategy.updated_at, '2026-03-17');
     assert.equal(parsed.tasks[0].title, 'Task "uno"');
     assert.deepEqual(parsed.tasks[0].files, ['agent-orchestrator.js']);
     assert.equal(parsed.tasks[0].codex_instance, 'codex_backend_ops');

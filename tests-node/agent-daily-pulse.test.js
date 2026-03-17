@@ -239,7 +239,7 @@ tasks:
     cross_domain: false
     strategy_id: STRAT-2026-03-admin-operativo
     subfront_id: SF-backend-admin-operativo
-    strategy_role: support
+    strategy_role: primary
     focus_id: FOCUS-2026-03-admin-operativo-cut-1
     focus_step: feedback_trim
     integration_slice: backend_readiness
@@ -268,7 +268,7 @@ tasks:
     cross_domain: false
     strategy_id: STRAT-2026-03-admin-operativo
     subfront_id: SF-backend-admin-operativo
-    strategy_role: support
+    strategy_role: primary
     focus_id: FOCUS-2026-03-admin-operativo-cut-1
     focus_step: feedback_trim
     integration_slice: backend_readiness
@@ -332,7 +332,9 @@ tasks:
     depends_on: []
     created_at: "2026-03-16"
     updated_at: "2026-03-16"
-${includeCodexBlocked ? `  - id: CDX-001
+${
+    includeCodexBlocked
+        ? `  - id: CDX-001
     title: "Codex public sync mirror"
     owner: deck
     executor: codex
@@ -357,7 +359,9 @@ ${includeCodexBlocked ? `  - id: CDX-001
     depends_on: []
     created_at: "2026-03-16"
     updated_at: "2026-03-16"
-` : ''}`;
+`
+        : ''
+}`;
     writeFileSync(join(dir, 'AGENT_BOARD.yaml'), board, 'utf8');
 }
 
@@ -385,11 +389,9 @@ test('agent-daily-pulse preview genera artefactos estables sin mutar el board', 
         writePlanFile(dir);
         const boardBefore = readFileSync(join(dir, 'AGENT_BOARD.yaml'), 'utf8');
 
-        const result = runPulse(
-            dir,
-            ['--json'],
-            { AGENT_DAILY_PULSE_NOW: PULSE_NOW }
-        );
+        const result = runPulse(dir, ['--json'], {
+            AGENT_DAILY_PULSE_NOW: PULSE_NOW,
+        });
         assert.equal(result.status, 0, result.stderr || result.stdout);
         const payload = JSON.parse(result.stdout);
 
@@ -412,10 +414,15 @@ test('agent-daily-pulse preview genera artefactos estables sin mutar el board', 
             true
         );
         assert.equal(
-            existsSync(join(dir, 'verification', 'agent-daily-pulse-history.json')),
+            existsSync(
+                join(dir, 'verification', 'agent-daily-pulse-history.json')
+            ),
             true
         );
-        assert.equal(readFileSync(join(dir, 'AGENT_BOARD.yaml'), 'utf8'), boardBefore);
+        assert.equal(
+            readFileSync(join(dir, 'AGENT_BOARD.yaml'), 'utf8'),
+            boardBefore
+        );
     } finally {
         cleanupFixtureDir(dir);
     }
@@ -429,11 +436,9 @@ test('agent-daily-pulse --apply bloquea stale tasks, desbloquea bloqueados elegi
         writeBoardFixture(dir);
         writePlanFile(dir);
 
-        const result = runPulse(
-            dir,
-            ['--json', '--apply'],
-            { AGENT_DAILY_PULSE_NOW: PULSE_NOW }
-        );
+        const result = runPulse(dir, ['--json', '--apply'], {
+            AGENT_DAILY_PULSE_NOW: PULSE_NOW,
+        });
         assert.equal(result.status, 0, result.stderr || result.stdout);
         const payload = JSON.parse(result.stdout);
         assert.equal(payload.autofix.mode, 'apply');
@@ -442,8 +447,12 @@ test('agent-daily-pulse --apply bloquea stale tasks, desbloquea bloqueados elegi
             payload.autofix.actions.every((item) => {
                 if (!item.command) return true;
                 return (
-                    item.command.startsWith('node agent-orchestrator.js task claim') ||
-                    item.command.startsWith('node agent-orchestrator.js leases heartbeat')
+                    item.command.startsWith(
+                        'node agent-orchestrator.js task claim'
+                    ) ||
+                    item.command.startsWith(
+                        'node agent-orchestrator.js leases heartbeat'
+                    )
                 );
             }),
             true
@@ -520,11 +529,9 @@ test('agent-daily-pulse mantiene tareas CDX en modo manual y no rompe la retenci
             'utf8'
         );
 
-        const result = runPulse(
-            dir,
-            ['--json'],
-            { AGENT_DAILY_PULSE_NOW: PULSE_NOW }
-        );
+        const result = runPulse(dir, ['--json'], {
+            AGENT_DAILY_PULSE_NOW: PULSE_NOW,
+        });
         assert.equal(result.status, 0, result.stderr || result.stdout);
         const payload = JSON.parse(result.stdout);
         const skipped = payload.autofix.actions.find(
@@ -534,7 +541,10 @@ test('agent-daily-pulse mantiene tareas CDX en modo manual y no rompe la retenci
         assert.equal(skipped.status, 'skipped');
 
         const history = JSON.parse(
-            readFileSync(join(dir, 'verification', 'agent-daily-pulse-history.json'), 'utf8')
+            readFileSync(
+                join(dir, 'verification', 'agent-daily-pulse-history.json'),
+                'utf8'
+            )
         );
         assert.equal(history.snapshots.length, 365);
         assert.equal(

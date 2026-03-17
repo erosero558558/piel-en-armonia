@@ -56,3 +56,15 @@ styles-deferred.min.css
 Thumbs.db
 php_server.log
 %TEMP%/
+_astro/
+en/
+es/
+.generated/
+js/chunks/
+js/engines/
+js/admin-chunks/
+script.js
+admin.js
+js/booking-calendar.js
+js/queue-kiosk.js
+js/queue-display.js

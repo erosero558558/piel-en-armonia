@@ -51,8 +51,31 @@ sin revertir el publish. `bundle:deploy` es la ruta canónica del paquete de
 transporte.
 
 3. Let deploy/post-deploy confirm the live state. Use `public_main_sync` only
-as host-side telemetry or when you intentionally need the legacy git-sync
-fallback path.
+   as host-side telemetry or when you intentionally need the legacy git-sync
+   fallback path.
+
+### Admin operativo closure dispatch
+
+For the admin operativo closure cut, the primary path is
+`.github/workflows/deploy-hosting.yml` with the post-deploy and OpenClaw auth
+gates explicitly enabled:
+
+```bash
+gh workflow run deploy-hosting.yml --ref main \
+  -f run_postdeploy_fast=true \
+  -f run_postdeploy_gate=true \
+  -f dispatch_public_cutover_monitor=true \
+  -f skip_public_conversion_smoke=false \
+  -f admin_rollout_require_openclaw_auth_fast=true \
+  -f admin_rollout_require_openclaw_auth_gate=true
+```
+
+Use `.github/workflows/deploy-frontend-selfhosted.yml` only if
+`deploy-hosting.yml` is blocked by transport or route-specific runner issues.
+Do not treat the cut as closed if only `health-diagnostics` exposes
+`checks.publicSync`; the public `health` contract must expose the same
+redacted `checks.publicSync` payload that `jobs verify public_main_sync --json`
+consumes from `health_url`.
 
 4. If you intentionally need to force the legacy host sync:
 
@@ -213,6 +236,14 @@ When `health_missing_public_sync` or `registry_only/unverified` appears, keep th
 2. `curl -s https://pielarmonia.com/api.php?resource=health-diagnostics`
 3. `cat /var/lib/pielarmonia/public-sync-status.json`
 4. confirm the host wrapper is the canonical `/root/sync-pielarmonia.sh` / `bin/deploy-public-v3-cron-sync.sh` pair
+
+The closure contract for the admin operativo cut is:
+
+- public `health` exposes `checks.publicSync.jobId=8d31e299-7e57-4959-80b5-aaa2d73e9674`
+- `checks.publicSync.healthy=true`
+- `checks.publicSync.telemetryGap=false`
+- `checks.publicSync.failureReason=""`
+- `node agent-orchestrator.js jobs verify public_main_sync --json` returns `verified=true`, `verification_source=health_url`, and `healthy=true`
 
 If the public `health` payload still does not expose `checks.publicSync.jobId`,
 assume the live host has not picked up the updated `controllers/HealthController.php`

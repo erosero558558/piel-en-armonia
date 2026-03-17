@@ -6,6 +6,11 @@ const ACTIVE_TASK_STATUSES = new Set([
     'review',
     'blocked',
 ]);
+const FOCUS_NEXT_STEP_ENFORCED_STATUSES = new Set([
+    'in_progress',
+    'review',
+    'blocked',
+]);
 const ALLOWED_FOCUS_STATUSES = new Set(['active', 'closed']);
 const ALLOWED_WORK_TYPES = new Set([
     'forward',
@@ -225,7 +230,10 @@ function validateTaskFocusAlignment(board, task, options = {}) {
     if (!task.focus_step) {
         throw new Error(`task ${taskId}: foco activo requiere focus_step`);
     }
-    if (task.focus_step !== focus.next_step) {
+    if (
+        task.focus_step !== focus.next_step &&
+        FOCUS_NEXT_STEP_ENFORCED_STATUSES.has(status)
+    ) {
         throw new Error(
             `task ${taskId}: focus_step fuera de focus_next_step (${task.focus_step} != ${focus.next_step})`
         );
@@ -491,6 +499,7 @@ function buildFocusSummary(board, options = {}) {
 
     for (const task of activeTasks) {
         const taskId = String(task.id || '');
+        const status = normalizeOptionalToken(task.status);
         const workType = String(task.work_type || '')
             .trim()
             .toLowerCase();
@@ -507,7 +516,9 @@ function buildFocusSummary(board, options = {}) {
             continue;
         }
         if (task.focus_step !== focus.next_step) {
-            summary.outside_next_step_task_ids.push(taskId);
+            if (FOCUS_NEXT_STEP_ENFORCED_STATUSES.has(status)) {
+                summary.outside_next_step_task_ids.push(taskId);
+            }
             continue;
         }
         const allowedSlices = getAllowedSlicesForLane(task);

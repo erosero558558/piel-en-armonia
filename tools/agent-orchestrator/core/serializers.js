@@ -50,87 +50,160 @@ function normalizeTaskScore(value, fallback = 0) {
     return Math.round(parsed);
 }
 
-function serializeStrategy(board, lines) {
-    const active = board?.strategy?.active;
-    if (!active || typeof active !== 'object') {
-        return;
+function serializeStrategyRecord(lines, indent, strategy) {
+    const prefix = ' '.repeat(indent);
+    lines.push(`${prefix}id: ${strategy.id || ''}`);
+    lines.push(`${prefix}title: ${quote(strategy.title || '')}`);
+    lines.push(`${prefix}objective: ${quote(strategy.objective || '')}`);
+    lines.push(`${prefix}owner: ${strategy.owner || ''}`);
+    if (String(strategy.owner_policy || '').trim()) {
+        lines.push(
+            `${prefix}owner_policy: ${quote(strategy.owner_policy || '')}`
+        );
     }
-    lines.push('');
-    lines.push('strategy:');
-    lines.push('  active:');
-    lines.push(`    id: ${active.id || ''}`);
-    lines.push(`    title: ${quote(active.title || '')}`);
-    lines.push(`    objective: ${quote(active.objective || '')}`);
-    lines.push(`    owner: ${active.owner || ''}`);
-    lines.push(`    status: ${active.status || 'active'}`);
-    lines.push(`    started_at: ${quote(active.started_at || '')}`);
-    lines.push(`    review_due_at: ${quote(active.review_due_at || '')}`);
-    if (active.closed_at) {
-        lines.push(`    closed_at: ${quote(active.closed_at)}`);
+    lines.push(`${prefix}status: ${strategy.status || 'active'}`);
+    lines.push(`${prefix}started_at: ${quote(strategy.started_at || '')}`);
+    lines.push(
+        `${prefix}review_due_at: ${quote(strategy.review_due_at || '')}`
+    );
+    if (strategy.closed_at) {
+        lines.push(`${prefix}closed_at: ${quote(strategy.closed_at)}`);
     }
-    if (active.close_reason) {
-        lines.push(`    close_reason: ${quote(active.close_reason)}`);
+    if (strategy.close_reason) {
+        lines.push(`${prefix}close_reason: ${quote(strategy.close_reason)}`);
     }
     lines.push(
-        `    exit_criteria: ${serializeArrayInline(active.exit_criteria || [])}`
+        `${prefix}exit_criteria: ${serializeArrayInline(strategy.exit_criteria || [])}`
     );
-    lines.push(`    success_signal: ${quote(active.success_signal || '')}`);
+    lines.push(
+        `${prefix}success_signal: ${quote(strategy.success_signal || '')}`
+    );
     const shouldEmitFocus =
-        Boolean(String(active.focus_id || '').trim()) ||
-        Boolean(String(active.focus_title || '').trim()) ||
-        Boolean(String(active.focus_proof || '').trim()) ||
-        Boolean(String(active.focus_next_step || '').trim()) ||
-        Boolean(String(active.focus_status || '').trim());
+        Boolean(String(strategy.focus_id || '').trim()) ||
+        Boolean(String(strategy.focus_title || '').trim()) ||
+        Boolean(String(strategy.focus_proof || '').trim()) ||
+        Boolean(String(strategy.focus_next_step || '').trim()) ||
+        Boolean(String(strategy.focus_status || '').trim());
     if (shouldEmitFocus) {
-        lines.push(`    focus_id: ${quote(active.focus_id || '')}`);
-        lines.push(`    focus_title: ${quote(active.focus_title || '')}`);
-        lines.push(`    focus_summary: ${quote(active.focus_summary || '')}`);
-        lines.push(`    focus_status: ${active.focus_status || 'active'}`);
-        lines.push(`    focus_proof: ${quote(active.focus_proof || '')}`);
+        lines.push(`${prefix}focus_id: ${quote(strategy.focus_id || '')}`);
         lines.push(
-            `    focus_steps: ${serializeArrayInline(active.focus_steps || [])}`
+            `${prefix}focus_title: ${quote(strategy.focus_title || '')}`
         );
         lines.push(
-            `    focus_next_step: ${quote(active.focus_next_step || '')}`
+            `${prefix}focus_summary: ${quote(strategy.focus_summary || '')}`
         );
         lines.push(
-            `    focus_required_checks: ${serializeArrayInline(
-                active.focus_required_checks || []
+            `${prefix}focus_status: ${strategy.focus_status || 'active'}`
+        );
+        lines.push(
+            `${prefix}focus_proof: ${quote(strategy.focus_proof || '')}`
+        );
+        lines.push(
+            `${prefix}focus_steps: ${serializeArrayInline(strategy.focus_steps || [])}`
+        );
+        lines.push(
+            `${prefix}focus_next_step: ${quote(strategy.focus_next_step || '')}`
+        );
+        lines.push(
+            `${prefix}focus_required_checks: ${serializeArrayInline(
+                strategy.focus_required_checks || []
             )}`
         );
         lines.push(
-            `    focus_non_goals: ${serializeArrayInline(active.focus_non_goals || [])}`
-        );
-        lines.push(`    focus_owner: ${quote(active.focus_owner || '')}`);
-        lines.push(
-            `    focus_review_due_at: ${quote(active.focus_review_due_at || '')}`
+            `${prefix}focus_non_goals: ${serializeArrayInline(
+                strategy.focus_non_goals || []
+            )}`
         );
         lines.push(
-            `    focus_evidence_ref: ${quote(active.focus_evidence_ref || '')}`
+            `${prefix}focus_owner: ${quote(strategy.focus_owner || '')}`
         );
         lines.push(
-            `    focus_max_active_slices: ${normalizeTaskInt(
-                active.focus_max_active_slices,
+            `${prefix}focus_review_due_at: ${quote(
+                strategy.focus_review_due_at || ''
+            )}`
+        );
+        lines.push(
+            `${prefix}focus_evidence_ref: ${quote(
+                strategy.focus_evidence_ref || ''
+            )}`
+        );
+        lines.push(
+            `${prefix}focus_max_active_slices: ${normalizeTaskInt(
+                strategy.focus_max_active_slices,
                 3
             )}`
         );
     }
-    lines.push('    subfronts:');
-    const subfronts = Array.isArray(active.subfronts) ? active.subfronts : [];
+    lines.push(`${prefix}subfronts:`);
+    const subfronts = Array.isArray(strategy.subfronts)
+        ? strategy.subfronts
+        : [];
     for (const subfront of subfronts) {
-        lines.push(`      - codex_instance: ${subfront.codex_instance || ''}`);
-        lines.push(`        subfront_id: ${subfront.subfront_id || ''}`);
-        lines.push(`        title: ${quote(subfront.title || '')}`);
         lines.push(
-            `        allowed_scopes: ${serializeArrayInline(subfront.allowed_scopes || [])}`
+            `${prefix}  - codex_instance: ${subfront.codex_instance || ''}`
+        );
+        lines.push(`${prefix}    subfront_id: ${subfront.subfront_id || ''}`);
+        lines.push(`${prefix}    title: ${quote(subfront.title || '')}`);
+        lines.push(
+            `${prefix}    allowed_scopes: ${serializeArrayInline(subfront.allowed_scopes || [])}`
         );
         lines.push(
-            `        support_only_scopes: ${serializeArrayInline(subfront.support_only_scopes || [])}`
+            `${prefix}    support_only_scopes: ${serializeArrayInline(
+                subfront.support_only_scopes || []
+            )}`
         );
         lines.push(
-            `        blocked_scopes: ${serializeArrayInline(subfront.blocked_scopes || [])}`
+            `${prefix}    blocked_scopes: ${serializeArrayInline(subfront.blocked_scopes || [])}`
         );
+        if (String(subfront.wip_limit || '').trim()) {
+            lines.push(
+                `${prefix}    wip_limit: ${normalizeTaskInt(subfront.wip_limit, 1)}`
+            );
+        }
+        if (String(subfront.default_acceptance_profile || '').trim()) {
+            lines.push(
+                `${prefix}    default_acceptance_profile: ${quote(
+                    subfront.default_acceptance_profile || ''
+                )}`
+            );
+        }
+        if (String(subfront.exception_ttl_hours || '').trim()) {
+            lines.push(
+                `${prefix}    exception_ttl_hours: ${normalizeTaskInt(
+                    subfront.exception_ttl_hours,
+                    0
+                )}`
+            );
+        }
     }
+}
+
+function serializeStrategy(board, lines) {
+    const active = board?.strategy?.active;
+    const next = board?.strategy?.next;
+    if (
+        (!active || typeof active !== 'object') &&
+        (!next || typeof next !== 'object')
+    ) {
+        return;
+    }
+    lines.push('');
+    lines.push('strategy:');
+    if (active && typeof active === 'object') {
+        lines.push('  active:');
+        serializeStrategyRecord(lines, 4, active);
+    }
+    if (next && typeof next === 'object') {
+        lines.push('  next:');
+        serializeStrategyRecord(lines, 4, next);
+    } else if (active && typeof active === 'object') {
+        lines.push('  next: null');
+    }
+    lines.push(
+        `  updated_at: ${quote(
+            board?.strategy?.updated_at || board?.policy?.updated_at || ''
+        )}`
+    );
 }
 
 function serializeBoard(board, options = {}) {
@@ -358,6 +431,20 @@ function serializeJobs(data, options = {}) {
         lines.push(`    log_path: ${job.log_path || ''}`);
         lines.push(`    status_path: ${job.status_path || ''}`);
         lines.push(`    health_url: ${job.health_url || ''}`);
+        if (job.diagnostics_url) {
+            lines.push(`    diagnostics_url: ${job.diagnostics_url}`);
+        }
+        if (job.diagnostics_token_env) {
+            lines.push(
+                `    diagnostics_token_env: ${job.diagnostics_token_env}`
+            );
+        }
+        if (job.diagnostics_header) {
+            lines.push(`    diagnostics_header: ${job.diagnostics_header}`);
+        }
+        if (job.diagnostics_prefix) {
+            lines.push(`    diagnostics_prefix: ${job.diagnostics_prefix}`);
+        }
         lines.push(
             `    expected_max_lag_seconds: ${Number.isFinite(Number(job.expected_max_lag_seconds)) ? Number(job.expected_max_lag_seconds) : 0}`
         );

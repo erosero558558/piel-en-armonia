@@ -16,6 +16,8 @@ jobs:
     log_path: /var/log/sync-pielarmonia.log
     status_path: /var/lib/pielarmonia/public-sync-status.json
     health_url: https://pielarmonia.com/api.php?resource=health
+    diagnostics_url: https://pielarmonia.com/api.php?resource=health-diagnostics
+    diagnostics_token_env: PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN
     expected_max_lag_seconds: 120
     source_of_truth: host_cron
     publish_strategy: main_auto_guarded

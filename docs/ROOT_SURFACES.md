@@ -60,16 +60,25 @@ Los `.js` que siguen en raiz deben caer en una de estas categorias:
 
 Lista aprobada actual:
 
-- `script.js`: entry versionado del gateway publico raiz.
-- `admin.js`: bundle admin servido desde `admin.html`.
 - `sw.js`: service worker con scope de raiz.
 - `agent-orchestrator.js`: CLI canonica de gobernanza y board.
 - `eslint.config.js`: config de ESLint descubierta por el tooling.
 - `playwright.config.js`: config de Playwright descubierta por el tooling.
 
-`script.js` y `admin.js` permanecen en raiz por contrato de hosting/runtime,
-no como fuentes de autoria primaria. La frontera source-vs-output vive en
-`docs/RUNTIME_ARTIFACT_POLICY.md`.
+Los bundles generados del runtime publicado ya no forman parte de la frontera
+activa de JS en raiz. El contrato stageado vive en:
+
+- `.generated/site-root/script.js`
+- `.generated/site-root/admin.js`
+- `.generated/site-root/js/chunks/**`
+- `.generated/site-root/js/admin-chunks/**`
+
+Los shims de raiz existen solo para compatibilidad humana; runtime, tooling y
+deploy consumen docs canonicos y el stage root `.generated/site-root/`, no
+copias root legacy como fuente primaria de autoria. La frontera source-vs-output
+vive en `docs/RUNTIME_ARTIFACT_POLICY.md`, y la salida segura para sacar las
+copias legacy del indice es
+`npm run legacy:generated-root:status|check|apply`.
 
 ## Superficies HTML permitidas en raiz
 
@@ -123,6 +132,7 @@ de backend descubiertos por el hosting/tooling:
 - `figo-backend.php`
 - `figo-brain.php`
 - `figo-ai-bridge.php`
+- `hosting-runtime.php`
 - `backup-receiver.php`
 - `verify-backup.php`
 - `check-ai-response.php`
@@ -192,6 +202,7 @@ por Docker, Prometheus o CI.
 Lista aprobada actual:
 
 - `AGENT_BOARD.yaml`
+- `AGENT_DECISIONS.yaml`
 - `AGENT_HANDOFFS.yaml`
 - `AGENT_JOBS.yaml`
 - `AGENT_SIGNALS.yaml`
@@ -245,7 +256,6 @@ tooling del repo.
 
 Lista aprobada actual:
 
-- `_astro`
 - `.claude`
 - `.github`
 - `.husky`
@@ -256,9 +266,8 @@ Lista aprobada actual:
 - `content`
 - `controllers`
 - `data`
+- `desktop-updates`
 - `docs`
-- `en`
-- `es`
 - `fonts`
 - `grafana`
 - `images`
@@ -278,6 +287,11 @@ Lista aprobada actual:
 - `uploads`
 - `vendor`
 - `verification`
+
+Para `app-downloads`, `desktop-updates` y `release`, el contrato canonico a
+preservar es metadata + checksum + manifest. Los binarios grandes deben tender
+a salir del repo principal hacia artifacts externos con una sola URL canonica
+por release.
 
 ## Directorios locales o fuera del front door
 

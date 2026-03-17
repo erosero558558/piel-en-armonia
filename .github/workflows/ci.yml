@@ -209,6 +209,83 @@ jobs:
                         - 'playwright.config.js'
                         - 'package.json'
                         - 'package-lock.json'
+                        - '.github/workflows/ci.yml'
+                      public_maintenance:
+                        - 'app-downloads/**'
+                        - 'content/public-v4/**'
+                        - 'content/public-v5/**'
+                        - 'content/public-v6/**'
+                        - 'src/apps/astro/**'
+                        - 'tests/public-v4-*.spec.js'
+                        - 'tests/public-v5-*.spec.js'
+                        - 'tests/public-v6-*.spec.js'
+                        - 'tests/public-routing-*.spec.js'
+                        - 'tests/public-seo-routing.spec.js'
+                        - 'tests/public-conversion-*.spec.js'
+                        - 'tests-node/public-v4-*.test.js'
+                        - 'tests-node/public-v5-*.test.js'
+                        - 'tests-node/public-v6-*.test.js'
+                        - 'tests-node/public-routing-*.test.js'
+                        - 'bin/build-public-v6.js'
+                        - 'bin/check-public-v6-artifacts.js'
+                        - 'bin/validate-public-v4-catalog.js'
+                        - 'bin/validate-public-v5-catalog.js'
+                        - 'bin/validate-public-v6-content.js'
+                        - 'package.json'
+                        - 'package-lock.json'
+                        - '.github/workflows/ci.yml'
+                        - '.github/workflows/ci.yml'
+                      focus_admin:
+                        - 'src/apps/admin/**'
+                        - 'src/apps/admin-v3/**'
+                        - 'src/apps/queue-operator/**'
+                        - 'controllers/OperatorAuthController.php'
+                        - 'controllers/LeadAiController.php'
+                        - 'lib/auth.php'
+                        - 'lib/figo_queue.php'
+                        - 'figo-ai-bridge.php'
+                        - 'bin/lead-ai-worker.js'
+                        - 'bin/lib/lead-ai-worker.js'
+                        - 'tests/admin-openclaw-login.spec.js'
+                        - 'tests/operator-auth-shared-session.spec.js'
+                        - 'tests/admin-queue.spec.js'
+                        - 'tests/queue-integrated-flow.spec.js'
+                        - 'tests-node/openclaw-auth-*.test.js'
+                        - 'tests-node/operator-auth-*.test.js'
+                        - 'tests-node/admin-rollout-gate-*.test.js'
+                        - 'tests-node/openclaw-auth-rollout-diagnostic*.test.js'
+                        - 'tests-node/deploy-hosting-workflow-contract.test.js'
+                        - 'tests-node/post-deploy-fast-workflow-contract.test.js'
+                        - 'tests-node/post-deploy-gate-workflow-contract.test.js'
+                        - 'tests/Integration/HealthVisibilityTest.php'
+                        - 'tests/Integration/OperatorAuthControllerTest.php'
+                        - 'package.json'
+                        - 'package-lock.json'
+                        - '.github/workflows/ci.yml'
+                      public_maintenance:
+                        - 'app-downloads/**'
+                        - 'content/public-v4/**'
+                        - 'content/public-v5/**'
+                        - 'content/public-v6/**'
+                        - 'src/apps/astro/**'
+                        - 'tests/public-v4-*.spec.js'
+                        - 'tests/public-v5-*.spec.js'
+                        - 'tests/public-v6-*.spec.js'
+                        - 'tests/public-routing-*.spec.js'
+                        - 'tests/public-seo-routing.spec.js'
+                        - 'tests/public-conversion-*.spec.js'
+                        - 'tests-node/public-v4-*.test.js'
+                        - 'tests-node/public-v5-*.test.js'
+                        - 'tests-node/public-v6-*.test.js'
+                        - 'tests-node/public-routing-*.test.js'
+                        - 'bin/build-public-v6.js'
+                        - 'bin/check-public-v6-artifacts.js'
+                        - 'bin/validate-public-v4-catalog.js'
+                        - 'bin/validate-public-v5-catalog.js'
+                        - 'bin/validate-public-v6-content.js'
+                        - 'package.json'
+                        - 'package-lock.json'
+                        - '.github/workflows/ci.yml'
             - name: Setup PHP
               if: steps.changes.outputs.e2e == 'true'
               uses: shivammathur/setup-php@v2
@@ -258,6 +335,26 @@ jobs:
               env:
                   TEST_LOCAL_SERVER: php
                   PIELARMONIA_ADMIN_PASSWORD: test-ci-admin-password
+            - name: Check Runtime Artifacts (focus-aware)
+              if: steps.changes.outputs.e2e == 'true' && (steps.changes.outputs.focus_admin == 'true' || steps.changes.outputs.public_maintenance == 'true')
+              run: npm run check:runtime:artifacts
+            - name: Run Focus Admin Operativo Gate
+              if: steps.changes.outputs.e2e == 'true' && steps.changes.outputs.focus_admin == 'true'
+              run: npm run gate:focus:admin-operativo
+              env:
+                  TEST_LOCAL_SERVER: php
+                  PIELARMONIA_ADMIN_PASSWORD: test-ci-admin-password
+            - name: Run Public Maintenance Smoke
+              if: steps.changes.outputs.e2e == 'true' && steps.changes.outputs.public_maintenance == 'true'
+              run: npm run smoke:public:routing && npm run smoke:public:conversion
+              env:
+                  TEST_LOCAL_SERVER: php
+                  PIELARMONIA_ADMIN_PASSWORD: test-ci-admin-password
+            - name: Skip focus/public extras (critical lane only)
+              if: steps.changes.outputs.e2e == 'true' && steps.changes.outputs.focus_admin != 'true' && steps.changes.outputs.public_maintenance != 'true'
+              run: |
+                  echo "Skipping focus/public maintenance extras: only critical gates apply for this diff."
+                  echo "Heavy public V4/V5/V6 suites stay in focused workflows/nightly unless those surfaces changed."
             - name: Skip e2e (no relevant changes)
               if: steps.changes.outputs.e2e != 'true'
               run: |
@@ -292,6 +389,31 @@ jobs:
                         - 'playwright.config.js'
                         - 'package.json'
                         - 'package-lock.json'
+                        - '.github/workflows/ci.yml'
+                      public_maintenance:
+                        - 'app-downloads/**'
+                        - 'content/public-v4/**'
+                        - 'content/public-v5/**'
+                        - 'content/public-v6/**'
+                        - 'src/apps/astro/**'
+                        - 'tests/public-v4-*.spec.js'
+                        - 'tests/public-v5-*.spec.js'
+                        - 'tests/public-v6-*.spec.js'
+                        - 'tests/public-routing-*.spec.js'
+                        - 'tests/public-seo-routing.spec.js'
+                        - 'tests/public-conversion-*.spec.js'
+                        - 'tests-node/public-v4-*.test.js'
+                        - 'tests-node/public-v5-*.test.js'
+                        - 'tests-node/public-v6-*.test.js'
+                        - 'tests-node/public-routing-*.test.js'
+                        - 'bin/build-public-v6.js'
+                        - 'bin/check-public-v6-artifacts.js'
+                        - 'bin/validate-public-v4-catalog.js'
+                        - 'bin/validate-public-v5-catalog.js'
+                        - 'bin/validate-public-v6-content.js'
+                        - 'package.json'
+                        - 'package-lock.json'
+                        - '.github/workflows/ci.yml'
             - name: Setup PHP
               if: steps.changes.outputs.e2e == 'true'
               uses: shivammathur/setup-php@v2
@@ -322,46 +444,38 @@ jobs:
             - name: Install Playwright Browsers
               if: steps.changes.outputs.e2e == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
               run: npx playwright install --with-deps chromium
-            - name: Run Playwright Tests (non-critical report)
-              if: steps.changes.outputs.e2e == 'true'
+            - name: Run Public Maintenance Report
+              if: steps.changes.outputs.e2e == 'true' && steps.changes.outputs.public_maintenance == 'true'
               shell: bash
               run: |
                   set -euo pipefail
                   mkdir -p verification/ci
 
-                  mapfile -t spec_files < <(find tests -name "*.spec.js" \
-                    ! -name "calendar-google-contract.spec.js" \
-                    ! -name "phase2-calendar-consistency.spec.js" \
-                    ! -name "funnel-event-api.spec.js" \
-                    ! -name "funnel-retention-admin.spec.js" \
-                    ! -name "funnel-tracking.spec.js" \
-                    ! -name "payments-card-booking.spec.js" | sort)
-
-                  if [ "${#spec_files[@]}" -eq 0 ]; then
-                    echo "NONCRITICAL_E2E_STATUS=skipped" >> "$GITHUB_ENV"
-                    echo "NONCRITICAL_E2E_EXIT_CODE=0" >> "$GITHUB_ENV"
-                    printf 'No non-critical Playwright specs were found for this diff.\n' > verification/ci/noncritical-e2e-summary.txt
-                    exit 0
-                  fi
-
                   set +e
-                  npx playwright test --grep-invert "@visual" "${spec_files[@]}"
+                  npm run test:frontend:qa:public
                   status=$?
                   set -e
 
                   echo "NONCRITICAL_E2E_EXIT_CODE=$status" >> "$GITHUB_ENV"
                   if [ "$status" -eq 0 ]; then
                     echo "NONCRITICAL_E2E_STATUS=passed" >> "$GITHUB_ENV"
-                    printf 'Non-critical Playwright suite passed.\n' > verification/ci/noncritical-e2e-summary.txt
+                    printf 'Public maintenance report passed.\n' > verification/ci/noncritical-e2e-summary.txt
                     exit 0
                   fi
 
                   echo "NONCRITICAL_E2E_STATUS=warning" >> "$GITHUB_ENV"
-                  printf 'Non-critical Playwright suite reported failures (exit %s). Critical release gates remain enforced by the blocking e2e-tests job.\n' "$status" > verification/ci/noncritical-e2e-summary.txt
-                  echo "::warning::Non-critical Playwright suite reported failures (exit $status). Critical release gates remain enforced by e2e-tests."
+                  printf 'Public maintenance report reported failures (exit %s). Blocking gates remain focused on the active admin/runtime lane.\n' "$status" > verification/ci/noncritical-e2e-summary.txt
+                  echo "::warning::Public maintenance report reported failures (exit $status). Blocking gates remain focused on e2e-tests."
               env:
                   TEST_LOCAL_SERVER: php
                   PIELARMONIA_ADMIN_PASSWORD: test-ci-admin-password
+            - name: Skip public maintenance report (focus admin or critical-only diff)
+              if: steps.changes.outputs.e2e == 'true' && steps.changes.outputs.public_maintenance != 'true'
+              run: |
+                  mkdir -p verification/ci
+                  echo "NONCRITICAL_E2E_STATUS=skipped" >> "$GITHUB_ENV"
+                  echo "NONCRITICAL_E2E_EXIT_CODE=0" >> "$GITHUB_ENV"
+                  printf 'Public maintenance report skipped: diff outside public maintenance surfaces.\n' > verification/ci/noncritical-e2e-summary.txt
             - name: Publish non-critical summary
               if: always() && steps.changes.outputs.e2e == 'true'
               shell: bash

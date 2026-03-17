@@ -79,6 +79,7 @@ async function handleHandoffsCommand(ctx) {
         attachDiagnostics,
         buildWarnFirstDiagnostics,
         buildLiveFocusSummary,
+        loadMetricsSnapshot,
         getHandoffLintErrors,
         parseFlags,
         parseBoard,
@@ -110,6 +111,10 @@ async function handleHandoffsCommand(ctx) {
             typeof buildLiveFocusSummary === 'function'
                 ? await buildLiveFocusSummary(board, { now: new Date() })
                 : null;
+        const metricsSnapshot =
+            typeof loadMetricsSnapshot === 'function'
+                ? loadMetricsSnapshot()
+                : null;
         const total = handoffData.handoffs.length;
         const active = handoffData.handoffs.filter(
             (item) => String(item.status) === 'active'
@@ -140,6 +145,7 @@ async function handleHandoffsCommand(ctx) {
                 source: 'handoffs.status',
                 handoffData,
                 focusSummary: focusData?.summary || null,
+                metricsSnapshot,
                 jobsSnapshot: focusData?.jobs || null,
             })
         );
@@ -163,6 +169,10 @@ async function handleHandoffsCommand(ctx) {
             typeof buildLiveFocusSummary === 'function'
                 ? await buildLiveFocusSummary(board, { now: new Date() })
                 : null;
+        const metricsSnapshot =
+            typeof loadMetricsSnapshot === 'function'
+                ? loadMetricsSnapshot()
+                : null;
         const errors = getHandoffLintErrors();
         const report = {
             version: 1,
@@ -176,6 +186,7 @@ async function handleHandoffsCommand(ctx) {
                 source: 'handoffs.lint',
                 handoffData,
                 focusSummary: focusData?.summary || null,
+                metricsSnapshot,
                 jobsSnapshot: focusData?.jobs || null,
             })
         );

@@ -120,6 +120,19 @@ Canonical validators:
   and gate flows that consume those outputs.
 - `publish checkpoint` publishes source plus evidence and ignores stage/bundle
   hygiene noise; live confirmation belongs to deploy/post-deploy.
+- Default PR/CI lanes should stay anchored to the active operational focus:
+  admin/OpenClaw/auth diffs run `gate:focus:admin-operativo`, while public
+  V4/V5/V6 suites move to conditional workflows or nightly unless those
+  surfaces changed directly.
+
+## Large Binary Policy
+
+- Version the catalog, checksums, manifests, blockmaps, and metadata in git.
+- Treat large installers and native payloads as release artifacts or external
+  storage objects, not as authored source.
+- If a manifest target/feed points to an absolute URL, runtime consumers must
+  preserve that URL as the canonical download source instead of rewriting it
+  back into the repo tree.
 
 ## Canonical Commands
 

@@ -80,6 +80,54 @@ test('ci ejecuta el critical payments gate dentro del carril e2e', () => {
     );
 });
 
+test('ci alinea el carril e2e con el foco admin operativo y mantenimiento publico condicionado', () => {
+    const { raw, parsed } = loadWorkflow(CI_WORKFLOW_PATH);
+    const blockingSteps = parsed?.jobs?.['e2e-tests']?.steps || [];
+    const reportSteps = parsed?.jobs?.['e2e-noncritical-report']?.steps || [];
+    const blockingNames = blockingSteps.map((step) => String(step?.name || ''));
+    const reportNames = reportSteps.map((step) => String(step?.name || ''));
+
+    for (const expectedStep of [
+        'Check Runtime Artifacts (focus-aware)',
+        'Run Focus Admin Operativo Gate',
+        'Run Public Maintenance Smoke',
+        'Skip focus/public extras (critical lane only)',
+    ]) {
+        assert.equal(
+            blockingNames.includes(expectedStep),
+            true,
+            `falta step bloqueante del foco en CI: ${expectedStep}`
+        );
+    }
+
+    for (const expectedStep of [
+        'Run Public Maintenance Report',
+        'Skip public maintenance report (focus admin or critical-only diff)',
+    ]) {
+        assert.equal(
+            reportNames.includes(expectedStep),
+            true,
+            `falta step de reporte condicionado en CI: ${expectedStep}`
+        );
+    }
+
+    for (const snippet of [
+        'focus_admin:',
+        'public_maintenance:',
+        'run: npm run gate:focus:admin-operativo',
+        'run: npm run check:runtime:artifacts',
+        'run: npm run smoke:public:routing && npm run smoke:public:conversion',
+        'npm run test:frontend:qa:public',
+        'Heavy public V4/V5/V6 suites stay in focused workflows/nightly unless those surfaces changed.',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring foco admin/public maintenance en CI: ${snippet}`
+        );
+    }
+});
+
 test('nightly-stability ejecuta y resume el critical payments gate', () => {
     const { raw, parsed } = loadWorkflow(NIGHTLY_WORKFLOW_PATH);
     const steps = parsed?.jobs?.nightly?.steps || [];

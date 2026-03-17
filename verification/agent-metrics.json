@@ -13,13 +13,13 @@
         "traceability_pct": 100
     },
     "baseline": {
-        "tasks_total": 7,
+        "tasks_total": 194,
         "tasks_with_rework": 0,
         "file_conflicts": 0,
         "file_conflicts_handoff": 0,
         "non_critical_lead_time_hours_avg": null,
         "coordination_gate_red_rate_pct": null,
-        "traceability_pct": 0
+        "traceability_pct": 100
     },
     "current": {
         "tasks_total": 194,
@@ -141,93 +141,93 @@
             }
         },
         "totals": {
-            "tasks": 9,
-            "done_tasks": 6,
-            "active_tasks": 3,
-            "weighted_points_total": 14,
-            "weighted_done_points_total": 9,
-            "weighted_active_points_total": 5
+            "tasks": 194,
+            "done_tasks": 194,
+            "active_tasks": 0,
+            "weighted_points_total": 365,
+            "weighted_done_points_total": 365,
+            "weighted_active_points_total": 0
         },
         "executors": [
             {
+                "executor": "codex",
+                "tasks": 173,
+                "done_tasks": 173,
+                "active_tasks": 0,
+                "weighted_points": 329,
+                "weighted_done_points": 329,
+                "weighted_active_points": 0,
+                "tasks_pct": 89.2,
+                "done_tasks_pct": 89.2,
+                "active_tasks_pct": 0,
+                "weighted_points_pct": 90.1,
+                "weighted_done_points_pct": 90.1,
+                "weighted_active_points_pct": 0
+            },
+            {
                 "executor": "jules",
-                "tasks": 4,
-                "done_tasks": 3,
-                "active_tasks": 1,
-                "weighted_points": 8,
-                "weighted_done_points": 6,
-                "weighted_active_points": 2,
-                "tasks_pct": 44.4,
-                "done_tasks_pct": 50,
-                "active_tasks_pct": 33.3,
-                "weighted_points_pct": 57.1,
-                "weighted_done_points_pct": 66.7,
-                "weighted_active_points_pct": 40
+                "tasks": 12,
+                "done_tasks": 12,
+                "active_tasks": 0,
+                "weighted_points": 23,
+                "weighted_done_points": 23,
+                "weighted_active_points": 0,
+                "tasks_pct": 6.2,
+                "done_tasks_pct": 6.2,
+                "active_tasks_pct": 0,
+                "weighted_points_pct": 6.3,
+                "weighted_done_points_pct": 6.3,
+                "weighted_active_points_pct": 0
             },
             {
                 "executor": "kimi",
-                "tasks": 4,
-                "done_tasks": 3,
-                "active_tasks": 1,
-                "weighted_points": 4,
-                "weighted_done_points": 3,
-                "weighted_active_points": 1,
-                "tasks_pct": 44.4,
-                "done_tasks_pct": 50,
-                "active_tasks_pct": 33.3,
-                "weighted_points_pct": 28.6,
-                "weighted_done_points_pct": 33.3,
-                "weighted_active_points_pct": 20
-            },
-            {
-                "executor": "codex",
-                "tasks": 1,
-                "done_tasks": 0,
-                "active_tasks": 1,
-                "weighted_points": 2,
-                "weighted_done_points": 0,
-                "weighted_active_points": 2,
-                "tasks_pct": 11.1,
-                "done_tasks_pct": 0,
-                "active_tasks_pct": 33.3,
-                "weighted_points_pct": 14.3,
-                "weighted_done_points_pct": 0,
-                "weighted_active_points_pct": 40
+                "tasks": 9,
+                "done_tasks": 9,
+                "active_tasks": 0,
+                "weighted_points": 13,
+                "weighted_done_points": 13,
+                "weighted_active_points": 0,
+                "tasks_pct": 4.6,
+                "done_tasks_pct": 4.6,
+                "active_tasks_pct": 0,
+                "weighted_points_pct": 3.6,
+                "weighted_done_points_pct": 3.6,
+                "weighted_active_points_pct": 0
             }
         ],
         "ranking": [
             {
                 "rank": 1,
-                "executor": "jules",
-                "weighted_done_points": 6,
-                "weighted_done_points_pct": 66.7,
-                "done_tasks": 3,
-                "done_tasks_pct": 50
+                "executor": "codex",
+                "weighted_done_points": 329,
+                "weighted_done_points_pct": 90.1,
+                "done_tasks": 173,
+                "done_tasks_pct": 89.2
             },
             {
                 "rank": 2,
-                "executor": "kimi",
-                "weighted_done_points": 3,
-                "weighted_done_points_pct": 33.3,
-                "done_tasks": 3,
-                "done_tasks_pct": 50
+                "executor": "jules",
+                "weighted_done_points": 23,
+                "weighted_done_points_pct": 6.3,
+                "done_tasks": 12,
+                "done_tasks_pct": 6.2
             },
             {
                 "rank": 3,
-                "executor": "codex",
-                "weighted_done_points": 0,
-                "weighted_done_points_pct": 0,
-                "done_tasks": 0,
-                "done_tasks_pct": 0
+                "executor": "kimi",
+                "weighted_done_points": 13,
+                "weighted_done_points_pct": 3.6,
+                "done_tasks": 9,
+                "done_tasks_pct": 4.6
             }
         ],
         "top_executor": {
             "rank": 1,
-            "executor": "jules",
-            "weighted_done_points": 6,
-            "weighted_done_points_pct": 66.7,
-            "done_tasks": 3,
-            "done_tasks_pct": 50
+            "executor": "codex",
+            "weighted_done_points": 329,
+            "weighted_done_points_pct": 90.1,
+            "done_tasks": 173,
+            "done_tasks_pct": 89.2
         }
     },
     "contribution_delta": {
@@ -236,29 +236,29 @@
             {
                 "executor": "codex",
                 "weighted_done_points_pct_current": 90.1,
-                "weighted_done_points_pct_baseline": 0,
-                "weighted_done_points_pct_delta": 90.1,
+                "weighted_done_points_pct_baseline": 90.1,
+                "weighted_done_points_pct_delta": 0,
                 "done_tasks_pct_current": 89.2,
-                "done_tasks_pct_baseline": 0,
-                "done_tasks_pct_delta": 89.2
+                "done_tasks_pct_baseline": 89.2,
+                "done_tasks_pct_delta": 0
             },
             {
                 "executor": "jules",
                 "weighted_done_points_pct_current": 6.3,
-                "weighted_done_points_pct_baseline": 66.7,
-                "weighted_done_points_pct_delta": -60.4,
+                "weighted_done_points_pct_baseline": 6.3,
+                "weighted_done_points_pct_delta": 0,
                 "done_tasks_pct_current": 6.2,
-                "done_tasks_pct_baseline": 50,
-                "done_tasks_pct_delta": -43.8
+                "done_tasks_pct_baseline": 6.2,
+                "done_tasks_pct_delta": 0
             },
             {
                 "executor": "kimi",
                 "weighted_done_points_pct_current": 3.6,
-                "weighted_done_points_pct_baseline": 33.3,
-                "weighted_done_points_pct_delta": -29.7,
+                "weighted_done_points_pct_baseline": 3.6,
+                "weighted_done_points_pct_delta": 0,
                 "done_tasks_pct_current": 4.6,
-                "done_tasks_pct_baseline": 50,
-                "done_tasks_pct_delta": -45.4
+                "done_tasks_pct_baseline": 4.6,
+                "done_tasks_pct_delta": 0
             }
         ]
     },
@@ -3262,9 +3262,14 @@
         ]
     },
     "delta": {
-        "tasks_total": 187,
+        "tasks_total": 0,
         "file_conflicts": 0,
         "file_conflicts_handoff": 0,
-        "traceability_pct": 100
+        "traceability_pct": 0
+    },
+    "baseline_meta": {
+        "source": "current",
+        "action": "set",
+        "updated_at": "2026-03-17T04:04:58.708Z"
     }
 }

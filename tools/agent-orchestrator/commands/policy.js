@@ -11,6 +11,7 @@ async function handlePolicyCommand(ctx) {
         buildWarnFirstDiagnostics,
         parseBoard,
         buildLiveFocusSummary,
+        loadMetricsSnapshot,
     } = ctx;
     const subcommand = String(args[0] || '').trim() || 'lint';
     const wantsJson = args.includes('--json');
@@ -44,12 +45,17 @@ async function handlePolicyCommand(ctx) {
         board && typeof buildLiveFocusSummary === 'function'
             ? await buildLiveFocusSummary(board, { now: new Date() })
             : null;
+    const metricsSnapshot =
+        typeof loadMetricsSnapshot === 'function'
+            ? loadMetricsSnapshot()
+            : null;
     const reportWithDiagnostics = attachDiagnostics(
         report,
         buildWarnFirstDiagnostics({
             source: 'policy',
             policyReport: report,
             focusSummary: focusData?.summary || null,
+            metricsSnapshot,
             jobsSnapshot: focusData?.jobs || null,
         })
     );

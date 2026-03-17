@@ -99,6 +99,10 @@ function app_downloads_page_build_query(string $surface, string $platform, strin
 
 function app_downloads_page_absolute(string $path): string
 {
+    if (preg_match('#^https?://#i', $path) === 1) {
+        return $path;
+    }
+
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $host = trim((string) ($_SERVER['HTTP_HOST'] ?? ''));
     if ($host === '') {

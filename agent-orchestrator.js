@@ -98,6 +98,11 @@ const BOARD_EVENTS_PATH = resolve(
     'verification',
     'agent-board-events.jsonl'
 );
+const STRATEGY_EVENTS_PATH = resolve(
+    ROOT,
+    'verification',
+    'agent-strategy-events.jsonl'
+);
 const PUBLISH_EVENTS_PATH = resolve(
     ROOT,
     'verification',
@@ -1090,6 +1095,29 @@ function writeStrategyActiveBlock(strategy) {
     return next;
 }
 
+function writeStrategyPlanBlocks(strategyState = {}) {
+    if (!existsSync(CODEX_PLAN_PATH)) {
+        throw new Error(`No existe ${CODEX_PLAN_PATH}`);
+    }
+    const raw = readFileSync(CODEX_PLAN_PATH, 'utf8');
+    const next = domainStrategy.upsertStrategyBlocks(raw, strategyState, {
+        quote,
+        serializeArrayInline,
+        currentDate,
+    });
+    writeFileSync(CODEX_PLAN_PATH, next, 'utf8');
+    return next;
+}
+
+function appendStrategySnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return;
+    mkdirSync(dirname(STRATEGY_EVENTS_PATH), { recursive: true });
+    writeFileSync(STRATEGY_EVENTS_PATH, `${JSON.stringify(snapshot)}\n`, {
+        encoding: 'utf8',
+        flag: 'a',
+    });
+}
+
 function nextHandoffId(handoffs) {
     return domainHandoffs.nextHandoffId(handoffs);
 }
@@ -1600,17 +1628,30 @@ async function cmdStrategy(args) {
     return strategyCommandHandlers.handleStrategyCommand({
         args,
         parseFlags,
+        parseCsvList,
         parseBoard,
+        parseHandoffs,
         buildStrategyCoverageSummary,
+        buildCoverageForStrategy: domainStrategy.buildCoverageForStrategy,
         buildStrategySeed: domainStrategy.buildStrategySeed,
-        buildFocusSeed: domainFocus.buildFocusSeed,
+        buildStrategyPreview: domainStrategy.buildStrategyPreview,
+        buildStrategySeedCatalog: domainStrategy.buildStrategySeedCatalog,
+        buildStrategyIntakeTask: domainStrategy.buildStrategyIntakeTask,
         normalizeStrategyActive: domainStrategy.normalizeStrategyActive,
         validateStrategyConfiguration:
             domainStrategy.validateStrategyConfiguration,
         currentDate,
+        isoNow,
         detectDefaultOwner,
         writeBoardAndSync,
-        writeStrategyActiveBlock,
+        writeStrategyPlanBlocks,
+        appendStrategySnapshot,
+        nextAgentTaskId,
+        validateTaskGovernancePrechecks,
+        getBlockingConflictsForTask,
+        toTaskJson,
+        toTaskFullJson,
+        mapLaneToCodexInstance: domainTaskGuards.mapLaneToCodexInstance,
         parseExpectedBoardRevisionFlag,
         parseCodexStrategyBlocks,
         printJson: coreOutput.printJson,

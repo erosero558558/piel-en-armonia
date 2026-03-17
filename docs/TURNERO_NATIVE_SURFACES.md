@@ -44,6 +44,9 @@ Nota:
 3. Distribucion
     - revisar `app-downloads/` y `release-manifest.json`
     - confirmar rutas publicas generadas para `app-downloads/` y `desktop-updates/`
+    - si el release usa storage externo o artifacts del workflow, conservar en
+      git solo `release-manifest.json`, `SHA256SUMS.txt`, blockmaps y metadata;
+      los binarios grandes pasan a la URL canonica declarada en el manifest
 4. Smoke
     - abrir la superficie remota correcta
     - validar reconexion, restricciones de navegacion y checklist operativo
@@ -105,3 +108,11 @@ Si ya hubo publicacion:
 1. retirar artefactos de `app-downloads/`
 2. retirar feeds/payloads de `desktop-updates/`
 3. repetir smoke del centro de descargas
+
+## Politica de binarios grandes
+
+- La fuente canonica del release debe ser una sola por artefacto/version.
+- `release-manifest.json` y `SHA256SUMS.txt` quedan como registro durable en
+  git aunque el binario viva fuera del repo.
+- `app-downloads/` puede publicar URLs absolutas para payloads/feed cuando el
+  binario real viva en artifacts de release, storage externo o CDN.

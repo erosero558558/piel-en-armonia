@@ -201,6 +201,10 @@ function normalizeRegistryJob(job = {}) {
         log_path: String(job.log_path || '').trim(),
         status_path: String(job.status_path || '').trim(),
         health_url: String(job.health_url || '').trim(),
+        diagnostics_url: String(job.diagnostics_url || '').trim(),
+        diagnostics_token_env: String(job.diagnostics_token_env || '').trim(),
+        diagnostics_header: String(job.diagnostics_header || '').trim(),
+        diagnostics_prefix: String(job.diagnostics_prefix || '').trim(),
         expected_max_lag_seconds:
             Number.parseInt(String(job.expected_max_lag_seconds || '0'), 10) ||
             0,
@@ -210,6 +214,68 @@ function normalizeRegistryJob(job = {}) {
             String(job.publish_strategy || 'main_auto_guarded').trim() ||
             'main_auto_guarded',
     };
+}
+
+function resolveDiagnosticsAccess(job = {}, env = process.env) {
+    const explicitUrl = String(job.diagnostics_url || '').trim();
+    const explicitTokenEnv = String(job.diagnostics_token_env || '').trim();
+    const token = explicitTokenEnv
+        ? String(env?.[explicitTokenEnv] || '').trim()
+        : String(
+              env?.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN ||
+                  env?.PIELARMONIA_CRON_SECRET ||
+                  ''
+          ).trim();
+    const headerName =
+        String(
+            job.diagnostics_header ||
+                env?.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER ||
+                'Authorization'
+        ).trim() || 'Authorization';
+    const prefix = String(
+        job.diagnostics_prefix ||
+            env?.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX ||
+            'Bearer'
+    ).trim();
+    const headers = {};
+    if (token) {
+        headers[headerName] = prefix ? `${prefix} ${token}` : token;
+    }
+
+    return {
+        enabled: Boolean(explicitUrl || token),
+        url: explicitUrl,
+        headers,
+    };
+}
+
+function deriveDiagnosticsUrl(healthUrl = '', explicitUrl = '') {
+    const direct = String(explicitUrl || '').trim();
+    if (direct) {
+        return direct;
+    }
+
+    const base = String(healthUrl || '').trim();
+    if (!base) {
+        return '';
+    }
+
+    try {
+        const url = new URL(base);
+        if (url.searchParams.get('resource') === 'health-diagnostics') {
+            return url.toString();
+        }
+        if (
+            !url.searchParams.has('resource') ||
+            url.searchParams.get('resource') === 'health'
+        ) {
+            url.searchParams.set('resource', 'health-diagnostics');
+            return url.toString();
+        }
+        return '';
+    } catch (_error) {
+        return '';
+    }
 }
 
 function normalizeSnapshotFromFile(job, payload = {}, nowMs = Date.now()) {
@@ -271,7 +337,11 @@ function normalizeSnapshotFromFile(job, payload = {}, nowMs = Date.now()) {
     return finalizeSnapshot(snapshot);
 }
 
-function normalizeSnapshotFromHealth(job, payload = {}) {
+function normalizeSnapshotFromHealth(
+    job,
+    payload = {},
+    verificationSource = 'health_url'
+) {
     const ageSeconds = parseOptionalInteger(
         payload.ageSeconds ?? payload.age_seconds
     );
@@ -299,7 +369,7 @@ function normalizeSnapshotFromHealth(job, payload = {}) {
         enabled: job.enabled,
         type: job.type,
         source_of_truth: job.source_of_truth,
-        verification_source: 'health_url',
+        verification_source: verificationSource,
         verified: true,
         configured:
             payload.configured !== undefined
@@ -386,7 +456,10 @@ function extractLegacyPublicSyncPayload(payload = {}) {
         Object.prototype.hasOwnProperty.call(payload, 'publicSyncHealthy') ||
         Object.prototype.hasOwnProperty.call(payload, 'publicSyncState') ||
         Object.prototype.hasOwnProperty.call(payload, 'publicSyncJobId') ||
-        Object.prototype.hasOwnProperty.call(payload, 'publicSyncLastCheckedAt');
+        Object.prototype.hasOwnProperty.call(
+            payload,
+            'publicSyncLastCheckedAt'
+        );
 
     if (!hasLegacyFields) {
         return null;
@@ -469,7 +542,9 @@ async function resolveJobSnapshot(jobRaw, deps = {}) {
         existsSync = () => false,
         readFileSync = () => '',
         fetchImpl = typeof fetch === 'function' ? fetch : null,
+        env = process.env,
     } = deps;
+    const diagnosticsAccess = resolveDiagnosticsAccess(job, env);
 
     if (job.status_path && existsSync(job.status_path)) {
         try {
@@ -509,6 +584,7 @@ async function resolveJobSnapshot(jobRaw, deps = {}) {
         }
     }
 
+    let publicHealthPayload = null;
     if (job.health_url && typeof fetchImpl === 'function') {
         try {
             const response = await fetchImpl(job.health_url, {
@@ -520,20 +596,61 @@ async function resolveJobSnapshot(jobRaw, deps = {}) {
             });
             if (response && response.ok) {
                 const payload = await response.json();
+                publicHealthPayload = payload;
                 const publicSync =
                     payload?.checks?.publicSync ||
                     extractLegacyPublicSyncPayload(payload);
                 if (publicSync && typeof publicSync === 'object') {
                     return normalizeSnapshotFromHealth(job, publicSync);
                 }
-                return normalizeSnapshotFromHealthMissingPublicSync(
-                    job,
-                    payload
-                );
             }
         } catch {
             // Fall through to registry-only mode.
         }
+    }
+
+    if (diagnosticsAccess.enabled && typeof fetchImpl === 'function') {
+        const diagnosticsUrl = deriveDiagnosticsUrl(
+            job.health_url,
+            diagnosticsAccess.url
+        );
+        if (diagnosticsUrl) {
+            try {
+                const response = await fetchImpl(diagnosticsUrl, {
+                    headers: {
+                        Accept: 'application/json',
+                        'User-Agent': 'pielarmonia-agent-orchestrator/1.0',
+                        'Cache-Control': 'no-cache',
+                        ...diagnosticsAccess.headers,
+                    },
+                });
+                if (response && response.ok) {
+                    const payload = await response.json();
+                    const publicSync =
+                        payload?.checks?.publicSync ||
+                        extractLegacyPublicSyncPayload(payload);
+                    if (publicSync && typeof publicSync === 'object') {
+                        return normalizeSnapshotFromHealth(
+                            job,
+                            publicSync,
+                            'health_diagnostics'
+                        );
+                    }
+                    if (publicHealthPayload === null) {
+                        publicHealthPayload = payload;
+                    }
+                }
+            } catch {
+                // Fall through to public health or registry-only mode.
+            }
+        }
+    }
+
+    if (publicHealthPayload !== null) {
+        return normalizeSnapshotFromHealthMissingPublicSync(
+            job,
+            publicHealthPayload
+        );
     }
 
     const snapshot = {
