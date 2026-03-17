@@ -59,6 +59,7 @@ export function bindQueueOpsPilotActions(manifest, detectedPlatform, deps) {
         renderQueueOpsLog,
         renderQueueHubDomainView,
     } = deps;
+    const root = document.getElementById('queueOpsPilot');
 
     const focusPilotHeading = () => {
         const pilotTitle = document.getElementById('queueOpsPilotTitle');
@@ -73,69 +74,59 @@ export function bindQueueOpsPilotActions(manifest, detectedPlatform, deps) {
         });
     };
 
-    const copyHandoffButton = document.getElementById(
-        'queueOpsPilotHandoffCopyBtn'
-    );
-    if (copyHandoffButton instanceof HTMLButtonElement) {
-        copyHandoffButton.onclick = async () => {
-            const pilot = buildQueueOpsPilot(manifest, detectedPlatform);
-            const clinicLabel =
-                pilot.handoffItems.find((item) => item.id === 'clinic')
-                    ?.value || pilot.title;
-            const report = [
-                `Paquete de apertura - ${pilot.title}`,
-                pilot.handoffSummary,
-                ...pilot.handoffItems.map(
-                    (item) => `${item.label}: ${item.value}`
-                ),
-                '',
-                'Rutas canónicas:',
-                ...pilot.canonicalSurfaces.map(
-                    (item) => `- ${item.label}: ${item.url || item.route}`
-                ),
-                '',
-                'Secuencia de smoke:',
-                ...pilot.smokeSteps.map(
-                    (step) =>
-                        `- [${step.ready ? 'x' : ' '}] ${step.label}: ${step.detail}`
-                ),
-            ]
-                .join('\n')
-                .trim();
-            try {
-                await navigator.clipboard.writeText(report);
-                appendOpsLogEntry({
-                    tone: 'success',
-                    source: 'pilot_handoff',
-                    title: 'Handoff del piloto copiado',
-                    summary: `Se copió el paquete de apertura para ${clinicLabel}.`,
-                });
-                renderQueueFocusMode(manifest, detectedPlatform);
-                if (typeof renderQueueHubDomainView === 'function') {
-                    renderQueueHubDomainView();
-                }
-                renderQueueQuickConsole(manifest, detectedPlatform);
-                renderQueuePlaybook(manifest, detectedPlatform);
-                renderQueueOpsPilot(manifest, detectedPlatform);
-                renderOpeningChecklist(manifest, detectedPlatform);
-                renderShiftHandoff(manifest, detectedPlatform);
-                renderQueueOpsLog(manifest, detectedPlatform);
-                createToast('Paquete de apertura copiado', 'success');
-            } catch (_error) {
-                createToast(
-                    'No se pudo copiar el paquete de apertura',
-                    'error'
-                );
+    const runCopyHandoff = async () => {
+        const pilot = buildQueueOpsPilot(manifest, detectedPlatform);
+        const clinicLabel =
+            pilot.handoffItems.find((item) => item.id === 'clinic')?.value ||
+            pilot.title;
+        const report = [
+            `Paquete de apertura - ${pilot.title}`,
+            pilot.handoffSummary,
+            ...pilot.handoffItems.map((item) => `${item.label}: ${item.value}`),
+            '',
+            'Rutas canónicas:',
+            ...pilot.canonicalSurfaces.map(
+                (item) => `- ${item.label}: ${item.url || item.route}`
+            ),
+            '',
+            'Secuencia de smoke:',
+            ...pilot.smokeSteps.map(
+                (step) =>
+                    `- [${step.ready ? 'x' : ' '}] ${step.label}: ${step.detail}`
+            ),
+        ]
+            .join('\n')
+            .trim();
+        try {
+            await navigator.clipboard.writeText(report);
+            appendOpsLogEntry({
+                tone: 'success',
+                source: 'pilot_handoff',
+                title: 'Handoff del piloto copiado',
+                summary: `Se copió el paquete de apertura para ${clinicLabel}.`,
+            });
+            renderQueueFocusMode(manifest, detectedPlatform);
+            if (typeof renderQueueHubDomainView === 'function') {
+                renderQueueHubDomainView();
             }
-        };
-    }
+            renderQueueQuickConsole(manifest, detectedPlatform);
+            renderQueuePlaybook(manifest, detectedPlatform);
+            renderQueueOpsPilot(manifest, detectedPlatform);
+            renderOpeningChecklist(manifest, detectedPlatform);
+            renderShiftHandoff(manifest, detectedPlatform);
+            renderQueueOpsLog(manifest, detectedPlatform);
+            createToast('Paquete de apertura copiado', 'success');
+        } catch (_error) {
+            createToast('No se pudo copiar el paquete de apertura', 'error');
+        }
+    };
 
     const applyButton = document.getElementById('queueOpsPilotApplyBtn');
     const flowCtaButton = document.getElementById('queueOpsPilotFlowCta');
     const hasBoundApplyButton =
         applyButton instanceof HTMLButtonElement ||
         flowCtaButton instanceof HTMLButtonElement;
-    if (!hasBoundApplyButton) {
+    if (!(root instanceof HTMLElement)) {
         return;
     }
 
@@ -166,10 +157,6 @@ export function bindQueueOpsPilotActions(manifest, detectedPlatform, deps) {
         focusPilotHeading();
     };
 
-    if (applyButton instanceof HTMLButtonElement) {
-        applyButton.onclick = runApplySuggestions;
-    }
-
     const shouldBindFlowCta =
         flowCtaButton instanceof HTMLButtonElement &&
         (!flowCtaButton.dataset.action ||
@@ -178,7 +165,40 @@ export function bindQueueOpsPilotActions(manifest, detectedPlatform, deps) {
                     ? applyButton.dataset.action
                     : 'queue-pilot-apply-suggestions') ||
             flowCtaButton.dataset.action === 'queue-pilot-apply-suggestions');
-    if (shouldBindFlowCta) {
-        flowCtaButton.onclick = runApplySuggestions;
+    const previousHandler = root.__queueOpsPilotClickHandler;
+    if (typeof previousHandler === 'function') {
+        root.removeEventListener('click', previousHandler);
     }
+
+    const delegatedClickHandler = (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+
+        const button = target.closest('button');
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        if (button.id === 'queueOpsPilotHandoffCopyBtn') {
+            event.preventDefault();
+            void runCopyHandoff();
+            return;
+        }
+
+        if (button.id === 'queueOpsPilotApplyBtn' && hasBoundApplyButton) {
+            event.preventDefault();
+            runApplySuggestions();
+            return;
+        }
+
+        if (button.id === 'queueOpsPilotFlowCta' && shouldBindFlowCta) {
+            event.preventDefault();
+            runApplySuggestions();
+        }
+    };
+
+    root.addEventListener('click', delegatedClickHandler);
+    root.__queueOpsPilotClickHandler = delegatedClickHandler;
 }

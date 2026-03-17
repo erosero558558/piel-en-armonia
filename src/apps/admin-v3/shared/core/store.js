@@ -72,6 +72,8 @@ const initialState = {
         turneroClinicProfile: null,
         turneroClinicProfileMeta: null,
         turneroClinicProfileCatalogStatus: null,
+        turneroOperatorAccessMeta: null,
+        turneroV2Readiness: null,
         clinicalHistoryMeta: null,
         mediaFlowMeta: null,
         telemedicineMeta: null,

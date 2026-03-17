@@ -195,7 +195,7 @@ export function normalizeTurneroClinicProfile(rawProfile) {
             native_apps_blocking:
                 typeof release.native_apps_blocking === 'boolean'
                     ? release.native_apps_blocking
-                    : false,
+                    : FALLBACK_PROFILE.release.native_apps_blocking,
             notes: Array.isArray(release.notes)
                 ? release.notes.map((note) => toString(note)).filter(Boolean)
                 : [],

@@ -93,6 +93,16 @@ warnings si `storeEncryptionStatus` sigue en `plaintext`, y escalan a fallo con
 
 Cuando necesites intervenir el VPS sin improvisar comandos, usa:
 
+El carril canonico del piloto web por clinica se mantiene disponible como
+fallback operativo y debe validarse con:
+
+- `npm run verify:prod:turnero:web-pilot`
+- `npm run smoke:prod:turnero:web-pilot`
+- `npm run gate:prod:turnero:web-pilot`
+
+El release ampliado que tambien incluye el carril nativo sigue validandose con
+`turnero:operator:pilot` y sus gates de produccion.
+
 - `npm run checklist:prod:public-sync:host`
 - `npm run gate:admin:rollout:openclaw:node`
 - `npm run diagnose:admin:openclaw-auth:rollout:node`

@@ -657,7 +657,9 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
         typeof getTurneroV2Readiness === 'function'
             ? getTurneroV2Readiness()
             : null;
-    const suiteV2Enabled = turneroV2Readiness?.enabled === true;
+    const suiteV2Enabled =
+        turneroV2Readiness?.enabled === true ||
+        String(release?.mode || '').trim() === 'suite_v2';
     const operatorAccessConfigured =
         turneroV2Readiness?.operatorAccess?.configured === true ||
         operatorAccessMeta?.configured === true ||

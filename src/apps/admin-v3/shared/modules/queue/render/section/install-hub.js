@@ -4186,16 +4186,16 @@ function renderQueueAdminViewMode(manifest, detectedPlatform) {
         : [];
     const modeSummary =
         adminMode === 'expert'
-            ? 'Expert reabre simulacion, coaching y paneles avanzados. No es bloqueante para el piloto web.'
+            ? 'Expert reabre simulacion, coaching y paneles avanzados. No es bloqueante para Turnero V2.'
             : 'Basic deja solo cola, consultorios, heartbeats, incidentes directos y checklist util para operar una clinica real.';
     const modeChip =
         adminMode === 'expert' ? 'Expert activo' : 'Basic por defecto';
     const releaseNote =
         releaseNotes[0] ||
-        'Canon operativo del piloto: admin web, operador web, kiosco web y sala web.';
+        'Canon operativo de Turnero V2: admin web, operador web, kiosco web y sala web como fallback por clinica.';
     const secondaryNote =
         releaseNotes[1] ||
-        'Instaladores y Android TV quedan como siguiente release, no como bloqueo del go-live.';
+        'PIN operativo, apps nativas y Android TV se validan como parte del go-live de Turnero V2.';
     const renderKey = [
         adminMode,
         clinicName,
@@ -4219,7 +4219,7 @@ function renderQueueAdminViewMode(manifest, detectedPlatform) {
                         <div class="queue-admin-view-mode__copy">
                             <p class="queue-admin-view-mode__eyebrow">Corte de produccion</p>
                             <h5 id="queueAdminViewModeTitle">${escapeHtml(
-                                `${clinicShortName} · piloto web por clinica`
+                                `${clinicShortName} · Turnero V2 por clinica`
                             )}</h5>
                             <p id="queueAdminViewModeSummary" class="queue-admin-view-mode__summary">${escapeHtml(
                                 modeSummary

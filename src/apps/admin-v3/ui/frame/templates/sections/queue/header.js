@@ -5,9 +5,9 @@ export function renderQueueHeader() {
                 <p class="sony-kicker">Control room</p>
                 <h3>Turnero Sala</h3>
                 <p>
-                    Operación unificada del piloto web para recepción, operador,
-                    kiosco y sala, con foco claro entre operación diaria,
-                    incidentes y despliegue.
+                    Operación unificada de Turnero V2 para recepción,
+                    operador, kiosco y sala, con foco claro entre operación
+                    diaria, incidentes y despliegue.
                 </p>
             </div>
             <div class="queue-admin-header-actions">
@@ -26,9 +26,9 @@ export function renderQueueAppsHub() {
                 <div>
                     <h4>Apps operativas</h4>
                     <p>
-                        Corte premium-operativo del piloto web. La lectura
-                        diaria se abre primero en basic mode y revela lo experto
-                        solo cuando hace falta.
+                        Corte premium-operativo de Turnero V2. La lectura
+                        diaria se abre primero en basic mode y revela lo
+                        experto solo cuando hace falta.
                     </p>
                 </div>
                 <div class="queue-apps-hub__header-meta">

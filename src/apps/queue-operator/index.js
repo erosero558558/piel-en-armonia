@@ -424,11 +424,21 @@ async function refreshDesktopSnapshot() {
 
     try {
         const snapshot = await bridge.getRuntimeSnapshot();
+        const runtimeStatus =
+            (snapshot?.shellStatus && typeof snapshot.shellStatus === 'object'
+                ? snapshot.shellStatus
+                : null) ||
+            (snapshot?.status && typeof snapshot.status === 'object'
+                ? snapshot.status
+                : null) ||
+            operatorRuntime.shellRuntime;
+        const runtimeSnapshot =
+            snapshot?.shellSnapshot &&
+            typeof snapshot.shellSnapshot === 'object'
+                ? snapshot.shellSnapshot
+                : operatorRuntime.shellRuntimeSnapshot;
         operatorRuntime.shell = hydrateOperatorShellState(snapshot);
-        syncOperatorShellRuntime(
-            snapshot?.shellStatus || operatorRuntime.shellRuntime,
-            operatorRuntime.shellRuntimeSnapshot
-        );
+        syncOperatorShellRuntime(runtimeStatus, runtimeSnapshot);
     } catch (_error) {
         operatorRuntime.shell = createEmptyShellState();
     }

@@ -119,6 +119,10 @@ export function hideAgentPanel() {
 
 export function setActiveSection(section) {
     ensureTopbarQuickNav();
+    document.documentElement.setAttribute('data-admin-section', section);
+    if (document.body instanceof HTMLElement) {
+        document.body.setAttribute('data-admin-section', section);
+    }
 
     qsa('.admin-section').forEach((node) => {
         node.classList.toggle('active', node.id === section);

@@ -75,6 +75,134 @@ function buildTurneroClinicProfileCatalogStatus(options = {}) {
     };
 }
 
+function buildQueuePilotV2Release(overrides = {}) {
+    return {
+        mode: 'suite_v2',
+        admin_mode_default: 'basic',
+        separate_deploy: true,
+        native_apps_blocking: true,
+        ...overrides,
+    };
+}
+
+function buildTurneroOperatorAccessMeta(options = {}) {
+    return {
+        enabled: true,
+        configured: true,
+        maskedPinLabel: '••42',
+        sessionTtlHours: 8,
+        ...options,
+    };
+}
+
+function buildTurneroV2Readiness(options = {}) {
+    const operatorAccessOverride =
+        options.operatorAccess && typeof options.operatorAccess === 'object'
+            ? options.operatorAccess
+            : {};
+    const surfaceOverrides =
+        options.surfaces && typeof options.surfaces === 'object'
+            ? options.surfaces
+            : {};
+    const hardwareOverrides =
+        options.hardware && typeof options.hardware === 'object'
+            ? options.hardware
+            : {};
+
+    return {
+        enabled: options.enabled !== false,
+        operatorAccess: {
+            configured: true,
+            detail: 'PIN operativo configurado.',
+            ...operatorAccessOverride,
+        },
+        surfaces: {
+            operator: {
+                ready: true,
+                summary: 'Operator desktop listo.',
+                ...(surfaceOverrides.operator || {}),
+            },
+            kiosk: {
+                ready: true,
+                summary: 'Kiosk desktop listo.',
+                ...(surfaceOverrides.kiosk || {}),
+            },
+            display: {
+                ready: true,
+                summary: 'Sala TV Android lista.',
+                ...(surfaceOverrides.display || {}),
+            },
+        },
+        hardware: {
+            assistant: {
+                ready: true,
+                summary: 'Asistente de kiosco validado.',
+                ...(hardwareOverrides.assistant || {}),
+            },
+            printer: {
+                ready: true,
+                summary: 'Impresora térmica validada.',
+                ...(hardwareOverrides.printer || {}),
+            },
+            numpad: {
+                ready: true,
+                summary: 'Numpad operador validado.',
+                ...(hardwareOverrides.numpad || {}),
+            },
+            desktopShell: {
+                ready: true,
+                summary: 'Shell desktop validado.',
+                ...(hardwareOverrides.desktopShell || {}),
+            },
+            tvAudio: {
+                ready: true,
+                summary: 'Audio sala TV validado.',
+                ...(hardwareOverrides.tvAudio || {}),
+            },
+            syncMode: {
+                ready: true,
+                summary: 'Sync clínico validado.',
+                ...(hardwareOverrides.syncMode || {}),
+            },
+        },
+    };
+}
+
+function buildQueuePilotV2HealthCheck(options = {}) {
+    const clinicId = String(options.clinicId || 'clinica-demo').trim();
+    const profileFingerprint = String(
+        options.profileFingerprint || 'turnerov2-demo'
+    ).trim();
+    const surfaces =
+        options.surfaces && typeof options.surfaces === 'object'
+            ? options.surfaces
+            : buildQueuePilotClinicProfile({
+                  clinicId,
+                  release: buildQueuePilotV2Release(),
+              }).surfaces;
+
+    return {
+        configured: true,
+        ready: true,
+        profileSource: 'file',
+        clinicId,
+        profileFingerprint,
+        catalogAvailable: true,
+        catalogMatched: true,
+        catalogReady: true,
+        catalogEntryId: clinicId,
+        releaseMode: 'suite_v2',
+        adminModeDefault: 'basic',
+        separateDeploy: true,
+        nativeAppsBlocking: true,
+        operatorPinMode: 'pin',
+        operatorPinConfigured: true,
+        operatorPinSessionTtlHours: 8,
+        surfaces,
+        ...options,
+    };
+}
+
 function buildQueueIdleState(updatedAt, overrides = {}) {
     return {
         updatedAt: updatedAt || new Date().toISOString(),
@@ -154,10 +282,7 @@ function buildQueuePilotClinicProfile(options = {}) {
             },
         },
         release: {
-            mode: 'web_pilot',
-            admin_mode_default: 'basic',
-            separate_deploy: true,
-            native_apps_blocking: false,
+            ...buildQueuePilotV2Release(),
             ...releaseOverride,
         },
     };
@@ -554,6 +679,17 @@ async function installQueuePilotApiMocks(page, options = {}) {
                 ? {
                       turneroClinicProfileCatalogStatus:
                           clinicProfileCatalogStatus,
+                  }
+                : {}),
+            ...(options.turneroOperatorAccessMeta
+                ? {
+                      turneroOperatorAccessMeta:
+                          options.turneroOperatorAccessMeta,
+                  }
+                : {}),
+            ...(options.turneroV2Readiness
+                ? {
+                      turneroV2Readiness: options.turneroV2Readiness,
                   }
                 : {}),
             ...(resolveAdminQueueFixture(options.queueSurfaceStatus)
@@ -12259,13 +12395,10 @@ test.describe('Admin turnero sala', () => {
                                 },
                             },
                             release: {
-                                mode: 'web_pilot',
-                                admin_mode_default: 'basic',
-                                separate_deploy: true,
-                                native_apps_blocking: false,
+                                ...buildQueuePilotV2Release(),
                                 notes: [
-                                    'Canon web piloto por clínica.',
-                                    'Instaladores quedan para el siguiente release.',
+                                    'Turnero V2 por clínica con fallback web activo.',
+                                    'PIN operativo y superficies nativas bloquean el go-live.',
                                 ],
                             },
                         },
@@ -12273,12 +12406,16 @@ test.describe('Admin turnero sala', () => {
                             source: 'remote',
                             cached: false,
                             clinicId: 'clinica-norte-demo',
+                            profileFingerprint: 'nortev2a',
                             fetchedAt: nowIso,
                         },
                         turneroClinicProfileCatalogStatus:
                             buildTurneroClinicProfileCatalogStatus({
                                 clinicId: 'clinica-norte-demo',
                             }),
+                        turneroOperatorAccessMeta:
+                            buildTurneroOperatorAccessMeta(),
+                        turneroV2Readiness: buildTurneroV2Readiness(),
                         queue_tickets: [],
                         queueMeta: buildQueueMetaFromState({
                             updatedAt: nowIso,
@@ -12308,6 +12445,14 @@ test.describe('Admin turnero sala', () => {
                                     appMode: 'desktop',
                                     ageSec: 8,
                                     details: {
+                                        clinicId: 'clinica-norte-demo',
+                                        profileFingerprint: 'nortev2a',
+                                        profileSource: 'remote',
+                                        surfaceContractState: 'ready',
+                                        surfaceRouteExpected:
+                                            '/operador-turnos.html',
+                                        surfaceRouteCurrent:
+                                            '/operador-turnos.html',
                                         station: 'c1',
                                         stationMode: 'locked',
                                         oneTap: false,
@@ -12390,6 +12535,32 @@ test.describe('Admin turnero sala', () => {
                             ageSeconds: 32,
                             failureReason: '',
                         },
+                        turneroPilot: buildQueuePilotV2HealthCheck({
+                            clinicId: 'clinica-norte-demo',
+                            profileFingerprint: 'nortev2a',
+                            surfaces: {
+                                admin: {
+                                    enabled: true,
+                                    label: 'Admin web',
+                                    route: '/admin.html#queue',
+                                },
+                                operator: {
+                                    enabled: true,
+                                    label: 'Operador web',
+                                    route: '/operador-turnos.html',
+                                },
+                                kiosk: {
+                                    enabled: true,
+                                    label: 'Kiosco web',
+                                    route: '/kiosco-turnos.html',
+                                },
+                                display: {
+                                    enabled: true,
+                                    label: 'Sala web',
+                                    route: '/sala-turnos.html',
+                                },
+                            },
+                        }),
                     },
                 });
             }
@@ -12411,7 +12582,7 @@ test.describe('Admin turnero sala', () => {
         );
         await expect(page.locator('#queueAdminViewMode')).toBeVisible();
         await expect(page.locator('#queueAdminViewModeTitle')).toContainText(
-            'Norte · piloto web por clinica'
+            'Norte · Turnero V2 por clinica'
         );
         await expect(page.locator('#queueAdminViewModeChip')).toContainText(
             'Basic por defecto'
@@ -12423,7 +12594,7 @@ test.describe('Admin turnero sala', () => {
             'Experiencia: Despliegue'
         );
         await expect(page.locator('#queueDomainSummary')).toContainText(
-            'Checklist de apertura'
+            'Turnero V2'
         );
         await expect(page.locator('#queueDomainPrimary')).toHaveAttribute(
             'href',
@@ -12435,17 +12606,17 @@ test.describe('Admin turnero sala', () => {
             'Paso actual: Readiness'
         );
         await expect(page.locator('#queueOpsPilotFlowSummary')).toContainText(
-            'heartbeats'
+            'faltan 1 superficie'
         );
         await expect(page.locator('#queueOpsPilotFlowProgress')).toContainText(
-            'Flow 0/4'
+            'Flow 1/4'
         );
         await expect(
             page.locator('#queueOpsPilotFlowPhase_readiness')
         ).toContainText('Actual');
         await expect(
             page.locator('#queueOpsPilotFlowPhase_canon')
-        ).toContainText('3/4 verificadas');
+        ).toContainText('4/4 verificadas');
         await expect(
             page.locator('#queueOpsPilotFlowPhase_smoke')
         ).toContainText('3/5 listos');
@@ -12454,7 +12625,7 @@ test.describe('Admin turnero sala', () => {
         ).toContainText('2 pendiente');
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText('Piloto web casi listo');
+        ).toContainText('Turnero V2 casi listo');
         await expect(
             page.locator('#queueOpsPilotReadinessStatus')
         ).toContainText('2 bloqueo');
@@ -12466,7 +12637,7 @@ test.describe('Admin turnero sala', () => {
         ).toContainText('clinica-norte-demo.json');
         await expect(
             page.locator('#queueOpsPilotReadinessItem_surfaces')
-        ).toContainText('Admin, operador, kiosco y sala web');
+        ).toContainText('fallback y soporte canónico');
         await expect(
             page.locator('#queueOpsPilotReadinessItem_publish')
         ).toContainText('public_main_sync sano');
@@ -12501,7 +12672,7 @@ test.describe('Admin turnero sala', () => {
             page.locator('#queueOpsPilotCanonItem_operator')
         ).toContainText('/operador-turnos.html');
         await expect(page.locator('#queueOpsPilotCanonSupport')).toContainText(
-            '3/4 superficies ya verificaron su ruta'
+            'Todas las superficies activas ya verificaron su ruta'
         );
         await expect(page.locator('#queueOpsPilotSmokeTitle')).toContainText(
             'Secuencia repetible'
@@ -12541,7 +12712,7 @@ test.describe('Admin turnero sala', () => {
         ).toContainText('commit 3de287e2');
         await expect(
             page.locator('#queueOpsPilotHandoffItem_canon')
-        ).toContainText('3/4 rutas verificadas');
+        ).toContainText('4/4 rutas verificadas');
         await expect(
             page.locator('#queueOpsPilotHandoffItem_blockers')
         ).toContainText('Señal viva / heartbeats');
@@ -12549,16 +12720,19 @@ test.describe('Admin turnero sala', () => {
             page.locator('#queueOpsPilotHandoffCopyBtn')
         ).toContainText('Copiar paquete');
         await expect(page.locator('#queueOpeningChecklist')).toBeVisible();
-        await expect(page.locator('#queueAppDownloadsCards')).toBeHidden();
-        await expect(page.locator('#queuePlaybook')).toBeHidden();
+        await expect(page.locator('#queueAppDownloadsCards')).toBeVisible();
+        await expect(page.locator('#queuePlaybook')).toBeVisible();
         await expect(page.locator('#queueDeskReply')).toBeHidden();
-        await expect(page.locator('#queueInstallConfigurator')).toBeHidden();
+        await expect(page.locator('#queueInstallConfigurator')).toBeVisible();
 
-        await page.locator('#queueDomainOperations').dispatchEvent('click');
+        await page.locator('#queueFocusModeOperations').dispatchEvent('click');
+        await expect(page.locator('#queueFocusModeChip')).toContainText(
+            'Manual -> operations'
+        );
         await expect(page.locator('#queueConsultorioBoard')).toBeVisible();
         await expect(page.locator('#queueAttentionDeck')).toBeVisible();
         await expect(page.locator('#queueResolutionDeck')).toBeVisible();
-        await expect(page.locator('#queueTicketLookup')).toBeVisible();
+        await expect(page.locator('#queueTicketLookup')).toBeHidden();
         await expect(
             page.locator('#queueConsultorioCard_c1 strong').first()
         ).toContainText('D1');
@@ -12574,11 +12748,14 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueTicketRoute')).toBeHidden();
         await expect(page.locator('#queueNextTurns')).toBeHidden();
 
-        await page.locator('#queueDomainIncidents').dispatchEvent('click');
+        await page.locator('#queueFocusModeIncidents').dispatchEvent('click');
+        await expect(page.locator('#queueFocusModeChip')).toContainText(
+            'Manual -> incidents'
+        );
         await expect(page.locator('#queueSurfaceTelemetry')).toBeVisible();
         await expect(page.locator('#queueOpsAlerts')).toBeVisible();
         await expect(page.locator('#queueContingencyDeck')).toBeVisible();
-        await expect(page.locator('#queueOpsLog')).toBeHidden();
+        await expect(page.locator('#queueOpsLog')).toBeVisible();
 
         await page.locator('#queueAdminViewModeExpert').click();
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
@@ -12606,6 +12783,7 @@ test.describe('Admin turnero sala', () => {
                 short_name: 'Smoke',
                 base_url: 'https://clinica-smoke.example',
             },
+            release: buildQueuePilotV2Release(),
         });
 
         await installQueueAdminAuthMock(page, 'csrf_queue_pilot_smoke_phase');
@@ -12619,6 +12797,8 @@ test.describe('Admin turnero sala', () => {
                 profileFingerprint: 'smokephase1',
                 fetchedAt: nowIso,
             },
+            turneroOperatorAccessMeta: buildTurneroOperatorAccessMeta(),
+            turneroV2Readiness: buildTurneroV2Readiness(),
             queueSurfaceStatus: buildQueuePilotSurfaceStatus({
                 updatedAt: nowIso,
                 clinicId: clinicProfile.clinic_id,
@@ -12644,22 +12824,11 @@ test.describe('Admin turnero sala', () => {
                     ageSeconds: 9,
                 },
                 checks: {
-                    turneroPilot: {
-                        configured: true,
-                        ready: true,
-                        profileSource: 'file',
+                    turneroPilot: buildQueuePilotV2HealthCheck({
                         clinicId: clinicProfile.clinic_id,
                         profileFingerprint: 'smokephase1',
-                        catalogAvailable: true,
-                        catalogMatched: true,
-                        catalogReady: true,
-                        catalogEntryId: clinicProfile.clinic_id,
-                        releaseMode: 'web_pilot',
-                        adminModeDefault: 'basic',
-                        separateDeploy: true,
-                        nativeAppsBlocking: false,
                         surfaces: clinicProfile.surfaces,
-                    },
+                    }),
                 },
             }),
         });
@@ -12936,7 +13105,8 @@ test.describe('Admin turnero sala', () => {
                 },
             },
             release: {
-                notes: ['Canon web piloto por clínica.'],
+                ...buildQueuePilotV2Release(),
+                notes: ['Turnero V2 por clínica con fallback web activo.'],
             },
         });
 
@@ -13137,7 +13307,8 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('[data-action="queue-clear-call-key"]')
         ).toBeHidden();
-        await expect(page.locator('#queueTicketLookupInput')).toHaveValue('');
+        await expect(page.locator('#queueTicketLookup')).toBeHidden();
+        await expect(page.locator('#queueTicketLookupInput')).toHaveCount(0);
         await expect(page.locator('#queueTableBody')).not.toContainText(
             'A-1999'
         );
@@ -13165,6 +13336,7 @@ test.describe('Admin turnero sala', () => {
                     short_label: 'S2',
                 },
             },
+            release: buildQueuePilotV2Release(),
         });
 
         await installQueueAdminAuthMock(page, 'csrf_queue_pilot_route_alert');
@@ -13175,8 +13347,11 @@ test.describe('Admin turnero sala', () => {
                 source: 'remote',
                 cached: false,
                 clinicId: clinicProfile.clinic_id,
+                profileFingerprint: 'sur-alerta-v2',
                 fetchedAt: nowIso,
             },
+            turneroOperatorAccessMeta: buildTurneroOperatorAccessMeta(),
+            turneroV2Readiness: buildTurneroV2Readiness(),
             queueSurfaceStatus: buildQueuePilotSurfaceStatus({
                 updatedAt: nowIso,
                 clinicId: clinicProfile.clinic_id,
@@ -13190,6 +13365,8 @@ test.describe('Admin turnero sala', () => {
                     },
                     details: {
                         station: 'c1',
+                        clinicId: clinicProfile.clinic_id,
+                        profileFingerprint: 'sur-alerta-v2',
                         surfaceContractState: 'alert',
                         surfaceRouteCurrent: '/operador-alt.html',
                     },
@@ -13211,6 +13388,13 @@ test.describe('Admin turnero sala', () => {
                 publicSync: {
                     ageSeconds: 12,
                 },
+                checks: {
+                    turneroPilot: buildQueuePilotV2HealthCheck({
+                        clinicId: clinicProfile.clinic_id,
+                        profileFingerprint: 'sur-alerta-v2',
+                        surfaces: clinicProfile.surfaces,
+                    }),
+                },
             }),
         });
 
@@ -13220,7 +13404,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText('Piloto web bloqueado');
+        ).toContainText('Turnero V2 bloqueado');
         await expect(
             page.locator('#queueOpsPilotReadinessItem_surfaces')
         ).toContainText('1 superficie');
@@ -13286,10 +13470,7 @@ test.describe('Admin turnero sala', () => {
                 },
             },
             release: {
-                mode: 'web_pilot',
-                admin_mode_default: 'basic',
-                separate_deploy: true,
-                native_apps_blocking: false,
+                ...buildQueuePilotV2Release(),
             },
         };
 
@@ -13319,6 +13500,8 @@ test.describe('Admin turnero sala', () => {
         await installQueuePilotApiMocks(page, {
             queueState: buildQueueIdleState(nowIso),
             clinicId: 'clinica-cache-demo',
+            turneroOperatorAccessMeta: buildTurneroOperatorAccessMeta(),
+            turneroV2Readiness: buildTurneroV2Readiness(),
             clinicProfileCatalogStatus: buildTurneroClinicProfileCatalogStatus({
                 clinicId: 'clinica-cache-demo',
             }),
@@ -13348,6 +13531,13 @@ test.describe('Admin turnero sala', () => {
                 publicSync: {
                     ageSeconds: 18,
                 },
+                checks: {
+                    turneroPilot: buildQueuePilotV2HealthCheck({
+                        clinicId: 'clinica-cache-demo',
+                        profileFingerprint: 'cachev2',
+                        surfaces: fallbackProfile.surfaces,
+                    }),
+                },
             }),
         });
 
@@ -13357,7 +13547,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText('Piloto web bloqueado');
+        ).toContainText('Turnero V2 bloqueado');
         await expect(
             page.locator('#queueOpsPilotReadinessItem_profile')
         ).toContainText('cacheado localmente');
@@ -13393,6 +13583,7 @@ test.describe('Admin turnero sala', () => {
                     short_label: 'C2',
                 },
             },
+            release: buildQueuePilotV2Release(),
         });
 
         await installQueueAdminAuthMock(page, 'csrf_queue_pilot_clinic_drift');
@@ -13403,8 +13594,11 @@ test.describe('Admin turnero sala', () => {
                 source: 'remote',
                 cached: false,
                 clinicId: clinicProfile.clinic_id,
+                profileFingerprint: 'centro-v2',
                 fetchedAt: nowIso,
             },
+            turneroOperatorAccessMeta: buildTurneroOperatorAccessMeta(),
+            turneroV2Readiness: buildTurneroV2Readiness(),
             queueSurfaceStatus: buildQueuePilotSurfaceStatus({
                 updatedAt: nowIso,
                 clinicId: clinicProfile.clinic_id,
@@ -13416,6 +13610,7 @@ test.describe('Admin turnero sala', () => {
                     },
                     details: {
                         clinicId: 'clinica-sur-demo',
+                        profileFingerprint: 'centro-v2',
                     },
                 },
                 kiosk: {
@@ -13435,6 +13630,13 @@ test.describe('Admin turnero sala', () => {
                 publicSync: {
                     ageSeconds: 14,
                 },
+                checks: {
+                    turneroPilot: buildQueuePilotV2HealthCheck({
+                        clinicId: clinicProfile.clinic_id,
+                        profileFingerprint: 'centro-v2',
+                        surfaces: clinicProfile.surfaces,
+                    }),
+                },
             }),
         });
 
@@ -13444,7 +13646,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText('Piloto web bloqueado');
+        ).toContainText('Turnero V2 bloqueado');
         await expect(
             page.locator('#queueOpsPilotReadinessItem_surfaces')
         ).toContainText('vivas fuera');
@@ -13483,6 +13685,7 @@ test.describe('Admin turnero sala', () => {
                     short_label: 'A2',
                 },
             },
+            release: buildQueuePilotV2Release(),
         });
 
         await installQueueAdminAuthMock(
@@ -13492,6 +13695,15 @@ test.describe('Admin turnero sala', () => {
         await installQueuePilotApiMocks(page, {
             queueState: buildQueueIdleState(nowIso),
             clinicProfile,
+            clinicProfileMeta: {
+                source: 'remote',
+                cached: false,
+                clinicId: clinicProfile.clinic_id,
+                profileFingerprint: 'aurora-v2',
+                fetchedAt: nowIso,
+            },
+            turneroOperatorAccessMeta: buildTurneroOperatorAccessMeta(),
+            turneroV2Readiness: buildTurneroV2Readiness(),
             queueSurfaceStatus: buildQueuePilotSurfaceStatus({
                 updatedAt: nowIso,
                 clinicId: clinicProfile.clinic_id,
@@ -13528,6 +13740,13 @@ test.describe('Admin turnero sala', () => {
                 publicSync: {
                     ageSeconds: 15,
                 },
+                checks: {
+                    turneroPilot: buildQueuePilotV2HealthCheck({
+                        clinicId: clinicProfile.clinic_id,
+                        profileFingerprint: 'aurora-v2',
+                        surfaces: clinicProfile.surfaces,
+                    }),
+                },
             }),
         });
 
@@ -13537,7 +13756,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText('Piloto web bloqueado');
+        ).toContainText('Turnero V2 bloqueado');
         await expect(
             page.locator('#queueOpsPilotCanonItem_operator')
         ).toContainText('legacy001');
@@ -13570,6 +13789,7 @@ test.describe('Admin turnero sala', () => {
                     short_label: 'L2',
                 },
             },
+            release: buildQueuePilotV2Release(),
         });
 
         await installQueueAdminAuthMock(page, 'csrf_queue_pilot_health_clinic');
@@ -13583,6 +13803,8 @@ test.describe('Admin turnero sala', () => {
                 fetchedAt: nowIso,
                 profileFingerprint: 'lago0001',
             },
+            turneroOperatorAccessMeta: buildTurneroOperatorAccessMeta(),
+            turneroV2Readiness: buildTurneroV2Readiness(),
             queueSurfaceStatus: buildQueuePilotSurfaceStatus({
                 updatedAt: nowIso,
                 clinicId: clinicProfile.clinic_id,
@@ -13620,22 +13842,12 @@ test.describe('Admin turnero sala', () => {
                     ageSeconds: 11,
                 },
                 checks: {
-                    turneroPilot: {
-                        configured: true,
-                        ready: true,
-                        profileSource: 'file',
+                    turneroPilot: buildQueuePilotV2HealthCheck({
                         clinicId: 'clinica-sur-real',
                         profileFingerprint: 'sur00001',
-                        catalogAvailable: true,
-                        catalogMatched: true,
-                        catalogReady: true,
                         catalogEntryId: 'clinica-sur-real',
-                        releaseMode: 'web_pilot',
-                        adminModeDefault: 'basic',
-                        separateDeploy: true,
-                        nativeAppsBlocking: false,
                         surfaces: clinicProfile.surfaces,
-                    },
+                    }),
                 },
             }),
         });
@@ -13646,7 +13858,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText('Piloto web casi listo');
+        ).toContainText('Turnero V2 casi listo');
         await expect(
             page.locator('#queueOpsPilotReadinessItem_health')
         ).toContainText('clinica-sur-real');
@@ -13676,6 +13888,7 @@ test.describe('Admin turnero sala', () => {
                     short_label: 'B2',
                 },
             },
+            release: buildQueuePilotV2Release(),
         });
 
         await installQueueAdminAuthMock(
@@ -13692,6 +13905,8 @@ test.describe('Admin turnero sala', () => {
                 profileFingerprint: 'bosque123',
                 fetchedAt: nowIso,
             },
+            turneroOperatorAccessMeta: buildTurneroOperatorAccessMeta(),
+            turneroV2Readiness: buildTurneroV2Readiness(),
             queueSurfaceStatus: buildQueuePilotSurfaceStatus({
                 updatedAt: nowIso,
                 clinicId: clinicProfile.clinic_id,
@@ -13735,6 +13950,13 @@ test.describe('Admin turnero sala', () => {
                 publicSync: {
                     ageSeconds: 18,
                 },
+                checks: {
+                    turneroPilot: buildQueuePilotV2HealthCheck({
+                        clinicId: clinicProfile.clinic_id,
+                        profileFingerprint: 'bosque123',
+                        surfaces: clinicProfile.surfaces,
+                    }),
+                },
             }),
         });
 
@@ -13744,7 +13966,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText('Piloto web bloqueado');
+        ).toContainText('Turnero V2 bloqueado');
         await expect(
             page.locator('#queueOpsPilotIssuesItem_surface_operator')
         ).toContainText('clinic-profile.json');
@@ -13799,6 +14021,7 @@ test.describe('Admin turnero sala', () => {
                     route: '/admin-alt.html#queue',
                 },
             },
+            release: buildQueuePilotV2Release(),
         });
 
         await installQueueAdminAuthMock(page, 'csrf_queue_admin_pilot_block');
@@ -13810,8 +14033,11 @@ test.describe('Admin turnero sala', () => {
                 source: 'remote',
                 cached: false,
                 clinicId: clinicProfile.clinic_id,
+                profileFingerprint: 'adminbloq1',
                 fetchedAt: nowIso,
             },
+            turneroOperatorAccessMeta: buildTurneroOperatorAccessMeta(),
+            turneroV2Readiness: buildTurneroV2Readiness(),
             queueSurfaceStatus: buildQueuePilotSurfaceStatus({
                 updatedAt: nowIso,
                 clinicId: clinicProfile.clinic_id,
@@ -13838,6 +14064,13 @@ test.describe('Admin turnero sala', () => {
                 publicSync: {
                     deployedCommit: '03729fced585d79a66e6dd40e026cdb9fef3fdc7',
                     ageSeconds: 20,
+                },
+                checks: {
+                    turneroPilot: buildQueuePilotV2HealthCheck({
+                        clinicId: clinicProfile.clinic_id,
+                        profileFingerprint: 'adminbloq1',
+                        surfaces: clinicProfile.surfaces,
+                    }),
                 },
             }),
             handleRoute: async ({
@@ -13872,7 +14105,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
-        ).toContainText('Piloto web bloqueado');
+        ).toContainText('Turnero V2 bloqueado');
         await expect(page.locator('#queueFocusModeChip')).toContainText(
             'Auto -> opening'
         );
@@ -14136,7 +14369,7 @@ test.describe('Admin turnero sala', () => {
             'operations'
         );
         await expect(page.locator('#queueDomainTitle')).toContainText(
-            'Experiencia: Operacion'
+            'Experiencia: Operación'
         );
         await expect(page.locator('#queueDomainChip')).toContainText(
             'Manual -> operations'
@@ -15059,6 +15292,8 @@ test.describe('Admin turnero sala', () => {
                 profileFingerprint: 'handoffpilot1',
                 fetchedAt: nowIso,
             },
+            turneroOperatorAccessMeta: buildTurneroOperatorAccessMeta(),
+            turneroV2Readiness: buildTurneroV2Readiness(),
             queueSurfaceStatus: () => queueSurfaceStatusFixture,
             healthPayload: buildQueuePilotHealthPayload({
                 publicSync: {
@@ -15066,22 +15301,11 @@ test.describe('Admin turnero sala', () => {
                     ageSeconds: 12,
                 },
                 checks: {
-                    turneroPilot: {
-                        configured: true,
-                        ready: true,
-                        profileSource: 'file',
+                    turneroPilot: buildQueuePilotV2HealthCheck({
                         clinicId: clinicProfile.clinic_id,
                         profileFingerprint: 'handoffpilot1',
-                        catalogAvailable: true,
-                        catalogMatched: true,
-                        catalogReady: true,
-                        catalogEntryId: clinicProfile.clinic_id,
-                        releaseMode: 'web_pilot',
-                        adminModeDefault: 'basic',
-                        separateDeploy: true,
-                        nativeAppsBlocking: false,
                         surfaces: clinicProfile.surfaces,
-                    },
+                    }),
                 },
             }),
         });
@@ -15129,7 +15353,12 @@ test.describe('Admin turnero sala', () => {
         ).toHaveAttribute('href', '#queueOpsPilotHandoff');
 
         await page.locator('#queueDomainAuto').dispatchEvent('click');
-        await page.locator('#queueOpsPilotHandoffCopyBtn').click();
+        await page
+            .locator('#queueOpsPilotHandoffCopyBtn')
+            .scrollIntoViewIfNeeded();
+        await page
+            .locator('#queueOpsPilotHandoffCopyBtn')
+            .dispatchEvent('click');
 
         await expect(page.locator('#toastContainer')).toContainText(
             'Paquete de apertura copiado'
@@ -15548,7 +15777,7 @@ test.describe('Admin turnero sala', () => {
         );
         await expect(
             page.locator('#queueQuickConsoleAction_refresh')
-        ).toContainText('Refrescar cola');
+        ).toContainText('Refrescar y revisar sync');
 
         const requestsBeforeRefresh = queueStateRequests;
         await page.locator('#queueQuickConsoleAction_refresh').click();

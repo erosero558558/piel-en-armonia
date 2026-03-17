@@ -1,7 +1,38 @@
 import { getStorageItem, setStorageItem } from './persistence.js';
 
 const THEME_STORAGE_KEY = 'themeMode';
+const SYSTEM_THEME_QUERY = '(prefers-color-scheme: dark)';
 const THEMES = new Set(['light', 'dark', 'system']);
+let systemThemeListenerBound = false;
+
+function bindSystemThemeListener() {
+    if (systemThemeListenerBound || typeof window.matchMedia !== 'function') {
+        return;
+    }
+
+    const mediaQuery = window.matchMedia(SYSTEM_THEME_QUERY);
+    const handleThemeChange = () => {
+        if (
+            document.documentElement.getAttribute('data-theme-mode') !==
+            'system'
+        ) {
+            return;
+        }
+
+        applyTheme('system');
+    };
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+        mediaQuery.addEventListener('change', handleThemeChange);
+        systemThemeListenerBound = true;
+        return;
+    }
+
+    if (typeof mediaQuery.addListener === 'function') {
+        mediaQuery.addListener(handleThemeChange);
+        systemThemeListenerBound = true;
+    }
+}
 
 export function readThemeMode() {
     const stored = String(
@@ -27,6 +58,7 @@ export function resolveTheme(mode) {
 
 export function applyTheme(mode) {
     const normalizedMode = THEMES.has(mode) ? mode : 'system';
+    bindSystemThemeListener();
     const resolved = resolveTheme(normalizedMode);
     document.documentElement.setAttribute('data-theme-mode', normalizedMode);
     document.documentElement.setAttribute('data-theme', resolved);
@@ -44,9 +76,13 @@ export function applyTheme(mode) {
     }
 
     document.documentElement.setAttribute('data-ops-tone', resolved);
+    document.documentElement.setAttribute('data-ops-family', 'command');
+    document.documentElement.setAttribute('data-ops-surface', 'admin');
     if (document.body instanceof HTMLElement) {
+        document.body.setAttribute('data-theme', resolved);
         document.body.setAttribute('data-ops-tone', resolved);
         document.body.setAttribute('data-ops-family', 'command');
+        document.body.setAttribute('data-ops-surface', 'admin');
     }
     return resolved;
 }
