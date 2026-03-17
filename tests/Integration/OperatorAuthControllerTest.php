@@ -13,6 +13,8 @@ use PHPUnit\Framework\TestCase;
 class OperatorAuthControllerTest extends TestCase
 {
     private string $tempDir;
+    /** @var array{privateKey:string,kid:string,jwk:array<string,mixed>} */
+    private array $brokerKeyMaterial;
 
     protected function setUp(): void
     {
@@ -34,6 +36,7 @@ class OperatorAuthControllerTest extends TestCase
         putenv('PIELARMONIA_DATA_DIR=' . $this->tempDir);
         putenv('PIELARMONIA_SKIP_ENV_FILE=true');
         putenv('PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt');
+        putenv('PIELARMONIA_OPERATOR_AUTH_TRANSPORT=local_helper');
         putenv('PIELARMONIA_OPERATOR_AUTH_ALLOWLIST=operator@example.com');
         putenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN=operator-auth-bridge-test-token');
         putenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET=operator-auth-bridge-test-secret');
@@ -42,13 +45,20 @@ class OperatorAuthControllerTest extends TestCase
         putenv('PIELARMONIA_OPERATOR_AUTH_HELPER_BASE_URL=http://127.0.0.1:4173');
         putenv('PIELARMONIA_OPERATOR_AUTH_CHALLENGE_TTL_SECONDS=300');
         putenv('PIELARMONIA_OPERATOR_AUTH_SESSION_TTL_SECONDS=1800');
-        putenv('PIELARMONIA_OPERATOR_AUTH_TRANSPORT');
+        putenv('PIELARMONIA_OPERATOR_AUTH_TRANSPORT=local_helper');
         putenv('PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL');
         putenv('OPENCLAW_AUTH_BROKER_AUTHORIZE_URL');
         putenv('OPENCLAW_AUTH_BROKER_TOKEN_URL');
         putenv('OPENCLAW_AUTH_BROKER_USERINFO_URL');
         putenv('OPENCLAW_AUTH_BROKER_CLIENT_ID');
         putenv('OPENCLAW_AUTH_BROKER_CLIENT_SECRET');
+        putenv('OPENCLAW_AUTH_BROKER_JWKS_URL');
+        putenv('OPENCLAW_AUTH_BROKER_EXPECTED_ISSUER');
+        putenv('OPENCLAW_AUTH_BROKER_EXPECTED_AUDIENCE');
+        putenv('OPENCLAW_AUTH_BROKER_REQUIRE_EMAIL_VERIFIED');
+        putenv('OPENCLAW_AUTH_BROKER_CLOCK_SKEW_SECONDS');
+
+        $this->brokerKeyMaterial = $this->generateBrokerKeyMaterial();
 
         if (!defined('TESTING_ENV')) {
             define('TESTING_ENV', true);
@@ -78,6 +88,11 @@ class OperatorAuthControllerTest extends TestCase
         putenv('OPENCLAW_AUTH_BROKER_USERINFO_URL');
         putenv('OPENCLAW_AUTH_BROKER_CLIENT_ID');
         putenv('OPENCLAW_AUTH_BROKER_CLIENT_SECRET');
+        putenv('OPENCLAW_AUTH_BROKER_JWKS_URL');
+        putenv('OPENCLAW_AUTH_BROKER_EXPECTED_ISSUER');
+        putenv('OPENCLAW_AUTH_BROKER_EXPECTED_AUDIENCE');
+        putenv('OPENCLAW_AUTH_BROKER_REQUIRE_EMAIL_VERIFIED');
+        putenv('OPENCLAW_AUTH_BROKER_CLOCK_SKEW_SECONDS');
         putenv('PIELARMONIA_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK');
         putenv('PIELARMONIA_ADMIN_PASSWORD');
         putenv('PIELARMONIA_ADMIN_PASSWORD_HASH');
@@ -393,6 +408,22 @@ class OperatorAuthControllerTest extends TestCase
         self::assertSame('anonymous', (string) ($secondStatus['payload']['status'] ?? ''));
     }
 
+    public function testMissingExplicitTransportFailsClosed(): void
+    {
+        putenv('PIELARMONIA_OPERATOR_AUTH_TRANSPORT=');
+
+        $status = $this->captureResponse(static fn () => \OperatorAuthController::status([]));
+
+        self::assertSame(200, $status['status']);
+        self::assertFalse((bool) ($status['payload']['configured'] ?? true));
+        self::assertSame('transport_misconfigured', (string) ($status['payload']['status'] ?? ''));
+        self::assertSame('', (string) ($status['payload']['transport'] ?? ''));
+        self::assertStringContainsString(
+            'PIELARMONIA_OPERATOR_AUTH_TRANSPORT',
+            (string) ($status['payload']['error'] ?? '')
+        );
+    }
+
     public function testWebBrokerCallbackAuthenticatesAndReusesSession(): void
     {
         $this->configureWebBrokerTransport();
@@ -406,40 +437,7 @@ class OperatorAuthControllerTest extends TestCase
         $pending = $_SESSION['operator_auth_pending_web_state'] ?? null;
         self::assertIsArray($pending);
 
-        $GLOBALS['__OPERATOR_AUTH_HTTP_CLIENT'] = static function (
-            string $method,
-            string $url,
-            array $options = []
-        ): array {
-            if ($method === 'POST' && $url === 'https://broker.example.test/token') {
-                return [
-                    'ok' => true,
-                    'status' => 200,
-                    'json' => [
-                        'access_token' => 'token-web-broker-test',
-                    ],
-                ];
-            }
-
-            if ($method === 'GET' && $url === 'https://broker.example.test/userinfo') {
-                self::assertSame(
-                    'Bearer token-web-broker-test',
-                    (string) (($options['headers']['Authorization'] ?? ''))
-                );
-
-                return [
-                    'ok' => true,
-                    'status' => 200,
-                    'json' => [
-                        'email' => 'operator@example.com',
-                        'sub' => 'profile-web-broker',
-                        'accountId' => 'acct-web-broker',
-                    ],
-                ];
-            }
-
-            self::fail('Unexpected broker request: ' . $method . ' ' . $url);
-        };
+        $this->installWebBrokerHttpClient($pending);
 
         $redirect = $this->captureRedirect(
             static fn () => \OperatorAuthController::callback([]),
@@ -462,6 +460,55 @@ class OperatorAuthControllerTest extends TestCase
         self::assertTrue((bool) ($status['payload']['authenticated'] ?? false));
         self::assertSame('web_broker', (string) ($status['payload']['transport'] ?? ''));
         self::assertSame('operator@example.com', (string) ($status['payload']['operator']['email'] ?? ''));
+        self::assertTrue((bool) ($status['payload']['capabilities']['adminAgent'] ?? false));
+    }
+
+    public function testWebBrokerCallbackAuthenticatesRestrictedAllowlistEmail(): void
+    {
+        $this->configureWebBrokerTransport([
+            'PIELARMONIA_ADMIN_EMAIL' => 'restricted.operator@example.com',
+            'PIELARMONIA_OPERATOR_AUTH_ALLOWLIST' => 'restricted.operator@example.com',
+            'PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL' => 'false',
+        ]);
+
+        $this->captureResponse(static fn () => \OperatorAuthController::start([]), 'POST');
+        $pending = $_SESSION['operator_auth_pending_web_state'] ?? null;
+        self::assertIsArray($pending);
+
+        $this->installWebBrokerHttpClient($pending, [
+            'tokenPayload' => [
+                'access_token' => 'token-restricted-allowlist',
+                'id_token' => $this->issueBrokerIdToken([
+                    'nonce' => (string) ($pending['nonce'] ?? ''),
+                    'sub' => 'profile-restricted-operator',
+                    'email' => 'restricted.operator@example.com',
+                    'email_verified' => true,
+                ]),
+            ],
+            'userinfoPayload' => [
+                'email' => 'restricted.operator@example.com',
+                'sub' => 'profile-restricted-operator',
+                'email_verified' => true,
+            ],
+        ]);
+
+        $redirect = $this->captureRedirect(
+            static fn () => \OperatorAuthController::callback([]),
+            [
+                'action' => 'callback',
+                'state' => (string) ($pending['state'] ?? ''),
+                'code' => 'restricted-allowlist-code',
+            ]
+        );
+
+        self::assertSame('authenticated', (string) ($redirect['result']['status'] ?? ''));
+
+        $status = $this->captureResponse(static fn () => \OperatorAuthController::status([]));
+        self::assertTrue((bool) ($status['payload']['authenticated'] ?? false));
+        self::assertSame(
+            'restricted.operator@example.com',
+            (string) ($status['payload']['operator']['email'] ?? '')
+        );
         self::assertTrue((bool) ($status['payload']['capabilities']['adminAgent'] ?? false));
     }
 
@@ -509,6 +556,51 @@ class OperatorAuthControllerTest extends TestCase
         self::assertSame('invalid_state', (string) ($status['payload']['status'] ?? ''));
     }
 
+    public function testWebBrokerRejectsAuthenticatedEmailOutsideRestrictedAllowlist(): void
+    {
+        $this->configureWebBrokerTransport([
+            'PIELARMONIA_ADMIN_EMAIL' => 'restricted.operator@example.com',
+            'PIELARMONIA_OPERATOR_AUTH_ALLOWLIST' => 'restricted.operator@example.com',
+            'PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL' => 'false',
+        ]);
+
+        $this->captureResponse(static fn () => \OperatorAuthController::start([]), 'POST');
+        $pending = $_SESSION['operator_auth_pending_web_state'] ?? null;
+        self::assertIsArray($pending);
+
+        $this->installWebBrokerHttpClient($pending, [
+            'tokenPayload' => [
+                'access_token' => 'token-outside-allowlist',
+                'id_token' => $this->issueBrokerIdToken([
+                    'nonce' => (string) ($pending['nonce'] ?? ''),
+                    'sub' => 'profile-intruder',
+                    'email' => 'intruso@example.com',
+                    'email_verified' => true,
+                ]),
+            ],
+            'userinfoPayload' => [
+                'email' => 'intruso@example.com',
+                'sub' => 'profile-intruder',
+                'email_verified' => true,
+            ],
+        ]);
+
+        $redirect = $this->captureRedirect(
+            static fn () => \OperatorAuthController::callback([]),
+            [
+                'action' => 'callback',
+                'state' => (string) ($pending['state'] ?? ''),
+                'code' => 'outside-allowlist-code',
+            ]
+        );
+
+        self::assertSame('email_no_permitido', (string) ($redirect['result']['status'] ?? ''));
+
+        $status = $this->captureResponse(static fn () => \OperatorAuthController::status([]));
+        self::assertFalse((bool) ($status['payload']['authenticated'] ?? true));
+        self::assertSame('email_no_permitido', (string) ($status['payload']['status'] ?? ''));
+    }
+
     public function testWebBrokerAllowsAnyAuthenticatedEmailWhenFlagIsEnabled(): void
     {
         $this->configureWebBrokerTransport([
@@ -520,37 +612,22 @@ class OperatorAuthControllerTest extends TestCase
         $pending = $_SESSION['operator_auth_pending_web_state'] ?? null;
         self::assertIsArray($pending);
 
-        $GLOBALS['__OPERATOR_AUTH_HTTP_CLIENT'] = static function (
-            string $method,
-            string $url
-        ): array {
-            if ($method === 'POST' && $url === 'https://broker.example.test/token') {
-                return [
-                    'ok' => true,
-                    'status' => 200,
-                    'json' => [
-                        'access_token' => 'token-any-email',
-                    ],
-                ];
-            }
-
-            if ($method === 'GET' && $url === 'https://broker.example.test/userinfo') {
-                return [
-                    'ok' => true,
-                    'status' => 200,
-                    'json' => [
-                        'email' => 'anyone@example.net',
-                        'sub' => 'profile-anyone',
-                    ],
-                ];
-            }
-
-            return [
-                'ok' => false,
-                'status' => 404,
-                'json' => null,
-            ];
-        };
+        $this->installWebBrokerHttpClient($pending, [
+            'tokenPayload' => [
+                'access_token' => 'token-any-email',
+                'id_token' => $this->issueBrokerIdToken([
+                    'nonce' => (string) ($pending['nonce'] ?? ''),
+                    'sub' => 'profile-anyone',
+                    'email' => 'anyone@example.net',
+                    'email_verified' => true,
+                ]),
+            ],
+            'userinfoPayload' => [
+                'email' => 'anyone@example.net',
+                'sub' => 'profile-anyone',
+                'email_verified' => true,
+            ],
+        ]);
 
         $this->captureRedirect(
             static fn () => \OperatorAuthController::callback([]),
@@ -567,6 +644,228 @@ class OperatorAuthControllerTest extends TestCase
         self::assertTrue((bool) ($status['payload']['capabilities']['adminAgent'] ?? false));
     }
 
+    public function testWebBrokerCallbackRejectsMissingIdToken(): void
+    {
+        $this->configureWebBrokerTransport();
+        $this->captureResponse(static fn () => \OperatorAuthController::start([]), 'POST');
+        $pending = $_SESSION['operator_auth_pending_web_state'] ?? null;
+        self::assertIsArray($pending);
+
+        $this->installWebBrokerHttpClient($pending, [
+            'tokenPayload' => [
+                'access_token' => 'token-without-id-token',
+                'id_token' => '',
+            ],
+        ]);
+
+        $redirect = $this->captureRedirect(
+            static fn () => \OperatorAuthController::callback([]),
+            [
+                'action' => 'callback',
+                'state' => (string) ($pending['state'] ?? ''),
+                'code' => 'missing-id-token',
+            ]
+        );
+
+        self::assertSame('broker_claims_invalid', (string) ($redirect['result']['status'] ?? ''));
+        $status = $this->captureResponse(static fn () => \OperatorAuthController::status([]));
+        self::assertFalse((bool) ($status['payload']['authenticated'] ?? true));
+        self::assertSame('broker_claims_invalid', (string) ($status['payload']['status'] ?? ''));
+    }
+
+    public function testWebBrokerCallbackRejectsIssuerMismatch(): void
+    {
+        $this->configureWebBrokerTransport();
+        $this->captureResponse(static fn () => \OperatorAuthController::start([]), 'POST');
+        $pending = $_SESSION['operator_auth_pending_web_state'] ?? null;
+        self::assertIsArray($pending);
+
+        $this->installWebBrokerHttpClient($pending, [
+            'tokenPayload' => [
+                'access_token' => 'token-bad-issuer',
+                'id_token' => $this->issueBrokerIdToken([
+                    'nonce' => (string) ($pending['nonce'] ?? ''),
+                    'iss' => 'https://otro-broker.example.test',
+                ]),
+            ],
+        ]);
+
+        $redirect = $this->captureRedirect(
+            static fn () => \OperatorAuthController::callback([]),
+            [
+                'action' => 'callback',
+                'state' => (string) ($pending['state'] ?? ''),
+                'code' => 'bad-issuer',
+            ]
+        );
+
+        self::assertSame('broker_claims_invalid', (string) ($redirect['result']['status'] ?? ''));
+    }
+
+    public function testWebBrokerCallbackRejectsAudienceMismatch(): void
+    {
+        $this->configureWebBrokerTransport();
+        $this->captureResponse(static fn () => \OperatorAuthController::start([]), 'POST');
+        $pending = $_SESSION['operator_auth_pending_web_state'] ?? null;
+        self::assertIsArray($pending);
+
+        $this->installWebBrokerHttpClient($pending, [
+            'tokenPayload' => [
+                'access_token' => 'token-bad-audience',
+                'id_token' => $this->issueBrokerIdToken([
+                    'nonce' => (string) ($pending['nonce'] ?? ''),
+                    'aud' => 'otro-cliente',
+                ]),
+            ],
+        ]);
+
+        $redirect = $this->captureRedirect(
+            static fn () => \OperatorAuthController::callback([]),
+            [
+                'action' => 'callback',
+                'state' => (string) ($pending['state'] ?? ''),
+                'code' => 'bad-audience',
+            ]
+        );
+
+        self::assertSame('broker_claims_invalid', (string) ($redirect['result']['status'] ?? ''));
+    }
+
+    public function testWebBrokerCallbackRejectsNonceMismatch(): void
+    {
+        $this->configureWebBrokerTransport();
+        $this->captureResponse(static fn () => \OperatorAuthController::start([]), 'POST');
+        $pending = $_SESSION['operator_auth_pending_web_state'] ?? null;
+        self::assertIsArray($pending);
+
+        $this->installWebBrokerHttpClient($pending, [
+            'tokenPayload' => [
+                'access_token' => 'token-bad-nonce',
+                'id_token' => $this->issueBrokerIdToken([
+                    'nonce' => 'nonce-distinto',
+                ]),
+            ],
+        ]);
+
+        $redirect = $this->captureRedirect(
+            static fn () => \OperatorAuthController::callback([]),
+            [
+                'action' => 'callback',
+                'state' => (string) ($pending['state'] ?? ''),
+                'code' => 'bad-nonce',
+            ]
+        );
+
+        self::assertSame('broker_claims_invalid', (string) ($redirect['result']['status'] ?? ''));
+    }
+
+    public function testWebBrokerCallbackRejectsUnverifiedEmail(): void
+    {
+        $this->configureWebBrokerTransport();
+        $this->captureResponse(static fn () => \OperatorAuthController::start([]), 'POST');
+        $pending = $_SESSION['operator_auth_pending_web_state'] ?? null;
+        self::assertIsArray($pending);
+
+        $this->installWebBrokerHttpClient($pending, [
+            'tokenPayload' => [
+                'access_token' => 'token-unverified',
+                'id_token' => $this->issueBrokerIdToken([
+                    'nonce' => (string) ($pending['nonce'] ?? ''),
+                    'email_verified' => false,
+                ]),
+            ],
+            'userinfoPayload' => [
+                'email' => 'operator@example.com',
+                'sub' => 'profile-web-broker',
+                'email_verified' => false,
+            ],
+        ]);
+
+        $redirect = $this->captureRedirect(
+            static fn () => \OperatorAuthController::callback([]),
+            [
+                'action' => 'callback',
+                'state' => (string) ($pending['state'] ?? ''),
+                'code' => 'unverified-email',
+            ]
+        );
+
+        self::assertSame('identity_unverified', (string) ($redirect['result']['status'] ?? ''));
+    }
+
+    public function testWebBrokerCallbackRejectsSubjectMismatchBetweenIdTokenAndUserinfo(): void
+    {
+        $this->configureWebBrokerTransport();
+        $this->captureResponse(static fn () => \OperatorAuthController::start([]), 'POST');
+        $pending = $_SESSION['operator_auth_pending_web_state'] ?? null;
+        self::assertIsArray($pending);
+
+        $this->installWebBrokerHttpClient($pending, [
+            'userinfoPayload' => [
+                'email' => 'operator@example.com',
+                'sub' => 'subject-distinto',
+                'accountId' => 'acct-web-broker',
+                'email_verified' => true,
+            ],
+        ]);
+
+        $redirect = $this->captureRedirect(
+            static fn () => \OperatorAuthController::callback([]),
+            [
+                'action' => 'callback',
+                'state' => (string) ($pending['state'] ?? ''),
+                'code' => 'mismatched-subject',
+            ]
+        );
+
+        self::assertSame('broker_claims_invalid', (string) ($redirect['result']['status'] ?? ''));
+    }
+
+    public function testStartRequiresCsrfHeader(): void
+    {
+        $response = $this->captureResponse(
+            static fn () => \OperatorAuthController::start([]),
+            'POST',
+            [],
+            ['__disable_auto_csrf' => '1']
+        );
+
+        self::assertSame(403, $response['status']);
+        self::assertFalse((bool) ($response['payload']['ok'] ?? true));
+        self::assertSame('Token CSRF inválido o ausente', (string) ($response['payload']['error'] ?? ''));
+
+        $success = $this->captureResponse(static fn () => \OperatorAuthController::start([]), 'POST');
+        self::assertSame(202, $success['status']);
+    }
+
+    public function testLogoutRequiresCsrfHeaderAndClearsSessionWhenProvided(): void
+    {
+        \start_secure_session();
+        \operator_auth_establish_session([
+            'email' => 'operator@example.com',
+            'profileId' => 'profile-session',
+            'accountId' => 'acct-session',
+        ]);
+
+        $denied = $this->captureResponse(
+            static fn () => \OperatorAuthController::logout([]),
+            'POST',
+            [],
+            ['__disable_auto_csrf' => '1']
+        );
+        self::assertSame(403, $denied['status']);
+
+        $statusBeforeLogout = $this->captureResponse(static fn () => \OperatorAuthController::status([]));
+        self::assertTrue((bool) ($statusBeforeLogout['payload']['authenticated'] ?? false));
+
+        $logout = $this->captureResponse(static fn () => \OperatorAuthController::logout([]), 'POST');
+        self::assertSame(200, $logout['status']);
+        self::assertSame('logout', (string) ($logout['payload']['status'] ?? ''));
+
+        $statusAfterLogout = $this->captureResponse(static fn () => \OperatorAuthController::status([]));
+        self::assertFalse((bool) ($statusAfterLogout['payload']['authenticated'] ?? true));
+    }
+
     /**
      * @param callable():void $callable
      * @param array<string,string> $serverOverrides
@@ -576,6 +875,16 @@ class OperatorAuthControllerTest extends TestCase
     private function captureResponse(callable $callable, string $method = 'GET', ?array $body = null, array $serverOverrides = []): array
     {
         $_SERVER['REQUEST_METHOD'] = strtoupper($method);
+        $disableAutoCsrf = array_key_exists('__disable_auto_csrf', $serverOverrides);
+        unset($serverOverrides['__disable_auto_csrf']);
+        if (
+            $_SERVER['REQUEST_METHOD'] === 'POST'
+            && !$disableAutoCsrf
+            && !array_key_exists('HTTP_X_CSRF_TOKEN', $serverOverrides)
+        ) {
+            \start_secure_session();
+            $serverOverrides['HTTP_X_CSRF_TOKEN'] = \generate_csrf_token();
+        }
         foreach ($serverOverrides as $key => $value) {
             $_SERVER[$key] = $value;
         }
@@ -634,11 +943,146 @@ class OperatorAuthControllerTest extends TestCase
             'OPENCLAW_AUTH_BROKER_USERINFO_URL' => 'https://broker.example.test/userinfo',
             'OPENCLAW_AUTH_BROKER_CLIENT_ID' => 'broker-client-id',
             'OPENCLAW_AUTH_BROKER_CLIENT_SECRET' => '',
+            'OPENCLAW_AUTH_BROKER_JWKS_URL' => 'https://broker.example.test/jwks',
+            'OPENCLAW_AUTH_BROKER_EXPECTED_ISSUER' => 'https://broker.example.test',
+            'OPENCLAW_AUTH_BROKER_EXPECTED_AUDIENCE' => 'broker-audience',
+            'OPENCLAW_AUTH_BROKER_REQUIRE_EMAIL_VERIFIED' => 'true',
+            'OPENCLAW_AUTH_BROKER_CLOCK_SKEW_SECONDS' => '120',
         ], $overrides);
 
         foreach ($env as $key => $value) {
             putenv($key . '=' . $value);
         }
+    }
+
+    /**
+     * @return array{privateKey:string,kid:string,jwk:array<string,mixed>}
+     */
+    private function generateBrokerKeyMaterial(): array
+    {
+        $resource = openssl_pkey_new([
+            'private_key_bits' => 2048,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA,
+        ]);
+        self::assertNotFalse($resource, 'No se pudo generar la llave RSA de test.');
+
+        $privateKey = '';
+        self::assertTrue(openssl_pkey_export($resource, $privateKey), 'No se pudo exportar la llave privada de test.');
+
+        $details = openssl_pkey_get_details($resource);
+        self::assertIsArray($details, 'No se pudieron leer los detalles de la llave RSA.');
+        self::assertIsArray($details['rsa'] ?? null, 'La llave RSA de test no expuso modulo/exponente.');
+
+        $kid = 'test-broker-kid';
+
+        return [
+            'privateKey' => $privateKey,
+            'kid' => $kid,
+            'jwk' => [
+                'kty' => 'RSA',
+                'kid' => $kid,
+                'alg' => 'RS256',
+                'use' => 'sig',
+                'n' => $this->base64UrlEncode((string) $details['rsa']['n']),
+                'e' => $this->base64UrlEncode((string) $details['rsa']['e']),
+            ],
+        ];
+    }
+
+    private function base64UrlEncode(string $value): string
+    {
+        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+    }
+
+    private function issueBrokerIdToken(array $claims = [], array $headers = []): string
+    {
+        $header = array_merge([
+            'alg' => 'RS256',
+            'typ' => 'JWT',
+            'kid' => $this->brokerKeyMaterial['kid'],
+        ], $headers);
+
+        $payload = array_merge([
+            'iss' => 'https://broker.example.test',
+            'aud' => 'broker-audience',
+            'sub' => 'profile-web-broker',
+            'email' => 'operator@example.com',
+            'email_verified' => true,
+            'iat' => time(),
+            'exp' => time() + 300,
+        ], $claims);
+
+        $signingInput = $this->base64UrlEncode((string) json_encode($header, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            . '.'
+            . $this->base64UrlEncode((string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+        $signature = '';
+        self::assertTrue(
+            openssl_sign($signingInput, $signature, $this->brokerKeyMaterial['privateKey'], OPENSSL_ALGO_SHA256),
+            'No se pudo firmar el id_token de test.'
+        );
+
+        return $signingInput . '.' . $this->base64UrlEncode($signature);
+    }
+
+    /**
+     * @param array<string,mixed> $pending
+     * @param array<string,mixed> $options
+     */
+    private function installWebBrokerHttpClient(array $pending, array $options = []): void
+    {
+        $tokenPayload = array_merge([
+            'access_token' => 'token-web-broker-test',
+            'id_token' => $this->issueBrokerIdToken([
+                'nonce' => (string) ($pending['nonce'] ?? ''),
+                'sub' => 'profile-web-broker',
+                'email' => 'operator@example.com',
+                'email_verified' => true,
+            ]),
+        ], is_array($options['tokenPayload'] ?? null) ? $options['tokenPayload'] : []);
+
+        $userinfoPayload = array_merge([
+            'email' => 'operator@example.com',
+            'sub' => 'profile-web-broker',
+            'accountId' => 'acct-web-broker',
+            'email_verified' => true,
+        ], is_array($options['userinfoPayload'] ?? null) ? $options['userinfoPayload'] : []);
+
+        $jwksPayload = is_array($options['jwksPayload'] ?? null)
+            ? $options['jwksPayload']
+            : ['keys' => [$this->brokerKeyMaterial['jwk']]];
+
+        $GLOBALS['__OPERATOR_AUTH_HTTP_CLIENT'] = static function (
+            string $method,
+            string $url,
+            array $requestOptions = []
+        ) use ($tokenPayload, $userinfoPayload, $jwksPayload): array {
+            if ($method === 'POST' && $url === 'https://broker.example.test/token') {
+                return [
+                    'ok' => true,
+                    'status' => 200,
+                    'json' => $tokenPayload,
+                ];
+            }
+
+            if ($method === 'GET' && $url === 'https://broker.example.test/userinfo') {
+                return [
+                    'ok' => true,
+                    'status' => 200,
+                    'json' => $userinfoPayload,
+                ];
+            }
+
+            if ($method === 'GET' && $url === 'https://broker.example.test/jwks') {
+                return [
+                    'ok' => true,
+                    'status' => 200,
+                    'json' => $jwksPayload,
+                ];
+            }
+
+            self::fail('Unexpected broker request: ' . $method . ' ' . $url);
+        };
     }
 
     private function removeDirectory(string $dir): void

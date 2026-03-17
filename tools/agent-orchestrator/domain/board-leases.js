@@ -241,6 +241,15 @@ function applyTaskLeaseLifecycle(task, prevTask, options = {}) {
             });
             leaseAction = clearResult.action;
         }
+    } else if (
+        !leasePolicy.tracked_statuses.includes(status) &&
+        String(task.lease_id || '').trim()
+    ) {
+        const clearResult = clearTaskLease(task, {
+            nowIso,
+            reason: `status_exit:${status || 'none'}`,
+        });
+        leaseAction = clearResult.action;
     } else if (leasePolicy.tracked_statuses.includes(status)) {
         const missingLease = !String(task.lease_id || '').trim();
         if (statusChanged || forceRenew || missingLease) {

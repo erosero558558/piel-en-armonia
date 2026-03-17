@@ -60,25 +60,16 @@ Los `.js` que siguen en raiz deben caer en una de estas categorias:
 
 Lista aprobada actual:
 
+- `script.js`: entry versionado del gateway publico raiz.
+- `admin.js`: bundle admin servido desde `admin.html`.
 - `sw.js`: service worker con scope de raiz.
 - `agent-orchestrator.js`: CLI canonica de gobernanza y board.
 - `eslint.config.js`: config de ESLint descubierta por el tooling.
 - `playwright.config.js`: config de Playwright descubierta por el tooling.
 
-Los bundles generados del runtime publicado ya no forman parte de la frontera
-activa de JS en raiz. El contrato stageado vive en:
-
-- `.generated/site-root/script.js`
-- `.generated/site-root/admin.js`
-- `.generated/site-root/js/chunks/**`
-- `.generated/site-root/js/admin-chunks/**`
-
-Los shims de raiz existen solo para compatibilidad humana; runtime, tooling y
-deploy consumen docs canonicos y el stage root `.generated/site-root/`, no
-copias root legacy como fuente primaria de autoria. La frontera source-vs-output
-vive en `docs/RUNTIME_ARTIFACT_POLICY.md`, y la salida segura para sacar las
-copias legacy del indice es
-`npm run legacy:generated-root:status|check|apply`.
+`script.js` y `admin.js` permanecen en raiz por contrato de hosting/runtime,
+no como fuentes de autoria primaria. La frontera source-vs-output vive en
+`docs/RUNTIME_ARTIFACT_POLICY.md`.
 
 ## Superficies HTML permitidas en raiz
 
@@ -132,7 +123,6 @@ de backend descubiertos por el hosting/tooling:
 - `figo-backend.php`
 - `figo-brain.php`
 - `figo-ai-bridge.php`
-- `hosting-runtime.php`
 - `backup-receiver.php`
 - `verify-backup.php`
 - `check-ai-response.php`
@@ -266,7 +256,6 @@ Lista aprobada actual:
 - `content`
 - `controllers`
 - `data`
-- `desktop-updates`
 - `docs`
 - `en`
 - `es`
@@ -289,11 +278,6 @@ Lista aprobada actual:
 - `uploads`
 - `vendor`
 - `verification`
-
-`_astro`, `en` y `es` siguen apareciendo en la allowlist solo como deuda de
-migracion mientras existan copias trackeadas legacy en raiz. El contrato
-canonico ya vive en `.generated/site-root/`, y el cleanup de indice debe
-hacerse con `npm run legacy:generated-root:status|check|apply`.
 
 ## Directorios locales o fuera del front door
 
@@ -363,9 +347,6 @@ permanecer ignorados o claramente fuera del carril versionado:
   directorios locales/scratch deben quedar ignorados o fuera del carril activo.
 - Los reportes y snapshots generados no son superficies activas; no deben
   permanecer versionados en raiz.
-- Si `workspace:hygiene:status` reporta `legacy_generated_root`, esa suciedad
-  no es authored source ni stage efimero: es deuda de migracion del root y se
-  limpia con `npm run legacy:generated-root:apply`, no con edicion manual.
 - Si aparece un `.js` nuevo en raiz fuera de la allowlist anterior, debe
   justificarse por contrato de runtime/tooling o salir del front door.
 - El contrato que protege esta frontera vive en

@@ -97,6 +97,9 @@ function buildBoardDoctorReport(input = {}, deps = {}) {
     );
     const diagnostics = [];
     const checks = [];
+    const heartbeatStaleMinutes = Number(
+        leasePolicy?.heartbeat_stale_minutes || 30
+    );
 
     function addCheck(code, pass, message, extra = {}) {
         checks.push({ code, pass: Boolean(pass), message, ...extra });
@@ -198,11 +201,29 @@ function buildBoardDoctorReport(input = {}, deps = {}) {
             status === 'in_progress'
         ) {
             const threshold = doctorCfg.thresholds.in_progress_stale_hours;
+            const hasFreshHeartbeat =
+                lease.has_lease &&
+                lease.heartbeat_age_minutes !== null &&
+                lease.heartbeat_age_minutes <= heartbeatStaleMinutes;
             addCheck(
                 'warn.board.in_progress_stale',
-                statusSinceHours === null || statusSinceHours <= threshold,
+                statusSinceHours === null ||
+                    statusSinceHours <= threshold ||
+                    hasFreshHeartbeat,
                 `Task ${taskId} in_progress stale (${statusSinceHours === null ? 'n/a' : statusSinceHours.toFixed(1)}h > ${threshold}h)`,
-                { task_ids: [taskId] }
+                {
+                    task_ids: [taskId],
+                    meta: {
+                        status_since_hours:
+                            statusSinceHours === null
+                                ? null
+                                : Number(statusSinceHours.toFixed(2)),
+                        threshold_hours: threshold,
+                        heartbeat_age_minutes: lease.heartbeat_age_minutes,
+                        heartbeat_stale_minutes: heartbeatStaleMinutes,
+                        heartbeat_fresh: hasFreshHeartbeat,
+                    },
+                }
             );
         }
 

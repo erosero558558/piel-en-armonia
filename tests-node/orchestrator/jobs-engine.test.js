@@ -346,6 +346,49 @@ test('jobs-engine distingue health publico stale cuando falta checks.publicSync'
     assert.equal(snapshot.state, 'stale');
 });
 
+test('jobs-engine acepta compatibilidad legacy cuando health publica publicSync en campos top-level', async () => {
+    const snapshot = await jobs.resolveJobSnapshot(
+        {
+            key: 'public_main_sync',
+            job_id: '8d31e299-7e57-4959-80b5-aaa2d73e9674',
+            health_url: 'https://pielarmonia.com/api.php?resource=health',
+            repo_path: '/var/www/figo',
+            branch: 'main',
+            expected_max_lag_seconds: 120,
+        },
+        {
+            existsSync: () => false,
+            readFileSync: () => '',
+            fetchImpl: async () => ({
+                ok: true,
+                json: async () => ({
+                    ok: true,
+                    status: 'ok',
+                    timestamp: '2026-03-14T11:10:00Z',
+                    publicSyncConfigured: true,
+                    publicSyncHealthy: true,
+                    publicSyncOperationallyHealthy: true,
+                    publicSyncState: 'healthy',
+                    publicSyncJobId:
+                        '8d31e299-7e57-4959-80b5-aaa2d73e9674',
+                    publicSyncAgeSeconds: 45,
+                    publicSyncExpectedMaxLagSeconds: 120,
+                    publicSyncLastCheckedAt: '2026-03-14T11:10:00Z',
+                    publicSyncLastSuccessAt: '2026-03-14T11:09:15Z',
+                    publicSyncFailureReason: '',
+                }),
+            }),
+        }
+    );
+
+    assert.equal(snapshot.verification_source, 'health_url');
+    assert.equal(snapshot.verified, true);
+    assert.equal(snapshot.healthy, true);
+    assert.equal(snapshot.failure_reason, '');
+    assert.equal(snapshot.state, 'healthy');
+    assert.equal(snapshot.age_seconds, 45);
+});
+
 test('jobs-engine registry_only fallback y summary mantienen contrato estable', async () => {
     const snapshot = await jobs.resolveJobSnapshot(
         {

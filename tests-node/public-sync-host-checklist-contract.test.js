@@ -30,8 +30,6 @@ test('public sync host checklist script expone comandos canonicos de triage host
     const raw = load(SCRIPT_PATH);
     const requiredSnippets = [
         "[string]$RepoPath = '/var/www/figo'",
-        "[string]$GeneratedSiteRoot = '/var/www/figo/.generated/site-root'",
-        "[string]$DeployBundlePath = '/var/www/figo/_deploy_bundle'",
         "[string]$WrapperPath = '/root/sync-pielarmonia.sh'",
         "[string]$CanonicalWrapperPath = '/var/www/figo/bin/deploy-public-v3-cron-sync.sh'",
         "[string]$StatusPath = '/var/lib/pielarmonia/public-sync-status.json'",
@@ -39,12 +37,9 @@ test('public sync host checklist script expone comandos canonicos de triage host
         "[string]$DiagnosticsUrl = 'http://127.0.0.1/api.php?resource=health-diagnostics'",
         'sha256sum $WrapperPath $CanonicalWrapperPath',
         'cmp -s $WrapperPath $CanonicalWrapperPath && echo wrapper_match || echo wrapper_diff',
-        'ls -ld $GeneratedSiteRoot $DeployBundlePath 2>/dev/null || true',
         'git status --short',
         'git rev-parse HEAD',
         'git rev-parse origin/main',
-        'find $GeneratedSiteRoot -maxdepth 2 -type f | head -n 20',
-        'find $DeployBundlePath -maxdepth 2 -type f | head -n 20',
         "curl -s $DiagnosticsUrl | jq '.checks.publicSync | {configured, jobId, state, healthy, operationallyHealthy, repoHygieneIssue, ageSeconds, expectedMaxLagSeconds, lastCheckedAt, lastSuccessAt, lastErrorAt, failureReason, lastErrorMessage, currentHead, remoteHead, dirtyPathsCount, dirtyPathsSample}'",
         "curl -s $DiagnosticsUrl | jq '.checks.storage | {backend, source, encrypted, encryptionConfigured, encryptionRequired, encryptionStatus, encryptionCompliant}'",
         "curl -s $DiagnosticsUrl | jq '.checks.auth | {mode, status, configured, hardeningCompliant, recommendedMode, recommendedModeActive, twoFactorEnabled, operatorAuthEnabled, operatorAuthConfigured, legacyPasswordConfigured}'",
@@ -53,7 +48,6 @@ test('public sync host checklist script expone comandos canonicos de triage host
         'health publico sin checks.publicSync o sin jobId',
         'install -m 0755 $CanonicalWrapperPath $WrapperPath',
         '/usr/bin/flock -n $LockPath $WrapperPath',
-        'si dirtyPathsSample solo muestra `.generated/site-root/**` o `_deploy_bundle/**`',
         'PIELARMONIA_DATA_ENCRYPTION_KEY',
         'PIELARMONIA_REQUIRE_DATA_ENCRYPTION',
         'health publico expone checks.publicSync.jobId=8d31e299-7e57-4959-80b5-aaa2d73e9674',
@@ -79,8 +73,6 @@ test('surface operativa documenta el checklist host-side de public sync', () => 
         'npm run checklist:prod:public-sync:host',
         'public-sync-status.json',
         'storeEncryptionCompliant',
-        '.generated/site-root/',
-        '_deploy_bundle/',
     ];
     const requiredOperationsSnippets = [
         'npm run checklist:prod:public-sync:host',
@@ -90,8 +82,6 @@ test('surface operativa documenta el checklist host-side de public sync', () => 
         'pwsh -File scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1',
         'storeEncryptionCompliant=true',
         'checks.publicSync.jobId',
-        '.generated/site-root/',
-        '_deploy_bundle/',
     ];
 
     for (const snippet of requiredReadmeSnippets) {

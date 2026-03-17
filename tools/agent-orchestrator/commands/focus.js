@@ -51,17 +51,6 @@ function strategyIsActive(board) {
     );
 }
 
-function hasRuntimeRequiredCheck(summary = {}) {
-    return Array.isArray(summary?.configured?.required_checks)
-        ? summary.configured.required_checks.some((item) =>
-              String(item || '')
-                  .trim()
-                  .toLowerCase()
-                  .startsWith('runtime:')
-          )
-        : false;
-}
-
 function hasActiveTasks(board) {
     return Array.isArray(board?.tasks)
         ? board.tasks.some((task) =>
@@ -74,46 +63,32 @@ function hasActiveTasks(board) {
         : false;
 }
 
-async function buildLiveFocusSummary(ctx, board) {
-    const {
-        buildFocusSummary,
-        parseDecisions,
-        loadJobsSnapshot,
-        verifyOpenClawRuntime,
-    } = ctx;
+async function resolveLiveFocusSummary(ctx, board) {
+    if (typeof ctx.buildLiveFocusSummary === 'function') {
+        return ctx.buildLiveFocusSummary(board, { now: new Date() });
+    }
+
     const decisionsData =
-        typeof parseDecisions === 'function'
-            ? parseDecisions()
+        typeof ctx.parseDecisions === 'function'
+            ? ctx.parseDecisions()
             : { decisions: [] };
     const jobs =
-        typeof loadJobsSnapshot === 'function' ? await loadJobsSnapshot() : [];
-    const initialSummary =
-        typeof buildFocusSummary === 'function'
-            ? buildFocusSummary(board, {
-                  decisionsData,
-                  jobsSnapshot: jobs,
-                  now: new Date(),
-              })
-            : null;
-    const runtimeVerification =
-        initialSummary &&
-        hasRuntimeRequiredCheck(initialSummary) &&
-        typeof verifyOpenClawRuntime === 'function'
-            ? await verifyOpenClawRuntime()
-            : null;
+        typeof ctx.loadJobsSnapshot === 'function'
+            ? await ctx.loadJobsSnapshot()
+            : [];
     const summary =
-        typeof buildFocusSummary === 'function'
-            ? buildFocusSummary(board, {
+        typeof ctx.buildFocusSummary === 'function'
+            ? ctx.buildFocusSummary(board, {
                   decisionsData,
                   jobsSnapshot: jobs,
-                  runtimeVerification,
                   now: new Date(),
               })
             : null;
+
     return {
         decisionsData,
         jobs,
-        runtimeVerification,
+        runtimeVerification: null,
         summary,
     };
 }
@@ -248,6 +223,7 @@ async function handleFocusCommand(ctx) {
         parseFlags,
         parseBoard,
         buildFocusSummary,
+        buildLiveFocusSummary,
         parseDecisions,
         loadJobsSnapshot,
         verifyOpenClawRuntime,
@@ -277,8 +253,9 @@ async function handleFocusCommand(ctx) {
     }
 
     const board = parseBoard();
-    const baseData = await buildLiveFocusSummary(
+    const baseData = await resolveLiveFocusSummary(
         {
+            buildLiveFocusSummary,
             buildFocusSummary,
             parseDecisions,
             loadJobsSnapshot,

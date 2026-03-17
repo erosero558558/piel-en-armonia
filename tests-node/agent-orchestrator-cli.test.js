@@ -21,6 +21,7 @@ const http = require('http');
 const REPO_ROOT = resolve(__dirname, '..');
 const ORCHESTRATOR_SOURCE = join(REPO_ROOT, 'agent-orchestrator.js');
 const ORCHESTRATOR_TOOLS_DIR = join(REPO_ROOT, 'tools', 'agent-orchestrator');
+const GOVERNANCE_POLICY_SOURCE = join(REPO_ROOT, 'governance-policy.json');
 const OPENCLAW_RUNTIME_HELPER_SOURCE = join(
     REPO_ROOT,
     'bin',
@@ -40,6 +41,10 @@ function createFixtureDir() {
     cpSync(ORCHESTRATOR_TOOLS_DIR, join(dir, 'tools', 'agent-orchestrator'), {
         recursive: true,
     });
+    copyFileSync(
+        GOVERNANCE_POLICY_SOURCE,
+        join(dir, 'governance-policy.json')
+    );
     return dir;
 }
 
@@ -1307,6 +1312,145 @@ tasks:
         ),
         true
     );
+});
+
+test('surfaces de gobernanza reutilizan el mismo focusSummary live para public_main_sync y operator_auth', async (t) => {
+    const dir = createFixtureDir();
+    const runtimeServer = await startRuntimeFixtureServer({
+        figoGetPayload: {
+            providerMode: 'legacy_proxy',
+            gatewayConfigured: false,
+            openclawReachable: null,
+        },
+        healthPayload: {
+            leadOpsMode: 'disabled',
+            checks: {
+                leadOps: {
+                    configured: false,
+                    mode: 'disabled',
+                    degraded: false,
+                },
+            },
+        },
+    });
+    t.after(async () => {
+        await runtimeServer.close();
+        cleanupFixtureDir(dir);
+    });
+
+    writeFixtureFiles(dir, {
+        board: `
+version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  revision: 0
+  updated_at: ${DATE}
+${activeAdminStrategyYaml().replace('runtime:openclaw_chatgpt', 'runtime:operator_auth').trim()}
+tasks:
+`.trim(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithStrategyBlock(),
+    });
+    const nowIso = new Date().toISOString();
+    writePublicSyncJobsFixture(dir, {
+        state: 'success',
+        checked_at: nowIso,
+        last_success_at: nowIso,
+        last_error_at: '',
+        last_error_message: '',
+        deployed_commit: 'abc1234',
+        current_head: 'abc1234',
+        remote_head: 'abc1234',
+    });
+
+    const envPatch = {
+        OPENCLAW_RUNTIME_BASE_URL: runtimeServer.baseUrl,
+    };
+    const focusJson = parseJsonStdout(
+        await runCliWithEnvAsync(dir, ['focus', 'status', '--json'], envPatch)
+    );
+    const statusJson = parseJsonStdout(
+        await runCliWithEnvAsync(dir, ['status', '--json'], envPatch)
+    );
+    const boardJson = parseJsonStdout(
+        await runCliWithEnvAsync(
+            dir,
+            ['board', 'doctor', '--json'],
+            envPatch
+        )
+    );
+    const metricsJson = parseJsonStdout(
+        await runCliWithEnvAsync(
+            dir,
+            ['metrics', '--json', '--no-write'],
+            envPatch
+        )
+    );
+    const conflictsJson = parseJsonStdout(
+        await runCliWithEnvAsync(dir, ['conflicts', '--json'], envPatch)
+    );
+    const handoffsStatusJson = parseJsonStdout(
+        await runCliWithEnvAsync(
+            dir,
+            ['handoffs', 'status', '--json'],
+            envPatch
+        )
+    );
+    const handoffsLintJson = parseJsonStdout(
+        await runCliWithEnvAsync(dir, ['handoffs', 'lint', '--json'], envPatch)
+    );
+    const policyJson = parseJsonStdout(
+        await runCliWithEnvAsync(dir, ['policy', 'lint', '--json'], envPatch)
+    );
+    const codexCheckJson = parseJsonStdout(
+        await runCliWithEnvAsync(dir, ['codex-check', '--json'], envPatch)
+    );
+
+    for (const payload of [
+        focusJson.focus,
+        statusJson.focus,
+        boardJson.focus_summary,
+        metricsJson.focus_summary,
+    ]) {
+        assert.equal(payload.required_checks_ok, true);
+        assert.equal(
+            payload.required_checks.some(
+                (item) =>
+                    item.id === 'job:public_main_sync' &&
+                    item.state === 'green'
+            ),
+            true
+        );
+        assert.equal(
+            payload.required_checks.some(
+                (item) =>
+                    item.id === 'runtime:operator_auth' &&
+                    item.state === 'green'
+            ),
+            true
+        );
+    }
+
+    for (const payload of [
+        statusJson,
+        boardJson,
+        conflictsJson,
+        handoffsStatusJson,
+        handoffsLintJson,
+        policyJson,
+        codexCheckJson,
+    ]) {
+        assert.equal(
+            Array.isArray(payload.diagnostics) &&
+                payload.diagnostics.some(
+                    (item) =>
+                        item.code === 'warn.focus.required_check_unverified'
+                ),
+            false
+        );
+    }
 });
 
 test('focus check bloquea drift estructural cuando una tarea activa no declara slice', (t) => {
@@ -4359,11 +4503,12 @@ test('runtime verify resume surfaces degradadas y explica por que openclaw_chatg
 
     assert.equal(verifyPayload.ok, false);
     assert.equal(verifyPayload.runtime.provider, 'openclaw_chatgpt');
-    assert.equal(verifyPayload.runtime.summary.state, 'unhealthy');
+    assert.equal(verifyPayload.runtime.summary.state, 'degraded');
     assert.deepEqual(verifyPayload.runtime.summary.degraded_surfaces, [
         'figo_queue',
     ]);
-    assert.deepEqual(verifyPayload.runtime.summary.unhealthy_surfaces, [
+    assert.deepEqual(verifyPayload.runtime.summary.unhealthy_surfaces, []);
+    assert.deepEqual(verifyPayload.runtime.summary.disabled_surfaces, [
         'leadops_worker',
     ]);
     assert.equal(
@@ -4394,7 +4539,7 @@ test('runtime verify resume surfaces degradadas y explica por que openclaw_chatg
     );
     assert.match(
         verifyPayload.runtime.summary.message,
-        /leadops_worker=unhealthy\(worker_disabled\)/
+        /leadops_worker=disabled\(worker_disabled\)/
     );
     assert.match(
         verifyPayload.runtime.summary.message,

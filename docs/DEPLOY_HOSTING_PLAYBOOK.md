@@ -37,12 +37,16 @@ Uso:
 ## Cutover rapido en Windows con este workspace
 
 Si el hosting viejo va a desaparecer y necesitas servir `pielarmonia.com` desde
-`C:\dev\pielarmonia-workspace`, la ruta canonica en Windows es:
+Windows, la ruta canonica ya no es el workspace de trabajo sino un mirror limpio
+pinneado en `C:\dev\pielarmonia-clean-main`. La topologia canonica es:
 
 - `ops/caddy/Caddyfile` para edge local y redirects canonicos.
 - `php-cgi.exe` en `127.0.0.1:9000` como backend FastCGI.
 - `cloudflared` para exponer el mismo dominio sin depender de NAT/router.
-- `scripts/ops/setup/CONFIGURAR-HOSTING-WINDOWS.ps1` para autoarranque y cutover.
+- `scripts/ops/setup/SUPERVISAR-HOSTING-WINDOWS.ps1` como supervisor dedicado del stack.
+- `scripts/ops/setup/SINCRONIZAR-HOSTING-WINDOWS.ps1` como reconciliador del mirror limpio.
+- `scripts/ops/setup/CONFIGURAR-HOSTING-WINDOWS.ps1` para registrar supervisor + sync + launchers.
+- `scripts/ops/setup/REPARAR-HOSTING-WINDOWS.ps1` como entrypoint unico de recovery.
 
 Secuencia recomendada:
 
@@ -58,15 +62,37 @@ Notas:
   `https://pielarmonia.com`.
 - El entrypoint publico sale por Cloudflare Tunnel; no hace falta publicar
   `8011`, `4173` ni `9000`.
-- El configurador deja dos capas de arranque:
-  `Startup` + `HKCU\Run` para la sesion del operador, y una tarea `ONSTART`
-  para el stack publico solo cuando se ejecuta con PowerShell elevada.
+- El configurador deja tres capas coordinadas:
+  `Startup` + `HKCU\Run` para bootstrap de sesion, una tarea `ONSTART`
+  (`Pielarmonia Hosting Supervisor`) para el supervisor del stack, y una tarea
+  por minuto (`Pielarmonia Hosting Main Sync`) para reconciliar el mirror.
 - Para evitar el limite de 261 caracteres de `schtasks /TR`, el configurador
-  genera launchers cortos en `data/runtime/hosting/login-stack.cmd` y
-  `data/runtime/hosting/boot-stack.cmd`.
+  genera launchers cortos en `data/runtime/hosting/supervisor.cmd`,
+  `data/runtime/hosting/main-sync.cmd`, `data/runtime/hosting/repair-hosting.cmd`
+  y mantiene `login-stack.cmd` / `boot-stack.cmd` solo como shims compatibles.
+- El hosting Windows ya no sigue `origin/main` a ciegas. El runtime servible se
+  pinnea en `C:\ProgramData\Pielarmonia\hosting\release-target.json`, y el sync
+  solo promueve ese `target_commit`.
+- Si el runtime queda roto, usa un solo entrypoint:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ops\setup\REPARAR-HOSTING-WINDOWS.ps1
+```
+
+- Si ademas necesitas promover el HEAD remoto actual durante una ventana de
+  mantenimiento:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ops\setup\REPARAR-HOSTING-WINDOWS.ps1 -PromoteCurrentRemoteHead
+```
+
 - El perfil productivo canonico de auth es `web_broker`; el helper local en
   `127.0.0.1:4173` queda solo para soporte manual/laptop cuando se habilita
   explicitamente `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=local_helper`.
+- En produccion `web_broker`, el supervisor y el sync validan que
+  `admin-auth.php?action=status` publique `transport=web_broker`; si el
+  contrato falta o reaparece `local_helper`, el host marca fallo y evita quedar
+  sirviendo un runtime ambiguo.
 
 ## Archivos a subir
 
@@ -177,7 +203,9 @@ Configura estas variables en tu hosting:
 
 - `PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt`
 - `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=web_broker`
-- `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=true`
+- `PIELARMONIA_ADMIN_EMAIL=<correo_operativo>`
+- `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST=<correo_operativo>`
+- `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`
 - `PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL=https://pielarmonia.com`
 - `OPENCLAW_AUTH_BROKER_AUTHORIZE_URL`
 - `OPENCLAW_AUTH_BROKER_TOKEN_URL`
@@ -227,7 +255,8 @@ Importante:
 - Ya no existe fallback `admin123`, incluso en local.
 - En produccion, el login admin/turnero debe entrar por OpenClaw `web_broker`.
 - `PIELARMONIA_ADMIN_PASSWORD` o `PIELARMONIA_ADMIN_PASSWORD_HASH` solo son obligatorios si vas a exponer la contingencia legacy.
-- `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST` no es requisito del corte cuando `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=true`.
+- En el perfil restringido recomendado, `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST` debe contener la cuenta operativa autorizada.
+- `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=true` queda solo como opt-in para entornos que quieran permitir cualquier identidad verificada por el broker.
 - Para notificaciones por email al administrador, configura `PIELARMONIA_ADMIN_EMAIL`.
 - Para cifrado de datos en reposo, configura `PIELARMONIA_DATA_ENCRYPTION_KEY` (32 bytes o texto que se deriva a SHA-256).
 - Si no puedes usar variables de entorno, tambien puedes crear `data/figo-config.json`.

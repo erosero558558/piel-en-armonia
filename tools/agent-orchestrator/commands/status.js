@@ -15,6 +15,7 @@ async function handleStatusCommand(ctx) {
         buildRuntimeSurfaceSummary,
         buildStrategyCoverageSummary,
         buildFocusSummary,
+        buildLiveFocusSummary,
         parseDecisions,
         loadMetricsSnapshot,
         normalizeContributionBaseline,
@@ -56,6 +57,35 @@ async function handleStatusCommand(ctx) {
         contributionBaseline
     );
     const strategy = buildStrategyCoverageSummary(board);
+    const now = new Date();
+    const focusData =
+        typeof buildLiveFocusSummary === 'function'
+            ? await buildLiveFocusSummary(board, { now })
+            : {
+                  decisionsData:
+                      typeof parseDecisions === 'function'
+                          ? parseDecisions()
+                          : { decisions: [] },
+                  jobs:
+                      typeof loadJobsSnapshot === 'function'
+                          ? await loadJobsSnapshot()
+                          : [],
+                  runtimeVerification: null,
+                  summary:
+                      typeof buildFocusSummary === 'function'
+                          ? buildFocusSummary(board, {
+                                decisionsData:
+                                    typeof parseDecisions === 'function'
+                                        ? parseDecisions()
+                                        : { decisions: [] },
+                                jobsSnapshot:
+                                    typeof loadJobsSnapshot === 'function'
+                                        ? await loadJobsSnapshot()
+                                        : [],
+                                now,
+                            })
+                          : null,
+              };
     const domainHealth = buildDomainHealth(
         board.tasks,
         conflictAnalysis,
@@ -66,11 +96,10 @@ async function handleStatusCommand(ctx) {
     const domainHealthHistory = wantsExplainRed
         ? buildDomainHealthHistorySummary(loadDomainHealthHistory(), 7)
         : null;
-    const jobs =
-        typeof loadJobsSnapshot === 'function' ? await loadJobsSnapshot() : [];
+    const jobs = Array.isArray(focusData.jobs) ? focusData.jobs : [];
     const decisionsData =
-        typeof parseDecisions === 'function'
-            ? parseDecisions()
+        focusData.decisionsData && typeof focusData.decisionsData === 'object'
+            ? focusData.decisionsData
             : { decisions: [] };
     const policy =
         typeof getGovernancePolicy === 'function'
@@ -88,11 +117,7 @@ async function handleStatusCommand(ctx) {
             byExecutor: getExecutorCounts(board.tasks),
         },
         strategy,
-        focus: buildFocusSummary(board, {
-            decisionsData,
-            jobsSnapshot: jobs,
-            now: new Date(),
-        }),
+        focus: focusData.summary,
         codex_instances: codexInstances,
         provider_modes: providerModes,
         runtime_surfaces: runtimeSurfaces,
@@ -161,6 +186,7 @@ async function handleStatusCommand(ctx) {
                 board,
                 handoffData,
                 decisionsData,
+                focusSummary: focusData.summary,
                 conflictAnalysis,
                 metricsSnapshot,
                 jobsSnapshot: jobs,

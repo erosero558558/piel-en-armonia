@@ -28,7 +28,7 @@ async function expectLegacyBookingShellAbsent(page) {
     await expect(page.locator('#chatbotWidget')).toHaveCount(0);
 }
 
-test.describe('Public funnel routing on current public-v6 entry flow', () => {
+test.describe('Public funnel routing on public-v6 maintenance flow', () => {
     test.beforeEach(async ({ page }) => {
         await page.addInitScript(() => {
             localStorage.setItem(
@@ -41,40 +41,20 @@ test.describe('Public funnel routing on current public-v6 entry flow', () => {
         });
     });
 
-    test('home keeps route selection, search, and WhatsApp fallback available while booking stays paused', async ({
+    test('home keeps search and first-step routing available while online booking stays paused', async ({
         page,
     }) => {
         await openPublicRoute(page, '/en/');
 
         const newsStrip = page.locator('[data-v6-news-strip]');
         await expect(newsStrip).toContainText(
-            'Message us on WhatsApp and we will help you place whether today calls for clinic, treatment, or teledermatology.'
+            'Clear clinical dermatology, ready to move you forward even while online booking is paused.'
         );
-        await expect(newsStrip).toContainText('teledermatology');
 
         await page.locator('[data-v6-news-toggle]').click();
         await expect(page.locator('[data-v6-news-panel]')).toBeVisible();
         await expect(page.locator('[data-v6-news-panel]')).toContainText(
-            'Online booking is still under maintenance'
-        );
-        const specialtiesLink = page
-            .locator('[data-v6-news-panel]')
-            .getByRole('link', { name: 'Message on WhatsApp' });
-        await expect(specialtiesLink).toHaveAttribute(
-            'href',
-            /wa\.me\/593982453672/
-        );
-
-        const bookingStatus = page.locator('[data-v6-booking-status]');
-        await expect(bookingStatus).toContainText(
-            'Online booking under maintenance'
-        );
-        const whatsappLink = bookingStatus.getByRole('link', {
-            name: 'Message on WhatsApp',
-        });
-        await expect(whatsappLink).toHaveAttribute(
-            'href',
-            /wa\.me\/593982453672/
+            'teledermatology'
         );
 
         await page.locator('[data-v6-search-open]').first().click();
@@ -100,7 +80,7 @@ test.describe('Public funnel routing on current public-v6 entry flow', () => {
         );
     });
 
-    test('service detail exposes the WhatsApp fallback instead of the legacy booking shell', async ({
+    test('service detail exposes the telemedicine fallback instead of the legacy booking shell', async ({
         page,
     }) => {
         await openPublicRoute(page, '/en/services/acne-rosacea/');
@@ -112,7 +92,9 @@ test.describe('Public funnel routing on current public-v6 entry flow', () => {
         const pageMenuPanel = page.locator('[data-v6-page-menu-panel]');
         await expect(pageMenuPanel).toBeVisible();
 
-        await pageMenuPanel.getByRole('link', { name: 'Next step' }).click();
+        await pageMenuPanel
+            .getByRole('link', { name: 'Online booking' })
+            .click();
         await expect(page).toHaveURL(/#v6-booking-status$/);
 
         const bookingStatus = page.locator('[data-v6-booking-status]');
@@ -120,16 +102,16 @@ test.describe('Public funnel routing on current public-v6 entry flow', () => {
             'Online booking under maintenance'
         );
 
-        const whatsappLink = bookingStatus.getByRole('link', {
-            name: 'Message on WhatsApp',
+        const telemedicineLink = bookingStatus.getByRole('link', {
+            name: 'Open teledermatology',
         });
-        await expect(whatsappLink).toHaveAttribute(
+        await expect(telemedicineLink).toHaveAttribute(
             'href',
-            /wa\.me\/593982453672/
+            '/en/telemedicine/'
         );
     });
 
-    test('telemedicine keeps WhatsApp as the public funnel handoff when direct examination is needed', async ({
+    test('telemedicine closes the public funnel loop back to services while booking is paused', async ({
         page,
     }) => {
         await openPublicRoute(page, '/en/telemedicine/');
@@ -144,12 +126,25 @@ test.describe('Public funnel routing on current public-v6 entry flow', () => {
             'Online booking under maintenance'
         );
 
-        const whatsappLink = bookingStatus.getByRole('link', {
-            name: 'Message on WhatsApp',
+        const servicesLink = bookingStatus.getByRole('link', {
+            name: 'View services',
         });
-        await expect(whatsappLink).toHaveAttribute(
-            'href',
-            /wa\.me\/593982453672/
+        await expect(servicesLink).toHaveAttribute('href', '/en/services/');
+
+        await Promise.all([
+            page.waitForURL(/\/en\/services\/$/),
+            servicesLink.click(),
+        ]);
+
+        await expect(page).toHaveURL(/\/en\/services\/$/);
+        await expect(page.locator('h1')).toContainText(
+            'Dermatology specialties'
         );
+        await expect(
+            page.locator('[data-v6-hub-featured-card]').first()
+        ).toBeVisible();
+        await expect(
+            page.locator('[data-v6-catalog-card]').first()
+        ).toBeVisible();
     });
 });

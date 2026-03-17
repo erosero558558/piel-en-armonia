@@ -7,11 +7,6 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'
-if (-not (Test-Path -LiteralPath $commonScriptPath)) {
-    throw "No existe el modulo comun de hosting Windows: $commonScriptPath"
-}
-. $commonScriptPath
 $base = $BaseUrl.TrimEnd('/')
 
 function Write-Info {
@@ -29,58 +24,69 @@ function Invoke-TextFetch {
         [int]$TimeoutSec = 20
     )
 
-    $response = Invoke-HostingHttpRequest -Url $Url -Headers $Headers -TimeoutSec $TimeoutSec
-    return [PSCustomObject]@{
-        Ok = ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300)
-        StatusCode = [int]$response.StatusCode
-        Body = [string]$response.Body
-        Error = [string]$response.Error
+    try {
+        $response = Invoke-WebRequest -Uri $Url -Headers $Headers -UseBasicParsing -TimeoutSec $TimeoutSec
+        return [PSCustomObject]@{
+            Ok = ([int]$response.StatusCode -ge 200 -and [int]$response.StatusCode -lt 300)
+            StatusCode = [int]$response.StatusCode
+            Body = [string]$response.Content
+            Error = ''
+        }
+    } catch {
+        $statusCode = 0
+        if ($_.Exception.Response) {
+            try { $statusCode = [int]$_.Exception.Response.StatusCode.value__ } catch {}
+        }
+        return [PSCustomObject]@{
+            Ok = $false
+            StatusCode = $statusCode
+            Body = ''
+            Error = $_.Exception.Message
+        }
     }
 }
 
 function Add-SmokeCheck {
     param(
-        [System.Collections.ArrayList]$Collection,
+        [System.Collections.Generic.List[object]]$Collection,
         [string]$Name,
         [bool]$Ok,
         [string]$Detail
     )
 
-    $Collection.Add(@{
+    $Collection.Add([PSCustomObject]@{
         name = $Name
         ok = $Ok
         detail = $Detail
     }) | Out-Null
 }
 
-$checks = New-Object System.Collections.ArrayList
-$errors = New-Object System.Collections.ArrayList
+$checks = New-Object 'System.Collections.Generic.List[object]'
+$errors = New-Object 'System.Collections.Generic.List[string]'
 
 $healthResponse = Invoke-TextFetch -Url "$base/api.php?resource=health-diagnostics" -Headers @{ Accept = 'application/json' }
 $healthPayload = $null
 if ($healthResponse.Ok) {
-    $healthPayload = ConvertFrom-JsonCompat -Text $healthResponse.Body -Depth 12
-    if ($null -eq $healthPayload) {
+    try {
+        $healthPayload = $healthResponse.Body | ConvertFrom-Json -Depth 12
+    } catch {
         $errors.Add('health-diagnostics devolvio JSON invalido.') | Out-Null
     }
 } else {
     $errors.Add(("health-diagnostics fallo: {0}" -f $healthResponse.Error)) | Out-Null
 }
-$healthDetail = $healthResponse.Error
-if ($null -ne $healthPayload) {
-    $healthDetail = "status=$($healthPayload.status)"
-}
 Add-SmokeCheck `
     -Collection $checks `
     -Name 'health-diagnostics' `
     -Ok ($null -ne $healthPayload -and $healthPayload.ok -eq $true) `
-    -Detail $healthDetail
+    -Detail (if ($null -ne $healthPayload) { "status=$($healthPayload.status)" } else { $healthResponse.Error })
 
 $statusResponse = Invoke-TextFetch -Url "$base/admin-auth.php?action=status" -Headers @{ Accept = 'application/json' }
 $statusPayload = $null
 if ($statusResponse.Ok) {
-    $statusPayload = ConvertFrom-JsonCompat -Text $statusResponse.Body -Depth 12
-    if ($null -eq $statusPayload) {
+    try {
+        $statusPayload = $statusResponse.Body | ConvertFrom-Json -Depth 12
+    } catch {
         $errors.Add('admin-auth.php?action=status devolvio JSON invalido.') | Out-Null
     }
 } else {
@@ -91,15 +97,15 @@ $authOk =
     ([string]$statusPayload.mode -eq $ExpectedAuthMode) -and
     ([string]$statusPayload.transport -eq $ExpectedTransport) -and
     ([string]$statusPayload.status -ne 'transport_misconfigured')
-$authDetail = $statusResponse.Error
-if ($null -ne $statusPayload) {
-    $authDetail = "mode=$([string]$statusPayload.mode) transport=$([string]$statusPayload.transport) status=$([string]$statusPayload.status)"
-}
 Add-SmokeCheck `
     -Collection $checks `
     -Name 'admin-auth-status' `
     -Ok $authOk `
-    -Detail $authDetail
+    -Detail (if ($null -ne $statusPayload) {
+        "mode=$([string]$statusPayload.mode) transport=$([string]$statusPayload.transport) status=$([string]$statusPayload.status)"
+    } else {
+        $statusResponse.Error
+    })
 
 $adminHtml = Invoke-TextFetch -Url "$base/admin.html"
 $adminJs = Invoke-TextFetch -Url "$base/admin.js"
@@ -112,41 +118,29 @@ foreach ($response in @($adminHtml, $adminJs, $operatorHtml, $operatorJs)) {
         break
     }
 }
-$localhostDetail = 'Sin referencias activas al helper local.'
-if ($localhostLeakDetected) {
-    $localhostDetail = 'Se detecto referencia activa a 127.0.0.1:4173 en el shell publicado.'
-}
 Add-SmokeCheck `
     -Collection $checks `
     -Name 'localhost-leak' `
     -Ok (-not $localhostLeakDetected) `
-    -Detail $localhostDetail
+    -Detail (if ($localhostLeakDetected) { 'Se detecto referencia activa a 127.0.0.1:4173 en el shell publicado.' } else { 'Sin referencias activas al helper local.' })
 
 $allOk = ($checks | Where-Object { $_.ok -ne $true }).Count -eq 0
-$reportError = ''
-if (-not $allOk) {
-    $reportError = (@($errors) -join ' | ')
-}
-$checkItems = @()
-foreach ($check in $checks) {
-    $checkItems += @{
-        name = [string]$check.name
-        ok = ($check.ok -eq $true)
-        detail = [string]$check.detail
-    }
-}
-$report = @{
+$report = [ordered]@{
     ok = $allOk
     timestamp = [DateTimeOffset]::Now.ToString('o')
     base_url = $base
     expected_auth_mode = $ExpectedAuthMode
     expected_transport = $ExpectedTransport
-    checks = $checkItems
-    error = $reportError
+    checks = @($checks)
+    error = if ($allOk) { '' } else { (@($errors) -join ' | ') }
 }
 
 if (-not [string]::IsNullOrWhiteSpace($ReportPath)) {
-    Write-HostingJsonFile -Path $ReportPath -Payload $report
+    $parent = Split-Path -Parent $ReportPath
+    if (-not [string]::IsNullOrWhiteSpace($parent) -and -not (Test-Path -LiteralPath $parent)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+    $report | ConvertTo-Json -Depth 10 | Set-Content -Path $ReportPath -Encoding UTF8
 }
 
 if ($allOk) {

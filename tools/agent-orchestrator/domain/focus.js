@@ -426,6 +426,12 @@ function evaluateRequiredChecks(focus, options = {}) {
     });
 }
 
+function hasRuntimeRequiredCheck(value = {}) {
+    const focus = value?.configured ? value.configured : value;
+    const checks = normalizeArray(focus?.required_checks, { lowerCase: true });
+    return checks.some((item) => item.startsWith('runtime:'));
+}
+
 function buildFocusSummary(board, options = {}) {
     const activeStatuses = options.activeStatuses || ACTIVE_TASK_STATUSES;
     const decisionsData =
@@ -604,6 +610,50 @@ function buildFocusSummary(board, options = {}) {
     return summary;
 }
 
+async function buildLiveFocusSummary(board, deps = {}) {
+    const now = deps.now instanceof Date ? deps.now : new Date();
+    const summaryBuilder =
+        typeof deps.buildFocusSummary === 'function'
+            ? deps.buildFocusSummary
+            : buildFocusSummary;
+    const decisionsDataRaw =
+        typeof deps.parseDecisions === 'function'
+            ? deps.parseDecisions()
+            : { decisions: [] };
+    const decisionsData =
+        decisionsDataRaw && typeof decisionsDataRaw === 'object'
+            ? decisionsDataRaw
+            : { decisions: [] };
+    const jobsRaw =
+        typeof deps.loadJobsSnapshot === 'function'
+            ? await deps.loadJobsSnapshot()
+            : [];
+    const jobs = Array.isArray(jobsRaw) ? jobsRaw : [];
+    const initialSummary = summaryBuilder(board, {
+        decisionsData,
+        jobsSnapshot: jobs,
+        now,
+    });
+    const runtimeVerification =
+        hasRuntimeRequiredCheck(initialSummary) &&
+        typeof deps.verifyOpenClawRuntime === 'function'
+            ? await deps.verifyOpenClawRuntime()
+            : null;
+    const summary = summaryBuilder(board, {
+        decisionsData,
+        jobsSnapshot: jobs,
+        runtimeVerification,
+        now,
+    });
+
+    return {
+        decisionsData,
+        jobs,
+        runtimeVerification,
+        summary,
+    };
+}
+
 function buildFocusSeed(strategy, options = {}) {
     const strategyId = String(strategy?.id || '').trim();
     if (strategyId !== 'STRAT-2026-03-admin-operativo') {
@@ -662,6 +712,8 @@ module.exports = {
     validateFocusConfiguration,
     validateTaskFocusAlignment,
     evaluateRequiredChecks,
+    hasRuntimeRequiredCheck,
     buildFocusSummary,
+    buildLiveFocusSummary,
     buildFocusSeed,
 };

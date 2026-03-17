@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/TurneroClinicProfile.php';
-require_once __DIR__ . '/../lib/TurneroOperatorAccess.php';
 require_once __DIR__ . '/../lib/telemedicine/TelemedicineOpsSnapshot.php';
 require_once __DIR__ . '/../lib/PatientCaseService.php';
 require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
@@ -433,12 +432,7 @@ class HealthController
      *   legacyPasswordConfigured:bool,
      *   twoFactorEnabled:bool,
      *   operatorAuthEnabled:bool,
-     *   operatorAuthConfigured:bool,
-     *   brokerTrustConfigured:bool,
-     *   brokerIssuerPinned:bool,
-     *   brokerAudiencePinned:bool,
-     *   brokerJwksConfigured:bool,
-     *   brokerEmailVerifiedRequired:bool
+     *   operatorAuthConfigured:bool
      * }
      */
     private static function collectAuthSnapshot(): array
@@ -468,22 +462,10 @@ class HealthController
         $status = $configured
             ? 'configured'
             : ($operatorAuthEnabled ? 'operator_auth_not_configured' : 'legacy_auth_not_configured');
-        $brokerTrustConfigured = (bool) ($operatorAuthConfig['brokerTrustConfigured'] ?? false);
-        $brokerIssuerPinned = (bool) ($operatorAuthConfig['brokerIssuerPinned'] ?? false);
-        $brokerAudiencePinned = (bool) ($operatorAuthConfig['brokerAudiencePinned'] ?? false);
-        $brokerJwksConfigured = (bool) ($operatorAuthConfig['brokerJwksConfigured'] ?? false);
-        $brokerEmailVerifiedRequired = (bool) ($operatorAuthConfig['brokerEmailVerifiedRequired'] ?? true);
         $hardeningCompliant = $configured && (
-            ($operatorAuthEnabled
-                && $mode === $recommendedMode
-                && $brokerTrustConfigured
-                && $brokerIssuerPinned
-                && $brokerAudiencePinned
-                && $brokerJwksConfigured
-                && $brokerEmailVerifiedRequired)
+            ($operatorAuthEnabled && $mode === $recommendedMode)
             || (!$operatorAuthEnabled && $mode === 'legacy_password' && $twoFactorEnabled)
         );
-        $operatorPinMeta = turnero_operator_access_meta();
 
         return [
             'mode' => $mode,
@@ -496,14 +478,6 @@ class HealthController
             'twoFactorEnabled' => $twoFactorEnabled,
             'operatorAuthEnabled' => $operatorAuthEnabled,
             'operatorAuthConfigured' => $operatorAuthConfigured,
-            'brokerTrustConfigured' => $brokerTrustConfigured,
-            'brokerIssuerPinned' => $brokerIssuerPinned,
-            'brokerAudiencePinned' => $brokerAudiencePinned,
-            'brokerJwksConfigured' => $brokerJwksConfigured,
-            'brokerEmailVerifiedRequired' => $brokerEmailVerifiedRequired,
-            'operatorPinMode' => TURNERO_OPERATOR_MODE,
-            'operatorPinConfigured' => (bool) ($operatorPinMeta['configured'] ?? false),
-            'operatorPinSessionTtlHours' => (int) ($operatorPinMeta['sessionTtlHours'] ?? TURNERO_OPERATOR_DEFAULT_SESSION_TTL_HOURS),
             'operatorAuthMissing' => is_array($operatorAuthConfig['missing'] ?? null)
                 ? array_values($operatorAuthConfig['missing'])
                 : [],
@@ -517,7 +491,7 @@ class HealthController
      */
     private static function publicPayload(array $detailedPayload): array
     {
-        $payload = [
+        return [
             'ok' => (bool) ($detailedPayload['ok'] ?? false),
             'status' => (string) ($detailedPayload['status'] ?? 'unknown'),
             'storageReady' => (bool) ($detailedPayload['storageReady'] ?? false),
@@ -525,77 +499,6 @@ class HealthController
             'timingMs' => (int) ($detailedPayload['timingMs'] ?? 0),
             'version' => (string) ($detailedPayload['version'] ?? app_runtime_version()),
             'timestamp' => (string) ($detailedPayload['timestamp'] ?? local_date('c')),
-        ];
-        foreach (self::publicCalendarSummaryFields($detailedPayload) as $key => $value) {
-            $payload[$key] = $value;
-        }
-
-        $publicSync = self::publicSyncSummaryPayload(
-            $detailedPayload['checks']['publicSync'] ?? null
-        );
-        if ($publicSync !== null) {
-            $payload['checks'] = [
-                'publicSync' => $publicSync,
-            ];
-        }
-
-        return $payload;
-    }
-
-    private static function publicCalendarSummaryFields(array $detailedPayload): array
-    {
-        $fields = [
-            'calendarConfigured',
-            'calendarReachable',
-            'calendarMode',
-            'calendarSource',
-            'calendarAuth',
-            'calendarTokenHealthy',
-            'calendarLastSuccessAt',
-            'calendarLastErrorAt',
-            'calendarLastErrorReason',
-        ];
-        $payload = [];
-        foreach ($fields as $field) {
-            if (array_key_exists($field, $detailedPayload)) {
-                $payload[$field] = $detailedPayload[$field];
-            }
-        }
-
-        return $payload;
-    }
-
-    private static function publicSyncSummaryPayload($raw): ?array
-    {
-        if (!is_array($raw)) {
-            return null;
-        }
-
-        return [
-            'configured' => (bool) ($raw['configured'] ?? false),
-            'jobId' => (string) ($raw['jobId'] ?? ''),
-            'healthy' => (bool) ($raw['healthy'] ?? false),
-            'operationallyHealthy' => (bool) ($raw['operationallyHealthy'] ?? false),
-            'repoHygieneIssue' => (bool) ($raw['repoHygieneIssue'] ?? false),
-            'state' => (string) ($raw['state'] ?? 'unknown'),
-            'ageSeconds' => array_key_exists('ageSeconds', $raw)
-                ? $raw['ageSeconds']
-                : null,
-            'expectedMaxLagSeconds' => (int) ($raw['expectedMaxLagSeconds'] ?? 120),
-            'lastCheckedAt' => (string) ($raw['lastCheckedAt'] ?? ''),
-            'lastSuccessAt' => (string) ($raw['lastSuccessAt'] ?? ''),
-            'lastErrorAt' => (string) ($raw['lastErrorAt'] ?? ''),
-            'lastErrorMessage' => (string) ($raw['lastErrorMessage'] ?? ''),
-            'failureReason' => (string) ($raw['failureReason'] ?? ''),
-            'deployedCommit' => (string) ($raw['deployedCommit'] ?? ''),
-            'currentHead' => (string) ($raw['currentHead'] ?? ''),
-            'remoteHead' => (string) ($raw['remoteHead'] ?? ''),
-            'headDrift' => (bool) ($raw['headDrift'] ?? false),
-            'telemetryGap' => (bool) ($raw['telemetryGap'] ?? false),
-            'dirtyPathsCount' => (int) ($raw['dirtyPathsCount'] ?? 0),
-            'dirtyPathsSample' => is_array($raw['dirtyPathsSample'] ?? null)
-                ? array_values($raw['dirtyPathsSample'])
-                : [],
         ];
     }
 

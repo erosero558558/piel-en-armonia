@@ -322,6 +322,60 @@ test('diagnostics preserva required_check runtime por surface en warnings del fo
     assert.equal(diag.meta.checks[0].id, 'runtime:operator_auth');
 });
 
+test('diagnostics reutiliza focusSummary live cuando se provee explicitamente', () => {
+    const list = diagnostics.buildWarnFirstDiagnostics({
+        source: 'status',
+        policy: POLICY,
+        focusSummary: {
+            configured: {
+                id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                required_checks: [
+                    'job:public_main_sync',
+                    'runtime:operator_auth',
+                ],
+            },
+            idle: false,
+            missing_focus_task_ids: [],
+            outside_next_step_task_ids: [],
+            invalid_slice_task_ids: [],
+            too_many_active_slices: false,
+            required_checks: [
+                {
+                    id: 'job:public_main_sync',
+                    state: 'green',
+                    ok: true,
+                },
+                {
+                    id: 'runtime:operator_auth',
+                    state: 'green',
+                    ok: true,
+                },
+            ],
+            decisions: {
+                overdue: 0,
+                overdue_ids: [],
+            },
+            rework_without_reason_task_ids: [],
+        },
+        jobsSnapshot: [
+            {
+                key: 'public_main_sync',
+                configured: true,
+                verified: true,
+                healthy: true,
+            },
+        ],
+        activeStatuses: ACTIVE_STATUSES,
+    });
+
+    assert.equal(
+        list.some(
+            (item) => item.code === 'warn.focus.required_check_unverified'
+        ),
+        false
+    );
+});
+
 test('diagnostics no marca public_main_sync como unconfigured cuando no se cargo snapshot', () => {
     const list = diagnostics.buildWarnFirstDiagnostics({
         source: 'conflicts',

@@ -237,6 +237,9 @@ function buildPublicSyncFailureMessage(job = {}) {
     const failureReason = String(job.failure_reason || '').trim();
     if (failureReason) {
         parts.push(`reason=${failureReason}`);
+        if (failureReason === 'health_missing_public_sync') {
+            parts.push('action=deploy_health_public_sync_rollout');
+        }
     }
     if (job.head_drift) {
         parts.push('head_drift=true');
@@ -284,6 +287,7 @@ function buildWarnFirstDiagnostics(input = {}) {
         board = null,
         handoffData = null,
         decisionsData = null,
+        focusSummary = null,
         metricsSnapshot = null,
         policyReport = null,
         jobsSnapshot = null,
@@ -293,12 +297,15 @@ function buildWarnFirstDiagnostics(input = {}) {
     const diagnostics = [];
     const warnPolicyMap = getWarnPolicyMap(policy);
     const nowMs = now instanceof Date ? now.getTime() : Date.now();
-    const focusSummary = domainFocus.buildFocusSummary(board, {
-        activeStatuses,
-        decisionsData,
-        jobsSnapshot,
-        now,
-    });
+    const resolvedFocusSummary =
+        focusSummary && typeof focusSummary === 'object'
+            ? focusSummary
+            : domainFocus.buildFocusSummary(board, {
+                  activeStatuses,
+                  decisionsData,
+                  jobsSnapshot,
+                  now,
+              });
 
     if (warnPolicyEnabled(warnPolicyMap, 'active_broad_glob')) {
         const tasks = Array.isArray(board?.tasks) ? board.tasks : [];
@@ -470,7 +477,7 @@ function buildWarnFirstDiagnostics(input = {}) {
     if (
         warnPolicyEnabled(warnPolicyMap, 'strategy_without_focus') &&
         board?.strategy?.active &&
-        !focusSummary.configured
+        !resolvedFocusSummary.configured
     ) {
         diagnostics.push(
             makeDiagnostic({
@@ -486,7 +493,7 @@ function buildWarnFirstDiagnostics(input = {}) {
     }
     if (
         warnPolicyEnabled(warnPolicyMap, 'focus_without_active_tasks') &&
-        focusSummary.idle
+        resolvedFocusSummary.idle
     ) {
         diagnostics.push(
             makeDiagnostic({
@@ -496,14 +503,14 @@ function buildWarnFirstDiagnostics(input = {}) {
                     'focus_without_active_tasks'
                 ),
                 source,
-                message: `focus ${focusSummary.configured?.id || 'n/a'} activo sin tareas activas`,
+                message: `focus ${resolvedFocusSummary.configured?.id || 'n/a'} activo sin tareas activas`,
             })
         );
     }
     if (
         warnPolicyEnabled(warnPolicyMap, 'missing_next_step') &&
-        focusSummary.configured &&
-        !focusSummary.configured.next_step
+        resolvedFocusSummary.configured &&
+        !resolvedFocusSummary.configured.next_step
     ) {
         diagnostics.push(
             makeDiagnostic({
@@ -519,7 +526,7 @@ function buildWarnFirstDiagnostics(input = {}) {
     }
     if (
         warnPolicyEnabled(warnPolicyMap, 'task_missing_focus_fields') &&
-        focusSummary.missing_focus_task_ids.length > 0
+        resolvedFocusSummary.missing_focus_task_ids.length > 0
     ) {
         diagnostics.push(
             makeDiagnostic({
@@ -529,14 +536,14 @@ function buildWarnFirstDiagnostics(input = {}) {
                     'task_missing_focus_fields'
                 ),
                 source,
-                message: `Tareas activas sin foco completo: ${focusSummary.missing_focus_task_ids.join(', ')}`,
-                task_ids: focusSummary.missing_focus_task_ids,
+                message: `Tareas activas sin foco completo: ${resolvedFocusSummary.missing_focus_task_ids.join(', ')}`,
+                task_ids: resolvedFocusSummary.missing_focus_task_ids,
             })
         );
     }
     if (
         warnPolicyEnabled(warnPolicyMap, 'task_outside_next_step') &&
-        focusSummary.outside_next_step_task_ids.length > 0
+        resolvedFocusSummary.outside_next_step_task_ids.length > 0
     ) {
         diagnostics.push(
             makeDiagnostic({
@@ -546,14 +553,14 @@ function buildWarnFirstDiagnostics(input = {}) {
                     'task_outside_next_step'
                 ),
                 source,
-                message: `Tareas activas fuera de focus_next_step: ${focusSummary.outside_next_step_task_ids.join(', ')}`,
-                task_ids: focusSummary.outside_next_step_task_ids,
+                message: `Tareas activas fuera de focus_next_step: ${resolvedFocusSummary.outside_next_step_task_ids.join(', ')}`,
+                task_ids: resolvedFocusSummary.outside_next_step_task_ids,
             })
         );
     }
     if (
         warnPolicyEnabled(warnPolicyMap, 'slice_not_allowed_for_lane') &&
-        focusSummary.invalid_slice_task_ids.length > 0
+        resolvedFocusSummary.invalid_slice_task_ids.length > 0
     ) {
         diagnostics.push(
             makeDiagnostic({
@@ -563,14 +570,14 @@ function buildWarnFirstDiagnostics(input = {}) {
                     'slice_not_allowed_for_lane'
                 ),
                 source,
-                message: `Tareas con integration_slice invalido para su lane: ${focusSummary.invalid_slice_task_ids.join(', ')}`,
-                task_ids: focusSummary.invalid_slice_task_ids,
+                message: `Tareas con integration_slice invalido para su lane: ${resolvedFocusSummary.invalid_slice_task_ids.join(', ')}`,
+                task_ids: resolvedFocusSummary.invalid_slice_task_ids,
             })
         );
     }
     if (
         warnPolicyEnabled(warnPolicyMap, 'too_many_active_slices') &&
-        focusSummary.too_many_active_slices
+        resolvedFocusSummary.too_many_active_slices
     ) {
         diagnostics.push(
             makeDiagnostic({
@@ -580,20 +587,21 @@ function buildWarnFirstDiagnostics(input = {}) {
                     'too_many_active_slices'
                 ),
                 source,
-                message: `Focus excede max_active_slices (${focusSummary.distinct_active_slices}/${focusSummary.configured?.max_active_slices || 3})`,
+                message: `Focus excede max_active_slices (${resolvedFocusSummary.distinct_active_slices}/${resolvedFocusSummary.configured?.max_active_slices || 3})`,
                 meta: {
-                    distinct_active_slices: focusSummary.distinct_active_slices,
+                    distinct_active_slices:
+                        resolvedFocusSummary.distinct_active_slices,
                     max_active_slices:
-                        focusSummary.configured?.max_active_slices || 3,
+                        resolvedFocusSummary.configured?.max_active_slices || 3,
                 },
             })
         );
     }
     if (
         warnPolicyEnabled(warnPolicyMap, 'required_check_unverified') &&
-        Array.isArray(focusSummary.required_checks)
+        Array.isArray(resolvedFocusSummary.required_checks)
     ) {
-        const pendingChecks = focusSummary.required_checks.filter(
+        const pendingChecks = resolvedFocusSummary.required_checks.filter(
             (item) => item.state === 'unverified' || item.state === 'red'
         );
         if (pendingChecks.length > 0) {
@@ -617,20 +625,20 @@ function buildWarnFirstDiagnostics(input = {}) {
     }
     if (
         warnPolicyEnabled(warnPolicyMap, 'decision_overdue') &&
-        focusSummary.decisions.overdue > 0
+        resolvedFocusSummary.decisions.overdue > 0
     ) {
         diagnostics.push(
             makeDiagnostic({
                 code: 'warn.focus.decision_overdue',
                 severity: warnPolicySeverity(warnPolicyMap, 'decision_overdue'),
                 source,
-                message: `Decisiones abiertas vencidas para el foco: ${focusSummary.decisions.overdue_ids.join(', ')}`,
+                message: `Decisiones abiertas vencidas para el foco: ${resolvedFocusSummary.decisions.overdue_ids.join(', ')}`,
             })
         );
     }
     if (
         warnPolicyEnabled(warnPolicyMap, 'rework_without_reason') &&
-        focusSummary.rework_without_reason_task_ids.length > 0
+        resolvedFocusSummary.rework_without_reason_task_ids.length > 0
     ) {
         diagnostics.push(
             makeDiagnostic({
@@ -640,8 +648,8 @@ function buildWarnFirstDiagnostics(input = {}) {
                     'rework_without_reason'
                 ),
                 source,
-                message: `Tareas fix/refactor sin causa de retrabajo: ${focusSummary.rework_without_reason_task_ids.join(', ')}`,
-                task_ids: focusSummary.rework_without_reason_task_ids,
+                message: `Tareas fix/refactor sin causa de retrabajo: ${resolvedFocusSummary.rework_without_reason_task_ids.join(', ')}`,
+                task_ids: resolvedFocusSummary.rework_without_reason_task_ids,
             })
         );
     }

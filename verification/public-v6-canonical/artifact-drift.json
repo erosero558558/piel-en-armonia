@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-03-17T00:46:51.994Z",
-  "rebuild": true,
+  "generatedAt": "2026-03-15T04:38:22.862Z",
+  "rebuild": false,
   "distRoot": "src/apps/astro/dist",
   "checks": [
     {
@@ -21,8 +21,8 @@
     },
     {
       "entry": "_astro",
-      "distCount": 6,
-      "repoCount": 6,
+      "distCount": 1,
+      "repoCount": 1,
       "missingInRepo": [],
       "extraInRepo": [],
       "changed": []

@@ -29,16 +29,17 @@ test.describe('Public V6 assistance fallback replaces legacy chat booking shell'
         await expect(page).toHaveURL(/\/en\/$/);
         await expectHeaderAssistanceSurfaces(page);
         await expect(page.locator('[data-v6-news-strip]')).toContainText(
-            'Message us on WhatsApp and we will help you place whether today calls for clinic, treatment, or teledermatology.'
+            'Clear clinical dermatology, ready to move you forward even while online booking is paused.'
         );
 
         const bookingStatus = page.locator('[data-v6-booking-status]');
         await expect(bookingStatus).toContainText(
             'Online booking under maintenance'
         );
-        await expect(
-            bookingStatus.getByRole('link', { name: 'Message on WhatsApp' })
-        ).toHaveAttribute('href', /wa\.me\/593982453672/);
+        await expect(bookingStatus.getByRole('link')).toHaveAttribute(
+            'href',
+            '/en/telemedicine/'
+        );
         await expectLegacyChatBookingShellAbsent(page);
     });
 
@@ -55,12 +56,12 @@ test.describe('Public V6 assistance fallback replaces legacy chat booking shell'
         await expect(
             page
                 .locator('[data-v6-booking-status]')
-                .getByRole('link', { name: 'Message on WhatsApp' })
-        ).toHaveAttribute('href', /wa\.me\/593982453672/);
+                .getByRole('link', { name: 'Open teledermatology' })
+        ).toHaveAttribute('href', '/en/telemedicine/');
         await expectLegacyChatBookingShellAbsent(page);
     });
 
-    test('spanish service detail hands booking off to WhatsApp instead of live chat', async ({
+    test('spanish service detail hands booking off to telemedicine instead of live chat', async ({
         page,
     }) => {
         await page.goto('/es/servicios/acne-rosacea/');
@@ -70,12 +71,21 @@ test.describe('Public V6 assistance fallback replaces legacy chat booking shell'
             'Reserva online en mantenimiento'
         );
 
-        const whatsappLink = page
+        const telemedicineLink = page
             .locator('[data-v6-booking-status]')
             .getByRole('link');
-        await expect(whatsappLink).toHaveAttribute(
+        await expect(telemedicineLink).toHaveAttribute(
             'href',
-            /wa\.me\/593982453672/
+            '/es/telemedicina/'
+        );
+
+        await Promise.all([
+            page.waitForURL(/\/es\/telemedicina\/$/),
+            telemedicineLink.click(),
+        ]);
+
+        await expect(page.locator('h1')).toContainText(
+            'Telemedicina dermatologica en Quito'
         );
         await expectLegacyChatBookingShellAbsent(page);
     });
@@ -87,7 +97,7 @@ test.describe('Public V6 assistance fallback replaces legacy chat booking shell'
 
         await expectHeaderAssistanceSurfaces(page);
         await expect(page.locator('h1')).toContainText(
-            'Teledermatologia en Quito'
+            'Telemedicina dermatologica en Quito'
         );
         await expect(page.locator('[data-v6-booking-status]')).toContainText(
             'Reserva online en mantenimiento'
@@ -95,8 +105,8 @@ test.describe('Public V6 assistance fallback replaces legacy chat booking shell'
         await expect(
             page
                 .locator('[data-v6-booking-status]')
-                .getByRole('link', { name: 'Escribir por WhatsApp' })
-        ).toHaveAttribute('href', /wa\.me\/593982453672/);
+                .getByRole('link', { name: 'Ver servicios' })
+        ).toHaveAttribute('href', '/es/servicios/');
         await expectLegacyChatBookingShellAbsent(page);
     });
 });

@@ -372,6 +372,56 @@ function normalizeSnapshotFromHealth(job, payload = {}) {
     return finalizeSnapshot(snapshot);
 }
 
+function extractLegacyPublicSyncPayload(payload = {}) {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        return null;
+    }
+
+    if (payload.publicSync && typeof payload.publicSync === 'object') {
+        return payload.publicSync;
+    }
+
+    const hasLegacyFields =
+        Object.prototype.hasOwnProperty.call(payload, 'publicSyncConfigured') ||
+        Object.prototype.hasOwnProperty.call(payload, 'publicSyncHealthy') ||
+        Object.prototype.hasOwnProperty.call(payload, 'publicSyncState') ||
+        Object.prototype.hasOwnProperty.call(payload, 'publicSyncJobId') ||
+        Object.prototype.hasOwnProperty.call(payload, 'publicSyncLastCheckedAt');
+
+    if (!hasLegacyFields) {
+        return null;
+    }
+
+    return {
+        configured: payload.publicSyncConfigured,
+        jobId: payload.publicSyncJobId,
+        healthy: payload.publicSyncHealthy,
+        operationallyHealthy: payload.publicSyncOperationallyHealthy,
+        repoHygieneIssue: payload.publicSyncRepoHygieneIssue,
+        state: payload.publicSyncState,
+        ageSeconds: payload.publicSyncAgeSeconds,
+        expectedMaxLagSeconds: payload.publicSyncExpectedMaxLagSeconds,
+        lastCheckedAt: payload.publicSyncLastCheckedAt || payload.timestamp,
+        lastSuccessAt: payload.publicSyncLastSuccessAt,
+        lastErrorAt: payload.publicSyncLastErrorAt,
+        lastErrorMessage: payload.publicSyncLastErrorMessage,
+        failureReason: payload.publicSyncFailureReason,
+        deployedCommit: payload.publicSyncDeployedCommit,
+        currentHead: payload.publicSyncCurrentHead,
+        remoteHead: payload.publicSyncRemoteHead,
+        headDrift: payload.publicSyncHeadDrift,
+        branch: payload.publicSyncBranch,
+        repoPath: payload.publicSyncRepoPath,
+        statusPath: payload.publicSyncStatusPath,
+        logPath: payload.publicSyncLogPath,
+        lockFile: payload.publicSyncLockFile,
+        dirtyPathsCount: payload.publicSyncDirtyPathsCount,
+        dirtyPathsSample: payload.publicSyncDirtyPathsSample,
+        telemetryGap: payload.publicSyncTelemetryGap,
+        durationMs: payload.publicSyncDurationMs,
+    };
+}
+
 function normalizeSnapshotFromHealthMissingPublicSync(job, payload = {}) {
     const checkedAt =
         String(payload.timestamp || payload.checked_at || '').trim() ||
@@ -470,7 +520,9 @@ async function resolveJobSnapshot(jobRaw, deps = {}) {
             });
             if (response && response.ok) {
                 const payload = await response.json();
-                const publicSync = payload?.checks?.publicSync || null;
+                const publicSync =
+                    payload?.checks?.publicSync ||
+                    extractLegacyPublicSyncPayload(payload);
                 if (publicSync && typeof publicSync === 'object') {
                     return normalizeSnapshotFromHealth(job, publicSync);
                 }

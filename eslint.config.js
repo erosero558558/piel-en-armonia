@@ -28,11 +28,15 @@ module.exports = [
         ignores: [
             'admin.js',
             'script.js',
+            'sw.js',
             'vendor/**',
             'js/chunks/**',
             'js/admin-chunks/**',
             'js/engines/**',
             'js/booking-calendar.js',
+            'js/queue-display.js',
+            'js/queue-kiosk.js',
+            'js/queue-operator.js',
         ],
     },
     {

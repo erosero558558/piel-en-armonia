@@ -15,6 +15,22 @@ Entrypoints estables:
 Los archivos de raiz se mantienen como wrappers compatibles para no romper
 `package.json`, workflows ni uso manual existente.
 
+Hosting Windows canonico:
+
+- El origen Windows ya no debe servir desde el workspace de trabajo. El repo
+  publico vive en el mirror limpio `C:\dev\pielarmonia-clean-main`.
+- `CONFIGURAR-HOSTING-WINDOWS.ps1` registra un supervisor dedicado
+  (`Pielarmonia Hosting Supervisor`) y un reconciliador por minuto
+  (`Pielarmonia Hosting Main Sync`).
+- El despliegue local del host se pinnea en
+  `C:\ProgramData\Pielarmonia\hosting\release-target.json`; el sync no sigue
+  `origin/main` flotante.
+- `REPARAR-HOSTING-WINDOWS.ps1` es el entrypoint canonico para stale lock,
+  restart, reinstalacion del supervisor y smoke local post-repair.
+- `SMOKE-HOSTING-WINDOWS.ps1` valida `health-diagnostics`,
+  `admin-auth.php?action=status` con `transport=web_broker` y ausencia de
+  referencias activas a `127.0.0.1:4173` en los shells publicados.
+
 Los checks canonicos de runtime publico resuelven engines solo desde
 `js/engines/**`. Los residuos JS legacy de raiz (`booking-engine.js`,
 `utils.js`, `*-engine.js`) deben quedar archivados fuera del carril activo.
@@ -53,7 +69,7 @@ Adopcion operativa de `public_main_sync`:
 - Los mismos entrypoints aceptan `-RequireTurneroOperatorPilot` para bloquear si el piloto Windows del operador no publica `app-downloads`, `latest.yml` e instalador en `pilot`.
 - `check-public-routing-smoke.js` trata `/operador-turnos.html`, `/kiosco-turnos.html` y `/sala-turnos.html` como rutas publicas obligatorias; si una cae en redirect o 404, staging/prod no deben pasar.
 - `CHECKLIST-HOST-PUBLIC-SYNC.ps1` imprime un checklist host-side reutilizable para comparar `/root/sync-pielarmonia.sh` contra el wrapper canonico, capturar `public-sync-status.json`, revisar `health-diagnostics` y validar `storeEncryptionCompliant`.
-- El perfil productivo canonico de auth es `PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt` + `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=web_broker` + `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=true`.
+- El perfil productivo canonico de auth es `PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt` + `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=web_broker` + `PIELARMONIA_ADMIN_EMAIL=<correo_operativo>` + `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST=<correo_operativo>` + `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`.
 - En ese perfil, `MONITOR-PRODUCCION.ps1` y `VERIFICAR-DESPLIEGUE.ps1` activan `RequireOperatorAuth` automaticamente cuando la politica efectiva del rollout admin exige OpenClaw.
 - `post-deploy-fast.yml` y `post-deploy-gate.yml` publican ademas un reporte de smoke live del broker web; el corte productivo espera `callback_ok=true`, `shared_session_ok=true` y `logout_ok=true`.
 

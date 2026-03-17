@@ -1,7 +1,6 @@
 param(
     [string]$PublicDomain = 'pielarmonia.com',
     [string]$TunnelId = 'a2067e67-a462-41de-9d43-97cd7df4bda0',
-    [string]$ExternalEnvPath = 'C:\ProgramData\Pielarmonia\hosting\env.php',
     [string]$OperatorUserProfile = '',
     [string]$CaddyExePath = '',
     [string]$CloudflaredExePath = '',
@@ -12,23 +11,13 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$commonScriptPath = Join-Path $PSScriptRoot 'Windows.Hosting.Common.ps1'
-if (-not (Test-Path -LiteralPath $commonScriptPath)) {
-    throw "No existe el modulo comun de hosting Windows: $commonScriptPath"
-}
-. $commonScriptPath
 
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
-$runtimePaths = Get-HostingRuntimePaths -RepoRoot $repoRoot
-$runtimeRoot = [string]$runtimePaths.RuntimeRoot
-$logRoot = [string]$runtimePaths.LogsRoot
-$pidRoot = [string]$runtimePaths.PidRoot
-$mirrorEnvPath = Join-Path $repoRoot 'env.php'
-$caddyTemplatePath = [string]$runtimePaths.CaddyTemplatePath
-$caddyRuntimeConfigPath = [string]$runtimePaths.CaddyRuntimeConfigPath
-$caddyAccessLogPath = [string]$runtimePaths.CaddyAccessLogPath
+$runtimeRoot = Join-Path $repoRoot 'data\runtime\hosting'
+$logRoot = Join-Path $runtimeRoot 'logs'
+$pidRoot = Join-Path $runtimeRoot 'pids'
+$caddyConfigPath = Join-Path $repoRoot 'ops\caddy\Caddyfile'
 $helperScriptPath = Join-Path $repoRoot 'scripts\ops\admin\INICIAR-OPENCLAW-AUTH-HELPER.ps1'
-$externalEnvPathResolved = [System.IO.Path]::GetFullPath($ExternalEnvPath)
 $resolvedOperatorUserProfile = if ([string]::IsNullOrWhiteSpace($OperatorUserProfile)) {
     $env:USERPROFILE
 } else {
@@ -68,13 +57,44 @@ function Resolve-ExecutablePath {
     return (Get-Command $CommandName -ErrorAction Stop).Source
 }
 
+function Test-CommandLineMatch {
+    param(
+        [string]$CommandLine,
+        [string[]]$Needles
+    )
+
+    if ([string]::IsNullOrWhiteSpace($CommandLine)) {
+        return $false
+    }
+
+    foreach ($needle in $Needles) {
+        if ([string]::IsNullOrWhiteSpace($needle)) {
+            continue
+        }
+
+        if ($CommandLine.IndexOf($needle, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+function Get-ProcessesByNeedle {
+    param([string[]]$Needles)
+
+    return @(Get-CimInstance Win32_Process | Where-Object {
+        Test-CommandLineMatch -CommandLine ([string]$_.CommandLine) -Needles $Needles
+    })
+}
+
 function Stop-ProcessesByNeedle {
     param(
         [string[]]$Needles,
         [string]$Label
     )
 
-    $matches = Get-HostingProcessesByNeedle -Needles $Needles
+    $matches = Get-ProcessesByNeedle -Needles $Needles
     foreach ($match in $matches) {
         Write-Info ("Stopping {0} pid={1}" -f $Label, $match.ProcessId)
         Stop-Process -Id $match.ProcessId -Force -ErrorAction SilentlyContinue
@@ -90,244 +110,18 @@ function Wait-ForHttp {
     )
 
     for ($attempt = 1; $attempt -le $Attempts; $attempt += 1) {
-        $response = Invoke-HostingHttpRequest -Url $Url -Headers $Headers -TimeoutSec 5
-        if (($response.StatusCode -ge 200) -and ($response.StatusCode -lt 500)) {
-            return $true
+        try {
+            $response = Invoke-WebRequest -Uri $Url -Headers $Headers -UseBasicParsing -TimeoutSec 5
+            if ($null -ne $response.StatusCode -and [int]$response.StatusCode -ge 200 -and [int]$response.StatusCode -lt 500) {
+                return $true
+            }
+        } catch {
         }
 
         Start-Sleep -Milliseconds $DelayMs
     }
 
     return $false
-}
-
-function Invoke-JsonGetSafe {
-    param(
-        [string]$Url,
-        [hashtable]$Headers = @{},
-        [int]$TimeoutSec = 5
-    )
-
-    $response = Invoke-HostingJsonRequest -Url $Url -Headers $Headers -TimeoutSec $TimeoutSec
-    return $response.Payload
-}
-
-function Read-PhpEnvFileValues {
-    param([string]$Path)
-
-    $parsed = @{}
-    if (-not (Test-Path -LiteralPath $Path)) {
-        return $parsed
-    }
-
-    try {
-        $lines = Get-Content -LiteralPath $Path
-    } catch {
-        return $parsed
-    }
-
-    foreach ($line in $lines) {
-        $match = [regex]::Match([string]$line, '^\s*putenv\(\s*([''"])([A-Z0-9_]+)=([\s\S]*?)\1\s*\)\s*;\s*$')
-        if (-not $match.Success) {
-            continue
-        }
-
-        $key = [string]$match.Groups[2].Value.Trim()
-        $value = [string]$match.Groups[3].Value
-        $value = $value.Replace("\'", "'").Replace('\"', '"').Trim()
-        if (-not [string]::IsNullOrWhiteSpace($key)) {
-            $parsed[$key] = $value
-        }
-    }
-
-    return $parsed
-}
-
-function Get-EffectiveOperatorAuthBootstrapConfig {
-    $envSources = @()
-    foreach ($candidatePath in @($mirrorEnvPath, $externalEnvPathResolved)) {
-        if ([string]::IsNullOrWhiteSpace($candidatePath)) {
-            continue
-        }
-        $envSources += ,(Read-PhpEnvFileValues -Path $candidatePath)
-    }
-
-    $effective = @{}
-    foreach ($source in $envSources) {
-        foreach ($key in $source.Keys) {
-            $effective[$key] = [string]$source[$key]
-        }
-    }
-
-    if (-not $effective.ContainsKey('PIELARMONIA_OPERATOR_AUTH_MODE')) {
-        $effective['PIELARMONIA_OPERATOR_AUTH_MODE'] = [string]$env:PIELARMONIA_OPERATOR_AUTH_MODE
-    }
-    if (-not $effective.ContainsKey('PIELARMONIA_OPERATOR_AUTH_TRANSPORT')) {
-        $effective['PIELARMONIA_OPERATOR_AUTH_TRANSPORT'] = [string]$env:PIELARMONIA_OPERATOR_AUTH_TRANSPORT
-    }
-
-    return [PSCustomObject]@{
-        Mode = [string]$effective['PIELARMONIA_OPERATOR_AUTH_MODE']
-        Transport = [string]$effective['PIELARMONIA_OPERATOR_AUTH_TRANSPORT']
-    }
-}
-
-function Sync-ExternalEnvFile {
-    param(
-        [string]$SourcePath,
-        [string]$DestinationPath
-    )
-
-    if (-not (Test-Path -LiteralPath $SourcePath)) {
-        return $false
-    }
-
-    $sourceHash = Get-HostingFileSha256 -Path $SourcePath
-    $destinationHash = Get-HostingFileSha256 -Path $DestinationPath
-    if ($sourceHash -eq $destinationHash) {
-        return $false
-    }
-
-    Ensure-HostingParentDirectory -Path $DestinationPath
-    Copy-Item -LiteralPath $SourcePath -Destination $DestinationPath -Force
-    Write-Info ("env.php externo sincronizado: {0} -> {1}" -f $SourcePath, $DestinationPath)
-    return $true
-}
-
-function Get-OperatorAuthStatusPayload {
-    return Invoke-JsonGetSafe `
-        -Url 'http://127.0.0.1/admin-auth.php?action=status' `
-        -Headers @{ Accept = 'application/json' }
-}
-
-function Get-LocalRuntimeFingerprintStatus {
-    param(
-        [string]$ExpectedSiteRoot,
-        [string]$ExpectedRuntimeConfigPath
-    )
-
-    $fingerprint = Invoke-HostingRuntimeFingerprint -BaseUrl 'http://127.0.0.1' -TimeoutSec 5
-    return (Test-HostingRuntimeFingerprintMatch `
-            -Fingerprint $fingerprint `
-            -ExpectedSiteRoot $ExpectedSiteRoot `
-            -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath)
-}
-
-function Refresh-OperatorAuthRuntime {
-    param(
-        [string]$PhpCgiExecutable,
-        [string]$CaddyExecutable,
-        [string]$CurrentConfigPath,
-        [string]$ExpectedSiteRoot,
-        [string]$ExpectedRuntimeConfigPath,
-        [string]$BootstrapMode,
-        [string]$BootstrapTransport
-    )
-
-    $payload = Get-OperatorAuthStatusPayload
-    $transport = ''
-    if ($null -ne $payload) {
-        $transport = [string]$payload.transport
-    }
-    if (-not [string]::IsNullOrWhiteSpace($transport)) {
-        return $payload
-    }
-
-    $bootstrapWebBroker =
-        [string]::Equals($BootstrapMode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -and
-        [string]::Equals($BootstrapTransport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase)
-
-    if (-not $bootstrapWebBroker) {
-        return $payload
-    }
-
-    Write-Info 'Contrato OpenClaw local sin transport; se reinicia PHP-CGI para refrescar env.'
-    Stop-ProcessesByNeedle -Needles @('php-cgi.exe', '-b 127.0.0.1:9000') -Label 'PHP-CGI auth refresh'
-    Ensure-PhpCgiListener `
-        -PhpCgiExecutable $PhpCgiExecutable `
-        -WorkingDirectory $repoRoot `
-        -StdOutPath $phpStdOutPath `
-        -StdErrPath $phpStdErrPath
-    $payload = Get-OperatorAuthStatusPayload
-    if (($null -ne $payload) -and (-not [string]::IsNullOrWhiteSpace([string]$payload.transport))) {
-        return $payload
-    }
-
-    Write-Info 'Contrato OpenClaw local sigue sin transport; se reinicia Caddy y se reconsulta.'
-    Stop-ProcessesByNeedle -Needles @('caddy.exe', 'run') -Label 'Caddy auth refresh'
-    Ensure-CaddyAndBackendReady `
-        -CaddyExecutable $CaddyExecutable `
-        -WorkingDirectory $repoRoot `
-        -StdOutPath $caddyStdOutPath `
-        -StdErrPath $caddyStdErrPath `
-        -CurrentConfigPath $CurrentConfigPath `
-        -ExpectedSiteRoot $ExpectedSiteRoot `
-        -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath
-    return Get-OperatorAuthStatusPayload
-}
-
-function Resolve-OperatorAuthTransport {
-    param(
-        [string]$BootstrapMode = '',
-        [string]$BootstrapTransport = '',
-        [string]$Fallback = 'local_helper',
-        [int]$Attempts = 10,
-        [int]$DelayMs = 500
-    )
-
-    for ($attempt = 1; $attempt -le $Attempts; $attempt += 1) {
-        $payload = Invoke-JsonGetSafe `
-            -Url 'http://127.0.0.1/admin-auth.php?action=status' `
-            -Headers @{ Accept = 'application/json' }
-        if ($null -eq $payload) {
-            Start-Sleep -Milliseconds $DelayMs
-            continue
-        }
-
-        $transport = [string]($payload.transport)
-        if (-not [string]::IsNullOrWhiteSpace($transport)) {
-            if ([string]::Equals($transport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase)) {
-                return 'web_broker'
-            }
-
-            return 'local_helper'
-        }
-
-        $mode = [string]($payload.mode)
-        $status = [string]($payload.status)
-        if (
-            [string]::Equals($mode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -or
-            [string]::Equals($status, 'transport_misconfigured', [System.StringComparison]::OrdinalIgnoreCase)
-        ) {
-            if (
-                [string]::Equals($BootstrapMode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -and
-                [string]::Equals($BootstrapTransport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase)
-            ) {
-                Write-Info 'Se asume web_broker desde env.php efectivo durante bootstrap.'
-                return 'web_broker'
-            }
-
-            throw 'admin-auth.php?action=status no publico un transport valido para OpenClaw. Corrige el runtime antes de iniciar el stack.'
-        }
-
-        Start-Sleep -Milliseconds $DelayMs
-    }
-
-    $envTransport = [string]$env:PIELARMONIA_OPERATOR_AUTH_TRANSPORT
-    if (
-        [string]::Equals($BootstrapMode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -and
-        [string]::Equals($BootstrapTransport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase)
-    ) {
-        return 'web_broker'
-    }
-    if ([string]::Equals($envTransport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase)) {
-        return 'web_broker'
-    }
-    if ([string]::Equals($env:PIELARMONIA_OPERATOR_AUTH_MODE, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw 'PIELARMONIA_OPERATOR_AUTH_TRANSPORT no esta declarado explicitamente para OpenClaw. Configure web_broker o local_helper antes de iniciar el stack.'
-    }
-
-    return $Fallback
 }
 
 function Wait-ForTcp {
@@ -338,7 +132,9 @@ function Wait-ForTcp {
     )
 
     for ($attempt = 1; $attempt -le $Attempts; $attempt += 1) {
-        $match = Get-HostingListeningTcpEntry -Port $Port
+        $match = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
+            Where-Object { $_.LocalAddress -eq '127.0.0.1' -and $_.LocalPort -eq $Port } |
+            Select-Object -First 1
         if ($null -ne $match) {
             return $true
         }
@@ -352,13 +148,15 @@ function Wait-ForTcp {
 function Get-ListeningTcpProcess {
     param([int]$Port)
 
-    return Get-HostingListeningTcpEntry -Port $Port
+    return Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
+        Where-Object { $_.LocalAddress -eq '127.0.0.1' -and $_.LocalPort -eq $Port } |
+        Select-Object -First 1
 }
 
 function Get-ProcessByIdSafe {
     param([int]$ProcessId)
 
-    return Get-HostingProcessByIdSafe -ProcessId $ProcessId
+    return Get-CimInstance Win32_Process -Filter ("ProcessId = {0}" -f $ProcessId) -ErrorAction SilentlyContinue
 }
 
 function Stop-ProcessesById {
@@ -422,163 +220,6 @@ function Ensure-PhpCgiListener {
     }
 }
 
-function Ensure-CaddyEdge {
-    param(
-        [string]$CaddyExecutable,
-        [string]$WorkingDirectory,
-        [string]$StdOutPath,
-        [string]$StdErrPath,
-        [string]$CurrentConfigPath,
-        [string]$ExpectedSiteRoot,
-        [string]$ExpectedRuntimeConfigPath
-    )
-
-    $needles = @('caddy.exe', 'run')
-    $existing = Get-HostingProcessesByNeedle -Needles $needles
-    $healthy = Wait-ForHttp -Url 'http://127.0.0.1/healthz' -Attempts 2 -DelayMs 250
-    $runtimeStatus = $null
-    if ($healthy) {
-        $runtimeStatus = Get-LocalRuntimeFingerprintStatus `
-            -ExpectedSiteRoot $ExpectedSiteRoot `
-            -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath
-    }
-
-    if (($existing.Count -gt 0) -and $healthy -and ($null -ne $runtimeStatus) -and ($runtimeStatus.Ok -eq $true)) {
-        $pids = ($existing | ForEach-Object { [string]$_.ProcessId } | Sort-Object) -join ', '
-        Write-Info ("Caddy edge already running ({0})" -f $pids)
-        return
-    }
-
-    if (($existing.Count -gt 0) -and $healthy -and ($null -ne $runtimeStatus) -and ($runtimeStatus.Ok -ne $true)) {
-        Write-Info ("Caddy edge activo con runtime distinto; site_root={0} config={1}" -f [string]$runtimeStatus.SiteRoot, [string]$runtimeStatus.CaddyRuntimeConfigPath)
-        Stop-ProcessesById -ProcessIds ($existing | ForEach-Object { [int]$_.ProcessId }) -Label 'mismatched Caddy edge'
-        Start-Sleep -Milliseconds 400
-    } elseif (($existing.Count -gt 0) -and (-not $healthy)) {
-        Stop-ProcessesById -ProcessIds ($existing | ForEach-Object { [int]$_.ProcessId }) -Label 'unhealthy Caddy edge'
-        Start-Sleep -Milliseconds 400
-    }
-
-    Start-ManagedProcess `
-        -FilePath $CaddyExecutable `
-        -Arguments @('run', '--config', $CurrentConfigPath, '--adapter', 'caddyfile', '--pidfile', (Join-Path $pidRoot 'caddy.pid')) `
-        -WorkingDirectory $WorkingDirectory `
-        -StdOutPath $StdOutPath `
-        -StdErrPath $StdErrPath `
-        -AlreadyRunningNeedles $needles `
-        -Label 'Caddy edge' | Out-Null
-
-    if (-not (Wait-ForHttp -Url 'http://127.0.0.1/healthz')) {
-        throw 'Caddy no responde en http://127.0.0.1/healthz'
-    }
-
-    $postStartRuntime = Get-LocalRuntimeFingerprintStatus `
-        -ExpectedSiteRoot $ExpectedSiteRoot `
-        -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath
-    if ($postStartRuntime.Ok -ne $true) {
-        throw ("site_root_mismatch expected_root={0} served_root={1} runtime_config={2}" -f $ExpectedSiteRoot, [string]$postStartRuntime.SiteRoot, [string]$postStartRuntime.CaddyRuntimeConfigPath)
-    }
-}
-
-function Ensure-CloudflaredTunnel {
-    param(
-        [string]$CloudflaredExecutable,
-        [string]$WorkingDirectory,
-        [string]$CurrentCredentialPath,
-        [string]$CurrentTunnelId,
-        [string]$CurrentPidPath,
-        [string]$CurrentLogPath,
-        [string]$StdOutPath,
-        [string]$StdErrPath
-    )
-
-    Start-ManagedProcess `
-        -FilePath $CloudflaredExecutable `
-        -Arguments @('tunnel', '--metrics', '127.0.0.1:20241', '--pidfile', $CurrentPidPath, '--logfile', $CurrentLogPath, 'run', '--credentials-file', $CurrentCredentialPath, '--url', 'http://127.0.0.1', $CurrentTunnelId) `
-        -WorkingDirectory $WorkingDirectory `
-        -StdOutPath $StdOutPath `
-        -StdErrPath $StdErrPath `
-        -AlreadyRunningNeedles @('cloudflared.exe', $CurrentTunnelId, '--url http://127.0.0.1') `
-        -Label 'Cloudflare tunnel' | Out-Null
-}
-
-function Ensure-LocalHelper {
-    param(
-        [string]$CurrentPowerShellExe,
-        [string]$CurrentWorkingDirectory,
-        [string]$StdOutPath,
-        [string]$StdErrPath
-    )
-
-    $existing = Get-HostingProcessesByNeedle -Needles @('openclaw-auth-helper.js')
-    $healthy = Wait-ForHttp -Url 'http://127.0.0.1:4173/health' -Attempts 2 -DelayMs 250
-    if (($existing.Count -gt 0) -and $healthy) {
-        return
-    }
-    if (($existing.Count -gt 0) -and (-not $healthy)) {
-        Stop-ProcessesById -ProcessIds ($existing | ForEach-Object { [int]$_.ProcessId }) -Label 'unhealthy OpenClaw auth helper'
-        Start-Sleep -Milliseconds 400
-    }
-
-    Start-ManagedProcess `
-        -FilePath $CurrentPowerShellExe `
-        -Arguments @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $helperScriptPath) `
-        -WorkingDirectory $CurrentWorkingDirectory `
-        -StdOutPath $StdOutPath `
-        -StdErrPath $StdErrPath `
-        -AlreadyRunningNeedles @('openclaw-auth-helper.js') `
-        -Label 'OpenClaw auth helper' | Out-Null
-
-    if (-not (Wait-ForHttp -Url 'http://127.0.0.1:4173/health')) {
-        throw 'El helper local de OpenClaw no responde en 127.0.0.1:4173/health'
-    }
-}
-
-function Get-ProcessesByNeedle {
-    param([string[]]$Needles)
-
-    return Get-HostingProcessesByNeedle -Needles $Needles
-}
-
-function Ensure-CaddyAndBackendReady {
-    param(
-        [string]$CaddyExecutable,
-        [string]$WorkingDirectory,
-        [string]$StdOutPath,
-        [string]$StdErrPath,
-        [string]$CurrentConfigPath,
-        [string]$ExpectedSiteRoot,
-        [string]$ExpectedRuntimeConfigPath
-    )
-
-    Ensure-CaddyEdge `
-        -CaddyExecutable $CaddyExecutable `
-        -WorkingDirectory $WorkingDirectory `
-        -StdOutPath $StdOutPath `
-        -StdErrPath $StdErrPath `
-        -CurrentConfigPath $CurrentConfigPath `
-        -ExpectedSiteRoot $ExpectedSiteRoot `
-        -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath
-}
-
-function Ensure-OperatorTransportReady {
-    param([string]$Transport)
-
-    if ([string]::Equals($Transport, 'local_helper', [System.StringComparison]::OrdinalIgnoreCase)) {
-        Ensure-LocalHelper `
-            -CurrentPowerShellExe $powershellExe `
-            -CurrentWorkingDirectory $repoRoot `
-            -StdOutPath $bridgeStdOutPath `
-            -StdErrPath $bridgeStdErrPath
-        return
-    }
-
-    if ($SkipBridge) {
-        Write-Info 'OpenClaw auth helper omitido en modo boot/public stack.'
-    } else {
-        Write-Info ("OpenClaw auth helper omitido; transport activo: {0}" -f $Transport)
-    }
-}
-
 function Start-ManagedProcess {
     param(
         [string]$FilePath,
@@ -607,8 +248,8 @@ function Start-ManagedProcess {
     return $true
 }
 
-if (-not (Test-Path -LiteralPath $caddyTemplatePath)) {
-    throw "No existe el Caddyfile canonico: $caddyTemplatePath"
+if (-not (Test-Path -LiteralPath $caddyConfigPath)) {
+    throw "No existe el Caddyfile canonico: $caddyConfigPath"
 }
 
 if (-not (Test-Path -LiteralPath $cloudflaredCredPath)) {
@@ -634,82 +275,49 @@ if ($StopLegacy) {
     Stop-ProcessesByNeedle -Needles @('--url http://127.0.0.1:8011', $TunnelId, 'cloudflared.exe') -Label 'legacy cloudflared tunnel'
 }
 
-Write-Info 'phase=sync_env'
-Sync-ExternalEnvFile -SourcePath $externalEnvPathResolved -DestinationPath $mirrorEnvPath | Out-Null
-$bootstrapConfig = Get-EffectiveOperatorAuthBootstrapConfig
-
-Write-Info 'phase=render_caddy'
-$runtimeConfig = New-HostingRuntimeCaddyConfig `
-    -TemplatePath $caddyTemplatePath `
-    -RuntimeConfigPath $caddyRuntimeConfigPath `
-    -SiteRootPath $repoRoot `
-    -AccessLogPath $caddyAccessLogPath
-
-Write-Info 'phase=refresh_php'
 Ensure-PhpCgiListener `
     -PhpCgiExecutable $phpCgiExe `
     -WorkingDirectory $repoRoot `
     -StdOutPath $phpStdOutPath `
     -StdErrPath $phpStdErrPath
 
-Write-Info 'phase=refresh_caddy'
-Ensure-CaddyAndBackendReady `
-    -CaddyExecutable $caddyExe `
+Start-ManagedProcess `
+    -FilePath $caddyExe `
+    -Arguments @('run', '--config', $caddyConfigPath, '--adapter', 'caddyfile', '--pidfile', (Join-Path $pidRoot 'caddy.pid')) `
     -WorkingDirectory $repoRoot `
     -StdOutPath $caddyStdOutPath `
     -StdErrPath $caddyStdErrPath `
-    -CurrentConfigPath $runtimeConfig.Path `
-    -ExpectedSiteRoot $repoRoot `
-    -ExpectedRuntimeConfigPath $runtimeConfig.Path
+    -AlreadyRunningNeedles @($caddyConfigPath, 'caddy.exe', 'run') `
+    -Label 'Caddy edge' | Out-Null
 
-Write-Info 'phase=validate_site_root'
-$runtimeStatus = Get-LocalRuntimeFingerprintStatus `
-    -ExpectedSiteRoot $repoRoot `
-    -ExpectedRuntimeConfigPath $runtimeConfig.Path
-if ($runtimeStatus.Ok -ne $true) {
-    throw ("site_root_mismatch expected_root={0} served_root={1} runtime_config={2}" -f $repoRoot, [string]$runtimeStatus.SiteRoot, [string]$runtimeStatus.CaddyRuntimeConfigPath)
+if (-not (Wait-ForHttp -Url 'http://127.0.0.1/healthz')) {
+    throw 'Caddy no responde en http://127.0.0.1/healthz'
 }
 
-$null = Refresh-OperatorAuthRuntime `
-    -PhpCgiExecutable $phpCgiExe `
-    -CaddyExecutable $caddyExe `
-    -CurrentConfigPath $runtimeConfig.Path `
-    -ExpectedSiteRoot $repoRoot `
-    -ExpectedRuntimeConfigPath $runtimeConfig.Path `
-    -BootstrapMode ([string]$bootstrapConfig.Mode) `
-    -BootstrapTransport ([string]$bootstrapConfig.Transport)
-
-Write-Info 'phase=resolve_transport'
-$operatorAuthTransport = Resolve-OperatorAuthTransport `
-    -BootstrapMode ([string]$bootstrapConfig.Mode) `
-    -BootstrapTransport ([string]$bootstrapConfig.Transport)
-Write-Info ("Operator auth transport detectado: {0}" -f $operatorAuthTransport)
-
-Write-Info 'phase=start_tunnel'
-Ensure-CloudflaredTunnel `
-    -CloudflaredExecutable $cloudflaredExe `
+Start-ManagedProcess `
+    -FilePath $cloudflaredExe `
+    -Arguments @('tunnel', '--metrics', '127.0.0.1:20241', '--pidfile', $cloudflaredPidPath, '--logfile', $cloudflaredLogPath, 'run', '--credentials-file', $cloudflaredCredPath, '--url', 'http://127.0.0.1', $TunnelId) `
     -WorkingDirectory $repoRoot `
-    -CurrentCredentialPath $cloudflaredCredPath `
-    -CurrentTunnelId $TunnelId `
-    -CurrentPidPath $cloudflaredPidPath `
-    -CurrentLogPath $cloudflaredLogPath `
     -StdOutPath (Join-Path $logRoot 'cloudflared-stdout.log') `
-    -StdErrPath (Join-Path $logRoot 'cloudflared-stderr.log')
+    -StdErrPath (Join-Path $logRoot 'cloudflared-stderr.log') `
+    -AlreadyRunningNeedles @('cloudflared.exe', $TunnelId, '--url http://127.0.0.1') `
+    -Label 'Cloudflare tunnel' | Out-Null
 
-if (-not $SkipBridge -or $operatorAuthTransport -eq 'local_helper') {
-    Ensure-OperatorTransportReady -Transport $operatorAuthTransport
+if (-not $SkipBridge) {
+    Start-ManagedProcess `
+        -FilePath $powershellExe `
+        -Arguments @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $helperScriptPath) `
+        -WorkingDirectory $repoRoot `
+        -StdOutPath $bridgeStdOutPath `
+        -StdErrPath $bridgeStdErrPath `
+        -AlreadyRunningNeedles @('openclaw-auth-helper.js') `
+        -Label 'OpenClaw auth helper' | Out-Null
+
+    if (-not (Wait-ForHttp -Url 'http://127.0.0.1:4173/health')) {
+        throw 'El helper local de OpenClaw no responde en 127.0.0.1:4173/health'
+    }
 } else {
     Write-Info 'OpenClaw auth helper omitido en modo boot/public stack.'
 }
 
-$finalStatusPayload = Get-OperatorAuthStatusPayload
-$bootstrapContractDeferred = $false
-if (
-    ($null -eq $finalStatusPayload -or [string]::IsNullOrWhiteSpace([string]$finalStatusPayload.transport)) -and
-    [string]::Equals([string]$bootstrapConfig.Mode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -and
-    [string]::Equals([string]$bootstrapConfig.Transport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase)
-) {
-    $bootstrapContractDeferred = $true
-}
-Write-Info ("phase=ready bootstrap_contract_deferred={0} final_mode={1} final_transport={2}" -f $bootstrapContractDeferred, [string]$finalStatusPayload.mode, [string]$finalStatusPayload.transport)
 Write-Info ("Stack listo. Public domain esperado: https://{0}" -f $PublicDomain)

@@ -720,14 +720,14 @@ function describeRuntimeSurface(surface = {}) {
         if (surface.configured === false || surface.mode === 'disabled') {
             return {
                 surface: key,
-                state,
+                state: 'disabled',
                 healthy: false,
-                blocking: true,
+                blocking: false,
                 reason: 'worker_disabled',
                 message:
-                    'leadops_worker unhealthy: la surface esta deshabilitada o no configurada en health',
+                    'leadops_worker disabled: la surface esta deshabilitada o no configurada para el foco actual',
                 next_action:
-                    'habilitar/configurar el worker o excluirlo del corte si no aplica',
+                    'habilitar/configurar el worker cuando vuelva a entrar al foco o mantenerlo disabled de forma explicita',
             };
         }
         if (surface.degraded) {
@@ -877,6 +877,9 @@ function summarizeRuntimeHealth(surfaces = []) {
     const diagnostics = Array.isArray(surfaces)
         ? surfaces.map((surface) => describeRuntimeSurface(surface))
         : [];
+    const disabledSurfaces = diagnostics
+        .filter((item) => item.state === 'disabled')
+        .map((item) => item.surface);
     const healthySurfaces = diagnostics
         .filter((item) => item.healthy)
         .map((item) => item.surface);
@@ -884,7 +887,12 @@ function summarizeRuntimeHealth(surfaces = []) {
         .filter((item) => item.state === 'degraded')
         .map((item) => item.surface);
     const unhealthySurfaces = diagnostics
-        .filter((item) => !item.healthy && item.state !== 'degraded')
+        .filter(
+            (item) =>
+                !item.healthy &&
+                item.state !== 'degraded' &&
+                item.state !== 'disabled'
+        )
         .map((item) => item.surface);
     const blockingSurfaces = diagnostics
         .filter((item) => item.blocking)
@@ -909,9 +917,11 @@ function summarizeRuntimeHealth(surfaces = []) {
         degraded_surfaces: degradedSurfaces,
         unhealthy_surfaces: unhealthySurfaces,
         blocking_surfaces: blockingSurfaces,
+        disabled_surfaces: disabledSurfaces,
         healthy_count: healthySurfaces.length,
         degraded_count: degradedSurfaces.length,
         unhealthy_count: unhealthySurfaces.length,
+        disabled_count: disabledSurfaces.length,
         diagnostics,
         message,
     };

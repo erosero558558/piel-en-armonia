@@ -657,6 +657,16 @@ function buildFocusSummary(board, options = {}) {
     });
 }
 
+async function buildLiveFocusSummary(board, options = {}) {
+    return domainFocus.buildLiveFocusSummary(board, {
+        buildFocusSummary,
+        parseDecisions,
+        loadJobsSnapshot,
+        verifyOpenClawRuntime,
+        now: options.now,
+    });
+}
+
 function resolveTaskCreateTemplate(templateNameRaw) {
     return domainTaskCreate.resolveTaskCreateTemplate(templateNameRaw, {
         templates: TASK_CREATE_TEMPLATES,
@@ -1346,6 +1356,7 @@ function buildWarnFirstDiagnostics({
     board = null,
     handoffData = null,
     decisionsData = null,
+    focusSummary = null,
     conflictAnalysis = null,
     metricsSnapshot = null,
     policyReport = null,
@@ -1357,6 +1368,7 @@ function buildWarnFirstDiagnostics({
         board,
         handoffData,
         decisionsData,
+        focusSummary,
         conflictAnalysis,
         metricsSnapshot,
         policyReport,
@@ -1406,6 +1418,7 @@ async function cmdStatus(args) {
         formatPpDelta,
         summarizeDiagnostics: domainDiagnostics.summarizeDiagnostics,
         buildWarnFirstDiagnostics,
+        buildLiveFocusSummary,
         getGovernancePolicy,
         loadJobsSnapshot,
         summarizeJobsSnapshot,
@@ -1471,6 +1484,7 @@ function cmdMetrics(args = []) {
         buildProviderModeSummary,
         buildRuntimeSurfaceSummary,
         buildFocusSummary,
+        buildLiveFocusSummary,
         parseDecisions,
         buildDomainHealth,
         existsSync,
@@ -1560,6 +1574,7 @@ function cmdBoard(args) {
         attachDiagnostics,
         buildWarnFirstDiagnostics,
         buildFocusSummary,
+        buildLiveFocusSummary,
         parseDecisions,
         loadMetricsSnapshot,
         summarizeDiagnostics: domainDiagnostics.summarizeDiagnostics,
@@ -1665,6 +1680,7 @@ async function cmdFocus(args) {
         parseFlags,
         parseBoard,
         buildFocusSummary,
+        buildLiveFocusSummary,
         parseDecisions,
         loadJobsSnapshot,
         verifyOpenClawRuntime,
@@ -2227,6 +2243,7 @@ const governanceRuntime =
         toConflictJsonRecord,
         attachDiagnostics,
         buildWarnFirstDiagnostics,
+        buildLiveFocusSummary,
         readGovernancePolicyStrict,
         validateGovernancePolicy,
         existsSync,

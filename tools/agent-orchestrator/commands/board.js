@@ -12,6 +12,7 @@ async function handleBoardCommand(ctx) {
         attachDiagnostics,
         buildWarnFirstDiagnostics,
         buildFocusSummary,
+        buildLiveFocusSummary,
         parseDecisions,
         loadMetricsSnapshot,
         summarizeDiagnostics,
@@ -44,15 +45,42 @@ async function handleBoardCommand(ctx) {
             board.tasks,
             handoffData.handoffs
         );
+        const now = new Date();
         const policy = getGovernancePolicy();
         const leasePolicy = normalizeBoardLeasesPolicy(policy);
-        const jobs =
-            typeof loadJobsSnapshot === 'function'
-                ? await loadJobsSnapshot()
-                : [];
+        const focusData =
+            typeof buildLiveFocusSummary === 'function'
+                ? await buildLiveFocusSummary(board, { now })
+                : {
+                      decisionsData:
+                          typeof parseDecisions === 'function'
+                              ? parseDecisions()
+                              : { decisions: [] },
+                      jobs:
+                          typeof loadJobsSnapshot === 'function'
+                              ? await loadJobsSnapshot()
+                              : [],
+                      runtimeVerification: null,
+                      summary:
+                          typeof buildFocusSummary === 'function'
+                              ? buildFocusSummary(board, {
+                                    decisionsData:
+                                        typeof parseDecisions === 'function'
+                                            ? parseDecisions()
+                                            : { decisions: [] },
+                                    jobsSnapshot:
+                                        typeof loadJobsSnapshot === 'function'
+                                            ? await loadJobsSnapshot()
+                                            : [],
+                                    now,
+                                })
+                              : null,
+                  };
+        const jobs = Array.isArray(focusData.jobs) ? focusData.jobs : [];
         const decisionsData =
-            typeof parseDecisions === 'function'
-                ? parseDecisions()
+            focusData.decisionsData &&
+            typeof focusData.decisionsData === 'object'
+                ? focusData.decisionsData
                 : { decisions: [] };
         const baseReport = buildBoardDoctorReport(
             {
@@ -61,7 +89,7 @@ async function handleBoardCommand(ctx) {
                 leasePolicy,
                 handoffData,
                 conflictAnalysis,
-                now: new Date(),
+                now,
             },
             {
                 getTaskLeaseSummary,
@@ -76,14 +104,7 @@ async function handleBoardCommand(ctx) {
             typeof buildStrategyCoverageSummary === 'function'
                 ? buildStrategyCoverageSummary(board)
                 : null;
-        const focusSummary =
-            typeof buildFocusSummary === 'function'
-                ? buildFocusSummary(board, {
-                      decisionsData,
-                      jobsSnapshot: jobs,
-                      now: new Date(),
-                  })
-                : null;
+        const focusSummary = focusData.summary;
         const strategyDiagnostics =
             strategySummary?.active && strategySummary.orphan_tasks > 0
                 ? [
@@ -106,6 +127,7 @@ async function handleBoardCommand(ctx) {
             board,
             handoffData,
             decisionsData,
+            focusSummary,
             conflictAnalysis,
             metricsSnapshot:
                 typeof loadMetricsSnapshot === 'function'
@@ -127,7 +149,7 @@ async function handleBoardCommand(ctx) {
                 focus_summary: focusSummary,
                 leases: listBoardLeases(board, {
                     policy,
-                    nowIso: new Date().toISOString(),
+                    nowIso: now.toISOString(),
                     activeOnly: true,
                 }),
             },
