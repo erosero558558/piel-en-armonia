@@ -32,12 +32,15 @@ Operar el sistema en modo `codex-only` con dos lanes humanos activos:
 2. Reservar trabajo:
     - `node agent-orchestrator.js codex start <CDX-ID> --block <BLOCK> --expect-rev <n>`
 3. Implementar y validar gates por superficie.
-4. Publicar checkpoint:
+4. Confirmar evidencia y cerrar:
+    - `node agent-orchestrator.js close <AG-ID|CDX-ID> --evidence verification/agent-runs/<task_id>.md --expect-rev <n> --json` es el closeout canonico para tareas `executor=codex`
+    - el comando materializa board + evidencia + cambios in-scope en un unico commit, publica a `origin/main`, refresca `origin/main` local y exige rama actual `0 ahead / 0 behind`
+    - la salida JSON incluye `published_commit`, `publish_transport`, `branch_alignment`, `live_status` y `verification_pending`
+5. Ruta manual/de excepcion:
     - `node agent-orchestrator.js task start <AG-ID|CDX-ID> --release-publish --expect-rev <n> --json` cuando sea promocion formal de release
     - `node agent-orchestrator.js publish checkpoint <AG-ID|CDX-ID> --summary "..." --expect-rev <n> --json`
-    - el comando publica source + evidencia, ignora ruido efimero de `.generated/site-root` y `_deploy_bundle`, y sincroniza `main` via `sync-main-safe`
-    - la verificacion live queda delegada al deploy/post-deploy; `public_main_sync` sigue como telemetria host-side, no como blocker del checkpoint local
-5. Confirmar producción:
+    - `publish checkpoint` conserva el publish manual, ignora ruido efimero de `.generated/site-root` y `_deploy_bundle`, y deja la verificacion live delegada a deploy/post-deploy
+6. Confirmar producción:
     - `curl -s https://pielarmonia.com/api.php?resource=health`
     - revisar `checks.publicSync.failureReason`, `checks.publicSync.currentHead`, `checks.publicSync.remoteHead`, `checks.publicSync.headDrift`, `checks.publicSync.telemetryGap`, `checks.publicSync.lastErrorMessage` y `checks.publicSync.dirtyPathsSample` cuando el cron quede `failed`
     - si `node agent-orchestrator.js jobs verify public_main_sync --json` responde con `verification_source=health_url` y `failure_reason=health_missing_public_sync`, asumir primero rollout stale del `health` publico; confirmar `/api.php?resource=health` y desplegar `controllers/HealthController.php` actualizado antes de tratarlo como drift de repo
@@ -74,4 +77,4 @@ Operar el sistema en modo `codex-only` con dos lanes humanos activos:
 - Jobs tracked: `AGENT_JOBS.yaml`
 - Evidencias por tarea: `verification/agent-runs/<task_id>.md`
 - Eventos de publish: `verification/agent-publish-events.jsonl`
-- `publish checkpoint` puede devolver `live_status=pending` con `warning_code=publish_live_verification_pending` cuando el push a `main` ya salio pero la verificacion live todavia no confirma deploy.
+- `close` en tareas Codex y `publish checkpoint` pueden devolver `live_status=pending` con `warning_code=publish_live_verification_pending` cuando el push a `main` ya salio pero la verificacion live todavia no confirma deploy.

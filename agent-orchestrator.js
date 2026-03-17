@@ -412,10 +412,6 @@ const TASK_CREATE_TEMPLATES = {
     },
 };
 
-function normalizeEol(value) {
-    return coreParsers.normalizeEol(value);
-}
-
 function shallowMerge(target, source) {
     return corePolicy.shallowMerge(target, source);
 }
@@ -478,18 +474,6 @@ function validateGovernancePolicy(rawPolicy) {
         policyPath: 'governance-policy.json',
         policyExists: existsSync(GOVERNANCE_POLICY_PATH),
     });
-}
-
-function unquote(value) {
-    return coreParsers.unquote(value);
-}
-
-function parseInlineArray(value) {
-    return coreParsers.parseInlineArray(value);
-}
-
-function parseScalar(value) {
-    return coreParsers.parseScalar(value);
 }
 
 function parseBoard() {
@@ -622,10 +606,6 @@ function parseCsvList(value) {
     return coreFlags.parseCsvList(value);
 }
 
-function isTruthyFlagValue(value) {
-    return coreFlags.isTruthyFlagValue(value);
-}
-
 function isFlagEnabled(flags, ...keys) {
     return coreFlags.isFlagEnabled(flags, ...keys);
 }
@@ -671,17 +651,6 @@ function ensureTaskDualCodexDefaults(task) {
                 domainTaskGuards.DEFAULT_TRANSVERSAL_PRIORITY_PATTERNS,
         },
     });
-}
-
-function validateTaskExecutorScopeGuard(task) {
-    return domainTaskGuards.validateTaskExecutorScopeGuard(task, {
-        criticalScopeKeywords: CRITICAL_SCOPE_KEYWORDS,
-        allowedExecutors: CRITICAL_SCOPE_ALLOWED_EXECUTORS,
-    });
-}
-
-function validateTaskDependsOn(board, task, options = {}) {
-    return domainTaskGuards.validateTaskDependsOn(board, task, options);
 }
 
 function validateTaskGovernancePrechecks(board, task, options = {}) {
@@ -1142,20 +1111,6 @@ function writeCodexActiveBlock(block, options = {}) {
     });
 }
 
-function writeStrategyActiveBlock(strategy) {
-    if (!existsSync(CODEX_PLAN_PATH)) {
-        throw new Error(`No existe ${CODEX_PLAN_PATH}`);
-    }
-    const raw = readFileSync(CODEX_PLAN_PATH, 'utf8');
-    const next = domainStrategy.upsertStrategyActiveBlock(raw, strategy, {
-        quote,
-        serializeArrayInline,
-        currentDate,
-    });
-    writeFileSync(CODEX_PLAN_PATH, next, 'utf8');
-    return next;
-}
-
 function writeStrategyPlanBlocks(strategyState = {}) {
     if (!existsSync(CODEX_PLAN_PATH)) {
         throw new Error(`No existe ${CODEX_PLAN_PATH}`);
@@ -1219,14 +1174,6 @@ function getExecutorCounts(tasks) {
     }, {});
 }
 
-function percent(part, total) {
-    return domainMetrics.percent(part, total);
-}
-
-function riskWeight(task) {
-    return domainMetrics.riskWeight(task);
-}
-
 function buildExecutorContribution(tasks) {
     return domainMetrics.buildExecutorContribution(tasks, {
         activeStatuses: ACTIVE_STATUSES,
@@ -1278,10 +1225,6 @@ function loadContributionHistory() {
     }
 }
 
-function sanitizeContributionSnapshotExecutors(contribution) {
-    return domainMetrics.sanitizeContributionSnapshotExecutors(contribution);
-}
-
 function upsertContributionHistory(history, contribution) {
     return domainMetrics.upsertContributionHistory(history, contribution);
 }
@@ -1297,10 +1240,6 @@ function loadDomainHealthHistory() {
     } catch {
         return null;
     }
-}
-
-function sanitizeDomainHealthSnapshot(domainHealth) {
-    return domainMetrics.sanitizeDomainHealthSnapshot(domainHealth);
 }
 
 function upsertDomainHealthHistory(history, domainHealth) {
@@ -1368,16 +1307,8 @@ function formatPpDelta(value) {
     return domainMetrics.formatPpDelta(value);
 }
 
-function wildcardToRegex(pattern) {
-    return domainConflicts.wildcardToRegex(pattern);
-}
-
 function normalizePathToken(value) {
     return domainConflicts.normalizePathToken(value);
-}
-
-function hasWildcard(value) {
-    return domainConflicts.hasWildcard(value);
 }
 
 function analyzeFileOverlap(filesA, filesB) {
@@ -1390,14 +1321,6 @@ function _filesOverlap(filesA, filesB) {
 
 function isExpired(dateValue) {
     return domainConflicts.isExpired(dateValue);
-}
-
-function isActiveHandoff(handoff) {
-    return domainConflicts.isActiveHandoff(handoff);
-}
-
-function sameTaskPair(handoff, leftTask, rightTask) {
-    return domainConflicts.sameTaskPair(handoff, leftTask, rightTask);
 }
 
 function analyzeConflicts(tasks, handoffs = []) {
@@ -1543,18 +1466,6 @@ function writeMetricsSnapshotFile(metrics) {
         dirname,
         writeFileSync,
         metricsPath: METRICS_PATH,
-    });
-}
-
-function cmdMetricsBaseline(args = []) {
-    return metricsCommandHandlers.handleMetricsBaselineCommand({
-        args,
-        parseFlags,
-        loadMetricsSnapshotStrict,
-        normalizeContributionBaseline,
-        baselineFromCurrentMetricsSnapshot,
-        recalcMetricsDeltaWithBaseline,
-        writeMetricsSnapshotFile,
     });
 }
 
@@ -1902,8 +1813,8 @@ async function cmdPublish(args) {
     });
 }
 
-function cmdClose(args) {
-    closeCommandHandlers.handleCloseCommand({
+async function cmdClose(args) {
+    await closeCommandHandlers.handleCloseCommand({
         args,
         parseFlags,
         resolveTaskEvidencePath,
@@ -1916,7 +1827,15 @@ function cmdClose(args) {
         serializeBoard,
         writeFileSync,
         syncDerivedQueues,
+        writeBoard,
         writeBoardAndSync,
+        parseJobs,
+        buildJobsSnapshot: loadJobsSnapshot,
+        findJobSnapshot: domainJobs.findJobSnapshot,
+        rootPath: ROOT,
+        publishEventsPath: PUBLISH_EVENTS_PATH,
+        writeCodexActiveBlock,
+        parseCodexActiveBlocks,
         getLastBoardWriteMeta,
         toTaskJson,
         parseExpectedBoardRevisionFlag,

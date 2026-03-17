@@ -12,7 +12,7 @@ Routine GitHub uploads should use a dedicated branch and the workflow documented
 - authored support layer that still lives in repo root: `styles.css`, `styles-deferred.css`, `sw.js`
 - transport bundle: `_deploy_bundle/`
 - production repo: `/var/www/figo`
-- publish mechanism: `publish checkpoint` + deploy/post-deploy
+- publish mechanism: `close` for Codex closeout, `publish checkpoint` only for manual exceptions, plus deploy/post-deploy
 - host-side legacy telemetry/fallback: git-sync cron
 - job key: `public_main_sync`
 - job id: `8d31e299-7e57-4959-80b5-aaa2d73e9674`
@@ -34,25 +34,30 @@ npm run gate:public:v6:canonical-publish
 builds Astro, stages generated artifacts into `.generated/site-root/`, and
 writes `verification/public-v6-canonical/build-report.json`.
 
-2. Publish source or build the deploy bundle:
+2. Close out and publish source, or build the deploy bundle:
 
 ```bash
+node agent-orchestrator.js close <AG-ID|CDX-ID> --evidence verification/agent-runs/<task_id>.md --expect-rev <rev> --json
+# manual/exception path
 node agent-orchestrator.js task start <AG-ID|CDX-ID> --release-publish --expect-rev <rev> --json
 node agent-orchestrator.js publish checkpoint <AG-ID|CDX-ID> --summary "release-publish ..." --expect-rev <rev> --json
 # or
 npm run bundle:deploy
 ```
 
-`publish checkpoint` no longer waits on `public_main_sync`; live confirmation
-belongs to deploy/post-deploy. Si el push ya entro a `main` pero la
-telemetria todavia no confirma deploy, el comando devuelve
-`live_status=pending` y `warning_code=publish_live_verification_pending`
-sin revertir el publish. `bundle:deploy` es la ruta canónica del paquete de
-transporte.
+`close` es la ruta canónica para tareas `executor=codex`: exige evidencia,
+crea el commit final con board + evidencia + cambios in-scope, publica a
+`origin/main`, refresca `origin/main` local y falla si la rama actual no queda
+alineada (`ahead=0`, `behind=0`). `publish checkpoint` no espera a
+`public_main_sync` y queda como ruta manual/de excepción. Si el push ya entró
+a `main` pero la telemetría todavía no confirma deploy, cualquiera de las dos
+rutas puede devolver `live_status=pending` con
+`warning_code=publish_live_verification_pending` sin revertir el publish.
+`bundle:deploy` es la ruta canónica del paquete de transporte.
 
 3. Let deploy/post-deploy confirm the live state. Use `public_main_sync` only
-as host-side telemetry or when you intentionally need the legacy git-sync
-fallback path.
+   as host-side telemetry or when you intentionally need the legacy git-sync
+   fallback path.
 
 4. If you intentionally need to force the legacy host sync:
 

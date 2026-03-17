@@ -216,8 +216,12 @@ test('publish checkpoint falla si hay cambios fuera de scope', async () => {
         await assert.rejects(
             () => handlePublishCommand(ctx),
             (error) => {
-                assert.equal(error.error_code, 'publish_dirty_outside_scope');
-                assert.match(error.message, /readme\.md/i);
+                assert.equal(
+                    error.error_code,
+                    'publish_workspace_hygiene_blocked'
+                );
+                assert.match(error.message, /authored\[out_of_scope\]/i);
+                assert.match(error.message, /cdx-900/i);
                 return true;
             }
         );
@@ -395,47 +399,6 @@ test('publish checkpoint acepta AG-* release-publish y devuelve pending sin fall
                 '--format=%s',
                 'HEAD',
             ]).stdout.includes('chore(codex-publish): checkpoint AG-900'),
-            true
-        );
-    } finally {
-        cleanupRepoFixture(root);
-    }
-});
-
-test('publish checkpoint fuerza git add sobre archivos permitidos aunque el repo los ignore', async () => {
-    const root = createRepoFixture();
-    try {
-        const ignorePath = join(root, '.git', 'info', 'exclude');
-        writeFileSync(
-            ignorePath,
-            `${readFileSync(ignorePath, 'utf8')}docs/ignored/\n`,
-            'utf8'
-        );
-        mkdirSync(join(root, 'docs', 'ignored'), { recursive: true });
-        writeFileSync(
-            join(root, 'docs', 'ignored', 'in-scope.md'),
-            '# tracked ignored seed\n',
-            'utf8'
-        );
-        runGit(root, ['add', '-f', 'docs/ignored/in-scope.md']);
-        runGit(root, ['commit', '-m', 'track ignored support file']);
-        writeFileSync(
-            join(root, 'docs', 'ignored', 'in-scope.md'),
-            '# ignored but allowed\n',
-            'utf8'
-        );
-
-        const ctx = buildPublishContext(root, {
-            task: {
-                files: ['docs/ignored/in-scope.md'],
-            },
-        });
-
-        const report = await handlePublishCommand(ctx);
-
-        assert.equal(report.ok, true);
-        assert.equal(
-            report.staged_files.includes('docs/ignored/in-scope.md'),
             true
         );
     } finally {

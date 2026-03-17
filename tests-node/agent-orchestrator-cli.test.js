@@ -1010,36 +1010,6 @@ Relacion con Operativo 2026:
 `;
 }
 
-function basePlanWithStrategyNextBlock(options = {}) {
-    const id = String(options.id || 'STRAT-2026-04-admin-operativo');
-    const title = String(options.title || 'Admin operativo siguiente');
-    const owner = String(options.owner || 'ernesto');
-    const ownerPolicy = String(options.ownerPolicy || 'detected_default_owner');
-    const status = String(options.status || 'draft');
-    const subfrontIds = Array.isArray(options.subfrontIds)
-        ? options.subfrontIds
-        : [
-              'SF-frontend-admin-operativo',
-              'SF-frontend-queue-turnero-operativo',
-              'SF-backend-admin-operativo',
-              'SF-transversal-admin-operativo',
-          ];
-    return `
-<!-- CODEX_STRATEGY_NEXT
-id: ${id}
-title: "${title}"
-status: ${status}
-owner: ${owner}
-owner_policy: "${ownerPolicy}"
-objective: "Cerrar admin operativo"
-started_at: "2026-03-14"
-review_due_at: "2026-03-21"
-success_signal: "demo"
-subfront_ids: [${subfrontIds.map((value) => `"${value}"`).join(', ')}]
-updated_at: ${DATE}
--->
-`;
-}
 function boardForStrategyExpiredExceptionFixture() {
     return `
 version: 1
@@ -1079,116 +1049,6 @@ tasks:
 `;
 }
 
-function boardForStrategyWithNextFixture() {
-    return `
-version: 1
-policy:
-  canonical: AGENTS.md
-  autonomy: semi_autonomous_guardrails
-  kpi: reduce_rework
-  revision: 0
-  updated_at: ${DATE}
-strategy:
-  active:
-    id: STRAT-2026-03-admin-operativo
-    title: "Admin operativo"
-    objective: "Cerrar admin operativo"
-    owner: ernesto
-    owner_policy: "detected_default_owner"
-    status: active
-    started_at: "2026-03-14"
-    review_due_at: "2026-03-21"
-    exit_criteria: ["uno"]
-    success_signal: "demo"
-    subfronts:
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-admin-operativo
-        title: "Admin UX"
-        allowed_scopes: ["frontend-admin"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["payments"]
-        wip_limit: 2
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-queue-turnero-operativo
-        title: "Queue y turnero UX"
-        allowed_scopes: ["queue", "turnero"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["calendar"]
-        wip_limit: 2
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-admin-operativo
-        title: "Backend soporte"
-        allowed_scopes: ["auth", "backend", "readiness", "gates"]
-        support_only_scopes: ["tests", "ops"]
-        blocked_scopes: ["frontend-public", "security"]
-        wip_limit: 2
-        default_acceptance_profile: "backend_gate_checkpoint"
-        exception_ttl_hours: 6
-      - codex_instance: codex_transversal
-        subfront_id: SF-transversal-admin-operativo
-        title: "Runtime soporte"
-        allowed_scopes: []
-        support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
-        blocked_scopes: ["legacy-runtime"]
-        wip_limit: 2
-        default_acceptance_profile: "transversal_runtime_checkpoint"
-        exception_ttl_hours: 4
-  next:
-    id: STRAT-2026-04-admin-operativo
-    title: "Admin operativo siguiente"
-    objective: "Cerrar admin operativo v2"
-    owner: ernesto
-    owner_policy: "detected_default_owner"
-    status: draft
-    started_at: "2026-03-20"
-    review_due_at: "2026-03-28"
-    exit_criteria: ["dos"]
-    success_signal: "demo siguiente"
-    subfronts:
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-admin-operativo
-        title: "Admin UX"
-        allowed_scopes: ["frontend-admin"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["payments"]
-        wip_limit: 2
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-queue-turnero-operativo
-        title: "Queue y turnero UX"
-        allowed_scopes: ["queue", "turnero"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["calendar"]
-        wip_limit: 2
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-admin-operativo
-        title: "Backend soporte"
-        allowed_scopes: ["auth", "backend", "readiness", "gates"]
-        support_only_scopes: ["tests", "ops"]
-        blocked_scopes: ["frontend-public", "security"]
-        wip_limit: 2
-        default_acceptance_profile: "backend_gate_checkpoint"
-        exception_ttl_hours: 6
-      - codex_instance: codex_transversal
-        subfront_id: SF-transversal-admin-operativo
-        title: "Runtime soporte"
-        allowed_scopes: []
-        support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
-        blocked_scopes: ["legacy-runtime"]
-        wip_limit: 2
-        default_acceptance_profile: "transversal_runtime_checkpoint"
-        exception_ttl_hours: 4
-  updated_at: "2026-03-14"
-tasks:
-`;
-}
 function boardForCodexLifecycle() {
     return `
 version: 1
@@ -2676,10 +2536,7 @@ test('task start --release-publish fija el preset de excepcion formal de release
     assert.equal(json.task.strategy_id, 'STRAT-2026-03-admin-operativo');
     assert.equal(json.task.subfront_id, 'SF-backend-admin-operativo');
     assert.equal(json.task.strategy_role, 'exception');
-    assert.equal(
-        json.task.strategy_reason,
-        'validated_release_promotion'
-    );
+    assert.equal(json.task.strategy_reason, 'validated_release_promotion');
     assert.equal(json.task.focus_id, 'FOCUS-2026-03-admin-operativo-cut-1');
     assert.equal(json.task.focus_step, 'admin_queue_pilot_cut');
     assert.equal(json.task.integration_slice, 'governance_evidence');
@@ -2712,15 +2569,9 @@ test('task start --release-publish acepta soporte acotado para frontend-public s
     assert.equal(json.task.status, 'review');
     assert.equal(json.task.codex_instance, 'codex_frontend');
     assert.equal(json.task.domain_lane, 'frontend_content');
-    assert.equal(
-        json.task.subfront_id,
-        'SF-frontend-turnero-web-pilot'
-    );
+    assert.equal(json.task.subfront_id, 'SF-frontend-turnero-web-pilot');
     assert.equal(json.task.strategy_role, 'exception');
-    assert.equal(
-        json.task.strategy_reason,
-        'validated_release_promotion'
-    );
+    assert.equal(json.task.strategy_reason, 'validated_release_promotion');
     assert.equal(json.task.integration_slice, 'governance_evidence');
     assert.equal(json.task.work_type, 'evidence');
 });
@@ -4074,7 +3925,10 @@ test('close soporta --json y devuelve task + evidence_path', (t) => {
     t.after(() => cleanupFixtureDir(dir));
 
     writeFixtureFiles(dir, {
-        board: boardForTaskOpsFixture(),
+        board: boardForTaskOpsFixture().replace(
+            'executor: codex',
+            'executor: ci'
+        ),
         handoffs: baseHandoffs(),
         plan: basePlanWithoutCodexBlock(),
     });
@@ -4849,8 +4703,7 @@ test('status y board doctor exponen publish live pendiente como warning no bloqu
     let json = parseJsonStdout(runCli(dir, ['status', '--json']));
     assert.equal(
         json.diagnostics.some(
-            (item) =>
-                item.code === 'warn.publish.live_verification_pending'
+            (item) => item.code === 'warn.publish.live_verification_pending'
         ),
         true
     );

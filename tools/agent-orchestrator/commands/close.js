@@ -1,6 +1,8 @@
 'use strict';
 
 const terminalEvidence = require('../domain/evidence');
+const domainStrategy = require('../domain/strategy');
+const publishCommandHandlers = require('./publish');
 
 function parseExpectedRevisionFromFlags(
     flags = {},
@@ -34,12 +36,36 @@ function printCloseJsonError(error) {
         payload.expected_revision = Number(error?.expected_revision);
         payload.actual_revision = Number(error?.actual_revision);
     }
+    if (error?.branch_alignment) {
+        payload.branch_alignment = error.branch_alignment;
+    }
     console.log(JSON.stringify(payload, null, 2));
     process.exitCode = 1;
     return payload;
 }
 
-function handleCloseCommand(ctx) {
+function syncCodexPlanOnClose(taskId, ctx = {}) {
+    if (!/^CDX-\d+$/i.test(String(taskId || '').trim())) {
+        return;
+    }
+    const { parseCodexActiveBlocks, writeCodexActiveBlock } = ctx;
+    if (
+        typeof parseCodexActiveBlocks !== 'function' ||
+        typeof writeCodexActiveBlock !== 'function'
+    ) {
+        return;
+    }
+    const remainingBlocks = parseCodexActiveBlocks().filter(
+        (item) =>
+            String(item?.task_id || '').trim() !== String(taskId || '').trim()
+    );
+    writeCodexActiveBlock(null);
+    for (const remainingBlock of remainingBlocks) {
+        writeCodexActiveBlock(remainingBlock);
+    }
+}
+
+async function handleCloseCommand(ctx) {
     const {
         args,
         parseFlags,
@@ -53,7 +79,15 @@ function handleCloseCommand(ctx) {
         serializeBoard,
         writeFileSync,
         syncDerivedQueues,
+        writeBoard,
         writeBoardAndSync,
+        parseJobs,
+        buildJobsSnapshot,
+        findJobSnapshot,
+        rootPath,
+        publishEventsPath,
+        writeCodexActiveBlock,
+        parseCodexActiveBlocks,
         getLastBoardWriteMeta,
         toTaskJson,
         parseExpectedBoardRevisionFlag,
@@ -106,12 +140,114 @@ function handleCloseCommand(ctx) {
         toRelativeRepoPath(evidencePath)
     );
     board.policy.updated_at = currentDate();
-    if (typeof writeBoardAndSync === 'function') {
-        const expectRevision = parseExpectedRevisionFromFlags(
-            flags,
-            parseExpectedBoardRevisionFlag,
-            { required: true, commandLabel: 'close' }
+    const expectRevision = parseExpectedRevisionFromFlags(
+        flags,
+        parseExpectedBoardRevisionFlag,
+        { required: true, commandLabel: 'close' }
+    );
+    const isCodexTask =
+        String(task.executor || '')
+            .trim()
+            .toLowerCase() === 'codex';
+    let publishResult = null;
+    if (isCodexTask) {
+        if (
+            typeof writeBoard !== 'function' ||
+            !rootPath ||
+            !publishEventsPath
+        ) {
+            const error = new Error(
+                `close ${taskId} requiere runtime de publish Codex configurado`
+            );
+            error.code = 'close_publish_runtime_missing';
+            error.error_code = 'close_publish_runtime_missing';
+            if (wantsJson) {
+                return printCloseJsonError(error);
+            }
+            throw error;
+        }
+
+        const allowedPatterns = publishCommandHandlers.buildAllowedPatterns(
+            taskId,
+            task
         );
+        const plannedSurfaceFiles = ['AGENT_BOARD.yaml'];
+        const explicitDirtyFiles = [
+            ...(Array.isArray(task.files) ? task.files : []),
+            'AGENT_BOARD.yaml',
+            toRelativeRepoPath(evidencePath),
+        ];
+        if (/^CDX-\d+$/i.test(taskId)) {
+            plannedSurfaceFiles.push('PLAN_MAESTRO_CODEX_2026.md');
+            explicitDirtyFiles.push('PLAN_MAESTRO_CODEX_2026.md');
+        }
+        try {
+            publishCommandHandlers.runPublishPreflight({
+                rootPath,
+                board,
+                task,
+                allowedPatterns,
+                publishEventsPath,
+                allowNoChanges: true,
+                extraSurfaceFiles: plannedSurfaceFiles,
+            });
+            writeBoard(board, {
+                command: 'close',
+                actor: task.owner || task.executor || '',
+                expectRevision,
+            });
+            syncCodexPlanOnClose(taskId, {
+                parseCodexActiveBlocks,
+                writeCodexActiveBlock,
+            });
+            syncDerivedQueues({ silent: wantsJson });
+            const postMaterializationPreflight =
+                publishCommandHandlers.runPublishPreflight({
+                    rootPath,
+                    board,
+                    task,
+                    allowedPatterns,
+                    publishEventsPath,
+                    allowNoChanges: false,
+                    skipCooldown: true,
+                });
+            publishResult =
+                await publishCommandHandlers.finalizePreparedPublish(
+                    {
+                        rootPath,
+                        publishEventsPath,
+                        parseJobs,
+                        buildJobsSnapshot,
+                        findJobSnapshot,
+                    },
+                    {
+                        board,
+                        task,
+                        taskId,
+                        summary:
+                            publishCommandHandlers.buildClosePublishSummary(
+                                taskId,
+                                task
+                            ),
+                        releaseException:
+                            domainStrategy.isReleasePromotionExceptionTask(
+                                task
+                            ),
+                        allowedPatterns,
+                        gateCommands: postMaterializationPreflight.gateCommands,
+                        ignoredDirtyEntries:
+                            postMaterializationPreflight.ignoredDirtyEntries,
+                        explicitDirtyFiles: [...new Set(explicitDirtyFiles)],
+                        command: 'close',
+                    }
+                );
+        } catch (error) {
+            if (wantsJson) {
+                return printCloseJsonError(error);
+            }
+            throw error;
+        }
+    } else if (typeof writeBoardAndSync === 'function') {
         try {
             writeBoardAndSync(board, {
                 silentSync: wantsJson,
@@ -152,10 +288,23 @@ function handleCloseCommand(ctx) {
                     lease_action: leaseMeta?.lease_action || 'none',
                     lease: leaseMeta?.lease || null,
                     status_since_at: leaseMeta?.status_since_at || null,
+                    published_commit: publishResult?.published_commit || null,
+                    publish_transport: publishResult?.publish_transport || null,
+                    branch_alignment: publishResult?.branch_alignment || null,
+                    live_status: publishResult?.live_status || null,
+                    verification_pending:
+                        publishResult?.verification_pending || false,
                 },
                 null,
                 2
             )
+        );
+        return;
+    }
+
+    if (publishResult?.published_commit) {
+        console.log(
+            `Tarea cerrada y publicada: ${taskId} -> ${publishResult.published_commit}`
         );
         return;
     }

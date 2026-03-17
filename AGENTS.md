@@ -307,6 +307,8 @@ node agent-orchestrator.js task start AG-003 --status in_progress --expect-rev 1
 node agent-orchestrator.js task finish AG-003 --evidence verification/agent-runs/AG-003.md
 node agent-orchestrator.js task start AG-003 --json
 node agent-orchestrator.js sync
+node agent-orchestrator.js close AG-003 --evidence verification/agent-runs/AG-003.md --expect-rev 12 --json
+node agent-orchestrator.js close CDX-001 --evidence verification/agent-runs/CDX-001.md --expect-rev 12 --json
 node agent-orchestrator.js publish checkpoint AG-003 --summary "release-publish AG-003 ..." --expect-rev 12 --json
 node agent-orchestrator.js publish checkpoint CDX-001 --summary "..." --expect-rev 12 --json
 node agent-orchestrator.js close <task_id>
@@ -342,11 +344,11 @@ Flujo recomendado:
 4. Ejecutar `npm run agent:test` si cambiaste el orquestador/validadores.
 5. Ejecutar `npm run agent:gate` (o al menos `conflicts`, `handoffs lint`, `codex-check`).
    Para diagnostico semantico del board (leases, stale, WIP, evidencia), ejecutar `node agent-orchestrator.js board doctor --json` (warn-first, no bloqueante por defecto).
-6. Si el cambio debe salir rapido a `main`, ejecutar `node agent-orchestrator.js publish checkpoint <AG-ID|CDX-ID> --summary "..." --expect-rev <rev> --json`.
-   Para promocion formal de release sobre una tarea existente, usar antes `node agent-orchestrator.js task start <AG-ID|CDX-ID> --release-publish --expect-rev <rev> --json`.
-7. Ejecutar `node agent-orchestrator.js sync` cuando haga falta refrescar tombstones/estado derivado.
-8. Ejecutar validaciones del cambio (`npm run lint`, tests aplicables).
-9. Confirmar evidencia y cerrar (`close`, `codex stop`, `handoffs close`) cuando aplique.
+6. Ejecutar validaciones del cambio (`npm run lint`, tests aplicables).
+7. Confirmar evidencia y cerrar con `node agent-orchestrator.js close <AG-ID|CDX-ID> --evidence verification/agent-runs/<task_id>.md --expect-rev <rev> --json` cuando la tarea tenga `executor=codex`; ese closeout debe publicar a `origin/main`, refrescar `origin/main` local y dejar la rama actual `0 ahead / 0 behind`.
+8. Usar `node agent-orchestrator.js publish checkpoint <AG-ID|CDX-ID> --summary "..." --expect-rev <rev> --json` solo como ruta manual/de excepción. Para promocion formal de release sobre una tarea existente, usar antes `node agent-orchestrator.js task start <AG-ID|CDX-ID> --release-publish --expect-rev <rev> --json`.
+9. Usar `task finish` y `codex stop` como transiciones de estado o cierres no publicables; no reemplazan el closeout publicado de Codex.
+10. Ejecutar `node agent-orchestrator.js sync` cuando haga falta refrescar tombstones/estado derivado.
 
 Candado de concurrencia:
 
