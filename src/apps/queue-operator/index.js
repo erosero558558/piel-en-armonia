@@ -425,11 +425,11 @@ async function refreshDesktopSnapshot() {
     try {
         const snapshot = await bridge.getRuntimeSnapshot();
         const runtimeStatus =
-            (snapshot?.shellStatus && typeof snapshot.shellStatus === 'object'
-                ? snapshot.shellStatus
-                : null) ||
             (snapshot?.status && typeof snapshot.status === 'object'
                 ? snapshot.status
+                : null) ||
+            (snapshot?.shellStatus && typeof snapshot.shellStatus === 'object'
+                ? snapshot.shellStatus
                 : null) ||
             operatorRuntime.shellRuntime;
         const runtimeSnapshot =

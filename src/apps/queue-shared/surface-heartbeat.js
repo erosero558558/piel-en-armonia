@@ -4,13 +4,19 @@ const DEVICE_ID_STORAGE_PREFIX = 'queueSurfaceDeviceIdV1:';
 const NOTIFY_THROTTLE_MS = 4000;
 
 function normalizeSurface(surface) {
-    const value = String(surface || '').trim().toLowerCase();
+    const value = String(surface || '')
+        .trim()
+        .toLowerCase();
     if (value === 'sala_tv') return 'display';
     return value || 'operator';
 }
 
 function createDeviceId(surface) {
-    if (typeof crypto === 'object' && crypto && typeof crypto.randomUUID === 'function') {
+    if (
+        typeof crypto === 'object' &&
+        crypto &&
+        typeof crypto.randomUUID === 'function'
+    ) {
         return `${surface}-${crypto.randomUUID()}`;
     }
 
@@ -35,11 +41,11 @@ function getDeviceId(surface) {
 
 function buildRequestBody(surface, deviceId, getPayload, reason) {
     const payload =
-        typeof getPayload === 'function' && getPayload()
-            ? getPayload()
-            : {};
+        typeof getPayload === 'function' && getPayload() ? getPayload() : {};
     const details =
-        payload.details && typeof payload.details === 'object' ? payload.details : {};
+        payload.details && typeof payload.details === 'object'
+            ? payload.details
+            : {};
 
     return {
         surface,
@@ -69,32 +75,49 @@ export function createSurfaceHeartbeatClient({
 } = {}) {
     const normalizedSurface = normalizeSurface(surface);
     const deviceId = getDeviceId(normalizedSurface);
-    const safeIntervalMs = Math.max(5000, Number(intervalMs || DEFAULT_INTERVAL_MS));
+    const safeIntervalMs = Math.max(
+        5000,
+        Number(intervalMs || DEFAULT_INTERVAL_MS)
+    );
 
     let timerId = 0;
     let inFlight = false;
     let lastSentAt = 0;
     let listenersAttached = false;
+    let pendingRequest = null;
 
     async function send(reason = 'interval', { keepalive = false } = {}) {
         if (inFlight) {
+            pendingRequest = {
+                reason: String(reason || 'interval'),
+                keepalive:
+                    keepalive === true || pendingRequest?.keepalive === true,
+            };
             return false;
         }
 
         inFlight = true;
         try {
-            const response = await fetch(`/api.php?resource=${encodeURIComponent(HEARTBEAT_RESOURCE)}`, {
-                method: 'POST',
-                credentials: 'same-origin',
-                keepalive,
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(
-                    buildRequestBody(normalizedSurface, deviceId, getPayload, reason)
-                ),
-            });
+            const response = await fetch(
+                `/api.php?resource=${encodeURIComponent(HEARTBEAT_RESOURCE)}`,
+                {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    keepalive,
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(
+                        buildRequestBody(
+                            normalizedSurface,
+                            deviceId,
+                            getPayload,
+                            reason
+                        )
+                    ),
+                }
+            );
             if (!response.ok) {
                 return false;
             }
@@ -104,6 +127,13 @@ export function createSurfaceHeartbeatClient({
             return false;
         } finally {
             inFlight = false;
+            if (pendingRequest) {
+                const nextRequest = pendingRequest;
+                pendingRequest = null;
+                void send(nextRequest.reason, {
+                    keepalive: nextRequest.keepalive === true,
+                });
+            }
         }
     }
 
@@ -136,7 +166,10 @@ export function createSurfaceHeartbeatClient({
             return;
         }
         listenersAttached = false;
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        document.removeEventListener(
+            'visibilitychange',
+            handleVisibilityChange
+        );
         window.removeEventListener('online', handleOnline);
         window.removeEventListener('beforeunload', handleBeforeUnload);
     }
@@ -160,11 +193,12 @@ export function createSurfaceHeartbeatClient({
             window.clearInterval(timerId);
             timerId = 0;
         }
+        pendingRequest = null;
         detachListeners();
     }
 
     function notify(reason = 'state_change') {
-        if ((Date.now() - lastSentAt) < NOTIFY_THROTTLE_MS) {
+        if (Date.now() - lastSentAt < NOTIFY_THROTTLE_MS) {
             return;
         }
         void send(reason);
