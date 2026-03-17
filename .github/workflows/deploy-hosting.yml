@@ -2227,7 +2227,7 @@ jobs:
                   } >> "$GITHUB_STEP_SUMMARY"
 
             - name: Fail deploy-hosting when publicSync blocks release
-              if: ${{ always() && env.FTP_DRY_RUN != 'true' && (steps.public_sync_deploy.outputs.public_sync_status == 'host_stale_health_contract' || steps.public_sync_deploy.outputs.public_sync_status == 'public_sync_runtime_failed') }}
+              if: ${{ always() && env.FTP_DRY_RUN != 'true' && (steps.public_sync_deploy.outputs.public_sync_status == 'public_sync_runtime_failed' || (steps.public_sync_deploy.outputs.public_sync_status == 'host_stale_health_contract' && (env.FORCE_TRANSPORT_DEPLOY == 'true' || env.DEPLOY_METHOD != 'git-sync'))) }}
               shell: bash
               run: |
                   set -euo pipefail
@@ -2237,6 +2237,13 @@ jobs:
                     echo "::error::publicSync post-deploy bloquea el release (${PUBLIC_SYNC_DEPLOY_STATUS}: ${PUBLIC_SYNC_DEPLOY_REASON}). Corrija el runtime del host antes de cerrar el deploy."
                   fi
                   exit 1
+
+            - name: Warn deploy-hosting when publicSync health contract is stale under canonical git-sync
+              if: ${{ always() && env.FTP_DRY_RUN != 'true' && steps.public_sync_deploy.outputs.public_sync_status == 'host_stale_health_contract' && env.FORCE_TRANSPORT_DEPLOY != 'true' && env.DEPLOY_METHOD == 'git-sync' }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  echo "::warning::publicSync post-deploy sigue con health stale (${PUBLIC_SYNC_DEPLOY_REASON}), pero el deploy efectivo usa git-sync canonico; se mantiene como advisory mientras smoke/verify sigan en verde."
 
             - name: Stamp public cutover start
               if: ${{ env.FTP_DRY_RUN != 'true' }}

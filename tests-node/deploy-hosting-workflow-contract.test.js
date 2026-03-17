@@ -524,9 +524,12 @@ test('deploy-hosting clasifica publicSync antes de cerrar el release y antes del
         'public_sync_deploy_job_id: \\`${PUBLIC_SYNC_DEPLOY_JOB_ID}\\`',
         'public_sync_deploy_deployed_commit: \\`${PUBLIC_SYNC_DEPLOYED_COMMIT}\\`',
         'public_sync_postdeploy_allowed: \\`${{ steps.public_sync_deploy.outputs.public_sync_postdeploy_allowed }}\\`',
-        "if: ${{ always() && env.FTP_DRY_RUN != 'true' && (steps.public_sync_deploy.outputs.public_sync_status == 'host_stale_health_contract' || steps.public_sync_deploy.outputs.public_sync_status == 'public_sync_runtime_failed') }}",
+        "if: ${{ always() && env.FTP_DRY_RUN != 'true' && (steps.public_sync_deploy.outputs.public_sync_status == 'public_sync_runtime_failed' || (steps.public_sync_deploy.outputs.public_sync_status == 'host_stale_health_contract' && (env.FORCE_TRANSPORT_DEPLOY == 'true' || env.DEPLOY_METHOD != 'git-sync'))) }}",
         'publicSync post-deploy bloquea el release porque el host sigue sirviendo un health stale',
         'publicSync post-deploy bloquea el release (${PUBLIC_SYNC_DEPLOY_STATUS}: ${PUBLIC_SYNC_DEPLOY_REASON}). Corrija el runtime del host antes de cerrar el deploy.',
+        'Warn deploy-hosting when publicSync health contract is stale under canonical git-sync',
+        "if: ${{ always() && env.FTP_DRY_RUN != 'true' && steps.public_sync_deploy.outputs.public_sync_status == 'host_stale_health_contract' && env.FORCE_TRANSPORT_DEPLOY != 'true' && env.DEPLOY_METHOD == 'git-sync' }}",
+        'publicSync post-deploy sigue con health stale (${PUBLIC_SYNC_DEPLOY_REASON}), pero el deploy efectivo usa git-sync canonico; se mantiene como advisory mientras smoke/verify sigan en verde.',
     ]) {
         assert.equal(
             raw.includes(snippet),
