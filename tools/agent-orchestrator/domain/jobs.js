@@ -474,10 +474,12 @@ async function resolveJobSnapshot(jobRaw, deps = {}) {
                 if (publicSync && typeof publicSync === 'object') {
                     return normalizeSnapshotFromHealth(job, publicSync);
                 }
-                return normalizeSnapshotFromHealthMissingPublicSync(
-                    job,
-                    payload
-                );
+                if (payload && typeof payload === 'object') {
+                    return normalizeSnapshotFromHealthMissingPublicSync(
+                        job,
+                        payload
+                    );
+                }
             }
         } catch {
             // Fall through to registry-only mode.
@@ -575,6 +577,7 @@ module.exports = {
     normalizeRegistryJob,
     normalizeSnapshotFromFile,
     normalizeSnapshotFromHealth,
+    normalizeSnapshotFromHealthMissingPublicSync,
     resolveJobSnapshot,
     buildJobsSnapshot,
     summarizeJobsSnapshot,

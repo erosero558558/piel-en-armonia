@@ -1321,6 +1321,136 @@ jobs:
                   curl -IfsS "${PROD_URL}/" > /tmp/home_headers.txt
                   echo "Production Verified."
 
+            - name: Evaluar estado publicSync deploy-hosting
+              if: ${{ always() && env.FTP_DRY_RUN != 'true' }}
+              id: public_sync_deploy
+              shell: bash
+              env:
+                  HEALTH_FILE: /tmp/health.json
+              run: |
+                  set -euo pipefail
+                  if [ ! -s "${HEALTH_FILE}" ]; then
+                    if ! curl -fsS "${PROD_URL}/api.php?resource=health" > "${HEALTH_FILE}"; then
+                      echo "No se pudo refrescar health; se reporta publicSync unknown."
+                    fi
+                  fi
+                  node <<'NODE'
+                  const fs = require('node:fs');
+
+                  const expectedJobId = '8d31e299-7e57-4959-80b5-aaa2d73e9674';
+                  const healthPath = process.env.HEALTH_FILE || '/tmp/health.json';
+                  const outputPath = process.env.GITHUB_OUTPUT;
+                  const envPath = process.env.GITHUB_ENV;
+
+                  function append(path, key, value) {
+                    if (!path) return;
+                    fs.appendFileSync(path, `${key}=${String(value)}\n`);
+                  }
+
+                  function publish(snapshot) {
+                    append(outputPath, 'public_sync_status', snapshot.status);
+                    append(outputPath, 'public_sync_reason', snapshot.reason);
+                    append(outputPath, 'public_sync_job_id', snapshot.jobId);
+                    append(outputPath, 'public_sync_deployed_commit', snapshot.deployedCommit);
+                    append(outputPath, 'public_sync_postdeploy_allowed', snapshot.postdeployAllowed);
+
+                    append(envPath, 'PUBLIC_SYNC_DEPLOY_STATUS', snapshot.status);
+                    append(envPath, 'PUBLIC_SYNC_DEPLOY_REASON', snapshot.reason);
+                    append(envPath, 'PUBLIC_SYNC_DEPLOY_JOB_ID', snapshot.jobId);
+                    append(envPath, 'PUBLIC_SYNC_DEPLOYED_COMMIT', snapshot.deployedCommit);
+                    append(envPath, 'PUBLIC_SYNC_POSTDEPLOY_ALLOWED', snapshot.postdeployAllowed);
+                  }
+
+                  const fallback = {
+                    status: 'unknown',
+                    reason: 'health_unavailable',
+                    jobId: '',
+                    deployedCommit: '',
+                    postdeployAllowed: 'false',
+                  };
+
+                  try {
+                    if (!fs.existsSync(healthPath)) {
+                      publish(fallback);
+                      process.exit(0);
+                    }
+
+                    const raw = fs.readFileSync(healthPath, 'utf8');
+                    const parsed = JSON.parse(raw);
+                    const publicSync = parsed?.checks?.publicSync;
+                    if (!publicSync || typeof publicSync !== 'object') {
+                      publish({
+                        ...fallback,
+                        status: 'host_stale_health_contract',
+                        reason: 'health_missing_public_sync',
+                      });
+                      process.exit(0);
+                    }
+
+                    const configured = publicSync?.configured === true;
+                    const healthy = publicSync?.healthy === true;
+                    const operationallyHealthy =
+                      publicSync?.operationallyHealthy === undefined
+                        ? healthy
+                        : publicSync?.operationallyHealthy === true;
+                    const headDrift =
+                      publicSync?.headDrift === undefined
+                        ? false
+                        : publicSync?.headDrift === true;
+                    const telemetryGap =
+                      publicSync?.telemetryGap === undefined
+                        ? false
+                        : publicSync?.telemetryGap === true;
+                    const jobId = String(publicSync?.jobId || '');
+                    const deployedCommit = String(publicSync?.deployedCommit || '');
+
+                    if (
+                      configured &&
+                      healthy &&
+                      operationallyHealthy &&
+                      jobId === expectedJobId
+                    ) {
+                      publish({
+                        status: 'recovered',
+                        reason: 'ok',
+                        jobId,
+                        deployedCommit,
+                        postdeployAllowed: 'true',
+                      });
+                      process.exit(0);
+                    }
+
+                    const reasonParts = [];
+                    if (!configured) reasonParts.push('configured_false');
+                    if (jobId !== expectedJobId) {
+                      reasonParts.push(`job_id:${jobId || 'missing'}`);
+                    }
+                    if (!healthy) reasonParts.push('healthy_false');
+                    if (!operationallyHealthy) {
+                      reasonParts.push('operationally_unhealthy');
+                    }
+                    if (headDrift) reasonParts.push('head_drift');
+                    if (telemetryGap) reasonParts.push('telemetry_gap');
+                    const failureReason = String(publicSync?.failureReason || '');
+                    if (failureReason) {
+                      reasonParts.push(`failure_reason:${failureReason}`);
+                    }
+
+                    publish({
+                      status: 'public_sync_runtime_failed',
+                      reason: reasonParts.join(';') || 'public_sync_runtime_failed',
+                      jobId,
+                      deployedCommit,
+                      postdeployAllowed: 'false',
+                    });
+                  } catch (error) {
+                    publish({
+                      ...fallback,
+                      reason: `health_parse_error:${error && error.name ? error.name : 'unknown'}`,
+                    });
+                  }
+                  NODE
+
             - name: Evaluar estado telemedicina deploy-hosting
               if: ${{ always() && env.FTP_DRY_RUN != 'true' }}
               id: telemedicine_deploy
@@ -1724,7 +1854,7 @@ jobs:
                   retention-days: 14
 
             - name: Disparar Post-Deploy Fast Lane
-              if: ${{ env.FTP_DRY_RUN != 'true' && steps.resolve_postdeploy.outputs.run_fast == 'true' && env.TURNERO_PILOT_POSTDEPLOY_ALLOWED != 'false' }}
+              if: ${{ env.FTP_DRY_RUN != 'true' && steps.resolve_postdeploy.outputs.run_fast == 'true' && steps.public_sync_deploy.outputs.public_sync_postdeploy_allowed != 'false' && env.TURNERO_PILOT_POSTDEPLOY_ALLOWED != 'false' }}
               uses: actions/github-script@v7
               with:
                   script: |
@@ -1778,7 +1908,7 @@ jobs:
                   PUBLIC_V4_ROLLOUT_ALLOW_MISSING_CONTROL_EFFECTIVE: ${{ steps.resolve_postdeploy.outputs.public_v4_allow_missing_control }}
 
             - name: Disparar Post-Deploy Gate (Full Regression)
-              if: ${{ env.FTP_DRY_RUN != 'true' && steps.resolve_postdeploy.outputs.run_gate == 'true' && env.TURNERO_PILOT_POSTDEPLOY_ALLOWED != 'false' }}
+              if: ${{ env.FTP_DRY_RUN != 'true' && steps.resolve_postdeploy.outputs.run_gate == 'true' && steps.public_sync_deploy.outputs.public_sync_postdeploy_allowed != 'false' && env.TURNERO_PILOT_POSTDEPLOY_ALLOWED != 'false' }}
               uses: actions/github-script@v7
               with:
                   script: |
@@ -1875,6 +2005,11 @@ jobs:
                     echo "- public_v4_rollout_max_confirmed_drop_pp (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_max_confirmed_drop_pp }}\`"
                     echo "- public_v4_rollout_min_confirmed_rate_pct (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_min_confirmed_rate_pct }}\`"
                     echo "- public_v4_rollout_allow_missing_control (effective): \`${{ steps.resolve_postdeploy.outputs.public_v4_allow_missing_control }}\`"
+                    echo "- public_sync_deploy_status: \`${PUBLIC_SYNC_DEPLOY_STATUS}\`"
+                    echo "- public_sync_deploy_reason: \`${PUBLIC_SYNC_DEPLOY_REASON}\`"
+                    echo "- public_sync_deploy_job_id: \`${PUBLIC_SYNC_DEPLOY_JOB_ID}\`"
+                    echo "- public_sync_deploy_deployed_commit: \`${PUBLIC_SYNC_DEPLOYED_COMMIT}\`"
+                    echo "- public_sync_postdeploy_allowed: \`${{ steps.public_sync_deploy.outputs.public_sync_postdeploy_allowed }}\`"
                     echo "- turnero_pilot_deploy_status: \`${TURNERO_PILOT_DEPLOY_STATUS}\`"
                     echo "- turnero_pilot_deploy_reason: \`${TURNERO_PILOT_DEPLOY_REASON}\`"
                     echo "- turnero_pilot_clinic_id: \`${TURNERO_PILOT_CLINIC_ID}\`"
@@ -1896,6 +2031,18 @@ jobs:
                     echo "- postdeploy_rollout_dispatch_manifest: \`.public-cutover/postdeploy-rollout-dispatch.json\`"
                     echo "- reporte admin rollout deploy-hosting: \`verification/last-admin-ui-rollout-gate-deploy-hosting.json\`"
                   } >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Fail deploy-hosting when publicSync blocks release
+              if: ${{ always() && env.FTP_DRY_RUN != 'true' && (steps.public_sync_deploy.outputs.public_sync_status == 'host_stale_health_contract' || steps.public_sync_deploy.outputs.public_sync_status == 'public_sync_runtime_failed') }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ "${PUBLIC_SYNC_DEPLOY_STATUS}" = "host_stale_health_contract" ]; then
+                    echo "::error::publicSync post-deploy bloquea el release porque el host sigue sirviendo un health stale (${PUBLIC_SYNC_DEPLOY_REASON}). Reintente deploy-hosting o el fallback de transporte antes de cerrar el rollout."
+                  else
+                    echo "::error::publicSync post-deploy bloquea el release (${PUBLIC_SYNC_DEPLOY_STATUS}: ${PUBLIC_SYNC_DEPLOY_REASON}). Corrija el runtime del host antes de cerrar el deploy."
+                  fi
+                  exit 1
 
             - name: Stamp public cutover start
               if: ${{ env.FTP_DRY_RUN != 'true' }}

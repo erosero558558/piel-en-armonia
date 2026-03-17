@@ -245,8 +245,8 @@ test('deploy-hosting resuelve y resume el clinic-profile del piloto web antes de
         "status: process.env.TURNERO_PILOT_REMOTE_STATUS || 'unknown'",
         'Turnero pilot deploy blocked (',
         'Turnero pilot remote verify blocked deploy-hosting (',
-        "steps.resolve_postdeploy.outputs.run_fast == 'true' && env.TURNERO_PILOT_POSTDEPLOY_ALLOWED != 'false'",
-        "steps.resolve_postdeploy.outputs.run_gate == 'true' && env.TURNERO_PILOT_POSTDEPLOY_ALLOWED != 'false'",
+        "steps.resolve_postdeploy.outputs.run_fast == 'true' && steps.public_sync_deploy.outputs.public_sync_postdeploy_allowed != 'false' && env.TURNERO_PILOT_POSTDEPLOY_ALLOWED != 'false'",
+        "steps.resolve_postdeploy.outputs.run_gate == 'true' && steps.public_sync_deploy.outputs.public_sync_postdeploy_allowed != 'false' && env.TURNERO_PILOT_POSTDEPLOY_ALLOWED != 'false'",
     ]) {
         assert.equal(
             raw.includes(snippet),
@@ -459,6 +459,55 @@ test('deploy-hosting evalua y gestiona incidente dedicado de telemedicina post-c
             raw.includes(snippet),
             true,
             `falta wiring de telemedicina deploy-hosting: ${snippet}`
+        );
+    }
+});
+
+test('deploy-hosting clasifica publicSync antes de cerrar el release y antes del post-deploy', () => {
+    const { raw, parsed } = loadWorkflow();
+    const steps = parsed?.jobs?.['deploy-prod']?.steps || [];
+    const stepNames = steps.map((step) => String(step?.name || ''));
+
+    for (const expectedStepName of [
+        'Evaluar estado publicSync deploy-hosting',
+        'Fail deploy-hosting when publicSync blocks release',
+    ]) {
+        assert.equal(
+            stepNames.includes(expectedStepName),
+            true,
+            `falta step de publicSync en deploy-hosting: ${expectedStepName}`
+        );
+    }
+
+    for (const snippet of [
+        "const expectedJobId = '8d31e299-7e57-4959-80b5-aaa2d73e9674';",
+        "append(outputPath, 'public_sync_status', snapshot.status);",
+        "append(outputPath, 'public_sync_reason', snapshot.reason);",
+        "append(outputPath, 'public_sync_postdeploy_allowed', snapshot.postdeployAllowed);",
+        "append(envPath, 'PUBLIC_SYNC_DEPLOY_STATUS', snapshot.status);",
+        "append(envPath, 'PUBLIC_SYNC_DEPLOY_REASON', snapshot.reason);",
+        "append(envPath, 'PUBLIC_SYNC_POSTDEPLOY_ALLOWED', snapshot.postdeployAllowed);",
+        "status: 'host_stale_health_contract'",
+        "reason: 'health_missing_public_sync'",
+        "status: 'public_sync_runtime_failed'",
+        "reason: reasonParts.join(';') || 'public_sync_runtime_failed'",
+        "status: 'recovered'",
+        "reason: 'ok'",
+        "if: ${{ env.FTP_DRY_RUN != 'true' && steps.resolve_postdeploy.outputs.run_fast == 'true' && steps.public_sync_deploy.outputs.public_sync_postdeploy_allowed != 'false' && env.TURNERO_PILOT_POSTDEPLOY_ALLOWED != 'false' }}",
+        "if: ${{ env.FTP_DRY_RUN != 'true' && steps.resolve_postdeploy.outputs.run_gate == 'true' && steps.public_sync_deploy.outputs.public_sync_postdeploy_allowed != 'false' && env.TURNERO_PILOT_POSTDEPLOY_ALLOWED != 'false' }}",
+        'public_sync_deploy_status: \\`${PUBLIC_SYNC_DEPLOY_STATUS}\\`',
+        'public_sync_deploy_reason: \\`${PUBLIC_SYNC_DEPLOY_REASON}\\`',
+        'public_sync_deploy_job_id: \\`${PUBLIC_SYNC_DEPLOY_JOB_ID}\\`',
+        'public_sync_deploy_deployed_commit: \\`${PUBLIC_SYNC_DEPLOYED_COMMIT}\\`',
+        'public_sync_postdeploy_allowed: \\`${{ steps.public_sync_deploy.outputs.public_sync_postdeploy_allowed }}\\`',
+        "if: ${{ always() && env.FTP_DRY_RUN != 'true' && (steps.public_sync_deploy.outputs.public_sync_status == 'host_stale_health_contract' || steps.public_sync_deploy.outputs.public_sync_status == 'public_sync_runtime_failed') }}",
+        'publicSync post-deploy bloquea el release porque el host sigue sirviendo un health stale',
+        'publicSync post-deploy bloquea el release (${PUBLIC_SYNC_DEPLOY_STATUS}: ${PUBLIC_SYNC_DEPLOY_REASON}). Corrija el runtime del host antes de cerrar el deploy.',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring de publicSync en deploy-hosting: ${snippet}`
         );
     }
 });
@@ -879,6 +928,47 @@ test('repair-git-sync evalua y gestiona incidente dedicado de telemedicina post-
             raw.includes(snippet),
             true,
             `falta wiring de telemedicina en repair-git-sync: ${snippet}`
+        );
+    }
+});
+
+test('repair-git-sync clasifica publicSync post-repair y lo incorpora al autoheal', () => {
+    const { raw, parsed } = loadWorkflow(REPAIR_WORKFLOW_PATH);
+    const steps = parsed?.jobs?.repair?.steps || [];
+    const stepNames = steps.map((step) => String(step?.name || ''));
+
+    assert.equal(
+        stepNames.includes('Evaluar estado publicSync post-repair'),
+        true,
+        'falta step de publicSync en repair-git-sync'
+    );
+
+    for (const snippet of [
+        "const expectedJobId = '8d31e299-7e57-4959-80b5-aaa2d73e9674';",
+        "append(outputPath, 'public_sync_status', snapshot.status);",
+        "append(outputPath, 'public_sync_reason', snapshot.reason);",
+        "append(envPath, 'PUBLIC_SYNC_REPAIR_STATUS', snapshot.status);",
+        "append(envPath, 'PUBLIC_SYNC_REPAIR_REASON', snapshot.reason);",
+        'PUBLIC_SYNC_REPAIR_STATUS: ${{ steps.public_sync_repair.outputs.public_sync_status }}',
+        'PUBLIC_SYNC_REPAIR_REASON: ${{ steps.public_sync_repair.outputs.public_sync_reason }}',
+        "status: 'host_stale_health_contract'",
+        "reason: 'health_missing_public_sync'",
+        "status: 'public_sync_runtime_failed'",
+        "reason: reasonParts.join(';') || 'public_sync_runtime_failed'",
+        "status: 'recovered'",
+        "reason: 'ok'",
+        'health-public-sync-missing',
+        'public-sync-host-stale',
+        "`public_sync:${publicSyncRepairStatus}:${publicSyncRepairReason || 'n/a'}`",
+        'public_sync_repair_status: \\`${PUBLIC_SYNC_REPAIR_STATUS}\\`',
+        'public_sync_repair_reason: \\`${PUBLIC_SYNC_REPAIR_REASON}\\`',
+        'public_sync_repair_job_id: \\`${PUBLIC_SYNC_REPAIR_JOB_ID}\\`',
+        'public_sync_repair_deployed_commit: \\`${PUBLIC_SYNC_REPAIR_DEPLOYED_COMMIT}\\`',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta wiring de publicSync en repair-git-sync: ${snippet}`
         );
     }
 });
