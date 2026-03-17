@@ -265,9 +265,6 @@ async function detectLiveVerificationStatus(ctx, expectedCommit) {
     };
 }
 
-async function sleep(ms) {
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
-}
 function hasRuntimeRequiredCheck(summary = {}) {
     return Array.isArray(summary?.configured?.required_checks)
         ? summary.configured.required_checks.some((item) =>
@@ -288,6 +285,7 @@ async function handlePublishCommand(ctx) {
         parseDecisions,
         parseJobs,
         buildJobsSnapshot,
+        findJobSnapshot,
         verifyOpenClawRuntime,
         printJson = (value) => console.log(JSON.stringify(value, null, 2)),
         rootPath,
