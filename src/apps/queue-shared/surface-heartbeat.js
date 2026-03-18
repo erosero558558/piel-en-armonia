@@ -4,13 +4,55 @@ const DEVICE_ID_STORAGE_PREFIX = 'queueSurfaceDeviceIdV1:';
 const NOTIFY_THROTTLE_MS = 4000;
 
 function normalizeSurface(surface) {
-    const value = String(surface || '').trim().toLowerCase();
-    if (value === 'sala_tv') return 'display';
+    const value = String(surface || '')
+        .trim()
+        .toLowerCase();
+    if (value === 'sala_tv') {
+        return 'display';
+    }
     return value || 'operator';
 }
 
+function normalizeMetaValue(value) {
+    return String(value || '').trim();
+}
+
+function pickPromotedMeta(payload, details) {
+    return {
+        clinicId: normalizeMetaValue(payload.clinicId || details.clinicId),
+        clinicName: normalizeMetaValue(
+            payload.clinicName || details.clinicName
+        ),
+        profileSource: normalizeMetaValue(
+            payload.profileSource || details.profileSource
+        ),
+        profileFingerprint: normalizeMetaValue(
+            payload.profileFingerprint || details.profileFingerprint
+        ),
+        releaseMode: normalizeMetaValue(
+            payload.releaseMode || details.releaseMode
+        ),
+        readinessState: normalizeMetaValue(
+            payload.readinessState || details.readinessState
+        ),
+        surfaceContractState: normalizeMetaValue(
+            payload.surfaceContractState || details.surfaceContractState
+        ),
+        surfaceRouteExpected: normalizeMetaValue(
+            payload.surfaceRouteExpected || details.surfaceRouteExpected
+        ),
+        surfaceRouteCurrent: normalizeMetaValue(
+            payload.surfaceRouteCurrent || details.surfaceRouteCurrent
+        ),
+    };
+}
+
 function createDeviceId(surface) {
-    if (typeof crypto === 'object' && crypto && typeof crypto.randomUUID === 'function') {
+    if (
+        typeof crypto === 'object' &&
+        crypto &&
+        typeof crypto.randomUUID === 'function'
+    ) {
         return `${surface}-${crypto.randomUUID()}`;
     }
 
@@ -20,11 +62,13 @@ function createDeviceId(surface) {
 
 function getDeviceId(surface) {
     const key = `${DEVICE_ID_STORAGE_PREFIX}${surface}`;
+
     try {
         const existing = localStorage.getItem(key);
         if (existing) {
             return existing;
         }
+
         const nextId = createDeviceId(surface);
         localStorage.setItem(key, nextId);
         return nextId;
@@ -35,11 +79,12 @@ function getDeviceId(surface) {
 
 function buildRequestBody(surface, deviceId, getPayload, reason) {
     const payload =
-        typeof getPayload === 'function' && getPayload()
-            ? getPayload()
-            : {};
+        typeof getPayload === 'function' && getPayload() ? getPayload() : {};
     const details =
-        payload.details && typeof payload.details === 'object' ? payload.details : {};
+        payload.details && typeof payload.details === 'object'
+            ? payload.details
+            : {};
+    const promotedMeta = pickPromotedMeta(payload, details);
 
     return {
         surface,
@@ -58,6 +103,7 @@ function buildRequestBody(surface, deviceId, getPayload, reason) {
                 : navigator.onLine !== false,
         lastEvent: String(payload.lastEvent || reason || 'heartbeat'),
         lastEventAt: String(payload.lastEventAt || new Date().toISOString()),
+        ...promotedMeta,
         details,
     };
 }
@@ -69,8 +115,10 @@ export function createSurfaceHeartbeatClient({
 } = {}) {
     const normalizedSurface = normalizeSurface(surface);
     const deviceId = getDeviceId(normalizedSurface);
-    const safeIntervalMs = Math.max(5000, Number(intervalMs || DEFAULT_INTERVAL_MS));
-
+    const safeIntervalMs = Math.max(
+        5000,
+        Number(intervalMs || DEFAULT_INTERVAL_MS)
+    );
     let timerId = 0;
     let inFlight = false;
     let lastSentAt = 0;
@@ -82,22 +130,33 @@ export function createSurfaceHeartbeatClient({
         }
 
         inFlight = true;
+
         try {
-            const response = await fetch(`/api.php?resource=${encodeURIComponent(HEARTBEAT_RESOURCE)}`, {
-                method: 'POST',
-                credentials: 'same-origin',
-                keepalive,
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(
-                    buildRequestBody(normalizedSurface, deviceId, getPayload, reason)
-                ),
-            });
+            const response = await fetch(
+                `/api.php?resource=${encodeURIComponent(HEARTBEAT_RESOURCE)}`,
+                {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    keepalive,
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(
+                        buildRequestBody(
+                            normalizedSurface,
+                            deviceId,
+                            getPayload,
+                            reason
+                        )
+                    ),
+                }
+            );
+
             if (!response.ok) {
                 return false;
             }
+
             lastSentAt = Date.now();
             return true;
         } catch (_error) {
@@ -125,6 +184,7 @@ export function createSurfaceHeartbeatClient({
         if (listenersAttached) {
             return;
         }
+
         listenersAttached = true;
         document.addEventListener('visibilitychange', handleVisibilityChange);
         window.addEventListener('online', handleOnline);
@@ -135,8 +195,12 @@ export function createSurfaceHeartbeatClient({
         if (!listenersAttached) {
             return;
         }
+
         listenersAttached = false;
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        document.removeEventListener(
+            'visibilitychange',
+            handleVisibilityChange
+        );
         window.removeEventListener('online', handleOnline);
         window.removeEventListener('beforeunload', handleBeforeUnload);
     }
@@ -144,13 +208,16 @@ export function createSurfaceHeartbeatClient({
     function start({ immediate = true } = {}) {
         stop();
         attachListeners();
+
         if (immediate) {
             void send('boot');
         }
+
         timerId = window.setInterval(() => {
             if (document.visibilityState === 'hidden') {
                 return;
             }
+
             void send('interval');
         }, safeIntervalMs);
     }
@@ -160,13 +227,15 @@ export function createSurfaceHeartbeatClient({
             window.clearInterval(timerId);
             timerId = 0;
         }
+
         detachListeners();
     }
 
     function notify(reason = 'state_change') {
-        if ((Date.now() - lastSentAt) < NOTIFY_THROTTLE_MS) {
+        if (Date.now() - lastSentAt < NOTIFY_THROTTLE_MS) {
             return;
         }
+
         void send(reason);
     }
 

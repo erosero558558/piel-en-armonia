@@ -53,6 +53,8 @@ import {
 import {
     getTurneroClinicBrandName,
     getTurneroClinicProfileFingerprint,
+    getTurneroClinicReleaseMode,
+    getTurneroClinicReadiness,
     getTurneroClinicShortName,
     getTurneroConsultorioLabel,
     getTurneroSurfaceContract,
@@ -210,21 +212,29 @@ function getOperatorConsultorioShortLabel(consultorio) {
 
 function renderOperatorProfileStatus(profile) {
     const surfaceContract = getOperatorSurfaceContract(profile);
+    const readiness = getTurneroClinicReadiness(profile);
+    const releaseMode = getTurneroClinicReleaseMode(profile);
     const profileFingerprint = getTurneroClinicProfileFingerprint(
         profile
     ).slice(0, 8);
+    const canonicalRoute =
+        surfaceContract.expectedRoute || '/operador-turnos.html';
     const state =
         surfaceContract.state === 'alert'
             ? 'danger'
-            : surfaceContract.state === 'ready'
-              ? 'success'
-              : 'warning';
+            : readiness.state === 'alert'
+              ? 'danger'
+              : readiness.state === 'warning'
+                ? 'warning'
+                : surfaceContract.state === 'ready'
+                  ? 'success'
+                  : 'warning';
     const text =
         surfaceContract.state === 'alert'
             ? surfaceContract.reason === 'profile_missing'
-                ? 'Bloqueado · perfil de respaldo · clinic-profile.json remoto ausente'
-                : `Bloqueado · ruta fuera de canon · se esperaba ${surfaceContract.expectedRoute || '/operador-turnos.html'}`
-            : `Perfil remoto verificado · firma ${profileFingerprint} · canon ${surfaceContract.expectedRoute || '/operador-turnos.html'}`;
+                ? `Bloqueado · perfil de respaldo · clinic-profile.json remoto ausente · releaseMode ${releaseMode} · ${readiness.summary}`
+                : `Bloqueado · ruta fuera de canon · se esperaba ${canonicalRoute} · releaseMode ${releaseMode} · ${readiness.summary}`
+            : `${readiness.state === 'warning' ? 'Con avisos' : readiness.state === 'alert' ? 'Readiness bloqueada' : 'Perfil remoto verificado'} · firma ${profileFingerprint} · releaseMode ${releaseMode} · ${readiness.summary} · canon ${canonicalRoute}`;
 
     document
         .querySelectorAll('.queue-operator-profile-status')
@@ -296,6 +306,7 @@ function applyOperatorClinicProfile(profile) {
     const operatorRoute = String(
         profile?.surfaces?.operator?.route || '/operador-turnos.html'
     ).trim();
+    const releaseMode = getTurneroClinicReleaseMode(profile);
 
     document.title = `Turnero Operador - ${clinicName}`;
     document.querySelectorAll('.queue-operator-kicker').forEach((node) => {
@@ -305,7 +316,12 @@ function applyOperatorClinicProfile(profile) {
     });
     setText(
         '#operatorClinicMeta',
-        ['Piloto web por clínica', clinicId, clinicCity || clinicShortName]
+        [
+            'Piloto web por clínica',
+            clinicId,
+            clinicCity || clinicShortName,
+            `releaseMode ${releaseMode}`,
+        ]
             .filter(Boolean)
             .join(' · ')
     );
@@ -432,6 +448,8 @@ function buildOperatorHeartbeatPayload() {
     const profileSource = String(
         operatorClinicProfile?.runtime_meta?.source || 'remote'
     ).trim();
+    const releaseMode = getTurneroClinicReleaseMode(operatorClinicProfile);
+    const readiness = getTurneroClinicReadiness(operatorClinicProfile);
     const payload = buildHeartbeatPayload({
         queueState: state.queue,
         online: operatorRuntime.online,
@@ -453,10 +471,22 @@ function buildOperatorHeartbeatPayload() {
         clinicName,
         profileSource,
         profileFingerprint,
+        releaseMode,
+        readinessState: String(readiness.state || ''),
+        readinessSummary: String(readiness.summary || ''),
         surfaceContractState: String(surfaceContract.state || ''),
         surfaceRouteExpected: String(surfaceContract.expectedRoute || ''),
         surfaceRouteCurrent: String(surfaceContract.currentRoute || ''),
     };
+    payload.clinicId = clinicId;
+    payload.clinicName = clinicName;
+    payload.profileSource = profileSource;
+    payload.profileFingerprint = profileFingerprint;
+    payload.releaseMode = releaseMode;
+    payload.readinessState = String(readiness.state || '');
+    payload.surfaceContractState = String(surfaceContract.state || '');
+    payload.surfaceRouteExpected = String(surfaceContract.expectedRoute || '');
+    payload.surfaceRouteCurrent = String(surfaceContract.currentRoute || '');
     return payload;
 }
 
@@ -2033,9 +2063,7 @@ async function handleLoginSubmit(event) {
         setSubmitting(true);
         setLoginStatus(
             state.auth.requires2FA ? 'warning' : 'neutral',
-            state.auth.requires2FA
-                ? 'Validando código'
-                : 'Validando PIN',
+            state.auth.requires2FA ? 'Validando código' : 'Validando PIN',
             state.auth.requires2FA
                 ? 'Comprobando el código adicional antes de abrir la consola operativa.'
                 : 'Comprobando el PIN operativo de la clínica.'
@@ -2088,11 +2116,7 @@ function resetTwoFactorStage() {
             requires2FA: false,
         },
     }));
-    setLoginStatus(
-        'neutral',
-        'PIN operativo',
-        'Volviste al paso de PIN.'
-    );
+    setLoginStatus('neutral', 'PIN operativo', 'Volviste al paso de PIN.');
     focusLoginField('password');
 }
 

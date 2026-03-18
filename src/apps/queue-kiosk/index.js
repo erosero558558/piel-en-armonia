@@ -2,6 +2,8 @@ import { createSurfaceHeartbeatClient } from '../queue-shared/surface-heartbeat.
 import {
     getTurneroClinicBrandName,
     getTurneroClinicProfileFingerprint,
+    getTurneroClinicReleaseMode,
+    getTurneroClinicReadiness,
     getTurneroClinicShortName,
     getTurneroConsultorioLabel,
     getTurneroSurfaceContract,
@@ -271,6 +273,8 @@ function getKioskConsultorioLabel(consultorio) {
 
 function renderKioskProfileStatus(profile) {
     const surfaceContract = getKioskSurfaceContract(profile);
+    const readiness = getTurneroClinicReadiness(profile);
+    const releaseMode = getTurneroClinicReleaseMode(profile);
     const profileFingerprint = getTurneroClinicProfileFingerprint(
         profile
     ).slice(0, 8);
@@ -279,18 +283,24 @@ function renderKioskProfileStatus(profile) {
         return;
     }
 
+    const canonicalRoute =
+        surfaceContract.expectedRoute || '/kiosco-turnos.html';
     el.dataset.state =
         surfaceContract.state === 'alert'
             ? 'alert'
-            : surfaceContract.state === 'ready'
-              ? 'ready'
-              : 'warning';
+            : readiness.state === 'alert'
+              ? 'alert'
+              : readiness.state === 'warning'
+                ? 'warning'
+                : surfaceContract.state === 'ready'
+                  ? 'ready'
+                  : 'warning';
     el.textContent =
         surfaceContract.state === 'alert'
             ? surfaceContract.reason === 'profile_missing'
-                ? 'Bloqueado · perfil de respaldo · clinic-profile.json remoto ausente'
-                : `Bloqueado · ruta fuera de canon · se esperaba ${surfaceContract.expectedRoute || '/kiosco-turnos.html'}`
-            : `Perfil remoto verificado · firma ${profileFingerprint} · canon ${surfaceContract.expectedRoute || '/kiosco-turnos.html'}`;
+                ? `Bloqueado · perfil de respaldo · clinic-profile.json remoto ausente · releaseMode ${releaseMode} · ${readiness.summary}`
+                : `Bloqueado · ruta fuera de canon · se esperaba ${canonicalRoute} · releaseMode ${releaseMode} · ${readiness.summary}`
+            : `${readiness.state === 'warning' ? 'Con avisos' : readiness.state === 'alert' ? 'Readiness bloqueada' : 'Perfil remoto verificado'} · firma ${profileFingerprint} · releaseMode ${releaseMode} · ${readiness.summary} · canon ${canonicalRoute}`;
 }
 
 function getKioskSurfaceContract(profile = state.clinicProfile) {
@@ -341,6 +351,7 @@ function applyKioskClinicProfile(profile) {
         getKioskConsultorioLabel(1),
         getKioskConsultorioLabel(2),
     ].join(' · ');
+    const releaseMode = getTurneroClinicReleaseMode(profile);
     document.title = `Kiosco de Turnos | ${clinicName}`;
 
     const welcomeBrand = document.querySelector('#kioskWelcomeScreen strong');
@@ -355,7 +366,11 @@ function applyKioskClinicProfile(profile) {
 
     const clinicMeta = getById('kioskClinicMeta');
     if (clinicMeta instanceof HTMLElement) {
-        clinicMeta.textContent = [clinicId, clinicCity || clinicShortName]
+        clinicMeta.textContent = [
+            clinicId,
+            clinicCity || clinicShortName,
+            `releaseMode ${releaseMode}`,
+        ]
             .filter(Boolean)
             .join(' · ');
     }
@@ -400,6 +415,8 @@ function buildKioskHeartbeatPayload() {
     const profileSource = String(
         state.clinicProfile?.runtime_meta?.source || 'remote'
     ).trim();
+    const releaseMode = getTurneroClinicReleaseMode(state.clinicProfile);
+    const readiness = getTurneroClinicReadiness(state.clinicProfile);
     const assistantHeartbeat = buildAssistantHeartbeatMetrics();
 
     let status = 'warning';
@@ -435,6 +452,15 @@ function buildKioskHeartbeatPayload() {
         networkOnline: navigator.onLine !== false,
         lastEvent: printerPrinted ? 'printer_ok' : 'heartbeat',
         lastEventAt: printer?.at || new Date().toISOString(),
+        clinicId,
+        clinicName,
+        profileSource,
+        profileFingerprint,
+        releaseMode,
+        readinessState: String(readiness.state || ''),
+        surfaceContractState: String(surfaceContract.state || ''),
+        surfaceRouteExpected: String(surfaceContract.expectedRoute || ''),
+        surfaceRouteCurrent: String(surfaceContract.currentRoute || ''),
         details: {
             connection: connectionState,
             pendingOffline: pendingCount,
@@ -446,6 +472,9 @@ function buildKioskHeartbeatPayload() {
             clinicName,
             profileSource,
             profileFingerprint,
+            releaseMode,
+            readinessState: String(readiness.state || ''),
+            readinessSummary: String(readiness.summary || ''),
             surfaceContractState: String(surfaceContract.state || ''),
             surfaceRouteExpected: String(surfaceContract.expectedRoute || ''),
             surfaceRouteCurrent: String(surfaceContract.currentRoute || ''),

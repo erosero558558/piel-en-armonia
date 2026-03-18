@@ -48,6 +48,11 @@ const FALLBACK_PROFILE = Object.freeze({
     },
 });
 
+const SURFACE_ORDER = Object.freeze(['admin', 'operator', 'kiosk', 'display']);
+const SURFACE_ALIASES = Object.freeze({
+    sala_tv: 'display',
+});
+
 let clinicProfilePromise = null;
 
 function toString(value, fallback = '') {
@@ -62,6 +67,13 @@ function hashClinicProfileSource(input) {
         hash = Math.imul(hash, 16777619);
     }
     return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+function normalizeSurfaceKey(surface) {
+    const requested = String(surface || '')
+        .trim()
+        .toLowerCase();
+    return SURFACE_ALIASES[requested] || requested;
 }
 
 export function normalizeTurneroClinicProfile(rawProfile) {
@@ -214,6 +226,19 @@ export function getTurneroClinicShortName(profile) {
     );
 }
 
+export function getTurneroClinicReleaseMode(profile) {
+    return toString(profile?.release?.mode, FALLBACK_PROFILE.release.mode);
+}
+
+export function getTurneroClinicAdminModeDefault(profile) {
+    return toString(
+        profile?.release?.admin_mode_default,
+        FALLBACK_PROFILE.release.admin_mode_default
+    ) === 'expert'
+        ? 'expert'
+        : 'basic';
+}
+
 export function getTurneroClinicProfileFingerprint(profile) {
     const normalized = normalizeTurneroClinicProfile(profile);
     const source = [
@@ -262,6 +287,7 @@ export function getTurneroConsultorioLabel(profile, consultorio, options = {}) {
         profile?.consultorios && typeof profile.consultorios === 'object'
             ? profile.consultorios[key]
             : null;
+
     return short
         ? toString(source?.short_label, fallback.short_label)
         : toString(source?.label, fallback.label);
@@ -302,9 +328,7 @@ function resolveCurrentSurfaceRoute(options = {}) {
 export function getTurneroSurfaceContract(profile, surface, options = {}) {
     const normalizedProfile = normalizeTurneroClinicProfile(profile);
     const runtimeMeta = getTurneroClinicProfileRuntimeMeta(profile);
-    const surfaceKey = String(surface || '')
-        .trim()
-        .toLowerCase();
+    const surfaceKey = normalizeSurfaceKey(surface);
     const fallbackSurface =
         normalizedProfile.surfaces[surfaceKey] ||
         FALLBACK_PROFILE.surfaces.operator;
@@ -370,6 +394,157 @@ export function getTurneroSurfaceContract(profile, surface, options = {}) {
         label: fallbackSurface.label,
         detail: `Ruta canónica verificada: ${expectedRoute || currentRoute || 'sin ruta'}.`,
         reason: 'ready',
+    };
+}
+
+function buildProfileWithRuntimeMeta(profile) {
+    const normalized = normalizeTurneroClinicProfile(profile);
+    return {
+        ...normalized,
+        runtime_meta: getTurneroClinicProfileRuntimeMeta(profile),
+    };
+}
+
+export function getTurneroClinicOpeningPackage(profile, options = {}) {
+    const profileWithRuntimeMeta = buildProfileWithRuntimeMeta(profile);
+    const runtimeMeta = getTurneroClinicProfileRuntimeMeta(
+        profileWithRuntimeMeta
+    );
+    const currentRoutes =
+        options.currentRoutes && typeof options.currentRoutes === 'object'
+            ? options.currentRoutes
+            : {};
+
+    const surfaces = SURFACE_ORDER.map((surfaceKey) => {
+        const surfaceDefinition =
+            profileWithRuntimeMeta.surfaces[surfaceKey] ||
+            FALLBACK_PROFILE.surfaces[surfaceKey];
+        const hasExplicitCurrentRoute = Object.prototype.hasOwnProperty.call(
+            currentRoutes,
+            surfaceKey
+        );
+        const contract = getTurneroSurfaceContract(
+            profileWithRuntimeMeta,
+            surfaceKey,
+            {
+                currentRoute: hasExplicitCurrentRoute
+                    ? currentRoutes[surfaceKey]
+                    : '',
+            }
+        );
+
+        return {
+            id: surfaceKey,
+            label: surfaceDefinition.label,
+            enabled: surfaceDefinition.enabled !== false,
+            route: surfaceDefinition.route,
+            contract,
+            ready: contract.state === 'ready',
+        };
+    });
+
+    const enabledSurfaces = surfaces.filter((surface) => surface.enabled);
+    const readySurfaces = enabledSurfaces.filter((surface) => surface.ready);
+    const blockedSurfaces = enabledSurfaces.filter(
+        (surface) => surface.contract.state === 'alert'
+    );
+
+    return {
+        clinicId: profileWithRuntimeMeta.clinic_id,
+        clinicName: getTurneroClinicBrandName(profileWithRuntimeMeta),
+        clinicShortName: getTurneroClinicShortName(profileWithRuntimeMeta),
+        profileSource: runtimeMeta.source,
+        profileFingerprint: runtimeMeta.profileFingerprint,
+        releaseMode: getTurneroClinicReleaseMode(profileWithRuntimeMeta),
+        adminModeDefault: getTurneroClinicAdminModeDefault(
+            profileWithRuntimeMeta
+        ),
+        separateDeploy: profileWithRuntimeMeta.release.separate_deploy === true,
+        nativeAppsBlocking:
+            profileWithRuntimeMeta.release.native_apps_blocking === true,
+        notes: [...profileWithRuntimeMeta.release.notes],
+        surfaceOrder: [...SURFACE_ORDER],
+        surfaces,
+        enabledSurfaceCount: enabledSurfaces.length,
+        readySurfaceCount: readySurfaces.length,
+        blockedSurfaceCount: blockedSurfaces.length,
+    };
+}
+
+export function getTurneroSurfaceReadinessSnapshot(
+    profile,
+    surface,
+    options = {}
+) {
+    const surfaceKey = normalizeSurfaceKey(surface);
+    const openingPackage = getTurneroClinicOpeningPackage(profile, options);
+    const surfaceEntry =
+        openingPackage.surfaces.find((entry) => entry.id === surfaceKey) ||
+        null;
+
+    if (!surfaceEntry) {
+        return null;
+    }
+
+    return {
+        ...surfaceEntry,
+        clinicId: openingPackage.clinicId,
+        clinicName: openingPackage.clinicName,
+        clinicShortName: openingPackage.clinicShortName,
+        profileSource: openingPackage.profileSource,
+        profileFingerprint: openingPackage.profileFingerprint,
+        releaseMode: openingPackage.releaseMode,
+        adminModeDefault: openingPackage.adminModeDefault,
+        enabledSurfaceCount: openingPackage.enabledSurfaceCount,
+        readySurfaceCount: openingPackage.readySurfaceCount,
+        blockedSurfaceCount: openingPackage.blockedSurfaceCount,
+    };
+}
+
+export function getTurneroClinicReadiness(profile, options = {}) {
+    const openingPackage = getTurneroClinicOpeningPackage(profile, options);
+    const blockers = [];
+    const warnings = [];
+
+    openingPackage.surfaces.forEach((surface) => {
+        if (!surface.enabled) {
+            blockers.push(`${surface.label} deshabilitada en clinic-profile.`);
+            return;
+        }
+
+        if (surface.contract.state === 'alert') {
+            blockers.push(surface.contract.detail);
+        }
+    });
+
+    if (openingPackage.profileSource !== 'remote') {
+        warnings.push(
+            'Se está usando perfil de respaldo; el piloto debe operar con clinic-profile.json remoto.'
+        );
+    }
+
+    openingPackage.notes.forEach((note) => warnings.push(note));
+
+    let state = 'ready';
+    if (blockers.length > 0) {
+        state = 'alert';
+    } else if (warnings.length > 0) {
+        state = 'warning';
+    }
+
+    const summary =
+        state === 'alert'
+            ? `${openingPackage.readySurfaceCount}/${openingPackage.enabledSurfaceCount} superficies listas · ${blockers.length} bloqueo(s) activo(s)`
+            : state === 'warning'
+              ? `${openingPackage.readySurfaceCount}/${openingPackage.enabledSurfaceCount} superficies listas · ${warnings.length} aviso(s)`
+              : `${openingPackage.readySurfaceCount}/${openingPackage.enabledSurfaceCount} superficies listas`;
+
+    return {
+        ...openingPackage,
+        state,
+        summary,
+        blockers,
+        warnings,
     };
 }
 

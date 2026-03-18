@@ -2,6 +2,8 @@ import { createSurfaceHeartbeatClient } from '../queue-shared/surface-heartbeat.
 import {
     getTurneroClinicBrandName,
     getTurneroClinicProfileFingerprint,
+    getTurneroClinicReleaseMode,
+    getTurneroClinicReadiness,
     getTurneroClinicShortName,
     getTurneroConsultorioLabel,
     getTurneroSurfaceContract,
@@ -122,6 +124,8 @@ function getDisplaySurfaceContract(profile = state.clinicProfile) {
 
 function renderDisplayProfileStatus(profile) {
     const surfaceContract = getDisplaySurfaceContract(profile);
+    const readiness = getTurneroClinicReadiness(profile);
+    const releaseMode = getTurneroClinicReleaseMode(profile);
     const profileFingerprint = getTurneroClinicProfileFingerprint(
         profile
     ).slice(0, 8);
@@ -130,18 +134,23 @@ function renderDisplayProfileStatus(profile) {
         return;
     }
 
+    const canonicalRoute = surfaceContract.expectedRoute || '/sala-turnos.html';
     el.dataset.state =
         surfaceContract.state === 'alert'
             ? 'alert'
-            : surfaceContract.state === 'ready'
-              ? 'ready'
-              : 'warning';
+            : readiness.state === 'alert'
+              ? 'alert'
+              : readiness.state === 'warning'
+                ? 'warning'
+                : surfaceContract.state === 'ready'
+                  ? 'ready'
+                  : 'warning';
     el.textContent =
         surfaceContract.state === 'alert'
             ? surfaceContract.reason === 'profile_missing'
-                ? 'Bloqueado · perfil de respaldo · clinic-profile.json remoto ausente'
-                : `Bloqueado · ruta fuera de canon · se esperaba ${surfaceContract.expectedRoute || '/sala-turnos.html'}`
-            : `Perfil remoto verificado · firma ${profileFingerprint} · canon ${surfaceContract.expectedRoute || '/sala-turnos.html'}`;
+                ? `Bloqueado · perfil de respaldo · clinic-profile.json remoto ausente · releaseMode ${releaseMode} · ${readiness.summary}`
+                : `Bloqueado · ruta fuera de canon · se esperaba ${canonicalRoute} · releaseMode ${releaseMode} · ${readiness.summary}`
+            : `${readiness.state === 'warning' ? 'Con avisos' : readiness.state === 'alert' ? 'Readiness bloqueada' : 'Perfil remoto verificado'} · firma ${profileFingerprint} · releaseMode ${releaseMode} · ${readiness.summary} · canon ${canonicalRoute}`;
 }
 
 function getDisplayPilotBlockDetail() {
@@ -171,6 +180,7 @@ function applyDisplayClinicProfile(profile) {
         getTurneroConsultorioLabel(profile, 1, { short: true }),
         getTurneroConsultorioLabel(profile, 2, { short: true }),
     ].join(' / ');
+    const releaseMode = getTurneroClinicReleaseMode(profile);
     document.title = `Sala de Espera | ${clinicName}`;
 
     const brandNode = document.querySelector('.display-brand strong');
@@ -185,7 +195,11 @@ function applyDisplayClinicProfile(profile) {
 
     const clinicMeta = getById('displayClinicMeta');
     if (clinicMeta instanceof HTMLElement) {
-        clinicMeta.textContent = [clinicId, clinicCity || clinicShortName]
+        clinicMeta.textContent = [
+            clinicId,
+            clinicCity || clinicShortName,
+            `releaseMode ${releaseMode}`,
+        ]
             .filter(Boolean)
             .join(' · ');
     }
@@ -293,6 +307,8 @@ function buildDisplayHeartbeatPayload() {
     const profileSource = String(
         state.clinicProfile?.runtime_meta?.source || 'remote'
     ).trim();
+    const releaseMode = getTurneroClinicReleaseMode(state.clinicProfile);
+    const readiness = getTurneroClinicReadiness(state.clinicProfile);
 
     let status = 'warning';
     let summary = 'Sala TV pendiente de validación.';
@@ -333,6 +349,15 @@ function buildDisplayHeartbeatPayload() {
             state.lastBellAt > 0
                 ? new Date(state.lastBellAt).toISOString()
                 : new Date().toISOString(),
+        clinicId,
+        clinicName,
+        profileSource,
+        profileFingerprint,
+        releaseMode,
+        readinessState: String(readiness.state || ''),
+        surfaceContractState: String(surfaceContract.state || ''),
+        surfaceRouteExpected: String(surfaceContract.expectedRoute || ''),
+        surfaceRouteCurrent: String(surfaceContract.currentRoute || ''),
         details: {
             connection: connectionState,
             bellMuted: Boolean(state.bellMuted),
@@ -343,6 +368,9 @@ function buildDisplayHeartbeatPayload() {
             clinicName,
             profileSource,
             profileFingerprint,
+            releaseMode,
+            readinessState: String(readiness.state || ''),
+            readinessSummary: String(readiness.summary || ''),
             surfaceContractState: String(surfaceContract.state || ''),
             surfaceRouteExpected: String(surfaceContract.expectedRoute || ''),
             surfaceRouteCurrent: String(surfaceContract.currentRoute || ''),
