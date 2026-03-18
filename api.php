@@ -14,6 +14,8 @@ require_once __DIR__ . '/lib/api_helpers.php';
 require_once __DIR__ . '/lib/ApiKernel.php';
 require_once __DIR__ . '/lib/clinical_history/bootstrap.php';
 require_once __DIR__ . '/lib/whatsapp_openclaw/bootstrap.php';
+require_once __DIR__ . '/lib/flow_os_manifest.php';
+require_once __DIR__ . '/lib/FlowOsJourney.php';
 
 // Router
 require_once __DIR__ . '/lib/Router.php';
@@ -44,6 +46,7 @@ require_once __DIR__ . '/controllers/CaseMediaFlowController.php';
 require_once __DIR__ . '/controllers/LeadAiController.php';
 require_once __DIR__ . '/controllers/WhatsappOpenclawController.php';
 require_once __DIR__ . '/controllers/AdminAgentController.php';
+require_once __DIR__ . '/controllers/FlowOsController.php';
 
 // Instantiate and Handle
 $kernel = new ApiKernel();

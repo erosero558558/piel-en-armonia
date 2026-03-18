@@ -12,6 +12,7 @@ require_once __DIR__ . '/../lib/TurneroOperatorAccess.php';
 require_once __DIR__ . '/../lib/clinical_history/bootstrap.php';
 require_once __DIR__ . '/../lib/CaseMediaFlowService.php';
 require_once __DIR__ . '/../lib/telemedicine/TelemedicineOpsSnapshot.php';
+require_once __DIR__ . '/../lib/FlowOsJourney.php';
 
 class AdminDataController
 {
@@ -110,6 +111,7 @@ class AdminDataController
         }
 
         $store['patientFlowMeta'] = $patientCaseService->buildSummary($store);
+        $store['patientFlowMeta']['journeyPreview'] = flow_os_build_store_journey_preview($store);
         $store['clinicalHistoryMeta'] = ClinicalHistoryOpsSnapshot::forAdmin(
             ClinicalHistoryOpsSnapshot::build($store)
         );

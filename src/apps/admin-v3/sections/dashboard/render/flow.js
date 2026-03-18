@@ -1,6 +1,53 @@
 import { setText } from '../../../shared/ui/render.js';
 import { relativeWindow } from '../time.js';
 
+function normalizeJourneyPreview(patientFlowMeta) {
+    return patientFlowMeta && typeof patientFlowMeta.journeyPreview === 'object'
+        ? patientFlowMeta.journeyPreview
+        : null;
+}
+
+function journeyHeadline(journeyPreview) {
+    if (!journeyPreview) {
+        return '';
+    }
+
+    const label = String(
+        journeyPreview.label || journeyPreview.stage || 'Journey sin etapa'
+    ).trim();
+    const nextAction = Array.isArray(journeyPreview.nextActions)
+        ? journeyPreview.nextActions.find((item) => item && item.label)
+        : null;
+    if (!nextAction) {
+        return label;
+    }
+
+    return `${label} | ${nextAction.label}`;
+}
+
+function journeyMeta(journeyPreview) {
+    if (!journeyPreview) {
+        return '';
+    }
+
+    const owner = String(
+        journeyPreview.ownerLabel || journeyPreview.owner || 'Equipo operativo'
+    ).trim();
+    const alerts = Array.isArray(journeyPreview.alerts)
+        ? journeyPreview.alerts.filter(Boolean)
+        : [];
+    if (alerts.length > 0) {
+        return `${owner} | ${alerts[0]}`;
+    }
+
+    const delegationCount = Array.isArray(journeyPreview.delegationPlan)
+        ? journeyPreview.delegationPlan.length
+        : 0;
+    return delegationCount > 0
+        ? `${owner} | ${delegationCount} worker(s) sugeridos`
+        : owner;
+}
+
 export function setFlowMetrics(state) {
     const {
         availabilityDays,
@@ -31,6 +78,7 @@ export function setFlowMetrics(state) {
         telemedicineMeta?.summary?.reviewQueueCount || 0
     );
     const patientCasesOpen = Number(patientFlowMeta?.casesOpen || 0);
+    const journeyPreview = normalizeJourneyPreview(patientFlowMeta);
     if (telemedicineReviewQueueCount > 0) {
         blockedClinicalSignals.push(
             `${telemedicineReviewQueueCount} intake(s) telemedicina`
@@ -46,7 +94,9 @@ export function setFlowMetrics(state) {
             ? blockerTitles[0] || 'Piloto interno bloqueado'
             : waitingTickets > 0 || calledTickets > 0
               ? 'Turnero activo en una app separada'
-              : 'Nucleo interno listo para consultorio'
+              : journeyPreview
+                ? String(journeyPreview.ownerLabel || 'Flow OS activo')
+                : 'Nucleo interno listo para consultorio'
     );
     setText(
         '#dashboardFlowStatus',
@@ -54,11 +104,13 @@ export function setFlowMetrics(state) {
             ? blockedClinicalSignals.length > 0
                 ? `${readinessSummary} | ${blockedClinicalSignals.join(' | ')}`
                 : readinessSummary
-            : nextAppointment?.item
-              ? `${relativeWindow(nextAppointment.stamp)} | ${nextAppointment.item.name || 'Paciente'}`
-              : availabilityDays > 0
-                ? `${availabilityDays} dia(s) con horarios publicados`
-                : readinessSummary
+            : journeyPreview
+              ? journeyHeadline(journeyPreview)
+              : nextAppointment?.item
+                ? `${relativeWindow(nextAppointment.stamp)} | ${nextAppointment.item.name || 'Paciente'}`
+                : availabilityDays > 0
+                  ? `${availabilityDays} dia(s) con horarios publicados`
+                  : readinessSummary
     );
 
     setText('#operationPendingReviewCount', pendingTransfers);
@@ -68,9 +120,11 @@ export function setFlowMetrics(state) {
         '#operationDeckMeta',
         pendingTransfers > 0 || urgentCallbacks > 0 || pendingCallbacks > 0
             ? 'Estas son las acciones utiles del dia'
-            : nextAppointment?.item
-              ? 'La siguiente accion ya esta clara'
-              : 'Operacion sin frentes urgentes'
+            : journeyPreview
+              ? journeyMeta(journeyPreview)
+              : nextAppointment?.item
+                ? 'La siguiente accion ya esta clara'
+                : 'Operacion sin frentes urgentes'
     );
     setText(
         '#operationQueueHealth',
@@ -78,8 +132,10 @@ export function setFlowMetrics(state) {
             ? readinessSummary
             : pendingTransfers > 0
               ? `${pendingTransfers} pago(s) requieren revision antes de cerrar el dia`
-              : nextAppointment?.item
-                ? `Siguiente paciente: ${nextAppointment.item.name || 'Paciente'} ${relativeWindow(nextAppointment.stamp).toLowerCase()}`
-                : 'Sin citas inmediatas en cola'
+              : journeyPreview
+                ? journeyHeadline(journeyPreview)
+                : nextAppointment?.item
+                  ? `Siguiente paciente: ${nextAppointment.item.name || 'Paciente'} ${relativeWindow(nextAppointment.stamp).toLowerCase()}`
+                  : 'Sin citas inmediatas en cola'
     );
 }
