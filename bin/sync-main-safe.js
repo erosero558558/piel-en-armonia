@@ -202,6 +202,18 @@ function buildWorkspaceHygieneStep(hygieneResult, options = {}) {
             : [],
         overall_state: String(hygieneResult?.overall_state || ''),
         issue_counts: hygieneResult?.issue_counts || {},
+        scope_counts: hygieneResult?.scope_counts || {},
+        strategy_counts: hygieneResult?.strategy_counts || {},
+        lane_counts: hygieneResult?.lane_counts || {},
+        scope_context: hygieneResult?.scope_context || null,
+        strategy_context: hygieneResult?.strategy_context || null,
+        lane_context: hygieneResult?.lane_context || null,
+        candidate_tasks: Array.isArray(hygieneResult?.candidate_tasks)
+            ? hygieneResult.candidate_tasks
+            : [],
+        split_plan: Array.isArray(hygieneResult?.split_plan)
+            ? hygieneResult.split_plan
+            : [],
         remediation_plan: Array.isArray(hygieneResult?.remediation_plan)
             ? hygieneResult.remediation_plan
             : [],
