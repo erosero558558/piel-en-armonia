@@ -8,6 +8,7 @@ const {
     buildWorkspaceBlockingMessage,
     classifyDirtyStatus,
     parseArgs,
+    parseAheadBehindCounts,
     parseLines,
     parseDirtyFiles,
     hasEphemeralDirtyEntries,
@@ -15,6 +16,7 @@ const {
     normalizePath,
     isOnlyBoardConflict,
     isRetryablePushFailure,
+    verifyBranchAlignment,
     run,
 } = require('../bin/sync-main-safe');
 
@@ -68,6 +70,18 @@ test('sync-main-safe parseArgs reconoce flags principales', () => {
 test('sync-main-safe parseLines limpia salida vacia de git', () => {
     assert.deepEqual(parseLines('\r\n \n'), []);
     assert.deepEqual(parseLines('A\nB\r\nC'), ['A', 'B', 'C']);
+});
+
+test('sync-main-safe parseAheadBehindCounts parsea ahead/behind de rev-list', () => {
+    assert.deepEqual(parseAheadBehindCounts('0\t0\n'), {
+        ahead: 0,
+        behind: 0,
+    });
+    assert.deepEqual(parseAheadBehindCounts('3  1'), {
+        ahead: 3,
+        behind: 1,
+    });
+    assert.equal(parseAheadBehindCounts('invalid'), null);
 });
 
 test('sync-main-safe detecta conflicto exclusivo de AGENT_BOARD', () => {
@@ -186,6 +200,9 @@ test('sync-main-safe reintenta fetch/rebase/push tras rechazo retryable', () => 
         if (args[0] === 'stash') {
             return { ok: true, code: 0, stdout: '', stderr: '', command };
         }
+        if (args[0] === 'rev-list') {
+            return { ok: true, code: 0, stdout: '0\t0\n', stderr: '', command };
+        }
 
         return { ok: true, code: 0, stdout: '', stderr: '', command };
     };
@@ -248,6 +265,9 @@ test('sync-main-safe limpia ruido efimero con workspace hygiene antes de sincron
         }
         if (args[0] === 'stash') {
             return { ok: true, code: 0, stdout: '', stderr: '', command };
+        }
+        if (args[0] === 'rev-list') {
+            return { ok: true, code: 0, stdout: '0\t0\n', stderr: '', command };
         }
 
         return { ok: true, code: 0, stdout: '', stderr: '', command };
@@ -339,6 +359,37 @@ test('sync-main-safe limpia ruido efimero con workspace hygiene antes de sincron
         false
     );
     assert.deepEqual(workspaceFixCalls, [{ includeDerivedQueue: true }]);
+});
+
+test('sync-main-safe verifyBranchAlignment falla cuando HEAD no coincide con origin/main', () => {
+    const result = { steps: [] };
+    const fakeRunner = (program, args) => {
+        const command = `${program} ${args.join(' ')}`;
+        if (program === 'git' && args[0] === 'fetch') {
+            return { ok: true, code: 0, stdout: '', stderr: '', command };
+        }
+        if (program === 'git' && args[0] === 'rev-list') {
+            return { ok: true, code: 0, stdout: '1\t0\n', stderr: '', command };
+        }
+        return { ok: true, code: 0, stdout: '', stderr: '', command };
+    };
+
+    assert.throws(
+        () =>
+            verifyBranchAlignment(
+                fakeRunner,
+                { remote: 'origin', branch: 'main', push: true },
+                result
+            ),
+        /branch no alineada/
+    );
+    assert.deepEqual(result.branch_alignment, {
+        remote: 'origin',
+        branch: 'main',
+        ahead: 1,
+        behind: 0,
+        aligned: false,
+    });
 });
 
 test('sync-main-safe buildWorkspaceBlockingMessage explica issues blocking legacy', () => {

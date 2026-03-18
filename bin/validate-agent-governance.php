@@ -116,6 +116,11 @@ function parseBooleanLike($value, bool $fallback = false): bool
     return $fallback;
 }
 
+function normalizeOptionalToken(string $value): string
+{
+    return strtolower(trim($value));
+}
+
 /**
  * @return array{version:mixed, policy:array<string,mixed>, strategy:array<string,mixed>, tasks:array<int,array<string,mixed>>}
  */
@@ -996,6 +1001,10 @@ function findStrategySubfront(?array $strategy, array $task): ?array
 
 function isAllowedStrategyException(array $task, array $criticalScopes): bool
 {
+    if (isReleasePromotionExceptionTask($task)) {
+        return true;
+    }
+
     $scope = strtolower(trim((string) ($task['scope'] ?? '')));
     $runtimeImpact = strtolower(trim((string) ($task['runtime_impact'] ?? '')));
     if ((bool) ($task['critical_zone'] ?? false) || $runtimeImpact === 'high') {
@@ -1037,6 +1046,16 @@ function isAllowedStrategyException(array $task, array $criticalScopes): bool
     return false;
 }
 
+function isReleasePromotionExceptionTask(array $task): bool
+{
+    return normalizeOptionalToken((string) ($task['strategy_role'] ?? '')) === 'exception'
+        && trim((string) ($task['strategy_reason'] ?? '')) === 'validated_release_promotion'
+        && trim((string) ($task['status'] ?? '')) === 'review'
+        && normalizeOptionalToken((string) ($task['work_type'] ?? '')) === 'evidence'
+        && normalizeOptionalToken((string) ($task['integration_slice'] ?? '')) === 'governance_evidence'
+        && normalizeOptionalToken((string) ($task['executor'] ?? '')) === 'codex';
+}
+
 /**
  * @return array<int,string>
  */
@@ -1059,6 +1078,7 @@ function validateTaskStrategyAlignment(array $board, array $task, array $critica
     $strategyRole = strtolower(trim((string) ($task['strategy_role'] ?? '')));
     $strategyReason = trim((string) ($task['strategy_reason'] ?? ''));
     $scope = strtolower(trim((string) ($task['scope'] ?? '')));
+    $isReleasePromotionException = isReleasePromotionExceptionTask($task);
 
     if ($strategyId === '') {
         $errors[] = "Task {$id} activa requiere strategy_id";
@@ -1089,14 +1109,14 @@ function validateTaskStrategyAlignment(array $board, array $task, array $critica
     $allowedScopes = is_array($subfront['allowed_scopes'] ?? null) ? $subfront['allowed_scopes'] : [];
     $supportOnlyScopes = is_array($subfront['support_only_scopes'] ?? null) ? $subfront['support_only_scopes'] : [];
     $blockedScopes = is_array($subfront['blocked_scopes'] ?? null) ? $subfront['blocked_scopes'] : [];
-    if (in_array($scope, $blockedScopes, true)) {
+    if (in_array($scope, $blockedScopes, true) && !$isReleasePromotionException) {
         $errors[] = "Task {$id} usa scope bloqueado por subfront {$subfrontId}";
     }
 
     if ($strategyRole === 'exception') {
         if ($strategyReason === '') {
             $errors[] = "Task {$id} con strategy_role=exception requiere strategy_reason";
-        } elseif (!isAllowedStrategyException($task, $criticalScopes)) {
+        } elseif (!$isReleasePromotionException && !isAllowedStrategyException($task, $criticalScopes)) {
             $errors[] = "Task {$id} exception solo permitido para hotfix critico o soporte directo al frente activo";
         }
         return $errors;
@@ -1211,6 +1231,52 @@ function classifyFileLaneForDualCodex(string $rawFile): string
         return 'backend_ops';
     }
     return $matchesFrontend ? 'frontend_content' : 'backend_ops';
+}
+
+/**
+ * @return array<int,string>
+ */
+function frontendPublicReleaseSupportPatterns(): array
+{
+    return [
+        'tests-node/public-v6-*.test.js',
+        'tests/booking.spec.js',
+        'tests/chat-booking-calendar-errors.spec.js',
+        'tests/checklist-production.spec.js',
+        'tests/deferred-shell-static-fallback.spec.js',
+        'tests/funnel-tracking.spec.js',
+        'tests/public-v6-case-stories.spec.js',
+        'tests/public-v6-news-strip.spec.js',
+        'verification/public-v6-canonical/**',
+        'package.json',
+    ];
+}
+
+function isFrontendPublicReleaseSupportTask(array $task): bool
+{
+    $status = trim((string) ($task['status'] ?? ''));
+    return normalizeOptionalToken((string) ($task['strategy_role'] ?? '')) === 'exception'
+        && trim((string) ($task['strategy_reason'] ?? '')) === 'validated_release_promotion'
+        && in_array($status, ['review', 'done'], true)
+        && normalizeOptionalToken((string) ($task['work_type'] ?? '')) === 'evidence'
+        && normalizeOptionalToken((string) ($task['integration_slice'] ?? '')) === 'governance_evidence'
+        && normalizeOptionalToken((string) ($task['scope'] ?? '')) === 'frontend-public'
+        && normalizeOptionalToken((string) ($task['codex_instance'] ?? '')) === 'codex_frontend'
+        && normalizeOptionalToken((string) ($task['domain_lane'] ?? '')) === 'frontend_content';
+}
+
+function isFrontendPublicReleaseSupportFile(string $rawFile): bool
+{
+    $file = normalizePathToken($rawFile);
+    if ($file === '') {
+        return false;
+    }
+    foreach (frontendPublicReleaseSupportPatterns() as $pattern) {
+        if (preg_match(wildcardToRegex($pattern), $file) === 1) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -1545,7 +1611,11 @@ foreach ($board['tasks'] as $idx => $task) {
     if (!is_array($task['files'] ?? null)) {
         $errors[] = "Task {$id} debe definir files como lista YAML inline.";
     } elseif ($shouldValidateDual && !$crossDomain) {
+        $allowFrontendReleaseSupport = isFrontendPublicReleaseSupportTask($task);
         foreach ($task['files'] as $rawFile) {
+            if ($allowFrontendReleaseSupport && isFrontendPublicReleaseSupportFile((string) $rawFile)) {
+                continue;
+            }
             $fileLane = classifyFileLaneForDualCodex((string) $rawFile);
             if (!$isRuntimeTask && $domainLane === 'backend_ops' && $fileLane === 'transversal_runtime') {
                 continue;

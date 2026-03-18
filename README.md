@@ -6,6 +6,7 @@ gobernanza operativa de Piel en Armonia.
 ## Foco actual
 
 - Nucleo interno de consultorio: `turnero + acceso OpenClaw + historias clinicas`
+- Nuevo frente canonico: `Flow OS` como orquestacion del journey del paciente por clinica
 - La web publica queda en pausa funcional; solo recibe fixes criticos, seguridad y mantenimiento minimo.
 
 ## Estado canonico
@@ -35,6 +36,8 @@ gobernanza operativa de Piel en Armonia.
 - `docs/TURNERO_NATIVE_SURFACES.md`
 - `docs/ROOT_SURFACES.md`
 - `AGENTS.md`
+- `docs/FLOW_OS_FOUNDATION.md`
+- `docs/FLOW_OS_ORCHESTRATION.md`
 
 ## Setup local rapido
 

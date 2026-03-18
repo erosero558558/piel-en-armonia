@@ -137,6 +137,22 @@ function parseLines(value) {
         .filter(Boolean);
 }
 
+function parseAheadBehindCounts(value) {
+    const parts = String(value || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+    if (parts.length < 2) {
+        return null;
+    }
+    const ahead = Number.parseInt(parts[0], 10);
+    const behind = Number.parseInt(parts[1], 10);
+    if (!Number.isFinite(ahead) || !Number.isFinite(behind)) {
+        return null;
+    }
+    return { ahead, behind };
+}
+
 function parseDirtyFiles(statusOutput) {
     const files = [];
     for (const rawLine of String(statusOutput || '').split(/\r?\n/)) {
@@ -414,6 +430,65 @@ function printResult(payload, jsonMode) {
     }
 }
 
+function verifyBranchAlignment(runner, options, result) {
+    const refreshResult = runner(
+        'git',
+        ['fetch', options.remote, options.branch],
+        options
+    );
+    result.steps.push({ name: 'fetch_post_push', ...refreshResult });
+    if (!refreshResult.ok) {
+        throw new Error(
+            `git fetch post-push fallo: ${
+                refreshResult.stderr || refreshResult.stdout
+            }`
+        );
+    }
+
+    const revListResult = runner(
+        'git',
+        [
+            'rev-list',
+            '--left-right',
+            '--count',
+            `HEAD...${options.remote}/${options.branch}`,
+        ],
+        options
+    );
+    result.steps.push({ name: 'verify_alignment', ...revListResult });
+    if (!revListResult.ok) {
+        throw new Error(
+            `git rev-list --left-right --count fallo: ${
+                revListResult.stderr || revListResult.stdout
+            }`
+        );
+    }
+
+    const counts = parseAheadBehindCounts(revListResult.stdout);
+    if (!counts) {
+        throw new Error(
+            `git rev-list --left-right --count devolvio una salida invalida: ${
+                revListResult.stdout || '(empty)'
+            }`
+        );
+    }
+
+    const branchAlignment = {
+        remote: String(options.remote || 'origin'),
+        branch: String(options.branch || 'main'),
+        ahead: counts.ahead,
+        behind: counts.behind,
+        aligned: counts.ahead === 0 && counts.behind === 0,
+    };
+    result.branch_alignment = branchAlignment;
+    if (options.push && !branchAlignment.aligned) {
+        throw new Error(
+            `branch no alineada tras sync-main-safe: ahead=${branchAlignment.ahead} behind=${branchAlignment.behind} vs ${branchAlignment.remote}/${branchAlignment.branch}`
+        );
+    }
+    return branchAlignment;
+}
+
 function run(argv = process.argv.slice(2), deps = {}) {
     const options = parseArgs(argv);
     const runner = deps.runner || runProcess;
@@ -638,6 +713,10 @@ function run(argv = process.argv.slice(2), deps = {}) {
             result.stash.popped = true;
         }
 
+        if (options.push) {
+            verifyBranchAlignment(runner, options, result);
+        }
+
         result.ok = true;
         result.message = 'sync main safe completado';
         printResult(result, options.json);
@@ -660,6 +739,7 @@ module.exports = {
     buildWorkspaceHygieneStep,
     classifyDirtyStatus,
     parseArgs,
+    parseAheadBehindCounts,
     parseLines,
     parseDirtyFiles,
     hasEphemeralDirtyEntries,
@@ -669,5 +749,6 @@ module.exports = {
     isOnlyBoardConflict,
     isRetryablePushFailure,
     runRebaseWithBoardAutoResolve,
+    verifyBranchAlignment,
     run,
 };

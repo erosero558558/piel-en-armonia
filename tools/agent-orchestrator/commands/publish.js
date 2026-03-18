@@ -273,6 +273,451 @@ function hasRuntimeRequiredCheck(summary = {}) {
           )
         : false;
 }
+
+function buildAllowedPatterns(taskId, task = {}) {
+    return [
+        ...(Array.isArray(task.files) ? task.files : []),
+        'agent_board.yaml',
+        'agent_handoffs.yaml',
+        'agent_decisions.yaml',
+        'plan_maestro_codex_2026.md',
+        `verification/agent-runs/${normalizePathToken(taskId)}.md`,
+    ].map((value) => normalizePathToken(value));
+}
+
+function createNoChangesToPublishError() {
+    const error = new Error(
+        'publish checkpoint no encontro cambios para publicar'
+    );
+    error.code = 'no_changes_to_publish';
+    error.error_code = 'no_changes_to_publish';
+    return error;
+}
+
+function assertExpectedRevision(currentRevision, expectedRevision) {
+    if (!Number.isFinite(expectedRevision)) {
+        const error = new Error(
+            'publish checkpoint requiere --expect-rev <revision_actual>'
+        );
+        error.code = 'expect_rev_required';
+        error.error_code = 'expect_rev_required';
+        throw error;
+    }
+    if (expectedRevision !== currentRevision) {
+        const error = new Error(
+            `publish checkpoint revision mismatch: expected ${expectedRevision}, actual ${currentRevision}`
+        );
+        error.code = 'board_revision_mismatch';
+        error.error_code = 'board_revision_mismatch';
+        error.expected_revision = expectedRevision;
+        error.actual_revision = currentRevision;
+        throw error;
+    }
+}
+
+function assertCodexPublishTask(taskId, task, options = {}) {
+    const { allowedStatuses = ['in_progress', 'review'] } = options;
+    if (
+        String(task.executor || '')
+            .trim()
+            .toLowerCase() !== 'codex'
+    ) {
+        const error = new Error(
+            `publish checkpoint requiere executor=codex en ${taskId}`
+        );
+        error.code = 'invalid_executor';
+        error.error_code = 'invalid_executor';
+        throw error;
+    }
+    if (!Array.isArray(allowedStatuses) || allowedStatuses.length === 0) {
+        return;
+    }
+    const status = String(task.status || '').trim();
+    if (!allowedStatuses.includes(status)) {
+        const error = new Error(
+            `publish checkpoint requiere status ${allowedStatuses.join('|')} en ${taskId}`
+        );
+        error.code = 'invalid_status';
+        error.error_code = 'invalid_status';
+        throw error;
+    }
+}
+
+function assertPublishCooldown(publishEventsPath, codexInstance, options = {}) {
+    const { force = false } = options;
+    const latestPublish = readLatestLanePublish(
+        publishEventsPath,
+        codexInstance
+    );
+    if (force || !latestPublish || !latestPublish.published_at) {
+        return null;
+    }
+    const lastPublishedMs = Date.parse(
+        String(latestPublish.published_at || '')
+    );
+    if (!Number.isFinite(lastPublishedMs)) {
+        return latestPublish;
+    }
+    const deltaSeconds = Math.floor((Date.now() - lastPublishedMs) / 1000);
+    if (deltaSeconds < 90) {
+        const error = new Error(
+            `publish checkpoint cooldown activo para ${codexInstance}: ${deltaSeconds}s`
+        );
+        error.code = 'publish_cooldown_active';
+        error.error_code = 'publish_cooldown_active';
+        throw error;
+    }
+    return latestPublish;
+}
+
+function diagnosePublishWorkspace(rootPath, board, task, allowedPatterns) {
+    const workspaceDiagnosis = diagnoseWorktree(rootPath, {
+        board,
+        scopeTask: task,
+        scopePatterns: allowedPatterns,
+    });
+    const blockingWorkspaceError =
+        buildWorkspaceBlockingError(workspaceDiagnosis);
+    const dirtyEntriesRaw = Array.isArray(workspaceDiagnosis?.dirtyEntries)
+        ? workspaceDiagnosis.dirtyEntries
+        : [];
+    const ignoredDirtyEntries = dirtyEntriesRaw.filter((entry) =>
+        isIgnoredPublishDirtyCategory(entry.category)
+    );
+    const dirtyEntries = dirtyEntriesRaw.filter(
+        (entry) => !isIgnoredPublishDirtyCategory(entry.category)
+    );
+    const dirtyFiles = dirtyEntries.map((entry) => entry.rawPath || entry.path);
+    return {
+        workspaceDiagnosis,
+        blockingWorkspaceError,
+        ignoredDirtyEntries,
+        dirtyEntries,
+        dirtyFiles,
+    };
+}
+
+function runPublishGates(rootPath, files = []) {
+    const surface = classifyPublishSurface(files);
+    const gateCommands = buildGateCommands(surface);
+    for (const gate of gateCommands) {
+        const gateResult = runCommand(gate.program, gate.args, {
+            cwd: rootPath,
+            capture: false,
+        });
+        if (!gateResult.ok) {
+            const error = new Error(
+                `publish checkpoint gate fallo: ${gate.id}`
+            );
+            error.code = 'publish_gate_failed';
+            error.error_code = 'publish_gate_failed';
+            throw error;
+        }
+    }
+    return {
+        surface,
+        gateCommands,
+    };
+}
+
+function runPublishPreflight(options = {}) {
+    const {
+        rootPath,
+        board,
+        task,
+        allowedPatterns,
+        publishEventsPath,
+        force = false,
+        allowNoChanges = false,
+        extraSurfaceFiles = [],
+        skipCooldown = false,
+    } = options;
+    const codexInstance = String(
+        task?.codex_instance || 'codex_backend_ops'
+    ).trim();
+    if (!skipCooldown) {
+        assertPublishCooldown(publishEventsPath, codexInstance, { force });
+    }
+    const diagnosis = diagnosePublishWorkspace(
+        rootPath,
+        board,
+        task,
+        allowedPatterns
+    );
+    if (diagnosis.blockingWorkspaceError) {
+        throw diagnosis.blockingWorkspaceError;
+    }
+    const combinedSurfaceFiles = [
+        ...diagnosis.dirtyFiles,
+        ...(Array.isArray(extraSurfaceFiles) ? extraSurfaceFiles : []),
+    ]
+        .map((value) => normalizePathToken(value))
+        .filter(Boolean);
+    const gates = runPublishGates(rootPath, combinedSurfaceFiles);
+    if (!allowNoChanges && diagnosis.dirtyEntries.length === 0) {
+        throw createNoChangesToPublishError();
+    }
+    return {
+        codexInstance,
+        ...diagnosis,
+        ...gates,
+    };
+}
+
+function parseSyncMainSafePayload(syncResult = {}) {
+    try {
+        const payload = JSON.parse(String(syncResult.stdout || '').trim());
+        return payload && typeof payload === 'object' ? payload : null;
+    } catch {
+        return null;
+    }
+}
+
+function buildPublishCommitMessage(options = {}) {
+    const {
+        taskId,
+        codexInstance,
+        summary,
+        command = 'publish checkpoint',
+    } = options;
+    if (command === 'close') {
+        return `chore(codex-close): closeout ${taskId} [lane:${codexInstance}] - ${summary}`;
+    }
+    return `chore(codex-publish): checkpoint ${taskId} [lane:${codexInstance}] - ${summary}`;
+}
+
+function buildClosePublishSummary(taskId, task = {}) {
+    const tokens = ['closeout', taskId];
+    const focusId = String(task.focus_id || '').trim();
+    const focusStep = String(task.focus_step || '').trim();
+    if (focusId) {
+        tokens.push(focusId);
+    }
+    if (focusStep) {
+        tokens.push(focusStep);
+    }
+    return tokens.join(' ');
+}
+
+async function finalizePreparedPublish(ctx = {}, options = {}) {
+    const {
+        rootPath,
+        publishEventsPath,
+        parseJobs,
+        buildJobsSnapshot,
+        findJobSnapshot,
+    } = ctx;
+    const {
+        board,
+        task,
+        taskId,
+        taskFamily = getTaskFamily(taskId),
+        summary,
+        releaseException = false,
+        allowedPatterns,
+        gateCommands = [],
+        ignoredDirtyEntries: ignoredDirtyEntriesPreflight = [],
+        explicitDirtyFiles = null,
+        command = 'publish checkpoint',
+    } = options;
+    const codexInstance = String(
+        task?.codex_instance || 'codex_backend_ops'
+    ).trim();
+
+    const diagnosis = Array.isArray(explicitDirtyFiles)
+        ? null
+        : diagnosePublishWorkspace(rootPath, board, task, allowedPatterns);
+    if (diagnosis?.blockingWorkspaceError) {
+        throw diagnosis.blockingWorkspaceError;
+    }
+    if (diagnosis && diagnosis.dirtyEntries.length === 0) {
+        throw createNoChangesToPublishError();
+    }
+    const filesToStage = Array.isArray(explicitDirtyFiles)
+        ? explicitDirtyFiles.filter(Boolean)
+        : diagnosis.dirtyFiles;
+
+    const addResult = runCommand('git', ['add', '--', ...filesToStage], {
+        cwd: rootPath,
+        capture: true,
+    });
+    if (!addResult.ok) {
+        throw new Error(
+            addResult.stderr || addResult.stdout || 'git add fallo'
+        );
+    }
+
+    const diffCachedResult = runCommand(
+        'git',
+        ['diff', '--cached', '--name-only'],
+        {
+            cwd: rootPath,
+            capture: true,
+        }
+    );
+    if (!diffCachedResult.ok) {
+        throw new Error(
+            diffCachedResult.stderr ||
+                diffCachedResult.stdout ||
+                'git diff --cached fallo'
+        );
+    }
+    const stagedFiles = diffCachedResult.stdout
+        .split(/\r?\n/)
+        .map((line) => normalizePathToken(line))
+        .filter(Boolean);
+    if (stagedFiles.length === 0) {
+        const error = new Error(
+            'publish checkpoint no encontro cambios staged'
+        );
+        error.code = 'no_changes_to_publish';
+        error.error_code = 'no_changes_to_publish';
+        throw error;
+    }
+
+    const commitMessage = buildPublishCommitMessage({
+        taskId,
+        codexInstance,
+        summary,
+        command,
+    });
+    const commitResult = runCommand('git', ['commit', '-m', commitMessage], {
+        cwd: rootPath,
+        capture: true,
+    });
+    if (!commitResult.ok) {
+        throw new Error(
+            commitResult.stderr || commitResult.stdout || 'git commit fallo'
+        );
+    }
+
+    const headResult = runCommand('git', ['rev-parse', 'HEAD'], {
+        cwd: rootPath,
+        capture: true,
+    });
+    if (!headResult.ok) {
+        throw new Error(
+            headResult.stderr || headResult.stdout || 'git rev-parse HEAD fallo'
+        );
+    }
+    const headSha = String(headResult.stdout || '').trim();
+
+    const syncResult = runCommand(
+        process.execPath,
+        [
+            resolve(rootPath, 'bin', 'sync-main-safe.js'),
+            '--remote',
+            'origin',
+            '--branch',
+            'main',
+            '--source-ref',
+            'HEAD',
+            '--max-sync-attempts',
+            '3',
+            '--json',
+        ],
+        { cwd: rootPath, capture: true }
+    );
+    if (!syncResult.ok) {
+        throw new Error(
+            syncResult.stderr || syncResult.stdout || 'sync-main-safe fallo'
+        );
+    }
+    const syncPayload = parseSyncMainSafePayload(syncResult);
+    const branchAlignment =
+        syncPayload && typeof syncPayload === 'object'
+            ? syncPayload.branch_alignment || null
+            : null;
+    if (branchAlignment && branchAlignment.aligned === false) {
+        const error = new Error(
+            `branch no alineada tras publish: ahead=${branchAlignment.ahead} behind=${branchAlignment.behind}`
+        );
+        error.code = 'publish_branch_not_aligned';
+        error.error_code = 'publish_branch_not_aligned';
+        error.branch_alignment = branchAlignment;
+        throw error;
+    }
+
+    const liveVerificationState = await detectLiveVerificationStatus(
+        {
+            parseJobs,
+            buildJobsSnapshot,
+            findJobSnapshot,
+        },
+        headSha
+    );
+    const liveStatus = liveVerificationState.live_status;
+    const verificationPending = liveVerificationState.verification_pending;
+    const warningCode = verificationPending
+        ? 'publish_live_verification_pending'
+        : null;
+    const ignoredDirtyEntries = [
+        ...ignoredDirtyEntriesPreflight,
+        ...(Array.isArray(diagnosis?.ignoredDirtyEntries)
+            ? diagnosis.ignoredDirtyEntries
+            : []),
+    ].reduce((acc, entry) => {
+        const key = `${String(entry?.path || '')}:${String(entry?.category || '')}`;
+        if (!acc.some((item) => item.key === key)) {
+            acc.push({
+                key,
+                path: entry?.path,
+                category: entry?.category,
+            });
+        }
+        return acc;
+    }, []);
+    appendPublishEvent(publishEventsPath, {
+        version: 1,
+        task_id: taskId,
+        task_family: taskFamily,
+        codex_instance: codexInstance,
+        published_at: new Date().toISOString(),
+        commit: headSha,
+        summary,
+        release_exception: releaseException,
+        live_status: liveStatus,
+        verification_pending: verificationPending,
+        ...(warningCode ? { warning_code: warningCode } : {}),
+        live_ok: true,
+        deploy_verification: 'delegated_to_deploy',
+        sync_transport: 'sync-main-safe',
+        ...(branchAlignment ? { branch_alignment: branchAlignment } : {}),
+        ignored_dirty_entries: ignoredDirtyEntries.map((entry) => ({
+            path: entry.path,
+            category: entry.category,
+        })),
+    });
+
+    return {
+        version: 1,
+        ok: true,
+        task_id: taskId,
+        task_family: taskFamily,
+        codex_instance: codexInstance,
+        release_exception: releaseException,
+        commit: headSha,
+        published_commit: headSha,
+        staged_files: stagedFiles,
+        gates_run: gateCommands.map((item) => item.id),
+        live_status: liveStatus,
+        verification_pending: verificationPending,
+        ...(warningCode ? { warning_code: warningCode } : {}),
+        publish_transport: 'sync-main-safe',
+        branch_alignment: branchAlignment,
+        live_verification: {
+            mode: 'delegated_to_deploy',
+            transport: 'sync-main-safe',
+            job_key: 'public_main_sync',
+            status: liveStatus,
+        },
+        ignored_dirty_entries: ignoredDirtyEntries.map((entry) => ({
+            path: entry.path,
+            category: entry.category,
+        })),
+    };
+}
+
 async function handlePublishCommand(ctx) {
     const {
         args = [],
@@ -330,46 +775,10 @@ async function handlePublishCommand(ctx) {
         String(flags['expect-rev'] ?? flags.expect_rev ?? ''),
         10
     );
-    if (!Number.isFinite(expectedRevision)) {
-        const error = new Error(
-            'publish checkpoint requiere --expect-rev <revision_actual>'
-        );
-        error.code = 'expect_rev_required';
-        error.error_code = 'expect_rev_required';
-        throw error;
-    }
-    if (expectedRevision !== currentRevision) {
-        const error = new Error(
-            `publish checkpoint revision mismatch: expected ${expectedRevision}, actual ${currentRevision}`
-        );
-        error.code = 'board_revision_mismatch';
-        error.error_code = 'board_revision_mismatch';
-        error.expected_revision = expectedRevision;
-        error.actual_revision = currentRevision;
-        throw error;
-    }
-
-    if (
-        String(task.executor || '')
-            .trim()
-            .toLowerCase() !== 'codex'
-    ) {
-        const error = new Error(
-            `publish checkpoint requiere executor=codex en ${taskId}`
-        );
-        error.code = 'invalid_executor';
-        error.error_code = 'invalid_executor';
-        throw error;
-    }
-    const status = String(task.status || '').trim();
-    if (!['in_progress', 'review'].includes(status)) {
-        const error = new Error(
-            `publish checkpoint requiere status in_progress|review en ${taskId}`
-        );
-        error.code = 'invalid_status';
-        error.error_code = 'invalid_status';
-        throw error;
-    }
+    assertExpectedRevision(currentRevision, expectedRevision);
+    assertCodexPublishTask(taskId, task, {
+        allowedStatuses: ['in_progress', 'review'],
+    });
     let focusSummary = null;
     if (typeof buildFocusSummary === 'function') {
         const decisionsData =
@@ -444,227 +853,44 @@ async function handlePublishCommand(ctx) {
         throw error;
     }
 
-    const codexInstance = String(
-        task.codex_instance || 'codex_backend_ops'
-    ).trim();
-    const latestPublish = readLatestLanePublish(
-        publishEventsPath,
-        codexInstance
-    );
-    if (!flags.force && latestPublish && latestPublish.published_at) {
-        const lastPublishedMs = Date.parse(
-            String(latestPublish.published_at || '')
-        );
-        if (Number.isFinite(lastPublishedMs)) {
-            const deltaSeconds = Math.floor(
-                (Date.now() - lastPublishedMs) / 1000
-            );
-            if (deltaSeconds < 90) {
-                const error = new Error(
-                    `publish checkpoint cooldown activo para ${codexInstance}: ${deltaSeconds}s`
-                );
-                error.code = 'publish_cooldown_active';
-                error.error_code = 'publish_cooldown_active';
-                throw error;
-            }
-        }
-    }
-
-    const allowedPatterns = [
-        ...(Array.isArray(task.files) ? task.files : []),
-        'agent_board.yaml',
-        'agent_handoffs.yaml',
-        'agent_decisions.yaml',
-        'plan_maestro_codex_2026.md',
-        `verification/agent-runs/${normalizePathToken(taskId)}.md`,
-    ].map((value) => normalizePathToken(value));
-
-    const workspaceDiagnosis = diagnoseWorktree(rootPath, {
+    const allowedPatterns = buildAllowedPatterns(taskId, task);
+    const preflight = runPublishPreflight({
+        rootPath,
         board,
-        scopeTask: task,
-        scopePatterns: allowedPatterns,
+        task,
+        allowedPatterns,
+        publishEventsPath,
+        force: Boolean(flags.force),
     });
-    const blockingWorkspaceError =
-        buildWorkspaceBlockingError(workspaceDiagnosis);
-    if (blockingWorkspaceError) {
-        throw blockingWorkspaceError;
-    }
 
-    const ignoredDirtyEntries = workspaceDiagnosis.dirtyEntries.filter(
-        (entry) => isIgnoredPublishDirtyCategory(entry.category)
-    );
-    const dirtyEntries = workspaceDiagnosis.dirtyEntries.filter(
-        (entry) => !isIgnoredPublishDirtyCategory(entry.category)
-    );
-    if (dirtyEntries.length === 0) {
-        const error = new Error(
-            'publish checkpoint no encontro cambios para publicar'
-        );
-        error.code = 'no_changes_to_publish';
-        error.error_code = 'no_changes_to_publish';
-        throw error;
-    }
-
-    const dirtyFiles = dirtyEntries.map((entry) => entry.rawPath || entry.path);
-    const surface = classifyPublishSurface(dirtyFiles);
-    const gateCommands = buildGateCommands(surface);
-    for (const gate of gateCommands) {
-        const gateResult = runCommand(gate.program, gate.args, {
-            cwd: rootPath,
-            capture: false,
-        });
-        if (!gateResult.ok) {
-            const error = new Error(
-                `publish checkpoint gate fallo: ${gate.id}`
-            );
-            error.code = 'publish_gate_failed';
-            error.error_code = 'publish_gate_failed';
-            throw error;
-        }
-    }
-
-    const addResult = runCommand('git', ['add', '--', ...dirtyFiles], {
-        cwd: rootPath,
-        capture: true,
-    });
-    if (!addResult.ok) {
-        throw new Error(
-            addResult.stderr || addResult.stdout || 'git add fallo'
-        );
-    }
-
-    const diffCachedResult = runCommand(
-        'git',
-        ['diff', '--cached', '--name-only'],
+    const publishResult = await finalizePreparedPublish(
         {
-            cwd: rootPath,
-            capture: true,
-        }
-    );
-    if (!diffCachedResult.ok) {
-        throw new Error(
-            diffCachedResult.stderr ||
-                diffCachedResult.stdout ||
-                'git diff --cached fallo'
-        );
-    }
-    const stagedFiles = diffCachedResult.stdout
-        .split(/\r?\n/)
-        .map((line) => normalizePathToken(line))
-        .filter(Boolean);
-    if (stagedFiles.length === 0) {
-        const error = new Error(
-            'publish checkpoint no encontro cambios staged'
-        );
-        error.code = 'no_changes_to_publish';
-        error.error_code = 'no_changes_to_publish';
-        throw error;
-    }
-
-    const commitMessage = `chore(codex-publish): checkpoint ${taskId} [lane:${codexInstance}] - ${summary}`;
-    const commitResult = runCommand('git', ['commit', '-m', commitMessage], {
-        cwd: rootPath,
-        capture: true,
-    });
-    if (!commitResult.ok) {
-        throw new Error(
-            commitResult.stderr || commitResult.stdout || 'git commit fallo'
-        );
-    }
-
-    const headResult = runCommand('git', ['rev-parse', 'HEAD'], {
-        cwd: rootPath,
-        capture: true,
-    });
-    if (!headResult.ok) {
-        throw new Error(
-            headResult.stderr || headResult.stdout || 'git rev-parse HEAD fallo'
-        );
-    }
-    const headSha = String(headResult.stdout || '').trim();
-
-    const syncResult = runCommand(
-        process.execPath,
-        [
-            resolve(rootPath, 'bin', 'sync-main-safe.js'),
-            '--remote',
-            'origin',
-            '--branch',
-            'main',
-            '--source-ref',
-            'HEAD',
-            '--max-sync-attempts',
-            '3',
-            '--json',
-        ],
-        { cwd: rootPath, capture: true }
-    );
-    if (!syncResult.ok) {
-        throw new Error(
-            syncResult.stderr || syncResult.stdout || 'sync-main-safe fallo'
-        );
-    }
-    const liveVerificationState = await detectLiveVerificationStatus(
-        {
+            rootPath,
+            publishEventsPath,
             parseJobs,
             buildJobsSnapshot,
             findJobSnapshot,
         },
-        headSha
+        {
+            board,
+            task,
+            taskId,
+            taskFamily,
+            summary,
+            releaseException: isReleaseException,
+            allowedPatterns,
+            gateCommands: preflight.gateCommands,
+            ignoredDirtyEntries: preflight.ignoredDirtyEntries,
+            command: 'publish checkpoint',
+        }
     );
-    const liveStatus = liveVerificationState.live_status;
-    const verificationPending = liveVerificationState.verification_pending;
-    const warningCode = verificationPending
-        ? 'publish_live_verification_pending'
-        : null;
-    appendPublishEvent(publishEventsPath, {
-        version: 1,
-        task_id: taskId,
-        task_family: taskFamily,
-        codex_instance: codexInstance,
-        published_at: new Date().toISOString(),
-        commit: headSha,
-        summary,
-        release_exception: isReleaseException,
-        live_status: liveStatus,
-        verification_pending: verificationPending,
-        ...(warningCode ? { warning_code: warningCode } : {}),
-        live_ok: true,
-        deploy_verification: 'delegated_to_deploy',
-        sync_transport: 'sync-main-safe',
-        ignored_dirty_entries: ignoredDirtyEntries.map((entry) => ({
-            path: entry.path,
-            category: entry.category,
-        })),
-    });
 
     const report = {
-        version: 1,
-        ok: true,
+        ...publishResult,
         command: 'publish checkpoint',
-        task_id: taskId,
-        task_family: taskFamily,
-        codex_instance: codexInstance,
-        release_exception: isReleaseException,
         focus_id: String(task.focus_id || '').trim() || null,
         focus_step: String(task.focus_step || '').trim() || null,
         focus_summary: focusSummary,
-        commit: headSha,
-        staged_files: stagedFiles,
-        gates_run: gateCommands.map((item) => item.id),
-        live_status: liveStatus,
-        verification_pending: verificationPending,
-        ...(warningCode ? { warning_code: warningCode } : {}),
-        live_verification: {
-            mode: 'delegated_to_deploy',
-            transport: 'sync-main-safe',
-            job_key: 'public_main_sync',
-            status: liveStatus,
-        },
-        ignored_dirty_entries: ignoredDirtyEntries.map((entry) => ({
-            path: entry.path,
-            category: entry.category,
-        })),
     };
 
     if (wantsJson) {
@@ -672,7 +898,7 @@ async function handlePublishCommand(ctx) {
         return report;
     }
 
-    console.log(`Publish checkpoint OK: ${taskId} -> ${headSha}`);
+    console.log(`Publish checkpoint OK: ${taskId} -> ${publishResult.commit}`);
     return report;
 }
 
@@ -680,5 +906,10 @@ module.exports = {
     isPathAllowedByPatterns,
     classifyPublishSurface,
     buildGateCommands,
+    buildAllowedPatterns,
+    buildClosePublishSummary,
+    diagnosePublishWorkspace,
+    finalizePreparedPublish,
     handlePublishCommand,
+    runPublishPreflight,
 };

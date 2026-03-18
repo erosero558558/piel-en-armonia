@@ -51,6 +51,13 @@ const LEADOPS_HELPER_SOURCE = join(
     'lead-ai-worker.js'
 );
 const DATE = '2026-02-24';
+const CODEX_MODEL_ROUTING_FIELDS = `
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"`;
 
 function createFixtureDir() {
     const dir = mkdtempSync(join(tmpdir(), 'agent-orchestrator-test-'));
@@ -337,7 +344,13 @@ function isMutatingCommandArgs(args = []) {
 
     if (command === 'close') return true;
     if (command === 'codex') {
-        return ['start', 'stop'].includes(subcommand);
+        if (['start', 'stop'].includes(subcommand)) return true;
+        return (
+            subcommand === 'premium' &&
+            String(args[2] || '')
+                .trim()
+                .toLowerCase() === 'record'
+        );
     }
     if (command === 'leases') {
         return ['heartbeat', 'clear'].includes(subcommand);
@@ -671,6 +684,7 @@ tasks:
     runtime_surface: ${runtimeSurface}
     runtime_transport: ${runtimeTransport}
     runtime_last_transport: ""
+${CODEX_MODEL_ROUTING_FIELDS}
     files: [${files.map((item) => `"${item}"`).join(', ')}]
     source_signal: manual
     source_ref: "${sourceRef}"
@@ -905,6 +919,77 @@ tasks:
 `;
 }
 
+function boardForFrontendPublicReleasePublishFixture() {
+    return `
+version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  revision: 0
+  updated_at: ${DATE}
+strategy:
+  active:
+    id: STRAT-2026-03-turnero-web-pilot
+    title: "Turnero web pilot"
+    objective: "Fixture frontend-public release support"
+    owner: ernesto
+    owner_policy: "detected_default_owner"
+    status: active
+    started_at: "2026-03-14"
+    review_due_at: "2026-03-21"
+    exit_criteria: ["uno"]
+    success_signal: "demo"
+    subfronts:
+      - codex_instance: codex_frontend
+        subfront_id: SF-frontend-turnero-web-pilot
+        title: "Frontend piloto"
+        allowed_scopes: ["frontend-admin", "queue", "turnero"]
+        support_only_scopes: ["docs", "frontend-qa"]
+        blocked_scopes: ["frontend-public"]
+        wip_limit: 2
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
+      - codex_instance: codex_backend_ops
+        subfront_id: SF-backend-turnero-web-pilot
+        title: "Backend piloto"
+        allowed_scopes: ["backend", "readiness", "gates"]
+        support_only_scopes: ["tests"]
+        blocked_scopes: ["frontend-public", "auth"]
+        wip_limit: 2
+        default_acceptance_profile: "backend_gate_checkpoint"
+        exception_ttl_hours: 6
+      - codex_instance: codex_transversal
+        subfront_id: SF-transversal-turnero-web-pilot
+        title: "Transversal piloto"
+        allowed_scopes: []
+        support_only_scopes: ["codex-governance", "tooling"]
+        blocked_scopes: ["frontend-public", "backend"]
+        wip_limit: 2
+        default_acceptance_profile: "transversal_runtime_checkpoint"
+        exception_ttl_hours: 4
+  next: null
+  updated_at: "2026-03-14"
+tasks:
+  - id: AG-256
+    title: "Public release fixture"
+    owner: ernesto
+    executor: codex
+    status: backlog
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    files: ["content/public-v6/es/home.json"]
+    depends_on: []
+    critical_zone: false
+    runtime_impact: low
+    updated_at: ${DATE}
+`;
+}
+
 function basePlanWithStrategyBlock(options = {}) {
     const title = String(options.title || 'Admin operativo');
     const owner = String(options.owner || 'ernesto');
@@ -939,36 +1024,6 @@ Relacion con Operativo 2026:
 `;
 }
 
-function basePlanWithStrategyNextBlock(options = {}) {
-    const id = String(options.id || 'STRAT-2026-04-admin-operativo');
-    const title = String(options.title || 'Admin operativo siguiente');
-    const owner = String(options.owner || 'ernesto');
-    const ownerPolicy = String(options.ownerPolicy || 'detected_default_owner');
-    const status = String(options.status || 'draft');
-    const subfrontIds = Array.isArray(options.subfrontIds)
-        ? options.subfrontIds
-        : [
-              'SF-frontend-admin-operativo',
-              'SF-frontend-queue-turnero-operativo',
-              'SF-backend-admin-operativo',
-              'SF-transversal-admin-operativo',
-          ];
-    return `
-<!-- CODEX_STRATEGY_NEXT
-id: ${id}
-title: "${title}"
-status: ${status}
-owner: ${owner}
-owner_policy: "${ownerPolicy}"
-objective: "Cerrar admin operativo"
-started_at: "2026-03-14"
-review_due_at: "2026-03-21"
-success_signal: "demo"
-subfront_ids: [${subfrontIds.map((value) => `"${value}"`).join(', ')}]
-updated_at: ${DATE}
--->
-`;
-}
 function boardForStrategyExpiredExceptionFixture() {
     return `
 version: 1
@@ -1008,7 +1063,7 @@ tasks:
 `;
 }
 
-function boardForStrategyWithNextFixture() {
+function boardForCodexLifecycle() {
     return `
 version: 1
 policy:
@@ -1017,124 +1072,35 @@ policy:
   kpi: reduce_rework
   revision: 0
   updated_at: ${DATE}
-strategy:
-  active:
-    id: STRAT-2026-03-admin-operativo
-    title: "Admin operativo"
-    objective: "Cerrar admin operativo"
-    owner: ernesto
-    owner_policy: "detected_default_owner"
-    status: active
-    started_at: "2026-03-14"
-    review_due_at: "2026-03-21"
-    exit_criteria: ["uno"]
-    success_signal: "demo"
-    subfronts:
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-admin-operativo
-        title: "Admin UX"
-        allowed_scopes: ["frontend-admin"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["payments"]
-        wip_limit: 2
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-queue-turnero-operativo
-        title: "Queue y turnero UX"
-        allowed_scopes: ["queue", "turnero"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["calendar"]
-        wip_limit: 2
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-admin-operativo
-        title: "Backend soporte"
-        allowed_scopes: ["auth", "backend", "readiness", "gates"]
-        support_only_scopes: ["tests", "ops"]
-        blocked_scopes: ["frontend-public", "security"]
-        wip_limit: 2
-        default_acceptance_profile: "backend_gate_checkpoint"
-        exception_ttl_hours: 6
-      - codex_instance: codex_transversal
-        subfront_id: SF-transversal-admin-operativo
-        title: "Runtime soporte"
-        allowed_scopes: []
-        support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
-        blocked_scopes: ["legacy-runtime"]
-        wip_limit: 2
-        default_acceptance_profile: "transversal_runtime_checkpoint"
-        exception_ttl_hours: 4
-  next:
-    id: STRAT-2026-04-admin-operativo
-    title: "Admin operativo siguiente"
-    objective: "Cerrar admin operativo v2"
-    owner: ernesto
-    owner_policy: "detected_default_owner"
-    status: draft
-    started_at: "2026-03-20"
-    review_due_at: "2026-03-28"
-    exit_criteria: ["dos"]
-    success_signal: "demo siguiente"
-    subfronts:
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-admin-operativo
-        title: "Admin UX"
-        allowed_scopes: ["frontend-admin"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["payments"]
-        wip_limit: 2
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-queue-turnero-operativo
-        title: "Queue y turnero UX"
-        allowed_scopes: ["queue", "turnero"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["calendar"]
-        wip_limit: 2
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-admin-operativo
-        title: "Backend soporte"
-        allowed_scopes: ["auth", "backend", "readiness", "gates"]
-        support_only_scopes: ["tests", "ops"]
-        blocked_scopes: ["frontend-public", "security"]
-        wip_limit: 2
-        default_acceptance_profile: "backend_gate_checkpoint"
-        exception_ttl_hours: 6
-      - codex_instance: codex_transversal
-        subfront_id: SF-transversal-admin-operativo
-        title: "Runtime soporte"
-        allowed_scopes: []
-        support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
-        blocked_scopes: ["legacy-runtime"]
-        wip_limit: 2
-        default_acceptance_profile: "transversal_runtime_checkpoint"
-        exception_ttl_hours: 4
-  updated_at: "2026-03-14"
-tasks:
-`;
-}
-function boardForCodexLifecycle() {
-    return `
-version: 1
-policy:
-  canonical: AGENTS.md
-  autonomy: semi_autonomous_guardrails
-  kpi: reduce_rework
-  updated_at: ${DATE}
 tasks:
   - id: AG-001
     executor: ci
     status: in_progress
     files: ["controllers/AppointmentController.php"]
   - id: CDX-001
+    title: "Codex lifecycle fixture"
+    owner: ernesto
     executor: codex
-    status: done
+    status: ready
+    risk: high
+    scope: backend
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 1
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
     files: ["tests/chat-booking-calendar-errors.spec.js", "tests/cookie-consent.spec.js"]
+    acceptance: "ok"
+    acceptance_ref: "verification/agent-runs/CDX-001.md"
+    depends_on: []
+    prompt: "lifecycle"
+    created_at: ${DATE}
+    updated_at: ${DATE}
 `;
 }
 
@@ -1159,6 +1125,7 @@ tasks:
     domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
+${CODEX_MODEL_ROUTING_FIELDS}
     files: ["controllers/SlotOneController.php"]
     acceptance: "ok"
     acceptance_ref: "verification/agent-runs/CDX-010.md"
@@ -1177,6 +1144,7 @@ tasks:
     domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
+${CODEX_MODEL_ROUTING_FIELDS}
     files: ["controllers/SlotTwoController.php"]
     acceptance: "ok"
     acceptance_ref: "verification/agent-runs/CDX-011.md"
@@ -1195,6 +1163,7 @@ tasks:
     domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
+${CODEX_MODEL_ROUTING_FIELDS}
     files: ["controllers/SlotThreeController.php"]
     acceptance: "ok"
     acceptance_ref: "verification/agent-runs/CDX-012.md"
@@ -1217,10 +1186,22 @@ tasks:
   - id: AG-001
     executor: codex
     status: in_progress
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v1"
     files: ["tests/agenda.spec.js", "lib/booking.php"]
   - id: CDX-001
     executor: codex
     status: ${codexStatus}
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v1"
     files: ["tests/agenda.spec.js", "docs/notes.md"]
 `;
 }
@@ -1241,6 +1222,7 @@ tasks:
     status: ready
     risk: low
     scope: docs
+${CODEX_MODEL_ROUTING_FIELDS}
     files: ["docs/task-fixture.md"]
     acceptance: "Fixture acceptance"
     acceptance_ref: ""
@@ -1267,6 +1249,12 @@ tasks:
     status: in_progress
     risk: medium
     scope: backend
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v1"
     files: ["lib/mailer.php", "tests/MailerTest.php"]
     acceptance: "A"
     acceptance_ref: ""
@@ -1323,6 +1311,83 @@ test('codex start/stop lifecycle mantiene espejo valido y actualiza CODEX_ACTIVE
     const board = readBoard(dir);
     assert.match(board, /- id: CDX-001/);
     assert.match(board, /status: done/);
+});
+
+test('codex premium record registra sesion premium subagent y resincroniza board/ledger', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForCodexLifecycle(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+    mkdirSync(join(dir, 'verification', 'codex-decisions'), {
+        recursive: true,
+    });
+    writeFileSync(
+        join(dir, 'verification', 'codex-decisions', 'CDX-001-1.md'),
+        [
+            'task_id: CDX-001',
+            'execution_mode: subagent',
+            'premium_reason: critical_review',
+            'problem: validar diff critico',
+            'why_mini_or_local_failed: mini no destrabo el review final',
+            'exact_decision_requested: confirmar siguiente accion',
+            'acceptable_output: decision estructurada',
+            'risk_if_wrong: retrabajo',
+            'action_taken: abrir subagente premium',
+        ].join('\n') + '\n',
+        'utf8'
+    );
+
+    const result = runCli(dir, [
+        'codex',
+        'premium',
+        'record',
+        'CDX-001',
+        '--decision-packet-ref',
+        'verification/codex-decisions/CDX-001-1.md',
+        '--reason',
+        'critical_review',
+        '--execution-mode',
+        'subagent',
+        '--premium-session-id',
+        'sess-001',
+        '--json',
+    ]);
+    const json = parseJsonStdout(result);
+
+    assert.equal(json.ok, true);
+    assert.equal(json.command, 'codex');
+    assert.equal(json.action, 'premium');
+    assert.equal(json.subaction, 'record');
+    assert.equal(json.model_usage_summary.premium_calls_used, 1);
+    assert.equal(json.model_usage_summary.premium_subagent_sessions_total, 1);
+    assert.equal(json.model_usage_summary.premium_root_exceptions_total, 0);
+    assert.equal(json.model_usage_summary.mini_root_compliance_pct, 100);
+
+    const ledger = parseJsonLines(
+        readFileSync(
+            join(dir, 'verification', 'codex-model-usage.jsonl'),
+            'utf8'
+        )
+    );
+    assert.equal(ledger.length, 1);
+    assert.equal(ledger[0].execution_mode, 'subagent');
+    assert.equal(ledger[0].budget_unit, 'premium_session');
+    assert.equal(ledger[0].premium_session_id, 'sess-001');
+    assert.equal(ledger[0].root_thread_model_tier, 'gpt-5.4-mini');
+
+    const board = readBoard(dir);
+    assert.match(board, /premium_calls_used:\s+1/);
+    assert.match(board, /premium_gate_state:\s+"consumed"/);
+    assert.match(
+        board,
+        /decision_packet_ref:\s+"verification\/codex-decisions\/CDX-001-1\.md"/
+    );
+
+    runCli(dir, ['codex-check']);
 });
 
 test('codex start permite dos slots por lane, review y blocked ocupan slot, ready libera el bloque', (t) => {
@@ -2605,12 +2670,42 @@ test('task start --release-publish fija el preset de excepcion formal de release
     assert.equal(json.task.strategy_id, 'STRAT-2026-03-admin-operativo');
     assert.equal(json.task.subfront_id, 'SF-backend-admin-operativo');
     assert.equal(json.task.strategy_role, 'exception');
-    assert.equal(
-        json.task.strategy_reason,
-        'validated_release_promotion'
-    );
+    assert.equal(json.task.strategy_reason, 'validated_release_promotion');
     assert.equal(json.task.focus_id, 'FOCUS-2026-03-admin-operativo-cut-1');
     assert.equal(json.task.focus_step, 'admin_queue_pilot_cut');
+    assert.equal(json.task.integration_slice, 'governance_evidence');
+    assert.equal(json.task.work_type, 'evidence');
+});
+
+test('task start --release-publish acepta soporte acotado para frontend-public sin abrir cross-lane', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForFrontendPublicReleasePublishFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const result = runCli(dir, [
+        'task',
+        'start',
+        'AG-256',
+        '--release-publish',
+        '--files',
+        'content/public-v6/es/home.json,content/public-v6/en/home.json,js/public-v6-shell.js,src/apps/astro/src/components/public-v6/TrustSignalsV6.astro,package.json,tests-node/public-v6-build-contract.test.js,tests-node/public-v6-copy-contract.test.js,tests/booking.spec.js,tests/funnel-tracking.spec.js,tests/public-v6-case-stories.spec.js,tests/public-v6-news-strip.spec.js,verification/public-v6-canonical/artifact-drift.json',
+        '--json',
+    ]);
+    const json = parseJsonStdout(result);
+
+    assert.equal(json.ok, true);
+    assert.equal(json.task.id, 'AG-256');
+    assert.equal(json.task.status, 'review');
+    assert.equal(json.task.codex_instance, 'codex_frontend');
+    assert.equal(json.task.domain_lane, 'frontend_content');
+    assert.equal(json.task.subfront_id, 'SF-frontend-turnero-web-pilot');
+    assert.equal(json.task.strategy_role, 'exception');
+    assert.equal(json.task.strategy_reason, 'validated_release_promotion');
     assert.equal(json.task.integration_slice, 'governance_evidence');
     assert.equal(json.task.work_type, 'evidence');
 });
@@ -3964,7 +4059,10 @@ test('close soporta --json y devuelve task + evidence_path', (t) => {
     t.after(() => cleanupFixtureDir(dir));
 
     writeFixtureFiles(dir, {
-        board: boardForTaskOpsFixture(),
+        board: boardForTaskOpsFixture().replace(
+            'executor: codex',
+            'executor: ci'
+        ),
         handoffs: baseHandoffs(),
         plan: basePlanWithoutCodexBlock(),
     });
@@ -4739,8 +4837,7 @@ test('status y board doctor exponen publish live pendiente como warning no bloqu
     let json = parseJsonStdout(runCli(dir, ['status', '--json']));
     assert.equal(
         json.diagnostics.some(
-            (item) =>
-                item.code === 'warn.publish.live_verification_pending'
+            (item) => item.code === 'warn.publish.live_verification_pending'
         ),
         true
     );

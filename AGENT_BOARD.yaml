@@ -7,8 +7,8 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 707
-  updated_at: 2026-03-16
+  revision: 714
+  updated_at: 2026-03-17
 
 strategy:
   active:
@@ -16,9 +16,12 @@ strategy:
     title: "Turnero web por clinica"
     objective: "Reabrir queue/turnero como un piloto web por clinica demostrable en admin basic, operador, kiosco y sala, usando clinic-profile como fuente de verdad y bloqueando superficies fuera de canon."
     owner: Ernesto
+    owner_policy: "detected_default_owner"
     status: active
     started_at: "2026-03-14"
     review_due_at: "2026-03-28"
+    closed_at: ""
+    close_reason: ""
     exit_criteria: ["Una clinica puede operar el flujo kiosco -> admin/operador -> sala con branding y cola consistentes", "El canon por clinica bloquea acciones reales si perfil, firma o ruta quedan fuera de contrato", "El piloto web cierra con gate y smoke propios sin depender de instaladores nativos"]
     success_signal: "Una clinica puede demostrarse de punta a punta desde kiosco hasta sala con branding, heartbeats y bloqueos de canon correctos, sin depender de apps nativas."
     subfronts:
@@ -28,18 +31,29 @@ strategy:
         allowed_scopes: ["frontend-admin", "queue", "turnero"]
         support_only_scopes: ["docs", "frontend-qa"]
         blocked_scopes: ["frontend-public", "payments", "calendar"]
+        wip_limit: 1
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 0
       - codex_instance: codex_backend_ops
         subfront_id: SF-backend-turnero-web-pilot
         title: "Queue state, clinic-profile y gate web pilot"
         allowed_scopes: ["backend", "readiness", "gates", "deploy", "ops"]
         support_only_scopes: ["monitoring", "tests"]
         blocked_scopes: ["frontend-public", "frontend-admin", "payments", "calendar", "auth"]
+        wip_limit: 1
+        default_acceptance_profile: "backend_gate_checkpoint"
+        exception_ttl_hours: 0
       - codex_instance: codex_transversal
         subfront_id: SF-transversal-turnero-web-pilot
         title: "Runtime OpenClaw solo si desbloquea acceso real del piloto"
         allowed_scopes: []
         support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
         blocked_scopes: ["frontend-public", "frontend-admin", "backend", "deploy", "auth", "queue", "turnero"]
+        wip_limit: 1
+        default_acceptance_profile: "transversal_runtime_checkpoint"
+        exception_ttl_hours: 0
+  next: null
+  updated_at: "2026-03-17"
 
 tasks:
   - id: AG-001
@@ -820,6 +834,12 @@ tasks:
     runtime_surface: 
     runtime_transport: 
     runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 1
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
     files: ["api.php", "controllers/AdminDataController.php", "controllers/QueueController.php", "lib/TurneroClinicProfile.php", "lib/QueueSurfaceStatusStore.php", "lib/QueueService.php", "bin/turnero-clinic-profile.js", "scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1", "tests/test_queue_service.php", "tests/test_figo_queue_core.php", "verification/agent-runs/CDX-043.md"]
     source_signal: manual
     source_ref: "STRAT-2026-03-turnero-web-pilot"
@@ -873,6 +893,12 @@ tasks:
     runtime_surface: 
     runtime_transport: 
     runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
     files: ["admin.html", "operador-turnos.html", "kiosco-turnos.html", "sala-turnos.html", "src/apps/admin-v3/shared/core/router.js", "src/apps/admin-v3/shared/modules/queue", "src/apps/admin-v3/core/boot/navigation/sections.js", "src/apps/admin-v3/core/boot/navigation/commands.js", "src/apps/admin-v3/core/boot/listeners/action-groups/queue", "src/apps/admin-v3/ui/frame/templates/sections/queue", "src/apps/queue-operator", "src/apps/queue-kiosk", "src/apps/queue-display", "src/apps/queue-shared"]
     source_signal: manual
     source_ref: "STRAT-2026-03-turnero-web-pilot"
@@ -10616,8 +10642,8 @@ tasks:
     title: "Governance release publish exception flow"
     owner: deck
     executor: codex
-    status: review
-    status_since_at: "2026-03-16T19:45:09.976Z"
+    status: done
+    status_since_at: "2026-03-17T00:18:36.747Z"
     risk: medium
     scope: codex-governance
     codex_instance: codex_transversal
@@ -10636,31 +10662,122 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: "lease_AG-257_20260316194509976_eb7d2d"
-    lease_owner: "deck"
-    lease_created_at: "2026-03-16T19:45:09.976Z"
-    heartbeat_at: "2026-03-16T19:45:09.976Z"
-    lease_expires_at: "2026-03-16T23:45:09.976Z"
-    lease_reason: "board_write"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-17T00:18:36.747Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "Governance release publish exception flow"
-    acceptance_ref: ""
-    evidence_ref: ""
+    acceptance_ref: "verification/agent-runs/AG-257.md"
+    evidence_ref: "verification/agent-runs/AG-257.md"
     strategy_id: "STRAT-2026-03-turnero-web-pilot"
     subfront_id: "SF-transversal-turnero-web-pilot"
     strategy_role: "support"
+    depends_on: []
+    prompt: "Governance release publish exception flow"
+    created_at: 2026-03-16
+    updated_at: 2026-03-17
+
+  - id: AG-256
+    title: "Aurora Derm public trust conversion release"
+    owner: deck
+    executor: codex
+    status: done
+    status_since_at: "2026-03-17T00:50:13.308Z"
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    files: ["content/public-v6/en/home.json", "content/public-v6/en/hub.json", "content/public-v6/en/navigation.json", "content/public-v6/en/service.json", "content/public-v6/en/software.json", "content/public-v6/en/telemedicine.json", "content/public-v6/es/home.json", "content/public-v6/es/hub.json", "content/public-v6/es/navigation.json", "content/public-v6/es/service.json", "content/public-v6/es/software.json", "content/public-v6/es/telemedicine.json", "js/public-v6-shell.js", "src/apps/astro/src/components/public-v6/CaseStoriesV6.astro", "src/apps/astro/src/components/public-v6/TrustSignalsV6.astro", "src/apps/astro/src/pages/en/index.astro", "src/apps/astro/src/pages/es/index.astro", "src/apps/astro/src/styles/public-v6/home.css", "tests-node/public-v6-build-contract.test.js", "tests-node/public-v6-copy-contract.test.js", "tests/booking.spec.js", "tests/chat-booking-calendar-errors.spec.js", "tests/checklist-production.spec.js", "tests/deferred-shell-static-fallback.spec.js", "tests/funnel-tracking.spec.js", "tests/public-v6-case-stories.spec.js", "tests/public-v6-news-strip.spec.js", "verification/public-v6-canonical/artifact-drift.json"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-17T00:50:13.308Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "WhatsApp queda como CTA principal, la home gana trust layer visible y el frente publico sale en un solo release formal con soporte QA canonico."
+    acceptance_ref: "verification/agent-runs/AG-256.md"
+    evidence_ref: "verification/agent-runs/AG-256.md"
+    strategy_id: "STRAT-2026-03-turnero-web-pilot"
+    subfront_id: "SF-frontend-turnero-web-pilot"
+    strategy_role: "exception"
+    strategy_reason: "validated_release_promotion"
+    exception_opened_at: "2026-03-17T00:21:07.659Z"
+    exception_expires_at: "2026-03-17T08:21:07.659Z"
+    exception_state: "open"
     focus_id: ""
     focus_step: ""
-    integration_slice: ""
-    work_type: ""
+    integration_slice: "governance_evidence"
+    work_type: "evidence"
     expected_outcome: ""
     decision_ref: ""
     rework_parent: ""
     rework_reason: ""
     depends_on: []
-    prompt: "Governance release publish exception flow"
-    created_at: 2026-03-16
-    updated_at: 2026-03-16
+    prompt: "Public trust conversion release for Aurora Derm"
+    created_at: 2026-03-17
+    updated_at: 2026-03-17
+
+  - id: AG-258
+    title: "Restore checks.publicSync host telemetry for public_main_sync"
+    owner: deck
+    executor: codex
+    status: backlog
+    status_since_at: "2026-03-17T00:49:52.971Z"
+    risk: high
+    scope: deploy
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: handoff_allowed
+    cross_domain: true
+    provider_mode: ""
+    runtime_surface: ""
+    runtime_transport: ""
+    runtime_last_transport: ""
+    files: ["docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Restore checks.publicSync host telemetry for public_main_sync"
+    acceptance_ref: ""
+    evidence_ref: ""
+    depends_on: ["AG-207"]
+    prompt: "Restore checks.publicSync host telemetry for public_main_sync"
+    created_at: 2026-03-17
+    updated_at: 2026-03-17
