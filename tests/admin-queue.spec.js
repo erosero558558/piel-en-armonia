@@ -15189,6 +15189,48 @@ test.describe('Admin turnero sala', () => {
                 },
             }),
         ];
+        const turneroClinicProfile = buildQueuePilotClinicProfile({
+            clinicId: 'clinica-dual',
+            region: 'regional',
+            branding: {
+                name: 'Clínica Dual',
+                short_name: 'Clínica Dual',
+                base_url: 'https://dual.example',
+            },
+            regionalClinics: [
+                {
+                    clinicId: 'clinica-dual',
+                    label: 'Clínica Dual',
+                    stations: 5,
+                    avgServiceMinutes: 12,
+                },
+                {
+                    clinicId: 'clinica-satelite',
+                    label: 'Clínica Satélite',
+                    stations: 3,
+                    avgServiceMinutes: 14,
+                },
+            ],
+        });
+        const turneroV2Readiness = buildPilotReadiness({
+            clinicId: 'clinica-dual',
+            profileFingerprint: 'abcd1234',
+        });
+        const turneroRemoteReleaseReadiness = buildRemoteReadiness({
+            clinicId: 'clinica-dual',
+            profileFingerprint: 'abcd1234',
+        });
+        const turneroPublicShellDrift = buildShellDrift({
+            driftStatus: 'ready',
+        });
+        const turneroReleaseEvidenceBundle = buildEvidenceSnapshot({
+            turneroClinicProfile,
+            pilotReadiness: turneroV2Readiness,
+            remoteReleaseReadiness: turneroRemoteReleaseReadiness,
+            publicShellDrift: turneroPublicShellDrift,
+        });
+        turneroReleaseEvidenceBundle.regionalClinics =
+            turneroClinicProfile.regionalClinics;
 
         await installQueueAdminAuthMock(page, 'csrf_queue_admin_dual_operator');
         await installQueueOperationalAppsApiMocks(page, {
@@ -15205,6 +15247,13 @@ test.describe('Admin turnero sala', () => {
                     instances: operatorInstances,
                 }),
             }),
+            dataOverrides: {
+                turneroClinicProfile,
+                turneroV2Readiness,
+                turneroRemoteReleaseReadiness,
+                turneroPublicShellDrift,
+                turneroReleaseEvidenceBundle,
+            },
         });
 
         await page.goto(adminUrl());
@@ -15287,6 +15336,36 @@ test.describe('Admin turnero sala', () => {
         );
         await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
             'turnero-desktop.json'
+        );
+        await expect(
+            page.locator('#queueSurfaceTelemetryOptimizationHubHost')
+        ).toBeVisible();
+        await expect(
+            page.locator('#turneroReleaseTelemetryOptimizationHub')
+        ).toBeVisible();
+        await expect(
+            page.locator('#turneroReleaseTelemetryOptimizationHub')
+        ).toHaveAttribute('data-state', 'ready');
+        await expect(
+            page.locator('#turneroReleaseTelemetryOptimizationHub')
+        ).toHaveAttribute('data-band', 'stable');
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Telemetry Optimization Hub'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Catálogo de eventos'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Readiness'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Copy brief'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Download JSON'
+        );
+        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
+            'Clínica Dual'
         );
     });
 
@@ -15803,6 +15882,21 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('#turneroReleaseGovernanceSuite')
         ).toContainText('Mapa de inversión');
+        await expect(
+            page.locator('#queueReleaseIntegrationCommandCenterHost')
+        ).toBeVisible();
+        await expect(
+            page.locator('#turneroReleaseIntegrationCommandCenter')
+        ).toBeVisible();
+        await expect(
+            page.locator('#turneroReleaseIntegrationCommandCenter')
+        ).toContainText('Integration Command Center');
+        await expect(
+            page.locator('#turneroReleaseIntegrationCommandCenter')
+        ).toContainText('Copy integration brief');
+        await expect(
+            page.locator('#turneroReleaseIntegrationCommandCenter')
+        ).toContainText('Download integration JSON');
         await expect(
             page.locator('#queueReleaseSafetyPrivacyCockpitHost')
         ).toBeVisible();
