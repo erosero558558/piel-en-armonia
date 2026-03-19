@@ -15179,6 +15179,26 @@ test.describe('Admin turnero sala', () => {
             page.locator('#turneroReleaseUnifiedOrchestrationFabric')
         ).toContainText('Unified Orchestration Fabric');
         await expect(
+            page.locator('#queueReleaseRepoTruthAuditStudioHost')
+        ).toBeVisible();
+        await expect(
+            page.locator('#turneroReleaseRepoTruthAuditStudio')
+        ).toBeVisible();
+        await expect(
+            page.locator('#turneroReleaseRepoTruthAuditStudio')
+        ).toContainText('Repo Truth Audit Studio');
+        await expect(
+            page.locator('#turneroReleaseRepoTruthAuditStudio')
+        ).toContainText('Copy repo truth brief');
+        await expect(
+            page.locator('#turneroReleaseRepoTruthAuditStudio')
+        ).toContainText('Download repo truth JSON');
+        await expect(
+            page.locator(
+                '#turneroReleaseRepoTruthAuditStudio [data-role="score"]'
+            )
+        ).toContainText('49.5');
+        await expect(
             page.locator(
                 '#queueReleaseAssuranceControlPlaneCopyCertificationBriefBtn'
             )
@@ -16011,6 +16031,26 @@ test.describe('Admin turnero sala', () => {
             page.locator('#turneroReleaseUnifiedOrchestrationFabric')
         ).toContainText('Unified Orchestration Fabric');
         await expect(
+            page.locator('#queueReleaseRepoTruthAuditStudioHost')
+        ).toBeVisible();
+        await expect(
+            page.locator('#turneroReleaseRepoTruthAuditStudio')
+        ).toBeVisible();
+        await expect(
+            page.locator('#turneroReleaseRepoTruthAuditStudio')
+        ).toContainText('Repo Truth Audit Studio');
+        await expect(
+            page.locator('#turneroReleaseRepoTruthAuditStudio')
+        ).toContainText('Copy repo truth brief');
+        await expect(
+            page.locator('#turneroReleaseRepoTruthAuditStudio')
+        ).toContainText('Download repo truth JSON');
+        await expect(
+            page.locator(
+                '#turneroReleaseRepoTruthAuditStudio [data-role="score"]'
+            )
+        ).toContainText('49.5');
+        await expect(
             page.locator('#queueReleaseRepoDiagnosticPrepHubHost')
         ).toBeVisible();
         await expect(
@@ -16025,6 +16065,21 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('#turneroReleaseRepoDiagnosticPrepHub')
         ).toContainText('Download diagnostic JSON');
+        await expect(
+            page.locator('#queueReleaseMainlineAuditBridgeHost')
+        ).toBeVisible();
+        await expect(
+            page.locator('#turneroReleaseMainlineAuditBridge')
+        ).toContainText('Mainline Audit Bridge');
+        await expect(
+            page.locator('#turneroReleaseMainlineAuditBridge')
+        ).toContainText('Copy mainline brief');
+        await expect(
+            page.locator('#turneroReleaseMainlineAuditBridge')
+        ).toContainText('Download mainline JSON');
+        await expect(
+            page.locator('#turneroReleaseMainlineAuditBridge')
+        ).toContainText('Add branch delta');
         await expect(
             page.locator('#queueFinalDiagnosticExecutionConsoleHost')
         ).toContainText('Final Diagnostic Execution Console');
@@ -16058,12 +16113,15 @@ test.describe('Admin turnero sala', () => {
             'queueReleaseSafetyPrivacyCockpitHost',
             'queueReleaseServiceExcellenceAdoptionCloudHost',
             'queueReleaseUnifiedOrchestrationFabricHost',
+            'queueReleaseRepoTruthAuditStudioHost',
             'queueReleaseRepoDiagnosticPrepHubHost',
+            'queueReleaseMainlineAuditBridgeHost',
             'queueAppDownloadsCards',
             'queueOpeningChecklist',
             'queueShiftHandoff',
             'queueOpsLog',
             'queueInstallConfigurator',
+            'queueFinalDiagnosticExecutionConsoleHost',
         ];
         const deploymentOrderChecks = await page.evaluate((ids) => {
             const nodes = ids.map((id) => document.getElementById(id));

@@ -40,6 +40,7 @@ import {
     getInstallHubSurfaceTelemetryCopy,
     syncInstallHubRuntimePayload,
 } from './install-hub/registry.js';
+import { renderQueueMainlineAuditBridge as renderQueueMainlineAuditBridgeModule } from './install-hub/mainline-audit-bridge.js';
 import {
     buildQueueQuickConsole as buildQueueQuickConsoleModule,
     renderQueueQuickConsole as renderQueueQuickConsoleModule,
@@ -63,6 +64,7 @@ import { mountTurneroReleaseFinalDiagnosticExecutionConsole } from '../../../../
 import { readTurneroIncidentJournal } from '../../../../../../queue-shared/turnero-release-incident-journal.js';
 import { renderQueueAssuranceControlPlane } from './install-hub/assurance-control-plane.js';
 import { renderQueueUnifiedOrchestrationFabric } from './install-hub/unified-orchestration-fabric.js';
+import { renderQueueRepoTruthAuditStudio } from './install-hub/repo-truth-audit-studio.js';
 import { hasRecentQueueSmokeSignalForState } from './install-hub/smoke-signal.js';
 import {
     buildPlaybookDefinitions as buildPlaybookDefinitionsModule,
@@ -128,7 +130,9 @@ const QUEUE_ADMIN_BASIC_PANEL_IDS = Object.freeze([
     'queueReleaseSafetyPrivacyCockpitHost',
     'queueReleaseServiceExcellenceAdoptionCloudHost',
     'queueReleaseUnifiedOrchestrationFabricHost',
+    'queueReleaseRepoTruthAuditStudioHost',
     'queueReleaseRepoDiagnosticPrepHubHost',
+    'queueReleaseMainlineAuditBridgeHost',
     'queueOpeningChecklist',
     'queueShiftHandoff',
     'queueContingencyDeck',
@@ -5022,6 +5026,10 @@ function clearQueueExpertPanels() {
     });
 }
 
+function renderQueueMainlineAuditBridge(manifest, detectedPlatform) {
+    return renderQueueMainlineAuditBridgeModule(manifest, detectedPlatform);
+}
+
 function renderQueueFinalDiagnosticExecutionConsole(
     manifest,
     detectedPlatform
@@ -5129,7 +5137,9 @@ function renderQueueHubCorePanels(manifest, detectedPlatform) {
         detectedPlatform
     );
     renderQueueUnifiedOrchestrationFabric(manifest, detectedPlatform);
+    renderQueueRepoTruthAuditStudio(manifest, detectedPlatform);
     renderQueueReleaseRepoDiagnosticPrepHub(manifest, detectedPlatform);
+    renderQueueMainlineAuditBridge(manifest, detectedPlatform);
     renderOpeningChecklist(manifest, detectedPlatform);
     renderShiftHandoff(manifest, detectedPlatform);
     setHtml(
