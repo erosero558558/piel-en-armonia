@@ -550,6 +550,6 @@ test('queue surface wiring includes the service excellence adoption cloud host a
     );
     assert.match(
         installHubSource,
-        /renderQueueReleaseServiceExcellenceAdoptionCloud\(manifest, detectedPlatform\);/
+        /renderQueueReleaseServiceExcellenceAdoptionCloud\(\s*manifest,\s*detectedPlatform\s*\);/
     );
 });
