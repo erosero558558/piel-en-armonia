@@ -73,6 +73,7 @@ import {
     setOpsPlaybookStep as setOpsPlaybookStepModule,
 } from './install-hub/playbook.js';
 import { mountAdminQueuePilotReadinessCard } from '../../../../../../queue-shared/admin-queue-pilot-readiness.js';
+import { mountTurneroReleaseTelemetryOptimizationHub } from '../../../../../../queue-shared/turnero-release-telemetry-optimization-hub.js';
 
 const QUEUE_INSTALL_PRESET_STORAGE_KEY = 'queueInstallPresetV1';
 const QUEUE_OPENING_CHECKLIST_STORAGE_KEY = 'queueOpeningChecklistV1';
@@ -4361,9 +4362,37 @@ function renderSurfaceTelemetry(manifest, detectedPlatform) {
                         )
                         .join('')}
                 </div>
+                <div id="queueSurfaceTelemetryOptimizationHubHost" class="queue-surface-telemetry__optimization-host" aria-live="polite"></div>
             </section>
         `
     );
+
+    const optimizationHubHost = document.getElementById(
+        'queueSurfaceTelemetryOptimizationHubHost'
+    );
+    if (optimizationHubHost instanceof HTMLElement) {
+        const state = getState();
+        const { queueMeta } = getQueueSource();
+        const releaseParts = getTurneroReleaseCommandDeckParts();
+        const turneroClinicProfile = getTurneroClinicProfile();
+        const releaseEvidenceBundle =
+            releaseParts.releaseEvidenceBundle ||
+            state.data.turneroReleaseEvidenceBundle ||
+            null;
+        const resolvedRegion =
+            turneroClinicProfile?.region ||
+            releaseEvidenceBundle?.region ||
+            'regional';
+
+        mountTurneroReleaseTelemetryOptimizationHub(optimizationHubHost, {
+            scope: resolvedRegion,
+            region: resolvedRegion,
+            turneroClinicProfile,
+            queueMeta,
+            queueSurfaceStatus: state.data.queueSurfaceStatus || null,
+            turneroReleaseEvidenceBundle: releaseEvidenceBundle,
+        });
+    }
 }
 
 function getQueueSyncHealth() {

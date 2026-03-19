@@ -112,6 +112,9 @@ export function createQueueOpsInteractionController({
 
         root.addEventListener('pointerdown', signalInteraction, true);
         root.addEventListener('keydown', signalInteraction, true);
+        // Playwright's programmatic focus can surface as `focus` before `focusin`
+        // in some runs, so we listen to both to keep the refresh shield honest.
+        root.addEventListener('focus', signalInteraction, true);
         root.addEventListener('focusin', signalInteraction, true);
         root.addEventListener('input', signalInteraction, true);
         root.addEventListener('change', signalInteraction, true);

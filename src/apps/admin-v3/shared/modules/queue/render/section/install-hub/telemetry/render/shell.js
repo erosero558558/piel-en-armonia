@@ -47,6 +47,7 @@ export function buildSurfaceTelemetryShell({
                     )
                     .join('')}
             </div>
+            <div id="queueSurfaceTelemetryOptimizationHubHost" class="queue-surface-telemetry__optimization-host" aria-live="polite"></div>
         </section>
     `;
 }
