@@ -52,6 +52,7 @@ import { buildTurneroReleaseControlCenterModel } from '../../../../../../queue-s
 import { renderTurneroReleaseCommandDeck } from '../../../../../../queue-shared/turnero-release-command-deck.js';
 import { mountReleaseIntelligenceSuiteCard } from '../../../../../../queue-shared/turnero-release-baseline-promotion-center.js';
 import { createReleaseHistoryDashboard } from '../../../../../../queue-shared/turnero-release-history-dashboard.js';
+import { mountRegionalProgramOfficeCard } from '../../../../../../queue-shared/turnero-release-program-office.js';
 import { hasRecentQueueSmokeSignalForState } from './install-hub/smoke-signal.js';
 import {
     buildPlaybookDefinitions as buildPlaybookDefinitionsModule,
@@ -109,6 +110,7 @@ const QUEUE_ADMIN_BASIC_PANEL_IDS = Object.freeze([
     'queueReleaseCommandDeck',
     'queueReleaseIntelligenceSuiteHost',
     'queueReleaseHistoryDashboard',
+    'queueRegionalProgramOfficeHost',
     'queueOpeningChecklist',
     'queueShiftHandoff',
     'queueContingencyDeck',
@@ -4406,6 +4408,7 @@ function renderQueueHubCorePanels(manifest, detectedPlatform) {
     renderQueueOpsPilot(manifest, detectedPlatform);
     renderQueueReleaseCommandDeck(manifest, detectedPlatform);
     renderQueueReleaseHistoryDashboard(manifest, detectedPlatform);
+    renderQueueRegionalProgramOffice(manifest, detectedPlatform);
     renderOpeningChecklist(manifest, detectedPlatform);
     renderShiftHandoff(manifest, detectedPlatform);
     setHtml(
@@ -21339,6 +21342,68 @@ function renderContingencyDeck(manifest, detectedPlatform) {
                 </div>
             </section>
         `
+    );
+}
+
+function getQueueRegionalProgramOfficeContext() {
+    const data = getState().data;
+    const clinicProfile = getTurneroClinicProfile();
+    const clinicProfileMeta = getTurneroClinicProfileMeta();
+    const rollout =
+        data.multiClinicControlTower?.rollout ||
+        data.multiClinicRollout ||
+        data.turneroMultiClinicRollout ||
+        data.turneroRegionalRollout ||
+        data.turneroReleaseRollout ||
+        null;
+
+    return {
+        scope:
+            clinicProfile?.clinic_id ||
+            clinicProfileMeta?.clinicId ||
+            'default-clinic',
+        clinicId:
+            clinicProfile?.clinic_id ||
+            clinicProfileMeta?.clinicId ||
+            'default-clinic',
+        clinicLabel: getTurneroClinicShortName(),
+        clinicProfile,
+        turneroClinicProfile: clinicProfile,
+        rollout,
+        clinics: Array.isArray(rollout?.registry?.clinics)
+            ? rollout.registry.clinics
+            : Array.isArray(rollout?.clinics)
+              ? rollout.clinics
+              : [],
+        plans: Array.isArray(rollout?.cohortPlanner?.plans)
+            ? rollout.cohortPlanner.plans
+            : Array.isArray(rollout?.plans)
+              ? rollout.plans
+              : [],
+        profileFingerprint:
+            clinicProfileMeta?.profileFingerprint ||
+            clinicProfile?.runtime_meta?.profileFingerprint ||
+            '',
+        releaseMode:
+            clinicProfile?.release?.mode ||
+            clinicProfile?.releaseMode ||
+            'suite_v2',
+    };
+}
+
+function renderQueueRegionalProgramOffice(manifest, detectedPlatform) {
+    const root = document.getElementById('queueRegionalProgramOfficeHost');
+    if (!(root instanceof HTMLElement)) {
+        return null;
+    }
+
+    return mountRegionalProgramOfficeCard(
+        root,
+        getQueueRegionalProgramOfficeContext(),
+        {
+            manifest,
+            detectedPlatform,
+        }
     );
 }
 
