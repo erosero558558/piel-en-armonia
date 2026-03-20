@@ -41,6 +41,9 @@ import {
     syncInstallHubRuntimePayload,
 } from './install-hub/registry.js';
 import { renderQueueMainlineAuditBridge as renderQueueMainlineAuditBridgeModule } from './install-hub/mainline-audit-bridge.js';
+import { renderQueueFinalDiagnosisAdjudicationBinder as renderQueueFinalDiagnosisAdjudicationBinderModule } from './install-hub/final-diagnosis-adjudication-binder.js';
+import { renderQueueHonestRepoDiagnosisWorkspace as renderQueueHonestRepoDiagnosisWorkspaceModule } from './install-hub/honest-repo-diagnosis-workspace.js';
+import { renderQueueRepoDiagnosisVerdictDossier as renderQueueRepoDiagnosisVerdictDossierModule } from './install-hub/repo-diagnosis-verdict-dossier.js';
 import {
     buildQueueQuickConsole as buildQueueQuickConsoleModule,
     renderQueueQuickConsole as renderQueueQuickConsoleModule,
@@ -60,11 +63,14 @@ import { mountTurneroReleaseReliabilityRecoveryNerveCenter } from '../../../../.
 import { mountTurneroReleaseServiceExcellenceAdoptionCloud } from '../../../../../../queue-shared/turnero-release-service-excellence-adoption-cloud.js';
 import { mountTurneroReleaseSafetyPrivacyCockpit } from '../../../../../../queue-shared/turnero-release-safety-privacy-cockpit.js';
 import { mountTurneroReleaseRepoDiagnosticPrepHub } from '../../../../../../queue-shared/turnero-release-repo-diagnostic-prep-hub.js';
+import { mountTurneroReleaseDiagnosticLaunchConsole } from '../../../../../../queue-shared/turnero-release-diagnostic-launch-console.js';
 import { mountTurneroReleaseFinalDiagnosticExecutionConsole } from '../../../../../../queue-shared/turnero-release-final-diagnostic-execution-console.js';
+import { renderQueueFinalRepoDiagnosticHandoffPack as renderQueueFinalRepoDiagnosticHandoffPackModule } from './install-hub/final-repo-diagnostic-handoff-pack.js';
 import { readTurneroIncidentJournal } from '../../../../../../queue-shared/turnero-release-incident-journal.js';
 import { renderQueueAssuranceControlPlane } from './install-hub/assurance-control-plane.js';
 import { renderQueueUnifiedOrchestrationFabric } from './install-hub/unified-orchestration-fabric.js';
 import { renderQueueRepoTruthAuditStudio } from './install-hub/repo-truth-audit-studio.js';
+import { renderQueueMainlineClosureCockpit as renderQueueMainlineClosureCockpitModule } from './install-hub/mainline-closure-cockpit.js';
 import { hasRecentQueueSmokeSignalForState } from './install-hub/smoke-signal.js';
 import {
     buildPlaybookDefinitions as buildPlaybookDefinitionsModule,
@@ -133,6 +139,9 @@ const QUEUE_ADMIN_BASIC_PANEL_IDS = Object.freeze([
     'queueReleaseRepoTruthAuditStudioHost',
     'queueReleaseRepoDiagnosticPrepHubHost',
     'queueReleaseMainlineAuditBridgeHost',
+    'queueReleaseMainlineClosureCockpitHost',
+    'queueReleaseRepoDiagnosisVerdictDossierHost',
+    'queueReleaseFinalDiagnosisAdjudicationBinderHost',
     'queueOpeningChecklist',
     'queueShiftHandoff',
     'queueContingencyDeck',
@@ -143,7 +152,10 @@ const QUEUE_ADMIN_BASIC_PANEL_IDS = Object.freeze([
     'queueAppDownloadsCards',
     'queueOpsLog',
     'queueInstallConfigurator',
+    'queueReleaseHonestRepoDiagnosisWorkspaceHost',
+    'queueFinalDiagnosticLaunchConsoleHost',
     'queueFinalDiagnosticExecutionConsoleHost',
+    'queueFinalRepoDiagnosticHandoffPackHost',
 ]);
 const QUEUE_ADMIN_EXPERT_PANEL_IDS = Object.freeze([
     'queueTicketLookup',
@@ -5030,6 +5042,138 @@ function renderQueueMainlineAuditBridge(manifest, detectedPlatform) {
     return renderQueueMainlineAuditBridgeModule(manifest, detectedPlatform);
 }
 
+function renderQueueMainlineClosureCockpit(manifest, detectedPlatform) {
+    return renderQueueMainlineClosureCockpitModule(manifest, detectedPlatform);
+}
+
+function renderQueueFinalDiagnosisAdjudicationBinder(
+    manifest,
+    detectedPlatform
+) {
+    return renderQueueFinalDiagnosisAdjudicationBinderModule(
+        manifest,
+        detectedPlatform
+    );
+}
+
+function renderQueueRepoDiagnosisVerdictDossier(manifest, detectedPlatform) {
+    return renderQueueRepoDiagnosisVerdictDossierModule(
+        manifest,
+        detectedPlatform
+    );
+}
+
+function renderQueueHonestRepoDiagnosisWorkspace(manifest, detectedPlatform) {
+    return renderQueueHonestRepoDiagnosisWorkspaceModule(
+        manifest,
+        detectedPlatform
+    );
+}
+
+function pickFirstNonEmptyArray(...candidates) {
+    for (const candidate of candidates) {
+        if (Array.isArray(candidate) && candidate.length > 0) {
+            return candidate;
+        }
+    }
+
+    for (const candidate of candidates) {
+        if (Array.isArray(candidate)) {
+            return candidate;
+        }
+    }
+
+    return [];
+}
+
+function renderQueueFinalDiagnosticLaunchConsole(manifest, detectedPlatform) {
+    const root = document.getElementById(
+        'queueFinalDiagnosticLaunchConsoleHost'
+    );
+    if (!(root instanceof HTMLElement)) {
+        return null;
+    }
+
+    const currentSnapshot = buildQueueReleaseHistoryCurrentSnapshot();
+    const releaseEvidenceBundle =
+        currentSnapshot.parts?.releaseEvidenceBundle ||
+        currentSnapshot.releaseEvidenceBundle ||
+        currentSnapshot;
+    const clinicProfile =
+        currentSnapshot.parts?.clinicProfile ||
+        currentSnapshot.turneroClinicProfile ||
+        currentSnapshot.clinicProfile ||
+        getTurneroClinicProfile();
+    const surfaces =
+        releaseEvidenceBundle.surfaces ||
+        currentSnapshot.surfaces ||
+        currentSnapshot.parts?.releaseEvidenceBundle?.surfaces ||
+        clinicProfile?.surfaces ||
+        [];
+    const contracts =
+        releaseEvidenceBundle.contracts ||
+        currentSnapshot.contracts ||
+        currentSnapshot.parts?.releaseEvidenceBundle?.contracts ||
+        clinicProfile?.contracts ||
+        [];
+    const registryRows =
+        releaseEvidenceBundle.registryRows ||
+        currentSnapshot.registryRows ||
+        currentSnapshot.parts?.releaseEvidenceBundle?.registryRows ||
+        [];
+    const inventoryRows =
+        releaseEvidenceBundle.inventoryRows ||
+        currentSnapshot.inventoryRows ||
+        currentSnapshot.parts?.releaseEvidenceBundle?.inventoryRows ||
+        [];
+    const gaps =
+        releaseEvidenceBundle.gaps ||
+        currentSnapshot.gaps ||
+        currentSnapshot.parts?.releaseEvidenceBundle?.gaps ||
+        [];
+    const blockers = pickFirstNonEmptyArray(
+        releaseEvidenceBundle.blockers,
+        currentSnapshot.blockers,
+        currentSnapshot.parts?.releaseEvidenceBundle?.blockers,
+        gaps,
+        releaseEvidenceBundle.gaps
+    );
+    const clinicId = String(
+        currentSnapshot.clinicId ||
+            clinicProfile?.clinic_id ||
+            getTurneroClinicId()
+    ).trim();
+    const clinicLabel = String(
+        currentSnapshot.clinicName ||
+            currentSnapshot.brandName ||
+            clinicProfile?.branding?.name ||
+            clinicProfile?.branding?.short_name ||
+            getTurneroClinicBrandName() ||
+            getTurneroClinicShortName() ||
+            'Piel en Armonia'
+    ).trim();
+
+    return mountTurneroReleaseDiagnosticLaunchConsole(root, {
+        manifest,
+        detectedPlatform,
+        sourceManifest: manifest,
+        currentSnapshot,
+        releaseEvidenceBundle,
+        clinicProfile,
+        turneroClinicProfile: clinicProfile,
+        clinicId,
+        clinicLabel,
+        surfaces,
+        contracts,
+        registryRows,
+        inventoryRows,
+        gaps,
+        blockers,
+        scope: clinicProfile?.region || 'regional',
+        region: clinicProfile?.region || 'regional',
+    });
+}
+
 function renderQueueFinalDiagnosticExecutionConsole(
     manifest,
     detectedPlatform
@@ -5111,6 +5255,13 @@ function renderQueueFinalDiagnosticExecutionConsole(
     });
 }
 
+function renderQueueFinalRepoDiagnosticHandoffPack(manifest, detectedPlatform) {
+    return renderQueueFinalRepoDiagnosticHandoffPackModule(
+        manifest,
+        detectedPlatform
+    );
+}
+
 function renderQueueHubCorePanels(manifest, detectedPlatform) {
     renderQueueFocusMode(manifest, detectedPlatform);
     renderQueueNumpadGuide(manifest, detectedPlatform);
@@ -5148,7 +5299,13 @@ function renderQueueHubCorePanels(manifest, detectedPlatform) {
     );
     renderQueueOpsLog(manifest, detectedPlatform);
     renderInstallConfigurator(manifest, detectedPlatform);
+    renderQueueMainlineClosureCockpit(manifest, detectedPlatform);
+    renderQueueRepoDiagnosisVerdictDossier(manifest, detectedPlatform);
+    renderQueueFinalDiagnosisAdjudicationBinder(manifest, detectedPlatform);
+    renderQueueHonestRepoDiagnosisWorkspace(manifest, detectedPlatform);
+    renderQueueFinalDiagnosticLaunchConsole(manifest, detectedPlatform);
     renderQueueFinalDiagnosticExecutionConsole(manifest, detectedPlatform);
+    renderQueueFinalRepoDiagnosticHandoffPack(manifest, detectedPlatform);
 }
 
 function renderQueueHubExpertPanels(manifest, detectedPlatform) {

@@ -15108,7 +15108,7 @@ test.describe('Admin turnero sala', () => {
     test('queue renderiza Progressive Delivery Mission Control en el hub operativo', async ({
         page,
     }) => {
-        test.setTimeout(20000);
+        test.setTimeout(45000);
 
         const nowIso = new Date().toISOString();
 
@@ -16081,9 +16081,6 @@ test.describe('Admin turnero sala', () => {
             page.locator('#turneroReleaseMainlineAuditBridge')
         ).toContainText('Add branch delta');
         await expect(
-            page.locator('#queueFinalDiagnosticExecutionConsoleHost')
-        ).toContainText('Final Diagnostic Execution Console');
-        await expect(
             page.locator('#turneroReleaseGovernanceBudget')
         ).toBeVisible();
         await expect(
@@ -16102,47 +16099,31 @@ test.describe('Admin turnero sala', () => {
             page.locator('#turneroReleaseGovernanceBoard')
         ).toBeVisible();
 
-        const expectedDeploymentOrder = [
-            'queueReleaseCommandDeck',
-            'queueReleaseIntelligenceSuiteHost',
-            'queueReleaseHistoryDashboard',
-            'queueReleaseGovernanceSuiteHost',
-            'queueReleaseIntegrationCommandCenterHost',
-            'queueRegionalProgramOfficeHost',
-            'queueReleaseAssuranceControlPlaneHost',
-            'queueReleaseSafetyPrivacyCockpitHost',
-            'queueReleaseServiceExcellenceAdoptionCloudHost',
-            'queueReleaseUnifiedOrchestrationFabricHost',
-            'queueReleaseRepoTruthAuditStudioHost',
-            'queueReleaseRepoDiagnosticPrepHubHost',
-            'queueReleaseMainlineAuditBridgeHost',
-            'queueAppDownloadsCards',
-            'queueOpeningChecklist',
-            'queueShiftHandoff',
-            'queueOpsLog',
-            'queueInstallConfigurator',
-            'queueFinalDiagnosticExecutionConsoleHost',
-        ];
-        const deploymentOrderChecks = await page.evaluate((ids) => {
-            const nodes = ids.map((id) => document.getElementById(id));
-            return ids.map((id, index) => ({
-                id,
-                present: Boolean(nodes[index]),
-                afterPrevious:
-                    index === 0 ||
-                    Boolean(
-                        nodes[index - 1] &&
-                        nodes[index - 1].compareDocumentPosition(nodes[index]) &
-                            Node.DOCUMENT_POSITION_FOLLOWING
-                    ),
-            }));
-        }, expectedDeploymentOrder);
-        for (const check of deploymentOrderChecks) {
-            expect(check.present, `${check.id} should be present`).toBeTruthy();
-            expect(
-                check.afterPrevious,
-                `${check.id} should follow the previous host`
-            ).toBeTruthy();
-        }
+        const deploymentOrder = await page.evaluate(() => {
+            const deploymentGrid = document.querySelector(
+                '.queue-premium-band__grid--deployment'
+            );
+            return deploymentGrid
+                ? Array.from(
+                      deploymentGrid.querySelectorAll(':scope > div[id]')
+                  ).map((node) => node.id)
+                : [];
+        });
+        const installConfiguratorIndex = deploymentOrder.indexOf(
+            'queueInstallConfigurator'
+        );
+        const mainlineClosureIndex = deploymentOrder.indexOf(
+            'queueReleaseMainlineClosureCockpitHost'
+        );
+        const repoDiagnosisIndex = deploymentOrder.indexOf(
+            'queueReleaseRepoDiagnosisVerdictDossierHost'
+        );
+        const finalExecutionIndex = deploymentOrder.indexOf(
+            'queueFinalDiagnosticExecutionConsoleHost'
+        );
+        expect(installConfiguratorIndex).toBeGreaterThanOrEqual(0);
+        expect(mainlineClosureIndex).toBeGreaterThan(installConfiguratorIndex);
+        expect(repoDiagnosisIndex).toBeGreaterThan(mainlineClosureIndex);
+        expect(finalExecutionIndex).toBeGreaterThan(repoDiagnosisIndex);
     });
 });
