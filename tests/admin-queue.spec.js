@@ -15179,6 +15179,26 @@ test.describe('Admin turnero sala', () => {
             page.locator('#turneroReleaseUnifiedOrchestrationFabric')
         ).toContainText('Unified Orchestration Fabric');
         await expect(
+            page.locator('#queueReleaseHonestRepoDiagnosisWorkspaceHost')
+        ).toBeVisible();
+        await expect(
+            page.locator('#turneroReleaseHonestRepoDiagnosisWorkspace')
+        ).toBeVisible();
+        await expect(
+            page.locator('#turneroReleaseHonestRepoDiagnosisWorkspace')
+        ).toContainText('Honest Repo Diagnosis Workspace');
+        await expect(
+            page.locator('#turneroReleaseHonestRepoDiagnosisWorkspace')
+        ).toContainText('Copy honest brief');
+        await expect(
+            page.locator('#turneroReleaseHonestRepoDiagnosisWorkspace')
+        ).toContainText('Download honest JSON');
+        await expect(
+            page.locator(
+                '#turneroReleaseHonestRepoDiagnosisWorkspace [data-role="honest-brief"]'
+            )
+        ).toBeVisible();
+        await expect(
             page.locator('#queueReleaseRepoTruthAuditStudioHost')
         ).toBeVisible();
         await expect(
@@ -16112,6 +16132,12 @@ test.describe('Admin turnero sala', () => {
         const installConfiguratorIndex = deploymentOrder.indexOf(
             'queueInstallConfigurator'
         );
+        const honestWorkspaceIndex = deploymentOrder.indexOf(
+            'queueReleaseHonestRepoDiagnosisWorkspaceHost'
+        );
+        const finalLaunchIndex = deploymentOrder.indexOf(
+            'queueFinalDiagnosticLaunchConsoleHost'
+        );
         const mainlineClosureIndex = deploymentOrder.indexOf(
             'queueReleaseMainlineClosureCockpitHost'
         );
@@ -16122,6 +16148,8 @@ test.describe('Admin turnero sala', () => {
             'queueFinalDiagnosticExecutionConsoleHost'
         );
         expect(installConfiguratorIndex).toBeGreaterThanOrEqual(0);
+        expect(honestWorkspaceIndex).toBeGreaterThan(installConfiguratorIndex);
+        expect(finalLaunchIndex).toBeGreaterThan(honestWorkspaceIndex);
         expect(mainlineClosureIndex).toBeGreaterThan(installConfiguratorIndex);
         expect(repoDiagnosisIndex).toBeGreaterThan(mainlineClosureIndex);
         expect(finalExecutionIndex).toBeGreaterThan(repoDiagnosisIndex);

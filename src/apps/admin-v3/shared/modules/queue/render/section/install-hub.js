@@ -152,8 +152,8 @@ const QUEUE_ADMIN_BASIC_PANEL_IDS = Object.freeze([
     'queueAppDownloadsCards',
     'queueOpsLog',
     'queueInstallConfigurator',
-    'queueReleaseHonestRepoDiagnosisWorkspaceHost',
     'queueFinalDiagnosticLaunchConsoleHost',
+    'queueReleaseHonestRepoDiagnosisWorkspaceHost',
     'queueFinalDiagnosticExecutionConsoleHost',
     'queueFinalRepoDiagnosticHandoffPackHost',
 ]);
@@ -5302,8 +5302,8 @@ function renderQueueHubCorePanels(manifest, detectedPlatform) {
     renderQueueMainlineClosureCockpit(manifest, detectedPlatform);
     renderQueueRepoDiagnosisVerdictDossier(manifest, detectedPlatform);
     renderQueueFinalDiagnosisAdjudicationBinder(manifest, detectedPlatform);
-    renderQueueHonestRepoDiagnosisWorkspace(manifest, detectedPlatform);
     renderQueueFinalDiagnosticLaunchConsole(manifest, detectedPlatform);
+    renderQueueHonestRepoDiagnosisWorkspace(manifest, detectedPlatform);
     renderQueueFinalDiagnosticExecutionConsole(manifest, detectedPlatform);
     renderQueueFinalRepoDiagnosticHandoffPack(manifest, detectedPlatform);
 }
