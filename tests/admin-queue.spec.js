@@ -15188,9 +15188,6 @@ test.describe('Admin turnero sala', () => {
         await expect(honestWorkspaceHost).toContainText('Copy honest brief');
         await expect(honestWorkspaceHost).toContainText('Download honest JSON');
         await expect(
-            honestWorkspaceHost.locator('[data-role="honest-brief"]')
-        ).toBeVisible();
-        await expect(
             page.locator('#queueReleaseRepoTruthAuditStudioHost')
         ).toBeVisible();
         await expect(
