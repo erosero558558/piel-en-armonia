@@ -18,6 +18,7 @@ const {
     parseArgs,
 } = require('../bin/legacy-generated-root-cleanup.js');
 const {
+    DOCTOR_VERSION,
     DOCTOR_STATE_ATTENTION,
     DOCTOR_STATE_BLOCKED,
     DOCTOR_STATE_FIXABLE,
@@ -511,7 +512,7 @@ test('workspace hygiene aliases status y fix delegan al doctor', () => {
         const fixPayload = JSON.parse(fixResult.stdout);
 
         assert.equal(statusPayload.command, 'workspace-hygiene doctor');
-        assert.equal(statusPayload.version, 5);
+        assert.equal(statusPayload.version, DOCTOR_VERSION);
         assert.equal(statusPayload.rows[0].overall_state, DOCTOR_STATE_FIXABLE);
         assert.equal(fixPayload.command, 'workspace-hygiene doctor');
         assert.equal(fixPayload.rows[0].overall_state, 'clean');

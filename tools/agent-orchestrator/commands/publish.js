@@ -4,6 +4,7 @@ const { appendFileSync, mkdirSync } = require('fs');
 const { dirname, resolve } = require('path');
 const { spawnSync } = require('child_process');
 const domainStrategy = require('../domain/strategy');
+const { findJobSnapshot: findJobSnapshotFallback } = require('../domain/jobs');
 const {
     diagnoseWorktree,
     formatIssueSummary,
@@ -241,9 +242,13 @@ async function detectLiveVerificationStatus(ctx, expectedCommit) {
         };
     }
     const jobs = await buildJobsSnapshot(parseJobs());
-    const job =
+    const resolver =
         typeof findJobSnapshot === 'function'
-            ? findJobSnapshot(jobs, 'public_main_sync')
+            ? findJobSnapshot
+            : findJobSnapshotFallback;
+    const job =
+        typeof resolver === 'function'
+            ? resolver(jobs, 'public_main_sync')
             : Array.isArray(jobs)
               ? jobs.find(
                     (candidate) =>
@@ -728,7 +733,7 @@ async function handlePublishCommand(ctx) {
         parseDecisions,
         parseJobs,
         buildJobsSnapshot,
-        findJobSnapshot,
+        findJobSnapshot = findJobSnapshotFallback,
         verifyOpenClawRuntime,
         printJson = (value) => console.log(JSON.stringify(value, null, 2)),
         rootPath,
