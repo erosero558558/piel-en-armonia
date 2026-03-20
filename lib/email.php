@@ -120,6 +120,7 @@ function send_mail(string $to, string $subject, string $body, bool $isHtml = fal
             'attachmentsCount' => count($attachments),
             'altBody' => $altBody,
         ];
+        error_log('Piel en Armonia: envio de email omitido en TESTING_ENV para evitar dependencia de sendmail');
         return false;
     }
 

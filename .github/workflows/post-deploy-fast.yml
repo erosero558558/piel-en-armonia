@@ -113,6 +113,8 @@ jobs:
             PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER: ${{ vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER || 'Authorization' }}
             PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX: ${{ vars.PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX || 'Bearer' }}
             WAIT_SECONDS_FAST: ${{ github.event.inputs.wait_seconds || vars.WAIT_SECONDS_FAST || '45' }}
+            PUBLIC_SYNC_WAIT_TIMEOUT_FAST: ${{ vars.PUBLIC_SYNC_WAIT_TIMEOUT_FAST || '240' }}
+            PUBLIC_SYNC_POLL_INTERVAL_FAST: ${{ vars.PUBLIC_SYNC_POLL_INTERVAL_FAST || '15' }}
             ADMIN_ROLLOUT_STAGE_FAST: ${{ github.event.inputs.admin_rollout_stage || vars.ADMIN_ROLLOUT_STAGE_FAST || 'canary' }}
             ADMIN_ROLLOUT_SKIP_RUNTIME_SMOKE_FAST: ${{ github.event.inputs.admin_rollout_skip_runtime_smoke || vars.ADMIN_ROLLOUT_SKIP_RUNTIME_SMOKE_FAST || 'true' }}
             ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_FAST: ${{ github.event.inputs.admin_rollout_allow_feature_api_failure || vars.ADMIN_ROLLOUT_ALLOW_FEATURE_API_FAILURE_FAST || 'false' }}
@@ -159,6 +161,11 @@ jobs:
             TURNERO_PILOT_FAST_CATALOG_READY: 'false'
             TURNERO_PILOT_FAST_REMOTE_VERIFIED: 'false'
             TURNERO_PILOT_FAST_DEPLOYED_COMMIT: ''
+            PUBLIC_SYNC_FAST_MATCHED: unknown
+            PUBLIC_SYNC_FAST_CURRENT_HEAD: ''
+            PUBLIC_SYNC_FAST_DEPLOYED_COMMIT: ''
+            PUBLIC_SYNC_FAST_STATE: unknown
+            PUBLIC_SYNC_FAST_HEALTHY: unknown
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -173,6 +180,80 @@ jobs:
                   if ($waitSeconds -lt 0) { $waitSeconds = 0 }
                   Write-Host "Esperando $waitSeconds segundos para sincronizacion remota..."
                   Start-Sleep -Seconds $waitSeconds
+
+            - name: Esperar commit sincronizado en public sync
+              if: ${{ github.event_name == 'push' }}
+              shell: pwsh
+              run: |
+                  $timeoutSeconds = [int]$env:PUBLIC_SYNC_WAIT_TIMEOUT_FAST
+                  if ($timeoutSeconds -lt 0) { $timeoutSeconds = 0 }
+                  $pollSeconds = [int]$env:PUBLIC_SYNC_POLL_INTERVAL_FAST
+                  if ($pollSeconds -lt 5) { $pollSeconds = 5 }
+
+                  $base = [string]$env:TARGET_DOMAIN
+                  if ([string]::IsNullOrWhiteSpace($base)) {
+                    throw 'TARGET_DOMAIN vacio en fast lane.'
+                  }
+                  $base = $base.TrimEnd('/')
+                  $healthUrl = "$base/api.php?resource=health"
+                  $targetSha = [string]$env:GITHUB_SHA
+                  $deadline = (Get-Date).ToUniversalTime().AddSeconds($timeoutSeconds)
+                  $matched = $false
+                  $currentHead = ''
+                  $deployedCommit = ''
+                  $state = 'unknown'
+                  $healthy = 'unknown'
+
+                  do {
+                    try {
+                      $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 20 -Headers @{
+                        'Cache-Control' = 'no-cache'
+                        'User-Agent' = 'PielArmoniaPostDeployFast/1.0'
+                      }
+                      $health = $response.Content | ConvertFrom-Json -Depth 20
+                      $publicSync = $health.checks.publicSync
+                      if ($null -ne $publicSync) {
+                        $currentHead = [string]$publicSync.currentHead
+                        $deployedCommit = [string]$publicSync.deployedCommit
+                        $state = [string]$publicSync.state
+                        if ($null -ne $publicSync.PSObject.Properties['healthy']) {
+                          $healthy = if ([bool]$publicSync.healthy) { 'true' } else { 'false' }
+                        } else {
+                          $healthy = 'unknown'
+                        }
+                        if ($currentHead -eq $targetSha -or $deployedCommit -eq $targetSha) {
+                          $matched = $true
+                          break
+                        }
+                        Write-Host "[INFO] public sync pendiente: target=$targetSha current=$currentHead deployed=$deployedCommit state=$state healthy=$healthy"
+                      } else {
+                        $state = 'missing'
+                        $healthy = 'unknown'
+                        Write-Host '[WARN] health no incluye checks.publicSync durante fast lane.'
+                      }
+                    } catch {
+                      $state = 'unreachable'
+                      $healthy = 'false'
+                      Write-Host "[WARN] No se pudo consultar public sync: $($_.Exception.Message)"
+                    }
+
+                    if ((Get-Date).ToUniversalTime() -lt $deadline) {
+                      Start-Sleep -Seconds $pollSeconds
+                    }
+                  } while ((Get-Date).ToUniversalTime() -lt $deadline)
+
+                  $matchedText = if ($matched) { 'true' } else { 'false' }
+                  if ($matched) {
+                    Write-Host "[OK] public sync alineado con commit target: $targetSha"
+                  } else {
+                    Write-Host "[WARN] public sync no alineo el commit target dentro del timeout: target=$targetSha current=$currentHead deployed=$deployedCommit state=$state healthy=$healthy"
+                  }
+
+                  "PUBLIC_SYNC_FAST_MATCHED=$matchedText" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_SYNC_FAST_CURRENT_HEAD=$currentHead" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_SYNC_FAST_DEPLOYED_COMMIT=$deployedCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_SYNC_FAST_STATE=$state" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                  "PUBLIC_SYNC_FAST_HEALTHY=$healthy" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
             - name: Ejecutar gate fast (verify + smoke)
               id: gate_fast
@@ -588,6 +669,13 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Post-Deploy Fast Lane"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Dominio: ``$env:TARGET_DOMAIN``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Espera sync: ``$env:WAIT_SECONDS_FAST`` s"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public sync wait timeout: ``$env:PUBLIC_SYNC_WAIT_TIMEOUT_FAST`` s"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public sync poll interval: ``$env:PUBLIC_SYNC_POLL_INTERVAL_FAST`` s"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public sync commit matched: ``$env:PUBLIC_SYNC_FAST_MATCHED``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public sync current head: ``$env:PUBLIC_SYNC_FAST_CURRENT_HEAD``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public sync deployed commit: ``$env:PUBLIC_SYNC_FAST_DEPLOYED_COMMIT``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public sync state: ``$env:PUBLIC_SYNC_FAST_STATE``"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Public sync healthy: ``$env:PUBLIC_SYNC_FAST_HEALTHY``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Modo: ``verify+smoke`` (sin benchmark pesado)"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Semaforo platform: ``${{ steps.gate_fast.outcome }}``"
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Admin rollout stage (fast): ``$env:ADMIN_ROLLOUT_STAGE_FAST_EFFECTIVE``"
@@ -694,6 +782,11 @@ jobs:
                   TURNERO_PILOT_FAST_REMOTE_VERIFIED: ${{ env.TURNERO_PILOT_FAST_REMOTE_VERIFIED }}
                   TURNERO_PILOT_FAST_DEPLOYED_COMMIT: ${{ env.TURNERO_PILOT_FAST_DEPLOYED_COMMIT }}
                   TURNERO_PILOT_FAST_RECOVERY_TARGETS: ${{ env.TURNERO_PILOT_FAST_RECOVERY_TARGETS }}
+                  PUBLIC_SYNC_FAST_MATCHED: ${{ env.PUBLIC_SYNC_FAST_MATCHED }}
+                  PUBLIC_SYNC_FAST_CURRENT_HEAD: ${{ env.PUBLIC_SYNC_FAST_CURRENT_HEAD }}
+                  PUBLIC_SYNC_FAST_DEPLOYED_COMMIT: ${{ env.PUBLIC_SYNC_FAST_DEPLOYED_COMMIT }}
+                  PUBLIC_SYNC_FAST_STATE: ${{ env.PUBLIC_SYNC_FAST_STATE }}
+                  PUBLIC_SYNC_FAST_HEALTHY: ${{ env.PUBLIC_SYNC_FAST_HEALTHY }}
                   JOB_STATUS: ${{ job.status }}
               with:
                   script: |
@@ -746,6 +839,11 @@ jobs:
                         `- turnero_pilot_fast_remote_verified: ${process.env.TURNERO_PILOT_FAST_REMOTE_VERIFIED || 'false'}`,
                         `- turnero_pilot_fast_deployed_commit: ${process.env.TURNERO_PILOT_FAST_DEPLOYED_COMMIT || 'n/a'}`,
                         `- turnero_pilot_fast_recovery_targets: ${process.env.TURNERO_PILOT_FAST_RECOVERY_TARGETS || 'n/a'}`,
+                        `- public_sync_commit_matched: ${process.env.PUBLIC_SYNC_FAST_MATCHED || 'n/a'}`,
+                        `- public_sync_current_head: ${process.env.PUBLIC_SYNC_FAST_CURRENT_HEAD || 'n/a'}`,
+                        `- public_sync_deployed_commit: ${process.env.PUBLIC_SYNC_FAST_DEPLOYED_COMMIT || 'n/a'}`,
+                        `- public_sync_state: ${process.env.PUBLIC_SYNC_FAST_STATE || 'n/a'}`,
+                        `- public_sync_healthy: ${process.env.PUBLIC_SYNC_FAST_HEALTHY || 'n/a'}`,
                         `- admin_rollout_outcome: ${process.env.ADMIN_ROLLOUT_OUTCOME || 'skipped'}`,
                         `- job_status: ${process.env.JOB_STATUS || 'n/a'}`
                       ].join('\n');

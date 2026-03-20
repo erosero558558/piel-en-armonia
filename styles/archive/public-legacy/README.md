@@ -7,6 +7,8 @@ Reglas:
 
 - Se conservan solo como referencia historica.
 - No forman parte del runtime publico ni admin activo.
+- El README conserva el inventario historico aunque el snapshot fisico ya no se
+  versione dentro del repo activo.
 - El runtime canonico usa `styles.css`, `styles-deferred.css`,
   `styles-critical.css`, `styles-astro.css`, `styles-telemedicina.css`,
   `admin-v3.css`, `queue-ops.css`, `queue-kiosk.css`, `queue-display.css`,

@@ -7,6 +7,9 @@ Reglas:
 
 - Se conservan por referencia historica.
 - No son fuentes de verdad operativa.
+- Para residuos efimeros o snapshots generados, este README puede quedar como
+  indice historico aunque el archivo fisico ya no se versione en el arbol
+  activo.
 - Para flujos activos usar `README.md`, `docs/OPERATIONS_INDEX.md`,
   `docs/public-v6-canonical-source.md`, `docs/ADMIN-UI-ROLLOUT.md` y
   `AGENTS.md`.

@@ -1,155 +1,115 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const {
+    expectNoLegacyPublicShell,
+    findLocaleSwitch,
+    gotoPublicRoute,
+    waitForBookingStatus,
+} = require('./helpers/public-v6');
 
-test.use({ serviceWorkers: 'block' });
+const HOME_CASES = [
+    {
+        route: '/es/',
+        bookingText: 'Reserva online en mantenimiento',
+        switchHref: '/en/',
+    },
+    {
+        route: '/en/',
+        bookingText: 'Online booking under maintenance',
+        switchHref: '/es/',
+    },
+];
 
-async function dismissCookieBannerIfVisible(page) {
-    const banner = page.locator('#cookieBanner');
-    if (await banner.isVisible().catch(() => false)) {
-        const rejectButton = page.locator('#cookieRejectBtn');
-        if (await rejectButton.isVisible().catch(() => false)) {
-            await rejectButton.click();
-            await expect(banner).toBeHidden();
+const HUB_CASES = [
+    {
+        route: '/es/servicios/',
+        bookingText: 'Reserva online en mantenimiento',
+    },
+    {
+        route: '/en/services/',
+        bookingText: 'Online booking under maintenance',
+    },
+];
+
+const SERVICE_AND_TELE_CASES = [
+    {
+        route: '/es/servicios/botox/',
+        bookingText: 'Reserva online en mantenimiento',
+    },
+    {
+        route: '/en/services/cancer-piel/',
+        bookingText: 'Online booking under maintenance',
+    },
+    {
+        route: '/es/telemedicina/',
+        bookingText: 'Reserva online en mantenimiento',
+    },
+    {
+        route: '/en/telemedicine/',
+        bookingText: 'Online booking under maintenance',
+    },
+];
+
+const LEGAL_CASES = [
+    {
+        route: '/es/legal/privacidad/',
+        switchHref: '/en/legal/privacy/',
+    },
+    {
+        route: '/en/legal/privacy/',
+        switchHref: '/es/legal/privacidad/',
+    },
+];
+
+test.describe('Public conversion contract V6', () => {
+    test('home and hub routes keep booking frozen and remove legacy hooks', async ({
+        page,
+    }) => {
+        for (const entry of HOME_CASES) {
+            await gotoPublicRoute(page, entry.route);
+            await waitForBookingStatus(page, entry.bookingText);
+            const switcher = await findLocaleSwitch(page);
+            await expect(switcher).toHaveAttribute('href', entry.switchHref);
+            await expectNoLegacyPublicShell(page);
         }
-    }
-}
 
-async function openPublicRoute(page, pathname) {
-    await page.goto(pathname);
-    await dismissCookieBannerIfVisible(page);
-}
-
-async function expectLegacyBookingShellAbsent(page) {
-    await expect(page.locator('script[data-data-bundle="true"]')).toHaveCount(
-        0
-    );
-    await expect(page.locator('#appointmentForm')).toHaveCount(0);
-    await expect(page.locator('#paymentModal')).toHaveCount(0);
-    await expect(page.locator('#chatbotWidget')).toHaveCount(0);
-}
-
-test.describe('Public funnel routing on current public-v6 entry flow', () => {
-    test.beforeEach(async ({ page }) => {
-        await page.addInitScript(() => {
-            localStorage.setItem(
-                'pa_cookie_consent_v1',
-                JSON.stringify({
-                    status: 'rejected',
-                    at: new Date().toISOString(),
-                })
-            );
-        });
+        for (const entry of HUB_CASES) {
+            await gotoPublicRoute(page, entry.route);
+            await expect(page.locator('[data-v6-page-head]')).toBeVisible();
+            await waitForBookingStatus(page, entry.bookingText);
+            await expectNoLegacyPublicShell(page);
+        }
     });
 
-    test('home keeps route selection, search, and WhatsApp fallback available while booking stays paused', async ({
+    test('service and telemedicine routes keep v6-booking-status as the active booking entry', async ({
         page,
     }) => {
-        await openPublicRoute(page, '/en/');
+        for (const entry of SERVICE_AND_TELE_CASES) {
+            await gotoPublicRoute(page, entry.route);
 
-        const newsStrip = page.locator('[data-v6-news-strip]');
-        await expect(newsStrip).toContainText(
-            'Message us on WhatsApp and we will help you place whether today calls for clinic, treatment, or teledermatology.'
-        );
-        await expect(newsStrip).toContainText('teledermatology');
+            const bookingLink = page
+                .locator('[data-v6-internal-rail] a[href="#v6-booking-status"]')
+                .first();
+            await expect(bookingLink).toBeVisible();
+            await bookingLink.click();
 
-        await page.locator('[data-v6-news-toggle]').click();
-        await expect(page.locator('[data-v6-news-panel]')).toBeVisible();
-        await expect(page.locator('[data-v6-news-panel]')).toContainText(
-            'Online booking is still under maintenance'
-        );
-        const specialtiesLink = page
-            .locator('[data-v6-news-panel]')
-            .getByRole('link', { name: 'Message on WhatsApp' });
-        await expect(specialtiesLink).toHaveAttribute(
-            'href',
-            /wa\.me\/593982453672/
-        );
-
-        const bookingStatus = page.locator('[data-v6-booking-status]');
-        await expect(bookingStatus).toContainText(
-            'Online booking under maintenance'
-        );
-        const whatsappLink = bookingStatus.getByRole('link', {
-            name: 'Message on WhatsApp',
-        });
-        await expect(whatsappLink).toHaveAttribute(
-            'href',
-            /wa\.me\/593982453672/
-        );
-
-        await page.locator('[data-v6-search-open]').first().click();
-        await expect(page.locator('[data-v6-search]')).toBeVisible();
-
-        const searchInput = page.locator('[data-v6-search-input]');
-        await searchInput.fill('tele');
-
-        const telemedicineResult = page.locator(
-            '[data-v6-search-results] a[href="/en/telemedicine/"]'
-        );
-        await expect(telemedicineResult).toBeVisible();
-        await expect(telemedicineResult).toContainText('Teledermatology');
-
-        await Promise.all([
-            page.waitForURL(/\/en\/telemedicine\/$/),
-            telemedicineResult.click(),
-        ]);
-
-        await expect(page).toHaveURL(/\/en\/telemedicine\/$/);
-        await expect(page.locator('h1')).toContainText(
-            'Dermatology telemedicine in Quito'
-        );
+            await expect(page).toHaveURL(/#v6-booking-status$/);
+            await waitForBookingStatus(page, entry.bookingText);
+            await expectNoLegacyPublicShell(page);
+        }
     });
 
-    test('service detail exposes the WhatsApp fallback instead of the legacy booking shell', async ({
+    test('legal surfaces preserve locale-safe navigation without reviving legacy booking UI', async ({
         page,
     }) => {
-        await openPublicRoute(page, '/en/services/acne-rosacea/');
+        for (const entry of LEGAL_CASES) {
+            await gotoPublicRoute(page, entry.route);
 
-        await expect(page.locator('h1')).toContainText('Acne and rosacea');
-        await expectLegacyBookingShellAbsent(page);
-
-        await page.locator('[data-v6-page-menu]').click();
-        const pageMenuPanel = page.locator('[data-v6-page-menu-panel]');
-        await expect(pageMenuPanel).toBeVisible();
-
-        await pageMenuPanel.getByRole('link', { name: 'Next step' }).click();
-        await expect(page).toHaveURL(/#v6-booking-status$/);
-
-        const bookingStatus = page.locator('[data-v6-booking-status]');
-        await expect(bookingStatus).toContainText(
-            'Online booking under maintenance'
-        );
-
-        const whatsappLink = bookingStatus.getByRole('link', {
-            name: 'Message on WhatsApp',
-        });
-        await expect(whatsappLink).toHaveAttribute(
-            'href',
-            /wa\.me\/593982453672/
-        );
-    });
-
-    test('telemedicine keeps WhatsApp as the public funnel handoff when direct examination is needed', async ({
-        page,
-    }) => {
-        await openPublicRoute(page, '/en/telemedicine/');
-
-        await expect(page.locator('h1')).toContainText(
-            'Dermatology telemedicine in Quito'
-        );
-        await expectLegacyBookingShellAbsent(page);
-
-        const bookingStatus = page.locator('[data-v6-booking-status]');
-        await expect(bookingStatus).toContainText(
-            'Online booking under maintenance'
-        );
-
-        const whatsappLink = bookingStatus.getByRole('link', {
-            name: 'Message on WhatsApp',
-        });
-        await expect(whatsappLink).toHaveAttribute(
-            'href',
-            /wa\.me\/593982453672/
-        );
+            await expect(page.locator('[data-v6-page-head]')).toBeVisible();
+            await expect(page.locator('[data-v6-internal-hero]')).toBeVisible();
+            const switcher = await findLocaleSwitch(page);
+            await expect(switcher).toHaveAttribute('href', entry.switchHref);
+            await expectNoLegacyPublicShell(page);
+        }
     });
 });

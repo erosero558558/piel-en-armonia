@@ -86,6 +86,47 @@ test('deploy-hosting exporta credenciales diagnostics al deploy y verify-remote'
     }
 });
 
+test('deploy-hosting deja staging canary en modo opt-in para workflow_run automatico', () => {
+    const { raw, parsed } = loadWorkflow();
+    const canaryEnv = parsed?.jobs?.['deploy-canary']?.env || {};
+    const prodEnv = parsed?.jobs?.['deploy-prod']?.env || {};
+
+    for (const envValue of [
+        canaryEnv.REQUIRE_STAGING_CANARY,
+        prodEnv.REQUIRE_STAGING_CANARY,
+    ]) {
+        assert.equal(
+            String(envValue || '').includes(
+                "github.event_name == 'workflow_dispatch'"
+            ),
+            true,
+            'require_staging_canary debe quedar estricto solo para workflow_dispatch por defecto'
+        );
+    }
+
+    for (const envValue of [
+        canaryEnv.ALLOW_PROD_WITHOUT_STAGING,
+        prodEnv.ALLOW_PROD_WITHOUT_STAGING,
+    ]) {
+        assert.equal(
+            String(envValue || '').includes("github.event_name == 'workflow_run'"),
+            true,
+            'allow_prod_without_staging debe flexibilizar workflow_run cuando staging no esta configurado'
+        );
+    }
+
+    for (const snippet of [
+        "(github.event_name == 'workflow_dispatch' && 'true') || 'false'",
+        "(github.event_name == 'workflow_run' && 'true') || 'false'",
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta fallback de politica canary por tipo de evento: ${snippet}`
+        );
+    }
+});
+
 test('deploy-hosting habilita permisos para dispatch de workflows', () => {
     const { parsed } = loadWorkflow();
     const permissions = parsed?.permissions || {};

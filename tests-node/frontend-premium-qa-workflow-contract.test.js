@@ -120,6 +120,36 @@ test('frontend premium QA publica contrato de aprobacion Public V3 en el summary
     );
 });
 
+test('frontend premium QA reconstruye rutas publicas con el build canonico', () => {
+    const { raw } = loadWorkflow();
+
+    assert.equal(
+        raw.includes('run: npm run build'),
+        true,
+        'frontend premium QA debe usar npm run build para reconstruir rutas publicas'
+    );
+    assert.equal(
+        raw.includes('npm run build:html'),
+        false,
+        'frontend premium QA no debe depender de build:html legacy'
+    );
+    assert.equal(
+        raw.includes('npm run services:build'),
+        false,
+        'frontend premium QA no debe depender de services:build legacy'
+    );
+    assert.equal(
+        raw.includes('npm run astro:build'),
+        false,
+        'frontend premium QA no debe duplicar astro:build fuera del build canonico'
+    );
+    assert.equal(
+        raw.includes('npm run astro:sync'),
+        false,
+        'frontend premium QA no debe duplicar astro:sync fuera del build canonico'
+    );
+});
+
 test('frontend premium QA observa cambios en contratos V4 de contenido, rollout y analytics', () => {
     const { raw } = loadWorkflow();
 

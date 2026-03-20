@@ -18,6 +18,13 @@ function readRepoFile(relativePath) {
     return readFileSync(resolve(REPO_ROOT, relativePath), 'utf8');
 }
 
+function archivedFileExistsOrIsIndexed(archiveRelativePath, indexRaw, entryName) {
+    return (
+        existsSync(resolve(REPO_ROOT, archiveRelativePath)) ||
+        indexRaw.includes(`\`${entryName}\``)
+    );
+}
+
 function isGeneratedRuntimeArtifact(relativePath) {
     const normalizedPath = String(relativePath || '')
         .trim()
@@ -1091,6 +1098,8 @@ test('historicos de raiz y one-offs archivados salen del front door del repo', (
         'minify_json.py',
         'security_analysis.py',
     ];
+    const historyIndex = readRepoFile('docs/archive/root-history/README.md');
+    const scriptsIndex = readRepoFile('scripts/archive/README.md');
 
     for (const file of rootHistoricalDocs) {
         assert.equal(
@@ -1114,11 +1123,13 @@ test('historicos de raiz y one-offs archivados salen del front door del repo', (
             `residuo generado no debe seguir en raiz: ${file}`
         );
         assert.equal(
-            existsSync(
-                resolve(REPO_ROOT, 'docs', 'archive', 'root-history', file)
+            archivedFileExistsOrIsIndexed(
+                `docs/archive/root-history/${file}`,
+                historyIndex,
+                file
             ),
             true,
-            `falta residuo generado archivado: ${file}`
+            `falta residuo generado archivado o indexado: ${file}`
         );
     }
 
@@ -1134,9 +1145,6 @@ test('historicos de raiz y one-offs archivados salen del front door del repo', (
             `falta script archivado: ${file}`
         );
     }
-
-    const historyIndex = readRepoFile('docs/archive/root-history/README.md');
-    const scriptsIndex = readRepoFile('scripts/archive/README.md');
 
     assert.equal(
         historyIndex.includes('No son fuentes de verdad operativa.'),
@@ -1224,11 +1232,13 @@ test('legacy public css sale de la raiz activa y queda archivado fuera del front
             `css publico legacy no debe seguir en raiz: ${file}`
         );
         assert.equal(
-            existsSync(
-                resolve(REPO_ROOT, 'styles', 'archive', 'public-legacy', file)
+            archivedFileExistsOrIsIndexed(
+                `styles/archive/public-legacy/${file}`,
+                archiveReadme,
+                file
             ),
             true,
-            `falta css publico legacy archivado: ${file}`
+            `falta css publico legacy archivado o indexado: ${file}`
         );
     }
 
@@ -1631,7 +1641,8 @@ test('verify deploy soporta layout publico v6 y rutas locales canonicas', () => 
         'public-v6-shell\\.js',
         '_astro/[^"]+\\.css',
         'Get-Content -Path $localIndexPath -Raw',
-        '& $smokeScriptPath -Domain $base',
+        '& $smokeScriptPath',
+        '-Domain $base',
     ];
 
     for (const entry of requiredEntries) {

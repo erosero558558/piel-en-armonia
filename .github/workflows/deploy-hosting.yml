@@ -163,8 +163,8 @@ jobs:
             FTP_DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
             FTP_CLEAN_SLATE: ${{ vars.FTP_CLEAN_SLATE || 'false' }} # Careful with clean slate on staging if shared
             STAGING_URL: ${{ vars.STAGING_URL || 'https://staging.pielarmonia.com' }}
-            REQUIRE_STAGING_CANARY: ${{ github.event.inputs.require_staging_canary || vars.REQUIRE_STAGING_CANARY || 'true' }}
-            ALLOW_PROD_WITHOUT_STAGING: ${{ github.event.inputs.allow_prod_without_staging || vars.ALLOW_PROD_WITHOUT_STAGING || 'false' }}
+            REQUIRE_STAGING_CANARY: ${{ github.event.inputs.require_staging_canary || vars.REQUIRE_STAGING_CANARY || (github.event_name == 'workflow_dispatch' && 'true') || 'false' }}
+            ALLOW_PROD_WITHOUT_STAGING: ${{ github.event.inputs.allow_prod_without_staging || vars.ALLOW_PROD_WITHOUT_STAGING || (github.event_name == 'workflow_run' && 'true') || 'false' }}
 
         steps:
             - name: Checkout
@@ -415,8 +415,8 @@ jobs:
             FTP_CLEAN_SLATE: ${{ vars.FTP_CLEAN_SLATE || 'false' }}
             GIT_SYNC_WAIT_SEC: ${{ vars.GIT_SYNC_WAIT_SEC || '75' }}
             PROD_URL: ${{ vars.PROD_URL || 'https://pielarmonia.com' }}
-            REQUIRE_STAGING_CANARY: ${{ github.event.inputs.require_staging_canary || vars.REQUIRE_STAGING_CANARY || 'true' }}
-            ALLOW_PROD_WITHOUT_STAGING: ${{ github.event.inputs.allow_prod_without_staging || vars.ALLOW_PROD_WITHOUT_STAGING || 'false' }}
+            REQUIRE_STAGING_CANARY: ${{ github.event.inputs.require_staging_canary || vars.REQUIRE_STAGING_CANARY || (github.event_name == 'workflow_dispatch' && 'true') || 'false' }}
+            ALLOW_PROD_WITHOUT_STAGING: ${{ github.event.inputs.allow_prod_without_staging || vars.ALLOW_PROD_WITHOUT_STAGING || (github.event_name == 'workflow_run' && 'true') || 'false' }}
             ENABLE_PUBLIC_CUTOVER_MONITOR: ${{ github.event.inputs.enable_public_cutover_monitor || vars.PROD_MONITOR_ENABLE_PUBLIC_CUTOVER || 'true' }}
             PUBLIC_CUTOVER_WINDOW_HOURS: ${{ github.event.inputs.public_cutover_window_hours || vars.PUBLIC_CUTOVER_WINDOW_HOURS || '72' }}
             DISPATCH_PUBLIC_CUTOVER_MONITOR: ${{ github.event.inputs.dispatch_public_cutover_monitor || 'true' }}

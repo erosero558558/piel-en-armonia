@@ -9,7 +9,7 @@ final class LeadOpsService
     private const OUTCOMES = ['', 'contactado', 'cita_cerrada', 'sin_respuesta', 'descartado'];
     private const PRIORITY_BANDS = ['hot', 'warm', 'cold'];
 
-    /** @var array<string,mixed>|null */
+    /** @var array{path:string,mtime:int,services:array<int,array<string,mixed>>}|null */
     private static ?array $catalogCache = null;
 
     public static function allowedObjectives(): array
@@ -621,13 +621,21 @@ final class LeadOpsService
 
     private static function serviceCatalog(): array
     {
-        if (self::$catalogCache !== null) {
-            return self::$catalogCache;
-        }
-
         $path = defined('TESTING_ENV') && TESTING_ENV === true && trim((string) getenv('PIELARMONIA_SERVICES_CATALOG_FILE')) !== ''
             ? trim((string) getenv('PIELARMONIA_SERVICES_CATALOG_FILE'))
             : __DIR__ . '/../content/services.json';
+        $mtime = is_file($path) ? (int) @filemtime($path) : 0;
+
+        if (
+            self::$catalogCache !== null
+            && self::$catalogCache['path'] === $path
+            && self::$catalogCache['mtime'] === $mtime
+        ) {
+            return [
+                'services' => self::$catalogCache['services'],
+            ];
+        }
+
         $decoded = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
         $services = [];
 
@@ -665,10 +673,14 @@ final class LeadOpsService
         }
 
         self::$catalogCache = [
+            'path' => $path,
+            'mtime' => $mtime,
             'services' => $services,
         ];
 
-        return self::$catalogCache;
+        return [
+            'services' => $services,
+        ];
     }
 
     private static function funnelSignals(?array $funnelMetrics): array

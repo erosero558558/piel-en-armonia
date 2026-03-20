@@ -162,6 +162,63 @@ test('post-deploy-fast incluye cierre de ciclo de incidente', () => {
     );
 });
 
+test('post-deploy-fast espera el commit publicado en public sync antes del gate', () => {
+    const { raw, parsed } = loadWorkflow();
+    const steps = parsed?.jobs?.['gate-fast']?.steps || [];
+    const stepNames = steps.map((step) => String(step?.name || ''));
+
+    assert.equal(
+        stepNames.includes('Esperar commit sincronizado en public sync'),
+        true,
+        'falta step para esperar el commit publicado en public sync'
+    );
+    assert.equal(
+        raw.includes('PUBLIC_SYNC_WAIT_TIMEOUT_FAST'),
+        true,
+        'falta env de timeout para esperar public sync en fast lane'
+    );
+    assert.equal(
+        raw.includes('PUBLIC_SYNC_POLL_INTERVAL_FAST'),
+        true,
+        'falta env de polling para esperar public sync en fast lane'
+    );
+    assert.equal(
+        raw.includes('api.php?resource=health'),
+        true,
+        'fast lane debe consultar health para esperar el commit publicado'
+    );
+    assert.equal(
+        raw.includes('$env:GITHUB_SHA'),
+        true,
+        'fast lane debe comparar public sync contra el sha del workflow'
+    );
+    assert.equal(
+        raw.includes('PUBLIC_SYNC_FAST_MATCHED'),
+        true,
+        'falta estado exportado de commit match en fast lane'
+    );
+    assert.equal(
+        raw.includes('PUBLIC_SYNC_FAST_CURRENT_HEAD'),
+        true,
+        'falta current head exportado de public sync en fast lane'
+    );
+    assert.equal(
+        raw.includes('PUBLIC_SYNC_FAST_DEPLOYED_COMMIT'),
+        true,
+        'falta deployed commit exportado de public sync en fast lane'
+    );
+    assert.equal(
+        raw.includes('Public sync commit matched:'),
+        true,
+        'falta trazabilidad del match de public sync en el summary fast lane'
+    );
+    assert.equal(
+        raw.includes('public_sync_commit_matched:'),
+        true,
+        'falta trazabilidad del match de public sync en el incidente fast lane'
+    );
+});
+
 test('post-deploy-fast integra gate admin rollout con resumen operativo', () => {
     const { raw, parsed } = loadWorkflow();
     const steps = parsed?.jobs?.['gate-fast']?.steps || [];
