@@ -321,6 +321,13 @@ test('commercial pack and banner expose readiness state', async () => {
         getElementById() {
             return null;
         },
+        createElement(tagName) {
+            return {
+                tagName: String(tagName || '').toUpperCase(),
+                id: '',
+                textContent: '',
+            };
+        },
         head: {
             appendChild() {},
         },
