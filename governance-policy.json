@@ -133,16 +133,16 @@
     "enforcement": {
         "branch_profiles": {
             "pull_request": {
-                "fail_on_red": "warn"
+                "fail_on_red": "error"
             },
             "main": {
-                "fail_on_red": "warn"
+                "fail_on_red": "error"
             },
             "staging": {
-                "fail_on_red": "warn"
+                "fail_on_red": "error"
             },
             "workflow_dispatch": {
-                "fail_on_red": "warn"
+                "fail_on_red": "error"
             }
         },
         "warning_policies": {
@@ -172,7 +172,7 @@
                 "enabled": true
             },
             "lease_expired_active": {
-                "severity": "warning",
+                "severity": "error",
                 "enabled": true
             },
             "heartbeat_stale": {
@@ -188,7 +188,7 @@
                 "enabled": true
             },
             "done_without_evidence": {
-                "severity": "warning",
+                "severity": "error",
                 "enabled": true
             },
             "retired_executor_active": {
@@ -240,7 +240,7 @@
                 "enabled": true
             },
             "required_check_unverified": {
-                "severity": "warning",
+                "severity": "error",
                 "enabled": true
             },
             "decision_overdue": {

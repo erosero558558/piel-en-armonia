@@ -622,6 +622,7 @@ function buildFocusSummary(board, options = {}) {
             (item) => item.state === 'unverified' || item.state === 'red'
         )
     ) {
+        summary.blocking_errors.push('required_check_unverified');
         summary.warnings.push('required_check_unverified');
     }
     if (summary.decisions.overdue > 0) {

@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const { existsSync, readFileSync, readdirSync } = require('fs');
 const { execFileSync, spawnSync } = require('child_process');
 const { resolve } = require('path');
+const workspaceHygiene = require('../bin/lib/workspace-hygiene.js');
 const {
     buildDeployBundleManifest,
 } = require('../bin/lib/deploy-bundle-contract.js');
@@ -157,6 +158,39 @@ test('gitignore permite versionar evidencia por tarea en verification/agent-runs
             `falta exception en .gitignore: ${entry}`
         );
     }
+});
+
+test('workspace-hygiene trata worktrees prunables como cleanup fixable y no como error fatal', () => {
+    const parsed = workspaceHygiene.parseWorktreeList(
+        [
+            'worktree /tmp/piel-prunable',
+            'HEAD 0123456789abcdef',
+            'branch refs/heads/tmp-prunable',
+            'prunable gitdir file points to non-existent location',
+            '',
+        ].join('\n')
+    );
+
+    assert.equal(parsed.length, 1);
+    assert.equal(parsed[0].prunable, true);
+    assert.match(parsed[0].prunable_reason, /non-existent location/i);
+
+    const diagnosis = workspaceHygiene.buildIssueDiagnosis([], {
+        issues: [
+            workspaceHygiene.buildIssueFromPaths(
+                workspaceHygiene.PRUNABLE_WORKTREE_CATEGORY,
+                ['/tmp/piel-prunable'],
+                { count: 1 }
+            ),
+        ],
+        forceRerun: true,
+    });
+
+    assert.equal(
+        diagnosis.overall_state,
+        workspaceHygiene.DOCTOR_STATE_FIXABLE
+    );
+    assert.equal(diagnosis.next_command, 'git worktree prune');
 });
 
 test('gitignore permite versionar el registry canonico de surfaces del turnero', () => {

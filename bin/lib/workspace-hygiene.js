@@ -54,6 +54,7 @@ const AUTHORED_CATEGORY = 'authored';
 const LEGACY_GENERATED_ROOT_CATEGORY = 'legacy_generated_root';
 const LEGACY_GENERATED_ROOT_DEINDEXED_CATEGORY =
     'legacy_generated_root_deindexed';
+const PRUNABLE_WORKTREE_CATEGORY = 'prunable_worktree';
 
 const SCOPE_RESOLUTION_MATCHED = 'matched';
 const SCOPE_RESOLUTION_AMBIGUOUS = 'ambiguous';
@@ -182,6 +183,7 @@ const ISSUE_CATEGORY_ORDER = [
     DEPLOY_BUNDLE_CATEGORY,
     LOCAL_ARTIFACT_CATEGORY,
     DERIVED_QUEUE_CATEGORY,
+    PRUNABLE_WORKTREE_CATEGORY,
 ];
 const ISSUE_CATEGORY_PRIORITY = new Map(
     ISSUE_CATEGORY_ORDER.map((category, index) => [category, index])
@@ -218,6 +220,12 @@ const REMEDIATION_STEP_DEFINITIONS = {
             'Confirma o aparta las eliminaciones staged del deindexado legacy antes de publicar o sincronizar.',
         command:
             'git commit -m "chore(frontend): deindex legacy generated root outputs"',
+    },
+    prune_worktrees: {
+        id: 'prune_worktrees',
+        summary:
+            'Limpia worktrees prunables que apuntan a gitdirs inexistentes sin tratarlos como drift authored.',
+        command: 'git worktree prune',
     },
     review_out_of_scope_authored: {
         id: 'review_out_of_scope_authored',
@@ -318,6 +326,16 @@ const ISSUE_CONFIG = {
             REMEDIATION_STEP_DEFINITIONS.commit_or_stash_legacy_deindex.command,
         summary(count) {
             return `Hay ${count} eliminacion(es) staged del deindexado legacy pendientes de commit o stash.`;
+        },
+    },
+    [PRUNABLE_WORKTREE_CATEGORY]: {
+        severity: ISSUE_SEVERITY_FIXABLE,
+        blocksPublish: false,
+        blocksSync: false,
+        blocksCi: false,
+        command: REMEDIATION_STEP_DEFINITIONS.prune_worktrees.command,
+        summary(count) {
+            return `Hay ${count} worktree(s) prunable(s) listos para limpiar con \`git worktree prune\`.`;
         },
     },
 };
@@ -541,6 +559,8 @@ function parseWorktreeList(raw) {
                 path: line.slice(9).trim(),
                 branch: '',
                 detached: false,
+                prunable: false,
+                prunable_reason: '',
             };
             continue;
         }
@@ -554,6 +574,11 @@ function parseWorktreeList(raw) {
         }
         if (line === 'detached') {
             current.detached = true;
+            continue;
+        }
+        if (line.startsWith('prunable')) {
+            current.prunable = true;
+            current.prunable_reason = line.slice('prunable'.length).trim();
         }
     }
 
@@ -2367,6 +2392,13 @@ function buildRemediationPlan(issues = [], _scopeContext = null, options = {}) {
         ? options.candidateTasks
         : [];
 
+    if (hasIssueCategory(issues, PRUNABLE_WORKTREE_CATEGORY)) {
+        pushRemediationStep(
+            plan,
+            REMEDIATION_STEP_DEFINITIONS.prune_worktrees
+        );
+    }
+
     if (hasEphemeralIssue(issues)) {
         pushRemediationStep(plan, REMEDIATION_STEP_DEFINITIONS.apply_safe);
     }
@@ -2722,6 +2754,13 @@ function toDoctorRowPayload(row, options = {}) {
         next_command: row.next_command,
     };
 
+    if (row.prunable) {
+        payload.prunable = true;
+    }
+    if (row.prunable_reason) {
+        payload.prunable_reason = row.prunable_reason;
+    }
+
     if (Array.isArray(row.removed) && row.removed.length > 0) {
         payload.removed = row.removed;
     }
@@ -2852,6 +2891,25 @@ function buildErrorRow(rootPath, branch, error) {
     };
 }
 
+function buildPrunableWorktreeRow(target = {}) {
+    const diagnosis = buildIssueDiagnosis([], {
+        issues: [
+            buildIssueFromPaths(PRUNABLE_WORKTREE_CATEGORY, [target.path], {
+                count: 1,
+            }),
+        ],
+        forceRerun: true,
+    });
+    return {
+        path: String(target.path || ''),
+        branch: String(target.branch || '(prunable)'),
+        dirtyEntries: [],
+        prunable: true,
+        prunable_reason: String(target.prunable_reason || '').trim(),
+        ...diagnosis,
+    };
+}
+
 function diagnoseWorktree(rootPath, options = {}) {
     const trackedLegacyPaths = Array.isArray(options.trackedLegacyPaths)
         ? options.trackedLegacyPaths
@@ -2962,8 +3020,13 @@ function collectWorkspaceDoctor(cwd, options = {}) {
     for (const target of targets) {
         const branch = target.detached
             ? '(detached)'
-            : target.branch || readCurrentBranch(target.path);
+            : target.branch ||
+              (target.prunable ? '(prunable)' : readCurrentBranch(target.path));
         try {
+            if (target.prunable) {
+                rows.push(buildPrunableWorktreeRow({ ...target, branch }));
+                continue;
+            }
             if (options.applySafe) {
                 rows.push(
                     fixWorkspace(target.path, {
@@ -3181,6 +3244,7 @@ module.exports = {
     LEGACY_GENERATED_ROOT_DEINDEXED_CATEGORY,
     LOCAL_ARTIFACT_CATEGORY,
     LOCAL_ARTIFACT_PATHS,
+    PRUNABLE_WORKTREE_CATEGORY,
     SCOPE_DISPOSITION_IN_SCOPE,
     SCOPE_DISPOSITION_NONE,
     SCOPE_DISPOSITION_OUT_OF_SCOPE,
@@ -3224,6 +3288,7 @@ module.exports = {
     listWorktrees,
     loadBoardForScope,
     normalizeMatchToken,
+    parseWorktreeList,
     parseGitStatusPorcelain,
     readDirtyEntries,
     resolveOverallState,

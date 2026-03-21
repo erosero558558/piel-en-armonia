@@ -349,10 +349,11 @@ async function handleBoardCommand(ctx) {
             },
             mergedDiagnostics
         );
+        report.ok = report.errors_count === 0;
         const strict = args.includes('--strict') || Boolean(flags.strict);
         if (wantsJson) {
             printJson(report);
-            if (strict && report.diagnostics.length > 0) {
+            if (strict && report.errors_count > 0) {
                 process.exitCode = 1;
             }
             return report;
@@ -364,9 +365,9 @@ async function handleBoardCommand(ctx) {
         for (const diag of report.diagnostics.slice(0, 20)) {
             console.log(`- ${diag.code}: ${diag.message}`);
         }
-        if (strict && report.diagnostics.length > 0) {
+        if (strict && report.errors_count > 0) {
             throw new Error(
-                `board doctor strict: findings=${report.diagnostics.length}`
+                `board doctor strict: errors=${report.errors_count}`
             );
         }
         return report;

@@ -10,6 +10,7 @@ function buildStatusRedExplanation(input = {}, deps = {}) {
         codexCheckReport,
         domainHealth,
         domainHealthHistory,
+        diagnostics,
     } = input;
     const { isExpired = () => true, toConflictJsonRecord = (item) => item } =
         deps;
@@ -38,6 +39,7 @@ function buildStatusRedExplanation(input = {}, deps = {}) {
     )
         ? domainHealthHistory.regressions.green_to_red
         : [];
+    const errorDiagnostics = getErrorDiagnostics(diagnostics);
 
     const blockers = [];
     const reasons = [];
@@ -58,6 +60,10 @@ function buildStatusRedExplanation(input = {}, deps = {}) {
         reasons.push(
             `domain_regression_green_to_red:${greenToRedRegressions.length}`
         );
+    }
+    if (errorDiagnostics.length > 0) {
+        blockers.push('diagnostics_error');
+        reasons.push(`diagnostics_error:${errorDiagnostics.length}`);
     }
     if (redDomains.length > 0) {
         reasons.push(
@@ -99,6 +105,7 @@ function buildStatusRedExplanation(input = {}, deps = {}) {
         codex_check_errors: Array.isArray(codexCheckReport?.errors)
             ? codexCheckReport.errors.slice(0, 10)
             : [],
+        error_diagnostics: errorDiagnostics.slice(0, 10),
         red_domains: redDomains.slice(0, 10).map((row) => ({
             domain: String(row.domain || ''),
             signal: String(row.signal || ''),
@@ -165,12 +172,22 @@ function makeDiagnostic(input = {}) {
     };
 }
 
+function isErrorDiagnostic(item) {
+    return String(item?.severity || '').trim().toLowerCase() === 'error';
+}
+
+function getErrorDiagnostics(diagnostics = []) {
+    return (Array.isArray(diagnostics) ? diagnostics : []).filter(
+        isErrorDiagnostic
+    );
+}
+
 function summarizeDiagnostics(diagnostics = []) {
     const list = Array.isArray(diagnostics) ? diagnostics : [];
     let warnings = 0;
     let errors = 0;
     for (const item of list) {
-        if (String(item?.severity || '').toLowerCase() === 'error') errors += 1;
+        if (isErrorDiagnostic(item)) errors += 1;
         else warnings += 1;
     }
     return {
@@ -934,6 +951,8 @@ module.exports = {
     buildPublicSyncFailureMessage,
     buildPublicSyncRepoHygieneMessage,
     makeDiagnostic,
+    isErrorDiagnostic,
+    getErrorDiagnostics,
     getWarnPolicyMap,
     warnPolicyEnabled,
     warnPolicySeverity,

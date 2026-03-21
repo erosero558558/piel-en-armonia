@@ -94,7 +94,8 @@ tasks:
     scope: docs
     files: ["README.md"]
     acceptance: "Fixture"
-    acceptance_ref: "README.md"
+    acceptance_ref: "verification/agent-runs/AG-001.md"
+    evidence_ref: "verification/agent-runs/AG-001.md"
     depends_on: []
     prompt: "Fixture"
     created_at: ${DATE}
@@ -146,6 +147,12 @@ Relacion con Operativo 2026:
     writeFileSync(
         join(dir, 'PLAN_MAESTRO_CODEX_2026.md'),
         `${plan.trim()}\n`,
+        'utf8'
+    );
+    mkdirSync(join(dir, 'verification', 'agent-runs'), { recursive: true });
+    writeFileSync(
+        join(dir, 'verification', 'agent-runs', 'AG-001.md'),
+        '# AG-001 fixture evidence\n',
         'utf8'
     );
 }
@@ -214,7 +221,8 @@ tasks:
     scope: docs
     files: ["README.md"]
     acceptance: "Fixture"
-    acceptance_ref: "README.md"
+    acceptance_ref: "verification/agent-runs/AG-001.md"
+    evidence_ref: "verification/agent-runs/AG-001.md"
     depends_on: []
     prompt: "Fixture"
     created_at: ${DATE}
@@ -229,7 +237,8 @@ tasks:
     scope: codex-governance
     files: ["AGENTS.md", "agent-orchestrator.js"]
     acceptance: "Fixture"
-    acceptance_ref: "PLAN_MAESTRO_CODEX_2026.md"
+    acceptance_ref: "verification/agent-runs/CDX-001.md"
+    evidence_ref: "verification/agent-runs/CDX-001.md"
     depends_on: []
     prompt: "Fixture"
     created_at: ${DATE}
@@ -295,6 +304,17 @@ decisions:
     opened_at: "2026-03-14"
     resolved_at: ""
 `,
+        'utf8'
+    );
+    mkdirSync(join(dir, 'verification', 'agent-runs'), { recursive: true });
+    writeFileSync(
+        join(dir, 'verification', 'agent-runs', 'AG-001.md'),
+        '# AG-001 fixture evidence\n',
+        'utf8'
+    );
+    writeFileSync(
+        join(dir, 'verification', 'agent-runs', 'CDX-001.md'),
+        '# CDX-001 fixture evidence\n',
         'utf8'
     );
 }
@@ -373,7 +393,8 @@ tasks:
     scope: docs
     files: ["README.md"]
     acceptance: "Fixture"
-    acceptance_ref: "README.md"
+    acceptance_ref: "verification/agent-runs/AG-001.md"
+    evidence_ref: "verification/agent-runs/AG-001.md"
     depends_on: []
     prompt: "Fixture"
     created_at: ${DATE}
@@ -389,6 +410,7 @@ tasks:
     files: ["src/apps/chat/engine.js"]
     acceptance: "Fixture"
     acceptance_ref: "verification/agent-runs/AG-002.md"
+    evidence_ref: "verification/agent-runs/AG-002.md"
     depends_on: []
     prompt: "Fixture"
     created_at: ${DATE}
@@ -440,6 +462,17 @@ Relacion con Operativo 2026:
     writeFileSync(
         join(dir, 'PLAN_MAESTRO_CODEX_2026.md'),
         `${plan.trim()}\n`,
+        'utf8'
+    );
+    mkdirSync(join(dir, 'verification', 'agent-runs'), { recursive: true });
+    writeFileSync(
+        join(dir, 'verification', 'agent-runs', 'AG-001.md'),
+        '# AG-001 fixture evidence\n',
+        'utf8'
+    );
+    writeFileSync(
+        join(dir, 'verification', 'agent-runs', 'AG-002.md'),
+        '# AG-002 fixture evidence\n',
         'utf8'
     );
 }

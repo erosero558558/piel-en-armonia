@@ -2369,7 +2369,28 @@ test('focus check no falla solo porque una estrategia activa todavia no declara 
     t.after(() => cleanupFixtureDir(dir));
 
     writeFixtureFiles(dir, {
-        board: boardForStrategyGuardFixture(),
+        board: `
+version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  revision: 0
+  updated_at: ${DATE}
+strategy:
+  active:
+    id: STRAT-2026-03-admin-operativo
+    title: "Admin operativo"
+    objective: "Cerrar admin operativo"
+    owner: ernesto
+    status: active
+    started_at: "2026-03-14"
+    review_due_at: "2026-03-21"
+    exit_criteria: ["uno"]
+    success_signal: "demo"
+    subfronts: []
+tasks:
+`,
         handoffs: baseHandoffs(),
         plan: basePlanWithStrategyBlock(),
     });
@@ -2688,9 +2709,23 @@ test('focus advance normaliza cola future-ready antes de escribir el nuevo next_
     prompt: "Fixture"
     created_at: ${DATE}
     updated_at: ${DATE}
-`),
+`, activeAdminStrategyYaml().replace(
+            'focus_required_checks: ["job:public_main_sync", "runtime:openclaw_chatgpt"]',
+            'focus_required_checks: ["job:public_main_sync"]'
+        )),
         handoffs: baseHandoffs(),
         plan: basePlanWithStrategyBlock(),
+    });
+    const nowIso = new Date().toISOString();
+    writePublicSyncJobsFixture(dir, {
+        state: 'success',
+        checked_at: nowIso,
+        last_success_at: nowIso,
+        current_head: 'abc1234',
+        remote_head: 'abc1234',
+        deployed_commit: 'abc1234',
+        last_error_at: '',
+        last_error_message: '',
     });
 
     const result = runCli(dir, [

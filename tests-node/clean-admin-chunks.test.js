@@ -4,6 +4,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
+    copyFileSync,
     mkdtempSync,
     mkdirSync,
     writeFileSync,
@@ -42,6 +43,19 @@ function runCleaner(rootPath, extraArgs = []) {
 
 function removeSandbox(path) {
     rmSync(path, { recursive: true, force: true });
+}
+
+function createScriptSandbox(prefix = 'admin-chunks-script-') {
+    const base = mkdtempSync(resolve(tmpdir(), prefix));
+    const binDir = resolve(base, 'bin');
+    const libDir = resolve(binDir, 'lib');
+    mkdirSync(libDir, { recursive: true });
+    copyFileSync(SCRIPT_PATH, resolve(binDir, 'clean-admin-chunks.js'));
+    copyFileSync(
+        resolve(REPO_ROOT, 'bin', 'lib', 'generated-site-root.js'),
+        resolve(libDir, 'generated-site-root.js')
+    );
+    return base;
 }
 
 test('clean-admin-chunks elimina solo chunks huerfanos con import graph recursivo', () => {
@@ -162,6 +176,48 @@ test('clean-admin-chunks dry-run reporta sin borrar archivos', () => {
         );
     } finally {
         removeSandbox(sandbox.base);
+    }
+});
+
+test('clean-admin-chunks usa fallback al root del repo cuando .generated/site-root no existe', () => {
+    const sandbox = createScriptSandbox();
+    try {
+        const chunksDir = resolve(sandbox, 'js', 'admin-chunks');
+        mkdirSync(chunksDir, { recursive: true });
+        writeFile(
+            resolve(sandbox, 'admin.js'),
+            "import('./js/admin-chunks/index-live.js');\n"
+        );
+        writeFile(
+            resolve(chunksDir, 'index-live.js'),
+            'export const live = true;\n'
+        );
+        writeFile(
+            resolve(chunksDir, 'stale.js'),
+            'export const stale = true;\n'
+        );
+
+        const result = spawnSync(
+            'node',
+            [resolve(sandbox, 'bin', 'clean-admin-chunks.js'), '--dry-run', '--strict'],
+            {
+                cwd: sandbox,
+                encoding: 'utf8',
+            }
+        );
+
+        assert.equal(
+            result.status,
+            0,
+            `el fallback al root publicado no debe fallar: ${result.stderr || result.stdout}`
+        );
+        assert.match(
+            result.stdout,
+            /DRY RUN/u,
+            'debe usar el root publicado del repo cuando aun no existe .generated/site-root'
+        );
+    } finally {
+        removeSandbox(sandbox);
     }
 });
 

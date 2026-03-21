@@ -8,7 +8,10 @@ const {
     unlinkSync,
 } = require('node:fs');
 const { relative, resolve } = require('node:path');
-const { GENERATED_SITE_ROOT } = require('./lib/generated-site-root.js');
+const {
+    GENERATED_SITE_ROOT,
+    REPO_ROOT,
+} = require('./lib/generated-site-root.js');
 
 function parseCliArgs(argv) {
     const options = {
@@ -50,10 +53,24 @@ function parseCliArgs(argv) {
     return options;
 }
 
+function resolveDefaultRoot() {
+    const generatedEntry = resolve(GENERATED_SITE_ROOT, 'admin.js');
+    if (existsSync(generatedEntry)) {
+        return GENERATED_SITE_ROOT;
+    }
+
+    const repoEntry = resolve(REPO_ROOT, 'admin.js');
+    if (existsSync(repoEntry)) {
+        return REPO_ROOT;
+    }
+
+    return GENERATED_SITE_ROOT;
+}
+
 const cli = parseCliArgs(process.argv.slice(2));
 const ROOT = cli.root
     ? resolve(process.cwd(), cli.root)
-    : GENERATED_SITE_ROOT;
+    : resolveDefaultRoot();
 const ADMIN_ENTRY = resolve(ROOT, 'admin.js');
 const ADMIN_CHUNKS_DIR = resolve(ROOT, 'js', 'admin-chunks');
 const MERGE_CONFLICT_MARKER_PATTERN = /^(<{7,}.*|={7,}|>{7,}.*)$/m;

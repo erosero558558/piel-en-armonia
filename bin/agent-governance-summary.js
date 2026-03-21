@@ -6,6 +6,7 @@ const { resolve, dirname } = require('path');
 const { spawnSync } = require('child_process');
 const coreFlags = require('../tools/agent-orchestrator/core/flags');
 const corePolicy = require('../tools/agent-orchestrator/core/policy');
+const domainDiagnostics = require('../tools/agent-orchestrator/domain/diagnostics');
 const domainMetrics = require('../tools/agent-orchestrator/domain/metrics');
 const { flags } = coreFlags.parseFlags(process.argv.slice(2));
 const ROOT = resolve(flags.root || resolve(__dirname, '..'));
@@ -50,10 +51,10 @@ const DEFAULT_GOVERNANCE_POLICY = {
     },
     enforcement: {
         branch_profiles: {
-            pull_request: { fail_on_red: 'warn' },
-            main: { fail_on_red: 'warn' },
-            staging: { fail_on_red: 'warn' },
-            workflow_dispatch: { fail_on_red: 'warn' },
+            pull_request: { fail_on_red: 'error' },
+            main: { fail_on_red: 'error' },
+            staging: { fail_on_red: 'error' },
+            workflow_dispatch: { fail_on_red: 'error' },
         },
         warning_policies: {
             active_broad_glob: { severity: 'warning', enabled: true },
@@ -69,11 +70,11 @@ const DEFAULT_GOVERNANCE_POLICY = {
             },
             policy_unknown_keys: { severity: 'warning', enabled: true },
             lease_missing_active: { severity: 'warning', enabled: true },
-            lease_expired_active: { severity: 'warning', enabled: true },
+            lease_expired_active: { severity: 'error', enabled: true },
             heartbeat_stale: { severity: 'warning', enabled: true },
             task_in_progress_stale: { severity: 'warning', enabled: true },
             task_blocked_stale: { severity: 'warning', enabled: true },
-            done_without_evidence: { severity: 'warning', enabled: true },
+            done_without_evidence: { severity: 'error', enabled: true },
             retired_executor_active: { severity: 'warning', enabled: true },
             public_main_sync_unconfigured: {
                 severity: 'warning',
@@ -101,7 +102,7 @@ const DEFAULT_GOVERNANCE_POLICY = {
                 enabled: true,
             },
             required_check_unverified: {
-                severity: 'warning',
+                severity: 'error',
                 enabled: true,
             },
             decision_overdue: { severity: 'warning', enabled: true },
@@ -559,6 +560,13 @@ function summarize(resultMap) {
         codexCheck,
         boardDoctor,
     ]);
+    const errorDiagnostics = domainDiagnostics.getErrorDiagnostics(
+        diagnosticsSummary.diagnostics
+    );
+
+    if (errorDiagnostics.length > 0) {
+        blockers.push('diagnostics_error');
+    }
 
     const baseReport = {
         version: 1,
@@ -594,6 +602,7 @@ function summarize(resultMap) {
         diagnostics: diagnosticsSummary.diagnostics,
         warnings_count: diagnosticsSummary.warnings_count,
         errors_count: diagnosticsSummary.errors_count,
+        error_diagnostics: errorDiagnostics.slice(0, 10),
         commands: resultMap,
     };
     return {
