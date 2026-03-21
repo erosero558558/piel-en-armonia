@@ -199,7 +199,11 @@ test('clean-admin-chunks usa fallback al root del repo cuando .generated/site-ro
 
         const result = spawnSync(
             'node',
-            [resolve(sandbox, 'bin', 'clean-admin-chunks.js'), '--dry-run', '--strict'],
+            [
+                resolve(sandbox, 'bin', 'clean-admin-chunks.js'),
+                '--dry-run',
+                '--strict',
+            ],
             {
                 cwd: sandbox,
                 encoding: 'utf8',
@@ -208,8 +212,8 @@ test('clean-admin-chunks usa fallback al root del repo cuando .generated/site-ro
 
         assert.equal(
             result.status,
-            0,
-            `el fallback al root publicado no debe fallar: ${result.stderr || result.stdout}`
+            1,
+            `el fallback al root publicado debe fallar en strict si detecta chunks stale: ${result.stderr || result.stdout}`
         );
         assert.match(
             result.stdout,

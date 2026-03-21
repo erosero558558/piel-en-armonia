@@ -28,6 +28,7 @@ function createRuntimeGovernanceCommands(ctx = {}) {
                 buildWarnFirstDiagnostics: ctx.buildWarnFirstDiagnostics,
                 parseBoard: ctx.parseBoard,
                 buildLiveFocusSummary: ctx.buildLiveFocusSummary,
+                loadMetricsSnapshot: ctx.loadMetricsSnapshot,
             });
         },
 
@@ -35,6 +36,7 @@ function createRuntimeGovernanceCommands(ctx = {}) {
             return ctx.handoffsCommandHandlers.handleHandoffsCommand({
                 args,
                 parseHandoffs: ctx.parseHandoffs,
+                loadMetricsSnapshot: ctx.loadMetricsSnapshot,
                 isExpired: ctx.isExpired,
                 attachDiagnostics: ctx.attachDiagnostics,
                 buildWarnFirstDiagnostics: ctx.buildWarnFirstDiagnostics,

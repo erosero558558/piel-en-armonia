@@ -710,7 +710,12 @@ test('agent-governance-summary genera JSON/Markdown y escribe artefactos', (t) =
     assert.equal(parsed.overall.ok, true);
     assert.equal(parsed.overall.signal, 'GREEN');
     assert.equal(Array.isArray(parsed.overall.reasons), true);
-    assert.match(parsed.overall.reasons.join(' | '), /stable/i);
+    assert.equal(parsed.overall.execution_state, 'DEGRADED');
+    assert.match(
+        parsed.overall.reasons.join(' | '),
+        /required_checks_pending|warnings:/i
+    );
+    assert.deepEqual(parsed.overall.domain_reasons, ['stable']);
     assert.equal(typeof parsed.overall.domain_weighted_score_pct, 'number');
     assert.equal(
         typeof parsed.overall.domain_weighted_score_global_pct,
@@ -774,11 +779,13 @@ test('agent-governance-summary genera JSON/Markdown y escribe artefactos', (t) =
     const writtenMd = readFileSync(mdPath, 'utf8');
     assert.equal(writtenJson.version, 1);
     assert.match(writtenMd, /^## Agent Governance Summary/m);
-    assert.match(writtenMd, /Overall:\s+OK/);
-    assert.match(writtenMd, /Semaforo:\s+`GREEN`/);
+    assert.match(writtenMd, /Overall:\s+DEGRADED/);
+    assert.match(writtenMd, /Execution state:\s+`DEGRADED`/);
+    assert.match(writtenMd, /Domain signal:\s+`GREEN`/);
     assert.match(writtenMd, /Score salud dominios \(priority\):/);
     assert.match(writtenMd, /Regresiones dominio GREEN->RED:/);
-    assert.match(writtenMd, /Razones:\s+`stable`/);
+    assert.match(writtenMd, /Razones:\s+`required_checks_pending`/);
+    assert.match(writtenMd, /Razones dominio:\s+`stable`/);
     assert.match(writtenMd, /Politicas:\s+strict=PASS/);
     assert.match(writtenMd, /Diagnostics warn-first:/);
     assert.match(writtenMd, /Delta vs Baseline \(Conflicts\/Handoffs\)/);
@@ -892,6 +899,48 @@ test('agent-governance-summary conserva operator_auth green y public_main_sync g
         /Focus checks:\s+`job:public_main_sync`=green, `runtime:operator_auth`=green/
     );
     assert.doesNotMatch(result.stdout, /runtime:operator_auth`=unverified/);
+});
+
+test('agent-governance-summary acepta operator_auth green cuando mode y recommendedMode coinciden fuera de OpenClaw', async (t) => {
+    const dir = createFixtureDir();
+    const runtimeServer = await startRuntimeFixtureServer({
+        operatorPayload: {
+            mode: 'google_oauth',
+            recommendedMode: 'google_oauth',
+            configured: true,
+            status: 'anonymous',
+        },
+    });
+    t.after(async () => {
+        await runtimeServer.close();
+        cleanupFixtureDir(dir);
+    });
+    writeFixtureFilesWithStrategy(dir, {
+        runtimeRequiredCheck: 'runtime:operator_auth',
+    });
+    writePublicSyncJobsFixture(dir);
+
+    const envPatch = {
+        OPENCLAW_RUNTIME_BASE_URL: runtimeServer.baseUrl,
+    };
+    const result = await runSummaryAsync(dir, ['--format', 'json'], envPatch);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const parsed = JSON.parse(result.stdout);
+    for (const payload of [
+        parsed.status.focus,
+        parsed.board_doctor.focus_summary,
+        parsed.metrics.focus_summary,
+    ]) {
+        assert.equal(payload.required_checks_ok, true);
+        assert.equal(
+            payload.required_checks.some(
+                (item) =>
+                    item.id === 'runtime:operator_auth' &&
+                    item.state === 'green'
+            ),
+            true
+        );
+    }
 });
 
 test('agent-governance-summary alerta regresion de dominio GREEN->RED en PR summary', (t) => {
@@ -1056,7 +1105,7 @@ test('agent-governance-summary lee governance-policy.json para umbral de semafor
 
     assert.equal(parsed.overall.signal, 'YELLOW');
     assert.ok(
-        parsed.overall.reasons.some((reason) =>
+        parsed.overall.domain_reasons.some((reason) =>
             String(reason).startsWith('domain_score_priority:')
         )
     );

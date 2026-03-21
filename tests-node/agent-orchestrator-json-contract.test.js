@@ -1992,6 +1992,33 @@ test('board doctor no emite metrics_baseline_missing cuando existe baseline expl
             ),
             false
         );
+
+        const handoffsStatus = runJson(dir, ['handoffs', 'status']);
+        assertVersionLike(handoffsStatus.version);
+        assert.equal(
+            handoffsStatus.diagnostics.some(
+                (diag) => diag.code === 'warn.metrics.baseline_missing'
+            ),
+            false
+        );
+
+        const handoffsLint = runJson(dir, ['handoffs', 'lint']);
+        assertVersionLike(handoffsLint.version);
+        assert.equal(
+            handoffsLint.diagnostics.some(
+                (diag) => diag.code === 'warn.metrics.baseline_missing'
+            ),
+            false
+        );
+
+        const policyLint = runJson(dir, ['policy', 'lint']);
+        assertVersionLike(policyLint.version);
+        assert.equal(
+            policyLint.diagnostics.some(
+                (diag) => diag.code === 'warn.metrics.baseline_missing'
+            ),
+            false
+        );
     } finally {
         cleanupFixtureDir(dir);
     }

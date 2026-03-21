@@ -102,9 +102,10 @@ const DEFAULT_GOVERNANCE_POLICY = {
                 enabled: true,
             },
             required_check_unverified: {
-                severity: 'error',
+                severity: 'warning',
                 enabled: true,
             },
+            support_only_active: { severity: 'warning', enabled: true },
             decision_overdue: { severity: 'warning', enabled: true },
             rework_without_reason: {
                 severity: 'warning',
@@ -194,29 +195,13 @@ function runOrchestratorJson(args) {
     };
 }
 
-function computeHealthSignal({
-    blockers,
-    deltaSummary,
-    handoffStatus,
-    conflicts,
-    domainHealth,
-    domainHealthHistory,
-}) {
+function computeDomainSignal({ domainHealth, domainHealthHistory }) {
     const governancePolicy = getGovernancePolicy();
     const domainPriorityYellowThreshold = Number(
         governancePolicy?.summary?.thresholds
             ?.domain_score_priority_yellow_below ?? 80
     );
     const reasons = [];
-    const blockingConflicts = Number(conflicts?.totals?.blocking ?? 0);
-    const blockingDelta = Number(deltaSummary?.conflicts_blocking?.delta ?? 0);
-    const handoffConflicts = Number(
-        deltaSummary?.conflicts_handoff?.current ?? 0
-    );
-    const handoffDelta = Number(deltaSummary?.conflicts_handoff?.delta ?? 0);
-    const activeExpiredHandoffs = Number(
-        handoffStatus?.summary?.active_expired ?? 0
-    );
     const priorityDomainScore = Number(
         domainHealth?.scoring?.priority_weighted_score_pct ?? NaN
     );
@@ -228,22 +213,22 @@ function computeHealthSignal({
     )
         ? domainHealthHistory.regressions.green_to_red
         : [];
+    const redDomains = Array.isArray(domainHealth?.ranking)
+        ? domainHealth.ranking.filter(
+              (row) => String(row.signal || '') === 'RED'
+          )
+        : [];
 
-    if (Array.isArray(blockers) && blockers.length > 0) {
-        reasons.push(`blockers:${blockers.join(',')}`);
-    }
-    if (blockingConflicts > 0) {
-        reasons.push(`blocking_conflicts:${blockingConflicts}`);
-    }
-    if (blockingDelta > 0) {
-        reasons.push(`blocking_conflicts_delta:+${blockingDelta}`);
-    }
     if (greenToRedRegressions.length > 0) {
         reasons.push(
             `domain_regression_green_to_red:${greenToRedRegressions.length}`
         );
     }
-
+    if (redDomains.length > 0) {
+        reasons.push(
+            `domain_red:${redDomains.map((row) => String(row.domain)).join(',')}`
+        );
+    }
     if (reasons.length > 0) {
         return {
             signal: 'RED',
@@ -258,16 +243,6 @@ function computeHealthSignal({
                 : null,
             domain_regression_green_to_red: greenToRedRegressions.length,
         };
-    }
-
-    if (activeExpiredHandoffs > 0) {
-        reasons.push(`handoffs_active_expired:${activeExpiredHandoffs}`);
-    }
-    if (handoffConflicts > 0) {
-        reasons.push(`handoff_conflicts:${handoffConflicts}`);
-    }
-    if (handoffDelta > 0) {
-        reasons.push(`handoff_conflicts_delta:+${handoffDelta}`);
     }
     if (
         Number.isFinite(priorityDomainScore) &&
@@ -305,6 +280,66 @@ function computeHealthSignal({
     };
 }
 
+function computeExecutionState({
+    blockers = [],
+    diagnosticsSummary = { warnings_count: 0, errors_count: 0 },
+    status = {},
+}) {
+    const blockedTasks = Number(status?.totals?.byStatus?.blocked ?? 0);
+    const focus = status?.focus || {};
+    const externalBlockerTaskIds = Array.isArray(focus.external_blocker_task_ids)
+        ? focus.external_blocker_task_ids
+        : [];
+    const acknowledgedExternalBlocker =
+        Boolean(focus.acknowledged_external_blocker) ||
+        externalBlockerTaskIds.length > 0;
+    const reasons = [];
+
+    if (Array.isArray(blockers) && blockers.length > 0) {
+        reasons.push(`blockers:${blockers.join(',')}`);
+    }
+    if (diagnosticsSummary.errors_count > 0) {
+        reasons.push(`diagnostics_error:${diagnosticsSummary.errors_count}`);
+    }
+    if (acknowledgedExternalBlocker) {
+        reasons.push(
+            `acknowledged_external_blocker:${externalBlockerTaskIds.join(',')}`
+        );
+    } else if (blockedTasks > 0) {
+        reasons.push(`blocked_tasks:${blockedTasks}`);
+    }
+
+    let state = 'READY';
+    if (reasons.length > 0) {
+        state = 'BLOCKED';
+    } else if (
+        diagnosticsSummary.warnings_count > 0 ||
+        focus.required_checks_ok === false ||
+        focus.support_only === true
+    ) {
+        state = 'DEGRADED';
+        if (focus.required_checks_ok === false) {
+            reasons.push('required_checks_pending');
+        }
+        if (focus.support_only === true) {
+            reasons.push('support_only_active');
+        }
+        if (diagnosticsSummary.warnings_count > 0) {
+            reasons.push(`warnings:${diagnosticsSummary.warnings_count}`);
+        }
+    } else {
+        reasons.push('ready');
+    }
+
+    return {
+        state,
+        reasons,
+        blocked_tasks: blockedTasks,
+        acknowledged_external_blocker: acknowledgedExternalBlocker,
+        external_blocker_task_ids: externalBlockerTaskIds,
+    };
+}
+
 function getContributionSignal(row) {
     return domainMetrics.getContributionSignal(row);
 }
@@ -325,13 +360,70 @@ function buildContributionDeltaMap(metrics) {
 }
 
 function collectDiagnostics(sources) {
-    const out = [];
+    const grouped = new Map();
     for (const source of sources) {
         const list = Array.isArray(source?.diagnostics)
             ? source.diagnostics
             : [];
-        for (const item of list) out.push(item);
+        for (const item of list) {
+            const code = String(item?.code || '').trim();
+            const message = String(item?.message || '').trim();
+            const severity = String(item?.severity || 'warning')
+                .trim()
+                .toLowerCase();
+            const scope = String(item?.scope || 'structural')
+                .trim()
+                .toLowerCase();
+            const key = [code, message, severity, scope].join('\u0000');
+            const nextSources = Array.isArray(item?.sources)
+                ? item.sources
+                : [String(item?.source || '').trim()].filter(Boolean);
+            if (!grouped.has(key)) {
+                grouped.set(key, {
+                    ...item,
+                    scope,
+                    severity,
+                    source: String(item?.source || '').trim(),
+                    sources: Array.from(new Set(nextSources)),
+                });
+                continue;
+            }
+            const existing = grouped.get(key);
+            existing.sources = Array.from(
+                new Set([...(existing.sources || []), ...nextSources])
+            );
+            if (Array.isArray(item?.task_ids) && item.task_ids.length > 0) {
+                existing.task_ids = Array.from(
+                    new Set([
+                        ...(existing.task_ids || []),
+                        ...item.task_ids.map((value) => String(value || '')),
+                    ])
+                );
+            }
+            if (
+                Array.isArray(item?.handoff_ids) &&
+                item.handoff_ids.length > 0
+            ) {
+                existing.handoff_ids = Array.from(
+                    new Set([
+                        ...(existing.handoff_ids || []),
+                        ...item.handoff_ids.map((value) =>
+                            String(value || '')
+                        ),
+                    ])
+                );
+            }
+            if (Array.isArray(item?.files) && item.files.length > 0) {
+                existing.files = Array.from(
+                    new Set([
+                        ...(existing.files || []),
+                        ...item.files.map((value) => String(value || '')),
+                    ])
+                );
+            }
+        }
     }
+    const out = Array.from(grouped.values());
     let warnings = 0;
     let errors = 0;
     for (const item of out) {
@@ -406,7 +498,9 @@ function buildRedExplanation(report) {
 
     return {
         version: 1,
-        signal: String(report?.overall?.signal || 'n/a'),
+        signal: String(
+            report?.overall?.domain_signal || report?.overall?.signal || 'n/a'
+        ),
         blockers: Array.isArray(report?.overall?.blockers)
             ? report.overall.blockers
             : [],
@@ -543,14 +637,6 @@ function summarize(resultMap) {
         },
     };
 
-    const health = computeHealthSignal({
-        blockers,
-        deltaSummary,
-        handoffStatus,
-        conflicts,
-        domainHealth,
-        domainHealthHistory,
-    });
     const diagnosticsSummary = collectDiagnostics([
         status,
         conflicts,
@@ -563,20 +649,43 @@ function summarize(resultMap) {
     const errorDiagnostics = domainDiagnostics.getErrorDiagnostics(
         diagnosticsSummary.diagnostics
     );
-
-    if (errorDiagnostics.length > 0) {
-        blockers.push('diagnostics_error');
+    if (errorDiagnostics.length > 0) blockers.push('diagnostics_error');
+    const execution = computeExecutionState({
+        blockers,
+        diagnosticsSummary,
+        status,
+    });
+    if (
+        execution.acknowledged_external_blocker &&
+        !blockers.includes('acknowledged_external_blocker')
+    ) {
+        blockers.push('acknowledged_external_blocker');
+    } else if (
+        execution.blocked_tasks > 0 &&
+        !blockers.includes('blocked_active_task')
+    ) {
+        blockers.push('blocked_active_task');
     }
+    const health = computeDomainSignal({
+        domainHealth,
+        domainHealthHistory,
+    });
 
     const baseReport = {
         version: 1,
         generated_at: new Date().toISOString(),
         root: ROOT,
         overall: {
-            ok: blockers.length === 0,
+            ok: execution.state !== 'BLOCKED',
             blockers,
             signal: health.signal,
-            reasons: health.reasons,
+            domain_signal: health.signal,
+            domain_reasons: health.reasons,
+            execution_state: execution.state,
+            reasons: execution.reasons,
+            acknowledged_external_blocker:
+                execution.acknowledged_external_blocker,
+            external_blocker_task_ids: execution.external_blocker_task_ids,
             domain_weighted_score_pct: health.domain_weighted_score_pct,
             domain_weighted_score_global_pct:
                 health.domain_weighted_score_global_pct,
@@ -646,8 +755,15 @@ function toMarkdown(report) {
     lines.push('## Agent Governance Summary');
     lines.push('');
     lines.push(`- Generated: \`${report.generated_at}\``);
-    lines.push(`- Overall: ${report.overall.ok ? 'OK' : 'BLOCKED'}`);
-    lines.push(`- Semaforo: \`${report.overall.signal || 'n/a'}\``);
+    lines.push(
+        `- Overall: ${report.overall.execution_state || (report.overall.ok ? 'READY' : 'BLOCKED')}`
+    );
+    lines.push(
+        `- Execution state: \`${report.overall.execution_state || 'n/a'}\``
+    );
+    lines.push(
+        `- Domain signal: \`${report.overall.domain_signal || report.overall.signal || 'n/a'}\``
+    );
     lines.push(
         `- Diagnostics warn-first: warnings=\`${report.warnings_count ?? 0}\`, errors=\`${report.errors_count ?? 0}\``
     );
@@ -675,6 +791,21 @@ function toMarkdown(report) {
                 : 'none'
         }`
     );
+    lines.push(
+        `- Razones dominio: ${
+            Array.isArray(report.overall.domain_reasons) &&
+            report.overall.domain_reasons.length > 0
+                ? report.overall.domain_reasons
+                      .map((r) => `\`${r}\``)
+                      .join(', ')
+                : 'none'
+        }`
+    );
+    if (report.overall.acknowledged_external_blocker) {
+        lines.push(
+            `- Acknowledged external blocker: \`${report.overall.acknowledged_external_blocker}\`${Array.isArray(report.overall.external_blocker_task_ids) && report.overall.external_blocker_task_ids.length > 0 ? ` (${report.overall.external_blocker_task_ids.map((id) => `\`${id}\``).join(', ')})` : ''}`
+        );
+    }
     if (report.policies) {
         lines.push(
             `- Politicas: strict=${report.policies.strict?.pass ? 'PASS' : 'FAIL'} (${report.policies.strict?.reason || 'n/a'}), fail_on_red=${report.policies.fail_on_red?.pass ? 'PASS' : 'FAIL'} (${report.policies.fail_on_red?.reason || 'n/a'})`
@@ -884,6 +1015,9 @@ function toMarkdown(report) {
             `- Focus: \`${status.focus.configured.id}\` (${status.focus.configured.title || 'sin titulo'}) | next_step=\`${status.focus.configured.next_step || 'n/a'}\` | aligned=\`${status.focus.aligned_tasks ?? 0}\`/\`${status.focus.active_tasks_total ?? 0}\` | slices=\`${status.focus.distinct_active_slices ?? 0}\``
         );
         lines.push(
+            `- Focus progress: forward=\`${status.focus.forward_tasks_total ?? 0}\`, support=\`${status.focus.support_tasks_total ?? 0}\`, support_only=\`${status.focus.support_only === true}\`, release_ready=\`${status.focus.release_ready === true}\``
+        );
+        lines.push(
             `- Focus checks: ${
                 Array.isArray(status.focus.required_checks) &&
                 status.focus.required_checks.length > 0
@@ -938,6 +1072,9 @@ function toMarkdown(report) {
         if (boardDoctor.focus_summary?.configured) {
             lines.push(
                 `- Focus doctor: \`${boardDoctor.focus_summary.configured.id}\` | next_step=\`${boardDoctor.focus_summary.configured.next_step || 'n/a'}\` | aligned=\`${boardDoctor.focus_summary.aligned_tasks ?? 0}\`/\`${boardDoctor.focus_summary.active_tasks_total ?? 0}\` | slices=\`${boardDoctor.focus_summary.distinct_active_slices ?? 0}\` | decisions_overdue=\`${boardDoctor.focus_summary.decisions?.overdue ?? 0}\``
+            );
+            lines.push(
+                `- Focus doctor progress: forward=\`${boardDoctor.focus_summary.forward_tasks_total ?? 0}\`, support=\`${boardDoctor.focus_summary.support_tasks_total ?? 0}\`, support_only=\`${boardDoctor.focus_summary.support_only === true}\`, release_ready=\`${boardDoctor.focus_summary.release_ready === true}\``
             );
         }
         if (boardDoctor.evidence_summary) {
@@ -994,8 +1131,12 @@ function toMarkdown(report) {
     if (Array.isArray(report.diagnostics) && report.diagnostics.length > 0) {
         lines.push('### Warn-first Diagnostics');
         for (const diag of report.diagnostics.slice(0, 20)) {
+            const diagSources =
+                Array.isArray(diag.sources) && diag.sources.length > 0
+                    ? diag.sources.join(', ')
+                    : diag.source || 'n/a';
             lines.push(
-                `- [${String(diag.severity || 'warning').toUpperCase()}] \`${diag.code || 'unknown'}\` (${diag.source || 'n/a'}): ${diag.message || ''}`
+                `- [${String(diag.severity || 'warning').toUpperCase()}][${String(diag.scope || 'structural').toUpperCase()}] \`${diag.code || 'unknown'}\` (${diagSources}): ${diag.message || ''}`
             );
         }
         lines.push('');

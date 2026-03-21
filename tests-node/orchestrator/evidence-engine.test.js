@@ -101,3 +101,33 @@ test('evidence-engine clasifica refs faltantes', () => {
     assert.equal(row.reason, 'missing_refs');
     assert.equal(row.has_refs, false);
 });
+
+test('evidence-engine clasifica evidencia reconstruida como deuda no definitiva', () => {
+    const rootDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), 'evidence-reconstructed-')
+    );
+    writeText(
+        path.join(rootDir, 'verification', 'agent-runs', 'AG-005.md'),
+        [
+            '# AG-005 — Reconstructed Evidence',
+            '',
+            'Reconstructed on 2026-03-21 because the canonical evidence file was missing.',
+            '',
+        ].join('\n')
+    );
+
+    const row = evidence.analyzeTerminalTaskEvidence(
+        {
+            id: 'AG-005',
+            status: 'done',
+            evidence_ref: 'verification/agent-runs/AG-005.md',
+            acceptance_ref: 'verification/agent-runs/AG-005.md',
+        },
+        { rootDir }
+    );
+
+    assert.equal(row.expected_exists, true);
+    assert.equal(row.refs_aligned, true);
+    assert.equal(row.reason, 'reconstructed_evidence');
+    assert.equal(row.debt, true);
+});

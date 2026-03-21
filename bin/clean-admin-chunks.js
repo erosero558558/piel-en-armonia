@@ -253,7 +253,7 @@ function main() {
         log(
             `[admin-chunks] DRY RUN. Se eliminarian ${staleChunks.length} chunk(s): ${staleChunks.join(', ')}`
         );
-        process.exit(0);
+        process.exit(strict ? 1 : 0);
     }
 
     let deleted = 0;

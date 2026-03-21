@@ -1,6 +1,6 @@
 'use strict';
 
-const { existsSync } = require('fs');
+const { existsSync, readFileSync } = require('fs');
 const { relative, resolve } = require('path');
 
 const TERMINAL_STATUSES = new Set(['done', 'failed']);
@@ -55,6 +55,7 @@ function expectedEvidenceRef(taskId, options = {}) {
 
 function analyzeTerminalTaskEvidence(task, options = {}, deps = {}) {
     const fileExists = deps.existsSync || existsSync;
+    const fileRead = deps.readFileSync || readFileSync;
     const rootDir = resolve(String(options.rootDir || process.cwd()));
     const status = normalizeTaskStatus(task);
     const taskId = String(task?.id || '').trim();
@@ -80,6 +81,10 @@ function analyzeTerminalTaskEvidence(task, options = {}, deps = {}) {
         reason = 'missing_expected_file';
     } else if (!refsAligned) {
         reason = 'noncanonical_ref';
+    } else if (
+        isReconstructedEvidencePath(expectedPath, { fileExists, fileRead })
+    ) {
+        reason = 'reconstructed_evidence';
     }
 
     return {
@@ -98,6 +103,23 @@ function analyzeTerminalTaskEvidence(task, options = {}, deps = {}) {
         acceptance_ref_exists: acceptanceRefExists,
         has_refs: Boolean(evidenceRef || acceptanceRef),
     };
+}
+
+function isReconstructedEvidencePath(filePath, deps = {}) {
+    const fileExists = deps.existsSync || existsSync;
+    const fileRead = deps.readFileSync || readFileSync;
+    if (!filePath || !fileExists(filePath)) {
+        return false;
+    }
+    try {
+        const source = String(fileRead(filePath, 'utf8') || '');
+        return (
+            source.includes('Reconstructed Evidence') ||
+            source.includes('Reconstructed on ')
+        );
+    } catch {
+        return false;
+    }
 }
 
 function buildTerminalEvidenceReport(tasks = [], options = {}, deps = {}) {
@@ -129,6 +151,9 @@ function buildTerminalEvidenceReport(tasks = [], options = {}, deps = {}) {
             noncanonical_count: rows.filter(
                 (row) => row.reason === 'noncanonical_ref'
             ).length,
+            reconstructed_count: rows.filter(
+                (row) => row.reason === 'reconstructed_evidence'
+            ).length,
             debt_count: debtRows.length,
             sample_task_ids: debtRows
                 .slice(
@@ -148,6 +173,7 @@ function buildTerminalEvidenceMeta(row) {
         reason: row.reason,
         evidence_ref: row.evidence_ref,
         acceptance_ref: row.acceptance_ref,
+        reconstructed_evidence: row.reason === 'reconstructed_evidence',
     };
 }
 
@@ -163,6 +189,8 @@ function buildTerminalEvidenceMessage(row, options = {}) {
         message = `${taskLabel} sin archivo de evidencia canónico (${expectedLabel})`;
     } else if (row.reason === 'noncanonical_ref') {
         message = `${taskLabel} con refs no canónicos (expected ${expectedLabel})`;
+    } else if (row.reason === 'reconstructed_evidence') {
+        message = `${taskLabel} con evidencia reconstruida y no definitiva (${expectedLabel})`;
     }
 
     if (options.includeRefs === true && row.reason !== 'aligned') {
@@ -186,6 +214,7 @@ module.exports = {
     isTerminalTaskStatus,
     expectedEvidenceRef,
     analyzeTerminalTaskEvidence,
+    isReconstructedEvidencePath,
     buildTerminalEvidenceReport,
     buildTerminalEvidenceMeta,
     buildTerminalEvidenceMessage,

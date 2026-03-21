@@ -155,11 +155,55 @@ function isBroadGlobPath(file) {
     );
 }
 
+function inferDiagnosticScope(code, source = '') {
+    const safeCode = String(code || '')
+        .trim()
+        .toLowerCase();
+    const safeSource = String(source || '')
+        .trim()
+        .toLowerCase();
+    if (
+        safeCode.includes('workspace') ||
+        safeCode.includes('artifact') ||
+        safeCode.includes('admin_chunk') ||
+        safeSource.includes('workspace')
+    ) {
+        return 'workspace';
+    }
+    if (
+        safeCode === 'warn.focus.required_check_unverified' ||
+        safeCode === 'warn.publish.live_verification_pending' ||
+        safeCode.startsWith('warn.jobs.public_main_sync')
+    ) {
+        return 'release';
+    }
+    if (
+        safeCode === 'warn.focus.support_only_active' ||
+        safeCode.includes('handoff.expiring_soon') ||
+        safeCode.includes('lease') ||
+        safeCode.includes('stale')
+    ) {
+        return 'operational';
+    }
+    return 'structural';
+}
+
 function makeDiagnostic(input = {}) {
+    const scope = String(
+        input.scope || inferDiagnosticScope(input.code, input.source)
+    )
+        .trim()
+        .toLowerCase();
     return {
         code: String(input.code || 'warn.unknown'),
         severity: String(input.severity || 'warning'),
         source: String(input.source || 'governance'),
+        scope:
+            scope === 'workspace' ||
+            scope === 'operational' ||
+            scope === 'release'
+                ? scope
+                : 'structural',
         message: String(input.message || ''),
         ...(Array.isArray(input.task_ids) ? { task_ids: input.task_ids } : {}),
         ...(Array.isArray(input.handoff_ids)
@@ -225,65 +269,16 @@ function getPublicSyncWarnState(
     return { enabled: false, severity: 'warning' };
 }
 
-function getPublicSyncDetails(job = {}) {
-    if (job && typeof job.details === 'object' && job.details) {
-        return job.details;
-    }
-    return {};
-}
-
-function getPublicSyncHttpStatus(job = {}) {
-    const httpStatus = Number.parseInt(
-        getPublicSyncDetails(job).http_status,
-        10
-    );
-    return Number.isFinite(httpStatus) && httpStatus > 0 ? httpStatus : null;
-}
-
-function getPublicSyncResponseDetail(job = {}) {
-    return String(getPublicSyncDetails(job).response_detail || '').trim();
-}
-
-function getPublicSyncRecoveryAction(job = {}) {
-    const failureReason = String(job.failure_reason || '').trim();
-    if (failureReason === 'health_missing_public_sync') {
-        return 'deploy_health_public_sync_rollout';
-    }
-    if (/^health_http_\d+$/i.test(failureReason)) {
-        return 'recover_public_health_route';
-    }
-    return '';
-}
-
-function hasPublicSyncActionableSnapshot(job = {}) {
-    if (!job || typeof job !== 'object') {
-        return false;
-    }
-    if (job.verified !== false) {
-        return true;
-    }
-    if (job.configured === false) {
-        return false;
-    }
-    return Boolean(
-        String(job.failure_reason || job.last_error_message || '').trim() ||
-        String(job.state || '').trim() === 'failed'
-    );
-}
-
 function buildPublicSyncDiagnosticMeta(job = {}) {
     return {
         failure_reason: String(job.failure_reason || ''),
         last_error_message: String(job.last_error_message || ''),
         verification_source: String(job.verification_source || ''),
-        recovery_action: getPublicSyncRecoveryAction(job),
         state: String(job.state || ''),
         operationally_healthy: Boolean(job.operationally_healthy),
         repo_hygiene_issue: Boolean(job.repo_hygiene_issue),
         head_drift: Boolean(job.head_drift),
         telemetry_gap: Boolean(job.telemetry_gap),
-        http_status: getPublicSyncHttpStatus(job),
-        response_detail: getPublicSyncResponseDetail(job),
         current_head: String(job.current_head || ''),
         remote_head: String(job.remote_head || ''),
         dirty_paths_count: Number.isFinite(Number(job.dirty_paths_count))
@@ -301,16 +296,11 @@ function buildPublicSyncFailureMessage(job = {}) {
         `source=${job.verification_source || 'unknown'}`,
     ];
     const failureReason = String(job.failure_reason || '').trim();
-    const recoveryAction = getPublicSyncRecoveryAction(job);
-    const httpStatus = getPublicSyncHttpStatus(job);
     if (failureReason) {
         parts.push(`reason=${failureReason}`);
-    }
-    if (recoveryAction) {
-        parts.push(`action=${recoveryAction}`);
-    }
-    if (httpStatus) {
-        parts.push(`http_status=${httpStatus}`);
+        if (failureReason === 'health_missing_public_sync') {
+            parts.push('action=deploy_health_public_sync_rollout');
+        }
     }
     if (job.head_drift) {
         parts.push('head_drift=true');
@@ -729,6 +719,7 @@ function buildWarnFirstDiagnostics(input = {}) {
                         warnPolicyMap,
                         'required_check_unverified'
                     ),
+                    scope: 'release',
                     source,
                     message: `Required checks del foco no estan verdes: ${pendingChecks
                         .map((item) => {
@@ -744,6 +735,31 @@ function buildWarnFirstDiagnostics(input = {}) {
                 })
             );
         }
+    }
+    if (
+        warnPolicyEnabled(warnPolicyMap, 'support_only_active') &&
+        resolvedFocusSummary.support_only
+    ) {
+        diagnostics.push(
+            makeDiagnostic({
+                code: 'warn.focus.support_only_active',
+                severity: warnPolicySeverity(
+                    warnPolicyMap,
+                    'support_only_active'
+                ),
+                scope: 'operational',
+                source,
+                message: `Foco activo solo tiene trabajo support (${resolvedFocusSummary.support_tasks_total || 0}/${resolvedFocusSummary.active_tasks_total || 0})`,
+                meta: {
+                    active_tasks_total:
+                        resolvedFocusSummary.active_tasks_total || 0,
+                    support_tasks_total:
+                        resolvedFocusSummary.support_tasks_total || 0,
+                    forward_tasks_total:
+                        resolvedFocusSummary.forward_tasks_total || 0,
+                },
+            })
+        );
     }
     if (
         warnPolicyEnabled(warnPolicyMap, 'decision_overdue') &&
@@ -805,7 +821,7 @@ function buildWarnFirstDiagnostics(input = {}) {
         hasJobsSnapshot &&
         publicSyncJob &&
         warnPolicyEnabled(warnPolicyMap, 'public_main_sync_stale') &&
-        hasPublicSyncActionableSnapshot(publicSyncJob) &&
+        publicSyncJob.verified !== false &&
         publicSyncJob.age_seconds !== null &&
         publicSyncJob.age_seconds >
             Number(publicSyncJob.expected_max_lag_seconds || 0)
@@ -826,7 +842,7 @@ function buildWarnFirstDiagnostics(input = {}) {
         hasJobsSnapshot &&
         publicSyncJob &&
         warnPolicyEnabled(warnPolicyMap, 'public_main_sync_failed') &&
-        hasPublicSyncActionableSnapshot(publicSyncJob) &&
+        publicSyncJob.verified !== false &&
         !publicSyncJob.healthy
     ) {
         diagnostics.push(
@@ -851,7 +867,7 @@ function buildWarnFirstDiagnostics(input = {}) {
         hasJobsSnapshot &&
         publicSyncJob &&
         repoHygieneWarning.enabled &&
-        hasPublicSyncActionableSnapshot(publicSyncJob) &&
+        publicSyncJob.verified !== false &&
         publicSyncJob.repo_hygiene_issue
     ) {
         diagnostics.push(
@@ -873,7 +889,7 @@ function buildWarnFirstDiagnostics(input = {}) {
         hasJobsSnapshot &&
         publicSyncJob &&
         headDriftWarning.enabled &&
-        hasPublicSyncActionableSnapshot(publicSyncJob) &&
+        publicSyncJob.verified !== false &&
         !publicSyncJob.healthy &&
         publicSyncJob.head_drift
     ) {
@@ -896,7 +912,7 @@ function buildWarnFirstDiagnostics(input = {}) {
         hasJobsSnapshot &&
         publicSyncJob &&
         telemetryGapWarning.enabled &&
-        hasPublicSyncActionableSnapshot(publicSyncJob) &&
+        publicSyncJob.verified !== false &&
         !publicSyncJob.healthy &&
         publicSyncJob.telemetry_gap
     ) {
@@ -1005,6 +1021,7 @@ module.exports = {
     buildPublicSyncFailureMessage,
     buildPublicSyncRepoHygieneMessage,
     makeDiagnostic,
+    inferDiagnosticScope,
     isErrorDiagnostic,
     getErrorDiagnostics,
     getWarnPolicyMap,

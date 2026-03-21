@@ -44,10 +44,31 @@ const LANE_ALLOWED_SLICES = {
     ]),
 };
 
+const ACKNOWLEDGED_EXTERNAL_BLOCKED_REASON_PATTERNS = [
+    /no_host_access/i,
+    /host_.*502/i,
+    /host_.*unreachable/i,
+    /host_side_runtime_mismatch/i,
+    /operator_auth.*502/i,
+    /publicsync.*no_host_access/i,
+    /remote_verification_pending/i,
+];
+
 function normalizeOptionalToken(value) {
     return String(value || '')
         .trim()
         .toLowerCase();
+}
+
+function isAcknowledgedExternalBlockedTask(task = {}) {
+    if (normalizeOptionalToken(task?.status) !== 'blocked') {
+        return false;
+    }
+    const blockedReason = String(task?.blocked_reason || '').trim();
+    if (!blockedReason) return false;
+    return ACKNOWLEDGED_EXTERNAL_BLOCKED_REASON_PATTERNS.some((pattern) =>
+        pattern.test(blockedReason)
+    );
 }
 
 function normalizeArray(values, options = {}) {
@@ -326,6 +347,35 @@ function findRuntimeSurfaceDiagnostic(runtimeVerification, target) {
     );
 }
 
+function isOperatorAuthRecommendedModeHealthy(surface = {}) {
+    const target = normalizeOptionalToken(surface?.surface);
+    if (target !== 'operator_auth') {
+        return false;
+    }
+    if (Number(surface?.http_status || 0) >= 400) {
+        return false;
+    }
+    const status = normalizeOptionalToken(surface?.status);
+    if (!status || status === 'operator_auth_not_configured') {
+        return false;
+    }
+    const mode = normalizeOptionalToken(surface?.mode);
+    const details =
+        surface?.details && typeof surface.details === 'object'
+            ? surface.details
+            : {};
+    const recommendedMode = normalizeOptionalToken(
+        details.recommendedMode || details.recommended_mode
+    );
+    if (!mode || !recommendedMode || mode !== recommendedMode) {
+        return false;
+    }
+    if (details.configured === false || surface.configured === false) {
+        return false;
+    }
+    return true;
+}
+
 function evaluateRuntimeRequiredCheck(check, runtimeVerification) {
     if (!runtimeVerification) {
         return {
@@ -368,6 +418,15 @@ function evaluateRuntimeRequiredCheck(check, runtimeVerification) {
             state: 'unverified',
             ok: false,
             message: `runtime ${check.target} no verificado`,
+        };
+    }
+
+    if (isOperatorAuthRecommendedModeHealthy(surface)) {
+        return {
+            ...check,
+            state: 'green',
+            ok: true,
+            message: `runtime ${check.target} healthy`,
         };
     }
 
@@ -498,6 +557,18 @@ function hasRuntimeRequiredCheck(value = {}) {
     return checks.some((item) => item.startsWith('runtime:'));
 }
 
+function listPendingRequiredChecks(summary = {}) {
+    return Array.isArray(summary?.required_checks)
+        ? summary.required_checks.filter(
+              (item) => item?.state === 'unverified' || item?.state === 'red'
+          )
+        : [];
+}
+
+function hasPendingRequiredChecks(summary = {}) {
+    return listPendingRequiredChecks(summary).length > 0;
+}
+
 function buildFocusSummary(board, options = {}) {
     const activeStatuses = options.activeStatuses || ACTIVE_TASK_STATUSES;
     const decisionsData =
@@ -527,6 +598,13 @@ function buildFocusSummary(board, options = {}) {
         active: activeFocus,
         active_tasks_total: activeTasks.length,
         aligned_tasks: 0,
+        forward_tasks_total: 0,
+        support_tasks_total: 0,
+        blocked_tasks_total: 0,
+        blocked_task_ids: [],
+        acknowledged_external_blocker: false,
+        external_blocker_task_ids: [],
+        support_only: false,
         idle: Boolean(activeFocus) && activeTasks.length === 0,
         active_slices: [],
         active_steps: [],
@@ -547,7 +625,9 @@ function buildFocusSummary(board, options = {}) {
         },
         required_checks: [],
         required_checks_ok: false,
+        release_ready: false,
         blocking_errors: [],
+        release_blocking_errors: [],
         warnings: [],
     };
 
@@ -557,12 +637,28 @@ function buildFocusSummary(board, options = {}) {
 
     for (const task of activeTasks) {
         const taskId = String(task.id || '');
+        const taskStatus = String(task.status || '')
+            .trim()
+            .toLowerCase();
         const workType = String(task.work_type || '')
             .trim()
             .toLowerCase();
         if (workType) {
             summary.work_type_counts[workType] =
                 Number(summary.work_type_counts[workType] || 0) + 1;
+        }
+        if (workType === 'forward') {
+            summary.forward_tasks_total += 1;
+        }
+        if (workType === 'support') {
+            summary.support_tasks_total += 1;
+        }
+        if (taskStatus === 'blocked') {
+            summary.blocked_tasks_total += 1;
+            summary.blocked_task_ids.push(taskId);
+            if (isAcknowledgedExternalBlockedTask(task)) {
+                summary.external_blocker_task_ids.push(taskId);
+            }
         }
         if (!task.focus_id || !task.focus_step || !task.integration_slice) {
             summary.missing_focus_task_ids.push(taskId);
@@ -603,6 +699,12 @@ function buildFocusSummary(board, options = {}) {
     summary.active_steps = uniqueSteps;
     summary.distinct_active_slices = uniqueSlices.length;
     summary.distinct_active_steps = uniqueSteps.length;
+    summary.support_only =
+        activeTasks.length > 0 &&
+        summary.support_tasks_total === activeTasks.length &&
+        summary.forward_tasks_total === 0;
+    summary.acknowledged_external_blocker =
+        summary.external_blocker_task_ids.length > 0;
     summary.too_many_active_slices =
         uniqueSlices.length >
         normalizeFocusMaxActiveSlices(focus.max_active_slices);
@@ -667,12 +769,21 @@ function buildFocusSummary(board, options = {}) {
             (item) => item.state === 'unverified' || item.state === 'red'
         )
     ) {
-        summary.blocking_errors.push('required_check_unverified');
+        summary.release_blocking_errors.push('required_check_unverified');
         summary.warnings.push('required_check_unverified');
+    }
+    if (summary.support_only) {
+        summary.warnings.push('support_only_active');
     }
     if (summary.decisions.overdue > 0) {
         summary.warnings.push('decision_overdue');
     }
+    summary.release_ready =
+        summary.active_tasks_total > 0 &&
+        summary.aligned_tasks === summary.active_tasks_total &&
+        summary.required_checks_ok &&
+        !summary.support_only &&
+        summary.blocking_errors.length === 0;
 
     return summary;
 }
@@ -780,7 +891,10 @@ module.exports = {
     validateTaskFocusAlignment,
     evaluateRequiredChecks,
     hasRuntimeRequiredCheck,
+    listPendingRequiredChecks,
+    hasPendingRequiredChecks,
     buildFocusSummary,
     buildLiveFocusSummary,
     buildFocusSeed,
+    isAcknowledgedExternalBlockedTask,
 };

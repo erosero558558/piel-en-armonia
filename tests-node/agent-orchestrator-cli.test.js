@@ -2310,6 +2310,70 @@ tasks:
     );
 });
 
+test('status acepta operator_auth green cuando el modo publicado coincide con recommendedMode', async (t) => {
+    const dir = createFixtureDir();
+    const runtimeServer = await startRuntimeFixtureServer({
+        operatorPayload: {
+            mode: 'google_oauth',
+            recommendedMode: 'google_oauth',
+            configured: true,
+            status: 'anonymous',
+        },
+    });
+    t.after(async () => {
+        await runtimeServer.close();
+        cleanupFixtureDir(dir);
+    });
+
+    writeFixtureFiles(dir, {
+        board: `
+version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  revision: 0
+  updated_at: ${DATE}
+${activeAdminStrategyYaml().replace('runtime:openclaw_chatgpt', 'runtime:operator_auth').trim()}
+tasks:
+`.trim(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithStrategyBlock(),
+    });
+    const nowIso = new Date().toISOString();
+    writePublicSyncJobsFixture(dir, {
+        state: 'success',
+        checked_at: nowIso,
+        last_success_at: nowIso,
+        last_error_at: '',
+        last_error_message: '',
+        deployed_commit: 'abc1234',
+        current_head: 'abc1234',
+        remote_head: 'abc1234',
+    });
+
+    const json = parseJsonStdout(
+        await runCliWithEnvAsync(dir, ['status', '--json'], {
+            OPENCLAW_RUNTIME_BASE_URL: runtimeServer.baseUrl,
+        })
+    );
+
+    const runtimeCheck = json.focus.required_checks.find(
+        (item) => item.id === 'runtime:operator_auth'
+    );
+    assert.equal(runtimeCheck.state, 'green');
+    assert.equal(runtimeCheck.ok, true);
+    assert.equal(json.focus.required_checks_ok, true);
+    assert.equal(
+        json.diagnostics.some(
+            (item) =>
+                item.code === 'warn.focus.required_check_unverified' &&
+                /runtime:operator_auth/.test(String(item.message || ''))
+        ),
+        false
+    );
+});
+
 test('focus check bloquea drift estructural cuando una tarea activa no declara slice', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
@@ -2677,7 +2741,8 @@ test('focus advance normaliza cola future-ready antes de escribir el nuevo next_
     t.after(() => cleanupFixtureDir(dir));
 
     writeFixtureFiles(dir, {
-        board: boardForBoardSyncFixture(`
+        board: boardForBoardSyncFixture(
+            `
   - id: AG-255
     title: "Frontend future slice"
     owner: deck
@@ -2709,10 +2774,12 @@ test('focus advance normaliza cola future-ready antes de escribir el nuevo next_
     prompt: "Fixture"
     created_at: ${DATE}
     updated_at: ${DATE}
-`, activeAdminStrategyYaml().replace(
-            'focus_required_checks: ["job:public_main_sync", "runtime:openclaw_chatgpt"]',
-            'focus_required_checks: ["job:public_main_sync"]'
-        )),
+`,
+            activeAdminStrategyYaml().replace(
+                'focus_required_checks: ["job:public_main_sync", "runtime:openclaw_chatgpt"]',
+                'focus_required_checks: ["job:public_main_sync"]'
+            )
+        ),
         handoffs: baseHandoffs(),
         plan: basePlanWithStrategyBlock(),
     });
@@ -3173,23 +3240,38 @@ test('task claim/start soportan blocked_reason y evitan blocked sin contexto', (
     );
 });
 
-test('task start --release-publish fija el preset de excepcion formal de release', (t) => {
+test('task start --release-publish fija el preset de excepcion formal de release', async (t) => {
     const dir = createFixtureDir();
-    t.after(() => cleanupFixtureDir(dir));
+    const runtimeServer = await startRuntimeFixtureServer();
+    t.after(async () => {
+        await runtimeServer.close();
+        cleanupFixtureDir(dir);
+    });
 
     writeFixtureFiles(dir, {
         board: boardForReleasePublishFixture(),
         handoffs: baseHandoffs(),
         plan: basePlanWithStrategyBlock(),
     });
+    const nowIso = new Date().toISOString();
+    writePublicSyncJobsFixture(dir, {
+        state: 'success',
+        checked_at: nowIso,
+        last_success_at: nowIso,
+        last_error_at: '',
+        last_error_message: '',
+        deployed_commit: 'abc1234',
+        current_head: 'abc1234',
+        remote_head: 'abc1234',
+    });
 
-    const result = runCli(dir, [
-        'task',
-        'start',
-        'AG-256',
-        '--release-publish',
-        '--json',
-    ]);
+    const result = await runCliWithEnvAsync(
+        dir,
+        ['task', 'start', 'AG-256', '--release-publish', '--json'],
+        {
+            OPENCLAW_RUNTIME_BASE_URL: runtimeServer.baseUrl,
+        }
+    );
     const json = parseJsonStdout(result);
 
     assert.equal(json.ok, true);

@@ -75,6 +75,7 @@ async function handleHandoffsCommand(ctx) {
     const {
         args,
         parseHandoffs,
+        loadMetricsSnapshot,
         isExpired,
         attachDiagnostics,
         buildWarnFirstDiagnostics,
@@ -102,6 +103,10 @@ async function handleHandoffsCommand(ctx) {
         !firstArg || firstArg.startsWith('--') ? 'status' : firstArg;
     const wantsJson = args.includes('--json');
     const handoffData = parseHandoffs();
+    const metricsSnapshot =
+        typeof loadMetricsSnapshot === 'function'
+            ? loadMetricsSnapshot()
+            : null;
 
     if (subcommand === 'status') {
         const board =
@@ -141,6 +146,7 @@ async function handleHandoffsCommand(ctx) {
                 handoffData,
                 focusSummary: focusData?.summary || null,
                 jobsSnapshot: focusData?.jobs || null,
+                metricsSnapshot,
             })
         );
         if (wantsJson) {
@@ -177,6 +183,7 @@ async function handleHandoffsCommand(ctx) {
                 handoffData,
                 focusSummary: focusData?.summary || null,
                 jobsSnapshot: focusData?.jobs || null,
+                metricsSnapshot,
             })
         );
         if (wantsJson) {
