@@ -1,39 +1,61 @@
-'use strict';
+const fs = require("fs");
+const path = require("path");
 
-const fs = require('fs');
-const path = require('path');
-
-function manifestPath() {
-    return path.resolve(__dirname, '../../../data/flow-os/manifest.v1.json');
-}
+const MANIFEST_PATH = path.resolve(
+  __dirname,
+  "../../../data/flow-os/manifest.v1.json"
+);
 
 function loadFlowOsManifest() {
-    const raw = fs.readFileSync(manifestPath(), 'utf8');
-    const manifest = JSON.parse(raw);
+  let parsed;
 
-    if (
-        !Array.isArray(manifest.journeyStages) ||
-        !manifest.journeyStages.length
-    ) {
-        throw new Error('Flow OS manifest sin journeyStages');
+  try {
+    parsed = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf8"));
+  } catch (error) {
+    throw new Error(
+      `Unable to load Flow OS manifest at ${MANIFEST_PATH}: ${error.message}`
+    );
+  }
+
+  if (!Number.isFinite(parsed.version)) {
+    throw new Error("Flow OS manifest is invalid: version must be numeric.");
+  }
+
+  if (!Array.isArray(parsed.journeyStages) || parsed.journeyStages.length === 0) {
+    throw new Error(
+      "Flow OS manifest is invalid: journeyStages must be a non-empty array."
+    );
+  }
+
+  const knownStageIds = new Set();
+
+  for (const stage of parsed.journeyStages) {
+    if (!stage || typeof stage.id !== "string" || stage.id.length === 0) {
+      throw new Error("Flow OS manifest is invalid: every stage needs a non-empty id.");
     }
 
-    const ids = new Set();
-    for (const stage of manifest.journeyStages) {
-        const stageId = String(stage && stage.id ? stage.id : '').trim();
-        if (!stageId) {
-            throw new Error('Flow OS manifest tiene un stage sin id');
-        }
-        if (ids.has(stageId)) {
-            throw new Error(`Flow OS manifest repite stage id: ${stageId}`);
-        }
-        ids.add(stageId);
+    if (knownStageIds.has(stage.id)) {
+      throw new Error(`Flow OS manifest is invalid: duplicate stage id "${stage.id}".`);
     }
 
-    return manifest;
+    knownStageIds.add(stage.id);
+  }
+
+  for (const stage of parsed.journeyStages) {
+    const allowedNext = Array.isArray(stage.allowedNext) ? stage.allowedNext : [];
+
+    for (const nextStageId of allowedNext) {
+      if (!knownStageIds.has(nextStageId)) {
+        throw new Error(
+          `Flow OS manifest is invalid: stage "${stage.id}" references unknown next stage "${nextStageId}".`
+        );
+      }
+    }
+  }
+
+  return parsed;
 }
 
 module.exports = {
-    loadFlowOsManifest,
-    manifestPath,
+  loadFlowOsManifest
 };

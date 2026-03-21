@@ -1,140 +1,42 @@
-'use strict';
+const { loadFlowOsManifest } = require("./load-manifest.js");
 
-const { loadFlowOsManifest } = require('./load-manifest.js');
+function getStageMap() {
+  const manifest = loadFlowOsManifest();
 
-const manifest = loadFlowOsManifest();
-const stageMap = new Map(
+  return new Map(
     manifest.journeyStages.map((stage) => [stage.id, stage])
-);
-
-function getJourneyStage(stageId) {
-    const normalized = String(stageId || '').trim();
-    return stageMap.get(normalized) || null;
+  );
 }
 
-function listJourneyStages() {
-    return manifest.journeyStages.slice();
+function canTransition(fromStage, toStage) {
+  const stageMap = getStageMap();
+  const currentStage = stageMap.get(fromStage);
+
+  if (!currentStage || !stageMap.has(toStage)) {
+    return false;
+  }
+
+  return currentStage.allowedNext.includes(toStage);
 }
 
-function resolveNextActions(stageId, context = {}) {
-    const stage = getJourneyStage(stageId);
-    if (!stage) {
-        return [];
-    }
+function summarizeJourney(stageId) {
+  const stageMap = getStageMap();
+  const stage = stageMap.get(stageId);
 
-    const baseActions = Array.isArray(manifest.defaultActions?.[stage.id])
-        ? manifest.defaultActions[stage.id]
-        : [];
+  if (!stage) {
+    throw new Error(`Unknown Flow OS journey stage: ${stageId}`);
+  }
 
-    const actions = baseActions.map((actionId) => ({
-        id: actionId,
-        actor: stage.owner,
-        stage: stage.id,
-    }));
-
-    if (context.redFlagDetected === true) {
-        return [
-            {
-                id: 'manual_review_required',
-                actor: 'clinician',
-                stage: stage.id,
-                priority: 'critical',
-            },
-        ];
-    }
-
-    if (context.missingIdentity === true) {
-        return [
-            {
-                id: 'request_identity_completion',
-                actor: 'frontdesk',
-                stage: stage.id,
-                priority: 'high',
-            },
-        ];
-    }
-
-    return actions;
-}
-
-function canTransition(fromStageId, toStageId) {
-    const fromStage = getJourneyStage(fromStageId);
-    if (!fromStage) return false;
-    return Array.isArray(fromStage.next) && fromStage.next.includes(toStageId);
-}
-
-function buildDelegationPlan(stageId, context = {}) {
-    const stage = getJourneyStage(stageId);
-    if (!stage) {
-        return [];
-    }
-
-    switch (stage.id) {
-        case 'intake_completed':
-            return [
-                {
-                    worker: 'intake-triage-worker',
-                    goal: 'summarize_intake_and_priority',
-                    model: 'gpt-5.4-mini',
-                },
-            ];
-        case 'scheduled':
-            return [
-                {
-                    worker: 'appointment-worker',
-                    goal: 'confirm_appointment_and_prepare_chart',
-                    model: 'gpt-5.4-mini',
-                },
-            ];
-        case 'care_plan_ready':
-            return [
-                {
-                    worker: 'followup-worker',
-                    goal: 'open_followup_loop',
-                    model: 'gpt-5.4-mini',
-                },
-                {
-                    worker: 'documentation-worker',
-                    goal: 'package_care_plan_summary',
-                    model: 'gpt-5.4-mini',
-                },
-            ];
-        case 'follow_up_active':
-            return [
-                {
-                    worker: 'followup-worker',
-                    goal: context.missedFollowup
-                        ? 'recover_lost_followup'
-                        : 'request_progress_update',
-                    model: 'gpt-5.4-mini',
-                },
-            ];
-        default:
-            return [];
-    }
-}
-
-function summarizeJourney(stageId, context = {}) {
-    const stage = getJourneyStage(stageId);
-    if (!stage) {
-        throw new Error(`Stage desconocido: ${stageId}`);
-    }
-
-    return {
-        stage: stage.id,
-        label: stage.label,
-        owner: stage.owner,
-        next: Array.isArray(stage.next) ? stage.next.slice() : [],
-        actions: resolveNextActions(stageId, context),
-        delegation: buildDelegationPlan(stageId, context),
-    };
+  return {
+    stage: stage.id,
+    label: stage.label,
+    summary: stage.summary,
+    isTerminal: stage.terminal,
+    nextStages: stage.allowedNext
+  };
 }
 
 module.exports = {
-    buildDelegationPlan,
-    canTransition,
-    getJourneyStage,
-    listJourneyStages,
-    resolveNextActions,
-    summarizeJourney,
+  canTransition,
+  summarizeJourney
 };

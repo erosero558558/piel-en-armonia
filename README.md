@@ -15,11 +15,15 @@ gobernanza operativa de Piel en Armonia.
 - Admin: `admin.html` + `admin.js` generado desde `src/apps/admin/index.js`
 - UI admin activa: `src/apps/admin-v3/**`
 - Backend: `api.php`, `controllers/**`, `lib/**`
+- Flow OS first slice: `docs/FLOW_OS_FIRST_SLICE.md` + `data/flow-os/manifest.v1.json` + `src/domain/flow-os/*`
 - Gobernanza: `AGENTS.md` + `AGENT_BOARD.yaml`
+
+Nota de alcance: esta slice de Flow OS solo agrega documentacion y contrato minimo; no abre CI, turnero, OpenClaw ni superficies publicas.
 
 ## Empieza aqui
 
 - `docs/OPERATIONS_INDEX.md`
+- `docs/FLOW_OS_FIRST_SLICE.md`
 - `docs/LEADOPS_OPENCLAW.md`
 - `docs/public-v6-canonical-source.md`
 - `docs/RUNTIME_ARTIFACT_POLICY.md`

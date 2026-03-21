@@ -182,6 +182,22 @@ Evidencia parcial (retencion + conversion/funnel):
 - Errores chat agenda: `npm run test:chat-booking-calendar-errors`
 - Smoke produccion: `npm run smoke:prod`
 
+## Flow OS first slice (contrato minimo)
+
+- Artefactos canonicos: `docs/FLOW_OS_FIRST_SLICE.md`, `data/flow-os/manifest.v1.json`, `src/domain/flow-os/load-manifest.js` y `src/domain/flow-os/patient-journey.js`.
+- Objetivo: alinear la documentacion operativa con un manifiesto minimo del patient journey para la first slice de Flow OS.
+- No alcance: no abrir CI, turnero, OpenClaw, web publica ni cambios en `src/apps/patient-flow-os/**`.
+- Validacion manifest/journey:
+  - `node - <<'NODE'`
+  - `const { loadFlowOsManifest } = require('./src/domain/flow-os/load-manifest.js');`
+  - `const manifest = loadFlowOsManifest();`
+  - `console.log(JSON.stringify({ stages: manifest.journeyStages.length, version: manifest.version }, null, 2));`
+  - `NODE`
+  - `node - <<'NODE'`
+  - `const journey = require('./src/domain/flow-os/patient-journey.js');`
+  - `console.log(JSON.stringify({ canSchedule: journey.canTransition('triaged', 'scheduled'), summary: journey.summarizeJourney('scheduled') }, null, 2));`
+  - `NODE`
+
 ## Backlog diferido (no bloqueante de fase activa)
 
 - Rediseño visual total.

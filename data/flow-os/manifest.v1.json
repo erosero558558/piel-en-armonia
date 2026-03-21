@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "contract": "flow-os-first-slice",
+  "scope": "patient_journey_minimum",
+  "journeyStages": [
+    {
+      "id": "captured",
+      "label": "Captured",
+      "summary": "Patient or lead intake exists and awaits triage.",
+      "allowedNext": ["triaged"],
+      "terminal": false,
+      "mapsToCaseStatuses": ["intake"]
+    },
+    {
+      "id": "triaged",
+      "label": "Triaged",
+      "summary": "Ops qualified the case and it is ready to schedule or close.",
+      "allowedNext": ["scheduled", "closed"],
+      "terminal": false,
+      "mapsToCaseStatuses": ["qualified", "awaiting_booking"]
+    },
+    {
+      "id": "scheduled",
+      "label": "Scheduled",
+      "summary": "Appointment exists and is pending consultation.",
+      "allowedNext": ["in_consult", "closed"],
+      "terminal": false,
+      "mapsToCaseStatuses": ["booked", "pre_visit_ready"]
+    },
+    {
+      "id": "in_consult",
+      "label": "In Consult",
+      "summary": "Patient has arrived and is actively in the consult flow.",
+      "allowedNext": ["closed"],
+      "terminal": false,
+      "mapsToCaseStatuses": ["arrived", "queued", "in_consult"]
+    },
+    {
+      "id": "closed",
+      "label": "Closed",
+      "summary": "Journey ended without further transitions in this slice.",
+      "allowedNext": [],
+      "terminal": true,
+      "mapsToCaseStatuses": ["closed"]
+    }
+  ]
+}
