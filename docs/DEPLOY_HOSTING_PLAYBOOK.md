@@ -27,6 +27,7 @@ Configura en GitHub (repo -> Settings -> Secrets and variables -> Actions):
 - Secrets: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`
 - Variables opcionales: `FTP_PROTOCOL`, `FTP_SERVER_PORT`, `FTP_SECURITY`, `FTP_SERVER_DIR` (`/public_html/`), `PROD_URL`, `SSH_HOST`, `SSH_PORT`, `SSH_REPO_DIR`
 - Secrets opcionales para SSH dedicado: `SSH_USERNAME`, `SSH_PASSWORD` (fallback a `FTP_USERNAME/FTP_PASSWORD`)
+- Variables operativas que deben preservarse en el hosting/runtime: `AURORADERM_EMAIL_FROM`, `PIELARMONIA_EMAIL_FROM`, `FIGO_TELEGRAM_BOT_TOKEN`
 
 Uso:
 
@@ -482,3 +483,4 @@ Archivos de manifiesto en carpeta `k8s/`:
         ```bash
         kubectl apply -f k8s/ingress.yaml
         ```
+

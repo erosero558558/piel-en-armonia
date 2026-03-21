@@ -139,6 +139,20 @@ process.exit(1);
     chmodSync(scriptPath, 0o755);
 }
 
+function installFakeOperatorAuthDiagnostic(dir, payload) {
+    const scriptPath = join(dir, 'bin', 'admin-openclaw-rollout-diagnostic.js');
+    const script = `#!/usr/bin/env node
+'use strict';
+
+process.stdout.write('== Diagnostico OpenClaw Auth Rollout ==\\n');
+process.stdout.write('Dominio: https://pielarmonia.com\\n');
+process.stdout.write(${JSON.stringify(JSON.stringify(payload, null, 2))});
+process.exit(0);
+`;
+    writeFileSync(scriptPath, script, 'utf8');
+    chmodSync(scriptPath, 0o755);
+}
+
 test('prod-readiness-summary consume evidencia local de prod-monitor', () => {
     const dir = createFixtureDir();
     const prodMonitorPath = join(
@@ -251,6 +265,113 @@ test('prod-readiness-summary eleva public_main_sync health_http_502 como accion 
         assert.match(markdown, /## Public Main Sync Evidence/);
         assert.match(markdown, /- failure_reason: health_http_502/);
         assert.match(markdown, /- http_status: 502/);
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+});
+
+test('prod-readiness-summary eleva operator_auth legacy facade como accion bloqueante', () => {
+    const dir = createFixtureDir();
+    const prodMonitorPath = join(
+        dir,
+        'verification',
+        'runtime',
+        'prod-monitor-last.json'
+    );
+    const jsonOut = join(dir, 'verification', 'runtime', 'prod-readiness.json');
+    const mdOut = join(dir, 'verification', 'runtime', 'prod-readiness.md');
+
+    try {
+        writeProdMonitorReport(prodMonitorPath);
+        installFakeOrchestrator(dir, {
+            ok: true,
+            job: {
+                key: 'public_main_sync',
+                configured: true,
+                verified: true,
+                healthy: true,
+                state: 'workspace_direct',
+                verification_source: 'health_url',
+                failure_reason: '',
+                last_error_message: '',
+                details: {},
+            },
+        });
+        installFakeOperatorAuthDiagnostic(dir, {
+            ok: false,
+            domain: 'https://pielarmonia.com',
+            diagnosis: 'admin_auth_legacy_facade',
+            next_action:
+                'Desplegar la fachada admin-auth.php con contrato OpenClaw (mode/status/configured) y alinear operator-auth-status.',
+            operator_auth_status: {
+                url: 'https://pielarmonia.com/api.php?resource=operator-auth-status',
+                http_status: 200,
+                contract_valid: false,
+                mode: 'google_oauth',
+                transport: '',
+                status: 'anonymous',
+                configured: true,
+                recommended_mode: 'google_oauth',
+            },
+            admin_auth_facade: {
+                url: 'https://pielarmonia.com/admin-auth.php?action=status',
+                http_status: 200,
+                contract_valid: false,
+                mode: 'google_oauth',
+                transport: '',
+                status: 'anonymous',
+                configured: true,
+                recommended_mode: 'google_oauth',
+            },
+            resolved: {
+                contract_valid: false,
+                mode: '',
+                transport: '',
+                status: '',
+                configured: false,
+                recommended_mode: '',
+            },
+        });
+
+        const result = spawnSync(
+            process.execPath,
+            [
+                join(dir, 'bin', 'prod-readiness-summary.js'),
+                `--json-out=${jsonOut}`,
+                `--md-out=${mdOut}`,
+            ],
+            {
+                cwd: dir,
+                encoding: 'utf8',
+            }
+        );
+
+        assert.equal(result.status, 0, result.stderr || result.stdout);
+
+        const summary = JSON.parse(readFileSync(jsonOut, 'utf8'));
+        assert.equal(summary.operatorAuthEvidence.ok, false);
+        assert.equal(
+            summary.operatorAuthEvidence.diagnosis,
+            'admin_auth_legacy_facade'
+        );
+        assert.equal(summary.operatorAuthEvidence.mode, 'google_oauth');
+        assert.equal(
+            summary.productionStability.reasons.includes(
+                'operator_auth:admin_auth_legacy_facade'
+            ),
+            true
+        );
+        const action = summary.suggestedActions.items.find(
+            (item) => item.id === 'ACT-P0-OPERATOR-AUTH'
+        );
+        assert.ok(action);
+        assert.equal(action.blocking, true);
+        assert.match(action.reason, /google_oauth/);
+
+        const markdown = readFileSync(mdOut, 'utf8');
+        assert.match(markdown, /## Operator Auth Evidence/);
+        assert.match(markdown, /- diagnosis: admin_auth_legacy_facade/);
+        assert.match(markdown, /- mode: google_oauth/);
     } finally {
         rmSync(dir, { recursive: true, force: true });
     }

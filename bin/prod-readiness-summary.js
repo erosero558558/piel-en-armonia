@@ -69,6 +69,34 @@ function safeJsonParse(text, fallback = null) {
     }
 }
 
+function safeJsonParseOutput(text, fallback = null) {
+    const normalized = stripLeadingUtf8Bom(text);
+    const direct = safeJsonParse(normalized, null);
+    if (direct !== null) {
+        return direct;
+    }
+
+    const candidateIndexes = [];
+    for (let index = 0; index < normalized.length; index += 1) {
+        const current = normalized[index];
+        const startsJson = current === '{' || current === '[';
+        const startsLine = index === 0 || normalized[index - 1] === '\n';
+        if (startsJson && startsLine) {
+            candidateIndexes.push(index);
+        }
+    }
+
+    for (let index = candidateIndexes.length - 1; index >= 0; index -= 1) {
+        const candidate = normalized.slice(candidateIndexes[index]).trim();
+        const parsed = safeJsonParse(candidate, null);
+        if (parsed !== null) {
+            return parsed;
+        }
+    }
+
+    return fallback;
+}
+
 function getGhInvocation() {
     const override = process.env.GH_CLI_PATH;
     if (!override) {
@@ -166,7 +194,7 @@ function runNodeJsonScript(
         command: commandLabel,
         stdout,
         stderr,
-        json: safeJsonParse(stdout, null),
+        json: safeJsonParseOutput(stdout, null),
         error:
             ok || allowFailure
                 ? null
@@ -1430,6 +1458,148 @@ function describePublicMainSyncFailure(evidence) {
     return `public_main_sync sigue unhealthy (${failureToken || 'unknown'})`;
 }
 
+function normalizeOperatorAuthEvidence(payload, meta = {}) {
+    const operatorAuthStatus =
+        payload && typeof payload.operator_auth_status === 'object'
+            ? payload.operator_auth_status
+            : {};
+    const adminAuthFacade =
+        payload && typeof payload.admin_auth_facade === 'object'
+            ? payload.admin_auth_facade
+            : {};
+    const resolved =
+        payload && typeof payload.resolved === 'object' ? payload.resolved : {};
+    const primaryHttpStatus = Number.parseInt(operatorAuthStatus.http_status, 10);
+    const facadeHttpStatus = Number.parseInt(adminAuthFacade.http_status, 10);
+
+    return {
+        available: true,
+        found: Boolean(payload && typeof payload === 'object'),
+        source: meta.source || 'openclaw_auth_rollout',
+        path: meta.path || null,
+        command: meta.command || null,
+        error: null,
+        ok: payload?.ok === true,
+        domain: String(payload?.domain || '').trim() || null,
+        diagnosis: String(payload?.diagnosis || '').trim() || null,
+        nextAction: String(payload?.next_action || '').trim() || null,
+        mode:
+            String(resolved.mode || operatorAuthStatus.mode || '').trim() ||
+            null,
+        transport:
+            String(
+                resolved.transport || operatorAuthStatus.transport || ''
+            ).trim() || null,
+        status:
+            String(resolved.status || operatorAuthStatus.status || '').trim() ||
+            null,
+        configured:
+            Boolean(resolved.configured) ||
+            Boolean(operatorAuthStatus.configured) ||
+            Boolean(adminAuthFacade.configured),
+        recommendedMode:
+            String(
+                resolved.recommended_mode ||
+                    operatorAuthStatus.recommended_mode ||
+                    adminAuthFacade.recommended_mode ||
+                    ''
+            ).trim() || null,
+        contractValid:
+            Boolean(resolved.contract_valid) ||
+            Boolean(operatorAuthStatus.contract_valid) ||
+            Boolean(adminAuthFacade.contract_valid),
+        operatorAuthStatus,
+        adminAuthFacade,
+        resolved,
+        primaryHttpStatus:
+            Number.isFinite(primaryHttpStatus) && primaryHttpStatus > 0
+                ? primaryHttpStatus
+                : null,
+        facadeHttpStatus:
+            Number.isFinite(facadeHttpStatus) && facadeHttpStatus > 0
+                ? facadeHttpStatus
+                : null,
+    };
+}
+
+function readOperatorAuthEvidence() {
+    const path = resolve(ROOT, 'bin', 'admin-openclaw-rollout-diagnostic.js');
+    const response = runNodeJsonScript(
+        'bin/admin-openclaw-rollout-diagnostic.js',
+        ['--json', '--allow-not-ready'],
+        { allowFailure: true }
+    );
+    if (!response.available) {
+        return {
+            available: false,
+            found: false,
+            source: 'openclaw_auth_rollout',
+            path,
+            command: response.command,
+            error: response.error,
+        };
+    }
+    if (response.json && typeof response.json === 'object') {
+        return normalizeOperatorAuthEvidence(response.json, {
+            source: 'openclaw_auth_rollout',
+            path,
+            command: response.command,
+        });
+    }
+    if (!response.ok) {
+        return {
+            available: true,
+            found: false,
+            source: 'openclaw_auth_rollout',
+            path,
+            command: response.command,
+            error:
+                response.stderr ||
+                response.stdout ||
+                `openclaw auth diagnostic exit ${response.exitCode}`,
+        };
+    }
+    return {
+        available: true,
+        found: false,
+        source: 'openclaw_auth_rollout',
+        path,
+        command: response.command,
+        error: 'No se pudo parsear JSON de operator_auth',
+    };
+}
+
+function getOperatorAuthFailureToken(evidence) {
+    return String(
+        evidence?.diagnosis || evidence?.mode || evidence?.status || 'unknown'
+    ).trim();
+}
+
+function isOperatorAuthBlocking(evidence) {
+    return Boolean(
+        evidence?.available &&
+            evidence?.found &&
+            !evidence?.error &&
+            evidence?.ok !== true
+    );
+}
+
+function describeOperatorAuthFailure(evidence) {
+    const failureToken = getOperatorAuthFailureToken(evidence);
+    if (failureToken === 'admin_auth_legacy_facade') {
+        return `operator_auth remoto sigue publicando contrato legacy (mode=${
+            evidence?.mode || 'unknown'
+        }, transport=${evidence?.transport || 'none'}) en operator-auth-status/admin-auth`;
+    }
+    if (failureToken === 'openclaw_mode_disabled') {
+        return 'operator_auth remoto no esta en modo openclaw_chatgpt';
+    }
+    if (evidence?.nextAction) {
+        return evidence.nextAction;
+    }
+    return `operator_auth sigue bloqueado (${failureToken || 'unknown'})`;
+}
+
 function fetchRecentRepositoryRuns(branch, limit = 100) {
     const normalizedLimit =
         Number.isFinite(Number(limit)) && Number(limit) > 0
@@ -1730,6 +1900,7 @@ function computeProductionStability({
     sentryEvidence,
     prodMonitorEvidence,
     publicMainSyncEvidence,
+    operatorAuthEvidence,
 }) {
     const criticalWorkflowKeys = ['ci', 'postDeployGate', 'deployHosting'];
     const reasons = [];
@@ -1847,6 +2018,24 @@ function computeProductionStability({
         advisories.push(
             `public_main_sync:error(${publicMainSyncEvidence.error})`
         );
+    }
+
+    if (operatorAuthEvidence?.found && !operatorAuthEvidence.error) {
+        advisories.push(
+            `operator_auth:${
+                operatorAuthEvidence.ok
+                    ? 'ok'
+                    : getOperatorAuthFailureToken(operatorAuthEvidence)
+            }`
+        );
+        if (isOperatorAuthBlocking(operatorAuthEvidence)) {
+            signal = 'RED';
+            reasons.push(
+                `operator_auth:${getOperatorAuthFailureToken(operatorAuthEvidence)}`
+            );
+        }
+    } else if (operatorAuthEvidence?.error) {
+        advisories.push(`operator_auth:error(${operatorAuthEvidence.error})`);
     }
 
     return {
@@ -2087,6 +2276,7 @@ function computeSuggestedActions({
     sentryEvidence,
     prodMonitorEvidence,
     publicMainSyncEvidence,
+    operatorAuthEvidence,
 }) {
     const actions = [];
     const workflowLabels = {
@@ -2130,6 +2320,23 @@ function computeSuggestedActions({
             command:
                 'node agent-orchestrator.js jobs verify public_main_sync --json',
             url: null,
+        });
+    }
+
+    if (isOperatorAuthBlocking(operatorAuthEvidence)) {
+        pushAction({
+            id: 'ACT-P0-OPERATOR-AUTH',
+            priority: 'P0',
+            blocking: true,
+            title: 'Alinear operator_auth remoto al contrato OpenClaw',
+            reason: describeOperatorAuthFailure(operatorAuthEvidence),
+            command:
+                operatorAuthEvidence.command ||
+                'node bin/admin-openclaw-rollout-diagnostic.js --json --allow-not-ready',
+            url:
+                operatorAuthEvidence.operatorAuthStatus?.url ||
+                operatorAuthEvidence.adminAuthFacade?.url ||
+                null,
         });
     }
 
@@ -2830,6 +3037,67 @@ function toMarkdown(summary) {
     }
     lines.push('');
 
+    lines.push('## Operator Auth Evidence');
+    lines.push('');
+    if (!summary.operatorAuthEvidence || !summary.operatorAuthEvidence.available) {
+        lines.push('- status: unavailable');
+        lines.push(
+            `- source: ${summary.operatorAuthEvidence?.source || 'openclaw_auth_rollout'}`
+        );
+        if (summary.operatorAuthEvidence?.error) {
+            lines.push(`- error: ${summary.operatorAuthEvidence.error}`);
+        }
+    } else if (!summary.operatorAuthEvidence.found) {
+        lines.push('- status: not_found');
+        lines.push(
+            `- source: ${summary.operatorAuthEvidence.source || 'openclaw_auth_rollout'}`
+        );
+        if (summary.operatorAuthEvidence.error) {
+            lines.push(`- error: ${summary.operatorAuthEvidence.error}`);
+        }
+    } else {
+        lines.push(
+            `- source: ${summary.operatorAuthEvidence.source || 'openclaw_auth_rollout'}`
+        );
+        lines.push(`- ok: ${summary.operatorAuthEvidence.ok ? 'true' : 'false'}`);
+        lines.push(
+            `- diagnosis: ${summary.operatorAuthEvidence.diagnosis || 'n/a'}`
+        );
+        lines.push(`- mode: ${summary.operatorAuthEvidence.mode || 'n/a'}`);
+        lines.push(
+            `- transport: ${summary.operatorAuthEvidence.transport || 'n/a'}`
+        );
+        lines.push(`- status: ${summary.operatorAuthEvidence.status || 'n/a'}`);
+        lines.push(
+            `- configured: ${summary.operatorAuthEvidence.configured ? 'true' : 'false'}`
+        );
+        lines.push(
+            `- recommended_mode: ${summary.operatorAuthEvidence.recommendedMode || 'n/a'}`
+        );
+        lines.push(
+            `- contract_valid: ${summary.operatorAuthEvidence.contractValid ? 'true' : 'false'}`
+        );
+        if (summary.operatorAuthEvidence.primaryHttpStatus) {
+            lines.push(
+                `- operator_auth_http_status: ${summary.operatorAuthEvidence.primaryHttpStatus}`
+            );
+        }
+        if (summary.operatorAuthEvidence.facadeHttpStatus) {
+            lines.push(
+                `- admin_auth_http_status: ${summary.operatorAuthEvidence.facadeHttpStatus}`
+            );
+        }
+        if (summary.operatorAuthEvidence.nextAction) {
+            lines.push(
+                `- next_action: ${summary.operatorAuthEvidence.nextAction}`
+            );
+        }
+        if (summary.operatorAuthEvidence.command) {
+            lines.push(`- command: ${summary.operatorAuthEvidence.command}`);
+        }
+    }
+    lines.push('');
+
     lines.push('## Public Main Sync Evidence');
     lines.push('');
     if (
@@ -3118,6 +3386,7 @@ function main() {
         prodMonitorRun: workflows.prodMonitor,
     });
     const publicMainSyncEvidence = readPublicMainSyncEvidence();
+    const operatorAuthEvidence = readOperatorAuthEvidence();
     const productionStability = computeProductionStability({
         workflows,
         openProdAlerts,
@@ -3126,6 +3395,7 @@ function main() {
         sentryEvidence,
         prodMonitorEvidence,
         publicMainSyncEvidence,
+        operatorAuthEvidence,
     });
     const planMasterProgress = computePlanMasterProgress({
         workflows,
@@ -3150,6 +3420,7 @@ function main() {
         sentryEvidence,
         prodMonitorEvidence,
         publicMainSyncEvidence,
+        operatorAuthEvidence,
     });
     const releaseReadiness = computeReleaseReadiness({
         productionStability,
@@ -3179,6 +3450,7 @@ function main() {
         sentryEvidence,
         prodMonitorEvidence,
         publicMainSyncEvidence,
+        operatorAuthEvidence,
         paths: {
             jsonOut,
             mdOut,
