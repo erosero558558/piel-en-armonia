@@ -64,6 +64,8 @@ $turneroClinicProfileScriptPath = Join-Path $repoRoot 'bin/turnero-clinic-profil
 $primaryScriptRefPattern = '<script[^>]+src="([^"]*(?:script\.js|public-v6-shell\.js)[^"]*)"'
 $primaryStyleRefPattern = '<link[^>]+href="([^"]*(?:styles\.css|_astro/[^"]+\.css)[^"]*)"'
 $deferredStyleRefPattern = '<link[^>]+href="([^"]*styles-deferred\.css[^"]*)"'
+$adminSurfaceUrl = "$base/admin.html"
+$serviceWorkerUrl = "$base/sw.js"
 $turneroOperatorSurfaceUrl = "$base/operador-turnos.html"
 $turneroKioskSurfaceUrl = "$base/kiosco-turnos.html"
 $turneroDisplaySurfaceUrl = "$base/sala-turnos.html"
@@ -189,6 +191,138 @@ function Add-DeployFailure {
         RemoteHash = $RemoteHash
         RemoteUrl = $RemoteUrl
     }
+}
+
+function Get-AssetVersionFromText {
+    param(
+        [string]$Content,
+        [string]$AssetPath
+    )
+
+    $normalizedAssetPath = ([string]$AssetPath).Trim().TrimStart('/')
+    if ([string]::IsNullOrWhiteSpace($normalizedAssetPath)) {
+        return ''
+    }
+
+    $pattern = '(?:["''(=/]|^)/?' + [regex]::Escape($normalizedAssetPath) + '\?v=([^"''\s)]+)'
+    $match = [regex]::Match([string]$Content, $pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    if ($match.Success) {
+        return [string]$match.Groups[1].Value.Trim()
+    }
+
+    return ''
+}
+
+function Get-AssetVersionMap {
+    param(
+        [string]$Content,
+        [string[]]$Assets
+    )
+
+    $map = [ordered]@{}
+    foreach ($asset in @($Assets)) {
+        $map[$asset] = [string](Get-AssetVersionFromText -Content $Content -AssetPath $asset)
+    }
+
+    return $map
+}
+
+function Get-ServiceWorkerCacheName {
+    param(
+        [string]$Content
+    )
+
+    $match = [regex]::Match([string]$Content, "const CACHE_NAME = '([^']+)'", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    if ($match.Success) {
+        return [string]$match.Groups[1].Value.Trim()
+    }
+
+    return ''
+}
+
+function Compare-AssetVersionMaps {
+    param(
+        [string]$ParityKey,
+        [System.Collections.IDictionary]$ShellVersions,
+        [System.Collections.IDictionary]$ServiceWorkerVersions,
+        [string[]]$Assets
+    )
+
+    $mismatches = @()
+    $ok = $true
+
+    foreach ($asset in @($Assets)) {
+        $shellVersion = if ($null -ne $ShellVersions -and $ShellVersions.Contains($asset)) {
+            [string]$ShellVersions[$asset]
+        } else {
+            ''
+        }
+        $serviceWorkerVersion = if ($null -ne $ServiceWorkerVersions -and $ServiceWorkerVersions.Contains($asset)) {
+            [string]$ServiceWorkerVersions[$asset]
+        } else {
+            ''
+        }
+
+        if ($shellVersion -eq $serviceWorkerVersion) {
+            continue
+        }
+
+        $ok = $false
+        $mismatches += [pscustomobject]@{
+            parity = $ParityKey
+            asset = $asset
+            shellVersion = $shellVersion
+            serviceWorkerVersion = $serviceWorkerVersion
+        }
+    }
+
+    return [pscustomobject]@{
+        Ok = $ok
+        Mismatches = @($mismatches)
+    }
+}
+
+function Format-AssetVersionMap {
+    param(
+        [System.Collections.IDictionary]$Versions,
+        [string[]]$Assets
+    )
+
+    $parts = @()
+    foreach ($asset in @($Assets)) {
+        $value = if ($null -ne $Versions -and $Versions.Contains($asset)) {
+            [string]$Versions[$asset]
+        } else {
+            ''
+        }
+        $label = if ([string]::IsNullOrWhiteSpace($value)) { 'missing' } else { $value }
+        $parts += "${asset}=${label}"
+    }
+
+    return ($parts -join '; ')
+}
+
+function Format-ParityMismatchSummary {
+    param(
+        [Object[]]$Mismatches
+    )
+
+    $parts = @()
+    foreach ($mismatch in @($Mismatches)) {
+        $shellVersion = if ([string]::IsNullOrWhiteSpace([string]$mismatch.shellVersion)) {
+            'missing'
+        } else {
+            [string]$mismatch.shellVersion
+        }
+        $serviceWorkerVersion = if ([string]::IsNullOrWhiteSpace([string]$mismatch.serviceWorkerVersion)) {
+            'missing'
+        } else {
+            [string]$mismatch.serviceWorkerVersion
+        }
+        $parts += "$([string]$mismatch.asset): shell=$shellVersion sw=$serviceWorkerVersion"
+    }
+
+    return ($parts -join '; ')
 }
 
 function Invoke-OpenClawAuthRolloutDiagnostic {
@@ -362,6 +496,27 @@ if ($indexRaw -ne '' -and $localStyleRef -eq '' -and $localDeferredStyleRef -eq 
 
 $remoteIndexRaw = Get-RemoteIndexHtml -Base $base
 $results = @()
+$adminSurfaceAssetList = @(
+    'admin-v3.css',
+    'queue-ops.css',
+    'js/admin-preboot-shortcuts.js',
+    'admin.js'
+)
+$operatorSurfaceAssetList = @(
+    'queue-ops.css',
+    'js/queue-operator.js'
+)
+$serviceWorkerAssetList = @($adminSurfaceAssetList + $operatorSurfaceAssetList | Select-Object -Unique)
+$adminSurfaceResp = $null
+$serviceWorkerResp = $null
+$turneroOperatorSurfaceResp = $null
+$adminSurfaceVersions = [ordered]@{}
+$operatorSurfaceVersions = [ordered]@{}
+$serviceWorkerVersions = [ordered]@{}
+$serviceWorkerCacheName = ''
+$adminSurfaceVsSwOk = $false
+$operatorSurfaceVsSwOk = $false
+$adminSurfaceParityMismatches = @()
 $securityHeaderCheck = Test-SecurityHeaders -Base $base -AllowMetaCspFallback:$AllowMetaCspFallback
 $results += @($securityHeaderCheck.Results)
 
@@ -509,8 +664,104 @@ try {
     }
 }
 
+$adminSurfaceResp = Invoke-TextGet -Name 'admin-surface' -Url $adminSurfaceUrl -UserAgent 'PielArmoniaDeployCheck/1.0'
+$serviceWorkerResp = Invoke-TextGet -Name 'service-worker' -Url $serviceWorkerUrl -UserAgent 'PielArmoniaDeployCheck/1.0'
+$turneroOperatorSurfaceResp = Invoke-TextGet -Name 'turnero-operator-surface' -Url $turneroOperatorSurfaceUrl -UserAgent 'PielArmoniaDeployCheck/1.0'
+$adminSurfaceVersions = Get-AssetVersionMap -Content ([string]$adminSurfaceResp.Body) -Assets $adminSurfaceAssetList
+$serviceWorkerVersions = Get-AssetVersionMap -Content ([string]$serviceWorkerResp.Body) -Assets $serviceWorkerAssetList
+$operatorSurfaceVersions = Get-AssetVersionMap -Content ([string]$turneroOperatorSurfaceResp.Body) -Assets $operatorSurfaceAssetList
+$serviceWorkerCacheName = Get-ServiceWorkerCacheName -Content ([string]$serviceWorkerResp.Body)
+
+if ($adminSurfaceResp.Ok) {
+    Write-Host '[OK]  admin surface publicado'
+} else {
+    Write-Host "[FAIL] admin surface ausente (status=$($adminSurfaceResp.StatusCode))"
+}
+
+if ($serviceWorkerResp.Ok) {
+    $serviceWorkerCacheLabel = if ([string]::IsNullOrWhiteSpace($serviceWorkerCacheName)) {
+        'cache_name missing'
+    } else {
+        "cache_name=$serviceWorkerCacheName"
+    }
+    Write-Host "[OK]  service worker publicado ($serviceWorkerCacheLabel)"
+} else {
+    Write-Host "[FAIL] service worker ausente (status=$($serviceWorkerResp.StatusCode))"
+}
+
+if ($turneroOperatorSurfaceResp.Ok) {
+    Write-Host '[OK]  turnero operador web publicado'
+} else {
+    Write-Host "[FAIL] turnero operador web ausente (status=$($turneroOperatorSurfaceResp.StatusCode))"
+}
+
+$adminParityDetail = ''
+if ($adminSurfaceResp.Ok -and $serviceWorkerResp.Ok) {
+    $adminSurfaceComparison = Compare-AssetVersionMaps -ParityKey 'admin_shell_vs_sw' -ShellVersions $adminSurfaceVersions -ServiceWorkerVersions $serviceWorkerVersions -Assets $adminSurfaceAssetList
+    $adminSurfaceVsSwOk = [bool]$adminSurfaceComparison.Ok
+    if ($adminSurfaceVsSwOk) {
+        Write-Host '[OK]  admin shell y sw.js alineados'
+        $adminParityDetail = 'admin shell y sw.js alineados'
+    } else {
+        $adminSurfaceParityMismatches += @($adminSurfaceComparison.Mismatches)
+        $adminParityDetail = Format-ParityMismatchSummary -Mismatches $adminSurfaceComparison.Mismatches
+        Write-Host "[FAIL] admin shell vs sw drift detectado ($adminParityDetail)"
+    }
+} else {
+    $adminParityReasons = @()
+    if (-not $adminSurfaceResp.Ok) {
+        $adminParityReasons += "admin.html status=$($adminSurfaceResp.StatusCode)"
+    }
+    if (-not $serviceWorkerResp.Ok) {
+        $adminParityReasons += "sw.js status=$($serviceWorkerResp.StatusCode)"
+    }
+    $adminParityDetail = ($adminParityReasons -join '; ')
+    Write-Host "[FAIL] admin shell vs sw no verificable ($adminParityDetail)"
+}
+
+$operatorParityDetail = ''
+if ($turneroOperatorSurfaceResp.Ok -and $serviceWorkerResp.Ok) {
+    $operatorSurfaceComparison = Compare-AssetVersionMaps -ParityKey 'operator_shell_vs_sw' -ShellVersions $operatorSurfaceVersions -ServiceWorkerVersions $serviceWorkerVersions -Assets $operatorSurfaceAssetList
+    $operatorSurfaceVsSwOk = [bool]$operatorSurfaceComparison.Ok
+    if ($operatorSurfaceVsSwOk) {
+        Write-Host '[OK]  operador-turnos y sw.js alineados'
+        $operatorParityDetail = 'operador-turnos y sw.js alineados'
+    } else {
+        $adminSurfaceParityMismatches += @($operatorSurfaceComparison.Mismatches)
+        $operatorParityDetail = Format-ParityMismatchSummary -Mismatches $operatorSurfaceComparison.Mismatches
+        Write-Host "[FAIL] operador-turnos shell vs sw drift detectado ($operatorParityDetail)"
+    }
+} else {
+    $operatorParityReasons = @()
+    if (-not $turneroOperatorSurfaceResp.Ok) {
+        $operatorParityReasons += "operador-turnos.html status=$($turneroOperatorSurfaceResp.StatusCode)"
+    }
+    if (-not $serviceWorkerResp.Ok) {
+        $operatorParityReasons += "sw.js status=$($serviceWorkerResp.StatusCode)"
+    }
+    $operatorParityDetail = ($operatorParityReasons -join '; ')
+    Write-Host "[FAIL] operador-turnos shell vs sw no verificable ($operatorParityDetail)"
+}
+
+$results += [PSCustomObject]@{
+    Asset = 'admin-sw-version-drift'
+    Match = $adminSurfaceVsSwOk
+    LocalHash = if ($adminSurfaceResp.Ok) { Format-AssetVersionMap -Versions $adminSurfaceVersions -Assets $adminSurfaceAssetList } else { "status=$($adminSurfaceResp.StatusCode)" }
+    RemoteHash = if ($serviceWorkerResp.Ok) { "cache=$serviceWorkerCacheName; $(Format-AssetVersionMap -Versions $serviceWorkerVersions -Assets $adminSurfaceAssetList)" } else { "status=$($serviceWorkerResp.StatusCode)" }
+    RemoteUrl = "$adminSurfaceUrl | $serviceWorkerUrl"
+    Detail = $adminParityDetail
+}
+
+$results += [PSCustomObject]@{
+    Asset = 'operator-sw-version-drift'
+    Match = $operatorSurfaceVsSwOk
+    LocalHash = if ($turneroOperatorSurfaceResp.Ok) { Format-AssetVersionMap -Versions $operatorSurfaceVersions -Assets $operatorSurfaceAssetList } else { "status=$($turneroOperatorSurfaceResp.StatusCode)" }
+    RemoteHash = if ($serviceWorkerResp.Ok) { "cache=$serviceWorkerCacheName; $(Format-AssetVersionMap -Versions $serviceWorkerVersions -Assets $operatorSurfaceAssetList)" } else { "status=$($serviceWorkerResp.StatusCode)" }
+    RemoteUrl = "$turneroOperatorSurfaceUrl | $serviceWorkerUrl"
+    Detail = $operatorParityDetail
+}
+
 if ($RequireTurneroWebSurfaces -or $RequireTurneroOperatorPilot) {
-    $turneroOperatorSurfaceResp = Invoke-TextGet -Name 'turnero-operator-surface' -Url $turneroOperatorSurfaceUrl -UserAgent 'PielArmoniaDeployCheck/1.0'
     if ($turneroOperatorSurfaceResp.Ok) {
         Write-Host '[OK]  turnero operador web publicado'
     } else {
@@ -2338,8 +2589,37 @@ $turneroPilotReport = [ordered]@{
     remoteResource = $turneroPilotRemoteResource
 }
 
+$adminSurfaceParityReport = [ordered]@{
+    admin = [ordered]@{
+        url = $adminSurfaceUrl
+        ok = ($null -ne $adminSurfaceResp -and $adminSurfaceResp.Ok)
+        httpStatus = if ($null -ne $adminSurfaceResp) { $adminSurfaceResp.StatusCode } else { 0 }
+        error = if ($null -ne $adminSurfaceResp) { [string]$adminSurfaceResp.Error } else { '' }
+        versions = [pscustomobject]$adminSurfaceVersions
+    }
+    operator = [ordered]@{
+        url = $turneroOperatorSurfaceUrl
+        ok = ($null -ne $turneroOperatorSurfaceResp -and $turneroOperatorSurfaceResp.Ok)
+        httpStatus = if ($null -ne $turneroOperatorSurfaceResp) { $turneroOperatorSurfaceResp.StatusCode } else { 0 }
+        error = if ($null -ne $turneroOperatorSurfaceResp) { [string]$turneroOperatorSurfaceResp.Error } else { '' }
+        versions = [pscustomobject]$operatorSurfaceVersions
+    }
+    serviceWorker = [ordered]@{
+        url = $serviceWorkerUrl
+        ok = ($null -ne $serviceWorkerResp -and $serviceWorkerResp.Ok)
+        httpStatus = if ($null -ne $serviceWorkerResp) { $serviceWorkerResp.StatusCode } else { 0 }
+        error = if ($null -ne $serviceWorkerResp) { [string]$serviceWorkerResp.Error } else { '' }
+        cacheName = $serviceWorkerCacheName
+        versions = [pscustomobject]$serviceWorkerVersions
+    }
+    adminShellVsSwOk = $adminSurfaceVsSwOk
+    operatorShellVsSwOk = $operatorSurfaceVsSwOk
+    mismatches = @($adminSurfaceParityMismatches)
+}
+
 $verifyMetadata = [ordered]@{
     turneroPilot = [pscustomobject]$turneroPilotReport
+    adminSurfaceParity = [pscustomobject]$adminSurfaceParityReport
 }
 
 $failed = @($results | Where-Object { $_.Match -ne $true }).Count

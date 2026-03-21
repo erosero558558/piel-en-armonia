@@ -56,3 +56,31 @@ test('prod verify agrega assets GitHub de deploy para incidentes de transporte y
         );
     }
 });
+
+test('prod verify expone parity admin/operator contra service worker y falla con nombres canonicos', () => {
+    for (const snippet of [
+        '$adminSurfaceUrl = "$base/admin.html"',
+        '$serviceWorkerUrl = "$base/sw.js"',
+        '$adminSurfaceAssetList = @(',
+        "'admin-v3.css'",
+        "'js/admin-preboot-shortcuts.js'",
+        '$operatorSurfaceAssetList = @(',
+        "'js/queue-operator.js'",
+        '$serviceWorkerCacheName = Get-ServiceWorkerCacheName',
+        "Compare-AssetVersionMaps -ParityKey 'admin_shell_vs_sw'",
+        "Compare-AssetVersionMaps -ParityKey 'operator_shell_vs_sw'",
+        "Asset = 'admin-sw-version-drift'",
+        "Asset = 'operator-sw-version-drift'",
+        '$adminSurfaceParityReport = [ordered]@{',
+        'adminShellVsSwOk = $adminSurfaceVsSwOk',
+        'operatorShellVsSwOk = $operatorSurfaceVsSwOk',
+        'cacheName = $serviceWorkerCacheName',
+        'adminSurfaceParity = [pscustomobject]$adminSurfaceParityReport',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta parity admin/operator->sw en VERIFICAR-DESPLIEGUE.ps1: ${snippet}`
+        );
+    }
+});

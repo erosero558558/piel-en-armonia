@@ -83,6 +83,28 @@ test('deploy-public-v3-live usa artefactos publicos versionados y verifica el ch
     );
 });
 
+test('deploy-public-v3-live corta el publish si sync/check detectan drift de runtime versionado', () => {
+    const raw = loadScript(SCRIPT_PATH);
+
+    for (const snippet of [
+        'ENFORCE_RUNTIME_ARTIFACT_GUARDRAILS="${ENFORCE_RUNTIME_ARTIFACT_GUARDRAILS:-true}"',
+        'validate_runtime_artifact_guardrails() {',
+        '== Runtime artifact guardrails ==',
+        'npm run sync:runtime:compat:versions',
+        'npm run check:runtime:artifacts',
+        'Runtime compatibility drift detected after sync.',
+        'git diff --name-only -- "${compatibility_files[@]}"',
+        'git checkout -- "${compatibility_files[@]}"',
+        'validate_runtime_artifact_guardrails',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta guardrail de runtime versionado en script live V3: ${snippet}`
+        );
+    }
+});
+
 test('deploy-public-v3-live resetea metadata tracked de Composer para no dejar dirty tree persistente', () => {
     const raw = loadScript(SCRIPT_PATH);
 

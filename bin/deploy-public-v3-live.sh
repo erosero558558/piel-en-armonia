@@ -7,6 +7,7 @@ SITE_PATH="${SITE_PATH:-/etc/nginx/sites-enabled/pielarmonia}"
 NGINX_BIN="${NGINX_BIN:-/usr/sbin/nginx}"
 INSTALL_DEPS="${INSTALL_DEPS:-true}"
 DISABLE_DESTRUCTIVE_SYNC_CRON="${DISABLE_DESTRUCTIVE_SYNC_CRON:-true}"
+ENFORCE_RUNTIME_ARTIFACT_GUARDRAILS="${ENFORCE_RUNTIME_ARTIFACT_GUARDRAILS:-true}"
 LOCAL_VERIFY_BASE_URL="${LOCAL_VERIFY_BASE_URL:-http://127.0.0.1:8080}"
 GENERATED_SITE_ROOT="${GENERATED_SITE_ROOT:-$REPO/.generated/site-root}"
 LOCAL_VERIFY_BASE_URL="${LOCAL_VERIFY_BASE_URL%/}"
@@ -141,6 +142,37 @@ verify_canonical_public_artifacts() {
     done
 
     echo "Canonical public artifacts present in repo checkout or $GENERATED_SITE_ROOT."
+}
+
+validate_runtime_artifact_guardrails() {
+    local compatibility_files=(
+        "sw.js"
+        "telemedicina.html"
+        "servicios/acne.html"
+        "servicios/laser.html"
+    )
+
+    if [ "${ENFORCE_RUNTIME_ARTIFACT_GUARDRAILS}" != "true" ]; then
+        echo "Runtime artifact guardrails disabled by ENFORCE_RUNTIME_ARTIFACT_GUARDRAILS=${ENFORCE_RUNTIME_ARTIFACT_GUARDRAILS}."
+        return 0
+    fi
+
+    if ! command -v npm >/dev/null 2>&1; then
+        echo "Missing required command: npm (runtime artifact guardrails)" >&2
+        exit 1
+    fi
+
+    echo "== Runtime artifact guardrails =="
+    npm run sync:runtime:compat:versions
+
+    if ! git diff --quiet -- "${compatibility_files[@]}"; then
+        echo "Runtime compatibility drift detected after sync. Commit the updated compatibility files before publish." >&2
+        git diff --name-only -- "${compatibility_files[@]}" >&2 || true
+        git checkout -- "${compatibility_files[@]}"
+        exit 1
+    fi
+
+    npm run check:runtime:artifacts
 }
 
 normalize_public_web_tree_permissions() {
@@ -282,6 +314,7 @@ fi
 
 echo "== Verify canonical public artifacts =="
 verify_canonical_public_artifacts
+validate_runtime_artifact_guardrails
 normalize_public_web_tree_permissions
 describe_public_web_tree
 

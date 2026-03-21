@@ -195,6 +195,65 @@ function createOperatorAuthReport(base) {
     };
 }
 
+function escapeRegExp(value) {
+    return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractAssetVersion(content, assetPath) {
+    const normalizedAssetPath = stringValue(assetPath).replace(/^\/+/, '');
+    if (!normalizedAssetPath) {
+        return '';
+    }
+
+    const pattern = new RegExp(
+        `(?:["'(=/]|^)\\/?${escapeRegExp(normalizedAssetPath)}\\?v=([^"'\\s)]+)`,
+        'i'
+    );
+    const match = String(content || '').match(pattern);
+    return match ? stringValue(match[1]) : '';
+}
+
+function extractCacheName(content) {
+    const match = String(content || '').match(/const CACHE_NAME = '([^']+)'/i);
+    return match ? stringValue(match[1]) : '';
+}
+
+function buildVersionMap(content, assets) {
+    const versions = {};
+    for (const asset of Array.isArray(assets) ? assets : []) {
+        versions[asset] = extractAssetVersion(content, asset);
+    }
+    return versions;
+}
+
+function compareShellVsServiceWorker(parityKey, shellVersions, swVersions) {
+    const mismatches = [];
+    let ok = true;
+
+    const assets = Object.keys(shellVersions || {});
+
+    for (const asset of assets) {
+        const shellVersion = stringValue(shellVersions?.[asset]);
+        const serviceWorkerVersion = stringValue(swVersions?.[asset]);
+        if (shellVersion === serviceWorkerVersion) {
+            continue;
+        }
+
+        ok = false;
+        mismatches.push({
+            parity: parityKey,
+            asset,
+            shell_version: shellVersion,
+            service_worker_version: serviceWorkerVersion,
+        });
+    }
+
+    return {
+        ok,
+        mismatches,
+    };
+}
+
 function applySnapshotToOperatorAuth(target, snapshot, source) {
     target.source = source;
     target.ok = snapshot.ok === true;
@@ -283,6 +342,13 @@ async function runPlaywrightSmokeSuite(name, specs, baseUrl) {
 
 async function buildGateReport(options = {}) {
     const base = trimTrailingSlash(options.domain || DEFAULT_DOMAIN);
+    const adminAssets = [
+        'admin-v3.css',
+        'queue-ops.css',
+        'js/admin-preboot-shortcuts.js',
+        'admin.js',
+    ];
+    const operatorAssets = ['queue-ops.css', 'js/queue-operator.js'];
     const report = {
         ok: false,
         timestamp_utc: new Date().toISOString(),
@@ -293,12 +359,33 @@ async function buildGateReport(options = {}) {
             ok: false,
             http_status: 0,
             error: '',
+            versions: buildVersionMap('', adminAssets),
         },
         assets: {
             has_admin_v3_css: false,
             uses_canonical_runtime: false,
             references_runtime_bridge: false,
             references_legacy_styles: false,
+        },
+        service_worker: {
+            url: `${base}/sw.js`,
+            ok: false,
+            http_status: 0,
+            error: '',
+            cache_name: '',
+            versions: buildVersionMap('', [...adminAssets, ...operatorAssets]),
+        },
+        operator_surface: {
+            url: `${base}/operador-turnos.html`,
+            ok: false,
+            http_status: 0,
+            error: '',
+            versions: buildVersionMap('', operatorAssets),
+        },
+        parity: {
+            admin_shell_vs_sw_ok: false,
+            operator_shell_vs_sw_ok: false,
+            mismatches: [],
         },
         csp: {
             checked: false,
@@ -343,6 +430,7 @@ async function buildGateReport(options = {}) {
     }
 
     const rawHtml = String(pageResult.text || '');
+    report.page.versions = buildVersionMap(rawHtml, adminAssets);
     report.assets.has_admin_v3_css = rawHtml.includes('admin-v3.css');
     report.assets.uses_canonical_runtime = rawHtml.includes('src="admin.js');
     report.assets.references_runtime_bridge = rawHtml.includes(
@@ -384,6 +472,101 @@ async function buildGateReport(options = {}) {
     } else {
         process.stdout.write('[FAIL] shell mantiene referencias CSS legacy\n');
         failures += 1;
+    }
+
+    const serviceWorkerResult = await fetchText(report.service_worker.url, {
+        accept: 'text/javascript,application/javascript;q=0.9,*/*;q=0.8',
+        userAgent: 'AdminUiRolloutGate/2.0',
+    });
+    report.service_worker.ok = serviceWorkerResult.ok === true;
+    report.service_worker.http_status = Number(serviceWorkerResult.status || 0);
+    report.service_worker.error = stringValue(serviceWorkerResult.error);
+    report.service_worker.cache_name = extractCacheName(serviceWorkerResult.text);
+    report.service_worker.versions = buildVersionMap(
+        serviceWorkerResult.text,
+        [...adminAssets, ...operatorAssets]
+    );
+
+    if (report.service_worker.ok) {
+        process.stdout.write(
+            `[OK]  sw.js -> HTTP ${report.service_worker.http_status} (${report.service_worker.cache_name || 'cache_name_missing'})\n`
+        );
+    } else {
+        process.stdout.write(
+            `[FAIL] sw.js -> HTTP ${report.service_worker.http_status} (${report.service_worker.error})\n`
+        );
+        failures += 1;
+    }
+
+    const operatorSurfaceResult = await fetchText(report.operator_surface.url, {
+        accept: 'text/html,application/json;q=0.9,*/*;q=0.8',
+        userAgent: 'AdminUiRolloutGate/2.0',
+    });
+    report.operator_surface.ok = operatorSurfaceResult.ok === true;
+    report.operator_surface.http_status = Number(
+        operatorSurfaceResult.status || 0
+    );
+    report.operator_surface.error = stringValue(operatorSurfaceResult.error);
+    report.operator_surface.versions = buildVersionMap(
+        operatorSurfaceResult.text,
+        operatorAssets
+    );
+
+    if (report.operator_surface.ok) {
+        process.stdout.write(
+            `[OK]  operador-turnos.html -> HTTP ${report.operator_surface.http_status}\n`
+        );
+    } else {
+        process.stdout.write(
+            `[FAIL] operador-turnos.html -> HTTP ${report.operator_surface.http_status} (${report.operator_surface.error})\n`
+        );
+        failures += 1;
+    }
+
+    if (report.page.ok && report.service_worker.ok) {
+        const adminParity = compareShellVsServiceWorker(
+            'admin_shell_vs_sw',
+            report.page.versions,
+            report.service_worker.versions
+        );
+        report.parity.admin_shell_vs_sw_ok = adminParity.ok;
+        report.parity.mismatches.push(...adminParity.mismatches);
+
+        if (adminParity.ok) {
+            process.stdout.write('[OK]  admin shell y sw.js alineados\n');
+        } else {
+            process.stdout.write('[FAIL] admin shell vs sw drift detectado\n');
+            for (const mismatch of adminParity.mismatches) {
+                process.stdout.write(
+                    `       ${mismatch.asset}: shell=${mismatch.shell_version || 'missing'} sw=${mismatch.service_worker_version || 'missing'}\n`
+                );
+            }
+            failures += 1;
+        }
+    }
+
+    if (report.operator_surface.ok && report.service_worker.ok) {
+        const operatorParity = compareShellVsServiceWorker(
+            'operator_shell_vs_sw',
+            report.operator_surface.versions,
+            report.service_worker.versions
+        );
+        report.parity.operator_shell_vs_sw_ok = operatorParity.ok;
+        report.parity.mismatches.push(...operatorParity.mismatches);
+
+        if (operatorParity.ok) {
+            process.stdout.write('[OK]  operador-turnos y sw.js alineados\n');
+        } else {
+            process.stdout.write(
+                '[FAIL] operador-turnos shell vs sw drift detectado\n'
+            );
+            for (const mismatch of operatorParity.mismatches) {
+                process.stdout.write(
+                    `       ${mismatch.asset}: shell=${mismatch.shell_version || 'missing'} sw=${mismatch.service_worker_version || 'missing'}\n`
+                );
+            }
+            failures += 1;
+        }
     }
 
     report.csp.checked = true;

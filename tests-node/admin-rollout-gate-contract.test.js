@@ -17,7 +17,14 @@ const SCRIPT_PATH = resolve(
     'admin',
     'GATE-ADMIN-ROLLOUT.ps1'
 );
+const NODE_GATE_PATH = resolve(
+    __dirname,
+    '..',
+    'bin',
+    'admin-rollout-gate.js'
+);
 const ADMIN_HTML_PATH = resolve(__dirname, '..', 'admin.html');
+const OPERATOR_HTML_PATH = resolve(__dirname, '..', 'operador-turnos.html');
 const ADMIN_RUNTIME_PATH = resolve(__dirname, '..', 'js', 'admin-runtime.js');
 const ADMIN_ENTRY_PATH = resolve(
     __dirname,
@@ -58,6 +65,10 @@ function loadWrapper() {
 
 function loadFile(path) {
     return readFileSync(path, 'utf8');
+}
+
+function loadNodeGate() {
+    return readFileSync(NODE_GATE_PATH, 'utf8');
 }
 
 function resolveGeneratedRuntimePath(...segments) {
@@ -341,6 +352,54 @@ test('shell admin y service worker comparten versiones canonicas de assets admin
     }
 });
 
+test('shell operador y service worker comparten versiones canonicas de assets turnero', () => {
+    const html = loadFile(OPERATOR_HTML_PATH);
+    const sw = loadFile(SW_PATH);
+    const operatorAssets = ['queue-ops.css', 'js/queue-operator.js'];
+
+    for (const asset of operatorAssets) {
+        const htmlVersion = extractAssetVersion(html, asset);
+        const swVersion = extractAssetVersion(sw, `/${asset}`);
+
+        assert.notEqual(
+            htmlVersion,
+            '',
+            `operador-turnos.html debe versionar ${asset}`
+        );
+        assert.equal(
+            swVersion,
+            htmlVersion,
+            `sw.js debe precachear ${asset} con la misma version del shell operador`
+        );
+    }
+});
+
+test('node gate admin expone surface parity para admin y operador contra sw.js', () => {
+    const raw = loadNodeGate();
+
+    for (const snippet of [
+        'url: `${base}/sw.js`',
+        'url: `${base}/operador-turnos.html`',
+        'cache_name:',
+        'admin_shell_vs_sw_ok: false',
+        'operator_shell_vs_sw_ok: false',
+        'mismatches: []',
+        "const adminAssets = [",
+        "const operatorAssets = ['queue-ops.css', 'js/queue-operator.js']",
+        "compareShellVsServiceWorker(",
+        "'admin_shell_vs_sw'",
+        "'operator_shell_vs_sw'",
+        '[FAIL] admin shell vs sw drift detectado',
+        '[FAIL] operador-turnos shell vs sw drift detectado',
+    ]) {
+        assert.equal(
+            raw.includes(snippet),
+            true,
+            `falta parity surface->sw en bin/admin-rollout-gate.js: ${snippet}`
+        );
+    }
+});
+
 test('package.json expone check canonico para chunks admin', () => {
     const packageJson = loadFile(PACKAGE_JSON_PATH);
 
@@ -362,6 +421,18 @@ test('package.json expone gate endurecido para rollout OpenClaw del admin', () =
         ),
         true,
         'package.json debe exponer gate:admin:rollout:openclaw'
+    );
+});
+
+test('package.json endurece agent:gate con chunks admin y board doctor strict antes de la suite larga', () => {
+    const packageJson = loadFile(PACKAGE_JSON_PATH);
+
+    assert.equal(
+        packageJson.includes(
+            '"agent:gate": "npm run chunks:admin:check && node agent-orchestrator.js board doctor --strict --json && npm run agent:test'
+        ),
+        true,
+        'agent:gate debe fallar temprano por drift admin y por errores semanticos del board'
     );
 });
 

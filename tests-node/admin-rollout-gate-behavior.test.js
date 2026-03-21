@@ -20,13 +20,76 @@ function adminShellHtml() {
         '<meta charset="utf-8">',
         "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'\">",
         '<link rel="stylesheet" href="admin-v3.css?v=test-gate">',
+        '<link rel="stylesheet" href="queue-ops.css?v=test-gate">',
         '</head>',
         '<body>',
         '<div id="app"></div>',
+        '<script src="js/admin-preboot-shortcuts.js?v=test-gate"></script>',
         '<script src="admin.js?v=test-gate"></script>',
         '</body>',
         '</html>',
     ].join('');
+}
+
+function operatorShellHtml() {
+    return [
+        '<!doctype html>',
+        '<html lang="es">',
+        '<head>',
+        '<meta charset="utf-8">',
+        '<link rel="stylesheet" href="queue-ops.css?v=test-gate">',
+        '</head>',
+        '<body>',
+        '<div id="operator-app"></div>',
+        '<script src="js/queue-operator.js?v=test-gate"></script>',
+        '</body>',
+        '</html>',
+    ].join('');
+}
+
+function serviceWorkerJs() {
+    return [
+        "const CACHE_NAME = 'pielarmonia-v-test-gate';",
+        'const STATIC_ASSETS = [',
+        "    '/admin-v3.css?v=test-gate',",
+        "    '/queue-ops.css?v=test-gate',",
+        "    '/js/admin-preboot-shortcuts.js?v=test-gate',",
+        "    '/admin.js?v=test-gate',",
+        "    '/js/queue-operator.js?v=test-gate',",
+        '];',
+    ].join('\n');
+}
+
+function handleCanonicalAdminSurfaceRequest(url, res, overrides = {}) {
+    const adminHtml = String(overrides.adminHtml || adminShellHtml());
+    const operatorHtml = String(overrides.operatorHtml || operatorShellHtml());
+    const swBody = String(overrides.swBody || serviceWorkerJs());
+
+    if (url.pathname === '/admin.html') {
+        res.writeHead(200, {
+            'Content-Type': 'text/html; charset=utf-8',
+        });
+        res.end(adminHtml);
+        return true;
+    }
+
+    if (url.pathname === '/operador-turnos.html') {
+        res.writeHead(200, {
+            'Content-Type': 'text/html; charset=utf-8',
+        });
+        res.end(operatorHtml);
+        return true;
+    }
+
+    if (url.pathname === '/sw.js') {
+        res.writeHead(200, {
+            'Content-Type': 'text/javascript; charset=utf-8',
+        });
+        res.end(swBody);
+        return true;
+    }
+
+    return false;
 }
 
 function sendJson(res, statusCode, payload) {
@@ -134,11 +197,7 @@ test('admin rollout gate acepta stage general y switches de tolerancia usados po
             (req, res) => {
                 const url = new URL(req.url, 'http://127.0.0.1');
 
-                if (url.pathname === '/admin.html') {
-                    res.writeHead(200, {
-                        'Content-Type': 'text/html; charset=utf-8',
-                    });
-                    res.end(adminShellHtml());
+                if (handleCanonicalAdminSurfaceRequest(url, res)) {
                     return;
                 }
 
@@ -213,11 +272,7 @@ test('admin rollout gate marca la fachada como legacy cuando operator-auth-statu
             (req, res) => {
                 const url = new URL(req.url, 'http://127.0.0.1');
 
-                if (url.pathname === '/admin.html') {
-                    res.writeHead(200, {
-                        'Content-Type': 'text/html; charset=utf-8',
-                    });
-                    res.end(adminShellHtml());
+                if (handleCanonicalAdminSurfaceRequest(url, res)) {
                     return;
                 }
 
@@ -292,11 +347,7 @@ test('admin rollout gate acepta operator-auth-status cuando ya expone contrato O
             (req, res) => {
                 const url = new URL(req.url, 'http://127.0.0.1');
 
-                if (url.pathname === '/admin.html') {
-                    res.writeHead(200, {
-                        'Content-Type': 'text/html; charset=utf-8',
-                    });
-                    res.end(adminShellHtml());
+                if (handleCanonicalAdminSurfaceRequest(url, res)) {
                     return;
                 }
 
@@ -388,11 +439,7 @@ test('admin rollout gate acepta web_broker configurado sin exigir helper local',
             (req, res) => {
                 const url = new URL(req.url, 'http://127.0.0.1');
 
-                if (url.pathname === '/admin.html') {
-                    res.writeHead(200, {
-                        'Content-Type': 'text/html; charset=utf-8',
-                    });
-                    res.end(adminShellHtml());
+                if (handleCanonicalAdminSurfaceRequest(url, res)) {
                     return;
                 }
 
@@ -468,11 +515,7 @@ test('admin rollout gate falla si web_broker no tiene trust OIDC completo', asyn
             (req, res) => {
                 const url = new URL(req.url, 'http://127.0.0.1');
 
-                if (url.pathname === '/admin.html') {
-                    res.writeHead(200, {
-                        'Content-Type': 'text/html; charset=utf-8',
-                    });
-                    res.end(adminShellHtml());
+                if (handleCanonicalAdminSurfaceRequest(url, res)) {
                     return;
                 }
 
@@ -522,6 +565,96 @@ test('admin rollout gate falla si web_broker no tiene trust OIDC completo', asyn
                 assert.equal(report.ok, false);
                 assert.equal(report.operator_auth.transport, 'web_broker');
                 assert.equal(report.operator_auth.broker_trust_configured, false);
+            }
+        );
+    } finally {
+        rmSync(tempDir, {
+            recursive: true,
+            force: true,
+        });
+    }
+});
+
+test('admin rollout gate falla cuando admin.html y sw.js publican versiones mezcladas', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'admin-rollout-gate-parity-'));
+    const reportPath = join(tempDir, 'report.json');
+
+    try {
+        await withMockServer(
+            (req, res) => {
+                const url = new URL(req.url, 'http://127.0.0.1');
+
+                if (
+                    handleCanonicalAdminSurfaceRequest(url, res, {
+                        swBody: [
+                            "const CACHE_NAME = 'pielarmonia-v-test-gate-stale';",
+                            'const STATIC_ASSETS = [',
+                            "    '/admin-v3.css?v=test-gate',",
+                            "    '/queue-ops.css?v=test-gate',",
+                            "    '/js/admin-preboot-shortcuts.js?v=test-gate',",
+                            "    '/admin.js?v=stale-admin',",
+                            "    '/js/queue-operator.js?v=test-gate',",
+                            '];',
+                        ].join('\n'),
+                    })
+                ) {
+                    return;
+                }
+
+                if (
+                    url.pathname === '/api.php' &&
+                    url.searchParams.get('resource') === 'operator-auth-status'
+                ) {
+                    sendJson(res, 200, {
+                        ok: true,
+                        authenticated: false,
+                        mode: 'openclaw_chatgpt',
+                        transport: 'local_helper',
+                        status: 'anonymous',
+                        configured: true,
+                        configuration: {
+                            helperBaseUrl: 'http://127.0.0.1:4173',
+                            bridgeTokenConfigured: true,
+                            bridgeSecretConfigured: true,
+                            allowlistConfigured: true,
+                            brokerAuthorizeUrlConfigured: true,
+                            brokerTokenUrlConfigured: true,
+                            brokerUserinfoUrlConfigured: true,
+                            brokerClientIdConfigured: true,
+                            brokerTrustConfigured: true,
+                            brokerIssuerPinned: true,
+                            brokerAudiencePinned: true,
+                            brokerJwksConfigured: true,
+                            brokerEmailVerifiedRequired: true,
+                            missing: [],
+                        },
+                    });
+                    return;
+                }
+
+                res.writeHead(404, {
+                    'Content-Type': 'text/plain; charset=utf-8',
+                });
+                res.end('not-found');
+            },
+            async (baseUrl) => {
+                const result = await runGate(baseUrl, reportPath);
+
+                assert.equal(result.status, 1, result.stderr || result.stdout);
+                assert.match(result.stdout, /admin shell vs sw drift detectado/i);
+
+                const report = readJson(reportPath);
+                assert.equal(report.ok, false);
+                assert.equal(report.parity.admin_shell_vs_sw_ok, false);
+                assert.equal(report.parity.operator_shell_vs_sw_ok, true);
+                assert.deepEqual(report.parity.mismatches, [
+                    {
+                        parity: 'admin_shell_vs_sw',
+                        asset: 'admin.js',
+                        shell_version: 'test-gate',
+                        service_worker_version: 'stale-admin',
+                    },
+                ]);
             }
         );
     } finally {
