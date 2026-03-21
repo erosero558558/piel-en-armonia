@@ -16163,4 +16163,205 @@ test.describe('Admin turnero sala', () => {
         expect(repoDiagnosisIndex).toBeGreaterThan(mainlineClosureIndex);
         expect(finalExecutionIndex).toBeGreaterThan(repoDiagnosisIndex);
     });
+
+    test('monta el surface sync console y permite agregar handoffs locales', async ({
+        page,
+    }) => {
+        const updatedAt = '2026-03-20T10:00:00.000Z';
+        const clinicProfile = buildQueuePilotClinicProfile({
+            clinicId: 'clinica-norte-demo',
+        });
+        const queueState = buildQueueIdleState(updatedAt, {
+            waitingCount: 1,
+            calledCount: 1,
+            callingNow: [
+                {
+                    id: 51,
+                    ticketCode: 'A-051',
+                    patientInitials: 'JP',
+                    assignedConsultorio: 1,
+                    calledAt: updatedAt,
+                },
+            ],
+            nextTickets: [
+                {
+                    id: 52,
+                    ticketCode: 'A-052',
+                    patientInitials: 'EP',
+                    position: 1,
+                },
+            ],
+        });
+        const queueTickets = [
+            {
+                id: 51,
+                ticketCode: 'A-051',
+                patientInitials: 'JP',
+                status: 'called',
+                assignedConsultorio: 1,
+                calledAt: updatedAt,
+            },
+            {
+                id: 52,
+                ticketCode: 'A-052',
+                patientInitials: 'EP',
+                status: 'waiting',
+                assignedConsultorio: 1,
+            },
+        ];
+
+        const operatorInstance = {
+            deviceLabel: 'Operador C1 fijo',
+            appMode: 'desktop',
+            ageSec: 4,
+            stale: false,
+            effectiveStatus: 'warning',
+            status: 'warning',
+            updatedAt,
+            summary: 'Operador con handoff abierto.',
+            details: {
+                station: 'c1',
+                stationMode: 'locked',
+                surfaceSyncSnapshot: {
+                    surfaceKey: 'operator:c1',
+                    queueVersion: updatedAt,
+                    visibleTurn: 'A-051',
+                    announcedTurn: 'A-051',
+                    handoffState: 'open',
+                    heartbeatState: 'ready',
+                    heartbeatChannel: 'desktop',
+                    updatedAt,
+                },
+                surfaceSyncHandoffOpenCount: 1,
+            },
+        };
+        const kioskInstance = {
+            deviceLabel: 'Kiosco principal',
+            appMode: 'browser',
+            ageSec: 5,
+            stale: false,
+            effectiveStatus: 'ready',
+            status: 'ready',
+            updatedAt,
+            summary: 'Kiosco listo.',
+            details: {
+                surfaceSyncSnapshot: {
+                    surfaceKey: 'kiosk',
+                    queueVersion: updatedAt,
+                    visibleTurn: 'A-051',
+                    announcedTurn: 'A-051',
+                    handoffState: 'clear',
+                    heartbeatState: 'ready',
+                    heartbeatChannel: 'queue-state-live',
+                    updatedAt,
+                },
+                surfaceSyncHandoffOpenCount: 0,
+            },
+        };
+        const displayInstance = {
+            deviceLabel: 'Sala principal',
+            appMode: 'browser',
+            ageSec: 6,
+            stale: false,
+            effectiveStatus: 'ready',
+            status: 'ready',
+            updatedAt,
+            summary: 'Sala lista.',
+            details: {
+                surfaceSyncSnapshot: {
+                    surfaceKey: 'display',
+                    queueVersion: updatedAt,
+                    visibleTurn: 'A-051',
+                    announcedTurn: 'A-051',
+                    handoffState: 'clear',
+                    heartbeatState: 'ready',
+                    heartbeatChannel: 'queue-state-live',
+                    updatedAt,
+                },
+                surfaceSyncHandoffOpenCount: 0,
+            },
+        };
+
+        await installQueueAdminAuthMock(page, 'csrf_surface_sync');
+        await installAdminQueueApiMocks(page, {
+            queueState,
+            queueTickets,
+            dataOverrides: {
+                turneroClinicProfile: clinicProfile,
+                queueSurfaceStatus: {
+                    operator: buildQueueOperationalSurfaceStatusEntry(
+                        'operator',
+                        {
+                            status: 'warning',
+                            updatedAt,
+                            ageSec: 4,
+                            stale: false,
+                            summary: 'Operador con handoff abierto.',
+                            latest: operatorInstance,
+                            instances: [operatorInstance],
+                        }
+                    ),
+                    kiosk: buildQueueOperationalSurfaceStatusEntry('kiosk', {
+                        status: 'ready',
+                        updatedAt,
+                        ageSec: 5,
+                        stale: false,
+                        summary: 'Kiosco listo.',
+                        latest: kioskInstance,
+                        instances: [kioskInstance],
+                    }),
+                    display: buildQueueOperationalSurfaceStatusEntry(
+                        'display',
+                        {
+                            status: 'ready',
+                            updatedAt,
+                            ageSec: 6,
+                            stale: false,
+                            summary: 'Sala lista.',
+                            latest: displayInstance,
+                            instances: [displayInstance],
+                        }
+                    ),
+                },
+            },
+        });
+
+        await page.goto(adminUrl('section=queue'));
+        await page.locator('#queueDomainIncidents').dispatchEvent('click');
+
+        await expect(
+            page.locator('#queueSurfaceSyncConsoleHost')
+        ).toContainText('Surface Sync Console');
+        await expect(
+            page.locator('#queueSurfaceSyncConsoleHost')
+        ).toContainText('Operador C1 fijo');
+        await expect(
+            page.locator(
+                '#queueSurfaceSyncConsoleHost .turnero-admin-queue-surface-sync-console__handoff-item'
+            )
+        ).toHaveCount(1);
+
+        await page.selectOption(
+            '#queueSurfaceSyncConsoleHost [data-field="surface-key"]',
+            'operator:c1'
+        );
+        await page
+            .locator('#queueSurfaceSyncConsoleHost [data-field="title"]')
+            .fill('Shift relay');
+        await page
+            .locator('#queueSurfaceSyncConsoleHost [data-field="note"]')
+            .fill('Confirmar continuidad del handoff desde admin.');
+        await page
+            .locator('#queueSurfaceSyncConsoleHost [data-action="add-handoff"]')
+            .click();
+
+        await expect(
+            page.locator(
+                '#queueSurfaceSyncConsoleHost .turnero-admin-queue-surface-sync-console__handoff-item'
+            )
+        ).toHaveCount(2);
+        await expect(
+            page.locator('#queueSurfaceSyncConsoleHost')
+        ).toContainText('Shift relay');
+    });
 });

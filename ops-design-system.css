@@ -328,3 +328,305 @@ body {
         scroll-behavior: auto !important;
     }
 }
+
+.turnero-surface-runtime-host {
+    display: block;
+    margin: 0 0 1rem;
+}
+
+.turnero-surface-runtime-bootstrap,
+.turnero-surface-launch-badge,
+.turnero-admin-queue-surface-truth-panel {
+    display: grid;
+    gap: 1rem;
+}
+
+.turnero-surface-runtime-bootstrap {
+    padding: 1rem;
+}
+
+.turnero-surface-runtime-bootstrap__header,
+.turnero-admin-queue-surface-truth-panel__header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem 1rem;
+}
+
+.turnero-surface-runtime-bootstrap__chips,
+.turnero-surface-launch-badge__rows,
+.turnero-admin-queue-surface-truth-panel__stats,
+.turnero-admin-queue-surface-truth-panel__summary,
+.turnero-admin-queue-surface-truth-panel__row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.turnero-surface-mini-tag,
+.turnero-surface-launch-badge__state,
+.turnero-surface-runtime-bootstrap__tile strong,
+.turnero-admin-queue-surface-truth-panel__row strong {
+    font-weight: 700;
+}
+
+.turnero-surface-mini-tag,
+.turnero-surface-launch-badge__state,
+.turnero-admin-queue-surface-truth-panel__readiness-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2rem;
+    padding: 0.25rem 0.65rem;
+    border: 1px solid var(--ops-control-border);
+    border-radius: 999px;
+    background: var(--ops-control-bg);
+    color: var(--text);
+}
+
+.turnero-surface-mini-tag {
+    max-width: 100%;
+}
+
+.turnero-surface-runtime-bootstrap__banner {
+    display: grid;
+}
+
+.turnero-surface-safe-mode-banner {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.9rem 1rem;
+    border-radius: 18px;
+    border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border) 70%);
+    background:
+        linear-gradient(180deg, rgb(255 251 240 / 94%), rgb(255 245 220 / 88%)),
+        var(--surface-soft);
+    color: var(--text);
+}
+
+.turnero-surface-safe-mode-banner[data-state='danger'] {
+    border-color: color-mix(in srgb, var(--danger) 34%, var(--border) 66%);
+    background:
+        linear-gradient(180deg, rgb(255 243 243 / 96%), rgb(255 235 235 / 90%)),
+        var(--surface-soft);
+}
+
+.turnero-surface-safe-mode-banner[data-state='ready'] {
+    border-color: color-mix(in srgb, var(--success) 28%, var(--border) 72%);
+    background:
+        linear-gradient(180deg, rgb(243 255 246 / 96%), rgb(233 249 238 / 90%)),
+        var(--surface-soft);
+}
+
+.turnero-surface-launch-badge {
+    padding: 1rem;
+    border: 1px solid var(--ops-card-border);
+    border-radius: 24px;
+    background:
+        radial-gradient(circle at top right, rgb(72 119 164 / 11%), transparent 28%),
+        linear-gradient(165deg, rgb(255 255 255 / 98%), rgb(242 247 251 / 96%));
+    box-shadow: 0 18px 36px rgb(18 34 52 / 10%);
+}
+
+.turnero-surface-launch-badge__header,
+.turnero-surface-runtime-bootstrap__truth-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem 1rem;
+}
+
+.turnero-surface-launch-badge__summary,
+.turnero-surface-launch-badge__detail,
+.turnero-surface-runtime-bootstrap__note,
+.turnero-surface-runtime-bootstrap__error,
+.turnero-admin-queue-surface-truth-panel__note,
+.turnero-admin-queue-surface-truth-panel__error {
+    margin: 0;
+    color: color-mix(in srgb, var(--text) 74%, var(--muted) 26%);
+}
+
+.turnero-surface-launch-badge__rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.turnero-surface-launch-badge__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 14px;
+    background: rgb(255 255 255 / 65%);
+    border: 1px solid rgb(19 36 54 / 8%);
+}
+
+.turnero-surface-runtime-bootstrap__grid,
+.turnero-surface-runtime-bootstrap__brief-grid,
+.turnero-admin-queue-surface-truth-panel__summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.75rem;
+}
+
+.turnero-surface-runtime-bootstrap__tile,
+.turnero-surface-runtime-bootstrap__brief-box,
+.turnero-surface-runtime-bootstrap__truth-section,
+.turnero-surface-runtime-bootstrap__checklist,
+.turnero-admin-queue-surface-truth-panel__row,
+.turnero-admin-queue-surface-truth-panel__actions {
+    border: 1px solid var(--ops-card-border);
+    border-radius: 20px;
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(246 249 252 / 96%)),
+        var(--surface-soft);
+}
+
+.turnero-surface-runtime-bootstrap__tile,
+.turnero-surface-runtime-bootstrap__brief-box,
+.turnero-surface-runtime-bootstrap__truth-section,
+.turnero-surface-runtime-bootstrap__checklist {
+    padding: 0.9rem 1rem;
+}
+
+.turnero-surface-runtime-bootstrap__tile {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.turnero-surface-runtime-bootstrap__tile-label {
+    margin: 0;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--text) 55%, var(--muted) 45%);
+}
+
+.turnero-surface-runtime-bootstrap__brief-box pre {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.turnero-surface-runtime-bootstrap__truth-list,
+.turnero-admin-queue-surface-truth-panel__rows,
+.turnero-surface-smoke-checklist__items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.turnero-surface-runtime-bootstrap__truth-row,
+.turnero-admin-queue-surface-truth-panel__row,
+.turnero-surface-smoke-checklist__item {
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.75rem 0.9rem;
+}
+
+.turnero-surface-runtime-bootstrap__truth-row span,
+.turnero-admin-queue-surface-truth-panel__row span,
+.turnero-surface-smoke-checklist__detail {
+    color: color-mix(in srgb, var(--text) 72%, var(--muted) 28%);
+}
+
+.turnero-surface-runtime-bootstrap__checklist {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.turnero-admin-queue-surface-truth-panel {
+    padding: 1rem;
+}
+
+.turnero-admin-queue-surface-truth-panel__meta,
+.turnero-admin-queue-surface-truth-panel__readiness {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    align-items: center;
+}
+
+.turnero-admin-queue-surface-truth-panel__readiness {
+    justify-content: space-between;
+}
+
+.turnero-admin-queue-surface-truth-panel__readiness-score {
+    color: color-mix(in srgb, var(--text) 75%, var(--muted) 25%);
+}
+
+.turnero-admin-queue-surface-truth-panel__row {
+    gap: 0.4rem;
+}
+
+.turnero-admin-queue-surface-truth-panel__row-main {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.turnero-admin-queue-surface-truth-panel__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    padding: 0.85rem;
+}
+
+.turnero-admin-queue-surface-truth-panel__actions button {
+    min-height: 2.35rem;
+}
+
+.turnero-surface-smoke-checklist {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0;
+}
+
+.turnero-surface-smoke-checklist__header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem 1rem;
+}
+
+.turnero-surface-smoke-checklist__items {
+    margin-top: 0.25rem;
+}
+
+.turnero-surface-smoke-checklist__item {
+    border-radius: 16px;
+    border: 1px solid var(--ops-card-border);
+    background: rgb(255 255 255 / 70%);
+}
+
+.turnero-surface-smoke-checklist__item[data-state='pass'] {
+    border-color: color-mix(in srgb, var(--success) 28%, var(--border) 72%);
+}
+
+.turnero-surface-smoke-checklist__item[data-state='fail'] {
+    border-color: color-mix(in srgb, var(--danger) 28%, var(--border) 72%);
+}
+
+@media (max-width: 760px) {
+    .turnero-surface-runtime-bootstrap,
+    .turnero-admin-queue-surface-truth-panel {
+        padding: 0.85rem;
+    }
+
+    .turnero-surface-launch-badge__row,
+    .turnero-admin-queue-surface-truth-panel__row-main,
+    .turnero-admin-queue-surface-truth-panel__readiness {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

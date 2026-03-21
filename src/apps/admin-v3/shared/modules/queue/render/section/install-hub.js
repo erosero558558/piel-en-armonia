@@ -85,7 +85,16 @@ import {
     setOpsPlaybookStep as setOpsPlaybookStepModule,
 } from './install-hub/playbook.js';
 import { mountAdminQueuePilotReadinessCard } from '../../../../../../queue-shared/admin-queue-pilot-readiness.js';
+import { mountTurneroAdminQueueSurfaceTruthPanel } from '../../../../../../queue-shared/turnero-admin-queue-surface-truth-panel.js';
 import { mountTurneroReleaseTelemetryOptimizationHub } from '../../../../../../queue-shared/turnero-release-telemetry-optimization-hub.js';
+import {
+    createTurneroSurfaceHandoffLedger,
+    resolveTurneroSurfaceHandoffState,
+} from '../../../../../../queue-shared/turnero-surface-handoff-ledger.js';
+import { buildTurneroSurfaceSyncPack } from '../../../../../../queue-shared/turnero-surface-sync-pack.js';
+import { mountTurneroAdminQueueSurfaceSyncConsole } from '../../../../../../queue-shared/turnero-admin-queue-surface-sync-console.js';
+import { buildTurneroSurfaceRecoveryPack } from '../../../../../../queue-shared/turnero-surface-recovery-pack.js';
+import { mountTurneroAdminQueueSurfaceRecoveryConsole } from '../../../../../../queue-shared/turnero-admin-queue-surface-recovery-console.js';
 
 const QUEUE_INSTALL_PRESET_STORAGE_KEY = 'queueInstallPresetV1';
 const QUEUE_OPENING_CHECKLIST_STORAGE_KEY = 'queueOpeningChecklistV1';
@@ -147,6 +156,7 @@ const QUEUE_ADMIN_BASIC_PANEL_IDS = Object.freeze([
     'queueShiftHandoff',
     'queueContingencyDeck',
     'queueReliabilityRecoveryNerveCenterHost',
+    'queueSurfaceRecoveryConsoleHost',
     'queueQuickTrays',
     'queueQuickConsole',
     'queuePlaybook',
@@ -3632,6 +3642,369 @@ function getSurfaceTelemetryInstances(surfaceKey) {
         : [];
 }
 
+function getQueueSurfaceSyncScope() {
+    return (
+        String(getTurneroClinicProfile()?.clinic_id || '').trim() ||
+        'default-clinic'
+    );
+}
+
+function getQueueSurfaceRecoveryScope() {
+    return (
+        String(
+            getTurneroClinicProfile()?.region ||
+                getTurneroClinicProfile()?.branding?.city ||
+                'regional'
+        ).trim() || 'regional'
+    );
+}
+
+function buildQueueSurfaceSyncCallingNow(queueMeta) {
+    const byConsultorio =
+        queueMeta?.callingNowByConsultorio &&
+        typeof queueMeta.callingNowByConsultorio === 'object'
+            ? queueMeta.callingNowByConsultorio
+            : {};
+    return [byConsultorio[1], byConsultorio[2]].filter(Boolean);
+}
+
+function getQueueSurfaceSyncPrimaryCalledTicket() {
+    return getCalledTicketForConsultorio(1) || getCalledTicketForConsultorio(2);
+}
+
+function getQueueSurfaceSyncPrimaryVisibleTurn(queueMeta) {
+    return String(
+        getQueueSurfaceSyncPrimaryCalledTicket()?.ticketCode ||
+            queueMeta?.nextTickets?.[0]?.ticketCode ||
+            ''
+    )
+        .trim()
+        .toUpperCase();
+}
+
+function normalizeSurfaceSyncSnapshot(instance, surfaceKey) {
+    const details =
+        instance?.details && typeof instance.details === 'object'
+            ? instance.details
+            : {};
+    const snapshot =
+        details.surfaceSyncSnapshot &&
+        typeof details.surfaceSyncSnapshot === 'object'
+            ? details.surfaceSyncSnapshot
+            : {};
+    return {
+        surfaceKey:
+            String(snapshot.surfaceKey || '').trim() ||
+            (surfaceKey === 'operator'
+                ? `operator:${String(details.station || 'c1').trim() || 'c1'}`
+                : surfaceKey),
+        queueVersion: String(snapshot.queueVersion || '').trim(),
+        visibleTurn: String(snapshot.visibleTurn || '')
+            .trim()
+            .toUpperCase(),
+        announcedTurn: String(snapshot.announcedTurn || '')
+            .trim()
+            .toUpperCase(),
+        handoffState:
+            String(snapshot.handoffState || '').trim() ||
+            resolveTurneroSurfaceHandoffState(
+                buildRemoteSurfaceSyncHandoffs(instance, surfaceKey)
+            ),
+        heartbeatState:
+            String(snapshot.heartbeatState || '').trim() ||
+            String(instance?.effectiveStatus || instance?.status || 'unknown')
+                .trim()
+                .toLowerCase(),
+        heartbeatChannel:
+            String(snapshot.heartbeatChannel || '').trim() || 'heartbeat',
+        updatedAt:
+            String(snapshot.updatedAt || instance?.updatedAt || '').trim() ||
+            new Date().toISOString(),
+    };
+}
+
+function buildRemoteSurfaceSyncHandoffs(instance, surfaceKey) {
+    const details =
+        instance?.details && typeof instance.details === 'object'
+            ? instance.details
+            : {};
+    const surfaceLabel =
+        surfaceKey === 'operator'
+            ? String(details.station || 'operator')
+                  .trim()
+                  .toUpperCase()
+            : surfaceKey;
+    const openCount = Math.max(
+        0,
+        Number(details.surfaceSyncHandoffOpenCount || 0)
+    );
+    return Array.from({ length: openCount }, (_, index) => ({
+        id: `remote_${surfaceKey}_${index + 1}`,
+        scope: getQueueSurfaceSyncScope(),
+        surfaceKey:
+            String(details.surfaceSyncSnapshot?.surfaceKey || '').trim() ||
+            surfaceKey,
+        title: `Handoff reportado · ${surfaceLabel}`,
+        owner: 'remote_surface',
+        source: 'remote_surface',
+        status: 'open',
+        note: 'La surface reportó handoff abierto vía heartbeat.',
+        createdAt: String(instance?.updatedAt || new Date().toISOString()),
+        updatedAt: String(instance?.updatedAt || new Date().toISOString()),
+    }));
+}
+
+function buildAdminSurfaceSyncPack() {
+    const { queueMeta } = getQueueSource();
+    const callingNow = buildQueueSurfaceSyncCallingNow(queueMeta);
+    const nextTickets = Array.isArray(queueMeta?.nextTickets)
+        ? queueMeta.nextTickets
+        : [];
+    const handoffStore = createTurneroSurfaceHandoffLedger(
+        getQueueSurfaceSyncScope(),
+        getTurneroClinicProfile()
+    );
+    const handoffs = handoffStore.list({
+        includeClosed: false,
+        surfaceKey: 'admin-queue',
+    });
+    const expectedVisibleTurn =
+        getQueueSurfaceSyncPrimaryVisibleTurn(queueMeta);
+
+    return buildTurneroSurfaceSyncPack({
+        surfaceKey: 'admin-queue',
+        queueVersion: String(queueMeta?.updatedAt || '').trim(),
+        visibleTurn: expectedVisibleTurn,
+        announcedTurn: String(
+            getQueueSurfaceSyncPrimaryCalledTicket()?.ticketCode || ''
+        )
+            .trim()
+            .toUpperCase(),
+        handoffState: resolveTurneroSurfaceHandoffState(handoffs),
+        heartbeat: {
+            state: 'ready',
+            channel: 'admin-store',
+        },
+        updatedAt: String(queueMeta?.updatedAt || '').trim(),
+        counts: queueMeta?.counts || null,
+        waitingCount: Number(queueMeta?.waitingCount || 0),
+        calledCount: Number(queueMeta?.calledCount || 0),
+        callingNow,
+        nextTickets,
+        expectedVisibleTurn,
+        expectedQueueVersion: String(queueMeta?.updatedAt || '').trim(),
+        handoffs,
+    });
+}
+
+function getExpectedOperatorSurfaceVisibleTurn(instance) {
+    const details =
+        instance?.details && typeof instance.details === 'object'
+            ? instance.details
+            : {};
+    const station = String(details.station || 'c1')
+        .trim()
+        .toLowerCase();
+    const consultorio = station === 'c2' ? 2 : 1;
+    return String(
+        getCalledTicketForConsultorio(consultorio)?.ticketCode ||
+            getWaitingForConsultorio(consultorio)?.ticketCode ||
+            ''
+    )
+        .trim()
+        .toUpperCase();
+}
+
+function listSurfaceSyncConsoleInstances(surfaceKey) {
+    const instances = getSurfaceTelemetryInstances(surfaceKey);
+    if (instances.length > 0) {
+        return instances;
+    }
+
+    const group = getSurfaceTelemetryState(surfaceKey);
+    const latest = normalizeSurfaceTelemetryInstance(group.latest, group);
+    return latest ? [latest] : [];
+}
+
+function buildSurfaceRecoveryConsolePacks() {
+    const clinicProfile = getTurneroClinicProfile();
+
+    return ['operator', 'kiosk', 'display'].map((surfaceKey) => {
+        const { group, latest, details } = getLatestSurfaceDetails(surfaceKey);
+        const surfaceDefinition = clinicProfile?.surfaces?.[surfaceKey] || {};
+        const expectedRoute = String(surfaceDefinition.route || '').trim();
+        const currentRoute = String(
+            details.surfaceRouteCurrent ||
+                details.currentRoute ||
+                latest?.currentRoute ||
+                latest?.route ||
+                expectedRoute
+        ).trim();
+        const effectiveState = String(
+            latest?.effectiveStatus || latest?.status || group.status || 'watch'
+        )
+            .trim()
+            .toLowerCase();
+        const normalizedState =
+            effectiveState === 'ready'
+                ? 'ready'
+                : effectiveState === 'degraded'
+                  ? 'degraded'
+                  : effectiveState === 'blocked' || effectiveState === 'alert'
+                    ? 'blocked'
+                    : 'watch';
+        const summary =
+            String(latest?.summary || group.summary || '').trim() ||
+            'Sin telemetría viva todavía.';
+        const runtimeState = {
+            state: normalizedState,
+            status: latest?.status || group.status || 'watch',
+            summary,
+            online: details.networkOnline !== false,
+            connectivity:
+                details.connectivity ||
+                (normalizedState === 'blocked' ? 'offline' : 'online'),
+            mode: details.mode || details.appMode || 'live',
+            reason: details.reason || '',
+            pendingCount:
+                Number(details.pendingCount || details.pendingOffline || 0) ||
+                0,
+            outboxSize:
+                Number(details.outboxSize || details.pendingOffline || 0) || 0,
+            reconciliationSize: Number(details.reconciliationSize || 0) || 0,
+            printerReady:
+                typeof details.printerReady === 'boolean'
+                    ? details.printerReady
+                    : undefined,
+            printerPrinted:
+                typeof details.printerPrinted === 'boolean'
+                    ? details.printerPrinted
+                    : undefined,
+            bellPrimed:
+                typeof details.bellPrimed === 'boolean'
+                    ? details.bellPrimed
+                    : undefined,
+            bellMuted:
+                typeof details.bellMuted === 'boolean'
+                    ? details.bellMuted
+                    : undefined,
+            updateChannel: details.updateChannel || 'stable',
+            details: {
+                ...details,
+                telemetryGroup: group,
+                telemetryLatest: latest,
+            },
+        };
+        const heartbeat = {
+            state: normalizedState,
+            status: latest?.status || group.status || 'watch',
+            summary,
+            channel: String(
+                details.channel || details.heartbeatChannel || 'telemetry'
+            ),
+            lastBeatAt: String(
+                details.lastBeatAt || latest?.updatedAt || group.updatedAt || ''
+            ),
+            lastEvent: String(
+                details.lastEvent ||
+                    details.event ||
+                    latest?.effectiveStatus ||
+                    latest?.status ||
+                    group.status ||
+                    'telemetry'
+            ),
+            lastEventAt: String(
+                details.lastEventAt ||
+                    latest?.updatedAt ||
+                    group.updatedAt ||
+                    ''
+            ),
+            online: details.networkOnline !== false,
+            details: {
+                ...details,
+            },
+        };
+        const pack = buildTurneroSurfaceRecoveryPack({
+            surfaceKey,
+            clinicProfile,
+            currentRoute,
+            runtimeState,
+            heartbeat,
+        });
+
+        return {
+            surfaceKey,
+            label:
+                pack.readout.surfaceLabel || latest?.deviceLabel || surfaceKey,
+            pack,
+        };
+    });
+}
+
+function buildSurfaceSyncConsolePacks() {
+    const { queueMeta } = getQueueSource();
+    const baseQueueVersion = String(queueMeta?.updatedAt || '').trim();
+    const surfacePacks = [
+        {
+            label: 'Admin Queue',
+            surfaceKey: 'admin-queue',
+            pack: buildAdminSurfaceSyncPack(),
+            remoteHandoffs: [],
+        },
+    ];
+
+    for (const surfaceKey of ['operator', 'kiosk', 'display']) {
+        for (const instance of listSurfaceSyncConsoleInstances(surfaceKey)) {
+            const snapshot = normalizeSurfaceSyncSnapshot(instance, surfaceKey);
+            const remoteHandoffs = buildRemoteSurfaceSyncHandoffs(
+                instance,
+                surfaceKey
+            );
+            const expectedVisibleTurn =
+                surfaceKey === 'operator'
+                    ? getExpectedOperatorSurfaceVisibleTurn(instance)
+                    : getQueueSurfaceSyncPrimaryVisibleTurn(queueMeta);
+            const pack = buildTurneroSurfaceSyncPack({
+                surfaceKey: snapshot.surfaceKey,
+                queueVersion: snapshot.queueVersion,
+                visibleTurn: snapshot.visibleTurn,
+                announcedTurn: snapshot.announcedTurn,
+                handoffState: snapshot.handoffState,
+                heartbeat: {
+                    state: snapshot.heartbeatState,
+                    channel: snapshot.heartbeatChannel,
+                },
+                updatedAt: snapshot.updatedAt,
+                counts: queueMeta?.counts || null,
+                waitingCount: Number(queueMeta?.waitingCount || 0),
+                calledCount: Number(queueMeta?.calledCount || 0),
+                callingNow: buildQueueSurfaceSyncCallingNow(queueMeta),
+                nextTickets: Array.isArray(queueMeta?.nextTickets)
+                    ? queueMeta.nextTickets
+                    : [],
+                expectedVisibleTurn,
+                expectedQueueVersion: baseQueueVersion,
+                handoffs: remoteHandoffs,
+            });
+
+            surfacePacks.push({
+                label:
+                    surfaceKey === 'operator'
+                        ? String(instance.deviceLabel || 'Operador').trim() ||
+                          'Operador'
+                        : surfaceKey === 'kiosk'
+                          ? 'Kiosco principal'
+                          : 'Sala principal',
+                surfaceKey: snapshot.surfaceKey,
+                pack,
+                remoteHandoffs,
+            });
+        }
+    }
+
+    return surfacePacks;
+}
+
 function formatSurfacePlatformLabel(platform) {
     const normalized = String(platform || '')
         .trim()
@@ -4565,10 +4938,22 @@ function renderSurfaceTelemetry(manifest, detectedPlatform) {
                         )
                         .join('')}
                 </div>
+                <div id="queueSurfaceSyncConsoleHost" class="queue-surface-telemetry__sync-console-host" aria-live="polite"></div>
                 <div id="queueSurfaceTelemetryOptimizationHubHost" class="queue-surface-telemetry__optimization-host" aria-live="polite"></div>
             </section>
         `
     );
+
+    const surfaceSyncConsoleHost = document.getElementById(
+        'queueSurfaceSyncConsoleHost'
+    );
+    if (surfaceSyncConsoleHost instanceof HTMLElement) {
+        mountTurneroAdminQueueSurfaceSyncConsole(surfaceSyncConsoleHost, {
+            scope: getQueueSurfaceSyncScope(),
+            clinicProfile: getTurneroClinicProfile(),
+            getSurfacePacks: buildSurfaceSyncConsolePacks,
+        });
+    }
 
     const optimizationHubHost = document.getElementById(
         'queueSurfaceTelemetryOptimizationHubHost'
@@ -5290,6 +5675,7 @@ function renderQueueHubCorePanels(manifest, detectedPlatform) {
     renderQueueReleaseIntegrationCommandCenter(manifest, detectedPlatform);
     renderQueueRegionalProgramOffice(manifest, detectedPlatform);
     renderQueueReliabilityRecoveryNerveCenter(manifest, detectedPlatform);
+    renderQueueSurfaceRecoveryConsole(manifest, detectedPlatform);
     renderQueueAssuranceControlPlane(manifest, detectedPlatform);
     renderQueueSafetyPrivacyCockpit(manifest, detectedPlatform);
     renderQueueReleaseServiceExcellenceAdoptionCloud(
@@ -22340,6 +22726,21 @@ function renderQueueReliabilityRecoveryNerveCenter(manifest, detectedPlatform) {
     });
 }
 
+function renderQueueSurfaceRecoveryConsole(manifest, detectedPlatform) {
+    const root = document.getElementById('queueSurfaceRecoveryConsoleHost');
+    if (!(root instanceof HTMLElement)) {
+        return null;
+    }
+
+    return mountTurneroAdminQueueSurfaceRecoveryConsole(root, {
+        scope: getQueueSurfaceRecoveryScope(),
+        clinicProfile: getTurneroClinicProfile(),
+        getSurfacePacks: buildSurfaceRecoveryConsolePacks,
+        manifest,
+        detectedPlatform,
+    });
+}
+
 function renderOpeningChecklist(manifest, detectedPlatform) {
     const root = document.getElementById('queueOpeningChecklist');
     if (!(root instanceof HTMLElement)) {
@@ -23494,6 +23895,17 @@ export function renderQueueInstallHub(options = {}) {
             getTurneroClinicProfile()?.runtime_meta?.profileFingerprint ||
             '',
     });
+    mountTurneroAdminQueueSurfaceTruthPanel(
+        document.getElementById('queueSurfaceTruthPanel'),
+        {
+            clinicProfile: getTurneroClinicProfile(),
+            currentRoute: `${window.location.pathname || ''}${
+                window.location.hash || ''
+            }`,
+            surfacesUrl: '/data/turnero-surfaces.json',
+            manifestUrl: '/release-manifest.json',
+        }
+    );
     renderQueueHubCorePanels(manifest, platform);
     if (shouldRenderQueueHubExpandedPanels(adminMode)) {
         renderQueueHubExpertPanels(manifest, platform);

@@ -9,10 +9,28 @@ import {
     getTurneroSurfaceContract,
     loadTurneroClinicProfile,
 } from '../queue-shared/clinic-profile.js';
+import { mountTurneroSurfaceRuntimeBootstrap } from '../queue-shared/turnero-surface-runtime-bootstrap.js';
 import {
     persistClinicScopedStorageValue,
     readClinicScopedStorageValue,
 } from '../queue-shared/clinic-storage.js';
+import { buildTurneroSurfaceRuntimeWatch } from '../queue-shared/turnero-surface-runtime-watch.js';
+import { buildTurneroSurfaceOpsReadinessPack } from '../queue-shared/turnero-surface-ops-readiness-pack.js';
+import { buildTurneroSurfaceOpsSummary } from '../queue-shared/turnero-surface-ops-summary.js';
+import { mountTurneroSurfaceIncidentBanner } from '../queue-shared/turnero-surface-incident-banner.js';
+import {
+    createTurneroSurfaceHandoffLedger,
+    resolveTurneroSurfaceHandoffState,
+} from '../queue-shared/turnero-surface-handoff-ledger.js';
+import { buildTurneroSurfaceSyncPack } from '../queue-shared/turnero-surface-sync-pack.js';
+import { buildTurneroSurfaceSyncReadout } from '../queue-shared/turnero-surface-sync-readout.js';
+import { mountTurneroSurfaceSyncBanner } from '../queue-shared/turnero-surface-sync-banner.js';
+import { mountTurneroSurfaceCheckpointChip } from '../queue-shared/turnero-surface-checkpoint-chip.js';
+import { buildTurneroSurfaceRecoveryPack } from '../queue-shared/turnero-surface-recovery-pack.js';
+import { buildTurneroSurfaceContractReadout } from '../queue-shared/turnero-surface-contract-readout.js';
+import { mountTurneroSurfaceRecoveryBanner } from '../queue-shared/turnero-surface-recovery-banner.js';
+import { listTurneroSurfaceFallbackDrills } from '../queue-shared/turnero-surface-fallback-drill-store.js';
+import { listTurneroSurfaceCheckinLogbook } from '../queue-shared/turnero-surface-checkin-logbook.js';
 
 const API_ENDPOINT = '/api.php';
 const CHAT_ENDPOINT = '/figo-chat.php';
@@ -84,6 +102,8 @@ const state = {
     voiceGuideBusy: false,
     voiceGuideUtterance: null,
     clinicProfile: null,
+    surfaceBootstrap: null,
+    surfaceSyncPack: null,
 };
 
 let kioskHeartbeat = null;
@@ -271,6 +291,155 @@ function getKioskConsultorioLabel(consultorio) {
     return getTurneroConsultorioLabel(state.clinicProfile, consultorio);
 }
 
+function ensureKioskSurfaceOpsPanel() {
+    const statusNode = getById('kioskProfileStatus');
+    if (!(statusNode instanceof HTMLElement)) {
+        return null;
+    }
+
+    let host = statusNode.parentElement?.querySelector(
+        '[data-turnero-kiosk-surface-ops="true"]'
+    );
+    if (!(host instanceof HTMLElement)) {
+        host = document.createElement('div');
+        host.dataset.turneroKioskSurfaceOps = 'true';
+        host.className = 'turnero-surface-ops__stack';
+        statusNode.insertAdjacentElement('afterend', host);
+    }
+
+    let bannerHost = host.querySelector('[data-role="banner"]');
+    if (!(bannerHost instanceof HTMLElement)) {
+        bannerHost = document.createElement('div');
+        bannerHost.dataset.role = 'banner';
+        host.appendChild(bannerHost);
+    }
+
+    let chipsHost = host.querySelector('[data-role="chips"]');
+    if (!(chipsHost instanceof HTMLElement)) {
+        chipsHost = document.createElement('div');
+        chipsHost.dataset.role = 'chips';
+        chipsHost.className = 'turnero-surface-ops__chips';
+        host.appendChild(chipsHost);
+    }
+
+    return {
+        host,
+        bannerHost,
+        chipsHost,
+    };
+}
+
+function buildKioskSurfaceOpsTelemetryEntry(now = Date.now()) {
+    const heartbeatPayload = buildKioskHeartbeatPayload();
+    const heartbeatClient = ensureKioskHeartbeat();
+    const lastSentAt = Number(heartbeatClient?.getLastSentAt?.() || 0);
+    const ageSeconds =
+        lastSentAt > 0
+            ? Math.max(0, Math.round((now - lastSentAt) / 1000))
+            : null;
+    const staleThresholdSeconds = Math.max(
+        45,
+        Math.round(KIOSK_HEARTBEAT_MS / 1000) * 3
+    );
+
+    return {
+        status: heartbeatPayload.status,
+        stale:
+            Number.isFinite(ageSeconds) && ageSeconds >= staleThresholdSeconds,
+        summary: heartbeatPayload.summary,
+        clinicId: heartbeatPayload.clinicId,
+        profileFingerprint: heartbeatPayload.profileFingerprint,
+        surfaceContractState: heartbeatPayload.surfaceContractState,
+        surfaceRouteExpected: heartbeatPayload.surfaceRouteExpected,
+        surfaceRouteCurrent: heartbeatPayload.surfaceRouteCurrent,
+        latest: {
+            ageSec: ageSeconds,
+            lastEventAt: heartbeatPayload.lastEventAt,
+            reportedAt:
+                lastSentAt > 0
+                    ? new Date(lastSentAt).toISOString()
+                    : heartbeatPayload.lastEventAt,
+            details:
+                heartbeatPayload.details &&
+                typeof heartbeatPayload.details === 'object'
+                    ? heartbeatPayload.details
+                    : {},
+        },
+    };
+}
+
+function renderKioskSurfaceOps() {
+    const panel = ensureKioskSurfaceOpsPanel();
+    if (!panel) {
+        return;
+    }
+
+    if (!state.clinicProfile) {
+        panel.host.hidden = true;
+        return;
+    }
+
+    const now = Date.now();
+    const drills = listTurneroSurfaceFallbackDrills({
+        clinicProfile: state.clinicProfile,
+        surface: 'kiosk',
+    });
+    const logbook = listTurneroSurfaceCheckinLogbook({
+        clinicProfile: state.clinicProfile,
+        surface: 'kiosk',
+    });
+    const watch = buildTurneroSurfaceRuntimeWatch({
+        surface: 'kiosk',
+        telemetryEntry: buildKioskSurfaceOpsTelemetryEntry(now),
+        clinicProfile: state.clinicProfile,
+        now,
+    });
+    const readiness = buildTurneroSurfaceOpsReadinessPack({
+        surface: 'kiosk',
+        watch,
+        drills,
+        logbook,
+        now,
+    });
+    const summary = buildTurneroSurfaceOpsSummary({
+        surface: 'kiosk',
+        watch,
+        readiness,
+        drills,
+        logbook,
+    });
+
+    panel.host.hidden = false;
+    mountTurneroSurfaceIncidentBanner(panel.bannerHost, {
+        surface: 'kiosk',
+        watch,
+        readiness,
+        summary,
+    });
+    panel.chipsHost.replaceChildren();
+    [
+        {
+            label: 'Ops',
+            value: summary.opsChipValue,
+            state: summary.opsChipState,
+        },
+        {
+            label: 'Heartbeat',
+            value: summary.heartbeatChipValue,
+            state: summary.heartbeatChipState,
+        },
+        {
+            label: 'Score',
+            value: summary.scoreLabel,
+            state: summary.scoreState,
+        },
+    ].forEach((chip) => {
+        const chipNode = document.createElement('span');
+        panel.chipsHost.appendChild(chipNode);
+        mountTurneroSurfaceCheckpointChip(chipNode, chip);
+    });
+}
+
 function renderKioskProfileStatus(profile) {
     const surfaceContract = getKioskSurfaceContract(profile);
     const readiness = getTurneroClinicReadiness(profile);
@@ -301,6 +470,99 @@ function renderKioskProfileStatus(profile) {
                 ? `Bloqueado · perfil de respaldo · clinic-profile.json remoto ausente · releaseMode ${releaseMode} · ${readiness.summary}`
                 : `Bloqueado · ruta fuera de canon · se esperaba ${canonicalRoute} · releaseMode ${releaseMode} · ${readiness.summary}`
             : `${readiness.state === 'warning' ? 'Con avisos' : readiness.state === 'alert' ? 'Readiness bloqueada' : 'Perfil remoto verificado'} · firma ${profileFingerprint} · releaseMode ${releaseMode} · ${readiness.summary} · canon ${canonicalRoute}`;
+    renderKioskSurfaceOps();
+}
+
+function renderKioskSurfaceRecoveryState() {
+    const host = getById('kioskSurfaceRecoveryHost');
+    if (!(host instanceof HTMLElement)) {
+        return null;
+    }
+
+    const connectionState = String(state.lastConnectionState || 'paused');
+    const pendingCount = Number(state.offlineOutbox.length || 0);
+    const printer = state.printerState;
+    const printerPrinted = Boolean(printer?.printed);
+    const printerErrorCode = String(printer?.errorCode || '');
+    const healthySync = Boolean(state.queueLastHealthySyncAt);
+    const surfaceContract = getKioskSurfaceContract();
+    const heartbeat = buildKioskHeartbeatPayload();
+    const runtimeState = {
+        state:
+            heartbeat.status === 'ready'
+                ? 'ready'
+                : heartbeat.status === 'warning'
+                  ? 'watch'
+                  : 'blocked',
+        status: heartbeat.status,
+        summary: heartbeat.summary,
+        online: navigator.onLine !== false,
+        connectivity: connectionState === 'offline' ? 'offline' : 'online',
+        mode: resolveKioskAppMode(),
+        reason:
+            connectionState === 'offline'
+                ? 'network_offline'
+                : surfaceContract.reason || '',
+        pendingCount,
+        outboxSize: pendingCount,
+        printerReady: printerPrinted,
+        printerPrinted,
+        printerErrorCode,
+        healthySync,
+        updateChannel: 'stable',
+        details: {
+            connectionState,
+            connectionMessage: String(state.lastConnectionMessage || ''),
+            printerAt: String(printer?.at || ''),
+            printerMessage: String(printer?.message || ''),
+            surfaceContractState: String(surfaceContract.state || ''),
+            surfaceRouteExpected: String(surfaceContract.expectedRoute || ''),
+            surfaceRouteCurrent: String(surfaceContract.currentRoute || ''),
+        },
+    };
+    const pack = buildTurneroSurfaceRecoveryPack({
+        surfaceKey: 'kiosk',
+        clinicProfile: state.clinicProfile,
+        runtimeState,
+        heartbeat,
+    });
+    const readout = buildTurneroSurfaceContractReadout({
+        snapshot: pack.snapshot,
+        drift: pack.drift,
+        gate: pack.gate,
+        readiness: pack.readiness,
+    });
+
+    host.replaceChildren();
+    mountTurneroSurfaceRecoveryBanner(host, {
+        title: 'Kiosk surface recovery',
+        snapshot: pack.snapshot,
+        drift: pack.drift,
+        gate: pack.gate,
+        readiness: pack.readiness,
+        readout,
+    });
+
+    const chips = document.createElement('div');
+    chips.className = 'turnero-surface-recovery-checkpoints';
+    host.appendChild(chips);
+    mountTurneroSurfaceCheckpointChip(chips, {
+        label: 'Contract',
+        value: readout.contractValue,
+        state: readout.contractTone,
+    });
+    mountTurneroSurfaceCheckpointChip(chips, {
+        label: 'Drift',
+        value: readout.driftState,
+        state: readout.driftTone,
+    });
+    mountTurneroSurfaceCheckpointChip(chips, {
+        label: 'Gate',
+        value: readout.badge,
+        state: readout.gateTone,
+    });
+
+    return pack;
 }
 
 function getKioskSurfaceContract(profile = state.clinicProfile) {
@@ -380,6 +642,7 @@ function applyKioskClinicProfile(profile) {
         clinicContext.textContent = `${clinicShortName} · ${kioskRoute} · ${consultorioSummary}`;
     }
     renderKioskProfileStatus(profile);
+    renderKioskSurfaceRecoveryState();
 
     const headerNote = document.querySelector('.kiosk-header-note');
     if (headerNote instanceof HTMLElement) {
@@ -418,6 +681,8 @@ function buildKioskHeartbeatPayload() {
     const releaseMode = getTurneroClinicReleaseMode(state.clinicProfile);
     const readiness = getTurneroClinicReadiness(state.clinicProfile);
     const assistantHeartbeat = buildAssistantHeartbeatMetrics();
+    const surfaceSyncPack =
+        state.surfaceSyncPack || buildKioskSurfaceSyncPack();
 
     let status = 'warning';
     let summary = 'Kiosco pendiente de validación.';
@@ -492,8 +757,143 @@ function buildKioskHeartbeatPayload() {
             assistantLatencySamples: assistantHeartbeat.latencySamples,
             assistantIntents: assistantHeartbeat.intents,
             assistantHelpReasons: assistantHeartbeat.helpReasons,
+            surfaceSyncSnapshot: surfaceSyncPack.snapshot,
+            surfaceSyncHandoffOpenCount: surfaceSyncPack.handoffs.filter(
+                (handoff) => handoff.status !== 'closed'
+            ).length,
         },
     };
+}
+
+function getKioskSurfaceSyncScope() {
+    return (
+        String(state.clinicProfile?.clinic_id || '').trim() || 'default-clinic'
+    );
+}
+
+function resolveKioskSurfaceSyncHeartbeatState() {
+    const connectionState = String(state.lastConnectionState || 'paused');
+    if (connectionState === 'offline') {
+        return 'offline';
+    }
+    if (connectionState === 'live' && state.queueLastHealthySyncAt) {
+        return 'ready';
+    }
+    return 'warning';
+}
+
+function resolveKioskSurfaceSyncHeartbeatChannel() {
+    const connectionState = String(state.lastConnectionState || 'paused');
+    return connectionState === 'live'
+        ? 'queue-state-live'
+        : connectionState === 'offline'
+          ? 'queue-state-offline'
+          : 'queue-state-pending';
+}
+
+function buildKioskSurfaceSyncPack() {
+    const queueState = normalizeQueueStatePayload(state.queueState || {});
+    const callingNow = Array.isArray(queueState.callingNow)
+        ? queueState.callingNow
+        : [];
+    const nextTickets = Array.isArray(queueState.nextTickets)
+        ? queueState.nextTickets
+        : [];
+    const primaryCalled = callingNow[0] || null;
+    const expectedVisibleTurn = String(
+        primaryCalled?.ticketCode || nextTickets[0]?.ticketCode || ''
+    )
+        .trim()
+        .toUpperCase();
+    const announcedTurn = String(primaryCalled?.ticketCode || '')
+        .trim()
+        .toUpperCase();
+    const handoffStore = createTurneroSurfaceHandoffLedger(
+        getKioskSurfaceSyncScope(),
+        state.clinicProfile
+    );
+    const handoffs = handoffStore.list({
+        includeClosed: false,
+        surfaceKey: 'kiosk',
+    });
+
+    return buildTurneroSurfaceSyncPack({
+        surfaceKey: 'kiosk',
+        queueVersion: String(queueState.updatedAt || '').trim(),
+        visibleTurn: expectedVisibleTurn,
+        announcedTurn,
+        handoffState: resolveTurneroSurfaceHandoffState(handoffs),
+        heartbeat: {
+            state: resolveKioskSurfaceSyncHeartbeatState(),
+            channel: resolveKioskSurfaceSyncHeartbeatChannel(),
+        },
+        updatedAt: String(queueState.updatedAt || '').trim(),
+        counts: queueState.counts || null,
+        waitingCount: Number(queueState.waitingCount || 0),
+        calledCount: Number(queueState.calledCount || 0),
+        callingNow,
+        nextTickets,
+        expectedVisibleTurn,
+        expectedQueueVersion: String(queueState.updatedAt || '').trim(),
+        handoffs,
+    });
+}
+
+function renderKioskSurfaceSyncState() {
+    const host = getById('kioskSurfaceSyncHost');
+    if (!(host instanceof HTMLElement)) {
+        return null;
+    }
+
+    const pack = buildKioskSurfaceSyncPack();
+    state.surfaceSyncPack = pack;
+    const readout = buildTurneroSurfaceSyncReadout(pack);
+    host.replaceChildren();
+    mountTurneroSurfaceSyncBanner(host, {
+        title: 'Kiosk surface sync',
+        pack,
+    });
+
+    const chips = document.createElement('div');
+    chips.className = 'turnero-surface-sync-checkpoints';
+    host.appendChild(chips);
+    [
+        {
+            label: 'Turno',
+            value: readout.visibleTurn || '--',
+            state: readout.visibleTurn ? 'ready' : 'neutral',
+        },
+        {
+            label: 'Drift',
+            value: readout.driftState,
+            state:
+                readout.driftState === 'aligned'
+                    ? 'ready'
+                    : readout.driftState === 'watch'
+                      ? 'warning'
+                      : 'danger',
+        },
+        {
+            label: 'Gate',
+            value: `${readout.gateBand} · ${readout.gateScore}`,
+            state:
+                readout.gateBand === 'ready'
+                    ? 'ready'
+                    : readout.gateBand === 'watch'
+                      ? 'warning'
+                      : 'danger',
+        },
+        {
+            label: 'Handoffs',
+            value: String(readout.openHandoffs),
+            state: readout.openHandoffs > 0 ? 'warning' : 'ready',
+        },
+    ].forEach((chip) => {
+        const chipNode = document.createElement('span');
+        chips.appendChild(chipNode);
+        mountTurneroSurfaceCheckpointChip(chipNode, chip);
+    });
+    return pack;
 }
 
 function ensureKioskHeartbeat() {
@@ -1428,6 +1828,8 @@ function applyQueueStatePayload(payload) {
     state.queueState = normalized;
     renderQueuePanel(normalized);
     renderQueueUpdatedAt(normalized.updatedAt);
+    renderKioskSurfaceSyncState();
+    notifyKioskHeartbeat('queue_state');
     return normalized;
 }
 
@@ -2018,6 +2420,9 @@ function renderKioskSetupStatus() {
             `
         )
         .join('');
+    renderKioskSurfaceSyncState();
+    renderKioskSurfaceOps();
+    renderKioskSurfaceRecoveryState();
     notifyKioskHeartbeat('setup_status');
 }
 
@@ -3768,6 +4173,28 @@ function initKiosk() {
         loadPrinterState();
         renderPrinterHint();
         renderOfflineOutboxHint();
+        state.surfaceBootstrap = mountTurneroSurfaceRuntimeBootstrap(
+            '#kioskSurfaceRuntimeBootstrap',
+            {
+                clinicProfile: state.clinicProfile,
+                surfaceKey: 'kiosk',
+                currentRoute: `${window.location.pathname || ''}${
+                    window.location.hash || ''
+                }`,
+                runtimeState: {
+                    state: state.queuePollingEnabled ? 'ready' : 'watch',
+                    status: state.lastConnectionState || 'paused',
+                    summary: state.lastConnectionMessage || '',
+                },
+                heartbeat: buildKioskHeartbeatPayload(),
+                storageInfo: {
+                    state: state.offlineOutbox.length > 0 ? 'watch' : 'ready',
+                    scope: 'kiosk',
+                    key: 'offline-outbox',
+                    updatedAt: new Date().toISOString(),
+                },
+            }
+        );
         setQueueConnectionStatus('paused', 'Sincronizacion lista');
         setQueueOpsHint('Esperando primera sincronizacion de cola...');
         renderQueueUpdatedAt('');

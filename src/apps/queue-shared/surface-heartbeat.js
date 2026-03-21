@@ -246,6 +246,9 @@ export function createSurfaceHeartbeatClient({
         beatNow(reason = 'manual') {
             return send(reason);
         },
+        getLastSentAt() {
+            return lastSentAt;
+        },
         getDeviceId() {
             return deviceId;
         },

@@ -127,6 +127,7 @@ export function renderQueueAppsHub() {
                         <div id="queueOpsAlerts" class="queue-ops-alerts" data-focus-match="opening operations incidents closing" data-queue-domain-match="incidents" data-queue-basic-match="incidents"></div>
                         <div id="queueContingencyDeck" class="queue-contingency-deck" data-focus-match="incidents operations" data-queue-domain-match="incidents" data-queue-basic-match="incidents"></div>
                         <div id="queueReliabilityRecoveryNerveCenterHost" class="queue-reliability-recovery-nerve-center" data-turnero-reliability-recovery data-focus-match="incidents operations" data-queue-domain-match="incidents" data-queue-basic-match="incidents"></div>
+                        <div id="queueSurfaceRecoveryConsoleHost" class="queue-surface-recovery-console-host" data-turnero-surface-recovery-console data-focus-match="incidents operations" data-queue-domain-match="incidents" data-queue-basic-match="incidents"></div>
                     </div>
                 </section>
 
@@ -141,6 +142,7 @@ export function renderQueueAppsHub() {
                     <div class="queue-premium-band__grid queue-premium-band__grid--deployment">
                         <div id="queuePlaybook" class="queue-playbook" data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening incidents closing"></div>
                         <div id="queuePilotReadinessCard" class="queue-apps-grid" data-turnero-pilot-readiness data-focus-match="opening operations" data-queue-domain-match="deployment" data-queue-basic-match="opening"></div>
+                        <div id="queueSurfaceTruthPanel" class="queue-app-card turnero-admin-queue-surface-truth-panel" data-turnero-surface-truth-panel data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening operations incidents closing"></div>
                         <div id="queueOpsPilot" class="queue-ops-pilot" data-focus-match="opening operations incidents" data-queue-domain-match="deployment" data-queue-basic-match="opening"></div>
                         <div id="queueReleaseCommandDeck" class="queue-release-command-deck" data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening incidents closing"></div>
                         <div id="queueReleaseIntelligenceSuiteHost" class="queue-release-intelligence-suite" data-turnero-release-intelligence data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening operations incidents closing"></div>

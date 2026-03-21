@@ -1501,4 +1501,82 @@ test.describe('Kiosco turnos', () => {
             'ya pendiente offline'
         );
     });
+
+    test('monta el strip de sync con turno visible y handoff abierto', async ({
+        page,
+    }) => {
+        await page.addInitScript(() => {
+            localStorage.setItem(
+                'turneroSurfaceSyncHandoffLedgerV1',
+                JSON.stringify({
+                    schema: 'turnero-clinic-storage/v1',
+                    values: {
+                        'clinica-norte-demo': {
+                            scopes: {
+                                'clinica-norte-demo': [
+                                    {
+                                        id: 'handoff_kiosk_1',
+                                        scope: 'clinica-norte-demo',
+                                        surfaceKey: 'kiosk',
+                                        title: 'Revisar térmica',
+                                        note: 'Confirmar ticket de prueba.',
+                                        owner: 'ops',
+                                        source: 'local',
+                                        status: 'open',
+                                        createdAt: '2026-03-20T10:00:00.000Z',
+                                        updatedAt: '2026-03-20T10:00:00.000Z',
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                })
+            );
+        });
+
+        await installTurneroClinicProfileMock(page, {
+            clinic_id: 'clinica-norte-demo',
+            branding: {
+                name: 'Clinica Norte',
+                short_name: 'Norte',
+            },
+        });
+        await installTurneroQueueStateMock(page, {
+            queueState: {
+                updatedAt: '2026-03-20T10:00:00.000Z',
+                waitingCount: 2,
+                calledCount: 1,
+                callingNow: [
+                    {
+                        id: 1,
+                        ticketCode: 'A-051',
+                        patientInitials: 'JP',
+                        assignedConsultorio: 1,
+                        calledAt: '2026-03-20T10:00:00.000Z',
+                    },
+                ],
+                nextTickets: [
+                    {
+                        id: 2,
+                        ticketCode: 'A-052',
+                        patientInitials: 'EP',
+                        position: 1,
+                    },
+                ],
+            },
+        });
+
+        await page.goto('/kiosco-turnos.html');
+
+        await expect(page.locator('#kioskSurfaceSyncHost')).toContainText(
+            'Kiosk surface sync'
+        );
+        await expect(page.locator('#kioskSurfaceSyncHost')).toContainText(
+            'A-051'
+        );
+        await expect(page.locator('#kioskSurfaceSyncHost')).toContainText(
+            'Handoffs'
+        );
+        await expect(page.locator('#kioskSurfaceSyncHost')).toContainText('1');
+    });
 });

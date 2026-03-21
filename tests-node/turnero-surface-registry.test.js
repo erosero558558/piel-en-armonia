@@ -11,6 +11,14 @@ const {
     normalizeTurneroSurfaceId,
     resolveTurneroUpdatePublicFeedPath,
 } = require('../lib/turnero-surface-registry.js');
+const { resolve } = require('node:path');
+const { pathToFileURL } = require('node:url');
+
+const REPO_ROOT = resolve(__dirname, '..');
+
+async function importRepoModule(relativePath) {
+    return import(pathToFileURL(resolve(REPO_ROOT, relativePath)).href);
+}
 
 test('turnero surface registry expone las superficies canonicas actuales', () => {
     const ids = listTurneroSurfaceDefinitions().map((surface) => surface.id);
@@ -58,4 +66,47 @@ test('turnero surface registry genera defaults del catalogo sin hardcodes parale
         getTurneroSurfaceDefinition('sala_tv').ops.installHub.recommendedFor,
         'TCL C655 / Google TV'
     );
+});
+
+test('turnero surface registry source normaliza el manifest apps object-shaped', async () => {
+    const registrySourceModule = await importRepoModule(
+        'src/apps/queue-shared/turnero-surface-registry-source.js'
+    );
+
+    const objectShapedManifest = {
+        schema: 'turnero-release-bundle/v1',
+        version: '2026.03.20',
+        apps: {
+            operator: {
+                version: '1.0.0',
+                files: ['operator.js'],
+                targets: {
+                    web: { url: '/operator.js' },
+                },
+            },
+            kiosk: {
+                version: '1.0.0',
+                files: ['kiosk.js'],
+                targets: {
+                    web: { url: '/kiosk.js' },
+                },
+            },
+            sala_tv: {
+                version: '1.0.0',
+                files: ['display.js'],
+                targets: {
+                    web: { url: '/display.js' },
+                },
+            },
+        },
+    };
+    const normalized =
+        registrySourceModule.normalizeManifestPayload(objectShapedManifest);
+
+    assert.equal(normalized.apps.operator.id, 'operator');
+    assert.equal(normalized.apps.operator.key, 'operator');
+    assert.equal(normalized.apps.operator.enabled, true);
+    assert.equal(normalized.apps.kiosk.targets.web.url, '/kiosk.js');
+    assert.equal(normalized.apps.kiosk.label, 'kiosk');
+    assert.equal(normalized.apps.sala_tv.id, 'sala_tv');
 });

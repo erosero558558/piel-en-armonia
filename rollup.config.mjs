@@ -178,6 +178,16 @@ export default [
         },
         plugins: productionPlugins,
     },
+    // Queue Operator App
+    {
+        input: 'src/apps/queue-operator/index.js',
+        output: {
+            file: path.join(stageRoot, 'js/queue-operator.js'),
+            format: 'iife',
+            sourcemap: false,
+        },
+        plugins: productionPlugins,
+    },
     // Queue Kiosk App
     {
         input: 'src/apps/queue-kiosk/index.js',

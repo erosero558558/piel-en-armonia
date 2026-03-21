@@ -48,6 +48,7 @@ import {
 import { normalizeQueueAction } from '../admin-v3/shared/modules/queue/helpers.js';
 import {
     getActiveCalledTicketForStation,
+    getQueueSource,
     getWaitingForConsultorio,
 } from '../admin-v3/shared/modules/queue/selectors.js';
 import {
@@ -60,6 +61,14 @@ import {
     getTurneroSurfaceContract,
     loadTurneroClinicProfile,
 } from '../queue-shared/clinic-profile.js';
+import { mountTurneroSurfaceRuntimeBootstrap } from '../queue-shared/turnero-surface-runtime-bootstrap.js';
+import { buildTurneroSurfaceRuntimeWatch } from '../queue-shared/turnero-surface-runtime-watch.js';
+import { buildTurneroSurfaceOpsReadinessPack } from '../queue-shared/turnero-surface-ops-readiness-pack.js';
+import { buildTurneroSurfaceOpsSummary } from '../queue-shared/turnero-surface-ops-summary.js';
+import { mountTurneroSurfaceIncidentBanner } from '../queue-shared/turnero-surface-incident-banner.js';
+import { mountTurneroSurfaceCheckpointChip } from '../queue-shared/turnero-surface-checkpoint-chip.js';
+import { listTurneroSurfaceFallbackDrills } from '../queue-shared/turnero-surface-fallback-drill-store.js';
+import { listTurneroSurfaceCheckinLogbook } from '../queue-shared/turnero-surface-checkin-logbook.js';
 import {
     dismissQueueSensitiveDialog,
     handleQueueAction,
@@ -72,6 +81,16 @@ import {
     isNumpadSubtractEvent,
 } from '../admin-v3/shared/modules/queue/runtime/numpad/index.js';
 import { resolveOperatorQueueAdapter } from './queue-adapters.js';
+import {
+    createTurneroSurfaceHandoffLedger,
+    resolveTurneroSurfaceHandoffState,
+} from '../queue-shared/turnero-surface-handoff-ledger.js';
+import { buildTurneroSurfaceSyncPack } from '../queue-shared/turnero-surface-sync-pack.js';
+import { buildTurneroSurfaceSyncReadout } from '../queue-shared/turnero-surface-sync-readout.js';
+import { mountTurneroSurfaceSyncBanner } from '../queue-shared/turnero-surface-sync-banner.js';
+import { buildTurneroSurfaceRecoveryPack } from '../queue-shared/turnero-surface-recovery-pack.js';
+import { buildTurneroSurfaceContractReadout } from '../queue-shared/turnero-surface-contract-readout.js';
+import { mountTurneroSurfaceRecoveryBanner } from '../queue-shared/turnero-surface-recovery-banner.js';
 
 const QUEUE_REFRESH_MS = 8000;
 const OPERATOR_HEARTBEAT_MS = 15000;
@@ -102,12 +121,14 @@ const operatorRuntime = {
     numpad: createEmptyNumpadValidationState(),
     shell: createEmptyShellState(),
     surfaceContract: null,
+    surfaceBootstrap: null,
     pilotBlockToastAt: 0,
     shellRuntime: createEmptyShellRuntimeState(),
     shellRuntimeSnapshot: createEmptyShellRuntimeSnapshot(),
     queueAdapter: null,
     releaseBootStatusListener: null,
     releaseShellStatusListener: null,
+    surfaceSyncPack: null,
 };
 let operatorClinicProfile = null;
 
@@ -210,6 +231,161 @@ function getOperatorConsultorioShortLabel(consultorio) {
     });
 }
 
+function ensureOperatorSurfaceOpsHosts() {
+    return Array.from(
+        document.querySelectorAll('.queue-operator-profile-status')
+    )
+        .filter((node) => node instanceof HTMLElement)
+        .map((statusNode) => {
+            let host = statusNode.parentElement?.querySelector(
+                '[data-turnero-operator-surface-ops="true"]'
+            );
+            if (!(host instanceof HTMLElement)) {
+                host = document.createElement('div');
+                host.dataset.turneroOperatorSurfaceOps = 'true';
+                host.className = 'turnero-surface-ops__stack';
+                statusNode.insertAdjacentElement('afterend', host);
+            }
+
+            let bannerHost = host.querySelector('[data-role="banner"]');
+            if (!(bannerHost instanceof HTMLElement)) {
+                bannerHost = document.createElement('div');
+                bannerHost.dataset.role = 'banner';
+                host.appendChild(bannerHost);
+            }
+
+            let chipsHost = host.querySelector('[data-role="chips"]');
+            if (!(chipsHost instanceof HTMLElement)) {
+                chipsHost = document.createElement('div');
+                chipsHost.dataset.role = 'chips';
+                chipsHost.className = 'turnero-surface-ops__chips';
+                host.appendChild(chipsHost);
+            }
+
+            return {
+                host,
+                bannerHost,
+                chipsHost,
+            };
+        });
+}
+
+function buildOperatorSurfaceOpsTelemetryEntry(now = Date.now()) {
+    const heartbeatPayload = buildOperatorHeartbeatPayload();
+    const heartbeatClient = ensureOperatorHeartbeat();
+    const lastSentAt = Number(heartbeatClient?.getLastSentAt?.() || 0);
+    const ageSeconds =
+        lastSentAt > 0
+            ? Math.max(0, Math.round((now - lastSentAt) / 1000))
+            : null;
+    const staleThresholdSeconds = Math.max(
+        45,
+        Math.round(OPERATOR_HEARTBEAT_MS / 1000) * 3
+    );
+
+    return {
+        status: heartbeatPayload.status,
+        stale:
+            Number.isFinite(ageSeconds) && ageSeconds >= staleThresholdSeconds,
+        summary: heartbeatPayload.summary,
+        clinicId: heartbeatPayload.clinicId,
+        profileFingerprint: heartbeatPayload.profileFingerprint,
+        surfaceContractState: heartbeatPayload.surfaceContractState,
+        surfaceRouteExpected: heartbeatPayload.surfaceRouteExpected,
+        surfaceRouteCurrent: heartbeatPayload.surfaceRouteCurrent,
+        latest: {
+            ageSec: ageSeconds,
+            lastEventAt: heartbeatPayload.lastEventAt,
+            reportedAt:
+                lastSentAt > 0
+                    ? new Date(lastSentAt).toISOString()
+                    : heartbeatPayload.lastEventAt,
+            details:
+                heartbeatPayload.details &&
+                typeof heartbeatPayload.details === 'object'
+                    ? heartbeatPayload.details
+                    : {},
+        },
+    };
+}
+
+function renderOperatorSurfaceOps() {
+    const hosts = ensureOperatorSurfaceOpsHosts();
+    if (!hosts.length) {
+        return;
+    }
+
+    if (!operatorClinicProfile) {
+        hosts.forEach(({ host }) => {
+            host.hidden = true;
+        });
+        return;
+    }
+
+    const now = Date.now();
+    const drills = listTurneroSurfaceFallbackDrills({
+        clinicProfile: operatorClinicProfile,
+        surface: 'operator',
+    });
+    const logbook = listTurneroSurfaceCheckinLogbook({
+        clinicProfile: operatorClinicProfile,
+        surface: 'operator',
+    });
+    const watch = buildTurneroSurfaceRuntimeWatch({
+        surface: 'operator',
+        telemetryEntry: buildOperatorSurfaceOpsTelemetryEntry(now),
+        clinicProfile: operatorClinicProfile,
+        safeMode: operatorRuntime.shellRuntime.mode === 'safe',
+        now,
+    });
+    const readiness = buildTurneroSurfaceOpsReadinessPack({
+        surface: 'operator',
+        watch,
+        drills,
+        logbook,
+        now,
+    });
+    const summary = buildTurneroSurfaceOpsSummary({
+        surface: 'operator',
+        watch,
+        readiness,
+        drills,
+        logbook,
+    });
+
+    hosts.forEach(({ host, bannerHost, chipsHost }) => {
+        host.hidden = false;
+        mountTurneroSurfaceIncidentBanner(bannerHost, {
+            surface: 'operator',
+            watch,
+            readiness,
+            summary,
+        });
+        chipsHost.replaceChildren();
+        [
+            {
+                label: 'Ops',
+                value: summary.opsChipValue,
+                state: summary.opsChipState,
+            },
+            {
+                label: 'Heartbeat',
+                value: summary.heartbeatChipValue,
+                state: summary.heartbeatChipState,
+            },
+            {
+                label: 'Score',
+                value: summary.scoreLabel,
+                state: summary.scoreState,
+            },
+        ].forEach((chip) => {
+            const chipNode = document.createElement('span');
+            chipsHost.appendChild(chipNode);
+            mountTurneroSurfaceCheckpointChip(chipNode, chip);
+        });
+    });
+}
+
 function renderOperatorProfileStatus(profile) {
     const surfaceContract = getOperatorSurfaceContract(profile);
     const readiness = getTurneroClinicReadiness(profile);
@@ -245,6 +421,7 @@ function renderOperatorProfileStatus(profile) {
             node.dataset.state = state;
             node.textContent = text;
         });
+    renderOperatorSurfaceOps();
 }
 
 function getOperatorSurfaceContract(profile = operatorClinicProfile) {
@@ -330,6 +507,7 @@ function applyOperatorClinicProfile(profile) {
         `Ruta ${operatorRoute} · ${consultorioSummary}`
     );
     renderOperatorProfileStatus(profile);
+    renderOperatorSurfaceRecoveryState();
 }
 
 function getDesktopBridge() {
@@ -351,6 +529,227 @@ function getQueueSyncHealth(state = getState()) {
         fallbackPartial,
         degraded,
     };
+}
+
+function getOperatorSurfaceSyncScope() {
+    return (
+        String(operatorClinicProfile?.clinic_id || '').trim() ||
+        'default-clinic'
+    );
+}
+
+function getOperatorSurfaceSyncKey(state = getState()) {
+    const surfaceState = buildOperatorSurfaceState(state.queue);
+    return `operator:c${Number(surfaceState.stationConsultorio || 1) || 1}`;
+}
+
+function resolveOperatorSurfaceSyncHeartbeatState(syncHealth) {
+    if (!operatorRuntime.online) {
+        return 'offline';
+    }
+    if (
+        operatorRuntime.shellRuntime.mode === 'offline' ||
+        syncHealth.degraded
+    ) {
+        return 'warning';
+    }
+    return 'ready';
+}
+
+function resolveOperatorSurfaceSyncHeartbeatChannel() {
+    if (operatorRuntime.shell.available) {
+        return 'desktop';
+    }
+    return operatorRuntime.shellRuntime.mode === 'offline'
+        ? 'browser-offline'
+        : 'browser';
+}
+
+function buildOperatorSurfaceSyncPack(
+    state = getState(),
+    syncHealth = getQueueSyncHealth(state)
+) {
+    const { queueMeta } = getQueueSource();
+    const activeTicket = getActiveCalledTicketForStation();
+    const waitingTicket =
+        getWaitingForConsultorio(Number(state.queue.stationConsultorio || 1)) ||
+        (Array.isArray(queueMeta?.nextTickets)
+            ? queueMeta.nextTickets[0]
+            : null);
+    const callingNow = Object.values(
+        queueMeta?.callingNowByConsultorio &&
+            typeof queueMeta.callingNowByConsultorio === 'object'
+            ? queueMeta.callingNowByConsultorio
+            : {}
+    ).filter(Boolean);
+    const nextTickets = Array.isArray(queueMeta?.nextTickets)
+        ? queueMeta.nextTickets
+        : [];
+    const surfaceKey = getOperatorSurfaceSyncKey(state);
+    const handoffStore = createTurneroSurfaceHandoffLedger(
+        getOperatorSurfaceSyncScope(),
+        operatorClinicProfile
+    );
+    const handoffs = handoffStore.list({
+        includeClosed: false,
+        surfaceKey,
+    });
+    const expectedVisibleTurn = String(
+        activeTicket?.ticketCode || waitingTicket?.ticketCode || ''
+    )
+        .trim()
+        .toUpperCase();
+    const announcedTurn = String(activeTicket?.ticketCode || '')
+        .trim()
+        .toUpperCase();
+
+    return buildTurneroSurfaceSyncPack({
+        surfaceKey,
+        queueVersion: String(queueMeta?.updatedAt || '').trim(),
+        visibleTurn: expectedVisibleTurn,
+        announcedTurn,
+        handoffState: resolveTurneroSurfaceHandoffState(handoffs),
+        heartbeat: {
+            state: resolveOperatorSurfaceSyncHeartbeatState(syncHealth),
+            channel: resolveOperatorSurfaceSyncHeartbeatChannel(),
+        },
+        updatedAt: String(
+            queueMeta?.updatedAt || activeTicket?.calledAt || ''
+        ).trim(),
+        counts: queueMeta?.counts || null,
+        waitingCount: Number(queueMeta?.waitingCount || 0),
+        calledCount: Number(queueMeta?.calledCount || 0),
+        callingNow,
+        nextTickets,
+        expectedVisibleTurn,
+        expectedQueueVersion: String(queueMeta?.updatedAt || '').trim(),
+        handoffs,
+    });
+}
+
+function renderOperatorSurfaceSyncState(
+    state = getState(),
+    syncHealth = getQueueSyncHealth(state)
+) {
+    const host = getById('operatorSurfaceSyncHost');
+    if (!(host instanceof HTMLElement)) {
+        return null;
+    }
+
+    const pack = buildOperatorSurfaceSyncPack(state, syncHealth);
+    operatorRuntime.surfaceSyncPack = pack;
+    const readout = buildTurneroSurfaceSyncReadout(pack);
+    host.replaceChildren();
+    mountTurneroSurfaceSyncBanner(host, {
+        title: 'Operator surface sync',
+        pack,
+    });
+
+    const chips = document.createElement('div');
+    chips.className = 'turnero-surface-sync-checkpoints';
+    host.appendChild(chips);
+    [
+        {
+            label: 'Turno',
+            value: readout.visibleTurn || '--',
+            state: readout.visibleTurn ? 'ready' : 'neutral',
+        },
+        {
+            label: 'Drift',
+            value: readout.driftState,
+            state:
+                readout.driftState === 'aligned'
+                    ? 'ready'
+                    : readout.driftState === 'watch'
+                      ? 'warning'
+                      : 'danger',
+        },
+        {
+            label: 'Gate',
+            value: `${readout.gateBand} · ${readout.gateScore}`,
+            state:
+                readout.gateBand === 'ready'
+                    ? 'ready'
+                    : readout.gateBand === 'watch'
+                      ? 'warning'
+                      : 'danger',
+        },
+        {
+            label: 'Handoffs',
+            value: String(readout.openHandoffs),
+            state: readout.openHandoffs > 0 ? 'warning' : 'ready',
+        },
+    ].forEach((chip) => {
+        const chipNode = document.createElement('span');
+        chips.appendChild(chipNode);
+        mountTurneroSurfaceCheckpointChip(chipNode, chip);
+    });
+    return pack;
+}
+
+function renderOperatorSurfaceRecoveryState(
+    state = getState(),
+    syncHealth = getQueueSyncHealth(state)
+) {
+    const host = getById('operatorSurfaceRecoveryHost');
+    if (!(host instanceof HTMLElement)) {
+        return null;
+    }
+
+    const pack = buildTurneroSurfaceRecoveryPack({
+        surfaceKey: 'operator',
+        clinicProfile: operatorClinicProfile,
+        runtimeState: {
+            online: operatorRuntime.online,
+            connectivity: operatorRuntime.shellRuntime.connectivity,
+            mode: operatorRuntime.shellRuntime.mode,
+            reason: operatorRuntime.shellRuntime.reason,
+            authenticated: Boolean(state?.auth?.authenticated),
+            pendingCount: operatorRuntime.shellRuntime.outboxSize,
+            outboxSize: operatorRuntime.shellRuntime.outboxSize,
+            reconciliationSize: operatorRuntime.shellRuntime.reconciliationSize,
+            updateChannel: operatorRuntime.shellRuntime.updateChannel,
+            summary: getOperatorRuntimeSummary(syncHealth),
+        },
+        heartbeat: buildHeartbeatPayload(),
+    });
+    const readout = buildTurneroSurfaceContractReadout({
+        snapshot: pack.snapshot,
+        drift: pack.drift,
+        gate: pack.gate,
+        readiness: pack.readiness,
+    });
+
+    host.replaceChildren();
+    mountTurneroSurfaceRecoveryBanner(host, {
+        title: 'Operator surface recovery',
+        snapshot: pack.snapshot,
+        drift: pack.drift,
+        gate: pack.gate,
+        readiness: pack.readiness,
+        readout,
+    });
+
+    const chips = document.createElement('div');
+    chips.className = 'turnero-surface-recovery-checkpoints';
+    host.appendChild(chips);
+    mountTurneroSurfaceCheckpointChip(chips, {
+        label: 'Contract',
+        value: readout.contractValue,
+        state: readout.contractTone,
+    });
+    mountTurneroSurfaceCheckpointChip(chips, {
+        label: 'Drift',
+        value: readout.driftState,
+        state: readout.driftTone,
+    });
+    mountTurneroSurfaceCheckpointChip(chips, {
+        label: 'Gate',
+        value: readout.badge,
+        state: readout.gateTone,
+    });
+
+    return pack;
 }
 
 function getOperatorMutationBlocker(state = getState()) {
@@ -433,6 +832,9 @@ function buildOperatorHeartbeatPayload() {
     const state = getState();
     const numpadStatus = buildOperatorNumpadStatus(state.queue);
     const syncHealth = getQueueSyncHealth(state);
+    const surfaceSyncPack =
+        operatorRuntime.surfaceSyncPack ||
+        buildOperatorSurfaceSyncPack(state, syncHealth);
     const surfaceContract =
         operatorRuntime.surfaceContract ||
         getTurneroSurfaceContract(operatorClinicProfile, 'operator');
@@ -458,6 +860,10 @@ function buildOperatorHeartbeatPayload() {
         appMode: resolveOperatorAppMode(),
         numpadStatus,
         syncHealth,
+        surfaceSyncSnapshot: surfaceSyncPack.snapshot,
+        surfaceSyncHandoffOpenCount: surfaceSyncPack.handoffs.filter(
+            (handoff) => handoff.status !== 'closed'
+        ).length,
     });
     if (surfaceContract.state === 'alert') {
         payload.status = 'alert';
@@ -1854,6 +2260,9 @@ function updateOperatorChrome({
     updateOperatorReadiness();
     updateOperatorGuardState();
     syncOperatorActionAvailability();
+    renderOperatorSurfaceSyncState(state, syncHealth);
+    renderOperatorSurfaceRecoveryState(state, syncHealth);
+    renderOperatorSurfaceOps();
     syncOperatorHeartbeat(heartbeatReason, { force: forceHeartbeat });
 }
 
@@ -1887,6 +2296,25 @@ async function bootAuthenticatedSurface(showToast = false) {
     const refreshResult = await refreshAdminData();
     await hydrateQueueFromData();
     await refreshDesktopSnapshot();
+    operatorRuntime.surfaceBootstrap?.setRuntimeState?.(
+        operatorRuntime.shellRuntime
+    );
+    operatorRuntime.surfaceBootstrap?.setHeartbeat?.(
+        buildOperatorHeartbeatPayload()
+    );
+    operatorRuntime.surfaceBootstrap?.setStorageInfo?.({
+        state:
+            operatorRuntime.shellRuntimeSnapshot.outbox.length > 0 ||
+            operatorRuntime.shellRuntimeSnapshot.reconciliation.length > 0
+                ? 'watch'
+                : 'ready',
+        scope: 'operator',
+        key: 'shell-snapshot',
+        updatedAt:
+            operatorRuntime.shellRuntime.lastSuccessfulSyncAt ||
+            operatorRuntime.shellRuntimeSnapshot.lastAuthenticatedAt ||
+            '',
+    });
     await operatorRuntime.queueAdapter?.markSessionAuthenticated?.(true);
     await operatorRuntime.queueAdapter?.syncStateSnapshot?.({
         healthy: Boolean(refreshResult?.ok),
@@ -2362,6 +2790,32 @@ async function boot() {
     await operatorRuntime.queueAdapter.init?.();
     applyOperatorClinicProfile(await loadTurneroClinicProfile());
     await refreshDesktopSnapshot();
+    operatorRuntime.surfaceBootstrap = mountTurneroSurfaceRuntimeBootstrap(
+        '#operatorSurfaceRuntimeBootstrap',
+        {
+            clinicProfile: operatorClinicProfile,
+            surfaceKey: 'operator',
+            currentRoute: `${window.location.pathname || ''}${
+                window.location.hash || ''
+            }`,
+            runtimeState: operatorRuntime.shellRuntime,
+            heartbeat: buildOperatorHeartbeatPayload(),
+            storageInfo: {
+                state:
+                    operatorRuntime.shellRuntimeSnapshot.outbox.length > 0 ||
+                    operatorRuntime.shellRuntimeSnapshot.reconciliation.length >
+                        0
+                        ? 'watch'
+                        : 'ready',
+                scope: 'operator',
+                key: 'shell-snapshot',
+                updatedAt:
+                    operatorRuntime.shellRuntime.lastSuccessfulSyncAt ||
+                    operatorRuntime.shellRuntimeSnapshot.lastAuthenticatedAt ||
+                    '',
+            },
+        }
+    );
     subscribe(() => {
         if (getState().auth.authenticated) {
             updateOperatorChrome();

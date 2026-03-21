@@ -26,10 +26,17 @@ import { buildTurneroReleaseServiceQualityMetrics } from '../../../../../../../.
 import { mountTurneroReleaseMissionControlCard } from '../../../../../../../../queue-shared/turnero-release-mission-control.js';
 import { renderTurneroReleaseAutomationMesh } from '../../../../../../../../queue-shared/turnero-release-automation-mesh.js';
 import { mountTurneroReleaseOpsConsoleCard } from '../../../../../../../../queue-shared/turnero-release-ops-console.js';
+import { mountTurneroAdminQueueSurfaceOpsConsole } from '../../../../../../../../queue-shared/turnero-admin-queue-surface-ops-console.js';
 import { mountTurneroReleaseBoardOpsHub } from '../../../../../../../../queue-shared/turnero-release-board-ops-hub.js';
 import { renderTurneroReleaseWarRoom } from '../../../../../../../../queue-shared/turnero-release-war-room.js';
 import { mountTurneroReleaseStrategyDigitalTwinStudio } from '../../../../../../../../queue-shared/turnero-release-strategy-digital-twin-studio.js';
 import { mountQueueIncidentExecutionWorkbenchCard } from './incident-execution-workbench.js';
+import { getSurfaceTelemetryState } from '../telemetry/state.js';
+import {
+    getInstallHubSurfaceDefinition,
+    getInstallHubSurfaceTelemetryCopy,
+    resolveInstallHubSurfaceIdByTelemetryKey,
+} from '../registry.js';
 
 function resolvePublicShellDriftOptions(manifest = {}) {
     const config =
@@ -1412,7 +1419,51 @@ async function hydrateQueueOpsPilotReleaseEvidence(
 
     if (releaseOpsConsoleHost instanceof HTMLElement) {
         try {
-            mountTurneroReleaseOpsConsoleCard(releaseOpsConsoleHost, {
+            const clinicProfile =
+                pilot.clinicProfile || pilot.turneroClinicProfile || {};
+            const surfaceOpsTelemetryMap = {
+                operator: getSurfaceTelemetryState('operator'),
+                kiosk: getSurfaceTelemetryState('kiosk'),
+                display: getSurfaceTelemetryState('display'),
+            };
+            const surfaceOpsRegistry = ['operator', 'kiosk', 'display'].reduce(
+                (accumulator, surfaceKey) => {
+                    const registrySurfaceId =
+                        resolveInstallHubSurfaceIdByTelemetryKey(surfaceKey) ||
+                        surfaceKey;
+                    const definition =
+                        getInstallHubSurfaceDefinition(registrySurfaceId) || {};
+                    const telemetryCopy =
+                        getInstallHubSurfaceTelemetryCopy(surfaceKey) || {};
+
+                    accumulator[surfaceKey] = {
+                        id: definition.id || registrySurfaceId || surfaceKey,
+                        label:
+                            telemetryCopy.title ||
+                            definition.cardCopy?.title ||
+                            surfaceKey,
+                        title:
+                            telemetryCopy.title ||
+                            definition.cardCopy?.title ||
+                            surfaceKey,
+                        notes: Array.isArray(definition.cardCopy?.notes)
+                            ? definition.cardCopy.notes
+                            : [],
+                        guideUrl: definition.guideUrl || '',
+                        emptySummary: telemetryCopy.emptySummary || '',
+                    };
+                    return accumulator;
+                },
+                {}
+            );
+            const releaseOpsLegacyHost = document.createElement('div');
+            const surfaceOpsConsoleHost = document.createElement('div');
+            releaseOpsConsoleHost.replaceChildren(
+                releaseOpsLegacyHost,
+                surfaceOpsConsoleHost
+            );
+
+            mountTurneroReleaseOpsConsoleCard(releaseOpsLegacyHost, {
                 snapshot,
                 clinicProfile:
                     pilot.clinicProfile || pilot.turneroClinicProfile,
@@ -1425,6 +1476,13 @@ async function hydrateQueueOpsPilotReleaseEvidence(
                 refreshPublicShellDrift: () =>
                     loadTurneroPublicShellHtml(publicShellOptions),
                 publicShellOptions,
+            });
+            mountTurneroAdminQueueSurfaceOpsConsole(surfaceOpsConsoleHost, {
+                clinicProfile,
+                telemetryMap: surfaceOpsTelemetryMap,
+                surfaceRegistry: surfaceOpsRegistry,
+                releaseManifest: {},
+                now: () => Date.now(),
             });
         } catch (_error) {
             releaseOpsConsoleHost.innerHTML = '';

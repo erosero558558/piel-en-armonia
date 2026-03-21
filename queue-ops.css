@@ -16706,3 +16706,632 @@ body[data-ops-family='command'][data-ops-tone='light']
     border-color: rgb(27 74 114 / 34%);
     box-shadow: 0 22px 38px rgb(23 58 93 / 24%);
 }
+
+.turnero-surface-sync-host {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.turnero-surface-sync-host--operator {
+    margin: 0 0 1rem;
+}
+
+.queue-surface-telemetry__sync-console-host {
+    margin-top: 1rem;
+}
+
+.turnero-surface-sync-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.82rem 0.94rem;
+    border-radius: 18px;
+    border: 1px solid color-mix(in srgb, #10233f 12%, #ffffff 88%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(244 248 252 / 90%)),
+        radial-gradient(circle at top right, rgb(15 107 220 / 6%), transparent 32%);
+    box-shadow: 0 12px 28px rgb(15 23 42 / 6%);
+}
+
+.turnero-surface-sync-banner[data-state='watch'] {
+    border-color: color-mix(in srgb, #ca8a04 18%, #ffffff 82%);
+    background:
+        linear-gradient(180deg, rgb(255 251 242 / 96%), rgb(255 248 233 / 92%)),
+        radial-gradient(circle at top right, rgb(202 138 4 / 8%), transparent 34%);
+}
+
+.turnero-surface-sync-banner[data-state='degraded'],
+.turnero-surface-sync-banner[data-state='blocked'] {
+    border-color: color-mix(in srgb, #dc2626 16%, #ffffff 84%);
+    background:
+        linear-gradient(180deg, rgb(255 244 244 / 96%), rgb(255 238 238 / 92%)),
+        radial-gradient(circle at top right, rgb(220 38 38 / 8%), transparent 34%);
+}
+
+.turnero-surface-sync-banner__copy {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.turnero-surface-sync-banner__copy strong,
+.turnero-surface-sync-banner__copy p {
+    margin: 0;
+}
+
+.turnero-surface-sync-banner__copy p {
+    color: var(--text-muted, #526173);
+    max-width: 62ch;
+}
+
+.turnero-surface-sync-banner__badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0.2rem 0.72rem;
+    border-radius: 999px;
+    background: rgb(15 107 220 / 8%);
+    color: #0f4a93;
+    font-weight: 700;
+}
+
+.turnero-surface-sync-checkpoints {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+}
+
+.turnero-surface-checkpoint-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 36px;
+    padding: 0.34rem 0.72rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
+    background: rgb(255 255 255 / 90%);
+    color: #223347;
+    font-size: 0.84rem;
+    box-shadow: 0 10px 20px rgb(15 23 42 / 4%);
+}
+
+.turnero-surface-checkpoint-chip strong {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #5a6d80;
+}
+
+.turnero-surface-checkpoint-chip[data-state='ready'] {
+    border-color: color-mix(in srgb, #0f766e 20%, #ffffff 80%);
+}
+
+.turnero-surface-checkpoint-chip[data-state='warning'] {
+    border-color: color-mix(in srgb, #ca8a04 22%, #ffffff 78%);
+    background: rgb(255 250 240 / 92%);
+}
+
+.turnero-surface-checkpoint-chip[data-state='danger'] {
+    border-color: color-mix(in srgb, #dc2626 22%, #ffffff 78%);
+    background: rgb(255 243 243 / 92%);
+}
+
+.turnero-surface-recovery-host {
+    display: grid;
+    gap: 0.65rem;
+    margin: 0.95rem 0 1.1rem;
+}
+
+.turnero-surface-recovery-banner {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 0.95rem 1rem;
+    border-radius: 22px;
+    border: 1px solid color-mix(in srgb, #0f6bdc 16%, #ffffff 84%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(247 250 255 / 92%)),
+        radial-gradient(circle at top right, rgb(15 107 220 / 8%), transparent 34%);
+    box-shadow: 0 16px 32px rgb(15 23 42 / 6%);
+}
+
+.turnero-surface-recovery-banner[data-state='watch'] {
+    border-color: color-mix(in srgb, #ca8a04 18%, #ffffff 82%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(255 249 236 / 92%)),
+        radial-gradient(circle at top right, rgb(202 138 4 / 8%), transparent 34%);
+}
+
+.turnero-surface-recovery-banner[data-state='degraded'],
+.turnero-surface-recovery-banner[data-state='blocked'] {
+    border-color: color-mix(in srgb, #dc2626 18%, #ffffff 82%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(255 245 245 / 92%)),
+        radial-gradient(circle at top right, rgb(220 38 38 / 8%), transparent 34%);
+}
+
+.turnero-surface-recovery-banner__copy {
+    display: grid;
+    gap: 0.22rem;
+    max-width: 72ch;
+}
+
+.turnero-surface-recovery-banner__eyebrow {
+    margin: 0;
+    color: #0f6bdc;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.turnero-surface-recovery-banner__copy strong {
+    font-family: 'FrauncesSoft', serif;
+    font-size: 1.02rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+.turnero-surface-recovery-banner__copy p {
+    margin: 0;
+    color: var(--text-muted, #526173);
+    line-height: 1.45;
+}
+
+.turnero-surface-recovery-banner__badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    background: rgb(15 107 220 / 8%);
+    color: #0f4a93;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.turnero-surface-recovery-banner[data-state='watch'] .turnero-surface-recovery-banner__badge {
+    background: rgb(202 138 4 / 10%);
+    color: #8a5a00;
+}
+
+.turnero-surface-recovery-banner[data-state='degraded'] .turnero-surface-recovery-banner__badge,
+.turnero-surface-recovery-banner[data-state='blocked'] .turnero-surface-recovery-banner__badge {
+    background: rgb(220 38 38 / 10%);
+    color: #9f1239;
+}
+
+.turnero-surface-recovery-checkpoints {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.turnero-admin-queue-surface-sync-console {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 24px;
+    border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(246 249 253 / 90%)),
+        radial-gradient(circle at top right, rgb(15 107 220 / 6%), transparent 34%);
+    box-shadow: 0 18px 36px rgb(15 23 42 / 6%);
+}
+
+.turnero-admin-queue-surface-sync-console__header,
+.turnero-admin-queue-surface-sync-console__surface-head,
+.turnero-admin-queue-surface-sync-console__handoff-item,
+.turnero-admin-queue-surface-sync-console__evidence-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+}
+
+.turnero-admin-queue-surface-sync-console__eyebrow {
+    margin: 0 0 0.22rem;
+    color: #0f6bdc;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.turnero-admin-queue-surface-sync-console__header h3,
+.turnero-admin-queue-surface-sync-console__header p {
+    margin: 0;
+}
+
+.turnero-admin-queue-surface-sync-console__actions,
+.turnero-admin-queue-surface-sync-console__handoff-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    align-items: flex-end;
+}
+
+.turnero-admin-queue-surface-sync-console__actions button,
+.turnero-admin-queue-surface-sync-console__handoff-form button,
+.turnero-admin-queue-surface-sync-console__handoff-item button,
+.turnero-admin-queue-surface-sync-console__evidence-item button {
+    border: 1px solid color-mix(in srgb, #10233f 12%, #ffffff 88%);
+    border-radius: 999px;
+    min-height: 38px;
+    padding: 0.36rem 0.84rem;
+    background: rgb(255 255 255 / 92%);
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.turnero-admin-queue-surface-sync-console__metrics,
+.turnero-admin-queue-surface-sync-console__grid {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.turnero-admin-queue-surface-sync-console__metrics {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.turnero-admin-queue-surface-sync-console__metrics article,
+.turnero-admin-queue-surface-sync-console__surface,
+.turnero-admin-queue-surface-sync-console__handoff-list,
+.turnero-admin-queue-surface-sync-console__handoff-form label {
+    display: grid;
+    gap: 0.32rem;
+    padding: 0.82rem 0.9rem;
+    border-radius: 18px;
+    border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
+    background: rgb(255 255 255 / 88%);
+}
+
+.turnero-admin-queue-surface-sync-console__metrics article[data-state='watch'],
+.turnero-admin-queue-surface-sync-console__surface[data-state='watch'] {
+    border-color: color-mix(in srgb, #ca8a04 18%, #ffffff 82%);
+}
+
+.turnero-admin-queue-surface-sync-console__metrics article[data-state='degraded'],
+.turnero-admin-queue-surface-sync-console__metrics article[data-state='blocked'],
+.turnero-admin-queue-surface-sync-console__surface[data-state='degraded'],
+.turnero-admin-queue-surface-sync-console__surface[data-state='blocked'] {
+    border-color: color-mix(in srgb, #dc2626 18%, #ffffff 82%);
+}
+
+.turnero-admin-queue-surface-sync-console__metrics strong {
+    font-size: 1.5rem;
+    font-family: 'FrauncesSoft', serif;
+    font-weight: 500;
+}
+
+.turnero-admin-queue-surface-sync-console__grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.turnero-admin-queue-surface-sync-console__surface p,
+.turnero-admin-queue-surface-sync-console__handoff-item p,
+.turnero-admin-queue-surface-sync-console__evidence-item p {
+    margin: 0;
+    color: var(--text-muted, #526173);
+}
+
+.turnero-admin-queue-surface-sync-console__surface dl {
+    display: grid;
+    gap: 0.38rem;
+    margin: 0;
+}
+
+.turnero-admin-queue-surface-sync-console__surface dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.8rem;
+}
+
+.turnero-admin-queue-surface-sync-console__surface dt,
+.turnero-admin-queue-surface-sync-console__surface dd {
+    margin: 0;
+}
+
+.turnero-admin-queue-surface-sync-console__handoff {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 0.9rem;
+}
+
+.turnero-admin-queue-surface-sync-console__handoff-form label span {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #526173;
+}
+
+.turnero-admin-queue-surface-sync-console__handoff-form select,
+.turnero-admin-queue-surface-sync-console__handoff-form input,
+.turnero-admin-queue-surface-sync-console__handoff-form textarea {
+    width: 100%;
+    border: 1px solid color-mix(in srgb, #10233f 12%, #ffffff 88%);
+    border-radius: 14px;
+    padding: 0.56rem 0.68rem;
+    font: inherit;
+    background: rgb(255 255 255 / 96%);
+}
+
+.turnero-admin-queue-surface-sync-console__handoff-form textarea {
+    min-height: 84px;
+    resize: vertical;
+}
+
+.turnero-admin-queue-surface-sync-console__remote-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0.16rem 0.62rem;
+    border-radius: 999px;
+    background: rgb(15 107 220 / 8%);
+    color: #0f4a93;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.turnero-admin-queue-surface-sync-console__brief {
+    margin: 0;
+    padding: 0.9rem 1rem;
+    border-radius: 18px;
+    border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
+    background: rgb(248 251 255 / 92%);
+    white-space: pre-wrap;
+    font-size: 0.84rem;
+    line-height: 1.5;
+}
+
+.turnero-admin-queue-surface-sync-console__empty {
+    margin: 0;
+    color: var(--text-muted, #526173);
+}
+
+.turnero-admin-queue-surface-recovery-console {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 24px;
+    border: 1px solid color-mix(in srgb, #a16207 12%, #ffffff 88%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(255 250 244 / 92%)),
+        radial-gradient(circle at top right, rgb(202 138 4 / 7%), transparent 34%);
+    box-shadow: 0 18px 36px rgb(15 23 42 / 6%);
+}
+
+.turnero-admin-queue-surface-recovery-console__header,
+.turnero-admin-queue-surface-recovery-console__surface-head,
+.turnero-admin-queue-surface-recovery-console__action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+}
+
+.turnero-admin-queue-surface-recovery-console__eyebrow {
+    margin: 0 0 0.22rem;
+    color: #a16207;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.turnero-admin-queue-surface-recovery-console__header h3,
+.turnero-admin-queue-surface-recovery-console__header p {
+    margin: 0;
+}
+
+.turnero-admin-queue-surface-recovery-console__actions,
+.turnero-admin-queue-surface-recovery-console__surface-actions,
+.turnero-admin-queue-surface-recovery-console__action-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.turnero-admin-queue-surface-recovery-console__actions button,
+.turnero-admin-queue-surface-recovery-console__surface-actions button,
+.turnero-admin-queue-surface-recovery-console__action button,
+.turnero-admin-queue-surface-recovery-console__form button {
+    border: 1px solid color-mix(in srgb, #a16207 14%, #ffffff 86%);
+    border-radius: 999px;
+    min-height: 38px;
+    padding: 0.36rem 0.84rem;
+    background: rgb(255 255 255 / 92%);
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.turnero-admin-queue-surface-recovery-console__metrics,
+.turnero-admin-queue-surface-recovery-console__grid,
+.turnero-admin-queue-surface-recovery-console__action-list,
+.turnero-admin-queue-surface-recovery-console__actions-panel {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.turnero-admin-queue-surface-recovery-console__metrics {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.turnero-admin-queue-surface-recovery-console__metrics article,
+.turnero-admin-queue-surface-recovery-console__surface,
+.turnero-admin-queue-surface-recovery-console__action,
+.turnero-admin-queue-surface-recovery-console__form label {
+    display: grid;
+    gap: 0.32rem;
+    padding: 0.82rem 0.9rem;
+    border-radius: 18px;
+    border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
+    background: rgb(255 255 255 / 88%);
+}
+
+.turnero-admin-queue-surface-recovery-console__metrics article[data-state='watch'],
+.turnero-admin-queue-surface-recovery-console__surface[data-state='watch'],
+.turnero-admin-queue-surface-recovery-console__action[data-state='watch'] {
+    border-color: color-mix(in srgb, #ca8a04 18%, #ffffff 82%);
+}
+
+.turnero-admin-queue-surface-recovery-console__metrics article[data-state='degraded'],
+.turnero-admin-queue-surface-recovery-console__metrics article[data-state='blocked'],
+.turnero-admin-queue-surface-recovery-console__surface[data-state='degraded'],
+.turnero-admin-queue-surface-recovery-console__surface[data-state='blocked'],
+.turnero-admin-queue-surface-recovery-console__action[data-state='degraded'],
+.turnero-admin-queue-surface-recovery-console__action[data-state='blocked'] {
+    border-color: color-mix(in srgb, #dc2626 18%, #ffffff 82%);
+}
+
+.turnero-admin-queue-surface-recovery-console__metrics strong {
+    font-size: 1.5rem;
+    font-family: 'FrauncesSoft', serif;
+    font-weight: 500;
+}
+
+.turnero-admin-queue-surface-recovery-console__grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.turnero-admin-queue-surface-recovery-console__surface p,
+.turnero-admin-queue-surface-recovery-console__action p {
+    margin: 0;
+    color: var(--text-muted, #526173);
+}
+
+.turnero-admin-queue-surface-recovery-console__surface-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.turnero-admin-queue-surface-recovery-console__surface-meta span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0.16rem 0.62rem;
+    border-radius: 999px;
+    background: rgb(15 107 220 / 8%);
+    color: #0f4a93;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.turnero-admin-queue-surface-recovery-console__surface-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0.15rem 0.62rem;
+    border-radius: 999px;
+    background: rgb(202 138 4 / 10%);
+    color: #8a5a00;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.turnero-admin-queue-surface-recovery-console__surface-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.35rem;
+    margin: 0;
+}
+
+.turnero-admin-queue-surface-recovery-console__surface-grid div {
+    display: grid;
+    gap: 0.15rem;
+}
+
+.turnero-admin-queue-surface-recovery-console__surface-grid dt {
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #526173;
+}
+
+.turnero-admin-queue-surface-recovery-console__surface-grid dd {
+    margin: 0;
+    color: #223347;
+}
+
+.turnero-admin-queue-surface-recovery-console__action-list {
+    gap: 0.7rem;
+}
+
+.turnero-admin-queue-surface-recovery-console__action {
+    align-items: flex-start;
+}
+
+.turnero-admin-queue-surface-recovery-console__action-meta span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0.15rem 0.62rem;
+    border-radius: 999px;
+    background: rgb(15 107 220 / 8%);
+    color: #0f4a93;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.turnero-admin-queue-surface-recovery-console__closed-pill {
+    background: rgb(22 163 74 / 10%);
+    color: #166534;
+}
+
+.turnero-admin-queue-surface-recovery-console__form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.7rem;
+}
+
+.turnero-admin-queue-surface-recovery-console__form label span {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #526173;
+}
+
+.turnero-admin-queue-surface-recovery-console__form select,
+.turnero-admin-queue-surface-recovery-console__form input,
+.turnero-admin-queue-surface-recovery-console__form textarea {
+    width: 100%;
+    border: 1px solid color-mix(in srgb, #10233f 12%, #ffffff 88%);
+    border-radius: 14px;
+    padding: 0.56rem 0.68rem;
+    font: inherit;
+    background: rgb(255 255 255 / 96%);
+}
+
+.turnero-admin-queue-surface-recovery-console__form textarea {
+    min-height: 84px;
+    resize: vertical;
+}
+
+.turnero-admin-queue-surface-recovery-console__brief {
+    margin: 0;
+    padding: 0.9rem 1rem;
+    border-radius: 18px;
+    border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
+    background: rgb(248 251 255 / 92%);
+    white-space: pre-wrap;
+    font-size: 0.84rem;
+    line-height: 1.5;
+}
+
+.turnero-admin-queue-surface-recovery-console__empty {
+    margin: 0;
+    color: var(--text-muted, #526173);
+}
+
+@media (max-width: 960px) {
+    .turnero-admin-queue-surface-sync-console__handoff {
+        grid-template-columns: 1fr;
+    }
+}

@@ -669,4 +669,84 @@ test.describe('Sala turnos display', () => {
             /respaldo/i
         );
     });
+
+    test('monta el strip de sync bajo el header y sigue el ticket principal', async ({
+        page,
+    }) => {
+        await page.addInitScript(() => {
+            localStorage.setItem(
+                'turneroSurfaceSyncHandoffLedgerV1',
+                JSON.stringify({
+                    schema: 'turnero-clinic-storage/v1',
+                    values: {
+                        'clinica-norte-demo': {
+                            scopes: {
+                                'clinica-norte-demo': [
+                                    {
+                                        id: 'handoff_display_1',
+                                        scope: 'clinica-norte-demo',
+                                        surfaceKey: 'display',
+                                        title: 'Revisar campanilla',
+                                        note: 'Validar audio antes de abrir sala.',
+                                        owner: 'ops',
+                                        source: 'local',
+                                        status: 'open',
+                                        createdAt: '2026-03-20T10:00:00.000Z',
+                                        updatedAt: '2026-03-20T10:00:00.000Z',
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                })
+            );
+        });
+
+        await installTurneroClinicProfileMock(page, {
+            clinic_id: 'clinica-norte-demo',
+            branding: {
+                name: 'Clinica Norte',
+                short_name: 'Norte',
+            },
+        });
+        await installTurneroQueueStateMock(page, {
+            queueState: {
+                updatedAt: '2026-03-20T10:00:00.000Z',
+                waitingCount: 1,
+                calledCount: 1,
+                callingNow: [
+                    {
+                        id: 1,
+                        ticketCode: 'A-061',
+                        patientInitials: 'JP',
+                        assignedConsultorio: 1,
+                        calledAt: '2026-03-20T10:00:00.000Z',
+                    },
+                ],
+                nextTickets: [
+                    {
+                        id: 2,
+                        ticketCode: 'A-062',
+                        patientInitials: 'EP',
+                        position: 1,
+                    },
+                ],
+            },
+        });
+
+        await page.goto('/sala-turnos.html');
+
+        await expect(page.locator('#displaySurfaceSyncHost')).toContainText(
+            'Display surface sync'
+        );
+        await expect(page.locator('#displaySurfaceSyncHost')).toContainText(
+            'A-061'
+        );
+        await expect(page.locator('#displaySurfaceSyncHost')).toContainText(
+            'Handoffs'
+        );
+        await expect(page.locator('#displaySurfaceSyncHost')).toContainText(
+            '1'
+        );
+    });
 });

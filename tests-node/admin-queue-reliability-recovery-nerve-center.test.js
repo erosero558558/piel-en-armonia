@@ -16,8 +16,10 @@ test('queue apps hub expone el reliability recovery nerve center en incidents ba
     const html = module.renderQueueAppsHub();
 
     assert.match(html, /id="queueReliabilityRecoveryNerveCenterHost"/);
+    assert.match(html, /id="queueSurfaceRecoveryConsoleHost"/);
     assert.match(html, /data-band="incidents"/);
     assert.match(html, /data-turnero-reliability-recovery/);
+    assert.match(html, /data-turnero-surface-recovery-console/);
     assert.match(html, /data-queue-domain-match="incidents"/);
     assert.match(html, /data-queue-basic-match="incidents"/);
     assert.ok(
@@ -27,7 +29,12 @@ test('queue apps hub expone el reliability recovery nerve center en incidents ba
     );
     assert.ok(
         html.indexOf('queueReliabilityRecoveryNerveCenterHost') <
+            html.indexOf('queueSurfaceRecoveryConsoleHost'),
+        'la recovery console debe aparecer después del nerve center'
+    );
+    assert.ok(
+        html.indexOf('queueSurfaceRecoveryConsoleHost') <
             html.indexOf('data-band="deployment"'),
-        'el nuevo host debe aparecer antes del band deployment'
+        'la recovery console debe aparecer antes del band deployment'
     );
 });

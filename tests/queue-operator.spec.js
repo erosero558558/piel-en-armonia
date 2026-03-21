@@ -1593,4 +1593,82 @@ test.describe('Turnero Operador', () => {
             page.locator('[data-action="queue-refresh-state"]')
         ).toBeEnabled();
     });
+
+    test('renderiza el strip de sync y publica surfaceSyncSnapshot en heartbeat', async ({
+        page,
+    }) => {
+        await page.addInitScript(() => {
+            localStorage.setItem(
+                'turneroSurfaceSyncHandoffLedgerV1',
+                JSON.stringify({
+                    schema: 'turnero-clinic-storage/v1',
+                    values: {
+                        'clinica-norte-demo': {
+                            scopes: {
+                                'clinica-norte-demo': [
+                                    {
+                                        id: 'handoff_operator_c2',
+                                        scope: 'clinica-norte-demo',
+                                        surfaceKey: 'operator:c2',
+                                        title: 'Relevo C2',
+                                        note: 'Validar continuidad del puesto C2.',
+                                        owner: 'ops',
+                                        source: 'local',
+                                        status: 'open',
+                                        createdAt: '2026-03-20T10:00:00.000Z',
+                                        updatedAt: '2026-03-20T10:00:00.000Z',
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                })
+            );
+        });
+        await installTurneroClinicProfileMock(page, {
+            clinic_id: 'clinica-norte-demo',
+            branding: {
+                name: 'Clinica Norte',
+                short_name: 'Norte',
+            },
+            consultorios: {
+                c1: { label: 'Dermatología 1', short_label: 'D1' },
+                c2: { label: 'Dermatología 2', short_label: 'D2' },
+            },
+            surfaces: {
+                operator: {
+                    enabled: true,
+                    route: '/operador-turnos.html',
+                },
+            },
+        });
+
+        const surface = await mockOperatorSurface(page);
+
+        await page.goto(operatorUrl('station=c2&lock=1&one_tap=1'));
+
+        await expect(page.locator('#operatorSurfaceSyncHost')).toContainText(
+            'Operator surface sync'
+        );
+        await expect(page.locator('#operatorSurfaceSyncHost')).toContainText(
+            'Handoffs'
+        );
+        await expect(page.locator('#operatorSurfaceSyncHost')).toContainText(
+            '1'
+        );
+        await expect
+            .poll(
+                () =>
+                    surface.getLastHeartbeatPayload()?.details
+                        ?.surfaceSyncSnapshot?.surfaceKey || ''
+            )
+            .toBe('operator:c2');
+        await expect
+            .poll(
+                () =>
+                    surface.getLastHeartbeatPayload()?.details
+                        ?.surfaceSyncHandoffOpenCount || 0
+            )
+            .toBe(1);
+    });
 });

@@ -30,6 +30,17 @@ test('operator heartbeat payload carries desktop shell metadata for locked stati
             fallbackPartial: false,
             degraded: false,
         },
+        surfaceSyncSnapshot: {
+            surfaceKey: 'operator:c2',
+            queueVersion: '2026-03-12T14:00:00.000Z',
+            visibleTurn: 'A-021',
+            announcedTurn: 'A-021',
+            handoffState: 'clear',
+            heartbeatState: 'ready',
+            heartbeatChannel: 'desktop',
+            updatedAt: '2026-03-12T14:00:00.000Z',
+        },
+        surfaceSyncHandoffOpenCount: 0,
         numpadStatus: {
             callKeyLabel: 'Numpad Enter',
             ready: true,
@@ -91,6 +102,17 @@ test('operator heartbeat payload carries desktop shell metadata for locked stati
         payload.details.shellInstallGuideUrl,
         'https://pielarmonia.com/app-downloads/?surface=operator&platform=win&station=c2&lock=1&one_tap=1'
     );
+    assert.deepEqual(payload.details.surfaceSyncSnapshot, {
+        surfaceKey: 'operator:c2',
+        queueVersion: '2026-03-12T14:00:00.000Z',
+        visibleTurn: 'A-021',
+        announcedTurn: 'A-021',
+        handoffState: 'clear',
+        heartbeatState: 'ready',
+        heartbeatChannel: 'desktop',
+        updatedAt: '2026-03-12T14:00:00.000Z',
+    });
+    assert.equal(payload.details.surfaceSyncHandoffOpenCount, 0);
 });
 
 test('operator heartbeat payload degrades gracefully when fallback web is offline and numpad is incomplete', async () => {
@@ -111,6 +133,17 @@ test('operator heartbeat payload degrades gracefully when fallback web is offlin
             fallbackPartial: true,
             degraded: true,
         },
+        surfaceSyncSnapshot: {
+            surfaceKey: 'operator:c1',
+            queueVersion: 'fp:fallback',
+            visibleTurn: '',
+            announcedTurn: '',
+            handoffState: 'open',
+            heartbeatState: 'warning',
+            heartbeatChannel: 'browser-offline',
+            updatedAt: '2026-03-12T14:05:00.000Z',
+        },
+        surfaceSyncHandoffOpenCount: 2,
         numpadStatus: {
             callKeyLabel: 'Numpad Enter',
             ready: false,
@@ -147,6 +180,9 @@ test('operator heartbeat payload degrades gracefully when fallback web is offlin
     assert.equal(payload.details.queueFallbackPartial, true);
     assert.equal(payload.details.numpadReady, false);
     assert.equal(payload.details.shellMode, 'web');
+    assert.equal(payload.details.surfaceSyncSnapshot.surfaceKey, 'operator:c1');
+    assert.equal(payload.details.surfaceSyncSnapshot.handoffState, 'open');
+    assert.equal(payload.details.surfaceSyncHandoffOpenCount, 2);
     assert.ok(!Object.hasOwn(payload.details, 'shellLaunchMode'));
     assert.ok(!Object.hasOwn(payload.details, 'shellAutoStart'));
 });

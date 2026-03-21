@@ -76,6 +76,8 @@ export function buildOperatorHeartbeatPayload({
     appMode = 'web',
     numpadStatus,
     syncHealth,
+    surfaceSyncSnapshot = null,
+    surfaceSyncHandoffOpenCount = 0,
     now = new Date().toISOString(),
 } = {}) {
     const surfaceState = buildOperatorSurfaceState(queueState);
@@ -150,6 +152,25 @@ export function buildOperatorHeartbeatPayload({
         shellConfigPath: String(shell?.configPath || ''),
         shellMessage: String(shell?.statusMessage || ''),
     };
+
+    if (surfaceSyncSnapshot && typeof surfaceSyncSnapshot === 'object') {
+        details.surfaceSyncSnapshot = {
+            surfaceKey: String(surfaceSyncSnapshot.surfaceKey || ''),
+            queueVersion: String(surfaceSyncSnapshot.queueVersion || ''),
+            visibleTurn: String(surfaceSyncSnapshot.visibleTurn || ''),
+            announcedTurn: String(surfaceSyncSnapshot.announcedTurn || ''),
+            handoffState: String(surfaceSyncSnapshot.handoffState || ''),
+            heartbeatState: String(surfaceSyncSnapshot.heartbeatState || ''),
+            heartbeatChannel: String(
+                surfaceSyncSnapshot.heartbeatChannel || ''
+            ),
+            updatedAt: String(surfaceSyncSnapshot.updatedAt || ''),
+        };
+        details.surfaceSyncHandoffOpenCount = Math.max(
+            0,
+            Number(surfaceSyncHandoffOpenCount || 0)
+        );
+    }
 
     if (shell?.available) {
         details.shellLaunchMode = normalizeLaunchMode(shell.launchMode);
