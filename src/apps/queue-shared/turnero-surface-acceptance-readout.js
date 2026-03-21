@@ -36,9 +36,7 @@ function buildChip(label, value, state) {
 }
 
 function summarize(snapshot, gate) {
-    const checklist = asObject(
-        snapshot.checklist?.summary || snapshot.checklist
-    );
+    const checklist = asObject(snapshot.checklist);
     const evidenceSummary = asObject(snapshot.evidenceSummary);
     const signoffSummary = asObject(snapshot.signoffSummary);
     const owner = toString(snapshot.acceptanceOwner || '');
@@ -82,9 +80,7 @@ function buildDetail(snapshot) {
     const runtimeDetail = toString(snapshot.runtime?.summary || '');
     const siteDetail = toString(snapshot.site?.summary || '');
     const trainingDetail = toString(snapshot.training?.summary || '');
-    const checklist = asObject(
-        snapshot.checklist?.summary || snapshot.checklist
-    );
+    const checklist = asObject(snapshot.checklist);
     const evidenceSummary = asObject(snapshot.evidenceSummary);
     const signoffSummary = asObject(snapshot.signoffSummary);
     const detailParts = [
@@ -142,9 +138,7 @@ export function buildTurneroSurfaceAcceptanceReadout(input = {}) {
             clinicName
     );
     const acceptanceOwner = toString(snapshot.acceptanceOwner || '');
-    const checklist = asObject(
-        snapshot.checklist?.summary || snapshot.checklist
-    );
+    const checklist = asObject(snapshot.checklist);
     const evidenceSummary = asObject(snapshot.evidenceSummary);
     const signoffSummary = asObject(snapshot.signoffSummary);
     const generatedAt =

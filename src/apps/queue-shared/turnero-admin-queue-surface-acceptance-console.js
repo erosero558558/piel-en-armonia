@@ -11,8 +11,8 @@ import {
     toArray,
 } from './turnero-release-control-center.js';
 import {
-    escapeHtml,
     formatTimestamp,
+    escapeHtml,
     resolveTarget,
     toString,
 } from './turnero-surface-helpers.js';
@@ -616,9 +616,7 @@ function renderSurfaceCardHtml(item, surfacePacks = []) {
     const gate = asObject(pack.gate);
     const evidence = Array.isArray(item.evidence) ? item.evidence : [];
     const signoffs = Array.isArray(item.signoffs) ? item.signoffs : [];
-    const checklist = asObject(
-        snapshot.checklist?.summary || snapshot.checklist
-    );
+    const checklist = asObject(snapshot.checklist);
     const evidenceSummary = asObject(snapshot.evidenceSummary);
     const signoffSummary = asObject(snapshot.signoffSummary);
 

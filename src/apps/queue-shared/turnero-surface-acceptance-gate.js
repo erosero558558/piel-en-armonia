@@ -116,9 +116,7 @@ function resolveBand(checks) {
 }
 
 function summarizeGate(band, snapshot, primaryIssue) {
-    const checklist = asObject(
-        snapshot.checklist?.summary || snapshot.checklist
-    );
+    const checklist = asObject(snapshot.checklist);
     const evidenceSummary = asObject(snapshot.evidenceSummary);
     const signoffSummary = asObject(snapshot.signoffSummary);
     const checklistLabel = `${Number(checklist.pass || 0) || 0}/${
@@ -179,9 +177,7 @@ export function buildTurneroSurfaceAcceptanceGate(input = {}) {
         snapshot.acceptanceOwner || snapshot.owner || ''
     );
     const signoffMode = toString(snapshot.signoffMode || 'manual', 'manual');
-    const checklist = asObject(
-        snapshot.checklist?.summary || snapshot.checklist
-    );
+    const checklist = asObject(snapshot.checklist);
     const evidenceSummary = asObject(snapshot.evidenceSummary);
     const signoffSummary = asObject(snapshot.signoffSummary);
     const surfaceKey = normalizeTurneroSurfaceAcceptanceKey(
