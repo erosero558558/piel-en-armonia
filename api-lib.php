@@ -12,12 +12,15 @@ if (is_file($autoloadFile)) {
     try {
         require_once $autoloadFile;
     } catch (Throwable $autoloadError) {
-        error_log('Piel en Armonia: composer autoload skipped - ' . $autoloadError->getMessage());
+        error_log('Aurora Derm: composer autoload skipped - ' . $autoloadError->getMessage());
     }
 }
 
 // Permite aislar tests/CLI que necesitan evitar la config local del repo.
-$skipEnvFileRaw = getenv('PIELARMONIA_SKIP_ENV_FILE');
+$skipEnvFileRaw = getenv('AURORADERM_SKIP_ENV_FILE');
+if (!is_string($skipEnvFileRaw) || trim($skipEnvFileRaw) === '') {
+    $skipEnvFileRaw = getenv('PIELARMONIA_SKIP_ENV_FILE');
+}
 $skipEnvFile = is_string($skipEnvFileRaw)
     && in_array(strtolower(trim($skipEnvFileRaw)), ['1', 'true', 'yes', 'on'], true);
 
@@ -27,7 +30,7 @@ if (!$skipEnvFile && is_file($envFile)) {
     try {
         require_once $envFile;
     } catch (Throwable $envError) {
-        error_log('Piel en Armonia: env.php skipped - ' . $envError->getMessage());
+        error_log('Aurora Derm: env.php skipped - ' . $envError->getMessage());
     }
 }
 
@@ -66,7 +69,7 @@ if (
         require_once $eventSetupFile;
         $eventSetupLoaded = function_exists('get_event_dispatcher');
     } catch (Throwable $eventSetupError) {
-        error_log('Piel en Armonia: event_setup disabled - ' . $eventSetupError->getMessage());
+        error_log('Aurora Derm: event_setup disabled - ' . $eventSetupError->getMessage());
     }
 }
 

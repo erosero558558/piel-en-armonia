@@ -141,7 +141,7 @@ final class ClinicalHistoryAIService
     private function buildSystemPrompt(): string
     {
         return implode("\n", [
-            'Eres el motor de historia clinica conversacional para Piel en Armonia.',
+            'Eres el motor de historia clinica conversacional para Aurora Derm.',
             'Objetivo paciente: responder con tono empatico, breve y natural, y hacer solo una pregunta concreta por turno.',
             'Objetivo medico: sintetizar anamnesis estructurada, preguntas faltantes, red flags, CIE-10 sugeridos, tratamiento borrador y posologia con incertidumbre explicita.',
             'Nunca expongas diagnostico, tratamiento, dosis ni CIE-10 en los campos reply ni nextQuestion.',

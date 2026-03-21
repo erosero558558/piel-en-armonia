@@ -428,68 +428,68 @@ final class LeadOpsService
         $health = self::buildHealthSnapshot($store);
         $output = '';
 
-        $output .= "\n# TYPE pielarmonia_leadops_callbacks_pending_total gauge";
-        $output .= "\npielarmonia_leadops_callbacks_pending_total " . (int) ($meta['pendingCount'] ?? 0);
+        $output .= "\n# TYPE auroraderm_leadops_callbacks_pending_total gauge";
+        $output .= "\nauroraderm_leadops_callbacks_pending_total " . (int) ($meta['pendingCount'] ?? 0);
 
-        $output .= "\n# TYPE pielarmonia_leadops_callbacks_total gauge";
-        $output .= "\npielarmonia_leadops_callbacks_total " . (int) ($meta['totalCount'] ?? 0);
+        $output .= "\n# TYPE auroraderm_leadops_callbacks_total gauge";
+        $output .= "\nauroraderm_leadops_callbacks_total " . (int) ($meta['totalCount'] ?? 0);
 
-        $output .= "\n# TYPE pielarmonia_leadops_callbacks_contacted_total gauge";
-        $output .= "\npielarmonia_leadops_callbacks_contacted_total " . (int) ($meta['contactedCount'] ?? 0);
+        $output .= "\n# TYPE auroraderm_leadops_callbacks_contacted_total gauge";
+        $output .= "\nauroraderm_leadops_callbacks_contacted_total " . (int) ($meta['contactedCount'] ?? 0);
 
         foreach ((array) ($meta['priorityCounts'] ?? []) as $band => $count) {
-            $output .= "\n# TYPE pielarmonia_leadops_priority_band_total gauge";
-            $output .= "\npielarmonia_leadops_priority_band_total{band=\"" . $band . "\"} " . (int) $count;
+            $output .= "\n# TYPE auroraderm_leadops_priority_band_total gauge";
+            $output .= "\nauroraderm_leadops_priority_band_total{band=\"" . $band . "\"} " . (int) $count;
         }
 
         foreach ((array) ($meta['priorityPendingCounts'] ?? []) as $band => $count) {
-            $output .= "\n# TYPE pielarmonia_leadops_priority_band_pending_total gauge";
-            $output .= "\npielarmonia_leadops_priority_band_pending_total{band=\"" . $band . "\"} " . (int) $count;
+            $output .= "\n# TYPE auroraderm_leadops_priority_band_pending_total gauge";
+            $output .= "\nauroraderm_leadops_priority_band_pending_total{band=\"" . $band . "\"} " . (int) $count;
         }
 
         foreach ((array) ($meta['aiStatusCounts'] ?? []) as $status => $count) {
-            $output .= "\n# TYPE pielarmonia_leadops_ai_status_total gauge";
-            $output .= "\npielarmonia_leadops_ai_status_total{status=\"" . $status . "\"} " . (int) $count;
+            $output .= "\n# TYPE auroraderm_leadops_ai_status_total gauge";
+            $output .= "\nauroraderm_leadops_ai_status_total{status=\"" . $status . "\"} " . (int) $count;
         }
 
-        $output .= "\n# TYPE pielarmonia_leadops_ai_accepted_total gauge";
-        $output .= "\npielarmonia_leadops_ai_accepted_total " . (int) ($meta['aiAcceptedCount'] ?? 0);
+        $output .= "\n# TYPE auroraderm_leadops_ai_accepted_total gauge";
+        $output .= "\nauroraderm_leadops_ai_accepted_total " . (int) ($meta['aiAcceptedCount'] ?? 0);
 
         foreach ((array) ($meta['outcomeCounts'] ?? []) as $outcome => $count) {
-            $output .= "\n# TYPE pielarmonia_leadops_outcome_total gauge";
-            $output .= "\npielarmonia_leadops_outcome_total{outcome=\"" . $outcome . "\"} " . (int) $count;
+            $output .= "\n# TYPE auroraderm_leadops_outcome_total gauge";
+            $output .= "\nauroraderm_leadops_outcome_total{outcome=\"" . $outcome . "\"} " . (int) $count;
         }
 
-        $output .= "\n# TYPE pielarmonia_leadops_closed_won_total gauge";
-        $output .= "\npielarmonia_leadops_closed_won_total " . (int) ($meta['closedWonCount'] ?? 0);
+        $output .= "\n# TYPE auroraderm_leadops_closed_won_total gauge";
+        $output .= "\nauroraderm_leadops_closed_won_total " . (int) ($meta['closedWonCount'] ?? 0);
 
-        $output .= "\n# TYPE pielarmonia_leadops_first_contact_samples_total gauge";
-        $output .= "\npielarmonia_leadops_first_contact_samples_total " . (int) (($meta['firstContact']['samples'] ?? 0));
+        $output .= "\n# TYPE auroraderm_leadops_first_contact_samples_total gauge";
+        $output .= "\nauroraderm_leadops_first_contact_samples_total " . (int) (($meta['firstContact']['samples'] ?? 0));
 
-        $output .= "\n# TYPE pielarmonia_leadops_first_contact_avg_minutes gauge";
-        $output .= "\npielarmonia_leadops_first_contact_avg_minutes " . (float) (($meta['firstContact']['avgMinutes'] ?? 0.0));
+        $output .= "\n# TYPE auroraderm_leadops_first_contact_avg_minutes gauge";
+        $output .= "\nauroraderm_leadops_first_contact_avg_minutes " . (float) (($meta['firstContact']['avgMinutes'] ?? 0.0));
 
-        $output .= "\n# TYPE pielarmonia_leadops_first_contact_p95_minutes gauge";
-        $output .= "\npielarmonia_leadops_first_contact_p95_minutes " . (float) (($meta['firstContact']['p95Minutes'] ?? 0.0));
+        $output .= "\n# TYPE auroraderm_leadops_first_contact_p95_minutes gauge";
+        $output .= "\nauroraderm_leadops_first_contact_p95_minutes " . (float) (($meta['firstContact']['p95Minutes'] ?? 0.0));
 
-        $output .= "\n# TYPE pielarmonia_leadops_ai_acceptance_rate_pct gauge";
-        $output .= "\npielarmonia_leadops_ai_acceptance_rate_pct " . (float) (($meta['rates']['aiAcceptancePct'] ?? 0.0));
+        $output .= "\n# TYPE auroraderm_leadops_ai_acceptance_rate_pct gauge";
+        $output .= "\nauroraderm_leadops_ai_acceptance_rate_pct " . (float) (($meta['rates']['aiAcceptancePct'] ?? 0.0));
 
-        $output .= "\n# TYPE pielarmonia_leadops_close_rate_pct gauge";
-        $output .= "\npielarmonia_leadops_close_rate_pct " . (float) (($meta['rates']['closedPct'] ?? 0.0));
+        $output .= "\n# TYPE auroraderm_leadops_close_rate_pct gauge";
+        $output .= "\nauroraderm_leadops_close_rate_pct " . (float) (($meta['rates']['closedPct'] ?? 0.0));
 
-        $output .= "\n# TYPE pielarmonia_leadops_close_from_contacted_rate_pct gauge";
-        $output .= "\npielarmonia_leadops_close_from_contacted_rate_pct " . (float) (($meta['rates']['closedFromContactedPct'] ?? 0.0));
+        $output .= "\n# TYPE auroraderm_leadops_close_from_contacted_rate_pct gauge";
+        $output .= "\nauroraderm_leadops_close_from_contacted_rate_pct " . (float) (($meta['rates']['closedFromContactedPct'] ?? 0.0));
 
         foreach (['online', 'degraded', 'offline', 'pending', 'disabled'] as $mode) {
-            $output .= "\n# TYPE pielarmonia_leadops_worker_mode gauge";
-            $output .= "\npielarmonia_leadops_worker_mode{mode=\"" . $mode . "\"} " . (($health['mode'] ?? '') === $mode ? 1 : 0);
+            $output .= "\n# TYPE auroraderm_leadops_worker_mode gauge";
+            $output .= "\nauroraderm_leadops_worker_mode{mode=\"" . $mode . "\"} " . (($health['mode'] ?? '') === $mode ? 1 : 0);
         }
 
-        $output .= "\n# TYPE pielarmonia_leadops_worker_degraded gauge";
-        $output .= "\npielarmonia_leadops_worker_degraded " . (($health['degraded'] ?? false) ? 1 : 0) . "\n";
+        $output .= "\n# TYPE auroraderm_leadops_worker_degraded gauge";
+        $output .= "\nauroraderm_leadops_worker_degraded " . (($health['degraded'] ?? false) ? 1 : 0) . "\n";
 
-        return $output;
+        return app_prometheus_alias_output($output);
     }
 
     private static function buildHeuristic(array $callback, array $store, ?array $funnelMetrics): array

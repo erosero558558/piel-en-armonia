@@ -4,8 +4,17 @@ const { test, expect } = require('@playwright/test');
 const { skipIfPhpRuntimeMissing } = require('./helpers/php-backend');
 
 function getEnv(name, fallback = '') {
-    const value = process.env[name];
-    return typeof value === 'string' ? value.trim() : fallback;
+    const normalized = String(name || '').trim();
+    const candidates = normalized.startsWith('PIELARMONIA_')
+        ? [`AURORADERM_${normalized.slice('PIELARMONIA_'.length)}`, normalized]
+        : [normalized];
+    for (const candidate of candidates) {
+        const value = process.env[candidate];
+        if (typeof value === 'string' && value.trim() !== '') {
+            return value.trim();
+        }
+    }
+    return fallback;
 }
 
 function getChatEndpointPath() {

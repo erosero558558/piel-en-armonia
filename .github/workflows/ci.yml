@@ -244,6 +244,7 @@ jobs:
               run: npm run test:critical:agenda
               env:
                   TEST_LOCAL_SERVER: php
+                  AURORADERM_ADMIN_PASSWORD: test-ci-admin-password
                   PIELARMONIA_ADMIN_PASSWORD: test-ci-admin-password
                   TEST_ENABLE_CALENDAR_WRITE: 'false'
             - name: Run Critical Funnel Gate
@@ -251,12 +252,14 @@ jobs:
               run: npm run test:critical:funnel
               env:
                   TEST_LOCAL_SERVER: php
+                  AURORADERM_ADMIN_PASSWORD: test-ci-admin-password
                   PIELARMONIA_ADMIN_PASSWORD: test-ci-admin-password
             - name: Run Critical Payments Gate
               if: steps.changes.outputs.e2e == 'true'
               run: npm run test:critical:payments
               env:
                   TEST_LOCAL_SERVER: php
+                  AURORADERM_ADMIN_PASSWORD: test-ci-admin-password
                   PIELARMONIA_ADMIN_PASSWORD: test-ci-admin-password
             - name: Skip e2e (no relevant changes)
               if: steps.changes.outputs.e2e != 'true'
@@ -361,6 +364,7 @@ jobs:
                   echo "::warning::Non-critical Playwright suite reported failures (exit $status). Critical release gates remain enforced by e2e-tests."
               env:
                   TEST_LOCAL_SERVER: php
+                  AURORADERM_ADMIN_PASSWORD: test-ci-admin-password
                   PIELARMONIA_ADMIN_PASSWORD: test-ci-admin-password
             - name: Publish non-critical summary
               if: always() && steps.changes.outputs.e2e == 'true'

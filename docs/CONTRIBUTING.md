@@ -1,7 +1,17 @@
 # Guía de Contribución
 
-Gracias por tu interés en contribuir a Piel en Armonía. Este documento describe el proceso para configurar el entorno de desarrollo y enviar cambios.
+Gracias por tu interes en contribuir a `Flow OS`. Este documento describe el
+proceso para configurar el entorno de desarrollo y enviar cambios sobre el
+despliegue clinico activo `Aurora Derm`.
 Si necesitas ubicar el flujo correcto antes de abrir una rama, empieza por `docs/OPERATIONS_INDEX.md`.
+
+## Politica de terminologia
+
+- Usa `Flow OS` para referirte a la plataforma.
+- Usa `Aurora Derm` para referirte a la clinica/marca actual.
+- Usa `AURORADERM_*` en documentacion nueva, ejemplos y runbooks.
+- Deja `PIELARMONIA_*`, `patient-flow-os` y labels historicos solo cuando el
+  contexto sea compatibilidad tecnica o un contrato legacy todavia vivo.
 
 ## 1. Configuración del Entorno
 
@@ -71,7 +81,9 @@ npm run test:php
 
 `php tests/run-php-tests.php` ya levanta sus servidores locales con un helper
 portable (`127.0.0.1`) y funciona igual en Windows o Unix. Para sumar los
-smokes/integration opt-in usa `PIELARMONIA_TEST_INCLUDE_INTEGRATION=1`.
+smokes/integration opt-in usa `AURORADERM_TEST_INCLUDE_INTEGRATION=1` si ya
+trabajas con el naming nuevo; el alias `PIELARMONIA_TEST_INCLUDE_INTEGRATION=1`
+sigue siendo valido como compatibilidad.
 
 ### End-to-End (Playwright)
 

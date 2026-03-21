@@ -10,7 +10,13 @@ declare(strict_types=1);
  */
 
 $testDir = __DIR__;
-$includeIntegration = filter_var((string) getenv('PIELARMONIA_TEST_INCLUDE_INTEGRATION'), FILTER_VALIDATE_BOOLEAN);
+$includeIntegration = filter_var(
+    (string) (
+        getenv('AURORADERM_TEST_INCLUDE_INTEGRATION')
+        ?: getenv('PIELARMONIA_TEST_INCLUDE_INTEGRATION')
+    ),
+    FILTER_VALIDATE_BOOLEAN
+);
 $hasPdoSqlite = extension_loaded('pdo_sqlite');
 
 function output_indicates_failure(string $output): bool

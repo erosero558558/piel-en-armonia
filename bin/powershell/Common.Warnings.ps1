@@ -676,7 +676,7 @@ function Get-WeeklyReportMarkdown {
     }
 
     return @"
-# Weekly Production Report - Piel en Armonia
+# Weekly Production Report - Aurora Derm
 
 - generatedAt: $reportGeneratedAt
 - domain: $base

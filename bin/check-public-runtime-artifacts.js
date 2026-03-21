@@ -8,6 +8,7 @@ const {
     REPO_ROOT,
 } = require('./lib/generated-site-root.js');
 const {
+    inspectPublishedAdminArtifacts,
     inspectPublicRuntimeArtifacts,
 } = require('./lib/public-runtime-artifacts.js');
 
@@ -22,6 +23,7 @@ const DEFAULT_OUTPUT = path.join(
 function parseArgs(argv) {
     const args = {
         root: GENERATED_SITE_ROOT,
+        publishedRoot: ROOT,
         supportRoot: '',
         output: DEFAULT_OUTPUT,
         json: false,
@@ -59,6 +61,23 @@ function parseArgs(argv) {
             args.supportRoot = path.resolve(
                 ROOT,
                 token.slice('--support-root='.length).trim()
+            );
+            continue;
+        }
+
+        if (token === '--published-root') {
+            const nextValue = String(argv[index + 1] || '').trim();
+            if (nextValue) {
+                args.publishedRoot = path.resolve(ROOT, nextValue);
+                index += 1;
+            }
+            continue;
+        }
+
+        if (token.startsWith('--published-root=')) {
+            args.publishedRoot = path.resolve(
+                ROOT,
+                token.slice('--published-root='.length).trim()
             );
             continue;
         }
@@ -108,16 +127,29 @@ function main() {
         : inspectionRoot === GENERATED_SITE_ROOT
           ? ROOT
           : inspectionRoot;
+    const publishedRoot = args.publishedRoot
+        ? path.resolve(args.publishedRoot)
+        : ROOT;
     const inspectionWithSupport = inspectPublicRuntimeArtifacts({
         root: inspectionRoot,
         supportRoot,
     });
+    const adminPublishedInspection = inspectPublishedAdminArtifacts({
+        sourceRoot: inspectionRoot,
+        publishedRoot,
+    });
+    const combinedDiagnostics = [
+        ...inspectionWithSupport.diagnostics,
+        ...adminPublishedInspection.diagnostics,
+    ];
     const report = {
         generatedAt: new Date().toISOString(),
         reportPath: args.output,
-        passed: inspectionWithSupport.passed,
+        passed:
+            inspectionWithSupport.passed && adminPublishedInspection.passed,
         rootPath: inspectionWithSupport.rootPath,
         supportRootPath: inspectionWithSupport.supportRootPath,
+        publishedRootPath: publishedRoot,
         entryPath: inspectionWithSupport.entryRelativePath,
         chunksDir: inspectionWithSupport.chunksDirRelativePath,
         enginesDir: inspectionWithSupport.enginesDirRelativePath,
@@ -139,7 +171,28 @@ function main() {
         staleChunks: inspectionWithSupport.staleChunks,
         missingReferencedChunks: inspectionWithSupport.missingReferencedChunks,
         mergeConflictFindings: inspectionWithSupport.mergeConflictFindings,
-        diagnostics: inspectionWithSupport.diagnostics,
+        adminPublished: {
+            passed: adminPublishedInspection.passed,
+            sameRoots: adminPublishedInspection.sameRoots,
+            sourceRootPath: adminPublishedInspection.sourceRootPath,
+            publishedRootPath: adminPublishedInspection.publishedRootPath,
+            sourceReachableChunks: adminPublishedInspection.sourceReachableChunks,
+            publishedReachableChunks:
+                adminPublishedInspection.publishedReachableChunks,
+            sourceMissingReferencedChunks:
+                adminPublishedInspection.sourceMissingReferencedChunks,
+            publishedMissingReferencedChunks:
+                adminPublishedInspection.publishedMissingReferencedChunks,
+            expectedActiveGraph: adminPublishedInspection.expectedActiveGraph,
+            publishedActiveGraph: adminPublishedInspection.publishedActiveGraph,
+            missingPublishedActivePaths:
+                adminPublishedInspection.missingPublishedActivePaths,
+            extraPublishedActivePaths:
+                adminPublishedInspection.extraPublishedActivePaths,
+            chunkContentDrift: adminPublishedInspection.chunkContentDrift,
+            diagnostics: adminPublishedInspection.diagnostics,
+        },
+        diagnostics: combinedDiagnostics,
     };
 
     writeReport(args.output, report);
@@ -151,7 +204,7 @@ function main() {
             const shellSummary =
                 report.activeShellChunks[0] || 'sin shell activo';
             process.stdout.write(
-                `[public-runtime] OK: ${report.reachableChunkCount} chunk(s) alcanzables, shell activo ${shellSummary}. Report: ${path.relative(
+                `[public-runtime] OK: ${report.reachableChunkCount} chunk(s) alcanzables, shell activo ${shellSummary}, admin publish parity OK. Report: ${path.relative(
                     ROOT,
                     args.output
                 )}\n`

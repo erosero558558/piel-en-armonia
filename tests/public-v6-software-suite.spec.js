@@ -65,7 +65,7 @@ test.describe('Public V6 software suite', () => {
         await expect(
             page.locator('[data-v6-turnero-proof="landing"] [data-v6-turnero-proof-card]')
         ).toHaveCount(5);
-        await expect(page.locator('[data-v6-suite-storyboard-lane]')).toHaveCount(4);
+        await expect(page.locator('[data-v6-suite-storyboard-lane]')).toHaveCount(5);
         await expect(
             page.locator('[data-v6-turnero-proof-links="landing"] [data-v6-turnero-presentation-link]')
         ).toHaveCount(4);
@@ -124,7 +124,7 @@ test.describe('Public V6 software suite', () => {
         await expect(page.locator('.v6-suite-surface-hero .v6-suite-actions a')).toHaveCount(2);
         await expect(page.locator('.v6-suite-showcase__stage').first()).toBeVisible();
         await expect(page.locator('.v6-suite-showcase .v6-suite-mockup__row')).toHaveCount(3);
-        await expect(page.locator('.v6-suite-list-grid .v6-suite-list-item')).toHaveCount(4);
+        await expect(page.locator('.v6-suite-list-grid .v6-suite-list-item')).toHaveCount(3);
         await expect(
             page.locator('[data-v6-turnero-proof="status"] [data-v6-turnero-proof-card]')
         ).toHaveCount(5);

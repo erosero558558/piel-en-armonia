@@ -159,16 +159,22 @@ function Get-EffectiveOperatorAuthBootstrapConfig {
         }
     }
 
-    if (-not $effective.ContainsKey('PIELARMONIA_OPERATOR_AUTH_MODE')) {
-        $effective['PIELARMONIA_OPERATOR_AUTH_MODE'] = [string]$env:PIELARMONIA_OPERATOR_AUTH_MODE
+    if (-not $effective.ContainsKey('AURORADERM_OPERATOR_AUTH_MODE')) {
+        $effective['AURORADERM_OPERATOR_AUTH_MODE'] = [string]$env:AURORADERM_OPERATOR_AUTH_MODE
     }
-    if (-not $effective.ContainsKey('PIELARMONIA_OPERATOR_AUTH_TRANSPORT')) {
-        $effective['PIELARMONIA_OPERATOR_AUTH_TRANSPORT'] = [string]$env:PIELARMONIA_OPERATOR_AUTH_TRANSPORT
+    if ([string]::IsNullOrWhiteSpace([string]$effective['AURORADERM_OPERATOR_AUTH_MODE'])) {
+        $effective['AURORADERM_OPERATOR_AUTH_MODE'] = [string]$env:PIELARMONIA_OPERATOR_AUTH_MODE
+    }
+    if (-not $effective.ContainsKey('AURORADERM_OPERATOR_AUTH_TRANSPORT')) {
+        $effective['AURORADERM_OPERATOR_AUTH_TRANSPORT'] = [string]$env:AURORADERM_OPERATOR_AUTH_TRANSPORT
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$effective['AURORADERM_OPERATOR_AUTH_TRANSPORT'])) {
+        $effective['AURORADERM_OPERATOR_AUTH_TRANSPORT'] = [string]$env:PIELARMONIA_OPERATOR_AUTH_TRANSPORT
     }
 
     return [PSCustomObject]@{
-        Mode = [string]$effective['PIELARMONIA_OPERATOR_AUTH_MODE']
-        Transport = [string]$effective['PIELARMONIA_OPERATOR_AUTH_TRANSPORT']
+        Mode = [string]$effective['AURORADERM_OPERATOR_AUTH_MODE']
+        Transport = [string]$effective['AURORADERM_OPERATOR_AUTH_TRANSPORT']
     }
 }
 
@@ -313,7 +319,14 @@ function Resolve-OperatorAuthTransport {
         Start-Sleep -Milliseconds $DelayMs
     }
 
-    $envTransport = [string]$env:PIELARMONIA_OPERATOR_AUTH_TRANSPORT
+    $envTransport = [string]$env:AURORADERM_OPERATOR_AUTH_TRANSPORT
+    if ([string]::IsNullOrWhiteSpace($envTransport)) {
+        $envTransport = [string]$env:PIELARMONIA_OPERATOR_AUTH_TRANSPORT
+    }
+    $envMode = [string]$env:AURORADERM_OPERATOR_AUTH_MODE
+    if ([string]::IsNullOrWhiteSpace($envMode)) {
+        $envMode = [string]$env:PIELARMONIA_OPERATOR_AUTH_MODE
+    }
     if (
         [string]::Equals($BootstrapMode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -and
         [string]::Equals($BootstrapTransport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase)
@@ -323,8 +336,8 @@ function Resolve-OperatorAuthTransport {
     if ([string]::Equals($envTransport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase)) {
         return 'web_broker'
     }
-    if ([string]::Equals($env:PIELARMONIA_OPERATOR_AUTH_MODE, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw 'PIELARMONIA_OPERATOR_AUTH_TRANSPORT no esta declarado explicitamente para OpenClaw. Configure web_broker o local_helper antes de iniciar el stack.'
+    if ([string]::Equals($envMode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'AURORADERM_OPERATOR_AUTH_TRANSPORT no esta declarado explicitamente para OpenClaw. Configure web_broker o local_helper antes de iniciar el stack.'
     }
 
     return $Fallback

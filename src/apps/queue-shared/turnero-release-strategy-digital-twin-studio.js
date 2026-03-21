@@ -231,7 +231,7 @@ function resolveClinics(input = {}) {
                     clinicProfile?.branding?.name ||
                     clinicProfile?.clinicName ||
                     clinicProfile?.clinic_name ||
-                    'Piel en Armonia',
+                    'Aurora Derm',
                 region,
             },
             0,

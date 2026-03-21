@@ -58,10 +58,14 @@ function Invoke-NodeJsonCommand {
     }
 }
 
+Set-OptionalEnv -Name 'AURORADERM_OPERATOR_AUTH_SERVER_BASE_URL' -Value $ServerBaseUrl
 Set-OptionalEnv -Name 'PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL' -Value $ServerBaseUrl
+Set-OptionalEnv -Name 'AURORADERM_OPERATOR_AUTH_HELPER_BASE_URL' -Value $HelperBaseUrl
 Set-OptionalEnv -Name 'PIELARMONIA_OPERATOR_AUTH_HELPER_BASE_URL' -Value $HelperBaseUrl
 Set-OptionalEnv -Name 'OPENCLAW_RUNTIME_BASE_URL' -Value $RuntimeBaseUrl
+Set-OptionalEnv -Name 'AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN' -Value $BridgeToken
 Set-OptionalEnv -Name 'PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN' -Value $BridgeToken
+Set-OptionalEnv -Name 'AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET' -Value $BridgeSecret
 Set-OptionalEnv -Name 'PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET' -Value $BridgeSecret
 Set-OptionalEnv -Name 'OPENCLAW_HELPER_DEVICE_ID' -Value $HelperDeviceId
 Set-OptionalEnv -Name 'OPENCLAW_GATEWAY_API_KEY' -Value $GatewayApiKey

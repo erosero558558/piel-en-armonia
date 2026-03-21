@@ -75,7 +75,7 @@ class PushController
         self::ensureAdmin($context);
 
         $payload = [
-            'title' => 'Piel en Armonia',
+            'title' => 'Aurora Derm',
             'body' => 'Notificacion de prueba desde el panel admin.',
             'url' => '/admin.html',
             'timestamp' => local_date('c')

@@ -34,7 +34,9 @@ jobs:
             TEST_BASE_URL: ${{ github.event.inputs.domain || 'https://pielarmonia.com' }}
             TEST_ENABLE_CALENDAR_WRITE: ${{ github.event.inputs.enable_write || 'false' }}
             TEST_REQUIRE_GOOGLE_CALENDAR: ${{ github.event.inputs.require_google_calendar || 'true' }}
-            TEST_ADMIN_PASSWORD: ${{ secrets.PIELARMONIA_ADMIN_PASSWORD }}
+            AURORADERM_ADMIN_PASSWORD: ${{ secrets.AURORADERM_ADMIN_PASSWORD || secrets.PIELARMONIA_ADMIN_PASSWORD }}
+            PIELARMONIA_ADMIN_PASSWORD: ${{ secrets.AURORADERM_ADMIN_PASSWORD || secrets.PIELARMONIA_ADMIN_PASSWORD }}
+            TEST_ADMIN_PASSWORD: ${{ secrets.AURORADERM_ADMIN_PASSWORD || secrets.PIELARMONIA_ADMIN_PASSWORD }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4

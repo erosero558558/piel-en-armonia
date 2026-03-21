@@ -76,9 +76,9 @@ class HealthController
             $calendarTokenSnapshot
         );
         $servicesCatalog = self::collectServiceCatalogSnapshot();
-        $sentryBackendConfigured = trim((string) getenv('PIELARMONIA_SENTRY_DSN')) !== '';
-        $sentryFrontendConfigured = trim((string) getenv('PIELARMONIA_SENTRY_DSN_PUBLIC')) !== '';
-        $redisStatus = getenv('PIELARMONIA_REDIS_HOST') ? 'configured' : 'disabled';
+        $sentryBackendConfigured = trim((string) app_env('AURORADERM_SENTRY_DSN', '')) !== '';
+        $sentryFrontendConfigured = trim((string) app_env('AURORADERM_SENTRY_DSN_PUBLIC', '')) !== '';
+        $redisStatus = app_env('AURORADERM_REDIS_HOST') ? 'configured' : 'disabled';
         $idempotencySnapshot = self::collectIdempotencySnapshot();
         $store = isset($context['store']) && is_array($context['store']) ? $context['store'] : read_store();
         $patientCaseService = new PatientCaseService();
@@ -415,7 +415,7 @@ class HealthController
 
     private static function resolveServiceCatalogPath(): string
     {
-        $override = getenv('PIELARMONIA_SERVICES_CATALOG_FILE');
+        $override = app_env('AURORADERM_SERVICES_CATALOG_FILE');
         if (is_string($override) && trim($override) !== '') {
             return trim($override);
         }
@@ -454,7 +454,7 @@ class HealthController
             ? (bool) $operatorAuthConfig['configured']
             : (function_exists('operator_auth_is_configured') ? operator_auth_is_configured() : false);
         $legacyPasswordConfigured = function_exists('admin_password_is_configured') ? admin_password_is_configured() : false;
-        $twoFactorEnabled = trim((string) getenv('PIELARMONIA_ADMIN_2FA_SECRET')) !== '';
+        $twoFactorEnabled = trim((string) app_env('AURORADERM_ADMIN_2FA_SECRET', '')) !== '';
         $mode = $operatorAuthEnabled && array_key_exists('mode', $operatorAuthConfig)
             ? (string) $operatorAuthConfig['mode']
             : ($operatorAuthEnabled && function_exists('operator_auth_mode')
@@ -698,7 +698,7 @@ class HealthController
             getenv('CHATBOT_ENDPOINT'),
             getenv('CHATBOT_URL'),
             getenv('BOT_ENDPOINT'),
-            getenv('PIELARMONIA_FIGO_ENDPOINT')
+            app_env('AURORADERM_FIGO_ENDPOINT')
         ];
 
         foreach ($envCandidates as $candidate) {

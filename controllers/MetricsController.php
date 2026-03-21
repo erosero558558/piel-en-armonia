@@ -143,8 +143,7 @@ class MetricsController
     private static function outputRevenueMetrics(array $revenueByDate): void
     {
         foreach ($revenueByDate as $date => $amount) {
-            echo "\n# TYPE pielarmonia_revenue_daily_total gauge";
-            echo "\npielarmonia_revenue_daily_total{date=\"$date\"} $amount";
+            echo app_prometheus_render_metric('gauge', 'auroraderm_revenue_daily_total{date="' . $date . '"}', (string) $amount);
         }
     }
 
@@ -154,8 +153,7 @@ class MetricsController
     private static function outputAppointmentMetrics(array $stats): void
     {
         foreach ($stats as $st => $count) {
-            echo "\n# TYPE pielarmonia_appointments_total gauge";
-            echo "\npielarmonia_appointments_total{status=\"$st\"} $count";
+            echo app_prometheus_render_metric('gauge', 'auroraderm_appointments_total{status="' . $st . '"}', (string) $count);
         }
     }
 
@@ -165,8 +163,7 @@ class MetricsController
     private static function outputServiceMetrics(array $serviceCounts): void
     {
         foreach ($serviceCounts as $svc => $count) {
-            echo "\n# TYPE pielarmonia_service_popularity_total gauge";
-            echo "\npielarmonia_service_popularity_total{service=\"$svc\"} $count";
+            echo app_prometheus_render_metric('gauge', 'auroraderm_service_popularity_total{service="' . $svc . '"}', (string) $count);
         }
     }
 
@@ -177,8 +174,7 @@ class MetricsController
     {
         $totalValid = $stats['confirmed'] + $stats['no_show'] + $stats['completed'];
         $rate = $totalValid > 0 ? ($stats['no_show'] / $totalValid) : 0;
-        echo "\n# TYPE pielarmonia_no_show_rate gauge";
-        echo "\npielarmonia_no_show_rate $rate\n";
+        echo app_prometheus_render_metric('gauge', 'auroraderm_no_show_rate', (string) $rate) . "\n";
     }
 
     /**
@@ -188,8 +184,7 @@ class MetricsController
     {
         $storeSize = @filesize(data_file_path());
         if ($storeSize !== false) {
-            echo "\n# TYPE pielarmonia_store_file_size_bytes gauge";
-            echo "\npielarmonia_store_file_size_bytes $storeSize";
+            echo app_prometheus_render_metric('gauge', 'auroraderm_store_file_size_bytes', (string) $storeSize);
         }
     }
 
@@ -199,8 +194,7 @@ class MetricsController
     private static function outputLeadTime(?float $avgLead): void
     {
         if ($avgLead !== null) {
-            echo "\n# TYPE pielarmonia_lead_time_seconds_avg gauge";
-            echo "\npielarmonia_lead_time_seconds_avg $avgLead\n";
+            echo app_prometheus_render_metric('gauge', 'auroraderm_lead_time_seconds_avg', (string) $avgLead) . "\n";
         }
     }
 }

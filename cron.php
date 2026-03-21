@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Scheduled tasks for Piel en Armonia.
+ * Scheduled tasks for Aurora Derm.
  *
  * Usage:
  *   GET /cron.php?action=reminders&token=YOUR_CRON_SECRET
@@ -464,7 +464,7 @@ function cron_process_retries(): array
 
 // --- Main Execution ---
 
-$secret = getenv('PIELARMONIA_CRON_SECRET');
+$secret = app_env('AURORADERM_CRON_SECRET');
 if (!is_string($secret) || $secret === '') {
     cron_response(['ok' => false, 'error' => 'CRON_SECRET no configurado'], 500);
 }

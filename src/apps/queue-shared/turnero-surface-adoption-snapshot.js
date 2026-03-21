@@ -473,13 +473,13 @@ export function buildTurneroSurfaceAdoptionSnapshot(input = {}) {
                 clinicProfile?.branding?.short_name ||
                 clinicProfile?.clinic_name ||
                 clinicProfile?.clinicName ||
-                'Piel en Armonia'
+                'Aurora Derm'
         ),
         clinicShortName: toString(
             clinicProfile?.branding?.short_name ||
                 clinicProfile?.branding?.name ||
                 clinicProfile?.clinicName ||
-                'Piel en Armonia'
+                'Aurora Derm'
         ),
         registrySource: toString(registry.manifestSource, 'missing'),
         manifestVersion: toString(

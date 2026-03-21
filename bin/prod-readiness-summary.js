@@ -30,6 +30,31 @@ const WEEKLY_KPI_SCHEDULE_UTC = Object.freeze({
     minute: 0,
     timezone: 'UTC',
 });
+const FLOW_OS_RECOVERY_CYCLE = Object.freeze({
+    id: 'flow-os-recovery-2026-03-21',
+    status: 'active',
+    startsAt: '2026-03-21',
+    endsAt: '2026-04-20',
+    objective: 'stabilize_production',
+    allowedSlice:
+        'admin v3 + queue/turnero + auth/OpenClaw + readiness + deploy',
+    parkedFronts: Object.freeze([
+        'superficies nativas nuevas',
+        'expansion LeadOps',
+        'ampliacion de estados',
+        'rediseno grande de la web publica',
+        'nuevas lineas comerciales',
+        'cualquier trabajo multi-sede',
+    ]),
+    statusDoc: 'docs/PRODUCT_OPERATIONAL_STATUS.md',
+    planDoc: 'docs/FLOW_OS_RECOVERY_PLAN.md',
+    dailyRitualCommands: Object.freeze([
+        'npm run flow-os:recovery:daily',
+        'npm run gate:admin:rollout:openclaw:node',
+        'npm run verify:prod:turnero:web-pilot',
+        'npm run monitor:prod',
+    ]),
+});
 
 function hasFlag(name) {
     return process.argv.includes(`--${name}`);
@@ -2582,6 +2607,23 @@ function markdownWorkflowLine(label, wrapper) {
     return `- ${label}: ${run.conclusion || run.status || 'unknown'} (run ${run.id}, ${run.ageLabel}, ${run.durationLabel})${fallbackNote} ${run.url || ''}`.trim();
 }
 
+function buildRecoveryCycleSnapshot() {
+    return {
+        ...FLOW_OS_RECOVERY_CYCLE,
+        scopeFreeze: {
+            active: FLOW_OS_RECOVERY_CYCLE.status === 'active',
+            allowedSlice: FLOW_OS_RECOVERY_CYCLE.allowedSlice,
+            parkedFronts: [...FLOW_OS_RECOVERY_CYCLE.parkedFronts],
+        },
+        dailyRitual: {
+            command: FLOW_OS_RECOVERY_CYCLE.dailyRitualCommands[0] || '',
+            commands: [...FLOW_OS_RECOVERY_CYCLE.dailyRitualCommands],
+            summary:
+                'Usar un unico corte diario para readiness, auth rollout y piloto web antes de reabrir scope.',
+        },
+    };
+}
+
 function toMarkdown(summary) {
     const lines = [];
     const {
@@ -2607,6 +2649,45 @@ function toMarkdown(summary) {
         `- plan_master_blocking_count: ${summary.planMasterProgress.blockingCount}`
     );
     lines.push('');
+
+    if (summary.recoveryCycle) {
+        lines.push('## Recovery Cycle');
+        lines.push('');
+        lines.push(`- id: ${summary.recoveryCycle.id}`);
+        lines.push(`- status: ${summary.recoveryCycle.status}`);
+        lines.push(
+            `- window: ${summary.recoveryCycle.startsAt} -> ${summary.recoveryCycle.endsAt}`
+        );
+        lines.push(`- objective: ${summary.recoveryCycle.objective}`);
+        lines.push(
+            `- allowed_slice: ${summary.recoveryCycle.scopeFreeze?.allowedSlice || 'n/a'}`
+        );
+        lines.push(
+            `- parked_fronts: ${
+                summary.recoveryCycle.scopeFreeze?.parkedFronts?.length
+                    ? summary.recoveryCycle.scopeFreeze.parkedFronts.join(', ')
+                    : 'none'
+            }`
+        );
+        lines.push(
+            `- status_doc: ${summary.recoveryCycle.statusDoc || 'n/a'}`
+        );
+        lines.push(`- plan_doc: ${summary.recoveryCycle.planDoc || 'n/a'}`);
+        lines.push(
+            `- daily_ritual_command: ${summary.recoveryCycle.dailyRitual?.command || 'n/a'}`
+        );
+        lines.push(
+            `- daily_ritual_commands: ${
+                summary.recoveryCycle.dailyRitual?.commands?.length
+                    ? summary.recoveryCycle.dailyRitual.commands.join(', ')
+                    : 'none'
+            }`
+        );
+        lines.push(
+            `- daily_ritual_summary: ${summary.recoveryCycle.dailyRitual?.summary || 'n/a'}`
+        );
+        lines.push('');
+    }
 
     if (summary.releaseReadiness) {
         lines.push('## Release Readiness');
@@ -3427,6 +3508,7 @@ function main() {
         planMasterProgress,
         suggestedActions,
     });
+    const recoveryCycle = buildRecoveryCycleSnapshot();
 
     const summary = {
         generatedAt: new Date().toISOString(),
@@ -3438,6 +3520,7 @@ function main() {
         weeklySourceMode: weeklySource,
         weeklyHistoryLimit,
         efficiencyHours,
+        recoveryCycle,
         productionStability,
         releaseReadiness,
         planMasterProgress,

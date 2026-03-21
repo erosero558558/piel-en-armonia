@@ -9,7 +9,7 @@ require_once __DIR__ . '/AppConfig.php';
 
 /**
  * Business Logic Helpers - Sistema de Precios e IVA
- * Piel en Armonía
+ * Aurora Derm
  */
 
 // Tasa de IVA general (configurable via environment)
@@ -17,7 +17,7 @@ define('IVA_GENERAL_RATE', AppConfig::IVA_GENERAL_RATE);
 
 function default_public_reviews_enabled(): bool
 {
-    $raw = getenv('PIELARMONIA_DEFAULT_REVIEWS_ENABLED');
+    $raw = app_env('AURORADERM_DEFAULT_REVIEWS_ENABLED');
     if (!is_string($raw) || trim($raw) === '') {
         return true;
     }
@@ -26,7 +26,7 @@ function default_public_reviews_enabled(): bool
 
 function default_availability_enabled(): bool
 {
-    $raw = getenv('PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED');
+    $raw = app_env('AURORADERM_DEFAULT_AVAILABILITY_ENABLED');
     if (!is_string($raw) || trim($raw) === '') {
         return false;
     }

@@ -32,11 +32,11 @@ laptop del operador.
 
 Perfil productivo canonico:
 
-- `PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt`
-- `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=web_broker`
-- `PIELARMONIA_ADMIN_EMAIL=<correo_operativo>`
-- `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST=<correo_operativo>`
-- `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`
+- `AURORADERM_OPERATOR_AUTH_MODE=openclaw_chatgpt`
+- `AURORADERM_OPERATOR_AUTH_TRANSPORT=web_broker`
+- `AURORADERM_ADMIN_EMAIL=<correo_operativo>`
+- `AURORADERM_OPERATOR_AUTH_ALLOWLIST=<correo_operativo>`
+- `AURORADERM_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`
 - `OPENCLAW_AUTH_BROKER_AUTHORIZE_URL`
 - `OPENCLAW_AUTH_BROKER_TOKEN_URL`
 - `OPENCLAW_AUTH_BROKER_USERINFO_URL`
@@ -59,11 +59,11 @@ criterio de cierre del login OpenClaw.
 calcula `diagnosis` + `nextAction` y deja un reporte en
 `verification/last-admin-openclaw-auth-diagnostic.json`.
 En `web_broker`, el diagnostico sano debe resolver `openclaw_ready` sin exigir
-helper local; si `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`,
+helper local; si `AURORADERM_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`,
 la allowlist debe quedar configurada para la cuenta autorizada.
 
 Si quieres un perfil mas amplio a proposito, puedes volver a
-`PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=true`, pero deja de ser
+`AURORADERM_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=true`, pero deja de ser
 el perfil recomendado para este corte.
 
 `smoke:admin:openclaw-auth:local` ejecuta el smoke no interactivo
@@ -78,9 +78,9 @@ Requiere `OPENCLAW_AUTH_BROKER_SMOKE_ENABLED=true`,
 y, si aplica, `OPENCLAW_AUTH_BROKER_SMOKE_TOTP_SECRET`.
 
 Si hace falta contingencia web desde cualquier PC, habilitar
-`PIELARMONIA_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=true` junto con
-`PIELARMONIA_ADMIN_PASSWORD` o `PIELARMONIA_ADMIN_PASSWORD_HASH` y
-`PIELARMONIA_ADMIN_2FA_SECRET`.
+`AURORADERM_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=true` junto con
+`AURORADERM_ADMIN_PASSWORD` o `AURORADERM_ADMIN_PASSWORD_HASH` y
+`AURORADERM_ADMIN_2FA_SECRET`.
 La UI solo debe mostrar `Clave + 2FA de contingencia` cuando el backend anuncie
 `fallbacks.legacy_password.available=true`.
 
@@ -99,3 +99,4 @@ para no dejar el flujo de login OpenClaw fuera del gate operativo del shell.
 `npm run test:admin:openclaw-auth` queda como suite canonica del corte
 productivo e incluye contratos Node de rollout/deploy, PHPUnit y Playwright de
 admin + shared session.
+

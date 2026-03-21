@@ -38,7 +38,7 @@ function api_should_hide_error_message(string $message): bool
 function api_error_message_for_client(Throwable $error, int $status): string
 {
     $rawMessage = trim((string) $error->getMessage());
-    $debugEnabled = parse_bool(getenv('PIELARMONIA_DEBUG_EXCEPTIONS') ?: false);
+    $debugEnabled = parse_bool(app_env('AURORADERM_DEBUG_EXCEPTIONS', false) ?: false);
     if ($debugEnabled && $rawMessage !== '') {
         return $rawMessage;
     }
@@ -53,7 +53,7 @@ function api_error_message_for_client(Throwable $error, int $status): string
 
 function api_should_audit_public_get(string $resource): bool
 {
-    $enabled = parse_bool(getenv('PIELARMONIA_AUDIT_PUBLIC_GET') ?: false);
+    $enabled = parse_bool(app_env('AURORADERM_AUDIT_PUBLIC_GET', false) ?: false);
     if ($enabled) {
         return true;
     }
@@ -64,7 +64,7 @@ function api_should_audit_public_get(string $resource): bool
 
 function api_should_audit_health(): bool
 {
-    return parse_bool(getenv('PIELARMONIA_AUDIT_HEALTH') ?: false);
+    return parse_bool(app_env('AURORADERM_AUDIT_HEALTH', false) ?: false);
 }
 
 function api_elapsed_ms(float $startedAt): int

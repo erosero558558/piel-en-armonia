@@ -632,7 +632,7 @@ final class AdminAgentService
             ];
         }
 
-        $mock = trim((string) getenv('PIELARMONIA_ADMIN_AGENT_RELAY_MOCK_RESPONSE'));
+        $mock = trim((string) app_env('AURORADERM_ADMIN_AGENT_RELAY_MOCK_RESPONSE', ''));
         if ($mock !== '') {
             $decoded = json_decode($mock, true);
             if (is_array($decoded)) {
@@ -2987,7 +2987,7 @@ final class AdminAgentService
 
     private static function relayEndpoint(): string
     {
-        $raw = getenv('PIELARMONIA_ADMIN_AGENT_RELAY_URL');
+        $raw = app_env('AURORADERM_ADMIN_AGENT_RELAY_URL');
         if (!is_string($raw) || trim($raw) === '') {
             return '';
         }
@@ -2996,31 +2996,31 @@ final class AdminAgentService
 
     private static function relayApiKey(): string
     {
-        $raw = getenv('PIELARMONIA_ADMIN_AGENT_API_KEY');
+        $raw = app_env('AURORADERM_ADMIN_AGENT_API_KEY');
         return is_string($raw) ? trim($raw) : '';
     }
 
     private static function relayApiKeyHeader(): string
     {
-        $raw = getenv('PIELARMONIA_ADMIN_AGENT_API_KEY_HEADER');
+        $raw = app_env('AURORADERM_ADMIN_AGENT_API_KEY_HEADER');
         return is_string($raw) && trim($raw) !== '' ? trim($raw) : 'Authorization';
     }
 
     private static function relayApiKeyPrefix(): string
     {
-        $raw = getenv('PIELARMONIA_ADMIN_AGENT_API_KEY_PREFIX');
+        $raw = app_env('AURORADERM_ADMIN_AGENT_API_KEY_PREFIX');
         return is_string($raw) && trim($raw) !== '' ? trim($raw) : 'Bearer';
     }
 
     private static function relayModel(): string
     {
-        $raw = getenv('PIELARMONIA_ADMIN_AGENT_MODEL');
+        $raw = app_env('AURORADERM_ADMIN_AGENT_MODEL');
         return is_string($raw) && trim($raw) !== '' ? trim($raw) : 'gpt-4.1-mini';
     }
 
     private static function relayTimeoutSeconds(): int
     {
-        $raw = getenv('PIELARMONIA_ADMIN_AGENT_TIMEOUT_SECONDS');
+        $raw = app_env('AURORADERM_ADMIN_AGENT_TIMEOUT_SECONDS');
         $value = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : 12;
         return max(3, min(45, $value));
     }
@@ -3030,7 +3030,7 @@ final class AdminAgentService
      */
     private static function externalChannelAllowlist(): array
     {
-        $raw = getenv('PIELARMONIA_ADMIN_AGENT_EXTERNAL_ALLOWLIST');
+        $raw = app_env('AURORADERM_ADMIN_AGENT_EXTERNAL_ALLOWLIST');
         if (!is_string($raw) || trim($raw) === '') {
             return [];
         }
@@ -3051,7 +3051,7 @@ final class AdminAgentService
      */
     private static function externalTemplateAllowlist(): array
     {
-        $raw = getenv('PIELARMONIA_ADMIN_AGENT_EXTERNAL_TEMPLATE_ALLOWLIST');
+        $raw = app_env('AURORADERM_ADMIN_AGENT_EXTERNAL_TEMPLATE_ALLOWLIST');
         if (!is_string($raw) || trim($raw) === '') {
             return ['seguimiento_callback', 'seguimiento_operativo'];
         }

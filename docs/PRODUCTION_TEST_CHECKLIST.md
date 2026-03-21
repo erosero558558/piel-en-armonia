@@ -69,12 +69,12 @@ Compatibilidad opcional:
 
 2. Verifica variables de entorno:
 
-- `PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt`
-- `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=web_broker`
-- `PIELARMONIA_ADMIN_EMAIL=<correo_operativo>`
-- `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST=<correo_operativo>`
-- `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`
-- `PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL=https://TU_DOMINIO`
+- `AURORADERM_OPERATOR_AUTH_MODE=openclaw_chatgpt`
+- `AURORADERM_OPERATOR_AUTH_TRANSPORT=web_broker`
+- `AURORADERM_ADMIN_EMAIL=<correo_operativo>`
+- `AURORADERM_OPERATOR_AUTH_ALLOWLIST=<correo_operativo>`
+- `AURORADERM_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`
+- `AURORADERM_OPERATOR_AUTH_SERVER_BASE_URL=https://TU_DOMINIO`
 - `OPENCLAW_AUTH_BROKER_AUTHORIZE_URL`
 - `OPENCLAW_AUTH_BROKER_TOKEN_URL`
 - `OPENCLAW_AUTH_BROKER_USERINFO_URL`
@@ -86,17 +86,17 @@ Compatibilidad opcional:
   `OPENCLAW_AUTH_BROKER_SMOKE_PASSWORD`,
   `OPENCLAW_AUTH_BROKER_SMOKE_TOTP_SECRET`,
   `OPENCLAW_AUTH_BROKER_SMOKE_EXPECTED_EMAIL`
-- opcional solo para soporte local/manual: `PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN`, `PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET`
-- opcional solo para contingencia legacy: `PIELARMONIA_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=true`, `PIELARMONIA_ADMIN_PASSWORD` o `PIELARMONIA_ADMIN_PASSWORD_HASH`, `PIELARMONIA_ADMIN_2FA_SECRET`
-- opcional: `PIELARMONIA_ADMIN_EMAIL` (para alertas de nuevas citas)
-- opcional: `PIELARMONIA_EMAIL_FROM`
-- opcional: `PIELARMONIA_DATA_DIR`
-- opcional: `PIELARMONIA_DATA_ENCRYPTION_KEY` (cifrado de `store.json`)
-- `PIELARMONIA_STRIPE_PUBLISHABLE_KEY`
-- `PIELARMONIA_STRIPE_SECRET_KEY`
-- opcional: `PIELARMONIA_PAYMENT_CURRENCY` (default `USD`)
-- opcional: `PIELARMONIA_TRANSFER_UPLOAD_DIR`
-- opcional: `PIELARMONIA_TRANSFER_PUBLIC_BASE_URL`
+- opcional solo para soporte local/manual: `AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN`, `AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET`
+- opcional solo para contingencia legacy: `AURORADERM_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=true`, `AURORADERM_ADMIN_PASSWORD` o `AURORADERM_ADMIN_PASSWORD_HASH`, `AURORADERM_ADMIN_2FA_SECRET`
+- opcional: `AURORADERM_ADMIN_EMAIL` (para alertas de nuevas citas)
+- opcional: `AURORADERM_EMAIL_FROM`
+- opcional: `AURORADERM_DATA_DIR`
+- opcional: `AURORADERM_DATA_ENCRYPTION_KEY` (cifrado de `store.json`)
+- `AURORADERM_STRIPE_PUBLISHABLE_KEY`
+- `AURORADERM_STRIPE_SECRET_KEY`
+- opcional: `AURORADERM_PAYMENT_CURRENCY` (default `USD`)
+- opcional: `AURORADERM_TRANSFER_UPLOAD_DIR`
+- opcional: `AURORADERM_TRANSFER_PUBLIC_BASE_URL`
 - `FIGO_CHAT_ENDPOINT`
 - opcional: `FIGO_CHAT_TOKEN`
 - opcional: `FIGO_CHAT_APIKEY_HEADER`
@@ -158,7 +158,7 @@ Compatibilidad opcional:
 
 - Esperado: mensaje de error.
 
-6. Si activaste soporte legacy, login con contraseña correcta (`PIELARMONIA_ADMIN_PASSWORD`):
+6. Si activaste soporte legacy, login con contraseña correcta (`AURORADERM_ADMIN_PASSWORD`):
 
 - Esperado: carga dashboard.
 
@@ -333,7 +333,7 @@ Compatibilidad opcional:
 
 - revisa que se cree/actualice `data/audit.log` con eventos de acceso/login.
 
-5. Verifica cifrado en reposo (si activaste `PIELARMONIA_DATA_ENCRYPTION_KEY`):
+5. Verifica cifrado en reposo (si activaste `AURORADERM_DATA_ENCRYPTION_KEY`):
 
 - `data/store.json` debe iniciar con prefijo `ENCv1:`.
 
@@ -383,3 +383,4 @@ Opcional automatizado (PowerShell):
 
 3. Revisa permisos de `data/`.
 4. Verifica variables de entorno.
+

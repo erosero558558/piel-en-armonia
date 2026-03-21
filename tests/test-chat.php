@@ -15,7 +15,7 @@ $tests = [
     ['tienen laser fotona', 'tecnología de vanguardia'],
 
     // --- Basic Interaction ---
-    ['hola', 'Bienvenido a **Piel en Armonía**'],
+    ['hola', 'Bienvenido a **Aurora Derm**'],
 
     // --- Robustness (Fuzzy) ---
     ['prcio consulta', 'valores referenciales'], // "precio"
@@ -62,3 +62,4 @@ echo "\nResult: $passed passed, $failed failed.\n";
 if ($failed > 0) {
     exit(1);
 }
+

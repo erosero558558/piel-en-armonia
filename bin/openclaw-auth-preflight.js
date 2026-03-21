@@ -69,11 +69,11 @@ function deriveNextAction(report) {
     }
 
     if (!report.helper.configured) {
-        return 'Configura PIELARMONIA_OPERATOR_AUTH_HELPER_BASE_URL antes de iniciar el helper local.';
+        return 'Configura AURORADERM_OPERATOR_AUTH_HELPER_BASE_URL antes de iniciar el helper local. El alias PIELARMONIA_* sigue disponible temporalmente.';
     }
 
     if (!report.bridge.tokenConfigured || !report.bridge.secretConfigured) {
-        return 'Configura PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN y PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET.';
+        return 'Configura AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN y AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET. Los aliases PIELARMONIA_* siguen disponibles temporalmente.';
     }
 
     if (!report.runtime.reachable) {

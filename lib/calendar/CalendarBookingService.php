@@ -176,7 +176,7 @@ class CalendarBookingService
             ];
         }
 
-        $summary = 'Piel en Armonía - ' . get_service_label($service);
+        $summary = 'Aurora Derm - ' . get_service_label($service);
         $description = $this->buildEventDescription($appointment, $doctor, $durationMin);
         $payload = [
             'summary' => $summary,
@@ -189,7 +189,7 @@ class CalendarBookingService
                 'dateTime' => $endIso,
                 'timeZone' => $timezone,
             ],
-            'location' => 'Piel en Armonía, Valparaiso 13-183 y Sodiro, Quito, Ecuador',
+            'location' => 'Aurora Derm, Valparaiso 13-183 y Sodiro, Quito, Ecuador',
             'extendedProperties' => [
                 'private' => [
                     'site' => 'pielarmonia.com',
@@ -435,3 +435,4 @@ class CalendarBookingService
         return implode("\n", $lines);
     }
 }
+

@@ -486,8 +486,8 @@ function buildDiagnosticContext(
             clinicProfile.clinicName ||
             currentSnapshot.clinicName ||
             currentSnapshot.brandName ||
-            'Piel en Armonia',
-        'Piel en Armonia'
+            'Aurora Derm',
+        'Aurora Derm'
     );
     const detectedPlatform = toText(
         input.detectedPlatform ||

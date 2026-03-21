@@ -229,6 +229,16 @@ test.describe('Turnero runtime smoke', () => {
                 '[data-turnero-operator-surface-success="true"] .turnero-surface-ops__chip'
             )
         ).toHaveCount(3);
+        await expect(
+            page.locator(
+                '[data-turnero-operator-surface-package="true"] > .turnero-surface-package-banner'
+            )
+        ).toBeVisible();
+        await expect(
+            page.locator(
+                '[data-turnero-operator-surface-package="true"] .turnero-surface-ops__chip'
+            )
+        ).toHaveCount(3);
     });
 
     test('kiosk renders the integrity banner and checkpoint chips', async ({
@@ -261,6 +271,16 @@ test.describe('Turnero runtime smoke', () => {
         await expect(
             page.locator(
                 '[data-turnero-kiosk-surface-success="true"] .turnero-surface-ops__chip'
+            )
+        ).toHaveCount(3);
+        await expect(
+            page.locator(
+                '[data-turnero-kiosk-surface-package="true"] > .turnero-surface-package-banner'
+            )
+        ).toBeVisible();
+        await expect(
+            page.locator(
+                '[data-turnero-kiosk-surface-package="true"] .turnero-surface-ops__chip'
             )
         ).toHaveCount(3);
     });
@@ -297,6 +317,16 @@ test.describe('Turnero runtime smoke', () => {
                 '[data-turnero-display-surface-success="true"] .turnero-surface-ops__chip'
             )
         ).toHaveCount(3);
+        await expect(
+            page.locator(
+                '[data-turnero-display-surface-package="true"] > .turnero-surface-package-banner'
+            )
+        ).toBeVisible();
+        await expect(
+            page.locator(
+                '[data-turnero-display-surface-package="true"] .turnero-surface-ops__chip'
+            )
+        ).toHaveCount(3);
     });
 
     test('admin queue renders the integrity console inside the queue hub', async ({
@@ -329,5 +359,16 @@ test.describe('Turnero runtime smoke', () => {
                 '#queueSurfaceSuccessConsoleHost .turnero-admin-queue-surface-success-console'
             )
         ).toContainText('Surface Customer Success Console');
+        await expect(page.locator('#queueSurfacePackageConsoleHost')).toBeVisible();
+        await expect(
+            page.locator(
+                '#queueSurfacePackageConsoleHost > .turnero-admin-queue-surface-package-console'
+            )
+        ).toBeVisible();
+        await expect(
+            page.locator(
+                '#queueSurfacePackageConsoleHost > .turnero-admin-queue-surface-package-console'
+            )
+        ).toContainText('Surface Package Standardization');
     });
 });

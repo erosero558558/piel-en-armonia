@@ -268,7 +268,7 @@ function normalizeSignalItems(value, source = 'signal') {
     return [];
 }
 
-function deriveClinicName(clinicProfile, fallback = 'Piel en Armonia') {
+function deriveClinicName(clinicProfile, fallback = 'Aurora Derm') {
     const profile = asObject(clinicProfile);
     return toText(
         profile?.branding?.name ||
@@ -280,7 +280,7 @@ function deriveClinicName(clinicProfile, fallback = 'Piel en Armonia') {
     );
 }
 
-function deriveClinicShortName(clinicProfile, fallback = 'Piel en Armonia') {
+function deriveClinicShortName(clinicProfile, fallback = 'Aurora Derm') {
     const profile = asObject(clinicProfile);
     return toText(
         profile?.branding?.short_name ||

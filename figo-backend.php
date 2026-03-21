@@ -489,7 +489,7 @@ function figo_backend_ai_error_code(int $httpCode, string $curlErr): string
 function figo_backend_ai_system_prompt(string $source = 'web'): string
 {
     if (figo_backend_is_kiosk_source($source)) {
-        return "Eres Figo en modo kiosco de sala de espera para Piel en Armonia.\n"
+        return "Eres Figo en modo kiosco de sala de espera para Aurora Derm.\n"
             . "Objetivo: guiar flujo operativo presencial de turnos y check-in.\n"
             . "Alcance permitido:\n"
             . "- Tomar turno sin cita (walk-in)\n"
@@ -503,7 +503,7 @@ function figo_backend_ai_system_prompt(string $source = 'web'): string
             . "Responde siempre en espanol, maximo 3 frases cortas y accionables.";
     }
 
-    return "Eres Figo, asistente virtual amigable de la clínica dermatológica \"Piel en Armonía\" en Quito, Ecuador.\n"
+    return "Eres Figo, asistente virtual amigable de la clínica dermatológica \"Aurora Derm\" en Quito, Ecuador.\n"
         . "Eres conversacional y natural. Puedes hablar de cualquier tema de forma amena, pero tu especialidad es la clínica.\n"
         . "Cuando pregunten sobre la clínica, da información precisa:\n"
         . "- Consulta presencial: \$40 (IVA 0%) | Telefónica: \$25 (IVA 0%) | Video: \$30 (IVA 0%)\n"
@@ -741,7 +741,7 @@ function figo_backend_answer(string $userMessage, string $source = 'web'): strin
     }
 
     if ($normalized === '') {
-        return 'Hola, soy Figo de Piel en Armonia. Puedo ayudarte con servicios, precios, pagos y reservas. En que te ayudo?';
+        return 'Hola, soy Figo de Aurora Derm. Puedo ayudarte con servicios, precios, pagos y reservas. En que te ayudo?';
     }
 
     if (
@@ -767,7 +767,7 @@ function figo_backend_answer(string $userMessage, string $source = 'web'): strin
             '/\bpolitica\b/'
         ]) && !figo_backend_is_clinic_scope($normalized)
     ) {
-        return "Puedo ayudarte solo con temas de Piel en Armonia: servicios, precios, pagos, horarios y reservas.\n"
+        return "Puedo ayudarte solo con temas de Aurora Derm: servicios, precios, pagos, horarios y reservas.\n"
             . "Si quieres, te guio para agendar cita o elegir tratamiento.\n"
             . "Atencion inmediata: WhatsApp +593 98 245 3672.";
     }
@@ -849,7 +849,7 @@ function figo_backend_answer(string $userMessage, string $source = 'web'): strin
             . "Teléfono/WhatsApp: +593 98 245 3672.";
     }
 
-    return "Gracias por escribirme. Soy Figo de Piel en Armonia y estoy para ayudarte.\n"
+    return "Gracias por escribirme. Soy Figo de Aurora Derm y estoy para ayudarte.\n"
         . "Puedo darte informacion sobre servicios dermatologicos, precios, citas, pagos, horarios y ubicacion.\n"
         . "Si necesitas atencion directa: WhatsApp +593 98 245 3672.";
 }
@@ -1101,7 +1101,7 @@ function figo_backend_handle_telegram_update(array $update, string $telegramToke
     }
 
     if ($text === '/start') {
-        $welcome = "Hola, soy Figo de Piel en Armonia.\n"
+        $welcome = "Hola, soy Figo de Aurora Derm.\n"
             . "Te ayudo con servicios, precios, pagos y reservas.\n"
             . "Escribe tu consulta y te respondo.";
         figo_backend_telegram_send_message($telegramToken, $chatId, $welcome);
@@ -1245,7 +1245,7 @@ if (($responsePlan['ok'] ?? false) !== true) {
 }
 
 if (false && $telegramConfigured && $telegramChatConfigured) {
-    $telegramText = "Nuevo mensaje web (Piel en Armonia)\n"
+    $telegramText = "Nuevo mensaje web (Aurora Derm)\n"
         . "Paciente: " . ($userMessage === '' ? '[vacio]' : $userMessage) . "\n"
         . "Respuesta: " . $content . "\n"
         . "Hora: " . gmdate('Y-m-d H:i:s') . ' UTC';

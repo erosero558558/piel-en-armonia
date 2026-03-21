@@ -135,7 +135,7 @@ run_test('admin login rejects legacy password by default even when a password ex
         assert_false($login['body']['ok'] ?? true, 'disabled legacy login should not return ok');
         assert_equals('legacy_auth_disabled', $login['body']['code'] ?? '', 'disabled legacy login should expose explicit code');
         assert_contains(
-            'PIELARMONIA_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=true',
+            'AURORADERM_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=true',
             (string) ($login['body']['error'] ?? ''),
             'legacy login should explain the fallback override'
         );

@@ -134,7 +134,7 @@ class ServicePriorityController
     private static function resolveCatalogPath(): string
     {
         $defaultPath = __DIR__ . '/../content/services.json';
-        $override = getenv('PIELARMONIA_SERVICES_CATALOG_FILE');
+        $override = app_env('AURORADERM_SERVICES_CATALOG_FILE');
         if (
             is_string($override) &&
             trim($override) !== '' &&

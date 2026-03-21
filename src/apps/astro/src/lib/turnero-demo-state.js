@@ -3,7 +3,7 @@ const DEMO_STATE_VERSION = 'turnero-demo-state-v1';
 const BASE_STATE = Object.freeze({
     generatedAt: '2026-03-11T09:32:00-05:00',
     site: {
-        name: 'North pilot site',
+        name: 'Aurora Derm Quito',
         sites: 1,
         rooms: 3,
         timezone: 'America/Guayaquil',
@@ -46,17 +46,17 @@ const BASE_STATE = Object.freeze({
 const COPY = {
     es: {
         cta: {
-            bookDemo: 'Agendar demo',
-            requestPilot: 'Solicitar piloto',
-            viewDemo: 'Ver demo',
-            viewDashboard: 'Ver dashboard de sede',
+            requestProposal: 'Solicitar propuesta',
+            viewOpsConsole: 'Abrir Ops Console',
+            viewPatientFlow: 'Ver Patient Flow Link',
+            viewDashboard: 'Ver Clinic Dashboard',
         },
-        pilotHref:
-            'https://wa.me/593982453672?text=Hola%2C%20quiero%20solicitar%20un%20piloto%20del%20turnero%20para%20clinicas',
+        proposalHref:
+            'https://wa.me/593982453672?text=Hola%2C%20quiero%20evaluar%20Flow%20OS%20para%20una%20clinica%20dermatologica%20de%20una%20sede',
         proof: {
-            eyebrow: 'Sandbox canonico',
-            title: 'Prueba operativa visible para la compra',
-            deck: 'La misma base sandbox alimenta landing, check-in, estado del turno y dashboard. No son mockups aislados.',
+            eyebrow: 'Tenant de referencia',
+            title: 'Prueba operativa visible sobre un solo tenant',
+            deck: 'Aurora Derm alimenta Ops Console, Patient Flow Link, Wait Room Display y Clinic Dashboard. No son mockups aislados.',
             items: {
                 kioskOutbox: {
                     label: 'Kiosco offline',
@@ -75,8 +75,8 @@ const COPY = {
                     detail: 'Pulso separado para operador, kiosco y TV de sala.',
                 },
                 releases: {
-                    label: 'Releases nativos',
-                    detail: 'Operador, kiosco y Sala TV siguen el mismo canal estable.',
+                    label: 'Modulos instalables',
+                    detail: 'Operador, kiosco y sala siguen el mismo corte estable.',
                 },
             },
         },
@@ -146,17 +146,17 @@ const COPY = {
     },
     en: {
         cta: {
-            bookDemo: 'Book demo',
-            requestPilot: 'Request pilot',
-            viewDemo: 'See demo',
-            viewDashboard: 'See site dashboard',
+            requestProposal: 'Request proposal',
+            viewOpsConsole: 'Open Ops Console',
+            viewPatientFlow: 'See Patient Flow Link',
+            viewDashboard: 'See Clinic Dashboard',
         },
-        pilotHref:
-            'https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20request%20a%20pilot%20for%20the%20clinic%20flow%20suite',
+        proposalHref:
+            'https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic',
         proof: {
-            eyebrow: 'Canonical sandbox',
-            title: 'Visible operating proof for the buyer',
-            deck: 'The same sandbox powers landing, check-in, queue status, and dashboard. These are not isolated mockups.',
+            eyebrow: 'Reference tenant',
+            title: 'Visible operating proof on a single tenant',
+            deck: 'Aurora Derm powers Ops Console, Patient Flow Link, Wait Room Display, and Clinic Dashboard. These are not isolated mockups.',
             items: {
                 kioskOutbox: {
                     label: 'Offline kiosk',
@@ -175,8 +175,8 @@ const COPY = {
                     detail: 'Operator, kiosk, and room display each expose their own pulse.',
                 },
                 releases: {
-                    label: 'Native releases',
-                    detail: 'Operator, kiosk, and Sala TV follow the same stable release lane.',
+                    label: 'Installable modules',
+                    detail: 'Operator, kiosk, and waiting-room display follow the same stable cut.',
                 },
             },
         },
@@ -409,9 +409,9 @@ function landingSurfacePresentation(locale, state) {
         dashboard: {
             chips:
                 locale === 'en'
-                    ? ['Pilot site', 'Today', `${state.site.rooms} rooms`]
+                    ? ['Reference site', 'Today', `${state.site.rooms} rooms`]
                     : [
-                          'Sede piloto',
+                          'Sede de referencia',
                           'Hoy',
                           `${state.site.rooms} consultorios`,
                       ],
@@ -553,11 +553,11 @@ function pagePresentation(locale, state) {
             mockup: {
                 chips:
                     locale === 'en'
-                        ? ['Today', `${state.site.rooms} rooms`, '1 pilot site']
+                        ? ['Today', `${state.site.rooms} rooms`, '1 dermatology site']
                         : [
                               'Hoy',
                               `${state.site.rooms} consultorios`,
-                              '1 sede piloto',
+                              '1 sede dermatologica',
                           ],
                 rows: [
                     {
@@ -624,19 +624,16 @@ function primaryAction(locale, actions) {
         return existing;
     }
     return {
-        label: COPY[locale].cta.bookDemo,
-        href:
-            locale === 'en'
-                ? 'https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20book%20a%20demo%20of%20the%20clinic%20flow%20suite'
-                : 'https://wa.me/593982453672?text=Hola%2C%20quiero%20agendar%20una%20demo%20del%20turnero%20para%20clinicas',
+        label: COPY[locale].cta.requestProposal,
+        href: COPY[locale].proposalHref,
         variant: 'primary',
     };
 }
 
-function pilotAction(locale) {
+function opsConsoleAction(locale) {
     return {
-        label: COPY[locale].cta.requestPilot,
-        href: COPY[locale].pilotHref,
+        label: COPY[locale].cta.viewOpsConsole,
+        href: '/admin.html#queue',
         variant: 'secondary',
     };
 }
@@ -645,7 +642,7 @@ function demoAction(locale, suiteRoutes) {
     const href = routeHref(suiteRoutes, 'demo');
     return href
         ? {
-              label: COPY[locale].cta.viewDemo,
+              label: COPY[locale].cta.viewPatientFlow,
               href,
               variant: 'ghost',
           }
@@ -737,13 +734,13 @@ export function enhanceSoftwareLandingPage({
     const leadAction = primaryAction(safeLocale, page?.hero?.actions);
     const nextHeroActions = [
         leadAction,
-        pilotAction(safeLocale),
+        opsConsoleAction(safeLocale),
         demoAction(safeLocale, suiteRoutes),
         dashboardAction(safeLocale, suiteRoutes),
     ].filter(Boolean);
     const nextFinalActions = [
         leadAction,
-        pilotAction(safeLocale),
+        opsConsoleAction(safeLocale),
         demoAction(safeLocale, suiteRoutes),
     ].filter(Boolean);
 

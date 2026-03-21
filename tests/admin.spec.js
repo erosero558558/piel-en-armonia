@@ -127,7 +127,7 @@ async function waitForAdminReady(page) {
 test.describe('Panel de administracion', () => {
     test('pagina admin carga correctamente', async ({ page }) => {
         await page.goto('/admin.html');
-        await expect(page).toHaveTitle(/Admin|Piel en Armonia/);
+        await expect(page).toHaveTitle(/Admin|Aurora Derm/);
     });
 
     test('formulario de login esta visible', async ({ page }) => {

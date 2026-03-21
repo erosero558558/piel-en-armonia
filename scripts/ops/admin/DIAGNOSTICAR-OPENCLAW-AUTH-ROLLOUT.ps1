@@ -278,10 +278,10 @@ function Format-MissingOperatorAuthEnv {
     )
 
     $labels = @{
-        mode = 'PIELARMONIA_OPERATOR_AUTH_MODE'
-        bridge_token = 'PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN'
-        bridge_secret = 'PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET'
-        allowlist = 'PIELARMONIA_OPERATOR_AUTH_ALLOWLIST'
+        mode = 'AURORADERM_OPERATOR_AUTH_MODE'
+        bridge_token = 'AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN'
+        bridge_secret = 'AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET'
+        allowlist = 'AURORADERM_OPERATOR_AUTH_ALLOWLIST'
         broker_authorize_url = 'OPENCLAW_AUTH_BROKER_AUTHORIZE_URL'
         broker_token_url = 'OPENCLAW_AUTH_BROKER_TOKEN_URL'
         broker_userinfo_url = 'OPENCLAW_AUTH_BROKER_USERINFO_URL'
@@ -344,7 +344,7 @@ function Resolve-OpenClawRolloutState {
 
         if ([string]$resolved.mode -ne 'openclaw_chatgpt') {
             $Report.diagnosis = 'openclaw_mode_disabled'
-            $Report.next_action = 'Activar PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt en el entorno remoto.'
+            $Report.next_action = 'Activar AURORADERM_OPERATOR_AUTH_MODE=openclaw_chatgpt en el entorno remoto.'
             return
         }
 
@@ -512,3 +512,4 @@ if ($report.ok -or $AllowNotReady) {
 }
 
 exit 1
+

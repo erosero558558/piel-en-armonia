@@ -18,8 +18,25 @@ const {
 // Terminal note for contracts: stage = 'completed'
 
 function env(name, fallback = '') {
-    const value = process.env[name];
-    return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+    const normalized = String(name || '').trim();
+    if (!normalized) {
+        return fallback;
+    }
+
+    const candidates = normalized.startsWith('AURORADERM_')
+        ? [normalized, `PIELARMONIA_${normalized.slice('AURORADERM_'.length)}`]
+        : normalized.startsWith('PIELARMONIA_')
+          ? [`AURORADERM_${normalized.slice('PIELARMONIA_'.length)}`, normalized]
+          : [normalized];
+
+    for (const candidate of candidates) {
+        const value = process.env[candidate];
+        if (typeof value === 'string' && value.trim()) {
+            return value.trim();
+        }
+    }
+
+    return fallback;
 }
 
 function sleep(ms) {
@@ -38,7 +55,7 @@ function baseSmokeConfig(overrides = {}) {
         serverBaseUrl: trimTrailingSlash(
             String(
                 overrides.serverBaseUrl ||
-                    env('PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL')
+                    env('AURORADERM_OPERATOR_AUTH_SERVER_BASE_URL')
             ).trim()
         ),
         timeoutMs: Number(overrides.timeoutMs || 20000),
@@ -71,7 +88,7 @@ async function runOpenClawAuthLocalSmoke(overrides = {}) {
 
     if (!config.serverBaseUrl) {
         report.nextAction =
-            'Configura PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL antes de correr el smoke local.';
+            'Configura AURORADERM_OPERATOR_AUTH_SERVER_BASE_URL antes de correr el smoke local. El alias PIELARMONIA_* sigue disponible temporalmente.';
         return report;
     }
 

@@ -15,7 +15,7 @@ final class RetentionReportService
      */
     public static function resolveParamsFromQuery(array $query): array
     {
-        $timezone = trim((string) getenv('PIELARMONIA_CALENDAR_TIMEZONE'));
+        $timezone = trim((string) app_env('AURORADERM_CALENDAR_TIMEZONE', ''));
         if ($timezone === '') {
             $timezone = 'America/Guayaquil';
         }
@@ -295,9 +295,9 @@ final class RetentionReportService
             ? round(($recurrentPatients / $uniquePatients) * 100, 2)
             : 0.0;
 
-        $noShowWarnPct = self::getEnvFloat('PIELARMONIA_RETENTION_NO_SHOW_WARN_PCT', 20.0);
-        $recurrenceMinWarnPct = self::getEnvFloat('PIELARMONIA_RETENTION_RECURRENCE_MIN_WARN_PCT', 30.0);
-        $recurrenceMinUniquePatients = self::getEnvInt('PIELARMONIA_RETENTION_RECURRENCE_MIN_UNIQUE_PATIENTS', 5);
+        $noShowWarnPct = self::getEnvFloat('AURORADERM_RETENTION_NO_SHOW_WARN_PCT', 20.0);
+        $recurrenceMinWarnPct = self::getEnvFloat('AURORADERM_RETENTION_RECURRENCE_MIN_WARN_PCT', 30.0);
+        $recurrenceMinUniquePatients = self::getEnvInt('AURORADERM_RETENTION_RECURRENCE_MIN_UNIQUE_PATIENTS', 5);
         $alerts = [];
         if ($summaryNonCancelled >= self::NO_SHOW_MIN_SAMPLE && $noShowRatePct >= $noShowWarnPct) {
             $alerts[] = [

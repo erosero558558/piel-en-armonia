@@ -1746,15 +1746,37 @@ export class PostgresPlatformRepository implements PlatformRepository {
   }
 }
 
-function buildSeedProviderBindings(tenantId: "tnt_green" | "tnt_river"): TenantConfig["providerBindings"] {
-  const prefix = tenantId === "tnt_green" ? "green" : "river";
-  const messagingCredential = tenantId === "tnt_green" ? "whatsapp.primary" : "email.primary";
+const TENANT_PROVIDER_SEEDS = {
+  tnt_green: {
+    prefix: "green",
+    clinicLabel: "Green",
+    messagingCredential: "whatsapp.primary"
+  },
+  tnt_river: {
+    prefix: "river",
+    clinicLabel: "River",
+    messagingCredential: "email.primary"
+  },
+  tnt_aurora: {
+    prefix: "aurora",
+    clinicLabel: "Aurora Derm",
+    messagingCredential: "whatsapp.primary"
+  }
+} as const;
+
+function buildSeedProviderBindings(
+  tenantId: keyof typeof TENANT_PROVIDER_SEEDS
+): TenantConfig["providerBindings"] {
+  const seed = TENANT_PROVIDER_SEEDS[tenantId];
+  const prefix = seed.prefix;
+  const messagingCredential = seed.messagingCredential;
+  const clinicLabel = seed.clinicLabel;
 
   return [
     {
       system: "patient_messaging",
       providerKey: `${prefix}_patient_messaging`,
-      label: tenantId === "tnt_green" ? "Green Patient Messaging Relay" : "River Patient Messaging Relay",
+      label: `${clinicLabel} Patient Messaging Relay`,
       credentialRef: messagingCredential,
       dispatchMode: "relay",
       senderProfile: messagingCredential,
@@ -1768,7 +1790,7 @@ function buildSeedProviderBindings(tenantId: "tnt_green" | "tnt_river"): TenantC
     {
       system: "queue_console",
       providerKey: `${prefix}_queue_console`,
-      label: tenantId === "tnt_green" ? "Green Queue Console" : "River Queue Console",
+      label: `${clinicLabel} Queue Console`,
       credentialRef: null,
       dispatchMode: "relay",
       senderProfile: "frontdesk",
@@ -1782,7 +1804,7 @@ function buildSeedProviderBindings(tenantId: "tnt_green" | "tnt_river"): TenantC
     {
       system: "scheduling_workbench",
       providerKey: `${prefix}_scheduling_workbench`,
-      label: tenantId === "tnt_green" ? "Green Scheduling Workbench" : "River Scheduling Workbench",
+      label: `${clinicLabel} Scheduling Workbench`,
       credentialRef: null,
       dispatchMode: "relay",
       senderProfile: "scheduling",
@@ -1796,7 +1818,7 @@ function buildSeedProviderBindings(tenantId: "tnt_green" | "tnt_river"): TenantC
     {
       system: "payments_review_queue",
       providerKey: `${prefix}_payments_review_queue`,
-      label: tenantId === "tnt_green" ? "Green Payments Review Queue" : "River Payments Review Queue",
+      label: `${clinicLabel} Payments Review Queue`,
       credentialRef: null,
       dispatchMode: "relay",
       senderProfile: "payments",
@@ -1810,7 +1832,7 @@ function buildSeedProviderBindings(tenantId: "tnt_green" | "tnt_river"): TenantC
     {
       system: "ops_followup_queue",
       providerKey: `${prefix}_ops_followup_queue`,
-      label: tenantId === "tnt_green" ? "Green Ops Follow-up Queue" : "River Ops Follow-up Queue",
+      label: `${clinicLabel} Ops Follow-up Queue`,
       credentialRef: messagingCredential,
       dispatchMode: "stub",
       senderProfile: "ops_followup",
@@ -1824,7 +1846,7 @@ function buildSeedProviderBindings(tenantId: "tnt_green" | "tnt_river"): TenantC
     {
       system: "ops_handoff_queue",
       providerKey: `${prefix}_ops_handoff_queue`,
-      label: tenantId === "tnt_green" ? "Green Ops Handoff Queue" : "River Ops Handoff Queue",
+      label: `${clinicLabel} Ops Handoff Queue`,
       credentialRef: null,
       dispatchMode: "stub",
       senderProfile: "ops_handoff",
@@ -1863,25 +1885,49 @@ export function createBootstrapState(): BootstrapState {
         credentialRefs: ["email.primary"],
         providerBindings: buildSeedProviderBindings("tnt_river"),
         createdAt
+      },
+      {
+        id: "tnt_aurora",
+        slug: "aurora-derm",
+        name: "Aurora Derm",
+        timezone: "America/Guayaquil",
+        brandColor: "#c2410c",
+        enabledChannels: ["web", "whatsapp", "sms"],
+        credentialRefs: ["whatsapp.primary", "sms.primary"],
+        providerBindings: buildSeedProviderBindings("tnt_aurora"),
+        createdAt
       }
     ],
     locations: [
       { id: "loc_green_main", tenantId: "tnt_green", slug: "green-main", name: "Green Main Office", waitingRoomName: "Sala Principal", createdAt },
-      { id: "loc_river_main", tenantId: "tnt_river", slug: "river-main", name: "River Main Office", waitingRoomName: "Lobby Principal", createdAt }
+      { id: "loc_river_main", tenantId: "tnt_river", slug: "river-main", name: "River Main Office", waitingRoomName: "Lobby Principal", createdAt },
+      { id: "loc_aurora_main", tenantId: "tnt_aurora", slug: "aurora-main", name: "Aurora Derm Quito", waitingRoomName: "Sala Aurora", createdAt }
     ],
     staffUsers: [
       { id: "staff_green_front", tenantId: "tnt_green", locationId: "loc_green_main", name: "Sara Front Desk", role: "front_desk", email: "sara@green.example", createdAt },
-      { id: "staff_river_manager", tenantId: "tnt_river", locationId: "loc_river_main", name: "Leo Manager", role: "manager", email: "leo@river.example", createdAt }
+      { id: "staff_river_manager", tenantId: "tnt_river", locationId: "loc_river_main", name: "Leo Manager", role: "manager", email: "leo@river.example", createdAt },
+      { id: "staff_aurora_front", tenantId: "tnt_aurora", locationId: "loc_aurora_main", name: "Valeria Front Desk", role: "front_desk", email: "valeria@auroraderm.example", createdAt },
+      { id: "staff_aurora_manager", tenantId: "tnt_aurora", locationId: "loc_aurora_main", name: "Camila Operations", role: "manager", email: "camila@auroraderm.example", createdAt }
     ],
     patients: [
       { id: "pat_green_001", tenantId: "tnt_green", displayName: "Eva Perez", phone: "+593999000001", email: "eva@green.example", preferredChannel: "whatsapp", createdAt },
       { id: "pat_green_002", tenantId: "tnt_green", displayName: "Luis Mejia", phone: "+593999000002", email: "luis@green.example", preferredChannel: "sms", createdAt },
-      { id: "pat_river_001", tenantId: "tnt_river", displayName: "Mia Flores", phone: "+593999000003", email: "mia@river.example", preferredChannel: "email", createdAt }
+      { id: "pat_river_001", tenantId: "tnt_river", displayName: "Mia Flores", phone: "+593999000003", email: "mia@river.example", preferredChannel: "email", createdAt },
+      { id: "pat_aurora_001", tenantId: "tnt_aurora", displayName: "Daniela Viteri", phone: "+593999000011", email: "daniela@auroraderm.example", preferredChannel: "whatsapp", createdAt },
+      { id: "pat_aurora_002", tenantId: "tnt_aurora", displayName: "Paula Salazar", phone: "+593999000012", email: "paula@auroraderm.example", preferredChannel: "whatsapp", createdAt },
+      { id: "pat_aurora_003", tenantId: "tnt_aurora", displayName: "Andrea Cevallos", phone: "+593999000013", email: "andrea@auroraderm.example", preferredChannel: "sms", createdAt },
+      { id: "pat_aurora_004", tenantId: "tnt_aurora", displayName: "Lucia Paredes", phone: "+593999000014", email: "lucia@auroraderm.example", preferredChannel: "whatsapp", createdAt },
+      { id: "pat_aurora_005", tenantId: "tnt_aurora", displayName: "Maria Jose Lara", phone: "+593999000015", email: "mariajose@auroraderm.example", preferredChannel: "email", createdAt }
     ],
     patientCases: [
       { id: "case_green_001", tenantId: "tnt_green", patientId: "pat_green_001", status: "booked", statusSource: "derived", openedAt: createdAt, latestActivityAt: "2026-03-11T13:00:00.000Z", closedAt: null, lastInboundAt: "2026-03-11T12:59:00.000Z", lastOutboundAt: null, summary: { primaryAppointmentId: "appt_green_001", latestAppointmentId: "appt_green_001", latestThreadId: "thread_green_001", latestCallbackId: null, serviceLine: "General Medicine", providerName: "Dra. Vega", scheduledStart: "2026-03-11T14:00:00.000Z", scheduledEnd: "2026-03-11T14:30:00.000Z", queueStatus: null, lastChannel: "whatsapp", openActionCount: 0, pendingApprovalCount: 1 } },
       { id: "case_green_002", tenantId: "tnt_green", patientId: "pat_green_002", status: "follow_up_pending", statusSource: "derived", openedAt: createdAt, latestActivityAt: "2026-03-11T13:10:00.000Z", closedAt: null, lastInboundAt: null, lastOutboundAt: "2026-03-11T13:10:00.000Z", summary: { primaryAppointmentId: "appt_green_002", latestAppointmentId: "appt_green_002", latestThreadId: null, latestCallbackId: "callback_green_001", serviceLine: "Family Medicine", providerName: "Dr. Ramos", scheduledStart: "2026-03-11T13:00:00.000Z", scheduledEnd: "2026-03-11T13:30:00.000Z", queueStatus: null, lastChannel: "whatsapp", openActionCount: 1, pendingApprovalCount: 0 } },
-      { id: "case_river_001", tenantId: "tnt_river", patientId: "pat_river_001", status: "queued", statusSource: "derived", openedAt: createdAt, latestActivityAt: "2026-03-11T13:20:00.000Z", closedAt: null, lastInboundAt: null, lastOutboundAt: null, summary: { primaryAppointmentId: "appt_river_001", latestAppointmentId: "appt_river_001", latestThreadId: null, latestCallbackId: null, serviceLine: "Internal Medicine", providerName: "Dr. Chen", scheduledStart: "2026-03-11T15:00:00.000Z", scheduledEnd: "2026-03-11T15:20:00.000Z", queueStatus: "waiting", lastChannel: "email", openActionCount: 0, pendingApprovalCount: 0 } }
+      { id: "case_river_001", tenantId: "tnt_river", patientId: "pat_river_001", status: "queued", statusSource: "derived", openedAt: createdAt, latestActivityAt: "2026-03-11T13:20:00.000Z", closedAt: null, lastInboundAt: null, lastOutboundAt: null, summary: { primaryAppointmentId: "appt_river_001", latestAppointmentId: "appt_river_001", latestThreadId: null, latestCallbackId: null, serviceLine: "Internal Medicine", providerName: "Dr. Chen", scheduledStart: "2026-03-11T15:00:00.000Z", scheduledEnd: "2026-03-11T15:20:00.000Z", queueStatus: "waiting", lastChannel: "email", openActionCount: 0, pendingApprovalCount: 0 } },
+      { id: "case_aurora_001", tenantId: "tnt_aurora", patientId: "pat_aurora_001", status: "intake", statusSource: "derived", openedAt: createdAt, latestActivityAt: "2026-03-11T12:05:00.000Z", closedAt: null, lastInboundAt: "2026-03-11T12:05:00.000Z", lastOutboundAt: null, summary: { primaryAppointmentId: null, latestAppointmentId: null, latestThreadId: null, latestCallbackId: null, serviceLine: "Dermatology intake", providerName: null, scheduledStart: null, scheduledEnd: null, queueStatus: null, lastChannel: "web", openActionCount: 0, pendingApprovalCount: 0 } },
+      { id: "case_aurora_002", tenantId: "tnt_aurora", patientId: "pat_aurora_002", status: "qualified", statusSource: "derived", openedAt: createdAt, latestActivityAt: "2026-03-11T12:18:00.000Z", closedAt: null, lastInboundAt: "2026-03-11T12:18:00.000Z", lastOutboundAt: null, summary: { primaryAppointmentId: null, latestAppointmentId: null, latestThreadId: null, latestCallbackId: "callback_aurora_002", serviceLine: "Acne flare", providerName: null, scheduledStart: null, scheduledEnd: null, queueStatus: null, lastChannel: "whatsapp", openActionCount: 0, pendingApprovalCount: 0 } },
+      { id: "case_aurora_003", tenantId: "tnt_aurora", patientId: "pat_aurora_003", status: "booked", statusSource: "derived", openedAt: createdAt, latestActivityAt: "2026-03-11T12:40:00.000Z", closedAt: null, lastInboundAt: "2026-03-11T12:39:00.000Z", lastOutboundAt: null, summary: { primaryAppointmentId: "appt_aurora_003", latestAppointmentId: "appt_aurora_003", latestThreadId: "thread_aurora_003", latestCallbackId: null, serviceLine: "Rosacea follow-up", providerName: "Dra. Aurora Vega", scheduledStart: "2026-03-11T16:00:00.000Z", scheduledEnd: "2026-03-11T16:20:00.000Z", queueStatus: null, lastChannel: "sms", openActionCount: 0, pendingApprovalCount: 0 } },
+      { id: "case_aurora_004", tenantId: "tnt_aurora", patientId: "pat_aurora_004", status: "arrived", statusSource: "derived", openedAt: createdAt, latestActivityAt: "2026-03-11T13:05:00.000Z", closedAt: null, lastInboundAt: null, lastOutboundAt: "2026-03-11T13:05:00.000Z", summary: { primaryAppointmentId: "appt_aurora_004", latestAppointmentId: "appt_aurora_004", latestThreadId: null, latestCallbackId: null, serviceLine: "Mole check", providerName: "Dra. Aurora Vega", scheduledStart: "2026-03-11T13:00:00.000Z", scheduledEnd: "2026-03-11T13:20:00.000Z", queueStatus: "waiting", lastChannel: "whatsapp", openActionCount: 0, pendingApprovalCount: 0 } },
+      { id: "case_aurora_005", tenantId: "tnt_aurora", patientId: "pat_aurora_005", status: "closed", statusSource: "derived", openedAt: createdAt, latestActivityAt: "2026-03-11T14:40:00.000Z", closedAt: "2026-03-11T14:40:00.000Z", lastInboundAt: "2026-03-11T14:05:00.000Z", lastOutboundAt: "2026-03-11T14:40:00.000Z", summary: { primaryAppointmentId: "appt_aurora_005", latestAppointmentId: "appt_aurora_005", latestThreadId: null, latestCallbackId: null, serviceLine: "Post-procedure control", providerName: "Dra. Aurora Vega", scheduledStart: "2026-03-11T14:00:00.000Z", scheduledEnd: "2026-03-11T14:20:00.000Z", queueStatus: null, lastChannel: "email", openActionCount: 0, pendingApprovalCount: 0 } }
     ],
     patientCaseLinks: [
       { id: "link_case_green_001_appt", tenantId: "tnt_green", patientCaseId: "case_green_001", entityType: "appointment", entityId: "appt_green_001", relationship: "primary", createdAt },
@@ -1889,14 +1935,25 @@ export function createBootstrapState(): BootstrapState {
       { id: "link_case_green_002_appt", tenantId: "tnt_green", patientCaseId: "case_green_002", entityType: "appointment", entityId: "appt_green_002", relationship: "primary", createdAt },
       { id: "link_case_green_002_callback", tenantId: "tnt_green", patientCaseId: "case_green_002", entityType: "callback", entityId: "callback_green_001", relationship: "secondary", createdAt },
       { id: "link_case_river_001_appt", tenantId: "tnt_river", patientCaseId: "case_river_001", entityType: "appointment", entityId: "appt_river_001", relationship: "primary", createdAt },
-      { id: "link_case_river_001_ticket", tenantId: "tnt_river", patientCaseId: "case_river_001", entityType: "queue_ticket", entityId: "ticket_river_001", relationship: "primary", createdAt }
+      { id: "link_case_river_001_ticket", tenantId: "tnt_river", patientCaseId: "case_river_001", entityType: "queue_ticket", entityId: "ticket_river_001", relationship: "primary", createdAt },
+      { id: "link_case_aurora_002_callback", tenantId: "tnt_aurora", patientCaseId: "case_aurora_002", entityType: "callback", entityId: "callback_aurora_002", relationship: "primary", createdAt },
+      { id: "link_case_aurora_003_appt", tenantId: "tnt_aurora", patientCaseId: "case_aurora_003", entityType: "appointment", entityId: "appt_aurora_003", relationship: "primary", createdAt },
+      { id: "link_case_aurora_003_thread", tenantId: "tnt_aurora", patientCaseId: "case_aurora_003", entityType: "conversation_thread", entityId: "thread_aurora_003", relationship: "secondary", createdAt },
+      { id: "link_case_aurora_004_appt", tenantId: "tnt_aurora", patientCaseId: "case_aurora_004", entityType: "appointment", entityId: "appt_aurora_004", relationship: "primary", createdAt },
+      { id: "link_case_aurora_004_ticket", tenantId: "tnt_aurora", patientCaseId: "case_aurora_004", entityType: "queue_ticket", entityId: "ticket_aurora_004", relationship: "primary", createdAt },
+      { id: "link_case_aurora_005_appt", tenantId: "tnt_aurora", patientCaseId: "case_aurora_005", entityType: "appointment", entityId: "appt_aurora_005", relationship: "primary", createdAt }
     ],
     patientCaseTimelineEvents: [
       { id: "evt_case_green_001_open", tenantId: "tnt_green", patientCaseId: "case_green_001", type: "case_opened", title: "Case opened from booking intent", payload: { source: "bootstrap" }, createdAt },
       { id: "evt_case_green_001_appt", tenantId: "tnt_green", patientCaseId: "case_green_001", type: "appointment_created", title: "Appointment created", payload: { appointmentId: "appt_green_001" }, createdAt: "2026-03-11T12:30:00.000Z" },
       { id: "evt_case_green_002_noshow", tenantId: "tnt_green", patientCaseId: "case_green_002", type: "no_show", title: "Patient marked as no-show", payload: { appointmentId: "appt_green_002" }, createdAt: "2026-03-11T13:00:00.000Z" },
       { id: "evt_case_green_002_callback", tenantId: "tnt_green", patientCaseId: "case_green_002", type: "callback_created", title: "Recovery callback opened", payload: { callbackId: "callback_green_001" }, createdAt: "2026-03-11T13:10:00.000Z" },
-      { id: "evt_case_river_001_checkin", tenantId: "tnt_river", patientCaseId: "case_river_001", type: "check_in_completed", title: "Patient checked in", payload: { appointmentId: "appt_river_001" }, createdAt: "2026-03-11T13:20:00.000Z" }
+      { id: "evt_case_river_001_checkin", tenantId: "tnt_river", patientCaseId: "case_river_001", type: "check_in_completed", title: "Patient checked in", payload: { appointmentId: "appt_river_001" }, createdAt: "2026-03-11T13:20:00.000Z" },
+      { id: "evt_case_aurora_001_open", tenantId: "tnt_aurora", patientCaseId: "case_aurora_001", type: "case_opened", title: "Lead captured from Aurora Derm intake", payload: { source: "website_callback" }, createdAt: "2026-03-11T12:05:00.000Z" },
+      { id: "evt_case_aurora_002_callback", tenantId: "tnt_aurora", patientCaseId: "case_aurora_002", type: "callback_created", title: "Callback qualified by ops", payload: { callbackId: "callback_aurora_002" }, createdAt: "2026-03-11T12:18:00.000Z" },
+      { id: "evt_case_aurora_003_appt", tenantId: "tnt_aurora", patientCaseId: "case_aurora_003", type: "appointment_created", title: "Dermatology control booked", payload: { appointmentId: "appt_aurora_003" }, createdAt: "2026-03-11T12:40:00.000Z" },
+      { id: "evt_case_aurora_004_checkin", tenantId: "tnt_aurora", patientCaseId: "case_aurora_004", type: "check_in_completed", title: "Patient checked in and entered queue", payload: { appointmentId: "appt_aurora_004" }, createdAt: "2026-03-11T13:05:00.000Z" },
+      { id: "evt_case_aurora_005_complete", tenantId: "tnt_aurora", patientCaseId: "case_aurora_005", type: "visit_completed", title: "Visit completed and case closed", payload: { appointmentId: "appt_aurora_005" }, createdAt: "2026-03-11T14:40:00.000Z" }
     ],
     patientCaseActions: [
       { id: "action_green_001_followup", tenantId: "tnt_green", patientCaseId: "case_green_002", action: "send_follow_up", title: "Send follow-up after no-show", status: "pending", channel: "whatsapp", rationale: "The patient missed the visit and the case remains open until follow-up is completed.", requiresHumanApproval: false, source: "system", createdAt: "2026-03-11T13:10:00.000Z", updatedAt: "2026-03-11T13:10:00.000Z", completedAt: null }
@@ -1907,18 +1964,27 @@ export function createBootstrapState(): BootstrapState {
     appointments: [
       { id: "appt_green_001", tenantId: "tnt_green", patientCaseId: "case_green_001", locationId: "loc_green_main", patientId: "pat_green_001", providerName: "Dra. Vega", serviceLine: "General Medicine", status: "scheduled", scheduledStart: "2026-03-11T14:00:00.000Z", scheduledEnd: "2026-03-11T14:30:00.000Z", createdAt },
       { id: "appt_green_002", tenantId: "tnt_green", patientCaseId: "case_green_002", locationId: "loc_green_main", patientId: "pat_green_002", providerName: "Dr. Ramos", serviceLine: "Family Medicine", status: "no_show", scheduledStart: "2026-03-11T13:00:00.000Z", scheduledEnd: "2026-03-11T13:30:00.000Z", createdAt },
-      { id: "appt_river_001", tenantId: "tnt_river", patientCaseId: "case_river_001", locationId: "loc_river_main", patientId: "pat_river_001", providerName: "Dr. Chen", serviceLine: "Internal Medicine", status: "checked_in", scheduledStart: "2026-03-11T15:00:00.000Z", scheduledEnd: "2026-03-11T15:20:00.000Z", createdAt }
+      { id: "appt_river_001", tenantId: "tnt_river", patientCaseId: "case_river_001", locationId: "loc_river_main", patientId: "pat_river_001", providerName: "Dr. Chen", serviceLine: "Internal Medicine", status: "checked_in", scheduledStart: "2026-03-11T15:00:00.000Z", scheduledEnd: "2026-03-11T15:20:00.000Z", createdAt },
+      { id: "appt_aurora_003", tenantId: "tnt_aurora", patientCaseId: "case_aurora_003", locationId: "loc_aurora_main", patientId: "pat_aurora_003", providerName: "Dra. Aurora Vega", serviceLine: "Rosacea follow-up", status: "scheduled", scheduledStart: "2026-03-11T16:00:00.000Z", scheduledEnd: "2026-03-11T16:20:00.000Z", createdAt },
+      { id: "appt_aurora_004", tenantId: "tnt_aurora", patientCaseId: "case_aurora_004", locationId: "loc_aurora_main", patientId: "pat_aurora_004", providerName: "Dra. Aurora Vega", serviceLine: "Mole check", status: "checked_in", scheduledStart: "2026-03-11T13:00:00.000Z", scheduledEnd: "2026-03-11T13:20:00.000Z", createdAt },
+      { id: "appt_aurora_005", tenantId: "tnt_aurora", patientCaseId: "case_aurora_005", locationId: "loc_aurora_main", patientId: "pat_aurora_005", providerName: "Dra. Aurora Vega", serviceLine: "Post-procedure control", status: "completed", scheduledStart: "2026-03-11T14:00:00.000Z", scheduledEnd: "2026-03-11T14:20:00.000Z", createdAt }
     ],
     flowEvents: [
       { id: "flow_green_001", tenantId: "tnt_green", patientCaseId: "case_green_001", appointmentId: "appt_green_001", type: "appointment_created", payload: { channel: "web" }, createdAt },
       { id: "flow_green_002", tenantId: "tnt_green", patientCaseId: "case_green_002", appointmentId: "appt_green_002", type: "no_show", payload: { reason: "seed_state" }, createdAt },
-      { id: "flow_river_001", tenantId: "tnt_river", patientCaseId: "case_river_001", appointmentId: "appt_river_001", type: "check_in_completed", payload: { source: "patient_link" }, createdAt }
+      { id: "flow_river_001", tenantId: "tnt_river", patientCaseId: "case_river_001", appointmentId: "appt_river_001", type: "check_in_completed", payload: { source: "patient_link" }, createdAt },
+      { id: "flow_aurora_002", tenantId: "tnt_aurora", patientCaseId: "case_aurora_002", appointmentId: null, type: "callback_created", payload: { source: "whatsapp" }, createdAt: "2026-03-11T12:18:00.000Z" },
+      { id: "flow_aurora_003", tenantId: "tnt_aurora", patientCaseId: "case_aurora_003", appointmentId: "appt_aurora_003", type: "appointment_created", payload: { channel: "web" }, createdAt: "2026-03-11T12:40:00.000Z" },
+      { id: "flow_aurora_004", tenantId: "tnt_aurora", patientCaseId: "case_aurora_004", appointmentId: "appt_aurora_004", type: "check_in_completed", payload: { source: "patient_flow_link" }, createdAt: "2026-03-11T13:05:00.000Z" },
+      { id: "flow_aurora_005", tenantId: "tnt_aurora", patientCaseId: "case_aurora_005", appointmentId: "appt_aurora_005", type: "visit_completed", payload: { source: "consult_room" }, createdAt: "2026-03-11T14:40:00.000Z" }
     ],
     queueTickets: [
-      { id: "ticket_river_001", tenantId: "tnt_river", patientCaseId: "case_river_001", locationId: "loc_river_main", appointmentId: "appt_river_001", patientLabel: "MF", ticketNumber: "R-014", status: "waiting", createdAt }
+      { id: "ticket_river_001", tenantId: "tnt_river", patientCaseId: "case_river_001", locationId: "loc_river_main", appointmentId: "appt_river_001", patientLabel: "MF", ticketNumber: "R-014", status: "waiting", createdAt },
+      { id: "ticket_aurora_004", tenantId: "tnt_aurora", patientCaseId: "case_aurora_004", locationId: "loc_aurora_main", appointmentId: "appt_aurora_004", patientLabel: "LP", ticketNumber: "A-021", status: "waiting", createdAt: "2026-03-11T13:05:00.000Z" }
     ],
     conversationThreads: [
-      { id: "thread_green_001", tenantId: "tnt_green", patientCaseId: "case_green_001", appointmentId: "appt_green_001", channel: "whatsapp", status: "open", messages: [{ id: "msg_green_001", role: "patient", body: "Quiero confirmar mi cita.", createdAt }], createdAt }
+      { id: "thread_green_001", tenantId: "tnt_green", patientCaseId: "case_green_001", appointmentId: "appt_green_001", channel: "whatsapp", status: "open", messages: [{ id: "msg_green_001", role: "patient", body: "Quiero confirmar mi cita.", createdAt }], createdAt },
+      { id: "thread_aurora_003", tenantId: "tnt_aurora", patientCaseId: "case_aurora_003", appointmentId: "appt_aurora_003", channel: "sms", status: "open", messages: [{ id: "msg_aurora_003", role: "patient", body: "Confirmo el control de rosacea de esta tarde.", createdAt: "2026-03-11T12:39:00.000Z" }], createdAt: "2026-03-11T12:39:00.000Z" }
     ],
     agentTasks: [
       {
@@ -1952,13 +2018,15 @@ export function createBootstrapState(): BootstrapState {
     copilotExecutionReceipts: [],
     copilotExecutionReceiptEvents: [],
     callbacks: [
-      { id: "callback_green_001", tenantId: "tnt_green", patientCaseId: "case_green_002", patientId: "pat_green_002", channel: "whatsapp", notes: "Recordatorio de rescate tras no-show.", status: "qualified", createdAt: "2026-03-11T13:10:00.000Z" }
+      { id: "callback_green_001", tenantId: "tnt_green", patientCaseId: "case_green_002", patientId: "pat_green_002", channel: "whatsapp", notes: "Recordatorio de rescate tras no-show.", status: "qualified", createdAt: "2026-03-11T13:10:00.000Z" },
+      { id: "callback_aurora_002", tenantId: "tnt_aurora", patientCaseId: "case_aurora_002", patientId: "pat_aurora_002", channel: "whatsapp", notes: "Paciente envia fotos y motivo de consulta para triage de acne.", status: "qualified", createdAt: "2026-03-11T12:18:00.000Z" }
     ],
     playbooks: [
       { id: "playbook_green_001", tenantId: "tnt_green", name: "No-show Recovery", triggerKey: "no_show", isEnabled: true, config: { contactWindowMinutes: 15, channel: "whatsapp" }, createdAt }
     ],
     auditEntries: [
-      { id: "audit_green_001", tenantId: "tnt_green", actorType: "system", actorId: "bootstrap", action: "seeded_bootstrap_state", entityType: "tenant", entityId: "tnt_green", metadata: { surface: "ops_console" }, createdAt }
+      { id: "audit_green_001", tenantId: "tnt_green", actorType: "system", actorId: "bootstrap", action: "seeded_bootstrap_state", entityType: "tenant", entityId: "tnt_green", metadata: { surface: "ops_console" }, createdAt },
+      { id: "audit_aurora_001", tenantId: "tnt_aurora", actorType: "system", actorId: "bootstrap", action: "seeded_bootstrap_state", entityType: "tenant", entityId: "tnt_aurora", metadata: { surface: "ops_console", purpose: "paid_pilot_demo" }, createdAt }
     ],
     copilotReviewDecisions: []
   });
@@ -2236,7 +2304,13 @@ export class InMemoryPlatformRepository implements PlatformRepository {
       existing.status = "waiting";
     } else {
       const patient = this.requirePatient(appointment.patientId);
-      const ticket: QueueTicket = { id: makeId("ticket"), tenantId, patientCaseId: appointment.patientCaseId, locationId: appointment.locationId, appointmentId, patientLabel: toPatientLabel(patient.displayName), ticketNumber: `${tenantId === "tnt_green" ? "G" : "R"}-${String(this.state.queueTickets.length + 1).padStart(3, "0")}`, status: "waiting", createdAt: nowIso() };
+      const ticketPrefix =
+        {
+          tnt_green: "G",
+          tnt_river: "R",
+          tnt_aurora: "A"
+        }[tenantId] ?? "T";
+      const ticket: QueueTicket = { id: makeId("ticket"), tenantId, patientCaseId: appointment.patientCaseId, locationId: appointment.locationId, appointmentId, patientLabel: toPatientLabel(patient.displayName), ticketNumber: `${ticketPrefix}-${String(this.state.queueTickets.length + 1).padStart(3, "0")}`, status: "waiting", createdAt: nowIso() };
       this.state.queueTickets.push(ticket);
       this.addCaseLink(tenantId, appointment.patientCaseId, "queue_ticket", ticket.id, "primary");
     }

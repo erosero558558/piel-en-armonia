@@ -1,6 +1,6 @@
 # Documentación de la API
 
-La API de Piel en Armonía es el núcleo backend que gestiona citas, pagos, reseñas y disponibilidad. Esta documentación complementa la especificación técnica OpenAPI.
+La API de Aurora Derm es el núcleo backend que gestiona citas, pagos, reseñas y disponibilidad. Esta documentación complementa la especificación técnica OpenAPI.
 
 ## Referencia Técnica
 
@@ -87,11 +87,11 @@ Sin cambiar el frontend actual, los flujos legacy con `service=telefono` y
   `telemedicineSuitability`, `telemedicineReviewRequired`,
   `telemedicineEscalationRecommendation`).
 - enforcement progresivo backend-only disponible por flags:
-    - `PIELARMONIA_TELEMED_V2_ENFORCE_UNSUITABLE=1` bloquea reservas con
+    - `AURORADERM_TELEMED_V2_ENFORCE_UNSUITABLE=1` bloquea reservas con
       suitability `unsuitable` (error `telemedicine_unsuitable`, HTTP `422`).
-    - `PIELARMONIA_TELEMED_V2_ENFORCE_REVIEW_REQUIRED=1` bloquea reservas
+    - `AURORADERM_TELEMED_V2_ENFORCE_REVIEW_REQUIRED=1` bloquea reservas
       `review_required` (error `telemedicine_review_required`, HTTP `409`).
-    - `PIELARMONIA_TELEMED_V2_ALLOW_DECISION_OVERRIDE=1` permite override
+    - `AURORADERM_TELEMED_V2_ALLOW_DECISION_OVERRIDE=1` permite override
       cuando staff marco `approve_remote`.
 
 La compatibilidad publica se mantiene: no hay endpoints breaking ni cambios
@@ -136,19 +136,19 @@ La fase backend-only agrega observabilidad aditiva sin abrir endpoints nuevos:
   checks por código y acciones sugeridas de remediación.
 - `GET /api.php?resource=metrics` exporta gauges Prometheus de telemedicina,
   incluyendo:
-    - `pielarmonia_telemedicine_intakes_total`
-    - `pielarmonia_telemedicine_review_queue_total`
-    - `pielarmonia_telemedicine_review_decisions_total`
-    - `pielarmonia_telemedicine_review_state_total`
-    - `pielarmonia_telemedicine_unlinked_intakes_total`
-    - `pielarmonia_telemedicine_staged_legacy_uploads_total`
-    - `pielarmonia_telemedicine_shadow_mode_enabled`
-    - `pielarmonia_telemedicine_enforce_unsuitable_enabled`
-    - `pielarmonia_telemedicine_enforce_review_required_enabled`
-    - `pielarmonia_telemedicine_allow_decision_override_enabled`
-    - `pielarmonia_telemedicine_diagnostics_status{status=...}`
-    - `pielarmonia_telemedicine_diagnostics_issues_total{severity=...}`
-    - `pielarmonia_telemedicine_diagnostics_healthy`
+    - `AURORADERM_telemedicine_intakes_total`
+    - `AURORADERM_telemedicine_review_queue_total`
+    - `AURORADERM_telemedicine_review_decisions_total`
+    - `AURORADERM_telemedicine_review_state_total`
+    - `AURORADERM_telemedicine_unlinked_intakes_total`
+    - `AURORADERM_telemedicine_staged_legacy_uploads_total`
+    - `AURORADERM_telemedicine_shadow_mode_enabled`
+    - `AURORADERM_telemedicine_enforce_unsuitable_enabled`
+    - `AURORADERM_telemedicine_enforce_review_required_enabled`
+    - `AURORADERM_telemedicine_allow_decision_override_enabled`
+    - `AURORADERM_telemedicine_diagnostics_status{status=...}`
+    - `AURORADERM_telemedicine_diagnostics_issues_total{severity=...}`
+    - `AURORADERM_telemedicine_diagnostics_healthy`
 
 Herramienta operativa de rollout:
 
@@ -191,3 +191,4 @@ Content-Type: application/json
   "privacyConsent": true
 }
 ```
+

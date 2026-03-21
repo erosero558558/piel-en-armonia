@@ -21,7 +21,7 @@ if (!function_exists('calendar_runtime_load')) {
         foreach ($nativeFiles as $nativeFile) {
             if (!is_file($nativeFile)) {
                 throw new RuntimeException(
-                    'Piel en Armonia: calendar runtime missing file: ' . $nativeFile
+                    'Aurora Derm: calendar runtime missing file: ' . $nativeFile
                 );
             }
 
@@ -38,7 +38,7 @@ if (!function_exists('calendar_runtime_load')) {
         foreach ($requiredClasses as $requiredClass) {
             if (!class_exists($requiredClass)) {
                 throw new RuntimeException(
-                    'Piel en Armonia: calendar runtime missing class: ' . $requiredClass
+                    'Aurora Derm: calendar runtime missing class: ' . $requiredClass
                 );
             }
         }

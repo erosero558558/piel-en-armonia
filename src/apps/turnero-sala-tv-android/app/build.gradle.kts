@@ -13,7 +13,7 @@ val turneroSurfacePath =
     providers.gradleProperty("turneroSurfacePath").orElse("/sala-turnos.html")
 
 android {
-    namespace = "com.pielarmonia.turnerosalatv"
+    namespace = "com.auroraderm.turnerosalatv"
     compileSdk = 35
 
     buildFeatures {
@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.pielarmonia.turnerosalatv"
+        applicationId = "com.auroraderm.turnerosalatv"
         minSdk = 28
         targetSdk = 35
         versionCode = turneroVersionCode.get().toInt()

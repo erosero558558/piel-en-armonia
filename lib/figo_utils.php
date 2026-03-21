@@ -17,7 +17,7 @@ function api_resolve_figo_endpoint_for_health(): string
         getenv('CHATBOT_ENDPOINT'),
         getenv('CHATBOT_URL'),
         getenv('BOT_ENDPOINT'),
-        getenv('PIELARMONIA_FIGO_ENDPOINT')
+        app_env('AURORADERM_FIGO_ENDPOINT')
     ];
 
     foreach ($envCandidates as $candidate) {

@@ -162,7 +162,7 @@ export function buildTurneroSurfaceSupportSnapshot(input = {}) {
     );
     const clinicName = toString(
         clinicProfile?.branding?.name || clinicProfile?.branding?.short_name,
-        'Piel en Armonia'
+        'Aurora Derm'
     );
     const clinicShortName = toString(
         clinicProfile?.branding?.short_name || clinicName,

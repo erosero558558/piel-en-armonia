@@ -25,7 +25,7 @@ function figo_apply_cors(): void
     }
 
     $allowed = [];
-    $rawAllowed = getenv('PIELARMONIA_ALLOWED_ORIGINS');
+    $rawAllowed = app_env('AURORADERM_ALLOWED_ORIGINS');
     if (is_string($rawAllowed) && trim($rawAllowed) !== '') {
         foreach (explode(',', $rawAllowed) as $item) {
             $item = trim($item);
@@ -150,11 +150,11 @@ function figo_contains_any_pattern(string $text, array $patterns): bool
 function figo_fast_local_content(string $normalizedText): string
 {
     if ($normalizedText === '') {
-        return 'Soy Figo. Puedo ayudarte con servicios, precios, pagos, horarios y reservas de Piel en Armonia.';
+        return 'Soy Figo. Puedo ayudarte con servicios, precios, pagos, horarios y reservas de Aurora Derm.';
     }
 
     if (preg_match('/^(hola|buenos dias|buenas tardes|buenas noches|hello|hi|gracias|ok|vale|listo|perfecto)$/', $normalizedText) === 1) {
-        return 'Hola, soy Figo de Piel en Armonia. Te ayudo con servicios, precios y reservas de cita.';
+        return 'Hola, soy Figo de Aurora Derm. Te ayudo con servicios, precios y reservas de cita.';
     }
 
     if (figo_contains_any_pattern($normalizedText, [
@@ -175,7 +175,7 @@ function figo_fast_local_content(string $normalizedText): string
         '/\bbitcoin\b/',
         '/\bcriptomoneda\b/'
     ])) {
-        return 'Me enfoco en Piel en Armonia. Puedo ayudarte con citas, servicios, precios, pagos y ubicacion de la clinica.';
+        return 'Me enfoco en Aurora Derm. Puedo ayudarte con citas, servicios, precios, pagos y ubicacion de la clinica.';
     }
 
     return '';
@@ -319,7 +319,7 @@ function figo_build_fallback_completion(string $model, array $messages): array
             return FigoBrain::process($messages);
         }
     } catch (Throwable $e) {
-        error_log('Piel en Armonía FigoBrain Exception: ' . $e->getMessage());
+        error_log('Aurora Derm FigoBrain Exception: ' . $e->getMessage());
     }
 
     // Safety Net (Extreme Fallback)
@@ -518,7 +518,7 @@ $endpoint = api_first_non_empty([
     getenv('CHATBOT_ENDPOINT'),
     getenv('CHATBOT_URL'),
     getenv('BOT_ENDPOINT'),
-    getenv('PIELARMONIA_FIGO_ENDPOINT'),
+    app_env('AURORADERM_FIGO_ENDPOINT'),
     $fileConfig['endpoint'] ?? null,
     $fileConfig['apiUrl'] ?? null,
     $fileConfig['url'] ?? null
@@ -1092,7 +1092,7 @@ curl_close($ch);
 
 if (!is_string($rawResponse)) {
     figo_write_upstream_state(false, 'curl_failed');
-    error_log('Piel en Armonía figo-chat: fallo conexion cURL (codigo: ' . $curlErr . ')');
+    error_log('Aurora Derm figo-chat: fallo conexion cURL (codigo: ' . $curlErr . ')');
     audit_log_event('figo.upstream_error', [
         'reason' => 'curl_failed'
     ]);
@@ -1121,7 +1121,7 @@ if (!is_string($rawResponse)) {
 
 if ($httpCode >= 400) {
     figo_write_upstream_state(false, 'http_' . $httpCode);
-    error_log('Piel en Armonía figo-chat: upstream devolvio HTTP ' . $httpCode);
+    error_log('Aurora Derm figo-chat: upstream devolvio HTTP ' . $httpCode);
     audit_log_event('figo.upstream_error', [
         'reason' => 'http_error',
         'status' => $httpCode

@@ -3,90 +3,37 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { resolve } = require('node:path');
-const { pathToFileURL } = require('node:url');
 
-const REPO_ROOT = resolve(__dirname, '..');
-const ORIGINAL_GLOBALS = {
-    document: global.document,
-    HTMLElement: global.HTMLElement,
-    localStorage: global.localStorage,
-};
+const {
+    loadModule,
+    buildClinicProfile,
+    createLocalStorageStub,
+} = require('./turnero-release-test-fixtures.js');
 
-async function importRepoModule(relativePath) {
-    return import(pathToFileURL(resolve(REPO_ROOT, relativePath)).href);
-}
+const storage = createLocalStorageStub();
+global.localStorage = storage;
 
-function installLocalStorageMock() {
-    const store = new Map();
-    global.localStorage = {
-        getItem(key) {
-            const normalizedKey = String(key);
-            return store.has(normalizedKey) ? store.get(normalizedKey) : null;
-        },
-        setItem(key, value) {
-            store.set(String(key), String(value));
-        },
-        removeItem(key) {
-            store.delete(String(key));
-        },
-        clear() {
-            store.clear();
-        },
-        entries() {
-            return Array.from(store.entries());
-        },
-    };
-    return store;
-}
+test.beforeEach(() => {
+    storage.clear();
+});
 
 class FakeElement {
-    constructor(tagName, ownerDocument) {
+    constructor(tagName = 'div', id = '') {
         this.tagName = String(tagName || 'div').toUpperCase();
-        this.ownerDocument = ownerDocument || null;
-        this.children = [];
-        this.parentElement = null;
+        this.id = String(id || '');
         this.dataset = {};
-        this.className = '';
-        this.hidden = false;
-        this.style = {};
         this.attributes = new Map();
-        this.eventListeners = new Map();
-        this.nodes = new Map();
-        this._id = '';
-        this._textContent = '';
-        this._innerHTML = '';
-        this._value = '';
-        this._type = '';
-    }
-
-    set id(value) {
-        this._id = String(value || '');
-        if (this.ownerDocument) {
-            this.ownerDocument.registerId(this);
-        }
-    }
-
-    get id() {
-        return this._id;
-    }
-
-    set textContent(value) {
-        this._textContent = String(value ?? '');
-        this._innerHTML = '';
         this.children = [];
-    }
-
-    get textContent() {
-        if (this._textContent) {
-            return this._textContent;
-        }
-        if (this.children.length > 0) {
-            return this.children
-                .map((child) => String(child.textContent || ''))
-                .join('');
-        }
-        return this._innerHTML;
+        this.listeners = new Map();
+        this.nodes = new Map();
+        this.className = '';
+        this.style = {};
+        this.hidden = false;
+        this.value = '';
+        this.clicked = false;
+        this.parentElement = null;
+        this._innerHTML = '';
+        this._textContent = '';
     }
 
     set innerHTML(value) {
@@ -99,91 +46,61 @@ class FakeElement {
         return this._innerHTML;
     }
 
-    set value(value) {
-        this._value = String(value ?? '');
-    }
-
-    get value() {
-        return this._value;
-    }
-
-    set type(value) {
-        this._type = String(value ?? '');
-    }
-
-    get type() {
-        return this._type;
-    }
-
-    querySelector(selector) {
-        const key = String(selector);
-        if (!this.nodes.has(key)) {
-            const node = new FakeElement(
-                key.includes('[data-field="')
-                    ? 'input'
-                    : key === '[data-role="brief"]'
-                      ? 'pre'
-                      : 'div'
-            );
-            this.nodes.set(key, node);
-        }
-        return this.nodes.get(key);
-    }
-
-    appendChild(child) {
-        if (!(child instanceof FakeElement)) {
-            throw new TypeError('FakeElement only accepts FakeElement children');
-        }
-
-        child.parentElement = this;
-        child.ownerDocument = this.ownerDocument;
-        this.children.push(child);
-        if (child.id && child.ownerDocument) {
-            child.ownerDocument.registerId(child);
-        }
-        return child;
-    }
-
-    replaceChildren(...nodes) {
-        this.children = [];
-        this._textContent = '';
+    set textContent(value) {
+        this._textContent = String(value ?? '');
         this._innerHTML = '';
-        nodes.filter(Boolean).forEach((node) => this.appendChild(node));
+        this.children = [];
     }
 
-    remove() {
-        if (this.parentElement) {
-            const index = this.parentElement.children.indexOf(this);
-            if (index >= 0) {
-                this.parentElement.children.splice(index, 1);
-            }
-            this.parentElement = null;
+    get textContent() {
+        if (this._textContent) {
+            return this._textContent;
         }
-        if (this.ownerDocument) {
-            this.ownerDocument.unregisterId(this);
+
+        if (this.children.length > 0) {
+            return this.children
+                .map((child) => String(child.textContent || ''))
+                .join('');
         }
+
+        return this._innerHTML;
     }
 
     setAttribute(name, value) {
         const normalizedName = String(name || '');
-        if (normalizedName === 'id') {
-            this.id = value;
-            return;
-        }
+        const normalizedValue = String(value ?? '');
         if (normalizedName === 'class') {
-            this.className = String(value || '');
+            this.className = normalizedValue;
             return;
         }
-        this.attributes.set(normalizedName, String(value || ''));
+        if (normalizedName === 'id') {
+            this.id = normalizedValue;
+            return;
+        }
+        if (normalizedName.startsWith('data-')) {
+            const datasetKey = normalizedName
+                .slice(5)
+                .replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase());
+            this.dataset[datasetKey] = normalizedValue;
+        }
+        this.attributes.set(normalizedName, normalizedValue);
     }
 
     getAttribute(name) {
         const normalizedName = String(name || '');
+        if (normalizedName === 'class') {
+            return this.className || null;
+        }
         if (normalizedName === 'id') {
             return this.id || null;
         }
-        if (normalizedName === 'class') {
-            return this.className || null;
+        if (normalizedName.startsWith('data-')) {
+            const datasetKey = normalizedName
+                .slice(5)
+                .replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase());
+            return Object.prototype.hasOwnProperty.call(this.dataset, datasetKey)
+                ? this.dataset[datasetKey]
+                : null;
         }
         return this.attributes.has(normalizedName)
             ? this.attributes.get(normalizedName)
@@ -192,35 +109,58 @@ class FakeElement {
 
     removeAttribute(name) {
         const normalizedName = String(name || '');
-        if (normalizedName === 'id') {
-            this.id = '';
-            return;
-        }
         if (normalizedName === 'class') {
             this.className = '';
             return;
         }
+        if (normalizedName === 'id') {
+            this.id = '';
+            return;
+        }
+        if (normalizedName.startsWith('data-')) {
+            const datasetKey = normalizedName
+                .slice(5)
+                .replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase());
+            delete this.dataset[datasetKey];
+        }
         this.attributes.delete(normalizedName);
     }
 
+    appendChild(child) {
+        this.children.push(child);
+        child.parentElement = this;
+        return child;
+    }
+
+    replaceChildren(...nodes) {
+        this.children = [];
+        this._innerHTML = '';
+        this._textContent = '';
+        nodes.filter(Boolean).forEach((node) => this.appendChild(node));
+    }
+
     addEventListener(type, handler) {
+        this.listeners.set(String(type || ''), handler);
+    }
+
+    removeEventListener(type, handler) {
         const normalizedType = String(type || '');
-        if (!this.eventListeners.has(normalizedType)) {
-            this.eventListeners.set(normalizedType, []);
+        if (this.listeners.get(normalizedType) === handler) {
+            this.listeners.delete(normalizedType);
         }
-        this.eventListeners.get(normalizedType).push(handler);
     }
 
     dispatchEvent(event) {
         const normalizedType = String(event?.type || '');
-        const listeners = this.eventListeners.get(normalizedType) || [];
-        listeners.forEach((listener) => {
+        const listener = this.listeners.get(normalizedType);
+        if (typeof listener === 'function') {
             listener.call(this, event);
-        });
+        }
         return true;
     }
 
     click() {
+        this.clicked = true;
         this.dispatchEvent({
             type: 'click',
             target: this,
@@ -229,230 +169,85 @@ class FakeElement {
             stopPropagation() {},
         });
     }
-}
 
-class FakeDocument {
-    constructor() {
-        this._ids = new Map();
-        this.head = new FakeElement('head', this);
-        this.body = new FakeElement('body', this);
-        this.documentElement = new FakeElement('html', this);
-    }
-
-    createElement(tagName) {
-        return new FakeElement(tagName, this);
-    }
-
-    getElementById(id) {
-        return this._ids.get(String(id || '')) || null;
-    }
-
-    querySelector(selector) {
-        if (String(selector || '').startsWith('#')) {
-            return this.getElementById(String(selector).slice(1));
+    closest(selector) {
+        const normalizedSelector = String(selector || '');
+        if (
+            (normalizedSelector === '[data-action]' ||
+                normalizedSelector === 'form[data-action]') &&
+            this.dataset.action
+        ) {
+            return this;
         }
+
         return null;
     }
 
-    registerId(element) {
-        if (element && element.id) {
-            this._ids.set(element.id, element);
-        }
-    }
-
-    unregisterId(element) {
-        if (element && element.id && this._ids.get(element.id) === element) {
-            this._ids.delete(element.id);
-        }
-    }
-}
-
-function installFakeDom() {
-    const document = new FakeDocument();
-    global.HTMLElement = FakeElement;
-    global.document = document;
-    return document;
-}
-
-function restoreGlobals() {
-    global.document = ORIGINAL_GLOBALS.document;
-    global.HTMLElement = ORIGINAL_GLOBALS.HTMLElement;
-    global.localStorage = ORIGINAL_GLOBALS.localStorage;
-}
-
-function buildClinicProfile(overrides = {}) {
-    return {
-        clinic_id: 'clinica-demo',
-        branding: {
-            name: 'Clinica Demo',
-            short_name: 'Demo',
-        },
-        ...overrides,
-    };
-}
-
-test.beforeEach(() => {
-    installLocalStorageMock();
-});
-
-test.afterEach(() => {
-    restoreGlobals();
-});
-
-test('package console renders and persists form actions', async () => {
-    const module = await importRepoModule(
-        'src/apps/queue-shared/turnero-admin-queue-surface-package-console.js'
-    );
-
-    const host = new FakeElement('div', 'queueSurfacePackageConsoleHost');
-    const clipboardWrites = [];
-    const downloadClicks = [];
-    const clinicProfile = buildClinicProfile({
-        clinic_id: 'clinica-package',
-        branding: {
-            name: 'Clinica Package',
-            short_name: 'Package',
-            city: 'Quito',
-        },
-        region: 'sierra',
-        surfaces: {
-            operator: { label: 'Turnero Operador', route: '/operador-turnos.html' },
-            kiosk: { label: 'Turnero Kiosco', route: '/kiosco-turnos.html' },
-            display: { label: 'Turnero Sala TV', route: '/sala-turnos.html' },
-        },
-    });
-
-    await withGlobals(
-        {
-            HTMLElement: FakeElement,
-            document: createDocumentStub(host, downloadClicks),
-            navigator: {
-                clipboard: {
-                    async writeText(value) {
-                        clipboardWrites.push(String(value));
-                    },
-                },
-            },
-            Blob: class BlobStub {
-                constructor(parts, options) {
-                    this.parts = parts;
-                    this.options = options;
-                }
-            },
-            URL: {
-                createObjectURL() {
-                    return 'blob:turnero-package';
-                },
-                revokeObjectURL() {},
-            },
-            setTimeout(callback) {
-                if (typeof callback === 'function') {
-                    callback();
-                }
-                return 0;
-            },
-        },
-        async () => {
-            const mounted = module.mountTurneroAdminQueueSurfacePackageConsole(
-                host,
-                {
-                    scope: 'regional',
-                    clinicProfile,
-                    snapshots: [
-                        {
-                            surfaceKey: 'operator',
-                            packageTier: 'pilot-plus',
-                            packageOwner: 'ops-lead',
-                            bundleState: 'watch',
-                            provisioningState: 'watch',
-                            onboardingKitState: 'draft',
-                        },
-                        {
-                            surfaceKey: 'kiosk',
-                            packageTier: 'pilot',
-                            packageOwner: '',
-                            bundleState: 'draft',
-                            provisioningState: 'draft',
-                            onboardingKitState: 'draft',
-                        },
-                        {
-                            surfaceKey: 'display',
-                            packageTier: 'pilot-plus',
-                            packageOwner: 'ops-display',
-                            bundleState: 'ready',
-                            provisioningState: 'ready',
-                            onboardingKitState: 'ready',
-                        },
-                    ],
-                    checklist: {
-                        summary: {
-                            all: 6,
-                            pass: 4,
-                            fail: 2,
-                        },
-                    },
-                }
+    querySelector(selector) {
+        const normalizedSelector = String(selector || '');
+        if (!this.nodes.has(normalizedSelector)) {
+            this.nodes.set(
+                normalizedSelector,
+                this.createNodeForSelector(normalizedSelector)
             );
-
-            assert.ok(mounted);
-            assert.match(host.textContent, /Surface Package Standardization/);
-
-            const clickHandlers = mounted.root.eventListeners.get('click') || [];
-            const clickHandler = clickHandlers[0];
-
-            await clickHandler({ target: createActionTarget('copy-brief') });
-            await clickHandler({ target: createActionTarget('download-json') });
-            await clickHandler({ target: createActionTarget('refresh') });
-
-            assert.equal(mounted.state.surfacePacks.length, 3);
-            assert.equal(mounted.state.gate.band, 'blocked');
-            assert.equal(clipboardWrites.length, 1);
-            assert.equal(downloadClicks.length, 1);
-            assert.match(host.textContent, /Turnero Operador/);
-            assert.match(host.textContent, /Turnero Sala TV/);
         }
-    );
-});
 
-function createDocumentStub(host, downloadClicks) {
-    const head = new FakeElement('head', null);
-    const body = new FakeElement('body', null);
+        return this.nodes.get(normalizedSelector);
+    }
 
-    return {
-        head,
-        body,
-        createElement(tag) {
-            const node = new FakeElement(tag);
-            if (tag === 'a') {
-                node.click = () => {
-                    downloadClicks.push({
-                        download: node.download,
-                        href: node.href,
-                    });
-                };
+    createNodeForSelector(selector) {
+        const normalizedSelector = String(selector || '');
+        let tagName = 'div';
+
+        if (normalizedSelector.includes('[data-role="brief"]')) {
+            tagName = 'pre';
+        } else if (normalizedSelector.includes('[data-field="')) {
+            tagName = normalizedSelector.includes('textarea') ? 'textarea' : 'input';
+        } else if (
+            normalizedSelector.includes('form[data-action]') ||
+            normalizedSelector.includes('[data-action="')
+        ) {
+            tagName = normalizedSelector.includes('form[data-action]')
+                ? 'form'
+                : 'button';
+        } else if (normalizedSelector.includes('[data-role="chips"]')) {
+            tagName = 'div';
+        } else if (normalizedSelector.includes('[data-role="banner"]')) {
+            tagName = 'div';
+        } else if (normalizedSelector.includes('[data-surface-key="')) {
+            tagName = 'article';
+        }
+
+        const node = new FakeElement(tagName);
+
+        if (normalizedSelector.includes('[data-surface-key="')) {
+            const match = normalizedSelector.match(/\[data-surface-key="([^"]+)"\]/);
+            if (match) {
+                node.dataset.surfaceKey = match[1];
             }
-            return node;
-        },
-        getElementById(id) {
-            return String(id) === 'queueSurfacePackageConsoleHost'
-                ? host
-                : null;
-        },
-        querySelector() {
-            return null;
-        },
-    };
+        }
+
+        if (normalizedSelector.includes('[data-action="')) {
+            const match = normalizedSelector.match(/\[data-action="([^"]+)"\]/);
+            if (match) {
+                node.dataset.action = match[1];
+            }
+        }
+
+        return node;
+    }
+
+    remove() {
+        if (this.parentElement) {
+            this.parentElement.children = this.parentElement.children.filter(
+                (child) => child !== this
+            );
+            this.parentElement = null;
+        }
+    }
 }
 
-function createActionTarget(action) {
-    const target = new FakeElement('button');
-    target.dataset.action = action;
-    target.closest = (selector) =>
-        String(selector || '').includes('[data-action]') ? target : null;
-    return target;
-}
-
-async function withGlobals(setup, callback) {
+function withGlobals(setup, callback) {
     const previous = {};
     for (const [key, value] of Object.entries(setup)) {
         previous[key] = Object.getOwnPropertyDescriptor(global, key);
@@ -464,15 +259,369 @@ async function withGlobals(setup, callback) {
         });
     }
 
-    try {
-        return await callback();
-    } finally {
-        for (const [key, descriptor] of Object.entries(previous)) {
-            if (!descriptor) {
-                delete global[key];
-            } else {
+    return Promise.resolve()
+        .then(callback)
+        .finally(() => {
+            for (const [key, descriptor] of Object.entries(previous)) {
+                if (!descriptor) {
+                    delete global[key];
+                    continue;
+                }
+
                 Object.defineProperty(global, key, descriptor);
             }
-        }
-    }
+        });
 }
+
+function createDocumentStub(host, downloadClicks, downloadEvents) {
+    const head = new FakeElement('head', 'head');
+    const body = new FakeElement('body', 'body');
+
+    return {
+        head,
+        body,
+        createElement(tagName) {
+            if (String(tagName || '').toLowerCase() === 'a') {
+                const anchor = new FakeElement('a');
+                anchor.click = () => {
+                    anchor.clicked = true;
+                    downloadEvents.push({
+                        kind: 'anchor-click',
+                        download: anchor.download,
+                    });
+                    downloadClicks.push({
+                        download: anchor.download,
+                        href: anchor.href,
+                        rel: anchor.rel,
+                        clicked: true,
+                    });
+                };
+                return anchor;
+            }
+
+            return new FakeElement(tagName);
+        },
+        getElementById(id) {
+            return String(id) === String(host.id) ? host : null;
+        },
+        querySelector() {
+            return null;
+        },
+    };
+}
+
+function buildConsoleInput() {
+    const clinicProfile = buildClinicProfile({
+        clinic_id: 'clinica-console',
+        branding: {
+            name: 'Clinica Console',
+            short_name: 'Console',
+            city: 'Quito',
+        },
+        region: 'sierra',
+        surfaces: {
+            operator: {
+                label: 'Turnero Operador',
+            },
+            kiosk: {
+                label: 'Turnero Kiosco',
+            },
+            display: {
+                label: 'Turnero Sala TV',
+            },
+        },
+    });
+
+    return {
+        clinicProfile,
+        scope: 'regional',
+        releaseManifest: {
+            id: 'release-console',
+            version: '2026.03.20',
+        },
+        surfaceRegistry: {
+            operator: {
+                label: 'Turnero Operador',
+            },
+            kiosk: {
+                label: 'Turnero Kiosco',
+            },
+            display: {
+                label: 'Turnero Sala TV',
+            },
+        },
+        snapshots: [
+            {
+                surfaceKey: 'operator-turnos',
+                runtimeState: 'ready',
+                truth: 'watch',
+                packageTier: 'pilot-plus',
+                bundleState: 'watch',
+                provisioningState: 'watch',
+                onboardingKitState: 'draft',
+                checklist: { summary: { all: 4, pass: 3, fail: 1 } },
+            },
+            {
+                surfaceKey: 'kiosco-turnos',
+                runtimeState: 'ready',
+                truth: 'watch',
+                packageTier: 'pilot',
+                bundleState: 'draft',
+                provisioningState: 'watch',
+                onboardingKitState: 'draft',
+                checklist: { summary: { all: 4, pass: 2, fail: 2 } },
+            },
+            {
+                surfaceKey: 'sala-turnos',
+                runtimeState: 'ready',
+                truth: 'aligned',
+                packageTier: 'pilot-plus',
+                bundleState: 'ready',
+                provisioningState: 'watch',
+                onboardingKitState: 'draft',
+                checklist: { summary: { all: 4, pass: 3, fail: 1 } },
+            },
+        ],
+        checklist: { summary: { all: 6, pass: 4, fail: 2 } },
+    };
+}
+
+function createActionButton(action) {
+    const button = new FakeElement('button');
+    button.dataset.action = action;
+    return button;
+}
+
+function createActionForm(action) {
+    const form = new FakeElement('form');
+    form.dataset.action = action;
+    return form;
+}
+
+function setFieldValue(form, selector, value) {
+    form.querySelector(selector).value = value;
+}
+
+test('console html renders package surfaces and actions', async () => {
+    const module = await loadModule(
+        'src/apps/queue-shared/turnero-admin-queue-surface-package-console.js'
+    );
+
+    const html = module.buildTurneroAdminQueueSurfacePackageConsoleHtml(
+        buildConsoleInput()
+    );
+
+    assert.match(html, /Surface Package Standardization/);
+    assert.match(html, /Copy brief/);
+    assert.match(html, /Download JSON/);
+    assert.match(html, /Add entry/);
+    assert.match(html, /Add owner/);
+    assert.match(html, /Turnero Operador/);
+    assert.match(html, /Turnero Kiosco/);
+    assert.match(html, /Turnero Sala TV/);
+    assert.match(html, /data-role="banner"/);
+    assert.match(html, /data-role="chips"/);
+});
+
+test('mount wires copy/download plus add-entry and add-owner flows', async () => {
+    const clipboardTexts = [];
+    const downloadClicks = [];
+    const downloadEvents = [];
+    const consoleInput = buildConsoleInput();
+    const ledgerModule = await loadModule(
+        'src/apps/queue-shared/turnero-surface-package-ledger.js'
+    );
+    const ownerModule = await loadModule(
+        'src/apps/queue-shared/turnero-surface-package-owner-store.js'
+    );
+    const host = new FakeElement('div', 'queueSurfacePackageConsoleHost');
+
+    await withGlobals(
+        {
+            HTMLElement: FakeElement,
+            document: createDocumentStub(host, downloadClicks, downloadEvents),
+            navigator: {
+                clipboard: {
+                    writeText: async (text) => {
+                        clipboardTexts.push(String(text));
+                    },
+                },
+            },
+            Blob: class BlobStub {
+                constructor(parts, options) {
+                    this.parts = parts;
+                    this.options = options;
+                    downloadEvents.push({ kind: 'blob', parts, options });
+                }
+            },
+            URL: {
+                createObjectURL(blob) {
+                    downloadEvents.push({ kind: 'url', blob });
+                    return 'blob:turnero-surface-package-console';
+                },
+                revokeObjectURL(href) {
+                    downloadEvents.push({ kind: 'revoke', href });
+                },
+            },
+            setTimeout(fn) {
+                downloadEvents.push({ kind: 'timeout' });
+                fn();
+                return 0;
+            },
+        },
+        async () => {
+            const module = await loadModule(
+                'src/apps/queue-shared/turnero-admin-queue-surface-package-console.js'
+            );
+
+            const result = module.mountTurneroAdminQueueSurfacePackageConsole(
+                host,
+                consoleInput
+            );
+
+            assert.ok(result);
+            assert.equal(result.root, host.children[0]);
+            assert.equal(host.children[0], result.root);
+            assert.equal(
+                result.root.dataset.turneroAdminQueueSurfacePackageConsole,
+                'mounted'
+            );
+            assert.equal(
+                result.root.dataset.turneroAdminQueueSurfacePackageScope,
+                'regional'
+            );
+            assert.equal(result.state.surfacePacks.length, 3);
+            assert.match(result.root.innerHTML, /Surface Package Standardization/);
+            assert.match(result.root.innerHTML, /Add entry/);
+            assert.match(result.root.innerHTML, /Add owner/);
+
+            const overviewBanner = result.root.querySelector('[data-role="banner"]');
+            assert.match(
+                overviewBanner.innerHTML,
+                /Surface Package Standardization/
+            );
+
+            const operatorCard = result.root.querySelector(
+                '[data-surface-key="operator"]'
+            );
+            const kioskCard = result.root.querySelector(
+                '[data-surface-key="kiosk"]'
+            );
+            const displayCard = result.root.querySelector(
+                '[data-surface-key="display"]'
+            );
+
+            assert.equal(
+                operatorCard.querySelector('[data-role="chips"]').children.length,
+                3
+            );
+            assert.match(
+                operatorCard.querySelector('[data-role="banner"]').innerHTML,
+                /Turnero Operador/
+            );
+            assert.match(
+                kioskCard.querySelector('[data-role="banner"]').innerHTML,
+                /Turnero Kiosco/
+            );
+            assert.match(
+                displayCard.querySelector('[data-role="banner"]').innerHTML,
+                /Turnero Sala TV/
+            );
+
+            const clickHandler = result.root.listeners.get('click');
+            const submitHandler = result.root.listeners.get('submit');
+            assert.equal(typeof clickHandler, 'function');
+            assert.equal(typeof submitHandler, 'function');
+
+            await clickHandler({
+                preventDefault() {},
+                target: createActionButton('copy-brief'),
+            });
+            await clickHandler({
+                preventDefault() {},
+                target: createActionButton('download-json'),
+            });
+
+            assert.equal(clipboardTexts.length, 1);
+            assert.match(clipboardTexts[0], /# Surface Package Standardization/);
+            assert.equal(downloadClicks.length, 1);
+            assert.equal(
+                downloadClicks[0].download,
+                'turnero-surface-package-console.json'
+            );
+            assert.ok(downloadEvents.some((event) => event.kind === 'blob'));
+            assert.ok(downloadEvents.some((event) => event.kind === 'url'));
+            assert.ok(
+                downloadEvents.some((event) => event.kind === 'anchor-click')
+            );
+
+            const entryForm = createActionForm('add-entry');
+            setFieldValue(entryForm, '[data-field="entry-surface-key"]', 'kiosk');
+            setFieldValue(entryForm, '[data-field="entry-kind"]', 'bundle');
+            setFieldValue(entryForm, '[data-field="entry-status"]', 'ready');
+            setFieldValue(entryForm, '[data-field="entry-owner"]', 'ops');
+            setFieldValue(entryForm, '[data-field="entry-title"]', 'Kiosk bundle');
+            setFieldValue(
+                entryForm,
+                '[data-field="entry-note"]',
+                'Bundle listo para kiosko.'
+            );
+
+            submitHandler({
+                preventDefault() {},
+                target: entryForm,
+            });
+
+            const freshLedgerStore =
+                ledgerModule.createTurneroSurfacePackageLedger(
+                    'regional',
+                    consoleInput.clinicProfile
+                );
+            const freshOwnerStore =
+                ownerModule.createTurneroSurfacePackageOwnerStore(
+                    'regional',
+                    consoleInput.clinicProfile
+                );
+
+            assert.equal(
+                freshLedgerStore.list({ surfaceKey: 'kiosk' }).length,
+                1
+            );
+            assert.equal(
+                freshLedgerStore.list({ surfaceKey: 'kiosk' })[0].title,
+                'Kiosk bundle'
+            );
+
+            const ownerForm = createActionForm('add-owner');
+            setFieldValue(ownerForm, '[data-field="owner-surface-key"]', 'kiosk');
+            setFieldValue(ownerForm, '[data-field="owner-actor"]', 'carla');
+            setFieldValue(ownerForm, '[data-field="owner-role"]', 'package');
+            setFieldValue(ownerForm, '[data-field="owner-status"]', 'active');
+            setFieldValue(
+                ownerForm,
+                '[data-field="owner-note"]',
+                'Primary package owner.'
+            );
+
+            submitHandler({
+                preventDefault() {},
+                target: ownerForm,
+            });
+
+            assert.equal(
+                freshOwnerStore.list({ surfaceKey: 'kiosk' }).length,
+                1
+            );
+            assert.equal(
+                freshOwnerStore.list({ surfaceKey: 'kiosk' })[0].actor,
+                'carla'
+            );
+
+            assert.equal(result.root.listeners.has('click'), true);
+            assert.equal(result.root.listeners.has('submit'), true);
+            result.destroy();
+            assert.equal(result.root.listeners.has('click'), false);
+            assert.equal(result.root.listeners.has('submit'), false);
+        }
+    );
+});

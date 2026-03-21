@@ -171,18 +171,17 @@ class SystemController
             }
         }
 
-        // Output standard metrics
-        echo Metrics::export();
+        $output = Metrics::export();
 
         // Output business metrics
         foreach ($revenueByDate as $date => $amount) {
-            echo "\n# TYPE pielarmonia_revenue_daily_total gauge";
-            echo "\npielarmonia_revenue_daily_total{date=\"$date\"} $amount";
+            $output .= "\n# TYPE auroraderm_revenue_daily_total gauge";
+            $output .= "\nauroraderm_revenue_daily_total{date=\"$date\"} $amount";
         }
 
         foreach ($stats as $st => $count) {
-            echo "\n# TYPE pielarmonia_appointments_total gauge";
-            echo "\npielarmonia_appointments_total{status=\"$st\"} $count";
+            $output .= "\n# TYPE auroraderm_appointments_total gauge";
+            $output .= "\nauroraderm_appointments_total{status=\"$st\"} $count";
         }
 
         $totalValid = $stats['confirmed'] + $stats['no_show'] + $stats['completed'];
@@ -195,22 +194,22 @@ class SystemController
             }
         }
         $recurrenceRate = $uniquePatients > 0 ? ($recurrentPatients / $uniquePatients) : 0;
-        echo "\n# TYPE pielarmonia_no_show_rate gauge";
-        echo "\npielarmonia_no_show_rate $rate";
-        echo "\n# TYPE pielarmonia_no_show_total gauge";
-        echo "\npielarmonia_no_show_total {$stats['no_show']}";
-        echo "\n# TYPE pielarmonia_patients_unique_total gauge";
-        echo "\npielarmonia_patients_unique_total $uniquePatients";
-        echo "\n# TYPE pielarmonia_patients_recurrent_total gauge";
-        echo "\npielarmonia_patients_recurrent_total $recurrentPatients";
-        echo "\n# TYPE pielarmonia_patient_recurrence_rate gauge";
-        echo "\npielarmonia_patient_recurrence_rate $recurrenceRate\n";
+        $output .= "\n# TYPE auroraderm_no_show_rate gauge";
+        $output .= "\nauroraderm_no_show_rate $rate";
+        $output .= "\n# TYPE auroraderm_no_show_total gauge";
+        $output .= "\nauroraderm_no_show_total {$stats['no_show']}";
+        $output .= "\n# TYPE auroraderm_patients_unique_total gauge";
+        $output .= "\nauroraderm_patients_unique_total $uniquePatients";
+        $output .= "\n# TYPE auroraderm_patients_recurrent_total gauge";
+        $output .= "\nauroraderm_patients_recurrent_total $recurrentPatients";
+        $output .= "\n# TYPE auroraderm_patient_recurrence_rate gauge";
+        $output .= "\nauroraderm_patient_recurrence_rate $recurrenceRate\n";
 
         // Store File Size
         $storeSize = @filesize(data_file_path());
         if ($storeSize !== false) {
-            echo "\n# TYPE pielarmonia_store_file_size_bytes gauge";
-            echo "\npielarmonia_store_file_size_bytes $storeSize";
+            $output .= "\n# TYPE auroraderm_store_file_size_bytes gauge";
+            $output .= "\nauroraderm_store_file_size_bytes $storeSize";
         }
 
         // Service Popularity
@@ -228,16 +227,16 @@ class SystemController
             }
         }
         foreach ($serviceCounts as $svc => $count) {
-            echo "\n# TYPE pielarmonia_service_popularity_total gauge";
-            echo "\npielarmonia_service_popularity_total{service=\"$svc\"} $count";
+            $output .= "\n# TYPE auroraderm_service_popularity_total gauge";
+            $output .= "\nauroraderm_service_popularity_total{service=\"$svc\"} $count";
         }
 
-        echo TelemedicineOpsSnapshot::renderPrometheusMetrics(
+        $output .= TelemedicineOpsSnapshot::renderPrometheusMetrics(
             TelemedicineOpsSnapshot::build($store)
         );
-        echo LeadOpsService::renderPrometheusMetrics($store);
+        $output .= LeadOpsService::renderPrometheusMetrics($store);
         if (function_exists('whatsapp_openclaw_render_prometheus_metrics')) {
-            echo whatsapp_openclaw_render_prometheus_metrics($store);
+            $output .= whatsapp_openclaw_render_prometheus_metrics($store);
         }
 
         // Lead Time (Last 30 days)
@@ -261,9 +260,11 @@ class SystemController
         }
         if (count($leadTimes) > 0) {
             $avgLead = array_sum($leadTimes) / count($leadTimes);
-            echo "\n# TYPE pielarmonia_lead_time_seconds_avg gauge";
-            echo "\npielarmonia_lead_time_seconds_avg $avgLead\n";
+            $output .= "\n# TYPE auroraderm_lead_time_seconds_avg gauge";
+            $output .= "\nauroraderm_lead_time_seconds_avg $avgLead\n";
         }
+
+        echo app_prometheus_alias_output($output);
 
         if (defined('TESTING_ENV') && !defined('TESTING_FORCE_EXIT')) {
             return;

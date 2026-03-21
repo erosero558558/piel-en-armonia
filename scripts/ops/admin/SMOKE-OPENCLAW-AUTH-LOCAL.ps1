@@ -11,7 +11,7 @@ $nodeCommand = Get-Command node -ErrorAction Stop
 
 if (-not [string]::IsNullOrWhiteSpace($ServerBaseUrl)) {
     [Environment]::SetEnvironmentVariable(
-        'PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL',
+        'AURORADERM_OPERATOR_AUTH_SERVER_BASE_URL',
         $ServerBaseUrl.Trim(),
         'Process'
     )
@@ -24,3 +24,4 @@ if ($Json) {
 
 & $nodeCommand.Source @arguments
 exit $LASTEXITCODE
+

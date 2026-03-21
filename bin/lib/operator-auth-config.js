@@ -1,8 +1,37 @@
 'use strict';
 
+function envCandidates(name) {
+    const normalized = String(name || '').trim();
+    if (!normalized) {
+        return [];
+    }
+
+    if (normalized.startsWith('AURORADERM_')) {
+        return [
+            normalized,
+            `PIELARMONIA_${normalized.slice('AURORADERM_'.length)}`,
+        ];
+    }
+
+    if (normalized.startsWith('PIELARMONIA_')) {
+        return [
+            `AURORADERM_${normalized.slice('PIELARMONIA_'.length)}`,
+            normalized,
+        ];
+    }
+
+    return [normalized];
+}
+
 function env(name, fallback = '') {
-    const value = process.env[name];
-    return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+    for (const candidate of envCandidates(name)) {
+        const value = process.env[candidate];
+        if (typeof value === 'string' && value.trim()) {
+            return value.trim();
+        }
+    }
+
+    return fallback;
 }
 
 function firstNonEmpty(...values) {
@@ -32,11 +61,11 @@ function normalizeHelperBasePath(pathname) {
 function loadOpenClawOperatorAuthConfig(overrides = {}) {
     const bridgeToken = firstNonEmpty(
         overrides.bridgeToken,
-        env('PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN')
+        env('AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN')
     );
     const transport = firstNonEmpty(
         overrides.transport,
-        env('PIELARMONIA_OPERATOR_AUTH_TRANSPORT', 'local_helper')
+        env('AURORADERM_OPERATOR_AUTH_TRANSPORT', 'local_helper')
     );
 
     return {
@@ -44,10 +73,7 @@ function loadOpenClawOperatorAuthConfig(overrides = {}) {
         helperBaseUrl: trimTrailingSlash(
             firstNonEmpty(
                 overrides.helperBaseUrl,
-                env(
-                    'PIELARMONIA_OPERATOR_AUTH_HELPER_BASE_URL',
-                    'http://127.0.0.1:4173'
-                )
+                env('AURORADERM_OPERATOR_AUTH_HELPER_BASE_URL', 'http://127.0.0.1:4173')
             )
         ),
         runtimeBaseUrl: trimTrailingSlash(
@@ -59,24 +85,21 @@ function loadOpenClawOperatorAuthConfig(overrides = {}) {
         bridgeToken,
         bridgeSecret: firstNonEmpty(
             overrides.bridgeSecret,
-            env('PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET'),
+            env('AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET'),
             bridgeToken
         ),
         bridgeHeader: firstNonEmpty(
             overrides.bridgeHeader,
-            env(
-                'PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN_HEADER',
-                'Authorization'
-            )
+            env('AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN_HEADER', 'Authorization')
         ),
         bridgePrefix: firstNonEmpty(
             overrides.bridgePrefix,
-            env('PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN_PREFIX', 'Bearer')
+            env('AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN_PREFIX', 'Bearer')
         ),
         helperDeviceId: firstNonEmpty(
             overrides.helperDeviceId,
             env('OPENCLAW_HELPER_DEVICE_ID'),
-            env('PIELARMONIA_OPERATOR_AUTH_DEVICE_ID')
+            env('AURORADERM_OPERATOR_AUTH_DEVICE_ID')
         ),
         brokerAuthorizeUrl: trimTrailingSlash(
             firstNonEmpty(
@@ -126,7 +149,7 @@ function loadOpenClawOperatorAuthConfig(overrides = {}) {
         allowAnyAuthenticatedEmail:
             firstNonEmpty(
                 overrides.allowAnyAuthenticatedEmail,
-                env('PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL')
+                env('AURORADERM_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL')
             ).toLowerCase() === 'true',
     };
 }
@@ -168,7 +191,9 @@ function buildOpenClawGatewayHeaders() {
 function buildOperatorAuthBridgeHeaders(overrides = {}) {
     const config = loadOpenClawOperatorAuthConfig(overrides);
     if (!config.bridgeToken) {
-        throw new Error('Falta PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN');
+        throw new Error(
+            'Falta AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN. El alias PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN sigue disponible temporalmente.'
+        );
     }
 
     return {

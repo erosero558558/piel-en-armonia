@@ -1,6 +1,20 @@
 # Registros de Decisiones de Arquitectura (ADRs)
 
-Este documento registra las decisiones de arquitectura significativas para el proyecto Piel en Armonía, su contexto y las consecuencias.
+Este documento registra las decisiones de arquitectura significativas del repo.
+
+Marco canonico actual:
+
+- `Flow OS` es la plataforma.
+- `Aurora Derm` es la operacion clinica activa sobre esa plataforma.
+- `admin`, `queue/turnero`, `OpenClaw` y `LeadOps` son subsistemas del mismo stack.
+- `patient-flow-os`, `sony_v3` y `PIELARMONIA_*` permanecen como compatibilidad tecnica mientras termina el rebrand.
+
+Mapa rapido:
+
+- entrada y narrativa: `README.md`, `docs/FLOW_OS_FOUNDATION.md`
+- frontend y shells: `src/apps/**`, `admin.html`, `admin.js`
+- backend y contratos: `api.php`, `controllers/**`, `lib/**`
+- operacion y runbooks: `docs/OPERATIONS_INDEX.md`, `docs/RUNBOOKS.md`, `scripts/ops/**`
 
 ---
 
@@ -15,7 +29,7 @@ El sistema necesita almacenar citas, reseñas y solicitudes de devolución de ll
 Utilizar almacenamiento basado en archivos JSON (`data/store.json`) en lugar de una base de datos relacional (MySQL/PostgreSQL).
 
 - **Implementación:** `lib/storage.php` gestiona la lectura/escritura con bloqueo de archivos (`flock`) para evitar condiciones de carrera.
-- **Seguridad:** Los datos sensibles se cifran en reposo utilizando `AES-256-GCM` si se configura `PIELARMONIA_DATA_ENCRYPTION_KEY`.
+- **Seguridad:** Los datos sensibles se cifran en reposo utilizando `AES-256-GCM` si se configura `AURORADERM_DATA_ENCRYPTION_KEY`.
 - **Backup:** Se generan copias automáticas en `data/backups/` antes de cada escritura.
 
 **Consecuencias:**

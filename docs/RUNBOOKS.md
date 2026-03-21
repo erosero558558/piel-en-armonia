@@ -1,7 +1,7 @@
-# Runbooks Operacionales - Piel en Armonia
+# Runbooks Operacionales - Aurora Derm
 
 Este documento detalla los procedimientos estandar para la operacion,
-despliegue y respuesta a incidentes del sistema Piel en Armonia.
+despliegue y respuesta a incidentes del sistema Aurora Derm.
 
 ## 1. Despliegue (Deployment)
 
@@ -334,11 +334,11 @@ curl -s "https://pielarmonia.com/cron.php?action=backup-offsite&dryRun=1" -H "Au
 
 **Variables requeridas para offsite real:**
 
-- `PIELARMONIA_BACKUP_OFFSITE_URL`
-- `PIELARMONIA_BACKUP_OFFSITE_TOKEN` (opcional)
-- `PIELARMONIA_BACKUP_OFFSITE_TOKEN_HEADER` (opcional)
-- `PIELARMONIA_BACKUP_MAX_AGE_HOURS` (opcional)
-- `PIELARMONIA_BACKUP_LOCAL_REPLICA` (opcional, default `true`)
+- `AURORADERM_BACKUP_OFFSITE_URL`
+- `AURORADERM_BACKUP_OFFSITE_TOKEN` (opcional)
+- `AURORADERM_BACKUP_OFFSITE_TOKEN_HEADER` (opcional)
+- `AURORADERM_BACKUP_MAX_AGE_HOURS` (opcional)
+- `AURORADERM_BACKUP_LOCAL_REPLICA` (opcional, default `true`)
 
 Si no configuras endpoint remoto, `backup-offsite` replica localmente en
 `data/backups/offsite-local/`.
@@ -346,14 +346,14 @@ Si no configuras endpoint remoto, `backup-offsite` replica localmente en
 Para replica remota real:
 
 - Publica `backup-receiver.php` en el servidor destino.
-- Configura `PIELARMONIA_BACKUP_RECEIVER_TOKEN` en destino.
+- Configura `AURORADERM_BACKUP_RECEIVER_TOKEN` en destino.
 - Configura en destino:
-    - `PIELARMONIA_BACKUP_RECEIVER_REQUIRE_CHECKSUM=true`
-    - `PIELARMONIA_BACKUP_RECEIVER_ENCRYPTION_KEY=<clave_rotada>`
-    - `PIELARMONIA_BACKUP_RECEIVER_RETENTION_DAYS=30`
+    - `AURORADERM_BACKUP_RECEIVER_REQUIRE_CHECKSUM=true`
+    - `AURORADERM_BACKUP_RECEIVER_ENCRYPTION_KEY=<clave_rotada>`
+    - `AURORADERM_BACKUP_RECEIVER_RETENTION_DAYS=30`
 - Configura en origen:
-  `PIELARMONIA_BACKUP_OFFSITE_URL=https://DESTINO/backup-receiver.php`
-  `PIELARMONIA_BACKUP_OFFSITE_TOKEN=<mismo_token>`
+  `AURORADERM_BACKUP_OFFSITE_URL=https://DESTINO/backup-receiver.php`
+  `AURORADERM_BACKUP_OFFSITE_TOKEN=<mismo_token>`
 - Usa `CONFIGURAR-BACKUP-OFFSITE.ps1` para generar token y comandos.
   Implementacion canonica:
   `scripts/ops/setup/CONFIGURAR-BACKUP-OFFSITE.ps1`.
@@ -465,3 +465,4 @@ Una vez revertido el cambio, ejecutar las siguientes validaciones:
 3.  **Logs:**
     - [ ] Verificar que no hay nuevos errores fatales en `php.log` o
           `error_log`.
+

@@ -28,7 +28,7 @@ Set the following environment variables in your hosting panel or `.env` file (if
 - **Backend (PHP)**:
 
     ```bash
-    PIELARMONIA_SENTRY_DSN="https://examplePublicKey@o0.ingest.sentry.io/0"
+    AURORADERM_SENTRY_DSN="https://examplePublicKey@o0.ingest.sentry.io/0"
     ```
 
     _Tracks uncaught PHP exceptions and API errors._
@@ -36,14 +36,14 @@ Set the following environment variables in your hosting panel or `.env` file (if
 - **Frontend (JS)**:
 
     ```bash
-    PIELARMONIA_SENTRY_DSN_PUBLIC="https://examplePublicKey@o0.ingest.sentry.io/0"
+    AURORADERM_SENTRY_DSN_PUBLIC="https://examplePublicKey@o0.ingest.sentry.io/0"
     ```
 
     _Tracks JavaScript errors in the browser via `js/monitoring-loader.js`._
 
 - **Environment Name** (Optional, defaults to 'production'):
     ```bash
-    PIELARMONIA_SENTRY_ENV="production"
+    AURORADERM_SENTRY_ENV="production"
     ```
 
 ## 3. Logs Aggregation (Papertrail)
@@ -72,3 +72,4 @@ If logs are not appearing in Papertrail:
 1. Ensure the `sockets` extension is enabled in PHP (usually enabled by default).
 2. Check if outbound UDP traffic on the specified port is allowed by the hosting firewall.
 3. Check the standard server error log (`php://stderr`) as the application falls back to it if Papertrail is unreachable.
+

@@ -69,10 +69,10 @@ Add-ChecklistLine
 Add-ChecklistSection 'Variables locales'
 Add-ChecklistBullet 'Valida presencia local sin imprimir secretos completos antes de abrir el helper.'
 Add-ChecklistCommandBlock -Commands @(
-    '$required = @("PIELARMONIA_OPERATOR_AUTH_MODE","PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL","PIELARMONIA_OPERATOR_AUTH_HELPER_BASE_URL","PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN","PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET","OPENCLAW_RUNTIME_BASE_URL")',
+    '$required = @("AURORADERM_OPERATOR_AUTH_MODE","AURORADERM_OPERATOR_AUTH_SERVER_BASE_URL","AURORADERM_OPERATOR_AUTH_HELPER_BASE_URL","AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN","AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET","OPENCLAW_RUNTIME_BASE_URL")',
     '$required | ForEach-Object { $value = [Environment]::GetEnvironmentVariable($_, "Process"); if ([string]::IsNullOrWhiteSpace($value)) { $value = [Environment]::GetEnvironmentVariable($_, "User") }; if ([string]::IsNullOrWhiteSpace($value)) { "{0}=missing" -f $_ } else { "{0}=set" -f $_ } }',
-    '$env:PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL = "' + $base + '"',
-    '$env:PIELARMONIA_OPERATOR_AUTH_HELPER_BASE_URL = "' + $HelperBaseUrl + '"',
+    '$env:AURORADERM_OPERATOR_AUTH_SERVER_BASE_URL = "' + $base + '"',
+    '$env:AURORADERM_OPERATOR_AUTH_HELPER_BASE_URL = "' + $HelperBaseUrl + '"',
     '$env:OPENCLAW_RUNTIME_BASE_URL = "' + $RuntimeBaseUrl + '"'
 )
 
@@ -118,7 +118,7 @@ Add-ChecklistBullet 'admin-auth status=autenticado: el login OpenClaw quedo oper
 Add-ChecklistLine
 
 Add-ChecklistSection 'Criterio de cierre'
-Add-ChecklistBullet 'PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt'
+Add-ChecklistBullet 'AURORADERM_OPERATOR_AUTH_MODE=openclaw_chatgpt'
 Add-ChecklistBullet 'openclaw:auth-preflight -> ok=true'
 Add-ChecklistBullet 'openclaw:auth-preflight -> readyForLogin=true o nextAction explicita de login pendiente'
 Add-ChecklistBullet 'api.php?resource=operator-auth-status -> configured=true'

@@ -146,7 +146,7 @@ $initialPayload = build_app_downloads_runtime_payload([
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Instaladores opcionales del turnero - Piel en Armonia</title>
+        <title>Instaladores opcionales del turnero - Aurora Derm</title>
         <meta
             name="description"
             content="Instaladores opcionales del turnero para el siguiente release. El piloto estable actual corre por web."

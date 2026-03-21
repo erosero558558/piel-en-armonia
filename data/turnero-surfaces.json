@@ -150,7 +150,7 @@
             "route": "/sala-turnos.html",
             "productName": "Turnero Sala TV",
             "artifactBase": "TurneroSalaTV",
-            "appId": "com.pielarmonia.turnerosalatv",
+            "appId": "com.auroraderm.turnerosalatv",
             "webFallbackUrl": "/sala-turnos.html",
             "guideUrl": "/app-downloads/?surface=sala_tv",
             "updateChannel": "stable",

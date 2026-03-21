@@ -59,7 +59,7 @@ function buildFallbackFinance(input = {}) {
                 input.brandName ||
                 input.branding?.short_name ||
                 input.branding?.name ||
-                'Piel en Armonia',
+                'Aurora Derm',
             capex: input.capex ?? 1200,
             monthlyOpex: input.monthlyOpex ?? 280,
             supportCost: input.supportCost ?? 180,

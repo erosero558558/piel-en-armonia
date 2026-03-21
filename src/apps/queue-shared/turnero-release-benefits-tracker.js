@@ -65,7 +65,7 @@ function buildFallbackClinic(input = {}) {
                 input.brandName ||
                 input.branding?.short_name ||
                 input.branding?.name ||
-                'Piel en Armonia',
+                'Aurora Derm',
             region: input.region || 'regional',
             expectedBenefit: input.expectedBenefit ?? 80,
             realizedBenefit: input.realizedBenefit ?? 50,

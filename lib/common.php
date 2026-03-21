@@ -50,7 +50,7 @@ function app_runtime_version(): string
     }
 
     $candidates = [
-        getenv('PIELARMONIA_APP_VERSION'),
+        app_env('AURORADERM_APP_VERSION'),
         getenv('APP_VERSION')
     ];
 
@@ -117,3 +117,210 @@ function app_runtime_version(): string
 
     return $resolved;
 }
+
+function app_brand_name(): string
+{
+    return 'Aurora Derm';
+}
+
+function app_env_names(string $name): array
+{
+    $normalized = trim($name);
+    if ($normalized === '') {
+        return [];
+    }
+
+    if (strpos($normalized, 'AURORADERM_') === 0) {
+        return [
+            $normalized,
+            'PIELARMONIA_' . substr($normalized, strlen('AURORADERM_')),
+        ];
+    }
+
+    if (strpos($normalized, 'PIELARMONIA_') === 0) {
+        $suffix = substr($normalized, strlen('PIELARMONIA_'));
+        return [
+            'AURORADERM_' . $suffix,
+            $normalized,
+        ];
+    }
+
+    return [$normalized];
+}
+
+function app_set_process_env(string $name, string $value): void
+{
+    putenv($name . '=' . $value);
+    $_ENV[$name] = $value;
+    $_SERVER[$name] = $value;
+}
+
+function app_env(string $name, $default = false)
+{
+    foreach (app_env_names($name) as $candidate) {
+        $value = getenv($candidate);
+        if ($value !== false) {
+            return $value;
+        }
+    }
+
+    return $default;
+}
+
+function app_bootstrap_env_aliases(): void
+{
+    static $bootstrapped = false;
+    if ($bootstrapped) {
+        return;
+    }
+    $bootstrapped = true;
+
+    $sources = [];
+    $envDump = getenv();
+    if (is_array($envDump)) {
+        $sources[] = $envDump;
+    }
+    if (is_array($_ENV)) {
+        $sources[] = $_ENV;
+    }
+    if (is_array($_SERVER)) {
+        $sources[] = $_SERVER;
+    }
+
+    $names = [];
+    foreach ($sources as $source) {
+        foreach ($source as $key => $value) {
+            if (!is_string($key)) {
+                continue;
+            }
+            if (
+                strpos($key, 'AURORADERM_') === 0 ||
+                strpos($key, 'PIELARMONIA_') === 0
+            ) {
+                $names[$key] = true;
+            }
+        }
+    }
+
+    foreach (array_keys($names) as $name) {
+        $pair = app_env_names($name);
+        if (count($pair) < 2) {
+            continue;
+        }
+
+        [$canonicalName, $legacyName] = $pair;
+        $canonicalValue = getenv($canonicalName);
+        $legacyValue = getenv($legacyName);
+
+        if ($canonicalValue !== false) {
+            $normalized = is_string($canonicalValue) ? $canonicalValue : (string) $canonicalValue;
+            app_set_process_env($canonicalName, $normalized);
+            app_set_process_env($legacyName, $normalized);
+            continue;
+        }
+
+        if ($legacyValue !== false) {
+            $normalized = is_string($legacyValue) ? $legacyValue : (string) $legacyValue;
+            app_set_process_env($canonicalName, $normalized);
+            app_set_process_env($legacyName, $normalized);
+        }
+    }
+}
+
+function app_prometheus_aliases(string $metricName): array
+{
+    $normalized = trim($metricName);
+    if ($normalized === '') {
+        return [];
+    }
+
+    if (strpos($normalized, 'auroraderm_') === 0) {
+        return [
+            $normalized,
+            'pielarmonia_' . substr($normalized, strlen('auroraderm_')),
+        ];
+    }
+
+    if (strpos($normalized, 'pielarmonia_') === 0) {
+        return [
+            'auroraderm_' . substr($normalized, strlen('pielarmonia_')),
+            $normalized,
+        ];
+    }
+
+    return [$normalized];
+}
+
+function app_prometheus_render_metric(string $type, string $metricName, string $value): string
+{
+    $sampleName = trim($metricName);
+    $typeName = $sampleName;
+    $labelPos = strpos($sampleName, '{');
+    if ($labelPos !== false) {
+        $typeName = substr($sampleName, 0, $labelPos);
+    }
+
+    $lines = [];
+    $typeAliases = app_prometheus_aliases($typeName);
+    $sampleAliases = app_prometheus_aliases($sampleName);
+    foreach ($typeAliases as $alias) {
+        $lines[] = "# TYPE $alias $type";
+    }
+    foreach ($sampleAliases as $alias) {
+        $lines[] = "$alias $value";
+    }
+
+    return "\n" . implode("\n", $lines);
+}
+
+function app_prometheus_alias_output(string $payload): string
+{
+    $trimmed = trim($payload);
+    if ($trimmed === '') {
+        return $payload;
+    }
+
+    $lines = preg_split("/\r\n|\n|\r/", $payload);
+    if (!is_array($lines)) {
+        return $payload;
+    }
+
+    $expanded = [];
+    $seen = [];
+    $append = static function (string $line) use (&$expanded, &$seen): void {
+        if (isset($seen[$line])) {
+            return;
+        }
+
+        $expanded[] = $line;
+        $seen[$line] = true;
+    };
+
+    foreach ($lines as $line) {
+        if ($line === '') {
+            continue;
+        }
+
+        if (preg_match('/^# TYPE ([A-Za-z_:][A-Za-z0-9_:]*) (counter|gauge|histogram|summary|untyped)$/', $line, $matches) === 1) {
+            foreach (app_prometheus_aliases($matches[1]) as $alias) {
+                $append("# TYPE $alias {$matches[2]}");
+            }
+            continue;
+        }
+
+        if (preg_match('/^([A-Za-z_:][A-Za-z0-9_:]*)(\{[^}]*\})?\s+(.+)$/', $line, $matches) === 1) {
+            $labels = isset($matches[2]) ? $matches[2] : '';
+            $value = $matches[3];
+            foreach (app_prometheus_aliases($matches[1]) as $alias) {
+                $append($alias . $labels . ' ' . $value);
+            }
+            continue;
+        }
+
+        $append($line);
+    }
+
+    return "\n" . implode("\n", $expanded);
+}
+
+app_bootstrap_env_aliases();

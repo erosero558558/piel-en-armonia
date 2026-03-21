@@ -1,4 +1,4 @@
-# Public V6 Wire Map (Sony -> Piel en Armonia)
+# Public V6 Wire Map (Sony -> Aurora Derm)
 
 ## Block Mapping
 

@@ -29,7 +29,7 @@ function Parse-JsonBody {
 
 function Get-DiagnosticsAuthHeaders {
     param(
-        [string]$UserAgent = 'PielArmoniaHttp/1.0'
+        [string]$UserAgent = 'AuroraDermHttp/1.0'
     )
 
     $headers = @{
@@ -37,7 +37,13 @@ function Get-DiagnosticsAuthHeaders {
         'User-Agent' = $UserAgent
     }
 
-    $token = [string]$env:PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN
+    $token = [string]$env:AURORADERM_DIAGNOSTICS_ACCESS_TOKEN
+    if ([string]::IsNullOrWhiteSpace($token)) {
+        $token = [string]$env:PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN
+    }
+    if ([string]::IsNullOrWhiteSpace($token)) {
+        $token = [string]$env:AURORADERM_CRON_SECRET
+    }
     if ([string]::IsNullOrWhiteSpace($token)) {
         $token = [string]$env:PIELARMONIA_CRON_SECRET
     }
@@ -46,12 +52,18 @@ function Get-DiagnosticsAuthHeaders {
         return $headers
     }
 
-    $headerName = [string]$env:PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER
+    $headerName = [string]$env:AURORADERM_DIAGNOSTICS_ACCESS_TOKEN_HEADER
+    if ([string]::IsNullOrWhiteSpace($headerName)) {
+        $headerName = [string]$env:PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER
+    }
     if ([string]::IsNullOrWhiteSpace($headerName)) {
         $headerName = 'Authorization'
     }
 
-    $prefix = [string]$env:PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX
+    $prefix = [string]$env:AURORADERM_DIAGNOSTICS_ACCESS_TOKEN_PREFIX
+    if ([string]::IsNullOrWhiteSpace($prefix)) {
+        $prefix = [string]$env:PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX
+    }
     if ([string]::IsNullOrWhiteSpace($prefix)) {
         $prefix = 'Bearer'
     }
@@ -119,7 +131,7 @@ function Invoke-JsonGet {
         [string]$Name,
         [string]$Url,
         [int]$TimeoutSec = 20,
-        [string]$UserAgent = 'PielArmoniaHttp/1.0',
+        [string]$UserAgent = 'AuroraDermHttp/1.0',
         [int]$JsonDepth = 12
     )
 

@@ -128,7 +128,7 @@ final class StorePersistence
     public static function createStoreBackupLocked($sourcePath): void
     {
         if (!StorePaths::ensureBackupDir()) {
-            error_log('Piel en Armonía: no se pudo crear el directorio de backups');
+            error_log('Aurora Derm: no se pudo crear el directorio de backups');
             return;
         }
 
@@ -154,7 +154,7 @@ final class StorePersistence
             . DIRECTORY_SEPARATOR
             . 'store-' . local_date('Ymd-His') . '-' . $suffix . '.' . $extension;
         if (!copy((string) $sourcePath, $filename)) {
-            error_log('Piel en Armonía: no se pudo guardar backup de store.sqlite');
+            error_log('Aurora Derm: no se pudo guardar backup de store.sqlite');
             return;
         }
 
@@ -370,7 +370,7 @@ final class StorePersistence
         $jsonPath = StorePaths::dataJsonPath();
 
         if (!is_dir($dataDir) && !@mkdir($dataDir, 0775, true) && !is_dir($dataDir)) {
-            error_log('Piel en Armonía: no se pudo crear el directorio de datos: ' . $dataDir);
+            error_log('Aurora Derm: no se pudo crear el directorio de datos: ' . $dataDir);
             return false;
         }
 
@@ -381,14 +381,14 @@ final class StorePersistence
             if (self::ensureJsonStoreFile()) {
                 StorageConfig::logOnce(
                     'storage_json_fallback_active',
-                    'Piel en Armonia storage: SQLite unavailable, using JSON fallback store.'
+                    'Aurora Derm storage: SQLite unavailable, using JSON fallback store.'
                 );
                 return true;
             }
 
             StorageConfig::logOnce(
                 'storage_json_fallback_init_failed',
-                'Piel en Armonia storage: SQLite unavailable and JSON fallback initialization failed.'
+                'Aurora Derm storage: SQLite unavailable and JSON fallback initialization failed.'
             );
             return false;
         }
@@ -396,7 +396,7 @@ final class StorePersistence
         if ($storageMode === 'unavailable') {
             StorageConfig::logOnce(
                 'storage_unavailable',
-                'Piel en Armonia storage: SQLite unavailable and JSON fallback disabled.'
+                'Aurora Derm storage: SQLite unavailable and JSON fallback disabled.'
             );
             return false;
         }
@@ -408,14 +408,14 @@ final class StorePersistence
             if (StorageConfig::jsonFallbackEnabled() && self::ensureJsonStoreFile()) {
                 StorageConfig::logOnce(
                     'storage_sqlite_connect_fallback',
-                    'Piel en Armonia storage: SQLite connection failed, using JSON fallback store.'
+                    'Aurora Derm storage: SQLite connection failed, using JSON fallback store.'
                 );
                 return true;
             }
 
             StorageConfig::logOnce(
                 'storage_sqlite_connect_failed',
-                'Piel en Armonia storage: SQLite connection failed and JSON fallback unavailable.'
+                'Aurora Derm storage: SQLite connection failed and JSON fallback unavailable.'
             );
             return false;
         }

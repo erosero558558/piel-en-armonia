@@ -8,6 +8,8 @@ import {
 } from "../src/postgres-runtime.js";
 import { createBootstrapState } from "../src/state.js";
 
+const BOOTSTRAP_STATE = createBootstrapState();
+
 function createPgPool() {
   const db = newDb();
   const { Pool } = db.adapters.createPg();
@@ -21,7 +23,7 @@ test("mirrored postgres repository seeds an empty database and flushes canonical
     seedState: createBootstrapState()
   });
 
-  assert.equal(repository.listTenants().length, 2);
+  assert.equal(repository.listTenants().length, BOOTSTRAP_STATE.tenantConfigs.length);
   repository.confirmAppointment("tnt_green", "appt_green_001", "patient", "pat_green_001");
   repository.recordCopilotReviewDecision("tnt_green", "case_green_001", {
     recommendationAction: "request_payment_followup",
@@ -117,7 +119,7 @@ test("health exposes postgres persistence when the app runs on mirrored postgres
     };
     assert.equal(payload.persistence, "postgres");
     assert.equal(payload.persistenceError, null);
-    assert.equal(payload.tenants, 2);
+    assert.equal(payload.tenants, BOOTSTRAP_STATE.tenantConfigs.length);
   } finally {
     await app.close();
   }

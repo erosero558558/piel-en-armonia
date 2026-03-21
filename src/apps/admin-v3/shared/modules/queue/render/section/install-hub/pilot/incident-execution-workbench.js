@@ -298,7 +298,7 @@ function resolveWorkbenchContext({ pilot, snapshot, manifest }) {
         pilot?.clinicName ||
             clinicProfile?.branding?.name ||
             clinicProfile?.branding?.short_name ||
-            'Piel en Armonia'
+            'Aurora Derm'
     ).trim();
     const baseUrl = String(
         clinicProfile?.branding?.base_url ||

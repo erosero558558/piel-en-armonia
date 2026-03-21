@@ -156,7 +156,7 @@ test.describe('Checklist de Pruebas en Producción', () => {
         await skipIfPhpRuntimeMissing(test, request);
         await page.goto('/admin.html');
         await expect(page).toHaveTitle(
-            /Nucleo Interno de Consultorio|Admin|Piel en Armonia|Piel en Armonía/
+            /Nucleo Interno de Consultorio|Admin|Aurora Derm|Aurora Derm/
         );
 
         await expectAdminAccessGateVisible(page);

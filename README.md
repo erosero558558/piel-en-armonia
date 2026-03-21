@@ -1,29 +1,39 @@
-# Piel en Armonia
+# Flow OS
 
-Repositorio principal de la web publica, panel admin, backend PHP y
-gobernanza operativa de Piel en Armonia.
+Repositorio principal de la plataforma `Flow OS`.
 
-## Foco actual
+En este repo, `Flow OS` es el nombre canonico de plataforma y `Aurora Derm`
+es la marca y operacion clinica activa que hoy corre sobre esa plataforma.
 
-- Nucleo interno de consultorio: `turnero + acceso OpenClaw + historias clinicas`
-- Nuevo frente canonico: `Flow OS` como orquestacion del journey del paciente por clinica
-- La web publica queda en pausa funcional; solo recibe fixes criticos, seguridad y mantenimiento minimo.
+## Que esta vivo hoy
 
-## Estado canonico
+- `admin`: consola interna y shell operativa del equipo clinico
+- `queue/turnero`: operador, kiosco, display y surfaces de sala
+- `OpenClaw`: runtime de auth y orquestacion interna
+- `LeadOps`: apoyo operacional y automatizacion del frente comercial
+- web publica: gateway y superficies publicas en modo mantenimiento controlado
+
+## Mapa canonico
+
+- Plataforma: `Flow OS`
+- Despliegue clinico actual: `Aurora Derm`
+- `patient-flow-os`, `sony_v3` y `PIELARMONIA_*`: compatibilidad tecnica o historica, no naming canonico de producto
+- Dominio publico actual: `https://pielarmonia.com`
+
+## Estado operativo
 
 - Web publica: Astro V6 + `content/public-v6/**`
 - Admin: `admin.html` + `admin.js` generado desde `src/apps/admin/index.js`
 - UI admin activa: `src/apps/admin-v3/**`
-- Backend: `api.php`, `controllers/**`, `lib/**`
-- Flow OS first slice: `docs/FLOW_OS_FIRST_SLICE.md` + `data/flow-os/manifest.v1.json` + `src/domain/flow-os/*`
+- Backend y servicios: `api.php`, `controllers/**`, `lib/**`
+- Flow OS domain slice: `data/flow-os/manifest.v1.json` + `src/domain/flow-os/*`
 - Gobernanza: `AGENTS.md` + `AGENT_BOARD.yaml`
-
-Nota de alcance: esta slice de Flow OS solo agrega documentacion y contrato minimo; no abre CI, turnero, OpenClaw ni superficies publicas.
 
 ## Empieza aqui
 
 - `docs/OPERATIONS_INDEX.md`
-- `docs/FLOW_OS_FIRST_SLICE.md`
+- `docs/FLOW_OS_FOUNDATION.md`
+- `docs/ARCHITECTURE.md`
 - `docs/LEADOPS_OPENCLAW.md`
 - `docs/public-v6-canonical-source.md`
 - `docs/RUNTIME_ARTIFACT_POLICY.md`
@@ -40,7 +50,6 @@ Nota de alcance: esta slice de Flow OS solo agrega documentacion y contrato mini
 - `docs/TURNERO_NATIVE_SURFACES.md`
 - `docs/ROOT_SURFACES.md`
 - `AGENTS.md`
-- `docs/FLOW_OS_FOUNDATION.md`
 - `docs/FLOW_OS_ORCHESTRATION.md`
 
 ## Setup local rapido
@@ -68,12 +77,12 @@ Notas de testing local:
 - Script canonico del helper local: `scripts/ops/admin/INICIAR-OPENCLAW-AUTH-HELPER.ps1`.
 - Antes de abrir `admin.html`, valida el runtime local con `npm run openclaw:auth-preflight -- --json`.
 - `npm run auth:operator:bridge` queda solo como alias de compatibilidad y delega al launcher canonico.
-- Si necesitas contingencia web desde cualquier PC, habilita `PIELARMONIA_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=true` junto con `PIELARMONIA_ADMIN_PASSWORD` o `PIELARMONIA_ADMIN_PASSWORD_HASH` y `PIELARMONIA_ADMIN_2FA_SECRET`.
+- Si necesitas contingencia web desde cualquier PC, habilita `AURORADERM_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=true` junto con `AURORADERM_ADMIN_PASSWORD` o `AURORADERM_ADMIN_PASSWORD_HASH` y `AURORADERM_ADMIN_2FA_SECRET`. Los aliases `PIELARMONIA_*` siguen funcionando de forma transitoria.
 
 Variable minima recomendada:
 
 ```powershell
-$env:PIELARMONIA_ADMIN_PASSWORD = "tu-clave-segura"
+$env:AURORADERM_ADMIN_PASSWORD = "tu-clave-segura"
 ```
 
 Overrides utiles para tooling local:

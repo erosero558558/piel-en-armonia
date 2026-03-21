@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/common.php';
+
 /**
  * Centralized Application Configuration
  * Extracts constants and configuration logic from business.php, email.php, and payment-lib.php.
@@ -15,7 +17,7 @@ class AppConfig
     public const MAX_AVAILABILITY_DAYS = 60;
 
     // --- Contact & Branding ---
-    public const BRAND_NAME = 'Piel en Armonía';
+    public const BRAND_NAME = 'Aurora Derm';
     public const BASE_URL = 'https://pielarmonia.com';
     public const ADDRESS = 'Valparaiso 13-183 y Sodiro, Quito, Ecuador';
     public const WHATSAPP_NUMBER = '+593 98 245 3672';
@@ -33,7 +35,7 @@ class AppConfig
     public static function getVatRate(?string $tenantId = null): float
     {
         // Future: use $tenantId to load tenant-specific settings
-        $raw = getenv('PIELARMONIA_VAT_RATE');
+        $raw = app_env('AURORADERM_VAT_RATE');
         if (!is_string($raw) || trim($raw) === '') {
             return self::IVA_GENERAL_RATE;
         }
@@ -166,18 +168,18 @@ class AppConfig
     public static function getSmtpConfig(): array
     {
         return [
-            'host' => (string) (getenv('PIELARMONIA_SMTP_HOST') ?: 'smtp.gmail.com'),
-            'port' => (int) (getenv('PIELARMONIA_SMTP_PORT') ?: 587),
-            'user' => (string) (getenv('PIELARMONIA_SMTP_USER') ?: ''),
-            'pass' => (string) (getenv('PIELARMONIA_SMTP_PASS') ?: ''),
-            'from' => (string) (getenv('PIELARMONIA_EMAIL_FROM') ?: ''),
+            'host' => (string) (app_env('AURORADERM_SMTP_HOST') ?: 'smtp.gmail.com'),
+            'port' => (int) (app_env('AURORADERM_SMTP_PORT') ?: 587),
+            'user' => (string) (app_env('AURORADERM_SMTP_USER') ?: ''),
+            'pass' => (string) (app_env('AURORADERM_SMTP_PASS') ?: ''),
+            'from' => (string) (app_env('AURORADERM_EMAIL_FROM') ?: ''),
             'from_name' => self::BRAND_NAME,
         ];
     }
 
     public static function getAdminEmail(): string
     {
-        $email = getenv('PIELARMONIA_ADMIN_EMAIL');
+        $email = app_env('AURORADERM_ADMIN_EMAIL');
         if (!is_string($email) || trim($email) === '') {
             return self::ADMIN_EMAIL_FALLBACK;
         }
@@ -186,7 +188,7 @@ class AppConfig
 
     public static function getNoReplyEmail(): string
     {
-        $from = getenv('PIELARMONIA_EMAIL_FROM');
+        $from = app_env('AURORADERM_EMAIL_FROM');
         if (!is_string($from) || trim($from) === '') {
             return self::NO_REPLY_EMAIL_DEFAULT;
         }
@@ -195,7 +197,7 @@ class AppConfig
 
     public static function getPaymentCurrency(): string
     {
-        $raw = getenv('PIELARMONIA_PAYMENT_CURRENCY');
+        $raw = app_env('AURORADERM_PAYMENT_CURRENCY');
         $currency = is_string($raw) && trim($raw) !== '' ? strtoupper(trim($raw)) : self::CURRENCY_DEFAULT;
         if (!preg_match('/^[A-Z]{3}$/', $currency)) {
             return self::CURRENCY_DEFAULT;
@@ -205,7 +207,7 @@ class AppConfig
 
     public static function getTransferProofUploadDir(): string
     {
-        $raw = getenv('PIELARMONIA_TRANSFER_UPLOAD_DIR');
+        $raw = app_env('AURORADERM_TRANSFER_UPLOAD_DIR');
         if (is_string($raw) && trim($raw) !== '') {
             return rtrim(trim($raw), DIRECTORY_SEPARATOR);
         }
@@ -214,7 +216,7 @@ class AppConfig
 
     public static function getTransferProofPublicBaseUrl(): string
     {
-        $raw = getenv('PIELARMONIA_TRANSFER_PUBLIC_BASE_URL');
+        $raw = app_env('AURORADERM_TRANSFER_PUBLIC_BASE_URL');
         if (is_string($raw) && trim($raw) !== '') {
             return rtrim(trim($raw), '/');
         }

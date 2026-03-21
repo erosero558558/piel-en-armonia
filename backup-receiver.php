@@ -48,7 +48,7 @@ function backup_receiver_extract_token(): string
 
 function backup_receiver_max_upload_bytes(): int
 {
-    $raw = getenv('PIELARMONIA_BACKUP_RECEIVER_MAX_MB');
+    $raw = app_env('AURORADERM_BACKUP_RECEIVER_MAX_MB');
     $mb = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : 50;
     if ($mb < 1) {
         $mb = 1;
@@ -99,9 +99,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 }
 
 $expectedToken = backup_first_non_empty_string([
-    getenv('PIELARMONIA_BACKUP_RECEIVER_TOKEN'),
-    getenv('PIELARMONIA_BACKUP_OFFSITE_TOKEN'),
-    getenv('PIELARMONIA_BACKUP_WEBHOOK_TOKEN')
+    app_env('AURORADERM_BACKUP_RECEIVER_TOKEN'),
+    app_env('AURORADERM_BACKUP_OFFSITE_TOKEN'),
+    app_env('AURORADERM_BACKUP_WEBHOOK_TOKEN')
 ]);
 if ($expectedToken === '') {
     backup_receiver_json([

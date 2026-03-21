@@ -120,7 +120,7 @@ if (is_file($contentFile)) {
             // Cleanup artifacts from DOMDocument loadHTML hack
             $indexHtml = str_replace('<?xml encoding="UTF-8">', '', $indexHtml);
         } catch (Throwable $e) {
-            error_log('Piel en Armonia SSR fallback: ' . $e->getMessage());
+            error_log('Aurora Derm SSR fallback: ' . $e->getMessage());
         }
     }
 }

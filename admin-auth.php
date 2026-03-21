@@ -40,11 +40,11 @@ function admin_auth_legacy_disabled_response(): array
     $error = 'El acceso por clave esta deshabilitado en este entorno.';
 
     if ($reason === 'admin_password_not_configured') {
-        $error = 'El acceso por clave de contingencia requiere PIELARMONIA_ADMIN_PASSWORD o PIELARMONIA_ADMIN_PASSWORD_HASH.';
+        $error = 'El acceso por clave de contingencia requiere AURORADERM_ADMIN_PASSWORD o AURORADERM_ADMIN_PASSWORD_HASH. Los aliases PIELARMONIA_* siguen disponibles de forma transitoria.';
     } elseif ($reason === 'admin_2fa_not_configured') {
-        $error = 'El acceso por clave de contingencia requiere PIELARMONIA_ADMIN_2FA_SECRET.';
+        $error = 'El acceso por clave de contingencia requiere AURORADERM_ADMIN_2FA_SECRET. El alias PIELARMONIA_ADMIN_2FA_SECRET sigue disponible de forma transitoria.';
     } else {
-        $error = 'El acceso por clave de contingencia requiere PIELARMONIA_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=true y 2FA configurado en este entorno.';
+        $error = 'El acceso por clave de contingencia requiere AURORADERM_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=true y 2FA configurado en este entorno. Los aliases PIELARMONIA_* siguen disponibles de forma transitoria.';
     }
 
     return [
@@ -200,7 +200,7 @@ if ($method === 'POST' && $action === 'login') {
         ], 401);
     }
 
-    $totpSecret = getenv('PIELARMONIA_ADMIN_2FA_SECRET');
+    $totpSecret = app_env('AURORADERM_ADMIN_2FA_SECRET');
     if (is_string($totpSecret) && trim($totpSecret) !== '') {
         $_SESSION['admin_partial_login'] = true;
         $_SESSION['admin_partial_login_expires'] = time() + 300; // 5 minutos para ingresar codigo

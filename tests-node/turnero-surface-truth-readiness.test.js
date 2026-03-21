@@ -720,6 +720,38 @@ test('runtime bootstrap y panel admin montan sus hosts y muestran degradado visi
         assert.match(panelController.root.outerHTML, /Copy brief/);
         assert.match(panelController.root.outerHTML, /Download JSON/);
         assert.match(panelController.root.outerHTML, /data-band="ready"/);
+        assert.match(panelController.root.outerHTML, /Manifest source primary/);
+        assert.match(
+            panelController.root.outerHTML,
+            /Requested URL \/release-manifest\.json/
+        );
+        assert.match(
+            panelController.root.outerHTML,
+            /Readiness bands ready \/ watch \/ degraded \/ unknown/
+        );
+
+        const fallbackHost = fakeDom.document.createElement('div');
+        fallbackHost.id = 'queueSurfaceTruthPanelFallback';
+        const fallbackController =
+            adminTruthPanelModule.mountTurneroAdminQueueSurfaceTruthPanel(
+                fallbackHost,
+                {
+                    registry: buildWatchRegistry(),
+                    clinicProfile: CLINIC_PROFILE,
+                    surfaceKey: 'operator',
+                    currentRoute: '/admin.html#queue',
+                }
+            );
+        await fallbackController.ready;
+        assert.match(fallbackController.root.outerHTML, /data-band="watch"/);
+        assert.match(
+            fallbackController.root.outerHTML,
+            /Fallback piloto visible/
+        );
+        assert.match(
+            fallbackController.root.outerHTML,
+            /Resolved URL \/app-downloads\/pilot\/release-manifest\.json/
+        );
 
         const copyButton = fakeDom.document.createElement('button');
         copyButton.dataset.action = 'copy-brief';

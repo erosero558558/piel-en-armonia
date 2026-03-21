@@ -7,8 +7,17 @@ const {
 const { skipIfPhpRuntimeMissing } = require('./helpers/php-backend');
 
 function getEnv(name, fallback = '') {
-    const value = process.env[name];
-    return typeof value === 'string' ? value.trim() : fallback;
+    const normalized = String(name || '').trim();
+    const candidates = normalized.startsWith('PIELARMONIA_')
+        ? [`AURORADERM_${normalized.slice('PIELARMONIA_'.length)}`, normalized]
+        : [normalized];
+    for (const candidate of candidates) {
+        const value = process.env[candidate];
+        if (typeof value === 'string' && value.trim() !== '') {
+            return value.trim();
+        }
+    }
+    return fallback;
 }
 
 test.describe('Retention metrics contract (admin)', () => {
@@ -19,10 +28,11 @@ test.describe('Retention metrics contract (admin)', () => {
 
         const adminPassword =
             getEnv('TEST_ADMIN_PASSWORD') ||
+            getEnv('AURORADERM_ADMIN_PASSWORD') ||
             getEnv('PIELARMONIA_ADMIN_PASSWORD');
         test.skip(
             !adminPassword,
-            'TEST_ADMIN_PASSWORD o PIELARMONIA_ADMIN_PASSWORD es requerido.'
+            'TEST_ADMIN_PASSWORD, AURORADERM_ADMIN_PASSWORD o el alias PIELARMONIA_ADMIN_PASSWORD es requerido.'
         );
 
         const login = await adminLogin(request, { password: adminPassword });

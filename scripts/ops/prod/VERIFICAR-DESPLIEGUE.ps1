@@ -72,7 +72,13 @@ $turneroDisplaySurfaceUrl = "$base/sala-turnos.html"
 $turneroOperatorPilotCenterUrl = "$base/app-downloads/?surface=operator&platform=win"
 $turneroOperatorPilotFeedUrl = "$base/desktop-updates/pilot/operator/win/latest.yml"
 $turneroOperatorPilotInstallerUrl = "$base/app-downloads/pilot/operator/win/TurneroOperadorSetup.exe"
-$diagnosticsAccessToken = [string]$env:PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN
+$diagnosticsAccessToken = [string]$env:AURORADERM_DIAGNOSTICS_ACCESS_TOKEN
+if ([string]::IsNullOrWhiteSpace($diagnosticsAccessToken)) {
+    $diagnosticsAccessToken = [string]$env:PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN
+}
+if ([string]::IsNullOrWhiteSpace($diagnosticsAccessToken)) {
+    $diagnosticsAccessToken = [string]$env:AURORADERM_CRON_SECRET
+}
 if ([string]::IsNullOrWhiteSpace($diagnosticsAccessToken)) {
     $diagnosticsAccessToken = [string]$env:PIELARMONIA_CRON_SECRET
 }

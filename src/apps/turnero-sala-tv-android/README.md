@@ -1,5 +1,8 @@
 # Turnero Sala TV Android
 
+Namespace canonico Android: `com.auroraderm.turnerosalatv`.
+Host operativo actual de esta ola: `https://pielarmonia.com`.
+
 App nativa para Android TV pensada para la `TCL C655` con Google TV. La app abre `sala-turnos.html` en un `WebView` controlado, mantiene la pantalla activa y reintenta conexión de forma automática.
 
 ## Objetivo
@@ -81,7 +84,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Configuración
 
-La URL base vive en [TurneroConfig.kt](app/src/main/java/com/pielarmonia/turnerosalatv/TurneroConfig.kt).
+La URL base vive en [TurneroConfig.kt](app/src/main/java/com/auroraderm/turnerosalatv/TurneroConfig.kt).
 
 - `BASE_URL`
 - `SURFACE_PATH`

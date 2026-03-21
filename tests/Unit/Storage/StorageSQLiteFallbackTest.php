@@ -37,7 +37,7 @@ final class StorageSQLiteFallbackTest extends TestCase
         $this->assertFileDoesNotExist($tempDir . DIRECTORY_SEPARATOR . 'store.sqlite');
 
         $logRaw = (string) @file_get_contents($errorLog);
-        $message = 'Piel en Armonia storage: SQLite unavailable, using JSON fallback store.';
+        $message = 'Aurora Derm storage: SQLite unavailable, using JSON fallback store.';
         $this->assertSame(1, substr_count($logRaw, $message));
     }
 
@@ -61,7 +61,7 @@ final class StorageSQLiteFallbackTest extends TestCase
         $this->assertFileDoesNotExist($tempDir . DIRECTORY_SEPARATOR . 'store.json');
 
         $logRaw = (string) @file_get_contents($errorLog);
-        $message = 'Piel en Armonia storage: SQLite unavailable and JSON fallback disabled.';
+        $message = 'Aurora Derm storage: SQLite unavailable and JSON fallback disabled.';
         $this->assertSame(1, substr_count($logRaw, $message));
     }
 
@@ -84,7 +84,7 @@ final class StorageSQLiteFallbackTest extends TestCase
         $this->assertFileDoesNotExist($dbPath);
 
         $logRaw = (string) @file_get_contents($errorLog);
-        $message = 'Piel en Armonia DB: SQLite driver unavailable; fallback storage required.';
+        $message = 'Aurora Derm DB: SQLite driver unavailable; fallback storage required.';
         $this->assertSame(1, substr_count($logRaw, $message));
     }
 

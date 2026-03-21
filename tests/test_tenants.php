@@ -29,7 +29,7 @@ assert_eq($defaultId, 'pielarmonia', "Default tenant ID should be 'pielarmonia'"
 echo "\n--- Test 2: Tenant Config for Default ---\n";
 $config = get_tenant_config('pielarmonia');
 assert_eq($config['id'], 'pielarmonia', "Config ID should match requested ID");
-assert_eq($config['name'], 'Piel en Armonía', "Default name should be correct");
+assert_eq($config['name'], 'Aurora Derm', "Default name should be correct");
 assert_eq($config['currency'], 'USD', "Currency should be USD");
 
 // Test 3: Tenant Config without ID (uses default)

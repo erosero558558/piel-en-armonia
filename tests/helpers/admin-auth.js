@@ -7,9 +7,38 @@ const {
     signOperatorAuthPayload,
 } = require('../../bin/lib/operator-auth-signature.js');
 
+function envCandidates(name) {
+    const normalized = String(name || '').trim();
+    if (!normalized) {
+        return [];
+    }
+
+    if (normalized.startsWith('AURORADERM_')) {
+        return [
+            normalized,
+            `PIELARMONIA_${normalized.slice('AURORADERM_'.length)}`,
+        ];
+    }
+
+    if (normalized.startsWith('PIELARMONIA_')) {
+        return [
+            `AURORADERM_${normalized.slice('PIELARMONIA_'.length)}`,
+            normalized,
+        ];
+    }
+
+    return [normalized];
+}
+
 function getEnv(name, fallback = '') {
-    const value = process.env[name];
-    return typeof value === 'string' ? value.trim() : fallback;
+    for (const candidate of envCandidates(name)) {
+        const value = process.env[candidate];
+        if (typeof value === 'string' && value.trim() !== '') {
+            return value.trim();
+        }
+    }
+
+    return fallback;
 }
 
 function firstNonEmpty(...values) {
@@ -135,6 +164,15 @@ function getOperatorAuthTestEnv(overrides = {}) {
     const config = getOperatorAuthTestConfig(overrides);
 
     return {
+        AURORADERM_INTERNAL_CONSOLE_AUTH_PRIMARY: config.mode,
+        AURORADERM_OPERATOR_AUTH_MODE: config.mode,
+        AURORADERM_OPERATOR_AUTH_ALLOWLIST: config.allowlist.join(','),
+        AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN: config.bridgeToken,
+        AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET: config.bridgeSecret,
+        AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN_HEADER: config.bridgeHeader,
+        AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN_PREFIX: config.bridgePrefix,
+        AURORADERM_OPERATOR_AUTH_HELPER_BASE_URL: config.helperBaseUrl,
+        AURORADERM_ADMIN_EMAIL: config.email,
         PIELARMONIA_INTERNAL_CONSOLE_AUTH_PRIMARY: config.mode,
         PIELARMONIA_OPERATOR_AUTH_MODE: config.mode,
         PIELARMONIA_OPERATOR_AUTH_ALLOWLIST: config.allowlist.join(','),
@@ -161,7 +199,7 @@ async function requireLegacyPasswordMode(request) {
             snapshot.mode || snapshot.recommendedMode || 'openclaw_chatgpt';
         return {
             ok: false,
-            reason: `Este entorno usa ${preferred} como acceso primario. Activa PIELARMONIA_INTERNAL_CONSOLE_AUTH_PRIMARY=legacy_password para habilitar login por clave.`,
+            reason: `Este entorno usa ${preferred} como acceso primario. Activa AURORADERM_INTERNAL_CONSOLE_AUTH_PRIMARY=legacy_password para habilitar login por clave. El alias PIELARMONIA_* sigue disponible temporalmente.`,
         };
     }
 
@@ -171,7 +209,7 @@ async function requireLegacyPasswordMode(request) {
     ) {
         return {
             ok: false,
-            reason: 'Login legacy no configurado. Define PIELARMONIA_ADMIN_PASSWORD y el override legacy en este entorno.',
+            reason: 'Login legacy no configurado. Define AURORADERM_ADMIN_PASSWORD y el override legacy en este entorno. El alias PIELARMONIA_* sigue disponible temporalmente.',
         };
     }
 
@@ -457,13 +495,14 @@ async function adminLogin(request, overrides = {}) {
     const password = firstNonEmpty(
         overrides.password,
         getEnv('TEST_ADMIN_PASSWORD'),
+        getEnv('AURORADERM_ADMIN_PASSWORD'),
         getEnv('PIELARMONIA_ADMIN_PASSWORD')
     );
 
     if (!password) {
         return {
             ok: false,
-            reason: 'TEST_ADMIN_PASSWORD o PIELARMONIA_ADMIN_PASSWORD es requerido para login legacy.',
+            reason: 'TEST_ADMIN_PASSWORD, AURORADERM_ADMIN_PASSWORD o el alias PIELARMONIA_ADMIN_PASSWORD es requerido para login legacy.',
         };
     }
 

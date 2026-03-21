@@ -11,6 +11,13 @@ import {
 } from "../src/postgres-runtime.js";
 import { createBootstrapState } from "../src/state.js";
 
+const BOOTSTRAP_STATE = createBootstrapState();
+const BOOTSTRAP_TOTALS = {
+  tenants: BOOTSTRAP_STATE.tenantConfigs.length,
+  cases: BOOTSTRAP_STATE.patientCases.length,
+  callbacks: BOOTSTRAP_STATE.callbacks.length
+} as const;
+
 function createPgPool() {
   const db = newDb();
   const { Pool } = db.adapters.createPg();
@@ -66,8 +73,8 @@ test("cutover inspect returns tenant and case summary as json", async () => {
       };
     };
     assert.equal(payload.command, "inspect");
-    assert.equal(payload.summary.totals.tenants, 2);
-    assert.equal(payload.summary.totals.cases, 3);
+    assert.equal(payload.summary.totals.tenants, BOOTSTRAP_TOTALS.tenants);
+    assert.equal(payload.summary.totals.cases, BOOTSTRAP_TOTALS.cases);
     assert.equal(payload.summary.totals.preparedActionDispatchJobs, 0);
     assert.equal(capture.stderr(), "");
   } finally {
@@ -178,7 +185,7 @@ test("cutover export-state writes the canonical bootstrap snapshot to disk", asy
         tenantConfigs: Array<{ id: string }>;
         patientCases: Array<{ id: string }>;
       };
-      assert.equal(exported.tenantConfigs.length, 2);
+      assert.equal(exported.tenantConfigs.length, BOOTSTRAP_TOTALS.tenants);
       assert.ok(exported.patientCases.some((patientCase) => patientCase.id === "case_green_001"));
     });
   } finally {
@@ -217,8 +224,8 @@ test("cutover replace-state enforces the destructive guardrail before mutating p
 
       assert.equal(allowedExit, 0);
       const persisted = await loadBootstrapStateFromPostgres(pool);
-      assert.equal(persisted.tenantConfigs.length, 2);
-      assert.equal(persisted.patientCases.length, 3);
+      assert.equal(persisted.tenantConfigs.length, BOOTSTRAP_TOTALS.tenants);
+      assert.equal(persisted.patientCases.length, BOOTSTRAP_TOTALS.cases);
     });
   } finally {
     await pool.end();
@@ -320,9 +327,9 @@ test("cutover import-openclaw merges projected cases into the canonical postgres
       };
       assert.equal(payload.command, "import-openclaw");
       assert.equal(payload.mode, "merge");
-      assert.equal(payload.importStats.cases, 4);
-      assert.equal(payload.importStats.callbacks, 2);
-      assert.equal(payload.summary.totals.tenants, 3);
+      assert.equal(payload.importStats.cases, BOOTSTRAP_TOTALS.cases + 1);
+      assert.equal(payload.importStats.callbacks, BOOTSTRAP_TOTALS.callbacks + 1);
+      assert.equal(payload.summary.totals.tenants, BOOTSTRAP_TOTALS.tenants + 1);
 
       const persisted = await loadBootstrapStateFromPostgres(pool);
       assert.ok(persisted.tenantConfigs.some((tenant) => tenant.id === "tnt_import"));
@@ -440,8 +447,8 @@ test("cutover-openclaw writes before and after artifacts plus a smoke-gated repo
         };
       };
       assert.equal(payload.command, "cutover-openclaw");
-      assert.equal(payload.beforeSummary.totals.tenants, 2);
-      assert.equal(payload.summary.totals.tenants, 3);
+      assert.equal(payload.beforeSummary.totals.tenants, BOOTSTRAP_TOTALS.tenants);
+      assert.equal(payload.summary.totals.tenants, BOOTSTRAP_TOTALS.tenants + 1);
       assert.equal(payload.beforeSmoke.ok, true);
       assert.equal(payload.afterSmoke.ok, true);
       assert.equal(payload.smokeGate.passed, true);
@@ -461,8 +468,8 @@ test("cutover-openclaw writes before and after artifacts plus a smoke-gated repo
         projectedCases: Array<{ patient: { displayName: string } }>;
       };
 
-      assert.equal(beforeState.tenantConfigs.length, 2);
-      assert.equal(afterState.tenantConfigs.length, 3);
+      assert.equal(beforeState.tenantConfigs.length, BOOTSTRAP_TOTALS.tenants);
+      assert.equal(afterState.tenantConfigs.length, BOOTSTRAP_TOTALS.tenants + 1);
       assert.equal(report.command, "cutover-openclaw");
       assert.equal(report.smokeGate.passed, true);
       assert.equal(copiedBundle.projectedCases[0]?.patient.displayName, "Carlos Mora");

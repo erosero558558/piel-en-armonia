@@ -203,10 +203,10 @@ function addDiagnosticWarning(report, message) {
 
 function formatMissingOperatorAuthEnv(missing) {
     const labels = {
-        mode: 'PIELARMONIA_OPERATOR_AUTH_MODE',
-        bridge_token: 'PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN',
-        bridge_secret: 'PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET',
-        allowlist: 'PIELARMONIA_OPERATOR_AUTH_ALLOWLIST',
+        mode: 'AURORADERM_OPERATOR_AUTH_MODE',
+        bridge_token: 'AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN',
+        bridge_secret: 'AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET',
+        allowlist: 'AURORADERM_OPERATOR_AUTH_ALLOWLIST',
         broker_authorize_url: 'OPENCLAW_AUTH_BROKER_AUTHORIZE_URL',
         broker_token_url: 'OPENCLAW_AUTH_BROKER_TOKEN_URL',
         broker_userinfo_url: 'OPENCLAW_AUTH_BROKER_USERINFO_URL',
@@ -259,7 +259,7 @@ function resolveOpenClawRolloutState(report) {
         if (resolved.mode !== 'openclaw_chatgpt') {
             report.diagnosis = 'openclaw_mode_disabled';
             report.next_action =
-                'Activar PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt en el entorno remoto.';
+                'Activar AURORADERM_OPERATOR_AUTH_MODE=openclaw_chatgpt en el entorno remoto.';
             return report;
         }
 

@@ -26,7 +26,7 @@ async function loadPublicV6Module() {
     return publicV6ModulePromise;
 }
 
-test('public-v6 software landing derives native app cards from the turnero registry', async () => {
+test('public-v6 software landing derives installable Flow OS modules from the native registry', async () => {
     const { getV6SoftwarePage } = await loadPublicV6Module();
     const esLanding = getV6SoftwarePage('es', 'landing');
     const enLanding = getV6SoftwarePage('en', 'landing');
@@ -57,7 +57,7 @@ test('public-v6 software landing derives native app cards from the turnero regis
         enLanding.nativeApps.cards.some(
             (card) =>
                 card.surfaceId === 'kiosk' &&
-                card.title === 'Turnero Kiosk' &&
+                card.title === 'Flow OS Kiosk' &&
                 card.webHref === '/kiosco-turnos.html'
         ),
         true

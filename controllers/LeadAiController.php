@@ -101,16 +101,16 @@ class LeadAiController
 
     private static function requireMachineToken(): void
     {
-        $expected = trim((string) getenv('PIELARMONIA_LEADOPS_MACHINE_TOKEN'));
+        $expected = trim((string) app_env('AURORADERM_LEADOPS_MACHINE_TOKEN', ''));
         if ($expected === '') {
             json_response(['ok' => false, 'error' => 'LeadOps machine token no configurado'], 503);
         }
 
-        $headerName = trim((string) getenv('PIELARMONIA_LEADOPS_MACHINE_TOKEN_HEADER'));
+        $headerName = trim((string) app_env('AURORADERM_LEADOPS_MACHINE_TOKEN_HEADER', ''));
         if ($headerName === '') {
             $headerName = 'Authorization';
         }
-        $prefix = trim((string) getenv('PIELARMONIA_LEADOPS_MACHINE_TOKEN_PREFIX'));
+        $prefix = trim((string) app_env('AURORADERM_LEADOPS_MACHINE_TOKEN_PREFIX', ''));
         if ($prefix === '') {
             $prefix = 'Bearer';
         }

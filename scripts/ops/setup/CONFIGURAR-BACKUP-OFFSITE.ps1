@@ -23,13 +23,13 @@ $receiverUrl = "$receiver/backup-receiver.php"
 Write-Host "=== Configuracion Offsite Backup ===" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "1) En servidor DESTINO (receiver):" -ForegroundColor Yellow
-Write-Host "   putenv('PIELARMONIA_BACKUP_RECEIVER_TOKEN=$Token');"
-Write-Host "   (opcional) putenv('PIELARMONIA_BACKUP_RECEIVER_MAX_MB=50');"
+Write-Host "   putenv('AURORADERM_BACKUP_RECEIVER_TOKEN=$Token');"
+Write-Host "   (opcional) putenv('AURORADERM_BACKUP_RECEIVER_MAX_MB=50');"
 Write-Host ""
 Write-Host "2) En servidor ORIGEN (produccion):" -ForegroundColor Yellow
-Write-Host "   putenv('PIELARMONIA_BACKUP_OFFSITE_URL=$receiverUrl');"
-Write-Host "   putenv('PIELARMONIA_BACKUP_OFFSITE_TOKEN=$Token');"
-Write-Host "   putenv('PIELARMONIA_BACKUP_LOCAL_REPLICA=true');"
+Write-Host "   putenv('AURORADERM_BACKUP_OFFSITE_URL=$receiverUrl');"
+Write-Host "   putenv('AURORADERM_BACKUP_OFFSITE_TOKEN=$Token');"
+Write-Host "   putenv('AURORADERM_BACKUP_LOCAL_REPLICA=true');"
 Write-Host ""
 Write-Host "3) Cron recomendado en ORIGEN:" -ForegroundColor Yellow
 Write-Host "   https://$($source.Replace('https://','').Replace('http://',''))/cron.php?action=backup-health&token=YOUR_CRON_SECRET"
@@ -40,3 +40,4 @@ Write-Host "   curl -i -X POST `"$receiverUrl`" -H `"Authorization: Bearer $Toke
 Write-Host ""
 Write-Host "Token generado:" -ForegroundColor Green
 Write-Host $Token
+

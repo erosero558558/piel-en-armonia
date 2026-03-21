@@ -7,6 +7,8 @@ declare(strict_types=1);
  * Supports Redis (via Predis) and file-based fallback.
  */
 
+require_once __DIR__ . '/common.php';
+
 class Metrics
 {
     private static $client = null;
@@ -19,7 +21,7 @@ class Metrics
             return;
         }
 
-        $host = getenv('PIELARMONIA_REDIS_HOST');
+        $host = app_env('AURORADERM_REDIS_HOST');
         if (is_string($host) && trim($host) !== '' && class_exists('Predis\Client')) {
             try {
                 self::$client = new \Predis\Client([
@@ -302,6 +304,6 @@ class Metrics
             }
         }
 
-        return implode("\n", $output);
+        return app_prometheus_alias_output(implode("\n", $output));
     }
 }

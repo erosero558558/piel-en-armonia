@@ -874,8 +874,8 @@ paths:
 
                 Telemedicine services (`telefono`, `video`) keep backward compatibility and can optionally
                 enforce backend suitability policy through flags:
-                - `PIELARMONIA_TELEMED_V2_ENFORCE_UNSUITABLE`
-                - `PIELARMONIA_TELEMED_V2_ENFORCE_REVIEW_REQUIRED`
+                - `AURORADERM_TELEMED_V2_ENFORCE_UNSUITABLE`
+                - `AURORADERM_TELEMED_V2_ENFORCE_REVIEW_REQUIRED`
             tags: [Appointments]
             requestBody:
                 required: true
@@ -1666,3 +1666,4 @@ paths:
             responses:
                 '200':
                     description: Success
+

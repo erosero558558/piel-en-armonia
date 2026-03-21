@@ -20,6 +20,16 @@ function trimToString(value) {
     return typeof value === 'string' ? value.trim() : '';
 }
 
+function envAliasValue(env, canonicalName, legacyName = '') {
+    const canonical = trimToString(env[canonicalName]);
+    if (canonical) {
+        return canonical;
+    }
+
+    const legacy = legacyName ? trimToString(env[legacyName]) : '';
+    return legacy;
+}
+
 function parsePhpEnvFile(raw) {
     const parsed = {};
     const lines = String(raw || '').split(/\r?\n/);
@@ -66,25 +76,39 @@ function buildConfig(env = process.env, repoRoot = REPO_ROOT) {
         ...env,
     };
     const operatorAuthConfig = loadOpenClawOperatorAuthConfig({
-        helperBaseUrl: trimToString(
-            mergedEnv.PIELARMONIA_OPERATOR_AUTH_HELPER_BASE_URL
+        helperBaseUrl: envAliasValue(
+            mergedEnv,
+            'AURORADERM_OPERATOR_AUTH_HELPER_BASE_URL',
+            'PIELARMONIA_OPERATOR_AUTH_HELPER_BASE_URL'
         ),
         runtimeBaseUrl: trimToString(mergedEnv.OPENCLAW_RUNTIME_BASE_URL),
-        bridgeToken: trimToString(
-            mergedEnv.PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN
+        bridgeToken: envAliasValue(
+            mergedEnv,
+            'AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN',
+            'PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN'
         ),
-        bridgeSecret: trimToString(
-            mergedEnv.PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET
+        bridgeSecret: envAliasValue(
+            mergedEnv,
+            'AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET',
+            'PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET'
         ),
-        bridgeHeader: trimToString(
-            mergedEnv.PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN_HEADER
+        bridgeHeader: envAliasValue(
+            mergedEnv,
+            'AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN_HEADER',
+            'PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN_HEADER'
         ),
-        bridgePrefix: trimToString(
-            mergedEnv.PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN_PREFIX
+        bridgePrefix: envAliasValue(
+            mergedEnv,
+            'AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN_PREFIX',
+            'PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN_PREFIX'
         ),
         helperDeviceId:
             trimToString(mergedEnv.OPENCLAW_HELPER_DEVICE_ID) ||
-            trimToString(mergedEnv.PIELARMONIA_OPERATOR_AUTH_DEVICE_ID),
+            envAliasValue(
+                mergedEnv,
+                'AURORADERM_OPERATOR_AUTH_DEVICE_ID',
+                'PIELARMONIA_OPERATOR_AUTH_DEVICE_ID'
+            ),
     });
 
     const helperBaseUrlRaw =
@@ -94,8 +118,10 @@ function buildConfig(env = process.env, repoRoot = REPO_ROOT) {
     const helperUrl = new URL(helperBaseUrl);
     const helperPort = Number.parseInt(helperUrl.port || '80', 10);
 
-    const serverBaseUrl = trimToString(
-        mergedEnv.PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL
+    const serverBaseUrl = envAliasValue(
+        mergedEnv,
+        'AURORADERM_OPERATOR_AUTH_SERVER_BASE_URL',
+        'PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL'
     ).replace(/\/+$/, '');
 
     return {
@@ -631,7 +657,7 @@ async function resolveChallenge(input, options = {}) {
         return {
             ok: false,
             status: 'helper_not_configured',
-            error: 'Faltan PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN/SECRET para completar el challenge.',
+            error: 'Faltan AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN/SECRET para completar el challenge. Los aliases PIELARMONIA_* siguen disponibles temporalmente.',
             input: normalizedInput,
         };
     }

@@ -556,3 +556,130 @@ test('public-v6 copy contract: legal ES stays clear without colloquial filler', 
         );
     });
 });
+
+test('public-v6 software contract: Flow OS is the canonical B2B brand in ES and EN', () => {
+    const checks = [
+        {
+            file: 'content/public-v6/es/software.json',
+            landingRoute: '/es/software/turnero-clinicas/',
+        },
+        {
+            file: 'content/public-v6/en/software.json',
+            landingRoute: '/en/software/clinic-flow-suite/',
+        },
+    ];
+
+    for (const check of checks) {
+        const json = readJson(check.file);
+        const raw = fs.readFileSync(path.join(ROOT, check.file), 'utf8');
+        const normalized = raw.toLowerCase();
+
+        assert.equal(
+            json?.nav?.brand?.logo,
+            'Flow OS',
+            `${check.file}: nav.brand.logo must be Flow OS`
+        );
+        assert.equal(
+            json?.nav?.header?.links?.[0]?.label,
+            'Flow OS',
+            `${check.file}: first software link must be Flow OS`
+        );
+        assert.equal(
+            json?.nav?.header?.links?.[0]?.href,
+            check.landingRoute,
+            `${check.file}: first software link must point to landing`
+        );
+        assert.equal(
+            String(json?.pages?.landing?.heading || '').includes('Flow OS'),
+            true,
+            `${check.file}: landing heading must include Flow OS`
+        );
+        assert.equal(
+            normalized.includes('turnero para clinicas'),
+            false,
+            `${check.file}: legacy ES product label must not appear`
+        );
+        assert.equal(
+            normalized.includes('clinic flow suite'),
+            false,
+            `${check.file}: legacy EN product label must not appear`
+        );
+    }
+});
+
+test('public-v6 software contract: landing keeps one offer and the canonical surface stack', () => {
+    const checks = [
+        {
+            file: 'content/public-v6/es/software.json',
+            surfaceLabels: [
+                'Flow OS',
+                'Patient Flow Link',
+                'Wait Room Display',
+                'Clinic Dashboard',
+            ],
+        },
+        {
+            file: 'content/public-v6/en/software.json',
+            surfaceLabels: [
+                'Flow OS',
+                'Patient Flow Link',
+                'Wait Room Display',
+                'Clinic Dashboard',
+            ],
+        },
+    ];
+
+    for (const check of checks) {
+        const json = readJson(check.file);
+        const raw = fs.readFileSync(path.join(ROOT, check.file), 'utf8');
+        const searchLabels = Array.isArray(json?.nav?.header?.searchEntries)
+            ? json.nav.header.searchEntries.map((entry) => entry.label)
+            : [];
+        const moduleTitles = Array.isArray(json?.pages?.landing?.modules?.cards)
+            ? json.pages.landing.modules.cards.map((card) => card.title)
+            : [];
+        const heroActions = Array.isArray(json?.pages?.landing?.hero?.actions)
+            ? json.pages.landing.hero.actions.map((action) =>
+                  String(action?.label || '')
+              )
+            : [];
+
+        assert.equal(
+            Array.isArray(json?.pages?.landing?.pricing?.plans),
+            true,
+            `${check.file}: pricing.plans must be an array`
+        );
+        assert.equal(
+            json.pages.landing.pricing.plans.length,
+            1,
+            `${check.file}: landing must expose exactly one offer`
+        );
+        assert.equal(
+            String(json.pages.landing.pricing.plans[0]?.name || '').includes(
+                'Flow OS'
+            ),
+            true,
+            `${check.file}: single offer must stay under Flow OS branding`
+        );
+        assert.deepEqual(
+            searchLabels,
+            check.surfaceLabels,
+            `${check.file}: search entries must mirror the canonical surface stack`
+        );
+        assert.equal(
+            moduleTitles.includes('Ops Console'),
+            true,
+            `${check.file}: landing modules must feature Ops Console`
+        );
+        assert.equal(
+            heroActions.some((label) => /demo/i.test(label)),
+            false,
+            `${check.file}: landing hero actions must not depend on demo wording`
+        );
+        assert.equal(
+            raw.toLowerCase().includes('mantenimiento'),
+            false,
+            `${check.file}: software route must stay free of maintenance copy`
+        );
+    }
+});

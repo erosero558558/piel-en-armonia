@@ -62,7 +62,9 @@ function buildDeviceId() {
 function signBridgePayload(payload, secretOverride = '') {
     const secret = String(secretOverride || '').trim() || bridgeSecret();
     if (!secret) {
-        throw new Error('Falta PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET');
+        throw new Error(
+            'Falta AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET. El alias PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET sigue disponible temporalmente.'
+        );
     }
     return signOperatorAuthPayload(payload, secret);
 }

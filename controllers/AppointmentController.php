@@ -568,7 +568,7 @@ class AppointmentController
             $dispatcher->dispatch($event);
             return is_object($event) ? $event : null;
         } catch (Throwable $e) {
-            error_log('Piel en Armonia: event dispatch fallback - ' . $e->getMessage());
+            error_log('Aurora Derm: event dispatch fallback - ' . $e->getMessage());
             return null;
         }
     }

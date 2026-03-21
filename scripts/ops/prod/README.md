@@ -72,7 +72,7 @@ Adopcion operativa de `public_main_sync`:
 - `check-public-routing-smoke.js` trata `/operador-turnos.html`, `/kiosco-turnos.html` y `/sala-turnos.html` como rutas publicas obligatorias; si una cae en redirect o 404, staging/prod no deben pasar.
 - `CHECKLIST-HOST-PUBLIC-SYNC.ps1` imprime un checklist host-side reutilizable para comparar `/root/sync-pielarmonia.sh` contra el wrapper canonico, capturar `public-sync-status.json`, revisar `health-diagnostics` y validar `storeEncryptionCompliant`.
 - Ese mismo checklist ya incluye snapshot de `.generated/site-root/` y `_deploy_bundle/`, para que el triage host-side no dependa de asumir outputs generados solo en el repo root.
-- El perfil productivo canonico de auth es `PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt` + `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=web_broker` + `PIELARMONIA_ADMIN_EMAIL=<correo_operativo>` + `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST=<correo_operativo>` + `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`.
+- El perfil productivo canonico de auth es `AURORADERM_OPERATOR_AUTH_MODE=openclaw_chatgpt` + `AURORADERM_OPERATOR_AUTH_TRANSPORT=web_broker` + `AURORADERM_ADMIN_EMAIL=<correo_operativo>` + `AURORADERM_OPERATOR_AUTH_ALLOWLIST=<correo_operativo>` + `AURORADERM_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`.
 - En ese perfil, `MONITOR-PRODUCCION.ps1` y `VERIFICAR-DESPLIEGUE.ps1` activan `RequireOperatorAuth` automaticamente cuando la politica efectiva del rollout admin exige OpenClaw.
 - `post-deploy-fast.yml` y `post-deploy-gate.yml` publican ademas un reporte de smoke live del broker web; el corte productivo espera `callback_ok=true`, `shared_session_ok=true` y `logout_ok=true`.
 
@@ -141,3 +141,4 @@ Para el piloto web por clinica, el carril canonico del piloto web por clinica es
 Ese carril convive con el lane nativo `turnero:operator:pilot`, que sigue
 siendo el gate del paquete desktop/operator cuando el release ampliado incluye
 superficies Windows y no solo el publish web.
+

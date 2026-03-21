@@ -121,6 +121,19 @@ function cloneDecision(decision: PublicImageDecision): PublicImageDecision {
   return JSON.parse(JSON.stringify(decision)) as PublicImageDecision;
 }
 
+function normalizeAssetSourceType(value: unknown): BrandAssetSourceType {
+  switch (normalizeText(value)) {
+    case "editorial_library":
+    case "ai_generated":
+    case "real_case":
+      return normalizeText(value) as BrandAssetSourceType;
+    case "real_photo":
+      return "real_case";
+    default:
+      return "editorial_library";
+  }
+}
+
 function toPublicImageDecision(input: Record<string, unknown>): PublicImageDecision {
   return {
     slotId: normalizeText(input.slotId),
@@ -368,7 +381,9 @@ export class BrandSurfaceService {
         approvedAssets: [
           {
             assetId: approvedAsset.id,
-            sourceType: approvedAsset.sourceType ?? "ai_generated",
+            sourceType: normalizeAssetSourceType(
+              approvedAsset.sourceType ?? approvedAsset.sourceKind
+            ),
             publicWebSafe: approvedAsset.publicWebSafe === true,
             manifestEntry: JSON.parse(JSON.stringify(approvedAsset)),
             sourceMasterPath: null,

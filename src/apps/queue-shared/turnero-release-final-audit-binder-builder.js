@@ -56,7 +56,7 @@ export function buildTurneroReleaseFinalAuditBinder(pack = {}) {
                 context.clinicLabel ||
                     context.clinicShortName ||
                     context.clinicId,
-                'Piel en Armonia'
+                'Aurora Derm'
             )}${context.clinicId ? ` (${context.clinicId})` : ''}`,
             `Scope: ${toText(context.scope || context.region, 'global')}`,
             `Platform: ${toText(context.detectedPlatform, 'unknown')}`,

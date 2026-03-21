@@ -26,19 +26,35 @@ function createSandboxRoot(prefix = 'public-runtime-artifacts-') {
     const base = mkdtempSync(resolve(tmpdir(), prefix));
     const chunksDir = resolve(base, 'js', 'chunks');
     const enginesDir = resolve(base, 'js', 'engines');
+    const adminChunksDir = resolve(base, 'js', 'admin-chunks');
     mkdirSync(chunksDir, { recursive: true });
     mkdirSync(enginesDir, { recursive: true });
-    return { base, chunksDir, enginesDir };
+    mkdirSync(adminChunksDir, { recursive: true });
+    return { base, chunksDir, enginesDir, adminChunksDir };
 }
 
 function writeFile(filePath, content) {
     writeFileSync(filePath, content, 'utf8');
 }
 
-function runChecker(rootPath, outputPath, extraArgs = []) {
+function runChecker(
+    rootPath,
+    outputPath,
+    extraArgs = [],
+    publishedRootPath = rootPath
+) {
     return spawnSync(
         'node',
-        [SCRIPT_PATH, '--root', rootPath, '--output', outputPath, ...extraArgs],
+        [
+            SCRIPT_PATH,
+            '--root',
+            rootPath,
+            '--published-root',
+            publishedRootPath,
+            '--output',
+            outputPath,
+            ...extraArgs,
+        ],
         {
             cwd: REPO_ROOT,
             encoding: 'utf8',
@@ -67,12 +83,24 @@ function seedGatewaySupportAssets(sandbox, options = {}) {
     }
 }
 
+function seedHealthyAdminRuntime(sandbox) {
+    writeFile(
+        resolve(sandbox.base, 'admin.js'),
+        "import('./js/admin-chunks/index-live.js');\n"
+    );
+    writeFile(
+        resolve(sandbox.adminChunksDir, 'index-live.js'),
+        'export const adminLive = true;\n'
+    );
+}
+
 test('check-public-runtime-artifacts writes the canonical report for a healthy runtime graph', () => {
     const sandbox = createSandboxRoot();
     const reportPath = resolve(sandbox.base, 'runtime-artifacts-report.json');
 
     try {
         seedGatewaySupportAssets(sandbox);
+        seedHealthyAdminRuntime(sandbox);
         writeFile(
             resolve(sandbox.base, 'script.js'),
             [
@@ -101,6 +129,11 @@ test('check-public-runtime-artifacts writes the canonical report for a healthy r
 
         const report = JSON.parse(readFileSync(reportPath, 'utf8'));
         assert.equal(report.passed, true, 'el reporte debe quedar en verde');
+        assert.equal(
+            report.adminPublished?.passed,
+            true,
+            'admin published parity debe quedar en verde'
+        );
         assert.deepEqual(report.staleChunks, [], 'no debe haber chunks huerfanos');
         assert.deepEqual(
             report.activeShellChunks,
@@ -132,12 +165,162 @@ test('check-public-runtime-artifacts writes the canonical report for a healthy r
     }
 });
 
+test('check-public-runtime-artifacts fails when published admin.js drifts and points to a missing root chunk', () => {
+    const stageSandbox = createSandboxRoot('public-runtime-artifacts-admin-stage-');
+    const publishedSandbox = createSandboxRoot(
+        'public-runtime-artifacts-admin-published-'
+    );
+    const reportPath = resolve(
+        stageSandbox.base,
+        'runtime-artifacts-report.json'
+    );
+
+    try {
+        seedGatewaySupportAssets(stageSandbox);
+        writeFile(
+            resolve(stageSandbox.base, 'script.js'),
+            [
+                "const engine = '/js/engines/ui-bundle.js';",
+                "import('./js/chunks/shell-live.js');",
+                '',
+            ].join('\n')
+        );
+        writeFile(
+            resolve(stageSandbox.chunksDir, 'shell-live.js'),
+            'export const shell = true;\n'
+        );
+        writeFile(
+            resolve(stageSandbox.base, 'admin.js'),
+            "import('./js/admin-chunks/index-live.js');\n"
+        );
+        writeFile(
+            resolve(stageSandbox.base, 'js', 'admin-chunks', 'index-live.js'),
+            'export const adminLive = true;\n'
+        );
+
+        writeFile(
+            resolve(publishedSandbox.base, 'admin.js'),
+            "import('./js/admin-chunks/index-broken.js');\n"
+        );
+
+        const result = runChecker(
+            stageSandbox.base,
+            reportPath,
+            [],
+            publishedSandbox.base
+        );
+        assert.notEqual(
+            result.status,
+            0,
+            'el checker debe fallar si el admin publicado deriva del staged root'
+        );
+
+        const report = JSON.parse(readFileSync(reportPath, 'utf8'));
+        const adminCodes = report.adminPublished.diagnostics
+            .map((entry) => entry.code)
+            .sort();
+        assert.deepEqual(
+            adminCodes,
+            [
+                'published_admin_entry_drift',
+                'published_admin_graph_drift',
+                'published_admin_missing_referenced_chunks',
+            ],
+            'el reporte debe clasificar drift y chunks faltantes del admin publicado'
+        );
+    } finally {
+        removeSandbox(stageSandbox.base);
+        removeSandbox(publishedSandbox.base);
+    }
+});
+
+test('check-public-runtime-artifacts fails when published admin chunks differ from the staged active graph', () => {
+    const stageSandbox = createSandboxRoot(
+        'public-runtime-artifacts-admin-content-stage-'
+    );
+    const publishedSandbox = createSandboxRoot(
+        'public-runtime-artifacts-admin-content-published-'
+    );
+    const reportPath = resolve(
+        stageSandbox.base,
+        'runtime-artifacts-report.json'
+    );
+
+    try {
+        seedGatewaySupportAssets(stageSandbox);
+        writeFile(
+            resolve(stageSandbox.base, 'script.js'),
+            [
+                "const engine = '/js/engines/ui-bundle.js';",
+                "import('./js/chunks/shell-live.js');",
+                '',
+            ].join('\n')
+        );
+        writeFile(
+            resolve(stageSandbox.chunksDir, 'shell-live.js'),
+            'export const shell = true;\n'
+        );
+        writeFile(
+            resolve(stageSandbox.base, 'admin.js'),
+            "import('./js/admin-chunks/index-live.js');\n"
+        );
+        writeFile(
+            resolve(stageSandbox.base, 'js', 'admin-chunks', 'index-live.js'),
+            'export const adminLive = true;\n'
+        );
+
+        writeFile(
+            resolve(publishedSandbox.base, 'admin.js'),
+            "import('./js/admin-chunks/index-live.js');\n"
+        );
+        writeFile(
+            resolve(
+                publishedSandbox.base,
+                'js',
+                'admin-chunks',
+                'index-live.js'
+            ),
+            'export const adminLive = false;\n'
+        );
+
+        const result = runChecker(
+            stageSandbox.base,
+            reportPath,
+            [],
+            publishedSandbox.base
+        );
+        assert.notEqual(
+            result.status,
+            0,
+            'el checker debe fallar si cambia el contenido del chunk admin activo'
+        );
+
+        const report = JSON.parse(readFileSync(reportPath, 'utf8'));
+        assert.deepEqual(
+            report.adminPublished.chunkContentDrift,
+            ['js/admin-chunks/index-live.js'],
+            'debe identificar el chunk admin activo con drift'
+        );
+        assert.equal(
+            report.adminPublished.diagnostics.some(
+                (entry) => entry.code === 'published_admin_content_drift'
+            ),
+            true,
+            'debe clasificar el drift de contenido del grafo admin publicado'
+        );
+    } finally {
+        removeSandbox(stageSandbox.base);
+        removeSandbox(publishedSandbox.base);
+    }
+});
+
 test('check-public-runtime-artifacts fails when stale chunks or multiple active shells remain', () => {
     const sandbox = createSandboxRoot('public-runtime-artifacts-drift-');
     const reportPath = resolve(sandbox.base, 'runtime-artifacts-report.json');
 
     try {
         seedGatewaySupportAssets(sandbox);
+        seedHealthyAdminRuntime(sandbox);
         writeFile(
             resolve(sandbox.base, 'script.js'),
             [
@@ -181,6 +364,7 @@ test('check-public-runtime-artifacts reports merge markers in active assets', ()
 
     try {
         seedGatewaySupportAssets(sandbox);
+        seedHealthyAdminRuntime(sandbox);
         writeFile(
             resolve(sandbox.base, 'script.js'),
             [
@@ -239,6 +423,7 @@ test('check-public-runtime-artifacts fails when a referenced engine or support a
     const reportPath = resolve(sandbox.base, 'runtime-artifacts-report.json');
 
     try {
+        seedHealthyAdminRuntime(sandbox);
         writeFile(resolve(sandbox.base, 'styles.css'), 'body { color: #111; }\n');
         writeFile(
             resolve(sandbox.base, 'script.js'),
@@ -292,6 +477,7 @@ test('check-public-runtime-artifacts fails when root legacy runtime files reappe
 
     try {
         seedGatewaySupportAssets(sandbox);
+        seedHealthyAdminRuntime(sandbox);
         writeFile(resolve(sandbox.base, 'booking-engine.js'), 'window.legacy = true;\n');
         writeFile(resolve(sandbox.base, 'utils.js'), 'window.legacyUtils = true;\n');
         writeFile(

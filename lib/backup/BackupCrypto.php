@@ -37,9 +37,9 @@ final class BackupCrypto
         }
 
         $raw = BackupConfig::firstNonEmptyString([
-            getenv('PIELARMONIA_BACKUP_RECEIVER_ENCRYPTION_KEY'),
-            getenv('PIELARMONIA_DATA_ENCRYPTION_KEY'),
-            getenv('PIELARMONIA_DATA_KEY'),
+            app_env('AURORADERM_BACKUP_RECEIVER_ENCRYPTION_KEY'),
+            app_env('AURORADERM_DATA_ENCRYPTION_KEY'),
+            app_env('AURORADERM_DATA_KEY'),
         ]);
 
         if ($raw === '') {

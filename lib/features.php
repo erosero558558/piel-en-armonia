@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/common.php';
+
 /**
  * Feature flags configuration and helpers.
  */
@@ -37,7 +39,7 @@ class FeatureFlags
             return;
         }
 
-        $host = getenv('PIELARMONIA_REDIS_HOST');
+        $host = app_env('AURORADERM_REDIS_HOST');
         if (is_string($host) && trim($host) !== '' && class_exists('Predis\Client')) {
             try {
                 self::$client = new \Predis\Client([

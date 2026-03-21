@@ -1,5 +1,5 @@
 /**
- * Piel en Armonia - Booking Calendar Logic
+ * Aurora Derm - Booking Calendar Logic
  * Extracted for lazy loading.
  */
 

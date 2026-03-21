@@ -248,7 +248,7 @@ function resolveRegionalClinics(
                     clinicProfile.branding?.name ||
                     clinicProfile.clinicName ||
                     clinicProfile.clinic_name ||
-                    'Piel en Armonia',
+                    'Aurora Derm',
                 region,
                 expectedBenefit: 80,
                 realizedBenefit: 50,
@@ -511,8 +511,8 @@ export function buildTurneroReleaseExecutivePortfolioStudioPack(input = {}) {
         clinicProfile.branding?.short_name ||
             clinicProfile.branding?.name ||
             clinicProfile.clinicName ||
-            'Piel en Armonia',
-        'Piel en Armonia'
+            'Aurora Derm',
+        'Aurora Derm'
     );
     const clinicId = toText(
         clinicProfile.clinic_id ||

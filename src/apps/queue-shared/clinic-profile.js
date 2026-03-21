@@ -2,8 +2,8 @@ const FALLBACK_PROFILE = Object.freeze({
     schema: 'turnero-clinic-profile/v1',
     clinic_id: 'default-clinic',
     branding: {
-        name: 'Piel en Armonia',
-        short_name: 'Piel en Armonia',
+        name: 'Aurora Derm',
+        short_name: 'Aurora Derm',
         city: 'Quito',
         base_url: '',
     },

@@ -102,7 +102,7 @@ function get_db_connection(?string $dbPath = null, bool $reset = false): ?PDO
         if (!db_sqlite_driver_available()) {
             db_log_once(
                 'sqlite_driver_unavailable',
-                'Piel en Armonia DB: SQLite driver unavailable; fallback storage required.'
+                'Aurora Derm DB: SQLite driver unavailable; fallback storage required.'
             );
             return null;
         }
@@ -124,7 +124,7 @@ function get_db_connection(?string $dbPath = null, bool $reset = false): ?PDO
             $reasonKey = $reason === '' ? 'unknown' : md5($reason);
             db_log_once(
                 'sqlite_connect_error_' . $reasonKey,
-                'Piel en Armonia DB: SQLite connection error: ' . $reason
+                'Aurora Derm DB: SQLite connection error: ' . $reason
             );
             return null;
         }
@@ -148,7 +148,7 @@ function get_db_connection(?string $dbPath = null, bool $reset = false): ?PDO
             $connectionKey = 'mysql:' . $host . ':' . $name . ':' . $user;
             return $pdo;
         } catch (PDOException $e) {
-            error_log('Piel en Armonía DB Connection Error: Could not connect to database.');
+            error_log('Aurora Derm DB Connection Error: Could not connect to database.');
             return null;
         }
     }
@@ -181,7 +181,7 @@ function db_query(string $sql, array $params = [])
 
         return $stmt->rowCount();
     } catch (PDOException $e) {
-        error_log('Piel en Armonía DB Query Error: ' . $e->getMessage());
+        error_log('Aurora Derm DB Query Error: ' . $e->getMessage());
         return false;
     }
 }
@@ -328,7 +328,7 @@ function ensure_db_schema(): void
         try {
             $pdo->exec($sql);
         } catch (PDOException $e) {
-            error_log('Piel en Armonía Schema Error: ' . $e->getMessage());
+            error_log('Aurora Derm Schema Error: ' . $e->getMessage());
         }
     }
 }

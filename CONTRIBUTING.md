@@ -1,4 +1,4 @@
-# Contribuir a Piel en Armonia
+# Contribuir a Aurora Derm
 
 Este archivo se conserva como shim compatible para referencias historicas.
 

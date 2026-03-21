@@ -5,7 +5,7 @@
 $domain = 'https://pielarmonia.com';
 $checks = [];
 $failures = 0;
-$diagnosticsToken = trim((string) (getenv('PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN') ?: getenv('PIELARMONIA_CRON_SECRET') ?: ''));
+$diagnosticsToken = trim((string) (getenv('AURORADERM_DIAGNOSTICS_ACCESS_TOKEN') ?: getenv('PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN') ?: getenv('AURORADERM_CRON_SECRET') ?: getenv('PIELARMONIA_CRON_SECRET') ?: ''));
 $repoRoot = realpath(__DIR__ . '/..');
 $generatedSiteRoot = $repoRoot ? ($repoRoot . DIRECTORY_SEPARATOR . '.generated' . DIRECTORY_SEPARATOR . 'site-root') : '';
 
@@ -35,15 +35,15 @@ function diagnostics_headers(): array
     global $diagnosticsToken;
 
     $headers = [
-        'User-Agent: PielArmoniaGateCheck/1.0',
+        'User-Agent: AuroraDermGateCheck/1.0',
     ];
 
     if ($diagnosticsToken === '') {
         return $headers;
     }
 
-    $headerName = trim((string) (getenv('PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER') ?: 'Authorization'));
-    $prefix = trim((string) (getenv('PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX') ?: 'Bearer'));
+    $headerName = trim((string) (getenv('AURORADERM_DIAGNOSTICS_ACCESS_TOKEN_HEADER') ?: getenv('PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER') ?: 'Authorization'));
+    $prefix = trim((string) (getenv('AURORADERM_DIAGNOSTICS_ACCESS_TOKEN_PREFIX') ?: getenv('PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX') ?: 'Bearer'));
     $headerValue = $prefix !== '' ? ($prefix . ' ' . $diagnosticsToken) : $diagnosticsToken;
     $headers[] = $headerName . ': ' . $headerValue;
 
@@ -57,7 +57,7 @@ function fetch($url, array $headers = [])
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 20);
     if ($headers === []) {
-        curl_setopt($ch, CURLOPT_USERAGENT, 'PielArmoniaGateCheck/1.0');
+        curl_setopt($ch, CURLOPT_USERAGENT, 'AuroraDermGateCheck/1.0');
     } else {
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     }
@@ -81,7 +81,7 @@ function fetchHeaders($url, array $headers = [])
     curl_setopt($ch, CURLOPT_NOBODY, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
     if ($headers === []) {
-        curl_setopt($ch, CURLOPT_USERAGENT, 'PielArmoniaGateCheck/1.0');
+        curl_setopt($ch, CURLOPT_USERAGENT, 'AuroraDermGateCheck/1.0');
     } else {
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     }

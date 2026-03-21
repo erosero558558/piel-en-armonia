@@ -49,10 +49,10 @@ function verify_backup_authorized(): bool
     }
 
     $expectedTokens = [
-        getenv('PIELARMONIA_BACKUP_RECEIVER_TOKEN'),
-        getenv('PIELARMONIA_BACKUP_OFFSITE_TOKEN'),
-        getenv('PIELARMONIA_BACKUP_WEBHOOK_TOKEN'),
-        getenv('PIELARMONIA_CRON_SECRET')
+        app_env('AURORADERM_BACKUP_RECEIVER_TOKEN'),
+        app_env('AURORADERM_BACKUP_OFFSITE_TOKEN'),
+        app_env('AURORADERM_BACKUP_WEBHOOK_TOKEN'),
+        app_env('AURORADERM_CRON_SECRET')
     ];
 
     foreach ($expectedTokens as $expectedToken) {

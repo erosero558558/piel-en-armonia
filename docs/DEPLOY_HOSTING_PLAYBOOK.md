@@ -95,7 +95,7 @@ Notas:
 
 - El cutover reusa el tunnel `pielarmonia-local-host` si ya existe en esta
   maquina.
-- `PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL` debe quedar en
+- `AURORADERM_OPERATOR_AUTH_SERVER_BASE_URL` debe quedar en
   `https://pielarmonia.com`.
 - El entrypoint publico sale por Cloudflare Tunnel; no hace falta publicar
   `8011`, `4173` ni `9000`.
@@ -109,7 +109,7 @@ Notas:
   y mantiene `login-stack.cmd` / `boot-stack.cmd` solo como shims compatibles.
 - El perfil productivo canonico de auth es `web_broker`; el helper local en
   `127.0.0.1:4173` queda solo para soporte manual/laptop cuando se habilita
-  explicitamente `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=local_helper`.
+  explicitamente `AURORADERM_OPERATOR_AUTH_TRANSPORT=local_helper`.
 - En produccion `web_broker`, el supervisor, el sync y el smoke local validan
   que `admin-auth.php?action=status` publique `transport=web_broker`; si el
   contrato falta o reaparece `local_helper`, el host marca fallo en cerrado.
@@ -239,12 +239,12 @@ Notas:
 
 Configura estas variables en tu hosting:
 
-- `PIELARMONIA_OPERATOR_AUTH_MODE=openclaw_chatgpt`
-- `PIELARMONIA_OPERATOR_AUTH_TRANSPORT=web_broker`
-- `PIELARMONIA_ADMIN_EMAIL=<correo_operativo>`
-- `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST=<correo_operativo>`
-- `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`
-- `PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL=https://pielarmonia.com`
+- `AURORADERM_OPERATOR_AUTH_MODE=openclaw_chatgpt`
+- `AURORADERM_OPERATOR_AUTH_TRANSPORT=web_broker`
+- `AURORADERM_ADMIN_EMAIL=<correo_operativo>`
+- `AURORADERM_OPERATOR_AUTH_ALLOWLIST=<correo_operativo>`
+- `AURORADERM_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=false`
+- `AURORADERM_OPERATOR_AUTH_SERVER_BASE_URL=https://pielarmonia.com`
 - `OPENCLAW_AUTH_BROKER_AUTHORIZE_URL`
 - `OPENCLAW_AUTH_BROKER_TOKEN_URL`
 - `OPENCLAW_AUTH_BROKER_USERINFO_URL`
@@ -256,15 +256,15 @@ Configura estas variables en tu hosting:
   `OPENCLAW_AUTH_BROKER_SMOKE_PASSWORD`,
   `OPENCLAW_AUTH_BROKER_SMOKE_TOTP_SECRET`,
   `OPENCLAW_AUTH_BROKER_SMOKE_EXPECTED_EMAIL`
-- `PIELARMONIA_ADMIN_PASSWORD` y/o `PIELARMONIA_ADMIN_PASSWORD_HASH` solo si habilitas contingencia legacy
-- `PIELARMONIA_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=false` por defecto; subirlo a `true` solo en incidente
-- `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST`, `PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN`,
-  `PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET` y `PIELARMONIA_OPERATOR_AUTH_HELPER_BASE_URL`
+- `AURORADERM_ADMIN_PASSWORD` y/o `AURORADERM_ADMIN_PASSWORD_HASH` solo si habilitas contingencia legacy
+- `AURORADERM_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=false` por defecto; subirlo a `true` solo en incidente
+- `AURORADERM_OPERATOR_AUTH_ALLOWLIST`, `AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN`,
+  `AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET` y `AURORADERM_OPERATOR_AUTH_HELPER_BASE_URL`
   solo aplican cuando se habilita `local_helper` para soporte local/manual
-- `PIELARMONIA_ADMIN_EMAIL` (recomendada para recibir aviso de nuevas citas)
-- `PIELARMONIA_EMAIL_FROM` (opcional, para correos de confirmacion)
-- `PIELARMONIA_DATA_DIR` (opcional, para forzar ruta de datos si `public_html/data` no tiene permisos)
-- `PIELARMONIA_DATA_ENCRYPTION_KEY` (opcional, recomendado para cifrado en reposo de `store.json`)
+- `AURORADERM_ADMIN_EMAIL` (recomendada para recibir aviso de nuevas citas)
+- `AURORADERM_EMAIL_FROM` (opcional, para correos de confirmacion)
+- `AURORADERM_DATA_DIR` (opcional, para forzar ruta de datos si `public_html/data` no tiene permisos)
+- `AURORADERM_DATA_ENCRYPTION_KEY` (opcional, recomendado para cifrado en reposo de `store.json`)
 - `FIGO_CHAT_ENDPOINT` (obligatoria para conectar el chatbot real)
 - `FIGO_CHAT_TOKEN` (opcional, token Bearer para backend Figo)
 - `FIGO_CHAT_APIKEY_HEADER` y `FIGO_CHAT_APIKEY` (opcionales, si tu backend usa API key custom)
@@ -273,30 +273,30 @@ Configura estas variables en tu hosting:
 - `FIGO_TELEGRAM_BOT_TOKEN` (opcional, para puente/notificacion Telegram en `figo-backend.php`)
 - `FIGO_TELEGRAM_CHAT_ID` (opcional, chat destino para notificaciones Telegram)
 - `FIGO_TELEGRAM_WEBHOOK_SECRET` (recomendado, valida peticiones webhook de Telegram)
-- `PIELARMONIA_CRON_SECRET` (obligatoria para `cron.php`)
-- `PIELARMONIA_BACKUP_MAX_AGE_HOURS` (opcional, default 24)
-- `PIELARMONIA_BACKUP_AUTO_REFRESH` (opcional, default `true`, refresca backup stale de forma automatica)
-- `PIELARMONIA_BACKUP_AUTO_REFRESH_INTERVAL_SECONDS` (opcional, default `600`, cooldown de auto-refresh)
-- `PIELARMONIA_BACKUP_OFFSITE_URL` (opcional, endpoint externo para snapshots)
-- `PIELARMONIA_BACKUP_OFFSITE_TOKEN` (opcional)
-- `PIELARMONIA_BACKUP_OFFSITE_TOKEN_HEADER` (opcional, default `Authorization`)
-- `PIELARMONIA_BACKUP_OFFSITE_TIMEOUT_SECONDS` (opcional, default 20)
-- `PIELARMONIA_BACKUP_LOCAL_REPLICA` (opcional, default `true`, replica local en `data/backups/offsite-local/`)
-- `PIELARMONIA_BACKUP_RECEIVER_TOKEN` (solo cuando este servidor actua como destino de `backup-receiver.php`)
-- `PIELARMONIA_BACKUP_RECEIVER_MAX_MB` (opcional, limite de subida en MB del receiver)
-- `PIELARMONIA_STORAGE_JSON_FALLBACK` (opcional, default `true`, usa `store.json` si SQLite falla)
-- `PIELARMONIA_DEFAULT_REVIEWS_ENABLED` (opcional, default `true`, fallback de reseñas cuando store esta vacio)
-- `PIELARMONIA_DEFAULT_AVAILABILITY_ENABLED` (opcional, default `false`; en `true` genera agenda base cuando store esta vacio)
+- `AURORADERM_CRON_SECRET` (obligatoria para `cron.php`)
+- `AURORADERM_BACKUP_MAX_AGE_HOURS` (opcional, default 24)
+- `AURORADERM_BACKUP_AUTO_REFRESH` (opcional, default `true`, refresca backup stale de forma automatica)
+- `AURORADERM_BACKUP_AUTO_REFRESH_INTERVAL_SECONDS` (opcional, default `600`, cooldown de auto-refresh)
+- `AURORADERM_BACKUP_OFFSITE_URL` (opcional, endpoint externo para snapshots)
+- `AURORADERM_BACKUP_OFFSITE_TOKEN` (opcional)
+- `AURORADERM_BACKUP_OFFSITE_TOKEN_HEADER` (opcional, default `Authorization`)
+- `AURORADERM_BACKUP_OFFSITE_TIMEOUT_SECONDS` (opcional, default 20)
+- `AURORADERM_BACKUP_LOCAL_REPLICA` (opcional, default `true`, replica local en `data/backups/offsite-local/`)
+- `AURORADERM_BACKUP_RECEIVER_TOKEN` (solo cuando este servidor actua como destino de `backup-receiver.php`)
+- `AURORADERM_BACKUP_RECEIVER_MAX_MB` (opcional, limite de subida en MB del receiver)
+- `AURORADERM_STORAGE_JSON_FALLBACK` (opcional, default `true`, usa `store.json` si SQLite falla)
+- `AURORADERM_DEFAULT_REVIEWS_ENABLED` (opcional, default `true`, fallback de reseñas cuando store esta vacio)
+- `AURORADERM_DEFAULT_AVAILABILITY_ENABLED` (opcional, default `false`; en `true` genera agenda base cuando store esta vacio)
 
 Importante:
 
 - Ya no existe fallback `admin123`, incluso en local.
 - En produccion, el login admin/turnero debe entrar por OpenClaw `web_broker`.
-- `PIELARMONIA_ADMIN_PASSWORD` o `PIELARMONIA_ADMIN_PASSWORD_HASH` solo son obligatorios si vas a exponer la contingencia legacy.
-- En el perfil restringido recomendado, `PIELARMONIA_OPERATOR_AUTH_ALLOWLIST` debe contener la cuenta operativa autorizada.
-- `PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=true` queda solo como opt-in para entornos que quieran permitir cualquier identidad verificada por el broker.
-- Para notificaciones por email al administrador, configura `PIELARMONIA_ADMIN_EMAIL`.
-- Para cifrado de datos en reposo, configura `PIELARMONIA_DATA_ENCRYPTION_KEY` (32 bytes o texto que se deriva a SHA-256).
+- `AURORADERM_ADMIN_PASSWORD` o `AURORADERM_ADMIN_PASSWORD_HASH` solo son obligatorios si vas a exponer la contingencia legacy.
+- En el perfil restringido recomendado, `AURORADERM_OPERATOR_AUTH_ALLOWLIST` debe contener la cuenta operativa autorizada.
+- `AURORADERM_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL=true` queda solo como opt-in para entornos que quieran permitir cualquier identidad verificada por el broker.
+- Para notificaciones por email al administrador, configura `AURORADERM_ADMIN_EMAIL`.
+- Para cifrado de datos en reposo, configura `AURORADERM_DATA_ENCRYPTION_KEY` (32 bytes o texto que se deriva a SHA-256).
 - Si no puedes usar variables de entorno, tambien puedes crear `data/figo-config.json`.
 - `FIGO_CHAT_ENDPOINT` NO debe ser `https://pielarmonia.com/figo-chat.php` ni ninguna URL que apunte al mismo proxy.
   Debe apuntar al backend real de Clawbot/Figo (upstream).
@@ -415,10 +415,10 @@ fi
 10. Replica remota real (opcional):
 
 - Publica `backup-receiver.php` en servidor destino.
-- Configura token en destino (`PIELARMONIA_BACKUP_RECEIVER_TOKEN`).
+- Configura token en destino (`AURORADERM_BACKUP_RECEIVER_TOKEN`).
 - En origen configura:
-  `PIELARMONIA_BACKUP_OFFSITE_URL=https://DESTINO/backup-receiver.php`
-  `PIELARMONIA_BACKUP_OFFSITE_TOKEN=<TOKEN>`
+  `AURORADERM_BACKUP_OFFSITE_URL=https://DESTINO/backup-receiver.php`
+  `AURORADERM_BACKUP_OFFSITE_TOKEN=<TOKEN>`
 - Script de ayuda: `.\CONFIGURAR-BACKUP-OFFSITE.ps1`
 - Implementacion canonica: `scripts/ops/setup/CONFIGURAR-BACKUP-OFFSITE.ps1`
 

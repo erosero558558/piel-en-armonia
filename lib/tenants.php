@@ -22,10 +22,10 @@ function get_tenant_config(?string $tenantId = null): array
 {
     $id = $tenantId ?? get_current_tenant_id();
 
-    // Default configuration (Piel en Armonia)
+    // Default configuration (Aurora Derm)
     $defaults = [
         'id' => 'pielarmonia',
-        'name' => 'Piel en Armonía',
+        'name' => 'Aurora Derm',
         'address' => 'Av. Amazonas y Naciones Unidas, Edificio La Previsora, Torre A, Oficina 802',
         'phone' => '+593999999999', // Placeholder, adjust if needed
         'email' => 'info@pielarmonia.ec',

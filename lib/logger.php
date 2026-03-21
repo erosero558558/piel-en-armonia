@@ -69,7 +69,7 @@ function get_logger()
             $syslogHandler->setFormatter(new \Monolog\Formatter\JsonFormatter());
             $logger->pushHandler($syslogHandler);
         } catch (Throwable $e) {
-            error_log('Piel en Armonia: Failed to initialize Papertrail logger: ' . $e->getMessage());
+            error_log('Aurora Derm: Failed to initialize Papertrail logger: ' . $e->getMessage());
         }
     }
 

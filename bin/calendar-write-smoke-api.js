@@ -53,6 +53,20 @@ function normalizeBaseUrl(baseUrl) {
     return String(baseUrl || '').replace(/\/+$/, '');
 }
 
+function env(name, fallback = '') {
+    const normalized = String(name || '').trim();
+    const candidates = normalized.startsWith('PIELARMONIA_')
+        ? [`AURORADERM_${normalized.slice('PIELARMONIA_'.length)}`, normalized]
+        : [normalized];
+    for (const candidate of candidates) {
+        const value = process.env[candidate];
+        if (typeof value === 'string' && value.trim() !== '') {
+            return value.trim();
+        }
+    }
+    return fallback;
+}
+
 function usage() {
     return [
         'Uso: node bin/calendar-write-smoke-api.js [opciones]',
@@ -63,7 +77,7 @@ function usage() {
         '  --days=N                      Ventana de disponibilidad (default 21)',
         '  --min-lead-minutes=N          Anticipacion minima para slot (default 70)',
         '  --require-google=true|false   Exigir calendarSource=google (default TEST_REQUIRE_GOOGLE_CALENDAR=true)',
-        '  --admin-password=VALUE        Password admin solo para cleanup legacy (default TEST_ADMIN_PASSWORD o PIELARMONIA_ADMIN_PASSWORD)',
+        '  --admin-password=VALUE        Password admin solo para cleanup legacy (default TEST_ADMIN_PASSWORD o AURORADERM_ADMIN_PASSWORD; alias PIELARMONIA_* soportado)',
         '  --json-out=PATH               Reporte JSON (default verification/calendar-write-smoke/api-write-smoke-last.json)',
         '  --help                        Muestra esta ayuda',
     ].join('\n');
@@ -145,7 +159,7 @@ async function main() {
     const adminPassword = parseStringArg(
         'admin-password',
         process.env.TEST_ADMIN_PASSWORD ||
-            process.env.PIELARMONIA_ADMIN_PASSWORD ||
+            env('AURORADERM_ADMIN_PASSWORD') ||
             ''
     );
     const jsonOut = resolve(

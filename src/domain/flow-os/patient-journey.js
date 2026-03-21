@@ -19,6 +19,36 @@ function canTransition(fromStage, toStage) {
   return currentStage.allowedNext.includes(toStage);
 }
 
+function listJourneyStages() {
+  const manifest = loadFlowOsManifest();
+
+  return manifest.journeyStages.map((stage) => ({
+    id: stage.id,
+    label: stage.label,
+    summary: stage.summary,
+    isTerminal: stage.terminal,
+    nextStages: Array.isArray(stage.allowedNext) ? [...stage.allowedNext] : [],
+    mapsToCaseStatuses: Array.isArray(stage.mapsToCaseStatuses)
+      ? [...stage.mapsToCaseStatuses]
+      : [],
+  }));
+}
+
+function resolveCaseStatusStage(caseStatus) {
+  const normalizedStatus =
+    typeof caseStatus === "string" ? caseStatus.trim() : "";
+
+  if (!normalizedStatus) {
+    return null;
+  }
+
+  const stage = listJourneyStages().find((candidate) =>
+    candidate.mapsToCaseStatuses.includes(normalizedStatus)
+  );
+
+  return stage || null;
+}
+
 function summarizeJourney(stageId) {
   const stageMap = getStageMap();
   const stage = stageMap.get(stageId);
@@ -32,11 +62,16 @@ function summarizeJourney(stageId) {
     label: stage.label,
     summary: stage.summary,
     isTerminal: stage.terminal,
-    nextStages: stage.allowedNext
+    nextStages: stage.allowedNext,
+    mapsToCaseStatuses: Array.isArray(stage.mapsToCaseStatuses)
+      ? [...stage.mapsToCaseStatuses]
+      : [],
   };
 }
 
 module.exports = {
   canTransition,
+  listJourneyStages,
+  resolveCaseStatusStage,
   summarizeJourney
 };

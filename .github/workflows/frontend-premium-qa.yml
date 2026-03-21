@@ -104,6 +104,7 @@ jobs:
             TEST_LOCAL_SERVER_PORT: '8011'
             LIGHTHOUSE_LOCAL_SERVER_HOST: '127.0.0.1'
             LIGHTHOUSE_LOCAL_SERVER_PORT: '8011'
+            AURORADERM_ADMIN_PASSWORD: ${{ secrets.AURORADERM_ADMIN_PASSWORD || secrets.PIELARMONIA_ADMIN_PASSWORD || 'test-ci-admin-password' }}
             PIELARMONIA_ADMIN_PASSWORD: ${{ secrets.PIELARMONIA_ADMIN_PASSWORD || 'test-ci-admin-password' }}
         steps:
             - name: Checkout

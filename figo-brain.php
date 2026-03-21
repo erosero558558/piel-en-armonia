@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * FigoBrain V3: The High-End Digital Concierge for Piel en Armonía.
+ * FigoBrain V3: The High-End Digital Concierge for Aurora Derm.
  * Professional, Safe, Empathetic, and Authoritative.
  */
 
@@ -228,13 +228,13 @@ class FigoBrain
                 return self::getGreeting();
 
             case 'identity':
-                return "Soy **Figo**, el Concierge Digital de Piel en Armonía. 🤖✨\n\n" .
+                return "Soy **Figo**, el Concierge Digital de Aurora Derm. 🤖✨\n\n" .
                        "Mi misión es brindarte la misma calidez y excelencia que encontrarás en nuestra clínica.\n" .
                        "Puedo asistirte con citas, precios, dudas médicas básicas y ubicación.\n\n" .
                        "¿Cómo puedo hacer tu día mejor hoy?";
 
             case 'escalation':
-                return "Siento mucho que estés pasando por esta situación. En Piel en Armonía, tu satisfacción es absoluta prioridad. 🙏\n\n" .
+                return "Siento mucho que estés pasando por esta situación. En Aurora Derm, tu satisfacción es absoluta prioridad. 🙏\n\n" .
                        "He marcado este tema como prioritario. Por favor, contacta directamente a nuestra **Gerencia de Atención al Paciente**:\n\n" .
                        "👉 **[WhatsApp Directo de Soporte](https://wa.me/593982453672)**\n\n" .
                        "Un miembro humano de nuestro equipo resolverá esto de inmediato.";
@@ -247,7 +247,7 @@ class FigoBrain
 
                 // --- Trust & Authority ---
             case 'trust_why_us':
-                return "Elegir **Piel en Armonía** es elegir excelencia médica y calidez humana. 💎\n\n" .
+                return "Elegir **Aurora Derm** es elegir excelencia médica y calidez humana. 💎\n\n" .
                        "✨ **Experiencia:** Más de 15 años cuidando la salud de la piel.\n" .
                        "✨ **Tecnología:** Contamos con láseres de última generación (Fotona, CO2) y diagnóstico digital.\n" .
                        "✨ **Enfoque Integral:** No solo tratamos síntomas, buscamos la causa raíz para resultados duraderos.\n\n" .
@@ -275,7 +275,7 @@ class FigoBrain
                        "¿Deseas reservar tu cita de evaluación ahora?";
 
             case 'services':
-                return "En **Piel en Armonía**, fusionamos ciencia y estética. Nuestros pilares son: ✨\n\n" .
+                return "En **Aurora Derm**, fusionamos ciencia y estética. Nuestros pilares son: ✨\n\n" .
                        "🔹 **Dermatología Clínica:** Acné, Rosácea, Alergias, Caída de Cabello, Lunares.\n" .
                        "🔹 **Dermatología Estética:** Rejuvenecimiento Natural, Botox, Ácido Hialurónico.\n" .
                        "🔹 **Láser y Tecnología:** Cicatrices, Manchas, Lesiones Vasculares.\n\n" .
@@ -353,7 +353,7 @@ class FigoBrain
                        "Requiere evaluación previa para garantizar seguridad.";
 
             case 'rejuvenation':
-                return "Rejuvenecimiento con el sello **Piel en Armonía**: Natural y Elegante. 🌟\n\n" .
+                return "Rejuvenecimiento con el sello **Aurora Derm**: Natural y Elegante. 🌟\n\n" .
                        "Diseñamos un plan según tu rostro:\n" .
                        "- **Botox:** Relaja la mirada.\n" .
                        "- **Hialurónico:** Restaura volumen.\n" .
@@ -374,7 +374,7 @@ class FigoBrain
                        "Escríbenos, nos encantará atenderte.";
 
             case 'out_of_scope':
-                return "Soy un asistente especializado en dermatología y servicios de **Piel en Armonía**. 🩺\n\n" .
+                return "Soy un asistente especializado en dermatología y servicios de **Aurora Derm**. 🩺\n\n" .
                        "Aunque me encantaría conversar sobre otros temas, mi función es ayudarte con:\n" .
                        "- Citas y Horarios\n" .
                        "- Precios de Tratamientos\n" .
@@ -387,7 +387,7 @@ class FigoBrain
                        "Para reprogramar, usa el enlace en tu correo de confirmación. Si necesitas ayuda manual, escríbenos al WhatsApp +593 98 245 3672.";
 
             case 'thanks':
-                return "¡Gracias a ti por confiar en Piel en Armonía! 💖\n\n" .
+                return "¡Gracias a ti por confiar en Aurora Derm! 💖\n\n" .
                        "Estamos aquí para cuidarte. ¡Que tengas un día radiante!";
 
             default:
@@ -415,7 +415,7 @@ class FigoBrain
             $timeGreeting = 'Buenas noches';
         }
 
-        return "¡{$timeGreeting}! Bienvenido a **Piel en Armonía**. 🌿\n\n" .
+        return "¡{$timeGreeting}! Bienvenido a **Aurora Derm**. 🌿\n\n" .
                "Soy Figo, tu Concierge Dermatológico. Estoy aquí para ayudarte a agendar, consultar precios o resolver dudas sobre tu piel.\n\n" .
                "¿En qué puedo servirte hoy?";
     }
@@ -495,3 +495,4 @@ class FigoBrain
         ];
     }
 }
+

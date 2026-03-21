@@ -1,1157 +1,1138 @@
 {
-    "nav": {
-        "brand": {
-            "tag": "Turnero software for growing clinics"
-        },
-        "ui": {
-            "header": {
-                "search": {
-                    "dialogAria": "Clinic software search",
-                    "eyebrow": "Operations suite",
-                    "inputLabel": "Type a module or flow",
-                    "placeholder": "kiosk, WhatsApp, dashboard, queue, QR...",
-                    "hint": "Search by module, channel, or operator profile. We show product surfaces and demos.",
-                    "resultsAria": "Software results",
-                    "emptyTitle": "We could not find that module yet",
-                    "emptyBody": "Try kiosk, dashboard, queue status, or web booking.",
-                    "closeLabel": "Close search",
-                    "resultsLimit": 8
-                }
-            }
-        },
-        "header": {
-            "contactLabel": "Book demo",
-            "contactHref": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20see%20a%20demo%20of%20turnero%20for%20clinics",
-            "searchLabel": "Search turnero surfaces",
-            "links": [
-                {
-                    "id": "software",
-                    "label": "Turnero",
-                    "href": "/en/software/clinic-flow-suite/",
-                    "kind": "standard"
-                },
-                {
-                    "id": "demo",
-                    "label": "Mobile check-in",
-                    "href": "/en/software/clinic-flow-suite/demo/",
-                    "kind": "standard"
-                },
-                {
-                    "id": "status",
-                    "label": "Queue status",
-                    "href": "/en/software/clinic-flow-suite/queue-status/",
-                    "kind": "standard"
-                },
-                {
-                    "id": "dashboard",
-                    "label": "Dashboard",
-                    "href": "/en/software/clinic-flow-suite/dashboard/",
-                    "kind": "standard"
-                },
-                {
-                    "id": "home",
-                    "label": "Home",
-                    "href": "/en/",
-                    "kind": "standard"
-                },
-                {
-                    "id": "legal",
-                    "label": "Legal",
-                    "href": "/en/legal/terms/",
-                    "kind": "standard"
-                }
-            ],
-            "searchEntries": [
-                {
-                    "label": "Turnero for clinics",
-                    "href": "/en/software/clinic-flow-suite/",
-                    "eyebrow": "Core suite",
-                    "deck": "Arrival, reception, waiting room, and management reading from the same queue state."
-                },
-                {
-                    "label": "Mobile check-in",
-                    "href": "/en/software/clinic-flow-suite/demo/",
-                    "eyebrow": "Patient flow",
-                    "deck": "QR or direct link check-in for scheduled and walk-in patients."
-                },
-                {
-                    "label": "Queue status",
-                    "href": "/en/software/clinic-flow-suite/queue-status/",
-                    "eyebrow": "Patient visibility",
-                    "deck": "Current call, next tickets, and estimated wait time on the phone."
-                },
-                {
-                    "label": "Site dashboard",
-                    "href": "/en/software/clinic-flow-suite/dashboard/",
-                    "eyebrow": "Management",
-                    "deck": "Wait time, no-show, served tickets, and consult room load in one dashboard."
-                }
-            ]
-        },
-        "footer": {
-            "headline": "Turnero for clinics that need a product story, not a loose stack",
-            "deck": "Turnero connects kiosk, waiting-room display, reception, mobile check-in, and site metrics without turning the pilot into an enterprise rollout.",
-            "columns": [
-                {
-                    "title": "Suite",
-                    "links": [
-                        {
-                            "label": "Turnero for clinics",
-                            "href": "/en/software/clinic-flow-suite/"
-                        },
-                        {
-                            "label": "View pricing",
-                            "href": "/en/software/clinic-flow-suite/#v6-suite-pricing"
-                        },
-                        {
-                            "label": "Book demo",
-                            "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20book%20a%20clinic%20flow%20demo"
-                        }
-                    ]
-                },
-                {
-                    "title": "Surfaces",
-                    "links": [
-                        {
-                            "label": "Mobile check-in",
-                            "href": "/en/software/clinic-flow-suite/demo/"
-                        },
-                        {
-                            "label": "Queue status",
-                            "href": "/en/software/clinic-flow-suite/queue-status/"
-                        },
-                        {
-                            "label": "Site dashboard",
-                            "href": "/en/software/clinic-flow-suite/dashboard/"
-                        }
-                    ]
-                },
-                {
-                    "title": "Integrations",
-                    "lines": [
-                        "WhatsApp or SMS reminders",
-                        "QR, thermal printer, and browser-based TV display",
-                        "Web booking, webhooks, and queue API"
-                    ]
-                },
-                {
-                    "title": "Contact",
-                    "lines": [
-                        "Initial setup in 90 minutes",
-                        "LatAm · 1 to 5 sites",
-                        "+593 98 245 3672"
-                    ]
-                }
-            ]
-        }
+  "nav": {
+    "brand": {
+      "logo": "Flow OS",
+      "tag": "Patient journey orchestration for dermatology clinics"
     },
-    "pages": {
-        "landing": {
-            "title": "Turnero for clinics | kiosk + display + web",
-            "description": "Turnero software for growing clinics with kiosk, waiting-room display, reception, and web booking connected as one operating product.",
-            "breadcrumb": [
-                {
-                    "label": "Home",
-                    "href": "/en/"
-                },
-                {
-                    "label": "Turnero",
-                    "href": "/en/software/clinic-flow-suite/"
-                }
-            ],
-            "heading": "Turnero for clinics with kiosk, waiting-room display, reception, and web booking",
-            "hero": {
-                "eyebrow": "Turnero for clinics",
-                "title": "The turnero that connects arrival, reception, room flow, and clinic management in one product story.",
-                "deck": "Aurora Derm is the pilot clinic we can demonstrate today: kiosk, reception, operator, waiting-room display, and dashboard all read from the same state. That makes the purchase feel like a product, not a collection of disconnected screens.",
-                "pills": [
-                    "Pilot clinic: Aurora Derm",
-                    "1 to 5 sites",
-                    "QR + WhatsApp + SMS",
-                    "No proprietary hardware"
-                ],
-                "actions": [
-                    {
-                        "label": "Book demo",
-                        "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20book%20a%20demo%20of%20the%20clinic%20flow%20suite",
-                        "variant": "primary"
-                    },
-                    {
-                        "label": "See reception operations",
-                        "href": "#v6-suite-modules",
-                        "variant": "secondary"
-                    },
-                    {
-                        "label": "Try patient flow",
-                        "href": "/en/software/clinic-flow-suite/demo/",
-                        "variant": "ghost"
-                    },
-                    {
-                        "label": "See site dashboard",
-                        "href": "/en/software/clinic-flow-suite/dashboard/",
-                        "variant": "ghost"
-                    }
-                ],
-                "metrics": [
-                    {
-                        "value": "Aurora Derm",
-                        "label": "pilot clinic live today",
-                        "detail": "The same state is visible in landing, check-in, waiting room, and dashboard."
-                    },
-                    {
-                        "value": "Reception",
-                        "label": "operates from one queue logic",
-                        "detail": "Admin and operator read the same queue instead of separate consoles."
-                    },
-                    {
-                        "value": "Management",
-                        "label": "buys against visible proof",
-                        "detail": "Wait time, no-show, and room load come from the same flow shown to the buyer."
-                    }
-                ],
-                "panels": [
-                    {
-                        "eyebrow": "Arrival",
-                        "title": "QR, kiosk, and mobile check-in tell the same arrival story",
-                        "copy": "Patients enter oriented before they touch the counter."
-                    },
-                    {
-                        "eyebrow": "Reception",
-                        "title": "Admin and operator coordinate over the same queue",
-                        "copy": "Front desk stops improvising between separate windows and separate states."
-                    },
-                    {
-                        "eyebrow": "Room",
-                        "title": "The room understands what is happening without losing privacy",
-                        "copy": "Display and private queue status show the same live call in language patients can follow."
-                    },
-                    {
-                        "eyebrow": "Management",
-                        "title": "Leadership sees a buying reason, not just a visual refresh",
-                        "copy": "The management readout comes from real pilot usage, not from a separate report."
-                    }
-                ]
-            },
-            "focus": {
-                "eyebrow": "What each role gets",
-                "title": "Three readings of the same product so the sale is easier to explain.",
-                "deck": "You do not need to promise a different system to every person. The same base solves daily operations, improves the patient experience, and leaves clear numbers behind.",
-                "cards": [
-                    {
-                        "eyebrow": "Reception / Admin",
-                        "title": "Operate without changing context",
-                        "copy": "Everything critical happens on the same state model: arrivals, calls, reprints, closures, and traceability.",
-                        "items": [
-                            "Fewer mental steps during peak hours",
-                            "Shortcuts and control by room or station",
-                            "A clearer console for active front desk work"
-                        ],
-                        "href": "#v6-suite-modules",
-                        "ctaLabel": "See operations",
-                        "highlight": true
-                    },
-                    {
-                        "eyebrow": "Patient",
-                        "title": "Understand arrival and waiting",
-                        "copy": "Patients confirm whether they are scheduled, track their turn, and know what to do without depending on the counter.",
-                        "items": [
-                            "QR, kiosk, and phone on the same queue",
-                            "Fewer repeated questions in the room",
-                            "More clarity before entering the consult room"
-                        ],
-                        "href": "/en/software/clinic-flow-suite/demo/",
-                        "ctaLabel": "See patient flow"
-                    },
-                    {
-                        "eyebrow": "Management",
-                        "title": "See why the suite is worth renewing",
-                        "copy": "Operations leave useful trace data behind: wait time, no-show, and room load for decisions with context.",
-                        "items": [
-                            "A dashboard ready for owner or manager",
-                            "Reading by site, time window, and consult room",
-                            "A cleaner argument for expanding the suite"
-                        ],
-                        "href": "/en/software/clinic-flow-suite/dashboard/",
-                        "ctaLabel": "See dashboard"
-                    }
-                ]
-            },
-            "modules": {
-                "eyebrow": "Live proof",
-                "title": "These surfaces prove the product already exists outside the deck.",
-                "deck": "They are not annexes. They are the pilot itself: arrival, reception, operator, and room can already be shown as one product.",
-                "cards": [
-                    {
-                        "eyebrow": "Reception / Admin",
-                        "lens": "Reception",
-                        "meta": "Aurora Derm · stage 02 of 04",
-                        "title": "Reception runs the queue without changing context",
-                        "copy": "Call, reprint, complete, and coordinate the room from the console a clinic can open live in front of the buyer.",
-                        "bullets": [
-                            "Lock by room or station",
-                            "Numpad shortcuts and bulk actions",
-                            "Clear sync and operating-state visibility"
-                        ],
-                        "href": "/admin.html#queue",
-                        "ctaLabel": "Open reception",
-                        "featured": true
-                    },
-                    {
-                        "eyebrow": "Operator",
-                        "lens": "Consult room",
-                        "meta": "Aurora Derm · stage 02 of 04",
-                        "title": "The consult room runs with numpad shortcuts and a visible next step",
-                        "copy": "A lighter surface for calling, re-calling, and closing without opening the full admin.",
-                        "bullets": [
-                            "Enter calls, + recalls, . completes",
-                            "Readiness visible before the first call",
-                            "Clear fallback if network or the ops layer degrade"
-                        ],
-                        "href": "/operador-turnos.html",
-                        "ctaLabel": "Open operator"
-                    },
-                    {
-                        "eyebrow": "Kiosk",
-                        "lens": "Arrival",
-                        "meta": "Aurora Derm · stage 01 of 04",
-                        "title": "The kiosk resolves arrival and leaves the queue ready",
-                        "copy": "Scheduled and walk-in patients enter the same route and leave reception with less manual load.",
-                        "bullets": [
-                            "Scheduled / walk-in inside the same flow",
-                            "Visible help and large-text reading",
-                            "Thermal ticket and offline outbox"
-                        ],
-                        "href": "/kiosco-turnos.html",
-                        "ctaLabel": "Open pilot kiosk"
-                    },
-                    {
-                        "eyebrow": "Room",
-                        "lens": "Waiting",
-                        "meta": "Aurora Derm · stage 03 of 04",
-                        "title": "The room shows the right call and the next step",
-                        "copy": "Waiting-room display and private queue status read the same queue so patients do not depend on the front desk.",
-                        "bullets": [
-                            "Ticket, initials, and room with privacy",
-                            "Bell and snapshot visible",
-                            "Hierarchy tuned for a real waiting room"
-                        ],
-                        "href": "/sala-turnos.html",
-                        "ctaLabel": "Open room display"
-                    }
-                ]
-            },
-            "journeys": {
-                "eyebrow": "Presentation storyboard",
-                "title": "The fixed story for the March 17 product presentation.",
-                "deck": "Arrival, reception, room, and management. That order makes the product easier to understand and keeps Aurora Derm as the pilot clinic, not the brand that absorbs the suite.",
-                "lanes": [
-                    {
-                        "indexLabel": "01",
-                        "eyebrow": "Arrival",
-                        "buyerLens": "Patient + reception",
-                        "proofLabel": "Kiosk + mobile check-in",
-                        "title": "The patient arrives oriented before they touch the counter",
-                        "steps": [
-                            "Reminder, QR, or direct link all land in the same queue.",
-                            "The kiosk absorbs scheduled and walk-in arrival without inventing two systems.",
-                            "Reception receives a ready case instead of starting from zero."
-                        ],
-                        "href": "/kiosco-turnos.html",
-                        "ctaLabel": "Open pilot kiosk"
-                    },
-                    {
-                        "indexLabel": "02",
-                        "eyebrow": "Reception",
-                        "buyerLens": "Reception + clinician",
-                        "proofLabel": "Admin + operator",
-                        "title": "Reception and consult room operate on the same state",
-                        "steps": [
-                            "Admin and operator read the same queue and share the same trace.",
-                            "Active station, numpad, and fallback stay visible in the live demo.",
-                            "Operations can already be presented as a serious product for clinics."
-                        ],
-                        "href": "/admin.html#queue",
-                        "ctaLabel": "Open pilot reception"
-                    },
-                    {
-                        "indexLabel": "03",
-                        "eyebrow": "Room",
-                        "buyerLens": "Patient in waiting",
-                        "proofLabel": "Room display + queue status",
-                        "title": "The room understands the call and the patient sees progress",
-                        "steps": [
-                            "The display publishes the right call with visible privacy.",
-                            "The patient's phone follows the same queue without crossed messages.",
-                            "Waiting feels guided because the next step stays readable."
-                        ],
-                        "href": "/sala-turnos.html",
-                        "ctaLabel": "Open pilot room"
-                    },
-                    {
-                        "indexLabel": "04",
-                        "eyebrow": "Management",
-                        "buyerLens": "Clinical leadership",
-                        "proofLabel": "Site dashboard",
-                        "title": "Leadership can already decide with evidence instead of intuition",
-                        "steps": [
-                            "The dashboard summarizes wait time, no-show, and room load without another report.",
-                            "Aurora Derm appears as a demonstrable pilot site, not an abstract promise.",
-                            "The conversation moves from visual taste to budget with purpose."
-                        ],
-                        "href": "/en/software/clinic-flow-suite/dashboard/",
-                        "ctaLabel": "See dashboard"
-                    }
-                ]
-            },
-            "surfaces": {
-                "eyebrow": "Commercial walkthrough",
-                "title": "The landing sells the promise in the right order.",
-                "deck": "First the operating layer becomes clear. Then the patient experience becomes tangible. Finally the dashboard helps close budget conversations.",
-                "cards": [
-                    {
-                        "eyebrow": "Mobile check-in",
-                        "title": "Patients confirm from QR or direct link",
-                        "copy": "This is the first tangible proof that arrival can happen without putting more pressure on reception.",
-                        "href": "/en/software/clinic-flow-suite/demo/",
-                        "ctaLabel": "Try patient flow",
-                        "mockup": {
-                            "kind": "phone",
-                            "eyebrow": "Patient",
-                            "title": "Check-in ready",
-                            "chips": ["QR", "WhatsApp", "SMS"],
-                            "rows": [
-                                {
-                                    "label": "Scheduled",
-                                    "value": "Confirm arrival",
-                                    "meta": "Phone + time + consult room"
-                                },
-                                {
-                                    "label": "Walk-in",
-                                    "value": "Take ticket",
-                                    "meta": "Initials-based quick intake"
-                                },
-                                {
-                                    "label": "Estimated wait",
-                                    "value": "06 min",
-                                    "meta": "Live queue state"
-                                }
-                            ],
-                            "footer": "The same queue continues in-room and at reception."
-                        }
-                    },
-                    {
-                        "eyebrow": "Queue status",
-                        "title": "Patients can follow progress from the phone",
-                        "copy": "Waiting stops feeling blind because the patient can also understand what is happening.",
-                        "href": "/en/software/clinic-flow-suite/queue-status/",
-                        "ctaLabel": "See queue status",
-                        "mockup": {
-                            "kind": "status",
-                            "eyebrow": "Private view",
-                            "title": "Site queue",
-                            "chips": ["Room A", "Privacy", "Live"],
-                            "rows": [
-                                {
-                                    "label": "Calling now",
-                                    "value": "A-041",
-                                    "meta": "Consult room 2 · Initials EP"
-                                },
-                                {
-                                    "label": "Next",
-                                    "value": "A-042",
-                                    "meta": "Estimated 5 min"
-                                },
-                                {
-                                    "label": "Status",
-                                    "value": "Reception connected",
-                                    "meta": "Last update 12 s ago"
-                                }
-                            ],
-                            "footer": "Ideal for QR on reminders, lobby, or printed ticket."
-                        }
-                    },
-                    {
-                        "eyebrow": "Dashboard",
-                        "title": "The owner sees the KPI story behind renewal",
-                        "copy": "The deal stops living only at front desk level once management can see wait time, no-show, and served volume.",
-                        "href": "/en/software/clinic-flow-suite/dashboard/",
-                        "ctaLabel": "See site dashboard",
-                        "mockup": {
-                            "kind": "dashboard",
-                            "eyebrow": "Management",
-                            "title": "Daily summary",
-                            "chips": ["Quito North", "Today", "3 rooms"],
-                            "rows": [
-                                {
-                                    "label": "Average wait",
-                                    "value": "08 min",
-                                    "meta": "-18% vs last week"
-                                },
-                                {
-                                    "label": "No-show",
-                                    "value": "6.2%",
-                                    "meta": "-2.1 pts with reminders"
-                                },
-                                {
-                                    "label": "Served tickets",
-                                    "value": "124",
-                                    "meta": "Peak 11:00 - 13:00"
-                                }
-                            ],
-                            "footer": "A site view first, a small-chain view next."
-                        }
-                    }
-                ]
-            },
-            "integrations": {
-                "eyebrow": "Integrations",
-                "title": "The integration story should read just as clearly",
-                "deck": "Buyers need to understand in minutes what enters the pilot, what connects on day one, and what can scale later without rebuilding the base.",
-                "groups": [
-                    {
-                        "title": "Channels",
-                        "items": [
-                            "WhatsApp or SMS reminders and confirmations",
-                            "QR on reminder, front desk, door, or printed ticket",
-                            "Web booking connected to the same queue"
-                        ]
-                    },
-                    {
-                        "title": "Compatible hardware",
-                        "items": [
-                            "TV or monitor through any browser",
-                            "Standard thermal printer",
-                            "PC or tablet kiosk without proprietary hardware"
-                        ]
-                    },
-                    {
-                        "title": "Data and operations",
-                        "items": [
-                            "Queue and check-in API plus webhooks",
-                            "Basic roles, branding, and lite multi-site",
-                            "Wait time, served volume, and no-show reporting"
-                        ]
-                    }
-                ]
-            },
-            "pricing": {
-                "eyebrow": "Plans",
-                "title": "Clear packages that sell value before complexity",
-                "deck": "The decision should feel simple: start with waiting-room order, add patient visibility, and close with management insight.",
-                "plans": [
-                    {
-                        "name": "Room Base",
-                        "price": "USD 149/mo",
-                        "note": "1 site · up to 2 consult rooms",
-                        "fit": "Small practices that need waiting room order and front desk relief.",
-                        "features": [
-                            "Kiosk + waiting room display",
-                            "Reception console",
-                            "Thermal printing and privacy-safe display",
-                            "Launch support"
-                        ],
-                        "ctaLabel": "Book demo",
-                        "ctaHref": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20see%20Room%20Base"
-                    },
-                    {
-                        "name": "Flow Plus",
-                        "price": "USD 249/mo",
-                        "note": "1 site · up to 5 consult rooms",
-                        "fit": "Clinics with active booking, reminders, and a need for patient visibility.",
-                        "highlight": true,
-                        "features": [
-                            "Everything in Room Base",
-                            "Mobile check-in by QR or direct link",
-                            "Phone-based queue status",
-                            "WhatsApp or SMS reminders"
-                        ],
-                        "ctaLabel": "See demo",
-                        "ctaHref": "/en/software/clinic-flow-suite/demo/"
-                    },
-                    {
-                        "name": "Lite Multi-site",
-                        "price": "USD 399/mo",
-                        "note": "Up to 5 sites",
-                        "fit": "Growing small chains that need branding, roles, and site KPI visibility.",
-                        "features": [
-                            "Everything in Flow Plus",
-                            "Client branding",
-                            "Basic roles and permissions",
-                            "Consolidated site dashboard"
-                        ],
-                        "ctaLabel": "See dashboard",
-                        "ctaHref": "/en/software/clinic-flow-suite/dashboard/"
-                    }
-                ]
-            },
-            "security": {
-                "eyebrow": "Privacy and operations",
-                "title": "Visible privacy and dependable operations from day one",
-                "deck": "Trust does not come from an abstract technical promise. It comes from better screens, clearer roles, and continuity when the room is under pressure.",
-                "cards": [
-                    {
-                        "title": "Privacy-safe display",
-                        "items": [
-                            "TV shows ticket, initials, and consult room",
-                            "No full phone number or full patient name outside admin",
-                            "Clear state for staff, patient, and room"
-                        ]
-                    },
-                    {
-                        "title": "Lite roles, branding, and sites",
-                        "items": [
-                            "Reception, admin, and management with separate access",
-                            "Basic branding per clinic or small chain",
-                            "Prepared for 1 to 5 sites without enterprise overhead"
-                        ]
-                    },
-                    {
-                        "title": "Operational continuity",
-                        "items": [
-                            "Offline outbox in kiosk",
-                            "TV snapshot and visible reconnection state",
-                            "Reception can keep operating and reprint tickets"
-                        ]
-                    }
-                ]
-            },
-            "faq": {
-                "eyebrow": "FAQ",
-                "title": "What clinics ask before buying",
-                "items": [
-                    {
-                        "question": "Do we need proprietary hardware to launch?",
-                        "answer": "No. The pilot is designed to work with a browser, a TV or monitor, a PC or tablet, and a compatible thermal printer."
-                    },
-                    {
-                        "question": "Does this replace the clinic's full medical software?",
-                        "answer": "Not at this stage. The suite competes as waiting room operations + booking + reminders + reporting, not as a full EMR."
-                    },
-                    {
-                        "question": "Can we start with a single site?",
-                        "answer": "Yes. The first model is built for a pilot site, then expands to branding, lite multi-site, and dashboard layers only if the flow proves itself."
-                    },
-                    {
-                        "question": "How do you reduce no-show if patients never touch the kiosk?",
-                        "answer": "The improvement does not depend on the kiosk alone. It comes from reminders, mobile check-in, queue visibility, and a front desk that sees the same state."
-                    }
-                ]
-            },
-            "finalCta": {
-                "title": "If arrival gets clearer, reception operates better, and management can measure it, the product story is already complete.",
-                "deck": "The March 17 presentation should read that way: product first, Aurora Derm as a demonstrable pilot clinic, and a journey that can be opened end to end without depending on the blocked remote.",
-                "links": [
-                    {
-                        "eyebrow": "Arrival",
-                        "label": "Pilot kiosk",
-                        "href": "/kiosco-turnos.html",
-                        "note": "Stage 01 · check-in and printed ticket"
-                    },
-                    {
-                        "eyebrow": "Reception",
-                        "label": "Reception admin",
-                        "href": "/admin.html#queue",
-                        "note": "Stage 02 · queue, calls, and traceability"
-                    },
-                    {
-                        "eyebrow": "Consult room",
-                        "label": "Web operator",
-                        "href": "/operador-turnos.html",
-                        "note": "Stage 02 · fast calling by station"
-                    },
-                    {
-                        "eyebrow": "Room",
-                        "label": "Waiting-room display",
-                        "href": "/sala-turnos.html",
-                        "note": "Stage 03 · live call and next tickets"
-                    }
-                ],
-                "actions": [
-                    {
-                        "label": "Book demo",
-                        "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20book%20a%20demo%20of%20turnero%20for%20clinics",
-                        "variant": "primary"
-                    },
-                    {
-                        "label": "See patient flow",
-                        "href": "/en/software/clinic-flow-suite/demo/",
-                        "variant": "secondary"
-                    }
-                ]
-            }
-        },
-        "demo": {
-            "title": "Mobile check-in for clinics | Demo",
-            "description": "Demo view for patient mobile check-in by QR or direct link.",
-            "breadcrumb": [
-                {
-                    "label": "Home",
-                    "href": "/en/"
-                },
-                {
-                    "label": "Software",
-                    "href": "/en/software/clinic-flow-suite/"
-                },
-                {
-                    "label": "Mobile check-in",
-                    "href": "/en/software/clinic-flow-suite/demo/"
-                }
-            ],
-            "heading": "Mobile check-in by QR or direct link",
-            "hero": {
-                "eyebrow": "Patient surface",
-                "title": "Arrival should not start at the front desk.",
-                "deck": "This is where the suite becomes tangible: a patient confirms from QR, reminder, or link, enters the right flow, and removes one of the biggest pressure points from reception.",
-                "actions": [
-                    {
-                        "label": "Back to suite",
-                        "href": "/en/software/clinic-flow-suite/",
-                        "variant": "secondary"
-                    },
-                    {
-                        "label": "See queue status",
-                        "href": "/en/software/clinic-flow-suite/queue-status/",
-                        "variant": "ghost"
-                    }
-                ],
-                "metrics": [
-                    {
-                        "value": "QR",
-                        "label": "on reminder, ticket, or door",
-                        "detail": "The same flow works from lobby, reminder, or printed surface."
-                    },
-                    {
-                        "value": "2",
-                        "label": "base routes",
-                        "detail": "Scheduled and walk-in without UX dead ends."
-                    },
-                    {
-                        "value": "<1 min",
-                        "label": "to enter queue",
-                        "detail": "Built to reduce friction before reception."
-                    }
-                ]
-            },
-            "mockup": {
-                "kind": "phone",
-                "eyebrow": "Mobile demo",
-                "title": "Arrival confirmed",
-                "chips": ["QR", "WhatsApp", "SMS"],
-                "rows": [
-                    {
-                        "label": "Flow",
-                        "value": "Scheduled",
-                        "meta": "Phone + date + time"
-                    },
-                    {
-                        "label": "Ticket",
-                        "value": "A-041",
-                        "meta": "Already attached to the waiting room queue"
-                    },
-                    {
-                        "label": "Estimated wait",
-                        "value": "06 min",
-                        "meta": "Updates as the queue moves"
-                    }
-                ],
-                "footer": "Patients can still switch to walk-in without leaving the flow."
-            },
-            "steps": {
-                "eyebrow": "How it works",
-                "title": "Three steps that let arrival come in already resolved",
-                "items": [
-                    "The patient opens a reminder, QR, or direct arrival link.",
-                    "They confirm scheduled or walk-in entry and receive a queue-ready ticket.",
-                    "Reception sees the same state and the waiting room display is already aligned."
-                ]
-            },
-            "advantages": {
-                "eyebrow": "What it solves",
-                "title": "It feels simple to the patient because the operating layer underneath is already aligned",
-                "cards": [
-                    {
-                        "title": "Less manual queueing",
-                        "copy": "Front desk stops repeating the same intake questions when the patient already confirmed arrival from the phone."
-                    },
-                    {
-                        "title": "Less blind no-show",
-                        "copy": "The reminder stops being passive because it ends in confirmation and queue visibility."
-                    },
-                    {
-                        "title": "One story from booking to room",
-                        "copy": "Web booking and room intake stop behaving like different products."
-                    }
-                ]
-            },
-            "connections": {
-                "eyebrow": "Connects to",
-                "title": "From here, the story keeps moving without a reset",
-                "items": [
-                    "WhatsApp or SMS reminders",
-                    "Phone-based queue status",
-                    "Waiting room display and reception on the same queue",
-                    "Web booking and check-in webhooks"
-                ]
-            },
-            "finalCta": {
-                "title": "Once arrival is resolved, patients need orientation",
-                "deck": "The next step is not another form. It is queue visibility: whether the call is close, how long it may take, and where to go.",
-                "links": [
-                    {
-                        "eyebrow": "Arrival",
-                        "label": "Pilot kiosk",
-                        "href": "/kiosco-turnos.html",
-                        "note": "The same check-in flow that feeds the queue"
-                    },
-                    {
-                        "eyebrow": "Reception",
-                        "label": "Reception admin",
-                        "href": "/admin.html#queue",
-                        "note": "Front desk sees the confirmed arrival without rebuilding the case"
-                    },
-                    {
-                        "eyebrow": "Consult room",
-                        "label": "Web operator",
-                        "href": "/operador-turnos.html",
-                        "note": "Fast calling starts from the same ticket"
-                    },
-                    {
-                        "eyebrow": "Room",
-                        "label": "Waiting-room display",
-                        "href": "/sala-turnos.html",
-                        "note": "The room display publishes the same turn the phone already sees"
-                    }
-                ],
-                "actions": [
-                    {
-                        "label": "See queue status",
-                        "href": "/en/software/clinic-flow-suite/queue-status/",
-                        "variant": "primary"
-                    },
-                    {
-                        "label": "Book demo",
-                        "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20see%20the%20mobile%20check-in%20demo",
-                        "variant": "secondary"
-                    }
-                ]
-            }
-        },
-        "status": {
-            "title": "Queue status | Patient demo",
-            "description": "Demo view for private queue status with current call, next tickets, and estimated wait time.",
-            "breadcrumb": [
-                {
-                    "label": "Home",
-                    "href": "/en/"
-                },
-                {
-                    "label": "Software",
-                    "href": "/en/software/clinic-flow-suite/"
-                },
-                {
-                    "label": "Queue status",
-                    "href": "/en/software/clinic-flow-suite/queue-status/"
-                }
-            ],
-            "heading": "Private queue status for patients",
-            "hero": {
-                "eyebrow": "Patient surface",
-                "title": "Waiting stops feeling opaque.",
-                "deck": "The room display informs the room. The private phone view informs the person who is actually waiting. That shift lowers anxiety, cuts repeated questions, and makes the experience feel cared for.",
-                "actions": [
-                    {
-                        "label": "Back to suite",
-                        "href": "/en/software/clinic-flow-suite/",
-                        "variant": "secondary"
-                    },
-                    {
-                        "label": "See dashboard",
-                        "href": "/en/software/clinic-flow-suite/dashboard/",
-                        "variant": "ghost"
-                    }
-                ],
-                "metrics": [
-                    {
-                        "value": "Live",
-                        "label": "without exposing sensitive data",
-                        "detail": "Ticket code, initials, and consult room as a visible privacy rule."
-                    },
-                    {
-                        "value": "3",
-                        "label": "useful states",
-                        "detail": "Calling now, next tickets, and connection health."
-                    },
-                    {
-                        "value": "12 s",
-                        "label": "last update",
-                        "detail": "Patients can tell whether the queue is still connected."
-                    }
-                ]
-            },
-            "mockup": {
-                "kind": "status",
-                "eyebrow": "Site queue",
-                "title": "Ticket linked",
-                "chips": ["Privacy active", "Room A", "Live"],
-                "rows": [
-                    {
-                        "label": "Calling now",
-                        "value": "A-041",
-                        "meta": "Consult room 2 · Initials EP"
-                    },
-                    {
-                        "label": "Next",
-                        "value": "A-042",
-                        "meta": "Estimated 5 min"
-                    },
-                    {
-                        "label": "Connection",
-                        "value": "Reception connected",
-                        "meta": "Snapshot available if network drops"
-                    }
-                ],
-                "footer": "The same queue powers display, reception, and phone view."
-            },
-            "steps": {
-                "eyebrow": "Quick reading",
-                "title": "The essentials should be clear in seconds",
-                "items": [
-                    "Whether they are being called now or still have people ahead of them.",
-                    "Whether the queue is live or visibly reconnecting.",
-                    "Which consult room to approach when their turn arrives."
-                ]
-            },
-            "advantages": {
-                "eyebrow": "Operational impact",
-                "title": "Private visibility for a quieter front desk",
-                "cards": [
-                    {
-                        "title": "Fewer repeated questions",
-                        "copy": "Patients stop asking every few minutes whether it is already their turn or where they should watch."
-                    },
-                    {
-                        "title": "More clarity at peak times",
-                        "copy": "The room does not depend only on the TV when there is movement, noise, or accompanying family members."
-                    },
-                    {
-                        "title": "Visible continuity",
-                        "copy": "If the network drops, the surface can still communicate status and last known state instead of going blank."
-                    }
-                ]
-            },
-            "connections": {
-                "eyebrow": "Connects to",
-                "title": "This surface matters because the earlier steps are already connected",
-                "items": [
-                    "Reminder links or QR",
-                    "Mobile check-in or kiosk",
-                    "Privacy-safe waiting room display",
-                    "Reception and dashboard on the same queue"
-                ]
-            },
-            "finalCta": {
-                "title": "Once patients can see progress, leadership wants numbers",
-                "deck": "The next step is management visibility: average wait, no-show, and consult room load.",
-                "links": [
-                    {
-                        "eyebrow": "Arrival",
-                        "label": "Pilot kiosk",
-                        "href": "/kiosco-turnos.html",
-                        "note": "Arrival and queue start from the same pilot"
-                    },
-                    {
-                        "eyebrow": "Reception",
-                        "label": "Reception admin",
-                        "href": "/admin.html#queue",
-                        "note": "Front desk keeps the same queue the patient is reading"
-                    },
-                    {
-                        "eyebrow": "Consult room",
-                        "label": "Web operator",
-                        "href": "/operador-turnos.html",
-                        "note": "Room calling and traceability stay aligned"
-                    },
-                    {
-                        "eyebrow": "Room",
-                        "label": "Waiting-room display",
-                        "href": "/sala-turnos.html",
-                        "note": "The public call and the private queue status stay in sync"
-                    }
-                ],
-                "actions": [
-                    {
-                        "label": "See site dashboard",
-                        "href": "/en/software/clinic-flow-suite/dashboard/",
-                        "variant": "primary"
-                    },
-                    {
-                        "label": "Book demo",
-                        "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20see%20the%20queue%20status%20demo",
-                        "variant": "secondary"
-                    }
-                ]
-            }
-        },
-        "dashboard": {
-            "title": "Site dashboard | queue KPI demo",
-            "description": "Management dashboard demo with average wait time, no-show, served tickets, and consult room load.",
-            "breadcrumb": [
-                {
-                    "label": "Home",
-                    "href": "/en/"
-                },
-                {
-                    "label": "Software",
-                    "href": "/en/software/clinic-flow-suite/"
-                },
-                {
-                    "label": "Dashboard",
-                    "href": "/en/software/clinic-flow-suite/dashboard/"
-                }
-            ],
-            "heading": "Site dashboard for owners and managers",
-            "hero": {
-                "eyebrow": "Management surface",
-                "title": "This is where operations turn into a buying argument.",
-                "deck": "The dashboard turns what happened in the room into a decision: wait time, no-show, consult room demand, and a clearer case for renewal or expansion.",
-                "actions": [
-                    {
-                        "label": "Back to suite",
-                        "href": "/en/software/clinic-flow-suite/",
-                        "variant": "secondary"
-                    },
-                    {
-                        "label": "Book demo",
-                        "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20see%20the%20site%20dashboard",
-                        "variant": "ghost"
-                    }
-                ],
-                "metrics": [
-                    {
-                        "value": "08 min",
-                        "label": "average wait",
-                        "detail": "Compared against daily target and previous week."
-                    },
-                    {
-                        "value": "6.2%",
-                        "label": "no-show",
-                        "detail": "Already tied to reminders and pre-arrival confirmation."
-                    },
-                    {
-                        "value": "124",
-                        "label": "served tickets today",
-                        "detail": "Broken down by site, room, and time block."
-                    }
-                ]
-            },
-            "mockup": {
-                "kind": "dashboard",
-                "eyebrow": "Quito North site",
-                "title": "Daily summary",
-                "chips": ["Today", "3 rooms", "1 pilot site"],
-                "rows": [
-                    {
-                        "label": "Average wait",
-                        "value": "08 min",
-                        "meta": "-18% vs last week"
-                    },
-                    {
-                        "label": "No-show",
-                        "value": "6.2%",
-                        "meta": "-2.1 pts with pre-arrival confirmation"
-                    },
-                    {
-                        "label": "Served tickets",
-                        "value": "124",
-                        "meta": "Peak 11:00 - 13:00"
-                    },
-                    {
-                        "label": "Room 2 load",
-                        "value": "41%",
-                        "meta": "Highest load of the day"
-                    }
-                ],
-                "footer": "One view for the operator, one view for the owner."
-            },
-            "steps": {
-                "eyebrow": "What it answers",
-                "title": "Questions leadership wants answered without asking for another report",
-                "items": [
-                    "How long patients wait today and where the queue is getting stuck.",
-                    "How much no-show is recovered through reminders and pre-arrival check-in.",
-                    "Which consult room or time block needs operational support."
-                ]
-            },
-            "advantages": {
-                "eyebrow": "Commercial value",
-                "title": "The dashboard shifts the conversation from daily use to investment",
-                "cards": [
-                    {
-                        "title": "Front desk no longer buys alone",
-                        "copy": "Management can see wait-time reduction, no-show improvement, and room load before deciding to expand the suite."
-                    },
-                    {
-                        "title": "Lite multi-site with purpose",
-                        "copy": "There is no need to jump into enterprise. Comparing 1 to 5 sites on the same base dashboard is enough."
-                    },
-                    {
-                        "title": "A cleaner roadmap",
-                        "copy": "Branding, roles, and site layers appear as the next natural step instead of as vague promises."
-                    }
-                ]
-            },
-            "connections": {
-                "eyebrow": "Fed by",
-                "title": "These indicators exist because the earlier flow already leaves usable trace data",
-                "items": [
-                    "Kiosk and mobile check-in",
-                    "Reception ticket actions and completion states",
-                    "Waiting room display call timing",
-                    "Web booking and pre-arrival confirmations"
-                ]
-            },
-            "finalCta": {
-                "title": "Now the suite reads like a complete product",
-                "deck": "A clear promise, a smoother arrival, visible waiting, and management insight. That continuity is what closes more of the gap.",
-                "links": [
-                    {
-                        "eyebrow": "Arrival",
-                        "label": "Pilot kiosk",
-                        "href": "/kiosco-turnos.html",
-                        "note": "Stage 01 · the first proof of the pilot"
-                    },
-                    {
-                        "eyebrow": "Reception",
-                        "label": "Reception admin",
-                        "href": "/admin.html#queue",
-                        "note": "Stage 02 · front desk and consult room on one queue"
-                    },
-                    {
-                        "eyebrow": "Consult room",
-                        "label": "Web operator",
-                        "href": "/operador-turnos.html",
-                        "note": "Stage 02 · fast actions over the same live state"
-                    },
-                    {
-                        "eyebrow": "Room",
-                        "label": "Waiting-room display",
-                        "href": "/sala-turnos.html",
-                        "note": "Stage 03 · public proof that the queue is alive"
-                    }
-                ],
-                "actions": [
-                    {
-                        "label": "Back to suite",
-                        "href": "/en/software/clinic-flow-suite/",
-                        "variant": "primary"
-                    },
-                    {
-                        "label": "Book demo",
-                        "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20see%20the%20full%20clinic%20flow%20demo",
-                        "variant": "secondary"
-                    }
-                ]
-            }
+    "ui": {
+      "header": {
+        "search": {
+          "dialogAria": "Flow OS search",
+          "eyebrow": "Flow OS",
+          "inputLabel": "Type a surface or flow",
+          "placeholder": "ops console, patient flow, waiting room, dashboard, callbacks...",
+          "hint": "Search by surface, operating stage, or team need. Flow OS is presented as one product journey, not as a loose stack of screens.",
+          "resultsAria": "Software results",
+          "emptyTitle": "We could not find that surface",
+          "emptyBody": "Try Ops Console, Patient Flow Link, Wait Room Display, or Clinic Dashboard.",
+          "closeLabel": "Close search",
+          "resultsLimit": 8
         }
+      }
+    },
+    "header": {
+      "contactLabel": "Request proposal",
+      "contactHref": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic",
+      "searchLabel": "Search Flow OS surfaces",
+      "links": [
+        {
+          "id": "software",
+          "label": "Flow OS",
+          "href": "/en/software/clinic-flow-suite/",
+          "kind": "standard"
+        },
+        {
+          "id": "demo",
+          "label": "Patient Flow Link",
+          "href": "/en/software/clinic-flow-suite/demo/",
+          "kind": "standard"
+        },
+        {
+          "id": "status",
+          "label": "Wait Room Display",
+          "href": "/en/software/clinic-flow-suite/queue-status/",
+          "kind": "standard"
+        },
+        {
+          "id": "dashboard",
+          "label": "Clinic Dashboard",
+          "href": "/en/software/clinic-flow-suite/dashboard/",
+          "kind": "standard"
+        },
+        {
+          "id": "home",
+          "label": "Home",
+          "href": "/en/",
+          "kind": "standard"
+        },
+        {
+          "id": "legal",
+          "label": "Legal",
+          "href": "/en/legal/terms/",
+          "kind": "standard"
+        }
+      ],
+      "searchEntries": [
+        {
+          "label": "Flow OS",
+          "href": "/en/software/clinic-flow-suite/",
+          "eyebrow": "Product",
+          "deck": "Unified operating journey for capture, triage, booking, consult, and closure."
+        },
+        {
+          "label": "Patient Flow Link",
+          "href": "/en/software/clinic-flow-suite/demo/",
+          "eyebrow": "Patient",
+          "deck": "Guided view for arrival confirmation, next-step clarity, and the same patient case."
+        },
+        {
+          "label": "Wait Room Display",
+          "href": "/en/software/clinic-flow-suite/queue-status/",
+          "eyebrow": "Room",
+          "deck": "Waiting-room surface reading the same tenant and the same queue state."
+        },
+        {
+          "label": "Clinic Dashboard",
+          "href": "/en/software/clinic-flow-suite/dashboard/",
+          "eyebrow": "Leadership",
+          "deck": "Management readout for wait time, no-show, load, and closure on the same runtime."
+        }
+      ]
+    },
+    "footer": {
+      "headline": "Flow OS turns arrival, booking, consult, and follow-up into one operating journey",
+      "deck": "Aurora Derm acts as the reference clinic and the legacy turnero now lives inside Flow OS as the arrival, reception, and waiting-room module.",
+      "columns": [
+        {
+          "title": "Product",
+          "links": [
+            {
+              "label": "Flow OS",
+              "href": "/en/software/clinic-flow-suite/"
+            },
+            {
+              "label": "Current offer",
+              "href": "/en/software/clinic-flow-suite/#v6-suite-pricing"
+            },
+            {
+              "label": "Request proposal",
+              "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic"
+            }
+          ]
+        },
+        {
+          "title": "Surfaces",
+          "links": [
+            {
+              "label": "Ops Console",
+              "href": "/admin.html#queue"
+            },
+            {
+              "label": "Patient Flow Link",
+              "href": "/en/software/clinic-flow-suite/demo/"
+            },
+            {
+              "label": "Wait Room Display",
+              "href": "/en/software/clinic-flow-suite/queue-status/"
+            },
+            {
+              "label": "Clinic Dashboard",
+              "href": "/en/software/clinic-flow-suite/dashboard/"
+            }
+          ]
+        },
+        {
+          "title": "V1 scope",
+          "lines": [
+            "Single-site ambulatory dermatology clinic",
+            "Five stages: captured -> closed",
+            "Assistive AI with explicit human approval"
+          ]
+        },
+        {
+          "title": "Reference",
+          "lines": [
+            "Aurora Derm reference tenant",
+            "LatAm",
+            "+593 98 245 3672"
+          ]
+        }
+      ]
     }
+  },
+  "pages": {
+    "landing": {
+      "title": "Flow OS | Operating journey for dermatology clinics",
+      "description": "Flow OS coordinates capture, triage, booking, consult, and closure for a single-site ambulatory dermatology clinic.",
+      "breadcrumb": [
+        {
+          "label": "Home",
+          "href": "/en/"
+        },
+        {
+          "label": "Flow OS",
+          "href": "/en/software/clinic-flow-suite/"
+        }
+      ],
+      "heading": "Flow OS coordinates the patient journey end to end",
+      "hero": {
+        "eyebrow": "Flow OS",
+        "title": "Coordinate the patient journey so the team stops duplicating work and the patient stops getting lost between capture, booking, consult, and follow-up.",
+        "deck": "Flow OS is the B2B product. Aurora Derm is the reference clinic we use to show the full journey over one tenant and one patient case.",
+        "pills": [
+          "Aurora Derm as the reference clinic",
+          "Single-site dermatology",
+          "Five operating stages",
+          "AI with human approval"
+        ],
+        "actions": [
+          {
+            "label": "Request proposal",
+            "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic",
+            "variant": "primary"
+          }
+        ],
+        "metrics": [
+          {
+            "value": "5 stages",
+            "label": "captured -> closed",
+            "detail": "The paid pilot is intentionally frozen into one clear operating journey."
+          },
+          {
+            "value": "1 tenant",
+            "label": "Aurora Derm as reference",
+            "detail": "Ops Console, patient link, waiting room, and dashboard read the same case and the same tenant."
+          },
+          {
+            "value": "Ops Console",
+            "label": "primary sales and operating surface",
+            "detail": "The commercial proof starts where the team works, not where the visuals look best."
+          }
+        ],
+        "panels": [
+          {
+            "eyebrow": "Capture",
+            "title": "Callback, form, or reminder opens the same patient case",
+            "copy": "Lead capture does not create a second operating universe or a second backlog."
+          },
+          {
+            "eyebrow": "Booking",
+            "title": "Triage and scheduling stay attached to the live case",
+            "copy": "Front desk stops rebuilding context when it is time to book the visit."
+          },
+          {
+            "eyebrow": "Consult",
+            "title": "Check-in, queue, and consult room become timeline signals",
+            "copy": "The visit does not split into two systems or two sources of truth."
+          },
+          {
+            "eyebrow": "Closure",
+            "title": "Closure leaves follow-up prepared and leadership with a readable outcome",
+            "copy": "Leadership gets continuity without asking for a separate report."
+          }
+        ]
+      },
+      "focus": {
+        "eyebrow": "Buying reads",
+        "title": "One product story for operations, leadership, and patient experience.",
+        "deck": "There is no need to sell isolated modules. Flow OS reads like one operating layer that keeps the full journey aligned.",
+        "cards": [
+          {
+            "eyebrow": "Front desk / Operations",
+            "title": "Ops Console concentrates the work that used to be split apart",
+            "copy": "Cases, callbacks, appointments, approvals, queue state, and prepared actions all sit on the same patient case.",
+            "items": [
+              "One console for front desk and follow-up work",
+              "Valid transitions inside the five-stage journey",
+              "Traceability by tenant and by case"
+            ],
+            "href": "/admin.html#queue",
+            "ctaLabel": "Open Ops Console",
+            "highlight": true
+          },
+          {
+            "eyebrow": "Patient",
+            "title": "Patient Flow Link explains what happens next without opening another system",
+            "copy": "The patient confirms arrival, sees the next step, and reads the same state front desk is already using.",
+            "items": [
+              "Capture and check-in on the same case",
+              "A clear next step before the consult",
+              "Fewer repeated questions in the room"
+            ],
+            "href": "/en/software/clinic-flow-suite/demo/",
+            "ctaLabel": "See Patient Flow Link"
+          },
+          {
+            "eyebrow": "Leadership",
+            "title": "Clinic Dashboard turns operations into a decision",
+            "copy": "The dashboard summarizes wait time, no-show, case attention, and backlog without needing a second data story.",
+            "items": [
+              "KPI readout by tenant and workday",
+              "Recent cases and attention cases",
+              "A cleaner base for later module or site expansion"
+            ],
+            "href": "/en/software/clinic-flow-suite/dashboard/",
+            "ctaLabel": "See Clinic Dashboard"
+          }
+        ]
+      },
+      "modules": {
+        "eyebrow": "Canonical surfaces",
+        "title": "Flow OS can already be walked as a complete product.",
+        "deck": "Ops Console is the lead surface. Patient Flow Link, Wait Room Display, and Clinic Dashboard all sit on the same tenant and the same patient case.",
+        "cards": [
+          {
+            "eyebrow": "Primary surface",
+            "lens": "Operations",
+            "meta": "Aurora Derm · reference tenant",
+            "title": "Ops Console",
+            "copy": "The main console shows patient cases, callbacks, booking, approvals, outbox work, and exceptions without splitting operations across multiple tools.",
+            "bullets": [
+              "Capture, triage, booking, consult, and closure in one read",
+              "AI-prepared actions with explicit human approval",
+              "Single-tenant audit trail"
+            ],
+            "href": "/admin.html#queue",
+            "ctaLabel": "Open Ops Console",
+            "featured": true
+          },
+          {
+            "eyebrow": "Patient surface",
+            "lens": "Guided follow-through",
+            "meta": "Aurora Derm · support surface",
+            "title": "Patient Flow Link",
+            "copy": "The patient link exposes the next step, live queue context, and recent timeline while reading the same patient case.",
+            "bullets": [
+              "No second source of truth",
+              "Shared tenant, case, and timeline with Ops Console",
+              "Closes the gap between booking and visit day"
+            ],
+            "href": "/en/software/clinic-flow-suite/demo/",
+            "ctaLabel": "See Patient Flow Link"
+          },
+          {
+            "eyebrow": "Waiting-room surface",
+            "lens": "Queue and visibility",
+            "meta": "Aurora Derm · support surface",
+            "title": "Wait Room Display",
+            "copy": "The waiting-room surface publishes the queue on the same tenant so front desk, room staff, and the patient all read the same progress.",
+            "bullets": [
+              "Check-in and queue events land on the case timeline",
+              "Visible privacy and queue depth in one board",
+              "Continuity when the site needs a dedicated room display"
+            ],
+            "href": "/en/software/clinic-flow-suite/queue-status/",
+            "ctaLabel": "See Wait Room Display"
+          },
+          {
+            "eyebrow": "Leadership surface",
+            "lens": "Management readout",
+            "meta": "Aurora Derm · support surface",
+            "title": "Clinic Dashboard",
+            "copy": "Leadership sees wait time, no-show, recent cases, and attention cases using exactly the same operating base as the rest of the product.",
+            "bullets": [
+              "Same tenant, same counts, same stage readout",
+              "No parallel reporting pipeline required",
+              "A clean base for later upsell into sites or extra modules"
+            ],
+            "href": "/en/software/clinic-flow-suite/dashboard/",
+            "ctaLabel": "See Clinic Dashboard"
+          }
+        ]
+      },
+      "journeys": {
+        "eyebrow": "Sellable journey",
+        "title": "The paid pilot is sold as one fixed and understandable loop.",
+        "deck": "Flow OS does not try to sell twelve states up front. The current commercial cut freezes a five-stage journey on one patient case.",
+        "lanes": [
+          {
+            "indexLabel": "01",
+            "eyebrow": "Captured",
+            "buyerLens": "Capture / front desk",
+            "proofLabel": "Callback or intake",
+            "title": "A callback, form, or reminder opens the case",
+            "steps": [
+              "Capture enters with tenantId required.",
+              "Operations sees the new case without rebuilding it.",
+              "Aurora Derm demonstrates the same origin on a realistic tenant."
+            ],
+            "href": "/admin.html#queue",
+            "ctaLabel": "See capture in Ops Console"
+          },
+          {
+            "indexLabel": "02",
+            "eyebrow": "Triaged",
+            "buyerLens": "Operational triage",
+            "proofLabel": "Callbacks and approvals",
+            "title": "Triage and the next action are prepared on the case",
+            "steps": [
+              "The team qualifies the case without moving it into another tool.",
+              "AI can prepare an action, but it does not run clinical work alone.",
+              "Human approval stays explicit where it matters."
+            ],
+            "href": "/admin.html#queue",
+            "ctaLabel": "See triage"
+          },
+          {
+            "indexLabel": "03",
+            "eyebrow": "Scheduled",
+            "buyerLens": "Booking",
+            "proofLabel": "Patient Flow Link",
+            "title": "A booked visit leaves the patient's next step ready",
+            "steps": [
+              "Booking and patient link read the same patient case.",
+              "The patient does not receive a disconnected experience.",
+              "Front desk sees the same scheduled context it will later operate."
+            ],
+            "href": "/en/software/clinic-flow-suite/demo/",
+            "ctaLabel": "See Patient Flow Link"
+          },
+          {
+            "indexLabel": "04",
+            "eyebrow": "In consult",
+            "buyerLens": "Front desk + room",
+            "proofLabel": "Wait Room Display",
+            "title": "Check-in and queue become timeline signals, not a parallel database",
+            "steps": [
+              "Arrival lands as a case event.",
+              "The room display publishes the same tenant and the same queue.",
+              "Ops Console and Wait Room Display follow the same progress."
+            ],
+            "href": "/en/software/clinic-flow-suite/queue-status/",
+            "ctaLabel": "See Wait Room Display"
+          },
+          {
+            "indexLabel": "05",
+            "eyebrow": "Closed",
+            "buyerLens": "Clinic leadership",
+            "proofLabel": "Clinic Dashboard",
+            "title": "Closure leaves follow-up ready and leadership with a usable readout",
+            "steps": [
+              "The case closes without losing what happened across the journey.",
+              "Leadership can read load, wait time, and throughput without another report.",
+              "Multi-site or extra-module expansion stays as the next commercial step."
+            ],
+            "href": "/en/software/clinic-flow-suite/dashboard/",
+            "ctaLabel": "See Clinic Dashboard"
+          }
+        ]
+      },
+      "surfaces": {
+        "eyebrow": "Surface story",
+        "title": "Three supporting reads reinforce the same product story.",
+        "deck": "The sale starts in Ops Console and is reinforced by patient, waiting-room, and leadership surfaces on the same base.",
+        "cards": [
+          {
+            "eyebrow": "Patient Flow Link",
+            "title": "The patient understands what happens next on the same case",
+            "copy": "The link shows next step and case status without becoming a detached experience from the main runtime.",
+            "href": "/en/software/clinic-flow-suite/demo/",
+            "ctaLabel": "See Patient Flow Link",
+            "mockup": {
+              "kind": "phone",
+              "eyebrow": "Patient",
+              "title": "Patient Flow Link",
+              "chips": [
+                "QR"
+              ],
+              "rows": [
+                {
+                  "label": "Case",
+                  "value": "case_aurora_003"
+                },
+                {
+                  "label": "Stage",
+                  "value": "scheduled"
+                }
+              ],
+              "footer": "Reads the same case as Ops Console."
+            }
+          },
+          {
+            "eyebrow": "Wait Room Display",
+            "title": "The room publishes queue progress on the same tenant",
+            "copy": "The waiting-room screen proves that check-in and queue events do not live in a separate system.",
+            "href": "/en/software/clinic-flow-suite/queue-status/",
+            "ctaLabel": "See Wait Room Display",
+            "mockup": {
+              "kind": "status",
+              "eyebrow": "Room",
+              "title": "Wait Room Display",
+              "chips": [
+                "Live"
+              ],
+              "rows": [
+                {
+                  "label": "Queue",
+                  "value": "A-021"
+                },
+                {
+                  "label": "Status",
+                  "value": "waiting"
+                }
+              ],
+              "footer": "Shares tenant and counts with the dashboard."
+            }
+          },
+          {
+            "eyebrow": "Clinic Dashboard",
+            "title": "Leadership sees outcomes without a second data story",
+            "copy": "The dashboard turns the same tenant into a management readout with recent cases, wait time, and backlog attention.",
+            "href": "/en/software/clinic-flow-suite/dashboard/",
+            "ctaLabel": "See Clinic Dashboard",
+            "mockup": {
+              "kind": "dashboard",
+              "eyebrow": "Leadership",
+              "title": "Clinic Dashboard",
+              "chips": [
+                "Today"
+              ],
+              "rows": [
+                {
+                  "label": "Average wait",
+                  "value": "08 min"
+                },
+                {
+                  "label": "Recent cases",
+                  "value": "5"
+                }
+              ],
+              "footer": "Summarizes the same operating journey."
+            }
+          }
+        ]
+      },
+      "nativeApps": {
+        "eyebrow": "Installable proof",
+        "title": "If the site needs local hardware, Flow OS keeps it inside the same contract",
+        "deck": "Installable modules follow the same product base and keep an immediate web fallback."
+      },
+      "integrations": {
+        "eyebrow": "V1 interfaces",
+        "title": "V1 already has clear domains and a defined source of truth.",
+        "deck": "There is no need to open a parallel layer to sell the pilot. Public domains are already defined and the case timeline absorbs callbacks, check-in, and queue.",
+        "groups": [
+          {
+            "title": "Public domains",
+            "items": [
+              "patient-cases",
+              "callbacks",
+              "appointments",
+              "queue",
+              "messages",
+              "agent-tasks",
+              "reports",
+              "audit"
+            ]
+          },
+          {
+            "title": "Guardrails",
+            "items": [
+              "tenantId required on every v1 route",
+              "One active patientCase per patient per tenant",
+              "Canonical contracts for snapshot, recommendation, packet, and review decision"
+            ]
+          },
+          {
+            "title": "Operating events",
+            "items": [
+              "Callbacks as case timeline signals",
+              "Check-in and queue events absorbed by the case",
+              "No second source of truth for the paid pilot"
+            ]
+          }
+        ]
+      },
+      "pricing": {
+        "eyebrow": "Current offer",
+        "title": "One offer to close the first paid pilot",
+        "deck": "At this stage we do not sell three plans. We sell one fixed-scope offer for a single-site ambulatory dermatology clinic.",
+        "plans": [
+          {
+            "name": "Flow OS Dermatology Pilot",
+            "price": "6 weeks · 1 site",
+            "note": "Fixed scope with Aurora Derm as the reference tenant",
+            "fit": "Ambulatory dermatology clinics that need to align capture, booking, check-in, consult, and closure without replacing their full clinical system.",
+            "features": [
+              "V1 journey frozen into five stages",
+              "Ops Console, Patient Flow Link, Wait Room Display, and Clinic Dashboard",
+              "Reference tenant ready for repeatable commercial walkthroughs",
+              "Assistive AI with explicit human approval",
+              "Prepared for later upsell into modules or extra sites"
+            ],
+            "ctaLabel": "Request proposal",
+            "ctaHref": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic",
+            "highlight": true
+          }
+        ]
+      },
+      "security": {
+        "eyebrow": "Operations and control",
+        "title": "The paid pilot is not sold as autonomous clinical automation.",
+        "deck": "Commercial trust comes from being explicit: Flow OS coordinates operations, traceability, and approvals without claiming to replace a full EMR or run autonomous clinical decisions.",
+        "cards": [
+          {
+            "title": "One active patient case per patient",
+            "items": [
+              "tenantId required in the runtime",
+              "Rule enforced by patient and tenant",
+              "Full journey traceability"
+            ]
+          },
+          {
+            "title": "Assistive AI with human approval",
+            "items": [
+              "Recommends and prepares actions",
+              "Not sold as clinical autonomy",
+              "Canonical review decisions to approve or reject"
+            ]
+          },
+          {
+            "title": "Consistent data across surfaces",
+            "items": [
+              "Ops Console, patient link, room display, and dashboard read the same tenant",
+              "Callbacks, queue, and check-in land on the same timeline",
+              "Audit and reports come from the same base"
+            ]
+          }
+        ]
+      },
+      "faq": {
+        "eyebrow": "FAQ",
+        "title": "Questions that come up before the first deployment is bought",
+        "items": [
+          {
+            "question": "Does Flow OS replace the full clinical system?",
+            "answer": "No. In this cut we sell operational coordination of the patient journey, not EMR, billing, pharmacy, or lab."
+          },
+          {
+            "question": "Why does Aurora Derm appear in the sale?",
+            "answer": "Because Aurora Derm acts as the reference clinic and demo tenant. The product being sold is Flow OS, not the clinic brand."
+          },
+          {
+            "question": "What happens to the current turnero?",
+            "answer": "It stays in place as the arrival, reception, and waiting-room module inside Flow OS. It stops being the main buying story."
+          },
+          {
+            "question": "Does the twelve-state journey already belong in the paid pilot?",
+            "answer": "No. The current commercial cut is frozen into five stages to reduce complexity and prove a sellable base before expanding the roadmap."
+          }
+        ]
+      },
+      "finalCta": {
+        "title": "The purchase starts with Flow OS and is demonstrated across one complete journey, not across a collection of screens.",
+        "deck": "Aurora Derm only plays the role of reference clinic. Ops Console leads the sale and the other surfaces prove coherence on the same tenant.",
+        "links": [
+          {
+            "eyebrow": "Operations",
+            "label": "Ops Console",
+            "href": "/admin.html#queue",
+            "note": "Primary sales and operations surface"
+          },
+          {
+            "eyebrow": "Patient",
+            "label": "Patient Flow Link",
+            "href": "/en/software/clinic-flow-suite/demo/",
+            "note": "Next step and timeline on the same case"
+          },
+          {
+            "eyebrow": "Room",
+            "label": "Wait Room Display",
+            "href": "/en/software/clinic-flow-suite/queue-status/",
+            "note": "Public queue on the same tenant"
+          },
+          {
+            "eyebrow": "Leadership",
+            "label": "Clinic Dashboard",
+            "href": "/en/software/clinic-flow-suite/dashboard/",
+            "note": "Management readout of the same journey"
+          }
+        ],
+        "actions": [
+          {
+            "label": "Request proposal",
+            "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic",
+            "variant": "primary"
+          },
+          {
+            "label": "See Patient Flow Link",
+            "href": "/en/software/clinic-flow-suite/demo/",
+            "variant": "secondary"
+          }
+        ]
+      }
+    },
+    "demo": {
+      "title": "Patient Flow Link | Flow OS",
+      "description": "Flow OS patient view for arrival confirmation, next-step guidance, and the same patient case operations already uses.",
+      "breadcrumb": [
+        {
+          "label": "Home",
+          "href": "/en/"
+        },
+        {
+          "label": "Flow OS",
+          "href": "/en/software/clinic-flow-suite/"
+        },
+        {
+          "label": "Patient Flow Link",
+          "href": "/en/software/clinic-flow-suite/demo/"
+        }
+      ],
+      "heading": "Patient Flow Link for arrival confirmation and next-step clarity",
+      "hero": {
+        "eyebrow": "Patient surface",
+        "title": "Patient Flow Link shows what happens next without opening another system or another case.",
+        "deck": "The patient view shares tenant, stage, and timeline with Ops Console. That coherence keeps booking and visit day from breaking apart at the last mile.",
+        "actions": [
+          {
+            "label": "Back to Flow OS",
+            "href": "/en/software/clinic-flow-suite/",
+            "variant": "secondary"
+          },
+          {
+            "label": "See Wait Room Display",
+            "href": "/en/software/clinic-flow-suite/queue-status/",
+            "variant": "ghost"
+          }
+        ],
+        "metrics": [
+          {
+            "value": "1 case",
+            "label": "same patient case",
+            "detail": "The patient view does not come from a parallel data source."
+          },
+          {
+            "value": "scheduled",
+            "label": "visible stage",
+            "detail": "Patients can tell where they are in the journey."
+          },
+          {
+            "value": "Timeline",
+            "label": "latest step available",
+            "detail": "The next step is explained with the same history operations is already using."
+          }
+        ]
+      },
+      "mockup": {
+        "kind": "phone",
+        "eyebrow": "Patient Flow Link",
+        "title": "Patient Flow Link",
+        "chips": [
+          "Patient case",
+          "Single tenant",
+          "Live"
+        ],
+        "rows": [
+          {
+            "label": "Case",
+            "value": "case_aurora_003",
+            "meta": "Rosacea follow-up"
+          },
+          {
+            "label": "Stage",
+            "value": "scheduled",
+            "meta": "The same stage Ops Console sees"
+          },
+          {
+            "label": "Next step",
+            "value": "Arrive and complete check-in",
+            "meta": "Prepared from the same timeline"
+          }
+        ],
+        "footer": "Patient Flow Link and Ops Console read exactly the same case."
+      },
+      "steps": {
+        "eyebrow": "How it works",
+        "title": "Three steps that keep booking and arrival aligned",
+        "items": [
+          "The appointment or callback leaves the patient case ready.",
+          "Patient Flow Link publishes the next step on that same case.",
+          "Front desk and room flow continue without rebuilding context."
+        ]
+      },
+      "advantages": {
+        "eyebrow": "What it solves",
+        "title": "The patient experience improves because the operating base is already aligned",
+        "cards": [
+          {
+            "title": "Less friction before the visit",
+            "copy": "The patient arrives knowing whether to confirm, wait, or approach the desk."
+          },
+          {
+            "title": "No second source of truth",
+            "copy": "The link does not replicate information outside the patient case. It shares it."
+          },
+          {
+            "title": "More continuity from booking to room",
+            "copy": "The next step is not invented at arrival. It is already prepared by the same runtime."
+          }
+        ]
+      },
+      "connections": {
+        "eyebrow": "Connects to",
+        "title": "Patient Flow Link matters because the other surfaces already share the same base",
+        "items": [
+          "Ops Console for triage, booking, and approvals",
+          "Wait Room Display for public queue visibility",
+          "Clinic Dashboard for leadership visibility on the same tenant"
+        ]
+      },
+      "finalCta": {
+        "title": "Once the patient understands the next step, the room must read the same progress.",
+        "deck": "The next stage in the journey is Wait Room Display: the surface that publishes queue progress without breaking tenant coherence.",
+        "links": [
+          {
+            "eyebrow": "Operations",
+            "label": "Ops Console",
+            "href": "/admin.html#queue",
+            "note": "Keeps the same patient case live"
+          },
+          {
+            "eyebrow": "Patient",
+            "label": "Patient Flow Link",
+            "href": "/en/software/clinic-flow-suite/demo/",
+            "note": "Explains the next step for the case"
+          },
+          {
+            "eyebrow": "Room",
+            "label": "Wait Room Display",
+            "href": "/en/software/clinic-flow-suite/queue-status/",
+            "note": "Publishes queue depth on the same tenant"
+          },
+          {
+            "eyebrow": "Leadership",
+            "label": "Clinic Dashboard",
+            "href": "/en/software/clinic-flow-suite/dashboard/",
+            "note": "Consolidates the same journey for management"
+          }
+        ],
+        "actions": [
+          {
+            "label": "See Wait Room Display",
+            "href": "/en/software/clinic-flow-suite/queue-status/",
+            "variant": "primary"
+          },
+          {
+            "label": "Request proposal",
+            "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic",
+            "variant": "secondary"
+          }
+        ]
+      }
+    },
+    "status": {
+      "title": "Wait Room Display | Flow OS",
+      "description": "Flow OS waiting-room surface for live queue depth, current call, and room visibility on the same tenant.",
+      "breadcrumb": [
+        {
+          "label": "Home",
+          "href": "/en/"
+        },
+        {
+          "label": "Flow OS",
+          "href": "/en/software/clinic-flow-suite/"
+        },
+        {
+          "label": "Wait Room Display",
+          "href": "/en/software/clinic-flow-suite/queue-status/"
+        }
+      ],
+      "heading": "Wait Room Display for privacy-safe queue visibility",
+      "hero": {
+        "eyebrow": "Room surface",
+        "title": "Wait Room Display makes the queue visible on the same tenant front desk and dashboard already use.",
+        "deck": "Check-in and queue events land as patient-case signals. The room display does not live alone and does not need another truth to publish progress.",
+        "actions": [
+          {
+            "label": "Back to Flow OS",
+            "href": "/en/software/clinic-flow-suite/",
+            "variant": "secondary"
+          },
+          {
+            "label": "See Clinic Dashboard",
+            "href": "/en/software/clinic-flow-suite/dashboard/",
+            "variant": "ghost"
+          }
+        ],
+        "metrics": [
+          {
+            "value": "A-021",
+            "label": "ticket in queue",
+            "detail": "The same queue already visible in the operating runtime."
+          },
+          {
+            "value": "1 tenant",
+            "label": "no duplicated data",
+            "detail": "Room, operations, and dashboard read the same tenant."
+          },
+          {
+            "value": "Queue depth",
+            "label": "public readout",
+            "detail": "Depth comes from the same operating timeline."
+          }
+        ]
+      },
+      "mockup": {
+        "kind": "status",
+        "eyebrow": "Wait Room Display",
+        "title": "Wait Room Display",
+        "chips": [
+          "Privacy",
+          "Live",
+          "Single tenant"
+        ],
+        "rows": [
+          {
+            "label": "Calling now",
+            "value": "--",
+            "meta": "No active call"
+          },
+          {
+            "label": "Waiting",
+            "value": "A-021",
+            "meta": "case_aurora_004"
+          },
+          {
+            "label": "Depth",
+            "value": "1",
+            "meta": "Same count the dashboard reads"
+          }
+        ],
+        "footer": "Wait Room Display publishes the queue without opening another room-only database."
+      },
+      "steps": {
+        "eyebrow": "How it works",
+        "title": "Three steps that keep room, front desk, and the case synchronized",
+        "items": [
+          "Check-in lands as a patient-case event.",
+          "The queue is projected with the same tenant and locationId.",
+          "Wait Room Display publishes progress with visible privacy."
+        ]
+      },
+      "advantages": {
+        "eyebrow": "What it solves",
+        "title": "The room becomes readable without inventing another operating layer",
+        "cards": [
+          {
+            "title": "One queue for the whole team",
+            "copy": "Front desk, room staff, and leadership stop arguing about what the correct state actually is."
+          },
+          {
+            "title": "Visible privacy",
+            "copy": "The room publishes progress and depth without turning into an improvised display."
+          },
+          {
+            "title": "Continuity with the case",
+            "copy": "The room call now belongs to the same timeline operations and dashboard already use."
+          }
+        ]
+      },
+      "connections": {
+        "eyebrow": "Connects to",
+        "title": "Wait Room Display has value because it does not live outside the rest of the product",
+        "items": [
+          "Ops Console for front desk, triage, and booking",
+          "Patient Flow Link for patient next-step guidance",
+          "Clinic Dashboard for leadership visibility on the same operation"
+        ]
+      },
+      "finalCta": {
+        "title": "Once the room, Ops Console, and patient link agree, leadership can measure the journey.",
+        "deck": "The next stage in the commercial story is Clinic Dashboard: the management readout for the same tenant, the same stages, and the same cases.",
+        "links": [
+          {
+            "eyebrow": "Operations",
+            "label": "Ops Console",
+            "href": "/admin.html#queue",
+            "note": "Carries the tenant state"
+          },
+          {
+            "eyebrow": "Patient",
+            "label": "Patient Flow Link",
+            "href": "/en/software/clinic-flow-suite/demo/",
+            "note": "Explains the next step on the same case"
+          },
+          {
+            "eyebrow": "Room",
+            "label": "Wait Room Display",
+            "href": "/en/software/clinic-flow-suite/queue-status/",
+            "note": "Publishes queue depth on the same base"
+          },
+          {
+            "eyebrow": "Leadership",
+            "label": "Clinic Dashboard",
+            "href": "/en/software/clinic-flow-suite/dashboard/",
+            "note": "Summarizes the same operation for decision making"
+          }
+        ],
+        "actions": [
+          {
+            "label": "See Clinic Dashboard",
+            "href": "/en/software/clinic-flow-suite/dashboard/",
+            "variant": "primary"
+          },
+          {
+            "label": "Request proposal",
+            "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic",
+            "variant": "secondary"
+          }
+        ]
+      }
+    },
+    "dashboard": {
+      "title": "Clinic Dashboard | Flow OS",
+      "description": "Flow OS leadership dashboard for wait time, no-show, recent cases, and backlog on the same tenant.",
+      "breadcrumb": [
+        {
+          "label": "Home",
+          "href": "/en/"
+        },
+        {
+          "label": "Flow OS",
+          "href": "/en/software/clinic-flow-suite/"
+        },
+        {
+          "label": "Clinic Dashboard",
+          "href": "/en/software/clinic-flow-suite/dashboard/"
+        }
+      ],
+      "heading": "Clinic Dashboard turns operations into a decision",
+      "hero": {
+        "eyebrow": "Leadership surface",
+        "title": "Clinic Dashboard summarizes the journey without asking for another data store or another reporting layer.",
+        "deck": "Leadership sees wait time, no-show, load, and recent cases by reading the same tenant already powering Ops Console, Patient Flow Link, and Wait Room Display.",
+        "actions": [
+          {
+            "label": "Back to Flow OS",
+            "href": "/en/software/clinic-flow-suite/",
+            "variant": "secondary"
+          },
+          {
+            "label": "Request proposal",
+            "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic",
+            "variant": "ghost"
+          }
+        ],
+        "metrics": [
+          {
+            "value": "08 min",
+            "label": "average wait",
+            "detail": "The same readout already used to explain Aurora Derm."
+          },
+          {
+            "value": "6.2%",
+            "label": "no-show",
+            "detail": "It does not come from a side pipeline. It comes from the same journey."
+          },
+          {
+            "value": "124",
+            "label": "tickets served",
+            "detail": "Leadership can talk about results without changing the narrative."
+          }
+        ]
+      },
+      "mockup": {
+        "kind": "dashboard",
+        "eyebrow": "Clinic Dashboard",
+        "title": "Clinic Dashboard",
+        "chips": [
+          "Single tenant",
+          "Today",
+          "Aurora Derm"
+        ],
+        "rows": [
+          {
+            "label": "Average wait",
+            "value": "08 min",
+            "meta": "Same base as the other surfaces"
+          },
+          {
+            "label": "No-show",
+            "value": "6.2%",
+            "meta": "Connected to the same journey"
+          },
+          {
+            "label": "Recent cases",
+            "value": "5",
+            "meta": "Includes closed, scheduled, and in_consult"
+          },
+          {
+            "label": "Attention",
+            "value": "1",
+            "meta": "Cases with risk or pending approval"
+          }
+        ],
+        "footer": "Clinic Dashboard summarizes exactly the same operation the rest of the product runs on."
+      },
+      "steps": {
+        "eyebrow": "What it answers",
+        "title": "Three questions leadership can answer without asking for another data story",
+        "items": [
+          "Where the journey is slowing down and how many cases are still open.",
+          "How long patients wait and how much no-show still lacks recovery.",
+          "Whether the base is ready for later site or module expansion."
+        ]
+      },
+      "advantages": {
+        "eyebrow": "Commercial value",
+        "title": "The dashboard turns operating coherence into a buying argument",
+        "cards": [
+          {
+            "title": "Leadership buys against evidence",
+            "copy": "The conversation stops depending on an isolated demo because the dashboard summarizes the real tenant operation."
+          },
+          {
+            "title": "Roadmap without scope inflation",
+            "copy": "Multi-site, extra modules, and future states stay as next steps, not as requirements to sell today."
+          },
+          {
+            "title": "A clearer commercial close",
+            "copy": "The sale returns to one promise: Flow OS coordinates the patient journey and leaves a measurable base behind."
+          }
+        ]
+      },
+      "connections": {
+        "eyebrow": "Fed by",
+        "title": "Clinic Dashboard exists because the rest of the journey leaves usable trace data behind",
+        "items": [
+          "Ops Console and patient cases",
+          "Patient Flow Link and booking",
+          "Wait Room Display, queue, and check-in"
+        ]
+      },
+      "finalCta": {
+        "title": "Flow OS feels sellable once every surface reads the same operating story.",
+        "deck": "The next conversation is no longer whether an experiment exists. It is how to close the first single-site deployment and then widen the scope.",
+        "links": [
+          {
+            "eyebrow": "Operations",
+            "label": "Ops Console",
+            "href": "/admin.html#queue",
+            "note": "Primary surface for operations and sales"
+          },
+          {
+            "eyebrow": "Patient",
+            "label": "Patient Flow Link",
+            "href": "/en/software/clinic-flow-suite/demo/",
+            "note": "Same case and same tenant"
+          },
+          {
+            "eyebrow": "Room",
+            "label": "Wait Room Display",
+            "href": "/en/software/clinic-flow-suite/queue-status/",
+            "note": "Same counts and same queue"
+          },
+          {
+            "eyebrow": "Product",
+            "label": "Flow OS",
+            "href": "/en/software/clinic-flow-suite/",
+            "note": "Back to the offer and the fixed scope"
+          }
+        ],
+        "actions": [
+          {
+            "label": "Back to Flow OS",
+            "href": "/en/software/clinic-flow-suite/",
+            "variant": "primary"
+          },
+          {
+            "label": "Request proposal",
+            "href": "https://wa.me/593982453672?text=Hello%2C%20I%20want%20to%20evaluate%20Flow%20OS%20for%20a%20single-site%20dermatology%20clinic",
+            "variant": "secondary"
+          }
+        ]
+      }
+    }
+  }
 }

@@ -283,12 +283,12 @@ export function buildTurneroReleaseOwnershipBoard(snapshot, options = {}) {
             clinicProfile.branding?.name ||
             clinicProfile.branding?.short_name ||
             normalized.clinicName ||
-            'Piel en Armonia',
+            'Aurora Derm',
         clinicShortName:
             clinicProfile.branding?.short_name ||
             clinicProfile.branding?.name ||
             normalized.clinicShortName ||
-            'Piel en Armonia',
+            'Aurora Derm',
         generatedAt: new Date().toISOString(),
         decision,
         decisionReason,

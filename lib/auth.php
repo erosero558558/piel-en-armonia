@@ -97,12 +97,12 @@ function destroy_secure_session(): void
 
 function verify_admin_password(string $password): bool
 {
-    $hash = getenv('PIELARMONIA_ADMIN_PASSWORD_HASH');
+    $hash = app_env('AURORADERM_ADMIN_PASSWORD_HASH');
     if (is_string($hash) && $hash !== '') {
         return password_verify($password, $hash);
     }
 
-    $plain = getenv('PIELARMONIA_ADMIN_PASSWORD');
+    $plain = app_env('AURORADERM_ADMIN_PASSWORD');
     if (is_string($plain) && $plain !== '') {
         return hash_equals($plain, $password);
     }
@@ -112,24 +112,24 @@ function verify_admin_password(string $password): bool
 
 function admin_password_is_configured(): bool
 {
-    $hash = getenv('PIELARMONIA_ADMIN_PASSWORD_HASH');
+    $hash = app_env('AURORADERM_ADMIN_PASSWORD_HASH');
     if (is_string($hash) && trim($hash) !== '') {
         return true;
     }
 
-    $plain = getenv('PIELARMONIA_ADMIN_PASSWORD');
+    $plain = app_env('AURORADERM_ADMIN_PASSWORD');
     return is_string($plain) && trim($plain) !== '';
 }
 
 function admin_two_factor_is_configured(): bool
 {
-    $secret = getenv('PIELARMONIA_ADMIN_2FA_SECRET');
+    $secret = app_env('AURORADERM_ADMIN_2FA_SECRET');
     return is_string($secret) && trim($secret) !== '';
 }
 
 function internal_console_legacy_fallback_enabled(): bool
 {
-    $raw = getenv('PIELARMONIA_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK');
+    $raw = app_env('AURORADERM_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK');
     if (!is_string($raw)) {
         return false;
     }
@@ -172,7 +172,7 @@ function internal_console_auth_fallbacks_payload(): array
 
 function verify_2fa_code(string $code): bool
 {
-    $secret = getenv('PIELARMONIA_ADMIN_2FA_SECRET');
+    $secret = app_env('AURORADERM_ADMIN_2FA_SECRET');
     if (!is_string($secret) || trim($secret) === '') {
         return false;
     }
@@ -186,7 +186,7 @@ function legacy_admin_is_authenticated(): bool
 
 function operator_auth_mode(): string
 {
-    $raw = getenv('PIELARMONIA_OPERATOR_AUTH_MODE');
+    $raw = app_env('AURORADERM_OPERATOR_AUTH_MODE');
     $mode = is_string($raw) && trim($raw) !== '' ? strtolower(trim($raw)) : 'disabled';
     return $mode === OPERATOR_AUTH_SOURCE ? OPERATOR_AUTH_SOURCE : 'disabled';
 }
@@ -202,7 +202,7 @@ function operator_auth_session_cookie_samesite(): string
 
 function operator_auth_raw_transport(): string
 {
-    $raw = getenv('PIELARMONIA_OPERATOR_AUTH_TRANSPORT');
+    $raw = app_env('AURORADERM_OPERATOR_AUTH_TRANSPORT');
     return is_string($raw) ? strtolower(trim($raw)) : '';
 }
 
@@ -254,40 +254,40 @@ function operator_auth_env_flag(string $name, bool $default = false): bool
 
 function operator_auth_session_ttl_seconds(): int
 {
-    $raw = getenv('PIELARMONIA_OPERATOR_AUTH_SESSION_TTL_SECONDS');
+    $raw = app_env('AURORADERM_OPERATOR_AUTH_SESSION_TTL_SECONDS');
     $value = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : SESSION_TIMEOUT;
     return max(300, min(86400, $value));
 }
 
 function operator_auth_challenge_ttl_seconds(): int
 {
-    $raw = getenv('PIELARMONIA_OPERATOR_AUTH_CHALLENGE_TTL_SECONDS');
+    $raw = app_env('AURORADERM_OPERATOR_AUTH_CHALLENGE_TTL_SECONDS');
     $value = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : 300;
     return max(60, min(3600, $value));
 }
 
 function operator_auth_bridge_timestamp_skew_seconds(): int
 {
-    $raw = getenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_MAX_SKEW_SECONDS');
+    $raw = app_env('AURORADERM_OPERATOR_AUTH_BRIDGE_MAX_SKEW_SECONDS');
     $value = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : 300;
     return max(30, min(1800, $value));
 }
 
 function operator_auth_allow_any_authenticated_email(): bool
 {
-    return operator_auth_env_flag('PIELARMONIA_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL', false);
+    return operator_auth_env_flag('AURORADERM_OPERATOR_AUTH_ALLOW_ANY_AUTHENTICATED_EMAIL', false);
 }
 
 function operator_auth_helper_base_url(): string
 {
-    $raw = getenv('PIELARMONIA_OPERATOR_AUTH_HELPER_BASE_URL');
+    $raw = app_env('AURORADERM_OPERATOR_AUTH_HELPER_BASE_URL');
     $url = is_string($raw) && trim($raw) !== '' ? trim($raw) : 'http://127.0.0.1:4173';
     return rtrim($url, '/');
 }
 
 function operator_auth_server_base_url(): string
 {
-    $raw = getenv('PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL');
+    $raw = app_env('AURORADERM_OPERATOR_AUTH_SERVER_BASE_URL');
     if (is_string($raw) && trim($raw) !== '') {
         return rtrim(trim($raw), '/');
     }
@@ -376,13 +376,13 @@ function operator_auth_broker_clock_skew_seconds(): int
 
 function operator_auth_bridge_token(): string
 {
-    $raw = getenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN');
+    $raw = app_env('AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN');
     return is_string($raw) ? trim($raw) : '';
 }
 
 function operator_auth_bridge_signature_secret(): string
 {
-    $raw = getenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET');
+    $raw = app_env('AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET');
     $secret = is_string($raw) ? trim($raw) : '';
     if ($secret !== '') {
         return $secret;
@@ -393,13 +393,13 @@ function operator_auth_bridge_signature_secret(): string
 
 function operator_auth_bridge_token_header(): string
 {
-    $raw = getenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN_HEADER');
+    $raw = app_env('AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN_HEADER');
     return is_string($raw) && trim($raw) !== '' ? trim($raw) : 'Authorization';
 }
 
 function operator_auth_bridge_token_prefix(): string
 {
-    $raw = getenv('PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN_PREFIX');
+    $raw = app_env('AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN_PREFIX');
     return is_string($raw) && trim($raw) !== '' ? trim($raw) : 'Bearer';
 }
 
@@ -416,9 +416,9 @@ function operator_auth_normalize_email(string $email): string
 function operator_auth_allowed_emails(): array
 {
     $rawCandidates = [
-        getenv('PIELARMONIA_OPERATOR_AUTH_ALLOWLIST'),
-        getenv('PIELARMONIA_OPERATOR_AUTH_ALLOWED_EMAILS'),
-        getenv('PIELARMONIA_ADMIN_EMAIL'),
+        app_env('AURORADERM_OPERATOR_AUTH_ALLOWLIST'),
+        app_env('AURORADERM_OPERATOR_AUTH_ALLOWED_EMAILS'),
+        app_env('AURORADERM_ADMIN_EMAIL'),
     ];
     $emails = [];
 
@@ -563,7 +563,7 @@ function operator_auth_is_email_allowed(string $email): bool
 
 function admin_agent_editorial_allowlist(): array
 {
-    $raw = getenv('PIELARMONIA_ADMIN_AGENT_EDITORIAL_ALLOWLIST');
+    $raw = app_env('AURORADERM_ADMIN_AGENT_EDITORIAL_ALLOWLIST');
     if (!is_string($raw) || trim($raw) === '') {
         return [];
     }
@@ -812,11 +812,11 @@ function operator_auth_config_error_payload(): array
     $snapshot = operator_auth_configuration_snapshot();
     $publicSnapshot = operator_auth_public_configuration_snapshot($snapshot);
     $missingLabels = [
-        'mode' => 'PIELARMONIA_OPERATOR_AUTH_MODE',
-        'transport' => 'PIELARMONIA_OPERATOR_AUTH_TRANSPORT=local_helper|web_broker',
-        'bridge_token' => 'PIELARMONIA_OPERATOR_AUTH_BRIDGE_TOKEN',
-        'bridge_secret' => 'PIELARMONIA_OPERATOR_AUTH_BRIDGE_SECRET',
-        'allowlist' => 'PIELARMONIA_OPERATOR_AUTH_ALLOWLIST',
+        'mode' => 'AURORADERM_OPERATOR_AUTH_MODE',
+        'transport' => 'AURORADERM_OPERATOR_AUTH_TRANSPORT=local_helper|web_broker',
+        'bridge_token' => 'AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN',
+        'bridge_secret' => 'AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET',
+        'allowlist' => 'AURORADERM_OPERATOR_AUTH_ALLOWLIST',
         'broker_authorize_url' => 'OPENCLAW_AUTH_BROKER_AUTHORIZE_URL',
         'broker_token_url' => 'OPENCLAW_AUTH_BROKER_TOKEN_URL',
         'broker_userinfo_url' => 'OPENCLAW_AUTH_BROKER_USERINFO_URL',
@@ -832,7 +832,7 @@ function operator_auth_config_error_payload(): array
     );
     $transportMisconfigured = in_array('transport', is_array($snapshot['missing'] ?? null) ? $snapshot['missing'] : [], true);
     $error = $transportMisconfigured
-        ? 'El runtime de OpenClaw no declara un transporte valido. Configure PIELARMONIA_OPERATOR_AUTH_TRANSPORT como web_broker o local_helper antes de iniciar sesion.'
+        ? 'El runtime de OpenClaw no declara un transporte valido. Configure AURORADERM_OPERATOR_AUTH_TRANSPORT como web_broker o local_helper antes de iniciar sesion.'
         : (count($missingItems) > 0
             ? 'Configuracion incompleta de OpenClaw/ChatGPT. Falta: ' . implode(', ', $missingItems) . '.'
             : 'El acceso OpenClaw/ChatGPT no esta configurado en este entorno.');
@@ -2375,8 +2375,8 @@ function bearer_header_matches_expected_token(string $expected, string $headerNa
 function diagnostics_access_token(): string
 {
     $candidates = [
-        getenv('PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN'),
-        getenv('PIELARMONIA_CRON_SECRET'),
+        app_env('AURORADERM_DIAGNOSTICS_ACCESS_TOKEN'),
+        app_env('AURORADERM_CRON_SECRET'),
     ];
 
     foreach ($candidates as $candidate) {
@@ -2390,13 +2390,13 @@ function diagnostics_access_token(): string
 
 function diagnostics_access_token_header(): string
 {
-    $raw = getenv('PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_HEADER');
+    $raw = app_env('AURORADERM_DIAGNOSTICS_ACCESS_TOKEN_HEADER');
     return is_string($raw) && trim($raw) !== '' ? trim($raw) : 'Authorization';
 }
 
 function diagnostics_access_token_prefix(): string
 {
-    $raw = getenv('PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN_PREFIX');
+    $raw = app_env('AURORADERM_DIAGNOSTICS_ACCESS_TOKEN_PREFIX');
     return is_string($raw) && trim($raw) !== '' ? trim($raw) : 'Bearer';
 }
 

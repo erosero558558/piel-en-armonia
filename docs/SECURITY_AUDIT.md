@@ -1,4 +1,4 @@
-# Reporte de Auditoria de Seguridad - Piel en Armonia
+# Reporte de Auditoria de Seguridad - Aurora Derm
 
 Fuente canonica del baseline de auditoria de seguridad.
 `SECURITY_AUDIT.md` en la raiz queda solo como shim compatible.
@@ -10,7 +10,7 @@ Guia viva relacionada: `docs/SECURITY.md`.
 
 ## Resumen Ejecutivo
 
-Se realizaron pruebas de penetracion basicas sobre la aplicacion web "Piel en Armonia". Las pruebas cubrieron inyeccion SQL, XSS, CSRF, validacion de autenticacion y verificacion de rate limiting.
+Se realizaron pruebas de penetracion basicas sobre la aplicacion web "Aurora Derm". Las pruebas cubrieron inyeccion SQL, XSS, CSRF, validacion de autenticacion y verificacion de rate limiting.
 
 **Resultado General:** La aplicación demuestra un nivel de seguridad adecuado para su arquitectura actual. No se encontraron vulnerabilidades críticas explotables de inmediato, aunque se recomienda fortalecer la sanitización de entradas para mitigar riesgos de XSS almacenado.
 

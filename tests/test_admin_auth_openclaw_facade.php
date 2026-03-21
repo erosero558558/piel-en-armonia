@@ -201,7 +201,7 @@ try {
         assert_false($response['body']['ok'] ?? true, 'disabled legacy login should not return ok');
         assert_equals('legacy_auth_disabled', $response['body']['code'] ?? '', 'disabled legacy login should expose legacy_auth_disabled');
         assert_true(
-            str_contains((string) ($response['body']['error'] ?? ''), 'PIELARMONIA_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=true'),
+            str_contains((string) ($response['body']['error'] ?? ''), 'AURORADERM_INTERNAL_CONSOLE_AUTH_ALLOW_LEGACY_FALLBACK=true'),
             'error should explain that the fallback flag is required'
         );
     });
@@ -460,7 +460,7 @@ try {
                 assert_equals('transport_misconfigured', $status['body']['status'] ?? '', 'missing transport should expose transport_misconfigured');
                 assert_equals('', $status['body']['transport'] ?? '', 'transport should remain blank when misconfigured');
                 assert_true(
-                    str_contains((string) ($status['body']['error'] ?? ''), 'PIELARMONIA_OPERATOR_AUTH_TRANSPORT'),
+                    str_contains((string) ($status['body']['error'] ?? ''), 'AURORADERM_OPERATOR_AUTH_TRANSPORT'),
                     'error should point to explicit transport configuration'
                 );
             } finally {

@@ -7,8 +7,25 @@ const {
 } = require('./lib/lead-ai-worker');
 
 function env(name, fallback = '') {
-    const value = process.env[name];
-    return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+    const normalized = String(name || '').trim();
+    if (!normalized) {
+        return fallback;
+    }
+
+    const candidates = normalized.startsWith('AURORADERM_')
+        ? [normalized, `PIELARMONIA_${normalized.slice('AURORADERM_'.length)}`]
+        : normalized.startsWith('PIELARMONIA_')
+          ? [`AURORADERM_${normalized.slice('PIELARMONIA_'.length)}`, normalized]
+          : [normalized];
+
+    for (const candidate of candidates) {
+        const value = process.env[candidate];
+        if (typeof value === 'string' && value.trim()) {
+            return value.trim();
+        }
+    }
+
+    return fallback;
 }
 
 function sleep(ms) {
@@ -21,22 +38,24 @@ function parseArgs(argv) {
         watch: args.has('--watch'),
         maxJobs: Number(env('OPENCLAW_WORKER_MAX_JOBS', '10')) || 10,
         intervalMs:
-            Number(env('PIELARMONIA_LEADOPS_WORKER_INTERVAL_MS', '5000')) ||
+            Number(env('AURORADERM_LEADOPS_WORKER_INTERVAL_MS', '5000')) ||
             5000,
     };
 }
 
 function machineHeaders() {
-    const token = env('PIELARMONIA_LEADOPS_MACHINE_TOKEN');
+    const token = env('AURORADERM_LEADOPS_MACHINE_TOKEN');
     if (!token) {
-        throw new Error('Falta PIELARMONIA_LEADOPS_MACHINE_TOKEN');
+        throw new Error(
+            'Falta AURORADERM_LEADOPS_MACHINE_TOKEN. El alias PIELARMONIA_* sigue disponible temporalmente.'
+        );
     }
 
     const header = env(
-        'PIELARMONIA_LEADOPS_MACHINE_TOKEN_HEADER',
+        'AURORADERM_LEADOPS_MACHINE_TOKEN_HEADER',
         'Authorization'
     );
-    const prefix = env('PIELARMONIA_LEADOPS_MACHINE_TOKEN_PREFIX', 'Bearer');
+    const prefix = env('AURORADERM_LEADOPS_MACHINE_TOKEN_PREFIX', 'Bearer');
     return {
         [header]: `${prefix} ${token}`,
         Accept: 'application/json',
@@ -45,7 +64,7 @@ function machineHeaders() {
 
 async function apiJson(resource, options = {}) {
     const baseUrl = env(
-        'PIELARMONIA_LEADOPS_SERVER_BASE_URL',
+        'AURORADERM_LEADOPS_SERVER_BASE_URL',
         'http://127.0.0.1'
     );
     const url = `${baseUrl.replace(/\/$/, '')}/api.php?resource=${encodeURIComponent(resource)}`;

@@ -26,13 +26,13 @@ class ApiKernel
                 header('Content-Type: application/json; charset=utf-8');
             }
             if (function_exists('get_logger')) {
-                get_logger()->error('Piel en Armonía API uncaught: ' . $e->getMessage(), [
+                get_logger()->error('Aurora Derm API uncaught: ' . $e->getMessage(), [
                     'file' => $e->getFile(),
                     'line' => $e->getLine(),
                     'trace' => $e->getTraceAsString()
                 ]);
             } else {
-                error_log('Piel en Armonía API uncaught: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+                error_log('Aurora Derm API uncaught: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
             }
 
             if (function_exists('\Sentry\captureException')) {
@@ -259,3 +259,4 @@ class ApiKernel
         $router->dispatch($method, $resource, $version, $context);
     }
 }
+

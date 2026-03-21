@@ -36,7 +36,7 @@ This document freezes the active admin frontend contract after the total cutover
 - Legacy support override only:
     - `POST /admin-auth.php?action=login`
     - `POST /admin-auth.php?action=login-2fa`
-    - requires `PIELARMONIA_INTERNAL_CONSOLE_AUTH_PRIMARY=legacy_password`
+    - requires `AURORADERM_INTERNAL_CONSOLE_AUTH_PRIMARY=legacy_password`
 - `GET /api.php?resource=data`
 - `GET /api.php?resource=funnel-metrics`
 - `GET /api.php?resource=health`
@@ -262,3 +262,4 @@ This document freezes the active admin frontend contract after the total cutover
 - `state.queue.activity[*]` now also carries `clinicId`; `queueOpsPilotSmoke` and checklist assist must ignore local call activity that belongs to another clinic or lacks `clinicId`.
 - Rollback is operational (`revert + deploy`), not a runtime variant switch.
 - Any DOM contract break requires explicit test migration in active admin suites.
+

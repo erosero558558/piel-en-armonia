@@ -107,7 +107,7 @@ class PushService
 
             $encodedPayload = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             if (!is_string($encodedPayload) || $encodedPayload === '') {
-                $encodedPayload = '{"title":"Piel en Armonia","body":"Nueva notificacion"}';
+                $encodedPayload = '{"title":"Aurora Derm","body":"Nueva notificacion"}';
             }
 
             foreach ($items as $item) {

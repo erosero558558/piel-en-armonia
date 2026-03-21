@@ -1,4 +1,4 @@
-package com.pielarmonia.turnerosalatv
+package com.auroraderm.turnerosalatv
 
 import android.content.Context
 import android.net.ConnectivityManager

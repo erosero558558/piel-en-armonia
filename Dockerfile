@@ -38,6 +38,7 @@ RUN mkdir -p /var/www/data && \
 RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
 # Set environment variable for data directory
-ENV PIELARMONIA_DATA_DIR=/var/www/data
+ENV AURORADERM_DATA_DIR=/var/www/data
 
 EXPOSE 80
+

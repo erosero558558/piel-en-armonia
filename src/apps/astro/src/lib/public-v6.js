@@ -88,26 +88,26 @@ const TURNERO_NATIVE_SURFACE_ORDER = ['operator', 'kiosk', 'sala_tv'];
 const TURNERO_NATIVE_APPS_COPY = {
     es: {
         section: {
-            eyebrow: 'Apps nativas',
-            title: 'Operador, kiosco y sala listos para instalar',
-            deck: 'La misma base canónica ya gobierna instaladores, actualizaciones y centro de descargas. Desde la landing principal puede verse qué se instala en recepción, check-in y TV de sala, con respaldo web inmediato.',
+            eyebrow: 'Modulos instalables',
+            title: 'Ops Console, llegada y sala listos para instalar',
+            deck: 'La misma base canonica ya gobierna instaladores, actualizaciones y centro de descargas. Flow OS puede mostrar que se instala en recepcion, check-in y sala sin cambiar de producto en la venta.',
             guideLabel: 'Abrir instaladores',
             webLabel: 'Abrir respaldo web',
         },
         cards: {
             operator: {
                 eyebrow: 'Recepción / Operador',
-                title: 'Turnero Operador',
-                copy: 'Shell de escritorio para llamar, reimprimir y cerrar turnos con numpad dedicado y configuración por consultorio.',
+                title: 'Flow OS Operator',
+                copy: 'Shell de escritorio para llamar, reimprimir y cerrar tickets con numpad dedicado y configuracion por consultorio.',
                 bullets: [
                     'Windows y macOS bajo el mismo contrato de release',
-                    'Atajos, bloqueo por estación y update estable',
-                    'Ruta web de respaldo si el escritorio aún no está instalado',
+                    'Atajos, bloqueo por estacion y update estable',
+                    'Ruta web de respaldo si el escritorio aun no esta instalado',
                 ],
             },
             kiosk: {
                 eyebrow: 'Check-in / Kiosco',
-                title: 'Turnero Kiosco',
+                title: 'Flow OS Kiosk',
                 copy: 'App nativa para check-in guiado, impresión térmica y soporte visible cuando recepción necesita intervenir.',
                 bullets: [
                     'Flujo con cita y sin cita sobre la misma cola',
@@ -117,7 +117,7 @@ const TURNERO_NATIVE_APPS_COPY = {
             },
             sala_tv: {
                 eyebrow: 'Pantalla / Sala TV',
-                title: 'Turnero Sala TV',
+                title: 'Flow OS Sala TV',
                 copy: 'APK para Android TV con llamados en vivo, privacidad visible y continuidad cuando la sala necesita una pantalla dedicada.',
                 bullets: [
                     'APK nativa para Google TV y Android TV',
@@ -129,16 +129,16 @@ const TURNERO_NATIVE_APPS_COPY = {
     },
     en: {
         section: {
-            eyebrow: 'Native apps',
-            title: 'Operator, kiosk, and waiting-room display ready to install',
-            deck: 'The same canonical base now drives installers, updates, and the download center. The main landing can show what gets installed at reception, check-in, and the waiting-room TV, with a web fallback still available.',
+            eyebrow: 'Installable modules',
+            title: 'Ops Console, arrival, and waiting-room modules ready to install',
+            deck: 'The same canonical base now drives installers, updates, and the download center. Flow OS can show what gets installed at reception, check-in, and the waiting-room display without changing the product story.',
             guideLabel: 'Open installers',
             webLabel: 'Open web fallback',
         },
         cards: {
             operator: {
                 eyebrow: 'Reception / Operator',
-                title: 'Turnero Operator',
+                title: 'Flow OS Operator',
                 copy: 'Desktop shell for calling, reprinting, and closing tickets with a dedicated numpad and room-aware setup.',
                 bullets: [
                     'Windows and macOS under the same release contract',
@@ -148,7 +148,7 @@ const TURNERO_NATIVE_APPS_COPY = {
             },
             kiosk: {
                 eyebrow: 'Check-in / Kiosk',
-                title: 'Turnero Kiosk',
+                title: 'Flow OS Kiosk',
                 copy: 'Native check-in app for guided arrival, thermal printing, and visible help when reception needs to step in.',
                 bullets: [
                     'Scheduled and walk-in flows on the same queue state',
@@ -158,7 +158,7 @@ const TURNERO_NATIVE_APPS_COPY = {
             },
             sala_tv: {
                 eyebrow: 'Display / Sala TV',
-                title: 'Turnero Sala TV',
+                title: 'Flow OS Sala TV',
                 copy: 'Android TV APK for live room calls, privacy-safe display, and a dedicated waiting-room screen when browsers are not enough.',
                 bullets: [
                     'Native APK for Google TV and Android TV',
@@ -1604,7 +1604,7 @@ function assertSoftwareLandingContract(
     }
     if (page?.demoState?.version !== 'turnero-demo-state-v1') {
         failSoftwareContract(
-            `${safeLocale}.landing missing canonical turnero demo state`
+            `${safeLocale}.landing missing canonical software demo state`
         );
     }
     if (!Array.isArray(page?.hero?.actions) || page.hero.actions.length < 2) {
@@ -1630,9 +1630,9 @@ function assertSoftwareLandingContract(
             `${safeLocale}.landing.journeys requires 4 storyboard lanes`
         );
     }
-    if (!Array.isArray(page?.pricing?.plans) || page.pricing.plans.length < 2) {
+    if (!Array.isArray(page?.pricing?.plans) || page.pricing.plans.length < 1) {
         failSoftwareContract(
-            `${safeLocale}.landing.pricing requires at least 2 plans`
+            `${safeLocale}.landing.pricing requires at least 1 plan`
         );
     }
     if (!Array.isArray(page?.faq?.items) || page.faq.items.length < 3) {
@@ -1711,7 +1711,7 @@ function assertSoftwareSurfaceContract(
     }
     if (page?.demoState?.version !== 'turnero-demo-state-v1') {
         failSoftwareContract(
-            `${safeLocale}.${safePageKey} missing canonical turnero demo state`
+            `${safeLocale}.${safePageKey} missing canonical software demo state`
         );
     }
     if (!Array.isArray(page?.hero?.actions) || page.hero.actions.length < 2) {
@@ -2426,19 +2426,19 @@ function buildSoftwareShellHeaderLinks(locale, links = []) {
                 label:
                     safeLocale === 'en'
                         ? pageKey === 'landing'
-                            ? 'Suite'
+                            ? 'Flow OS'
                             : pageKey === 'status'
-                              ? 'Queue status'
+                              ? 'Wait Room Display'
                               : pageKey === 'dashboard'
-                                ? 'Dashboard'
-                                : 'Demo'
+                                ? 'Clinic Dashboard'
+                                : 'Patient Flow Link'
                         : pageKey === 'landing'
-                          ? 'Suite'
+                          ? 'Flow OS'
                           : pageKey === 'status'
-                            ? 'Estado'
+                            ? 'Wait Room Display'
                             : pageKey === 'dashboard'
-                              ? 'Dashboard'
-                              : 'Demo',
+                              ? 'Clinic Dashboard'
+                              : 'Patient Flow Link',
                 href,
                 kind: 'standard',
             };
@@ -2477,14 +2477,12 @@ export function getV6SoftwareNavigationModel(locale, pathname = '/') {
         brand: {
             logo:
                 normalizeText(softwareBrand.logo) ||
-                (safeLocale === 'en'
-                    ? 'Clinic Flow Suite'
-                    : 'Turnero para clinicas'),
+                'Flow OS',
             tag:
                 normalizeText(softwareBrand.tag) ||
                 (safeLocale === 'en'
-                    ? 'Backed by Aurora Derm'
-                    : 'Respaldado por Aurora Derm'),
+                    ? 'Patient journey orchestration for dermatology clinics'
+                    : 'Orquestacion del recorrido del paciente para clinicas dermatologicas'),
         },
         ui: {
             shell: {

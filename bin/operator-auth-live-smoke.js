@@ -5,12 +5,26 @@ const crypto = require('node:crypto');
 const { mkdirSync, writeFileSync } = require('node:fs');
 const { dirname, resolve: resolvePath } = require('node:path');
 
+function env(name, fallback = '') {
+    const normalized = String(name || '').trim();
+    const candidates = normalized.startsWith('PIELARMONIA_')
+        ? [`AURORADERM_${normalized.slice('PIELARMONIA_'.length)}`, normalized]
+        : [normalized];
+    for (const candidate of candidates) {
+        const value = process.env[candidate];
+        if (typeof value === 'string' && value.trim() !== '') {
+            return value.trim();
+        }
+    }
+    return fallback;
+}
+
 const DEFAULT_SERVER_BASE_URL =
     process.env.TEST_BASE_URL ||
-    process.env.PIELARMONIA_OPERATOR_AUTH_SERVER_BASE_URL ||
+    env('AURORADERM_OPERATOR_AUTH_SERVER_BASE_URL') ||
     'http://127.0.0.1:8011';
 const DEFAULT_HELPER_BASE_URL =
-    process.env.PIELARMONIA_OPERATOR_AUTH_HELPER_BASE_URL ||
+    env('AURORADERM_OPERATOR_AUTH_HELPER_BASE_URL') ||
     'http://127.0.0.1:4173';
 const DEFAULT_JSON_OUT =
     'verification/operator-auth-live-smoke/operator-auth-live-smoke-last.json';
@@ -20,7 +34,7 @@ const DEFAULT_POLL_TIMEOUT_MS = 25000;
 const DEFAULT_RETURN_TO =
     '/operador-turnos.html?station=smoke&lock=1&one_tap=1';
 const DEFAULT_TRANSPORT = normalizeTransport(
-    process.env.PIELARMONIA_OPERATOR_AUTH_TRANSPORT || 'local_helper'
+    env('AURORADERM_OPERATOR_AUTH_TRANSPORT', 'local_helper')
 );
 const TERMINAL_STATUSES = new Set([
     'openclaw_no_logueado',

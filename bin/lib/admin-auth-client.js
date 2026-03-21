@@ -226,7 +226,7 @@ async function loginWithLegacyPassword(baseUrl, password, options = {}) {
         const preferred =
             status.mode || status.recommendedMode || 'openclaw_chatgpt';
         throw new Error(
-            `Legacy admin login deshabilitado en ${preferred}. Activa PIELARMONIA_INTERNAL_CONSOLE_AUTH_PRIMARY=legacy_password para cleanup por clave.`
+            `Legacy admin login deshabilitado en ${preferred}. Activa AURORADERM_INTERNAL_CONSOLE_AUTH_PRIMARY=legacy_password para cleanup por clave.`
         );
     }
 
@@ -235,7 +235,7 @@ async function loginWithLegacyPassword(baseUrl, password, options = {}) {
         status.configured === false
     ) {
         throw new Error(
-            'Legacy admin login no configurado. Define PIELARMONIA_ADMIN_PASSWORD y el override legacy en el servidor objetivo.'
+            'Legacy admin login no configurado. Define AURORADERM_ADMIN_PASSWORD y el override legacy en el servidor objetivo.'
         );
     }
 

@@ -10,7 +10,7 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     try {
         require_once __DIR__ . '/vendor/autoload.php';
     } catch (Throwable $autoloadError) {
-        error_log('Piel en Armonia: Composer autoload no disponible en pagos (' . $autoloadError->getMessage() . ')');
+        error_log('Aurora Derm: Composer autoload no disponible en pagos (' . $autoloadError->getMessage() . ')');
     }
 }
 
@@ -23,19 +23,19 @@ function payment_currency(): string
 
 function payment_stripe_secret_key(): string
 {
-    $raw = getenv('PIELARMONIA_STRIPE_SECRET_KEY');
+    $raw = app_env('AURORADERM_STRIPE_SECRET_KEY');
     return is_string($raw) ? trim($raw) : '';
 }
 
 function payment_stripe_publishable_key(): string
 {
-    $raw = getenv('PIELARMONIA_STRIPE_PUBLISHABLE_KEY');
+    $raw = app_env('AURORADERM_STRIPE_PUBLISHABLE_KEY');
     return is_string($raw) ? trim($raw) : '';
 }
 
 function payment_stripe_webhook_secret(): string
 {
-    $raw = getenv('PIELARMONIA_STRIPE_WEBHOOK_SECRET');
+    $raw = app_env('AURORADERM_STRIPE_WEBHOOK_SECRET');
     return is_string($raw) ? trim($raw) : '';
 }
 

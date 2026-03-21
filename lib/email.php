@@ -38,13 +38,13 @@ function smtp_send_mail(string $to, string $subject, string $body, bool $isHtml 
     $cfg = smtp_config();
 
     if ($cfg['user'] === '' || $cfg['pass'] === '') {
-        error_log('Piel en Armonía: SMTP no configurado (PIELARMONIA_SMTP_USER / PIELARMONIA_SMTP_PASS)');
+        error_log('Aurora Derm: SMTP no configurado (AURORADERM_SMTP_USER / AURORADERM_SMTP_PASS)');
         return false;
     }
 
     // Verificar si PHPMailer está disponible
     if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
-        error_log('Piel en Armonía: PHPMailer no encontrado. Ejecuta "composer install".');
+        error_log('Aurora Derm: PHPMailer no encontrado. Ejecuta "composer install".');
         return false;
     }
 
@@ -95,10 +95,10 @@ function smtp_send_mail(string $to, string $subject, string $body, bool $isHtml 
         return true;
 
     } catch (PHPMailer\PHPMailer\Exception $e) {
-        error_log("Piel en Armonía SMTP: Error al enviar - {$mail->ErrorInfo}");
+        error_log("Aurora Derm SMTP: Error al enviar - {$mail->ErrorInfo}");
         return false;
     } catch (Throwable $e) {
-        error_log("Piel en Armonía SMTP: Excepción general - {$e->getMessage()}");
+        error_log("Aurora Derm SMTP: Excepción general - {$e->getMessage()}");
         return false;
     }
 }
@@ -120,7 +120,7 @@ function send_mail(string $to, string $subject, string $body, bool $isHtml = fal
             'attachmentsCount' => count($attachments),
             'altBody' => $altBody,
         ];
-        error_log('Piel en Armonia: envio de email omitido en TESTING_ENV para evitar dependencia de sendmail');
+        error_log('Aurora Derm: envio de email omitido en TESTING_ENV para evitar dependencia de sendmail');
         return false;
     }
 
@@ -131,7 +131,7 @@ function send_mail(string $to, string $subject, string $body, bool $isHtml = fal
 
     $sent = @mail($to, $subject, $body, $headers);
     if (!$sent) {
-        error_log('Piel en Armonia: fallo al enviar email (mail nativo) a ' . $to);
+        error_log('Aurora Derm: fallo al enviar email (mail nativo) a ' . $to);
     }
     return $sent;
 }
@@ -175,7 +175,7 @@ function generate_ics_content(array $appointment): string
     $lines = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
-        'PRODID:-//Piel en Armonia//Citas//ES',
+        'PRODID:-//Aurora Derm//Citas//ES',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
         'BEGIN:VEVENT',
@@ -735,7 +735,7 @@ function maybe_send_admin_notification(array $appointment): bool
 {
     $adminEmail = AppConfig::getAdminEmail();
     if (email_recipient_or_empty($adminEmail) === '') {
-        error_log('Piel en Armonía: PIELARMONIA_ADMIN_EMAIL invalido');
+        error_log('Aurora Derm: AURORADERM_ADMIN_EMAIL invalido');
         return false;
     }
 

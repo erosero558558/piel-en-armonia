@@ -1,10 +1,71 @@
 # Flow OS Foundation
 
+## Lenguaje canonico
+
+- `Flow OS` = plataforma
+- `Aurora Derm` = despliegue y operacion clinica actual
+- `admin`, `queue/turnero`, `OpenClaw`, `LeadOps` = subsistemas activos de la plataforma
+- `Patient Flow OS`, `sony_v3` y prefijos `PIELARMONIA_*` = compatibilidad tecnica o historica, no naming canonico
+
 ## Objetivo
 
 Flow OS no debe nacer como un HIS gigante ni como un "Windows de pacientes".
 Debe nacer como la **capa operativa del recorrido del paciente** para una clinica
 concreta.
+
+## Corte comercial vigente
+
+El frente comercial activo no es un roadmap abierto. Es un producto vendible
+acotado:
+
+- `Flow OS` es el producto B2B.
+- `Aurora Derm` es la clinica de referencia y el entorno demostrable.
+- `turnero` es un modulo y una prueba visible dentro del journey, no el
+  producto principal.
+
+## Corte operativo actual del repo
+
+La implementacion viva de hoy no es un set de productos separados. Es el corte
+operativo actual de `Flow OS` corriendo para `Aurora Derm`:
+
+- admin clinico
+- queue/turnero
+- OpenClaw auth/orquestacion
+- LeadOps y readiness operativa
+
+### Piloto pagado v1
+
+El piloto pagado v1 queda congelado en una clinica dermatologica ambulatoria de
+una sola sede.
+
+Promesa comercial:
+
+> Flow OS coordina el recorrido del paciente para que el equipo no duplique
+> trabajo y el paciente no se pierda entre captura, agenda, consulta y
+> seguimiento.
+
+Loop vendible del v1:
+
+- captura o callback
+- triage operativo
+- cita agendada
+- check-in o cola
+- consulta
+- cierre o seguimiento preparado
+
+### Contrato de journey para el piloto pagado
+
+Mientras el producto se vende y valida en campo, el contrato operativo canonico
+es el de cinco etapas definido en `data/flow-os/manifest.v1.json`:
+
+1. `captured`
+2. `triaged`
+3. `scheduled`
+4. `in_consult`
+5. `closed`
+
+La version mas amplia de doce estados sigue siendo roadmap y referencia de
+expansion. No gobierna el piloto pagado v1.
 
 La promesa del producto queda definida asi:
 
@@ -61,7 +122,7 @@ No incluir de inicio:
 - **Task**: accion pendiente para humano, sistema o agente.
 - **Signal**: evento que cambia el estado del episodio.
 
-### Estados canonicos del Journey
+### Estados canonicos del Journey a futuro
 
 1. `lead_captured`
 2. `registered`

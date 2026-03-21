@@ -11,7 +11,7 @@ final class BackupConfig
 
     public static function receiverChecksumRequired(): bool
     {
-        $raw = getenv('PIELARMONIA_BACKUP_RECEIVER_REQUIRE_CHECKSUM');
+        $raw = app_env('AURORADERM_BACKUP_RECEIVER_REQUIRE_CHECKSUM');
         if (!is_string($raw) || trim($raw) === '') {
             return true;
         }
@@ -21,7 +21,7 @@ final class BackupConfig
 
     public static function receiverRetentionDays(): int
     {
-        $raw = getenv('PIELARMONIA_BACKUP_RECEIVER_RETENTION_DAYS');
+        $raw = app_env('AURORADERM_BACKUP_RECEIVER_RETENTION_DAYS');
         $days = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : BACKUP_RECEIVER_RETENTION_DAYS_DEFAULT;
         if ($days < 1) {
             $days = 1;
@@ -34,7 +34,7 @@ final class BackupConfig
 
     public static function receiverCleanupMaxFiles(): int
     {
-        $raw = getenv('PIELARMONIA_BACKUP_RECEIVER_CLEANUP_MAX_FILES');
+        $raw = app_env('AURORADERM_BACKUP_RECEIVER_CLEANUP_MAX_FILES');
         $maxFiles = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : BACKUP_RECEIVER_CLEANUP_MAX_FILES_DEFAULT;
         if ($maxFiles < 50) {
             $maxFiles = 50;
@@ -47,7 +47,7 @@ final class BackupConfig
 
     public static function healthMaxAgeHours(): int
     {
-        $raw = getenv('PIELARMONIA_BACKUP_MAX_AGE_HOURS');
+        $raw = app_env('AURORADERM_BACKUP_MAX_AGE_HOURS');
         $hours = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : BACKUP_HEALTH_DEFAULT_MAX_AGE_HOURS;
         if ($hours < 1) {
             $hours = 1;
@@ -60,7 +60,7 @@ final class BackupConfig
 
     public static function offsiteTimeoutSeconds(): int
     {
-        $raw = getenv('PIELARMONIA_BACKUP_OFFSITE_TIMEOUT_SECONDS');
+        $raw = app_env('AURORADERM_BACKUP_OFFSITE_TIMEOUT_SECONDS');
         $seconds = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : BACKUP_OFFSITE_TIMEOUT_SECONDS;
         if ($seconds < BACKUP_OFFSITE_MIN_TIMEOUT_SECONDS) {
             $seconds = BACKUP_OFFSITE_MIN_TIMEOUT_SECONDS;
@@ -84,14 +84,14 @@ final class BackupConfig
     public static function offsiteTargetUrl(): string
     {
         return self::firstNonEmptyString([
-            getenv('PIELARMONIA_BACKUP_OFFSITE_URL'),
-            getenv('PIELARMONIA_BACKUP_WEBHOOK_URL'),
+            app_env('AURORADERM_BACKUP_OFFSITE_URL'),
+            app_env('AURORADERM_BACKUP_WEBHOOK_URL'),
         ]);
     }
 
     public static function localReplicaEnabled(): bool
     {
-        $raw = getenv('PIELARMONIA_BACKUP_LOCAL_REPLICA');
+        $raw = app_env('AURORADERM_BACKUP_LOCAL_REPLICA');
         if (!is_string($raw) || trim($raw) === '') {
             return true;
         }
@@ -117,16 +117,16 @@ final class BackupConfig
     public static function offsiteToken(): string
     {
         return self::firstNonEmptyString([
-            getenv('PIELARMONIA_BACKUP_OFFSITE_TOKEN'),
-            getenv('PIELARMONIA_BACKUP_WEBHOOK_TOKEN'),
+            app_env('AURORADERM_BACKUP_OFFSITE_TOKEN'),
+            app_env('AURORADERM_BACKUP_WEBHOOK_TOKEN'),
         ]);
     }
 
     public static function offsiteTokenHeader(): string
     {
         $header = self::firstNonEmptyString([
-            getenv('PIELARMONIA_BACKUP_OFFSITE_TOKEN_HEADER'),
-            getenv('PIELARMONIA_BACKUP_WEBHOOK_TOKEN_HEADER'),
+            app_env('AURORADERM_BACKUP_OFFSITE_TOKEN_HEADER'),
+            app_env('AURORADERM_BACKUP_WEBHOOK_TOKEN_HEADER'),
         ]);
 
         return $header !== '' ? $header : 'Authorization';
@@ -139,7 +139,7 @@ final class BackupConfig
 
     public static function autoRefreshEnabled(): bool
     {
-        $raw = getenv('PIELARMONIA_BACKUP_AUTO_REFRESH');
+        $raw = app_env('AURORADERM_BACKUP_AUTO_REFRESH');
         if (!is_string($raw) || trim($raw) === '') {
             return true;
         }
@@ -148,7 +148,7 @@ final class BackupConfig
 
     public static function autoRefreshIntervalSeconds(): int
     {
-        $raw = getenv('PIELARMONIA_BACKUP_AUTO_REFRESH_INTERVAL_SECONDS');
+        $raw = app_env('AURORADERM_BACKUP_AUTO_REFRESH_INTERVAL_SECONDS');
         $seconds = is_string($raw) && trim($raw) !== '' ? (int) trim($raw) : 600;
         if ($seconds < 300) {
             $seconds = 300;

@@ -339,7 +339,7 @@ class FigoConfigController
      */
     private static function errorMessageForClient(Throwable $error, int $status): string
     {
-        $debugEnabled = parse_bool(getenv('PIELARMONIA_DEBUG_EXCEPTIONS') ?: false);
+        $debugEnabled = parse_bool(app_env('AURORADERM_DEBUG_EXCEPTIONS', false) ?: false);
         if ($debugEnabled) {
             return $error->getMessage();
         }

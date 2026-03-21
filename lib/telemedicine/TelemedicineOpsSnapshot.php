@@ -327,58 +327,58 @@ final class TelemedicineOpsSnapshot
                 'allowDecisionOverride' => true,
             ];
 
-        $lines[] = '# TYPE pielarmonia_telemedicine_intakes_total gauge';
-        $lines[] = 'pielarmonia_telemedicine_intakes_total ' . (int) ($intakes['total'] ?? 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_intakes_total gauge';
+        $lines[] = 'auroraderm_telemedicine_intakes_total ' . (int) ($intakes['total'] ?? 0);
 
         foreach ((array) ($intakes['byStatus'] ?? []) as $status => $count) {
-            $lines[] = '# TYPE pielarmonia_telemedicine_intakes_by_status_total gauge';
-            $lines[] = 'pielarmonia_telemedicine_intakes_by_status_total{status="' . self::escapeLabel((string) $status) . '"} ' . (int) $count;
+            $lines[] = '# TYPE auroraderm_telemedicine_intakes_by_status_total gauge';
+            $lines[] = 'auroraderm_telemedicine_intakes_by_status_total{status="' . self::escapeLabel((string) $status) . '"} ' . (int) $count;
         }
         foreach ((array) ($intakes['bySuitability'] ?? []) as $suitability => $count) {
-            $lines[] = '# TYPE pielarmonia_telemedicine_intakes_by_suitability_total gauge';
-            $lines[] = 'pielarmonia_telemedicine_intakes_by_suitability_total{suitability="' . self::escapeLabel((string) $suitability) . '"} ' . (int) $count;
+            $lines[] = '# TYPE auroraderm_telemedicine_intakes_by_suitability_total gauge';
+            $lines[] = 'auroraderm_telemedicine_intakes_by_suitability_total{suitability="' . self::escapeLabel((string) $suitability) . '"} ' . (int) $count;
         }
         foreach ((array) ($intakes['byChannel'] ?? []) as $channel => $count) {
-            $lines[] = '# TYPE pielarmonia_telemedicine_intakes_by_channel_total gauge';
-            $lines[] = 'pielarmonia_telemedicine_intakes_by_channel_total{channel="' . self::escapeLabel((string) $channel) . '"} ' . (int) $count;
+            $lines[] = '# TYPE auroraderm_telemedicine_intakes_by_channel_total gauge';
+            $lines[] = 'auroraderm_telemedicine_intakes_by_channel_total{channel="' . self::escapeLabel((string) $channel) . '"} ' . (int) $count;
         }
         foreach ((array) ($intakes['byReviewDecision'] ?? []) as $decision => $count) {
-            $lines[] = '# TYPE pielarmonia_telemedicine_review_decisions_total gauge';
-            $lines[] = 'pielarmonia_telemedicine_review_decisions_total{decision="' . self::escapeLabel((string) $decision) . '"} ' . (int) $count;
+            $lines[] = '# TYPE auroraderm_telemedicine_review_decisions_total gauge';
+            $lines[] = 'auroraderm_telemedicine_review_decisions_total{decision="' . self::escapeLabel((string) $decision) . '"} ' . (int) $count;
         }
         foreach ((array) ($intakes['byReviewState'] ?? []) as $reviewState => $count) {
-            $lines[] = '# TYPE pielarmonia_telemedicine_review_state_total gauge';
-            $lines[] = 'pielarmonia_telemedicine_review_state_total{state="' . self::escapeLabel((string) $reviewState) . '"} ' . (int) $count;
+            $lines[] = '# TYPE auroraderm_telemedicine_review_state_total gauge';
+            $lines[] = 'auroraderm_telemedicine_review_state_total{state="' . self::escapeLabel((string) $reviewState) . '"} ' . (int) $count;
         }
         foreach ((array) ($media['byKind'] ?? []) as $kind => $count) {
-            $lines[] = '# TYPE pielarmonia_telemedicine_media_by_kind_total gauge';
-            $lines[] = 'pielarmonia_telemedicine_media_by_kind_total{kind="' . self::escapeLabel((string) $kind) . '"} ' . (int) $count;
+            $lines[] = '# TYPE auroraderm_telemedicine_media_by_kind_total gauge';
+            $lines[] = 'auroraderm_telemedicine_media_by_kind_total{kind="' . self::escapeLabel((string) $kind) . '"} ' . (int) $count;
         }
         foreach ((array) ($media['byStorageMode'] ?? []) as $storageMode => $count) {
-            $lines[] = '# TYPE pielarmonia_telemedicine_media_by_storage_total gauge';
-            $lines[] = 'pielarmonia_telemedicine_media_by_storage_total{storage_mode="' . self::escapeLabel((string) $storageMode) . '"} ' . (int) $count;
+            $lines[] = '# TYPE auroraderm_telemedicine_media_by_storage_total gauge';
+            $lines[] = 'auroraderm_telemedicine_media_by_storage_total{storage_mode="' . self::escapeLabel((string) $storageMode) . '"} ' . (int) $count;
         }
 
-        $lines[] = '# TYPE pielarmonia_telemedicine_review_queue_total gauge';
-        $lines[] = 'pielarmonia_telemedicine_review_queue_total ' . (int) ($snapshot['reviewQueue']['count'] ?? 0);
-        $lines[] = '# TYPE pielarmonia_telemedicine_unlinked_intakes_total gauge';
-        $lines[] = 'pielarmonia_telemedicine_unlinked_intakes_total ' . (int) ($integrity['unlinkedIntakesCount'] ?? 0);
-        $lines[] = '# TYPE pielarmonia_telemedicine_dangling_appointment_links_total gauge';
-        $lines[] = 'pielarmonia_telemedicine_dangling_appointment_links_total ' . (int) ($integrity['danglingAppointmentLinksCount'] ?? 0);
-        $lines[] = '# TYPE pielarmonia_telemedicine_orphaned_clinical_uploads_total gauge';
-        $lines[] = 'pielarmonia_telemedicine_orphaned_clinical_uploads_total ' . (int) ($integrity['orphanedClinicalUploadsCount'] ?? 0);
-        $lines[] = '# TYPE pielarmonia_telemedicine_case_photos_missing_private_path_total gauge';
-        $lines[] = 'pielarmonia_telemedicine_case_photos_missing_private_path_total ' . (int) ($integrity['casePhotosWithoutPrivatePathCount'] ?? 0);
-        $lines[] = '# TYPE pielarmonia_telemedicine_staged_legacy_uploads_total gauge';
-        $lines[] = 'pielarmonia_telemedicine_staged_legacy_uploads_total ' . (int) ($integrity['stagedLegacyUploadsCount'] ?? 0);
-        $lines[] = '# TYPE pielarmonia_telemedicine_shadow_mode_enabled gauge';
-        $lines[] = 'pielarmonia_telemedicine_shadow_mode_enabled ' . ((bool) ($policy['shadowModeEnabled'] ?? true) ? 1 : 0);
-        $lines[] = '# TYPE pielarmonia_telemedicine_enforce_unsuitable_enabled gauge';
-        $lines[] = 'pielarmonia_telemedicine_enforce_unsuitable_enabled ' . ((bool) ($policy['enforceUnsuitable'] ?? false) ? 1 : 0);
-        $lines[] = '# TYPE pielarmonia_telemedicine_enforce_review_required_enabled gauge';
-        $lines[] = 'pielarmonia_telemedicine_enforce_review_required_enabled ' . ((bool) ($policy['enforceReviewRequired'] ?? false) ? 1 : 0);
-        $lines[] = '# TYPE pielarmonia_telemedicine_allow_decision_override_enabled gauge';
-        $lines[] = 'pielarmonia_telemedicine_allow_decision_override_enabled ' . ((bool) ($policy['allowDecisionOverride'] ?? true) ? 1 : 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_review_queue_total gauge';
+        $lines[] = 'auroraderm_telemedicine_review_queue_total ' . (int) ($snapshot['reviewQueue']['count'] ?? 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_unlinked_intakes_total gauge';
+        $lines[] = 'auroraderm_telemedicine_unlinked_intakes_total ' . (int) ($integrity['unlinkedIntakesCount'] ?? 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_dangling_appointment_links_total gauge';
+        $lines[] = 'auroraderm_telemedicine_dangling_appointment_links_total ' . (int) ($integrity['danglingAppointmentLinksCount'] ?? 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_orphaned_clinical_uploads_total gauge';
+        $lines[] = 'auroraderm_telemedicine_orphaned_clinical_uploads_total ' . (int) ($integrity['orphanedClinicalUploadsCount'] ?? 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_case_photos_missing_private_path_total gauge';
+        $lines[] = 'auroraderm_telemedicine_case_photos_missing_private_path_total ' . (int) ($integrity['casePhotosWithoutPrivatePathCount'] ?? 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_staged_legacy_uploads_total gauge';
+        $lines[] = 'auroraderm_telemedicine_staged_legacy_uploads_total ' . (int) ($integrity['stagedLegacyUploadsCount'] ?? 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_shadow_mode_enabled gauge';
+        $lines[] = 'auroraderm_telemedicine_shadow_mode_enabled ' . ((bool) ($policy['shadowModeEnabled'] ?? true) ? 1 : 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_enforce_unsuitable_enabled gauge';
+        $lines[] = 'auroraderm_telemedicine_enforce_unsuitable_enabled ' . ((bool) ($policy['enforceUnsuitable'] ?? false) ? 1 : 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_enforce_review_required_enabled gauge';
+        $lines[] = 'auroraderm_telemedicine_enforce_review_required_enabled ' . ((bool) ($policy['enforceReviewRequired'] ?? false) ? 1 : 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_allow_decision_override_enabled gauge';
+        $lines[] = 'auroraderm_telemedicine_allow_decision_override_enabled ' . ((bool) ($policy['allowDecisionOverride'] ?? true) ? 1 : 0);
         $diagnostics = isset($snapshot['diagnostics']) && is_array($snapshot['diagnostics'])
             ? $snapshot['diagnostics']
             : [];
@@ -388,17 +388,17 @@ final class TelemedicineOpsSnapshot
         $diagnosticsStatus = (string) ($diagnostics['status'] ?? 'unknown');
         $statusLabels = ['healthy', 'degraded', 'critical', 'unknown'];
         foreach ($statusLabels as $statusLabel) {
-            $lines[] = '# TYPE pielarmonia_telemedicine_diagnostics_status gauge';
-            $lines[] = 'pielarmonia_telemedicine_diagnostics_status{status="' . self::escapeLabel($statusLabel) . '"} ' . ($diagnosticsStatus === $statusLabel ? 1 : 0);
+            $lines[] = '# TYPE auroraderm_telemedicine_diagnostics_status gauge';
+            $lines[] = 'auroraderm_telemedicine_diagnostics_status{status="' . self::escapeLabel($statusLabel) . '"} ' . ($diagnosticsStatus === $statusLabel ? 1 : 0);
         }
         foreach (['critical', 'warning', 'info'] as $severityLabel) {
-            $lines[] = '# TYPE pielarmonia_telemedicine_diagnostics_issues_total gauge';
-            $lines[] = 'pielarmonia_telemedicine_diagnostics_issues_total{severity="' . self::escapeLabel($severityLabel) . '"} ' . (int) ($diagnosticsSummary[$severityLabel] ?? 0);
+            $lines[] = '# TYPE auroraderm_telemedicine_diagnostics_issues_total gauge';
+            $lines[] = 'auroraderm_telemedicine_diagnostics_issues_total{severity="' . self::escapeLabel($severityLabel) . '"} ' . (int) ($diagnosticsSummary[$severityLabel] ?? 0);
         }
-        $lines[] = '# TYPE pielarmonia_telemedicine_diagnostics_healthy gauge';
-        $lines[] = 'pielarmonia_telemedicine_diagnostics_healthy ' . ((bool) ($diagnostics['healthy'] ?? false) ? 1 : 0);
+        $lines[] = '# TYPE auroraderm_telemedicine_diagnostics_healthy gauge';
+        $lines[] = 'auroraderm_telemedicine_diagnostics_healthy ' . ((bool) ($diagnostics['healthy'] ?? false) ? 1 : 0);
 
-        return "\n" . implode("\n", $lines);
+        return app_prometheus_alias_output("\n" . implode("\n", $lines));
     }
 
     private static function buildReviewQueueRow(array $intake): array

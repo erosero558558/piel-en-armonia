@@ -1,6 +1,6 @@
-# Disaster Recovery Plan - Piel en Armonía
+# Disaster Recovery Plan - Aurora Derm
 
-Este documento describe los procedimientos de recuperación ante desastres (DR) para Piel en Armonía, específicamente para la restauración de datos críticos (`store.json`).
+Este documento describe los procedimientos de recuperación ante desastres (DR) para Aurora Derm, específicamente para la restauración de datos críticos (`store.json`).
 
 ## Estrategia de Backup
 
@@ -34,10 +34,10 @@ Adicionalmente, el cron soporta:
 
 Variables recomendadas:
 
-- `PIELARMONIA_BACKUP_MAX_AGE_HOURS`
-- `PIELARMONIA_BACKUP_OFFSITE_URL`
-- `PIELARMONIA_BACKUP_OFFSITE_TOKEN`
-- `PIELARMONIA_BACKUP_OFFSITE_TIMEOUT_SECONDS`
+- `AURORADERM_BACKUP_MAX_AGE_HOURS`
+- `AURORADERM_BACKUP_OFFSITE_URL`
+- `AURORADERM_BACKUP_OFFSITE_TOKEN`
+- `AURORADERM_BACKUP_OFFSITE_TIMEOUT_SECONDS`
 
 ### 3.2 Código
 
@@ -96,7 +96,7 @@ Las credenciales y claves de API (Stripe, SMTP, Admin Pass) deben estar document
 1.  **Aislar:** Cambiar contraseñas de hosting y base de datos (si aplica).
 2.  **Limpiar:** Borrar todo el contenido del servidor `public_html`.
 3.  **Redesplegar:** Realizar un despliegue limpio desde el repositorio Git confiable.
-4.  **Rotar Secretos:** Cambiar `PIELARMONIA_ADMIN_PASSWORD`, claves de Stripe, SMTP, etc.
+4.  **Rotar Secretos:** Cambiar `AURORADERM_ADMIN_PASSWORD`, claves de Stripe, SMTP, etc.
 5.  **Auditar Datos:** Revisar `store.json` línea por línea para asegurar que no hay inyecciones o datos falsos.
 
 6.  **Detener el servidor web** (opcional pero recomendado para evitar escrituras concurrentes).
@@ -127,3 +127,4 @@ Se recomienda realizar un simulacro de restauración semestralmente:
     Si se automatiza la validación, reutilizar `TEST_BASE_URL` para apuntar
     las suites al host restaurado.
 5.  Si hay offsite configurado, probar restauración desde snapshot offsite al menos una vez por trimestre.
+
