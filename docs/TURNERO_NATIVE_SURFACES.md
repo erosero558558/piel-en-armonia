@@ -48,15 +48,20 @@ Nota:
     - abrir la superficie remota correcta
     - validar reconexion, restricciones de navegacion y checklist operativo
 
-## Definition of done de una superficie nativa
+## Definition of done canónica de una superficie nativa
 
-Una superficie nueva no se considera lista solo por existir en el registry. Debe cumplir ademas:
+Esta seccion es la fuente de verdad de aceptacion para cualquier superficie
+nativa. Si otro runbook, checklist o nota operativa contradice este bloque,
+prevalece este bloque.
+
+Una superficie nueva no se considera lista solo por existir en el registry.
+Debe cumplir ademas:
 
 - build real que produzca los artefactos esperados
 - dry run exitoso con `stage-turnero-app-release.js`
 - rutas reales visibles en `release-manifest.json`
 - `admin.html#queue` y `/app-downloads/` resolviendo version/links reales
-- smoke manual en hardware o plataforma objetivo
+- smoke manual en hardware o plataforma objetivo, con evidencia real adjunta
 - runbook y evidencia actualizados en `verification/agent-runs/`
 
 ## Release canonico

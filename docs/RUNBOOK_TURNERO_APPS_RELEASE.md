@@ -37,6 +37,9 @@ Release estable vigente:
 - `data/turnero-surfaces.json`
 - `docs/TURNERO_NATIVE_SURFACES.md`
 
+La DoD canónica de superficies nativas vive en `docs/TURNERO_NATIVE_SURFACES.md`.
+Este runbook solo describe el flujo operativo de publicacion y validacion.
+
 ## Preparacion previa
 
 Antes de publicar cualquier build:
@@ -106,17 +109,11 @@ Notas:
 
 ## Checklist minimo antes de publicar
 
+- leer y cumplir `docs/TURNERO_NATIVE_SURFACES.md` antes de aprobar el corte
 - `release_version` usa `major.minor.patch`
 - el registry canónico está actualizado antes de correr release
-- el instalador Windows de `Operador` abre el boot clínico y no una ventana genérica
-- el shell de `Operador` muestra `updateChannel=pilot` en el piloto
-- `turnero-desktop.json` y `turnero-shell-state.json` se crean correctamente en `userData`
-- `Operador` muestra barra persistente con `live/offline/safe`, último sync, outbox y conciliación
-- offline solo permite `llamar`, `re-llamar`, `completar` y `no-show`
-- login offline sigue bloqueado
-- si existe reconciliación pendiente, la app vuelve a `safe` y no habilita nuevo offline operativo
-- el workflow genera `turnero-apps-release-bundle`
-- `release-manifest.json` contiene `operator`, `kiosk` y `sala_tv`
+- `base_url` y `update_base_url` publicas resuelven las superficies y feeds esperados
+- para `Operador`, el piloto Windows ya tiene `updateChannel=pilot` y consultorio definido
 - `publish_to_hosting=true` solo después de revisar el bundle o correr `dry_run`
 
 ## Checklist de primer arranque en Windows
@@ -237,6 +234,8 @@ Variables esperadas:
 - confirmar auto-update desde canal `pilot`
 
 ## Smoke recomendado post-release estable
+
+Este smoke es operativo; el criterio de cierre sigue siendo `docs/TURNERO_NATIVE_SURFACES.md`.
 
 - `Operador` instala y abre `operador-turnos.html`
 - `Kiosco` instala y abre `kiosco-turnos.html`
