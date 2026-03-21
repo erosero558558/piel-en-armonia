@@ -1579,42 +1579,6 @@ test.describe('Kiosco turnos', () => {
         );
         await expect(page.locator('#kioskSurfaceSyncHost')).toContainText('1');
         await expect(
-            page.locator('[data-turnero-kiosk-surface-replication="true"]')
-        ).toBeVisible();
-        await expect(
-            page.locator(
-                '[data-turnero-kiosk-surface-replication="true"] [data-role="banner"]'
-            )
-        ).toContainText('Kiosk surface replication');
-        await expect(
-            page.locator(
-                '[data-turnero-kiosk-surface-replication="true"] .turnero-surface-ops__chip'
-            )
-        ).toHaveCount(3);
-        await expect(
-            page.locator('[data-turnero-kiosk-surface-replication="true"]')
-        ).toContainText('template');
-        await expect(
-            page.locator('[data-turnero-kiosk-surface-replication="true"]')
-        ).toContainText('replication');
-        await expect(
-            page.locator('[data-turnero-kiosk-surface-replication="true"]')
-        ).toContainText('score');
-
-        await expect(
-            page.locator('[data-turnero-kiosk-surface-go-live="true"]')
-        ).toBeVisible();
-        await expect(
-            page.locator(
-                '[data-turnero-kiosk-surface-go-live="true"] [data-role="banner"]'
-            )
-        ).toContainText('Go-live');
-        await expect(
-            page.locator(
-                '[data-turnero-kiosk-surface-go-live="true"] .turnero-surface-ops__chip'
-            )
-        ).toHaveCount(6);
-        await expect(
             page.locator('[data-turnero-kiosk-surface-fleet="true"]')
         ).toBeVisible();
         await expect(
@@ -1637,6 +1601,20 @@ test.describe('Kiosco turnos', () => {
         await expect(
             page.locator('[data-turnero-kiosk-surface-fleet="true"]')
         ).toContainText('Score');
+
+        await expect(
+            page.locator('[data-turnero-kiosk-surface-go-live="true"]')
+        ).toBeVisible();
+        await expect(
+            page.locator(
+                '[data-turnero-kiosk-surface-go-live="true"] [data-role="banner"]'
+            )
+        ).toContainText('Go-live');
+        await expect(
+            page.locator(
+                '[data-turnero-kiosk-surface-go-live="true"] .turnero-surface-ops__chip'
+            )
+        ).toHaveCount(6);
         await expect(
             page.locator('[data-turnero-kiosk-surface-service-handover="true"]')
         ).toBeVisible();

@@ -16342,35 +16342,29 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('#queueSurfaceSupportConsoleHost')
         ).toContainText('Copy brief');
+        const serviceHandoverConsoleHost = page.locator(
+            '#queueSurfaceTelemetry #queueSurfaceServiceHandoverConsoleHost'
+        );
+        await expect(serviceHandoverConsoleHost).toBeVisible();
+        await expect(serviceHandoverConsoleHost).toContainText(
+            'Surface Service Handover Console'
+        );
+        await expect(serviceHandoverConsoleHost).toContainText('Copy brief');
+        await expect(serviceHandoverConsoleHost).toContainText('Add playbook');
+        await expect(serviceHandoverConsoleHost).toContainText('Add owner');
+        await expect(serviceHandoverConsoleHost).toContainText('Recompute');
+        await expect(serviceHandoverConsoleHost).toContainText(
+            'Operador web'
+        );
         await expect(
-            page.locator('#queueSurfaceServiceHandoverConsoleHost')
-        ).toBeVisible();
-        await expect(
-            page.locator('#queueSurfaceServiceHandoverConsoleHost')
-        ).toContainText('Surface Service Handover Console');
-        await expect(
-            page.locator('#queueSurfaceServiceHandoverConsoleHost')
-        ).toContainText('Copy brief');
-        await expect(
-            page.locator('#queueSurfaceServiceHandoverConsoleHost')
-        ).toContainText('Add playbook');
-        await expect(
-            page.locator('#queueSurfaceServiceHandoverConsoleHost')
-        ).toContainText('Add owner');
-        await expect(
-            page.locator('#queueSurfaceServiceHandoverConsoleHost')
-        ).toContainText('Recompute');
-        await expect(
-            page.locator('#queueSurfaceServiceHandoverConsoleHost')
-        ).toContainText('Turnero Operador');
-        await expect(
-            page.locator(
-                '#queueSurfaceServiceHandoverConsoleHost .turnero-admin-queue-surface-service-handover-console__surface'
+            serviceHandoverConsoleHost.locator(
+                '.turnero-admin-queue-surface-service-handover-console__surface'
             )
         ).toHaveCount(3);
-        await expect(
-            page.locator('#queueSurfaceServiceHandoverConsoleHost')
-        ).toHaveAttribute('data-state', 'blocked');
+        await expect(serviceHandoverConsoleHost).toHaveAttribute(
+            'data-state',
+            'blocked'
+        );
         await expect(
             page.locator(
                 '#queueSurfaceSyncConsoleHost .turnero-admin-queue-surface-sync-console__handoff-item'

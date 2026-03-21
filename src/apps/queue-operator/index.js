@@ -122,6 +122,10 @@ import { buildTurneroSurfaceContractReadout } from '../queue-shared/turnero-surf
 import { mountTurneroSurfaceRecoveryBanner } from '../queue-shared/turnero-surface-recovery-banner.js';
 import { buildTurneroSurfaceAdoptionPack } from '../queue-shared/turnero-surface-adoption-pack.js';
 import { mountTurneroSurfaceAdoptionBanner } from '../queue-shared/turnero-surface-adoption-banner.js';
+import { createTurneroSurfaceSuccessLedger } from '../queue-shared/turnero-surface-success-ledger.js';
+import { createTurneroSurfaceSuccessOwnerStore } from '../queue-shared/turnero-surface-success-owner-store.js';
+import { buildTurneroSurfaceSuccessPack } from '../queue-shared/turnero-surface-success-pack.js';
+import { mountTurneroSurfaceSuccessBanner } from '../queue-shared/turnero-surface-success-banner.js';
 
 const QUEUE_REFRESH_MS = 8000;
 const OPERATOR_HEARTBEAT_MS = 15000;
@@ -197,6 +201,7 @@ const operatorRuntime = {
     surfaceSupportPack: null,
     surfaceAcceptancePack: null,
     surfaceReplicationPack: null,
+    surfaceSuccessPack: null,
 };
 let operatorClinicProfile = null;
 
@@ -317,6 +322,16 @@ function getOperatorSurfaceProfileStatusNode() {
             existingNode !== selectedNode &&
             existingNode.id === 'operatorProfileStatus'
         ) {
+            const hiddenHost = existingNode.parentElement;
+            if (hiddenHost instanceof HTMLElement) {
+                hiddenHost
+                    .querySelectorAll('.turnero-surface-ops__stack')
+                    .forEach((stack) => {
+                        if (stack instanceof HTMLElement) {
+                            stack.remove();
+                        }
+                    });
+            }
             existingNode.removeAttribute('id');
         }
         selectedNode.id = 'operatorProfileStatus';
@@ -521,12 +536,136 @@ function renderOperatorSurfaceCommercialState() {
         panel.chipsHost.appendChild(chipNode);
         mountTurneroSurfaceCheckpointChip(chipNode, chip);
     });
+    renderOperatorSurfaceSuccessState();
     renderOperatorSurfaceReplicationState();
     return pack;
 }
 
 function getOperatorSurfaceReplicationScope() {
     return getOperatorCommercialScope();
+}
+
+function getOperatorSurfaceSuccessScope() {
+    return getOperatorCommercialScope();
+}
+
+function ensureOperatorSurfaceSuccessPanel() {
+    const statusNode = getOperatorSurfaceProfileStatusNode();
+    if (!(statusNode instanceof HTMLElement)) {
+        return null;
+    }
+
+    let host = statusNode.parentElement?.querySelector(
+        '[data-turnero-operator-surface-success="true"]'
+    );
+    if (!(host instanceof HTMLElement)) {
+        host = document.createElement('div');
+        host.dataset.turneroOperatorSurfaceSuccess = 'true';
+        host.className = 'turnero-surface-ops__stack';
+        const commercialHost = statusNode.parentElement?.querySelector(
+            '[data-turnero-operator-surface-commercial="true"]'
+        );
+        const integrityHost = statusNode.parentElement?.querySelector(
+            '[data-turnero-operator-surface-integrity="true"]'
+        );
+        const opsHost = statusNode.parentElement?.querySelector(
+            '[data-turnero-operator-surface-ops="true"]'
+        );
+        if (commercialHost instanceof HTMLElement) {
+            commercialHost.insertAdjacentElement('afterend', host);
+        } else if (integrityHost instanceof HTMLElement) {
+            integrityHost.insertAdjacentElement('afterend', host);
+        } else if (opsHost instanceof HTMLElement) {
+            opsHost.insertAdjacentElement('afterend', host);
+        } else {
+            statusNode.insertAdjacentElement('afterend', host);
+        }
+    }
+
+    let bannerHost = host.querySelector('[data-role="banner"]');
+    if (!(bannerHost instanceof HTMLElement)) {
+        bannerHost = document.createElement('div');
+        bannerHost.dataset.role = 'banner';
+        host.appendChild(bannerHost);
+    }
+
+    let chipsHost = host.querySelector('[data-role="chips"]');
+    if (!(chipsHost instanceof HTMLElement)) {
+        chipsHost = document.createElement('div');
+        chipsHost.dataset.role = 'chips';
+        chipsHost.className = 'turnero-surface-ops__chips';
+        host.appendChild(chipsHost);
+    }
+
+    return {
+        host,
+        bannerHost,
+        chipsHost,
+    };
+}
+
+function buildOperatorSurfaceSuccessPack() {
+    const scope = getOperatorSurfaceSuccessScope();
+    const ledgerStore = createTurneroSurfaceSuccessLedger(
+        scope,
+        operatorClinicProfile
+    );
+    const ownerStore = createTurneroSurfaceSuccessOwnerStore(
+        scope,
+        operatorClinicProfile
+    );
+    const pack = buildTurneroSurfaceSuccessPack({
+        surfaceKey: 'operator-turnos',
+        clinicProfile: operatorClinicProfile,
+        runtimeState: 'ready',
+        truth: 'watch',
+        adoptionState: 'watch',
+        incidentRateBand: 'low',
+        feedbackState: 'good',
+        successOwner: 'ops-lead',
+        followupWindow: 'mensual',
+        checklist: {
+            summary: {
+                all: 4,
+                pass: 3,
+                fail: 1,
+            },
+        },
+        ledger: ledgerStore.list({ surfaceKey: 'operator-turnos' }),
+        owners: ownerStore.list({ surfaceKey: 'operator-turnos' }),
+    });
+
+    return pack;
+}
+
+function renderOperatorSurfaceSuccessState() {
+    const panel = ensureOperatorSurfaceSuccessPanel();
+    if (!panel) {
+        return null;
+    }
+
+    if (!operatorClinicProfile) {
+        panel.host.hidden = true;
+        return null;
+    }
+
+    const pack = buildOperatorSurfaceSuccessPack();
+    operatorRuntime.surfaceSuccessPack = pack;
+    panel.host.hidden = false;
+    mountTurneroSurfaceSuccessBanner(panel.bannerHost, {
+        pack,
+        readout: pack.readout,
+        title: 'Operator surface success',
+        eyebrow: 'Customer success',
+    });
+    panel.chipsHost.replaceChildren();
+    pack.readout.chips.forEach((chip) => {
+        const chipNode = document.createElement('span');
+        panel.chipsHost.appendChild(chipNode);
+        mountTurneroSurfaceCheckpointChip(chipNode, chip);
+    });
+
+    return pack;
 }
 
 function ensureOperatorSurfaceReplicationPanel() {

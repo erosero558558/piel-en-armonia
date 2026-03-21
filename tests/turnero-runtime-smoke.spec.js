@@ -219,6 +219,16 @@ test.describe('Turnero runtime smoke', () => {
                 '[data-turnero-operator-surface-integrity="true"] .turnero-surface-ops__chip'
             )
         ).toHaveCount(3);
+        await expect(
+            page.locator(
+                '[data-turnero-operator-surface-success="true"] .turnero-surface-success-banner'
+            )
+        ).toBeVisible();
+        await expect(
+            page.locator(
+                '[data-turnero-operator-surface-success="true"] .turnero-surface-ops__chip'
+            )
+        ).toHaveCount(3);
     });
 
     test('kiosk renders the integrity banner and checkpoint chips', async ({
@@ -241,6 +251,16 @@ test.describe('Turnero runtime smoke', () => {
         await expect(
             page.locator(
                 '[data-turnero-kiosk-surface-integrity="true"] .turnero-surface-ops__chip'
+            )
+        ).toHaveCount(3);
+        await expect(
+            page.locator(
+                '[data-turnero-kiosk-surface-success="true"] .turnero-surface-success-banner'
+            )
+        ).toBeVisible();
+        await expect(
+            page.locator(
+                '[data-turnero-kiosk-surface-success="true"] .turnero-surface-ops__chip'
             )
         ).toHaveCount(3);
     });
@@ -267,6 +287,16 @@ test.describe('Turnero runtime smoke', () => {
                 '[data-turnero-display-surface-integrity="true"] .turnero-surface-ops__chip'
             )
         ).toHaveCount(3);
+        await expect(
+            page.locator(
+                '[data-turnero-display-surface-success="true"] .turnero-surface-success-banner'
+            )
+        ).toBeVisible();
+        await expect(
+            page.locator(
+                '[data-turnero-display-surface-success="true"] .turnero-surface-ops__chip'
+            )
+        ).toHaveCount(3);
     });
 
     test('admin queue renders the integrity console inside the queue hub', async ({
@@ -288,5 +318,16 @@ test.describe('Turnero runtime smoke', () => {
                 '#queueSurfaceIntegrityConsoleHost .turnero-admin-queue-surface-integrity-console'
             )
         ).toContainText('Surface Queue Integrity Console');
+        await expect(page.locator('#queueSurfaceSuccessConsoleHost')).toBeVisible();
+        await expect(
+            page.locator(
+                '#queueSurfaceSuccessConsoleHost .turnero-admin-queue-surface-success-console'
+            )
+        ).toBeVisible();
+        await expect(
+            page.locator(
+                '#queueSurfaceSuccessConsoleHost .turnero-admin-queue-surface-success-console'
+            )
+        ).toContainText('Surface Customer Success Console');
     });
 });

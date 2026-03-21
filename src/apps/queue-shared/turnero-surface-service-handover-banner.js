@@ -89,6 +89,7 @@ export function buildTurneroSurfaceServiceHandoverBannerHtml(input = {}) {
     return `
         <section
             class="turnero-surface-ops__banner turnero-surface-service-handover-banner"
+            data-role="banner"
             data-surface="${escapeHtml(readout.surfaceKey || 'surface')}"
             data-state="${escapeHtml(readout.state || readout.gateBand || 'watch')}"
             data-band="${escapeHtml(readout.gateBand || 'watch')}"

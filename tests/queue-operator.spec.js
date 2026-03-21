@@ -1657,35 +1657,28 @@ test.describe('Turnero Operador', () => {
             '1'
         );
         await expect(
-            page.locator(
-                '[data-turnero-operator-surface-replication="true"]'
-            )
+            page.locator('[data-turnero-operator-surface-fleet="true"]')
         ).toBeVisible();
         await expect(
-            page.locator(
-                '[data-turnero-operator-surface-replication="true"] [data-role="banner"]'
-            )
-        ).toContainText('Operator surface replication');
+            page.locator('[data-turnero-operator-surface-fleet="true"]')
+        ).toContainText('Surface Fleet Readiness');
+        await expect(
+            page.locator('[data-turnero-operator-surface-fleet="true"]')
+        ).toContainText('Fleet readiness visible');
         await expect(
             page.locator(
-                '[data-turnero-operator-surface-replication="true"] .turnero-surface-ops__chip'
+                '[data-turnero-operator-surface-fleet="true"] .turnero-surface-ops__chip'
             )
         ).toHaveCount(3);
         await expect(
-            page.locator(
-                '[data-turnero-operator-surface-replication="true"]'
-            )
-        ).toContainText('template');
+            page.locator('[data-turnero-operator-surface-fleet="true"]')
+        ).toContainText('Wave');
         await expect(
-            page.locator(
-                '[data-turnero-operator-surface-replication="true"]'
-            )
-        ).toContainText('replication');
+            page.locator('[data-turnero-operator-surface-fleet="true"]')
+        ).toContainText('Fleet');
         await expect(
-            page.locator(
-                '[data-turnero-operator-surface-replication="true"]'
-            )
-        ).toContainText('score');
+            page.locator('[data-turnero-operator-surface-fleet="true"]')
+        ).toContainText('Score');
         await expect
             .poll(
                 () =>
@@ -1714,29 +1707,6 @@ test.describe('Turnero Operador', () => {
                 '[data-turnero-operator-surface-go-live="true"] .turnero-surface-ops__chip'
             )
         ).toHaveCount(6);
-        await expect(
-            page.locator('[data-turnero-operator-surface-fleet="true"]')
-        ).toBeVisible();
-        await expect(
-            page.locator('[data-turnero-operator-surface-fleet="true"]')
-        ).toContainText('Surface Fleet Readiness');
-        await expect(
-            page.locator('[data-turnero-operator-surface-fleet="true"]')
-        ).toContainText('Fleet readiness visible');
-        await expect(
-            page.locator(
-                '[data-turnero-operator-surface-fleet="true"] .turnero-surface-ops__chip'
-            )
-        ).toHaveCount(3);
-        await expect(
-            page.locator('[data-turnero-operator-surface-fleet="true"]')
-        ).toContainText('Wave');
-        await expect(
-            page.locator('[data-turnero-operator-surface-fleet="true"]')
-        ).toContainText('Fleet');
-        await expect(
-            page.locator('[data-turnero-operator-surface-fleet="true"]')
-        ).toContainText('Score');
         await expect(
             page.locator('[data-turnero-operator-surface-service-handover="true"]')
         ).toBeVisible();

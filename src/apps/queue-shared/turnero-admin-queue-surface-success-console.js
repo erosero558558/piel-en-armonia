@@ -590,3 +590,229 @@ function renderConsoleHtml(state) {
         </section>
     `;
 }
+
+function syncState(controller, input, ledgerStore, ownerStore) {
+    controller.state = buildConsoleState(
+        input,
+        ledgerStore.list(),
+        ownerStore.list()
+    );
+    updateBrief(controller.state);
+    controller.root.dataset.state = controller.state.gate.band;
+    controller.root.innerHTML = renderConsoleHtml(controller.state);
+
+    const bannerHost = controller.root.querySelector('[data-role="banner"]');
+    if (bannerHost instanceof HTMLElement) {
+        mountTurneroSurfaceSuccessBanner(bannerHost, {
+            pack: controller.state.pack,
+            readout: controller.state.readout,
+            title: 'Surface Customer Success Console',
+            eyebrow: 'Turnero customer success',
+        });
+    }
+
+    const briefHost = controller.root.querySelector('[data-role="brief"]');
+    if (briefHost instanceof HTMLElement) {
+        briefHost.textContent = controller.state.brief;
+    }
+
+    return controller.state;
+}
+
+function buildController(input, ledgerStore, ownerStore) {
+    const controller = {
+        root: document.createElement('section'),
+        state: null,
+        refresh: null,
+        destroy: null,
+    };
+
+    const handleClick = async (event) => {
+        const target =
+            event.target && typeof event.target.closest === 'function'
+                ? event.target.closest('[data-action]')
+                : null;
+        if (!(target instanceof HTMLElement) || !controller.state) {
+            return;
+        }
+
+        const action = toString(target.dataset.action, '');
+        if (!action) {
+            return;
+        }
+
+        if (action === 'copy-brief') {
+            const copied = await copyTextToClipboard(controller.state.brief);
+            createToast(
+                copied ? 'Brief copiado' : 'No se pudo copiar el brief',
+                copied ? 'success' : 'warning'
+            );
+            return;
+        }
+
+        if (action === 'download-json') {
+            const downloaded = downloadJsonSnapshot(
+                'turnero-surface-success-console.json',
+                buildDownloadPayload(controller.state)
+            );
+            createToast(
+                downloaded ? 'JSON descargado' : 'Descarga no disponible',
+                downloaded ? 'success' : 'warning'
+            );
+            return;
+        }
+
+        if (action === 'clear-ledger') {
+            ledgerStore.clear();
+            syncState(controller, input, ledgerStore, ownerStore);
+            createToast('Evidencia limpiada', 'success');
+            return;
+        }
+
+        if (action === 'clear-owners') {
+            ownerStore.clear();
+            syncState(controller, input, ledgerStore, ownerStore);
+            createToast('Owners limpiados', 'success');
+            return;
+        }
+
+        if (action === 'refresh') {
+            syncState(controller, input, ledgerStore, ownerStore);
+            createToast('Vista actualizada', 'success');
+        }
+    };
+
+    const handleSubmit = (event) => {
+        const target =
+            event.target && typeof event.target.closest === 'function'
+                ? event.target.closest('form[data-action]')
+                : null;
+        if (!(target instanceof HTMLElement) || !controller.state) {
+            return;
+        }
+
+        const action = toString(target.dataset.action, '');
+        if (!action) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (action === 'add-evidence') {
+            const entry = ledgerStore.add({
+                surfaceKey: readValue(
+                    controller.root,
+                    '[data-field="evidence-surface-key"]',
+                    controller.state.snapshots[0]?.surfaceKey || 'surface'
+                ),
+                kind: readValue(
+                    controller.root,
+                    '[data-field="evidence-kind"]',
+                    'followup-note'
+                ),
+                status: readValue(
+                    controller.root,
+                    '[data-field="evidence-status"]',
+                    'ready'
+                ),
+                signal: readValue(
+                    controller.root,
+                    '[data-field="evidence-signal"]',
+                    'value'
+                ),
+                owner: readValue(
+                    controller.root,
+                    '[data-field="evidence-owner"]',
+                    'success'
+                ),
+                note: readValue(controller.root, '[data-field="evidence-note"]', ''),
+            });
+            resetValue(controller.root, '[data-field="evidence-note"]', '');
+            syncState(controller, input, ledgerStore, ownerStore);
+            createToast(
+                `Evidencia agregada en ${entry.surfaceKey}`,
+                'success'
+            );
+            return;
+        }
+
+        if (action === 'add-owner') {
+            const entry = ownerStore.add({
+                surfaceKey: readValue(
+                    controller.root,
+                    '[data-field="owner-surface-key"]',
+                    controller.state.snapshots[0]?.surfaceKey || 'surface'
+                ),
+                actor: readValue(
+                    controller.root,
+                    '[data-field="owner-actor"]',
+                    'owner'
+                ),
+                role: readValue(
+                    controller.root,
+                    '[data-field="owner-role"]',
+                    'success'
+                ),
+                status: readValue(
+                    controller.root,
+                    '[data-field="owner-status"]',
+                    'active'
+                ),
+                note: readValue(controller.root, '[data-field="owner-note"]', ''),
+            });
+            resetValue(controller.root, '[data-field="owner-note"]', '');
+            syncState(controller, input, ledgerStore, ownerStore);
+            createToast(`Owner agregado en ${entry.surfaceKey}`, 'success');
+        }
+    };
+
+    controller.refresh = () => syncState(controller, input, ledgerStore, ownerStore);
+    controller.destroy = () => {
+        controller.root.removeEventListener('click', handleClick);
+        controller.root.removeEventListener('submit', handleSubmit);
+    };
+
+    controller.root.addEventListener('click', handleClick);
+    controller.root.addEventListener('submit', handleSubmit);
+
+    return controller;
+}
+
+export function buildTurneroAdminQueueSurfaceSuccessConsoleHtml(input = {}) {
+    const scope = toString(input.scope, 'regional') || 'regional';
+    const clinicProfile = asObject(input.clinicProfile);
+    const ledgerStore = createTurneroSurfaceSuccessLedger(scope, clinicProfile);
+    const ownerStore = createTurneroSurfaceSuccessOwnerStore(scope, clinicProfile);
+    const state = buildConsoleState(
+        input,
+        Array.isArray(input.ledger) ? input.ledger : ledgerStore.list(),
+        Array.isArray(input.owners) ? input.owners : ownerStore.list()
+    );
+    updateBrief(state);
+    return renderConsoleHtml(state);
+}
+
+export function mountTurneroAdminQueueSurfaceSuccessConsole(
+    target,
+    input = {}
+) {
+    const host = resolveTarget(target);
+    if (!(host instanceof HTMLElement) || typeof document === 'undefined') {
+        return null;
+    }
+
+    ensureTurneroSurfaceOpsStyles();
+    ensureStyles();
+
+    const scope = toString(input.scope, 'regional') || 'regional';
+    const clinicProfile = asObject(input.clinicProfile);
+    const ledgerStore = createTurneroSurfaceSuccessLedger(scope, clinicProfile);
+    const ownerStore = createTurneroSurfaceSuccessOwnerStore(scope, clinicProfile);
+    const controller = buildController(input, ledgerStore, ownerStore);
+
+    controller.root.className = 'turnero-admin-queue-surface-success-console';
+    host.replaceChildren(controller.root);
+    controller.refresh();
+
+    return controller;
+}
