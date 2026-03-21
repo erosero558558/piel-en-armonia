@@ -10,6 +10,12 @@ import {
     loadTurneroClinicProfile,
 } from '../queue-shared/clinic-profile.js';
 import { mountTurneroSurfaceRuntimeBootstrap } from '../queue-shared/turnero-surface-runtime-bootstrap.js';
+import { buildTurneroSurfaceGoLiveSnapshot } from '../queue-shared/turnero-surface-go-live-snapshot.js';
+import { createTurneroSurfaceGoLiveLedger } from '../queue-shared/turnero-surface-go-live-ledger.js';
+import { buildTurneroSurfaceGoLivePack } from '../queue-shared/turnero-surface-go-live-pack.js';
+import { mountTurneroSurfaceGoLiveBanner } from '../queue-shared/turnero-surface-go-live-banner.js';
+import { buildTurneroSurfaceAcceptancePack } from '../queue-shared/turnero-surface-acceptance-pack.js';
+import { mountTurneroSurfaceAcceptanceBanner } from '../queue-shared/turnero-surface-acceptance-banner.js';
 import {
     persistClinicScopedStorageValue,
     readClinicScopedStorageValue,
@@ -27,9 +33,25 @@ import { buildTurneroSurfaceSyncPack } from '../queue-shared/turnero-surface-syn
 import { buildTurneroSurfaceSyncReadout } from '../queue-shared/turnero-surface-sync-readout.js';
 import { mountTurneroSurfaceSyncBanner } from '../queue-shared/turnero-surface-sync-banner.js';
 import { mountTurneroSurfaceCheckpointChip } from '../queue-shared/turnero-surface-checkpoint-chip.js';
+import { buildTurneroSurfaceRolloutPack } from '../queue-shared/turnero-surface-rollout-pack.js';
+import { mountTurneroSurfaceRolloutBanner } from '../queue-shared/turnero-surface-rollout-banner.js';
+import {
+    buildTurneroSurfaceIntegrityPack,
+    maskTurneroTicket,
+} from '../queue-shared/turnero-surface-integrity-pack.js';
+import { mountTurneroSurfaceIntegrityBanner } from '../queue-shared/turnero-surface-integrity-banner.js';
+import { buildTurneroSurfaceCommercialPack } from '../queue-shared/turnero-surface-commercial-pack.js';
+import { buildTurneroSurfaceCommercialReadout } from '../queue-shared/turnero-surface-commercial-readout.js';
+import { mountTurneroSurfaceCommercialBanner } from '../queue-shared/turnero-surface-commercial-banner.js';
+import { createTurneroSurfaceCommercialLedger } from '../queue-shared/turnero-surface-commercial-ledger.js';
+import { createTurneroSurfaceCommercialOwnerStore } from '../queue-shared/turnero-surface-commercial-owner-store.js';
+import { buildTurneroSurfaceSupportPack } from '../queue-shared/turnero-surface-support-pack.js';
+import { mountTurneroSurfaceSupportBanner } from '../queue-shared/turnero-surface-support-banner.js';
 import { buildTurneroSurfaceRecoveryPack } from '../queue-shared/turnero-surface-recovery-pack.js';
 import { buildTurneroSurfaceContractReadout } from '../queue-shared/turnero-surface-contract-readout.js';
 import { mountTurneroSurfaceRecoveryBanner } from '../queue-shared/turnero-surface-recovery-banner.js';
+import { buildTurneroSurfaceAdoptionPack } from '../queue-shared/turnero-surface-adoption-pack.js';
+import { mountTurneroSurfaceAdoptionBanner } from '../queue-shared/turnero-surface-adoption-banner.js';
 import { listTurneroSurfaceFallbackDrills } from '../queue-shared/turnero-surface-fallback-drill-store.js';
 import { listTurneroSurfaceCheckinLogbook } from '../queue-shared/turnero-surface-checkin-logbook.js';
 
@@ -74,6 +96,9 @@ const state = {
     surfaceBootstrap: null,
     lastRenderedState: null,
     surfaceSyncPack: null,
+    surfaceGoLivePack: null,
+    surfaceAcceptancePack: null,
+    surfaceSupportPack: null,
 };
 
 let displayHeartbeat = null;
@@ -140,6 +165,207 @@ function getDisplayConsultorioLabel(consultorio) {
 
 function getDisplaySurfaceContract(profile = state.clinicProfile) {
     return getTurneroSurfaceContract(profile, 'display');
+}
+
+function getDisplaySurfaceCurrentRoute() {
+    if (
+        typeof window === 'undefined' ||
+        !window.location ||
+        typeof window.location.pathname !== 'string'
+    ) {
+        return '';
+    }
+
+    return `${window.location.pathname || ''}${window.location.search || ''}${
+        window.location.hash || ''
+    }`;
+}
+
+function getDisplayCommercialScope() {
+    return (
+        String(
+            state.clinicProfile?.region ||
+                state.clinicProfile?.branding?.city ||
+                'regional'
+        ).trim() || 'regional'
+    );
+}
+
+function ensureDisplaySurfaceCommercialPanel() {
+    const statusNode = getById('displayProfileStatus');
+    if (!(statusNode instanceof HTMLElement)) {
+        return null;
+    }
+
+    let host = statusNode.parentElement?.querySelector(
+        '[data-turnero-display-surface-commercial="true"]'
+    );
+    if (!(host instanceof HTMLElement)) {
+        host = document.createElement('div');
+        host.dataset.turneroDisplaySurfaceCommercial = 'true';
+        host.className = 'turnero-surface-ops__stack';
+        const integrityHost = statusNode.parentElement?.querySelector(
+            '[data-turnero-display-surface-integrity="true"]'
+        );
+        if (integrityHost instanceof HTMLElement) {
+            integrityHost.insertAdjacentElement('afterend', host);
+        } else {
+            const opsHost = statusNode.parentElement?.querySelector(
+                '[data-turnero-display-surface-ops="true"]'
+            );
+            if (opsHost instanceof HTMLElement) {
+                opsHost.insertAdjacentElement('afterend', host);
+            } else {
+                statusNode.insertAdjacentElement('afterend', host);
+            }
+        }
+    }
+
+    let bannerHost = host.querySelector('[data-role="banner"]');
+    if (!(bannerHost instanceof HTMLElement)) {
+        bannerHost = document.createElement('div');
+        bannerHost.dataset.role = 'banner';
+        host.appendChild(bannerHost);
+    }
+
+    let chipsHost = host.querySelector('[data-role="chips"]');
+    if (!(chipsHost instanceof HTMLElement)) {
+        chipsHost = document.createElement('div');
+        chipsHost.dataset.role = 'chips';
+        chipsHost.className = 'turnero-surface-ops__chips';
+        host.appendChild(chipsHost);
+    }
+
+    let adoptionHost = host.querySelector('[data-role="adoption"]');
+    if (!(adoptionHost instanceof HTMLElement)) {
+        adoptionHost = document.createElement('div');
+        adoptionHost.dataset.role = 'adoption';
+        adoptionHost.className = 'turnero-surface-ops__stack';
+        host.appendChild(adoptionHost);
+    }
+
+    let adoptionBannerHost = adoptionHost.querySelector(
+        '[data-role="adoption-banner"]'
+    );
+    if (!(adoptionBannerHost instanceof HTMLElement)) {
+        adoptionBannerHost = document.createElement('div');
+        adoptionBannerHost.dataset.role = 'adoption-banner';
+        adoptionHost.appendChild(adoptionBannerHost);
+    }
+
+    let adoptionChipsHost = adoptionHost.querySelector(
+        '[data-role="adoption-chips"]'
+    );
+    if (!(adoptionChipsHost instanceof HTMLElement)) {
+        adoptionChipsHost = document.createElement('div');
+        adoptionChipsHost.dataset.role = 'adoption-chips';
+        adoptionChipsHost.className = 'turnero-surface-ops__chips';
+        adoptionHost.appendChild(adoptionChipsHost);
+    }
+
+    return {
+        host,
+        bannerHost,
+        chipsHost,
+        adoptionHost,
+        adoptionBannerHost,
+        adoptionChipsHost,
+    };
+}
+
+function buildDisplaySurfaceCommercialPack() {
+    const scope = getDisplayCommercialScope();
+    const ledgerStore = createTurneroSurfaceCommercialLedger(
+        scope,
+        state.clinicProfile
+    );
+    const ownerStore = createTurneroSurfaceCommercialOwnerStore(
+        scope,
+        state.clinicProfile
+    );
+    const pack = buildTurneroSurfaceCommercialPack({
+        surfaceKey: 'sala-turnos',
+        clinicProfile: state.clinicProfile,
+        runtimeState: 'ready',
+        truth: 'aligned',
+        packageTier: 'pilot-plus',
+        commercialOwner: 'ernesto',
+        opsOwner: 'ops-display',
+        scopeState: 'ready',
+        pricingState: 'ready',
+        checklist: {
+            summary: {
+                all: 4,
+                pass: 3,
+                fail: 1,
+            },
+        },
+        ledger: ledgerStore.list({ surfaceKey: 'sala-turnos' }),
+        owners: ownerStore.list({ surfaceKey: 'sala-turnos' }),
+    });
+
+    return {
+        ...pack,
+        readout: buildTurneroSurfaceCommercialReadout({
+            snapshot: pack.snapshot,
+            gate: pack.gate,
+        }),
+    };
+}
+
+function renderDisplaySurfaceCommercialState() {
+    const panel = ensureDisplaySurfaceCommercialPanel();
+    if (!panel) {
+        return null;
+    }
+
+    if (!state.clinicProfile) {
+        panel.host.hidden = true;
+        return null;
+    }
+
+    const pack = buildDisplaySurfaceCommercialPack();
+    state.surfaceCommercialPack = pack;
+    panel.host.hidden = false;
+    mountTurneroSurfaceCommercialBanner(panel.bannerHost, {
+        pack,
+        readout: pack.readout,
+        title: 'Display surface commercial',
+    });
+    panel.chipsHost.replaceChildren();
+    [
+        {
+            label: 'tier',
+            value: pack.readout.packageTier,
+            state:
+                pack.readout.packageTier === 'pilot-plus' ? 'ready' : 'warning',
+        },
+        {
+            label: 'commercial',
+            value: pack.readout.gateBand,
+            state:
+                pack.readout.gateBand === 'ready'
+                    ? 'ready'
+                    : pack.readout.gateBand === 'watch'
+                      ? 'warning'
+                      : 'alert',
+        },
+        {
+            label: 'score',
+            value: String(pack.readout.gateScore || 0),
+            state:
+                pack.readout.gateBand === 'ready'
+                    ? 'ready'
+                    : pack.readout.gateBand === 'watch'
+                      ? 'warning'
+                      : 'alert',
+        },
+    ].forEach((chip) => {
+        const chipNode = document.createElement('span');
+        panel.chipsHost.appendChild(chipNode);
+        mountTurneroSurfaceCheckpointChip(chipNode, chip);
+    });
+    return pack;
 }
 
 function ensureDisplaySurfaceOpsPanel() {
@@ -227,6 +453,7 @@ function renderDisplaySurfaceOps() {
 
     if (!state.clinicProfile) {
         panel.host.hidden = true;
+        renderDisplaySurfaceGoLiveState();
         return;
     }
 
@@ -239,6 +466,7 @@ function renderDisplaySurfaceOps() {
         clinicProfile: state.clinicProfile,
         surface: 'display',
     });
+    const currentRoute = getDisplaySurfaceCurrentRoute();
     const watch = buildTurneroSurfaceRuntimeWatch({
         surface: 'display',
         telemetryEntry: buildDisplaySurfaceOpsTelemetryEntry(now),
@@ -258,6 +486,19 @@ function renderDisplaySurfaceOps() {
         readiness,
         drills,
         logbook,
+    });
+    const adoptionPack = buildTurneroSurfaceAdoptionPack({
+        surfaceKey: 'sala-turnos',
+        surfaceId: 'sala_tv',
+        role: 'display',
+        roleLabel: 'Pantalla',
+        handoffMode: 'broadcast',
+        currentRoute,
+        clinicProfile: state.clinicProfile,
+        scope:
+            state.clinicProfile?.region ||
+            state.clinicProfile?.branding?.city ||
+            'regional',
     });
 
     panel.host.hidden = false;
@@ -289,6 +530,487 @@ function renderDisplaySurfaceOps() {
         panel.chipsHost.appendChild(chipNode);
         mountTurneroSurfaceCheckpointChip(chipNode, chip);
     });
+    mountTurneroSurfaceAdoptionBanner(panel.adoptionBannerHost, {
+        title: 'Turnero Sala',
+        eyebrow: 'Adoption',
+        pack: adoptionPack,
+    });
+    panel.adoptionChipsHost.replaceChildren();
+    adoptionPack.chips.forEach((chip) => {
+        const chipNode = document.createElement('span');
+        panel.adoptionChipsHost.appendChild(chipNode);
+        mountTurneroSurfaceCheckpointChip(chipNode, chip);
+    });
+    renderDisplaySurfaceGoLiveState();
+}
+
+function ensureDisplaySurfaceIntegrityPanel() {
+    const statusNode = getById('displayProfileStatus');
+    if (!(statusNode instanceof HTMLElement)) {
+        return null;
+    }
+
+    let host = statusNode.parentElement?.querySelector(
+        '[data-turnero-display-surface-integrity="true"]'
+    );
+    if (!(host instanceof HTMLElement)) {
+        host = document.createElement('div');
+        host.dataset.turneroDisplaySurfaceIntegrity = 'true';
+        host.className = 'turnero-surface-ops__stack';
+        const opsHost = statusNode.parentElement?.querySelector(
+            '[data-turnero-display-surface-ops="true"]'
+        );
+        if (opsHost instanceof HTMLElement) {
+            opsHost.insertAdjacentElement('afterend', host);
+        } else {
+            statusNode.insertAdjacentElement('afterend', host);
+        }
+    }
+
+    let bannerHost = host.querySelector('[data-role="banner"]');
+    if (!(bannerHost instanceof HTMLElement)) {
+        bannerHost = document.createElement('div');
+        bannerHost.dataset.role = 'banner';
+        host.appendChild(bannerHost);
+    }
+
+    let chipsHost = host.querySelector('[data-role="chips"]');
+    if (!(chipsHost instanceof HTMLElement)) {
+        chipsHost = document.createElement('div');
+        chipsHost.dataset.role = 'chips';
+        chipsHost.className = 'turnero-surface-ops__chips';
+        host.appendChild(chipsHost);
+    }
+
+    return { host, bannerHost, chipsHost };
+}
+
+function buildDisplaySurfaceIntegrityPack() {
+    const queueState = normalizeQueueStatePayload(
+        state.lastRenderedState || {}
+    );
+    const callingNow = Array.isArray(queueState.callingNow)
+        ? queueState.callingNow
+        : [];
+    const nextTickets = Array.isArray(queueState.nextTickets)
+        ? queueState.nextTickets
+        : [];
+    const byConsultorio = {
+        1: null,
+        2: null,
+    };
+    for (const ticket of callingNow) {
+        const consultorio = Number(ticket?.assignedConsultorio || 0);
+        if (consultorio === 1 || consultorio === 2) {
+            byConsultorio[consultorio] = ticket;
+        }
+    }
+    const primaryCallingTicket = selectPrimaryCallingTicket(
+        callingNow,
+        byConsultorio
+    );
+    const visibleTurn = String(
+        primaryCallingTicket?.ticketCode ||
+            nextTickets[0]?.ticketCode ||
+            'A-202'
+    )
+        .trim()
+        .toUpperCase();
+    const announcedTurn = String(
+        nextTickets[0]?.ticketCode ||
+            primaryCallingTicket?.ticketCode ||
+            'A-201'
+    )
+        .trim()
+        .toUpperCase();
+    const ticketDisplay = visibleTurn.replace(/[^A-Z0-9]/g, '') || 'A202';
+
+    return buildTurneroSurfaceIntegrityPack({
+        surfaceKey: 'sala-turnos',
+        queueVersion: String(queueState.updatedAt || '').trim(),
+        visibleTurn,
+        announcedTurn,
+        ticketDisplay,
+        maskedTicket: maskTurneroTicket(ticketDisplay, 'masked') || 'A**2',
+        privacyMode: 'masked',
+        heartbeat: {
+            state: resolveDisplaySurfaceSyncHeartbeatState(),
+            channel: resolveDisplaySurfaceSyncHeartbeatChannel(),
+        },
+        evidence: [],
+    });
+}
+
+function renderDisplaySurfaceIntegrityState() {
+    const panel = ensureDisplaySurfaceIntegrityPanel();
+    if (!panel) {
+        return null;
+    }
+
+    if (!state.clinicProfile) {
+        panel.host.hidden = true;
+        return null;
+    }
+
+    const pack = buildDisplaySurfaceIntegrityPack();
+    state.surfaceIntegrityPack = pack;
+    panel.host.hidden = false;
+    panel.bannerHost.replaceChildren();
+    mountTurneroSurfaceIntegrityBanner(panel.bannerHost, {
+        pack,
+        title: 'Display surface integrity',
+    });
+    panel.chipsHost.replaceChildren();
+    [
+        {
+            label: 'Turn',
+            value: pack.snapshot.visibleTurn || 'none',
+            state:
+                pack.drift.state === 'aligned'
+                    ? 'ready'
+                    : pack.drift.state === 'watch'
+                      ? 'warning'
+                      : 'alert',
+        },
+        {
+            label: 'Mask',
+            value: pack.maskState.maskedTicket || pack.maskState.state,
+            state:
+                pack.maskState.state === 'protected'
+                    ? 'ready'
+                    : pack.maskState.state === 'open'
+                      ? 'warning'
+                      : pack.maskState.state === 'watch'
+                        ? 'warning'
+                        : 'alert',
+        },
+        {
+            label: 'Gate',
+            value: `${pack.gate.band} · ${pack.gate.score}`,
+            state:
+                pack.gate.band === 'ready'
+                    ? 'ready'
+                    : pack.gate.band === 'watch'
+                      ? 'warning'
+                      : 'alert',
+        },
+    ].forEach((chip) => {
+        const chipNode = document.createElement('span');
+        panel.chipsHost.appendChild(chipNode);
+        mountTurneroSurfaceCheckpointChip(chipNode, chip);
+    });
+    return pack;
+}
+
+function ensureDisplaySurfaceGoLivePanel() {
+    const statusNode = getById('displayProfileStatus');
+    if (!(statusNode instanceof HTMLElement)) {
+        return null;
+    }
+
+    let host = statusNode.parentElement?.querySelector(
+        '[data-turnero-display-surface-go-live="true"]'
+    );
+    if (!(host instanceof HTMLElement)) {
+        host = document.createElement('div');
+        host.dataset.turneroDisplaySurfaceGoLive = 'true';
+        host.className = 'turnero-surface-ops__stack';
+        const integrityHost = statusNode.parentElement?.querySelector(
+            '[data-turnero-display-surface-integrity="true"]'
+        );
+        if (integrityHost instanceof HTMLElement) {
+            integrityHost.insertAdjacentElement('afterend', host);
+        } else {
+            const opsHost = statusNode.parentElement?.querySelector(
+                '[data-turnero-display-surface-ops="true"]'
+            );
+            if (opsHost instanceof HTMLElement) {
+                opsHost.insertAdjacentElement('afterend', host);
+            } else {
+                statusNode.insertAdjacentElement('afterend', host);
+            }
+        }
+    }
+
+    let bannerHost = host.querySelector('[data-role="banner"]');
+    if (!(bannerHost instanceof HTMLElement)) {
+        bannerHost = document.createElement('div');
+        bannerHost.dataset.role = 'banner';
+        host.appendChild(bannerHost);
+    }
+
+    let chipsHost = host.querySelector('[data-role="chips"]');
+    if (!(chipsHost instanceof HTMLElement)) {
+        chipsHost = document.createElement('div');
+        chipsHost.dataset.role = 'chips';
+        chipsHost.className = 'turnero-surface-ops__chips';
+        host.appendChild(chipsHost);
+    }
+
+    return { host, bannerHost, chipsHost };
+}
+
+function getDisplaySurfaceGoLiveScope() {
+    return 'display';
+}
+
+function buildDisplaySurfaceGoLivePack() {
+    const heartbeatPayload = buildDisplayHeartbeatPayload();
+    const surfaceContract =
+        getDisplaySurfaceContract(state.clinicProfile) ||
+        getTurneroSurfaceContract(state.clinicProfile, 'display');
+    const snapshot = buildTurneroSurfaceGoLiveSnapshot({
+        scope: getDisplaySurfaceGoLiveScope(),
+        surfaceKey: 'display',
+        surfaceLabel: 'Sala TV',
+        clinicProfile: state.clinicProfile,
+        runtimeState: String(heartbeatPayload.status || 'unknown').trim(),
+        truth: String(
+            heartbeatPayload.details?.surfaceContractState ||
+                surfaceContract.state ||
+                heartbeatPayload.status ||
+                'unknown'
+        ).trim(),
+        printerState: state.lastSnapshot ? 'ready' : 'watch',
+        bellState: heartbeatPayload.details?.bellPrimed ? 'ready' : 'watch',
+        signageState:
+            heartbeatPayload.details?.surfaceRouteCurrent &&
+            heartbeatPayload.details?.surfaceRouteExpected &&
+            heartbeatPayload.details.surfaceRouteCurrent ===
+                heartbeatPayload.details.surfaceRouteExpected
+                ? 'ready'
+                : 'watch',
+        operatorReady:
+            heartbeatPayload.status === 'ready' ||
+            Boolean(
+                heartbeatPayload.details?.connection === 'live' &&
+                heartbeatPayload.details?.bellPrimed &&
+                !heartbeatPayload.details?.bellMuted
+            ),
+        updatedAt: String(
+            heartbeatPayload.lastEventAt || state.lastBellAt || ''
+        ).trim(),
+    });
+    const ledger = createTurneroSurfaceGoLiveLedger(
+        snapshot.scope,
+        state.clinicProfile
+    );
+
+    return buildTurneroSurfaceGoLivePack({
+        ...snapshot,
+        clinicProfile: state.clinicProfile,
+        evidence: ledger.list({ surfaceKey: snapshot.surfaceKey }),
+    });
+}
+
+function renderDisplaySurfaceGoLiveState() {
+    const panel = ensureDisplaySurfaceGoLivePanel();
+    if (!panel) {
+        return null;
+    }
+
+    if (!state.clinicProfile) {
+        panel.host.hidden = true;
+        panel.bannerHost.replaceChildren();
+        panel.chipsHost.replaceChildren();
+        return null;
+    }
+
+    const pack = buildDisplaySurfaceGoLivePack();
+    state.surfaceGoLivePack = pack;
+    panel.host.hidden = false;
+    panel.bannerHost.replaceChildren();
+    mountTurneroSurfaceGoLiveBanner(panel.bannerHost, {
+        pack,
+    });
+    panel.chipsHost.replaceChildren();
+    pack.checklist.checks.forEach((check) => {
+        const chipNode = document.createElement('span');
+        panel.chipsHost.appendChild(chipNode);
+        mountTurneroSurfaceCheckpointChip(chipNode, {
+            label: check.label,
+            value: check.pass ? 'Listo' : 'Pendiente',
+            state: check.pass ? 'ready' : 'alert',
+        });
+    });
+    return pack;
+}
+
+function ensureDisplaySurfaceSupportPanel() {
+    const statusNode = getById('displayProfileStatus');
+    if (!(statusNode instanceof HTMLElement)) {
+        return null;
+    }
+
+    let host = statusNode.parentElement?.querySelector(
+        '[data-turnero-display-surface-support="true"]'
+    );
+    if (!(host instanceof HTMLElement)) {
+        host = document.createElement('div');
+        host.dataset.turneroDisplaySurfaceSupport = 'true';
+        host.className = 'turnero-surface-ops__stack';
+        const goLiveHost = statusNode.parentElement?.querySelector(
+            '[data-turnero-display-surface-go-live="true"]'
+        );
+        if (goLiveHost instanceof HTMLElement) {
+            goLiveHost.insertAdjacentElement('afterend', host);
+        } else {
+            const integrityHost = statusNode.parentElement?.querySelector(
+                '[data-turnero-display-surface-integrity="true"]'
+            );
+            if (integrityHost instanceof HTMLElement) {
+                integrityHost.insertAdjacentElement('afterend', host);
+            } else {
+                const opsHost = statusNode.parentElement?.querySelector(
+                    '[data-turnero-display-surface-ops="true"]'
+                );
+                if (opsHost instanceof HTMLElement) {
+                    opsHost.insertAdjacentElement('afterend', host);
+                } else {
+                    statusNode.insertAdjacentElement('afterend', host);
+                }
+            }
+        }
+    }
+
+    let bannerHost = host.querySelector('[data-role="banner"]');
+    if (!(bannerHost instanceof HTMLElement)) {
+        bannerHost = document.createElement('div');
+        bannerHost.dataset.role = 'banner';
+        host.appendChild(bannerHost);
+    }
+
+    let chipsHost = host.querySelector('[data-role="chips"]');
+    if (!(chipsHost instanceof HTMLElement)) {
+        chipsHost = document.createElement('div');
+        chipsHost.dataset.role = 'chips';
+        chipsHost.className = 'turnero-surface-ops__chips';
+        host.appendChild(chipsHost);
+    }
+
+    return {
+        host,
+        bannerHost,
+        chipsHost,
+    };
+}
+
+function buildDisplaySurfaceSupportPack(state = getState()) {
+    const currentRoute =
+        typeof window !== 'undefined' && window.location
+            ? `${window.location.pathname || ''}${window.location.hash || ''}`
+            : '';
+    return buildTurneroSurfaceSupportPack({
+        scope: 'queue-support',
+        surfaceKey: 'display',
+        clinicProfile: state.clinicProfile,
+        currentRoute,
+        runtimeState: state?.lastRenderedState || null,
+    });
+}
+
+function renderDisplaySurfaceSupportState(state = getState()) {
+    const panel = ensureDisplaySurfaceSupportPanel();
+    if (!panel) {
+        return null;
+    }
+
+    if (!state.clinicProfile) {
+        panel.host.hidden = true;
+        panel.bannerHost.replaceChildren();
+        panel.chipsHost.replaceChildren();
+        return null;
+    }
+
+    const pack = buildDisplaySurfaceSupportPack(state);
+    state.surfaceSupportPack = pack;
+    panel.host.hidden = false;
+    panel.bannerHost.replaceChildren();
+    mountTurneroSurfaceSupportBanner(panel.bannerHost, {
+        pack,
+        title: 'Display surface support',
+    });
+    panel.chipsHost.replaceChildren();
+    (Array.isArray(pack.readout?.chips) ? pack.readout.chips : []).forEach(
+        (chip) => {
+            const chipNode = document.createElement('span');
+            panel.chipsHost.appendChild(chipNode);
+            mountTurneroSurfaceCheckpointChip(chipNode, chip);
+        }
+    );
+    return pack;
+}
+
+function ensureDisplaySurfaceAcceptancePanel() {
+    const host = getById('displaySurfaceAcceptanceHost');
+    if (!(host instanceof HTMLElement)) {
+        return null;
+    }
+
+    let bannerHost = host.querySelector('[data-role="banner"]');
+    if (!(bannerHost instanceof HTMLElement)) {
+        bannerHost = document.createElement('div');
+        bannerHost.dataset.role = 'banner';
+        host.appendChild(bannerHost);
+    }
+
+    let chipsHost = host.querySelector('[data-role="chips"]');
+    if (!(chipsHost instanceof HTMLElement)) {
+        chipsHost = document.createElement('div');
+        chipsHost.dataset.role = 'chips';
+        chipsHost.className = 'turnero-surface-ops__chips';
+        host.appendChild(chipsHost);
+    }
+
+    return {
+        host,
+        bannerHost,
+        chipsHost,
+    };
+}
+
+function buildDisplaySurfaceAcceptancePack() {
+    const currentRoute =
+        typeof window !== 'undefined' && window.location
+            ? `${window.location.pathname || ''}${window.location.hash || ''}`
+            : '';
+    return buildTurneroSurfaceAcceptancePack({
+        surfaceKey: 'sala-turnos',
+        clinicProfile: state.clinicProfile,
+        currentRoute,
+    });
+}
+
+function renderDisplaySurfaceAcceptanceState() {
+    const panel = ensureDisplaySurfaceAcceptancePanel();
+    if (!panel) {
+        return null;
+    }
+
+    if (!state.clinicProfile) {
+        panel.host.hidden = true;
+        panel.bannerHost.replaceChildren();
+        panel.chipsHost.replaceChildren();
+        return null;
+    }
+
+    const pack = buildDisplaySurfaceAcceptancePack();
+    state.surfaceAcceptancePack = pack;
+    panel.host.hidden = false;
+    panel.bannerHost.replaceChildren();
+    mountTurneroSurfaceAcceptanceBanner(panel.bannerHost, {
+        pack,
+        title: 'Display surface acceptance',
+    });
+    panel.chipsHost.replaceChildren();
+    (Array.isArray(pack.readout?.chips) ? pack.readout.chips : []).forEach(
+        (chip) => {
+            const chipNode = document.createElement('span');
+            panel.chipsHost.appendChild(chipNode);
+            mountTurneroSurfaceCheckpointChip(chipNode, chip);
+        }
+    );
+    return pack;
 }
 
 function renderDisplayProfileStatus(profile) {
@@ -321,6 +1043,10 @@ function renderDisplayProfileStatus(profile) {
                 : `Bloqueado · ruta fuera de canon · se esperaba ${canonicalRoute} · releaseMode ${releaseMode} · ${readiness.summary}`
             : `${readiness.state === 'warning' ? 'Con avisos' : readiness.state === 'alert' ? 'Readiness bloqueada' : 'Perfil remoto verificado'} · firma ${profileFingerprint} · releaseMode ${releaseMode} · ${readiness.summary} · canon ${canonicalRoute}`;
     renderDisplaySurfaceOps();
+    renderDisplaySurfaceIntegrityState();
+    renderDisplaySurfaceAcceptanceState();
+    renderDisplaySurfaceCommercialState();
+    renderDisplaySurfaceSupportState();
 }
 
 function renderDisplaySurfaceRecoveryState() {
@@ -409,6 +1135,55 @@ function renderDisplaySurfaceRecoveryState() {
         state: readout.gateTone,
     });
 
+    renderDisplaySurfaceRolloutState(runtimeState);
+
+    return pack;
+}
+
+function renderDisplaySurfaceRolloutState(runtimeState = null) {
+    const host = getById('displaySurfaceRecoveryHost');
+    if (!(host instanceof HTMLElement)) {
+        return null;
+    }
+
+    const surfaceBootstrapState = state.surfaceBootstrap?.state || {};
+    const pack = buildTurneroSurfaceRolloutPack({
+        surfaceKey: 'sala_tv',
+        clinicProfile: state.clinicProfile,
+        surfaceRegistry: surfaceBootstrapState.registry || {},
+        releaseManifest: surfaceBootstrapState.registry?.manifest || {},
+        runtimeState: runtimeState || {
+            state: state.pollingEnabled ? 'ready' : 'watch',
+            status: state.connectionState || 'paused',
+            summary: state.lastConnectionMessage || '',
+        },
+        truth:
+            surfaceBootstrapState.truthSummary?.mode ||
+            surfaceBootstrapState.truthPack?.summary?.mode ||
+            '',
+        currentRoute: `${window.location.pathname || ''}${
+            window.location.hash || ''
+        }`,
+    });
+
+    const rolloutHost = document.createElement('section');
+    rolloutHost.className =
+        'turnero-surface-rollout-stack turnero-surface-ops__stack';
+    host.appendChild(rolloutHost);
+    mountTurneroSurfaceRolloutBanner(rolloutHost, {
+        title: 'Display surface rollout',
+        pack,
+    });
+
+    const chips = document.createElement('div');
+    chips.className = 'turnero-surface-ops__chips';
+    rolloutHost.appendChild(chips);
+    (pack.readout?.checkpointChips || []).forEach((chip) => {
+        const chipNode = document.createElement('span');
+        chips.appendChild(chipNode);
+        mountTurneroSurfaceCheckpointChip(chipNode, chip);
+    });
+
     return pack;
 }
 
@@ -461,6 +1236,7 @@ function applyDisplayClinicProfile(profile) {
     }
     renderDisplayProfileStatus(profile);
     renderDisplaySurfaceRecoveryState();
+    renderDisplaySurfaceAcceptanceState();
 
     if (state.lastRenderedState) {
         renderState(state.lastRenderedState);
@@ -775,6 +1551,9 @@ function renderDisplaySurfaceSyncState() {
         chips.appendChild(chipNode);
         mountTurneroSurfaceCheckpointChip(chipNode, chip);
     });
+    renderDisplaySurfaceIntegrityState();
+    renderDisplaySurfaceCommercialState();
+    renderDisplaySurfaceSupportState();
     return pack;
 }
 
@@ -1509,6 +2288,7 @@ function renderDisplaySetupStatus() {
     renderDisplaySurfaceSyncState();
     renderDisplaySurfaceOps();
     renderDisplaySurfaceRecoveryState();
+    renderDisplaySurfaceAcceptanceState();
     notifyDisplayHeartbeat('setup_status');
 }
 
@@ -2637,6 +3417,9 @@ function initDisplay() {
                 },
             }
         );
+        void state.surfaceBootstrap?.ready?.then(() => {
+            renderDisplaySurfaceRecoveryState();
+        });
         ensureDisplayHeartbeat().start({ immediate: false });
 
         if (isDisplayPilotBlocked()) {

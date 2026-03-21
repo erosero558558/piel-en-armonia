@@ -748,5 +748,19 @@ test.describe('Sala turnos display', () => {
         await expect(page.locator('#displaySurfaceSyncHost')).toContainText(
             '1'
         );
+
+        await expect(
+            page.locator('[data-turnero-display-surface-go-live="true"]')
+        ).toBeVisible();
+        await expect(
+            page.locator(
+                '[data-turnero-display-surface-go-live="true"] [data-role="banner"]'
+            )
+        ).toContainText('Go-live');
+        await expect(
+            page.locator(
+                '[data-turnero-display-surface-go-live="true"] .turnero-surface-ops__chip'
+            )
+        ).toHaveCount(6);
     });
 });

@@ -16166,7 +16166,8 @@ test.describe('Admin turnero sala', () => {
 
     test('monta el surface sync console y permite agregar handoffs locales', async ({
         page,
-    }) => {
+    }, testInfo) => {
+        testInfo.setTimeout(60000);
         const updatedAt = '2026-03-20T10:00:00.000Z';
         const clinicProfile = buildQueuePilotClinicProfile({
             clinicId: 'clinica-norte-demo',
@@ -16327,7 +16328,7 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto(adminUrl('section=queue'));
-        await page.locator('#queueDomainIncidents').dispatchEvent('click');
+        await page.getByRole('button', { name: 'Incidencias' }).click();
 
         await expect(
             page.locator('#queueSurfaceSyncConsoleHost')
@@ -16335,6 +16336,12 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('#queueSurfaceSyncConsoleHost')
         ).toContainText('Operador C1 fijo');
+        await expect(
+            page.locator('#queueSurfaceSupportConsoleHost')
+        ).toContainText('Surface Support Console');
+        await expect(
+            page.locator('#queueSurfaceSupportConsoleHost')
+        ).toContainText('Copy brief');
         await expect(
             page.locator(
                 '#queueSurfaceSyncConsoleHost .turnero-admin-queue-surface-sync-console__handoff-item'
@@ -16363,5 +16370,46 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('#queueSurfaceSyncConsoleHost')
         ).toContainText('Shift relay');
+
+        await expect(
+            page.locator('#queueSurfaceGoLiveConsoleHost')
+        ).toContainText('go-live readiness');
+        await expect(
+            page.locator(
+                '#queueSurfaceGoLiveConsoleHost [data-action="copy-brief"]'
+            )
+        ).toContainText('Copy brief');
+        await expect(
+            page.locator(
+                '#queueSurfaceGoLiveConsoleHost [data-action="download-json"]'
+            )
+        ).toContainText('Download JSON');
+        await expect(
+            page.locator(
+                '#queueSurfaceGoLiveConsoleHost [data-action="add-evidence"]'
+            )
+        ).toContainText('Add evidence');
+
+        await page.selectOption(
+            '#queueSurfaceGoLiveConsoleHost [data-field="surface-key"]',
+            'operator'
+        );
+        await page
+            .locator('#queueSurfaceGoLiveConsoleHost [data-field="note"]')
+            .fill('Chequeo manual de readiness');
+        await page
+            .locator(
+                '#queueSurfaceGoLiveConsoleHost [data-action="add-evidence"]'
+            )
+            .click();
+
+        await expect(
+            page.locator(
+                '#queueSurfaceGoLiveConsoleHost .turnero-admin-queue-surface-go-live-console__evidence-item'
+            )
+        ).toHaveCount(1);
+        await expect(
+            page.locator('#queueSurfaceGoLiveConsoleHost')
+        ).toContainText('Chequeo manual de readiness');
     });
 });

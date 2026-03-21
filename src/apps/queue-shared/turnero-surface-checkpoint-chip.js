@@ -125,6 +125,32 @@ export function ensureTurneroSurfaceOpsStyles() {
             line-height: 1.45;
             opacity: 0.88;
         }
+        .turnero-surface-adoption-banner {
+            gap: 0.22rem;
+        }
+        .turnero-surface-adoption-banner[data-state='ready'] {
+            border-color: rgb(22 163 74 / 18%);
+            background: rgb(240 253 244 / 82%);
+            color: rgb(22 101 52);
+        }
+        .turnero-surface-adoption-banner[data-state='watch'] {
+            border-color: rgb(180 83 9 / 18%);
+            background: rgb(255 251 235 / 82%);
+            color: rgb(120 53 15);
+        }
+        .turnero-surface-adoption-banner[data-state='degraded'] {
+            border-color: rgb(234 88 12 / 18%);
+            background: rgb(255 247 237 / 84%);
+            color: rgb(154 52 18);
+        }
+        .turnero-surface-adoption-banner[data-state='blocked'] {
+            border-color: rgb(190 24 93 / 18%);
+            background: rgb(255 241 242 / 84%);
+            color: rgb(159 18 57);
+        }
+        .turnero-surface-adoption-banner__meta {
+            opacity: 0.86;
+        }
         .turnero-surface-ops-console {
             display: grid;
             gap: 0.85rem;

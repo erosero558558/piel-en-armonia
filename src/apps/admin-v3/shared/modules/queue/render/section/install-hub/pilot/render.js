@@ -27,6 +27,7 @@ import { mountTurneroReleaseMissionControlCard } from '../../../../../../../../q
 import { renderTurneroReleaseAutomationMesh } from '../../../../../../../../queue-shared/turnero-release-automation-mesh.js';
 import { mountTurneroReleaseOpsConsoleCard } from '../../../../../../../../queue-shared/turnero-release-ops-console.js';
 import { mountTurneroAdminQueueSurfaceOpsConsole } from '../../../../../../../../queue-shared/turnero-admin-queue-surface-ops-console.js';
+import { mountTurneroAdminQueueSurfaceAcceptanceConsole } from '../../../../../../../../queue-shared/turnero-admin-queue-surface-acceptance-console.js';
 import { mountTurneroReleaseBoardOpsHub } from '../../../../../../../../queue-shared/turnero-release-board-ops-hub.js';
 import { renderTurneroReleaseWarRoom } from '../../../../../../../../queue-shared/turnero-release-war-room.js';
 import { mountTurneroReleaseStrategyDigitalTwinStudio } from '../../../../../../../../queue-shared/turnero-release-strategy-digital-twin-studio.js';
@@ -37,6 +38,7 @@ import {
     getInstallHubSurfaceTelemetryCopy,
     resolveInstallHubSurfaceIdByTelemetryKey,
 } from '../registry.js';
+import { mountTurneroAdminQueueSurfaceRolloutConsole } from '../../../../../../../../queue-shared/turnero-admin-queue-surface-rollout-console.js';
 
 function resolvePublicShellDriftOptions(manifest = {}) {
     const config =
@@ -64,6 +66,56 @@ function resolvePublicShellDriftOptions(manifest = {}) {
             'script.js',
         expectedGa4Needles: ga4Needles,
         requireGa4Markers: config.requireGa4Markers !== false,
+    };
+}
+
+function resolveTurneroRolloutManifest(manifest = {}) {
+    const source =
+        manifest?.turneroReleaseManifest ||
+        manifest?.releaseManifest ||
+        manifest?.turneroPilotReleaseManifest ||
+        manifest;
+    return source && typeof source === 'object' ? source : {};
+}
+
+function buildTurneroRolloutSurfaceRegistry() {
+    return {
+        surfaces: ['operator', 'kiosk', 'display'].map((surfaceKey) => {
+            const registrySurfaceId =
+                resolveInstallHubSurfaceIdByTelemetryKey(surfaceKey) ||
+                surfaceKey;
+            const definition =
+                getInstallHubSurfaceDefinition(registrySurfaceId) || {};
+            const telemetryCopy =
+                getInstallHubSurfaceTelemetryCopy(surfaceKey) || {};
+
+            return {
+                id: registrySurfaceId,
+                key: surfaceKey,
+                family: definition.family || '',
+                route: definition.webFallbackUrl || definition.guideUrl || '',
+                productName:
+                    definition.productName || telemetryCopy.title || surfaceKey,
+                ops: {
+                    installHub: {
+                        title:
+                            telemetryCopy.title ||
+                            definition.cardCopy?.title ||
+                            surfaceKey,
+                        description:
+                            telemetryCopy.emptySummary ||
+                            definition.cardCopy?.description ||
+                            '',
+                        recommendedFor:
+                            definition.cardCopy?.recommendedFor || '',
+                    },
+                },
+                catalog: {
+                    description: definition.cardCopy?.description || '',
+                    eyebrow: definition.cardCopy?.eyebrow || '',
+                },
+            };
+        }),
     };
 }
 
@@ -1050,6 +1102,9 @@ async function hydrateQueueOpsPilotReleaseEvidence(
     const releaseOpsConsoleHost = document.getElementById(
         'queueReleaseOpsConsoleHost'
     );
+    const surfaceAcceptanceConsoleHost = document.getElementById(
+        'queueSurfaceAcceptanceConsoleHost'
+    );
     const missionControlHost = document.getElementById(
         'queueReleaseMissionControlHost'
     );
@@ -1281,6 +1336,31 @@ async function hydrateQueueOpsPilotReleaseEvidence(
         } catch (_error) {
             rolloutGovernorHost.innerHTML = '';
         }
+
+        try {
+            const rolloutConsoleHost = document.createElement('div');
+            rolloutConsoleHost.className =
+                'queue-ops-pilot__rollout-surface-console-host';
+            rolloutGovernorHost.appendChild(rolloutConsoleHost);
+            mountTurneroAdminQueueSurfaceRolloutConsole(rolloutConsoleHost, {
+                clinicProfile,
+                scope: 'regional',
+                snapshots: [
+                    { surfaceKey: 'operator' },
+                    { surfaceKey: 'kiosk' },
+                    { surfaceKey: 'sala_tv' },
+                ],
+                surfaceRegistry: buildTurneroRolloutSurfaceRegistry(),
+                releaseManifest: resolveTurneroRolloutManifest(manifest),
+            });
+        } catch (_error) {
+            const rolloutConsoleHost = rolloutGovernorHost.querySelector(
+                '.queue-ops-pilot__rollout-surface-console-host'
+            );
+            if (rolloutConsoleHost instanceof HTMLElement) {
+                rolloutConsoleHost.remove();
+            }
+        }
     }
 
     const releaseControlCenterModel =
@@ -1484,8 +1564,28 @@ async function hydrateQueueOpsPilotReleaseEvidence(
                 releaseManifest: {},
                 now: () => Date.now(),
             });
+            if (surfaceAcceptanceConsoleHost instanceof HTMLElement) {
+                mountTurneroAdminQueueSurfaceAcceptanceConsole(
+                    surfaceAcceptanceConsoleHost,
+                    {
+                        clinicProfile,
+                        scope:
+                            pilot.region ||
+                            clinicProfile.region ||
+                            clinicProfile.clinic_id ||
+                            'global',
+                        telemetryMap: surfaceOpsTelemetryMap,
+                        surfaceRegistry: surfaceOpsRegistry,
+                        releaseManifest: {},
+                        now: () => Date.now(),
+                    }
+                );
+            }
         } catch (_error) {
             releaseOpsConsoleHost.innerHTML = '';
+            if (surfaceAcceptanceConsoleHost instanceof HTMLElement) {
+                surfaceAcceptanceConsoleHost.innerHTML = '';
+            }
         }
     }
 
@@ -1993,6 +2093,11 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
                         <div
                             id="queueReleaseOpsConsoleHost"
                             class="queue-ops-pilot__release-ops-console-host"
+                            aria-live="polite"
+                        ></div>
+                        <div
+                            id="queueSurfaceAcceptanceConsoleHost"
+                            class="queue-ops-pilot__surface-acceptance-console-host"
                             aria-live="polite"
                         ></div>
                         <div

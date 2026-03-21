@@ -1670,5 +1670,19 @@ test.describe('Turnero Operador', () => {
                         ?.surfaceSyncHandoffOpenCount || 0
             )
             .toBe(1);
+
+        await expect(
+            page.locator('[data-turnero-operator-surface-go-live="true"]')
+        ).toBeVisible();
+        await expect(
+            page.locator(
+                '[data-turnero-operator-surface-go-live="true"] [data-role="banner"]'
+            )
+        ).toContainText('Go-live');
+        await expect(
+            page.locator(
+                '[data-turnero-operator-surface-go-live="true"] .turnero-surface-ops__chip'
+            )
+        ).toHaveCount(6);
     });
 });

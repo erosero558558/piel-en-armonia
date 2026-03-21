@@ -199,6 +199,7 @@ test('queueOpsPilot expone los hosts del control center, board ops y la consola 
         assert.match(capturedHtml, /queueReleaseControlCenterHost/);
         assert.match(capturedHtml, /queueReleaseBoardOpsHubHost/);
         assert.match(capturedHtml, /queueReleaseOpsConsoleHost/);
+        assert.match(capturedHtml, /queueSurfaceAcceptanceConsoleHost/);
         assert.match(capturedHtml, /queueReleaseMissionControlHost/);
         assert.match(capturedHtml, /queueOpsPilotRemoteReleaseHost/);
         assert.match(capturedHtml, /queueOpsPilotRolloutGovernorHost/);
@@ -224,8 +225,12 @@ test('queueOpsPilot expone los hosts del control center, board ops y la consola 
                 capturedHtml.indexOf('queueMultiClinicControlTowerHost') <
                     capturedHtml.indexOf('queueReleaseBoardOpsHubHost') &&
                 capturedHtml.indexOf('queueReleaseBoardOpsHubHost') <
-                    capturedHtml.indexOf('queueReleaseOpsConsoleHost'),
-            'el host strategy digital twin debe quedar entre executive portfolio y multi-clinic'
+                    capturedHtml.indexOf('queueReleaseOpsConsoleHost') &&
+                capturedHtml.indexOf('queueReleaseOpsConsoleHost') <
+                    capturedHtml.indexOf('queueSurfaceAcceptanceConsoleHost') &&
+                capturedHtml.indexOf('queueSurfaceAcceptanceConsoleHost') <
+                    capturedHtml.indexOf('queueReleaseMissionControlHost'),
+            'los hosts release deben conservar el orden ops -> acceptance -> mission control'
         );
     } finally {
         if (previousDocument === undefined) {

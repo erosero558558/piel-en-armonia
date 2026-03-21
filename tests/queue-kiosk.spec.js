@@ -1578,5 +1578,19 @@ test.describe('Kiosco turnos', () => {
             'Handoffs'
         );
         await expect(page.locator('#kioskSurfaceSyncHost')).toContainText('1');
+
+        await expect(
+            page.locator('[data-turnero-kiosk-surface-go-live="true"]')
+        ).toBeVisible();
+        await expect(
+            page.locator(
+                '[data-turnero-kiosk-surface-go-live="true"] [data-role="banner"]'
+            )
+        ).toContainText('Go-live');
+        await expect(
+            page.locator(
+                '[data-turnero-kiosk-surface-go-live="true"] .turnero-surface-ops__chip'
+            )
+        ).toHaveCount(6);
     });
 });
