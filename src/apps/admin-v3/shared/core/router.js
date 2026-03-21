@@ -1,4 +1,4 @@
-import { setHash } from './persistence.js';
+import { getQueryParam, setHash } from './persistence.js';
 
 const VALID_SECTIONS = new Set([
     'dashboard',
@@ -17,9 +17,19 @@ export function normalizeSection(value, fallback = 'dashboard') {
     return fallback;
 }
 
+function readHashSection() {
+    return normalizeSection(
+        String(window.location.hash || '').replace(/^#/, ''),
+        ''
+    );
+}
+
+function readQuerySection() {
+    return normalizeSection(getQueryParam('section'), '');
+}
+
 export function readSectionFromHash(fallback = 'dashboard') {
-    const section = String(window.location.hash || '').replace(/^#/, '');
-    return normalizeSection(section, fallback);
+    return readHashSection() || readQuerySection() || normalizeSection('', fallback);
 }
 
 export function setSectionHash(section) {

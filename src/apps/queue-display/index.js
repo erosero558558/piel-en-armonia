@@ -441,7 +441,9 @@ function applyDisplayClinicProfile(profile) {
     ].join(' / ');
     document.title = `Sala de Espera | ${clinicName}`;
 
-    const brandNode = document.querySelector('.display-brand strong');
+    const brandNode =
+        document.getElementById('displayBrandName') ||
+        document.querySelector('.display-brand strong');
     if (brandNode instanceof HTMLElement) {
         brandNode.textContent = clinicName;
     }

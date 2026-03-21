@@ -46,7 +46,7 @@ test.describe('Sala turnos display', () => {
         await page.goto('/sala-turnos.html');
 
         await expect(page).toHaveTitle(/Clinica Norte/i);
-        await expect(page.locator('.display-brand strong')).toContainText(
+        await expect(page.locator('#displayBrandName')).toContainText(
             'Clinica Norte'
         );
         await expect(page.locator('#displayBrandMeta')).toContainText(

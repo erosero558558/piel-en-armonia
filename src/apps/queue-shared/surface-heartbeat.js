@@ -123,9 +123,13 @@ export function createSurfaceHeartbeatClient({
     let inFlight = false;
     let lastSentAt = 0;
     let listenersAttached = false;
+    let pendingReason = '';
+    let pendingKeepalive = false;
 
     async function send(reason = 'interval', { keepalive = false } = {}) {
         if (inFlight) {
+            pendingReason = String(reason || pendingReason || 'interval');
+            pendingKeepalive = pendingKeepalive || keepalive;
             return false;
         }
 
@@ -163,6 +167,15 @@ export function createSurfaceHeartbeatClient({
             return false;
         } finally {
             inFlight = false;
+            if (pendingReason) {
+                const queuedReason = pendingReason;
+                const queuedKeepalive = pendingKeepalive;
+                pendingReason = '';
+                pendingKeepalive = false;
+                void send(queuedReason, {
+                    keepalive: queuedKeepalive,
+                });
+            }
         }
     }
 
