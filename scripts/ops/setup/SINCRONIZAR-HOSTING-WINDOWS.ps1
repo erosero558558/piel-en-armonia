@@ -665,7 +665,7 @@ function Invoke-ValidateMirror {
 
 function Set-StatusFromValidation {
     param(
-        [hashtable]$CurrentStatus,
+        [System.Collections.IDictionary]$CurrentStatus,
         [PSCustomObject]$Validation
     )
 
@@ -687,7 +687,7 @@ function Set-StatusFromValidation {
 
 function Set-SyncPhase {
     param(
-        [hashtable]$CurrentStatus,
+        [System.Collections.IDictionary]$CurrentStatus,
         [string]$State,
         [string]$DeployState,
         [int]$TimeoutSeconds = 0
