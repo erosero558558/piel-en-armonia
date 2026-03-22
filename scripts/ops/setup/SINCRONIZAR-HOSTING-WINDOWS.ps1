@@ -3,7 +3,7 @@ param(
     [string]$ExternalEnvPath = 'C:\ProgramData\Pielarmonia\hosting\env.php',
     [string]$StatusPath = 'C:\ProgramData\Pielarmonia\hosting\main-sync-status.json',
     [string]$LogPath = 'C:\ProgramData\Pielarmonia\hosting\main-sync.log',
-    [string]$ReleaseTargetPath = 'C:\ProgramData\Pielarmonia\hosting\release-target.json',
+    [string]$ReleaseTargetPath = 'C:\ProgramData\Pielarmonia\hosting\release-target.runtime.json',
     [string]$RepoUrl = 'https://github.com/erosero558558/piel-en-armonia.git',
     [string]$Branch = 'main',
     [string]$PublicDomain = 'pielarmonia.com',
@@ -56,7 +56,7 @@ $astroBinaryCandidates = @(
     'node_modules\.bin\astro'
 )
 $arrancarTimeoutSeconds = 90
-$validationTimeoutSeconds = 45
+$validationTimeoutSeconds = 90
 $npmInstallTimeoutSeconds = 1800
 $publicBuildTimeoutSeconds = 600
 $requiredGeneratedDirectories = @(
@@ -239,7 +239,10 @@ function Invoke-OperatorAuthStatus {
     $status = [string]($payload.status)
     $ok =
         $response.Ok -and
-        [string]::Equals($mode, 'google_oauth', [System.StringComparison]::OrdinalIgnoreCase) -and
+        (
+            [string]::Equals($mode, 'openclaw_chatgpt', [System.StringComparison]::OrdinalIgnoreCase) -or
+            [string]::Equals($mode, 'google_oauth', [System.StringComparison]::OrdinalIgnoreCase)
+        ) -and
         [string]::Equals($transport, 'web_broker', [System.StringComparison]::OrdinalIgnoreCase) -and
         (-not [string]::Equals($status, 'transport_misconfigured', [System.StringComparison]::OrdinalIgnoreCase))
 
@@ -257,6 +260,50 @@ function Invoke-OperatorAuthStatus {
         Payload = $payload
         Error = $authError
     }
+}
+
+function Test-TransientMirrorValidationFailure {
+    param([PSCustomObject]$Validation)
+
+    if ($null -eq $Validation) {
+        return $false
+    }
+
+    $runtimeError = ''
+    $runtimeSiteRoot = ''
+    $serviceState = ''
+    $healthError = ''
+    $authError = ''
+    try { $runtimeError = [string]$Validation.Runtime.Error } catch {}
+    try { $runtimeSiteRoot = [string]$Validation.Runtime.SiteRoot } catch {}
+    try { $serviceState = [string]$Validation.Service.State } catch {}
+    try { $healthError = [string]$Validation.Health.Error } catch {}
+    try { $authError = [string]$Validation.Auth.Error } catch {}
+
+    if (
+        [string]::IsNullOrWhiteSpace($runtimeSiteRoot) -and
+        (
+            [string]::Equals($runtimeError, 'runtime_fingerprint_unavailable', [System.StringComparison]::OrdinalIgnoreCase) -or
+            [string]::Equals($runtimeError, 'site_root_mismatch', [System.StringComparison]::OrdinalIgnoreCase)
+        )
+    ) {
+        return $true
+    }
+
+    if (
+        (
+            [string]::Equals($serviceState, 'degraded', [System.StringComparison]::OrdinalIgnoreCase) -or
+            [string]::Equals($serviceState, 'stopped', [System.StringComparison]::OrdinalIgnoreCase)
+        ) -and
+        (
+            $healthError -match '502|Bad Gateway|Unable to connect' -or
+            $authError -match '502|Bad Gateway|Unable to connect'
+        )
+    ) {
+        return $true
+    }
+
+    return $false
 }
 
 function Update-ReleaseTarget {
@@ -596,6 +643,7 @@ function Wait-ForMirrorValidation {
 
     $deadline = [DateTimeOffset]::Now.AddSeconds($TimeoutSeconds)
     $lastValidation = $null
+    $extendedForTransientGap = $false
 
     while ([DateTimeOffset]::Now -lt $deadline) {
         $lastValidation = Invoke-ValidateMirror `
@@ -606,6 +654,11 @@ function Wait-ForMirrorValidation {
             -ExpectedRuntimeConfigPath $ExpectedRuntimeConfigPath
         if ($lastValidation.Ok) {
             return $lastValidation
+        }
+
+        if ((-not $extendedForTransientGap) -and (Test-TransientMirrorValidationFailure -Validation $lastValidation)) {
+            $deadline = $deadline.AddSeconds(45)
+            $extendedForTransientGap = $true
         }
 
         Set-HostingJsonFields -Path $statusPathResolved -Fields ([ordered]@{
@@ -954,8 +1007,14 @@ try {
     Write-Status -Payload $status
 
     if (-not $postValidation.Ok) {
+        $runtimeFailure = ''
+        try { $runtimeFailure = [string]$postValidation.Runtime.Error } catch {}
         if (($null -ne $postValidation.Runtime) -and ($postValidation.Runtime.Ok -ne $true)) {
-            $originalFailure = 'site_root_mismatch'
+            if (-not [string]::IsNullOrWhiteSpace($runtimeFailure)) {
+                $originalFailure = $runtimeFailure
+            } else {
+                $originalFailure = 'site_root_mismatch'
+            }
         } elseif ($postValidation.Health.Ok -ne $true) {
             $originalFailure = "El health local no quedo sano en el mirror. $([string]$postValidation.Health.Error)"
         } else {

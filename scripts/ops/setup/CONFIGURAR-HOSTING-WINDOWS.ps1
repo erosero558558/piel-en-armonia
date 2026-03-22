@@ -5,7 +5,7 @@ param(
     [string]$OperatorUserProfile = '',
     [string]$MirrorRepoPath = 'C:\dev\pielarmonia-clean-main',
     [string]$ExternalEnvPath = 'C:\ProgramData\Pielarmonia\hosting\env.php',
-    [string]$ReleaseTargetPath = 'C:\ProgramData\Pielarmonia\hosting\release-target.json',
+    [string]$ReleaseTargetPath = 'C:\ProgramData\Pielarmonia\hosting\release-target.runtime.json',
     [switch]$RouteDns,
     [switch]$OverwriteDns,
     [switch]$BootstrapMirrorNow,

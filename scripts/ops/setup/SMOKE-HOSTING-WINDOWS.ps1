@@ -1,6 +1,6 @@
 param(
     [string]$BaseUrl = 'http://127.0.0.1',
-    [string]$ExpectedAuthMode = 'google_oauth',
+    [string]$ExpectedAuthMode = 'openclaw_chatgpt,google_oauth',
     [string]$ExpectedTransport = 'web_broker',
     [string]$ReportPath = '',
     [switch]$Quiet
@@ -53,6 +53,31 @@ function Add-SmokeCheck {
     }) | Out-Null
 }
 
+function Test-ExpectedAuthMode {
+    param(
+        [string]$ActualMode,
+        [string]$ExpectedModeCsv
+    )
+
+    $expectedModes = @(
+        ($ExpectedModeCsv -split ',') |
+            ForEach-Object { [string]$_.Trim() } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+
+    if ($expectedModes.Count -eq 0) {
+        return -not [string]::IsNullOrWhiteSpace($ActualMode)
+    }
+
+    foreach ($expectedMode in $expectedModes) {
+        if ([string]::Equals($ActualMode, $expectedMode, [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
 $checks = New-Object System.Collections.ArrayList
 $errors = New-Object System.Collections.ArrayList
 
@@ -88,7 +113,7 @@ if ($statusResponse.Ok) {
 }
 $authOk =
     ($null -ne $statusPayload) -and
-    ([string]$statusPayload.mode -eq $ExpectedAuthMode) -and
+    (Test-ExpectedAuthMode -ActualMode ([string]$statusPayload.mode) -ExpectedModeCsv $ExpectedAuthMode) -and
     ([string]$statusPayload.transport -eq $ExpectedTransport) -and
     ([string]$statusPayload.status -ne 'transport_misconfigured')
 $authDetail = $statusResponse.Error

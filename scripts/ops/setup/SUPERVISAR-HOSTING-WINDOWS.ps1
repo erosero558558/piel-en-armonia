@@ -1,7 +1,7 @@
 param(
     [string]$MirrorRepoPath = 'C:\dev\pielarmonia-clean-main',
     [string]$ExternalEnvPath = 'C:\ProgramData\Pielarmonia\hosting\env.php',
-    [string]$ReleaseTargetPath = 'C:\ProgramData\Pielarmonia\hosting\release-target.json',
+    [string]$ReleaseTargetPath = 'C:\ProgramData\Pielarmonia\hosting\release-target.runtime.json',
     [string]$StatusPath = 'C:\ProgramData\Pielarmonia\hosting\hosting-supervisor-status.json',
     [string]$LogPath = 'C:\ProgramData\Pielarmonia\hosting\hosting-supervisor.log',
     [string]$PublicDomain = 'pielarmonia.com',
@@ -150,7 +150,10 @@ function Invoke-LocalAuth {
     $payload = $response.Payload
     $ok =
         $response.Ok -and
-        ([string]$payload.mode -eq 'google_oauth') -and
+        (
+            ([string]$payload.mode -eq 'openclaw_chatgpt') -or
+            ([string]$payload.mode -eq 'google_oauth')
+        ) -and
         ([string]$payload.transport -eq 'web_broker') -and
         ([string]$payload.status -ne 'transport_misconfigured')
 
@@ -199,7 +202,7 @@ function Invoke-HostingSmoke {
                 '-ExecutionPolicy', 'Bypass',
                 '-File', $ScriptPath,
                 '-BaseUrl', 'http://127.0.0.1',
-                '-ExpectedAuthMode', 'google_oauth',
+                '-ExpectedAuthMode', 'openclaw_chatgpt,google_oauth',
                 '-ExpectedTransport', 'web_broker',
                 '-ReportPath', $reportPath,
                 '-Quiet'

@@ -2,7 +2,7 @@ name: Close Resolved Production Issues
 
 on:
     workflow_run:
-        workflows: ['Post-Deploy Gate (Git Sync)', 'Production Monitor']
+        workflows: ['Post-Deploy Gate (Git Sync)', 'Post-Deploy Gate (Full Regression)', 'Production Monitor']
         types:
             - completed
 

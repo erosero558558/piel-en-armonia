@@ -443,6 +443,7 @@ test('runtime Caddy y fingerprint local de hosting quedan expuestos en el repo',
     for (const snippet of [
         "header('Content-Type: application/json; charset=utf-8');",
         "return in_array($remote, ['127.0.0.1', '::1', '::ffff:127.0.0.1'], true);",
+        "'C:\\\\ProgramData\\\\Pielarmonia\\\\hosting\\\\release-target.runtime.json'",
         "'C:\\\\ProgramData\\\\Pielarmonia\\\\hosting\\\\release-target.json'",
         "'hosting_runtime_fingerprint'",
         "'site_root'",
@@ -452,6 +453,43 @@ test('runtime Caddy y fingerprint local de hosting quedan expuestos en el repo',
     ]) {
         assert.equal(runtimeRaw.includes(snippet), true, `falta fingerprint PHP: ${snippet}`);
     }
+});
+
+test('hosting Windows alinea auth web broker y runtime release target canonico', () => {
+    const syncRaw = load(SYNC_SCRIPT_PATH);
+    const smokeRaw = load(SMOKE_SCRIPT_PATH);
+    const repairRaw = load(REPAIR_SCRIPT_PATH);
+    const supervisorRaw = load(SUPERVISOR_SCRIPT_PATH);
+    const configRaw = load(CONFIG_SCRIPT_PATH);
+
+    for (const raw of [syncRaw, repairRaw, supervisorRaw]) {
+        assert.equal(
+            raw.includes('openclaw_chatgpt'),
+            true,
+            'los scripts de hosting deben aceptar openclaw_chatgpt'
+        );
+        assert.equal(
+            raw.includes('release-target.runtime.json'),
+            true,
+            'los scripts de hosting deben usar el release target runtime'
+        );
+    }
+
+    assert.equal(
+        configRaw.includes('release-target.runtime.json'),
+        true,
+        'el configurador debe apuntar al release target runtime'
+    );
+    assert.equal(
+        smokeRaw.includes('openclaw_chatgpt,google_oauth'),
+        true,
+        'el smoke debe aceptar el modo web broker canonico y el legado durante la transicion'
+    );
+    assert.equal(
+        smokeRaw.includes('function Test-ExpectedAuthMode'),
+        true,
+        'el smoke debe soportar multiples modos esperados'
+    );
 });
 
 test('sync V7 no deja state=locked con owner_pid invalido y expone timeout, heartbeat y site_root', () => {

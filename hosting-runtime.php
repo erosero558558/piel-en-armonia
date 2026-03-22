@@ -136,9 +136,31 @@ if (!hosting_runtime_is_local_request()) {
 }
 
 $repoRoot = realpath(__DIR__) ?: __DIR__;
-$releaseTargetPath = 'C:\\ProgramData\\Pielarmonia\\hosting\\release-target.json';
+$releaseTargetCandidates = [
+    'C:\\ProgramData\\Pielarmonia\\hosting\\release-target.runtime.json',
+    'C:\\ProgramData\\Pielarmonia\\hosting\\release-target.json',
+];
 $runtimeConfigPath = $repoRoot . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'runtime' . DIRECTORY_SEPARATOR . 'hosting' . DIRECTORY_SEPARATOR . 'Caddyfile.runtime';
-$releaseTarget = hosting_runtime_read_json_file($releaseTargetPath);
+$releaseTargetPath = $releaseTargetCandidates[0];
+$releaseTarget = null;
+foreach ($releaseTargetCandidates as $candidatePath) {
+    $candidatePayload = hosting_runtime_read_json_file($candidatePath);
+    if ($releaseTarget === null) {
+        $releaseTarget = $candidatePayload;
+        $releaseTargetPath = $candidatePath;
+    }
+
+    if (
+        is_array($candidatePayload) &&
+        isset($candidatePayload['target_commit']) &&
+        is_string($candidatePayload['target_commit']) &&
+        trim($candidatePayload['target_commit']) !== ''
+    ) {
+        $releaseTarget = $candidatePayload;
+        $releaseTargetPath = $candidatePath;
+        break;
+    }
+}
 $desiredCommit = '';
 if (is_array($releaseTarget) && isset($releaseTarget['target_commit']) && is_string($releaseTarget['target_commit'])) {
     $desiredCommit = trim($releaseTarget['target_commit']);
