@@ -24,6 +24,7 @@ $runtimeRoot = [string]$runtimePaths.RuntimeRoot
 $logRoot = [string]$runtimePaths.LogsRoot
 $pidRoot = [string]$runtimePaths.PidRoot
 $mirrorEnvPath = Join-Path $repoRoot 'env.php'
+$mirrorEnvOverridePath = Join-Path $repoRoot 'data\runtime\hosting\env.runtime-overrides.inc.php'
 $caddyTemplatePath = [string]$runtimePaths.CaddyTemplatePath
 $caddyRuntimeConfigPath = [string]$runtimePaths.CaddyRuntimeConfigPath
 $caddyAccessLogPath = [string]$runtimePaths.CaddyAccessLogPath
@@ -205,6 +206,36 @@ function Sync-ExternalEnvFile {
     Ensure-HostingParentDirectory -Path $DestinationPath
     Copy-Item -LiteralPath $SourcePath -Destination $DestinationPath -Force
     Write-Info ("env.php externo sincronizado: {0} -> {1}" -f $SourcePath, $DestinationPath)
+    return $true
+}
+
+function Apply-MirrorEnvRuntimeOverlay {
+    param(
+        [string]$DestinationPath,
+        [string]$OverridePath
+    )
+
+    if (-not (Test-Path -LiteralPath $OverridePath -PathType Leaf)) {
+        return $false
+    }
+
+    $overrideRaw = Get-Content -LiteralPath $OverridePath -Raw -ErrorAction Stop
+    if ([string]::IsNullOrWhiteSpace($overrideRaw)) {
+        return $false
+    }
+
+    $destinationRaw = ''
+    if (Test-Path -LiteralPath $DestinationPath -PathType Leaf) {
+        $destinationRaw = Get-Content -LiteralPath $DestinationPath -Raw -ErrorAction Stop
+    }
+
+    $normalizedOverride = $overrideRaw.Trim()
+    if (-not [string]::IsNullOrWhiteSpace($destinationRaw) -and $destinationRaw.Contains($normalizedOverride)) {
+        return $false
+    }
+
+    Add-Content -LiteralPath $DestinationPath -Value ([Environment]::NewLine + $normalizedOverride + [Environment]::NewLine) -Encoding ASCII
+    Write-Info ("Aplicado overlay runtime env: {0}" -f $OverridePath)
     return $true
 }
 
@@ -657,6 +688,7 @@ if ($StopLegacy) {
 
 Write-Info 'phase=sync_env'
 Sync-ExternalEnvFile -SourcePath $externalEnvPathResolved -DestinationPath $mirrorEnvPath | Out-Null
+Apply-MirrorEnvRuntimeOverlay -DestinationPath $mirrorEnvPath -OverridePath $mirrorEnvOverridePath | Out-Null
 $bootstrapConfig = Get-EffectiveOperatorAuthBootstrapConfig
 
 Write-Info 'phase=render_caddy'
