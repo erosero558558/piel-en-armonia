@@ -58,6 +58,11 @@ async function handleTaskCommand(ctx) {
         getLastBoardWriteMeta,
         parseExpectedBoardRevisionFlag,
         buildBoardWipLimitDiagnostics,
+        collectWorkspaceTruth,
+        assertWorkspaceTruthOk,
+        ensureTaskWorktree,
+        applyWorkspaceTaskSnapshot,
+        mirrorWorkspaceBoard,
         printJson,
     } = ctx;
 
@@ -76,7 +81,7 @@ async function handleTaskCommand(ctx) {
         )
     ) {
         throw new Error(
-            'Uso: node agent-orchestrator.js task <ls|create|claim|start|finish> [AG-001] [--owner x] [--executor y] [--status z] [--blocked-reason "..."] [--files a,b] [--template docs|bugfix|critical|runtime] [--codex-instance codex_backend_ops|codex_frontend|codex_transversal] [--domain-lane backend_ops|frontend_content|transversal_runtime] [--lane-lock strict|handoff_allowed] [--provider-mode openclaw_chatgpt] [--runtime-surface figo_queue|leadops_worker|operator_auth] [--runtime-transport hybrid_http_cli|http_bridge|cli_helper] [--strategy-id STRAT-...] [--subfront-id SF-...] [--strategy-role primary|support|exception] [--strategy-reason "..."] [--focus-id FOCUS-...] [--focus-step step] [--integration-slice frontend_runtime|backend_readiness|runtime_support|ops_deploy|desktop_shells|tests_quality|governance_evidence] [--work-type forward|support|fix|refactor|decision|evidence] [--expected-outcome "..."] [--decision-ref DEC-...] [--rework-parent AG-...] [--rework-reason "..."] [--cross-domain true|false] [--evidence path] [--active|--mine]'
+            'Uso: node agent-orchestrator.js task <ls|create|claim|start|finish> [AG-001] [--owner x] [--executor y] [--status z] [--blocked-reason "..."] [--files a,b] [--template docs|bugfix|critical|runtime] [--codex-instance codex_backend_ops|codex_frontend|codex_transversal] [--domain-lane backend_ops|frontend_content|transversal_runtime] [--lane-lock strict|handoff_allowed] [--provider-mode openclaw_chatgpt|google_oauth] [--runtime-surface figo_queue|leadops_worker|operator_auth] [--runtime-transport hybrid_http_cli|http_bridge|cli_helper] [--strategy-id STRAT-...] [--subfront-id SF-...] [--strategy-role primary|support|exception] [--strategy-reason "..."] [--focus-id FOCUS-...] [--focus-step step] [--integration-slice frontend_runtime|backend_readiness|runtime_support|ops_deploy|desktop_shells|tests_quality|governance_evidence] [--work-type forward|support|fix|refactor|decision|evidence] [--expected-outcome "..."] [--decision-ref DEC-...] [--rework-parent AG-...] [--rework-reason "..."] [--cross-domain true|false] [--evidence path] [--active|--mine]'
         );
     }
 
@@ -146,6 +151,10 @@ async function handleTaskCommand(ctx) {
             buildBoardWipLimitDiagnostics,
             getLastBoardWriteMeta,
             parseExpectedBoardRevisionFlag,
+            collectWorkspaceTruth,
+            assertWorkspaceTruthOk,
+            ensureTaskWorktree,
+            applyWorkspaceTaskSnapshot,
             printJson,
         });
         return;
@@ -184,6 +193,11 @@ async function handleTaskCommand(ctx) {
             buildBoardWipLimitDiagnostics,
             getLastBoardWriteMeta,
             parseExpectedBoardRevisionFlag,
+            collectWorkspaceTruth,
+            assertWorkspaceTruthOk,
+            ensureTaskWorktree,
+            applyWorkspaceTaskSnapshot,
+            mirrorWorkspaceBoard,
             printJson,
         });
         return;
@@ -216,6 +230,11 @@ async function handleTaskCommand(ctx) {
             buildBoardWipLimitDiagnostics,
             getLastBoardWriteMeta,
             parseExpectedBoardRevisionFlag,
+            collectWorkspaceTruth,
+            assertWorkspaceTruthOk,
+            ensureTaskWorktree,
+            applyWorkspaceTaskSnapshot,
+            mirrorWorkspaceBoard,
             printJson,
         });
         return;
@@ -446,6 +465,12 @@ function printTaskJsonError(printJson, error, action = null) {
     if (payload.error_code === 'board_revision_mismatch') {
         payload.expected_revision = Number(error?.expected_revision);
         payload.actual_revision = Number(error?.actual_revision);
+    }
+    if (error?.workspace_truth) {
+        payload.workspace_truth = error.workspace_truth;
+    }
+    if (error?.workspace_hygiene) {
+        payload.workspace_hygiene = error.workspace_hygiene;
     }
     printJson(payload);
     process.exitCode = 1;
@@ -747,9 +772,23 @@ function handleTaskClaim(ctx) {
         buildBoardWipLimitDiagnostics,
         getLastBoardWriteMeta,
         parseExpectedBoardRevisionFlag,
+        collectWorkspaceTruth,
+        assertWorkspaceTruthOk,
         printJson,
     } = ctx;
 
+    const workspaceReport =
+        typeof collectWorkspaceTruth === 'function'
+            ? collectWorkspaceTruth({
+                  allWorktrees: true,
+                  currentOnly: false,
+              })
+            : null;
+    if (typeof assertWorkspaceTruthOk === 'function') {
+        assertWorkspaceTruthOk(workspaceReport, {
+            commandLabel: 'task claim',
+        });
+    }
     const board = parseBoard();
     const task = ensureTask(board, taskId);
     const decisionsData =
@@ -908,8 +947,26 @@ async function handleTaskStart(ctx) {
         buildBoardWipLimitDiagnostics,
         getLastBoardWriteMeta,
         parseExpectedBoardRevisionFlag,
+        collectWorkspaceTruth,
+        assertWorkspaceTruthOk,
+        ensureTaskWorktree,
+        applyWorkspaceTaskSnapshot,
+        mirrorWorkspaceBoard,
         printJson,
     } = ctx;
+
+    const workspaceReport =
+        typeof collectWorkspaceTruth === 'function'
+            ? collectWorkspaceTruth({
+                  allWorktrees: true,
+                  currentOnly: false,
+              })
+            : null;
+    if (typeof assertWorkspaceTruthOk === 'function') {
+        assertWorkspaceTruthOk(workspaceReport, {
+            commandLabel: 'task start',
+        });
+    }
 
     const board = parseBoard();
     const task = ensureTask(board, taskId);
@@ -1045,6 +1102,18 @@ async function handleTaskStart(ctx) {
         parseExpectedBoardRevisionFlag,
         { required: true, commandLabel: 'task start' }
     );
+    let workspaceCapture = null;
+    if (
+        String(task.executor || '')
+            .trim()
+            .toLowerCase() === 'codex' &&
+        typeof ensureTaskWorktree === 'function'
+    ) {
+        workspaceCapture = ensureTaskWorktree(taskId);
+        if (typeof applyWorkspaceTaskSnapshot === 'function') {
+            applyWorkspaceTaskSnapshot(task, workspaceCapture);
+        }
+    }
     try {
         writeBoardAndSync(board, {
             silentSync: wantsJson,
@@ -1052,6 +1121,14 @@ async function handleTaskStart(ctx) {
             actor: task.owner || task.executor || '',
             expectRevision,
         });
+        if (
+            String(task.executor || '')
+                .trim()
+                .toLowerCase() === 'codex' &&
+            typeof mirrorWorkspaceBoard === 'function'
+        ) {
+            mirrorWorkspaceBoard();
+        }
     } catch (error) {
         if (wantsJson) {
             printTaskJsonError(printJson, error, 'start');
@@ -1075,6 +1152,13 @@ async function handleTaskStart(ctx) {
         command: 'task',
         action: 'start',
         task: toTaskJson(task),
+        workspace: workspaceCapture
+            ? {
+                  worktree_path: workspaceCapture.worktree_path,
+                  snapshot_checked_at:
+                      workspaceCapture.snapshot?.checked_at || null,
+              }
+            : null,
         lease_action: leaseMeta?.lease_action || 'none',
         lease: leaseMeta?.lease || null,
         status_since_at: leaseMeta?.status_since_at || null,
@@ -1087,7 +1171,9 @@ async function handleTaskStart(ctx) {
         );
         return;
     }
-    console.log(`Task start OK: ${taskId} -> ${nextStatus}`);
+    console.log(
+        `Task start OK: ${taskId} -> ${nextStatus}${workspaceCapture?.worktree_path ? ` | worktree=${workspaceCapture.worktree_path}` : ''}`
+    );
     for (const diag of wipDiagnostics) {
         console.log(`WARN [${diag.code}] ${diag.message}`);
     }
@@ -1223,6 +1309,8 @@ async function handleTaskCreate(ctx) {
         attachDiagnostics,
         getLastBoardWriteMeta,
         parseExpectedBoardRevisionFlag,
+        collectWorkspaceTruth,
+        assertWorkspaceTruthOk,
         printJson,
     } = ctx;
     let { flags } = ctx;
@@ -1643,6 +1731,18 @@ async function handleTaskCreate(ctx) {
             parseExpectedBoardRevisionFlag,
             { required: true, commandLabel: 'task create --apply' }
         );
+        const workspaceReport =
+            typeof collectWorkspaceTruth === 'function'
+                ? collectWorkspaceTruth({
+                      allWorktrees: true,
+                      currentOnly: false,
+                  })
+                : null;
+        if (typeof assertWorkspaceTruthOk === 'function') {
+            assertWorkspaceTruthOk(workspaceReport, {
+                commandLabel: 'task create --apply',
+            });
+        }
         try {
             writeBoardAndSync(board, {
                 silentSync: wantsJson,
@@ -2102,6 +2202,18 @@ async function handleTaskCreate(ctx) {
             parseExpectedBoardRevisionFlag,
             { required: true, commandLabel: 'task create' }
         );
+        const workspaceReport =
+            typeof collectWorkspaceTruth === 'function'
+                ? collectWorkspaceTruth({
+                      allWorktrees: true,
+                      currentOnly: false,
+                  })
+                : null;
+        if (typeof assertWorkspaceTruthOk === 'function') {
+            assertWorkspaceTruthOk(workspaceReport, {
+                commandLabel: 'task create',
+            });
+        }
         try {
             writeBoardAndSync(board, {
                 silentSync: wantsJson,

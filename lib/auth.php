@@ -16,7 +16,13 @@ const OPERATOR_AUTH_SESSION_KEY = 'operator_auth';
 const OPERATOR_AUTH_PENDING_CHALLENGE_KEY = 'operator_auth_pending_challenge_id';
 const OPERATOR_AUTH_PENDING_WEB_STATE_KEY = 'operator_auth_pending_web_state';
 const OPERATOR_AUTH_FLASH_ERROR_KEY = 'operator_auth_flash_error';
-const OPERATOR_AUTH_SOURCE = 'openclaw_chatgpt';
+const OPERATOR_AUTH_MODE_GOOGLE = 'google_oauth';
+const OPERATOR_AUTH_MODE_OPENCLAW = 'openclaw_chatgpt';
+const OPERATOR_AUTH_SOURCE = OPERATOR_AUTH_MODE_GOOGLE;
+const OPERATOR_AUTH_SUPPORTED_SOURCES = [
+    OPERATOR_AUTH_MODE_GOOGLE,
+    OPERATOR_AUTH_MODE_OPENCLAW,
+];
 const OPERATOR_AUTH_TRANSPORT_LOCAL_HELPER = 'local_helper';
 const OPERATOR_AUTH_TRANSPORT_WEB_BROKER = 'web_broker';
 
@@ -170,6 +176,26 @@ function internal_console_auth_fallbacks_payload(): array
     ];
 }
 
+function operator_auth_recommended_mode(): string
+{
+    return OPERATOR_AUTH_SOURCE;
+}
+
+function operator_auth_normalize_mode(string $mode): string
+{
+    $normalized = strtolower(trim($mode));
+    if ($normalized === OPERATOR_AUTH_MODE_OPENCLAW) {
+        return OPERATOR_AUTH_MODE_GOOGLE;
+    }
+
+    return $normalized;
+}
+
+function operator_auth_mode_is_supported(string $mode): bool
+{
+    return in_array(operator_auth_normalize_mode($mode), OPERATOR_AUTH_SUPPORTED_SOURCES, true);
+}
+
 function verify_2fa_code(string $code): bool
 {
     $secret = app_env('AURORADERM_ADMIN_2FA_SECRET');
@@ -187,8 +213,10 @@ function legacy_admin_is_authenticated(): bool
 function operator_auth_mode(): string
 {
     $raw = app_env('AURORADERM_OPERATOR_AUTH_MODE');
-    $mode = is_string($raw) && trim($raw) !== '' ? strtolower(trim($raw)) : 'disabled';
-    return $mode === OPERATOR_AUTH_SOURCE ? OPERATOR_AUTH_SOURCE : 'disabled';
+    $mode = is_string($raw) && trim($raw) !== ''
+        ? operator_auth_normalize_mode($raw)
+        : 'disabled';
+    return operator_auth_mode_is_supported($mode) ? $mode : 'disabled';
 }
 
 function operator_auth_session_cookie_samesite(): string
@@ -309,31 +337,65 @@ function operator_auth_callback_url(): string
 function operator_auth_broker_authorize_url(): string
 {
     $raw = getenv('OPENCLAW_AUTH_BROKER_AUTHORIZE_URL');
-    return is_string($raw) ? trim($raw) : '';
+    if (is_string($raw) && trim($raw) !== '') {
+        return trim($raw);
+    }
+
+    if (operator_auth_mode() === OPERATOR_AUTH_MODE_GOOGLE) {
+        return 'https://accounts.google.com/o/oauth2/v2/auth';
+    }
+
+    return '';
 }
 
 function operator_auth_broker_token_url(): string
 {
     $raw = getenv('OPENCLAW_AUTH_BROKER_TOKEN_URL');
-    return is_string($raw) ? trim($raw) : '';
+    if (is_string($raw) && trim($raw) !== '') {
+        return trim($raw);
+    }
+
+    if (operator_auth_mode() === OPERATOR_AUTH_MODE_GOOGLE) {
+        return 'https://oauth2.googleapis.com/token';
+    }
+
+    return '';
 }
 
 function operator_auth_broker_userinfo_url(): string
 {
     $raw = getenv('OPENCLAW_AUTH_BROKER_USERINFO_URL');
-    return is_string($raw) ? trim($raw) : '';
+    if (is_string($raw) && trim($raw) !== '') {
+        return trim($raw);
+    }
+
+    if (operator_auth_mode() === OPERATOR_AUTH_MODE_GOOGLE) {
+        return 'https://openidconnect.googleapis.com/v1/userinfo';
+    }
+
+    return '';
 }
 
 function operator_auth_broker_client_id(): string
 {
     $raw = getenv('OPENCLAW_AUTH_BROKER_CLIENT_ID');
-    return is_string($raw) ? trim($raw) : '';
+    if (is_string($raw) && trim($raw) !== '') {
+        return trim($raw);
+    }
+
+    $googleClientId = app_env('AURORADERM_GOOGLE_OAUTH_CLIENT_ID');
+    return is_string($googleClientId) ? trim($googleClientId) : '';
 }
 
 function operator_auth_broker_client_secret(): string
 {
     $raw = getenv('OPENCLAW_AUTH_BROKER_CLIENT_SECRET');
-    return is_string($raw) ? trim($raw) : '';
+    if (is_string($raw) && trim($raw) !== '') {
+        return trim($raw);
+    }
+
+    $googleClientSecret = app_env('AURORADERM_GOOGLE_OAUTH_CLIENT_SECRET');
+    return is_string($googleClientSecret) ? trim($googleClientSecret) : '';
 }
 
 function operator_auth_broker_scope(): string
@@ -347,19 +409,39 @@ function operator_auth_broker_scope(): string
 function operator_auth_broker_jwks_url(): string
 {
     $raw = getenv('OPENCLAW_AUTH_BROKER_JWKS_URL');
-    return is_string($raw) ? trim($raw) : '';
+    if (is_string($raw) && trim($raw) !== '') {
+        return trim($raw);
+    }
+
+    if (operator_auth_mode() === OPERATOR_AUTH_MODE_GOOGLE) {
+        return 'https://www.googleapis.com/oauth2/v3/certs';
+    }
+
+    return '';
 }
 
 function operator_auth_broker_expected_issuer(): string
 {
     $raw = getenv('OPENCLAW_AUTH_BROKER_EXPECTED_ISSUER');
-    return is_string($raw) ? trim($raw) : '';
+    if (is_string($raw) && trim($raw) !== '') {
+        return trim($raw);
+    }
+
+    if (operator_auth_mode() === OPERATOR_AUTH_MODE_GOOGLE) {
+        return 'https://accounts.google.com';
+    }
+
+    return '';
 }
 
 function operator_auth_broker_expected_audience(): string
 {
     $raw = getenv('OPENCLAW_AUTH_BROKER_EXPECTED_AUDIENCE');
-    return is_string($raw) ? trim($raw) : '';
+    if (is_string($raw) && trim($raw) !== '') {
+        return trim($raw);
+    }
+
+    return operator_auth_broker_client_id();
 }
 
 function operator_auth_broker_require_email_verified(): bool
@@ -405,7 +487,7 @@ function operator_auth_bridge_token_prefix(): string
 
 function operator_auth_is_enabled(): bool
 {
-    return operator_auth_mode() === OPERATOR_AUTH_SOURCE;
+    return operator_auth_mode() !== 'disabled';
 }
 
 function operator_auth_normalize_email(string $email): string
@@ -812,7 +894,7 @@ function operator_auth_config_error_payload(): array
     $snapshot = operator_auth_configuration_snapshot();
     $publicSnapshot = operator_auth_public_configuration_snapshot($snapshot);
     $missingLabels = [
-        'mode' => 'AURORADERM_OPERATOR_AUTH_MODE',
+        'mode' => 'AURORADERM_OPERATOR_AUTH_MODE=google_oauth|openclaw_chatgpt',
         'transport' => 'AURORADERM_OPERATOR_AUTH_TRANSPORT=local_helper|web_broker',
         'bridge_token' => 'AURORADERM_OPERATOR_AUTH_BRIDGE_TOKEN',
         'bridge_secret' => 'AURORADERM_OPERATOR_AUTH_BRIDGE_SECRET',
@@ -832,19 +914,19 @@ function operator_auth_config_error_payload(): array
     );
     $transportMisconfigured = in_array('transport', is_array($snapshot['missing'] ?? null) ? $snapshot['missing'] : [], true);
     $error = $transportMisconfigured
-        ? 'El runtime de OpenClaw no declara un transporte valido. Configure AURORADERM_OPERATOR_AUTH_TRANSPORT como web_broker o local_helper antes de iniciar sesion.'
+        ? 'El runtime de operator auth no declara un transporte valido. Configure AURORADERM_OPERATOR_AUTH_TRANSPORT como web_broker o local_helper antes de iniciar sesion.'
         : (count($missingItems) > 0
-            ? 'Configuracion incompleta de OpenClaw/ChatGPT. Falta: ' . implode(', ', $missingItems) . '.'
-            : 'El acceso OpenClaw/ChatGPT no esta configurado en este entorno.');
+            ? 'Configuracion incompleta de operator auth. Falta: ' . implode(', ', $missingItems) . '.'
+            : 'El acceso del operador no esta configurado en este entorno.');
 
     return [
         'ok' => true,
         'authenticated' => false,
         'status' => $transportMisconfigured ? 'transport_misconfigured' : 'operator_auth_not_configured',
-        'mode' => OPERATOR_AUTH_SOURCE,
+        'mode' => operator_auth_mode(),
         'transport' => operator_auth_transport(),
         'configured' => false,
-        'recommendedMode' => OPERATOR_AUTH_SOURCE,
+        'recommendedMode' => operator_auth_recommended_mode(),
         'csrfToken' => generate_csrf_token(),
         'capabilities' => [
             'adminAgent' => false,
@@ -885,7 +967,7 @@ function operator_auth_authenticated_payload(array $operator, string $status = '
         'mode' => operator_auth_mode(),
         'transport' => operator_auth_transport(),
         'configured' => true,
-        'recommendedMode' => OPERATOR_AUTH_SOURCE,
+        'recommendedMode' => operator_auth_recommended_mode(),
         'csrfToken' => generate_csrf_token(),
         'capabilities' => admin_agent_capabilities_payload(),
         'fallbacks' => internal_console_auth_fallbacks_payload(),
@@ -893,7 +975,7 @@ function operator_auth_authenticated_payload(array $operator, string $status = '
             'email' => (string) ($operator['email'] ?? ''),
             'profileId' => (string) ($operator['profileId'] ?? ''),
             'accountId' => (string) ($operator['accountId'] ?? ''),
-            'source' => (string) ($operator['source'] ?? OPERATOR_AUTH_SOURCE),
+            'source' => (string) ($operator['source'] ?? operator_auth_mode()),
             'authenticatedAt' => (string) ($operator['authenticatedAt'] ?? ''),
             'expiresAt' => (string) ($operator['expiresAt'] ?? ''),
         ],
@@ -909,7 +991,7 @@ function operator_auth_error_payload(array $challenge, string $status, string $e
         'mode' => operator_auth_mode(),
         'transport' => operator_auth_transport(),
         'configured' => true,
-        'recommendedMode' => OPERATOR_AUTH_SOURCE,
+        'recommendedMode' => operator_auth_recommended_mode(),
         'csrfToken' => generate_csrf_token(),
         'capabilities' => [
             'adminAgent' => false,
@@ -929,7 +1011,7 @@ function operator_auth_flash_error_payload(string $status, string $error, array 
         'mode' => operator_auth_mode(),
         'transport' => operator_auth_transport(),
         'configured' => true,
-        'recommendedMode' => OPERATOR_AUTH_SOURCE,
+        'recommendedMode' => operator_auth_recommended_mode(),
         'csrfToken' => generate_csrf_token(),
         'capabilities' => [
             'adminAgent' => false,
@@ -989,7 +1071,7 @@ function operator_auth_establish_session(array $identity): array
         'email' => $email,
         'profileId' => trim((string) ($identity['profileId'] ?? '')),
         'accountId' => trim((string) ($identity['accountId'] ?? '')),
-        'source' => OPERATOR_AUTH_SOURCE,
+        'source' => operator_auth_mode(),
         'authenticatedAt' => operator_auth_now_iso(),
         'expiresAt' => operator_auth_now_iso(time() + operator_auth_session_ttl_seconds()),
     ];
@@ -1176,7 +1258,7 @@ function operator_auth_create_web_broker_attempt(array $input = []): array
         'mode' => operator_auth_mode(),
         'transport' => OPERATOR_AUTH_TRANSPORT_WEB_BROKER,
         'configured' => true,
-        'recommendedMode' => OPERATOR_AUTH_SOURCE,
+        'recommendedMode' => operator_auth_recommended_mode(),
         'csrfToken' => generate_csrf_token(),
         'capabilities' => [
             'adminAgent' => false,
@@ -1256,7 +1338,7 @@ function operator_auth_create_challenge(): array
         'mode' => operator_auth_mode(),
         'transport' => OPERATOR_AUTH_TRANSPORT_LOCAL_HELPER,
         'configured' => true,
-        'recommendedMode' => OPERATOR_AUTH_SOURCE,
+        'recommendedMode' => operator_auth_recommended_mode(),
         'csrfToken' => generate_csrf_token(),
         'capabilities' => [
             'adminAgent' => false,
@@ -1398,7 +1480,7 @@ function operator_auth_complete_from_bridge(array $payload): array
     if ($email === '' || $profileId === '') {
         $updated = operator_auth_mark_challenge($challenge, 'error', [
             'errorCode' => 'openclaw_email_missing',
-            'error' => 'OpenClaw no expuso un email resoluble para este perfil.',
+            'error' => 'El broker de autenticacion no expuso un email resoluble para este perfil.',
             'deviceId' => $deviceId,
             'completedAt' => operator_auth_now_iso(),
             'bridgeTimestamp' => $timestamp,
@@ -1836,7 +1918,7 @@ function operator_auth_fetch_broker_jwks(): array
         return [
             'ok' => false,
             'status' => 'broker_unavailable',
-            'error' => 'OpenClaw no pudo publicar sus llaves JWKS en este momento.',
+            'error' => 'El broker OIDC no pudo publicar sus llaves JWKS en este momento.',
         ];
     }
 
@@ -1844,7 +1926,7 @@ function operator_auth_fetch_broker_jwks(): array
         return [
             'ok' => false,
             'status' => 'broker_claims_invalid',
-            'error' => 'OpenClaw devolvio un documento JWKS invalido para validar la identidad.',
+            'error' => 'El broker OIDC devolvio un documento JWKS invalido para validar la identidad.',
         ];
     }
 
@@ -1853,7 +1935,7 @@ function operator_auth_fetch_broker_jwks(): array
         return [
             'ok' => false,
             'status' => 'broker_claims_invalid',
-            'error' => 'OpenClaw no expuso ninguna llave valida en el JWKS configurado.',
+            'error' => 'El broker OIDC no expuso ninguna llave valida en el JWKS configurado.',
         ];
     }
 
@@ -1870,7 +1952,7 @@ function operator_auth_validate_broker_identity(array $tokenPayload, array $user
         return [
             'ok' => false,
             'status' => 'broker_claims_invalid',
-            'error' => 'OpenClaw no devolvio un id_token firmado para este login.',
+            'error' => 'El broker OIDC no devolvio un id_token firmado para este login.',
         ];
     }
 
@@ -1879,7 +1961,7 @@ function operator_auth_validate_broker_identity(array $tokenPayload, array $user
         return [
             'ok' => false,
             'status' => 'broker_claims_invalid',
-            'error' => 'El id_token devuelto por OpenClaw no tiene un formato JWT valido.',
+            'error' => 'El id_token devuelto por el broker OIDC no tiene un formato JWT valido.',
         ];
     }
 
@@ -1889,7 +1971,7 @@ function operator_auth_validate_broker_identity(array $tokenPayload, array $user
         return [
             'ok' => false,
             'status' => 'broker_claims_invalid',
-            'error' => 'OpenClaw devolvio un algoritmo de firma no soportado para el id_token.',
+            'error' => 'El broker OIDC devolvio un algoritmo de firma no soportado para el id_token.',
         ];
     }
 
@@ -1903,7 +1985,7 @@ function operator_auth_validate_broker_identity(array $tokenPayload, array $user
         return [
             'ok' => false,
             'status' => 'broker_claims_invalid',
-            'error' => 'No se encontro una llave JWKS compatible para validar el id_token de OpenClaw.',
+            'error' => 'No se encontro una llave JWKS compatible para validar el id_token del broker OIDC.',
         ];
     }
 
@@ -1926,7 +2008,7 @@ function operator_auth_validate_broker_identity(array $tokenPayload, array $user
         return [
             'ok' => false,
             'status' => 'broker_claims_invalid',
-            'error' => 'La firma del id_token de OpenClaw no pudo validarse.',
+            'error' => 'La firma del id_token del broker OIDC no pudo validarse.',
         ];
     }
 
@@ -1937,7 +2019,7 @@ function operator_auth_validate_broker_identity(array $tokenPayload, array $user
         return [
             'ok' => false,
             'status' => 'broker_claims_invalid',
-            'error' => 'El issuer del id_token no coincide con el broker OpenClaw configurado.',
+            'error' => 'El issuer del id_token no coincide con el broker OIDC configurado.',
         ];
     }
 
@@ -1945,7 +2027,7 @@ function operator_auth_validate_broker_identity(array $tokenPayload, array $user
         return [
             'ok' => false,
             'status' => 'broker_claims_invalid',
-            'error' => 'La audiencia del id_token no coincide con el cliente OpenClaw autorizado.',
+            'error' => 'La audiencia del id_token no coincide con el cliente OAuth autorizado.',
         ];
     }
 
@@ -1974,7 +2056,7 @@ function operator_auth_validate_broker_identity(array $tokenPayload, array $user
         return [
             'ok' => false,
             'status' => 'broker_claims_invalid',
-            'error' => 'El id_token de OpenClaw ya expiro para este login.',
+            'error' => 'El id_token del broker OIDC ya expiro para este login.',
         ];
     }
 
@@ -1996,7 +2078,7 @@ function operator_auth_validate_broker_identity(array $tokenPayload, array $user
         return [
             'ok' => false,
             'status' => 'identity_missing',
-            'error' => 'OpenClaw no devolvio un email utilizable en el id_token ni en userinfo.',
+            'error' => 'El broker OIDC no devolvio un email utilizable en el id_token ni en userinfo.',
         ];
     }
     if ($signedEmail !== '' && $resolvedEmail !== '' && !hash_equals($signedEmail, $resolvedEmail)) {
@@ -2015,7 +2097,7 @@ function operator_auth_validate_broker_identity(array $tokenPayload, array $user
         return [
             'ok' => false,
             'status' => 'identity_unverified',
-            'error' => 'OpenClaw autentico la cuenta, pero no confirmo un email verificado para este panel.',
+            'error' => 'El broker OIDC autentico la cuenta, pero no confirmo un email verificado para este panel.',
         ];
     }
 
@@ -2057,7 +2139,7 @@ function operator_auth_handle_broker_callback(array $query = []): array
     if (!operator_auth_is_enabled() || !operator_auth_uses_web_broker() || !operator_auth_is_configured()) {
         return $finishWithFlash(
             'operator_auth_not_configured',
-            'El acceso OpenClaw web no esta configurado en este entorno.'
+            'El acceso web del operador no esta configurado en este entorno.'
         );
     }
 
@@ -2066,7 +2148,7 @@ function operator_auth_handle_broker_callback(array $query = []): array
         $description = trim((string) ($query['error_description'] ?? ''));
         return $finishWithFlash(
             'cancelled',
-            $description !== '' ? $description : 'La autenticacion en OpenClaw fue cancelada antes de completarse.',
+            $description !== '' ? $description : 'La autenticacion del broker fue cancelada antes de completarse.',
             ['brokerError' => $brokerError]
         );
     }
@@ -2098,7 +2180,7 @@ function operator_auth_handle_broker_callback(array $query = []): array
     if ($code === '') {
         return $finishWithFlash(
             'code_exchange_failed',
-            'OpenClaw no devolvio un codigo de autorizacion valido.'
+            'El broker OAuth no devolvio un codigo de autorizacion valido.'
         );
     }
 
@@ -2116,7 +2198,7 @@ function operator_auth_handle_broker_callback(array $query = []): array
     if (($tokenResponse['status'] ?? 0) >= 500 || trim((string) ($tokenResponse['error'] ?? '')) !== '' || (int) ($tokenResponse['status'] ?? 0) === 0) {
         return $finishWithFlash(
             'broker_unavailable',
-            'OpenClaw no respondio durante el intercambio del codigo. Intenta nuevamente en unos minutos.'
+            'El broker OAuth no respondio durante el intercambio del codigo. Intenta nuevamente en unos minutos.'
         );
     }
 
@@ -2126,7 +2208,7 @@ function operator_auth_handle_broker_callback(array $query = []): array
         $tokenError = trim((string) ($tokenPayload['error_description'] ?? $tokenPayload['error'] ?? ''));
         return $finishWithFlash(
             'code_exchange_failed',
-            $tokenError !== '' ? $tokenError : 'No se pudo completar el intercambio del codigo con OpenClaw.'
+            $tokenError !== '' ? $tokenError : 'No se pudo completar el intercambio del codigo con el broker OAuth.'
         );
     }
 
@@ -2139,7 +2221,7 @@ function operator_auth_handle_broker_callback(array $query = []): array
     if (($userinfoResponse['status'] ?? 0) >= 500 || trim((string) ($userinfoResponse['error'] ?? '')) !== '' || (int) ($userinfoResponse['status'] ?? 0) === 0) {
         return $finishWithFlash(
             'broker_unavailable',
-            'OpenClaw no pudo devolver la identidad autenticada en este momento.'
+            'El broker OAuth no pudo devolver la identidad autenticada en este momento.'
         );
     }
 
@@ -2147,7 +2229,7 @@ function operator_auth_handle_broker_callback(array $query = []): array
     if (($userinfoResponse['ok'] ?? false) !== true) {
         return $finishWithFlash(
             'identity_missing',
-            'OpenClaw no devolvio una identidad usable para este inicio de sesion.'
+            'El broker OAuth no devolvio una identidad usable para este inicio de sesion.'
         );
     }
 
@@ -2156,7 +2238,7 @@ function operator_auth_handle_broker_callback(array $query = []): array
     if (($validatedIdentity['ok'] ?? false) !== true) {
         return $finishWithFlash(
             (string) ($validatedIdentity['status'] ?? 'broker_claims_invalid'),
-            (string) ($validatedIdentity['error'] ?? 'No se pudo validar la identidad firmada devuelta por OpenClaw.')
+            (string) ($validatedIdentity['error'] ?? 'No se pudo validar la identidad firmada devuelta por el broker OIDC.')
         );
     }
     $identity = is_array($validatedIdentity['identity'] ?? null) ? $validatedIdentity['identity'] : $identity;
@@ -2195,7 +2277,7 @@ function operator_auth_anonymous_payload(array $overrides = []): array
         'mode' => operator_auth_mode(),
         'transport' => operator_auth_transport(),
         'configured' => true,
-        'recommendedMode' => OPERATOR_AUTH_SOURCE,
+        'recommendedMode' => operator_auth_recommended_mode(),
         'csrfToken' => generate_csrf_token(),
         'capabilities' => [
             'adminAgent' => false,
@@ -2332,7 +2414,7 @@ function operator_auth_logout_payload(): array
         'mode' => operator_auth_mode(),
         'transport' => operator_auth_transport(),
         'configured' => operator_auth_is_configured(),
-        'recommendedMode' => OPERATOR_AUTH_SOURCE,
+        'recommendedMode' => operator_auth_recommended_mode(),
         'csrfToken' => generate_csrf_token(),
         'capabilities' => [
             'adminAgent' => false,
