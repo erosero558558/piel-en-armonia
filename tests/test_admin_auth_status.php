@@ -143,6 +143,30 @@ run_test('admin status configures openclaw web broker from google oauth defaults
         assert_equals('openclaw_chatgpt', $status['body']['recommendedMode'] ?? '', 'recommended mode should remain openclaw');
         assert_true($status['body']['configured'] ?? false, 'google oauth defaults should satisfy broker config');
         assert_equals('anonymous', $status['body']['status'] ?? '', 'configured web broker should stay anonymous before login');
+        assert_true(
+            is_array($status['body']['configuration'] ?? null),
+            'configured status should expose the public configuration snapshot'
+        );
+        assert_true(
+            $status['body']['configuration']['brokerAuthorizeUrlConfigured'] ?? false,
+            'configured status should report broker authorize URL readiness'
+        );
+        assert_true(
+            $status['body']['configuration']['brokerJwksConfigured'] ?? false,
+            'configured status should report broker JWKS readiness'
+        );
+        assert_true(
+            $status['body']['configuration']['brokerIssuerPinned'] ?? false,
+            'configured status should report broker issuer pinning'
+        );
+        assert_true(
+            $status['body']['configuration']['brokerAudiencePinned'] ?? false,
+            'configured status should report broker audience pinning'
+        );
+        assert_true(
+            $status['body']['configuration']['brokerTrustConfigured'] ?? false,
+            'configured status should report broker trust readiness'
+        );
     });
 });
 

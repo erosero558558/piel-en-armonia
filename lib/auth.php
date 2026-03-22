@@ -961,6 +961,8 @@ function operator_auth_challenge_public_payload(array $challenge): array
 
 function operator_auth_authenticated_payload(array $operator, string $status = 'autenticado'): array
 {
+    $publicSnapshot = operator_auth_public_configuration_snapshot();
+
     return [
         'ok' => true,
         'authenticated' => true,
@@ -972,6 +974,7 @@ function operator_auth_authenticated_payload(array $operator, string $status = '
         'csrfToken' => generate_csrf_token(),
         'capabilities' => admin_agent_capabilities_payload(),
         'fallbacks' => internal_console_auth_fallbacks_payload(),
+        'configuration' => $publicSnapshot,
         'operator' => [
             'email' => (string) ($operator['email'] ?? ''),
             'profileId' => (string) ($operator['profileId'] ?? ''),
@@ -985,6 +988,8 @@ function operator_auth_authenticated_payload(array $operator, string $status = '
 
 function operator_auth_error_payload(array $challenge, string $status, string $error): array
 {
+    $publicSnapshot = operator_auth_public_configuration_snapshot();
+
     return [
         'ok' => true,
         'authenticated' => false,
@@ -998,6 +1003,7 @@ function operator_auth_error_payload(array $challenge, string $status, string $e
             'adminAgent' => false,
         ],
         'fallbacks' => internal_console_auth_fallbacks_payload(),
+        'configuration' => $publicSnapshot,
         'error' => $error,
         'challenge' => operator_auth_challenge_public_payload($challenge),
     ];
@@ -1005,6 +1011,8 @@ function operator_auth_error_payload(array $challenge, string $status, string $e
 
 function operator_auth_flash_error_payload(string $status, string $error, array $overrides = []): array
 {
+    $publicSnapshot = operator_auth_public_configuration_snapshot();
+
     return array_merge([
         'ok' => true,
         'authenticated' => false,
@@ -1018,6 +1026,7 @@ function operator_auth_flash_error_payload(string $status, string $error, array 
             'adminAgent' => false,
         ],
         'fallbacks' => internal_console_auth_fallbacks_payload(),
+        'configuration' => $publicSnapshot,
         'error' => $error,
     ], $overrides);
 }
@@ -2288,6 +2297,8 @@ function operator_auth_handle_broker_callback(array $query = []): array
 
 function operator_auth_anonymous_payload(array $overrides = []): array
 {
+    $publicSnapshot = operator_auth_public_configuration_snapshot();
+
     return array_merge([
         'ok' => true,
         'authenticated' => false,
@@ -2301,6 +2312,7 @@ function operator_auth_anonymous_payload(array $overrides = []): array
             'adminAgent' => false,
         ],
         'fallbacks' => internal_console_auth_fallbacks_payload(),
+        'configuration' => $publicSnapshot,
     ], $overrides);
 }
 
