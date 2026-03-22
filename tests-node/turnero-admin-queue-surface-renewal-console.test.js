@@ -56,74 +56,12 @@ class FakeElement {
         if (this._textContent) {
             return this._textContent;
         }
-
         if (this.children.length > 0) {
             return this.children
                 .map((child) => String(child.textContent || ''))
                 .join('');
         }
-
         return this._innerHTML;
-    }
-
-    setAttribute(name, value) {
-        const normalizedName = String(name || '');
-        const normalizedValue = String(value ?? '');
-        if (normalizedName === 'class') {
-            this.className = normalizedValue;
-            return;
-        }
-        if (normalizedName === 'id') {
-            this.id = normalizedValue;
-            return;
-        }
-        if (normalizedName.startsWith('data-')) {
-            const datasetKey = normalizedName
-                .slice(5)
-                .replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase());
-            this.dataset[datasetKey] = normalizedValue;
-        }
-        this.attributes.set(normalizedName, normalizedValue);
-    }
-
-    getAttribute(name) {
-        const normalizedName = String(name || '');
-        if (normalizedName === 'class') {
-            return this.className || null;
-        }
-        if (normalizedName === 'id') {
-            return this.id || null;
-        }
-        if (normalizedName.startsWith('data-')) {
-            const datasetKey = normalizedName
-                .slice(5)
-                .replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase());
-            return Object.prototype.hasOwnProperty.call(this.dataset, datasetKey)
-                ? this.dataset[datasetKey]
-                : null;
-        }
-        return this.attributes.has(normalizedName)
-            ? this.attributes.get(normalizedName)
-            : null;
-    }
-
-    removeAttribute(name) {
-        const normalizedName = String(name || '');
-        if (normalizedName === 'class') {
-            this.className = '';
-            return;
-        }
-        if (normalizedName === 'id') {
-            this.id = '';
-            return;
-        }
-        if (normalizedName.startsWith('data-')) {
-            const datasetKey = normalizedName
-                .slice(5)
-                .replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase());
-            delete this.dataset[datasetKey];
-        }
-        this.attributes.delete(normalizedName);
     }
 
     appendChild(child) {
@@ -148,26 +86,6 @@ class FakeElement {
         if (this.listeners.get(normalizedType) === handler) {
             this.listeners.delete(normalizedType);
         }
-    }
-
-    dispatchEvent(event) {
-        const normalizedType = String(event?.type || '');
-        const listener = this.listeners.get(normalizedType);
-        if (typeof listener === 'function') {
-            listener.call(this, event);
-        }
-        return true;
-    }
-
-    click() {
-        this.clicked = true;
-        this.dispatchEvent({
-            type: 'click',
-            target: this,
-            currentTarget: this,
-            preventDefault() {},
-            stopPropagation() {},
-        });
     }
 
     closest(selector) {
@@ -210,10 +128,6 @@ class FakeElement {
             tagName = normalizedSelector.includes('form[data-action]')
                 ? 'form'
                 : 'button';
-        } else if (normalizedSelector.includes('[data-role="chips"]')) {
-            tagName = 'div';
-        } else if (normalizedSelector.includes('[data-role="banner"]')) {
-            tagName = 'div';
         } else if (normalizedSelector.includes('[data-surface-key="')) {
             tagName = 'article';
         }
@@ -273,7 +187,7 @@ function withGlobals(setup, callback) {
         });
 }
 
-function createDocumentStub(host, downloadClicks, downloadEvents) {
+function createDocumentStub(host, downloadClicks) {
     const head = new FakeElement('head', 'head');
     const body = new FakeElement('body', 'body');
 
@@ -284,16 +198,9 @@ function createDocumentStub(host, downloadClicks, downloadEvents) {
             if (String(tagName || '').toLowerCase() === 'a') {
                 const anchor = new FakeElement('a');
                 anchor.click = () => {
-                    anchor.clicked = true;
-                    downloadEvents.push({
-                        kind: 'anchor-click',
-                        download: anchor.download,
-                    });
                     downloadClicks.push({
                         download: anchor.download,
                         href: anchor.href,
-                        rel: anchor.rel,
-                        clicked: true,
                     });
                 };
                 return anchor;
@@ -335,50 +242,50 @@ function buildConsoleInput() {
     return {
         clinicProfile,
         scope: 'regional',
-        releaseManifest: {
-            id: 'release-console',
-            version: '2026.03.20',
-        },
-        surfaceRegistry: {
-            operator: {
-                label: 'Turnero Operador',
-            },
-            kiosk: {
-                label: 'Turnero Kiosco',
-            },
-            display: {
-                label: 'Turnero Sala TV',
-            },
-        },
         snapshots: [
             {
                 surfaceKey: 'operator-turnos',
                 runtimeState: 'ready',
                 truth: 'watch',
-                packageTier: 'pilot-plus',
-                bundleState: 'watch',
-                provisioningState: 'watch',
-                onboardingKitState: 'draft',
+                renewalValueBand: 'high',
+                retentionSignal: 'stable',
+                feedbackState: 'good',
+                activityState: 'active',
+                pendingCorrections: 0,
+                renewalOwner: 'renewal-lead',
+                commercialOwner: 'ernesto',
+                successOwner: 'ops-lead',
+                nextRenewalWindow: '30 dias',
                 checklist: { summary: { all: 4, pass: 3, fail: 1 } },
             },
             {
                 surfaceKey: 'kiosco-turnos',
                 runtimeState: 'ready',
                 truth: 'watch',
-                packageTier: 'pilot',
-                bundleState: 'draft',
-                provisioningState: 'watch',
-                onboardingKitState: 'draft',
+                renewalValueBand: 'medium',
+                retentionSignal: 'fragile',
+                feedbackState: 'mixed',
+                activityState: 'watch',
+                pendingCorrections: 2,
+                renewalOwner: '',
+                commercialOwner: '',
+                successOwner: 'ops-kiosk',
+                nextRenewalWindow: '15 dias',
                 checklist: { summary: { all: 4, pass: 2, fail: 2 } },
             },
             {
                 surfaceKey: 'sala-turnos',
                 runtimeState: 'ready',
                 truth: 'aligned',
-                packageTier: 'pilot-plus',
-                bundleState: 'ready',
-                provisioningState: 'watch',
-                onboardingKitState: 'draft',
+                renewalValueBand: 'high',
+                retentionSignal: 'stable',
+                feedbackState: 'good',
+                activityState: 'active',
+                pendingCorrections: 0,
+                renewalOwner: 'ops-display',
+                commercialOwner: 'ernesto',
+                successOwner: 'ops-display',
+                nextRenewalWindow: '45 dias',
                 checklist: { summary: { all: 4, pass: 3, fail: 1 } },
             },
         ],
@@ -402,44 +309,41 @@ function setFieldValue(form, selector, value) {
     form.querySelector(selector).value = value;
 }
 
-test('console html renders package surfaces and actions', async () => {
+test('console html renders renewal surfaces and actions', async () => {
     const module = await loadModule(
-        'src/apps/queue-shared/turnero-admin-queue-surface-package-console.js'
+        'src/apps/queue-shared/turnero-admin-queue-surface-renewal-console.js'
     );
 
-    const html = module.buildTurneroAdminQueueSurfacePackageConsoleHtml(
+    const html = module.buildTurneroAdminQueueSurfaceRenewalConsoleHtml(
         buildConsoleInput()
     );
 
-    assert.match(html, /Surface Package Standardization/);
+    assert.match(html, /Surface Renewal Retention Console/);
     assert.match(html, /Copy brief/);
     assert.match(html, /Download JSON/);
-    assert.match(html, /Add entry/);
+    assert.match(html, /Add evidence/);
     assert.match(html, /Add owner/);
     assert.match(html, /Turnero Operador/);
     assert.match(html, /Turnero Kiosco/);
     assert.match(html, /Turnero Sala TV/);
-    assert.match(html, /data-role="banner"/);
-    assert.match(html, /data-role="chips"/);
 });
 
-test('mount wires copy/download plus add-entry and add-owner flows', async () => {
+test('mount wires copy, download, add-evidence and add-owner flows', async () => {
     const clipboardTexts = [];
     const downloadClicks = [];
-    const downloadEvents = [];
     const consoleInput = buildConsoleInput();
     const ledgerModule = await loadModule(
-        'src/apps/queue-shared/turnero-surface-package-ledger.js'
+        'src/apps/queue-shared/turnero-surface-renewal-ledger.js'
     );
     const ownerModule = await loadModule(
-        'src/apps/queue-shared/turnero-surface-package-owner-store.js'
+        'src/apps/queue-shared/turnero-surface-renewal-owner-store.js'
     );
-    const host = new FakeElement('div', 'queueSurfacePackageConsoleHost');
+    const host = new FakeElement('div', 'queueSurfaceRenewalConsoleHost');
 
     await withGlobals(
         {
             HTMLElement: FakeElement,
-            document: createDocumentStub(host, downloadClicks, downloadEvents),
+            document: createDocumentStub(host, downloadClicks),
             navigator: {
                 clipboard: {
                     writeText: async (text) => {
@@ -451,87 +355,38 @@ test('mount wires copy/download plus add-entry and add-owner flows', async () =>
                 constructor(parts, options) {
                     this.parts = parts;
                     this.options = options;
-                    downloadEvents.push({ kind: 'blob', parts, options });
                 }
             },
             URL: {
-                createObjectURL(blob) {
-                    downloadEvents.push({ kind: 'url', blob });
-                    return 'blob:turnero-surface-package-console';
+                createObjectURL() {
+                    return 'blob:turnero-surface-renewal-console';
                 },
-                revokeObjectURL(href) {
-                    downloadEvents.push({ kind: 'revoke', href });
-                },
+                revokeObjectURL() {},
             },
             setTimeout(fn) {
-                downloadEvents.push({ kind: 'timeout' });
                 fn();
                 return 0;
             },
         },
         async () => {
             const module = await loadModule(
-                'src/apps/queue-shared/turnero-admin-queue-surface-package-console.js'
+                'src/apps/queue-shared/turnero-admin-queue-surface-renewal-console.js'
             );
 
-            const result = module.mountTurneroAdminQueueSurfacePackageConsole(
+            const result = module.mountTurneroAdminQueueSurfaceRenewalConsole(
                 host,
                 consoleInput
             );
 
             assert.ok(result);
             assert.equal(result.root, host.children[0]);
-            assert.equal(host.children[0], result.root);
-            assert.equal(
-                result.root.dataset.turneroAdminQueueSurfacePackageConsole,
-                'mounted'
-            );
-            assert.equal(
-                result.root.dataset.turneroAdminQueueSurfacePackageScope,
-                'regional'
-            );
             assert.equal(result.state.surfacePacks.length, 3);
-            assert.match(result.root.innerHTML, /Surface Package Standardization/);
-            assert.match(result.root.innerHTML, /Add entry/);
+            assert.match(result.root.innerHTML, /Surface Renewal Retention Console/);
+            assert.match(result.root.innerHTML, /Add evidence/);
             assert.match(result.root.innerHTML, /Add owner/);
-
-            const overviewBanner = result.root.querySelector('[data-role="banner"]');
-            assert.match(
-                overviewBanner.innerHTML,
-                /Surface Package Standardization/
-            );
-
-            const operatorCard = result.root.querySelector(
-                '[data-surface-key="operator"]'
-            );
-            const kioskCard = result.root.querySelector(
-                '[data-surface-key="kiosk"]'
-            );
-            const displayCard = result.root.querySelector(
-                '[data-surface-key="display"]'
-            );
-
-            assert.equal(
-                operatorCard.querySelector('[data-role="chips"]').children.length,
-                3
-            );
-            assert.match(
-                operatorCard.querySelector('[data-role="banner"]').innerHTML,
-                /Turnero Operador/
-            );
-            assert.match(
-                kioskCard.querySelector('[data-role="banner"]').innerHTML,
-                /Turnero Kiosco/
-            );
-            assert.match(
-                displayCard.querySelector('[data-role="banner"]').innerHTML,
-                /Turnero Sala TV/
-            );
 
             const clickHandler = result.root.listeners.get('click');
             const submitHandler = result.root.listeners.get('submit');
-            assert.equal(typeof clickHandler, 'function');
-            assert.equal(typeof submitHandler, 'function');
 
             await clickHandler({
                 preventDefault() {},
@@ -543,64 +398,69 @@ test('mount wires copy/download plus add-entry and add-owner flows', async () =>
             });
 
             assert.equal(clipboardTexts.length, 1);
-            assert.match(clipboardTexts[0], /# Surface Package Standardization/);
+            assert.match(clipboardTexts[0], /# Surface Renewal Retention/);
             assert.equal(downloadClicks.length, 1);
             assert.equal(
                 downloadClicks[0].download,
-                'turnero-surface-package-console.json'
-            );
-            assert.ok(downloadEvents.some((event) => event.kind === 'blob'));
-            assert.ok(downloadEvents.some((event) => event.kind === 'url'));
-            assert.ok(
-                downloadEvents.some((event) => event.kind === 'anchor-click')
+                'turnero-surface-renewal-console.json'
             );
 
-            const entryForm = createActionForm('add-entry');
-            setFieldValue(entryForm, '[data-field="entry-surface-key"]', 'kiosk');
-            setFieldValue(entryForm, '[data-field="entry-kind"]', 'bundle');
-            setFieldValue(entryForm, '[data-field="entry-status"]', 'ready');
-            setFieldValue(entryForm, '[data-field="entry-owner"]', 'ops');
-            setFieldValue(entryForm, '[data-field="entry-title"]', 'Kiosk bundle');
+            const evidenceForm = createActionForm('add-ledger');
             setFieldValue(
-                entryForm,
-                '[data-field="entry-note"]',
-                'Bundle listo para kiosko.'
+                evidenceForm,
+                '[data-field="ledger-surface-key"]',
+                'kiosco-turnos'
+            );
+            setFieldValue(
+                evidenceForm,
+                '[data-field="ledger-kind"]',
+                'renewal-note'
+            );
+            setFieldValue(evidenceForm, '[data-field="ledger-status"]', 'watch');
+            setFieldValue(
+                evidenceForm,
+                '[data-field="ledger-signal"]',
+                'correction'
+            );
+            setFieldValue(evidenceForm, '[data-field="ledger-owner"]', 'renewal');
+            setFieldValue(
+                evidenceForm,
+                '[data-field="ledger-note"]',
+                'Correccion pendiente en kiosko.'
             );
 
             submitHandler({
                 preventDefault() {},
-                target: entryForm,
+                target: evidenceForm,
             });
 
             const freshLedgerStore =
-                ledgerModule.createTurneroSurfacePackageLedger(
+                ledgerModule.createTurneroSurfaceRenewalLedger(
                     'regional',
                     consoleInput.clinicProfile
                 );
-            const freshOwnerStore =
-                ownerModule.createTurneroSurfacePackageOwnerStore(
-                    'regional',
-                    consoleInput.clinicProfile
-                );
-
             assert.equal(
-                freshLedgerStore.list({ surfaceKey: 'kiosk' }).length,
+                freshLedgerStore.list({ surfaceKey: 'kiosco-turnos' }).length,
                 1
             );
             assert.equal(
-                freshLedgerStore.list({ surfaceKey: 'kiosk' })[0].title,
-                'Kiosk bundle'
+                freshLedgerStore.list({ surfaceKey: 'kiosco-turnos' })[0].signal,
+                'correction'
             );
 
             const ownerForm = createActionForm('add-owner');
-            setFieldValue(ownerForm, '[data-field="owner-surface-key"]', 'kiosk');
+            setFieldValue(
+                ownerForm,
+                '[data-field="owner-surface-key"]',
+                'kiosco-turnos'
+            );
             setFieldValue(ownerForm, '[data-field="owner-actor"]', 'carla');
-            setFieldValue(ownerForm, '[data-field="owner-role"]', 'package');
+            setFieldValue(ownerForm, '[data-field="owner-role"]', 'renewal');
             setFieldValue(ownerForm, '[data-field="owner-status"]', 'active');
             setFieldValue(
                 ownerForm,
                 '[data-field="owner-note"]',
-                'Primary package owner.'
+                'Primary renewal owner.'
             );
 
             submitHandler({
@@ -608,17 +468,20 @@ test('mount wires copy/download plus add-entry and add-owner flows', async () =>
                 target: ownerForm,
             });
 
+            const freshOwnerStore =
+                ownerModule.createTurneroSurfaceRenewalOwnerStore(
+                    'regional',
+                    consoleInput.clinicProfile
+                );
             assert.equal(
-                freshOwnerStore.list({ surfaceKey: 'kiosk' }).length,
+                freshOwnerStore.list({ surfaceKey: 'kiosco-turnos' }).length,
                 1
             );
             assert.equal(
-                freshOwnerStore.list({ surfaceKey: 'kiosk' })[0].actor,
+                freshOwnerStore.list({ surfaceKey: 'kiosco-turnos' })[0].actor,
                 'carla'
             );
 
-            assert.equal(result.root.listeners.has('click'), true);
-            assert.equal(result.root.listeners.has('submit'), true);
             result.destroy();
             assert.equal(result.root.listeners.has('click'), false);
             assert.equal(result.root.listeners.has('submit'), false);

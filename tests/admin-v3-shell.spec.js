@@ -209,13 +209,14 @@ async function openAdminSonyV3(page) {
 }
 
 test.describe('Admin sony_v3 shell', () => {
-    test('renderiza shell editorial y abre command palette sin estilos legacy', async ({
+    test('renderiza queue como shell primaria y abre command palette sin estilos legacy', async ({
         page,
     }) => {
         await openAdminSonyV3(page);
 
         await expect(page.locator('#adminProductivityStrip')).toBeVisible();
-        await expect(page.locator('#pageTitle')).toHaveText('Inicio');
+        await expect(page.locator('#pageTitle')).toHaveText('Turnero');
+        await expect(page.locator('#adminPrimaryNav')).toContainText('Turnero');
         await expect(page.locator('#adminPrimaryNav')).toContainText('Inicio');
         await expect(page.locator('#adminPrimaryNav')).toContainText('Agenda');
         await expect(page.locator('#adminPrimaryNav')).toContainText(
@@ -231,20 +232,20 @@ test.describe('Admin sony_v3 shell', () => {
             'Historia clinica'
         );
         await expect(
+            page.locator('#adminPrimaryNav .nav-item').first()
+        ).toHaveAttribute('data-section', 'queue');
+        await expect(
             page.locator('.nav-item[data-section="reviews"]')
         ).toHaveCount(0);
+        await expect(page.locator('#reviews')).toHaveCount(0);
         await expect(
             page.locator('.nav-item[data-section="queue"]')
-        ).toHaveCount(0);
-        await expect(page.locator('#reviews')).toHaveCount(0);
-        await expect(page.locator('#queue')).toHaveCount(0);
-        await expect(page.locator('#openOperatorAppBtn')).toBeVisible();
-        await expect(page.locator('#opsTodaySummaryCard')).toBeVisible();
-        await expect(page.locator('#opsPendingSummaryCard')).toBeVisible();
-        await expect(page.locator('#opsAvailabilitySummaryCard')).toBeVisible();
-        await expect(
-            page.locator('#dashboardAdvancedAnalytics')
-        ).not.toHaveJSProperty('open', true);
+        ).toHaveClass(/active/);
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page.locator('#queueAppsHub')).toBeVisible();
+        await expect(page.locator('#queueSurfaceTruthPanel')).toBeVisible();
+        await expect(page.locator('#queueReleaseCommandDeck')).toBeVisible();
+        await expect(page.locator('#queueAppDownloadsCards')).toBeVisible();
         await expect(page.locator('#adminCommandPalette')).toHaveClass(
             /is-hidden/
         );
@@ -271,11 +272,11 @@ test.describe('Admin sony_v3 shell', () => {
         await page.keyboard.press('Control+K');
         await page.locator('#adminQuickCommand').fill('turnero');
         await page.keyboard.press('Enter');
-        await expect(page.locator('#callbacks')).toHaveClass(/active/);
-        await expect(page).not.toHaveURL(/#queue$/);
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page).toHaveURL(/#queue$/);
     });
 
-    test('conserva navegacion por atajos y workbench de citas', async ({
+    test('conserva navegacion por atajos y vuelve al control room del turnero', async ({
         page,
     }) => {
         await openAdminSonyV3(page);
@@ -289,5 +290,9 @@ test.describe('Admin sony_v3 shell', () => {
         await expect(page.locator('#appointmentsFocusPatient')).toContainText(
             'Ana Transfer'
         );
+
+        await page.keyboard.press('Alt+Shift+Digit1');
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page.locator('#pageTitle')).toHaveText('Turnero');
     });
 });

@@ -1,7 +1,7 @@
 'use strict';
 
 const { existsSync, readFileSync, readdirSync } = require('node:fs');
-const { relative, resolve } = require('node:path');
+const { dirname, relative, resolve } = require('node:path');
 
 const MERGE_CONFLICT_MARKER_PATTERN = /^(<{7,}.*|={7,}|>{7,}.*)$/m;
 const LEGACY_ROOT_RUNTIME_FILE_PATTERN = /(^|\/)[^/]+-engine\.js$/;
@@ -29,13 +29,23 @@ function parseModuleSpecifiers(source) {
     return specifiers;
 }
 
-function toChunkFilename(specifier) {
+function toChunkFilename(specifier, options = {}) {
     const cleanValue = String(specifier || '')
         .split('?')[0]
         .split('#')[0];
     if (!cleanValue) return '';
+    const chunkDirectorySegment = String(
+        options.chunkDirectorySegment || 'js/chunks'
+    )
+        .trim()
+        .replace(/\\/g, '/')
+        .replace(/^\.\//, '')
+        .replace(/^\/+/, '');
 
-    if (cleanValue.includes('js/chunks/')) {
+    if (
+        chunkDirectorySegment &&
+        cleanValue.includes(`${chunkDirectorySegment}/`)
+    ) {
         return cleanValue.slice(cleanValue.lastIndexOf('/') + 1);
     }
 
@@ -90,6 +100,11 @@ function collectReachablePublicChunks({ entryPath, chunksDir }) {
     const reachable = new Set();
     const pendingFiles = [entryPath];
     const visited = new Set();
+    const chunkDirectorySegment = relative(dirname(entryPath), chunksDir)
+        .replace(/\\/g, '/')
+        .replace(/^\.\//, '')
+        .replace(/^\/+/, '')
+        .replace(/\/+$/g, '');
 
     while (pendingFiles.length > 0) {
         const current = pendingFiles.shift();
@@ -103,7 +118,9 @@ function collectReachablePublicChunks({ entryPath, chunksDir }) {
         const specifiers = parseModuleSpecifiers(source);
 
         for (const specifier of specifiers) {
-            const chunkFilename = toChunkFilename(specifier);
+            const chunkFilename = toChunkFilename(specifier, {
+                chunkDirectorySegment,
+            });
             if (!chunkFilename || !chunkFilename.endsWith('.js')) {
                 continue;
             }
@@ -118,6 +135,218 @@ function collectReachablePublicChunks({ entryPath, chunksDir }) {
     }
 
     return reachable;
+}
+
+function readTextFileIfExists(filePath) {
+    return existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
+}
+
+function inspectPublishedAdminArtifacts(options = {}) {
+    const sourceRootPath = options.sourceRoot
+        ? resolve(options.sourceRoot)
+        : resolve(__dirname, '..', '..', '.generated', 'site-root');
+    const publishedRootPath = options.publishedRoot
+        ? resolve(options.publishedRoot)
+        : sourceRootPath;
+    const sourceEntryPath = resolve(sourceRootPath, 'admin.js');
+    const sourceChunksDir = resolve(sourceRootPath, 'js', 'admin-chunks');
+    const publishedEntryPath = resolve(publishedRootPath, 'admin.js');
+    const publishedChunksDir = resolve(publishedRootPath, 'js', 'admin-chunks');
+    const sameRoots = sourceRootPath === publishedRootPath;
+    const sourceEntryExists = existsSync(sourceEntryPath);
+    const sourceChunksDirExists = existsSync(sourceChunksDir);
+    const publishedEntryExists = existsSync(publishedEntryPath);
+    const publishedChunksDirExists = existsSync(publishedChunksDir);
+    const sourceAllChunks = sourceChunksDirExists
+        ? readdirSync(sourceChunksDir)
+              .filter((entry) => entry.endsWith('.js'))
+              .sort()
+        : [];
+    const publishedAllChunks = publishedChunksDirExists
+        ? readdirSync(publishedChunksDir)
+              .filter((entry) => entry.endsWith('.js'))
+              .sort()
+        : [];
+    const sourceReachableChunks =
+        sourceEntryExists && sourceChunksDirExists
+            ? Array.from(
+                  collectReachablePublicChunks({
+                      entryPath: sourceEntryPath,
+                      chunksDir: sourceChunksDir,
+                  })
+              ).sort()
+            : [];
+    const publishedReachableChunks =
+        publishedEntryExists && publishedChunksDirExists
+            ? Array.from(
+                  collectReachablePublicChunks({
+                      entryPath: publishedEntryPath,
+                      chunksDir: publishedChunksDir,
+                  })
+              ).sort()
+            : [];
+    const sourceMissingReferencedChunks = sourceReachableChunks.filter(
+        (chunkFilename) => !sourceAllChunks.includes(chunkFilename)
+    );
+    const publishedMissingReferencedChunks = publishedReachableChunks.filter(
+        (chunkFilename) => !publishedAllChunks.includes(chunkFilename)
+    );
+    const expectedActiveGraph = [
+        ...(sourceEntryExists ? ['admin.js'] : []),
+        ...sourceReachableChunks.map(
+            (chunkFilename) => `js/admin-chunks/${chunkFilename}`
+        ),
+    ];
+    const publishedActiveGraph = [
+        ...(publishedEntryExists ? ['admin.js'] : []),
+        ...publishedReachableChunks.map(
+            (chunkFilename) => `js/admin-chunks/${chunkFilename}`
+        ),
+    ];
+    const missingPublishedActivePaths = expectedActiveGraph.filter(
+        (relativePath) => !publishedActiveGraph.includes(relativePath)
+    );
+    const extraPublishedActivePaths = publishedActiveGraph.filter(
+        (relativePath) => !expectedActiveGraph.includes(relativePath)
+    );
+    const chunkContentDrift = sourceReachableChunks
+        .filter((chunkFilename) => publishedAllChunks.includes(chunkFilename))
+        .filter((chunkFilename) => {
+            const sourceChunkPath = resolve(sourceChunksDir, chunkFilename);
+            const publishedChunkPath = resolve(publishedChunksDir, chunkFilename);
+            return (
+                readTextFileIfExists(sourceChunkPath) !==
+                readTextFileIfExists(publishedChunkPath)
+            );
+        })
+        .map((chunkFilename) => `js/admin-chunks/${chunkFilename}`);
+    const diagnostics = [];
+
+    if (!sourceEntryExists) {
+        diagnostics.push({
+            code: 'admin_source_missing_entry',
+            message: `${toRepoRelativePath(sourceRootPath, sourceEntryPath)} no existe.`,
+        });
+    }
+
+    if (!sourceChunksDirExists) {
+        diagnostics.push({
+            code: 'admin_source_missing_chunks_dir',
+            message: `${toRepoRelativePath(sourceRootPath, sourceChunksDir)} no existe.`,
+        });
+    }
+
+    if (sourceEntryExists && sourceChunksDirExists && sourceReachableChunks.length === 0) {
+        diagnostics.push({
+            code: 'admin_source_no_reachable_chunks',
+            message: `${toRepoRelativePath(sourceRootPath, sourceEntryPath)} no referencia chunks admin alcanzables.`,
+        });
+    }
+
+    if (sourceMissingReferencedChunks.length > 0) {
+        diagnostics.push({
+            code: 'admin_source_missing_referenced_chunks',
+            message: `${toRepoRelativePath(sourceRootPath, sourceEntryPath)} referencia ${sourceMissingReferencedChunks.length} chunk(s) admin inexistentes en staged root.`,
+            chunks: sourceMissingReferencedChunks,
+        });
+    }
+
+    if (!publishedEntryExists) {
+        diagnostics.push({
+            code: 'published_admin_missing_entry',
+            message: `${toRepoRelativePath(publishedRootPath, publishedEntryPath)} no existe.`,
+        });
+    }
+
+    if (!publishedChunksDirExists) {
+        diagnostics.push({
+            code: 'published_admin_missing_chunks_dir',
+            message: `${toRepoRelativePath(publishedRootPath, publishedChunksDir)} no existe.`,
+        });
+    }
+
+    if (
+        publishedEntryExists &&
+        publishedChunksDirExists &&
+        publishedReachableChunks.length === 0
+    ) {
+        diagnostics.push({
+            code: 'published_admin_no_reachable_chunks',
+            message: `${toRepoRelativePath(publishedRootPath, publishedEntryPath)} no referencia chunks admin alcanzables.`,
+        });
+    }
+
+    if (publishedMissingReferencedChunks.length > 0) {
+        diagnostics.push({
+            code: 'published_admin_missing_referenced_chunks',
+            message: `${toRepoRelativePath(publishedRootPath, publishedEntryPath)} referencia ${publishedMissingReferencedChunks.length} chunk(s) admin inexistentes en repo root.`,
+            chunks: publishedMissingReferencedChunks,
+        });
+    }
+
+    if (
+        !sameRoots &&
+        sourceEntryExists &&
+        publishedEntryExists &&
+        readTextFileIfExists(sourceEntryPath) !==
+            readTextFileIfExists(publishedEntryPath)
+    ) {
+        diagnostics.push({
+            code: 'published_admin_entry_drift',
+            message: 'admin.js publicado en repo root no coincide con .generated/site-root/admin.js.',
+            expectedPath: toRepoRelativePath(sourceRootPath, sourceEntryPath),
+            publishedPath: toRepoRelativePath(
+                publishedRootPath,
+                publishedEntryPath
+            ),
+        });
+    }
+
+    if (
+        !sameRoots &&
+        (missingPublishedActivePaths.length > 0 ||
+            extraPublishedActivePaths.length > 0)
+    ) {
+        diagnostics.push({
+            code: 'published_admin_graph_drift',
+            message: 'El grafo activo de admin publicado en repo root no coincide con el staged root.',
+            missingPublishedActivePaths,
+            extraPublishedActivePaths,
+            expectedActiveGraph,
+            publishedActiveGraph,
+        });
+    }
+
+    if (!sameRoots && chunkContentDrift.length > 0) {
+        diagnostics.push({
+            code: 'published_admin_content_drift',
+            message: 'Hay chunks admin activos con contenido distinto entre staged root y repo root.',
+            files: chunkContentDrift,
+        });
+    }
+
+    return {
+        sourceRootPath,
+        publishedRootPath,
+        sameRoots,
+        sourceEntryExists,
+        sourceChunksDirExists,
+        publishedEntryExists,
+        publishedChunksDirExists,
+        sourceAllChunks,
+        publishedAllChunks,
+        sourceReachableChunks,
+        publishedReachableChunks,
+        sourceMissingReferencedChunks,
+        publishedMissingReferencedChunks,
+        expectedActiveGraph,
+        publishedActiveGraph,
+        missingPublishedActivePaths,
+        extraPublishedActivePaths,
+        chunkContentDrift,
+        diagnostics,
+        passed: diagnostics.length === 0,
+    };
 }
 
 function inspectPublicRuntimeArtifacts(options = {}) {
@@ -339,6 +568,7 @@ module.exports = {
     MERGE_CONFLICT_MARKER_PATTERN,
     collectReachablePublicChunks,
     collectReferencedEngineFiles,
+    inspectPublishedAdminArtifacts,
     inspectPublicRuntimeArtifacts,
     parseModuleSpecifiers,
     toChunkFilename,

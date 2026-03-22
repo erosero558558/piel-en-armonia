@@ -6,6 +6,7 @@ async function expectSonyV3Runtime(
     page,
     expectedPathname = '/admin.html',
     expectedSearch = '',
+    expectedHash = '#queue',
     expectedVariant = 'legacy'
 ) {
     await expect(page.locator('html')).toHaveAttribute(
@@ -24,12 +25,14 @@ async function expectSonyV3Runtime(
             page.evaluate(() => ({
                 pathname: window.location.pathname,
                 search: window.location.search,
+                hash: window.location.hash,
                 staleVariant: localStorage.getItem('adminUiVariant'),
             }))
         )
         .toEqual({
             pathname: expectedPathname,
             search: expectedSearch,
+            hash: expectedHash,
             staleVariant: expectedVariant,
         });
 }
@@ -54,10 +57,27 @@ test.describe('Admin UI runtime smoke', () => {
         ];
 
         for (const url of legacyUrls) {
+            const rawResponse = await request.get(url);
+            expect(rawResponse.ok()).toBeTruthy();
+            const rawHtml = await rawResponse.text();
+            expect(rawHtml).toContain('Consola de control del turnero');
+            expect(rawHtml).toContain('data-admin-entrypoint="queue"');
+            expect(rawHtml).toContain('id="queueSurfaceTruthPanel"');
+            expect(rawHtml).toContain('Manifest source: pending hydration');
+            expect(rawHtml).toContain('Resolved URL: /release-manifest.json');
+
             await page.goto(url);
             const expectedSearch = new URL(url, 'https://pielarmonia.test')
                 .search;
-            await expectSonyV3Runtime(page, '/admin.html', expectedSearch);
+            await expectSonyV3Runtime(
+                page,
+                '/admin.html',
+                expectedSearch,
+                '#queue'
+            );
+            await expect(page.locator('#queue')).toHaveClass(/active/);
+            await expect(page.locator('#queueSurfaceTruthPanel')).toHaveCount(1);
+            await expect(page.locator('#queueReleaseCommandDeck')).toHaveCount(1);
         }
     });
 

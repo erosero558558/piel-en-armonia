@@ -48,6 +48,6 @@ test('parseQuickCommand mantiene los atajos operativos previos', async () => {
 
     assert.equal(parseQuickCommand('agenda'), 'appointments_overview');
     assert.equal(parseQuickCommand('callbacks sla'), 'callbacks_sla_urgent');
-    assert.equal(parseQuickCommand('turnero'), 'queue_sla_risk');
-    assert.equal(parseQuickCommand('cola en vivo'), 'queue_sla_risk');
+    assert.equal(parseQuickCommand('turnero'), 'queue_section');
+    assert.equal(parseQuickCommand('cola en vivo'), 'queue_section');
 });

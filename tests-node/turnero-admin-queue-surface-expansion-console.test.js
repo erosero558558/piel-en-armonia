@@ -202,7 +202,7 @@ class FakeElement {
         if (normalizedSelector.includes('[data-role="brief"]')) {
             tagName = 'pre';
         } else if (normalizedSelector.includes('[data-field="')) {
-            tagName = normalizedSelector.includes('textarea') ? 'textarea' : 'input';
+            tagName = 'input';
         } else if (
             normalizedSelector.includes('form[data-action]') ||
             normalizedSelector.includes('[data-action="')
@@ -312,10 +312,10 @@ function createDocumentStub(host, downloadClicks, downloadEvents) {
 
 function buildConsoleInput() {
     const clinicProfile = buildClinicProfile({
-        clinic_id: 'clinica-console',
+        clinic_id: 'clinica-expansion',
         branding: {
-            name: 'Clinica Console',
-            short_name: 'Console',
+            name: 'Clinica Expansion',
+            short_name: 'Expansion',
             city: 'Quito',
         },
         region: 'sierra',
@@ -336,8 +336,8 @@ function buildConsoleInput() {
         clinicProfile,
         scope: 'regional',
         releaseManifest: {
-            id: 'release-console',
-            version: '2026.03.20',
+            id: 'release-expansion',
+            version: '2026.03.21',
         },
         surfaceRegistry: {
             operator: {
@@ -355,30 +355,33 @@ function buildConsoleInput() {
                 surfaceKey: 'operator-turnos',
                 runtimeState: 'ready',
                 truth: 'watch',
-                packageTier: 'pilot-plus',
-                bundleState: 'watch',
-                provisioningState: 'watch',
-                onboardingKitState: 'draft',
+                opportunityState: 'watch',
+                demandSignal: 'medium',
+                gapState: 'triage-plus',
+                expansionOwner: 'ops-lead',
+                nextModuleHint: 'historia-clinica-lite',
                 checklist: { summary: { all: 4, pass: 3, fail: 1 } },
             },
             {
                 surfaceKey: 'kiosco-turnos',
                 runtimeState: 'ready',
                 truth: 'watch',
-                packageTier: 'pilot',
-                bundleState: 'draft',
-                provisioningState: 'watch',
-                onboardingKitState: 'draft',
+                opportunityState: 'watch',
+                demandSignal: 'low',
+                gapState: 'self-checkin',
+                expansionOwner: '',
+                nextModuleHint: '',
                 checklist: { summary: { all: 4, pass: 2, fail: 2 } },
             },
             {
                 surfaceKey: 'sala-turnos',
                 runtimeState: 'ready',
                 truth: 'aligned',
-                packageTier: 'pilot-plus',
-                bundleState: 'ready',
-                provisioningState: 'watch',
-                onboardingKitState: 'draft',
+                opportunityState: 'ready',
+                demandSignal: 'medium',
+                gapState: 'voice-announcer',
+                expansionOwner: 'ops-display',
+                nextModuleHint: 'analytics-board',
                 checklist: { summary: { all: 4, pass: 3, fail: 1 } },
             },
         ],
@@ -402,19 +405,19 @@ function setFieldValue(form, selector, value) {
     form.querySelector(selector).value = value;
 }
 
-test('console html renders package surfaces and actions', async () => {
+test('console html renders expansion surfaces and actions', async () => {
     const module = await loadModule(
-        'src/apps/queue-shared/turnero-admin-queue-surface-package-console.js'
+        'src/apps/queue-shared/turnero-admin-queue-surface-expansion-console.js'
     );
 
-    const html = module.buildTurneroAdminQueueSurfacePackageConsoleHtml(
+    const html = module.buildTurneroAdminQueueSurfaceExpansionConsoleHtml(
         buildConsoleInput()
     );
 
-    assert.match(html, /Surface Package Standardization/);
+    assert.match(html, /Surface Expansion Upsell/);
     assert.match(html, /Copy brief/);
     assert.match(html, /Download JSON/);
-    assert.match(html, /Add entry/);
+    assert.match(html, /Add expansion item/);
     assert.match(html, /Add owner/);
     assert.match(html, /Turnero Operador/);
     assert.match(html, /Turnero Kiosco/);
@@ -423,18 +426,18 @@ test('console html renders package surfaces and actions', async () => {
     assert.match(html, /data-role="chips"/);
 });
 
-test('mount wires copy/download plus add-entry and add-owner flows', async () => {
+test('mount wires copy/download plus add-ledger and add-owner flows', async () => {
     const clipboardTexts = [];
     const downloadClicks = [];
     const downloadEvents = [];
     const consoleInput = buildConsoleInput();
     const ledgerModule = await loadModule(
-        'src/apps/queue-shared/turnero-surface-package-ledger.js'
+        'src/apps/queue-shared/turnero-surface-expansion-ledger.js'
     );
     const ownerModule = await loadModule(
-        'src/apps/queue-shared/turnero-surface-package-owner-store.js'
+        'src/apps/queue-shared/turnero-surface-expansion-owner-store.js'
     );
-    const host = new FakeElement('div', 'queueSurfacePackageConsoleHost');
+    const host = new FakeElement('div', 'queueSurfaceExpansionConsoleHost');
 
     await withGlobals(
         {
@@ -457,7 +460,7 @@ test('mount wires copy/download plus add-entry and add-owner flows', async () =>
             URL: {
                 createObjectURL(blob) {
                     downloadEvents.push({ kind: 'url', blob });
-                    return 'blob:turnero-surface-package-console';
+                    return 'blob:turnero-surface-expansion-console';
                 },
                 revokeObjectURL(href) {
                     downloadEvents.push({ kind: 'revoke', href });
@@ -471,35 +474,31 @@ test('mount wires copy/download plus add-entry and add-owner flows', async () =>
         },
         async () => {
             const module = await loadModule(
-                'src/apps/queue-shared/turnero-admin-queue-surface-package-console.js'
+                'src/apps/queue-shared/turnero-admin-queue-surface-expansion-console.js'
             );
 
-            const result = module.mountTurneroAdminQueueSurfacePackageConsole(
+            const result = module.mountTurneroAdminQueueSurfaceExpansionConsole(
                 host,
                 consoleInput
             );
 
             assert.ok(result);
             assert.equal(result.root, host.children[0]);
-            assert.equal(host.children[0], result.root);
             assert.equal(
-                result.root.dataset.turneroAdminQueueSurfacePackageConsole,
+                result.root.dataset.turneroAdminQueueSurfaceExpansionConsole,
                 'mounted'
             );
             assert.equal(
-                result.root.dataset.turneroAdminQueueSurfacePackageScope,
+                result.root.dataset.turneroAdminQueueSurfaceExpansionScope,
                 'regional'
             );
             assert.equal(result.state.surfacePacks.length, 3);
-            assert.match(result.root.innerHTML, /Surface Package Standardization/);
-            assert.match(result.root.innerHTML, /Add entry/);
+            assert.match(result.root.innerHTML, /Surface Expansion Upsell/);
+            assert.match(result.root.innerHTML, /Add expansion item/);
             assert.match(result.root.innerHTML, /Add owner/);
 
             const overviewBanner = result.root.querySelector('[data-role="banner"]');
-            assert.match(
-                overviewBanner.innerHTML,
-                /Surface Package Standardization/
-            );
+            assert.match(overviewBanner.innerHTML, /Surface Expansion Upsell/);
 
             const operatorCard = result.root.querySelector(
                 '[data-surface-key="operator"]'
@@ -543,11 +542,11 @@ test('mount wires copy/download plus add-entry and add-owner flows', async () =>
             });
 
             assert.equal(clipboardTexts.length, 1);
-            assert.match(clipboardTexts[0], /# Surface Package Standardization/);
+            assert.match(clipboardTexts[0], /# Surface Expansion Upsell/);
             assert.equal(downloadClicks.length, 1);
             assert.equal(
                 downloadClicks[0].download,
-                'turnero-surface-package-console.json'
+                'turnero-surface-expansion-console.json'
             );
             assert.ok(downloadEvents.some((event) => event.kind === 'blob'));
             assert.ok(downloadEvents.some((event) => event.kind === 'url'));
@@ -557,14 +556,14 @@ test('mount wires copy/download plus add-entry and add-owner flows', async () =>
 
             const entryForm = createActionForm('add-entry');
             setFieldValue(entryForm, '[data-field="entry-surface-key"]', 'kiosk');
-            setFieldValue(entryForm, '[data-field="entry-kind"]', 'bundle');
+            setFieldValue(entryForm, '[data-field="entry-kind"]', 'pilot-addon');
             setFieldValue(entryForm, '[data-field="entry-status"]', 'ready');
             setFieldValue(entryForm, '[data-field="entry-owner"]', 'ops');
-            setFieldValue(entryForm, '[data-field="entry-title"]', 'Kiosk bundle');
+            setFieldValue(entryForm, '[data-field="entry-title"]', 'Kiosk addon');
             setFieldValue(
                 entryForm,
                 '[data-field="entry-note"]',
-                'Bundle listo para kiosko.'
+                'Addon visible para kiosko.'
             );
 
             submitHandler({
@@ -573,34 +572,28 @@ test('mount wires copy/download plus add-entry and add-owner flows', async () =>
             });
 
             const freshLedgerStore =
-                ledgerModule.createTurneroSurfacePackageLedger(
+                ledgerModule.createTurneroSurfaceExpansionLedger(
                     'regional',
                     consoleInput.clinicProfile
                 );
-            const freshOwnerStore =
-                ownerModule.createTurneroSurfacePackageOwnerStore(
-                    'regional',
-                    consoleInput.clinicProfile
-                );
-
             assert.equal(
                 freshLedgerStore.list({ surfaceKey: 'kiosk' }).length,
                 1
             );
             assert.equal(
                 freshLedgerStore.list({ surfaceKey: 'kiosk' })[0].title,
-                'Kiosk bundle'
+                'Kiosk addon'
             );
 
             const ownerForm = createActionForm('add-owner');
             setFieldValue(ownerForm, '[data-field="owner-surface-key"]', 'kiosk');
             setFieldValue(ownerForm, '[data-field="owner-actor"]', 'carla');
-            setFieldValue(ownerForm, '[data-field="owner-role"]', 'package');
+            setFieldValue(ownerForm, '[data-field="owner-role"]', 'expansion');
             setFieldValue(ownerForm, '[data-field="owner-status"]', 'active');
             setFieldValue(
                 ownerForm,
                 '[data-field="owner-note"]',
-                'Primary package owner.'
+                'Primary expansion owner.'
             );
 
             submitHandler({
@@ -608,6 +601,11 @@ test('mount wires copy/download plus add-entry and add-owner flows', async () =>
                 target: ownerForm,
             });
 
+            const freshOwnerStore =
+                ownerModule.createTurneroSurfaceExpansionOwnerStore(
+                    'regional',
+                    consoleInput.clinicProfile
+                );
             assert.equal(
                 freshOwnerStore.list({ surfaceKey: 'kiosk' }).length,
                 1
