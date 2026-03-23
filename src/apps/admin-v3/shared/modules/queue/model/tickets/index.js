@@ -1,3 +1,3 @@
-export { buildTicketsFromMeta } from './build.js';
+export { buildTicketsFromMeta, overlayActiveHelpRequests } from './build.js';
 export { extractTicketsFromPayload } from './extract.js';
 export { ticketIdentity } from './identity.js';

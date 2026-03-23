@@ -3628,7 +3628,7 @@ test.describe('Admin turnero sala', () => {
         await page.locator('#queueAttentionPrimary_c1').click();
 
         await expect(page.locator('#queueAttentionPrimary_c1')).toContainText(
-            'Abrir Operador C1'
+            'Abrir Operador Consultorio 1'
         );
         await expect(
             page.locator('#queueAttentionRecommendation_c1')
@@ -3880,7 +3880,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(page.locator('#queueSensitiveConfirmDialog')).toBeHidden();
         await expect(page.locator('#queueResolutionPending')).toContainText(
-            'marcar no show A-1221 en C1'
+            'marcar no show A-1221 en Consultorio 1'
         );
 
         await page.locator('#queueResolutionPendingConfirm').click();
@@ -4096,7 +4096,7 @@ test.describe('Admin turnero sala', () => {
             'cola general'
         );
         await expect(page.locator('#queueTicketLookupPrimary')).toContainText(
-            'Asignar a C2'
+            'Asignar a Consultorio 2'
         );
 
         await page.locator('#queueTicketLookupPrimary').click();
@@ -4123,7 +4123,7 @@ test.describe('Admin turnero sala', () => {
             )
             .toBe('called');
         await expect(page.locator('#queueTicketLookupBadge')).toContainText(
-            'En atención C2'
+            'En atención Consultorio 2'
         );
         await expect(page.locator('#queueTicketLookupPrimary')).toContainText(
             'Completar A-1228'
@@ -4267,7 +4267,9 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueTicketRouteTitle')).toContainText(
             'Ruta de A-1232'
         );
-        await expect(page.locator('#queueTicketRouteLane')).toContainText('C1');
+        await expect(page.locator('#queueTicketRouteLane')).toContainText(
+            'Consultorio 1'
+        );
         await expect(page.locator('#queueTicketRoutePosition')).toContainText(
             '1 paso'
         );

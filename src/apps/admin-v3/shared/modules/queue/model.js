@@ -8,5 +8,6 @@ export {
 export {
     buildTicketsFromMeta,
     extractTicketsFromPayload,
+    overlayActiveHelpRequests,
     ticketIdentity,
 } from './model/tickets.js';

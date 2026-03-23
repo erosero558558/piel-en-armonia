@@ -1,5 +1,6 @@
 import { escapeHtml, formatDateTime, setHtml } from '../../../../ui/render.js';
 import { asArray } from '../../helpers.js';
+import { overlayActiveHelpRequests } from '../../model.js';
 import { queueRow } from '../rows.js';
 
 function helpRequestStatusLabel(status) {
@@ -699,11 +700,12 @@ function renderReceptionGuidanceItem(request) {
     `;
 }
 
-export function renderQueueTableBody(visible) {
+export function renderQueueTableBody(visible, queueMeta = null) {
+    const renderedTickets = overlayActiveHelpRequests(visible, queueMeta);
     setHtml(
         '#queueTableBody',
-        visible.length
-            ? visible.map(queueRow).join('')
+        renderedTickets.length
+            ? renderedTickets.map(queueRow).join('')
             : '<tr><td colspan="7">No hay tickets para filtro</td></tr>'
     );
 }

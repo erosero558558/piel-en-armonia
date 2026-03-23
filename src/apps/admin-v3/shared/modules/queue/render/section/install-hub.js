@@ -494,7 +494,8 @@ function loadStoredQueueAdminViewMode() {
 function ensureQueueAdminViewMode() {
     const activeClinicId = getActiveQueueOpsClinicId();
     if (!queueAdminViewMode || queueAdminViewModeClinicId !== activeClinicId) {
-        queueAdminViewMode = loadStoredQueueAdminViewMode();
+        const stored = loadStoredQueueAdminViewMode();
+        queueAdminViewMode = stored || 'basic';
         queueAdminViewModeClinicId = activeClinicId;
     }
     return queueAdminViewMode;
@@ -6065,11 +6066,20 @@ function setQueueHubPanelAdminLevel(panelId, level) {
 }
 
 function syncQueueHubPanelAdminLevels() {
-    QUEUE_ADMIN_BASIC_PANEL_IDS.forEach((panelId) => {
-        setQueueHubPanelAdminLevel(panelId, 'basic');
-    });
-    QUEUE_ADMIN_EXPERT_PANEL_IDS.forEach((panelId) => {
-        setQueueHubPanelAdminLevel(panelId, 'expert');
+    const hub = getQueueAppsHubRoot();
+    if (!hub) return;
+
+    // Determine level based on data attributes: basic if has data-queue-basic-match, else expert if has data-focus-match.
+    const panels = hub.querySelectorAll('[id^="queue"]');
+    panels.forEach((panel) => {
+        const panelId = panel.id;
+        if (!panelId) return;
+        if (panel.hasAttribute('data-queue-basic-match')) {
+            setQueueHubPanelAdminLevel(panelId, 'basic');
+        } else if (panel.hasAttribute('data-focus-match')) {
+            setQueueHubPanelAdminLevel(panelId, 'expert');
+        }
+        // else leave as is (no level)
     });
 }
 

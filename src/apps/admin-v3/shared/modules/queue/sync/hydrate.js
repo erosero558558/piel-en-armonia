@@ -1,4 +1,5 @@
 import { getState } from '../../../core/store.js';
+import { loadLocalAdminFallback } from '../../data/local.js';
 import { setQueueStateWithTickets } from '../state.js';
 import {
     applyQueueMetaFallback,
@@ -15,6 +16,18 @@ export async function hydrateQueueFromData() {
 
     if (tickets.length) {
         setQueueStateWithTickets(tickets, metaFromData || null, {
+            fallbackPartial: false,
+            syncMode: 'live',
+        });
+        return;
+    }
+
+    const localFallback = loadLocalAdminFallback();
+    const cachedTickets = Array.isArray(localFallback?.queueTickets)
+        ? localFallback.queueTickets
+        : [];
+    if (cachedTickets.length) {
+        setQueueStateWithTickets(cachedTickets, localFallback.queueMeta || null, {
             fallbackPartial: false,
             syncMode: 'live',
         });

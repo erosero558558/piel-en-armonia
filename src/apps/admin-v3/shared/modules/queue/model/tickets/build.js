@@ -58,6 +58,16 @@ function mergeActiveHelpRequest(ticket, activeHelpRequests) {
     };
 }
 
+export function overlayActiveHelpRequests(tickets, queueMeta) {
+    const meta = normalizeQueueMeta(queueMeta, asArray(tickets));
+    return asArray(tickets).map((ticket, index) =>
+        normalizeTicket(
+            mergeActiveHelpRequest(ticket, meta.activeHelpRequests),
+            index
+        )
+    );
+}
+
 function mergeMetaTicket(byIdentity, ticket) {
     if (!ticket) return;
 

@@ -36,7 +36,7 @@ export function renderQueueSection(appendActivity = () => {}) {
 
     renderQueueInstallHub();
     setQueueNowMeta(queueMeta, appendActivity);
-    renderQueueTableBody(visible);
+    renderQueueTableBody(visible, queueMeta);
     renderQueueNextAdminList(queueMeta, state.queue.fallbackPartial);
     renderQueueReceptionGuidance(queueMeta);
     renderQueueRecentResolutions(queueMeta);
