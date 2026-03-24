@@ -41,6 +41,7 @@ const DEPLOY_BUNDLE_RELATIVE = '_deploy_bundle';
 const LOCAL_ARTIFACT_PATHS = LOCAL_ARTIFACT_TARGETS.map((target) =>
     normalizeRelativePath(target.path)
 );
+const LOCAL_CONTROL_PLANE_PATHS = ['.codex-worktrees'];
 const LEGACY_GENERATED_ROOT_CONTRACT_PATHS = [
     ...LEGACY_GENERATED_ROOT_DIRECTORIES,
     ...LEGACY_GENERATED_ROOT_FILES,
@@ -408,10 +409,16 @@ function isDeployBundlePath(pathValue) {
 
 function isLocalArtifactPath(pathValue) {
     const normalized = normalizeRelativePath(pathValue).toLowerCase();
-    return LOCAL_ARTIFACT_PATHS.some((targetPath) => {
-        const target = targetPath.toLowerCase();
-        return normalized === target || normalized.startsWith(`${target}/`);
-    });
+    return (
+        LOCAL_ARTIFACT_PATHS.some((targetPath) => {
+            const target = targetPath.toLowerCase();
+            return normalized === target || normalized.startsWith(`${target}/`);
+        }) ||
+        LOCAL_CONTROL_PLANE_PATHS.some((targetPath) => {
+            const target = targetPath.toLowerCase();
+            return normalized === target || normalized.startsWith(`${target}/`);
+        })
+    );
 }
 
 function classifyDirtyPath(pathValue) {
@@ -1020,7 +1027,9 @@ function isSupportDocPath(pathValue) {
     const normalized = normalizeRelativePath(pathValue).toLowerCase();
     return (
         normalized === 'readme.md' ||
-        (normalized.startsWith('docs/') && normalized.endsWith('.md'))
+        (normalized.startsWith('docs/') && normalized.endsWith('.md')) ||
+        (normalized.startsWith('verification/agent-runs/') &&
+            normalized.endsWith('.md'))
     );
 }
 

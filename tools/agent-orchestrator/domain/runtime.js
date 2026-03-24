@@ -153,6 +153,25 @@ function normalizeOptionalToken(value) {
         .toLowerCase();
 }
 
+function normalizeRuntimeProvider(value, fallback = PILOT_RUNTIME_PROVIDER) {
+    const provider = normalizeOptionalToken(value);
+    if (!provider) return fallback;
+    if (provider === OPENCLAW_PROVIDER) {
+        return OPERATOR_AUTH_CANONICAL_PROVIDER;
+    }
+    if (provider === OPERATOR_AUTH_CANONICAL_PROVIDER) {
+        return OPERATOR_AUTH_CANONICAL_PROVIDER;
+    }
+    if (provider === PILOT_RUNTIME_PROVIDER) {
+        return PILOT_RUNTIME_PROVIDER;
+    }
+    return provider;
+}
+
+function isLegacyRuntimeProviderAlias(value) {
+    return normalizeOptionalToken(value) === OPENCLAW_PROVIDER;
+}
+
 function resolveRuntimeBaseUrl(options = {}) {
     const env = options.env || process.env;
     const governancePolicy = options.governancePolicy || {};
@@ -963,6 +982,16 @@ function summarizeRuntimeHealth(surfaces = []) {
 }
 
 async function verifyOpenClawRuntime(options = {}) {
+    const requestedProvider = normalizeOptionalToken(
+        options.provider || PILOT_RUNTIME_PROVIDER
+    );
+    const normalizedProvider = normalizeRuntimeProvider(
+        requestedProvider,
+        PILOT_RUNTIME_PROVIDER
+    );
+    const legacyAliasUsed =
+        requestedProvider === OPENCLAW_PROVIDER &&
+        normalizedProvider === OPERATOR_AUTH_CANONICAL_PROVIDER;
     const surfaces = await Promise.all([
         verifyFigoQueue(options),
         verifyLeadOpsWorker(options),
@@ -976,7 +1005,10 @@ async function verifyOpenClawRuntime(options = {}) {
     );
     const cliHelperConfigured = existsSync(helperPath);
     return {
-        provider: String(options.provider || PILOT_RUNTIME_PROVIDER).trim(),
+        provider: normalizedProvider,
+        requested_provider: requestedProvider,
+        normalized_provider: normalizedProvider,
+        legacy_alias_used: legacyAliasUsed,
         ok: summary.blocking_surfaces.length === 0,
         summary,
         overall_state: summary.state,
@@ -1103,6 +1135,23 @@ async function invokeOpenClawRuntime(task, options = {}) {
     const runtimeSurface = normalizeSurface(task?.runtime_surface);
     const runtimeTransport = normalizeTransport(task?.runtime_transport);
     const providerMode = normalizeOptionalToken(task?.provider_mode);
+    const normalizedProviderMode = normalizeRuntimeProvider(
+        providerMode,
+        OPERATOR_AUTH_CANONICAL_PROVIDER
+    );
+    const effectiveProviderMode =
+        providerMode || OPERATOR_AUTH_CANONICAL_PROVIDER;
+    const legacyAliasUsed =
+        providerMode === OPENCLAW_PROVIDER &&
+        normalizedProviderMode === OPERATOR_AUTH_CANONICAL_PROVIDER;
+    const decorateInvokeResult = (result) => {
+        if (!result || typeof result !== 'object') return result;
+        result.provider = effectiveProviderMode;
+        result.requested_provider = providerMode || '';
+        result.normalized_provider = normalizedProviderMode;
+        result.legacy_alias_used = legacyAliasUsed;
+        return result;
+    };
     if (runtimeSurface === 'operator_auth') {
         if (
             providerMode !== OPENCLAW_PROVIDER &&
@@ -1114,26 +1163,30 @@ async function invokeOpenClawRuntime(task, options = {}) {
             error.code = 'invalid_provider_mode';
             throw error;
         }
-        return normalizeInvokeResult(
+        return decorateInvokeResult(
+            normalizeInvokeResult(
             {
                 ok: false,
                 mode: 'failed',
-                provider: providerMode || OPERATOR_AUTH_CANONICAL_PROVIDER,
+                provider: effectiveProviderMode,
                 runtime_surface: runtimeSurface,
                 runtime_transport: runtimeTransport,
                 errorCode: 'invoke_unsupported_surface',
                 error: 'operator_auth es una superficie verificable, no invocable',
             },
             {
-                provider: providerMode || OPERATOR_AUTH_CANONICAL_PROVIDER,
+                provider: effectiveProviderMode,
                 runtime_surface: runtimeSurface,
                 runtime_transport: runtimeTransport,
             }
-        );
+        ));
     }
-    if (providerMode !== OPENCLAW_PROVIDER) {
+    if (
+        providerMode !== OPENCLAW_PROVIDER &&
+        providerMode !== OPERATOR_AUTH_CANONICAL_PROVIDER
+    ) {
         const error = new Error(
-            'runtime invoke requiere provider_mode=openclaw_chatgpt'
+            'runtime invoke requiere provider_mode=google_oauth|openclaw_chatgpt'
         );
         error.code = 'invalid_provider_mode';
         throw error;
@@ -1172,7 +1225,7 @@ async function invokeOpenClawRuntime(task, options = {}) {
             } else {
                 result.runtime_transport = 'http_bridge';
                 result.diagnostics = diagnostics;
-                return result;
+                return decorateInvokeResult(result);
             }
         } catch (error) {
             diagnostics.push({
@@ -1180,11 +1233,12 @@ async function invokeOpenClawRuntime(task, options = {}) {
                 error: String(error?.message || error),
             });
             if (runtimeTransport === 'http_bridge') {
-                return normalizeInvokeResult(
+                return decorateInvokeResult(
+                    normalizeInvokeResult(
                     {
                         ok: false,
                         mode: 'failed',
-                        provider: OPENCLAW_PROVIDER,
+                        provider: effectiveProviderMode,
                         runtime_surface: runtimeSurface,
                         runtime_transport: 'http_bridge',
                         errorCode: 'http_bridge_failed',
@@ -1192,11 +1246,11 @@ async function invokeOpenClawRuntime(task, options = {}) {
                         diagnostics,
                     },
                     {
-                        provider: OPENCLAW_PROVIDER,
+                        provider: effectiveProviderMode,
                         runtime_surface: runtimeSurface,
                         runtime_transport: 'http_bridge',
                     }
-                );
+                ));
             }
         }
     }
@@ -1205,17 +1259,18 @@ async function invokeOpenClawRuntime(task, options = {}) {
         const result = invokeViaCliHelper(task, options);
         result.runtime_transport = 'cli_helper';
         result.diagnostics = diagnostics;
-        return result;
+        return decorateInvokeResult(result);
     } catch (error) {
         diagnostics.push({
             transport: 'cli_helper',
             error: String(error?.message || error),
         });
-        return normalizeInvokeResult(
+        return decorateInvokeResult(
+            normalizeInvokeResult(
             {
                 ok: false,
                 mode: 'failed',
-                provider: OPENCLAW_PROVIDER,
+                provider: effectiveProviderMode,
                 runtime_surface: runtimeSurface,
                 runtime_transport: 'cli_helper',
                 errorCode: 'cli_helper_failed',
@@ -1223,11 +1278,11 @@ async function invokeOpenClawRuntime(task, options = {}) {
                 diagnostics,
             },
             {
-                provider: OPENCLAW_PROVIDER,
+                provider: effectiveProviderMode,
                 runtime_surface: runtimeSurface,
                 runtime_transport: 'cli_helper',
             }
-        );
+        ));
     }
 }
 

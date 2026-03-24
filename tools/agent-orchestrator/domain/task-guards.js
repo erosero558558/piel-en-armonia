@@ -28,6 +28,8 @@ const DEFAULT_ALLOWED_PROVIDER_MODES = new Set([
     'openclaw_chatgpt',
     'google_oauth',
 ]);
+const LEGACY_RUNTIME_PROVIDER_ALIAS = 'openclaw_chatgpt';
+const CANONICAL_RUNTIME_PROVIDER = 'google_oauth';
 const DEFAULT_ALLOWED_RUNTIME_SURFACES = new Set([
     'figo_queue',
     'leadops_worker',
@@ -82,6 +84,9 @@ const DEFAULT_DUAL_CODEX_OWNERSHIP = {
         'tests-node/orchestrator/**',
         'tests-node/publish-checkpoint-command.test.js',
         'tools/agent-orchestrator/**',
+        'bin/clean-local-artifacts.js',
+        'bin/workspace-hygiene.js',
+        'bin/lib/workspace-hygiene.js',
         'bin/validate-agent-governance.php',
         'figo-ai-bridge.php',
         'check-ai-response.php',
@@ -159,9 +164,15 @@ function mapLaneToCodexInstance(domainLane) {
 }
 
 function expectedProviderModeForSurface(runtimeSurface) {
-    return normalizeOptionalToken(runtimeSurface) === 'operator_auth'
-        ? 'google_oauth'
-        : 'openclaw_chatgpt';
+    return CANONICAL_RUNTIME_PROVIDER;
+}
+
+function isCompatibleRuntimeProviderMode(providerMode) {
+    const normalized = normalizeOptionalToken(providerMode);
+    return (
+        normalized === CANONICAL_RUNTIME_PROVIDER ||
+        normalized === LEGACY_RUNTIME_PROVIDER_ALIAS
+    );
 }
 
 function isOpenClawRuntimeTask(task) {
@@ -172,7 +183,8 @@ function isOpenClawRuntimeTask(task) {
         task?.runtime_last_transport
     );
     return Boolean(
-        providerMode === 'openclaw_chatgpt' ||
+        providerMode === LEGACY_RUNTIME_PROVIDER_ALIAS ||
+        providerMode === CANONICAL_RUNTIME_PROVIDER ||
         runtimeSurface ||
         runtimeTransport ||
         runtimeLastTransport
@@ -767,9 +779,9 @@ function validateTaskDualCodexGuard(board, task, options = {}) {
         const expectedProviderMode = expectedProviderModeForSurface(
             runtimeSurface
         );
-        if (providerMode !== expectedProviderMode) {
+        if (!isCompatibleRuntimeProviderMode(providerMode)) {
             throw new Error(
-                `task ${taskId || '(sin id)'}: runtime ${runtimeSurface || 'surface'} requiere provider_mode=${expectedProviderMode}`
+                `task ${taskId || '(sin id)'}: runtime ${runtimeSurface || 'surface'} requiere provider_mode=${expectedProviderMode} (openclaw_chatgpt solo alias legado)`
             );
         }
         if (domainLane !== 'transversal_runtime') {
@@ -784,12 +796,12 @@ function validateTaskDualCodexGuard(board, task, options = {}) {
         }
         if (!runtimeSurface) {
             throw new Error(
-                `task ${taskId || '(sin id)'}: provider_mode=openclaw_chatgpt requiere runtime_surface`
+                `task ${taskId || '(sin id)'}: runtime OpenClaw requiere runtime_surface`
             );
         }
         if (!runtimeTransport) {
             throw new Error(
-                `task ${taskId || '(sin id)'}: provider_mode=openclaw_chatgpt requiere runtime_transport`
+                `task ${taskId || '(sin id)'}: runtime OpenClaw requiere runtime_transport`
             );
         }
     }

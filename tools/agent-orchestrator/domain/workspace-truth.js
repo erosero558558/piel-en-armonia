@@ -31,10 +31,75 @@ const FUNCTIONAL_TASK_IGNORED_FIELDS = new Set([
     'lease_cleared_reason',
 ]);
 
+const ARCHIVED_HISTORICAL_WORKTREE_BASENAMES = new Set([
+    '_codex_public_v6_r10_20260309_191245',
+    'kimiCode-main-publish',
+    'kimiCode-main-sync',
+    'kimiCode-release',
+    'kimiCode_frontend_push',
+]);
+const ARCHIVED_PARKING_WORKTREE_REGEX = /^codex-v67-.*-parking$/i;
+
 function normalizePathValue(value) {
     return String(value || '')
         .trim()
         .replace(/\\/g, '/');
+}
+
+function getPathBasename(value) {
+    const safePath = normalizePathValue(value);
+    if (!safePath) return '';
+    const segments = safePath.split('/').filter(Boolean);
+    return segments.length > 0 ? segments[segments.length - 1] : '';
+}
+
+function sumCountMaps(rows = [], fieldName) {
+    const counts = {};
+    for (const row of rows) {
+        const map = row && typeof row[fieldName] === 'object' ? row[fieldName] : {};
+        for (const [key, value] of Object.entries(map)) {
+            const numeric = Number(value || 0);
+            if (!Number.isFinite(numeric) || numeric <= 0) {
+                continue;
+            }
+            counts[key] = Number(counts[key] || 0) + numeric;
+        }
+    }
+    return counts;
+}
+
+function summarizeWorkspaceRows(rows = []) {
+    return {
+        total_worktrees: rows.length,
+        dirty_worktrees: rows.filter((row) => Number(row?.dirty_total || 0) > 0)
+            .length,
+        blocked_worktrees: rows.filter(
+            (row) =>
+                String(row?.overall_state || '').trim() === DOCTOR_STATE_BLOCKED
+        ).length,
+        attention_worktrees: rows.filter(
+            (row) =>
+                String(row?.overall_state || '').trim() === DOCTOR_STATE_ATTENTION
+        ).length,
+        fixable_worktrees: rows.filter(
+            (row) =>
+                String(row?.overall_state || '').trim() === DOCTOR_STATE_FIXABLE
+        ).length,
+        clean_worktrees: rows.filter(
+            (row) =>
+                String(row?.overall_state || '').trim() === DOCTOR_STATE_CLEAN
+        ).length,
+        error_worktrees: rows.filter(
+            (row) =>
+                String(row?.overall_state || '').trim() === DOCTOR_STATE_ERROR
+        ).length,
+        issue_totals: {
+            byCategory: sumCountMaps(rows, 'issue_counts'),
+            byScopeDisposition: sumCountMaps(rows, 'scope_counts'),
+            byStrategyDisposition: sumCountMaps(rows, 'strategy_counts'),
+            byLaneDisposition: sumCountMaps(rows, 'lane_counts'),
+        },
+    };
 }
 
 function normalizeStrategySubfront(subfront = {}) {
@@ -577,6 +642,21 @@ function buildOutOfScopeRows(rows = []) {
         .map((row) => summarizeRowForTruth(row));
 }
 
+function isArchivedHistoricalWorktreeComparison(row = {}, canonicalPath = '') {
+    const safePath = normalizePathValue(row?.path || '');
+    if (!safePath) {
+        return false;
+    }
+    if (safePath === normalizePathValue(canonicalPath)) {
+        return false;
+    }
+    const basename = getPathBasename(safePath);
+    return (
+        ARCHIVED_HISTORICAL_WORKTREE_BASENAMES.has(basename) ||
+        ARCHIVED_PARKING_WORKTREE_REGEX.test(basename)
+    );
+}
+
 function buildRemediationPlan(workspaceTruth, workspaceRows = []) {
     const seen = new Set();
     const plan = [];
@@ -637,11 +717,21 @@ function resolveWorkspaceTruthState(summary = {}, facts = {}) {
 }
 
 function buildUnavailableWorkspaceTruth(rootPath, error, options = {}) {
-    const scope = options.currentOnly ? 'current-only' : 'all-worktrees';
+    const scopeRequested =
+        String(options.scopeRequested || '').trim() ||
+        (options.currentOnly ? 'current-only' : 'all-worktrees');
+    const scopeEffective =
+        String(options.scopeEffective || '').trim() || scopeRequested;
+    const fallbackApplied = options.fallbackApplied === true;
+    const fallbackReason = String(options.fallbackReason || '').trim();
     const workspace_hygiene = {
         version: 1,
         command: 'workspace-hygiene doctor',
-        scope,
+        scope: scopeEffective,
+        scope_requested: scopeRequested,
+        scope_effective: scopeEffective,
+        fallback_applied: fallbackApplied,
+        fallback_reason: fallbackReason,
         available: false,
         ok: true,
         summary: {
@@ -663,7 +753,11 @@ function buildUnavailableWorkspaceTruth(rootPath, error, options = {}) {
             version: 1,
             available: false,
             ok: true,
-            scope,
+            scope: scopeEffective,
+            scope_requested: scopeRequested,
+            scope_effective: scopeEffective,
+            fallback_applied: fallbackApplied,
+            fallback_reason: fallbackReason,
             overall_state: 'unavailable',
             canonical_root: normalizePathValue(rootPath),
             canonical_branch: '',
@@ -691,8 +785,14 @@ function buildUnavailableWorkspaceTruth(rootPath, error, options = {}) {
     };
 }
 
-function collectWorkspaceTruth(rootPath, options = {}) {
-    const scope = options.currentOnly ? 'current-only' : 'all-worktrees';
+function buildWorkspaceTruthSnapshot(rootPath, options = {}) {
+    const scopeRequested =
+        String(options.scopeRequested || '').trim() ||
+        (options.currentOnly ? 'current-only' : 'all-worktrees');
+    const scopeEffective =
+        String(options.scopeEffective || '').trim() || scopeRequested;
+    const fallbackApplied = options.fallbackApplied === true;
+    const fallbackReason = String(options.fallbackReason || '').trim();
     let diagnosis;
     try {
         diagnosis = collectWorkspaceDoctor(rootPath, {
@@ -704,6 +804,10 @@ function collectWorkspaceTruth(rootPath, options = {}) {
     } catch (error) {
         return buildUnavailableWorkspaceTruth(rootPath, error, {
             currentOnly: options.currentOnly === true,
+            scopeRequested,
+            scopeEffective,
+            fallbackApplied,
+            fallbackReason,
         });
     }
 
@@ -712,7 +816,11 @@ function collectWorkspaceTruth(rootPath, options = {}) {
             command: 'workspace-hygiene doctor',
             includeEntries: options.includeEntries === true,
         }),
-        scope,
+        scope: scopeEffective,
+        scope_requested: scopeRequested,
+        scope_effective: scopeEffective,
+        fallback_applied: fallbackApplied,
+        fallback_reason: fallbackReason,
         available: true,
     };
     const workspaceRows = Array.isArray(diagnosis?.rows) ? diagnosis.rows : [];
@@ -728,19 +836,42 @@ function collectWorkspaceTruth(rootPath, options = {}) {
     const comparisons = boardRows.map((row) =>
         compareBoardSnapshots(canonicalRow, row)
     );
-    const boardForks = comparisons.filter(
+    const archivedHistoricalRows = comparisons.filter((row) =>
+        isArchivedHistoricalWorktreeComparison(row, canonicalRow?.path || rootPath)
+    );
+    const archivedHistoricalPaths = new Set(
+        archivedHistoricalRows.map((row) => normalizePathValue(row.path || ''))
+    );
+    const effectiveWorkspaceRows = workspaceRows.filter(
+        (row) => !archivedHistoricalPaths.has(normalizePathValue(row?.path || ''))
+    );
+    const effectiveComparisons = comparisons.filter(
+        (row) => !archivedHistoricalPaths.has(normalizePathValue(row?.path || ''))
+    );
+    const effectiveSummary = summarizeWorkspaceRows(effectiveWorkspaceRows);
+    workspace_hygiene.raw_summary = workspace_hygiene.summary;
+    workspace_hygiene.summary = effectiveSummary;
+    workspace_hygiene.rows = effectiveWorkspaceRows;
+    workspace_hygiene.archived_rows = archivedHistoricalRows.map((row) => ({
+        path: normalizePathValue(row.path || ''),
+        branch: String(row.branch || '').trim(),
+        relation: String(row.relation || '').trim(),
+        board_revision: Number(row.board_revision || 0),
+        archive_reason: 'historical_external_worktree',
+    }));
+    const boardForks = effectiveComparisons.filter(
         (row) =>
             row.relation !== 'canonical' &&
             row.relation !== 'in_sync' &&
             row.metadata_only_drift !== true
     );
-    const metadataOnlyDriftRows = comparisons.filter(
+    const metadataOnlyDriftRows = effectiveComparisons.filter(
         (row) => row.metadata_only_drift === true
     );
-    const blockingRows = buildBlockingRows(workspaceRows);
-    const mixedLaneRows = buildMixedLaneRows(workspaceRows);
-    const outOfScopeRows = buildOutOfScopeRows(workspaceRows);
-    const overallState = resolveWorkspaceTruthState(workspace_hygiene.summary, {
+    const blockingRows = buildBlockingRows(effectiveWorkspaceRows);
+    const mixedLaneRows = buildMixedLaneRows(effectiveWorkspaceRows);
+    const outOfScopeRows = buildOutOfScopeRows(effectiveWorkspaceRows);
+    const overallState = resolveWorkspaceTruthState(effectiveSummary, {
         boardForksTotal: boardForks.length,
         blockingRowsTotal: blockingRows.length,
     });
@@ -771,12 +902,21 @@ function collectWorkspaceTruth(rootPath, options = {}) {
             `workspace_metadata_only_drift:${metadataOnlyDriftRows.length}`
         );
     }
+    if (archivedHistoricalRows.length > 0) {
+        warningReasons.push(
+            `workspace_archived_historical:${archivedHistoricalRows.length}`
+        );
+    }
 
     const workspace_truth = {
         version: 1,
         available: true,
         ok,
-        scope,
+        scope: scopeEffective,
+        scope_requested: scopeRequested,
+        scope_effective: scopeEffective,
+        fallback_applied: fallbackApplied,
+        fallback_reason: fallbackReason,
         overall_state: overallState,
         canonical_root: canonicalRow
             ? canonicalRow.path
@@ -787,7 +927,8 @@ function collectWorkspaceTruth(rootPath, options = {}) {
             source: canonicalSelection.source,
             reason: canonicalSelection.reason,
         },
-        summary: workspace_hygiene.summary,
+        summary: effectiveSummary,
+        raw_summary: workspace_hygiene.raw_summary,
         functional_fingerprint_groups: Array.from(
             new Set(
                 boardRows
@@ -804,8 +945,10 @@ function collectWorkspaceTruth(rootPath, options = {}) {
         mixed_lane_rows: mixedLaneRows,
         out_of_scope_rows_total: outOfScopeRows.length,
         out_of_scope_rows: outOfScopeRows,
-        comparisons,
+        comparisons: effectiveComparisons,
         board_forks: boardForks,
+        archived_rows_total: archivedHistoricalRows.length,
+        archived_rows: workspace_hygiene.archived_rows,
         remediation_plan: buildRemediationPlan(
             {
                 board_forks_total: boardForks.length,
@@ -821,6 +964,203 @@ function collectWorkspaceTruth(rootPath, options = {}) {
         workspace_hygiene,
         workspace_truth,
     };
+}
+
+function isBlockingState(value) {
+    const state = String(value || '').trim();
+    return state === DOCTOR_STATE_BLOCKED || state === DOCTOR_STATE_ERROR;
+}
+
+function hasGitMetadata(rootPath) {
+    const gitPath = path.resolve(rootPath, '.git');
+    try {
+        return fs.existsSync(gitPath);
+    } catch (_error) {
+        return false;
+    }
+}
+
+function isBoardOnlyLocalRoot(rootPath) {
+    const rootBoard = loadBoardForScope(rootPath);
+    return Boolean(rootBoard.board) && !hasGitMetadata(rootPath);
+}
+
+function hasNonZeroCounts(counts = {}) {
+    return Object.values(counts || {}).some(
+        (value) => Number(value || 0) > 0
+    );
+}
+
+function isBoardOnlyLocalRootRow(row = {}, rootPath) {
+    return (
+        normalizePathValue(row?.path || '') === normalizePathValue(rootPath) &&
+        Number(row?.dirty_total || 0) === 0 &&
+        !hasNonZeroCounts(row?.issue_counts) &&
+        !hasNonZeroCounts(row?.scope_counts) &&
+        !hasNonZeroCounts(row?.strategy_counts) &&
+        !hasNonZeroCounts(row?.lane_counts)
+    );
+}
+
+function shouldAcceptBoardOnlyFallback(fallbackReport, rootPath) {
+    if (!isBoardOnlyLocalRoot(rootPath)) {
+        return false;
+    }
+    const workspaceTruth = fallbackReport?.workspace_truth;
+    const workspaceRows = Array.isArray(fallbackReport?.workspace_hygiene?.rows)
+        ? fallbackReport.workspace_hygiene.rows
+        : [];
+    if (!workspaceTruth || workspaceTruth.available !== true) {
+        return false;
+    }
+    if (Number(workspaceTruth.board_forks_total || 0) > 0) {
+        return false;
+    }
+    if (workspaceRows.length !== 1) {
+        return false;
+    }
+    const rootRow = workspaceRows[0];
+    if (!isBoardOnlyLocalRootRow(rootRow, rootPath)) {
+        return false;
+    }
+    const comparisons = Array.isArray(workspaceTruth.comparisons)
+        ? workspaceTruth.comparisons
+        : [];
+    return (
+        comparisons.length === 1 &&
+        normalizePathValue(comparisons[0]?.path || '') ===
+            normalizePathValue(rootPath) &&
+        String(comparisons[0]?.relation || '').trim() === 'canonical'
+    );
+}
+
+function coerceBoardOnlyFallbackReport(fallbackReport, rootPath) {
+    const workspaceTruth = fallbackReport?.workspace_truth || {};
+    const warningReasons = Array.isArray(workspaceTruth.warning_reasons)
+        ? [...workspaceTruth.warning_reasons]
+        : [];
+    if (!warningReasons.includes('workspace_board_only_root:1')) {
+        warningReasons.push('workspace_board_only_root:1');
+    }
+    return {
+        ...fallbackReport,
+        workspace_truth: {
+            ...workspaceTruth,
+            ok: true,
+            overall_state: DOCTOR_STATE_ATTENTION,
+            canonical_root: normalizePathValue(rootPath),
+            blocking_rows_total: 0,
+            blocking_rows: [],
+            blocking_reasons: [],
+            warning_reasons: warningReasons,
+        },
+    };
+}
+
+function shouldConsiderLocalBoardFallback(primaryReport, rootPath, options = {}) {
+    if (options.currentOnly === true) {
+        return false;
+    }
+    if (options.allWorktrees === false) {
+        return false;
+    }
+
+    const rootBoard = loadBoardForScope(rootPath);
+    if (!rootBoard.board) {
+        return false;
+    }
+
+    const workspaceTruth = primaryReport?.workspace_truth;
+    const workspaceRows = Array.isArray(primaryReport?.workspace_hygiene?.rows)
+        ? primaryReport.workspace_hygiene.rows
+        : [];
+    if (!workspaceTruth || workspaceTruth.available !== true) {
+        return false;
+    }
+
+    const normalizedRoot = normalizePathValue(rootPath);
+    const rootRow = workspaceRows.find(
+        (row) => normalizePathValue(row?.path || '') === normalizedRoot
+    );
+    const rootBoardFork = (Array.isArray(workspaceTruth.board_forks)
+        ? workspaceTruth.board_forks
+        : []
+    ).find((row) => normalizePathValue(row?.path || '') === normalizedRoot);
+    const rootIsBlocking =
+        isBlockingState(rootRow?.overall_state) || Boolean(rootBoardFork);
+    if (rootIsBlocking) {
+        return false;
+    }
+
+    const canonicalSelectionSource = String(
+        workspaceTruth?.canonical_selection?.source || ''
+    ).trim();
+    const canonicalRoot = normalizePathValue(workspaceTruth?.canonical_root || '');
+    const externalBlockingRows = (Array.isArray(workspaceTruth.blocking_rows)
+        ? workspaceTruth.blocking_rows
+        : []
+    ).filter((row) => normalizePathValue(row?.path || '') !== normalizedRoot);
+    const externalBoardForks = (Array.isArray(workspaceTruth.board_forks)
+        ? workspaceTruth.board_forks
+        : []
+    ).filter((row) => normalizePathValue(row?.path || '') !== normalizedRoot);
+
+    const noUsefulCanonical =
+        canonicalSelectionSource === 'unavailable' ||
+        (!canonicalRoot && externalBlockingRows.length > 0) ||
+        (canonicalRoot && canonicalRoot !== normalizedRoot);
+
+    return (
+        noUsefulCanonical ||
+        externalBlockingRows.length > 0 ||
+        externalBoardForks.length > 0
+    );
+}
+
+function shouldUseLocalBoardFallback(fallbackReport) {
+    const workspaceTruth = fallbackReport?.workspace_truth;
+    if (!workspaceTruth) {
+        return false;
+    }
+    if (workspaceTruth.available !== true) {
+        return true;
+    }
+    return !isBlockingState(workspaceTruth.overall_state);
+}
+
+function collectWorkspaceTruth(rootPath, options = {}) {
+    const scopeRequested = options.currentOnly ? 'current-only' : 'all-worktrees';
+    const primaryReport = buildWorkspaceTruthSnapshot(rootPath, {
+        ...options,
+        scopeRequested,
+        scopeEffective: scopeRequested,
+        fallbackApplied: false,
+        fallbackReason: '',
+    });
+
+    if (!shouldConsiderLocalBoardFallback(primaryReport, rootPath, options)) {
+        return primaryReport;
+    }
+
+    const fallbackReport = buildWorkspaceTruthSnapshot(rootPath, {
+        ...options,
+        allWorktrees: false,
+        currentOnly: true,
+        scopeRequested,
+        scopeEffective: 'current-only',
+        fallbackApplied: true,
+        fallbackReason: 'local_board_root_preferred',
+    });
+
+    if (shouldUseLocalBoardFallback(fallbackReport)) {
+        return fallbackReport;
+    }
+
+    if (shouldAcceptBoardOnlyFallback(fallbackReport, rootPath)) {
+        return coerceBoardOnlyFallbackReport(fallbackReport, rootPath);
+    }
+
+    return primaryReport;
 }
 
 function buildWorkspaceTruthDiagnostics(workspaceReport, options = {}) {

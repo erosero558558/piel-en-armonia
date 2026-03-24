@@ -38,7 +38,7 @@ Codex sin solapes y con OpenClaw integrado como runtime transversal nativo.
 
 Provider canonico:
 
-- `provider_mode=openclaw_chatgpt`
+- `provider_mode=google_oauth` (`openclaw_chatgpt` solo como alias legado de lectura)
 
 Surfaces soportadas:
 
@@ -76,7 +76,7 @@ Reglas:
    `node agent-orchestrator.js conflicts --json`
    `node agent-orchestrator.js codex-check --json`
 2. Verificar runtime OpenClaw si la tarea es transversal:
-   `node agent-orchestrator.js runtime verify openclaw_chatgpt --json`
+   `node agent-orchestrator.js runtime verify google_oauth --json`
 3. Tomar tarea con lane fija y `subfront_id` valido:
    backend: `codex_instance=codex_backend_ops`, `domain_lane=backend_ops`
    frontend: `codex_instance=codex_frontend`, `domain_lane=frontend_content`
@@ -160,7 +160,7 @@ Esto auto-completa:
 - `scope=openclaw_runtime`
 - `domain_lane=transversal_runtime`
 - `codex_instance=codex_transversal`
-- `provider_mode=openclaw_chatgpt`
+- `provider_mode=google_oauth` (`openclaw_chatgpt` solo como alias legado de lectura)
 - `runtime_transport=hybrid_http_cli`
 
 La `runtime_surface` se infiere desde `files`. Si necesitas forzarla porque la
