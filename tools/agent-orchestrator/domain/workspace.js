@@ -278,18 +278,18 @@ function alignMainRoot(mainRoot, policy) {
     let diagnosis = diagnoseWorktree(mainRoot);
     diagnosis = cleanupWorktreeIfFixable(mainRoot, diagnosis, '');
     const branch = readCurrentBranch(mainRoot);
-    const head = readHeadSha(mainRoot);
     const originHead = readHeadSha(mainRoot, `refs/remotes/${remoteRef}`);
     const authoredCount = countAuthoredEntries(diagnosis?.dirtyEntries);
+    const dirtyTotal = Number(diagnosis?.dirty_total || 0);
     const aheadBehind = getAheadBehind(mainRoot, remoteRef);
     let state = 'ready';
     let resetApplied = false;
 
     if (branch !== policy.root_branch) {
         state = 'root_dirty';
-    } else if (authoredCount > 0 || Number(diagnosis?.dirty_total || 0) > 0) {
+    } else if (authoredCount > 0) {
         state = 'root_dirty';
-    } else {
+    } else if (dirtyTotal === 0) {
         runGit(mainRoot, ['reset', '--hard', remoteRef]);
         resetApplied = true;
     }
