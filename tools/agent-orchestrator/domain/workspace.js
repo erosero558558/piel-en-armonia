@@ -550,10 +550,32 @@ function ensureTaskWorktree(taskId, options = {}) {
 }
 
 function captureTaskWorkspace(taskId, options = {}) {
-    const snapshot = runWorkspaceSync(options);
-    const taskRow = (Array.isArray(snapshot?.tasks) ? snapshot.tasks : []).find(
+    const cwd = path.resolve(options.cwd || process.cwd());
+    const policy = normalizeWorkspaceSyncPolicy(options.governancePolicy || null);
+    const snapshot = runWorkspaceSync({
+        cwd,
+        governancePolicy: options.governancePolicy,
+    });
+    let taskRow = (Array.isArray(snapshot?.tasks) ? snapshot.tasks : []).find(
         (row) => String(row.task_id || '').trim() === String(taskId || '').trim()
     );
+    if (!taskRow) {
+        const currentRoot = resolveGitTopLevel(cwd) || cwd;
+        const currentBranch = readCurrentBranch(currentRoot);
+        const inferredTaskId = inferTaskIdFromWorktree(
+            {
+                path: currentRoot,
+                branch: currentBranch,
+            },
+            policy
+        );
+        if (String(inferredTaskId || '').trim() === String(taskId || '').trim()) {
+            taskRow = alignTaskWorktree(currentRoot, inferredTaskId, currentBranch, policy);
+            if (Array.isArray(snapshot?.tasks)) {
+                snapshot.tasks = [...snapshot.tasks, taskRow];
+            }
+        }
+    }
     if (!taskRow) {
         const error = new Error(`no existe worktree activo para ${taskId}`);
         error.code = 'workspace_task_worktree_missing';

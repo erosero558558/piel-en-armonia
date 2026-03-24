@@ -41,7 +41,7 @@ const DEPLOY_BUNDLE_RELATIVE = '_deploy_bundle';
 const LOCAL_ARTIFACT_PATHS = LOCAL_ARTIFACT_TARGETS.map((target) =>
     normalizeRelativePath(target.path)
 );
-const LOCAL_CONTROL_PLANE_PATHS = ['.codex-worktrees'];
+const LOCAL_CONTROL_PLANE_PATHS = ['.codex-worktrees', '.codex-local'];
 const LEGACY_GENERATED_ROOT_CONTRACT_PATHS = [
     ...LEGACY_GENERATED_ROOT_DIRECTORIES,
     ...LEGACY_GENERATED_ROOT_FILES,
