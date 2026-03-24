@@ -23,6 +23,7 @@ const LOCAL_ARTIFACT_TARGETS = [
         path: '.codex-public-paths.txt',
         label: '.codex-public-paths.txt',
     },
+    { path: '.codex-local', label: '.codex-local/' },
     { path: 'build_analysis.txt', label: 'build_analysis.txt' },
     { path: 'conflict_branches.txt', label: 'conflict_branches.txt' },
     { path: 'stats.html', label: 'stats.html' },
