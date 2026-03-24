@@ -427,6 +427,16 @@ function runWorkspaceSync(options = {}) {
     runGit(rootInfo.main_root, ['worktree', 'prune'], { allowFailure: true });
 
     const mainRow = alignMainRoot(rootInfo.main_root, policy);
+    // Root cleanup can remove local control-plane artifacts; recreate them
+    // before persisting the fresh workspace snapshot.
+    ensureDirectory(rootInfo.local_dir);
+    const machineIdPath = path.resolve(
+        rootInfo.local_dir,
+        policy.machine_id_filename
+    );
+    if (!fs.existsSync(machineIdPath)) {
+        fs.writeFileSync(machineIdPath, `${machineId}\n`, 'utf8');
+    }
     const listedWorktrees = listWorktrees(rootInfo.main_root);
     const managedTaskRows = listedWorktrees
         .filter((row) => !row.prunable)
