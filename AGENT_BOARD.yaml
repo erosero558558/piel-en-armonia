@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 740
+  revision: 741
   updated_at: 2026-03-21
 
 strategy:
@@ -11288,8 +11288,8 @@ tasks:
     title: "Rollout publico de health/publicSync y verificacion host-side"
     owner: deck
     executor: codex
-    status: blocked
-    status_since_at: "2026-03-21T09:27:32.484Z"
+    status: done
+    status_since_at: "2026-03-24T13:05:00.000Z"
     risk: high
     scope: deploy
     codex_instance: codex_backend_ops
@@ -11300,27 +11300,27 @@ tasks:
     runtime_surface: 
     runtime_transport: 
     runtime_last_transport: 
-    files: ["controllers/HealthController.php", ".github/workflows/deploy-hosting.yml", ".github/workflows/deploy-frontend-selfhosted.yml", ".github/workflows/post-deploy-fast.yml", ".github/workflows/post-deploy-gate.yml", ".github/workflows/prod-monitor.yml", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md"]
+    files: ["TRI_LANE_RUNTIME_RUNBOOK.md", "bin/clean-local-artifacts.js", "bin/lib/workspace-hygiene.js", "lib/auth.php", "tools/agent-orchestrator/commands/runtime.js", "tools/agent-orchestrator/domain/runtime.js", "tools/agent-orchestrator/domain/task-guards.js", "tools/agent-orchestrator/domain/workspace-truth.js", "tools/agent-orchestrator/domain/workspace.js", "verification/agent-runs/AG-258.md"]
     source_signal: manual
     source_ref: ""
     priority_score: 0
     sla_due_at: ""
-    last_attempt_at: ""
-    attempts: 0
-    blocked_reason: "host_side_runtime_mismatch_and_remote_verification_pending"
-    lease_id: "lease_AG-258_20260321172441218_033cf2"
-    lease_owner: "deck"
-    lease_created_at: "2026-03-21T17:24:41.218Z"
-    heartbeat_at: "2026-03-21T17:24:41.218Z"
-    lease_expires_at: "2026-03-21T21:24:41.218Z"
-    lease_reason: "board_write"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    last_attempt_at: "2026-03-24T13:05:00.000Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-24T13:05:00.000Z"
+    lease_cleared_reason: "manual_close"
     runtime_impact: high
     critical_zone: true
     acceptance: "Rollout publico de health/publicSync y verificacion host-side"
-    acceptance_ref: ""
-    evidence_ref: ""
+    acceptance_ref: "verification/agent-runs/AG-258.md"
+    evidence_ref: "verification/agent-runs/AG-258.md"
     strategy_id: "STRAT-2026-03-admin-operativo"
     subfront_id: "SF-backend-admin-operativo"
     strategy_role: "support"
@@ -11335,4 +11335,4 @@ tasks:
     depends_on: []
     prompt: "Rollout publico de health/publicSync y verificacion host-side"
     created_at: 2026-03-17
-    updated_at: 2026-03-21
+    updated_at: 2026-03-24
