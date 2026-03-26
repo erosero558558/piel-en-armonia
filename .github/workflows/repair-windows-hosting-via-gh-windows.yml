@@ -1,0 +1,425 @@
+name: Repair Windows Hosting via GitHub Windows
+
+on:
+    workflow_dispatch:
+        inputs:
+            target_commit:
+                description: 'SHA objetivo a promover (vacio => origin/main actual)'
+                required: false
+                default: ''
+                type: string
+            preflight_only:
+                description: 'Solo diagnosticar y verificar; no ejecutar REPARAR-HOSTING-WINDOWS.ps1'
+                required: false
+                default: false
+                type: boolean
+            public_domain:
+                description: 'Dominio publico a validar'
+                required: false
+                default: 'pielarmonia.com'
+                type: string
+            candidate_ports:
+                description: 'CSV de puertos candidatos para SSH al host Windows'
+                required: false
+                default: '22,2222,7822,10022,21098,22022,22222,65002'
+                type: string
+
+concurrency:
+    group: repair-windows-hosting-via-gh-windows
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+jobs:
+    repair:
+        name: Repair Windows hosting from GitHub Windows runner
+        runs-on: windows-latest
+        timeout-minutes: 40
+        env:
+            TARGET_COMMIT_INPUT: ${{ github.event.inputs.target_commit || '' }}
+            PREFLIGHT_ONLY_INPUT: ${{ github.event.inputs.preflight_only || 'false' }}
+            PUBLIC_DOMAIN_INPUT: ${{ github.event.inputs.public_domain || 'pielarmonia.com' }}
+            CANDIDATE_PORTS_INPUT: ${{ github.event.inputs.candidate_ports || '22,2222,7822,10022,21098,22022,22222,65002' }}
+            SSH_HOST: ${{ vars.SSH_HOST || secrets.SSH_HOST || vars.FTP_SERVER || secrets.FTP_SERVER || '' }}
+            SSH_USERNAME: ${{ secrets.SSH_USERNAME || vars.SSH_USERNAME || secrets.FTP_USERNAME || vars.FTP_USERNAME || '' }}
+            SSH_PASSWORD: ${{ secrets.SSH_PASSWORD || vars.SSH_PASSWORD || secrets.FTP_PASSWORD || vars.FTP_PASSWORD || '' }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Prepare artifact root
+              id: artifact_root
+              shell: pwsh
+              run: |
+                  $artifactRoot = Join-Path $env:RUNNER_TEMP 'repair-windows-hosting-via-gh-windows'
+                  New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null
+                  "path=$artifactRoot" >> $env:GITHUB_OUTPUT
+
+            - name: Validate SSH inputs
+              shell: pwsh
+              run: |
+                  $errors = @()
+                  if ([string]::IsNullOrWhiteSpace($env:SSH_HOST)) {
+                    $errors += 'Falta SSH_HOST (o FTP_SERVER fallback).'
+                  }
+                  if ([string]::IsNullOrWhiteSpace($env:SSH_USERNAME)) {
+                    $errors += 'Falta SSH_USERNAME (o FTP_USERNAME fallback).'
+                  }
+                  if ([string]::IsNullOrWhiteSpace($env:SSH_PASSWORD)) {
+                    $errors += 'Falta SSH_PASSWORD (o FTP_PASSWORD fallback).'
+                  }
+                  if ($errors.Count -gt 0) {
+                    $errors | ForEach-Object { Write-Error $_ }
+                    exit 1
+                  }
+
+            - name: Resolve target commit
+              id: resolve_target
+              shell: pwsh
+              run: |
+                  git fetch --prune origin
+                  $targetInput = [string]$env:TARGET_COMMIT_INPUT
+                  if ([string]::IsNullOrWhiteSpace($targetInput)) {
+                    $resolvedTarget = (git rev-parse origin/main).Trim()
+                  } else {
+                    $resolvedTarget = (git rev-parse $targetInput).Trim()
+                  }
+                  "target_commit=$resolvedTarget" >> $env:GITHUB_OUTPUT
+
+            - name: Probe candidate SSH ports from GitHub Windows
+              id: probe_ports
+              shell: pwsh
+              run: |
+                  $candidatePorts = @(
+                    ($env:CANDIDATE_PORTS_INPUT -split ',') |
+                      ForEach-Object { $_.Trim() } |
+                      Where-Object { $_ -match '^\d+$' } |
+                      ForEach-Object { [int]$_ }
+                  ) | Select-Object -Unique
+                  $openPorts = New-Object System.Collections.Generic.List[int]
+                  foreach ($port in $candidatePorts) {
+                    $open = Test-NetConnection -ComputerName $env:SSH_HOST -Port $port -InformationLevel Quiet -WarningAction SilentlyContinue
+                    if ($open) {
+                      $openPorts.Add($port)
+                    }
+                  }
+                  $payload = [ordered]@{
+                    generated_at = [DateTimeOffset]::UtcNow.ToString('o')
+                    host = $env:SSH_HOST
+                    candidate_ports = $candidatePorts
+                    open_ports = @($openPorts)
+                    selected_port = if ($openPorts.Count -gt 0) { $openPorts[0] } else { $null }
+                  }
+                  $payload | ConvertTo-Json -Depth 6 | Set-Content -Path (Join-Path "${{ steps.artifact_root.outputs.path }}" 'port-probe.json') -Encoding UTF8
+                  if ($openPorts.Count -eq 0) {
+                    Write-Error "No se detecto ningun puerto SSH accesible hacia $($env:SSH_HOST) desde windows-latest."
+                    exit 1
+                  }
+                  "selected_port=$($openPorts[0])" >> $env:GITHUB_OUTPUT
+
+            - name: Install Posh-SSH
+              shell: pwsh
+              run: |
+                  Set-PSRepository PSGallery -InstallationPolicy Trusted
+                  Install-Module Posh-SSH -Scope CurrentUser -Force -AllowClobber
+
+            - name: Capture public state before repair
+              shell: pwsh
+              run: |
+                  function Save-EndpointSnapshot {
+                    param(
+                      [string]$Url,
+                      [string]$OutputPath
+                    )
+
+                    $payload = [ordered]@{
+                      url = $Url
+                      ok = $false
+                      status_code = $null
+                      body = ''
+                      error = ''
+                    }
+
+                    try {
+                      $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 20
+                      $payload.ok = $true
+                      $payload.status_code = [int]$response.StatusCode
+                      $payload.body = [string]$response.Content
+                    } catch {
+                      $payload.error = $_.Exception.Message
+                      if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+                        $payload.status_code = [int]$_.Exception.Response.StatusCode
+                      }
+                    }
+
+                    $payload | ConvertTo-Json -Depth 5 | Set-Content -Path $OutputPath -Encoding UTF8
+                  }
+
+                  $baseUrl = [string]$env:PUBLIC_DOMAIN_INPUT
+                  if ($baseUrl -notmatch '^https?://') {
+                    $baseUrl = "https://$baseUrl"
+                  }
+
+                  Save-EndpointSnapshot -Url "$($baseUrl.TrimEnd('/'))/__hosting/runtime" -OutputPath (Join-Path "${{ steps.artifact_root.outputs.path }}" 'public-runtime-before.json')
+                  Save-EndpointSnapshot -Url "$($baseUrl.TrimEnd('/'))/api.php?resource=health" -OutputPath (Join-Path "${{ steps.artifact_root.outputs.path }}" 'public-health-before.json')
+                  Save-EndpointSnapshot -Url "$($baseUrl.TrimEnd('/'))/admin-auth.php?action=status" -OutputPath (Join-Path "${{ steps.artifact_root.outputs.path }}" 'public-admin-auth-before.json')
+
+            - name: Diagnose and repair host over SSH from Windows runner
+              id: remote_repair
+              continue-on-error: true
+              shell: pwsh
+              run: |
+                  Import-Module Posh-SSH
+
+                  $artifactRoot = "${{ steps.artifact_root.outputs.path }}"
+                  $stdoutPath = Join-Path $artifactRoot 'remote-stdout.log'
+                  $stderrPath = Join-Path $artifactRoot 'remote-stderr.log'
+                  $summaryPath = Join-Path $artifactRoot 'remote-summary.json'
+                  $selectedPort = [int]"${{ steps.probe_ports.outputs.selected_port }}"
+                  $securePassword = ConvertTo-SecureString $env:SSH_PASSWORD -AsPlainText -Force
+                  $credential = [pscredential]::new($env:SSH_USERNAME, $securePassword)
+                  $session = $null
+
+                  $remoteTemplate = @'
+                  $ErrorActionPreference = 'Stop'
+                  $targetCommit = '__TARGET_COMMIT__'
+                  $publicDomain = '__PUBLIC_DOMAIN__'
+                  $preflightOnly = '__PREFLIGHT_ONLY__' -eq 'true'
+                  $mirrorCandidates = @(
+                    'C:\dev\pielarmonia-clean-main',
+                    'C:\dev\piel-en-armonia',
+                    'C:\dev\Aurora-Derm'
+                  )
+                  $repairCandidates = @()
+                  foreach ($candidate in $mirrorCandidates) {
+                    $repairCandidates += (Join-Path $candidate 'scripts\ops\setup\REPARAR-HOSTING-WINDOWS.ps1')
+                  }
+                  $mirrorRepoPath = $mirrorCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+                  $repairScriptPath = $repairCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+                  if (-not $repairScriptPath) {
+                    throw 'repair_script_missing'
+                  }
+
+                  $gitRefreshState = 'not_attempted'
+                  if ($mirrorRepoPath -and (Get-Command git -ErrorAction SilentlyContinue)) {
+                    try {
+                      if (Test-Path -LiteralPath (Join-Path $mirrorRepoPath '.git')) {
+                        & git -C $mirrorRepoPath fetch --prune origin | Out-Null
+                        & git -C $mirrorRepoPath checkout -f main | Out-Null
+                        & git -C $mirrorRepoPath reset --hard origin/main | Out-Null
+                        $gitRefreshState = 'ok'
+                      } else {
+                        $gitRefreshState = 'mirror_without_git'
+                      }
+                    } catch {
+                      $gitRefreshState = 'failed:' + $_.Exception.Message
+                    }
+                  } elseif (-not $mirrorRepoPath) {
+                    $gitRefreshState = 'mirror_missing'
+                  } else {
+                    $gitRefreshState = 'git_missing'
+                  }
+
+                  Write-Output ('__REMOTE_META__ hostname=' + $env:COMPUTERNAME)
+                  Write-Output ('__REMOTE_META__ user=' + [System.Security.Principal.WindowsIdentity]::GetCurrent().Name)
+                  $mirrorRepoOutput = if ($null -ne $mirrorRepoPath) { $mirrorRepoPath } else { '' }
+                  Write-Output ('__REMOTE_META__ mirror_repo=' + $mirrorRepoOutput)
+                  Write-Output ('__REMOTE_META__ repair_script=' + $repairScriptPath)
+                  Write-Output ('__REMOTE_META__ git_refresh_state=' + $gitRefreshState)
+
+                  $repairArgs = @(
+                    '-NoProfile',
+                    '-ExecutionPolicy', 'Bypass',
+                    '-File', $repairScriptPath,
+                    '-PublicDomain', $publicDomain,
+                    '-Quiet'
+                  )
+                  if ($preflightOnly) {
+                    $repairArgs += '-PreflightOnly'
+                  }
+                  if (-not [string]::IsNullOrWhiteSpace($targetCommit) -and $gitRefreshState -eq 'ok') {
+                    $repairArgs += @('-TargetCommit', $targetCommit)
+                  }
+
+                  & powershell.exe @repairArgs
+
+                  foreach ($path in @(
+                    'C:\ProgramData\Pielarmonia\hosting\repair-hosting-status.json',
+                    'C:\ProgramData\Pielarmonia\hosting\main-sync-status.json',
+                    'C:\ProgramData\Pielarmonia\hosting\hosting-supervisor-status.json'
+                  )) {
+                    if (Test-Path -LiteralPath $path) {
+                      Write-Output ('__REMOTE_FILE__ ' + (Split-Path -Leaf $path))
+                      Get-Content -LiteralPath $path -Raw
+                      Write-Output '__REMOTE_FILE_END__'
+                    }
+                  }
+                  '@
+
+                  $remoteScript = $remoteTemplate.
+                    Replace('__TARGET_COMMIT__', [string]"${{ steps.resolve_target.outputs.target_commit }}").
+                    Replace('__PUBLIC_DOMAIN__', [string]$env:PUBLIC_DOMAIN_INPUT).
+                    Replace('__PREFLIGHT_ONLY__', [string]$env:PREFLIGHT_ONLY_INPUT)
+
+                  try {
+                    $session = New-SSHSession `
+                      -ComputerName $env:SSH_HOST `
+                      -Port $selectedPort `
+                      -Credential $credential `
+                      -AcceptKey `
+                      -ConnectionTimeout 20
+
+                    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($remoteScript))
+                    $command = "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand $encoded"
+                    $result = Invoke-SSHCommand -SSHSession $session -Command $command -TimeOut 2400
+
+                    ($result.Output -join [Environment]::NewLine) | Set-Content -Path $stdoutPath -Encoding UTF8
+                    ($result.Error -join [Environment]::NewLine) | Set-Content -Path $stderrPath -Encoding UTF8
+                    [ordered]@{
+                      host = $env:SSH_HOST
+                      port = $selectedPort
+                      exit_status = $result.ExitStatus
+                      output_count = @($result.Output).Count
+                      error_count = @($result.Error).Count
+                    } | ConvertTo-Json -Depth 5 | Set-Content -Path $summaryPath -Encoding UTF8
+
+                    if ($result.ExitStatus -ne 0) {
+                      throw "remote_exit_status_$($result.ExitStatus)"
+                    }
+                  } finally {
+                    if ($session) {
+                      Remove-SSHSession -SSHSession $session | Out-Null
+                    }
+                  }
+
+            - name: Capture public state after repair
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  function Save-EndpointSnapshot {
+                    param(
+                      [string]$Url,
+                      [string]$OutputPath
+                    )
+
+                    $payload = [ordered]@{
+                      url = $Url
+                      ok = $false
+                      status_code = $null
+                      body = ''
+                      error = ''
+                    }
+
+                    try {
+                      $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 20
+                      $payload.ok = $true
+                      $payload.status_code = [int]$response.StatusCode
+                      $payload.body = [string]$response.Content
+                    } catch {
+                      $payload.error = $_.Exception.Message
+                      if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+                        $payload.status_code = [int]$_.Exception.Response.StatusCode
+                      }
+                    }
+
+                    $payload | ConvertTo-Json -Depth 5 | Set-Content -Path $OutputPath -Encoding UTF8
+                  }
+
+                  $baseUrl = [string]$env:PUBLIC_DOMAIN_INPUT
+                  if ($baseUrl -notmatch '^https?://') {
+                    $baseUrl = "https://$baseUrl"
+                  }
+
+                  Save-EndpointSnapshot -Url "$($baseUrl.TrimEnd('/'))/__hosting/runtime" -OutputPath (Join-Path "${{ steps.artifact_root.outputs.path }}" 'public-runtime-after.json')
+                  Save-EndpointSnapshot -Url "$($baseUrl.TrimEnd('/'))/api.php?resource=health" -OutputPath (Join-Path "${{ steps.artifact_root.outputs.path }}" 'public-health-after.json')
+                  Save-EndpointSnapshot -Url "$($baseUrl.TrimEnd('/'))/admin-auth.php?action=status" -OutputPath (Join-Path "${{ steps.artifact_root.outputs.path }}" 'public-admin-auth-after.json')
+
+            - name: Upload Windows GitHub runner repair artifacts
+              if: ${{ always() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: repair-windows-hosting-via-gh-windows-artifacts
+                  path: ${{ steps.artifact_root.outputs.path }}
+                  if-no-files-found: warn
+
+            - name: Finalize verdict
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  $artifactRoot = "${{ steps.artifact_root.outputs.path }}"
+                  $runtimeAfter = Get-Content -Path (Join-Path $artifactRoot 'public-runtime-after.json') -Raw | ConvertFrom-Json
+                  $healthAfter = Get-Content -Path (Join-Path $artifactRoot 'public-health-after.json') -Raw | ConvertFrom-Json
+                  $authAfter = Get-Content -Path (Join-Path $artifactRoot 'public-admin-auth-after.json') -Raw | ConvertFrom-Json
+
+                  $runtimeCurrentCommit = ''
+                  $runtimeDesiredCommit = ''
+                  if ($runtimeAfter.ok -and $runtimeAfter.body) {
+                    try {
+                      $runtimeBody = $runtimeAfter.body | ConvertFrom-Json
+                      $runtimeCurrentCommit = [string]$runtimeBody.current_commit
+                      $runtimeDesiredCommit = [string]$runtimeBody.desired_commit
+                    } catch {
+                    }
+                  }
+
+                  $healthOk = $false
+                  if ($healthAfter.ok -and $healthAfter.body) {
+                    try {
+                      $healthBody = $healthAfter.body | ConvertFrom-Json
+                      $healthOk = [bool]$healthBody.checks.publicSync.healthy
+                    } catch {
+                    }
+                  }
+
+                  $authMode = ''
+                  $authTransport = ''
+                  if ($authAfter.ok -and $authAfter.body) {
+                    try {
+                      $authBody = $authAfter.body | ConvertFrom-Json
+                      $authMode = [string]$authBody.mode
+                      $authTransport = [string]$authBody.transport
+                    } catch {
+                    }
+                  }
+
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Repair Windows Hosting via GitHub Windows"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- host: `$env:SSH_HOST`"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- selected_port: `${{ steps.probe_ports.outputs.selected_port }}`"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- target_commit: `${{ steps.resolve_target.outputs.target_commit }}`"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- remote_repair_outcome: `${{ steps.remote_repair.outcome }}`"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- runtime_current_commit: `$runtimeCurrentCommit`"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- runtime_desired_commit: `$runtimeDesiredCommit`"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- public_sync_healthy: `$healthOk`"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- auth_mode: `$authMode`"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- auth_transport: `$authTransport`"
+
+                  if ("${{ steps.remote_repair.outcome }}" -ne 'success') {
+                    throw 'remote_windows_repair_failed'
+                  }
+                  if (-not $runtimeAfter.ok) {
+                    throw 'runtime_endpoint_not_ok'
+                  }
+                  if (-not $healthAfter.ok) {
+                    throw 'health_endpoint_not_ok'
+                  }
+                  if (-not $authAfter.ok) {
+                    throw 'admin_auth_endpoint_not_ok'
+                  }
+                  if (-not $healthOk) {
+                    throw 'public_sync_unhealthy'
+                  }
+                  if ($runtimeCurrentCommit -and $runtimeCurrentCommit -ne "${{ steps.resolve_target.outputs.target_commit }}") {
+                    throw 'runtime_current_commit_mismatch'
+                  }
+                  if ($runtimeDesiredCommit -and $runtimeDesiredCommit -ne "${{ steps.resolve_target.outputs.target_commit }}") {
+                    throw 'runtime_desired_commit_mismatch'
+                  }
+                  if ($authMode -and $authMode -ne 'google_oauth') {
+                    throw "auth_mode_$authMode"
+                  }
+                  if ($authTransport -and $authTransport -ne 'web_broker') {
+                    throw "auth_transport_$authTransport"
+                  }
