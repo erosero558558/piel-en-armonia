@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 756
+  revision: 758
   updated_at: 2026-03-26
 
 strategy:
@@ -803,7 +803,7 @@ tasks:
     owner: deck
     executor: codex
     status: blocked
-    status_since_at: "2026-03-26T05:05:38Z"
+    status_since_at: "2026-03-26T11:42:20.790Z"
     risk: medium
     scope: readiness
     codex_instance: codex_backend_ops
@@ -825,9 +825,9 @@ tasks:
     source_ref: ""
     priority_score: 95
     sla_due_at: ""
-    last_attempt_at: "2026-03-26T05:05:38Z"
-    attempts: 2
-    blocked_reason: "publicsync_stale_after_hardening_publish"
+    last_attempt_at: "2026-03-26T11:42:20.790Z"
+    attempts: 3
+    blocked_reason: "publicsync_stale_recurred_after_recovery"
     lease_id: ""
     lease_owner: ""
     lease_created_at: ""
@@ -11454,3 +11454,56 @@ tasks:
     prompt: "Rollout publico de health/publicSync y verificacion host-side"
     created_at: 2026-03-17
     updated_at: 2026-03-24
+
+  - id: AG-259
+    title: "Workspace hygiene carryover after public sync recovery"
+    owner: deck
+    executor: codex
+    status: backlog
+    status_since_at: "2026-03-26T11:47:37.833Z"
+    risk: low
+    scope: tooling
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: handoff_allowed
+    cross_domain: true
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    files: ["bin/agent-daily-pulse.js", "docs/LEADOPS_OPENCLAW.md", "docs/OPERATIONS_INDEX.md", "package.json", "scripts/ops/admin/CHECKLIST-OPENCLAW-AUTH-LOCAL.ps1", "scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1", "tests-node/admin-rollout-gate-contract.test.js", "tests-node/agent-daily-pulse.test.js", "tests-node/agent-orchestrator-cli.test.js", "tests-node/openclaw-auth-local-checklist-contract.test.js", "tests-node/orchestrator/focus.test.js", "tests-node/orchestrator/task-guards.test.js", "tests-node/publish-checkpoint-command.test.js", "tools/agent-orchestrator/commands/close.js", "tools/agent-orchestrator/commands/publish.js", "tools/agent-orchestrator/commands/task.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/workspace-truth.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Workspace hygiene carryover after public sync recovery"
+    acceptance_ref: "verification/agent-runs/AG-259.md"
+    evidence_ref: "verification/agent-runs/AG-259.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-transversal-admin-operativo"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "admin_queue_pilot_cut"
+    integration_slice: "governance_evidence"
+    work_type: "support"
+    expected_outcome: "Preservar el carryover transversal fuera de main y dejar el repo canónico limpio para abrir trabajo nuevo."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-009"]
+    prompt: "Workspace hygiene carryover after public sync recovery"
+    created_at: 2026-03-26
+    updated_at: 2026-03-26
