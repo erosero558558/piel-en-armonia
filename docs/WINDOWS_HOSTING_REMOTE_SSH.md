@@ -28,6 +28,7 @@ Variables soportadas:
 - `SSH_HOST`
 - `SSH_PORT`
 - `SSH_USERNAME`
+- `SSH_PASSWORD`
 - `SSH_IDENTITY_FILE`
 - `SSH_HOST_ALIAS`
 - `WINDOWS_EXPECTED_COMMIT`
@@ -43,6 +44,17 @@ Uso rapido:
 export SSH_HOST='windows-host.example'
 export SSH_USERNAME='ernesto'
 export SSH_IDENTITY_FILE="$HOME/.ssh/windows-host"
+
+scripts/ops/setup/DIAGNOSTICAR-HOSTING-WINDOWS-SSH.sh
+scripts/ops/setup/EXECUTAR-HOSTING-WINDOWS-SSH.sh
+```
+
+o, si el host expone solo password:
+
+```bash
+export SSH_HOST='windows-host.example'
+export SSH_USERNAME='ernesto'
+export SSH_PASSWORD='super-secreto'
 
 scripts/ops/setup/DIAGNOSTICAR-HOSTING-WINDOWS-SSH.sh
 scripts/ops/setup/EXECUTAR-HOSTING-WINDOWS-SSH.sh

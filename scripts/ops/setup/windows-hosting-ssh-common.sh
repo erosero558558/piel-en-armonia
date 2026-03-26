@@ -30,6 +30,7 @@ windows_hosting_init_env() {
     export WINDOWS_HOSTING_DIR="${WINDOWS_HOSTING_DIR:-$WINDOWS_HOSTING_DIR_DEFAULT}"
     export WINDOWS_PUBLIC_DOMAIN="${WINDOWS_PUBLIC_DOMAIN:-$WINDOWS_PUBLIC_DOMAIN_DEFAULT}"
     export SSH_PORT="${SSH_PORT:-22}"
+    export SSH_PASSWORD="${SSH_PASSWORD:-}"
     export SSH_CONNECT_TIMEOUT="${SSH_CONNECT_TIMEOUT:-20}"
     export SSH_SERVER_ALIVE_INTERVAL="${SSH_SERVER_ALIVE_INTERVAL:-15}"
     export SSH_SERVER_ALIVE_COUNT_MAX="${SSH_SERVER_ALIVE_COUNT_MAX:-4}"
@@ -63,9 +64,10 @@ windows_hosting_prepare_ssh() {
     windows_hosting_require_command ssh
     windows_hosting_require_command git
 
-    WINDOWS_SSH_CMD=(
+    local auth_mode="identity_or_batch"
+    local -a ssh_prefix=()
+    local -a ssh_core=(
         ssh
-        -o BatchMode=yes
         -o "StrictHostKeyChecking=${SSH_STRICT_HOST_KEY_CHECKING}"
         -o "ConnectTimeout=${SSH_CONNECT_TIMEOUT}"
         -o "ServerAliveInterval=${SSH_SERVER_ALIVE_INTERVAL}"
@@ -74,8 +76,27 @@ windows_hosting_prepare_ssh() {
 
     if [[ -n "${SSH_IDENTITY_FILE:-}" ]]; then
         [[ -f "${SSH_IDENTITY_FILE}" ]] || windows_hosting_die "No existe SSH_IDENTITY_FILE=${SSH_IDENTITY_FILE}"
-        WINDOWS_SSH_CMD+=(-i "${SSH_IDENTITY_FILE}")
+        ssh_core+=(
+            -o BatchMode=yes
+            -i "${SSH_IDENTITY_FILE}"
+        )
+        auth_mode="identity_file"
+    elif [[ -n "${SSH_PASSWORD:-}" ]]; then
+        windows_hosting_require_command sshpass
+        ssh_prefix=(sshpass -p "${SSH_PASSWORD}")
+        ssh_core+=(
+            -o BatchMode=no
+            -o PreferredAuthentications=password
+            -o PubkeyAuthentication=no
+        )
+        auth_mode="password"
+    else
+        ssh_core+=(-o BatchMode=yes)
+        auth_mode="batch_no_prompt"
     fi
+
+    WINDOWS_SSH_CMD=("${ssh_prefix[@]}" "${ssh_core[@]}")
+    windows_hosting_log "SSH auth mode=${auth_mode}"
 
     if [[ -n "${SSH_HOST_ALIAS:-}" ]]; then
         WINDOWS_SSH_TARGET="${SSH_HOST_ALIAS}"

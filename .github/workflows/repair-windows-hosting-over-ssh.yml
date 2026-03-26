@@ -1,0 +1,266 @@
+name: Repair Windows Hosting Over SSH
+
+on:
+    workflow_dispatch:
+        inputs:
+            target_commit:
+                description: 'SHA objetivo esperado en el host Windows (vacio => origin/main)'
+                required: false
+                default: ''
+                type: string
+            preflight_only:
+                description: 'Solo ejecutar diagnostico remoto; no correr el wrapper mutante'
+                required: false
+                default: false
+                type: boolean
+            public_domain:
+                description: 'Dominio publico a validar'
+                required: false
+                default: 'pielarmonia.com'
+                type: string
+
+concurrency:
+    group: repair-windows-hosting-over-ssh
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+jobs:
+    repair:
+        name: Repair Windows hosting via SSH
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        env:
+            TARGET_COMMIT_INPUT: ${{ github.event.inputs.target_commit || '' }}
+            PREFLIGHT_ONLY_INPUT: ${{ github.event.inputs.preflight_only || 'false' }}
+            PUBLIC_DOMAIN_INPUT: ${{ github.event.inputs.public_domain || 'pielarmonia.com' }}
+            SSH_HOST: ${{ vars.SSH_HOST || secrets.SSH_HOST || '' }}
+            SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+            SSH_USERNAME: ${{ secrets.SSH_USERNAME || vars.SSH_USERNAME || '' }}
+            SSH_PASSWORD: ${{ secrets.SSH_PASSWORD || vars.SSH_PASSWORD || '' }}
+        outputs:
+            target_commit: ${{ steps.finalize.outputs.target_commit }}
+            current_commit: ${{ steps.finalize.outputs.current_commit }}
+            desired_commit: ${{ steps.finalize.outputs.desired_commit }}
+            health_ok: ${{ steps.finalize.outputs.health_ok }}
+            auth_mode: ${{ steps.finalize.outputs.auth_mode }}
+            auth_transport: ${{ steps.finalize.outputs.auth_transport }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Prepare SSH repair artifact root
+              id: artifact_root
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  artifact_root="${RUNNER_TEMP}/repair-windows-hosting-over-ssh"
+                  mkdir -p "${artifact_root}"
+                  echo "path=${artifact_root}" >> "${GITHUB_OUTPUT}"
+
+            - name: Validate SSH inputs
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  if [ -z "${SSH_HOST}" ]; then
+                    echo "::error::Falta SSH_HOST/vars.SSH_HOST para repair Windows over SSH."
+                    exit 1
+                  fi
+                  if [ -z "${SSH_USERNAME}" ]; then
+                    echo "::error::Falta SSH_USERNAME para repair Windows over SSH."
+                    exit 1
+                  fi
+                  if [ -z "${SSH_PASSWORD}" ]; then
+                    echo "::error::Falta SSH_PASSWORD para repair Windows over SSH."
+                    exit 1
+                  fi
+
+            - name: Install sshpass
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  sudo apt-get update
+                  sudo apt-get install -y sshpass
+
+            - name: Resolve Windows hosting target commit
+              id: resolve_target
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  git fetch --prune origin
+                  target_input="${TARGET_COMMIT_INPUT}"
+                  resolved_target=''
+                  if [ -n "${target_input}" ]; then
+                    resolved_target="$(git rev-parse "${target_input}")"
+                  else
+                    resolved_target="$(git rev-parse origin/main)"
+                  fi
+                  remote_main="$(git rev-parse origin/main)"
+                  if [ "${resolved_target}" != "${remote_main}" ]; then
+                    echo "::error::Los wrappers SSH de Windows solo permiten promover el pin actual de origin/main. target_commit=${resolved_target} origin/main=${remote_main}"
+                    exit 1
+                  fi
+                  {
+                    echo "target_commit=${resolved_target}"
+                    echo "remote_main=${remote_main}"
+                  } >> "${GITHUB_OUTPUT}"
+
+            - name: Capture public runtime before SSH repair
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  base_url="${PUBLIC_DOMAIN_INPUT}"
+                  case "${base_url}" in
+                    http://*|https://*) ;;
+                    *) base_url="https://${base_url}" ;;
+                  esac
+                  curl -fsSL "${base_url%/}/__hosting/runtime" > "${{ steps.artifact_root.outputs.path }}/public-runtime-before.json"
+                  curl -fsSL "${base_url%/}/api.php?resource=health" > "${{ steps.artifact_root.outputs.path }}/public-health-before.json"
+                  curl -fsSL "${base_url%/}/admin-auth.php?action=status" > "${{ steps.artifact_root.outputs.path }}/public-admin-auth-before.json"
+
+            - name: Diagnose Windows hosting before repair
+              id: diagnose_before
+              continue-on-error: true
+              shell: bash
+              env:
+                  WINDOWS_EXPECTED_COMMIT: ${{ steps.resolve_target.outputs.target_commit }}
+                  WINDOWS_PUBLIC_DOMAIN: ${{ env.PUBLIC_DOMAIN_INPUT }}
+              run: |
+                  set -euo pipefail
+                  bash ./scripts/ops/setup/DIAGNOSTICAR-HOSTING-WINDOWS-SSH.sh \
+                    > "${{ steps.artifact_root.outputs.path }}/diagnostic-before.log" 2>&1
+
+            - name: Execute Windows hosting repair over SSH
+              id: repair_over_ssh
+              if: ${{ steps.resolve_target.outputs.target_commit != '' && env.PREFLIGHT_ONLY_INPUT != 'true' }}
+              continue-on-error: true
+              shell: bash
+              env:
+                  WINDOWS_EXPECTED_COMMIT: ${{ steps.resolve_target.outputs.target_commit }}
+                  WINDOWS_PUBLIC_DOMAIN: ${{ env.PUBLIC_DOMAIN_INPUT }}
+              run: |
+                  set -euo pipefail
+                  bash ./scripts/ops/setup/EXECUTAR-HOSTING-WINDOWS-SSH.sh \
+                    > "${{ steps.artifact_root.outputs.path }}/repair-over-ssh.log" 2>&1
+
+            - name: Diagnose Windows hosting after repair
+              id: diagnose_after
+              continue-on-error: true
+              shell: bash
+              env:
+                  WINDOWS_EXPECTED_COMMIT: ${{ steps.resolve_target.outputs.target_commit }}
+                  WINDOWS_PUBLIC_DOMAIN: ${{ env.PUBLIC_DOMAIN_INPUT }}
+              run: |
+                  set -euo pipefail
+                  bash ./scripts/ops/setup/DIAGNOSTICAR-HOSTING-WINDOWS-SSH.sh \
+                    > "${{ steps.artifact_root.outputs.path }}/diagnostic-after.log" 2>&1
+
+            - name: Capture public runtime after SSH repair
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  base_url="${PUBLIC_DOMAIN_INPUT}"
+                  case "${base_url}" in
+                    http://*|https://*) ;;
+                    *) base_url="https://${base_url}" ;;
+                  esac
+                  curl -fsSL "${base_url%/}/__hosting/runtime" > "${{ steps.artifact_root.outputs.path }}/public-runtime-after.json"
+                  curl -fsSL "${base_url%/}/api.php?resource=health" > "${{ steps.artifact_root.outputs.path }}/public-health-after.json"
+                  curl -fsSL "${base_url%/}/admin-auth.php?action=status" > "${{ steps.artifact_root.outputs.path }}/public-admin-auth-after.json"
+
+            - name: Upload Windows SSH repair artifacts
+              if: ${{ always() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: repair-windows-hosting-over-ssh-artifacts
+                  path: ${{ steps.artifact_root.outputs.path }}
+                  if-no-files-found: warn
+
+            - name: Finalize Windows SSH repair verdict
+              id: finalize
+              shell: bash
+              env:
+                  RESOLVED_TARGET_COMMIT: ${{ steps.resolve_target.outputs.target_commit }}
+                  PREFLIGHT_ONLY_RESOLVED: ${{ env.PREFLIGHT_ONLY_INPUT }}
+                  DIAGNOSE_BEFORE_OUTCOME: ${{ steps.diagnose_before.outcome }}
+                  REPAIR_OVER_SSH_OUTCOME: ${{ steps.repair_over_ssh.outcome || 'skipped' }}
+                  DIAGNOSE_AFTER_OUTCOME: ${{ steps.diagnose_after.outcome }}
+                  ARTIFACT_ROOT: ${{ steps.artifact_root.outputs.path }}
+              run: |
+                  set -euo pipefail
+                  python3 - <<'PY'
+                  import json
+                  import os
+                  import pathlib
+                  import sys
+
+                  artifact_root = pathlib.Path(os.environ['ARTIFACT_ROOT'])
+                  target_commit = os.environ.get('RESOLVED_TARGET_COMMIT', '').strip()
+                  preflight_only = os.environ.get('PREFLIGHT_ONLY_RESOLVED', '').strip().lower() == 'true'
+
+                  def read_json(name):
+                      path = artifact_root / name
+                      if not path.exists():
+                          raise FileNotFoundError(name)
+                      return json.loads(path.read_text(encoding='utf-8'))
+
+                  runtime = read_json('public-runtime-after.json')
+                  health = read_json('public-health-after.json')
+                  auth = read_json('public-admin-auth-after.json')
+                  public_sync = (((health or {}).get('checks') or {}).get('publicSync') or {})
+
+                  current_commit = str(runtime.get('current_commit') or '')
+                  desired_commit = str(runtime.get('desired_commit') or '')
+                  auth_mode = str(auth.get('mode') or '')
+                  auth_transport = str(auth.get('transport') or '')
+                  health_ok = bool(public_sync.get('healthy') is True)
+
+                  step_summary = pathlib.Path(os.environ['GITHUB_STEP_SUMMARY'])
+                  with step_summary.open('a', encoding='utf-8') as summary:
+                      summary.write('## Repair Windows Hosting Over SSH\n')
+                      summary.write(f"- target_commit: `{target_commit}`\n")
+                      summary.write(f"- preflight_only: `{str(preflight_only).lower()}`\n")
+                      summary.write(f"- diagnose_before: `{os.environ.get('DIAGNOSE_BEFORE_OUTCOME', 'unknown')}`\n")
+                      summary.write(f"- repair_over_ssh: `{os.environ.get('REPAIR_OVER_SSH_OUTCOME', 'skipped')}`\n")
+                      summary.write(f"- diagnose_after: `{os.environ.get('DIAGNOSE_AFTER_OUTCOME', 'unknown')}`\n")
+                      summary.write(f"- current_commit: `{current_commit}`\n")
+                      summary.write(f"- desired_commit: `{desired_commit}`\n")
+                      summary.write(f"- public_sync_healthy: `{str(health_ok).lower()}`\n")
+                      summary.write(f"- auth_mode: `{auth_mode}`\n")
+                      summary.write(f"- auth_transport: `{auth_transport}`\n")
+
+                  output_path = pathlib.Path(os.environ['GITHUB_OUTPUT'])
+                  with output_path.open('a', encoding='utf-8') as output:
+                      output.write(f"target_commit={target_commit}\n")
+                      output.write(f"current_commit={current_commit}\n")
+                      output.write(f"desired_commit={desired_commit}\n")
+                      output.write(f"health_ok={str(health_ok).lower()}\n")
+                      output.write(f"auth_mode={auth_mode}\n")
+                      output.write(f"auth_transport={auth_transport}\n")
+
+                  if preflight_only:
+                      sys.exit(0)
+
+                  failures = []
+                  if not target_commit:
+                      failures.append('missing_target_commit')
+                  if current_commit != target_commit:
+                      failures.append('runtime_current_commit_mismatch')
+                  if desired_commit != target_commit:
+                      failures.append('runtime_desired_commit_mismatch')
+                  if not health_ok:
+                      failures.append('public_sync_unhealthy')
+                  if public_sync.get('failureReason'):
+                      failures.append(f"public_sync_reason:{public_sync.get('failureReason')}")
+                  if auth_mode != 'google_oauth':
+                      failures.append(f'auth_mode:{auth_mode or "unknown"}')
+                  if auth_transport != 'web_broker':
+                      failures.append(f'auth_transport:{auth_transport or "unknown"}')
+
+                  if failures:
+                      print('::error::' + ';'.join(failures))
+                      sys.exit(1)
+                  PY
