@@ -789,6 +789,9 @@ tasks:
     created_at: 2026-03-03
     updated_at: 2026-03-03
 
+  # Public sync freeze activo hasta 2026-03-29T21:00:00-05:00 (America/Bogota).
+  # No abrir nuevas slices ni triage sobre public_main_sync / host connectivity
+  # salvo que reaparezca un runner self-hosted Windows o un puerto SSH real al host.
   - id: CDX-009
     title: "Public sync stale recovery: refrescar cron host-side y revalidar health"
     owner: deck
