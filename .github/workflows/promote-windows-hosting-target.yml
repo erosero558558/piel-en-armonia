@@ -1,0 +1,487 @@
+name: Promote Windows Hosting Target
+
+on:
+    workflow_dispatch:
+        inputs:
+            target_commit:
+                description: 'SHA objetivo a promover en el host Windows (vacio => resolver origin/main)'
+                required: false
+                default: ''
+                type: string
+            promote_remote_head:
+                description: 'Usar -PromoteCurrentRemoteHead cuando target_commit venga vacio'
+                required: false
+                default: true
+                type: boolean
+            preflight_only:
+                description: 'Solo diagnostico/preflight; no repinear release-target ni aplicar sync'
+                required: false
+                default: false
+                type: boolean
+            public_domain:
+                description: 'Dominio publico a verificar'
+                required: false
+                default: 'pielarmonia.com'
+                type: string
+
+concurrency:
+    group: promote-windows-hosting-target
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+jobs:
+    promote:
+        name: Promote pinned target on Windows host
+        runs-on: [self-hosted, Windows]
+        timeout-minutes: 35
+        env:
+            TARGET_COMMIT_INPUT: ${{ github.event.inputs.target_commit || '' }}
+            PROMOTE_REMOTE_HEAD_INPUT: ${{ github.event.inputs.promote_remote_head || 'true' }}
+            PREFLIGHT_ONLY_INPUT: ${{ github.event.inputs.preflight_only || 'false' }}
+            PUBLIC_DOMAIN_INPUT: ${{ github.event.inputs.public_domain || 'pielarmonia.com' }}
+            RELEASE_TARGET_PATH: C:\ProgramData\Pielarmonia\hosting\release-target.runtime.json
+            REPAIR_STATUS_PATH: C:\ProgramData\Pielarmonia\hosting\repair-hosting-status.json
+            MAIN_SYNC_STATUS_PATH: C:\ProgramData\Pielarmonia\hosting\main-sync-status.json
+            HOSTING_SUPERVISOR_STATUS_PATH: C:\ProgramData\Pielarmonia\hosting\hosting-supervisor-status.json
+            EXPECTED_RELEASE_SHA: a6898376b75e5a9237ce42cac24c8d45ed3ced54
+        outputs:
+            target_commit: ${{ steps.finalize.outputs.target_commit }}
+            desired_commit: ${{ steps.finalize.outputs.desired_commit }}
+            current_commit: ${{ steps.finalize.outputs.current_commit }}
+            auth_mode: ${{ steps.finalize.outputs.auth_mode }}
+            auth_transport: ${{ steps.finalize.outputs.auth_transport }}
+            health_ok: ${{ steps.finalize.outputs.health_ok }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Prepare Windows hosting artifact root
+              id: artifact_root
+              shell: pwsh
+              run: |
+                  $artifactRoot = Join-Path $env:RUNNER_TEMP 'promote-windows-hosting-target'
+                  New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "path=$artifactRoot"
+
+            - name: Resolve promotion target commit
+              id: resolve_target
+              shell: pwsh
+              run: |
+                  $ErrorActionPreference = 'Stop'
+
+                  function Test-True([string]$Value) {
+                      if ($null -eq $Value) {
+                          return $false
+                      }
+                      return @('1', 'true', 'yes', 'on') -contains $Value.Trim().ToLowerInvariant()
+                  }
+
+                  git fetch --prune origin
+
+                  $preflightOnly = Test-True $env:PREFLIGHT_ONLY_INPUT
+                  $promoteRemoteHead = Test-True $env:PROMOTE_REMOTE_HEAD_INPUT
+                  $targetInput = [string]$env:TARGET_COMMIT_INPUT
+                  $resolvedTarget = ''
+                  $repairMode = 'target_commit'
+
+                  if (-not [string]::IsNullOrWhiteSpace($targetInput)) {
+                      $resolvedTarget = (& git rev-parse $targetInput).Trim()
+                      if ($LASTEXITCODE -ne 0) {
+                          throw "No se pudo resolver target_commit=$targetInput"
+                      }
+                      $repairMode = 'target_commit'
+                  } else {
+                      $resolvedTarget = (& git rev-parse origin/main).Trim()
+                      if ($LASTEXITCODE -ne 0) {
+                          throw 'No se pudo resolver origin/main'
+                      }
+                      $repairMode = if ($promoteRemoteHead) {
+                          'promote_remote_head'
+                      } else {
+                          'resolved_origin_main'
+                      }
+                  }
+
+                  $artifactPath = Join-Path '${{ steps.artifact_root.outputs.path }}' 'resolved-target.json'
+                  $payload = [ordered]@{
+                      target_commit = $resolvedTarget
+                      repair_mode = $repairMode
+                      preflight_only = $preflightOnly
+                      expected_release_sha = [string]$env:EXPECTED_RELEASE_SHA
+                      generated_at = [DateTimeOffset]::UtcNow.ToString('o')
+                  }
+                  $payload | ConvertTo-Json -Depth 8 | Out-File -FilePath $artifactPath -Encoding utf8
+
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "target_commit=$resolvedTarget"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "repair_mode=$repairMode"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value ("preflight_only={0}" -f $preflightOnly.ToString().ToLowerInvariant())
+
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '## Promote Windows Hosting Target'
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '- billing_gate: passed_to_manual_workflow'
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '- runner_gate: self_hosted_windows_active'
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- repair_mode: `{0}`" -f $repairMode)
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- preflight_only: `{0}`" -f $preflightOnly.ToString().ToLowerInvariant())
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- target_commit: `{0}`" -f $resolvedTarget)
+                  if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_RELEASE_SHA) -and $resolvedTarget -ne $env:EXPECTED_RELEASE_SHA) {
+                      Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- expected_release_sha: `{0}` (warning: target distinto)" -f $env:EXPECTED_RELEASE_SHA)
+                  }
+
+            - name: Capture runtime fingerprint before promotion
+              shell: pwsh
+              run: |
+                  $ErrorActionPreference = 'Stop'
+
+                  function Normalize-BaseUrl([string]$Value) {
+                      $trimmed = [string]$Value
+                      if ([string]::IsNullOrWhiteSpace($trimmed)) {
+                          return 'https://pielarmonia.com'
+                      }
+                      if ($trimmed -match '^https?://') {
+                          return $trimmed.TrimEnd('/')
+                      }
+                      return ('https://{0}' -f $trimmed.Trim('/'))
+                  }
+
+                  function Write-HttpSnapshot([string]$Url, [string]$OutputPath) {
+                      $snapshot = [ordered]@{
+                          ok = $false
+                          url = $Url
+                          status_code = 0
+                          error = ''
+                          payload = $null
+                          fetched_at = [DateTimeOffset]::UtcNow.ToString('o')
+                      }
+
+                      try {
+                          $response = Invoke-WebRequest -Uri $Url -Headers @{ Accept = 'application/json' } -TimeoutSec 30
+                          $snapshot.status_code = [int]$response.StatusCode
+                          $snapshot.ok = ($snapshot.status_code -ge 200 -and $snapshot.status_code -lt 300)
+                          try {
+                              $snapshot.payload = $response.Content | ConvertFrom-Json
+                          } catch {
+                              $snapshot.error = 'json_parse_failed'
+                          }
+                      } catch {
+                          $exception = $_.Exception
+                          try {
+                              if ($null -ne $exception.Response -and $null -ne $exception.Response.StatusCode) {
+                                  $snapshot.status_code = [int]$exception.Response.StatusCode.value__
+                              }
+                          } catch {
+                              $snapshot.status_code = 0
+                          }
+                          $snapshot.error = if ($snapshot.status_code -gt 0) {
+                              "http_$($snapshot.status_code)"
+                          } else {
+                              [string]$exception.Message
+                          }
+                      }
+
+                      $snapshot | ConvertTo-Json -Depth 20 | Out-File -FilePath $OutputPath -Encoding utf8
+                  }
+
+                  $artifactRoot = '${{ steps.artifact_root.outputs.path }}'
+                  $baseUrl = Normalize-BaseUrl $env:PUBLIC_DOMAIN_INPUT
+                  Write-HttpSnapshot -Url ($baseUrl + '/__hosting/runtime') -OutputPath (Join-Path $artifactRoot 'public-runtime-before.json')
+                  Write-HttpSnapshot -Url 'http://127.0.0.1/__hosting/runtime' -OutputPath (Join-Path $artifactRoot 'local-runtime-before.json')
+
+            - name: Run Windows hosting repair
+              id: repair
+              continue-on-error: true
+              shell: pwsh
+              env:
+                  RESOLVED_TARGET_COMMIT: ${{ steps.resolve_target.outputs.target_commit }}
+                  RESOLVED_REPAIR_MODE: ${{ steps.resolve_target.outputs.repair_mode }}
+              run: |
+                  $ErrorActionPreference = 'Stop'
+
+                  function Test-True([string]$Value) {
+                      if ($null -eq $Value) {
+                          return $false
+                      }
+                      return @('1', 'true', 'yes', 'on') -contains $Value.Trim().ToLowerInvariant()
+                  }
+
+                  $preflightOnly = Test-True $env:PREFLIGHT_ONLY_INPUT
+                  $promoteRemoteHead = Test-True $env:PROMOTE_REMOTE_HEAD_INPUT
+                  $repairArguments = @(
+                      '-NoProfile',
+                      '-ExecutionPolicy', 'Bypass',
+                      '-File', '.\scripts\ops\setup\REPARAR-HOSTING-WINDOWS.ps1',
+                      '-PublicDomain', $env:PUBLIC_DOMAIN_INPUT,
+                      '-ReleaseTargetPath', $env:RELEASE_TARGET_PATH
+                  )
+
+                  if ($preflightOnly) {
+                      $repairArguments += '-PreflightOnly'
+                      Write-Host 'PreflightOnly activo: el workflow no pasa -TargetCommit ni -PromoteCurrentRemoteHead.'
+                  } elseif (-not [string]::IsNullOrWhiteSpace($env:TARGET_COMMIT_INPUT) -or (-not $promoteRemoteHead)) {
+                      $repairArguments += @('-TargetCommit', $env:RESOLVED_TARGET_COMMIT)
+                  } else {
+                      $repairArguments += '-PromoteCurrentRemoteHead'
+                  }
+
+                  & powershell.exe @repairArguments
+                  $exitCode = $LASTEXITCODE
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "exit_code=$exitCode"
+                  exit $exitCode
+
+            - name: Collect Windows hosting promotion evidence
+              id: collect_evidence
+              if: ${{ always() }}
+              shell: pwsh
+              run: |
+                  $ErrorActionPreference = 'Stop'
+
+                  function Normalize-BaseUrl([string]$Value) {
+                      $trimmed = [string]$Value
+                      if ([string]::IsNullOrWhiteSpace($trimmed)) {
+                          return 'https://pielarmonia.com'
+                      }
+                      if ($trimmed -match '^https?://') {
+                          return $trimmed.TrimEnd('/')
+                      }
+                      return ('https://{0}' -f $trimmed.Trim('/'))
+                  }
+
+                  function Write-HttpSnapshot([string]$Url, [string]$OutputPath) {
+                      $snapshot = [ordered]@{
+                          ok = $false
+                          url = $Url
+                          status_code = 0
+                          error = ''
+                          payload = $null
+                          fetched_at = [DateTimeOffset]::UtcNow.ToString('o')
+                      }
+
+                      try {
+                          $response = Invoke-WebRequest -Uri $Url -Headers @{ Accept = 'application/json' } -TimeoutSec 30
+                          $snapshot.status_code = [int]$response.StatusCode
+                          $snapshot.ok = ($snapshot.status_code -ge 200 -and $snapshot.status_code -lt 300)
+                          try {
+                              $snapshot.payload = $response.Content | ConvertFrom-Json
+                          } catch {
+                              $snapshot.error = 'json_parse_failed'
+                          }
+                      } catch {
+                          $exception = $_.Exception
+                          try {
+                              if ($null -ne $exception.Response -and $null -ne $exception.Response.StatusCode) {
+                                  $snapshot.status_code = [int]$exception.Response.StatusCode.value__
+                              }
+                          } catch {
+                              $snapshot.status_code = 0
+                          }
+                          $snapshot.error = if ($snapshot.status_code -gt 0) {
+                              "http_$($snapshot.status_code)"
+                          } else {
+                              [string]$exception.Message
+                          }
+                      }
+
+                      $snapshot | ConvertTo-Json -Depth 20 | Out-File -FilePath $OutputPath -Encoding utf8
+                  }
+
+                  $artifactRoot = '${{ steps.artifact_root.outputs.path }}'
+                  $baseUrl = Normalize-BaseUrl $env:PUBLIC_DOMAIN_INPUT
+
+                  Write-HttpSnapshot -Url ($baseUrl + '/__hosting/runtime') -OutputPath (Join-Path $artifactRoot 'public-runtime-after.json')
+                  Write-HttpSnapshot -Url 'http://127.0.0.1/__hosting/runtime' -OutputPath (Join-Path $artifactRoot 'local-runtime-after.json')
+                  Write-HttpSnapshot -Url ($baseUrl + '/api.php?resource=health') -OutputPath (Join-Path $artifactRoot 'public-health-after.json')
+                  Write-HttpSnapshot -Url ($baseUrl + '/admin-auth.php?action=status') -OutputPath (Join-Path $artifactRoot 'public-admin-auth-after.json')
+                  Write-HttpSnapshot -Url 'http://127.0.0.1/api.php?resource=health-diagnostics' -OutputPath (Join-Path $artifactRoot 'local-health-diagnostics-after.json')
+                  Write-HttpSnapshot -Url 'http://127.0.0.1/admin-auth.php?action=status' -OutputPath (Join-Path $artifactRoot 'local-admin-auth-after.json')
+
+                  $statusFiles = @(
+                      @{ Source = $env:REPAIR_STATUS_PATH; Target = 'repair-hosting-status.json' },
+                      @{ Source = $env:MAIN_SYNC_STATUS_PATH; Target = 'main-sync-status.json' },
+                      @{ Source = $env:HOSTING_SUPERVISOR_STATUS_PATH; Target = 'hosting-supervisor-status.json' }
+                  )
+
+                  foreach ($statusFile in $statusFiles) {
+                      if (Test-Path -LiteralPath $statusFile.Source) {
+                          Copy-Item -LiteralPath $statusFile.Source -Destination (Join-Path $artifactRoot $statusFile.Target) -Force
+                      }
+                  }
+
+            - name: Upload Windows hosting promotion artifacts
+              if: ${{ always() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: promote-windows-hosting-target-artifacts
+                  path: ${{ steps.artifact_root.outputs.path }}
+                  if-no-files-found: warn
+                  retention-days: 14
+
+            - name: Finalize Windows hosting promotion verdict
+              id: finalize
+              if: ${{ always() }}
+              shell: pwsh
+              env:
+                  REPAIR_EXIT_CODE: ${{ steps.repair.outputs.exit_code || '0' }}
+                  RESOLVED_TARGET_COMMIT: ${{ steps.resolve_target.outputs.target_commit }}
+                  RESOLVED_REPAIR_MODE: ${{ steps.resolve_target.outputs.repair_mode }}
+              run: |
+                  $ErrorActionPreference = 'Stop'
+
+                  function Test-True([string]$Value) {
+                      if ($null -eq $Value) {
+                          return $false
+                      }
+                      return @('1', 'true', 'yes', 'on') -contains $Value.Trim().ToLowerInvariant()
+                  }
+
+                  function Read-JsonFileOrNull([string]$Path) {
+                      if (-not (Test-Path -LiteralPath $Path)) {
+                          return $null
+                      }
+                      try {
+                          return Get-Content -Raw -Path $Path -Encoding utf8 | ConvertFrom-Json
+                      } catch {
+                          return $null
+                      }
+                  }
+
+                  function Get-FirstText([object[]]$Values) {
+                      foreach ($value in $Values) {
+                          $text = [string]$value
+                          if (-not [string]::IsNullOrWhiteSpace($text)) {
+                              return $text.Trim()
+                          }
+                      }
+                      return ''
+                  }
+
+                  $artifactRoot = '${{ steps.artifact_root.outputs.path }}'
+                  $preflightOnly = Test-True $env:PREFLIGHT_ONLY_INPUT
+                  $repairExitCode = 0
+                  try {
+                      $repairExitCode = [int]$env:REPAIR_EXIT_CODE
+                  } catch {
+                      $repairExitCode = 0
+                  }
+
+                  $publicRuntimeBefore = Read-JsonFileOrNull (Join-Path $artifactRoot 'public-runtime-before.json')
+                  $publicRuntimeAfter = Read-JsonFileOrNull (Join-Path $artifactRoot 'public-runtime-after.json')
+                  $localRuntimeAfter = Read-JsonFileOrNull (Join-Path $artifactRoot 'local-runtime-after.json')
+                  $publicHealthAfter = Read-JsonFileOrNull (Join-Path $artifactRoot 'public-health-after.json')
+                  $publicAuthAfter = Read-JsonFileOrNull (Join-Path $artifactRoot 'public-admin-auth-after.json')
+                  $repairStatus = Read-JsonFileOrNull (Join-Path $artifactRoot 'repair-hosting-status.json')
+                  $mainSyncStatus = Read-JsonFileOrNull (Join-Path $artifactRoot 'main-sync-status.json')
+                  $supervisorStatus = Read-JsonFileOrNull (Join-Path $artifactRoot 'hosting-supervisor-status.json')
+
+                  $targetCommit = [string]$env:RESOLVED_TARGET_COMMIT
+                  $desiredCommit = Get-FirstText @(
+                      $publicRuntimeAfter.payload.desired_commit,
+                      $localRuntimeAfter.payload.desired_commit,
+                      $repairStatus.desired_commit,
+                      $mainSyncStatus.desired_commit
+                  )
+                  $currentCommit = Get-FirstText @(
+                      $publicRuntimeAfter.payload.current_commit,
+                      $localRuntimeAfter.payload.current_commit,
+                      $repairStatus.current_commit,
+                      $mainSyncStatus.current_commit
+                  )
+                  $authMode = Get-FirstText @(
+                      $publicAuthAfter.payload.mode,
+                      $repairStatus.auth_mode,
+                      $supervisorStatus.auth_mode,
+                      $mainSyncStatus.auth_mode
+                  )
+                  $authTransport = Get-FirstText @(
+                      $publicAuthAfter.payload.transport,
+                      $repairStatus.auth_transport,
+                      $supervisorStatus.auth_transport,
+                      $mainSyncStatus.auth_transport
+                  )
+                  $healthOk = $false
+                  if ($null -ne $publicHealthAfter -and $null -ne $publicHealthAfter.payload -and $publicHealthAfter.payload.ok -eq $true) {
+                      $healthOk = $true
+                  } elseif ($repairStatus.health_ok -eq $true -or $mainSyncStatus.health_ok -eq $true) {
+                      $healthOk = $true
+                  }
+
+                  $publicSyncDeployedCommit = Get-FirstText @(
+                      $publicHealthAfter.payload.checks.publicSync.deployedCommit,
+                      $publicHealthAfter.payload.checks.publicSync.currentHead
+                  )
+                  $beforeDesiredCommit = Get-FirstText @(
+                      $publicRuntimeBefore.payload.desired_commit
+                  )
+                  $beforeCurrentCommit = Get-FirstText @(
+                      $publicRuntimeBefore.payload.current_commit
+                  )
+
+                  $issues = New-Object System.Collections.Generic.List[string]
+                  if ($repairExitCode -ne 0) {
+                      $issues.Add(("repair_script_failed:{0}" -f $repairExitCode)) | Out-Null
+                  }
+
+                  if ($preflightOnly) {
+                      if ($repairStatus.preflight_ok -ne $true) {
+                          $issues.Add('preflight_not_confirmed') | Out-Null
+                      }
+                  } else {
+                      if ([string]::IsNullOrWhiteSpace($desiredCommit) -or $desiredCommit -ne $targetCommit) {
+                          $issues.Add('release_target_not_updated') | Out-Null
+                      }
+                      if ([string]::IsNullOrWhiteSpace($currentCommit) -or $currentCommit -ne $targetCommit) {
+                          if ($desiredCommit -eq $targetCommit) {
+                              $issues.Add('main_sync_not_applied_target') | Out-Null
+                          } else {
+                              $issues.Add('current_commit_unverified') | Out-Null
+                          }
+                      }
+                      if (-not $healthOk) {
+                          $issues.Add('public_health_not_ok') | Out-Null
+                      }
+                      if ($publicSyncDeployedCommit -ne $targetCommit) {
+                          $issues.Add('public_sync_not_reporting_target') | Out-Null
+                      }
+                      $publicAuthStatusCode = 0
+                      try {
+                          $publicAuthStatusCode = [int]$publicAuthAfter.status_code
+                      } catch {
+                          $publicAuthStatusCode = 0
+                      }
+                      if ($publicAuthStatusCode -ne 200) {
+                          $issues.Add(("operator_auth_http_{0}" -f $publicAuthStatusCode)) | Out-Null
+                      } elseif ((@('google_oauth', 'openclaw_chatgpt') -notcontains $authMode) -or ($authTransport -ne 'web_broker')) {
+                          $issues.Add('operator_auth_invalid') | Out-Null
+                      }
+                  }
+
+                  $verdict = if ($issues.Count -eq 0) { 'success' } else { 'failed' }
+                  $blockingReason = if ($issues.Count -gt 0) {
+                      [string]::Join(',', @($issues))
+                  } else {
+                      'none'
+                  }
+
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- before_desired_commit: `{0}`" -f $(if ($beforeDesiredCommit) { $beforeDesiredCommit } else { 'unknown' }))
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- before_current_commit: `{0}`" -f $(if ($beforeCurrentCommit) { $beforeCurrentCommit } else { 'unknown' }))
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- desired_commit_after: `{0}`" -f $(if ($desiredCommit) { $desiredCommit } else { 'unknown' }))
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- current_commit_after: `{0}`" -f $(if ($currentCommit) { $currentCommit } else { 'unknown' }))
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- public_sync_deployed_commit: `{0}`" -f $(if ($publicSyncDeployedCommit) { $publicSyncDeployedCommit } else { 'unknown' }))
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- auth_mode: `{0}`" -f $(if ($authMode) { $authMode } else { 'unknown' }))
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- auth_transport: `{0}`" -f $(if ($authTransport) { $authTransport } else { 'unknown' }))
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- health_ok: `{0}`" -f $healthOk.ToString().ToLowerInvariant())
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- repair_exit_code: `{0}`" -f $repairExitCode)
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- verdict: `{0}`" -f $verdict)
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ("- blocking_reason: `{0}`" -f $blockingReason)
+
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "target_commit=$targetCommit"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "desired_commit=$desiredCommit"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "current_commit=$currentCommit"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "auth_mode=$authMode"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value "auth_transport=$authTransport"
+                  Add-Content -Path $env:GITHUB_OUTPUT -Value ("health_ok={0}" -f $healthOk.ToString().ToLowerInvariant())
+
+                  if ($issues.Count -gt 0) {
+                      throw ("Windows hosting promotion failed: {0}" -f $blockingReason)
+                  }
