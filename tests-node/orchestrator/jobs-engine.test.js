@@ -140,6 +140,74 @@ test('jobs-engine resolveJobSnapshot usa status file local como fuente primaria'
     assert.equal(typeof snapshot.age_seconds, 'number');
 });
 
+test('jobs-engine resolveJobSnapshot normaliza main-sync-status canonico de Windows', async (t) => {
+    const dir = createTempDir();
+    const statusPath = join(dir, 'main-sync-status.json');
+    const checkedAt = new Date().toISOString();
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+
+    writeFileSync(
+        statusPath,
+        `${JSON.stringify(
+            {
+                ok: true,
+                state: 'ok',
+                timestamp: checkedAt,
+                last_successful_deploy_at: checkedAt,
+                mirror_repo_path: 'C:\\dev\\pielarmonia-clean-main',
+                branch: 'main',
+                desired_commit: 'def5678',
+                current_commit: 'def5678',
+                current_head: 'def5678',
+                served_commit: 'def5678',
+                auth_contract_ok: true,
+                site_root_ok: true,
+                served_site_root: 'C:\\dev\\pielarmonia-clean-main',
+                log_path: 'C:\\ProgramData\\Pielarmonia\\hosting\\main-sync.runtime.log',
+                lock_file: 'C:\\tmp\\sync-pielarmonia.lock',
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
+
+    const snapshot = await jobs.resolveJobSnapshot(
+        {
+            key: 'public_main_sync',
+            job_id: '8d31e299-7e57-4959-80b5-aaa2d73e9674',
+            status_path: statusPath,
+            expected_max_lag_seconds: 120,
+        },
+        {
+            existsSync: (path) => path === statusPath,
+            readFileSync,
+            fetchImpl: null,
+        }
+    );
+
+    assert.equal(snapshot.verification_source, 'local_status_file');
+    assert.equal(snapshot.verified, true);
+    assert.equal(snapshot.healthy, true);
+    assert.equal(snapshot.state, 'ok');
+    assert.equal(snapshot.deployed_commit, 'def5678');
+    assert.equal(snapshot.repo_path, 'C:\\dev\\pielarmonia-clean-main');
+    assert.equal(snapshot.branch, 'main');
+    assert.equal(snapshot.current_head, 'def5678');
+    assert.equal(snapshot.remote_head, 'def5678');
+    assert.equal(
+        snapshot.log_path,
+        'C:\\ProgramData\\Pielarmonia\\hosting\\main-sync.runtime.log'
+    );
+    assert.equal(snapshot.lock_file, 'C:\\tmp\\sync-pielarmonia.lock');
+    assert.equal(snapshot.head_drift, false);
+    assert.equal(snapshot.telemetry_gap, false);
+    assert.equal(snapshot.repo_hygiene_issue, false);
+    assert.equal(snapshot.operationally_healthy, true);
+    assert.equal(snapshot.failure_reason, '');
+    assert.equal(typeof snapshot.age_seconds, 'number');
+});
+
 test('jobs-engine resolveJobSnapshot usa health_url cuando no existe status local', async () => {
     const fetchImpl = async () => ({
         ok: true,

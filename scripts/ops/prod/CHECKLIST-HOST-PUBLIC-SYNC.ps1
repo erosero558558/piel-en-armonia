@@ -8,6 +8,9 @@ param(
     [string]$WrapperPath = '/root/sync-pielarmonia.sh',
     [string]$CanonicalWrapperPath = '/var/www/figo/bin/deploy-public-v3-cron-sync.sh',
     [string]$StatusPath = '/var/lib/pielarmonia/public-sync-status.json',
+    [string]$ReleaseTargetPath = '',
+    [string]$RuntimeUrl = '',
+    [string]$MainSyncTaskName = '',
     [string]$LogPath = '/var/log/sync-pielarmonia.log',
     [string]$LockPath = '/tmp/sync-pielarmonia.lock',
     [string]$DiagnosticsUrl = 'http://127.0.0.1/api.php?resource=health-diagnostics',
@@ -27,6 +30,9 @@ $legacyDefaults = @{
     WrapperPath = '/root/sync-pielarmonia.sh'
     CanonicalWrapperPath = '/var/www/figo/bin/deploy-public-v3-cron-sync.sh'
     StatusPath = '/var/lib/pielarmonia/public-sync-status.json'
+    ReleaseTargetPath = ''
+    RuntimeUrl = ''
+    MainSyncTaskName = ''
     LogPath = '/var/log/sync-pielarmonia.log'
     LockPath = '/tmp/sync-pielarmonia.lock'
     DiagnosticsUrl = 'http://127.0.0.1/api.php?resource=health-diagnostics'
@@ -38,7 +44,10 @@ $hostProfiles = @{
         DeployBundlePath = 'C:\dev\pielarmonia-clean-main\_deploy_bundle'
         WrapperPath = 'C:\dev\pielarmonia-clean-main\bin\deploy-public-v3-cron-sync.sh'
         CanonicalWrapperPath = 'C:\dev\pielarmonia-clean-main\bin\deploy-public-v3-cron-sync.sh'
-        StatusPath = 'C:\ProgramData\Pielarmonia\hosting\public-sync-status.json'
+        StatusPath = 'C:\ProgramData\Pielarmonia\hosting\main-sync-status.json'
+        ReleaseTargetPath = 'C:\ProgramData\Pielarmonia\hosting\release-target.runtime.json'
+        RuntimeUrl = 'http://127.0.0.1/__hosting/runtime'
+        MainSyncTaskName = 'Pielarmonia Hosting Main Sync'
         LogPath = 'C:\ProgramData\Pielarmonia\hosting\main-sync.runtime.log'
         LockPath = 'C:\tmp\sync-pielarmonia.lock'
         DiagnosticsUrl = 'https://pielarmonia.com/api.php?resource=health-diagnostics'
@@ -107,15 +116,21 @@ $DeployBundlePath = Resolve-ProfileValue $DeployBundlePath $legacyDefaults.Deplo
 $WrapperPath = Resolve-ProfileValue $WrapperPath $legacyDefaults.WrapperPath $selectedProfile.WrapperPath
 $CanonicalWrapperPath = Resolve-ProfileValue $CanonicalWrapperPath $legacyDefaults.CanonicalWrapperPath $selectedProfile.CanonicalWrapperPath
 $StatusPath = Resolve-ProfileValue $StatusPath $legacyDefaults.StatusPath $selectedProfile.StatusPath
+$ReleaseTargetPath = Resolve-ProfileValue $ReleaseTargetPath $legacyDefaults.ReleaseTargetPath $selectedProfile.ReleaseTargetPath
+$RuntimeUrl = Resolve-ProfileValue $RuntimeUrl $legacyDefaults.RuntimeUrl $selectedProfile.RuntimeUrl
+$MainSyncTaskName = Resolve-ProfileValue $MainSyncTaskName $legacyDefaults.MainSyncTaskName $selectedProfile.MainSyncTaskName
 $LogPath = Resolve-ProfileValue $LogPath $legacyDefaults.LogPath $selectedProfile.LogPath
 $LockPath = Resolve-ProfileValue $LockPath $legacyDefaults.LockPath $selectedProfile.LockPath
 $DiagnosticsUrl = Resolve-ProfileValue $DiagnosticsUrl $legacyDefaults.DiagnosticsUrl $selectedProfile.DiagnosticsUrl
 
 if ($HostProfile -eq 'windows_selfhosted') {
     $snapshotHostCommands = @(
-        "Get-Item -LiteralPath '$StatusPath' | Format-List FullName,Length,LastWriteTime",
+        "((Invoke-WebRequest -UseBasicParsing -Uri '$RuntimeUrl').Content | ConvertFrom-Json) | ConvertTo-Json -Depth 4",
+        "Get-Content -LiteralPath '$ReleaseTargetPath'",
         "Get-Content -LiteralPath '$StatusPath'",
         "Get-Content -LiteralPath '$LogPath' -Tail 50",
+        "Get-ScheduledTask -TaskName '$MainSyncTaskName' | Format-List TaskName,State,LastRunTime,LastTaskResult,NextRunTime",
+        "Get-Item -LiteralPath '$StatusPath' | Format-List FullName,Length,LastWriteTime",
         "Get-Item -LiteralPath '$LockPath' -ErrorAction SilentlyContinue | Format-List FullName,Length,LastWriteTime",
         "Get-ChildItem -LiteralPath '$GeneratedSiteRoot' -ErrorAction SilentlyContinue | Select-Object -First 20 FullName",
         "Get-ChildItem -LiteralPath '$DeployBundlePath' -ErrorAction SilentlyContinue | Select-Object -First 20 FullName"
@@ -143,6 +158,8 @@ if ($HostProfile -eq 'windows_selfhosted') {
     $wrapperCommands = @(
         "Write-Host 'windows_selfhosted: descubre primero el scheduler o servicio real desde jobs verify y la configuracion del runner antes de forzar una corrida.'",
         "node agent-orchestrator.js jobs verify public_main_sync --json",
+        "pwsh -File .\scripts\ops\setup\SINCRONIZAR-HOSTING-WINDOWS.ps1 -StatusPath '$StatusPath' -ReleaseTargetPath '$ReleaseTargetPath'",
+        "((Invoke-WebRequest -UseBasicParsing -Uri '$RuntimeUrl').Content | ConvertFrom-Json) | ConvertTo-Json -Depth 4",
         "Get-Content -LiteralPath '$StatusPath'",
         "Get-Content -LiteralPath '$LogPath' -Tail 50",
         "Get-Item -LiteralPath '$LockPath' -ErrorAction SilentlyContinue | Format-List FullName,Length,LastWriteTime"
@@ -203,6 +220,9 @@ Add-ChecklistBullet "deployBundlePath: $DeployBundlePath"
 Add-ChecklistBullet "wrapperPath: $WrapperPath"
 Add-ChecklistBullet "canonicalWrapperPath: $CanonicalWrapperPath"
 Add-ChecklistBullet "statusPath: $StatusPath"
+Add-ChecklistBullet "releaseTargetPath: $ReleaseTargetPath"
+Add-ChecklistBullet "runtimeUrl: $RuntimeUrl"
+Add-ChecklistBullet "mainSyncTaskName: $MainSyncTaskName"
 Add-ChecklistBullet "logPath: $LogPath"
 Add-ChecklistBullet "diagnosticsUrl: $DiagnosticsUrl"
 Add-ChecklistLine
@@ -215,7 +235,7 @@ Add-ChecklistCommandBlock @(
 
 Add-ChecklistSection 'Snapshot del host'
 if ($HostProfile -eq 'windows_selfhosted') {
-    Add-ChecklistBullet 'Para windows_selfhosted, prioriza status/log/lock y el repo_path publicado por jobs verify; no asumas `/root/sync-pielarmonia.sh`.'
+    Add-ChecklistBullet 'Para windows_selfhosted, inspecciona en este orden `__hosting/runtime`, `release-target.runtime.json`, `main-sync-status.json`, `main-sync.runtime.log` y la tarea programada `Pielarmonia Hosting Main Sync`.'
 } else {
     Add-ChecklistBullet 'Confirma si el wrapper live coincide con el wrapper canonico del repo antes de interpretar telemetryGap o working_tree_dirty.'
 }
@@ -235,7 +255,7 @@ Add-ChecklistCommandBlock $healthCommands
 
 Add-ChecklistSection 'Wrapper canonico y corrida forzada'
 if ($HostProfile -eq 'windows_selfhosted') {
-    Add-ChecklistBullet 'En windows_selfhosted, descubre primero el scheduler o servicio real desde jobs verify y la configuracion del runner antes de forzar una corrida.'
+    Add-ChecklistBullet 'En windows_selfhosted, si el status sigue stale la corrida manual canonica es `SINCRONIZAR-HOSTING-WINDOWS.ps1`; no arranques por la receta Linux legacy.'
 } else {
     Add-ChecklistBullet 'Si el wrapper no coincide o telemetryGap sigue true sin heads/dirty paths, reinstala el wrapper canonico antes de volver a diagnosticar.'
 }
@@ -251,6 +271,7 @@ Add-ChecklistCommandBlock @(
 Add-ChecklistSection 'Interpretacion rapida'
 Add-ChecklistBullet 'wrapper_diff + telemetryGap=true: el host probablemente sigue ejecutando un wrapper stale o un entrypoint legacy.'
 Add-ChecklistBullet 'jobs verify con rutas `C:\dev\pielarmonia-clean-main` / `C:\ProgramData\Pielarmonia\hosting\...`: el target primario actual es windows_selfhosted; no arranques por la receta Linux legacy.'
+Add-ChecklistBullet 'si `__hosting/runtime` ya sirve `current_commit=desired_commit` pero `health` sigue viejo, el host probablemente sigue leyendo `public-sync-status.json` o un status stale en vez de `main-sync-status.json`.'
 Add-ChecklistBullet 'health publico sin checks.publicSync o sin jobId: desplegar controllers/HealthController.php actualizado antes de tratar el caso como drift del repo o cron roto.'
 Add-ChecklistBullet 'failureReason=working_tree_dirty + dirtyPathsCount>0 + telemetryGap=false: el cron tiene suficiente telemetria; limpia drift tracked en el VPS antes de culpar al workflow.'
 Add-ChecklistBullet 'si dirtyPathsSample solo muestra `.generated/site-root/**` o `_deploy_bundle/**` despues de una corrida forzada, el wrapper del host probablemente sigue desalineado con la politica canonica de higiene.'

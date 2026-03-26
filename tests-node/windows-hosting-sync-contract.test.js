@@ -16,6 +16,11 @@ const COMMON_SCRIPT_PATH = resolve(
 );
 const CADDYFILE_PATH = resolve(REPO_ROOT, 'ops', 'caddy', 'Caddyfile');
 const HOSTING_RUNTIME_PHP_PATH = resolve(REPO_ROOT, 'hosting-runtime.php');
+const HOSTING_RUNTIME_HELPER_PATH = resolve(
+    REPO_ROOT,
+    'lib',
+    'hosting_runtime_fingerprint.php'
+);
 const SYNC_SCRIPT_PATH = resolve(
     REPO_ROOT,
     'scripts',
@@ -431,6 +436,7 @@ test('smoke V4 evita el patron de reporte fragil para Windows PowerShell 5.1', (
 test('runtime Caddy y fingerprint local de hosting quedan expuestos en el repo', () => {
     const caddyRaw = load(CADDYFILE_PATH);
     const runtimeRaw = load(HOSTING_RUNTIME_PHP_PATH);
+    const helperRaw = load(HOSTING_RUNTIME_HELPER_PATH);
 
     for (const snippet of [
         '@hostingRuntimeLocal',
@@ -446,9 +452,9 @@ test('runtime Caddy y fingerprint local de hosting quedan expuestos en el repo',
 
     for (const snippet of [
         "header('Content-Type: application/json; charset=utf-8');",
+        "require_once __DIR__ . '/lib/hosting_runtime_fingerprint.php';",
         "return in_array($remote, ['127.0.0.1', '::1', '::ffff:127.0.0.1'], true);",
-        "'C:\\\\ProgramData\\\\Pielarmonia\\\\hosting\\\\release-target.runtime.json'",
-        "'C:\\\\ProgramData\\\\Pielarmonia\\\\hosting\\\\release-target.json'",
+        'hosting_runtime_build_fingerprint(__DIR__)',
         "'hosting_runtime_fingerprint'",
         "'site_root'",
         "'current_commit'",
@@ -456,6 +462,16 @@ test('runtime Caddy y fingerprint local de hosting quedan expuestos en el repo',
         "'caddy_runtime_config_path'",
     ]) {
         assert.equal(runtimeRaw.includes(snippet), true, `falta fingerprint PHP: ${snippet}`);
+    }
+
+    for (const snippet of [
+        'function hosting_runtime_build_fingerprint',
+        'function hosting_runtime_current_commit',
+        'function hosting_runtime_resolve_release_target',
+        "'C:\\\\ProgramData\\\\Pielarmonia\\\\hosting\\\\release-target.runtime.json'",
+        "'C:\\\\ProgramData\\\\Pielarmonia\\\\hosting\\\\release-target.json'",
+    ]) {
+        assert.equal(helperRaw.includes(snippet), true, `falta helper PHP de fingerprint: ${snippet}`);
     }
 });
 

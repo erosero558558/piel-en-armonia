@@ -250,13 +250,19 @@ function normalizeRegistryJob(job = {}) {
 function normalizeSnapshotFromFile(job, payload = {}, nowMs = Date.now()) {
     const checkedAt =
         String(payload.checked_at || '').trim() ||
+        String(payload.timestamp || '').trim() ||
         String(payload.finished_at || '').trim() ||
         String(payload.last_success_at || '').trim() ||
+        String(payload.last_successful_deploy_at || '').trim() ||
         String(payload.started_at || '').trim();
     const ageSeconds = computeAgeSeconds(checkedAt, nowMs);
     const state = String(payload.state || 'unknown').trim() || 'unknown';
-    const currentHead = String(payload.current_head || '').trim();
-    const remoteHead = String(payload.remote_head || '').trim();
+    const currentHead = String(
+        payload.current_head || payload.current_commit || ''
+    ).trim();
+    const remoteHead = String(
+        payload.remote_head || payload.desired_commit || ''
+    ).trim();
     const dirtyPathsCount =
         parseOptionalInteger(payload.dirty_paths_count) ?? 0;
     const dirtyPathsSample = normalizeStringArray(payload.dirty_paths_sample);
@@ -280,13 +286,28 @@ function normalizeSnapshotFromFile(job, payload = {}, nowMs = Date.now()) {
         age_seconds: ageSeconds,
         expected_max_lag_seconds: Number(job.expected_max_lag_seconds || 0),
         deployed_commit: String(
-            payload.deployed_commit || payload.remote_head || ''
+            payload.deployed_commit ||
+                payload.served_commit ||
+                payload.current_commit ||
+                payload.current_head ||
+                payload.remote_head ||
+                payload.desired_commit ||
+                ''
         ).trim(),
         checked_at: checkedAt,
-        last_success_at: String(payload.last_success_at || '').trim(),
+        last_success_at: String(
+            payload.last_success_at || payload.last_successful_deploy_at || ''
+        ).trim(),
         last_error_at: String(payload.last_error_at || '').trim(),
-        last_error_message: String(payload.last_error_message || '').trim(),
-        repo_path: String(payload.repo_path || job.repo_path || '').trim(),
+        last_error_message: String(
+            payload.last_error_message ||
+                payload.error ||
+                payload.last_failure_reason ||
+                ''
+        ).trim(),
+        repo_path: String(
+            payload.repo_path || payload.mirror_repo_path || job.repo_path || ''
+        ).trim(),
         branch: String(payload.branch || job.branch || '').trim(),
         status_path: String(job.status_path || '').trim(),
         log_path: String(payload.log_path || job.log_path || '').trim(),

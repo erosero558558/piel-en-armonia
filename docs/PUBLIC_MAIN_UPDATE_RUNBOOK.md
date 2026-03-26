@@ -14,7 +14,7 @@ Routine GitHub uploads should use a dedicated branch and the workflow documented
 - host discovery command: `node agent-orchestrator.js jobs verify public_main_sync --json`
 - current primary host profile: `windows_selfhosted`
 - current primary production repo: `C:\dev\pielarmonia-clean-main`
-- current primary status: `C:\ProgramData\Pielarmonia\hosting\public-sync-status.json`
+- current primary status: `C:\ProgramData\Pielarmonia\hosting\main-sync-status.json`
 - current primary log: `C:\ProgramData\Pielarmonia\hosting\main-sync.runtime.log`
 - current primary lock: `C:\tmp\sync-pielarmonia.lock`
 - legacy fallback profile: `linux_legacy`
@@ -42,7 +42,7 @@ payload as the source of truth for the current target. Do not assume Linux
 defaults first.
 
 - If the payload points to `C:\dev\pielarmonia-clean-main`,
-  `C:\ProgramData\Pielarmonia\hosting\public-sync-status.json`,
+  `C:\ProgramData\Pielarmonia\hosting\main-sync-status.json`,
   `C:\ProgramData\Pielarmonia\hosting\main-sync.runtime.log`, and
   `C:\tmp\sync-pielarmonia.lock`, use `windows_selfhosted` as the primary host
   profile.
@@ -119,9 +119,9 @@ sha256sum /root/sync-pielarmonia.sh /var/www/figo/bin/deploy-public-v3-cron-sync
 ```
 
 For the same host-side triage, the canonical checklist now snapshots
-`.generated/site-root/` and `_deploy_bundle/` together with
-`public-sync-status.json`, so generated staging noise is not mistaken for
-authored repo drift.
+`__hosting/runtime`, `release-target.runtime.json`, `main-sync-status.json`,
+`.generated/site-root/`, and `_deploy_bundle/` together, so generated staging
+noise is not mistaken for authored repo drift.
 
 ```bash
 pwsh -File scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1
@@ -137,8 +137,11 @@ Use that checklist as the host-side closure contract too:
 Windows/self-hosted primary path:
 
 ```powershell
-Get-Content -Path 'C:\ProgramData\Pielarmonia\hosting\public-sync-status.json'
+curl -s http://127.0.0.1/__hosting/runtime
+Get-Content -Path 'C:\ProgramData\Pielarmonia\hosting\release-target.runtime.json'
+Get-Content -Path 'C:\ProgramData\Pielarmonia\hosting\main-sync-status.json'
 Get-Content -Path 'C:\ProgramData\Pielarmonia\hosting\main-sync.runtime.log' -Tail 20
+Get-ScheduledTask -TaskName 'Pielarmonia Hosting Main Sync' | Format-List TaskName,State,LastRunTime,LastTaskResult,NextRunTime
 curl -s https://pielarmonia.com/api.php?resource=health
 ```
 

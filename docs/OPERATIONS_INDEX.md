@@ -257,7 +257,7 @@ Notas:
 
 - `npm run flow-os:recovery:daily` es el corte diario canonico del ciclo `2026-03-21 -> 2026-04-20`: actualiza `prod-readiness-summary`, refresca el diagnostico Operator Auth y deja `verification/runtime/flow-os-recovery-daily.json`.
 - Mientras ese corte siga en `RED`, mantener freeze duro en `admin v3 + queue/turnero + auth Google + readiness + deploy` y no reabrir `expansion`, `renewal`, `executive review` ni trabajo multi-sede.
-- `npm run checklist:prod:public-sync:host` no ejecuta cambios remotos; imprime el checklist host-side canonico para revisar wrapper, `public-sync-status.json`, `health-diagnostics`, auth y cifrado en reposo antes de intervenir el VPS.
+- `npm run checklist:prod:public-sync:host` no ejecuta cambios remotos; imprime el checklist host-side canonico para revisar `__hosting/runtime`, `release-target.runtime.json`, `main-sync-status.json`, `health-diagnostics`, auth y cifrado en reposo antes de intervenir el VPS.
 - Entry point canonico: `scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1`
 - El weekly report de produccion vive en `verification/weekly/weekly-report-YYYYMMDD.{md,json}`.
 - El cierre semanal orientado a release manager puede vivir junto a ese reporte en `verification/weekly/release-close-YYYYMMDD.{md,json}` usando las secciones `releasable now`, `not releasable yet`, `integration conflicts`, `stability risks`, `recommended release scope` y `parked for next cycle`.

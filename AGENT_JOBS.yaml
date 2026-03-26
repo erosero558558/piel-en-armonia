@@ -1,5 +1,5 @@
 version: 1
-updated_at: "2026-03-03T00:00:00Z"
+updated_at: "2026-03-26T00:00:00Z"
 jobs:
   - key: public_main_sync
     job_id: "8d31e299-7e57-4959-80b5-aaa2d73e9674"
@@ -14,7 +14,7 @@ jobs:
     wrapper_fallback: C:\ProgramData\Pielarmonia\hosting\runtime-main-sync.ps1
     lock_file: C:\tmp\sync-pielarmonia.lock
     log_path: C:\ProgramData\Pielarmonia\hosting\main-sync.runtime.log
-    status_path: C:\ProgramData\Pielarmonia\hosting\public-sync-status.json
+    status_path: C:\ProgramData\Pielarmonia\hosting\main-sync-status.json
     health_url: https://pielarmonia.com/api.php?resource=health
     expected_max_lag_seconds: 120
     source_of_truth: host_cron

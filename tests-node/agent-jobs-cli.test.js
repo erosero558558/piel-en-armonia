@@ -278,6 +278,91 @@ test('jobs verify mantiene ok=true cuando public_main_sync solo tiene repo hygie
     assert.equal(verify.job.failure_reason, 'working_tree_dirty');
 });
 
+test('jobs status/verify CLI normaliza main-sync-status canonico de Windows', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+    writeFixtureFiles(dir);
+
+    const statusPath = join(dir, 'runtime', 'main-sync-status.json');
+    const checkedAt = new Date().toISOString();
+
+    writeFileSync(
+        join(dir, 'AGENT_JOBS.yaml'),
+        `version: 1
+updated_at: "2026-03-26T00:00:00Z"
+jobs:
+  - key: public_main_sync
+    job_id: "8d31e299-7e57-4959-80b5-aaa2d73e9674"
+    enabled: true
+    type: external_cron
+    owner: codex_backend_ops
+    environment: production
+    repo_path: C:\\dev\\pielarmonia-clean-main
+    branch: main
+    schedule: "* * * * *"
+    command: powershell -NoProfile -ExecutionPolicy Bypass -File C:\\ProgramData\\Pielarmonia\\hosting\\runtime-main-sync.ps1
+    wrapper_fallback: C:\\ProgramData\\Pielarmonia\\hosting\\runtime-main-sync.ps1
+    lock_file: C:\\tmp\\sync-pielarmonia.lock
+    log_path: C:\\ProgramData\\Pielarmonia\\hosting\\main-sync.runtime.log
+    status_path: "${statusPath.replace(/\\/g, '/')}"
+    health_url: https://pielarmonia.com/api.php?resource=health
+    expected_max_lag_seconds: 120
+    source_of_truth: host_cron
+    publish_strategy: main_auto_guarded
+`,
+        'utf8'
+    );
+    writeFileSync(
+        statusPath,
+        `${JSON.stringify(
+            {
+                ok: true,
+                state: 'ok',
+                timestamp: checkedAt,
+                last_successful_deploy_at: checkedAt,
+                mirror_repo_path: 'C:\\dev\\pielarmonia-clean-main',
+                branch: 'main',
+                desired_commit: 'def5678',
+                current_commit: 'def5678',
+                served_commit: 'def5678',
+                auth_contract_ok: true,
+                site_root_ok: true,
+                log_path: 'C:\\ProgramData\\Pielarmonia\\hosting\\main-sync.runtime.log',
+                lock_file: 'C:\\tmp\\sync-pielarmonia.lock',
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
+
+    const status = runCli(dir, ['jobs', 'status', '--json']);
+    assert.equal(status.ok, true);
+    assert.equal(status.jobs[0].verification_source, 'local_status_file');
+    assert.equal(status.jobs[0].healthy, true);
+    assert.equal(status.jobs[0].status_path, statusPath.replace(/\\/g, '/'));
+    assert.equal(status.jobs[0].current_head, 'def5678');
+    assert.equal(status.jobs[0].remote_head, 'def5678');
+    assert.equal(status.jobs[0].repo_path, 'C:\\dev\\pielarmonia-clean-main');
+
+    const verify = runCli(dir, [
+        'jobs',
+        'verify',
+        'public_main_sync',
+        '--json',
+    ]);
+    assert.equal(verify.ok, true);
+    assert.equal(verify.job.healthy, true);
+    assert.equal(verify.job.current_head, 'def5678');
+    assert.equal(verify.job.remote_head, 'def5678');
+    assert.equal(verify.job.deployed_commit, 'def5678');
+    assert.equal(
+        verify.job.log_path,
+        'C:\\ProgramData\\Pielarmonia\\hosting\\main-sync.runtime.log'
+    );
+    assert.equal(verify.job.lock_file, 'C:\\tmp\\sync-pielarmonia.lock');
+});
+
 test('jobs verify usa health_url publico cuando expone checks.publicSync', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));

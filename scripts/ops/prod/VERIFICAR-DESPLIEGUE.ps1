@@ -1551,7 +1551,7 @@ try {
         $authStatus = 'unknown'
         $authConfigured = $false
         $authHardeningCompliant = $false
-        $authRecommendedMode = 'openclaw_chatgpt'
+        $authRecommendedMode = 'google_oauth'
         $authRecommendedModeActive = $false
         $authOperatorAuthEnabled = $false
         $authOperatorAuthConfigured = $false
@@ -1562,7 +1562,7 @@ try {
         try { $authStatus = [string]$authNode.status } catch { $authStatus = 'unknown' }
         try { $authConfigured = [bool]$authNode.configured } catch { $authConfigured = $false }
         try { $authHardeningCompliant = [bool]$authNode.hardeningCompliant } catch { $authHardeningCompliant = $false }
-        try { $authRecommendedMode = [string]$authNode.recommendedMode } catch { $authRecommendedMode = 'openclaw_chatgpt' }
+        try { $authRecommendedMode = [string]$authNode.recommendedMode } catch { $authRecommendedMode = 'google_oauth' }
         try { $authRecommendedModeActive = [bool]$authNode.recommendedModeActive } catch { $authRecommendedModeActive = $false }
         try { $authOperatorAuthEnabled = [bool]$authNode.operatorAuthEnabled } catch { $authOperatorAuthEnabled = $false }
         try { $authOperatorAuthConfigured = [bool]$authNode.operatorAuthConfigured } catch { $authOperatorAuthConfigured = $false }
