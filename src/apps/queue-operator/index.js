@@ -2489,10 +2489,10 @@ function getOperatorPilotBlockDetail() {
     }
 
     if (surfaceContract.reason === 'profile_missing') {
-        return 'No se puede operar este equipo: clinic-profile.json remoto ausente. Corrige el perfil y recarga la página antes de llamar tickets.';
+        return 'No se puede operar este equipo: corrige clinic-profile.json remoto y recarga la pagina antes de llamar, rellamar o cerrar turnos.';
     }
 
-    return `No se puede operar este equipo: la ruta no coincide con el canon del piloto (${surfaceContract.expectedRoute || '/operador-turnos.html'}). Corrige el acceso antes de operar la cola.`;
+    return `No se puede operar este equipo: abre ${surfaceContract.expectedRoute || '/operador-turnos.html'} antes de llamar, rellamar o cerrar turnos.`;
 }
 
 function isOperatorPilotBlocked() {

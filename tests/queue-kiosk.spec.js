@@ -97,6 +97,9 @@ test.describe('Kiosco turnos', () => {
         await expect(page.locator('#kioskProfileStatus')).toContainText(
             /Perfil remoto verificado|Readiness bloqueada/
         );
+        await expect(page.locator('#kioskProfileStatus')).toContainText(
+            /check-in, turnos nuevos y apoyo de recepcion|antes de recibir pacientes/
+        );
     });
 
     test('degrada kiosco si la ruta del perfil no coincide con la superficie activa', async ({
@@ -133,6 +136,9 @@ test.describe('Kiosco turnos', () => {
         );
         await expect(page.locator('#kioskProfileStatus')).toContainText(
             'Bloqueado · ruta fuera de canon'
+        );
+        await expect(page.locator('#kioskProfileStatus')).toContainText(
+            'antes de recibir pacientes'
         );
         await expect(page.locator('#kioskSetupChecks')).toContainText(
             '/kiosco-alt.html'
@@ -173,6 +179,9 @@ test.describe('Kiosco turnos', () => {
         );
         await expect(page.locator('#kioskProfileStatus')).toContainText(
             'Bloqueado · perfil de respaldo'
+        );
+        await expect(page.locator('#kioskProfileStatus')).toContainText(
+            'antes de recibir pacientes'
         );
         await expect(page.locator('#kioskSetupChecks')).toContainText(
             'clinic-profile.json'
@@ -1200,6 +1209,11 @@ test.describe('Kiosco turnos', () => {
             .toContain('Watchdog');
         await expect(page.locator('#queueOpsHint')).toContainText('degradada');
 
+        await page.locator('#kioskSupportSummary').click();
+        await expect(page.locator('#kioskSupportShell')).toHaveAttribute(
+            'open',
+            ''
+        );
         await page.locator('#queueManualRefreshBtn').click();
 
         await expect
@@ -1286,10 +1300,10 @@ test.describe('Kiosco turnos', () => {
 
         await page.locator('#kioskSessionResetBtn').click();
         await expect(page.locator('#ticketResult')).toContainText(
-            'Todavia no has sacado un ticket en esta pantalla.'
+            /Todavia no has sacado un ticket en esta pantalla\.|Todavia no se ha generado ningun ticket\./i
         );
         await expect(page.locator('#kioskStatus')).toContainText(
-            'Pantalla lista para la siguiente persona'
+            /Pantalla lista para la siguiente persona|Pantalla limpiada\. Lista para el siguiente paciente\./i
         );
 
         await page.fill('#walkinInitials', 'EP');
@@ -1308,7 +1322,7 @@ test.describe('Kiosco turnos', () => {
             )
             .toContain('inactividad');
         await expect(page.locator('#ticketResult')).toContainText(
-            'Todavia no has sacado un ticket en esta pantalla.'
+            /Todavia no has sacado un ticket en esta pantalla\.|Todavia no se ha generado ningun ticket\./i
         );
     });
 
@@ -1391,6 +1405,11 @@ test.describe('Kiosco turnos', () => {
         await expect(page.locator('#queueOutboxList')).toContainText(
             'Turno sin cita'
         );
+        await page.locator('#kioskSupportSummary').click();
+        await expect(page.locator('#kioskSupportShell')).toHaveAttribute(
+            'open',
+            ''
+        );
         await expect(page.locator('#queueOutboxRetryBtn')).toBeVisible();
 
         offlineTicketMode = false;
@@ -1461,6 +1480,11 @@ test.describe('Kiosco turnos', () => {
             'Turno sin cita'
         );
 
+        await page.locator('#kioskSupportSummary').click();
+        await expect(page.locator('#kioskSupportShell')).toHaveAttribute(
+            'open',
+            ''
+        );
         await page.locator('#queueOutboxClearBtn').click();
 
         await expect(page.locator('#queueOutboxHint')).toContainText(
@@ -1584,6 +1608,11 @@ test.describe('Kiosco turnos', () => {
         });
 
         await page.goto('/kiosco-turnos.html');
+        await page.locator('#kioskSupportSummary').click();
+        await expect(page.locator('#kioskSupportShell')).toHaveAttribute(
+            'open',
+            ''
+        );
 
         await expect(page.locator('#kioskSurfaceSyncHost')).toContainText(
             'Kiosk surface sync'

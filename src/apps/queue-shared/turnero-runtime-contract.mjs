@@ -36,11 +36,57 @@ const SURFACE_ALIASES = Object.freeze({
     sala_tv: 'display',
 });
 
+const SURFACE_OPERATIONAL_COPY = Object.freeze({
+    admin: Object.freeze({
+        ready: 'admin listo para seguir la cola del dia',
+        warning: 'revisa perfil, conexion y ruta antes de mover la cola',
+        blockedProfile:
+            'corrige el perfil remoto antes de mover la cola',
+        blockedRoute: 'abre esa ruta antes de mover la cola',
+        blockedGeneric: 'corrige el acceso antes de mover la cola',
+    }),
+    operator: Object.freeze({
+        ready: 'listo para llamar, rellamar o cerrar turnos',
+        warning:
+            'revisa perfil, conexion y ruta antes de seguir llamando',
+        blockedProfile:
+            'corrige el perfil remoto antes de llamar, rellamar o cerrar turnos',
+        blockedRoute:
+            'abre esa ruta antes de llamar, rellamar o cerrar turnos',
+        blockedGeneric:
+            'corrige el acceso antes de llamar, rellamar o cerrar turnos',
+    }),
+    kiosk: Object.freeze({
+        ready: 'listo para check-in, turnos nuevos y apoyo de recepcion',
+        warning: 'revisa perfil, conexion y ruta antes de recibir pacientes',
+        blockedProfile:
+            'corrige el perfil remoto antes de recibir pacientes',
+        blockedRoute: 'abre esa ruta antes de recibir pacientes',
+        blockedGeneric: 'corrige el acceso antes de recibir pacientes',
+    }),
+    display: Object.freeze({
+        ready: 'sala lista para reflejar el siguiente llamado',
+        warning: 'revisa perfil, conexion y ruta antes de mostrar llamados',
+        blockedProfile:
+            'corrige el perfil remoto antes de mostrar llamados',
+        blockedRoute: 'abre esa ruta antes de mostrar llamados',
+        blockedGeneric: 'corrige el acceso antes de mostrar llamados',
+    }),
+});
+
 function normalizeSurfaceKey(surface) {
     const requested = String(surface || '')
         .trim()
         .toLowerCase();
     return SURFACE_ALIASES[requested] || requested || 'operator';
+}
+
+function getSurfaceOperationalCopy(surface) {
+    const surfaceKey = normalizeSurfaceKey(surface);
+    return (
+        SURFACE_OPERATIONAL_COPY[surfaceKey] ||
+        SURFACE_OPERATIONAL_COPY.operator
+    );
 }
 
 function normalizeSurfaceRouteForMatch(value) {
@@ -161,6 +207,7 @@ function getExplicitRuntimeMeta(source = {}) {
 }
 
 function buildSurfaceStatusText(surfaceContract, readiness, releaseMode) {
+    const surfaceCopy = getSurfaceOperationalCopy(surfaceContract.surface);
     const canonicalRoute =
         surfaceContract.expectedRoute ||
         SURFACE_ROUTE_FALLBACKS[surfaceContract.surface] ||
@@ -174,23 +221,24 @@ function buildSurfaceStatusText(surfaceContract, readiness, releaseMode) {
 
     if (surfaceContract.state === 'alert') {
         if (surfaceContract.reason === 'profile_missing') {
-            return `Bloqueado · perfil de respaldo · clinic-profile.json remoto ausente · releaseMode ${releaseMode} · ${readinessSummary}`;
+            return `Bloqueado · perfil de respaldo · clinic-profile.json remoto ausente · ${surfaceCopy.blockedProfile} · releaseMode ${releaseMode} · ${readinessSummary}`;
         }
 
         if (surfaceContract.reason === 'route_mismatch') {
-            return `Bloqueado · ruta fuera de canon · se esperaba ${canonicalRoute} · releaseMode ${releaseMode} · ${readinessSummary}`;
+            return `Bloqueado · ruta fuera de canon · se esperaba ${canonicalRoute} · ${surfaceCopy.blockedRoute} · releaseMode ${releaseMode} · ${readinessSummary}`;
         }
 
-        return `Bloqueado · ${surfaceContract.detail || 'superficie fuera de canon'} · releaseMode ${releaseMode} · ${readinessSummary}`;
+        return `Bloqueado · ${surfaceContract.detail || 'superficie fuera de canon'} · ${surfaceCopy.blockedGeneric} · releaseMode ${releaseMode} · ${readinessSummary}`;
     }
 
+    const needsReview =
+        readiness?.state === 'warning' || readiness?.state === 'alert';
+
     return `${
-        readiness?.state === 'warning'
-            ? 'Con avisos'
-            : readiness?.state === 'alert'
-              ? 'Readiness bloqueada'
-              : 'Perfil remoto verificado'
-    } · firma ${surfaceContract.profileFingerprint || 'sin-firma'} · releaseMode ${releaseMode} · ${readinessSummary} · canon ${canonicalRoute}`;
+        needsReview ? 'Readiness bloqueada' : 'Perfil remoto verificado'
+    } · ${needsReview ? surfaceCopy.warning : surfaceCopy.ready} · firma ${
+        surfaceContract.profileFingerprint || 'sin-firma'
+    } · releaseMode ${releaseMode} · ${readinessSummary} · canon ${canonicalRoute}`;
 }
 
 function buildSurfaceUiState(surfaceContract, readiness) {

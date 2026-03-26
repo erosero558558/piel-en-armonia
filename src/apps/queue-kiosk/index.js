@@ -2618,10 +2618,10 @@ function getKioskPilotBlockMessage() {
     }
 
     if (surfaceContract.reason === 'profile_missing') {
-        return 'No se puede operar este kiosco: clinic-profile.json remoto ausente. Corrige el perfil y recarga la página antes de recibir pacientes.';
+        return 'No se puede operar este kiosco: corrige clinic-profile.json remoto y recarga la pagina antes de recibir pacientes.';
     }
 
-    return `No se puede operar este kiosco: la ruta no coincide con el canon del piloto (${surfaceContract.expectedRoute || '/kiosco-turnos.html'}). Abre la ruta correcta antes de registrar turnos.`;
+    return `No se puede operar este kiosco: abre ${surfaceContract.expectedRoute || '/kiosco-turnos.html'} antes de recibir pacientes.`;
 }
 
 function isKioskPilotBlocked() {

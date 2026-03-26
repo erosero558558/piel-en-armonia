@@ -2499,10 +2499,10 @@ function getDisplayPilotBlockDetail() {
     }
 
     if (surfaceContract.reason === 'profile_missing') {
-        return 'Pantalla bloqueada: clinic-profile.json remoto ausente. Corrige el perfil y recarga antes de mostrar llamados.';
+        return 'Pantalla bloqueada: corrige clinic-profile.json remoto y recarga antes de mostrar llamados.';
     }
 
-    return `Pantalla bloqueada: la ruta no coincide con el canon del piloto (${surfaceContract.expectedRoute || '/sala-turnos.html'}). Corrige el acceso antes de usar esta TV.`;
+    return `Pantalla bloqueada: abre ${surfaceContract.expectedRoute || '/sala-turnos.html'} antes de mostrar llamados.`;
 }
 
 function isDisplayPilotBlocked() {

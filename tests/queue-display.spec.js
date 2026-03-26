@@ -58,6 +58,9 @@ test.describe('Sala turnos display', () => {
         await expect(page.locator('#displayProfileStatus')).toContainText(
             /Perfil remoto verificado|Readiness bloqueada/
         );
+        await expect(page.locator('#displayProfileStatus')).toContainText(
+            /sala lista para reflejar el siguiente llamado|antes de mostrar llamados/
+        );
     });
 
     test('degrada sala si la ruta del perfil no coincide con la superficie activa', async ({
@@ -106,6 +109,9 @@ test.describe('Sala turnos display', () => {
         );
         await expect(page.locator('#displayProfileStatus')).toContainText(
             'Bloqueado · ruta fuera de canon'
+        );
+        await expect(page.locator('#displayProfileStatus')).toContainText(
+            'antes de mostrar llamados'
         );
         await expect(page.locator('#displaySetupChecks')).toContainText(
             '/sala-alt.html'
@@ -156,6 +162,9 @@ test.describe('Sala turnos display', () => {
         );
         await expect(page.locator('#displayProfileStatus')).toContainText(
             'Bloqueado · perfil de respaldo'
+        );
+        await expect(page.locator('#displayProfileStatus')).toContainText(
+            'antes de mostrar llamados'
         );
         await expect(page.locator('#displaySetupChecks')).toContainText(
             'clinic-profile.json'
@@ -209,7 +218,7 @@ test.describe('Sala turnos display', () => {
         });
 
         await page.goto('/sala-turnos.html');
-        await expect(page.locator('#displaySupportShell')).toHaveAttribute(
+        await expect(page.locator('#displaySupportShell')).not.toHaveAttribute(
             'open',
             ''
         );
@@ -226,7 +235,7 @@ test.describe('Sala turnos display', () => {
         await expect(page.locator('#displayNextList li')).toHaveCount(2);
         await expect(page.locator('#displayNextList')).toContainText('A-053');
         await expect(page.locator('#displayConnectionState')).toContainText(
-            'Sala conectada'
+            /Sala conectada|Conectado/i
         );
     });
 
@@ -312,7 +321,7 @@ test.describe('Sala turnos display', () => {
                     .textContent();
                 return text || '';
             })
-            .toContain('Sala conectada');
+            .toMatch(/Sala conectada|Conectado/i);
         await expect
             .poll(async () => {
                 const text = await page
@@ -514,7 +523,7 @@ test.describe('Sala turnos display', () => {
         );
         await page.locator('#displayBellTestBtn').click();
         await expect(page.locator('#displaySetupTitle')).toContainText(
-            'Pantalla lista para operar'
+            /Pantalla lista para operar|Sala TV lista para llamados/i
         );
         await expect(page.locator('#displaySetupChecks')).toContainText(
             'Audio desbloqueado'

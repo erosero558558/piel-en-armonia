@@ -12631,10 +12631,10 @@ test.describe('Admin turnero sala', () => {
             'Qué sigue en recepción'
         );
         await expect(page.locator('#queueOpsConsoleStatus')).toContainText(
-            /Cola estable|turno\(s\) piden atención|apoyo\(s\) abiertos/i
+            /Recepcion al dia|turno\(s\) ya piden llamado|apoyo\(s\) piden respuesta/i
         );
         await expect(page.locator('#queueOpsConsoleActionBody')).toContainText(
-            /llamar|revisar|completar|No hay una acción urgente/i
+            /accion util|llamar|completar|No hay una accion urgente/i
         );
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
             'data-queue-admin-mode',

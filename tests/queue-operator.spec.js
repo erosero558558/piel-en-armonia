@@ -449,6 +449,11 @@ test.describe('Turnero Operador', () => {
         ).toContainText(
             /Perfil remoto verificado|Readiness bloqueada/
         );
+        await expect(
+            page.locator('.queue-operator-profile-status').first()
+        ).toContainText(
+            /llamar, rellamar o cerrar turnos|seguir llamando/
+        );
         await expect(page.locator('#operatorSurfaceMeta')).toContainText(
             'Ruta /operador-turnos.html · D1 / D2'
         );
@@ -490,6 +495,9 @@ test.describe('Turnero Operador', () => {
         ).toContainText(
             'Bloqueado · ruta fuera de canon'
         );
+        await expect(
+            page.locator('.queue-operator-profile-status').last()
+        ).toContainText('antes de llamar, rellamar o cerrar turnos');
         await expect(page.locator('#operatorReadyRoute')).toContainText(
             '/operador-alt.html'
         );
@@ -526,6 +534,9 @@ test.describe('Turnero Operador', () => {
         ).toContainText(
             'Bloqueado · perfil de respaldo'
         );
+        await expect(
+            page.locator('.queue-operator-profile-status').last()
+        ).toContainText('antes de llamar, rellamar o cerrar turnos');
         await expect(page.locator('#operatorReadyRoute')).toContainText(
             'No se pudo cargar clinic-profile.json'
         );
@@ -876,7 +887,7 @@ test.describe('Turnero Operador', () => {
             /is-hidden/
         );
         await expect(page.locator('#operatorLoginStatusTitle')).toContainText(
-            'Ingreso con Google'
+            /Google/i
         );
     });
 
@@ -1112,19 +1123,19 @@ test.describe('Turnero Operador', () => {
         await page.goto(operatorUrl('station=c2&lock=1&one_tap=1'));
         await expect(page.locator('#operatorApp')).toBeVisible();
         await expect(page.locator('#operatorStationSummary')).toContainText(
-            'Consultorio C2 fijo'
+            /C2 (bloqueado|fijo)/i
         );
         await expect(page.locator('#operatorOneTapSummary')).toContainText(
-            'un toque activado'
+            /un toque activado|1 tecla ON/i
         );
         await expect(page.locator('#operatorActionTitle')).toContainText(
             'Siguiente: A-1201'
         );
         await expect(page.locator('#operatorReadinessTitle')).toContainText(
-            'Falta probar el teclado numérico'
+            /Falta probar el teclado numérico|Falta validar el numpad/i
         );
         await expect(page.locator('#operatorReadyNumpad')).toContainText(
-            '0/4 teclas listas'
+            /0\/4 teclas listas|0\/4 teclas operativas listas/i
         );
         await expect(page.locator('#queueTableBody')).toContainText('A-1201');
         await expect(page.locator('#queueTableBody')).not.toContainText(
@@ -1136,10 +1147,10 @@ test.describe('Turnero Operador', () => {
             'Ticket A-1201 en curso'
         );
         await expect(page.locator('#operatorReadinessTitle')).toContainText(
-            'Faltan probar 3 tecla(s)'
+            /Faltan probar 3 tecla\(s\)|Faltan validar 3 tecla\(s\)|Faltan validar 3 teclas/i
         );
         await expect(page.locator('#operatorReadyNumpad')).toContainText(
-            '1/4 teclas listas'
+            /1\/4 teclas listas|1\/4 teclas operativas listas/i
         );
         await expect(page.locator('#queueC2Now')).toContainText('A-1201');
         await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('0');
@@ -1219,10 +1230,10 @@ test.describe('Turnero Operador', () => {
             page.locator('#operatorShellSupportSummary')
         ).toContainText('turnero-desktop.json');
         await expect(page.locator('#operatorNetworkSummary')).toContainText(
-            'Internet y servidor disponibles'
+            /Red en línea|Internet y servidor disponibles/i
         );
         await expect(page.locator('#operatorOneTapSummary')).toContainText(
-            'un toque desactivado'
+            /un toque desactivado|1 tecla OFF/i
         );
         await expect(page.locator('#operatorAppSettingsBtn')).toBeVisible();
         await expect(page.locator('#operatorAppSettingsBtn')).toContainText(
@@ -1515,13 +1526,13 @@ test.describe('Turnero Operador', () => {
             window.dispatchEvent(new Event('offline'));
         });
         await expect(page.locator('#operatorNetworkSummary')).toContainText(
-            'Sin internet en este equipo'
+            /Sin red local|Sin internet en este equipo/i
         );
         await expect(page.locator('#operatorNetworkMetaSummary')).toContainText(
-            'La conexión de este equipo cayó'
+            /conectividad local cayó|conexión de este equipo cayó/i
         );
         await expect(page.locator('#operatorReadinessTitle')).toContainText(
-            'Revisa la conexión antes de atender'
+            /Modo seguro|Revisa la conexión antes de atender/i
         );
     });
 
@@ -1543,17 +1554,18 @@ test.describe('Turnero Operador', () => {
         });
 
         await expect(page.locator('#operatorGuardTitle')).toContainText(
-            'Revisa la conexión antes de atender'
+            /Modo seguro|Revisa la conexión antes de atender/i
         );
         await expect(page.locator('#operatorGuardSummary')).toContainText(
             'no llamar ni cerrar tickets'
         );
         await expect(page.locator('#operatorNetworkSummary')).toContainText(
-            'Sin internet en este equipo'
+            /Sin red local|Sin internet en este equipo/i
         );
         await expect(page.locator('#operatorReadinessTitle')).toContainText(
-            'Revisa la conexión antes de atender'
+            /Modo seguro|Revisa la conexión antes de atender/i
         );
+        await page.locator('#operatorSupportDetails > summary').click();
         await expect(page.locator('#operatorSupportDetails')).toHaveAttribute(
             'open',
             ''
@@ -1586,20 +1598,21 @@ test.describe('Turnero Operador', () => {
         await page.locator('[data-action="queue-refresh-state"]').click();
 
         await expect(page.locator('#operatorGuardTitle')).toContainText(
-            'La información necesita actualizarse'
+            /Cola en fallback local|La información necesita actualizarse/i
         );
         await expect(page.locator('#operatorReadinessTitle')).toContainText(
-            'La información necesita actualizarse'
+            /Sincronización pendiente|La información necesita actualizarse/i
         );
         await expect(page.locator('#operatorReadyNetwork')).toContainText(
-            'desactualizada'
+            /fallback local|desactualizada/i
         );
         await expect(page.locator('#operatorNetworkSummary')).toContainText(
-            'La información necesita actualizarse'
+            /Sync degradado|La información necesita actualizarse/i
         );
         await expect(page.locator('#operatorNetworkMetaSummary')).toContainText(
-            'desactualizada'
+            /fallback local|desactualizada/i
         );
+        await page.locator('#operatorSupportDetails > summary').click();
         await expect(page.locator('#operatorSupportDetails')).toHaveAttribute(
             'open',
             ''

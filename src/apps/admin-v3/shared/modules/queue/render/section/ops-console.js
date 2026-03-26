@@ -41,13 +41,13 @@ export function updateQueueOpsConsoleSummary({
     const nextTicketCode = readTicketCode(nextTicket);
 
     let status = 'ready';
-    let statusLabel = 'Cola estable';
+    let statusLabel = 'Recepcion al dia';
     if (riskCount > 0) {
         status = 'attention';
-        statusLabel = `${riskCount} turno(s) piden atención`;
+        statusLabel = `${riskCount} turno(s) ya piden llamado`;
     } else if (activeHelpRequests.length > 0) {
         status = 'watch';
-        statusLabel = `${activeHelpRequests.length} apoyo(s) abiertos`;
+        statusLabel = `${activeHelpRequests.length} apoyo(s) piden respuesta`;
     }
 
     const nowText = activeStationTicket
@@ -66,12 +66,12 @@ export function updateQueueOpsConsoleSummary({
           ? 'Si no se atienden los apoyos, recepción vuelve a improvisar sin contexto.'
           : 'El riesgo operativo inmediato está bajo.';
     const actionText = activeStationTicket
-        ? `Puedes completar, volver a llamar o liberar ${activeTicketCode} desde el mismo puesto.`
+        ? `Desde este puesto puedes completar, volver a llamar o liberar ${activeTicketCode}.`
         : nextTicket
-          ? `La acción lista es llamar ${nextTicketCode}${stationLocked ? ` en C${station}` : ''}.`
+          ? `La siguiente accion util es llamar ${nextTicketCode}${stationLocked ? ` en C${station}` : ''}.`
           : activeHelpRequests.length > 0
-            ? 'La siguiente acción lista es revisar la guía de recepción y cerrar el apoyo activo.'
-            : 'No hay una acción urgente: revisa la cola o refresca el estado.';
+            ? 'La siguiente accion util es abrir la guia de recepcion y responder el apoyo pendiente.'
+            : 'No hay una accion urgente. Manten la cola visible y refresca si llega un turno nuevo.';
     const approvalText = practiceMode
         ? 'Modo práctica activo. No hagas llamados reales hasta salir de práctica.'
         : stationLocked

@@ -317,10 +317,12 @@ test('shared turnero runtime contract exposes the shared facade for surface stat
     );
     assert.equal(runtimeStatus.uiState, 'ready');
     assert.match(runtimeStatus.text, /Perfil remoto verificado/);
+    assert.match(runtimeStatus.text, /llamar, rellamar o cerrar turnos/);
     assert.match(runtimeStatus.text, /canon \/operador-turnos\.html/);
     assert.equal(runtimeStatus.surfaceContract.reason, 'ready');
     assert.equal(routeMismatch.uiState, 'alert');
     assert.match(routeMismatch.text, /ruta fuera de canon/);
+    assert.match(routeMismatch.text, /antes de recibir pacientes/);
     assert.equal(routeMismatch.surfaceContract.reason, 'route_mismatch');
     assert.equal(contract.hasRecentQueueSmokeSignalForState(state, 'clinic-123'), true);
     assert.equal(

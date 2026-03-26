@@ -1125,6 +1125,20 @@ async function hydrateQueueOpsPilotReleaseEvidence(
         return;
     }
 
+    const publicShellOptions = resolvePublicShellDriftOptions(manifest);
+    const initialPublicShellDriftModel = createTurneroPublicShellDriftModel(
+        {
+            pageOk: false,
+            pageStatus: 0,
+            html: '',
+        },
+        publicShellOptions
+    );
+    publicShellDriftHost.innerHTML = renderTurneroPublicShellDriftCard(
+        initialPublicShellDriftModel,
+        publicShellOptions
+    );
+
     const freezeExecutivePortfolioStudio = isFlowOsRecoveryPilotHostFrozen(
         'queueOpsPilotExecutivePortfolioStudioHost'
     );
@@ -1146,7 +1160,6 @@ async function hydrateQueueOpsPilotReleaseEvidence(
         hideFlowOsRecoveryHost(multiClinicControlTowerHost, freezeNote);
     }
 
-    const publicShellOptions = resolvePublicShellDriftOptions(manifest);
     const bundleOptions = {
         origin: window.location.origin,
         baseUrl: window.location.origin,
