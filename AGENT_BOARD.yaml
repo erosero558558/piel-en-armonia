@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 759
+  revision: 760
   updated_at: 2026-03-26
 
 strategy:
@@ -19,7 +19,7 @@ strategy:
     owner_policy: "detected_default_owner"
     status: active
     started_at: "2026-03-17"
-    review_due_at: "2026-03-21"
+    review_due_at: "2026-03-27"
     closed_at: ""
     close_reason: ""
     exit_criteria: ["Admin clinico y queue/turnero navegables sin flujos rotos", "Auth/readiness/gates en verde para el frente activo", "Runtime OpenClaw solo usado como desbloqueo directo del mismo objetivo"]
@@ -30,11 +30,11 @@ strategy:
     focus_status: active
     focus_proof: "Operador inicia sesion, entra al admin, usa quick-nav, revisa queue/turnero piloto y el corte queda respaldado por runtime/deploy verificables"
     focus_steps: ["admin_queue_pilot_cut", "pilot_readiness_evidence", "feedback_trim"]
-    focus_next_step: "admin_queue_pilot_cut"
+    focus_next_step: "pilot_readiness_evidence"
     focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]
     focus_non_goals: ["rediseno_publico", "expansion_payments", "refactor_orchestrator_no_bloqueante", "modularizacion_fuera_del_corte"]
     focus_owner: "Ernesto"
-    focus_review_due_at: "2026-03-21"
+    focus_review_due_at: "2026-03-27"
     focus_evidence_ref: ""
     focus_max_active_slices: 3
     subfronts:
@@ -75,7 +75,7 @@ strategy:
         default_acceptance_profile: "transversal_runtime_checkpoint"
         exception_ttl_hours: 4
   next: null
-  updated_at: "2026-03-17"
+  updated_at: "2026-03-26"
 
 tasks:
   - id: AG-001
@@ -845,7 +845,7 @@ tasks:
     subfront_id: "SF-backend-admin-operativo"
     strategy_role: "primary"
     focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
-    focus_step: "admin_queue_pilot_cut"
+    focus_step: "pilot_readiness_evidence"
     integration_slice: "ops_deploy"
     work_type: "support"
     expected_outcome: "Produccion vuelve a exponer publicSync saludable desde health publico y status --json deja job:public_main_sync en verde."
@@ -904,7 +904,7 @@ tasks:
     subfront_id: "SF-transversal-admin-operativo"
     strategy_role: "support"
     focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
-    focus_step: "admin_queue_pilot_cut"
+    focus_step: "pilot_readiness_evidence"
     integration_slice: "governance_evidence"
     work_type: "evidence"
     expected_outcome: "Workspace hygiene deja de clasificar como unknown_scope la evidencia bloqueada de CDX-009 y codex-check mantiene el mirror board/plan coherente."
@@ -11443,7 +11443,7 @@ tasks:
     subfront_id: "SF-backend-admin-operativo"
     strategy_role: "support"
     focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
-    focus_step: "admin_queue_pilot_cut"
+    focus_step: "pilot_readiness_evidence"
     integration_slice: "ops_deploy"
     work_type: "support"
     expected_outcome: "El deploy publica checks.publicSync en health publico y public_main_sync queda verificable desde health_url sin depender solo de health-diagnostics."
@@ -11496,7 +11496,7 @@ tasks:
     subfront_id: "SF-transversal-admin-operativo"
     strategy_role: "support"
     focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
-    focus_step: "admin_queue_pilot_cut"
+    focus_step: "pilot_readiness_evidence"
     integration_slice: "governance_evidence"
     work_type: "support"
     expected_outcome: "Preservar el carryover transversal fuera de main y dejar el repo canónico limpio para abrir trabajo nuevo."
@@ -11505,5 +11505,58 @@ tasks:
     rework_reason: ""
     depends_on: ["CDX-009"]
     prompt: "Workspace hygiene carryover after public sync recovery"
+    created_at: 2026-03-26
+    updated_at: 2026-03-26
+
+  - id: AG-260
+    title: "Queue/turnero web pilot stabilization and follow-through"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-26T16:24:04Z"
+    risk: medium
+    scope: queue
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    files: ["admin-v3.css", "bin/run-playwright-local.js", "operador-turnos.html", "kiosco-turnos.html", "sala-turnos.html", "queue-ops.css", "src/apps/admin-v3/shared/modules/queue/render/section/ops-console.js", "src/apps/queue-shared/turnero-runtime-contract.mjs", "tests/admin-queue.spec.js", "tests/queue-display.spec.js", "tests/queue-kiosk.spec.js", "tests/queue-operator.spec.js", "verification/agent-runs/AG-260.md"]
+    source_signal: manual
+    source_ref: "a6898376,a35ee683"
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: "2026-03-26T16:24:04Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-26T16:24:04Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Queue/turnero web pilot stabilization and follow-through"
+    acceptance_ref: "verification/agent-runs/AG-260.md"
+    evidence_ref: "verification/agent-runs/AG-260.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-frontend-queue-turnero-operativo"
+    strategy_role: "primary"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "feedback_trim"
+    integration_slice: "frontend_runtime"
+    work_type: "forward"
+    expected_outcome: "El trabajo reciente de estabilizacion y follow-through de queue/turnero queda trazado en board y evidencia sin abrir un lane activo nuevo."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: []
+    prompt: "Queue/turnero web pilot stabilization and follow-through"
     created_at: 2026-03-26
     updated_at: 2026-03-26

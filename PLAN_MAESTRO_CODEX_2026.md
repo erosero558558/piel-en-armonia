@@ -22,11 +22,20 @@ owner: Ernesto
 owner_policy: "detected_default_owner"
 objective: "Convertir el frente admin clinico, queue/turnero y OpenClaw UX en una entrega operable y visible, con soporte backend y runtime estrictamente alineado."
 started_at: "2026-03-17"
-review_due_at: "2026-03-21"
+review_due_at: "2026-03-27"
 success_signal: "Un mismo corte operativo puede demostrarse de punta a punta sin abrir trabajo fuera del frente admin operativo."
 subfront_ids: ["SF-frontend-admin-operativo", "SF-frontend-queue-turnero-operativo", "SF-backend-admin-operativo", "SF-transversal-admin-operativo"]
-updated_at: "2026-03-21"
+updated_at: "2026-03-26"
 -->
+
+## Normalizacion 2026-03-26
+
+- `admin_queue_pilot_cut` ya quedo cubierto historicamente por `AG-243`.
+- La estabilizacion/follow-through reciente de `queue/turnero` queda
+  backfilleada en `AG-260`.
+- `CDX-010` y `AG-259` quedan como soporte de gobernanza ya cerrado.
+- El unico blocker vivo del frente es `CDX-009` por recurrencia `stale` de
+  `public_main_sync`.
 
 ## Proposito
 
