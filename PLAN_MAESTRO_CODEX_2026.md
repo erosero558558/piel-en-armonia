@@ -4,27 +4,22 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
-<!-- CODEX_ACTIVE
-codex_instance: codex_backend_ops
-block: C1
-task_id: CDX-009
-subfront_id: SF-backend-admin-operativo
-status: blocked
-files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1", "verification/agent-runs/CDX-009.md"]
-updated_at: 2026-03-26
--->
-
 <!-- CODEX_STRATEGY_ACTIVE
-id: STRAT-2026-03-admin-operativo
-title: "Admin operativo"
+id: STRAT-2026-03-public-v6-es-voz-ecuatoriana
+title: "Public V6 ES voz ecuatoriana"
 status: active
 owner: Ernesto
 owner_policy: "detected_default_owner"
-objective: "Convertir el frente admin clinico, queue/turnero y OpenClaw UX en una entrega operable y visible, con soporte backend y runtime estrictamente alineado."
-started_at: "2026-03-17"
-review_due_at: "2026-03-27"
-success_signal: "Un mismo corte operativo puede demostrarse de punta a punta sin abrir trabajo fuera del frente admin operativo."
-subfront_ids: ["SF-frontend-admin-operativo", "SF-frontend-queue-turnero-operativo", "SF-backend-admin-operativo", "SF-transversal-admin-operativo"]
+objective: "Reescribir el copy ES de Public V6 para que suene humano, claro y natural para Ecuador sin romper contratos de contenido, marca ni runtime."
+started_at: "2026-03-26"
+review_due_at: "2026-03-30"
+success_signal: "La siguiente ola de frontend-public queda lista para activarse con copy ES humano y consistente para Ecuador, sin abrir trabajo cross-lane innecesario."
+focus_id: "FOCUS-2026-03-public-v6-es-voz-cut-1"
+focus_title: "Public V6 ES claro y humano"
+focus_status: active
+focus_next_step: "ecuadorian_copy_rewrite"
+focus_required_checks: ["content:public-v6:validate", "audit:public-v6:copy", "test:frontend:qa:v6"]
+subfront_ids: ["SF-frontend-public-v6-es-copy", "SF-backend-public-v6-es-support", "SF-transversal-public-v6-es-support"]
 updated_at: "2026-03-26"
 -->
 
@@ -34,8 +29,48 @@ updated_at: "2026-03-26"
 - La estabilizacion/follow-through reciente de `queue/turnero` queda
   backfilleada en `AG-260`.
 - `CDX-010` y `AG-259` quedan como soporte de gobernanza ya cerrado.
-- El unico blocker vivo del frente es `CDX-009` por recurrencia `stale` de
-  `public_main_sync`.
+- `CDX-011` absorbe el carryover actual de gobernanza para que
+  `AGENT_BOARD.yaml` y `PLAN_MAESTRO_CODEX_2026.md` no sigan quedando
+  authored fuera del scope de `CDX-009`.
+- El unico blocker vivo del frente es `CDX-009`, ya reencuadrado como
+  blocker externo reconocido: `job:public_main_sync` y
+  `runtime:operator_auth` siguen en rojo por `HTTP 502`, no por drift
+  repo-side reproducible desde esta maquina.
+- La referencia operativa canonica del bloqueo pasa a `issue#461`
+  (`[ALERTA PROD] Diagnose host connectivity sin ruta de deploy`).
+- Los rescues automáticos no tienen hoy via ejecutable:
+  `repair-windows-hosting-over-ssh.yml` queda bloqueado por `SSH_PASSWORD`
+  ausente, `promote-windows-hosting-target.yml` no tiene runner
+  `self-hosted, Windows`, y `diagnose-host-connectivity.yml` deja
+  `status=unreachable` hacia `101.47.4.223`.
+- Mientras ese estado siga activo, `Admin operativo` permanece abierto pero en
+  modo `support-only`, sin slices `forward` nuevas dentro de
+  `pilot_readiness_evidence`.
+
+## Reencuadre operativo 2026-03-26
+
+- `CDX-009` ya no se trata como recovery repo-side recuperable desde este
+  workspace; se trata como evidencia + criterio de reanudacion.
+- El criterio de reanudacion queda acotado a una via operativa real:
+  `SSH_PASSWORD`, runner Windows activo o conectividad recuperada al host.
+- El foco sigue activo por gobernanza, pero `release_ready` debe seguir en
+  `false` mientras `job:public_main_sync` y `runtime:operator_auth` dependan
+  de infraestructura remota caida.
+
+## Siguiente ola preparada 2026-03-26
+
+- `AG-256` se mantiene en `backlog` como referencia historica del frente
+  `frontend-public`, ya alineada al draft
+  `STRAT-2026-03-public-v6-es-voz-ecuatoriana`.
+- `CDX-045` queda reservado como mirror Codex del mismo frente, tambien en
+  `backlog`, para activar la ola sin reabrir una excepcion dentro de
+  `Admin operativo`.
+- El draft queda definido como `copy-first`: soporte backend o transversal
+  solo se abre despues si una validacion real lo exige, aunque el contrato de
+  gobernanza mantenga los subfrentes draft de soporte.
+- Esta preparacion no cambia el foco activo actual ni reabre `frontend-public`
+  dentro de `pilot_readiness_evidence`; solo deja la proxima ola lista para
+  activacion ordenada.
 
 ## Proposito
 
@@ -68,7 +103,9 @@ updated_at: "2026-03-26"
 ## Estrategia madre activa
 
 - Estrategia activa: `STRAT-2026-03-admin-operativo`.
-- Draft siguiente: ninguno por ahora.
+- Draft siguiente: `STRAT-2026-03-public-v6-es-voz-ecuatoriana` (`copy-first`,
+  con soporte draft en `SF-backend-public-v6-es-support` y
+  `SF-transversal-public-v6-es-support`).
 - Objetivo: convertir `admin clinico`, `queue/turnero` y `OpenClaw UX` en una entrega operable y visible con soporte backend/runtime estrictamente alineado.
 - Revision vigente: semanal; `carry-over` permitido si la salida sigue siendo la misma entrega operativa.
 - Regla de foco: cada hilo Codex toma un solo `subfront_id` valido y rechaza

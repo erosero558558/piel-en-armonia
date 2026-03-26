@@ -7,71 +7,62 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 761
+  revision: 776
   updated_at: 2026-03-26
 
 strategy:
   active:
-    id: STRAT-2026-03-admin-operativo
-    title: "Admin operativo"
-    objective: "Convertir el frente admin clinico, queue/turnero y OpenClaw UX en una entrega operable y visible, con soporte backend y runtime estrictamente alineado."
+    id: STRAT-2026-03-public-v6-es-voz-ecuatoriana
+    title: "Public V6 ES voz ecuatoriana"
+    objective: "Reescribir el copy ES de Public V6 para que suene humano, claro y natural para Ecuador sin romper contratos de contenido, marca ni runtime."
     owner: Ernesto
     owner_policy: "detected_default_owner"
     status: active
-    started_at: "2026-03-17"
-    review_due_at: "2026-03-27"
+    started_at: "2026-03-26"
+    review_due_at: "2026-03-30"
     closed_at: ""
     close_reason: ""
-    exit_criteria: ["Admin clinico y queue/turnero navegables sin flujos rotos", "Auth/readiness/gates en verde para el frente activo", "Runtime OpenClaw solo usado como desbloqueo directo del mismo objetivo"]
-    success_signal: "Un mismo corte operativo puede demostrarse de punta a punta sin abrir trabajo fuera del frente admin operativo."
-    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
-    focus_title: "Admin operativo demostrable"
-    focus_summary: "Unificar admin clinico, quick-nav, queue/turnero piloto y readiness operacional en un solo corte legible."
+    exit_criteria: ["Navigation, home, hub, services, telemedicine, legal y software en ES quedan reescritos sin romper schema ni rutas", "La validacion de contenido y copy vuelve a verde en un workspace aislado, sin abrir soporte backend/transversal salvo que un validador lo exija", "Legal y software conservan prudencia, marca canonica y tono B2B sobrio"]
+    success_signal: "La siguiente ola de frontend-public queda lista para activarse con copy ES humano y consistente para Ecuador, sin abrir trabajo cross-lane innecesario."
+    focus_id: "FOCUS-2026-03-public-v6-es-voz-cut-1"
+    focus_title: "Public V6 ES claro y humano"
+    focus_summary: "Reescribir el copy ES de Public V6 como ola copy-first, con voz natural para Ecuador y sin abrir trabajo cross-lane por defecto."
     focus_status: active
-    focus_proof: "Operador inicia sesion, entra al admin, usa quick-nav, revisa queue/turnero piloto y el corte queda respaldado por runtime/deploy verificables"
-    focus_steps: ["admin_queue_pilot_cut", "pilot_readiness_evidence", "feedback_trim"]
-    focus_next_step: "pilot_readiness_evidence"
-    focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]
-    focus_non_goals: ["rediseno_publico", "expansion_payments", "refactor_orchestrator_no_bloqueante", "modularizacion_fuera_del_corte"]
+    focus_proof: "Las siete fuentes ES de public-v6 mantienen schema y rutas, pero ya leen con una voz coherente, en usted, sin brochure ni drift de marca."
+    focus_steps: ["ecuadorian_copy_rewrite", "copy_contract_validation", "publish_readiness_review"]
+    focus_next_step: "ecuadorian_copy_rewrite"
+    focus_required_checks: ["content:public-v6:validate", "audit:public-v6:copy", "test:frontend:qa:v6"]
+    focus_non_goals: ["runtime_publico", "en_copy_rewrite", "legacy_route_changes", "public_publish", "backend_support_by_default", "transversal_support_by_default"]
     focus_owner: "Ernesto"
-    focus_review_due_at: "2026-03-27"
+    focus_review_due_at: "2026-03-30"
     focus_evidence_ref: ""
-    focus_max_active_slices: 3
+    focus_max_active_slices: 1
     subfronts:
       - codex_instance: codex_frontend
-        subfront_id: SF-frontend-admin-operativo
-        title: "Admin clinico y shell principal"
-        allowed_scopes: ["frontend-admin"]
+        subfront_id: SF-frontend-public-v6-es-copy
+        title: "Copy ES de Public V6"
+        allowed_scopes: ["frontend-public"]
         support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["payments"]
-        wip_limit: 2
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-queue-turnero-operativo
-        title: "Queue, turnero y OpenClaw UX de soporte"
-        allowed_scopes: ["queue", "turnero"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["calendar"]
-        wip_limit: 2
+        blocked_scopes: ["payments", "queue", "turnero", "calendar", "auth"]
+        wip_limit: 1
         default_acceptance_profile: "frontend_delivery_checkpoint"
         exception_ttl_hours: 8
       - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-admin-operativo
-        title: "Auth, readiness, gates y backend de soporte directo"
-        allowed_scopes: ["auth", "backend", "readiness", "gates"]
-        support_only_scopes: ["deploy", "ops", "monitoring", "tests"]
-        blocked_scopes: ["frontend-public", "security"]
-        wip_limit: 2
+        subfront_id: SF-backend-public-v6-es-support
+        title: "Soporte backend minimo para Public V6 ES"
+        allowed_scopes: []
+        support_only_scopes: ["backend", "tests", "gates"]
+        blocked_scopes: ["auth", "payments", "security", "deploy"]
+        wip_limit: 1
         default_acceptance_profile: "backend_gate_checkpoint"
         exception_ttl_hours: 6
       - codex_instance: codex_transversal
-        subfront_id: SF-transversal-admin-operativo
-        title: "Runtime/orquestacion solo como desbloqueo del frente"
+        subfront_id: SF-transversal-public-v6-es-support
+        title: "Soporte transversal minimo para Public V6 ES"
         allowed_scopes: []
-        support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
-        blocked_scopes: ["legacy-runtime"]
-        wip_limit: 2
+        support_only_scopes: ["tooling", "codex-governance"]
+        blocked_scopes: ["openclaw_runtime", "legacy-runtime"]
+        wip_limit: 1
         default_acceptance_profile: "transversal_runtime_checkpoint"
         exception_ttl_hours: 4
   next: null
@@ -802,8 +793,8 @@ tasks:
     title: "Public sync stale recovery: refrescar cron host-side y revalidar health"
     owner: deck
     executor: codex
-    status: blocked
-    status_since_at: "2026-03-26T11:42:20.790Z"
+    status: done
+    status_since_at: "2026-03-26T19:41:01.818Z"
     risk: medium
     scope: readiness
     codex_instance: codex_backend_ops
@@ -820,22 +811,22 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1", "verification/agent-runs/CDX-009.md"]
+    files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
     source_signal: manual
-    source_ref: ""
+    source_ref: "issue#461"
     priority_score: 95
     sla_due_at: ""
     last_attempt_at: "2026-03-26T11:42:20.790Z"
     attempts: 3
-    blocked_reason: "publicsync_stale_recurred_after_recovery"
+    blocked_reason: ""
     lease_id: ""
     lease_owner: ""
     lease_created_at: ""
     heartbeat_at: ""
     lease_expires_at: ""
     lease_reason: ""
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_cleared_at: "2026-03-26T19:41:01.818Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "public_main_sync vuelve a healthy con lastCheckedAt fresco, headDrift=false, telemetryGap=false y dirtyPathsCount=0 sin regresion en runtime:operator_auth."
@@ -848,12 +839,12 @@ tasks:
     focus_step: "pilot_readiness_evidence"
     integration_slice: "ops_deploy"
     work_type: "support"
-    expected_outcome: "Produccion vuelve a exponer publicSync saludable desde health publico y status --json deja job:public_main_sync en verde."
+    expected_outcome: "CDX-009 queda reconocido como blocker externo del foco admin operativo, con evidencia vigente de 502 edge/origin y criterio de reanudacion ligado a recuperar acceso operativo real al host."
     decision_ref: ""
     rework_parent: ""
     rework_reason: ""
     depends_on: []
-    prompt: "Recuperar public_main_sync stale en produccion verificando wrapper/cron host-side, corrida forzada del sync y revalidacion final de health sin tocar runtime auth salvo regresion."
+    prompt: "Mantener evidencia y criterio de reanudacion para CDX-009 mientras public_main_sync y operator_auth sigan bloqueados por 502 host-side y falta de acceso operativo real al host."
     created_at: 2026-03-25
     updated_at: 2026-03-26
 
@@ -913,6 +904,124 @@ tasks:
     rework_reason: ""
     depends_on: ["CDX-009"]
     prompt: "Encapsular la evidencia bloqueada de CDX-009 en una slice transversal de gobernanza para que workspace hygiene deje de reportar unknown_scope sin tocar runtime ni el frente host-side."
+    created_at: 2026-03-26
+    updated_at: 2026-03-26
+
+  - id: CDX-011
+    title: "Codex governance ownership cleanup for CDX-009 external blocker"
+    owner: deck
+    executor: codex
+    status: done
+    status_since_at: "2026-03-26T19:40:53.381Z"
+    risk: low
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: google_oauth
+    runtime_surface: leadops_worker
+    runtime_transport: cli_helper
+    runtime_last_transport: cli_helper
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["AGENT_BOARD.yaml", "AGENT_HANDOFFS.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-009.md", "verification/agent-runs/CDX-011.md"]
+    source_signal: manual
+    source_ref: "CDX-009"
+    priority_score: 70
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-26T19:40:53.381Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Workspace hygiene deja de marcar AGENT_BOARD.yaml y PLAN_MAESTRO_CODEX_2026.md como out_of_scope frente al blocker externo de CDX-009, sin reabrir board_fork ni tocar runtime."
+    acceptance_ref: "verification/agent-runs/CDX-011.md"
+    evidence_ref: "verification/agent-runs/CDX-011.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-transversal-admin-operativo"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "pilot_readiness_evidence"
+    integration_slice: "governance_evidence"
+    work_type: "evidence"
+    expected_outcome: "La gobernanza del blocker externo de CDX-009 queda absorbida por una slice transversal activa y workspace hygiene deja de bloquear AGENT_BOARD.yaml y PLAN_MAESTRO_CODEX_2026.md por out_of_scope."
+    decision_ref: ""
+    rework_parent: "CDX-010"
+    rework_reason: "external_blocker_reframing_recurred"
+    depends_on: ["CDX-009"]
+    prompt: "Absorber en una slice transversal la gobernanza y el espejo board/plan del blocker externo de CDX-009 para que workspace hygiene deje de marcar AGENT_BOARD.yaml y PLAN_MAESTRO_CODEX_2026.md como out_of_scope."
+    created_at: 2026-03-26
+    updated_at: 2026-03-26
+
+  - id: CDX-045
+    title: "Public V6 ES ecuatorian voice rewrite mirror"
+    owner: Ernesto
+    executor: codex
+    status: backlog
+    status_since_at: "2026-03-26T18:10:00Z"
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["content/public-v6/en/software.json", "content/public-v6/es/navigation.json", "content/public-v6/es/home.json", "content/public-v6/es/hub.json", "content/public-v6/es/software.json"]
+    source_signal: manual
+    source_ref: "AG-256"
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Paquete validado de Public V6 con voz ecuatoriana en ES y limpieza puntual de lenguaje tecnico visible en en/software, manteniendo schema, rutas, marca canonica y una sola oferta."
+    acceptance_ref: ""
+    evidence_ref: ""
+    strategy_id: "STRAT-2026-03-public-v6-es-voz-ecuatoriana"
+    subfront_id: "SF-frontend-public-v6-es-copy"
+    strategy_role: "primary"
+    focus_id: "FOCUS-2026-03-public-v6-es-voz-cut-1"
+    focus_step: "ecuadorian_copy_rewrite"
+    integration_slice: "frontend_runtime"
+    work_type: "forward"
+    expected_outcome: "La siguiente ola de frontend-public queda preparada desde un patch validado sobre un lane frontend limpio, limitada a navigation/home/hub/software en ES y limpieza puntual de en/software, manteniendo AG-256 como referencia editorial historica del frente."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["AG-256"]
+    prompt: "Activar la ola draft de Public V6 desde el patch validado, limitando el write set a navigation/home/hub/software en ES y limpieza puntual de en/software, usando AG-256 solo como referencia historica del frente, sin reabrir service/telemedicine/legal ni tocar runtime."
     created_at: 2026-03-26
     updated_at: 2026-03-26
 
@@ -11325,7 +11434,7 @@ tasks:
     runtime_last_transport: 
     files: ["content/public-v6/es/navigation.json", "content/public-v6/es/home.json", "content/public-v6/es/hub.json", "content/public-v6/es/service.json", "content/public-v6/es/telemedicine.json", "content/public-v6/es/legal.json", "content/public-v6/es/software.json"]
     source_signal: manual
-    source_ref: ""
+    source_ref: "CDX-045"
     priority_score: 0
     sla_due_at: ""
     last_attempt_at: ""
@@ -11342,12 +11451,23 @@ tasks:
     runtime_impact: low
     critical_zone: false
     acceptance: "Reescritura public v6 ES con voz ecuatoriana"
-    acceptance_ref: ""
-    evidence_ref: ""
+    acceptance_ref: "verification/agent-runs/AG-256.md"
+    evidence_ref: "verification/agent-runs/AG-256.md"
+    strategy_id: "STRAT-2026-03-public-v6-es-voz-ecuatoriana"
+    subfront_id: "SF-frontend-public-v6-es-copy"
+    strategy_role: "primary"
+    focus_id: "FOCUS-2026-03-public-v6-es-voz-cut-1"
+    focus_step: "ecuadorian_copy_rewrite"
+    integration_slice: "frontend_runtime"
+    work_type: "forward"
+    expected_outcome: "La ola siguiente de frontend-public queda preparada con reescritura ES fuerte en superficies de paciente y tono conservador en legal/software."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
     depends_on: []
     prompt: "Reescritura public v6 ES con voz ecuatoriana"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-26
 
   - id: AG-257
     title: "Windows hosting V2 stabilization for OpenClaw"
@@ -11485,8 +11605,8 @@ tasks:
     heartbeat_at: ""
     lease_expires_at: ""
     lease_reason: ""
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_cleared_at: "2026-03-26T17:33:54.772Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "Workspace hygiene carryover after public sync recovery"
