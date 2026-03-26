@@ -11,15 +11,44 @@ Routine GitHub uploads should use a dedicated branch and the workflow documented
 - generated runtime graph staged in `.generated/site-root/`: `script.js`, `js/chunks/**`, `js/engines/**`
 - authored support layer that still lives in repo root: `styles.css`, `styles-deferred.css`, `sw.js`
 - transport bundle: `_deploy_bundle/`
-- production repo: `/var/www/figo`
+- host discovery command: `node agent-orchestrator.js jobs verify public_main_sync --json`
+- current primary host profile: `windows_selfhosted`
+- current primary production repo: `C:\dev\pielarmonia-clean-main`
+- current primary status: `C:\ProgramData\Pielarmonia\hosting\public-sync-status.json`
+- current primary log: `C:\ProgramData\Pielarmonia\hosting\main-sync.runtime.log`
+- current primary lock: `C:\tmp\sync-pielarmonia.lock`
+- legacy fallback profile: `linux_legacy`
+- legacy production repo: `/var/www/figo`
 - publish mechanism: `close` for Codex closeout, `publish checkpoint` only for manual exceptions, plus deploy/post-deploy
 - host-side legacy telemetry/fallback: git-sync cron
 - cron install / host wrapper: `docs/PUBLIC_V3_CRON_INSTALL.md`
 - job key: `public_main_sync`
 - job id: `8d31e299-7e57-4959-80b5-aaa2d73e9674`
-- lock: `/tmp/sync-pielarmonia.lock`
-- log: `/var/log/sync-pielarmonia.log`
-- status: `/var/lib/pielarmonia/public-sync-status.json`
+- legacy lock: `/tmp/sync-pielarmonia.lock`
+- legacy log: `/var/log/sync-pielarmonia.log`
+- legacy status: `/var/lib/pielarmonia/public-sync-status.json`
+
+## Host discovery first
+
+Before touching host cron, wrappers, or self-hosted deploy services, always
+read the live telemetry payload first:
+
+```bash
+node agent-orchestrator.js jobs verify public_main_sync --json
+```
+
+Treat `repo_path`, `status_path`, `log_path`, and `lock_file` from that live
+payload as the source of truth for the current target. Do not assume Linux
+defaults first.
+
+- If the payload points to `C:\dev\pielarmonia-clean-main`,
+  `C:\ProgramData\Pielarmonia\hosting\public-sync-status.json`,
+  `C:\ProgramData\Pielarmonia\hosting\main-sync.runtime.log`, and
+  `C:\tmp\sync-pielarmonia.lock`, use `windows_selfhosted` as the primary host
+  profile.
+- Only use `linux_legacy` when the live payload explicitly points back to
+  `/var/www/figo`, `/root/sync-pielarmonia.sh`, `/var/lib/pielarmonia/...`,
+  and `/var/log/...`.
 
 ## Recommended release flow
 
@@ -56,11 +85,23 @@ rutas puede devolver `live_status=pending` con
 `warning_code=publish_live_verification_pending` sin revertir el publish.
 `bundle:deploy` es la ruta canónica del paquete de transporte.
 
-3. Let deploy/post-deploy confirm the live state. Use `public_main_sync` only
-   as host-side telemetry or when you intentionally need the legacy git-sync
-   fallback path.
+3. Let deploy/post-deploy confirm the live state. Use `public_main_sync` as
+   host-side telemetry and discovery for whichever target is currently active;
+   do not hard-code the Linux fallback path unless `jobs verify` says that the
+   runtime really points there.
 
-4. If you intentionally need to force the legacy host sync:
+4. If you need host-side triage or recovery, start with the live target:
+
+```bash
+node agent-orchestrator.js jobs verify public_main_sync --json
+pwsh -File scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1 -HostProfile windows_selfhosted
+```
+
+The checklist defaults to `windows_selfhosted` because that is the currently
+verified production path. Use `-HostProfile linux_legacy` only when the live
+payload says the target moved back to the legacy VPS cron lane.
+
+If you intentionally need to force the legacy Linux host sync:
 
 ```bash
 /usr/bin/flock -n /tmp/sync-pielarmonia.lock /root/sync-pielarmonia.sh
@@ -84,12 +125,24 @@ authored repo drift.
 
 ```bash
 pwsh -File scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1
+pwsh -File scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1 -HostProfile windows_selfhosted
+pwsh -File scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1 -HostProfile linux_legacy
 ```
 
 Use that checklist as the host-side closure contract too:
 `checks.storage.storeEncryptionCompliant=true`.
 
 5. Verify host state:
+
+Windows/self-hosted primary path:
+
+```powershell
+Get-Content -Path 'C:\ProgramData\Pielarmonia\hosting\public-sync-status.json'
+Get-Content -Path 'C:\ProgramData\Pielarmonia\hosting\main-sync.runtime.log' -Tail 20
+curl -s https://pielarmonia.com/api.php?resource=health
+```
+
+Linux legacy fallback:
 
 ```bash
 cat /var/lib/pielarmonia/public-sync-status.json
@@ -204,7 +257,9 @@ If a later `repair-git-sync.yml` run still leaves the pilot blocked, it now
 raises `[ALERTA PROD] Repair git sync turneroPilot bloqueado` and closes it
 only when repair returns the host to `ready` or `not_required`.
 
-Triage the canonical `publicSync` signals before touching the host:
+Triage the canonical `publicSync` signals before touching the host. Let the
+payload from `jobs verify public_main_sync --json` decide whether you are
+triaging `windows_selfhosted` or `linux_legacy`:
 
 - `verificationSource=health_url` with `failureReason=health_missing_public_sync` means the host answered `health`, but it is still serving a stale public contract without `checks.publicSync`. Fix that rollout before classifying the incident as repo drift.
 - `verificationSource=health_url` with `failureReason=health_http_502` or another `health_http_*` means the public `health` route answered with an HTTP failure. Treat that first as backend/edge rollout breakage and recover the route before debugging repo drift or cron internals.
@@ -228,10 +283,11 @@ will keep failing with `failureReason=health_missing_public_sync` or, if the
 endpoint becomes unreachable, fall back to `verificationSource=registry_only`
 even when the cron exists and the VPS status file is healthy.
 
-For the host-side command checklist, use:
+For the host-side command checklist, use the profile that the live payload
+actually reports:
 
 ```powershell
-pwsh -File scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1
+pwsh -File scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1 -HostProfile windows_selfhosted
 ```
 
 The checklist closes only when `checks.publicSync.jobId` is visible in public

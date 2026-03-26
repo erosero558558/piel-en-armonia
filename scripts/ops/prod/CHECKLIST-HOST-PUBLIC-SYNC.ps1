@@ -1,4 +1,6 @@
 param(
+    [ValidateSet('windows_selfhosted', 'linux_legacy')]
+    [string]$HostProfile = 'windows_selfhosted',
     [string]$Domain = 'https://pielarmonia.com',
     [string]$RepoPath = '/var/www/figo',
     [string]$GeneratedSiteRoot = '/var/www/figo/.generated/site-root',
@@ -18,6 +20,31 @@ $ErrorActionPreference = 'Stop'
 $base = $Domain.TrimEnd('/')
 $generatedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 $lines = New-Object System.Collections.Generic.List[string]
+$legacyDefaults = @{
+    RepoPath = '/var/www/figo'
+    GeneratedSiteRoot = '/var/www/figo/.generated/site-root'
+    DeployBundlePath = '/var/www/figo/_deploy_bundle'
+    WrapperPath = '/root/sync-pielarmonia.sh'
+    CanonicalWrapperPath = '/var/www/figo/bin/deploy-public-v3-cron-sync.sh'
+    StatusPath = '/var/lib/pielarmonia/public-sync-status.json'
+    LogPath = '/var/log/sync-pielarmonia.log'
+    LockPath = '/tmp/sync-pielarmonia.lock'
+    DiagnosticsUrl = 'http://127.0.0.1/api.php?resource=health-diagnostics'
+}
+$hostProfiles = @{
+    windows_selfhosted = @{
+        RepoPath = 'C:\dev\pielarmonia-clean-main'
+        GeneratedSiteRoot = 'C:\dev\pielarmonia-clean-main\.generated\site-root'
+        DeployBundlePath = 'C:\dev\pielarmonia-clean-main\_deploy_bundle'
+        WrapperPath = 'C:\dev\pielarmonia-clean-main\bin\deploy-public-v3-cron-sync.sh'
+        CanonicalWrapperPath = 'C:\dev\pielarmonia-clean-main\bin\deploy-public-v3-cron-sync.sh'
+        StatusPath = 'C:\ProgramData\Pielarmonia\hosting\public-sync-status.json'
+        LogPath = 'C:\ProgramData\Pielarmonia\hosting\main-sync.runtime.log'
+        LockPath = 'C:\tmp\sync-pielarmonia.lock'
+        DiagnosticsUrl = 'https://pielarmonia.com/api.php?resource=health-diagnostics'
+    }
+    linux_legacy = $legacyDefaults
+}
 
 function Add-ChecklistLine {
     param([string]$Line = '')
@@ -59,6 +86,106 @@ function Add-ChecklistCommandBlock {
     Add-ChecklistLine
 }
 
+function Resolve-ProfileValue {
+    param(
+        [string]$CurrentValue,
+        [string]$LegacyValue,
+        [string]$ProfileValue
+    )
+
+    if ([string]::IsNullOrWhiteSpace($CurrentValue) -or $CurrentValue -eq $LegacyValue) {
+        return $ProfileValue
+    }
+
+    return $CurrentValue
+}
+
+$selectedProfile = $hostProfiles[$HostProfile]
+$RepoPath = Resolve-ProfileValue $RepoPath $legacyDefaults.RepoPath $selectedProfile.RepoPath
+$GeneratedSiteRoot = Resolve-ProfileValue $GeneratedSiteRoot $legacyDefaults.GeneratedSiteRoot $selectedProfile.GeneratedSiteRoot
+$DeployBundlePath = Resolve-ProfileValue $DeployBundlePath $legacyDefaults.DeployBundlePath $selectedProfile.DeployBundlePath
+$WrapperPath = Resolve-ProfileValue $WrapperPath $legacyDefaults.WrapperPath $selectedProfile.WrapperPath
+$CanonicalWrapperPath = Resolve-ProfileValue $CanonicalWrapperPath $legacyDefaults.CanonicalWrapperPath $selectedProfile.CanonicalWrapperPath
+$StatusPath = Resolve-ProfileValue $StatusPath $legacyDefaults.StatusPath $selectedProfile.StatusPath
+$LogPath = Resolve-ProfileValue $LogPath $legacyDefaults.LogPath $selectedProfile.LogPath
+$LockPath = Resolve-ProfileValue $LockPath $legacyDefaults.LockPath $selectedProfile.LockPath
+$DiagnosticsUrl = Resolve-ProfileValue $DiagnosticsUrl $legacyDefaults.DiagnosticsUrl $selectedProfile.DiagnosticsUrl
+
+if ($HostProfile -eq 'windows_selfhosted') {
+    $snapshotHostCommands = @(
+        "Get-Item -LiteralPath '$StatusPath' | Format-List FullName,Length,LastWriteTime",
+        "Get-Content -LiteralPath '$StatusPath'",
+        "Get-Content -LiteralPath '$LogPath' -Tail 50",
+        "Get-Item -LiteralPath '$LockPath' -ErrorAction SilentlyContinue | Format-List FullName,Length,LastWriteTime",
+        "Get-ChildItem -LiteralPath '$GeneratedSiteRoot' -ErrorAction SilentlyContinue | Select-Object -First 20 FullName",
+        "Get-ChildItem -LiteralPath '$DeployBundlePath' -ErrorAction SilentlyContinue | Select-Object -First 20 FullName"
+    )
+    $snapshotRepoCommands = @(
+        "Set-Location '$RepoPath'",
+        'git status --short',
+        'git rev-parse HEAD',
+        'git rev-parse origin/main',
+        'git diff --name-only',
+        'git ls-files -m',
+        "Get-ChildItem -LiteralPath '$GeneratedSiteRoot' -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 20 FullName",
+        "Get-ChildItem -LiteralPath '$DeployBundlePath' -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 20 FullName"
+    )
+    $diagnosticsCommands = @(
+        "node agent-orchestrator.js jobs verify public_main_sync --json",
+        "((Invoke-WebRequest -UseBasicParsing -Uri '$DiagnosticsUrl').Content | ConvertFrom-Json).checks.publicSync | Select-Object configured,jobId,state,healthy,operationallyHealthy,repoHygieneIssue,ageSeconds,expectedMaxLagSeconds,lastCheckedAt,lastSuccessAt,lastErrorAt,failureReason,lastErrorMessage,currentHead,remoteHead,dirtyPathsCount,dirtyPathsSample | ConvertTo-Json -Depth 4",
+        "((Invoke-WebRequest -UseBasicParsing -Uri '$DiagnosticsUrl').Content | ConvertFrom-Json).checks.storage | Select-Object backend,source,encrypted,encryptionConfigured,encryptionRequired,encryptionStatus,encryptionCompliant | ConvertTo-Json -Depth 4",
+        "((Invoke-WebRequest -UseBasicParsing -Uri '$DiagnosticsUrl').Content | ConvertFrom-Json).checks.auth | Select-Object mode,status,configured,hardeningCompliant,recommendedMode,recommendedModeActive,twoFactorEnabled,operatorAuthEnabled,operatorAuthConfigured,legacyPasswordConfigured | ConvertTo-Json -Depth 4"
+    )
+    $healthCommands = @(
+        "(Invoke-WebRequest -UseBasicParsing -Uri '$base/api.php?resource=health').Content",
+        "(((Invoke-WebRequest -UseBasicParsing -Uri '$base/api.php?resource=health').Content | ConvertFrom-Json).checks.publicSync | Select-Object configured,jobId,state,healthy,operationallyHealthy,failureReason,lastErrorMessage) | ConvertTo-Json -Depth 4"
+    )
+    $wrapperCommands = @(
+        "Write-Host 'windows_selfhosted: descubre primero el scheduler o servicio real desde jobs verify y la configuracion del runner antes de forzar una corrida.'",
+        "node agent-orchestrator.js jobs verify public_main_sync --json",
+        "Get-Content -LiteralPath '$StatusPath'",
+        "Get-Content -LiteralPath '$LogPath' -Tail 50",
+        "Get-Item -LiteralPath '$LockPath' -ErrorAction SilentlyContinue | Format-List FullName,Length,LastWriteTime"
+    )
+} else {
+    $snapshotHostCommands = @(
+        "sha256sum $WrapperPath $CanonicalWrapperPath",
+        "cmp -s $WrapperPath $CanonicalWrapperPath && echo wrapper_match || echo wrapper_diff",
+        "stat $WrapperPath $CanonicalWrapperPath",
+        "ls -ld $GeneratedSiteRoot $DeployBundlePath 2>/dev/null || true",
+        "cat $StatusPath",
+        "tail -n 50 $LogPath"
+    )
+    $snapshotRepoCommands = @(
+        "cd $RepoPath",
+        'git status --short',
+        'git rev-parse HEAD',
+        'git rev-parse origin/main',
+        'git diff --name-only',
+        'git ls-files -m',
+        "find $GeneratedSiteRoot -maxdepth 2 -type f | head -n 20",
+        "find $DeployBundlePath -maxdepth 2 -type f | head -n 20"
+    )
+    $diagnosticsCommands = @(
+        "curl -s $DiagnosticsUrl",
+        "curl -s $DiagnosticsUrl | jq '.checks.publicSync | {configured, jobId, state, healthy, operationallyHealthy, repoHygieneIssue, ageSeconds, expectedMaxLagSeconds, lastCheckedAt, lastSuccessAt, lastErrorAt, failureReason, lastErrorMessage, currentHead, remoteHead, dirtyPathsCount, dirtyPathsSample}'",
+        "curl -s $DiagnosticsUrl | jq '.checks.storage | {backend, source, encrypted, encryptionConfigured, encryptionRequired, encryptionStatus, encryptionCompliant}'",
+        "curl -s $DiagnosticsUrl | jq '.checks.auth | {mode, status, configured, hardeningCompliant, recommendedMode, recommendedModeActive, twoFactorEnabled, operatorAuthEnabled, operatorAuthConfigured, legacyPasswordConfigured}'"
+    )
+    $healthCommands = @(
+        "curl -s $base/api.php?resource=health",
+        "curl -s $base/api.php?resource=health | jq '.checks.publicSync | {configured, jobId, state, healthy, operationallyHealthy, failureReason, lastErrorMessage}'"
+    )
+    $wrapperCommands = @(
+        "install -m 0755 $CanonicalWrapperPath $WrapperPath",
+        "/usr/bin/flock -n $LockPath $WrapperPath",
+        "ls -ld $GeneratedSiteRoot $DeployBundlePath 2>/dev/null || true",
+        "cat $StatusPath",
+        "tail -n 50 $LogPath",
+        "curl -s $DiagnosticsUrl | jq '.checks.publicSync | {state, healthy, operationallyHealthy, failureReason, currentHead, remoteHead, dirtyPathsCount}'"
+    )
+}
+
 if ($Format -eq 'markdown') {
     Add-ChecklistLine '# Host Checklist - Public Sync'
     Add-ChecklistLine
@@ -69,6 +196,7 @@ if ($Format -eq 'markdown') {
 
 Add-ChecklistBullet "generatedAt: $generatedAt"
 Add-ChecklistBullet "domain: $base"
+Add-ChecklistBullet "hostProfile: $HostProfile"
 Add-ChecklistBullet "repoPath: $RepoPath"
 Add-ChecklistBullet "generatedSiteRoot: $GeneratedSiteRoot"
 Add-ChecklistBullet "deployBundlePath: $DeployBundlePath"
@@ -79,56 +207,39 @@ Add-ChecklistBullet "logPath: $LogPath"
 Add-ChecklistBullet "diagnosticsUrl: $DiagnosticsUrl"
 Add-ChecklistLine
 
-Add-ChecklistSection 'Snapshot del host'
-Add-ChecklistBullet 'Confirma si el wrapper live coincide con el wrapper canonico del repo antes de interpretar telemetryGap o working_tree_dirty.'
+Add-ChecklistSection 'Discovery first'
+Add-ChecklistBullet 'No asumas Linux por defecto. Usa jobs verify para descubrir si el target real es windows_selfhosted o linux_legacy.'
 Add-ChecklistCommandBlock @(
-    "sha256sum $WrapperPath $CanonicalWrapperPath",
-    "cmp -s $WrapperPath $CanonicalWrapperPath && echo wrapper_match || echo wrapper_diff",
-    "stat $WrapperPath $CanonicalWrapperPath",
-    "ls -ld $GeneratedSiteRoot $DeployBundlePath 2>/dev/null || true",
-    "cat $StatusPath",
-    "tail -n 50 $LogPath"
+    'node agent-orchestrator.js jobs verify public_main_sync --json'
 )
+
+Add-ChecklistSection 'Snapshot del host'
+if ($HostProfile -eq 'windows_selfhosted') {
+    Add-ChecklistBullet 'Para windows_selfhosted, prioriza status/log/lock y el repo_path publicado por jobs verify; no asumas `/root/sync-pielarmonia.sh`.'
+} else {
+    Add-ChecklistBullet 'Confirma si el wrapper live coincide con el wrapper canonico del repo antes de interpretar telemetryGap o working_tree_dirty.'
+}
+Add-ChecklistCommandBlock $snapshotHostCommands
 
 Add-ChecklistSection 'Snapshot del repo live'
 Add-ChecklistBullet 'Verifica drift tracked, HEAD local del VPS, referencia remota de main y si el stage/bundle canonico quedaron presentes o como ruido efimero.'
-Add-ChecklistCommandBlock @(
-    "cd $RepoPath",
-    'git status --short',
-    'git rev-parse HEAD',
-    'git rev-parse origin/main',
-    'git diff --name-only',
-    'git ls-files -m',
-    "find $GeneratedSiteRoot -maxdepth 2 -type f | head -n 20",
-    "find $DeployBundlePath -maxdepth 2 -type f | head -n 20"
-)
+Add-ChecklistCommandBlock $snapshotRepoCommands
 
 Add-ChecklistSection 'Diagnostics runtime'
 Add-ChecklistBullet 'Usa localhost o bearer de diagnostics; no dependas del health publico para el triage detallado.'
-Add-ChecklistCommandBlock @(
-    "curl -s $DiagnosticsUrl",
-    "curl -s $DiagnosticsUrl | jq '.checks.publicSync | {configured, jobId, state, healthy, operationallyHealthy, repoHygieneIssue, ageSeconds, expectedMaxLagSeconds, lastCheckedAt, lastSuccessAt, lastErrorAt, failureReason, lastErrorMessage, currentHead, remoteHead, dirtyPathsCount, dirtyPathsSample}'",
-    "curl -s $DiagnosticsUrl | jq '.checks.storage | {backend, source, encrypted, encryptionConfigured, encryptionRequired, encryptionStatus, encryptionCompliant}'",
-    "curl -s $DiagnosticsUrl | jq '.checks.auth | {mode, status, configured, hardeningCompliant, recommendedMode, recommendedModeActive, twoFactorEnabled, operatorAuthEnabled, operatorAuthConfigured, legacyPasswordConfigured}'"
-)
+Add-ChecklistCommandBlock $diagnosticsCommands
 
 Add-ChecklistSection 'Health publico'
 Add-ChecklistBullet 'Confirma si el health publico ya expone checks.publicSync; si falta, el host sigue sirviendo un HealthController stale y jobs verify fallara con health_missing_public_sync o, si no logra leer el endpoint, quedara en registry_only/unverified aunque el cron exista.'
-Add-ChecklistCommandBlock @(
-    "curl -s $base/api.php?resource=health",
-    "curl -s $base/api.php?resource=health | jq '.checks.publicSync | {configured, jobId, state, healthy, operationallyHealthy, failureReason, lastErrorMessage}'"
-)
+Add-ChecklistCommandBlock $healthCommands
 
 Add-ChecklistSection 'Wrapper canonico y corrida forzada'
-Add-ChecklistBullet 'Si el wrapper no coincide o telemetryGap sigue true sin heads/dirty paths, reinstala el wrapper canonico antes de volver a diagnosticar.'
-Add-ChecklistCommandBlock @(
-    "install -m 0755 $CanonicalWrapperPath $WrapperPath",
-    "/usr/bin/flock -n $LockPath $WrapperPath",
-    "ls -ld $GeneratedSiteRoot $DeployBundlePath 2>/dev/null || true",
-    "cat $StatusPath",
-    "tail -n 50 $LogPath",
-    "curl -s $DiagnosticsUrl | jq '.checks.publicSync | {state, healthy, operationallyHealthy, failureReason, currentHead, remoteHead, dirtyPathsCount}'"
-)
+if ($HostProfile -eq 'windows_selfhosted') {
+    Add-ChecklistBullet 'En windows_selfhosted, descubre primero el scheduler o servicio real desde jobs verify y la configuracion del runner antes de forzar una corrida.'
+} else {
+    Add-ChecklistBullet 'Si el wrapper no coincide o telemetryGap sigue true sin heads/dirty paths, reinstala el wrapper canonico antes de volver a diagnosticar.'
+}
+Add-ChecklistCommandBlock $wrapperCommands
 
 Add-ChecklistSection 'Variables criticas del host'
 Add-ChecklistBullet 'Valida presencia, no valores secretos. El objetivo es detectar misconfiguracion real del host.'
@@ -139,6 +250,7 @@ Add-ChecklistCommandBlock @(
 
 Add-ChecklistSection 'Interpretacion rapida'
 Add-ChecklistBullet 'wrapper_diff + telemetryGap=true: el host probablemente sigue ejecutando un wrapper stale o un entrypoint legacy.'
+Add-ChecklistBullet 'jobs verify con rutas `C:\dev\pielarmonia-clean-main` / `C:\ProgramData\Pielarmonia\hosting\...`: el target primario actual es windows_selfhosted; no arranques por la receta Linux legacy.'
 Add-ChecklistBullet 'health publico sin checks.publicSync o sin jobId: desplegar controllers/HealthController.php actualizado antes de tratar el caso como drift del repo o cron roto.'
 Add-ChecklistBullet 'failureReason=working_tree_dirty + dirtyPathsCount>0 + telemetryGap=false: el cron tiene suficiente telemetria; limpia drift tracked en el VPS antes de culpar al workflow.'
 Add-ChecklistBullet 'si dirtyPathsSample solo muestra `.generated/site-root/**` o `_deploy_bundle/**` despues de una corrida forzada, el wrapper del host probablemente sigue desalineado con la politica canonica de higiene.'

@@ -4,16 +4,6 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
-<!-- CODEX_ACTIVE
-codex_instance: codex_backend_ops
-block: C1
-task_id: CDX-009
-subfront_id: SF-backend-admin-operativo
-status: blocked
-files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
-updated_at: 2026-03-26
--->
-
 <!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-admin-operativo
 title: "Admin operativo"
