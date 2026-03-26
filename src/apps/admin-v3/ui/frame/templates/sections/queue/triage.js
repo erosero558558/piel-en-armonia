@@ -5,12 +5,12 @@ export function renderQueueTriageToolbar() {
                 <button type="button" data-queue-filter="all">Todo</button>
                 <button type="button" data-queue-filter="called">Llamados</button>
                 <button type="button" data-queue-filter="sla_risk">Riesgo SLA</button>
-                <input type="search" id="queueSearchInput" placeholder="Buscar ticket" />
+                <input type="search" id="queueSearchInput" placeholder="Buscar turno o paciente" />
                 <button type="button" data-action="queue-clear-search">Limpiar</button>
             </div>
             <div class="queue-triage-toolbar__bulk">
                 <button type="button" id="queueSelectVisibleBtn" data-action="queue-select-visible">Seleccionar visibles</button>
-                <button type="button" id="queueClearSelectionBtn" data-action="queue-clear-selection">Limpiar seleccion</button>
+                <button type="button" id="queueClearSelectionBtn" data-action="queue-clear-selection">Limpiar selección</button>
                 <button type="button" data-action="queue-bulk-action" data-queue-action="completar">Bulk completar</button>
                 <button type="button" data-action="queue-bulk-action" data-queue-action="no_show">Bulk no_show</button>
                 <button type="button" data-action="queue-bulk-reprint">Bulk reprint</button>

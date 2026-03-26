@@ -23,7 +23,7 @@ function syncReleaseButton(buttonId, consultorio, ticket, ticketCode) {
     button.hidden = !ticket;
     button.textContent = ticket
         ? `Liberar C${consultorio} · ${ticketCode}`
-        : `Release C${consultorio}`;
+        : `Liberar C${consultorio}`;
 
     if (ticket) {
         button.setAttribute('data-queue-id', String(Number(ticket.id || 0)));

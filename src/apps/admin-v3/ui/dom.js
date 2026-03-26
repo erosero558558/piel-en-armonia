@@ -35,9 +35,10 @@ const SECTION_HOOKS = {
         detail: '#availabilityDetailGrid',
     },
     queue: {
-        hero: '#queueAppsHub',
+        hero: '#queueOpsConsoleSummary',
+        priority: '.queue-operations-stream',
         workbench: '.queue-admin-table',
-        detail: '#queueActivityPanel',
+        detail: '#queueAppsHub',
     },
 };
 

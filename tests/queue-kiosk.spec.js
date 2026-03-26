@@ -35,6 +35,16 @@ function supportReasonLabel(reason) {
     );
 }
 
+async function openKioskSupportShell(page) {
+    await page.locator('#kioskSupportShell').evaluate((node) => {
+        if (node instanceof HTMLDetailsElement) {
+            node.open = true;
+            return;
+        }
+        node.setAttribute('open', '');
+    });
+}
+
 test.describe('Kiosco turnos', () => {
     test('aplica branding del perfil clinico en cabecera y contexto del kiosco', async ({
         page,
@@ -165,7 +175,7 @@ test.describe('Kiosco turnos', () => {
             'Bloqueado · perfil de respaldo'
         );
         await expect(page.locator('#kioskSetupChecks')).toContainText(
-            'perfil de respaldo'
+            'clinic-profile.json'
         );
         await page.fill('#checkinPhone', '0999999999');
         await page.fill('#checkinDate', '2026-03-13');
@@ -287,7 +297,11 @@ test.describe('Kiosco turnos', () => {
 
         await page.goto('/kiosco-turnos.html');
         await expect(page.locator('h1')).toContainText(
-            'Registro en sala de espera'
+            'Elige cómo quieres sacar tu turno'
+        );
+        await expect(page.locator('#kioskSupportShell')).not.toHaveAttribute(
+            'open',
+            ''
         );
 
         await page.fill('#walkinInitials', 'EP');
@@ -295,7 +309,7 @@ test.describe('Kiosco turnos', () => {
 
         await expect(page.locator('#ticketResult')).toContainText('A-101');
         await expect(page.locator('#kioskSetupTitle')).toContainText(
-            'Revisa la impresora termica'
+            'Revisa la impresora'
         );
         await expect(page.locator('#kioskSetupChecks')).toContainText(
             'printer_disabled'
@@ -308,6 +322,7 @@ test.describe('Kiosco turnos', () => {
             'pendiente'
         );
 
+        await openKioskSupportShell(page);
         await page.fill('#assistantInput', 'Como hago check-in');
         await page.click('#assistantSend');
         await expect(page.locator('#assistantMessages')).toContainText(
@@ -357,12 +372,7 @@ test.describe('Kiosco turnos', () => {
 
         await page.goto('/kiosco-turnos.html');
 
-        await page.fill('#assistantInput', 'No tengo cita');
-        await page.click('#assistantSend');
-
-        await expect(page.locator('#assistantMessages')).toContainText(
-            'Te llevo a No tengo cita'
-        );
+        await page.click('#kioskQuickWalkin');
         await expect(page.locator('#walkinInitials')).toBeFocused();
         expect(chatCalls).toBe(0);
     });
@@ -455,6 +465,7 @@ test.describe('Kiosco turnos', () => {
 
         await page.goto('/kiosco-turnos.html');
 
+        await openKioskSupportShell(page);
         await page.fill(
             '#assistantInput',
             'Que crema me pongo para el sarpullido'
@@ -565,6 +576,7 @@ test.describe('Kiosco turnos', () => {
         await page.fill('#checkinPhone', '0991234567');
         await page.fill('#checkinDate', '2026-03-13');
         await page.fill('#checkinTime', '10:30');
+        await openKioskSupportShell(page);
         await page.fill('#assistantInput', 'No encuentro mi cita');
         await page.click('#assistantSend');
 
@@ -686,6 +698,7 @@ test.describe('Kiosco turnos', () => {
         await page.click('#walkinSubmit');
         await expect(page.locator('#ticketResult')).toContainText('A-101');
 
+        await openKioskSupportShell(page);
         await page.fill('#assistantInput', 'Me salieron dos tickets');
         await page.click('#assistantSend');
         await expect(page.locator('#assistantMessages')).toContainText(
@@ -809,6 +822,7 @@ test.describe('Kiosco turnos', () => {
         await page.goto('/kiosco-turnos.html');
         await expect.poll(() => heartbeatBodies.length).toBeGreaterThan(0);
 
+        await openKioskSupportShell(page);
         await page.fill('#assistantInput', 'No tengo cita');
         await page.click('#assistantSend');
         await expect(page.locator('#assistantMessages')).toContainText(
@@ -949,6 +963,7 @@ test.describe('Kiosco turnos', () => {
 
         await page.goto('/kiosco-turnos.html');
 
+        await openKioskSupportShell(page);
         await page.fill('#assistantInput', 'Necesito ayuda humana');
         await page.click('#assistantSend');
 
@@ -1096,7 +1111,9 @@ test.describe('Kiosco turnos', () => {
 
         await page.goto('/kiosco-turnos.html');
 
-        await expect(page.locator('#kioskSeniorToggle')).toContainText('Off');
+        await expect(page.locator('#kioskSeniorToggle')).toContainText(
+            'Modo lectura grande: Off'
+        );
         await expect(page.locator('#queueOutboxHint')).toContainText(
             'Pendientes offline: 0'
         );
@@ -1104,7 +1121,7 @@ test.describe('Kiosco turnos', () => {
             'estado pendiente'
         );
         await expect(page.locator('#kioskSetupChecks')).not.toContainText(
-            'Impresion OK'
+            'Impresion correcta'
         );
     });
 
@@ -1269,10 +1286,10 @@ test.describe('Kiosco turnos', () => {
 
         await page.locator('#kioskSessionResetBtn').click();
         await expect(page.locator('#ticketResult')).toContainText(
-            'Todavia no se ha generado ningun ticket.'
+            'Todavia no has sacado un ticket en esta pantalla.'
         );
         await expect(page.locator('#kioskStatus')).toContainText(
-            'Pantalla limpiada'
+            'Pantalla lista para la siguiente persona'
         );
 
         await page.fill('#walkinInitials', 'EP');
@@ -1291,7 +1308,7 @@ test.describe('Kiosco turnos', () => {
             )
             .toContain('inactividad');
         await expect(page.locator('#ticketResult')).toContainText(
-            'Todavia no se ha generado ningun ticket.'
+            'Todavia no has sacado un ticket en esta pantalla.'
         );
     });
 
@@ -1619,9 +1636,11 @@ test.describe('Kiosco turnos', () => {
             page.locator('[data-turnero-kiosk-surface-service-handover="true"]')
         ).toBeVisible();
         await expect(
-            page.locator(
-                '[data-turnero-kiosk-surface-service-handover="true"] .turnero-surface-service-handover-banner'
-            )
+            page
+                .locator(
+                    '[data-turnero-kiosk-surface-service-handover="true"] [data-role="banner"]'
+                )
+                .first()
         ).toContainText('Kiosk surface service handover');
         await expect(
             page.locator(

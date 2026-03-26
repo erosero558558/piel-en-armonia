@@ -707,13 +707,16 @@ function collectControlCenterIncidents(parts, snapshot) {
                 owner: 'config',
             })
         );
-    } else if (clinicRuntimeSource === 'fallback_default') {
+    } else if (
+        clinicRuntimeSource === 'fallback_default' ||
+        clinicRuntimeSource === 'fallback_local'
+    ) {
         incidents.push(
             makeIncident({
                 code: 'clinic_profile_fallback',
                 severity: 'hold',
                 title: 'Perfil clínico en fallback',
-                detail: 'El perfil activo sigue viniendo del fallback_default y no del canon remoto por clínica.',
+                detail: `El perfil activo sigue viniendo de ${clinicRuntimeSource} y no del canon remoto por clínica.`,
                 source: 'clinic_profile',
                 owner: 'config',
             })

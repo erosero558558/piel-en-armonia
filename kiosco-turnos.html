@@ -28,7 +28,7 @@
         >
             <div class="kiosk-welcome-card">
                 <strong>Bienvenida a Aurora Derm</strong>
-                <p>Tu turno en sala, rapido y claro.</p>
+                <p>Tu turno en sala, rapido, claro y sin complicaciones.</p>
             </div>
         </div>
         <header class="kiosk-header">
@@ -38,7 +38,9 @@
                 <span id="kioskClinicMeta">Piloto web por clínica</span>
             </div>
             <div class="kiosk-header-tools">
-                <p class="kiosk-header-note">Pensado para uso simple y seguro</p>
+                <p class="kiosk-header-note">
+                    Pantalla simple para confirmar cita o pedir turno con calma.
+                </p>
                 <div
                     class="kiosk-header-controls"
                     role="group"
@@ -50,21 +52,21 @@
                         class="kiosk-header-help-btn"
                         aria-pressed="false"
                     >
-                        Modo lectura grande: Off
+                        Letra grande: no
                     </button>
                     <button
                         id="kioskVoiceGuideBtn"
                         type="button"
                         class="kiosk-header-help-btn"
                     >
-                        Leer instrucciones
+                        Escuchar pasos
                     </button>
                     <button
                         id="kioskReceptionHelpBtn"
                         type="button"
                         class="kiosk-header-help-btn"
                     >
-                        Necesito apoyo
+                        Pedir apoyo
                     </button>
                 </div>
                 <button
@@ -74,7 +76,7 @@
                     aria-expanded="false"
                     aria-controls="kioskQuickHelpPanel"
                 >
-                    Ayuda rapida
+                    Ver ayuda paso a paso
                 </button>
             </div>
         </header>
@@ -105,7 +107,7 @@
             data-turnero-stage-surface="kiosk"
         >
             <div class="turnero-stage-chrome__copy">
-                <p class="turnero-stage-chrome__eyebrow">Aurora Derm · clinica piloto</p>
+                <p class="turnero-stage-chrome__eyebrow">Flow OS · Aurora Derm piloto</p>
                 <strong data-turnero-stage-label>Llegada</strong>
                 <span data-turnero-stage-order
                     >Etapa 01 / 04 · Llegada -> Recepcion -> Sala -> Gerencia</span
@@ -129,8 +131,12 @@
 
         <main class="kiosk-layout">
             <section class="kiosk-card kiosk-checkin-card">
-                <p class="kiosk-stage-kicker">Check-in lounge</p>
-                <h1>Registro en sala de espera</h1>
+                <p class="kiosk-stage-kicker">Paso 1</p>
+                <h1>Elige cómo quieres sacar tu turno</h1>
+                <p class="kiosk-intro-copy">
+                    Confirma tu cita o pide turno sin cita. Solo verás los datos
+                    necesarios.
+                </p>
                 <p id="kioskClinicContext" class="kiosk-clinic-context">
                     Ruta canónica del piloto · check-in con cita y sin cita
                 </p>
@@ -141,29 +147,39 @@
                 >
                     Perfil por clínica: cargando...
                 </p>
-                <p>
-                    Selecciona tu opcion para generar turno o confirmar cita.
-                </p>
                 <section class="kiosk-next-step" aria-label="Guía rápida del kiosco">
                     <article>
-                        <span>Qué hago ahora</span>
-                        <strong>Elige cita o sin cita</strong>
-                        <p>La parte superior define el flujo; el formulario solo muestra lo necesario.</p>
+                        <span>Ahora</span>
+                        <strong>Toca la opción que necesitas</strong>
+                        <p>
+                            Si ya tienes cita, confirma tu llegada. Si no,
+                            genera un turno nuevo.
+                        </p>
                     </article>
                     <article>
-                        <span>Qué pasa después</span>
-                        <strong>Toma ticket y mira la TV</strong>
-                        <p>La sala mostrará ticket e iniciales cuando llegue tu llamado.</p>
+                        <span>Después</span>
+                        <strong>Recibe tu ticket y espera la pantalla</strong>
+                        <p>
+                            La sala mostrará tu ticket y tus iniciales cuando
+                            llegue tu turno.
+                        </p>
+                    </article>
+                    <article>
+                        <span>Si necesitas ayuda</span>
+                        <strong>Pide apoyo sin salir de la pantalla</strong>
+                        <p>
+                            Usa el botón "Pedir apoyo" y recepción te acompaña.
+                        </p>
                     </article>
                 </section>
                 <div class="kiosk-flow-cards">
                     <article>
                         <h3>Tengo cita</h3>
-                        <p>Check-in por telefono + fecha + hora</p>
+                        <p>Confirma tu llegada con teléfono, fecha y hora.</p>
                     </article>
                     <article>
                         <h3>No tengo cita</h3>
-                        <p>Ticket walk-in con iniciales</p>
+                        <p>Saca un turno nuevo usando tus iniciales.</p>
                     </article>
                 </div>
                 <div
@@ -198,7 +214,7 @@
                     role="status"
                     aria-live="polite"
                 >
-                    Paso 1 de 2: selecciona una opcion para comenzar.
+                    Paso 1: elige si tienes cita o si necesitas un turno nuevo.
                 </p>
                 <p
                     id="kioskSeniorHint"
@@ -207,7 +223,7 @@
                     role="status"
                     aria-live="polite"
                 >
-                    Si necesitas letra mas grande, usa "Modo lectura grande".
+                    Si quieres leer mejor, activa la letra grande.
                 </p>
 
                 <div
@@ -225,21 +241,24 @@
                     aria-live="polite"
                     hidden
                 >
-                    <h2>Guia rapida</h2>
+                    <h2>Ayuda paso a paso</h2>
                     <ol>
                         <li>Elige "Tengo cita" o "No tengo cita".</li>
-                        <li>Completa datos y pulsa el boton azul.</li>
-                        <li>Toma tu ticket y espera el llamado en la TV.</li>
+                        <li>Completa solo los datos que te pide la pantalla.</li>
+                        <li>Presiona el botón azul para confirmar.</li>
+                        <li>Toma tu ticket y espera el llamado en la pantalla.</li>
                     </ol>
                     <p>
-                        Atajos: <strong>Alt+Shift+1</strong> cita,
+                        Atajos de staff: <strong>Alt+Shift+1</strong> cita,
                         <strong>Alt+Shift+2</strong> sin cita,
                         <strong>Alt+Shift+H</strong> ayuda,
-                        <strong>Alt+Shift+S</strong> lectura grande,
-                        <strong>Alt+Shift+V</strong> voz guia,
+                        <strong>Alt+Shift+S</strong> letra grande,
+                        <strong>Alt+Shift+V</strong> audio,
                         <strong>Alt+Shift+A</strong> apoyo.
                     </p>
-                    <button id="kioskHelpClose" type="button">Cerrar ayuda</button>
+                    <button id="kioskHelpClose" type="button">
+                        Cerrar ayuda
+                    </button>
                 </section>
 
                 <div class="kiosk-form-grid">
@@ -313,94 +332,117 @@
             </section>
 
             <aside class="kiosk-side">
-                <section class="kiosk-card kiosk-setup-card" aria-live="polite">
-                    <div class="kiosk-setup-card__header">
-                        <span>Puesta en marcha</span>
-                        <strong id="kioskSetupTitle">Falta probar ticket termico</strong>
+                <details id="kioskSupportShell" class="kiosk-support-shell">
+                    <summary id="kioskSupportSummary">
+                        Estado del kiosco y soporte
+                    </summary>
+                    <div class="kiosk-support-shell__body">
+                        <section
+                            class="kiosk-card kiosk-setup-card"
+                            aria-live="polite"
+                        >
+                            <div class="kiosk-setup-card__header">
+                                <span>Soporte del equipo</span>
+                                <strong id="kioskSetupTitle">
+                                    Falta probar ticket termico
+                                </strong>
+                            </div>
+                            <p id="kioskSetupSummary" class="kiosk-setup-summary">
+                                Genera un ticket de prueba y confirma impresion
+                                antes de abrir el kiosco al publico.
+                            </p>
+                            <div
+                                id="kioskSetupChecks"
+                                class="kiosk-setup-checks"
+                                role="list"
+                                aria-label="Checklist de puesta en marcha del kiosco"
+                            ></div>
+                            <p class="kiosk-setup-note">
+                                Si la termica no imprime, revisa energia, papel y
+                                cable USB, luego crea un turno de prueba.
+                            </p>
+                        </section>
+
+                        <section class="kiosk-card kiosk-card--queue">
+                            <h2>Cola y pantalla</h2>
+                            <p
+                                id="queueConnectionState"
+                                class="queue-connection-state"
+                                data-state="live"
+                                role="status"
+                                aria-live="polite"
+                            >
+                                Cola conectada
+                            </p>
+                            <p id="queueUpdatedAt" class="queue-updated-at">
+                                Actualizacion pendiente
+                            </p>
+                            <div
+                                id="kioskSurfaceSyncHost"
+                                class="turnero-surface-sync-host turnero-surface-sync-host--kiosk"
+                                aria-live="polite"
+                            ></div>
+                            <div class="queue-kpi-row">
+                                <article>
+                                    <span>En espera</span>
+                                    <strong id="queueWaitingCount">0</strong>
+                                </article>
+                                <article>
+                                    <span>Llamados</span>
+                                    <strong id="queueCalledCount">0</strong>
+                                </article>
+                            </div>
+
+                            <h3>Llamando ahora</h3>
+                            <div
+                                id="queueCallingNow"
+                                class="queue-calling-now"
+                                aria-live="polite"
+                                aria-atomic="true"
+                            >
+                                <p class="queue-empty">Sin llamados activos.</p>
+                            </div>
+
+                            <h3>Siguientes turnos</h3>
+                            <ol
+                                id="queueNextList"
+                                class="queue-next-list"
+                                aria-live="polite"
+                            >
+                                <li class="queue-empty">
+                                    No hay turnos en espera.
+                                </li>
+                            </ol>
+                        </section>
+
+                        <section class="kiosk-card kiosk-card--assistant">
+                            <h2>Asistente de orientación</h2>
+                            <p class="assistant-note">
+                                Solo orienta sobre turnos y sala de espera. No da
+                                indicaciones médicas.
+                            </p>
+                            <div
+                                id="assistantMessages"
+                                class="assistant-messages"
+                                role="log"
+                                aria-live="polite"
+                                aria-relevant="additions text"
+                            ></div>
+                            <form id="assistantForm" class="assistant-form">
+                                <input
+                                    id="assistantInput"
+                                    type="text"
+                                    placeholder="Ejemplo: donde espero para consultorio 2"
+                                    autocomplete="off"
+                                    aria-label="Mensaje para asistente de sala"
+                                />
+                                <button id="assistantSend" type="submit">
+                                    Enviar
+                                </button>
+                            </form>
+                        </section>
                     </div>
-                    <p id="kioskSetupSummary" class="kiosk-setup-summary">
-                        Genera un ticket de prueba y confirma impresion antes de abrir el kiosco al publico.
-                    </p>
-                    <div
-                        id="kioskSetupChecks"
-                        class="kiosk-setup-checks"
-                        role="list"
-                        aria-label="Checklist de puesta en marcha del kiosco"
-                    ></div>
-                    <p class="kiosk-setup-note">
-                        Si la termica no imprime, revisa energia, papel y cable USB, luego crea un turno de prueba.
-                    </p>
-                </section>
-
-                <section class="kiosk-card kiosk-card--queue">
-                    <h2>Estado de la cola</h2>
-                    <p
-                        id="queueConnectionState"
-                        class="queue-connection-state"
-                        data-state="live"
-                        role="status"
-                        aria-live="polite"
-                    >
-                        Cola conectada
-                    </p>
-                    <p id="queueUpdatedAt" class="queue-updated-at">
-                        Actualizacion pendiente
-                    </p>
-                    <div
-                        id="kioskSurfaceSyncHost"
-                        class="turnero-surface-sync-host turnero-surface-sync-host--kiosk"
-                        aria-live="polite"
-                    ></div>
-                    <div class="queue-kpi-row">
-                        <article>
-                            <span>En espera</span>
-                            <strong id="queueWaitingCount">0</strong>
-                        </article>
-                        <article>
-                            <span>Llamados</span>
-                            <strong id="queueCalledCount">0</strong>
-                        </article>
-                    </div>
-
-                    <h3>Llamando ahora</h3>
-                    <div
-                        id="queueCallingNow"
-                        class="queue-calling-now"
-                        aria-live="polite"
-                        aria-atomic="true"
-                    >
-                        <p class="queue-empty">Sin llamados activos.</p>
-                    </div>
-
-                    <h3>Siguientes turnos</h3>
-                    <ol id="queueNextList" class="queue-next-list" aria-live="polite">
-                        <li class="queue-empty">No hay turnos en espera.</li>
-                    </ol>
-                </section>
-
-                <section class="kiosk-card kiosk-card--assistant">
-                    <h2>Asistente de sala</h2>
-                    <p class="assistant-note">
-                        Solo orientacion operativa de sala. No reemplaza consulta medica.
-                    </p>
-                    <div
-                        id="assistantMessages"
-                        class="assistant-messages"
-                        role="log"
-                        aria-live="polite"
-                        aria-relevant="additions text"
-                    ></div>
-                    <form id="assistantForm" class="assistant-form">
-                        <input
-                            id="assistantInput"
-                            type="text"
-                            placeholder="Ejemplo: donde espero para consultorio 2"
-                            autocomplete="off"
-                            aria-label="Mensaje para asistente de sala"
-                        />
-                        <button id="assistantSend" type="submit">Enviar</button>
-                    </form>
-                </section>
+                </details>
             </aside>
         </main>
 

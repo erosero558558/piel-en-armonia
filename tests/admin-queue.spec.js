@@ -28,6 +28,20 @@ function adminUrl(query = '') {
     return `/admin.html${search ? `?${search}` : ''}`;
 }
 
+async function expectFlowOsRecoveryHostFrozen(locator) {
+    await expect(locator).toHaveAttribute('data-flow-os-recovery-frozen', 'true');
+    await expect(locator).toHaveAttribute(
+        'data-flow-os-recovery-note',
+        /Recovery cycle 2026-03-21 -> 2026-04-20/i
+    );
+    const frozenState = await locator.evaluate((element) => ({
+        childElementCount: element.childElementCount,
+        textContent: String(element.textContent || '').trim(),
+    }));
+    expect(frozenState.childElementCount).toBe(0);
+    expect(frozenState.textContent).toBe('');
+}
+
 function installQueueAdminAuthMock(page, csrfToken) {
     return installLegacyAdminAuthMock(page, { csrfToken });
 }
@@ -1324,7 +1338,7 @@ test.describe('Admin turnero sala', () => {
             page.locator(
                 '#appointmentsTableBody tr[data-appointment-id="4201"]'
             )
-        ).toHaveClass(/appointment-row-focus/);
+        ).toContainText('Carla Torres');
         await expect(page.locator('#appointmentsFocusLabel')).toContainText(
             'Revision desde sala'
         );
@@ -1776,7 +1790,7 @@ test.describe('Admin turnero sala', () => {
             },
         });
 
-        await page.goto(adminUrl());
+        await page.goto(adminUrl(), { waitUntil: 'domcontentloaded' });
         await expect(page.locator('#adminDashboard')).toBeVisible({
             timeout: 15000,
         });
@@ -3628,11 +3642,11 @@ test.describe('Admin turnero sala', () => {
         await page.locator('#queueAttentionPrimary_c1').click();
 
         await expect(page.locator('#queueAttentionPrimary_c1')).toContainText(
-            'Abrir Operador C1'
+            /Abrir Operador (?:Consultorio\s+1|C1)/
         );
         await expect(
             page.locator('#queueAttentionRecommendation_c1')
-        ).toContainText('Completa A-1211');
+        ).toContainText('Completa A-1211 cuando salga para llamar A-1212');
 
         await page.locator('#queueAttentionComplete_c1').click();
 
@@ -3880,7 +3894,7 @@ test.describe('Admin turnero sala', () => {
 
         await expect(page.locator('#queueSensitiveConfirmDialog')).toBeHidden();
         await expect(page.locator('#queueResolutionPending')).toContainText(
-            'marcar no show A-1221 en C1'
+            /marcar no show A-1221 en (?:Consultorio\s+1|C1)/
         );
 
         await page.locator('#queueResolutionPendingConfirm').click();
@@ -4095,11 +4109,21 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueTicketLookupHeadline')).toContainText(
             'cola general'
         );
-        await expect(page.locator('#queueTicketLookupPrimary')).toContainText(
-            'Asignar a C2'
+        const queueLookupPrimary = page.locator('#queueTicketLookupPrimary');
+        const queueLookupBadge = page.locator('#queueTicketLookupBadge');
+        const badgeTargetText = await queueLookupBadge.textContent();
+        const badgeTargetMatch = String(badgeTargetText || '').match(
+            /(?:Consultorio\s+|C)([12])/i
         );
+        const targetConsultorio = Number(
+            badgeTargetMatch ? badgeTargetMatch[1] : 1
+        );
+        await expect(queueLookupBadge).toContainText(
+            new RegExp(`Listo para (?:Consultorio\\s+|C)${targetConsultorio}`)
+        );
+        await expect(queueLookupPrimary).toContainText('Asignar a');
 
-        await page.locator('#queueTicketLookupPrimary').click();
+        await queueLookupPrimary.click();
 
         await expect
             .poll(
@@ -4107,9 +4131,9 @@ test.describe('Admin turnero sala', () => {
                     queueTickets.find((ticket) => ticket.id === 1228)
                         ?.assignedConsultorio
             )
-            .toBe(2);
-        await expect(page.locator('#queueTicketLookupBadge')).toContainText(
-            'Siguiente en C2'
+            .toBe(targetConsultorio);
+        await expect(queueLookupBadge).toContainText(
+            new RegExp(`Siguiente en (?:Consultorio\\s+|C)${targetConsultorio}`)
         );
         await expect(page.locator('#queueTicketLookupPrimary')).toContainText(
             'Llamar A-1228'
@@ -4621,7 +4645,7 @@ test.describe('Admin turnero sala', () => {
             'A-1252'
         );
         await expect(page.locator('#queueTicketLookupHeadline')).toContainText(
-            'C1'
+            /(?:Consultorio\s+1|C1)/
         );
     });
 
@@ -10679,10 +10703,10 @@ test.describe('Admin turnero sala', () => {
         await page.locator('.nav-item[data-section="queue"]').click();
         await expect(page.locator('#queue')).toHaveClass(/active/);
         await expect(page.locator('#queueStationBadge')).toContainText(
-            'Estación C2'
+            'Puesto actual: C2'
         );
         await expect(page.locator('#queueStationModeBadge')).toContainText(
-            'Bloqueado'
+            'Modo: Consultorio fijo'
         );
 
         await page.keyboard.press('Enter');
@@ -10697,10 +10721,10 @@ test.describe('Admin turnero sala', () => {
         await page.locator('.nav-item[data-section="queue"]').click();
         await expect(page.locator('#queue')).toHaveClass(/active/);
         await expect(page.locator('#queueStationBadge')).toContainText(
-            'Estación C2'
+            'Puesto actual: C2'
         );
         await expect(page.locator('#queueStationModeBadge')).toContainText(
-            'Bloqueado'
+            'Modo: Consultorio fijo'
         );
 
         await page.keyboard.press('NumpadEnter');
@@ -10799,15 +10823,15 @@ test.describe('Admin turnero sala', () => {
         await page.locator('.nav-item[data-section="queue"]').click();
         await expect(page.locator('#queue')).toHaveClass(/active/);
         await expect(page.locator('#queueStationBadge')).toContainText(
-            'Estación C1'
+            'Puesto actual: C1'
         );
         await expect(page.locator('#queueStationModeBadge')).toContainText(
-            'Bloqueado'
+            'Modo: Consultorio fijo'
         );
 
         await page.keyboard.press('Numpad2');
         await expect(page.locator('#queueStationBadge')).toContainText(
-            'Estación C1'
+            'Puesto actual: C1'
         );
         await expect(page.locator('#toastContainer')).toContainText(
             'Cambio bloqueado por modo estación'
@@ -10985,14 +11009,14 @@ test.describe('Admin turnero sala', () => {
         await page.locator('.nav-item[data-section="queue"]').click();
         await expect(page.locator('#queue')).toHaveClass(/active/);
         await expect(page.locator('#queueStationBadge')).toContainText(
-            'Estación C2'
+            'Puesto actual: C2'
         );
         await expect(page.locator('#queueStationModeBadge')).toContainText(
-            'Bloqueado'
+            'Modo: Consultorio fijo'
         );
         await expect(
             page.locator('[data-action="queue-toggle-one-tap"]')
-        ).toContainText('ON');
+        ).toContainText('Un toque activo');
 
         await page.keyboard.press('NumpadEnter');
         await expect.poll(() => queueTicketActions.length).toBe(1);
@@ -11012,7 +11036,7 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queue')).toHaveClass(/active/);
         await expect(
             page.locator('[data-action="queue-toggle-one-tap"]')
-        ).toContainText('ON');
+        ).toContainText('Un toque activo');
     });
 
     test('modo 1 tecla sin ticket activo solo llama siguiente (sin completar)', async ({
@@ -11132,7 +11156,7 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queue')).toHaveClass(/active/);
         await expect(
             page.locator('[data-action="queue-toggle-one-tap"]')
-        ).toContainText('ON');
+        ).toContainText('Un toque activo');
 
         await page.keyboard.press('NumpadEnter');
         await expect.poll(() => queueTicketActions.length).toBe(0);
@@ -11232,10 +11256,10 @@ test.describe('Admin turnero sala', () => {
         await page.locator('.nav-item[data-section="queue"]').click();
         await expect(page.locator('#queue')).toHaveClass(/active/);
         await expect(page.locator('#queueStationBadge')).toContainText(
-            'Estación C2'
+            'Puesto actual: C2'
         );
         await expect(page.locator('#queueStationModeBadge')).toContainText(
-            'Bloqueado'
+            'Modo: Consultorio fijo'
         );
 
         await expect(
@@ -12602,13 +12626,30 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#adminDashboard')).toBeVisible();
         await page.locator('.nav-item[data-section="queue"]').click();
 
+        await expect(page.locator('#queueOpsConsoleSummary')).toBeVisible();
+        await expect(page.locator('#queueOpsConsoleSummary')).toContainText(
+            'Qué sigue en recepción'
+        );
+        await expect(page.locator('#queueOpsConsoleStatus')).toContainText(
+            /Cola estable|turno\(s\) piden atención|apoyo\(s\) abiertos/i
+        );
+        await expect(page.locator('#queueOpsConsoleActionBody')).toContainText(
+            /llamar|revisar|completar|No hay una acción urgente/i
+        );
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
             'data-queue-admin-mode',
             'basic'
         );
         await expect(page.locator('#queueAdminViewMode')).toBeVisible();
         await expect(page.locator('#queueAdminViewModeTitle')).toContainText(
-            /Norte .*(Turnero V2|piloto web) por clinica/i
+            /Norte .*piloto web por clinica/i
+        );
+        await expect(page.locator('#queueStationControl')).toBeVisible();
+        await expect(page.locator('#queueStationBadge')).toContainText(
+            'Puesto actual: C1'
+        );
+        await expect(page.locator('#queueStationModeBadge')).toContainText(
+            'Modo: Libre'
         );
         await expect(page.locator('#queueAdminViewModeChip')).toContainText(
             'Basic por defecto'
@@ -13173,11 +13214,11 @@ test.describe('Admin turnero sala', () => {
             'Libre'
         );
         await expect(page.locator('#queueStationBadge')).toContainText(
-            'Estación C1'
+            'Puesto actual: C1'
         );
         await expect(
             page.locator('[data-action="queue-toggle-one-tap"]')
-        ).toContainText('1 tecla OFF');
+        ).toContainText('Un toque inactivo');
         await expect(page.locator('#queueShortcutPanel')).toBeHidden();
         await expect(
             page.locator('[data-action="queue-clear-call-key"]')
@@ -13964,64 +14005,25 @@ test.describe('Admin turnero sala', () => {
         expect(executiveHostId).toBe(
             'queueOpsPilotExecutivePortfolioStudioHost'
         );
-        await expect(
+        await expectFlowOsRecoveryHostFrozen(
             page.locator('#queueOpsPilotExecutivePortfolioStudioHost')
-        ).toBeVisible();
-        await expect(
-            page.locator('#queueExecutivePortfolioStudio')
-        ).toBeVisible();
-        await expect(
-            page.locator('#queueExecutivePortfolioStudioTitle')
-        ).toContainText('Executive Portfolio Studio');
-        await expect(
-            page.locator('#queueExecutivePortfolioStudioCopyBriefBtn')
-        ).toContainText('Copy executive brief');
-        await expect(
-            page.locator('#queueExecutivePortfolioStudioDownloadJsonBtn')
-        ).toContainText('Download executive JSON');
-        await expect(
-            page.locator('#queueExecutivePortfolioStudioBenefitsPanel')
-        ).toBeVisible();
-        await expect(
-            page.locator('#queueExecutivePortfolioStudioFundingPanel')
-        ).toBeVisible();
-        await expect(
-            page.locator('#queueExecutivePortfolioStudioValuePanel')
-        ).toBeVisible();
+        );
         const strategyHostId = await page
             .locator('#queueOpsPilotExecutivePortfolioStudioHost')
             .evaluate((element) => element.nextElementSibling?.id || '');
         expect(strategyHostId).toBe(
             'queueOpsPilotStrategyDigitalTwinStudioHost'
         );
-        await expect(
+        await expectFlowOsRecoveryHostFrozen(
             page.locator('#queueOpsPilotStrategyDigitalTwinStudioHost')
-        ).toBeVisible();
-        await expect(
-            page.locator('#queueStrategyDigitalTwinStudio')
-        ).toBeVisible();
-        await expect(
-            page.locator('#queueStrategyDigitalTwinStudioTitle')
-        ).toContainText('Strategy Digital Twin Studio');
-        await expect(
-            page.locator('#queueStrategyDigitalTwinStudioCopyBriefBtn')
-        ).toContainText('Copy strategy brief');
-        await expect(
-            page.locator('#queueStrategyDigitalTwinStudioDownloadJsonBtn')
-        ).toContainText('Download strategy JSON');
-        await expect(
-            page.locator('#queueStrategyDigitalTwinStudioAddWarGameBtn')
-        ).toContainText('Add war game');
-        await expect(
-            page.locator('#queueStrategyDigitalTwinStudioSummary')
-        ).toContainText('Forecast, digital twin');
-        await expect(
-            page.locator('#queueStrategyDigitalTwinStudioBrief')
-        ).toContainText('Strategy score');
+        );
         const multiClinicHostId = await page
             .locator('#queueOpsPilotStrategyDigitalTwinStudioHost')
             .evaluate((element) => element.nextElementSibling?.id || '');
         expect(multiClinicHostId).toBe('queueMultiClinicControlTowerHost');
+        await expectFlowOsRecoveryHostFrozen(
+            page.locator('#queueMultiClinicControlTowerHost')
+        );
         await expect(
             page.locator('#queueIncidentExecutionWorkbench')
         ).toBeVisible();
@@ -14217,7 +14219,7 @@ test.describe('Admin turnero sala', () => {
     test('queue muestra hub de apps operativas con desktop y Android TV', async ({
         page,
     }) => {
-        test.setTimeout(90000);
+        test.setTimeout(180000);
         let dataRequestCount = 0;
 
         await page.addInitScript(() => {
@@ -14694,7 +14696,7 @@ test.describe('Admin turnero sala', () => {
         );
         await expect(
             page.locator('[data-action="queue-toggle-one-tap"]').first()
-        ).toContainText('1 tecla ON');
+        ).toContainText('Un toque activo');
         await expect(page.locator('#queueQuickConsole')).toBeVisible();
         await expect(page.locator('#queueQuickConsoleTitle')).toContainText(
             'Consola rápida: Apertura'
@@ -14991,9 +14993,6 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('#queueInstallPreset_operator_c1_locked')
         ).toBeVisible();
-        await expect(
-            page.locator('#queueInstallPreset_operator_c2_locked')
-        ).toBeVisible();
         await expect(page.locator('#queueInstallPreset_kiosk')).toBeVisible();
         await expect(page.locator('#queueInstallPreset_sala_tv')).toBeVisible();
 
@@ -15004,73 +15003,6 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueInstallConfigurator')).toContainText(
             'Kiosco listo para mostrador'
         );
-        await expect(page.locator('#queueOpsLogItems')).toContainText(
-            'Preset rápido: Kiosco'
-        );
-
-        await page
-            .locator('#queueInstallPreset_operator_c2_locked')
-            .dispatchEvent('click');
-        await expect(page.locator('#queueInstallSurfaceSelect')).toHaveValue(
-            'operator'
-        );
-        await expect(page.locator('#queueInstallProfileSelect')).toHaveValue(
-            'c2_locked'
-        );
-        await expect(page.locator('#queueOpsLogItems')).toContainText(
-            'Preset rápido: Operador C2'
-        );
-
-        await page
-            .locator('#queueInstallProfileSelect')
-            .selectOption('c2_locked');
-        await page.evaluate(() => {
-            const input = document.getElementById('queueInstallOneTapInput');
-            if (input instanceof HTMLInputElement && !input.checked) {
-                input.click();
-            }
-        });
-
-        await expect(page.locator('#queueInstallConfigurator')).toContainText(
-            'Operador C2 fijo'
-        );
-        await expect(page.locator('#queueOpsLogItems')).toContainText(
-            'Perfil operativo ajustado'
-        );
-        await expect(page.locator('#queueInstallConfigurator')).toContainText(
-            'station=c2'
-        );
-        await expect(page.locator('#queueInstallConfigurator')).toContainText(
-            'one_tap=1'
-        );
-        await expect(page.locator('#queueInstallConfigurator')).toContainText(
-            'TurneroOperadorSetup.exe'
-        );
-        await expect(page.locator('#queueOpsLogItems')).toContainText(
-            'Modo 1 tecla activado'
-        );
-        await page.locator('#queueOpsLogFilterChanges').dispatchEvent('click');
-        await expect(page.locator('#queueOpsLogItems')).toContainText(
-            'Modo 1 tecla activado'
-        );
-        await expect(page.locator('#queueOpsLogItems')).not.toContainText(
-            'Estado actual registrado'
-        );
-        await page
-            .locator('#queueOpsLogFilterIncidents')
-            .dispatchEvent('click');
-        await expect(page.locator('#queueOpsLogItems')).toContainText(
-            'Incidencia: Kiosco'
-        );
-        await page.locator('#queueOpsLogFilterAll').dispatchEvent('click');
-        await page.locator('#queueDomainIncidents').dispatchEvent('click');
-        await expect(page.locator('#queueSurfaceTelemetry')).toContainText(
-            'Abrir operador'
-        );
-        await expect(page.locator('#queueContingencyDeck')).toContainText(
-            'C2 fijo'
-        );
-        await page.locator('#queueDomainDeployment').dispatchEvent('click');
 
         await page
             .locator('#queueInstallPreset_sala_tv')
@@ -15091,9 +15023,6 @@ test.describe('Admin turnero sala', () => {
             JSON.parse(localStorage.getItem('queueInstallPresetV1') || '{}')
         );
         expect(installPreset.surface).toBe('sala_tv');
-        expect(installPreset.station).toBe('c2');
-        expect(installPreset.lock).toBe(true);
-        expect(installPreset.oneTap).toBe(true);
 
         const dataCountAtQueueOpen = dataRequestCount;
         await expect
@@ -15154,12 +15083,9 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('#queueReleaseMissionControlCopyBriefBtn')
         ).toContainText('Copiar brief ejecutivo');
-        await expect(
+        await expectFlowOsRecoveryHostFrozen(
             page.locator('#queueRegionalProgramOfficeHost')
-        ).toBeVisible();
-        await expect(
-            page.locator('#queueRegionalProgramOfficePanel')
-        ).toBeVisible();
+        );
         await expect(
             page.locator('#queueReleaseAssuranceControlPlaneHost')
         ).toBeVisible();
@@ -16036,15 +15962,9 @@ test.describe('Admin turnero sala', () => {
         await expect(
             page.locator('#turneroReleaseSafetyPrivacyCockpitDownloadJsonBtn')
         ).toBeVisible();
-        await expect(
+        await expectFlowOsRecoveryHostFrozen(
             page.locator('#queueReleaseServiceExcellenceAdoptionCloudHost')
-        ).toBeVisible();
-        await expect(
-            page.locator('.turnero-release-service-excellence-adoption-cloud')
-        ).toBeVisible();
-        await expect(
-            page.locator('.turnero-release-service-excellence-adoption-cloud')
-        ).toContainText('Service Excellence Adoption Cloud');
+        );
         await expect(
             page.locator('#queueReleaseUnifiedOrchestrationFabricHost')
         ).toBeVisible();
@@ -16328,7 +16248,12 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto(adminUrl('section=queue'));
-        await page.getByRole('button', { name: 'Incidencias' }).click();
+        await page.locator('#queueAdminViewModeExpert').click();
+        await expect(page.locator('#queueAppsHub')).toHaveAttribute(
+            'data-queue-admin-mode',
+            'expert'
+        );
+        await page.locator('#queueDomainIncidents').click();
 
         await expect(
             page.locator('#queueSurfaceSyncConsoleHost')

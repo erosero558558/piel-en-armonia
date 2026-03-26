@@ -42,6 +42,16 @@ function adminUrl(query = '') {
     return `/admin.html${search ? `?${search}` : ''}`;
 }
 
+async function openKioskSupportShell(page) {
+    await page.locator('#kioskSupportShell').evaluate((node) => {
+        if (node instanceof HTMLDetailsElement) {
+            node.open = true;
+            return;
+        }
+        node.setAttribute('open', '');
+    });
+}
+
 function parseBody(request) {
     try {
         return request.postDataJSON() || {};
@@ -1030,6 +1040,7 @@ test.describe('Turnero integrado kiosco-admin-tv', () => {
             'A-001'
         );
 
+        await openKioskSupportShell(kioskPage);
         await kioskPage.fill('#assistantInput', 'Necesito ayuda humana');
         await kioskPage.click('#assistantSend');
         await expect(kioskPage.locator('#assistantMessages')).toContainText(
@@ -1062,6 +1073,7 @@ test.describe('Turnero integrado kiosco-admin-tv', () => {
         await kioskPage.click('#walkinSubmit');
         await expect(kioskPage.locator('#ticketResult')).toContainText('A-001');
 
+        await openKioskSupportShell(kioskPage);
         await kioskPage.fill('#assistantInput', 'Me salieron dos tickets');
         await kioskPage.click('#assistantSend');
         await expect(kioskPage.locator('#assistantMessages')).toContainText(

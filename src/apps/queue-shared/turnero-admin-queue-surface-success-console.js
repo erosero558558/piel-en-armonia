@@ -419,7 +419,12 @@ function buildDownloadPayload(state) {
 }
 
 function updateBrief(state) {
-    return state.brief || '';
+    if (!state || typeof state !== 'object') {
+        return '';
+    }
+
+    state.brief = toString(state.brief, '');
+    return state.brief;
 }
 
 function readValue(root, selector, fallback = '') {

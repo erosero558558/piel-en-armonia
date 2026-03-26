@@ -33,7 +33,7 @@ function parseCliArgs(argv = process.argv.slice(2)) {
     const options = {
         domain: DEFAULT_DOMAIN,
         stage: DEFAULT_STAGE,
-        requireOpenClawAuth: false,
+        requireOperatorAuth: false,
         allowFeatureApiFailure: false,
         allowMissingAdminFlag: false,
         skipRuntimeSmoke: false,
@@ -47,11 +47,14 @@ function parseCliArgs(argv = process.argv.slice(2)) {
         }
 
         if (
+            raw === '--require-operator-auth' ||
+            raw === '--requireOperatorAuth' ||
+            raw === '-RequireOperatorAuth' ||
             raw === '--require-openclaw-auth' ||
             raw === '--requireOpenClawAuth' ||
             raw === '-RequireOpenClawAuth'
         ) {
-            options.requireOpenClawAuth = true;
+            options.requireOperatorAuth = true;
             continue;
         }
 
@@ -178,6 +181,7 @@ function createOperatorAuthReport(base) {
         transport: '',
         status: '',
         configured: false,
+        recommended_mode: '',
         helper_base_url: '',
         bridge_token_configured: false,
         bridge_secret_configured: false,
@@ -263,6 +267,7 @@ function applySnapshotToOperatorAuth(target, snapshot, source) {
     target.transport = stringValue(snapshot.transport);
     target.status = stringValue(snapshot.status);
     target.configured = snapshot.configured === true;
+    target.recommended_mode = stringValue(snapshot.recommended_mode);
     target.helper_base_url = stringValue(snapshot.helper_base_url);
     target.bridge_token_configured = snapshot.bridge_token_configured === true;
     target.bridge_secret_configured =
@@ -659,7 +664,7 @@ async function buildGateReport(options = {}) {
                         'admin-auth-facade-legacy'
                     );
                     process.stdout.write(
-                        '[WARN] admin-auth facade respondio, pero sigue en contrato legacy sin mode/status OpenClaw.\n'
+                        '[WARN] admin-auth facade respondio, pero sigue en contrato legacy sin mode/status auth.\n'
                     );
                 }
             } else {
@@ -674,7 +679,7 @@ async function buildGateReport(options = {}) {
         }
     }
 
-    if (options.requireOpenClawAuth) {
+    if (options.requireOperatorAuth) {
         const brokerTrustReady =
             report.operator_auth.transport !== 'web_broker' ||
             (report.operator_auth.broker_trust_configured === true &&
@@ -682,17 +687,38 @@ async function buildGateReport(options = {}) {
                 report.operator_auth.broker_audience_pinned === true &&
                 report.operator_auth.broker_jwks_configured === true &&
                 report.operator_auth.broker_email_verified_required === true);
+        const recommendedModeReady =
+            report.operator_auth.recommended_mode === 'google_oauth';
         if (
             report.operator_auth.contract_valid &&
-            report.operator_auth.mode === 'openclaw_chatgpt' &&
+            report.operator_auth.mode === 'google_oauth' &&
+            report.operator_auth.transport === 'web_broker' &&
             report.operator_auth.configured &&
+            recommendedModeReady &&
             brokerTrustReady
         ) {
-            process.stdout.write('[OK]  operator auth OpenClaw configurado\n');
+            process.stdout.write(
+                '[OK]  operator auth Google web_broker configurado\n'
+            );
         } else {
             if (!report.operator_auth.contract_valid) {
                 process.stdout.write(
-                    `[WARN] operator auth sin contrato OpenClaw valido. source=${report.operator_auth.source}\n`
+                    `[WARN] operator auth sin contrato auth valido. source=${report.operator_auth.source}\n`
+                );
+            }
+            if (report.operator_auth.mode !== 'google_oauth') {
+                process.stdout.write(
+                    `[WARN] operator auth mode actual=${report.operator_auth.mode}; esperado=google_oauth.\n`
+                );
+            }
+            if (report.operator_auth.transport !== 'web_broker') {
+                process.stdout.write(
+                    `[WARN] operator auth transport actual=${report.operator_auth.transport}; esperado=web_broker.\n`
+                );
+            }
+            if (!recommendedModeReady) {
+                process.stdout.write(
+                    `[WARN] operator auth recommended_mode actual=${report.operator_auth.recommended_mode}; esperado=google_oauth.\n`
                 );
             }
             if (
@@ -704,7 +730,7 @@ async function buildGateReport(options = {}) {
                 );
             }
             process.stdout.write(
-                '[FAIL] operator auth OpenClaw no esta configurado para este rollout\n'
+                '[FAIL] operator auth Google web_broker no esta configurado para este rollout\n'
             );
             failures += 1;
         }
@@ -724,7 +750,7 @@ async function buildGateReport(options = {}) {
                 specs: ['tests/admin-v3-canary-runtime.spec.js'],
             },
             {
-                name: 'admin-openclaw-auth',
+                name: 'admin-auth',
                 specs: ['tests/admin-openclaw-login.spec.js'],
             },
         ];

@@ -3,6 +3,7 @@ import {
     renderQueueAppsHub,
     renderQueueHeader,
     renderQueueKpiGrid,
+    renderQueueOpsConsoleSummary,
 } from './header.js';
 import {
     renderQueueStationControls,
@@ -16,13 +17,14 @@ export function renderQueueSection() {
         <section id="queue" class="admin-section" tabindex="-1">
             <div class="sony-panel">
                 ${renderQueueHeader()}
-                ${renderQueueAppsHub()}
+                ${renderQueueOpsConsoleSummary()}
                 ${renderQueueKpiGrid()}
-                ${renderQueueStationControls()}
-                ${renderQueueShortcutPanel()}
                 ${renderQueueTriageToolbar()}
                 ${renderQueueTriageMeta()}
                 ${renderQueueTableShell()}
+                ${renderQueueStationControls()}
+                ${renderQueueShortcutPanel()}
+                ${renderQueueAppsHub()}
             </div>
 
             ${renderQueueSensitiveDialog()}

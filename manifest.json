@@ -1,17 +1,24 @@
 {
     "id": "/",
-    "name": "Aurora Derm | Dermatologia clinica clara en Quito",
-    "short_name": "AuroraDerm",
-    "description": "Clinica dermatologica especializada en Quito. Tratamientos de acne, teledermatologia, laser y mas. Agenda tu cita en linea.",
+    "name": "Flow OS | Operacion clara para clinicas y pacientes",
+    "short_name": "Flow OS",
+    "description": "Flow OS ordena llegada, recepcion, sala y seguimiento en una sola historia operativa, con Aurora Derm como piloto demostrable.",
     "lang": "es",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
-    "display_override": ["window-controls-overlay", "standalone"],
+    "display_override": [
+        "window-controls-overlay",
+        "standalone"
+    ],
     "background_color": "#ffffff",
     "theme_color": "#f6f2eb",
     "orientation": "portrait",
-    "categories": ["health", "medical"],
+    "categories": [
+        "business",
+        "productivity",
+        "medical"
+    ],
     "icons": [
         {
             "src": "/images/icon-192.png",
@@ -32,14 +39,14 @@
             "sizes": "640x365",
             "type": "image/webp",
             "form_factor": "narrow",
-            "label": "Pagina principal de Aurora Derm"
+            "label": "Pagina principal de Flow OS"
         },
         {
             "src": "/images/optimized/hero-woman-1344.webp",
             "sizes": "1344x768",
             "type": "image/webp",
             "form_factor": "wide",
-            "label": "Pagina principal de Aurora Derm"
+            "label": "Pagina principal de Flow OS"
         }
     ]
 }

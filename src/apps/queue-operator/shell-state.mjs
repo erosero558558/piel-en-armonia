@@ -119,22 +119,24 @@ export function getOperatorShellStatusLabel(shell) {
     const percent = Math.max(0, Math.round(Number(shell?.statusPercent || 0)));
 
     if (phase === 'error' || shell?.statusLevel === 'error') {
-        return 'Update con error';
+        return 'Actualización con error';
     }
     if (phase === 'download') {
-        return percent > 0 ? `Update ${percent}%` : 'Descargando update';
+        return percent > 0
+            ? `Actualización ${percent}%`
+            : 'Descargando actualización';
     }
     if (isOperatorShellUpdateReady(shell)) {
-        return 'Update lista';
+        return 'Actualización lista';
     }
     if (phase === 'update' && /sin actualizaciones pendientes/i.test(message)) {
-        return 'Updates al día';
+        return 'App al día';
     }
     if (phase === 'update' && /actualizacion disponible/i.test(message)) {
-        return 'Update disponible';
+        return 'Actualización disponible';
     }
     if (phase === 'update' && /buscando actualizaciones/i.test(message)) {
-        return 'Buscando updates';
+        return 'Buscando actualización';
     }
 
     return '';
@@ -152,7 +154,7 @@ export function getOperatorShellStatusDetail(shell) {
         return message;
     }
     if (phase === 'error' || shell?.statusLevel === 'error') {
-        return message || 'Auto-update no disponible.';
+        return message || 'La actualización automática no está disponible.';
     }
     if (isOperatorShellUpdateReady(shell)) {
         return message
@@ -173,29 +175,29 @@ export function getOperatorShellStatusDetail(shell) {
 
 export function getOperatorShellModeLabel(shell) {
     if (!shell?.available) {
-        return 'Fallback web';
+        return 'Usando navegador';
     }
 
     const baseLabel = shell.packaged
-        ? 'Desktop instalada'
-        : 'Desktop en desarrollo';
+        ? 'App del equipo lista'
+        : 'App del equipo en pruebas';
     const statusLabel = getOperatorShellStatusLabel(shell);
     return statusLabel ? `${baseLabel} · ${statusLabel}` : baseLabel;
 }
 
 export function getOperatorShellMetaLabel(shell) {
     if (!shell?.available) {
-        return 'Instala la desktop para autoarranque, updates y configuración local.';
+        return 'La app del equipo ayuda con arranque automático, actualizaciones y ajustes locales.';
     }
 
     const platformLabel = formatOperatorShellPlatformLabel(shell.platform);
     const launchModeLabel =
         normalizeLaunchMode(shell.launchMode) === 'windowed'
-            ? 'Ventana'
-            : 'Fullscreen';
+            ? 'ventana'
+            : 'pantalla completa';
     const autoStartLabel = shell.autoStart
-        ? 'Autoarranque ON'
-        : 'Autoarranque OFF';
+        ? 'abre sola al iniciar'
+        : 'inicio manual';
     const statusDetail = getOperatorShellStatusDetail(shell);
 
     return `${platformLabel} · ${launchModeLabel} · ${autoStartLabel}${statusDetail ? ` · ${statusDetail}` : ''} · F10 o Ctrl/Cmd + ,`;
@@ -238,12 +240,12 @@ export function getOperatorShellSupportValues(shell) {
 
 export function getOperatorShellSupportLabel(shell) {
     if (!shell?.available) {
-        return 'Feed, guía app-downloads y config local se muestran al instalar la desktop.';
+        return 'La guía de instalación y la configuración local aparecerán aquí al instalar la app.';
     }
 
     const values = getOperatorShellSupportValues(shell);
     if (values.length === 0) {
-        return 'Sin metadata extra de soporte desde el shell.';
+        return 'Sin datos extra de soporte desde la app.';
     }
 
     return values.join(' · ');
@@ -256,7 +258,7 @@ export function getOperatorShellReadiness(
     if (!shell?.available) {
         return {
             state: 'warning',
-            detail: 'Fallback web activo · instala el shell para autostart y updates.',
+            detail: 'Estás usando navegador. La app del equipo ayuda con arranque automático y actualizaciones.',
         };
     }
 
@@ -273,7 +275,7 @@ export function getOperatorShellReadiness(
     if (statusPhase === 'error' || shell.statusLevel === 'error') {
         return {
             state: 'danger',
-            detail: `${statusDetail || 'Auto-update no disponible.'} · ${shellIdentity}`,
+            detail: `${statusDetail || 'La actualización automática no está disponible.'} · ${shellIdentity}`,
         };
     }
     if (statusLabel) {
@@ -291,13 +293,13 @@ export function getOperatorShellReadiness(
     if (shell.packaged) {
         return {
             state: 'ready',
-            detail: `Desktop instalada · ${shellIdentity} · F10 reabre configuracion.`,
+            detail: `App del equipo lista · ${shellIdentity} · F10 abre configuración.`,
         };
     }
 
     return {
         state: 'warning',
-        detail: `Desktop en desarrollo · ${shellIdentity} · valida el instalador antes del piloto.`,
+        detail: `App del equipo en pruebas · ${shellIdentity} · valida el instalador antes del piloto.`,
     };
 }
 
@@ -311,10 +313,10 @@ export function getOperatorShellSettingsButtonCopy(
     return {
         text:
             shell?.packaged && shell?.platform === 'win32'
-                ? 'Configurar Windows app (F10)'
-                : 'Configurar app (F10)',
+                ? 'Configurar este equipo (F10)'
+                : 'Abrir ajustes del equipo (F10)',
         title: shell?.available
-            ? `Reabre la configuracion local de ${shellName} (${platformLabel}). Atajos: F10 o Ctrl/Cmd + ,`
-            : 'Reabre la configuracion local del shell desktop. Atajos: F10 o Ctrl/Cmd + ,',
+            ? `Reabre la configuración local de ${shellName} (${platformLabel}). Atajos: F10 o Ctrl/Cmd + ,`
+            : 'Reabre la configuración local de la app del equipo. Atajos: F10 o Ctrl/Cmd + ,',
     };
 }

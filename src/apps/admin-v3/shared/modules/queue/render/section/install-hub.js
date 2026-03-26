@@ -117,13 +117,13 @@ import { buildTurneroSurfacePackageSnapshot } from '../../../../../../queue-shar
 import { buildTurneroSurfaceExecutiveReviewSnapshot } from '../../../../../../queue-shared/turnero-surface-executive-review-snapshot.js';
 import { buildTurneroSurfaceExpansionSnapshot } from '../../../../../../queue-shared/turnero-surface-expansion-snapshot.js';
 import {
-    getTurneroActiveClinicId as getTurneroClinicId,
-    getTurneroActiveClinicProfile as getTurneroClinicProfile,
-    getTurneroActiveClinicProfileCatalogStatus as getTurneroClinicProfileCatalogStatus,
-    getTurneroActiveClinicProfileMeta as getTurneroClinicProfileMeta,
-    getTurneroClinicBrandName,
-    getTurneroClinicShortName,
-    getTurneroConsultorioLabel,
+    getTurneroActiveClinicId as getTurneroClinicIdFromState,
+    getTurneroActiveClinicProfile as getTurneroClinicProfileFromState,
+    getTurneroActiveClinicProfileCatalogStatus as getTurneroClinicProfileCatalogStatusFromState,
+    getTurneroActiveClinicProfileMeta as getTurneroClinicProfileMetaFromState,
+    getTurneroClinicBrandName as getTurneroClinicBrandNameForProfile,
+    getTurneroClinicShortName as getTurneroClinicShortNameForProfile,
+    getTurneroConsultorioLabel as getTurneroConsultorioLabelForProfile,
 } from '../../../../../../queue-shared/turnero-runtime-contract.mjs';
 import {
     FLOW_OS_RECOVERY_FROZEN_ADMIN_PANEL_IDS,
@@ -357,6 +357,40 @@ function getTurneroConsultorioLabelFromStation(value, options = {}) {
         return getTurneroConsultorioLabel(1, options);
     }
     return String(options?.fallback || 'sin señal').trim() || 'sin señal';
+}
+
+function getTurneroClinicProfile(source = getState()) {
+    return getTurneroClinicProfileFromState(source);
+}
+
+function getTurneroClinicProfileMeta(source = getState(), profile = null) {
+    return getTurneroClinicProfileMetaFromState(source, profile);
+}
+
+function getTurneroClinicProfileCatalogStatus(source = getState()) {
+    return getTurneroClinicProfileCatalogStatusFromState(source);
+}
+
+function getTurneroClinicId(source = getState()) {
+    return getTurneroClinicIdFromState(source);
+}
+
+function getTurneroClinicBrandName(source = getState()) {
+    return getTurneroClinicBrandNameForProfile(getTurneroClinicProfile(source));
+}
+
+function getTurneroClinicShortName(source = getState()) {
+    return getTurneroClinicShortNameForProfile(
+        getTurneroClinicProfile(source)
+    );
+}
+
+function getTurneroConsultorioLabel(consultorio, options = {}) {
+    return getTurneroConsultorioLabelForProfile(
+        getTurneroClinicProfile(),
+        consultorio,
+        options
+    );
 }
 
 function getTurneroPublicSyncStatus() {

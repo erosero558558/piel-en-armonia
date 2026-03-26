@@ -36,11 +36,13 @@ export function syncQueueSelectionControls({
 export function syncQueueStationControls(state, activeStationTicket) {
     setText(
         '#queueStationBadge',
-        `Estación C${state.queue.stationConsultorio}`
+        `Puesto actual: C${state.queue.stationConsultorio}`
     );
     setText(
         '#queueStationModeBadge',
-        state.queue.stationMode === 'locked' ? 'Bloqueado' : 'Libre'
+        state.queue.stationMode === 'locked'
+            ? 'Modo: Consultorio fijo'
+            : 'Modo: Libre'
     );
 
     document
@@ -81,6 +83,7 @@ export function syncQueueToggleControls(state) {
     const practiceBadge = document.getElementById('queuePracticeModeBadge');
     if (practiceBadge instanceof HTMLElement) {
         practiceBadge.hidden = !state.queue.practiceMode;
+        practiceBadge.textContent = 'Modo práctica';
     }
 
     const shortcutPanel = document.getElementById('queueShortcutPanel');
@@ -104,7 +107,7 @@ export function syncQueueToggleControls(state) {
             String(Boolean(state.queue.oneTap))
         );
         oneTapBtn.textContent = state.queue.oneTap
-            ? '1 tecla ON'
-            : '1 tecla OFF';
+            ? 'Un toque activo'
+            : 'Un toque inactivo';
     }
 }

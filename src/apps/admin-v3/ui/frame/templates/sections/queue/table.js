@@ -3,12 +3,12 @@ export function renderQueueTableShell() {
         <section class="queue-operations-stream">
             <div class="queue-operations-stream__header">
                 <div>
-                    <p class="queue-premium-band__eyebrow">Live stream</p>
-                    <h4>Cola en vivo</h4>
+                    <p class="queue-premium-band__eyebrow">Atención</p>
+                    <h4>Turnos que piden seguimiento</h4>
                     <p>
-                        El siguiente movimiento, apoyos de recepción y cierres
+                        Siguiente llamado, apoyos de recepción y cierres
                         recientes viven juntos para que la operación diaria no
-                        se disperse.
+                        se mezcle ni se disperse.
                     </p>
                 </div>
             </div>
@@ -20,7 +20,7 @@ export function renderQueueTableShell() {
             >
                 <div class="queue-reception-guidance__header">
                     <div>
-                        <h4>Guia de recepcion</h4>
+                        <h4>Guía de recepción</h4>
                         <p id="queueReceptionGuidanceMeta">
                             Sin apoyos activos para recepcion.
                         </p>
@@ -31,11 +31,11 @@ export function renderQueueTableShell() {
 
             <div
                 id="queueReceptionResolutionsPanel"
-                class="sony-panel soft queue-reception-guidance"
-            >
-                <div class="queue-reception-guidance__header">
-                    <div>
-                        <h4>Resoluciones recientes</h4>
+            class="sony-panel soft queue-reception-guidance"
+        >
+            <div class="queue-reception-guidance__header">
+                <div>
+                    <h4>Resoluciones recientes</h4>
                         <p id="queueRecentResolutionsMeta">
                             Sin cierres asistidos todavia.
                         </p>
@@ -61,7 +61,7 @@ export function renderQueueTableShell() {
         </div>
 
         <div id="queueActivityPanel" class="sony-panel soft queue-activity-panel">
-            <h4>Actividad</h4>
+            <h4>Actividad de la cola</h4>
             <ul id="queueActivityList" class="sony-list"></ul>
         </div>
     `;

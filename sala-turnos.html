@@ -23,11 +23,9 @@
     >
         <header class="display-header">
             <div class="display-brand">
-                <span class="display-stage-kicker">Waiting room broadcast</span>
+                <span class="display-stage-kicker">Pantalla de sala</span>
                 <strong id="displayBrandName">Aurora Derm</strong>
-                <span id="displayBrandMeta">
-                    Turnero de sala de espera · Vista pacientes (lectura grande)
-                </span>
+                <span id="displayBrandMeta">Llamados en pantalla grande</span>
                 <span id="displayClinicMeta">Piloto web por clínica</span>
                 <span
                     id="displayProfileStatus"
@@ -37,7 +35,7 @@
                     Perfil por clínica: cargando...
                 </span>
                 <span class="display-privacy-pill" aria-label="Privacidad activa">
-                    Privacidad activa: ticket + iniciales
+                    Privacidad: ticket + iniciales
                 </span>
             </div>
             <div class="display-clock-wrap">
@@ -49,13 +47,10 @@
                     role="status"
                     aria-live="polite"
                 >
-                    Conectado
+                    Sala conectada
                 </span>
                 <span id="displayUpdatedAt" class="display-updated-at">
-                    Actualizacion pendiente
-                </span>
-                <span id="displayShortcutsHint" class="display-updated-at">
-                    Atajos staff: Alt+Shift+R refrescar · Alt+Shift+M campanilla · Alt+Shift+B prueba
+                    Esperando actualizacion
                 </span>
             </div>
         </header>
@@ -70,7 +65,7 @@
             data-turnero-stage-surface="display"
         >
             <div class="turnero-stage-chrome__copy">
-                <p class="turnero-stage-chrome__eyebrow">Aurora Derm · clinica piloto</p>
+                <p class="turnero-stage-chrome__eyebrow">Flow OS · Aurora Derm piloto</p>
                 <strong data-turnero-stage-label>Sala</strong>
                 <span data-turnero-stage-order
                     >Etapa 03 / 04 · Llegada -> Recepcion -> Sala -> Gerencia</span
@@ -125,7 +120,7 @@
             </section>
 
             <section class="display-panel display-panel--queue">
-                <h2>Siguientes turnos</h2>
+                <h2>Siguientes en espera</h2>
                 <ol id="displayNextList" class="display-next-list" aria-live="polite">
                     <li class="display-empty">No hay turnos pendientes.</li>
                 </ol>
@@ -134,24 +129,38 @@
                 </p>
             </section>
 
-            <section class="display-panel display-setup-panel display-panel--setup" aria-live="polite">
-                <div class="display-setup-card__header">
-                    <span>Puesta en marcha TCL C655</span>
-                    <strong id="displaySetupTitle">Falta probar la campanilla</strong>
-                </div>
-                <p id="displaySetupSummary" class="display-setup-summary">
-                    Deja la TV por Ethernet y ejecuta una prueba sonora antes de abrir sala.
-                </p>
-                <div
-                    id="displaySetupChecks"
-                    class="display-setup-checks"
-                    role="list"
-                    aria-label="Checklist de puesta en marcha de la TV"
-                ></div>
-                <p class="display-setup-note">
-                    Usa "Probar campanilla" una vez para desbloquear audio y confirma volumen fijo en la TV.
-                </p>
-            </section>
+            <details id="displaySupportShell" class="display-support-shell">
+                <summary id="displaySupportSummary">Soporte de pantalla</summary>
+                <section
+                    class="display-panel display-setup-panel display-panel--setup"
+                    aria-live="polite"
+                >
+                    <div class="display-setup-card__header">
+                        <span>Soporte de la TV</span>
+                        <strong id="displaySetupTitle">
+                            Falta probar la campanilla
+                        </strong>
+                    </div>
+                    <p id="displaySetupSummary" class="display-setup-summary">
+                        Deja la TV por Ethernet y ejecuta una prueba sonora
+                        antes de abrir sala.
+                    </p>
+                    <div
+                        id="displaySetupChecks"
+                        class="display-setup-checks"
+                        role="list"
+                        aria-label="Checklist de puesta en marcha de la TV"
+                    ></div>
+                    <p id="displayShortcutsHint" class="display-setup-note">
+                        Atajos staff: Alt+Shift+R refrescar · Alt+Shift+M
+                        campanilla · Alt+Shift+B prueba
+                    </p>
+                    <p class="display-setup-note">
+                        Usa "Probar campanilla" una vez para desbloquear audio
+                        y confirma volumen fijo en la TV.
+                    </p>
+                </section>
+            </details>
         </main>
 
         <script

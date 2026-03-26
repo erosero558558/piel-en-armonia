@@ -21,6 +21,7 @@ import {
     syncQueueStationControls,
     syncQueueToggleControls,
 } from './section/controls.js';
+import { updateQueueOpsConsoleSummary } from './section/ops-console.js';
 import { updateQueueTriageSummary } from './section/triage.js';
 
 export function renderQueueSection(appendActivity = () => {}) {
@@ -40,6 +41,12 @@ export function renderQueueSection(appendActivity = () => {}) {
     renderQueueNextAdminList(queueMeta, state.queue.fallbackPartial);
     renderQueueReceptionGuidance(queueMeta);
     renderQueueRecentResolutions(queueMeta);
+    updateQueueOpsConsoleSummary({
+        state,
+        queueMeta,
+        visible,
+        activeStationTicket,
+    });
     updateQueueTriageSummary({
         state,
         visible,

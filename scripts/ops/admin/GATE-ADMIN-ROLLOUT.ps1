@@ -2,7 +2,8 @@ param(
     [string]$Domain = 'https://pielarmonia.com',
     [ValidateSet('stable', 'internal', 'canary', 'general', 'rollback')]
     [string]$Stage = 'stable',
-    [switch]$RequireOpenClawAuth,
+    [Alias('RequireOpenClawAuth')]
+    [switch]$RequireOperatorAuth,
     [switch]$AllowFeatureApiFailure,
     [switch]$AllowMissingAdminFlag,
     [switch]$SkipRuntimeSmoke,
@@ -51,8 +52,10 @@ $report = [ordered]@{
         facade_http_status = 0
         facade_error = ''
         mode = ''
+        transport = ''
         status = ''
         configured = $false
+        recommended_mode = ''
         helper_base_url = ''
         bridge_token_configured = $false
         bridge_secret_configured = $false
@@ -244,8 +247,10 @@ function Set-OperatorAuthReportFromPayload {
     $Report['contract_valid'] = [bool](Test-OperatorAuthContractPayload -Payload $Payload)
     $Report['authenticated'] = [bool](Get-ObjectPropertyValue -Object $Payload -Name 'authenticated' -Default $false)
     $Report['mode'] = [string](Get-ObjectPropertyValue -Object $Payload -Name 'mode' -Default '')
+    $Report['transport'] = [string](Get-ObjectPropertyValue -Object $Payload -Name 'transport' -Default '')
     $Report['status'] = [string](Get-ObjectPropertyValue -Object $Payload -Name 'status' -Default '')
     $Report['configured'] = [bool](Get-ObjectPropertyValue -Object $Payload -Name 'configured' -Default $false)
+    $Report['recommended_mode'] = [string](Get-ObjectPropertyValue -Object $Payload -Name 'recommendedMode' -Default '')
     $Report['helper_base_url'] = [string](Get-ObjectPropertyValue -Object $configuration -Name 'helperBaseUrl' -Default '')
     $Report['bridge_token_configured'] = [bool](Get-ObjectPropertyValue -Object $configuration -Name 'bridgeTokenConfigured' -Default $false)
     $Report['bridge_secret_configured'] = [bool](Get-ObjectPropertyValue -Object $configuration -Name 'bridgeSecretConfigured' -Default $false)
@@ -344,9 +349,9 @@ if ($operatorAuthResult.Ok) {
         $operatorAuthContractValid = [bool]$report.operator_auth.contract_valid
 
         if ($operatorAuthContractValid) {
-            Write-Host "[INFO] operator_auth source=$($report.operator_auth.source) mode=$($report.operator_auth.mode) status=$($report.operator_auth.status) configured=$($report.operator_auth.configured)"
+            Write-Host "[INFO] operator_auth source=$($report.operator_auth.source) mode=$($report.operator_auth.mode) transport=$($report.operator_auth.transport) status=$($report.operator_auth.status) configured=$($report.operator_auth.configured)"
         } else {
-            Write-Host "[WARN] operator_auth-status respondio, pero no expone el contrato OpenClaw esperado."
+            Write-Host "[WARN] operator_auth-status respondio, pero no expone el contrato auth esperado."
         }
     } else {
         $report.operator_auth.ok = $false
@@ -368,10 +373,10 @@ if (-not $operatorAuthContractValid) {
             $facadeHasContract = Test-OperatorAuthContractPayload -Payload $facadePayload
             if ($facadeHasContract) {
                 Set-OperatorAuthReportFromPayload -Report $report.operator_auth -Payload $facadePayload -Source 'admin-auth-facade'
-                Write-Host "[INFO] operator_auth source=$($report.operator_auth.source) mode=$($report.operator_auth.mode) status=$($report.operator_auth.status) configured=$($report.operator_auth.configured)"
+                Write-Host "[INFO] operator_auth source=$($report.operator_auth.source) mode=$($report.operator_auth.mode) transport=$($report.operator_auth.transport) status=$($report.operator_auth.status) configured=$($report.operator_auth.configured)"
             } else {
                 Set-OperatorAuthReportFromPayload -Report $report.operator_auth -Payload $facadePayload -Source 'admin-auth-facade-legacy'
-                Write-Host "[WARN] admin-auth facade respondio, pero sigue en contrato legacy sin mode/status OpenClaw."
+                Write-Host "[WARN] admin-auth facade respondio, pero sigue en contrato legacy sin mode/status auth."
             }
         } else {
             Write-Host "[WARN] admin-auth facade no devolvio JSON interpretable."
@@ -381,7 +386,7 @@ if (-not $operatorAuthContractValid) {
     }
 }
 
-if ($RequireOpenClawAuth) {
+if ($RequireOperatorAuth) {
     $brokerTrustReady = (
         $report.operator_auth.transport -ne 'web_broker' -or (
             [bool]$report.operator_auth.broker_trust_configured -and
@@ -391,21 +396,33 @@ if ($RequireOpenClawAuth) {
             [bool]$report.operator_auth.broker_email_verified_required
         )
     )
+    $recommendedModeReady = ([string]$report.operator_auth.recommended_mode -eq 'google_oauth')
     if (
         $report.operator_auth.contract_valid -and
-        $report.operator_auth.mode -eq 'openclaw_chatgpt' -and
+        $report.operator_auth.mode -eq 'google_oauth' -and
+        $report.operator_auth.transport -eq 'web_broker' -and
         $report.operator_auth.configured -and
+        $recommendedModeReady -and
         $brokerTrustReady
     ) {
-        Write-Host "[OK]  operator auth OpenClaw configurado"
+        Write-Host "[OK]  operator auth Google web_broker configurado"
     } else {
         if (-not $report.operator_auth.contract_valid) {
-            Write-Host "[WARN] operator auth sin contrato OpenClaw valido. source=$($report.operator_auth.source)"
+            Write-Host "[WARN] operator auth sin contrato auth valido. source=$($report.operator_auth.source)"
+        }
+        if ($report.operator_auth.mode -ne 'google_oauth') {
+            Write-Host "[WARN] operator auth mode actual=$($report.operator_auth.mode); esperado=google_oauth."
+        }
+        if ($report.operator_auth.transport -ne 'web_broker') {
+            Write-Host "[WARN] operator auth transport actual=$($report.operator_auth.transport); esperado=web_broker."
+        }
+        if (-not $recommendedModeReady) {
+            Write-Host "[WARN] operator auth recommended_mode actual=$($report.operator_auth.recommended_mode); esperado=google_oauth."
         }
         if ($report.operator_auth.transport -eq 'web_broker' -and -not $brokerTrustReady) {
             Write-Host "[WARN] operator auth web_broker sin trust OIDC completo (JWKS/issuer/audience/email_verified)."
         }
-        Write-Host "[FAIL] operator auth OpenClaw no esta configurado para este rollout"
+        Write-Host "[FAIL] operator auth Google web_broker no esta configurado para este rollout"
         $failures += 1
     }
 }
@@ -424,7 +441,7 @@ if (-not $SkipRuntimeSmoke) {
             Specs = @('tests/admin-v3-canary-runtime.spec.js')
         },
         @{
-            Name = 'admin-openclaw-auth'
+            Name = 'admin-auth'
             Specs = @('tests/admin-openclaw-login.spec.js')
         }
     )

@@ -300,7 +300,12 @@ export function getTurneroClinicProfileRuntimeMeta(profile) {
         .toLowerCase();
 
     return {
-        source: source === 'fallback_default' ? 'fallback_default' : 'remote',
+        source:
+            source === 'fallback_default'
+                ? 'fallback_default'
+                : source === 'fallback_local'
+                  ? 'fallback_local'
+                  : 'remote',
         profileFingerprint: String(
             profile?.runtime_meta?.profileFingerprint ||
                 getTurneroClinicProfileFingerprint(profile)

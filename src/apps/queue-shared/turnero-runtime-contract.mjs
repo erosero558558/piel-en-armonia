@@ -344,6 +344,8 @@ export function getTurneroActiveClinicProfileMeta(source = {}, profile = null) {
     const sourceValue = candidate
         ? explicitSource === 'remote'
             ? 'remote'
+            : explicitSource === 'fallback_local'
+              ? 'fallback_local'
             : explicitSource === 'fallback_default'
               ? 'fallback_default'
               : isFallbackClinicProfile(normalizedProfile)

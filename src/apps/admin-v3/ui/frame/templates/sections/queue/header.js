@@ -1,13 +1,12 @@
 export function renderQueueHeader() {
     return `
-        <header class="section-header queue-premium-heading">
-            <div class="queue-premium-heading__copy">
-                <p class="sony-kicker">Control room</p>
-                <h3>Turnero Control</h3>
+        <header class="section-header queue-simple-heading">
+            <div class="queue-simple-heading__copy">
+                <p class="sony-kicker">Flow OS</p>
+                <h3>Ops Console de recepción</h3>
                 <p>
-                    Operación unificada del turnero para recepción, operador,
-                    kiosco y sala, con queue, surfaces y release registry en la
-                    lectura principal del admin.
+                    Qué pasa ahora, por qué importa y qué acción conviene
+                    tomar antes de abrir el detalle completo de la cola.
                 </p>
             </div>
             <div class="queue-admin-header-actions">
@@ -19,16 +18,63 @@ export function renderQueueHeader() {
     `;
 }
 
+export function renderQueueOpsConsoleSummary() {
+    return `
+        <section id="queueOpsConsoleSummary" class="queue-ops-console-summary sony-panel soft">
+            <div class="queue-ops-console-summary__header">
+                <div>
+                    <p class="sony-kicker">Ops Console</p>
+                    <h4>Qué sigue en recepción</h4>
+                    <p>
+                        Flow OS resume la operación activa con un lenguaje de
+                        acción antes de abrir filtros, tabla y soporte avanzado.
+                    </p>
+                </div>
+                <div class="queue-ops-console-summary__meta">
+                    <span id="queueOpsConsoleStatus" class="queue-ops-console-summary__chip" data-state="ready">
+                        Cola estable
+                    </span>
+                    <span id="queueOpsConsoleStation" class="queue-ops-console-summary__chip">
+                        Puesto libre
+                    </span>
+                </div>
+            </div>
+            <div class="queue-ops-console-summary__grid">
+                <article class="queue-ops-console-summary__card">
+                    <p>Ahora</p>
+                    <strong id="queueOpsConsoleNowBody">No hay turnos esperando ahora.</strong>
+                </article>
+                <article class="queue-ops-console-summary__card">
+                    <p>Por qué</p>
+                    <strong id="queueOpsConsoleWhyBody">La operación sigue pareja y sin apoyos pendientes.</strong>
+                </article>
+                <article class="queue-ops-console-summary__card">
+                    <p>Riesgo si no</p>
+                    <strong id="queueOpsConsoleRiskBody">El riesgo operativo inmediato está bajo.</strong>
+                </article>
+                <article class="queue-ops-console-summary__card">
+                    <p>Qué te dejo listo</p>
+                    <strong id="queueOpsConsoleActionBody">La siguiente acción aparecerá aquí.</strong>
+                </article>
+                <article class="queue-ops-console-summary__card">
+                    <p>Aprobación humana</p>
+                    <strong id="queueOpsConsoleApprovalBody">No requiere aprobación adicional.</strong>
+                </article>
+            </div>
+        </section>
+    `;
+}
+
 export function renderQueueAppsHub() {
     return `
         <div id="queueAppsHub" class="queue-apps-hub sony-panel soft" data-queue-domain="operations">
             <div class="queue-apps-hub__header">
                 <div>
-                    <h4>Apps operativas</h4>
+                    <h4>Avanzado y soporte</h4>
                     <p>
-                        La lectura base abre primero el control room del
-                        turnero y deja truth panel, release deck y app hub
-                        visibles antes del modo experto.
+                        La operación diaria ya quedó arriba. Aquí viven el modo
+                        avanzado, el foco de trabajo y las consolas de soporte,
+                        despliegue e incidencias cuando realmente hacen falta.
                     </p>
                 </div>
                 <div class="queue-apps-hub__header-meta">
@@ -40,35 +86,33 @@ export function renderQueueAppsHub() {
                     </span>
                 </div>
             </div>
+            <div class="queue-support-overview">
+                <div id="queueAdminViewMode" class="queue-admin-view-mode" data-queue-basic-match="opening operations incidents closing"></div>
+                <div id="queueDomainSwitcher" class="queue-domain-switcher" data-queue-basic-match="opening operations incidents closing"></div>
+                <div id="queueFocusMode" class="queue-focus-mode" data-focus-match="opening operations incidents closing" data-queue-basic-match="opening operations incidents closing"></div>
+            </div>
             <div class="queue-premium-shell">
                 <section class="queue-premium-band" data-band="control-room">
                     <div class="queue-premium-band__header">
                         <div>
-                            <p class="queue-premium-band__eyebrow">Control room</p>
-                            <h5>Mandos principales</h5>
-                            <p>Modo activo, foco del turno y confirmación visible de release, registry y surfaces.</p>
+                            <p class="queue-premium-band__eyebrow">Puesto</p>
+                            <h5>Atajos y apoyo del puesto</h5>
+                            <p>Consultorio, un toque y teclado viven aquí si la operación necesita ayuda puntual.</p>
                         </div>
                     </div>
                     <div class="queue-premium-band__grid queue-premium-band__grid--control">
-                        <div id="queueDomainSwitcher" class="queue-domain-switcher" data-queue-basic-match="opening operations incidents closing"></div>
-                        <div id="queueAdminViewMode" class="queue-admin-view-mode" data-queue-basic-match="opening operations incidents closing"></div>
-                        <div id="queueFocusMode" class="queue-focus-mode" data-focus-match="opening operations incidents closing" data-queue-basic-match="opening operations incidents closing"></div>
                         <div id="queueNumpadGuide" class="queue-numpad-guide" data-focus-match="opening operations incidents" data-queue-domain-match="operations incidents" data-queue-basic-match="operations"></div>
                         <div id="queueConsultorioBoard" class="queue-consultorio-board" data-focus-match="opening operations incidents closing" data-queue-domain-match="operations incidents" data-queue-basic-match="operations"></div>
                         <div id="queueQuickConsole" class="queue-quick-console" data-focus-match="opening operations incidents closing" data-queue-domain-match="operations incidents" data-queue-basic-match="opening operations incidents closing"></div>
-                        <div id="queueSurfaceTruthPanel" class="queue-app-card turnero-admin-queue-surface-truth-panel" data-turnero-surface-truth-panel data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening operations incidents closing"></div>
-                        <div id="queueReleaseCommandDeck" class="queue-release-command-deck" data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening incidents closing"></div>
-                        <div id="queuePilotReadinessCard" class="queue-apps-grid" data-turnero-pilot-readiness data-focus-match="opening operations" data-queue-domain-match="deployment" data-queue-basic-match="opening"></div>
-                        <div id="queueAppDownloadsCards" class="queue-apps-grid" data-focus-match="opening operations" data-queue-domain-match="deployment" data-queue-basic-match="opening"></div>
                     </div>
                 </section>
 
                 <section class="queue-premium-band" data-band="live-queue">
                     <div class="queue-premium-band__header">
                         <div>
-                            <p class="queue-premium-band__eyebrow">Live queue</p>
-                            <h5>Operación en vivo</h5>
-                            <p>Lo que necesita recepción para abrir, llamar, equilibrar espera y cerrar el siguiente movimiento.</p>
+                            <p class="queue-premium-band__eyebrow">Seguimiento</p>
+                            <h5>Cola en vivo y alertas</h5>
+                            <p>Lectura extendida para equilibrar espera, vigilar riesgo y cerrar el siguiente movimiento.</p>
                         </div>
                     </div>
                     <div class="queue-premium-band__grid queue-premium-band__grid--live">
@@ -95,9 +139,9 @@ export function renderQueueAppsHub() {
                 <section class="queue-premium-band" data-band="incidents">
                     <div class="queue-premium-band__header">
                         <div>
-                            <p class="queue-premium-band__eyebrow">Incidents</p>
-                            <h5>Diagnóstico y resolución</h5>
-                            <p>Lookup, simulación, contingencia y trazas para recuperar la operación sin salir del flow clínico.</p>
+                            <p class="queue-premium-band__eyebrow">Incidencias</p>
+                            <h5>Diagnostico y recuperacion</h5>
+                            <p>Lookup, simulacion, contingencia y trazas para recuperar la operacion cuando algo se traba.</p>
                         </div>
                     </div>
                     <div class="queue-premium-band__grid queue-premium-band__grid--incidents">
@@ -139,14 +183,17 @@ export function renderQueueAppsHub() {
                 <section class="queue-premium-band" data-band="deployment">
                     <div class="queue-premium-band__header">
                         <div>
-                            <p class="queue-premium-band__eyebrow">Deployment</p>
+                            <p class="queue-premium-band__eyebrow">Despliegue</p>
                             <h5>Apertura y rollout</h5>
-                            <p>Checklist, rollout y trazas de despliegue para abrir clínica con evidencia ya visible en el control room.</p>
+                            <p>Checklist, superficies instaladas y handoff para abrir clinica sin friccion.</p>
                         </div>
                     </div>
                     <div class="queue-premium-band__grid queue-premium-band__grid--deployment">
                         <div id="queuePlaybook" class="queue-playbook" data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening incidents closing"></div>
+                        <div id="queuePilotReadinessCard" class="queue-apps-grid" data-turnero-pilot-readiness data-focus-match="opening operations" data-queue-domain-match="deployment" data-queue-basic-match="opening"></div>
+                        <div id="queueSurfaceTruthPanel" class="queue-app-card turnero-admin-queue-surface-truth-panel" data-turnero-surface-truth-panel data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening operations incidents closing"></div>
                         <div id="queueOpsPilot" class="queue-ops-pilot" data-focus-match="opening operations incidents" data-queue-domain-match="deployment" data-queue-basic-match="opening"></div>
+                        <div id="queueReleaseCommandDeck" class="queue-release-command-deck" data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening incidents closing"></div>
                         <div id="queueReleaseIntelligenceSuiteHost" class="queue-release-intelligence-suite" data-turnero-release-intelligence data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening operations incidents closing"></div>
                         <div id="queueReleaseHistoryDashboard" class="queue-release-history-dashboard" data-turnero-release-history data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening operations incidents closing"></div>
                         <div id="queueReleaseGovernanceSuiteHost" class="queue-release-governance-suite" data-turnero-release-governance data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening operations incidents closing"></div>
@@ -160,6 +207,7 @@ export function renderQueueAppsHub() {
                         <div id="queueReleaseRepoTruthAuditStudioHost" class="queue-app-card queue-release-repo-truth-audit-studio" data-turnero-release-repo-truth-audit-studio data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening operations incidents closing"></div>
                         <div id="queueReleaseRepoDiagnosticPrepHubHost" class="queue-app-card queue-release-repo-diagnostic-prep-hub" data-turnero-release-repo-diagnostic-prep-hub data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening operations incidents closing"></div>
                         <div id="queueReleaseMainlineAuditBridgeHost" class="queue-app-card queue-release-mainline-audit-bridge" data-turnero-release-mainline-audit-bridge data-focus-match="opening operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="opening operations incidents closing"></div>
+                        <div id="queueAppDownloadsCards" class="queue-apps-grid" data-focus-match="opening operations" data-queue-domain-match="deployment" data-queue-basic-match="opening"></div>
                         <div id="queueOpeningChecklist" class="queue-opening-checklist" data-focus-match="opening" data-queue-domain-match="deployment" data-queue-basic-match="opening"></div>
                         <div id="queueShiftHandoff" class="queue-shift-handoff" data-focus-match="closing" data-queue-domain-match="operations" data-queue-basic-match="closing"></div>
                         <div id="queueOpsLog" class="queue-ops-log" data-focus-match="operations incidents closing" data-queue-domain-match="deployment incidents" data-queue-basic-match="incidents closing"></div>
@@ -182,11 +230,11 @@ export function renderQueueAppsHub() {
 export function renderQueueKpiGrid() {
     return `
         <div class="sony-grid sony-grid-kpi slim">
-            <article class="sony-kpi"><h4>Espera</h4><strong id="queueWaitingCountAdmin">0</strong></article>
-            <article class="sony-kpi"><h4>Llamados</h4><strong id="queueCalledCountAdmin">0</strong></article>
-            <article class="sony-kpi"><h4>C1</h4><strong id="queueC1Now">Sin llamado</strong></article>
-            <article class="sony-kpi"><h4>C2</h4><strong id="queueC2Now">Sin llamado</strong></article>
-            <article class="sony-kpi"><h4>Sync</h4><strong id="queueSyncStatus" data-state="live">vivo</strong></article>
+            <article class="sony-kpi"><h4>Pacientes en espera</h4><strong id="queueWaitingCountAdmin">0</strong></article>
+            <article class="sony-kpi"><h4>Turnos llamados</h4><strong id="queueCalledCountAdmin">0</strong></article>
+            <article class="sony-kpi"><h4>Consultorio 1</h4><strong id="queueC1Now">Sin llamado</strong></article>
+            <article class="sony-kpi"><h4>Consultorio 2</h4><strong id="queueC2Now">Sin llamado</strong></article>
+            <article class="sony-kpi"><h4>Sincronización</h4><strong id="queueSyncStatus" data-state="live">vivo</strong></article>
         </div>
     `;
 }

@@ -14,13 +14,17 @@ import {
     QUEUE_STATION_MODE_STORAGE_KEY,
 } from './constants.js';
 import {
-    getTurneroActiveClinicId as getActiveQueueClinicId,
+    getTurneroActiveClinicId as getActiveQueueClinicIdFromState,
     normalizeOneTap,
     normalizeStationConsultorio,
     normalizeStationMode,
 } from '../../../../queue-shared/turnero-runtime-contract.mjs';
 
 let lastQueueUiClinicId = null;
+
+function getActiveQueueClinicId(source = getState()) {
+    return getActiveQueueClinicIdFromState(source);
+}
 
 function normalizeScopedStorageMap(rawValue) {
     const source = rawValue && typeof rawValue === 'object' ? rawValue : {};

@@ -11,6 +11,59 @@ body {
     line-height: 1.45;
 }
 
+.queue-kiosk-body .turnero-stage-chrome {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin: 0 1.2rem 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--ops-shell-border);
+    border-radius: 24px;
+    background: var(--ops-shell-bg);
+    box-shadow: var(--ops-shell-shadow);
+    backdrop-filter: blur(var(--ops-shell-blur));
+}
+
+.queue-kiosk-body .turnero-stage-chrome__copy,
+.queue-kiosk-body .turnero-stage-chrome__actions {
+    display: grid;
+    gap: 0.28rem;
+}
+
+.queue-kiosk-body .turnero-stage-chrome__eyebrow,
+.queue-kiosk-body .turnero-stage-chrome__copy strong,
+.queue-kiosk-body .turnero-stage-chrome__copy span {
+    margin: 0;
+}
+
+.queue-kiosk-body .turnero-stage-chrome__eyebrow {
+    color: var(--muted);
+    font-size: 0.76rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.queue-kiosk-body .turnero-stage-chrome__copy strong {
+    font-size: 1rem;
+}
+
+.queue-kiosk-body .turnero-stage-chrome__copy span {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.queue-kiosk-body .turnero-stage-chrome__actions {
+    justify-items: end;
+}
+
+.queue-kiosk-body .turnero-stage-chrome__actions a {
+    color: var(--text);
+    font-size: 0.86rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
 .kiosk-welcome-screen {
     position: fixed;
     inset: 0;
@@ -104,7 +157,17 @@ body {
 .kiosk-header-note {
     margin: 0;
     color: var(--muted);
-    font-size: 0.86rem;
+    font-size: 0.92rem;
+    max-width: 34rem;
+    text-align: right;
+}
+
+.kiosk-intro-copy {
+    margin: 0;
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.5;
 }
 
 .kiosk-clinic-context {
@@ -588,6 +651,52 @@ body {
     align-content: start;
 }
 
+.kiosk-support-shell {
+    border: 1px solid var(--ops-card-border);
+    border-radius: var(--ops-card-radius);
+    background: var(--ops-card-bg);
+    box-shadow: var(--ops-card-shadow);
+    overflow: hidden;
+}
+
+.kiosk-support-shell[open] {
+    border-color: color-mix(in srgb, var(--ops-card-border) 76%, var(--primary) 24%);
+}
+
+.kiosk-support-shell > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.05rem;
+    font-family: 'FrauncesSoft', serif;
+    font-size: 1.08rem;
+    font-weight: 500;
+}
+
+.kiosk-support-shell > summary::-webkit-details-marker {
+    display: none;
+}
+
+.kiosk-support-shell > summary::after {
+    content: '+';
+    font-size: 1.24rem;
+    line-height: 1;
+    color: var(--muted);
+}
+
+.kiosk-support-shell[open] > summary::after {
+    content: '-';
+}
+
+.kiosk-support-shell__body {
+    display: grid;
+    gap: 1rem;
+    padding: 0 0.9rem 0.9rem;
+}
+
 .kiosk-setup-card {
     display: grid;
     gap: 0.72rem;
@@ -914,6 +1023,10 @@ body {
         justify-items: start;
     }
 
+    .kiosk-header-note {
+        text-align: left;
+    }
+
     .kiosk-header-controls {
         grid-template-columns: 1fr;
         width: 100%;
@@ -1071,6 +1184,21 @@ body[data-ops-tone='dark'] .kiosk-card {
     backdrop-filter: blur(18px);
 }
 
+body[data-ops-tone='dark'] .kiosk-support-shell {
+    border-radius: 30px;
+    border-color: rgb(255 255 255 / 10%);
+    background:
+        linear-gradient(160deg, rgb(13 15 20 / 95%), rgb(8 10 14 / 92%)),
+        radial-gradient(circle at top right, rgb(242 187 99 / 9%), transparent 32%);
+    box-shadow: 0 28px 60px rgb(0 0 0 / 32%);
+}
+
+body[data-ops-tone='dark'] .kiosk-support-shell > summary {
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 5%), rgb(255 255 255 / 1%)),
+        rgb(255 255 255 / 2%);
+}
+
 body[data-ops-tone='dark'] .kiosk-card h1,
 body[data-ops-tone='dark'] .kiosk-card h2,
 body[data-ops-tone='dark'] .kiosk-card h3 {
@@ -1084,7 +1212,7 @@ body[data-ops-tone='dark'] .kiosk-checkin-card {
 
 .kiosk-next-step {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 0.7rem;
 }
 

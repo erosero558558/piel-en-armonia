@@ -3,7 +3,11 @@
     border: 1px solid color-mix(in srgb, #0f6bdc 16%, #d7dfeb 84%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(240 247 255 / 92%)),
-        radial-gradient(circle at top left, rgb(15 107 220 / 10%), transparent 52%);
+        radial-gradient(
+            circle at top left,
+            rgb(15 107 220 / 10%),
+            transparent 52%
+        );
 }
 
 body[data-ops-tone='light'] .queue-apps-hub {
@@ -12,7 +16,11 @@ body[data-ops-tone='light'] .queue-apps-hub {
     border-color: color-mix(in srgb, var(--ops-light-accent) 16%, #ffffff 84%);
     background:
         linear-gradient(145deg, rgb(255 255 255 / 98%), rgb(244 247 252 / 95%)),
-        radial-gradient(circle at top left, rgb(11 93 173 / 10%), transparent 42%);
+        radial-gradient(
+            circle at top left,
+            rgb(11 93 173 / 10%),
+            transparent 42%
+        );
     box-shadow: 0 28px 52px rgb(14 25 44 / 9%);
 }
 
@@ -76,7 +84,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(248 251 255 / 90%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 6%), transparent 36%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 6%),
+            transparent 36%
+        );
     box-shadow: 0 18px 36px rgb(15 23 42 / 6%);
 }
 
@@ -88,35 +100,55 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #0f766e 18%, #ffffff 82%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 95%), rgb(241 249 246 / 92%)),
-        radial-gradient(circle at top right, rgb(15 118 110 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 118 110 / 8%),
+            transparent 34%
+        );
 }
 
 .queue-premium-band[data-band='incidents'] {
     border-color: color-mix(in srgb, #ca8a04 16%, #ffffff 84%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 95%), rgb(255 251 240 / 92%)),
-        radial-gradient(circle at top right, rgb(202 138 4 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(202 138 4 / 8%),
+            transparent 34%
+        );
 }
 
 .queue-premium-band[data-band='deployment'] {
     border-color: color-mix(in srgb, #7c3aed 12%, #ffffff 88%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 95%), rgb(247 245 255 / 92%)),
-        radial-gradient(circle at top right, rgb(124 58 237 / 7%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(124 58 237 / 7%),
+            transparent 34%
+        );
 }
 
 .queue-telemetry-band[data-band='stable'] {
     border-color: color-mix(in srgb, #0f766e 18%, #ffffff 82%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 95%), rgb(241 249 246 / 92%)),
-        radial-gradient(circle at top right, rgb(15 118 110 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 118 110 / 8%),
+            transparent 34%
+        );
 }
 
 .queue-telemetry-band[data-band='watch'] {
     border-color: color-mix(in srgb, #ca8a04 16%, #ffffff 84%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 95%), rgb(255 251 240 / 92%)),
-        radial-gradient(circle at top right, rgb(202 138 4 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(202 138 4 / 8%),
+            transparent 34%
+        );
 }
 
 .queue-premium-band__header {
@@ -202,7 +234,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 92%), rgb(245 249 255 / 90%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 6%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 6%),
+            transparent 34%
+        );
 }
 
 .queue-station-bar__meta,
@@ -246,7 +282,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 92%), rgb(246 249 253 / 90%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 5%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 5%),
+            transparent 34%
+        );
     box-shadow: 0 18px 36px rgb(15 23 42 / 5%);
 }
 
@@ -356,8 +396,16 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     font-family: 'PlusJakarta', 'Segoe UI', sans-serif;
     color: var(--text);
     background:
-        radial-gradient(circle at 8% 0%, rgb(15 107 220 / 18%), transparent 28%),
-        radial-gradient(circle at 92% 4%, rgb(15 118 110 / 11%), transparent 24%),
+        radial-gradient(
+            circle at 8% 0%,
+            rgb(15 107 220 / 18%),
+            transparent 28%
+        ),
+        radial-gradient(
+            circle at 92% 4%,
+            rgb(15 118 110 / 11%),
+            transparent 24%
+        ),
         linear-gradient(180deg, #f3f6fa 0%, #eef2f6 34%, #f9fbfd 100%);
 }
 
@@ -420,7 +468,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-radius: 34px;
     background:
         linear-gradient(180deg, rgb(255 255 255 / 97%), rgb(248 250 252 / 94%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 8%),
+            transparent 34%
+        );
     border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
     box-shadow: 0 30px 70px rgb(15 23 32 / 11%);
 }
@@ -443,7 +495,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
     background:
         linear-gradient(160deg, rgb(245 248 252 / 96%), rgb(236 242 248 / 92%)),
-        radial-gradient(circle at top left, rgb(15 107 220 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top left,
+            rgb(15 107 220 / 8%),
+            transparent 34%
+        );
     box-shadow: 0 24px 54px rgb(15 23 32 / 9%);
 }
 
@@ -498,7 +554,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(245 249 253 / 94%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 9%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 9%),
+            transparent 34%
+        );
     box-shadow: 0 26px 48px rgb(15 23 32 / 8%);
 }
 
@@ -520,7 +580,8 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     transition:
         transform var(--ops-motion-fast, 180ms) var(--ops-ease-premium, ease),
         border-color var(--ops-motion-fast, 180ms) var(--ops-ease-premium, ease),
-        background-color var(--ops-motion-fast, 180ms) var(--ops-ease-premium, ease),
+        background-color var(--ops-motion-fast, 180ms)
+            var(--ops-ease-premium, ease),
         box-shadow var(--ops-motion-fast, 180ms) var(--ops-ease-premium, ease);
 }
 
@@ -541,7 +602,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #10233f 10%, #ffffff 90%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 95%), rgb(247 250 252 / 93%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 6%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 6%),
+            transparent 34%
+        );
     box-shadow: 0 18px 40px rgb(15 23 32 / 7%);
 }
 
@@ -565,7 +630,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
 .queue-operator-keymap span {
     min-height: 56px;
     border-radius: 18px;
-    background: linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(240 246 255 / 90%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 255 255 / 94%),
+        rgb(240 246 255 / 90%)
+    );
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 75%);
 }
 
@@ -573,7 +642,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-radius: 20px;
     background:
         linear-gradient(180deg, rgb(255 255 255 / 90%), rgb(246 250 253 / 88%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 4%), transparent 30%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 4%),
+            transparent 30%
+        );
 }
 
 .queue-operator-workbench {
@@ -589,7 +662,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 97%), rgb(247 250 252 / 94%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 8%),
+            transparent 34%
+        );
     box-shadow: 0 24px 48px rgb(15 23 32 / 8%);
 }
 
@@ -705,7 +782,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(243 246 251 / 94%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 8%), transparent 42%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 8%),
+            transparent 42%
+        );
     box-shadow: 0 16px 30px rgb(15 23 32 / 6%);
 }
 
@@ -781,7 +862,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #0f6bdc 14%, #ffffff 86%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 97%), rgb(246 249 255 / 93%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 7%), transparent 42%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 7%),
+            transparent 42%
+        );
 }
 
 .queue-domain-switcher__shell[data-state='basic'] .queue-domain-switcher__chip {
@@ -789,7 +874,8 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     color: #0f4a93;
 }
 
-.queue-domain-switcher__shell[data-state='basic'] .queue-domain-switcher__ghost {
+.queue-domain-switcher__shell[data-state='basic']
+    .queue-domain-switcher__ghost {
     border-color: color-mix(in srgb, #0f6bdc 18%, #ffffff 82%);
     color: #0f4a93;
 }
@@ -891,7 +977,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f766e 18%, #ffffff 82%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(236 253 245 / 92%)),
-        radial-gradient(circle at top right, rgb(15 118 110 / 10%), transparent 44%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 118 110 / 10%),
+            transparent 44%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 6%);
 }
 
@@ -899,7 +989,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #0f6bdc 18%, #ffffff 82%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(238 246 255 / 92%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 10%), transparent 44%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 10%),
+            transparent 44%
+        );
 }
 
 .queue-admin-view-mode__header,
@@ -1010,29 +1104,42 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     display: none !important;
 }
 
-.queue-apps-hub[data-queue-admin-mode='basic'][data-queue-basic-full-view='false'] [data-queue-admin-level][data-queue-basic-match] {
+.queue-apps-hub[data-queue-admin-mode='basic'][data-queue-basic-full-view='false']
+    [data-queue-admin-level][data-queue-basic-match] {
     display: none !important;
 }
 
-.queue-apps-hub[data-queue-admin-mode='basic'][data-queue-basic-full-view='false'][data-queue-focus='opening'] [data-queue-admin-level][data-queue-basic-match~='opening'],
-.queue-apps-hub[data-queue-admin-mode='basic'][data-queue-basic-full-view='false'][data-queue-focus='operations'] [data-queue-admin-level][data-queue-basic-match~='operations'],
-.queue-apps-hub[data-queue-admin-mode='basic'][data-queue-basic-full-view='false'][data-queue-focus='incidents'] [data-queue-admin-level][data-queue-basic-match~='incidents'],
-.queue-apps-hub[data-queue-admin-mode='basic'][data-queue-basic-full-view='false'][data-queue-focus='closing'] [data-queue-admin-level][data-queue-basic-match~='closing'] {
+.queue-apps-hub[data-queue-admin-mode='basic'][data-queue-basic-full-view='false'][data-queue-focus='opening']
+    [data-queue-admin-level][data-queue-basic-match~='opening'],
+.queue-apps-hub[data-queue-admin-mode='basic'][data-queue-basic-full-view='false'][data-queue-focus='operations']
+    [data-queue-admin-level][data-queue-basic-match~='operations'],
+.queue-apps-hub[data-queue-admin-mode='basic'][data-queue-basic-full-view='false'][data-queue-focus='incidents']
+    [data-queue-admin-level][data-queue-basic-match~='incidents'],
+.queue-apps-hub[data-queue-admin-mode='basic'][data-queue-basic-full-view='false'][data-queue-focus='closing']
+    [data-queue-admin-level][data-queue-basic-match~='closing'] {
     display: block !important;
 }
 
-.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='opening'] [data-focus-match]:not([data-focus-match~='opening']),
-.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='operations'] [data-focus-match]:not([data-focus-match~='operations']),
-.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='incidents'] [data-focus-match]:not([data-focus-match~='incidents']),
-.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='closing'] [data-focus-match]:not([data-focus-match~='closing']) {
+.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='opening']
+    [data-focus-match]:not([data-focus-match~='opening']),
+.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='operations']
+    [data-focus-match]:not([data-focus-match~='operations']),
+.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='incidents']
+    [data-focus-match]:not([data-focus-match~='incidents']),
+.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='closing']
+    [data-focus-match]:not([data-focus-match~='closing']) {
     opacity: 0.42;
     filter: saturate(0.72);
 }
 
-.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='opening'] [data-focus-match~='opening'],
-.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='operations'] [data-focus-match~='operations'],
-.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='incidents'] [data-focus-match~='incidents'],
-.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='closing'] [data-focus-match~='closing'] {
+.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='opening']
+    [data-focus-match~='opening'],
+.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='operations']
+    [data-focus-match~='operations'],
+.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='incidents']
+    [data-focus-match~='incidents'],
+.queue-apps-hub[data-queue-admin-mode='expert'][data-queue-focus='closing']
+    [data-focus-match~='closing'] {
     opacity: 1;
     filter: none;
 }
@@ -1061,7 +1168,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f6bdc 16%, #ffffff 84%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(238 246 255 / 92%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 11%), transparent 46%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 11%),
+            transparent 46%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -1199,7 +1310,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(246 250 255 / 92%)),
-        radial-gradient(circle at top left, rgb(15 107 220 / 10%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(15 107 220 / 10%),
+            transparent 48%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -1211,14 +1326,22 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #d19328 24%, #ffffff 76%);
     background:
         linear-gradient(135deg, rgb(255 248 235 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(209 147 40 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(209 147 40 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-numpad-guide__shell[data-state='alert'] {
     border-color: color-mix(in srgb, #de4437 24%, #ffffff 76%);
     background:
         linear-gradient(135deg, rgb(255 240 238 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(222 68 55 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(222 68 55 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-numpad-guide__header {
@@ -1365,7 +1488,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(246 251 255 / 92%)),
-        radial-gradient(circle at top left, rgb(47 136 234 / 10%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(47 136 234 / 10%),
+            transparent 48%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -1373,7 +1500,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #d19328 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 248 235 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(209 147 40 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(209 147 40 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-consultorio-board__header {
@@ -1622,7 +1753,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(255 248 246 / 92%)),
-        radial-gradient(circle at top left, rgb(234 88 12 / 10%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(234 88 12 / 10%),
+            transparent 48%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -1634,14 +1769,22 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #d19328 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 248 235 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(209 147 40 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(209 147 40 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-attention-deck__shell[data-state='alert'] {
     border-color: color-mix(in srgb, #dc2626 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 241 242 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(220 38 38 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(220 38 38 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-attention-deck__header {
@@ -1921,7 +2064,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(248 248 255 / 92%)),
-        radial-gradient(circle at top left, rgb(109 40 217 / 10%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(109 40 217 / 10%),
+            transparent 48%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -1933,14 +2080,22 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #d19328 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 248 235 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(209 147 40 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(209 147 40 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-resolution-deck__shell[data-state='alert'] {
     border-color: color-mix(in srgb, #dc2626 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 241 242 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(220 38 38 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(220 38 38 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-resolution-deck__header {
@@ -3123,7 +3278,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(250 252 255 / 92%)),
-        radial-gradient(circle at top left, rgb(15 107 220 / 10%), transparent 45%);
+        radial-gradient(
+            circle at top left,
+            rgb(15 107 220 / 10%),
+            transparent 45%
+        );
     box-shadow: 0 18px 36px rgb(15 23 32 / 8%);
 }
 
@@ -3334,7 +3493,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(243 251 255 / 92%)),
-        radial-gradient(circle at top left, rgb(14 165 233 / 10%), transparent 45%);
+        radial-gradient(
+            circle at top left,
+            rgb(14 165 233 / 10%),
+            transparent 45%
+        );
     box-shadow: 0 18px 36px rgb(15 23 32 / 8%);
 }
 
@@ -3598,7 +3761,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(244 253 247 / 92%)),
-        radial-gradient(circle at top left, rgb(16 185 129 / 10%), transparent 45%);
+        radial-gradient(
+            circle at top left,
+            rgb(16 185 129 / 10%),
+            transparent 45%
+        );
     box-shadow: 0 18px 36px rgb(15 23 32 / 8%);
 }
 
@@ -3862,7 +4029,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(245 248 255 / 92%)),
-        radial-gradient(circle at top left, rgb(59 130 246 / 10%), transparent 45%);
+        radial-gradient(
+            circle at top left,
+            rgb(59 130 246 / 10%),
+            transparent 45%
+        );
     box-shadow: 0 18px 36px rgb(15 23 32 / 8%);
 }
 
@@ -4061,7 +4232,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(247 245 255 / 92%)),
-        radial-gradient(circle at top left, rgb(99 102 241 / 10%), transparent 45%);
+        radial-gradient(
+            circle at top left,
+            rgb(99 102 241 / 10%),
+            transparent 45%
+        );
     box-shadow: 0 18px 36px rgb(15 23 32 / 8%);
 }
 
@@ -5056,12 +5231,14 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     font-weight: 800;
 }
 
-.queue-reception-collision__card[data-state='suggested'] .queue-reception-collision__badge {
+.queue-reception-collision__card[data-state='suggested']
+    .queue-reception-collision__badge {
     background: rgb(219 234 254 / 92%);
     color: #1d4ed8;
 }
 
-.queue-reception-collision__card[data-state='warning'] .queue-reception-collision__badge {
+.queue-reception-collision__card[data-state='warning']
+    .queue-reception-collision__badge {
     background: rgb(254 243 199 / 92%);
     color: #b45309;
 }
@@ -5267,12 +5444,14 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     font-weight: 800;
 }
 
-.queue-reception-lights__card[data-state='suggested'] .queue-reception-lights__badge {
+.queue-reception-lights__card[data-state='suggested']
+    .queue-reception-lights__badge {
     background: rgb(219 234 254 / 92%);
     color: #1d4ed8;
 }
 
-.queue-reception-lights__card[data-state='warning'] .queue-reception-lights__badge {
+.queue-reception-lights__card[data-state='warning']
+    .queue-reception-lights__badge {
     background: rgb(254 243 199 / 92%);
     color: #b45309;
 }
@@ -7112,7 +7291,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(255 249 245 / 92%)),
-        radial-gradient(circle at top left, rgb(245 158 11 / 10%), transparent 45%);
+        radial-gradient(
+            circle at top left,
+            rgb(245 158 11 / 10%),
+            transparent 45%
+        );
     box-shadow: 0 18px 36px rgb(15 23 32 / 8%);
 }
 
@@ -7311,7 +7494,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(255 252 245 / 92%)),
-        radial-gradient(circle at top left, rgb(245 158 11 / 9%), transparent 45%);
+        radial-gradient(
+            circle at top left,
+            rgb(245 158 11 / 9%),
+            transparent 45%
+        );
     box-shadow: 0 18px 36px rgb(15 23 32 / 8%);
 }
 
@@ -7522,7 +7709,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(248 251 255 / 92%)),
-        radial-gradient(circle at top left, rgb(15 107 220 / 10%), transparent 46%);
+        radial-gradient(
+            circle at top left,
+            rgb(15 107 220 / 10%),
+            transparent 46%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -7530,14 +7721,22 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #dc2626 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 241 242 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(220 38 38 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(220 38 38 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-wait-radar__shell[data-state='warning'] {
     border-color: color-mix(in srgb, #d19328 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 248 235 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(209 147 40 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(209 147 40 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-wait-radar__header {
@@ -7797,7 +7996,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(245 252 250 / 92%)),
-        radial-gradient(circle at top left, rgb(13 148 136 / 10%), transparent 46%);
+        radial-gradient(
+            circle at top left,
+            rgb(13 148 136 / 10%),
+            transparent 46%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -7805,21 +8008,33 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #0f766e 20%, #ffffff 80%);
     background:
         linear-gradient(135deg, rgb(240 253 250 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(13 148 136 / 11%), transparent 46%);
+        radial-gradient(
+            circle at top left,
+            rgb(13 148 136 / 11%),
+            transparent 46%
+        );
 }
 
 .queue-load-balance__shell[data-state='warning'] {
     border-color: color-mix(in srgb, #d19328 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 248 235 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(209 147 40 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(209 147 40 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-load-balance__shell[data-state='alert'] {
     border-color: color-mix(in srgb, #dc2626 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 241 242 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(220 38 38 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(220 38 38 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-load-balance__header {
@@ -8084,7 +8299,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(251 248 255 / 92%)),
-        radial-gradient(circle at top left, rgb(124 58 237 / 10%), transparent 46%);
+        radial-gradient(
+            circle at top left,
+            rgb(124 58 237 / 10%),
+            transparent 46%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -8092,21 +8311,33 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #6d28d9 20%, #ffffff 80%);
     background:
         linear-gradient(135deg, rgb(247 244 255 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(124 58 237 / 11%), transparent 46%);
+        radial-gradient(
+            circle at top left,
+            rgb(124 58 237 / 11%),
+            transparent 46%
+        );
 }
 
 .queue-priority-lane__shell[data-state='warning'] {
     border-color: color-mix(in srgb, #d19328 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 248 235 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(209 147 40 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(209 147 40 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-priority-lane__shell[data-state='alert'] {
     border-color: color-mix(in srgb, #dc2626 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 241 242 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(220 38 38 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(220 38 38 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-priority-lane__header {
@@ -8192,7 +8423,7 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
 
 .queue-priority-lane__item {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) minmax(220px, 260px);
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 0.8rem;
     align-items: stretch;
     padding: 0.9rem;
@@ -8245,6 +8476,7 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     display: flex;
     align-items: flex-start;
     justify-content: center;
+    grid-row: 1 / span 2;
 }
 
 .queue-priority-lane__item-rank span {
@@ -8261,12 +8493,16 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     font-size: 1rem;
 }
 
-.queue-priority-lane__item[data-state='warning'] .queue-priority-lane__item-rank span {
+.queue-priority-lane__item[data-state='warning']
+    .queue-priority-lane__item-rank
+    span {
     background: rgb(242 187 99 / 18%);
     color: #8a5a09;
 }
 
-.queue-priority-lane__item[data-state='alert'] .queue-priority-lane__item-rank span {
+.queue-priority-lane__item[data-state='alert']
+    .queue-priority-lane__item-rank
+    span {
     background: rgb(220 38 38 / 14%);
     color: #b91c1c;
 }
@@ -8275,6 +8511,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
 .queue-priority-lane__item-side {
     display: grid;
     gap: 0.55rem;
+}
+
+.queue-priority-lane__item-main,
+.queue-priority-lane__item-side {
+    grid-column: 2;
 }
 
 .queue-priority-lane__item-header {
@@ -8369,6 +8610,7 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
     min-height: 44px;
     padding: 0.68rem 0.8rem;
     border-radius: 14px;
@@ -8405,7 +8647,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(248 252 255 / 92%)),
-        radial-gradient(circle at top left, rgb(37 99 235 / 10%), transparent 46%);
+        radial-gradient(
+            circle at top left,
+            rgb(37 99 235 / 10%),
+            transparent 46%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -8565,7 +8811,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(250 252 255 / 92%)),
-        radial-gradient(circle at top left, rgb(2 132 199 / 10%), transparent 46%);
+        radial-gradient(
+            circle at top left,
+            rgb(2 132 199 / 10%),
+            transparent 46%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -8792,7 +9042,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(246 253 252 / 92%)),
-        radial-gradient(circle at top left, rgb(13 148 136 / 10%), transparent 46%);
+        radial-gradient(
+            circle at top left,
+            rgb(13 148 136 / 10%),
+            transparent 46%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -8804,7 +9058,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #d19328 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 249 239 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(209 147 40 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(209 147 40 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-tray-burst__header {
@@ -8986,7 +9244,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(246 251 255 / 92%)),
-        radial-gradient(circle at top left, rgb(15 107 220 / 9%), transparent 46%);
+        radial-gradient(
+            circle at top left,
+            rgb(15 107 220 / 9%),
+            transparent 46%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -8994,14 +9256,22 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #0f6bdc 20%, #ffffff 80%);
     background:
         linear-gradient(135deg, rgb(244 250 255 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(15 107 220 / 12%), transparent 46%);
+        radial-gradient(
+            circle at top left,
+            rgb(15 107 220 / 12%),
+            transparent 46%
+        );
 }
 
 .queue-dispatch-deck__shell[data-state='warning'] {
     border-color: color-mix(in srgb, #d19328 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 248 235 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(209 147 40 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(209 147 40 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-dispatch-deck__header {
@@ -9249,7 +9519,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(247 250 255 / 92%)),
-        radial-gradient(circle at top left, rgb(15 107 220 / 10%), transparent 46%);
+        radial-gradient(
+            circle at top left,
+            rgb(15 107 220 / 10%),
+            transparent 46%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -9261,14 +9535,22 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #d19328 24%, #ffffff 76%);
     background:
         linear-gradient(135deg, rgb(255 248 235 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(209 147 40 / 12%), transparent 46%);
+        radial-gradient(
+            circle at top left,
+            rgb(209 147 40 / 12%),
+            transparent 46%
+        );
 }
 
 .queue-quick-console__shell[data-state='closing'] {
     border-color: color-mix(in srgb, #0f9b5f 20%, #ffffff 80%);
     background:
         linear-gradient(135deg, rgb(237 252 244 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top left, rgb(15 155 95 / 12%), transparent 46%);
+        radial-gradient(
+            circle at top left,
+            rgb(15 155 95 / 12%),
+            transparent 46%
+        );
 }
 
 .queue-quick-console__header {
@@ -9358,7 +9640,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(249 251 255 / 92%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 10%), transparent 48%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 10%),
+            transparent 48%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -9366,14 +9652,22 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #d19328 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(255 248 235 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top right, rgb(209 147 40 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top right,
+            rgb(209 147 40 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-playbook__shell[data-state='closing'] {
     border-color: color-mix(in srgb, #0f9b5f 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(237 252 244 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top right, rgb(15 155 95 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 155 95 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-playbook__header {
@@ -9619,7 +9913,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f6bdc 18%, #ffffff 82%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 96%), rgb(236 245 255 / 92%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 10%), transparent 42%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 10%),
+            transparent 42%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -9631,21 +9929,33 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #d19328 24%, #ffffff 76%);
     background:
         linear-gradient(135deg, rgb(255 248 235 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top right, rgb(209 147 40 / 12%), transparent 42%);
+        radial-gradient(
+            circle at top right,
+            rgb(209 147 40 / 12%),
+            transparent 42%
+        );
 }
 
 .queue-ops-pilot__shell[data-state='alert'] {
     border-color: color-mix(in srgb, #de4437 24%, #ffffff 76%);
     background:
         linear-gradient(135deg, rgb(255 240 238 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top right, rgb(222 68 55 / 12%), transparent 42%);
+        radial-gradient(
+            circle at top right,
+            rgb(222 68 55 / 12%),
+            transparent 42%
+        );
 }
 
 .queue-ops-pilot__shell[data-state='ready'] {
     border-color: color-mix(in srgb, #0f9b5f 24%, #ffffff 76%);
     background:
         linear-gradient(135deg, rgb(237 252 244 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top right, rgb(15 155 95 / 12%), transparent 42%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 155 95 / 12%),
+            transparent 42%
+        );
 }
 
 .queue-ops-pilot__layout {
@@ -9732,17 +10042,29 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
 
 .queue-ops-pilot__readiness[data-state='ready'] {
     border-color: rgb(15 155 95 / 22%);
-    background: linear-gradient(180deg, rgb(237 252 244 / 92%), rgb(255 255 255 / 96%));
+    background: linear-gradient(
+        180deg,
+        rgb(237 252 244 / 92%),
+        rgb(255 255 255 / 96%)
+    );
 }
 
 .queue-ops-pilot__readiness[data-state='warning'] {
     border-color: rgb(209 147 40 / 24%);
-    background: linear-gradient(180deg, rgb(255 248 235 / 92%), rgb(255 255 255 / 96%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 248 235 / 92%),
+        rgb(255 255 255 / 96%)
+    );
 }
 
 .queue-ops-pilot__readiness[data-state='alert'] {
     border-color: rgb(222 68 55 / 22%);
-    background: linear-gradient(180deg, rgb(255 240 238 / 92%), rgb(255 255 255 / 96%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 240 238 / 92%),
+        rgb(255 255 255 / 96%)
+    );
 }
 
 .queue-ops-pilot__readiness-head {
@@ -9855,17 +10177,20 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     text-transform: uppercase;
 }
 
-.queue-ops-pilot__readiness-item[data-state='ready'] .queue-ops-pilot__readiness-item-badge {
+.queue-ops-pilot__readiness-item[data-state='ready']
+    .queue-ops-pilot__readiness-item-badge {
     background: rgb(15 155 95 / 14%);
     color: #0f9b5f;
 }
 
-.queue-ops-pilot__readiness-item[data-state='warning'] .queue-ops-pilot__readiness-item-badge {
+.queue-ops-pilot__readiness-item[data-state='warning']
+    .queue-ops-pilot__readiness-item-badge {
     background: rgb(209 147 40 / 14%);
     color: #9a6700;
 }
 
-.queue-ops-pilot__readiness-item[data-state='alert'] .queue-ops-pilot__readiness-item-badge {
+.queue-ops-pilot__readiness-item[data-state='alert']
+    .queue-ops-pilot__readiness-item-badge {
     background: rgb(222 68 55 / 14%);
     color: #b42318;
 }
@@ -9887,17 +10212,29 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
 
 .queue-ops-pilot__issues[data-state='ready'] {
     border-color: rgb(15 155 95 / 22%);
-    background: linear-gradient(180deg, rgb(237 252 244 / 92%), rgb(255 255 255 / 96%));
+    background: linear-gradient(
+        180deg,
+        rgb(237 252 244 / 92%),
+        rgb(255 255 255 / 96%)
+    );
 }
 
 .queue-ops-pilot__issues[data-state='warning'] {
     border-color: rgb(209 147 40 / 22%);
-    background: linear-gradient(180deg, rgb(255 248 235 / 92%), rgb(255 255 255 / 96%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 248 235 / 92%),
+        rgb(255 255 255 / 96%)
+    );
 }
 
 .queue-ops-pilot__issues[data-state='alert'] {
     border-color: rgb(222 68 55 / 22%);
-    background: linear-gradient(180deg, rgb(255 240 238 / 92%), rgb(255 255 255 / 96%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 240 238 / 92%),
+        rgb(255 255 255 / 96%)
+    );
 }
 
 .queue-ops-pilot__issues-head {
@@ -10018,17 +10355,20 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     white-space: nowrap;
 }
 
-.queue-ops-pilot__issues-item[data-state='ready'] .queue-ops-pilot__issues-item-badge {
+.queue-ops-pilot__issues-item[data-state='ready']
+    .queue-ops-pilot__issues-item-badge {
     background: rgb(15 155 95 / 14%);
     color: #0f9b5f;
 }
 
-.queue-ops-pilot__issues-item[data-state='warning'] .queue-ops-pilot__issues-item-badge {
+.queue-ops-pilot__issues-item[data-state='warning']
+    .queue-ops-pilot__issues-item-badge {
     background: rgb(209 147 40 / 14%);
     color: #9a6700;
 }
 
-.queue-ops-pilot__issues-item[data-state='alert'] .queue-ops-pilot__issues-item-badge {
+.queue-ops-pilot__issues-item[data-state='alert']
+    .queue-ops-pilot__issues-item-badge {
     background: rgb(222 68 55 / 14%);
     color: #b42318;
 }
@@ -10146,12 +10486,14 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     white-space: nowrap;
 }
 
-.queue-ops-pilot__canon-item[data-state='warning'] .queue-ops-pilot__canon-item-badge {
+.queue-ops-pilot__canon-item[data-state='warning']
+    .queue-ops-pilot__canon-item-badge {
     background: rgb(245 158 11 / 16%);
     color: #b45309;
 }
 
-.queue-ops-pilot__canon-item[data-state='alert'] .queue-ops-pilot__canon-item-badge {
+.queue-ops-pilot__canon-item[data-state='alert']
+    .queue-ops-pilot__canon-item-badge {
     background: rgb(239 68 68 / 12%);
     color: #b91c1c;
 }
@@ -10186,17 +10528,29 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
 
 .queue-ops-pilot__smoke[data-state='ready'] {
     border-color: rgb(15 155 95 / 22%);
-    background: linear-gradient(180deg, rgb(237 252 244 / 92%), rgb(255 255 255 / 96%));
+    background: linear-gradient(
+        180deg,
+        rgb(237 252 244 / 92%),
+        rgb(255 255 255 / 96%)
+    );
 }
 
 .queue-ops-pilot__smoke[data-state='warning'] {
     border-color: rgb(209 147 40 / 22%);
-    background: linear-gradient(180deg, rgb(255 248 235 / 92%), rgb(255 255 255 / 96%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 248 235 / 92%),
+        rgb(255 255 255 / 96%)
+    );
 }
 
 .queue-ops-pilot__smoke[data-state='alert'] {
     border-color: rgb(222 68 55 / 22%);
-    background: linear-gradient(180deg, rgb(255 240 238 / 92%), rgb(255 255 255 / 96%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 240 238 / 92%),
+        rgb(255 255 255 / 96%)
+    );
 }
 
 .queue-ops-pilot__smoke-head {
@@ -10316,17 +10670,20 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     text-transform: uppercase;
 }
 
-.queue-ops-pilot__smoke-item[data-state='ready'] .queue-ops-pilot__smoke-item-badge {
+.queue-ops-pilot__smoke-item[data-state='ready']
+    .queue-ops-pilot__smoke-item-badge {
     background: rgb(15 155 95 / 14%);
     color: #0f9b5f;
 }
 
-.queue-ops-pilot__smoke-item[data-state='warning'] .queue-ops-pilot__smoke-item-badge {
+.queue-ops-pilot__smoke-item[data-state='warning']
+    .queue-ops-pilot__smoke-item-badge {
     background: rgb(209 147 40 / 14%);
     color: #9a6700;
 }
 
-.queue-ops-pilot__smoke-item[data-state='alert'] .queue-ops-pilot__smoke-item-badge {
+.queue-ops-pilot__smoke-item[data-state='alert']
+    .queue-ops-pilot__smoke-item-badge {
     background: rgb(222 68 55 / 14%);
     color: #b42318;
 }
@@ -10557,7 +10914,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(246 251 255 / 92%)),
-        radial-gradient(circle at top left, rgb(15 107 220 / 10%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(15 107 220 / 10%),
+            transparent 48%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -10800,13 +11161,16 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     text-transform: uppercase;
 }
 
-.queue-surface-card__instance[data-state='warning'] .queue-surface-card__instance-badge,
-.queue-surface-card__instance[data-state='unknown'] .queue-surface-card__instance-badge {
+.queue-surface-card__instance[data-state='warning']
+    .queue-surface-card__instance-badge,
+.queue-surface-card__instance[data-state='unknown']
+    .queue-surface-card__instance-badge {
     color: #8a5a09;
     background: rgb(242 187 99 / 16%);
 }
 
-.queue-surface-card__instance[data-state='alert'] .queue-surface-card__instance-badge {
+.queue-surface-card__instance[data-state='alert']
+    .queue-surface-card__instance-badge {
     color: #9c2418;
     background: rgb(222 68 55 / 14%);
 }
@@ -10893,7 +11257,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(248 251 255 / 92%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 10%), transparent 48%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 10%),
+            transparent 48%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -10901,21 +11269,33 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border-color: color-mix(in srgb, #d19328 24%, #ffffff 76%);
     background:
         linear-gradient(135deg, rgb(255 248 235 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top right, rgb(209 147 40 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top right,
+            rgb(209 147 40 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-ops-alerts__shell[data-state='alert'] {
     border-color: color-mix(in srgb, #de4437 24%, #ffffff 76%);
     background:
         linear-gradient(135deg, rgb(255 240 238 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top right, rgb(222 68 55 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top right,
+            rgb(222 68 55 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-ops-alerts__shell[data-state='ready'] {
     border-color: color-mix(in srgb, #0f9b5f 22%, #ffffff 78%);
     background:
         linear-gradient(135deg, rgb(237 252 244 / 96%), rgb(255 255 255 / 94%)),
-        radial-gradient(circle at top right, rgb(15 155 95 / 12%), transparent 48%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 155 95 / 12%),
+            transparent 48%
+        );
 }
 
 .queue-ops-alerts__header {
@@ -11130,7 +11510,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(249 251 255 / 92%)),
-        radial-gradient(circle at top right, rgb(255 171 71 / 10%), transparent 48%);
+        radial-gradient(
+            circle at top right,
+            rgb(255 171 71 / 10%),
+            transparent 48%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -11296,7 +11680,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(247 250 255 / 92%)),
-        radial-gradient(circle at top left, rgb(47 136 234 / 10%), transparent 45%);
+        radial-gradient(
+            circle at top left,
+            rgb(47 136 234 / 10%),
+            transparent 45%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -11505,7 +11893,8 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     color: #0a7a4c;
 }
 
-.queue-opening-step__actions .queue-opening-step__toggle[data-state='suggested'] {
+.queue-opening-step__actions
+    .queue-opening-step__toggle[data-state='suggested'] {
     border-color: color-mix(in srgb, #0f6bdc 20%, #ffffff 80%);
     background: rgb(15 107 220 / 10%);
     color: #0f4a93;
@@ -11523,7 +11912,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(249 252 255 / 92%)),
-        radial-gradient(circle at top right, rgb(15 155 95 / 10%), transparent 48%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 155 95 / 10%),
+            transparent 48%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -11765,7 +12158,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
     background:
         linear-gradient(135deg, rgb(255 255 255 / 95%), rgb(247 250 255 / 92%)),
-        radial-gradient(circle at top left, rgb(15 107 220 / 10%), transparent 48%);
+        radial-gradient(
+            circle at top left,
+            rgb(15 107 220 / 10%),
+            transparent 48%
+        );
     box-shadow: 0 18px 35px rgb(15 23 32 / 7%);
 }
 
@@ -12045,7 +12442,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
 .queue-install-configurator__result {
     background:
         linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(244 249 255 / 92%)),
-        radial-gradient(circle at top left, rgb(15 107 220 / 10%), transparent 42%);
+        radial-gradient(
+            circle at top left,
+            rgb(15 107 220 / 10%),
+            transparent 42%
+        );
 }
 
 .queue-install-result__meta {
@@ -12104,8 +12505,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     padding: 0.95rem;
     border-radius: 18px;
     border: 1px solid color-mix(in srgb, #0f6bdc 14%, #ffffff 86%);
-    background:
-        linear-gradient(180deg, rgb(255 255 255 / 97%), rgb(241 247 255 / 93%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 255 255 / 97%),
+        rgb(241 247 255 / 93%)
+    );
 }
 
 .queue-install-rollout__header {
@@ -12181,8 +12585,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
 
 .queue-install-rollout__lane[data-state='active'] {
     border-color: color-mix(in srgb, #0f6bdc 28%, #ffffff 72%);
-    background:
-        linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(235 245 255 / 94%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 255 255 / 98%),
+        rgb(235 245 255 / 94%)
+    );
 }
 
 .queue-app-card {
@@ -12346,7 +12753,11 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     min-height: 100vh;
     margin: 0;
     background:
-        radial-gradient(circle at top left, rgb(15 107 220 / 14%), transparent 34%),
+        radial-gradient(
+            circle at top left,
+            rgb(15 107 220 / 14%),
+            transparent 34%
+        ),
         linear-gradient(180deg, #eef5ff 0%, #f7fafc 42%, #ffffff 100%);
 }
 
@@ -12512,12 +12923,20 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     padding: 0.7rem 0.85rem;
     border-radius: 16px;
     border: 1px solid color-mix(in srgb, #0f1720 10%, #ffffff 90%);
-    background: linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(246 250 255 / 90%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 255 255 / 94%),
+        rgb(246 250 255 / 90%)
+    );
 }
 
 .queue-operator-numpad-chip[data-state='ready'] {
     border-color: color-mix(in srgb, #16a34a 22%, #ffffff 78%);
-    background: linear-gradient(180deg, rgb(240 253 244 / 96%), rgb(255 255 255 / 92%));
+    background: linear-gradient(
+        180deg,
+        rgb(240 253 244 / 96%),
+        rgb(255 255 255 / 92%)
+    );
 }
 
 .queue-operator-numpad-chip__label {
@@ -12534,7 +12953,8 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
     text-transform: uppercase;
 }
 
-.queue-operator-numpad-chip[data-state='ready'] .queue-operator-numpad-chip__state {
+.queue-operator-numpad-chip[data-state='ready']
+    .queue-operator-numpad-chip__state {
     color: #166534;
 }
 
@@ -12598,17 +13018,29 @@ body[data-ops-tone='light'] .queue-apps-hub__header p {
 
 .queue-operator-signal-card[data-state='ready'] {
     border-color: color-mix(in srgb, #16a34a 18%, #ffffff 82%);
-    background: linear-gradient(180deg, rgb(240 253 244 / 96%), rgb(255 255 255 / 94%));
+    background: linear-gradient(
+        180deg,
+        rgb(240 253 244 / 96%),
+        rgb(255 255 255 / 94%)
+    );
 }
 
 .queue-operator-signal-card[data-state='warning'] {
     border-color: rgb(180 83 9 / 22%);
-    background: linear-gradient(180deg, rgb(255 251 235 / 96%), rgb(255 255 255 / 94%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 251 235 / 96%),
+        rgb(255 255 255 / 94%)
+    );
 }
 
 .queue-operator-signal-card[data-state='danger'] {
     border-color: rgb(190 24 93 / 18%);
-    background: linear-gradient(180deg, rgb(255 241 242 / 96%), rgb(255 255 255 / 94%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 241 242 / 96%),
+        rgb(255 255 255 / 94%)
+    );
 }
 
 .queue-operator-signal-card strong {
@@ -13285,7 +13717,11 @@ body[data-ops-tone='light'] .queue-operator-login-card {
     border-radius: 34px;
     background:
         linear-gradient(180deg, rgb(255 255 255 / 97%), rgb(248 250 252 / 94%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 8%),
+            transparent 34%
+        );
     border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
     box-shadow: 0 30px 70px rgb(15 23 32 / 11%);
 }
@@ -13317,7 +13753,11 @@ body[data-ops-tone='light'] .queue-operator-login-brief {
     border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
     background:
         linear-gradient(160deg, rgb(245 248 252 / 96%), rgb(236 242 248 / 92%)),
-        radial-gradient(circle at top left, rgb(15 107 220 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top left,
+            rgb(15 107 220 / 8%),
+            transparent 34%
+        );
     box-shadow: 0 24px 54px rgb(15 23 32 / 9%);
 }
 
@@ -13328,7 +13768,11 @@ body[data-ops-tone='light'] .queue-operator-topbar {
     border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(245 249 253 / 94%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 9%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 9%),
+            transparent 34%
+        );
     box-shadow: 0 26px 48px rgb(15 23 32 / 8%);
 }
 
@@ -13350,7 +13794,8 @@ body[data-ops-tone='light'] .queue-operator-runtime-btn {
     transition:
         transform var(--ops-motion-fast, 180ms) var(--ops-ease-premium, ease),
         border-color var(--ops-motion-fast, 180ms) var(--ops-ease-premium, ease),
-        background-color var(--ops-motion-fast, 180ms) var(--ops-ease-premium, ease),
+        background-color var(--ops-motion-fast, 180ms)
+            var(--ops-ease-premium, ease),
         box-shadow var(--ops-motion-fast, 180ms) var(--ops-ease-premium, ease);
 }
 
@@ -13367,7 +13812,11 @@ body[data-ops-tone='light'] .queue-operator-status-card {
     border-color: color-mix(in srgb, #10233f 10%, #ffffff 90%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 95%), rgb(247 250 252 / 93%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 6%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 6%),
+            transparent 34%
+        );
     box-shadow: 0 18px 40px rgb(15 23 32 / 7%);
 }
 
@@ -13391,7 +13840,11 @@ body[data-ops-tone='light'] .queue-operator-status-card strong {
 body[data-ops-tone='light'] .queue-operator-keymap span {
     min-height: 56px;
     border-radius: 18px;
-    background: linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(240 246 255 / 90%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 255 255 / 94%),
+        rgb(240 246 255 / 90%)
+    );
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 75%);
 }
 
@@ -13399,7 +13852,11 @@ body[data-ops-tone='light'] .queue-operator-readiness-check {
     border-radius: 20px;
     background:
         linear-gradient(180deg, rgb(255 255 255 / 90%), rgb(246 250 253 / 88%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 4%), transparent 30%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 4%),
+            transparent 30%
+        );
 }
 
 body[data-ops-tone='light'] .queue-operator-workbench {
@@ -13415,7 +13872,11 @@ body[data-ops-tone='light'] .queue-operator-panel {
     border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 97%), rgb(247 250 252 / 94%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 8%),
+            transparent 34%
+        );
     box-shadow: 0 24px 48px rgb(15 23 32 / 8%);
 }
 
@@ -13452,7 +13913,9 @@ body[data-ops-tone='light'] .queue-operator-workbench > .queue-activity-panel {
         grid-template-columns: 1fr;
     }
 
-    body[data-ops-tone='light'] .queue-operator-workbench > .queue-activity-panel {
+    body[data-ops-tone='light']
+        .queue-operator-workbench
+        > .queue-activity-panel {
         position: static;
     }
 }
@@ -13513,7 +13976,8 @@ body[data-ops-tone='light'] .queue-operator-panel::before {
     pointer-events: none;
 }
 
-body[data-ops-tone='light'] .queue-premium-band[data-band='live-queue']::before {
+body[data-ops-tone='light']
+    .queue-premium-band[data-band='live-queue']::before {
     background: linear-gradient(
         90deg,
         rgb(15 118 110 / 82%),
@@ -13531,7 +13995,8 @@ body[data-ops-tone='light'] .queue-premium-band[data-band='incidents']::before {
     );
 }
 
-body[data-ops-tone='light'] .queue-premium-band[data-band='deployment']::before {
+body[data-ops-tone='light']
+    .queue-premium-band[data-band='deployment']::before {
     background: linear-gradient(
         90deg,
         rgb(58 71 86 / 82%),
@@ -13545,27 +14010,43 @@ body[data-ops-tone='light'] .queue-premium-band {
     border-radius: 34px;
     background:
         linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(245 248 251 / 95%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 5%), transparent 38%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 5%),
+            transparent 38%
+        );
     box-shadow: 0 22px 48px rgb(15 23 42 / 7%);
 }
 
 body[data-ops-tone='light'] .queue-premium-band[data-band='live-queue'] {
     background:
         linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(244 248 246 / 95%)),
-        radial-gradient(circle at top right, rgb(15 118 110 / 5%), transparent 38%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 118 110 / 5%),
+            transparent 38%
+        );
 }
 
 body[data-ops-tone='light'] .queue-premium-band[data-band='incidents'] {
     background:
         linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(248 247 243 / 95%)),
-        radial-gradient(circle at top right, rgb(161 98 7 / 5%), transparent 38%);
+        radial-gradient(
+            circle at top right,
+            rgb(161 98 7 / 5%),
+            transparent 38%
+        );
 }
 
 body[data-ops-tone='light'] .queue-premium-band[data-band='deployment'] {
     border-color: color-mix(in srgb, #465668 12%, #ffffff 88%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(245 247 250 / 95%)),
-        radial-gradient(circle at top right, rgb(70 86 104 / 5%), transparent 38%);
+        radial-gradient(
+            circle at top right,
+            rgb(70 86 104 / 5%),
+            transparent 38%
+        );
 }
 
 body[data-ops-tone='light']
@@ -13633,7 +14114,11 @@ body[data-ops-tone='light']
     border-color: rgb(16 35 63 / 8%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(247 249 252 / 94%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 3%), transparent 32%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 3%),
+            transparent 32%
+        );
     box-shadow: 0 14px 28px rgb(15 23 42 / 5%);
 }
 
@@ -13657,7 +14142,11 @@ body[data-ops-tone='light']
     ) {
     background:
         linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(248 247 243 / 94%)),
-        radial-gradient(circle at top right, rgb(161 98 7 / 4%), transparent 32%);
+        radial-gradient(
+            circle at top right,
+            rgb(161 98 7 / 4%),
+            transparent 32%
+        );
 }
 
 body[data-ops-tone='light']
@@ -13680,7 +14169,11 @@ body[data-ops-tone='light']
     ) {
     background:
         linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(246 248 250 / 94%)),
-        radial-gradient(circle at top right, rgb(70 86 104 / 4%), transparent 32%);
+        radial-gradient(
+            circle at top right,
+            rgb(70 86 104 / 4%),
+            transparent 32%
+        );
 }
 
 body[data-ops-tone='light']
@@ -13794,11 +14287,18 @@ body[data-ops-tone='light'] .queue-operator-panel .queue-admin-header-actions {
     min-width: min(100%, 420px);
 }
 
-body[data-ops-tone='light'] .queue-operator-panel .queue-admin-header-actions button {
+body[data-ops-tone='light']
+    .queue-operator-panel
+    .queue-admin-header-actions
+    button {
     min-height: 50px;
     border-radius: 18px;
     border: 1px solid rgb(16 35 63 / 10%);
-    background: linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(244 248 252 / 92%));
+    background: linear-gradient(
+        180deg,
+        rgb(255 255 255 / 96%),
+        rgb(244 248 252 / 92%)
+    );
     color: #152232;
     box-shadow: 0 12px 24px rgb(15 23 42 / 6%);
 }
@@ -13987,7 +14487,11 @@ body[data-ops-tone='light'] .queue-operations-stream {
     border-radius: 28px;
     background:
         linear-gradient(180deg, rgb(255 255 255 / 99%), rgb(243 246 249 / 96%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 4%), transparent 36%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 4%),
+            transparent 36%
+        );
     box-shadow: 0 20px 36px rgb(15 23 42 / 6%);
 }
 
@@ -14092,8 +14596,16 @@ body[data-ops-tone='light'] .queue-operations-stream__header p:last-child {
 
 body[data-ops-family='command'][data-ops-tone='dark'] {
     background:
-        radial-gradient(circle at top left, rgb(120 175 244 / 10%), transparent 26%),
-        radial-gradient(circle at bottom right, rgb(49 76 108 / 18%), transparent 28%),
+        radial-gradient(
+            circle at top left,
+            rgb(120 175 244 / 10%),
+            transparent 26%
+        ),
+        radial-gradient(
+            circle at bottom right,
+            rgb(49 76 108 / 18%),
+            transparent 28%
+        ),
         linear-gradient(180deg, #0a0d12 0%, #0e1319 100%);
     color: var(--text);
 }
@@ -14107,11 +14619,16 @@ body[data-ops-family='command'][data-ops-tone='dark'] .queue-operations-stream,
 body[data-ops-family='command'][data-ops-tone='dark'] .queue-activity-panel,
 body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-topbar,
 body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-panel,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-login-card,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-login-brief,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-guide-card,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-signal-card,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-status-card,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-login-card,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-login-brief,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-guide-card,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-signal-card,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-status-card,
 body[data-ops-family='command'][data-ops-tone='dark']
     .queue-operator-workbench
     > .queue-activity-panel {
@@ -14126,34 +14643,75 @@ body[data-ops-family='command'][data-ops-tone='dark'] .queue-apps-hub {
     border-radius: 34px;
     border-color: rgb(120 175 244 / 18%);
     background:
-        radial-gradient(circle at top left, rgb(120 175 244 / 12%), transparent 34%),
+        radial-gradient(
+            circle at top left,
+            rgb(120 175 244 / 12%),
+            transparent 34%
+        ),
         linear-gradient(145deg, rgb(15 22 30 / 97%), rgb(10 16 22 / 95%));
     box-shadow: 0 30px 60px rgb(0 0 0 / 32%);
 }
 
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-apps-hub__header h4,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-premium-heading__copy h3,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-premium-band__header h5,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operations-stream__header h4,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-topbar__copy h2,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-panel__hero h3,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-login-copy h1,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-login-brief h2 {
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-apps-hub__header
+    h4,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-premium-heading__copy
+    h3,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-premium-band__header
+    h5,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operations-stream__header
+    h4,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-topbar__copy
+    h2,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-panel__hero
+    h3,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-login-copy
+    h1,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-login-brief
+    h2 {
     color: #eef5fc;
 }
 
 body[data-ops-family='command'][data-ops-tone='dark'] .queue-apps-hub__header p,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-premium-heading__copy p:last-child,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-premium-band__header p:last-child,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operations-stream__header p:last-child,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-topbar__copy p:last-child,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-panel__hero p:last-child,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-clinic-meta,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-guide-card p,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-status-card p,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-signal-card p,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-login-copy p,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-login-brief p {
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-premium-heading__copy
+    p:last-child,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-premium-band__header
+    p:last-child,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operations-stream__header
+    p:last-child,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-topbar__copy
+    p:last-child,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-panel__hero
+    p:last-child,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-clinic-meta,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-guide-card
+    p,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-status-card
+    p,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-signal-card
+    p,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-login-copy
+    p,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-login-brief
+    p {
     color: rgb(201 214 228 / 76%);
 }
 
@@ -14161,33 +14719,51 @@ body[data-ops-family='command'][data-ops-tone='dark'] .queue-premium-band {
     border-radius: 30px;
 }
 
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-premium-band[data-band='control-room'] {
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-premium-band[data-band='control-room'] {
     border-color: rgb(120 175 244 / 20%);
 }
 
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-premium-band[data-band='live-queue'] {
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-premium-band[data-band='live-queue'] {
     border-color: rgb(79 192 138 / 18%);
     background:
-        radial-gradient(circle at top right, rgb(79 192 138 / 11%), transparent 34%),
+        radial-gradient(
+            circle at top right,
+            rgb(79 192 138 / 11%),
+            transparent 34%
+        ),
         linear-gradient(160deg, rgb(14 24 24 / 96%), rgb(10 18 18 / 94%));
 }
 
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-premium-band[data-band='incidents'] {
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-premium-band[data-band='incidents'] {
     border-color: rgb(239 194 110 / 18%);
     background:
-        radial-gradient(circle at top right, rgb(239 194 110 / 10%), transparent 34%),
+        radial-gradient(
+            circle at top right,
+            rgb(239 194 110 / 10%),
+            transparent 34%
+        ),
         linear-gradient(160deg, rgb(26 22 14 / 96%), rgb(20 17 11 / 94%));
 }
 
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-premium-band[data-band='deployment'] {
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-premium-band[data-band='deployment'] {
     border-color: rgb(152 126 255 / 16%);
     background:
-        radial-gradient(circle at top right, rgb(152 126 255 / 11%), transparent 34%),
+        radial-gradient(
+            circle at top right,
+            rgb(152 126 255 / 11%),
+            transparent 34%
+        ),
         linear-gradient(160deg, rgb(21 18 29 / 96%), rgb(16 13 23 / 94%));
 }
 
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-premium-band__eyebrow,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-shortcut-panel__eyebrow {
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-premium-band__eyebrow,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-shortcut-panel__eyebrow {
     color: #9ac5ff;
 }
 
@@ -14209,19 +14785,33 @@ body[data-ops-family='command'][data-ops-tone='dark']
     color: #bfa8ff;
 }
 
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-station-bar__meta span,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-shortcut-panel__grid p {
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-station-bar__meta
+    span,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-shortcut-panel__grid
+    p {
     border: 1px solid rgb(255 255 255 / 10%);
     background: rgb(255 255 255 / 5%);
     color: #dce8f7;
 }
 
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-secondary-btn,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-runtime-btn,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-login-card button,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-panel button,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-activity-panel button,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-sensitive-confirm-dialog button {
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-secondary-btn,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-runtime-btn,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-login-card
+    button,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-panel
+    button,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-activity-panel
+    button,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-sensitive-confirm-dialog
+    button {
     border-color: rgb(255 255 255 / 12%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 7%), rgb(255 255 255 / 2%)),
@@ -14229,17 +14819,28 @@ body[data-ops-family='command'][data-ops-tone='dark'] .queue-sensitive-confirm-d
     color: #eef5fc;
 }
 
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-secondary-btn:hover,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-runtime-btn:hover,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-login-card button:hover,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-panel button:hover,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-activity-panel button:hover {
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-secondary-btn:hover,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-runtime-btn:hover,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-login-card
+    button:hover,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-panel
+    button:hover,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-activity-panel
+    button:hover {
     border-color: rgb(120 175 244 / 34%);
     transform: translateY(-1px);
 }
 
-body[data-ops-family='command'][data-ops-tone='dark'] button[data-action='queue-call-next'],
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-admin-header-actions button[data-action='queue-call-next'] {
+body[data-ops-family='command'][data-ops-tone='dark']
+    button[data-action='queue-call-next'],
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-admin-header-actions
+    button[data-action='queue-call-next'] {
     border-color: rgb(120 175 244 / 28%);
     background:
         linear-gradient(180deg, rgb(120 175 244 / 22%), rgb(120 175 244 / 12%)),
@@ -14299,25 +14900,42 @@ body[data-ops-family='command'][data-ops-tone='dark'] .sony-table td {
     border-color: rgb(255 255 255 / 9%);
 }
 
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-login-shell,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-login-shell,
 body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-app {
     background:
-        radial-gradient(circle at top left, rgb(120 175 244 / 11%), transparent 25%),
+        radial-gradient(
+            circle at top left,
+            rgb(120 175 244 / 11%),
+            transparent 25%
+        ),
         linear-gradient(180deg, #0a0d12 0%, #0e1319 100%);
 }
 
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-keymap span,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-readiness-check,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-profile-status {
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-keymap
+    span,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-readiness-check,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-profile-status {
     border-color: rgb(255 255 255 / 10%);
     background: rgb(255 255 255 / 5%);
     color: #dce8f7;
 }
 
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-login-card input,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-login-card select,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-panel input,
-body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-panel select {
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-login-card
+    input,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-login-card
+    select,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-panel
+    input,
+body[data-ops-family='command'][data-ops-tone='dark']
+    .queue-operator-panel
+    select {
     border-color: rgb(255 255 255 / 10%);
     background: rgb(8 13 19 / 92%);
     color: #eef5fc;
@@ -14353,8 +14971,16 @@ body[data-ops-family='command'][data-ops-tone='dark'] .queue-operator-panel sele
 /* Sony showroom clear polish: calmer hierarchy, sharper CTA, denser command rhythm. */
 body[data-ops-family='command'][data-ops-tone='light'] {
     background:
-        radial-gradient(circle at top left, rgb(53 105 147 / 16%), transparent 24%),
-        radial-gradient(circle at top right, rgb(223 229 236 / 72%), transparent 30%),
+        radial-gradient(
+            circle at top left,
+            rgb(53 105 147 / 16%),
+            transparent 24%
+        ),
+        radial-gradient(
+            circle at top right,
+            rgb(223 229 236 / 72%),
+            transparent 30%
+        ),
         linear-gradient(180deg, #edf1f5 0%, #e5ebf0 100%);
     color: var(--text);
 }
@@ -14365,7 +14991,11 @@ body[data-ops-family='command'][data-ops-tone='light'] .queue-apps-hub {
     border-color: rgb(16 35 63 / 9%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 99%), rgb(241 245 249 / 96%)),
-        radial-gradient(circle at top left, rgb(53 105 147 / 13%), transparent 36%);
+        radial-gradient(
+            circle at top left,
+            rgb(53 105 147 / 13%),
+            transparent 36%
+        );
     box-shadow: 0 30px 64px rgb(18 31 48 / 12%);
 }
 
@@ -14373,35 +15003,78 @@ body[data-ops-family='command'][data-ops-tone='light'] .queue-apps-hub__header {
     gap: 0.78rem;
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-apps-hub__header h4,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-premium-heading__copy h3,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-premium-band__header h5,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operations-stream__header h4,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-topbar__copy h2,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-panel__hero h3,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-login-copy h1,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-login-brief h2 {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-apps-hub__header
+    h4,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-premium-heading__copy
+    h3,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-premium-band__header
+    h5,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operations-stream__header
+    h4,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-topbar__copy
+    h2,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-panel__hero
+    h3,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-login-copy
+    h1,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-login-brief
+    h2 {
     color: #142637;
     letter-spacing: 0.012em;
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-apps-hub__header h4,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-premium-heading__copy h3 {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-apps-hub__header
+    h4,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-premium-heading__copy
+    h3 {
     font-size: clamp(1.34rem, 1.9vw, 1.72rem);
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-apps-hub__header p,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-premium-heading__copy p:last-child,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-premium-band__header p:last-child,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operations-stream__header p:last-child,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-topbar__copy p:last-child,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-panel__hero p:last-child,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-clinic-meta,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-guide-card p,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-status-card p,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-signal-card p,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-login-copy p,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-login-brief p {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-apps-hub__header
+    p,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-premium-heading__copy
+    p:last-child,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-premium-band__header
+    p:last-child,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operations-stream__header
+    p:last-child,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-topbar__copy
+    p:last-child,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-panel__hero
+    p:last-child,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-clinic-meta,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-guide-card
+    p,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-status-card
+    p,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-signal-card
+    p,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-login-copy
+    p,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-login-brief
+    p {
     color: #56677a;
 }
 
@@ -14417,15 +15090,24 @@ body[data-ops-family='command'][data-ops-tone='light'] .queue-operations-stream,
 body[data-ops-family='command'][data-ops-tone='light'] .queue-activity-panel,
 body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-topbar,
 body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-panel,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-login-card,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-login-brief,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-guide-card,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-signal-card,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-status-card {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-login-card,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-login-brief,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-guide-card,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-signal-card,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-status-card {
     border-color: rgb(16 35 63 / 8%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 99%), rgb(244 247 250 / 95%)),
-        radial-gradient(circle at top right, rgb(53 105 147 / 8%), transparent 40%);
+        radial-gradient(
+            circle at top right,
+            rgb(53 105 147 / 8%),
+            transparent 40%
+        );
     box-shadow: 0 24px 54px rgb(18 31 48 / 9%);
 }
 
@@ -14434,55 +15116,92 @@ body[data-ops-family='command'][data-ops-tone='light'] .queue-premium-band {
     padding: clamp(0.98rem, 1.8vw, 1.22rem);
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-premium-band[data-band='control-room'] {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-premium-band[data-band='control-room'] {
     background:
         linear-gradient(180deg, rgb(255 255 255 / 99%), rgb(242 246 249 / 95%)),
-        radial-gradient(circle at top right, rgb(53 105 147 / 10%), transparent 38%);
+        radial-gradient(
+            circle at top right,
+            rgb(53 105 147 / 10%),
+            transparent 38%
+        );
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-premium-band[data-band='live-queue'] {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-premium-band[data-band='live-queue'] {
     background:
         linear-gradient(180deg, rgb(255 255 255 / 99%), rgb(243 248 246 / 95%)),
-        radial-gradient(circle at top right, rgb(28 119 103 / 8%), transparent 38%);
+        radial-gradient(
+            circle at top right,
+            rgb(28 119 103 / 8%),
+            transparent 38%
+        );
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-premium-band[data-band='incidents'] {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-premium-band[data-band='incidents'] {
     background:
         linear-gradient(180deg, rgb(255 255 255 / 99%), rgb(248 246 241 / 95%)),
-        radial-gradient(circle at top right, rgb(167 111 22 / 8%), transparent 38%);
+        radial-gradient(
+            circle at top right,
+            rgb(167 111 22 / 8%),
+            transparent 38%
+        );
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-premium-band[data-band='deployment'] {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-premium-band[data-band='deployment'] {
     background:
         linear-gradient(180deg, rgb(255 255 255 / 99%), rgb(244 246 249 / 95%)),
-        radial-gradient(circle at top right, rgb(73 91 111 / 7%), transparent 38%);
+        radial-gradient(
+            circle at top right,
+            rgb(73 91 111 / 7%),
+            transparent 38%
+        );
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-premium-band__header,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operations-stream__header,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-panel__hero {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-premium-band__header,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operations-stream__header,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-panel__hero {
     padding-bottom: 0.78rem;
     border-bottom: 1px solid rgb(16 35 63 / 8%);
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-premium-band__eyebrow,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-shortcut-panel__eyebrow,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-apps-hub__header span {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-premium-band__eyebrow,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-shortcut-panel__eyebrow,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-apps-hub__header
+    span {
     color: #3e6284;
     font-weight: 800;
     letter-spacing: 0.17em;
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-premium-band__grid,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-workbench {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-premium-band__grid,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-workbench {
     gap: 0.9rem;
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-station-bar__meta span,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-shortcut-panel__grid p,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-keymap span,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-readiness-check,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-profile-status {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-station-bar__meta
+    span,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-shortcut-panel__grid
+    p,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-keymap
+    span,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-readiness-check,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-profile-status {
     border-color: rgb(16 35 63 / 10%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 95%), rgb(241 245 248 / 92%)),
@@ -14491,17 +15210,24 @@ body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-profile-s
     color: #17324a;
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-shortcut-panel__grid p {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-shortcut-panel__grid
+    p {
     min-height: 52px;
     align-content: start;
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operations-stream {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operations-stream {
     padding: 0.98rem;
     border-radius: 30px;
     background:
         linear-gradient(180deg, rgb(255 255 255 / 99%), rgb(242 246 249 / 95%)),
-        radial-gradient(circle at top right, rgb(53 105 147 / 6%), transparent 40%);
+        radial-gradient(
+            circle at top right,
+            rgb(53 105 147 / 6%),
+            transparent 40%
+        );
     box-shadow: 0 24px 52px rgb(18 31 48 / 8%);
 }
 
@@ -14540,7 +15266,11 @@ body[data-ops-family='command'][data-ops-tone='light']
     border-color: rgb(16 35 63 / 8%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 97%), rgb(244 247 250 / 93%)),
-        radial-gradient(circle at top right, rgb(53 105 147 / 4%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(53 105 147 / 4%),
+            transparent 34%
+        );
     box-shadow: 0 14px 28px rgb(18 31 48 / 6%);
 }
 
@@ -14566,13 +15296,25 @@ body[data-ops-family='command'][data-ops-tone='light'] .sony-table th {
     text-transform: uppercase;
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-admin-table tbody tr:nth-child(2n),
-body[data-ops-family='command'][data-ops-tone='light'] .sony-table tbody tr:nth-child(2n) {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-admin-table
+    tbody
+    tr:nth-child(2n),
+body[data-ops-family='command'][data-ops-tone='light']
+    .sony-table
+    tbody
+    tr:nth-child(2n) {
     background: rgb(255 255 255 / 42%);
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-admin-table tbody tr:hover,
-body[data-ops-family='command'][data-ops-tone='light'] .sony-table tbody tr:hover {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-admin-table
+    tbody
+    tr:hover,
+body[data-ops-family='command'][data-ops-tone='light']
+    .sony-table
+    tbody
+    tr:hover {
     background: rgb(53 105 147 / 6%);
 }
 
@@ -14580,27 +15322,43 @@ body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-topbar {
     margin-bottom: 0.82rem;
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-panel__hero {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-panel__hero {
     align-items: flex-end;
     gap: 0.82rem;
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-panel .queue-admin-header-actions {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-panel
+    .queue-admin-header-actions {
     gap: 0.56rem;
     align-items: center;
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-panel .queue-admin-header-actions button {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-panel
+    .queue-admin-header-actions
+    button {
     min-height: 48px;
     border-radius: 15px;
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-secondary-btn,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-runtime-btn,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-login-card button,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-panel button,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-activity-panel button,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-sensitive-confirm-dialog button {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-secondary-btn,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-runtime-btn,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-login-card
+    button,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-panel
+    button,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-activity-panel
+    button,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-sensitive-confirm-dialog
+    button {
     border-color: rgb(16 35 63 / 10%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(241 245 248 / 94%)),
@@ -14609,24 +15367,36 @@ body[data-ops-family='command'][data-ops-tone='light'] .queue-sensitive-confirm-
     box-shadow: 0 10px 20px rgb(18 31 48 / 6%);
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-secondary-btn:hover,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-runtime-btn:hover,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-login-card button:hover,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-operator-panel button:hover,
-body[data-ops-family='command'][data-ops-tone='light'] .queue-activity-panel button:hover {
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-secondary-btn:hover,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-runtime-btn:hover,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-login-card
+    button:hover,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-operator-panel
+    button:hover,
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-activity-panel
+    button:hover {
     border-color: rgb(27 74 114 / 22%);
     box-shadow: 0 14px 26px rgb(23 58 93 / 10%);
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] button[data-action='queue-call-next'],
-body[data-ops-family='command'][data-ops-tone='light'] .queue-admin-header-actions button[data-action='queue-call-next'] {
+body[data-ops-family='command'][data-ops-tone='light']
+    button[data-action='queue-call-next'],
+body[data-ops-family='command'][data-ops-tone='light']
+    .queue-admin-header-actions
+    button[data-action='queue-call-next'] {
     border-color: rgb(27 74 114 / 26%);
     background: linear-gradient(180deg, #2f5b83, #173a5d);
     color: #f4f9fd;
     box-shadow: 0 18px 32px rgb(23 58 93 / 22%);
 }
 
-body[data-ops-family='command'][data-ops-tone='light'] button[data-action='queue-call-next']:hover,
+body[data-ops-family='command'][data-ops-tone='light']
+    button[data-action='queue-call-next']:hover,
 body[data-ops-family='command'][data-ops-tone='light']
     .queue-admin-header-actions
     button[data-action='queue-call-next']:hover {
@@ -14658,7 +15428,11 @@ body[data-ops-family='command'][data-ops-tone='light']
     border: 1px solid color-mix(in srgb, #10233f 12%, #ffffff 88%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(244 248 252 / 90%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 6%), transparent 32%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 6%),
+            transparent 32%
+        );
     box-shadow: 0 12px 28px rgb(15 23 42 / 6%);
 }
 
@@ -14666,7 +15440,11 @@ body[data-ops-family='command'][data-ops-tone='light']
     border-color: color-mix(in srgb, #ca8a04 18%, #ffffff 82%);
     background:
         linear-gradient(180deg, rgb(255 251 242 / 96%), rgb(255 248 233 / 92%)),
-        radial-gradient(circle at top right, rgb(202 138 4 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(202 138 4 / 8%),
+            transparent 34%
+        );
 }
 
 .turnero-surface-sync-banner[data-state='degraded'],
@@ -14674,7 +15452,11 @@ body[data-ops-family='command'][data-ops-tone='light']
     border-color: color-mix(in srgb, #dc2626 16%, #ffffff 84%);
     background:
         linear-gradient(180deg, rgb(255 244 244 / 96%), rgb(255 238 238 / 92%)),
-        radial-gradient(circle at top right, rgb(220 38 38 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(220 38 38 / 8%),
+            transparent 34%
+        );
 }
 
 .turnero-surface-sync-banner__copy {
@@ -14761,7 +15543,11 @@ body[data-ops-family='command'][data-ops-tone='light']
     border: 1px solid color-mix(in srgb, #0f6bdc 16%, #ffffff 84%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(247 250 255 / 92%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 8%),
+            transparent 34%
+        );
     box-shadow: 0 16px 32px rgb(15 23 42 / 6%);
 }
 
@@ -14769,7 +15555,11 @@ body[data-ops-family='command'][data-ops-tone='light']
     border-color: color-mix(in srgb, #ca8a04 18%, #ffffff 82%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(255 249 236 / 92%)),
-        radial-gradient(circle at top right, rgb(202 138 4 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(202 138 4 / 8%),
+            transparent 34%
+        );
 }
 
 .turnero-surface-recovery-banner[data-state='degraded'],
@@ -14777,7 +15567,11 @@ body[data-ops-family='command'][data-ops-tone='light']
     border-color: color-mix(in srgb, #dc2626 18%, #ffffff 82%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(255 245 245 / 92%)),
-        radial-gradient(circle at top right, rgb(220 38 38 / 8%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(220 38 38 / 8%),
+            transparent 34%
+        );
 }
 
 .turnero-surface-recovery-banner__copy {
@@ -14821,13 +15615,16 @@ body[data-ops-family='command'][data-ops-tone='light']
     white-space: nowrap;
 }
 
-.turnero-surface-recovery-banner[data-state='watch'] .turnero-surface-recovery-banner__badge {
+.turnero-surface-recovery-banner[data-state='watch']
+    .turnero-surface-recovery-banner__badge {
     background: rgb(202 138 4 / 10%);
     color: #8a5a00;
 }
 
-.turnero-surface-recovery-banner[data-state='degraded'] .turnero-surface-recovery-banner__badge,
-.turnero-surface-recovery-banner[data-state='blocked'] .turnero-surface-recovery-banner__badge {
+.turnero-surface-recovery-banner[data-state='degraded']
+    .turnero-surface-recovery-banner__badge,
+.turnero-surface-recovery-banner[data-state='blocked']
+    .turnero-surface-recovery-banner__badge {
     background: rgb(220 38 38 / 10%);
     color: #9f1239;
 }
@@ -14846,7 +15643,11 @@ body[data-ops-family='command'][data-ops-tone='light']
     border: 1px solid color-mix(in srgb, #10233f 10%, #ffffff 90%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(246 249 253 / 90%)),
-        radial-gradient(circle at top right, rgb(15 107 220 / 6%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 6%),
+            transparent 34%
+        );
     box-shadow: 0 18px 36px rgb(15 23 42 / 6%);
 }
 
@@ -14923,8 +15724,10 @@ body[data-ops-family='command'][data-ops-tone='light']
     border-color: color-mix(in srgb, #ca8a04 18%, #ffffff 82%);
 }
 
-.turnero-admin-queue-surface-sync-console__metrics article[data-state='degraded'],
-.turnero-admin-queue-surface-sync-console__metrics article[data-state='blocked'],
+.turnero-admin-queue-surface-sync-console__metrics
+    article[data-state='degraded'],
+.turnero-admin-queue-surface-sync-console__metrics
+    article[data-state='blocked'],
 .turnero-admin-queue-surface-sync-console__surface[data-state='degraded'],
 .turnero-admin-queue-surface-sync-console__surface[data-state='blocked'] {
     border-color: color-mix(in srgb, #dc2626 18%, #ffffff 82%);
@@ -15028,7 +15831,11 @@ body[data-ops-family='command'][data-ops-tone='light']
     border: 1px solid color-mix(in srgb, #a16207 12%, #ffffff 88%);
     background:
         linear-gradient(180deg, rgb(255 255 255 / 94%), rgb(255 250 244 / 92%)),
-        radial-gradient(circle at top right, rgb(202 138 4 / 7%), transparent 34%);
+        radial-gradient(
+            circle at top right,
+            rgb(202 138 4 / 7%),
+            transparent 34%
+        );
     box-shadow: 0 18px 36px rgb(15 23 42 / 6%);
 }
 
@@ -15102,14 +15909,17 @@ body[data-ops-family='command'][data-ops-tone='light']
     background: rgb(255 255 255 / 88%);
 }
 
-.turnero-admin-queue-surface-recovery-console__metrics article[data-state='watch'],
+.turnero-admin-queue-surface-recovery-console__metrics
+    article[data-state='watch'],
 .turnero-admin-queue-surface-recovery-console__surface[data-state='watch'],
 .turnero-admin-queue-surface-recovery-console__action[data-state='watch'] {
     border-color: color-mix(in srgb, #ca8a04 18%, #ffffff 82%);
 }
 
-.turnero-admin-queue-surface-recovery-console__metrics article[data-state='degraded'],
-.turnero-admin-queue-surface-recovery-console__metrics article[data-state='blocked'],
+.turnero-admin-queue-surface-recovery-console__metrics
+    article[data-state='degraded'],
+.turnero-admin-queue-surface-recovery-console__metrics
+    article[data-state='blocked'],
 .turnero-admin-queue-surface-recovery-console__surface[data-state='degraded'],
 .turnero-admin-queue-surface-recovery-console__surface[data-state='blocked'],
 .turnero-admin-queue-surface-recovery-console__action[data-state='degraded'],
@@ -15260,5 +16070,354 @@ body[data-ops-family='command'][data-ops-tone='light']
 @media (max-width: 960px) {
     .turnero-admin-queue-surface-sync-console__handoff {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Operator simplification layer: keeps the existing runtime contracts but
+   promotes a clearer, larger, lower-noise interface for reception use. */
+.queue-operator-body .queue-operator-login-shell,
+.queue-operator-body .queue-operator-app {
+    width: min(1360px, calc(100vw - 1.5rem));
+    padding: 1rem 0 2rem;
+}
+
+.queue-operator-body .queue-operator-login-stage {
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.82fr);
+    gap: 1.2rem;
+}
+
+.queue-operator-body .queue-operator-login-copy,
+.queue-operator-body .queue-operator-topbar__copy,
+.queue-operator-body .queue-operator-support__summary-copy {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.queue-operator-body .queue-operator-login-copy h1 {
+    font-size: clamp(2.15rem, 4vw, 3.05rem);
+    line-height: 1.08;
+}
+
+.queue-operator-body .queue-operator-topbar__copy h2,
+.queue-operator-body .queue-operator-guide-card h3,
+.queue-operator-body .queue-operator-status-card strong,
+.queue-operator-body .queue-operator-panel__hero h3 {
+    font-size: clamp(1.45rem, 2.6vw, 2rem);
+    line-height: 1.12;
+}
+
+.queue-operator-body .queue-operator-login-copy p,
+.queue-operator-body .queue-operator-topbar__copy p,
+.queue-operator-body .queue-operator-login-brief__grid p,
+.queue-operator-body .queue-operator-status-card p,
+.queue-operator-body .queue-operator-panel__hero p,
+.queue-operator-body .queue-operator-support__summary-copy small,
+.queue-operator-body .queue-operator-signal-card small,
+.queue-operator-body .queue-operator-aside-copy,
+.queue-operator-body .queue-shortcut-panel__grid p {
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.queue-operator-body .queue-operator-clinic-meta,
+.queue-operator-body .queue-operator-profile-status {
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.queue-operator-body .queue-operator-kicker,
+.queue-operator-body .queue-operator-login-brief__grid span,
+.queue-operator-body .queue-operator-signal-card span,
+.queue-operator-body .queue-operator-readiness-check span,
+.queue-operator-body .queue-shortcut-panel__eyebrow {
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: none;
+}
+
+.queue-operator-body .queue-operator-priority-grid {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.05fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.queue-operator-body .queue-operator-guide-card--primary,
+.queue-operator-body .queue-operator-status-card--primary {
+    min-height: 100%;
+    padding: 1.2rem 1.3rem;
+}
+
+.queue-operator-body .queue-operator-readiness-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.22fr) minmax(300px, 0.78fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.queue-operator-body .queue-operator-readiness-card,
+.queue-operator-body .queue-operator-guide-card--map {
+    min-height: 100%;
+    padding: 1.15rem 1.25rem;
+}
+
+.queue-operator-body .queue-operator-readiness-checks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.queue-operator-body .queue-operator-readiness-check {
+    min-height: 108px;
+    padding: 1rem 1.05rem;
+}
+
+.queue-operator-body .queue-operator-readiness-check strong {
+    font-size: 1.05rem;
+    line-height: 1.45;
+}
+
+.queue-operator-body .queue-operator-keymap span,
+.queue-operator-body .queue-operator-numpad-chip {
+    min-height: 68px;
+    padding: 0.85rem 1rem;
+    border-radius: 18px;
+}
+
+.queue-operator-body .queue-operator-numpad-chip__label,
+.queue-operator-body .queue-operator-numpad-chip__state {
+    font-size: 0.98rem;
+}
+
+.queue-operator-body .queue-operator-topbar,
+.queue-operator-body .queue-operator-panel,
+.queue-operator-body .queue-operator-login-card,
+.queue-operator-body .queue-operator-login-brief,
+.queue-operator-body .queue-operator-guide-card,
+.queue-operator-body .queue-operator-status-card,
+.queue-operator-body .queue-operator-workbench > .queue-activity-panel,
+.queue-operator-body .queue-operator-support {
+    border-radius: 28px;
+}
+
+.queue-operator-body .queue-operator-topbar__actions,
+.queue-operator-body .queue-admin-header-actions,
+.queue-operator-body .queue-station-bar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.queue-operator-body .queue-admin-header-actions {
+    justify-content: flex-end;
+}
+
+.queue-operator-body .queue-operator-secondary-btn,
+.queue-operator-body .queue-operator-runtime-btn,
+.queue-operator-body .queue-operator-panel button,
+.queue-operator-body .queue-station-bar__actions > *,
+.queue-operator-body .admin-login-actions button,
+.queue-operator-body .sony-login-reset {
+    min-height: 54px;
+    padding: 0.9rem 1.15rem;
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.queue-operator-body .queue-operator-workbench {
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.queue-operator-body .queue-operator-panel {
+    padding: 1.15rem 1.2rem;
+}
+
+.queue-operator-body .queue-operator-panel__hero {
+    align-items: center;
+    gap: 1rem;
+}
+
+.queue-operator-body .queue-operator-panel__hero p:last-child {
+    max-width: 60ch;
+}
+
+.queue-operator-body .sony-grid.sony-grid-kpi.slim {
+    gap: 0.8rem;
+}
+
+.queue-operator-body .sony-grid.sony-grid-kpi.slim .sony-kpi {
+    padding: 1rem;
+    border-radius: 22px;
+}
+
+.queue-operator-body .sony-grid.sony-grid-kpi.slim .sony-kpi h4 {
+    font-size: 0.92rem;
+}
+
+.queue-operator-body .sony-grid.sony-grid-kpi.slim .sony-kpi strong {
+    font-size: 1.32rem;
+}
+
+.queue-operator-body .queue-operator-support {
+    margin-top: 0.25rem;
+    border: 1px solid color-mix(in srgb, #10233f 12%, #ffffff 88%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 97%), rgb(245 249 252 / 94%)),
+        radial-gradient(
+            circle at top right,
+            rgb(15 107 220 / 7%),
+            transparent 34%
+        );
+    box-shadow: 0 24px 48px rgb(15 23 32 / 8%);
+    overflow: hidden;
+}
+
+.queue-operator-body .queue-operator-support > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.queue-operator-body .queue-operator-support > summary::-webkit-details-marker {
+    display: none;
+}
+
+.queue-operator-body .queue-operator-support__summary-copy strong {
+    font-size: 1.16rem;
+    color: #10233f;
+}
+
+.queue-operator-body .queue-operator-support__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    background: rgb(15 107 220 / 10%);
+    color: #0f4a93;
+    font-size: 0.92rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.queue-operator-body .queue-operator-support__body {
+    display: grid;
+    gap: 1rem;
+    padding: 0 1.15rem 1.15rem;
+}
+
+.queue-operator-body
+    .queue-operator-support[data-state='warning']
+    .queue-operator-support__toggle {
+    background: rgb(166 107 20 / 12%);
+    color: #7a4a08;
+}
+
+.queue-operator-body
+    .queue-operator-support[data-state='danger']
+    .queue-operator-support__toggle {
+    background: rgb(176 63 56 / 12%);
+    color: #922b25;
+}
+
+.queue-operator-body .queue-operator-support .queue-operator-signal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.85rem;
+    margin: 0;
+}
+
+.queue-operator-body .queue-operator-support .queue-operator-signal-card {
+    min-height: 100%;
+    padding: 1rem 1.05rem;
+}
+
+.queue-operator-body
+    .queue-operator-support
+    .queue-operator-signal-card
+    strong {
+    font-size: 1.16rem;
+    line-height: 1.35;
+}
+
+.queue-operator-body .queue-station-bar {
+    padding: 1rem;
+    border-radius: 22px;
+}
+
+.queue-operator-body .queue-station-bar__meta span {
+    min-height: 40px;
+    padding: 0.4rem 0.82rem;
+    font-size: 0.95rem;
+}
+
+.queue-operator-body .queue-shortcut-panel {
+    padding: 1rem 1.05rem;
+    border-radius: 22px;
+}
+
+.queue-operator-body .queue-operations-stream__header p,
+.queue-operator-body .queue-triage-toolbar__meta p,
+.queue-operator-body .queue-triage-toolbar__filters button,
+.queue-operator-body .queue-triage-toolbar__filters input,
+.queue-operator-body .queue-activity-panel,
+.queue-operator-body .queue-sensitive-confirm-dialog {
+    font-size: 1rem;
+}
+
+.queue-operator-body
+    :is(
+        .queue-operator-secondary-btn,
+        .queue-operator-runtime-btn,
+        .queue-operator-panel button,
+        .queue-station-bar__actions > *,
+        .admin-login-actions button,
+        .sony-login-reset,
+        .queue-operator-support > summary
+    ):focus-visible {
+    outline: 3px solid #0f6bdc;
+    outline-offset: 3px;
+}
+
+@media (max-width: 1100px) {
+    .queue-operator-body .queue-operator-priority-grid,
+    .queue-operator-body .queue-operator-readiness-grid,
+    .queue-operator-body .queue-operator-workbench,
+    .queue-operator-body .queue-operator-login-stage {
+        grid-template-columns: 1fr;
+    }
+
+    .queue-operator-body .queue-admin-header-actions {
+        justify-content: stretch;
+    }
+
+    .queue-operator-body .queue-admin-header-actions > *,
+    .queue-operator-body .queue-operator-topbar__actions > * {
+        flex: 1 1 220px;
+    }
+}
+
+@media (max-width: 720px) {
+    .queue-operator-body .queue-operator-readiness-checks {
+        grid-template-columns: 1fr;
+    }
+
+    .queue-operator-body .queue-operator-topbar__actions,
+    .queue-operator-body .queue-admin-header-actions,
+    .queue-operator-body .queue-station-bar__actions {
+        flex-direction: column;
+    }
+
+    .queue-operator-body .queue-operator-support > summary {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }

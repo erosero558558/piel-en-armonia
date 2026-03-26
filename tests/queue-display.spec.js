@@ -158,7 +158,7 @@ test.describe('Sala turnos display', () => {
             'Bloqueado · perfil de respaldo'
         );
         await expect(page.locator('#displaySetupChecks')).toContainText(
-            'perfil de respaldo'
+            'clinic-profile.json'
         );
         await expect(page.locator('#displayAnnouncement')).toContainText(
             'Pantalla bloqueada'
@@ -209,6 +209,13 @@ test.describe('Sala turnos display', () => {
         });
 
         await page.goto('/sala-turnos.html');
+        await expect(page.locator('#displaySupportShell')).toHaveAttribute(
+            'open',
+            ''
+        );
+        await expect(page.locator('#displaySetupTitle')).toContainText(
+            'Falta habilitar audio'
+        );
 
         await expect(page.locator('#displayConsultorio1')).toContainText(
             'A-051'
@@ -219,7 +226,7 @@ test.describe('Sala turnos display', () => {
         await expect(page.locator('#displayNextList li')).toHaveCount(2);
         await expect(page.locator('#displayNextList')).toContainText('A-053');
         await expect(page.locator('#displayConnectionState')).toContainText(
-            'Conectado'
+            'Sala conectada'
         );
     });
 
@@ -305,7 +312,7 @@ test.describe('Sala turnos display', () => {
                     .textContent();
                 return text || '';
             })
-            .toContain('Conectado');
+            .toContain('Sala conectada');
         await expect
             .poll(async () => {
                 const text = await page
@@ -507,7 +514,7 @@ test.describe('Sala turnos display', () => {
         );
         await page.locator('#displayBellTestBtn').click();
         await expect(page.locator('#displaySetupTitle')).toContainText(
-            'Sala TV lista para llamados'
+            'Pantalla lista para operar'
         );
         await expect(page.locator('#displaySetupChecks')).toContainText(
             'Audio desbloqueado'
@@ -789,9 +796,11 @@ test.describe('Sala turnos display', () => {
             page.locator('[data-turnero-display-surface-service-handover="true"]')
         ).toBeVisible();
         await expect(
-            page.locator(
-                '[data-turnero-display-surface-service-handover="true"] .turnero-surface-service-handover-banner'
-            )
+            page
+                .locator(
+                    '[data-turnero-display-surface-service-handover="true"] [data-role="banner"]'
+                )
+                .first()
         ).toContainText('Display surface service handover');
         await expect(
             page.locator(

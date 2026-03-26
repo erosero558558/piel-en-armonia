@@ -1065,6 +1065,231 @@ body.admin-v3-mode .dashboard-home-card button:hover {
     border-color: rgba(255, 255, 255, 0.2);
 }
 
+body.admin-v3-mode .queue-simple-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+body.admin-v3-mode .queue-simple-heading__copy {
+    display: grid;
+    gap: 6px;
+    max-width: 54rem;
+}
+
+body.admin-v3-mode .queue-simple-heading__copy h3,
+body.admin-v3-mode .queue-simple-heading__copy p {
+    margin: 0;
+}
+
+body.admin-v3-mode .queue-simple-heading__copy p {
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .queue-ops-console-summary,
+body.admin-v3-mode .queue-admin-header-actions {
+    display: flex;
+}
+
+body.admin-v3-mode .queue-admin-header-actions {
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+body.admin-v3-mode .queue-admin-header-actions button {
+    width: fit-content;
+}
+
+body.admin-v3-mode .queue-ops-console-summary,
+body.admin-v3-mode .queue-station-shell,
+body.admin-v3-mode .queue-apps-hub,
+body.admin-v3-mode .queue-shortcut-panel {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border-radius: 22px;
+    border: 1px solid var(--admin3-line);
+    background: var(--admin3-surface-alt);
+    margin-top: 16px;
+}
+
+body.admin-v3-mode .queue-ops-console-summary__header,
+body.admin-v3-mode .queue-station-shell__header,
+body.admin-v3-mode .queue-apps-hub__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+body.admin-v3-mode .queue-ops-console-summary__header h4,
+body.admin-v3-mode .queue-ops-console-summary__header p,
+body.admin-v3-mode .queue-station-shell__header h4,
+body.admin-v3-mode .queue-station-shell__header p,
+body.admin-v3-mode .queue-apps-hub__header h4,
+body.admin-v3-mode .queue-apps-hub__header p {
+    margin: 0;
+}
+
+body.admin-v3-mode .queue-ops-console-summary__header p,
+body.admin-v3-mode .queue-station-shell__header p,
+body.admin-v3-mode .queue-apps-hub__header p {
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .queue-ops-console-summary__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+body.admin-v3-mode .queue-ops-console-summary__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--admin3-line);
+    background: rgba(255, 255, 255, 0.68);
+    color: var(--admin3-ink);
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+body.admin-v3-mode .queue-ops-console-summary__chip[data-state='ready'] {
+    color: var(--admin3-success);
+    border-color: rgba(31, 122, 79, 0.24);
+    background: rgba(31, 122, 79, 0.08);
+}
+
+body.admin-v3-mode .queue-ops-console-summary__chip[data-state='watch'] {
+    color: var(--admin3-warning);
+    border-color: rgba(157, 106, 16, 0.24);
+    background: rgba(157, 106, 16, 0.08);
+}
+
+body.admin-v3-mode .queue-ops-console-summary__chip[data-state='attention'] {
+    color: var(--admin3-danger);
+    border-color: rgba(163, 53, 43, 0.24);
+    background: rgba(163, 53, 43, 0.08);
+}
+
+body.admin-v3-mode .queue-ops-console-summary__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+body.admin-v3-mode .queue-ops-console-summary__card {
+    display: grid;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 18px;
+    border: 1px solid var(--admin3-line);
+    background: rgba(255, 255, 255, 0.78);
+}
+
+body.admin-v3-mode .queue-ops-console-summary__card p,
+body.admin-v3-mode .queue-ops-console-summary__card strong {
+    margin: 0;
+}
+
+body.admin-v3-mode .queue-ops-console-summary__card p {
+    color: var(--admin3-muted);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+body.admin-v3-mode .queue-ops-console-summary__card strong {
+    font-size: 0.98rem;
+    line-height: 1.45;
+}
+
+body.admin-v3-mode .queue-support-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+body.admin-v3-mode .queue-premium-shell {
+    display: grid;
+    gap: 14px;
+}
+
+body.admin-v3-mode .queue-premium-band {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 20px;
+    border: 1px solid var(--admin3-line);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+body.admin-v3-mode .queue-premium-band__header h5,
+body.admin-v3-mode .queue-premium-band__header p {
+    margin: 0;
+}
+
+body.admin-v3-mode .queue-premium-band__header p {
+    color: var(--admin3-muted);
+    margin-top: 4px;
+}
+
+body.admin-v3-mode .queue-premium-band__eyebrow,
+body.admin-v3-mode .queue-shortcut-panel__eyebrow {
+    margin: 0;
+    color: var(--admin3-info);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+body.admin-v3-mode .queue-premium-band__grid,
+body.admin-v3-mode .queue-shortcut-panel__grid,
+body.admin-v3-mode .queue-station-bar__actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+body.admin-v3-mode .queue-station-bar {
+    display: grid;
+    gap: 14px;
+}
+
+body.admin-v3-mode .queue-station-bar__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+body.admin-v3-mode .queue-station-bar__meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--admin3-line);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--admin3-ink);
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+
+body.admin-v3-mode .queue-shortcut-panel {
+    margin-top: 12px;
+}
+
+body.admin-v3-mode .queue-shortcut-panel__grid p {
+    margin: 0;
+    color: var(--admin3-muted);
+}
+
 body.admin-v3-mode .queue-reception-guidance {
     display: grid;
     gap: 14px;
