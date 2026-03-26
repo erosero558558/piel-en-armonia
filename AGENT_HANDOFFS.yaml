@@ -1,15 +1,24 @@
 version: 1
-handoffs: []
-# Template (obligatorio para cruces cross-domain):
-# handoffs:
-#   - id: HO-001
-#     status: active # active|closed|expired
-#     from_task: AG-001
-#     to_task: CDX-001
-#     reason: "cross-domain sync"
-#     files: ["src/apps/chat/engine.js"]
-#     approved_by: "ernesto"
-#     created_at: "2026-02-25T12:00:00.000Z"
-#     expires_at: "2026-02-25T16:00:00.000Z"
-#     closed_at: "2026-02-25T13:00:00.000Z"
-#     close_reason: "handoff_done"
+handoffs:
+  - id: HO-001
+    status: closed
+    from_task: CDX-009
+    to_task: CDX-010
+    reason: evidence_alignment_public_sync
+    files: ["verification/agent-runs/CDX-009.md"]
+    approved_by: deck
+    created_at: 2026-03-26T04:07:35.475Z
+    expires_at: 2026-03-27T04:07:35.475Z
+    closed_at: 2026-03-26T04:28:50.521Z
+    close_reason: "handoff_done"
+  - id: HO-002
+    status: closed
+    from_task: CDX-009
+    to_task: CDX-010
+    reason: evidence_alignment_public_sync_close_pending
+    files: ["verification/agent-runs/CDX-009.md"]
+    approved_by: deck
+    created_at: 2026-03-26T04:33:30.557Z
+    expires_at: 2026-03-27T04:33:30.558Z
+    closed_at: 2026-03-26T04:44:05.250Z
+    close_reason: "handoff_done"
