@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 758
+  revision: 759
   updated_at: 2026-03-26
 
 strategy:
@@ -11459,8 +11459,8 @@ tasks:
     title: "Workspace hygiene carryover after public sync recovery"
     owner: deck
     executor: codex
-    status: backlog
-    status_since_at: "2026-03-26T11:47:37.833Z"
+    status: done
+    status_since_at: "2026-03-26T11:56:40Z"
     risk: low
     scope: tooling
     codex_instance: codex_transversal
@@ -11473,11 +11473,11 @@ tasks:
     runtime_last_transport: 
     files: ["bin/agent-daily-pulse.js", "docs/LEADOPS_OPENCLAW.md", "docs/OPERATIONS_INDEX.md", "package.json", "scripts/ops/admin/CHECKLIST-OPENCLAW-AUTH-LOCAL.ps1", "scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1", "tests-node/admin-rollout-gate-contract.test.js", "tests-node/agent-daily-pulse.test.js", "tests-node/agent-orchestrator-cli.test.js", "tests-node/openclaw-auth-local-checklist-contract.test.js", "tests-node/orchestrator/focus.test.js", "tests-node/orchestrator/task-guards.test.js", "tests-node/publish-checkpoint-command.test.js", "tools/agent-orchestrator/commands/close.js", "tools/agent-orchestrator/commands/publish.js", "tools/agent-orchestrator/commands/task.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/workspace-truth.js"]
     source_signal: manual
-    source_ref: ""
+    source_ref: "codex/AG-259-carryover@70b46666"
     priority_score: 0
     sla_due_at: ""
-    last_attempt_at: ""
-    attempts: 0
+    last_attempt_at: "2026-03-26T11:56:40Z"
+    attempts: 1
     blocked_reason: ""
     lease_id: ""
     lease_owner: ""
