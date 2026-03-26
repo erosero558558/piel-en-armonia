@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 760
+  revision: 761
   updated_at: 2026-03-26
 
 strategy:
@@ -11558,5 +11558,58 @@ tasks:
     rework_reason: ""
     depends_on: []
     prompt: "Queue/turnero web pilot stabilization and follow-through"
+    created_at: 2026-03-26
+    updated_at: 2026-03-26
+
+  - id: AG-261
+    title: "OpenClaw auth contract mode preservation during CDX-009 triage"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-26T16:55:00Z"
+    risk: medium
+    scope: openclaw_runtime
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: openclaw_chatgpt
+    runtime_surface: operator_auth
+    runtime_transport: http_bridge
+    runtime_last_transport: 
+    files: ["lib/auth.php", "verification/agent-runs/AG-261.md", "verification/agent-runs/CDX-009.md"]
+    source_signal: manual
+    source_ref: "CDX-009"
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: "2026-03-26T16:55:00Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-26T16:55:00Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "La fachada/admin auth y readiness preservan mode=recommendedMode=openclaw_chatgpt sin romper el broker compartido ni el triage de CDX-009."
+    acceptance_ref: "verification/agent-runs/AG-261.md"
+    evidence_ref: "verification/agent-runs/AG-261.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-transversal-admin-operativo"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "pilot_readiness_evidence"
+    integration_slice: "runtime_contract"
+    work_type: "support"
+    expected_outcome: "El fix repo-side de OpenClaw auth queda trazado como soporte transversal sin reabrir un lane activo nuevo y sin mezclarlo con el bloqueo host-side de CDX-009."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-009"]
+    prompt: "Preservar el contrato OpenClaw auth (mode/recommendedMode) mientras CDX-009 sigue bloqueado por 502 host-side."
     created_at: 2026-03-26
     updated_at: 2026-03-26

@@ -18,7 +18,7 @@ const OPERATOR_AUTH_PENDING_WEB_STATE_KEY = 'operator_auth_pending_web_state';
 const OPERATOR_AUTH_FLASH_ERROR_KEY = 'operator_auth_flash_error';
 const OPERATOR_AUTH_MODE_GOOGLE = 'google_oauth';
 const OPERATOR_AUTH_MODE_OPENCLAW = 'openclaw_chatgpt';
-const OPERATOR_AUTH_SOURCE = OPERATOR_AUTH_MODE_GOOGLE;
+const OPERATOR_AUTH_SOURCE = OPERATOR_AUTH_MODE_OPENCLAW;
 const OPERATOR_AUTH_SUPPORTED_SOURCES = [
     OPERATOR_AUTH_MODE_GOOGLE,
     OPERATOR_AUTH_MODE_OPENCLAW,
@@ -184,7 +184,11 @@ function operator_auth_recommended_mode(): string
 function operator_auth_normalize_mode(string $mode): string
 {
     $normalized = strtolower(trim($mode));
-    if ($normalized === OPERATOR_AUTH_MODE_OPENCLAW) {
+    if (in_array($normalized, ['openclaw', OPERATOR_AUTH_MODE_OPENCLAW], true)) {
+        return OPERATOR_AUTH_MODE_OPENCLAW;
+    }
+
+    if (in_array($normalized, ['google', OPERATOR_AUTH_MODE_GOOGLE], true)) {
         return OPERATOR_AUTH_MODE_GOOGLE;
     }
 
