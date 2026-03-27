@@ -296,9 +296,126 @@ function formatPendingRequiredChecks(summary = {}) {
         .join(', ');
 }
 
-function assertReleaseRequiredChecks(summary = {}, actionLabel = 'release') {
+function normalizeStringList(values = []) {
+    return (Array.isArray(values) ? values : [])
+        .map((value) =>
+            String(value || '')
+                .trim()
+                .toLowerCase()
+        )
+        .filter(Boolean);
+}
+
+function getExternalBlockerEscapePolicy(getGovernancePolicy) {
+    const governancePolicy =
+        typeof getGovernancePolicy === 'function' ? getGovernancePolicy() : {};
+    const escapePolicy = governancePolicy?.publishing?.external_blocker_escape;
+    if (
+        !escapePolicy ||
+        typeof escapePolicy !== 'object' ||
+        Array.isArray(escapePolicy)
+    ) {
+        return {
+            enabled: false,
+            blocked_reasons: [],
+            allowed_focus_steps: [],
+            allowed_work_types: [],
+            allowed_codex_instances: [],
+        };
+    }
+    return {
+        enabled: escapePolicy.enabled === true,
+        blocked_reasons: normalizeStringList(escapePolicy.blocked_reasons),
+        allowed_focus_steps: normalizeStringList(
+            escapePolicy.allowed_focus_steps
+        ),
+        allowed_work_types: normalizeStringList(escapePolicy.allowed_work_types),
+        allowed_codex_instances: normalizeStringList(
+            escapePolicy.allowed_codex_instances
+        ),
+    };
+}
+
+function canUseExternalBlockerEscape(summary = {}, options = {}) {
+    const task = options.task;
+    if (!task || typeof task !== 'object') {
+        return false;
+    }
+    const escapePolicy = getExternalBlockerEscapePolicy(
+        options.getGovernancePolicy
+    );
+    if (!escapePolicy.enabled) {
+        return false;
+    }
+    const focus = summary?.active || summary?.configured || {};
+    const focusId = String(focus.id || '').trim();
+    const focusStep = String(focus.next_step || '')
+        .trim()
+        .toLowerCase();
+    if (
+        !focusId ||
+        !focusStep ||
+        String(task.focus_id || '').trim() !== focusId ||
+        String(task.focus_step || '')
+            .trim()
+            .toLowerCase() !== focusStep
+    ) {
+        return false;
+    }
+    if (
+        !escapePolicy.allowed_focus_steps.includes(focusStep) ||
+        !escapePolicy.allowed_work_types.includes(
+            String(task.work_type || '')
+                .trim()
+                .toLowerCase()
+        ) ||
+        !escapePolicy.allowed_codex_instances.includes(
+            String(task.codex_instance || '')
+                .trim()
+                .toLowerCase()
+        )
+    ) {
+        return false;
+    }
+    if (
+        Array.isArray(summary?.blocking_errors) &&
+        summary.blocking_errors.length > 0
+    ) {
+        return false;
+    }
+    const nonRequiredReleaseBlockers = Array.isArray(
+        summary?.release_blocking_errors
+    )
+        ? summary.release_blocking_errors.filter(
+              (code) => String(code || '').trim() !== 'required_check_unverified'
+          )
+        : [];
+    if (nonRequiredReleaseBlockers.length > 0) {
+        return false;
+    }
+    const externalBlockerTasks = Array.isArray(summary?.external_blocker_tasks)
+        ? summary.external_blocker_tasks
+        : [];
+    if (
+        !externalBlockerTasks.some((item) =>
+            escapePolicy.blocked_reasons.includes(
+                String(item?.blocked_reason || '')
+                    .trim()
+                    .toLowerCase()
+            )
+        )
+    ) {
+        return false;
+    }
+    return summary?.acknowledged_external_blocker === true;
+}
+
+function assertReleaseRequiredChecks(summary = {}, actionLabel = 'release', options = {}) {
     const pendingChecks = listPendingRequiredChecks(summary);
     if (pendingChecks.length === 0) {
+        return;
+    }
+    if (canUseExternalBlockerEscape(summary, options)) {
         return;
     }
     const error = new Error(
@@ -767,6 +884,7 @@ async function handlePublishCommand(ctx) {
         buildJobsSnapshot,
         findJobSnapshot = findJobSnapshotFallback,
         verifyOpenClawRuntime,
+        getGovernancePolicy,
         printJson = (value) => console.log(JSON.stringify(value, null, 2)),
         rootPath,
         publishEventsPath,
@@ -898,7 +1016,10 @@ async function handlePublishCommand(ctx) {
         }
     }
     if (focusSummary) {
-        assertReleaseRequiredChecks(focusSummary, 'publish checkpoint');
+        assertReleaseRequiredChecks(focusSummary, 'publish checkpoint', {
+            task,
+            getGovernancePolicy,
+        });
     }
     if (isReleaseException && !summaryHasReleasePublishMarker(summary)) {
         const error = new Error(
@@ -966,6 +1087,7 @@ module.exports = {
     buildClosePublishSummary,
     diagnosePublishWorkspace,
     assertReleaseRequiredChecks,
+    canUseExternalBlockerEscape,
     formatPendingRequiredChecks,
     finalizePreparedPublish,
     handlePublishCommand,

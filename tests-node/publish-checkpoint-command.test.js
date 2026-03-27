@@ -483,6 +483,77 @@ test('publish checkpoint falla si required checks del foco no estan verdes', asy
     }
 });
 
+test('publish checkpoint permite escape acotado para feedback_trim frontend con blocker externo reconocido', async () => {
+    const root = createRepoFixture();
+    try {
+        writeFileSync(
+            join(root, 'docs', 'in-scope.md'),
+            '# updated scope\n',
+            'utf8'
+        );
+        const ctx = buildPublishContext(root, {
+            summary:
+                'feedback_trim FOCUS-2026-03-admin-operativo-cut-1 checkpoint',
+            task: {
+                focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                focus_step: 'feedback_trim',
+                work_type: 'forward',
+                codex_instance: 'codex_frontend',
+                files: ['docs/in-scope.md'],
+            },
+            getGovernancePolicy: () => ({
+                publishing: {
+                    external_blocker_escape: {
+                        enabled: true,
+                        blocked_reasons: [
+                            'host_public_health_502_external_blocker',
+                        ],
+                        allowed_focus_steps: ['feedback_trim'],
+                        allowed_work_types: ['forward'],
+                        allowed_codex_instances: ['codex_frontend'],
+                    },
+                },
+            }),
+            buildLiveFocusSummary: async () => ({
+                summary: {
+                    configured: {
+                        id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                        next_step: 'feedback_trim',
+                    },
+                    active: {
+                        id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                        next_step: 'feedback_trim',
+                    },
+                    acknowledged_external_blocker: true,
+                    external_blocker_tasks: [
+                        {
+                            id: 'CDX-009',
+                            blocked_reason:
+                                'host_public_health_502_external_blocker',
+                        },
+                    ],
+                    blocking_errors: [],
+                    release_blocking_errors: ['required_check_unverified'],
+                    required_checks: [
+                        {
+                            id: 'job:public_main_sync',
+                            state: 'red',
+                            ok: false,
+                            reason: 'health_http_502',
+                        },
+                    ],
+                },
+            }),
+        });
+
+        const report = await handlePublishCommand(ctx);
+        assert.equal(report.command, 'publish checkpoint');
+        assert.match(String(report.commit || ''), /^[0-9a-f]{7,}$/i);
+    } finally {
+        cleanupRepoFixture(root);
+    }
+});
+
 test('publish checkpoint bloquea legacy generated root trackeado fuera de scope', async () => {
     const root = createRepoFixture();
     try {

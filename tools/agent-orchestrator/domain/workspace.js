@@ -289,7 +289,9 @@ function alignMainRoot(mainRoot, policy) {
         state = 'root_dirty';
     } else if (authoredCount > 0) {
         state = 'root_dirty';
-    } else if (dirtyTotal === 0) {
+    } else if (Number(aheadBehind.behind || 0) > 0) {
+        state = 'root_dirty';
+    } else if (dirtyTotal === 0 && Number(aheadBehind.ahead || 0) === 0) {
         runGit(mainRoot, ['reset', '--hard', remoteRef]);
         resetApplied = true;
     }

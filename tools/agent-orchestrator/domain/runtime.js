@@ -157,7 +157,7 @@ function normalizeRuntimeProvider(value, fallback = PILOT_RUNTIME_PROVIDER) {
     const provider = normalizeOptionalToken(value);
     if (!provider) return fallback;
     if (provider === OPENCLAW_PROVIDER) {
-        return OPERATOR_AUTH_CANONICAL_PROVIDER;
+        return fallback;
     }
     if (provider === OPERATOR_AUTH_CANONICAL_PROVIDER) {
         return OPERATOR_AUTH_CANONICAL_PROVIDER;
@@ -991,7 +991,7 @@ async function verifyOpenClawRuntime(options = {}) {
     );
     const legacyAliasUsed =
         requestedProvider === OPENCLAW_PROVIDER &&
-        normalizedProvider === OPERATOR_AUTH_CANONICAL_PROVIDER;
+        normalizedProvider === PILOT_RUNTIME_PROVIDER;
     const surfaces = await Promise.all([
         verifyFigoQueue(options),
         verifyLeadOpsWorker(options),
@@ -1135,15 +1135,18 @@ async function invokeOpenClawRuntime(task, options = {}) {
     const runtimeSurface = normalizeSurface(task?.runtime_surface);
     const runtimeTransport = normalizeTransport(task?.runtime_transport);
     const providerMode = normalizeOptionalToken(task?.provider_mode);
+    const providerFallback =
+        runtimeSurface === 'operator_auth'
+            ? OPERATOR_AUTH_CANONICAL_PROVIDER
+            : OPENCLAW_PROVIDER;
     const normalizedProviderMode = normalizeRuntimeProvider(
         providerMode,
-        OPERATOR_AUTH_CANONICAL_PROVIDER
+        providerFallback
     );
-    const effectiveProviderMode =
-        providerMode || OPERATOR_AUTH_CANONICAL_PROVIDER;
+    const effectiveProviderMode = providerMode || providerFallback;
     const legacyAliasUsed =
         providerMode === OPENCLAW_PROVIDER &&
-        normalizedProviderMode === OPERATOR_AUTH_CANONICAL_PROVIDER;
+        normalizedProviderMode === providerFallback;
     const decorateInvokeResult = (result) => {
         if (!result || typeof result !== 'object') return result;
         result.provider = effectiveProviderMode;
@@ -1314,6 +1317,11 @@ function buildRuntimeBlockingErrors(tasks, verification) {
         }
         const surfaceKey = normalizeSurface(task?.runtime_surface);
         const providerMode = normalizeOptionalToken(task?.provider_mode);
+        const runtimeScope =
+            normalizeOptionalToken(task?.scope) === 'openclaw_runtime';
+        if (!runtimeScope && !surfaceKey && !providerMode) {
+            continue;
+        }
         const expectedProvider =
             surfaceKey === 'operator_auth'
                 ? OPERATOR_AUTH_CANONICAL_PROVIDER

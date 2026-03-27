@@ -178,6 +178,7 @@ function inferDiagnosticScope(code, source = '') {
         return 'release';
     }
     if (
+        safeCode === 'warn.focus.external_blocker_acknowledged' ||
         safeCode === 'warn.focus.support_only_active' ||
         safeCode.startsWith('warn.jobs.public_main_sync') ||
         safeCode.includes('handoff.expiring_soon') ||
@@ -739,6 +740,36 @@ function buildWarnFirstDiagnostics(input = {}) {
                         resolvedFocusSummary.distinct_active_slices,
                     max_active_slices:
                         resolvedFocusSummary.configured?.max_active_slices || 3,
+                },
+            })
+        );
+    }
+    if (
+        warnPolicyEnabled(warnPolicyMap, 'external_blocker_acknowledged') &&
+        resolvedFocusSummary.acknowledged_external_blocker
+    ) {
+        const externalBlockerTaskIds = Array.isArray(
+            resolvedFocusSummary.external_blocker_task_ids
+        )
+            ? resolvedFocusSummary.external_blocker_task_ids
+            : [];
+        diagnostics.push(
+            makeDiagnostic({
+                code: 'warn.focus.external_blocker_acknowledged',
+                severity: warnPolicySeverity(
+                    warnPolicyMap,
+                    'external_blocker_acknowledged'
+                ),
+                scope: 'operational',
+                source,
+                message: `Blocker externo reconocido sigue activo: ${externalBlockerTaskIds.join(', ')}`,
+                task_ids: externalBlockerTaskIds,
+                meta: {
+                    carryover_task_ids:
+                        resolvedFocusSummary.carryover_external_blocker_task_ids ||
+                        [],
+                    required_checks_ok:
+                        resolvedFocusSummary.required_checks_ok === true,
                 },
             })
         );

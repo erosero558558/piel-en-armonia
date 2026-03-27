@@ -606,9 +606,14 @@ test('task-guards infiere lane conservador por files', () => {
         classifyPathLane('src/apps/chat/engine.js').lane,
         'frontend_content'
     );
+    assert.equal(classifyPathLane('admin.js').lane, 'frontend_content');
     assert.equal(
         classifyPathLane('controllers/AdminController.php').lane,
         'backend_ops'
+    );
+    assert.equal(
+        classifyPathLane('tests-node/close-command.test.js').lane,
+        'transversal_runtime'
     );
     assert.equal(classifyPathLane('docs/readme.md').lane, 'backend_ops');
 

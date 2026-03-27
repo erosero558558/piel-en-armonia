@@ -53,6 +53,7 @@ const ACKNOWLEDGED_EXTERNAL_BLOCKED_REASON_PATTERNS = [
     /publicsync.*no_host_access/i,
     /remote_verification_pending/i,
 ];
+const ALLOWED_EXTERNAL_BLOCKER_CARRYOVER_WORK_TYPES = new Set(['support']);
 
 function normalizeOptionalToken(value) {
     return String(value || '')
@@ -69,6 +70,41 @@ function isAcknowledgedExternalBlockedTask(task = {}) {
     return ACKNOWLEDGED_EXTERNAL_BLOCKED_REASON_PATTERNS.some((pattern) =>
         pattern.test(blockedReason)
     );
+}
+
+function isAllowedExternalBlockerCarryoverTask(task = {}, focus = {}) {
+    if (!isAcknowledgedExternalBlockedTask(task)) {
+        return false;
+    }
+    if (
+        !ALLOWED_EXTERNAL_BLOCKER_CARRYOVER_WORK_TYPES.has(
+            normalizeOptionalToken(task?.work_type)
+        )
+    ) {
+        return false;
+    }
+    const focusId = String(focus?.id || '').trim();
+    const focusNextStep = String(focus?.next_step || '').trim();
+    const taskFocusId = String(task?.focus_id || '').trim();
+    const taskFocusStep = String(task?.focus_step || '').trim();
+    if (!focusId || !focusNextStep || !taskFocusId || !taskFocusStep) {
+        return false;
+    }
+    if (taskFocusId !== focusId || taskFocusStep === focusNextStep) {
+        return false;
+    }
+    const focusSteps = Array.isArray(focus?.steps)
+        ? focus.steps.map((value) => String(value || '').trim()).filter(Boolean)
+        : [];
+    if (focusSteps.length === 0) {
+        return false;
+    }
+    const nextStepIndex = focusSteps.indexOf(focusNextStep);
+    const taskStepIndex = focusSteps.indexOf(taskFocusStep);
+    if (nextStepIndex < 0 || taskStepIndex < 0) {
+        return false;
+    }
+    return taskStepIndex < nextStepIndex;
 }
 
 function normalizeArray(values, options = {}) {
@@ -626,6 +662,8 @@ function buildFocusSummary(board, options = {}) {
         required_checks: [],
         required_checks_ok: false,
         release_ready: false,
+        carryover_external_blocker_task_ids: [],
+        external_blocker_tasks: [],
         blocking_errors: [],
         release_blocking_errors: [],
         warnings: [],
@@ -656,6 +694,12 @@ function buildFocusSummary(board, options = {}) {
             summary.blocked_task_ids.push(taskId);
             if (isAcknowledgedExternalBlockedTask(task)) {
                 summary.external_blocker_task_ids.push(taskId);
+                summary.external_blocker_tasks.push({
+                    id: taskId,
+                    blocked_reason: String(task.blocked_reason || '').trim(),
+                    focus_step: String(task.focus_step || '').trim(),
+                    work_type: workType,
+                });
             }
         }
         if (!task.focus_id || !task.focus_step || !task.integration_slice) {
@@ -667,8 +711,12 @@ function buildFocusSummary(board, options = {}) {
             continue;
         }
         if (task.focus_step !== focus.next_step) {
-            summary.outside_next_step_task_ids.push(taskId);
-            continue;
+            if (isAllowedExternalBlockerCarryoverTask(task, focus)) {
+                summary.carryover_external_blocker_task_ids.push(taskId);
+            } else {
+                summary.outside_next_step_task_ids.push(taskId);
+                continue;
+            }
         }
         const allowedSlices = getAllowedSlicesForLane(task);
         if (
@@ -775,6 +823,9 @@ function buildFocusSummary(board, options = {}) {
     }
     if (summary.decisions.overdue > 0) {
         summary.warnings.push('decision_overdue');
+    }
+    if (summary.acknowledged_external_blocker) {
+        summary.warnings.push('external_blocker_acknowledged');
     }
     summary.release_ready =
         summary.active_tasks_total > 0 &&
@@ -895,4 +946,5 @@ module.exports = {
     buildLiveFocusSummary,
     buildFocusSeed,
     isAcknowledgedExternalBlockedTask,
+    isAllowedExternalBlockerCarryoverTask,
 };

@@ -321,6 +321,10 @@ const DEFAULT_GOVERNANCE_POLICY = {
                 severity: 'warning',
                 enabled: true,
             },
+            external_blocker_acknowledged: {
+                severity: 'warning',
+                enabled: true,
+            },
             support_only_active: { severity: 'warning', enabled: true },
             decision_overdue: { severity: 'warning', enabled: true },
             rework_without_reason: {
@@ -2302,6 +2306,7 @@ async function cmdPublish(args) {
         buildJobsSnapshot: loadJobsSnapshot,
         findJobSnapshot: domainJobs.findJobSnapshot,
         verifyOpenClawRuntime,
+        getGovernancePolicy,
         printJson: coreOutput.printJson,
         rootPath: ROOT,
         publishEventsPath: PUBLISH_EVENTS_PATH,
@@ -2334,6 +2339,7 @@ async function cmdClose(args) {
         buildLiveFocusSummary,
         parseDecisions,
         verifyOpenClawRuntime,
+        getGovernancePolicy,
         rootPath: ROOT,
         publishEventsPath: PUBLISH_EVENTS_PATH,
         writeCodexActiveBlock,

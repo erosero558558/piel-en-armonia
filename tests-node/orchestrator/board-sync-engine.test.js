@@ -94,6 +94,27 @@ test('board-sync marca slot active fuera del next step como write blocker', () =
     );
 });
 
+test('board-sync tolera carryover bloqueado externo del step previo', () => {
+    const board = buildBoard([
+        baseTask({
+            id: 'CDX-009',
+            status: 'blocked',
+            focus_step: 'pilot_readiness_evidence',
+            integration_slice: 'ops_deploy',
+            work_type: 'support',
+            blocked_reason: 'host_public_health_502_external_blocker',
+        }),
+    ]);
+    board.strategy.active.focus_next_step = 'feedback_trim';
+
+    const report = boardSync.buildBoardSyncReport(board, {
+        nowIso: '2026-03-21T06:00:00.000Z',
+    });
+
+    assert.equal(report.write_blocked, false);
+    assert.deepEqual(report.blocking_findings, []);
+});
+
 test('board-sync apply mueve future-ready a backlog y preserva blockers de lease', () => {
     const board = buildBoard([
         baseTask({ id: 'AG-254' }),

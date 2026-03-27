@@ -61,6 +61,7 @@ const DEFAULT_DUAL_CODEX_OWNERSHIP = {
     frontend_content: [
         'src/apps/**',
         'js/**',
+        'admin.js',
         'styles*.css',
         'templates/**',
         'content/**',
@@ -81,6 +82,7 @@ const DEFAULT_DUAL_CODEX_OWNERSHIP = {
         'tri_lane_runtime_runbook.md',
         'plan_maestro_codex_2026.md',
         'tests-node/agent-orchestrator-cli.test.js',
+        'tests-node/close-command.test.js',
         'tests-node/orchestrator/**',
         'tests-node/publish-checkpoint-command.test.js',
         'tools/agent-orchestrator/**',
@@ -164,15 +166,21 @@ function mapLaneToCodexInstance(domainLane) {
 }
 
 function expectedProviderModeForSurface(runtimeSurface) {
-    return CANONICAL_RUNTIME_PROVIDER;
+    return normalizeOptionalToken(runtimeSurface) === 'operator_auth'
+        ? CANONICAL_RUNTIME_PROVIDER
+        : LEGACY_RUNTIME_PROVIDER_ALIAS;
 }
 
-function isCompatibleRuntimeProviderMode(providerMode) {
+function isCompatibleRuntimeProviderMode(providerMode, runtimeSurface) {
     const normalized = normalizeOptionalToken(providerMode);
-    return (
-        normalized === CANONICAL_RUNTIME_PROVIDER ||
-        normalized === LEGACY_RUNTIME_PROVIDER_ALIAS
-    );
+    const expected = expectedProviderModeForSurface(runtimeSurface);
+    if (expected === CANONICAL_RUNTIME_PROVIDER) {
+        return (
+            normalized === CANONICAL_RUNTIME_PROVIDER ||
+            normalized === LEGACY_RUNTIME_PROVIDER_ALIAS
+        );
+    }
+    return normalized === LEGACY_RUNTIME_PROVIDER_ALIAS;
 }
 
 function isOpenClawRuntimeTask(task) {
@@ -779,9 +787,13 @@ function validateTaskDualCodexGuard(board, task, options = {}) {
         const expectedProviderMode = expectedProviderModeForSurface(
             runtimeSurface
         );
-        if (!isCompatibleRuntimeProviderMode(providerMode)) {
+        if (!isCompatibleRuntimeProviderMode(providerMode, runtimeSurface)) {
+            const providerHint =
+                expectedProviderMode === CANONICAL_RUNTIME_PROVIDER
+                    ? `${expectedProviderMode} (openclaw_chatgpt solo alias legado)`
+                    : expectedProviderMode;
             throw new Error(
-                `task ${taskId || '(sin id)'}: runtime ${runtimeSurface || 'surface'} requiere provider_mode=${expectedProviderMode} (openclaw_chatgpt solo alias legado)`
+                `task ${taskId || '(sin id)'}: runtime ${runtimeSurface || 'surface'} requiere provider_mode=${providerHint}`
             );
         }
         if (domainLane !== 'transversal_runtime') {
@@ -819,6 +831,14 @@ function validateTaskDualCodexGuard(board, task, options = {}) {
     const safeFiles = Array.isArray(task?.files) ? task.files : [];
     const laneViolations = [];
     for (const rawFile of safeFiles) {
+        const normalizedFile = normalizePathToken(rawFile);
+        if (
+            taskId &&
+            normalizedFile ===
+                `verification/agent-runs/${normalizePathToken(taskId)}.md`
+        ) {
+            continue;
+        }
         if (
             allowFrontendReleaseSupport &&
             isFrontendPublicReleaseSupportFile(rawFile)

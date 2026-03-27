@@ -260,7 +260,15 @@ function buildBoardSyncReport(board, options = {}) {
                     nextStepIndex >= 0 &&
                     taskStepIndex >= 0 &&
                     taskStepIndex > nextStepIndex;
-                if (status === 'ready' && isFutureStep) {
+                if (
+                    domainFocus.isAllowedExternalBlockerCarryoverTask(
+                        task,
+                        focus
+                    )
+                ) {
+                    // Allow carryover of acknowledged external blockers from a
+                    // prior focus step so the next step can move forward.
+                } else if (status === 'ready' && isFutureStep) {
                     normalizedCandidates.push(
                         buildCandidate(
                             'ready_future_focus_step',

@@ -40,10 +40,12 @@ function createGitFixture(taskId, options = {}) {
         'agent-publish-events.jsonl'
     );
     const syncScriptPath = join(root, 'bin', 'sync-main-safe.js');
+    const orchestratorScriptPath = join(root, 'agent-orchestrator.js');
 
     mkdirSync(join(root, 'docs'), { recursive: true });
     mkdirSync(join(root, 'verification', 'agent-runs'), { recursive: true });
     mkdirSync(join(root, 'bin'), { recursive: true });
+    mkdirSync(join(root, 'tests-node', 'orchestrator'), { recursive: true });
 
     const task = {
         id: taskId,
@@ -160,6 +162,44 @@ console.log(JSON.stringify({
   }
 }));
 `,
+        'utf8'
+    );
+    writeFileSync(
+        orchestratorScriptPath,
+        `#!/usr/bin/env node
+'use strict';
+const args = process.argv.slice(2);
+if (args.includes('--json')) {
+  console.log(JSON.stringify({ version: 1, ok: true, command: args.join(' ') }));
+} else {
+  console.log('OK');
+}
+`,
+        'utf8'
+    );
+    writeFileSync(
+        join(root, 'tests-node', 'agent-orchestrator-cli.test.js'),
+        "const test = require('node:test'); test('fixture', () => {});\n",
+        'utf8'
+    );
+    writeFileSync(
+        join(root, 'tests-node', 'publish-checkpoint-command.test.js'),
+        "const test = require('node:test'); test('fixture', () => {});\n",
+        'utf8'
+    );
+    writeFileSync(
+        join(root, 'tests-node', 'orchestrator', 'task-guards.test.js'),
+        "const test = require('node:test'); test('fixture', () => {});\n",
+        'utf8'
+    );
+    writeFileSync(
+        join(root, 'tests-node', 'orchestrator', 'diagnostics.test.js'),
+        "const test = require('node:test'); test('fixture', () => {});\n",
+        'utf8'
+    );
+    writeFileSync(
+        join(root, 'bin', 'validate-agent-governance.php'),
+        "<?php fwrite(STDOUT, \"OK\\n\");\n",
         'utf8'
     );
 
@@ -479,5 +519,59 @@ test('close falla si required checks del foco no estan verdes', async (t) => {
             assert.match(error.message, /runtime:operator_auth=red/i);
             return true;
         }
+    );
+});
+
+test('close reutiliza el escape acotado para feedback_trim frontend con blocker externo reconocido', () => {
+    assert.doesNotThrow(() =>
+        publishCommandHandlers.assertReleaseRequiredChecks(
+            {
+                active: {
+                    id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    next_step: 'feedback_trim',
+                },
+                acknowledged_external_blocker: true,
+                external_blocker_tasks: [
+                    {
+                        id: 'CDX-009',
+                        blocked_reason:
+                            'host_public_health_502_external_blocker',
+                    },
+                ],
+                blocking_errors: [],
+                release_blocking_errors: ['required_check_unverified'],
+                required_checks: [
+                    {
+                        id: 'runtime:operator_auth',
+                        state: 'red',
+                        ok: false,
+                        reason: 'auth_status_http_502',
+                    },
+                ],
+            },
+            'close',
+            {
+                task: {
+                    id: 'CDX-046',
+                    codex_instance: 'codex_frontend',
+                    work_type: 'forward',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_step: 'feedback_trim',
+                },
+                getGovernancePolicy: () => ({
+                    publishing: {
+                        external_blocker_escape: {
+                            enabled: true,
+                            blocked_reasons: [
+                                'host_public_health_502_external_blocker',
+                            ],
+                            allowed_focus_steps: ['feedback_trim'],
+                            allowed_work_types: ['forward'],
+                            allowed_codex_instances: ['codex_frontend'],
+                        },
+                    },
+                }),
+            }
+        )
     );
 });

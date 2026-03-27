@@ -1173,6 +1173,7 @@ function classifyFileLaneForDualCodex(string $rawFile): string
         'tri_lane_runtime_runbook.md',
         'plan_maestro_codex_2026.md',
         'tests-node/agent-orchestrator-cli.test.js',
+        'tests-node/close-command.test.js',
         'tests-node/orchestrator/**',
         'tests-node/publish-checkpoint-command.test.js',
         'tools/agent-orchestrator/**',
@@ -1201,6 +1202,7 @@ function classifyFileLaneForDualCodex(string $rawFile): string
     $frontendPatterns = [
         'src/apps/**',
         'js/**',
+        'admin.js',
         'styles*.css',
         'templates/**',
         'content/**',
@@ -1616,7 +1618,11 @@ foreach ($board['tasks'] as $idx => $task) {
     } elseif ($shouldValidateDual && !$crossDomain) {
         $allowFrontendReleaseSupport = isFrontendPublicReleaseSupportTask($task);
         foreach ($task['files'] as $rawFile) {
+            $normalizedFile = normalizePathToken((string) $rawFile);
             if ($allowFrontendReleaseSupport && isFrontendPublicReleaseSupportFile((string) $rawFile)) {
+                continue;
+            }
+            if ($normalizedFile === normalizePathToken("verification/agent-runs/{$id}.md")) {
                 continue;
             }
             $fileLane = classifyFileLaneForDualCodex((string) $rawFile);
@@ -1624,7 +1630,6 @@ foreach ($board['tasks'] as $idx => $task) {
                 continue;
             }
             if ($fileLane !== $domainLane) {
-                $normalizedFile = normalizePathToken((string) $rawFile);
                 $errors[] = "Task {$id} tiene file fuera de lane {$domainLane}: {$normalizedFile}=>{$fileLane}";
             }
         }

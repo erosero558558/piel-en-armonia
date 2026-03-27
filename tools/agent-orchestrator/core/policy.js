@@ -361,6 +361,72 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
                         );
                     }
                 }
+                const escapePolicy = publishing.external_blocker_escape;
+                if (escapePolicy !== undefined) {
+                    if (
+                        !escapePolicy ||
+                        typeof escapePolicy !== 'object' ||
+                        Array.isArray(escapePolicy)
+                    ) {
+                        errors.push(
+                            'publishing.external_blocker_escape debe ser objeto'
+                        );
+                    } else {
+                        if (
+                            Object.prototype.hasOwnProperty.call(
+                                escapePolicy,
+                                'enabled'
+                            ) &&
+                            typeof escapePolicy.enabled !== 'boolean'
+                        ) {
+                            errors.push(
+                                'publishing.external_blocker_escape.enabled debe ser boolean'
+                            );
+                        }
+                        for (const key of [
+                            'blocked_reasons',
+                            'allowed_focus_steps',
+                            'allowed_work_types',
+                            'allowed_codex_instances',
+                        ]) {
+                            if (
+                                Object.prototype.hasOwnProperty.call(
+                                    escapePolicy,
+                                    key
+                                ) &&
+                                !Array.isArray(escapePolicy[key])
+                            ) {
+                                errors.push(
+                                    `publishing.external_blocker_escape.${key} debe ser array`
+                                );
+                                continue;
+                            }
+                            if (Array.isArray(escapePolicy[key])) {
+                                const invalidValue = escapePolicy[key].find(
+                                    (value) =>
+                                        typeof value !== 'string' ||
+                                        !String(value).trim()
+                                );
+                                if (invalidValue !== undefined) {
+                                    errors.push(
+                                        `publishing.external_blocker_escape.${key} debe contener strings no vacios`
+                                    );
+                                }
+                            }
+                        }
+                        warnUnknownKeys(
+                            sourcePolicy?.publishing?.external_blocker_escape,
+                            [
+                                'enabled',
+                                'blocked_reasons',
+                                'allowed_focus_steps',
+                                'allowed_work_types',
+                                'allowed_codex_instances',
+                            ],
+                            'publishing.external_blocker_escape'
+                        );
+                    }
+                }
             }
             warnUnknownKeys(
                 sourcePolicy?.publishing,
@@ -374,6 +440,7 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
                     'max_live_wait_seconds',
                     'health_url',
                     'required_job_key',
+                    'external_blocker_escape',
                 ],
                 'publishing'
             );
@@ -1173,6 +1240,57 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
                     typeof publishing?.required_job_key === 'string'
                         ? publishing.required_job_key
                         : '',
+                external_blocker_escape:
+                    publishing?.external_blocker_escape &&
+                    typeof publishing.external_blocker_escape === 'object' &&
+                    !Array.isArray(publishing.external_blocker_escape)
+                        ? {
+                              enabled:
+                                  typeof publishing.external_blocker_escape
+                                      .enabled === 'boolean'
+                                      ? publishing.external_blocker_escape
+                                            .enabled
+                                      : null,
+                              blocked_reasons: Array.isArray(
+                                  publishing.external_blocker_escape
+                                      .blocked_reasons
+                              )
+                                  ? publishing.external_blocker_escape.blocked_reasons.map(
+                                        (value) => String(value)
+                                    )
+                                  : [],
+                              allowed_focus_steps: Array.isArray(
+                                  publishing.external_blocker_escape
+                                      .allowed_focus_steps
+                              )
+                                  ? publishing.external_blocker_escape.allowed_focus_steps.map(
+                                        (value) => String(value)
+                                    )
+                                  : [],
+                              allowed_work_types: Array.isArray(
+                                  publishing.external_blocker_escape
+                                      .allowed_work_types
+                              )
+                                  ? publishing.external_blocker_escape.allowed_work_types.map(
+                                        (value) => String(value)
+                                    )
+                                  : [],
+                              allowed_codex_instances: Array.isArray(
+                                  publishing.external_blocker_escape
+                                      .allowed_codex_instances
+                              )
+                                  ? publishing.external_blocker_escape.allowed_codex_instances.map(
+                                        (value) => String(value)
+                                    )
+                                  : [],
+                          }
+                        : {
+                              enabled: null,
+                              blocked_reasons: [],
+                              allowed_focus_steps: [],
+                              allowed_work_types: [],
+                              allowed_codex_instances: [],
+                          },
             },
             runtime:
                 runtime &&

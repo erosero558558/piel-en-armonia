@@ -105,6 +105,7 @@ async function handleCloseCommand(ctx) {
         buildLiveFocusSummary,
         parseDecisions,
         verifyOpenClawRuntime,
+        getGovernancePolicy,
         rootPath,
         publishEventsPath,
         writeCodexActiveBlock,
@@ -228,7 +229,11 @@ async function handleCloseCommand(ctx) {
         }
         publishCommandHandlers.assertReleaseRequiredChecks(
             focusSummary,
-            'close'
+            'close',
+            {
+                task,
+                getGovernancePolicy,
+            }
         );
     }
 

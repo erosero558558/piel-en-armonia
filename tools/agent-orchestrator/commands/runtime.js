@@ -92,15 +92,15 @@ function normalizeRuntimeVerifyProvider(
         .toLowerCase();
     if (!provider) {
         return {
-            requested_provider: canonicalProvider,
-            normalized_provider: canonicalProvider,
+            requested_provider: pilotProvider,
+            normalized_provider: pilotProvider,
             legacy_alias_used: false,
         };
     }
     if (provider === legacyProvider) {
         return {
             requested_provider: provider,
-            normalized_provider: canonicalProvider,
+            normalized_provider: pilotProvider,
             legacy_alias_used: true,
         };
     }

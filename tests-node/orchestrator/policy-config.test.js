@@ -107,6 +107,13 @@ test('policy-config acepta sections agents y publishing sin marcarlas como unkno
                 max_live_wait_seconds: 180,
                 health_url: 'https://pielarmonia.com/api.php?resource=health',
                 required_job_key: 'public_main_sync',
+                external_blocker_escape: {
+                    enabled: true,
+                    blocked_reasons: ['host_public_health_502_external_blocker'],
+                    allowed_focus_steps: ['feedback_trim'],
+                    allowed_work_types: ['forward'],
+                    allowed_codex_instances: ['codex_frontend'],
+                },
             },
         },
         { defaultPolicy: DEFAULT_POLICY, policyExists: true }
@@ -125,6 +132,14 @@ test('policy-config acepta sections agents y publishing sin marcarlas como unkno
     assert.equal(
         report.effective.publishing.required_job_key,
         'public_main_sync'
+    );
+    assert.equal(
+        report.effective.publishing.external_blocker_escape.enabled,
+        true
+    );
+    assert.deepEqual(
+        report.effective.publishing.external_blocker_escape.allowed_focus_steps,
+        ['feedback_trim']
     );
 });
 

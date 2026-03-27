@@ -14,7 +14,14 @@
         "checkpoint_cooldown_seconds": 90,
         "max_live_wait_seconds": 180,
         "health_url": "https://pielarmonia.com/api.php?resource=health",
-        "required_job_key": "public_main_sync"
+        "required_job_key": "public_main_sync",
+        "external_blocker_escape": {
+            "enabled": true,
+            "blocked_reasons": ["host_public_health_502_external_blocker"],
+            "allowed_focus_steps": ["feedback_trim"],
+            "allowed_work_types": ["forward"],
+            "allowed_codex_instances": ["codex_frontend"]
+        }
     },
     "runtime": {
         "providers": {
@@ -240,6 +247,10 @@
                 "enabled": true
             },
             "required_check_unverified": {
+                "severity": "warning",
+                "enabled": true
+            },
+            "external_blocker_acknowledged": {
                 "severity": "warning",
                 "enabled": true
             },
