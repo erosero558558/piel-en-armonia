@@ -160,6 +160,36 @@ function renderPilotRolloutStations(pilot, escapeHtml) {
     `;
 }
 
+function renderPilotDetailGroup({
+    id,
+    eyebrow,
+    title,
+    summary,
+    meta = '',
+    tone = 'neutral',
+    content = '',
+}) {
+    return `
+        <details id="${id}" class="queue-ops-pilot__detail-group" data-tone="${tone}">
+            <summary class="queue-ops-pilot__detail-summary">
+                <div class="queue-ops-pilot__detail-copy">
+                    <p class="queue-app-card__eyebrow">${eyebrow}</p>
+                    <strong>${title}</strong>
+                    <span>${summary}</span>
+                </div>
+                ${
+                    meta
+                        ? `<span class="queue-ops-pilot__detail-meta">${meta}</span>`
+                        : ''
+                }
+            </summary>
+            <div class="queue-ops-pilot__detail-body">
+                ${content}
+            </div>
+        </details>
+    `;
+}
+
 function normalizeBoardOpsHubText(value, fallback = '') {
     const normalized = String(value ?? '').trim();
     return normalized || fallback;
@@ -1732,6 +1762,231 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
     }
 
     const pilot = buildQueueOpsPilot(manifest, detectedPlatform);
+    const validationGroup = renderPilotDetailGroup({
+        id: 'queueOpsPilotValidationGroup',
+        eyebrow: 'Validacion operativa',
+        title: 'Smoke y handoff por clinica',
+        summary:
+            'El checklist extendido, la secuencia repetible y el paquete de apertura quedan disponibles bajo demanda.',
+        meta: escapeHtml(
+            pilot.smokeSteps.length > 0
+                ? `${pilot.smokeReadyCount}/${pilot.smokeSteps.length} smoke`
+                : 'Checklist extendido'
+        ),
+        tone: pilot.smokeState,
+        content: `
+            <section
+                id="queueOpsPilotSmoke"
+                class="queue-ops-pilot__smoke"
+                data-state="${escapeHtml(pilot.smokeState)}"
+            >
+                <div class="queue-ops-pilot__smoke-head">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Smoke por clinica</p>
+                        <h6 id="queueOpsPilotSmokeTitle">Secuencia repetible</h6>
+                    </div>
+                    <span
+                        id="queueOpsPilotSmokeStatus"
+                        class="queue-ops-pilot__smoke-status"
+                        data-state="${escapeHtml(pilot.smokeState)}"
+                    >
+                        ${escapeHtml(
+                            `${pilot.smokeReadyCount}/${pilot.smokeSteps.length} listos`
+                        )}
+                    </span>
+                </div>
+                <p id="queueOpsPilotSmokeSummary" class="queue-ops-pilot__smoke-summary">${escapeHtml(
+                    pilot.smokeSummary
+                )}</p>
+                <div id="queueOpsPilotSmokeItems" class="queue-ops-pilot__smoke-items" role="list" aria-label="Secuencia de smoke de Turnero V2">
+                    ${pilot.smokeSteps
+                        .map(
+                            (step) => `
+                                <article
+                                    id="queueOpsPilotSmokeItem_${escapeHtml(
+                                        step.id
+                                    )}"
+                                    class="queue-ops-pilot__smoke-item"
+                                    data-state="${escapeHtml(step.state)}"
+                                    role="listitem"
+                                >
+                                    <div class="queue-ops-pilot__smoke-item-head">
+                                        <strong>${escapeHtml(
+                                            step.label
+                                        )}</strong>
+                                        <span class="queue-ops-pilot__smoke-item-badge">${escapeHtml(
+                                            step.ready
+                                                ? 'Listo'
+                                                : step.state === 'alert'
+                                                  ? 'Bloquea'
+                                                  : 'Pendiente'
+                                        )}</span>
+                                    </div>
+                                    <p>${escapeHtml(step.detail)}</p>
+                                    ${
+                                        step.href
+                                            ? `
+                                                <a
+                                                    id="queueOpsPilotSmokeAction_${escapeHtml(
+                                                        step.id
+                                                    )}"
+                                                    href="${escapeHtml(
+                                                        step.href
+                                                    )}"
+                                                    class="queue-ops-pilot__smoke-link"
+                                                    target="_blank"
+                                                    rel="noopener"
+                                                >
+                                                    ${escapeHtml(
+                                                        step.actionLabel ||
+                                                            'Abrir'
+                                                    )}
+                                                </a>
+                                            `
+                                            : ''
+                                    }
+                                </article>
+                            `
+                        )
+                        .join('')}
+                </div>
+                <p id="queueOpsPilotSmokeSupport" class="queue-ops-pilot__smoke-support">${escapeHtml(
+                    pilot.smokeSupport
+                )}</p>
+            </section>
+            <section
+                id="queueOpsPilotHandoff"
+                class="queue-ops-pilot__handoff"
+                data-state="${escapeHtml(pilot.readinessState)}"
+            >
+                <div class="queue-ops-pilot__handoff-head">
+                    <div>
+                        <p class="queue-app-card__eyebrow">Handoff por clinica</p>
+                        <h6 id="queueOpsPilotHandoffTitle">Paquete de apertura</h6>
+                    </div>
+                    <button
+                        id="queueOpsPilotHandoffCopyBtn"
+                        type="button"
+                        class="queue-ops-pilot__handoff-copy"
+                    >
+                        Copiar paquete
+                    </button>
+                </div>
+                <p id="queueOpsPilotHandoffSummary" class="queue-ops-pilot__handoff-summary">${escapeHtml(
+                    pilot.handoffSummary
+                )}</p>
+                <div id="queueOpsPilotHandoffItems" class="queue-ops-pilot__handoff-items" role="list" aria-label="Paquete de Turnero V2 por clinica">
+                    ${pilot.handoffItems
+                        .map(
+                            (item) => `
+                                <article
+                                    id="queueOpsPilotHandoffItem_${escapeHtml(
+                                        item.id
+                                    )}"
+                                    class="queue-ops-pilot__handoff-item"
+                                    role="listitem"
+                                >
+                                    <strong>${escapeHtml(item.label)}</strong>
+                                    <p>${escapeHtml(item.value)}</p>
+                                </article>
+                            `
+                        )
+                        .join('')}
+                </div>
+                <p id="queueOpsPilotHandoffSupport" class="queue-ops-pilot__handoff-support">${escapeHtml(
+                    pilot.handoffSupport
+                )}</p>
+            </section>
+        `,
+    });
+    const advancedGroup = renderPilotDetailGroup({
+        id: 'queueOpsPilotAdvancedGroup',
+        eyebrow: 'Consolas avanzadas',
+        title: 'Drift, evidencia y rollout extendido',
+        summary:
+            'El detalle pesado del release queda oculto hasta que haga falta abrir la consola completa.',
+        meta: escapeHtml(
+            pilot.issueCount > 0
+                ? `${pilot.issueCount} incidencia(s)`
+                : 'On demand'
+        ),
+        tone: pilot.goLiveIssueState,
+        content: `
+            <div
+                id="queuePublicShellDriftCard"
+                data-turnero-public-shell-drift
+            ></div>
+            <div
+                id="queueReleaseControlCenterHost"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueOpsPilotRemoteReleaseHost"
+                class="queue-ops-pilot__remote-release-host"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueOpsPilotReleaseEvidenceHost"
+                class="queue-ops-pilot__release-evidence-host"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueOpsPilotRolloutGovernorHost"
+                class="queue-ops-pilot__rollout-governor-host"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueOpsPilotExecutivePortfolioStudioHost"
+                class="queue-ops-pilot__executive-portfolio-studio-host"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueOpsPilotStrategyDigitalTwinStudioHost"
+                class="queue-ops-pilot__strategy-digital-twin-studio-host"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueMultiClinicControlTowerHost"
+                class="queue-ops-pilot__multi-clinic-control-tower-host"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueReleaseBoardOpsHubHost"
+                class="queue-ops-pilot__board-ops-hub-host"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueReleaseOpsConsoleHost"
+                class="queue-ops-pilot__release-ops-console-host"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueSurfaceAcceptanceConsoleHost"
+                class="queue-ops-pilot__surface-acceptance-console-host"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueReleaseMissionControlHost"
+                class="queue-ops-pilot__release-mission-control-host"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueIncidentExecutionWorkbenchHost"
+                class="queue-ops-pilot__incident-workbench-host"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueOpsPilotReleaseWarRoomHost"
+                class="queue-ops-pilot__release-war-room-host"
+                aria-live="polite"
+            ></div>
+            <div
+                id="queueOpsPilotAutomationMeshHost"
+                class="queue-ops-pilot__automation-mesh-host"
+                aria-live="polite"
+            ></div>
+        `,
+    });
     const renderRequestId = `${Date.now().toString(36)}-${Math.random()
         .toString(36)
         .slice(2)}`;
@@ -1938,14 +2193,6 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
                                 pilot.goLiveSupport
                             )}</p>
                         </section>
-                        <div
-                            id="queuePublicShellDriftCard"
-                            data-turnero-public-shell-drift
-                        ></div>
-                        <div
-                            id="queueReleaseControlCenterHost"
-                            aria-live="polite"
-                        ></div>
                         <section id="queueOpsPilotCanon" class="queue-ops-pilot__canon">
                             <div class="queue-ops-pilot__canon-head">
                                 <div>
@@ -2003,184 +2250,8 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
                                 pilot.canonicalSupport || ''
                             )}</p>
                         </section>
-                        <section
-                            id="queueOpsPilotSmoke"
-                            class="queue-ops-pilot__smoke"
-                            data-state="${escapeHtml(pilot.smokeState)}"
-                        >
-                            <div class="queue-ops-pilot__smoke-head">
-                                <div>
-                                    <p class="queue-app-card__eyebrow">Smoke por clínica</p>
-                                    <h6 id="queueOpsPilotSmokeTitle">Secuencia repetible</h6>
-                                </div>
-                                <span
-                                    id="queueOpsPilotSmokeStatus"
-                                    class="queue-ops-pilot__smoke-status"
-                                    data-state="${escapeHtml(pilot.smokeState)}"
-                                >
-                                    ${escapeHtml(
-                                        `${pilot.smokeReadyCount}/${pilot.smokeSteps.length} listos`
-                                    )}
-                                </span>
-                            </div>
-                            <p id="queueOpsPilotSmokeSummary" class="queue-ops-pilot__smoke-summary">${escapeHtml(
-                                pilot.smokeSummary
-                            )}</p>
-                            <div id="queueOpsPilotSmokeItems" class="queue-ops-pilot__smoke-items" role="list" aria-label="Secuencia de smoke de Turnero V2">
-                                ${pilot.smokeSteps
-                                    .map(
-                                        (step) => `
-                                            <article
-                                                id="queueOpsPilotSmokeItem_${escapeHtml(
-                                                    step.id
-                                                )}"
-                                                class="queue-ops-pilot__smoke-item"
-                                                data-state="${escapeHtml(step.state)}"
-                                                role="listitem"
-                                            >
-                                                <div class="queue-ops-pilot__smoke-item-head">
-                                                    <strong>${escapeHtml(
-                                                        step.label
-                                                    )}</strong>
-                                                    <span class="queue-ops-pilot__smoke-item-badge">${escapeHtml(
-                                                        step.ready
-                                                            ? 'Listo'
-                                                            : step.state ===
-                                                                'alert'
-                                                              ? 'Bloquea'
-                                                              : 'Pendiente'
-                                                    )}</span>
-                                                </div>
-                                                <p>${escapeHtml(step.detail)}</p>
-                                                ${
-                                                    step.href
-                                                        ? `
-                                                            <a
-                                                                id="queueOpsPilotSmokeAction_${escapeHtml(
-                                                                    step.id
-                                                                )}"
-                                                                href="${escapeHtml(step.href)}"
-                                                                class="queue-ops-pilot__smoke-link"
-                                                                target="_blank"
-                                                                rel="noopener"
-                                                            >
-                                                                ${escapeHtml(
-                                                                    step.actionLabel ||
-                                                                        'Abrir'
-                                                                )}
-                                                            </a>
-                                                        `
-                                                        : ''
-                                                }
-                                            </article>
-                                        `
-                                    )
-                                    .join('')}
-                            </div>
-                            <p id="queueOpsPilotSmokeSupport" class="queue-ops-pilot__smoke-support">${escapeHtml(
-                                pilot.smokeSupport
-                            )}</p>
-                        </section>
-                        <section
-                            id="queueOpsPilotHandoff"
-                            class="queue-ops-pilot__handoff"
-                            data-state="${escapeHtml(pilot.readinessState)}"
-                        >
-                            <div class="queue-ops-pilot__handoff-head">
-                                <div>
-                                    <p class="queue-app-card__eyebrow">Handoff por clínica</p>
-                                    <h6 id="queueOpsPilotHandoffTitle">Paquete de apertura</h6>
-                                </div>
-                                <button
-                                    id="queueOpsPilotHandoffCopyBtn"
-                                    type="button"
-                                    class="queue-ops-pilot__handoff-copy"
-                                >
-                                    Copiar paquete
-                                </button>
-                            </div>
-                            <p id="queueOpsPilotHandoffSummary" class="queue-ops-pilot__handoff-summary">${escapeHtml(
-                                pilot.handoffSummary
-                            )}</p>
-                            <div id="queueOpsPilotHandoffItems" class="queue-ops-pilot__handoff-items" role="list" aria-label="Paquete de Turnero V2 por clínica">
-                                ${pilot.handoffItems
-                                    .map(
-                                        (item) => `
-                                            <article
-                                                id="queueOpsPilotHandoffItem_${escapeHtml(
-                                                    item.id
-                                                )}"
-                                                class="queue-ops-pilot__handoff-item"
-                                                role="listitem"
-                                            >
-                                                <strong>${escapeHtml(
-                                                    item.label
-                                                )}</strong>
-                                                <p>${escapeHtml(item.value)}</p>
-                                            </article>
-                                        `
-                                    )
-                                    .join('')}
-                            </div>
-                            <p id="queueOpsPilotHandoffSupport" class="queue-ops-pilot__handoff-support">${escapeHtml(
-                                pilot.handoffSupport
-                            )}</p>
-                        </section>
-                        <div
-                            id="queueOpsPilotRemoteReleaseHost"
-                            class="queue-ops-pilot__remote-release-host"
-                            aria-live="polite"
-                        ></div>
-                        <div
-                            id="queueOpsPilotReleaseEvidenceHost"
-                            class="queue-ops-pilot__release-evidence-host"
-                            aria-live="polite"
-                        ></div>
-                        <div
-                            id="queueOpsPilotRolloutGovernorHost"
-                            class="queue-ops-pilot__rollout-governor-host"
-                            aria-live="polite"
-                        ></div>
-                        <div
-                        id="queueOpsPilotExecutivePortfolioStudioHost"
-                            class="queue-ops-pilot__executive-portfolio-studio-host"
-                            aria-live="polite"
-                        ></div>
-                        <div
-                            id="queueOpsPilotStrategyDigitalTwinStudioHost"
-                            class="queue-ops-pilot__strategy-digital-twin-studio-host"
-                            aria-live="polite"
-                        ></div>
-                        <div
-                            id="queueMultiClinicControlTowerHost"
-                            class="queue-ops-pilot__multi-clinic-control-tower-host"
-                            aria-live="polite"
-                        ></div>
-                        <div
-                            id="queueReleaseBoardOpsHubHost"
-                            class="queue-ops-pilot__board-ops-hub-host"
-                            aria-live="polite"
-                        ></div>
-                        <div
-                            id="queueReleaseOpsConsoleHost"
-                            class="queue-ops-pilot__release-ops-console-host"
-                            aria-live="polite"
-                        ></div>
-                        <div
-                            id="queueSurfaceAcceptanceConsoleHost"
-                            class="queue-ops-pilot__surface-acceptance-console-host"
-                            aria-live="polite"
-                        ></div>
-                        <div
-                            id="queueReleaseMissionControlHost"
-                            class="queue-ops-pilot__release-mission-control-host"
-                            aria-live="polite"
-                        ></div>
-                        <div
-                            id="queueIncidentExecutionWorkbenchHost"
-                            class="queue-ops-pilot__incident-workbench-host"
-                            aria-live="polite"
-                        ></div>
+                        ${validationGroup}
+                        ${advancedGroup}
                     </div>
                     <div class="queue-ops-pilot__status">
                         <div class="queue-ops-pilot__progress">
@@ -2210,16 +2281,6 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
                         </div>
                     </div>
                 </div>
-                <div
-                    id="queueOpsPilotReleaseWarRoomHost"
-                    class="queue-ops-pilot__release-war-room-host"
-                    aria-live="polite"
-                ></div>
-                <div
-                    id="queueOpsPilotAutomationMeshHost"
-                    class="queue-ops-pilot__automation-mesh-host"
-                    aria-live="polite"
-                ></div>
             </section>
         `
     );

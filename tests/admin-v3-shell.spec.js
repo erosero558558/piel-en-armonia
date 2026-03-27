@@ -216,6 +216,10 @@ test.describe('Admin sony_v3 shell', () => {
 
         await expect(page.locator('#adminProductivityStrip')).toBeVisible();
         await expect(page.locator('#pageTitle')).toHaveText('Turnero');
+        await expect(page.locator('.admin-quick-nav-item')).toHaveCount(6);
+        await expect(
+            page.locator('.admin-quick-nav-item[data-section="queue"]')
+        ).toHaveClass(/active/);
         await expect(page.locator('#adminPrimaryNav')).toContainText('Turnero');
         await expect(page.locator('#adminPrimaryNav')).toContainText('Inicio');
         await expect(page.locator('#adminPrimaryNav')).toContainText('Agenda');
@@ -290,6 +294,13 @@ test.describe('Admin sony_v3 shell', () => {
         await expect(page.locator('#appointmentsFocusPatient')).toContainText(
             'Ana Transfer'
         );
+
+        await page
+            .locator('.admin-quick-nav-item[data-section="callbacks"]')
+            .click();
+        await expect(page.locator('#callbacks')).toHaveClass(/active/);
+        await expect(page.locator('#pageTitle')).toHaveText('Pendientes');
+        await expect(page).toHaveURL(/#callbacks$/);
 
         await page.keyboard.press('Alt+Shift+Digit1');
         await expect(page.locator('#queue')).toHaveClass(/active/);

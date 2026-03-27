@@ -1,3 +1,31 @@
+const QUICK_NAV_ITEMS = [
+    { section: 'queue', label: 'Turnero' },
+    { section: 'dashboard', label: 'Inicio' },
+    { section: 'appointments', label: 'Agenda' },
+    { section: 'callbacks', label: 'Pendientes' },
+    { section: 'availability', label: 'Horarios' },
+    { section: 'clinical-history', label: 'Historia clinica' },
+];
+
+function renderShellQuickNav() {
+    return `
+        <nav class="admin-quick-nav" aria-label="Navegacion rapida del admin">
+            ${QUICK_NAV_ITEMS.map(
+                ({ section, label }, index) => `
+                    <button
+                        type="button"
+                        class="admin-quick-nav-item${index === 0 ? ' active' : ''}"
+                        data-section="${section}"
+                        aria-pressed="${index === 0 ? 'true' : 'false'}"
+                    >
+                        <span>${label}</span>
+                    </button>
+                `
+            ).join('')}
+        </nav>
+    `;
+}
+
 export function renderShellContextStrip() {
     return `
         <section class="admin-v3-context-strip" id="adminProductivityStrip">
@@ -5,6 +33,7 @@ export function renderShellContextStrip() {
                 <p class="sony-kicker" id="adminSectionEyebrow">Turnero primero</p>
                 <h3 id="adminContextTitle">Control room del consultorio</h3>
                 <p id="adminContextSummary">Queue, surfaces y release registry visibles desde la primera lectura del admin.</p>
+                ${renderShellQuickNav()}
                 <div id="adminContextActions" class="sony-context-actions"></div>
             </div>
             <div class="admin-v3-status-rail" data-admin-priority-rail>
