@@ -19,7 +19,7 @@ codex_instance: codex_frontend
 block: C1
 task_id: CDX-046
 subfront_id: SF-frontend-admin-operativo
-status: in_progress
+status: review
 files: ["src/apps/admin-v3/ui/frame/shell.js", "src/apps/admin-v3/ui/frame/templates/shell/context-strip.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/render.js", "admin-v3.css", "queue-ops.css", "admin.js", "js/admin-chunks/index-B1DiKJfh.js", "js/admin-chunks/index-LGvlMxUB.js", "js/queue-operator.js", "tests/admin-v3-shell.spec.js", "tests/admin-v3-visual.spec.js", "verification/agent-runs/CDX-046.md"]
 updated_at: 2026-03-27
 -->

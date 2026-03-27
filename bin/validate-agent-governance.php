@@ -1203,9 +1203,13 @@ function classifyFileLaneForDualCodex(string $rawFile): string
         'src/apps/**',
         'js/**',
         'admin.js',
+        'admin-v3.css',
+        'queue-ops.css',
         'styles*.css',
         'templates/**',
         'content/**',
+        'tests/admin-v3-shell.spec.js',
+        'tests/admin-v3-visual.spec.js',
         '*.html',
     ];
     foreach ($transversalPatterns as $pattern) {

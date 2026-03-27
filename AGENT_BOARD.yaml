@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 768
+  revision: 770
   updated_at: 2026-03-27
 
 strategy:
@@ -979,8 +979,8 @@ tasks:
     title: "Admin v3 feedback trim follow-up: quick-nav y hub piloto"
     owner: deck
     executor: codex
-    status: in_progress
-    status_since_at: "2026-03-27T00:35:28.223Z"
+    status: review
+    status_since_at: "2026-03-27T23:37:15.510Z"
     risk: low
     scope: frontend-admin
     codex_instance: codex_frontend
@@ -1008,8 +1008,8 @@ tasks:
     lease_id: "lease_CDX-046_20260327003528223_59566a"
     lease_owner: "deck"
     lease_created_at: "2026-03-27T00:35:28.223Z"
-    heartbeat_at: "2026-03-27T00:35:28.223Z"
-    lease_expires_at: "2026-03-27T04:35:28.223Z"
+    heartbeat_at: "2026-03-27T23:37:15.510Z"
+    lease_expires_at: "2026-03-28T03:37:15.510Z"
     lease_reason: "board_write"
     lease_cleared_at: ""
     lease_cleared_reason: ""
@@ -6628,8 +6628,8 @@ tasks:
     status_since_at: "2026-03-02T04:06:44.573Z"
     risk: medium
     scope: frontend-admin
-    codex_instance: codex_backend_ops
-    domain_lane: backend_ops
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
     lane_lock: strict
     cross_domain: false
     provider_mode: 

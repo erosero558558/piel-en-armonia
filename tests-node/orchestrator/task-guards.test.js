@@ -607,6 +607,16 @@ test('task-guards infiere lane conservador por files', () => {
         'frontend_content'
     );
     assert.equal(classifyPathLane('admin.js').lane, 'frontend_content');
+    assert.equal(classifyPathLane('admin-v3.css').lane, 'frontend_content');
+    assert.equal(classifyPathLane('queue-ops.css').lane, 'frontend_content');
+    assert.equal(
+        classifyPathLane('tests/admin-v3-shell.spec.js').lane,
+        'frontend_content'
+    );
+    assert.equal(
+        classifyPathLane('tests/admin-v3-visual.spec.js').lane,
+        'frontend_content'
+    );
     assert.equal(
         classifyPathLane('controllers/AdminController.php').lane,
         'backend_ops'
@@ -623,6 +633,14 @@ test('task-guards infiere lane conservador por files', () => {
     ]);
     assert.equal(inferredFrontend.lane, 'frontend_content');
     assert.equal(inferredFrontend.hasCrossDomainFiles, false);
+
+    const inferredAdminTrimFrontend = inferDomainLaneFromFiles([
+        'admin-v3.css',
+        'queue-ops.css',
+        'tests/admin-v3-shell.spec.js',
+    ]);
+    assert.equal(inferredAdminTrimFrontend.lane, 'frontend_content');
+    assert.equal(inferredAdminTrimFrontend.hasCrossDomainFiles, false);
 
     const inferredMixed = inferDomainLaneFromFiles([
         'src/apps/chat/engine.js',
