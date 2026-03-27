@@ -22,6 +22,7 @@ const { parseFlags } = require('../tools/agent-orchestrator/core/flags');
 const {
     classifyPublishSurface,
     buildGateCommands,
+    finalizePreparedPublish,
     handlePublishCommand,
 } = require('../tools/agent-orchestrator/commands/publish');
 
@@ -549,6 +550,65 @@ test('publish checkpoint permite escape acotado para feedback_trim frontend con 
         const report = await handlePublishCommand(ctx);
         assert.equal(report.command, 'publish checkpoint');
         assert.match(String(report.commit || ''), /^[0-9a-f]{7,}$/i);
+    } finally {
+        cleanupRepoFixture(root);
+    }
+});
+
+test('finalizePreparedPublish fuerza git add para artefactos trackeados pero ignorados', async () => {
+    const root = createRepoFixture();
+    try {
+        writeFileSync(
+            join(root, 'docs', 'in-scope.md'),
+            '# updated scope\n',
+            'utf8'
+        );
+
+        const task = {
+            id: 'CDX-900',
+            executor: 'codex',
+            status: 'review',
+            codex_instance: 'codex_frontend',
+            files: ['docs/in-scope.md', 'script.js'],
+        };
+        const board = {
+            policy: { revision: 7 },
+            tasks: [task],
+        };
+
+        const report = await finalizePreparedPublish(
+            {
+                rootPath: root,
+                publishEventsPath: join(
+                    root,
+                    'verification',
+                    'agent-publish-events.jsonl'
+                ),
+                parseJobs: () => ({ jobs: [] }),
+                buildJobsSnapshot: async () => [],
+                findJobSnapshot: () => null,
+            },
+            {
+                board,
+                task,
+                taskId: 'CDX-900',
+                summary: 'fixture closeout',
+                allowedPatterns: ['docs/in-scope.md', 'script.js'],
+                gateCommands: [],
+                ignoredDirtyEntries: [],
+                explicitDirtyFiles: ['docs/in-scope.md', 'script.js'],
+                command: 'close',
+            }
+        );
+
+        assert.equal(report.ok, true);
+        assert.match(String(report.commit || ''), /^[0-9a-f]{7,}$/i);
+        assert.equal(
+            runGit(root, ['show', '--stat', '--format=%s', 'HEAD']).stdout.includes(
+                'chore(codex-close): closeout CDX-900'
+            ),
+            true
+        );
     } finally {
         cleanupRepoFixture(root);
     }

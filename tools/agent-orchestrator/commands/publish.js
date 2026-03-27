@@ -652,6 +652,26 @@ function buildClosePublishSummary(taskId, task = {}) {
     return tokens.join(' ');
 }
 
+function stageFilesForPublish(rootPath, filesToStage = []) {
+    const initialResult = runCommand('git', ['add', '--', ...filesToStage], {
+        cwd: rootPath,
+        capture: true,
+    });
+    if (initialResult.ok) {
+        return initialResult;
+    }
+    const ignoredByGitignore = /ignored by one of your \.gitignore files/i.test(
+        `${initialResult.stderr || ''}\n${initialResult.stdout || ''}`
+    );
+    if (!ignoredByGitignore) {
+        return initialResult;
+    }
+    return runCommand('git', ['add', '-f', '--', ...filesToStage], {
+        cwd: rootPath,
+        capture: true,
+    });
+}
+
 async function finalizePreparedPublish(ctx = {}, options = {}) {
     const {
         rootPath,
@@ -690,10 +710,7 @@ async function finalizePreparedPublish(ctx = {}, options = {}) {
         ? explicitDirtyFiles.filter(Boolean)
         : diagnosis.dirtyFiles;
 
-    const addResult = runCommand('git', ['add', '--', ...filesToStage], {
-        cwd: rootPath,
-        capture: true,
-    });
+    const addResult = stageFilesForPublish(rootPath, filesToStage);
     if (!addResult.ok) {
         throw new Error(
             addResult.stderr || addResult.stdout || 'git add fallo'
