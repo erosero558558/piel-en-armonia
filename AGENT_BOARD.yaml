@@ -7,8 +7,8 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 776
-  updated_at: 2026-03-26
+  revision: 778
+  updated_at: 2026-03-27
 
 strategy:
   active:
@@ -88,7 +88,7 @@ tasks:
     files: ["backup-receiver.php", "verify-backup.php", "lib/backup.php", "tests/BackupReceiverTest.php", "env.example.php", "docs/RUNBOOKS.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 80
+    priority_score: 92
     sla_due_at: "2026-02-25T14:50:15.243Z"
     last_attempt_at: ""
     attempts: 0
@@ -109,7 +109,7 @@ tasks:
     depends_on: []
     prompt: "Implementar checksum SHA-256 por header, cifrado AES-256-CBC y prueba de integridad con test."
     created_at: 2026-02-24
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-002
     title: "PHP rate-limiter sliding window and per-user limits"
@@ -130,7 +130,7 @@ tasks:
     files: ["lib/ratelimit.php", "tests/RateLimiterTest.php", "tests/Security/RateLimiterTest.php", "tests/Unit/Security/RateLimiterTest.php", "env.example.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 60
+    priority_score: 72
     sla_due_at: "2026-02-27T02:50:15.243Z"
     last_attempt_at: ""
     attempts: 0
@@ -151,7 +151,7 @@ tasks:
     depends_on: []
     prompt: "Actualizar rate-limiter a sliding window, incluir limite por user token y pruebas de regresion."
     created_at: 2026-02-24
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-003
     title: "OpenAPI 3.1 specification for public API resources"
@@ -172,7 +172,7 @@ tasks:
     files: ["docs/openapi.yaml", "README.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 35
+    priority_score: 47
     sla_due_at: "2026-02-28T02:50:15.243Z"
     last_attempt_at: ""
     attempts: 0
@@ -193,7 +193,7 @@ tasks:
     depends_on: []
     prompt: "Generar OpenAPI 3.1 para api.php recursos principales y documentar como visualizarla localmente."
     created_at: 2026-02-24
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-004
     title: "Email notification system for appointment confirmations"
@@ -214,7 +214,7 @@ tasks:
     files: ["lib/mailer.php", "templates/email", "tests/MailerTest.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 60
+    priority_score: 72
     sla_due_at: "2026-02-27T02:50:15.243Z"
     last_attempt_at: ""
     attempts: 0
@@ -235,7 +235,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Implementar wrapper PHPMailer para confirmaciones y recordatorios con templates HTML y test."
     created_at: 2026-02-24
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-005
     title: "Audit dead code in js engines"
@@ -256,7 +256,7 @@ tasks:
     files: ["js/engines", "docs/dead-code-audit.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 35
+    priority_score: 47
     sla_due_at: "2026-02-28T02:50:15.243Z"
     last_attempt_at: ""
     attempts: 0
@@ -277,7 +277,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Auditar js/engines y generar docs/dead-code-audit.md sin tocar logica de JS."
     created_at: 2026-02-24
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-006
     title: "Add editorconfig and normalize line-end policy"
@@ -298,7 +298,7 @@ tasks:
     files: [".editorconfig", ".gitattributes"]
     source_signal: manual
     source_ref: ""
-    priority_score: 35
+    priority_score: 47
     sla_due_at: "2026-02-28T02:50:15.243Z"
     last_attempt_at: ""
     attempts: 0
@@ -319,7 +319,7 @@ tasks:
     depends_on: []
     prompt: "Crear/ajustar .editorconfig y .gitattributes para estandarizar indentacion y finales de linea."
     created_at: 2026-02-24
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-007
     title: "Add missing PHPDoc in core lib files"
@@ -340,7 +340,7 @@ tasks:
     files: ["lib/audit.php", "lib/ratelimit.php", "lib/email.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 35
+    priority_score: 47
     sla_due_at: "2026-02-28T02:50:15.243Z"
     last_attempt_at: ""
     attempts: 0
@@ -361,7 +361,7 @@ tasks:
     depends_on: []
     prompt: "Agregar PHPDoc faltantes en librerias core sin modificar comportamiento funcional."
     created_at: 2026-02-24
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-008
     title: "Kimi autopilot smoke task (no-op)"
@@ -382,7 +382,7 @@ tasks:
     files: ["KIMI_TASKS.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 35
+    priority_score: 47
     sla_due_at: "2026-02-28T02:50:15.243Z"
     last_attempt_at: ""
     attempts: 0
@@ -403,7 +403,7 @@ tasks:
     depends_on: []
     prompt: "Smoke test: no hagas cambios de codigo. Solo confirma ejecucion y finaliza sin modificar archivos."
     created_at: 2026-02-24
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: CDX-001
     title: "Codex governance coexistence guardrails (C4 support)"
@@ -430,7 +430,7 @@ tasks:
     files: ["AGENTS.md", "AGENT_BOARD.yaml", "AGENT_HANDOFFS.yaml", "PLAN_MAESTRO_CODEX_2026.md", "agent-orchestrator.js", "bin/validate-agent-governance.php", ".github/workflows/agent-governance.yml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 60
+    priority_score: 72
     sla_due_at: "2026-02-27T02:50:15.243Z"
     last_attempt_at: ""
     attempts: 0
@@ -451,7 +451,7 @@ tasks:
     depends_on: []
     prompt: "Implementar guardrails de convivencia entre AGENT_BOARD y Plan Codex (handoffs, codex-check, conflict gate con excepciones temporales) alineado al bloque C4."
     created_at: 2026-02-24
-    updated_at: 2026-03-01
+    updated_at: 2026-03-27
 
   - id: CDX-002
     title: "Package P1: Sentry evidence normalization and readiness scorecard"
@@ -478,7 +478,7 @@ tasks:
     files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "PLAN_MAESTRO_OPERATIVO_2026.md", "bin/verify-sentry-events.js", "bin/prod-readiness-summary.js", ".github/workflows/sentry-events-verify.yml", "docs/MONITORING_SETUP.md", "verification/agent-runs/CDX-002.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 70
+    priority_score: 72
     sla_due_at: "2026-03-04T23:59:59.000Z"
     last_attempt_at: ""
     attempts: 0
@@ -499,7 +499,7 @@ tasks:
     depends_on: []
     prompt: "Ejecutar Package P1: normalizar sentry-events-last.json con razon accionable, integrar la evidencia en prod-readiness-summary y fijar la plantilla de scorecard de paquetes."
     created_at: 2026-03-02
-    updated_at: 2026-03-02
+    updated_at: 2026-03-27
 
   - id: CDX-003
     title: "Package P2: shared PowerShell kernel for production ops scripts"
@@ -526,7 +526,7 @@ tasks:
     files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "REPORTE-SEMANAL-PRODUCCION.ps1", "VERIFICAR-DESPLIEGUE.ps1", "MONITOR-PRODUCCION.ps1", "bin/powershell/Common.Http.ps1", "bin/powershell/Common.Metrics.ps1", "bin/powershell/Common.Warnings.ps1", "verification/agent-runs/CDX-003.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 82
+    priority_score: 92
     sla_due_at: "2026-03-05T23:59:59.000Z"
     last_attempt_at: ""
     attempts: 0
@@ -547,7 +547,7 @@ tasks:
     depends_on: ["CDX-002"]
     prompt: "Ejecutar Package P2: extraer helpers comunes a bin/powershell y adelgazar REPORTE-SEMANAL-PRODUCCION, VERIFICAR-DESPLIEGUE y MONITOR-PRODUCCION sin romper contratos de CLI ni salida."
     created_at: 2026-03-02
-    updated_at: 2026-03-02
+    updated_at: 2026-03-27
 
   - id: CDX-004
     title: "Package P3: analytics controller decomposition into pure services"
@@ -574,7 +574,7 @@ tasks:
     files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "controllers/AnalyticsController.php", "lib/analytics/FunnelMetricsService.php", "lib/analytics/RetentionReportService.php", "lib/analytics/PrometheusCounterParser.php", "lib/analytics/AnalyticsLabelNormalizer.php", "lib/analytics/RetentionCsvExporter.php", "tests/Integration/AnalyticsRetentionMetricsTest.php", "tests/Integration/AnalyticsServiceFunnelMetricsTest.php", "tests/Integration/AnalyticsRetentionReportTest.php", "tests/Integration/ServicePriorityControllerTest.php", "verification/agent-runs/CDX-004.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 84
+    priority_score: 92
     sla_due_at: "2026-03-06T23:59:59.000Z"
     last_attempt_at: ""
     attempts: 0
@@ -595,7 +595,7 @@ tasks:
     depends_on: ["CDX-003"]
     prompt: "Ejecutar Package P3: extraer calculo de funnel, retention, parseo Prometheus, normalizacion y CSV fuera de AnalyticsController sin romper consumidores ni contratos."
     created_at: 2026-03-02
-    updated_at: 2026-03-02
+    updated_at: 2026-03-27
 
   - id: CDX-005
     title: "Package P4: durable storage and backup core extraction"
@@ -622,7 +622,7 @@ tasks:
     files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "lib/storage.php", "lib/backup.php", "lib/storage/StorePaths.php", "lib/storage/StoreCrypto.php", "lib/storage/StorePersistence.php", "lib/storage/StorageConfig.php", "lib/backup/BackupConfig.php", "lib/backup/BackupCrypto.php", "lib/backup/BackupHealthService.php", "lib/backup/BackupReplicationService.php", "tests/test_storage_backup.php", "tests/test_storage_encryption.php", "tests/BackupReceiverTest.php", "tests/verify_disaster_recovery_cli.php", "tests/Integration/verify_disaster_recovery.php", "tests/Unit/Storage/StorageSQLiteFallbackTest.php", "verification/agent-runs/CDX-005.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 86
+    priority_score: 92
     sla_due_at: "2026-03-08T23:59:59.000Z"
     last_attempt_at: ""
     attempts: 0
@@ -643,7 +643,7 @@ tasks:
     depends_on: ["CDX-004"]
     prompt: "Ejecutar Package P4: extraer paths, config, cifrado, persistencia, health y replicacion desde storage.php y backup.php sin breaking changes en funciones globales, formatos de archivos ni validaciones."
     created_at: 2026-03-03
-    updated_at: 2026-03-03
+    updated_at: 2026-03-27
 
   - id: CDX-006
     title: "Package P5: queue and figo chat core extraction"
@@ -670,7 +670,7 @@ tasks:
     files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "lib/figo_queue.php", "lib/QueueService.php", "lib/figo_queue/QueueConfig.php", "lib/figo_queue/JobRepository.php", "lib/figo_queue/GatewayClient.php", "lib/figo_queue/JobProcessor.php", "lib/queue/TicketFactory.php", "lib/queue/TicketPriorityPolicy.php", "lib/queue/QueueSummaryBuilder.php", "figo-backend.php", "figo-chat.php", "tests/test_queue_service.php", "tests/test_figo_queue_core.php", "verification/agent-runs/CDX-006.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 88
+    priority_score: 92
     sla_due_at: "2026-03-09T23:59:59.000Z"
     last_attempt_at: ""
     attempts: 0
@@ -691,7 +691,7 @@ tasks:
     depends_on: ["CDX-005"]
     prompt: "Ejecutar Package P5: extraer configuracion, repositorio, gateway y procesamiento desde figo_queue.php, y politica de prioridad/resumen desde QueueService.php, manteniendo contratos de chat, backend y cola."
     created_at: 2026-03-03
-    updated_at: 2026-03-04
+    updated_at: 2026-03-27
 
   - id: CDX-007
     title: "Telemedicine backend rebuild: intake, suitability and clinical media separation"
@@ -718,7 +718,7 @@ tasks:
     files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "controllers/AppointmentController.php", "controllers/PaymentController.php", "lib/BookingService.php", "lib/models.php", "lib/validation.php", "lib/db.php", "lib/storage/StorageConfig.php", "lib/storage/StorePersistence.php", "controllers/AdminDataController.php", "lib/calendar/CalendarBookingService.php", "lib/email.php", "lib/backup/BackupHealthService.php", "payment-lib.php", "lib/telemedicine/TelemedicineIntakeService.php", "lib/telemedicine/TelemedicineRepository.php", "lib/telemedicine/TelemedicineSuitabilityEvaluator.php", "lib/telemedicine/TelemedicineConsentSnapshot.php", "lib/telemedicine/TelemedicineChannelMapper.php", "lib/telemedicine/TelemedicineEncounterPlanner.php", "lib/telemedicine/ClinicalMediaService.php", "lib/telemedicine/LegacyTelemedicineBridge.php", "lib/telemedicine/TelemedicineBackfillService.php", "tests/Unit/TelemedicineSuitabilityEvaluatorTest.php", "tests/Unit/TelemedicineChannelMapperTest.php", "tests/Integration/TelemedicineLegacyBridgeTest.php", "tests/Integration/TelemedicineStorageParityTest.php", "tests/Integration/TelemedicineBackfillTest.php", "bin/backfill-telemedicine-intakes.php", "verification/agent-runs/CDX-007.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 90
+    priority_score: 92
     sla_due_at: "2026-03-10T23:59:59.000Z"
     last_attempt_at: ""
     attempts: 0
@@ -739,7 +739,7 @@ tasks:
     depends_on: ["CDX-005"]
     prompt: "Rehacer telemedicina backend desde cero con dominio propio de intake, suitability shadow, media clinica separada de payment proof, persistencia JSON/SQLite, bridge legacy sobre payment-intent/appointments/transfer-proof y backfill historico sin tocar frontend."
     created_at: 2026-03-03
-    updated_at: 2026-03-03
+    updated_at: 2026-03-27
 
   - id: CDX-008
     title: "Telemedicine ops hardening: health snapshot, metrics and admin triage"
@@ -766,7 +766,7 @@ tasks:
     files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "controllers/HealthController.php", "controllers/AdminDataController.php", "controllers/SystemController.php", "lib/telemedicine/TelemedicineOpsSnapshot.php", "docs/API.md", "docs/openapi.yaml", "tests/Integration/TelemedicineHealthSnapshotTest.php", "tests/Integration/TelemedicineAdminReadModelTest.php", "tests/Integration/TelemedicineMetricsExportTest.php", "verification/agent-runs/CDX-008.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 84
+    priority_score: 92
     sla_due_at: "2026-03-10T23:59:59.000Z"
     last_attempt_at: ""
     attempts: 0
@@ -787,11 +787,8 @@ tasks:
     depends_on: ["CDX-007"]
     prompt: "Endurecer operacion backend de telemedicina con snapshot reusable para health, metrics y admin data, de modo que staff vea review_required, staged uploads, counts por suitability y consistencia de linkage sin tocar frontend."
     created_at: 2026-03-03
-    updated_at: 2026-03-03
+    updated_at: 2026-03-27
 
-  # Public sync freeze activo hasta 2026-03-29T21:00:00-05:00 (America/Bogota).
-  # No abrir nuevas slices ni triage sobre public_main_sync / host connectivity
-  # salvo que reaparezca un runner self-hosted Windows o un puerto SSH real al host.
   - id: CDX-009
     title: "Public sync stale recovery: refrescar cron host-side y revalidar health"
     owner: deck
@@ -817,11 +814,11 @@ tasks:
     files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
     source_signal: manual
     source_ref: "issue#461"
-    priority_score: 95
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: "2026-03-26T11:42:20.790Z"
     attempts: 3
-    blocked_reason: ""
+    blocked_reason: "auto_escalated_after_retries"
     lease_id: ""
     lease_owner: ""
     lease_created_at: ""
@@ -849,7 +846,7 @@ tasks:
     depends_on: []
     prompt: "Mantener evidencia y criterio de reanudacion para CDX-009 mientras public_main_sync y operator_auth sigan bloqueados por 502 host-side y falta de acceso operativo real al host."
     created_at: 2026-03-25
-    updated_at: 2026-03-26
+    updated_at: 2026-03-27
 
   - id: CDX-010
     title: "Codex governance cleanup for blocked public sync evidence"
@@ -876,8 +873,8 @@ tasks:
     files: ["AGENT_BOARD.yaml", "AGENT_HANDOFFS.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-009.md", "verification/agent-runs/CDX-010.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 70
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -908,7 +905,7 @@ tasks:
     depends_on: ["CDX-009"]
     prompt: "Encapsular la evidencia bloqueada de CDX-009 en una slice transversal de gobernanza para que workspace hygiene deje de reportar unknown_scope sin tocar runtime ni el frente host-side."
     created_at: 2026-03-26
-    updated_at: 2026-03-26
+    updated_at: 2026-03-27
 
   - id: CDX-011
     title: "Codex governance ownership cleanup for CDX-009 external blocker"
@@ -935,8 +932,8 @@ tasks:
     files: ["AGENT_BOARD.yaml", "AGENT_HANDOFFS.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-009.md", "verification/agent-runs/CDX-011.md"]
     source_signal: manual
     source_ref: "CDX-009"
-    priority_score: 70
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -967,7 +964,7 @@ tasks:
     depends_on: ["CDX-009"]
     prompt: "Absorber en una slice transversal la gobernanza y el espejo board/plan del blocker externo de CDX-009 para que workspace hygiene deje de marcar AGENT_BOARD.yaml y PLAN_MAESTRO_CODEX_2026.md como out_of_scope."
     created_at: 2026-03-26
-    updated_at: 2026-03-26
+    updated_at: 2026-03-27
 
   - id: CDX-045
     title: "Public V6 ES ecuatorian voice rewrite mirror"
@@ -994,8 +991,8 @@ tasks:
     files: ["content/public-v6/en/software.json", "content/public-v6/es/navigation.json", "content/public-v6/es/home.json", "content/public-v6/es/hub.json", "content/public-v6/es/software.json"]
     source_signal: manual
     source_ref: "AG-256"
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -1026,7 +1023,7 @@ tasks:
     depends_on: ["AG-256"]
     prompt: "Activar la ola draft de Public V6 desde el patch validado, limitando el write set a navigation/home/hub/software en ES y limpieza puntual de en/software, usando AG-256 solo como referencia historica del frente, sin reabrir service/telemedicine/legal ni tocar runtime."
     created_at: 2026-03-26
-    updated_at: 2026-03-26
+    updated_at: 2026-03-27
 
   - id: AG-009
     title: "Mobile UX phase 4: fix chat/header overlap and spacing consistency"
@@ -1047,7 +1044,7 @@ tasks:
     files: ["index.html", "styles-deferred.css", "src/apps/chat/ui-engine.js", "src/apps/chat/widget-engine.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 60
+    priority_score: 72
     sla_due_at: "2026-02-27T02:50:15.243Z"
     last_attempt_at: ""
     attempts: 0
@@ -1068,7 +1065,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Corregir solapes y espaciado en mobile-first sin romper desktop."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-010
     title: "Conversion phase 3: instrument booking drop-off reasons in funnel"
@@ -1089,7 +1086,7 @@ tasks:
     files: ["src/apps/analytics/engine.js", "src/apps/booking/engine.js", "api.php", "controllers/AdminDataController.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 80
+    priority_score: 92
     sla_due_at: "2026-02-25T14:50:15.243Z"
     last_attempt_at: ""
     attempts: 0
@@ -1110,7 +1107,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Agregar medicion consistente de drop-off en checkout y exponer resumen para admin."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-011
     title: "Performance phase 4: split non-critical JS and lazy-init below-the-fold modules"
@@ -1131,7 +1128,7 @@ tasks:
     files: ["js/main.js", "rollup.config.mjs", "src/bundles/ui.js", "src/bundles/engagement.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 60
+    priority_score: 72
     sla_due_at: "2026-02-27T02:50:15.243Z"
     last_attempt_at: ""
     attempts: 0
@@ -1152,7 +1149,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Aplicar particion adicional de JS no critico y verificar que no rompa interacciones clave."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-012
     title: "Resolver alerta: [ALERTA PROD] Monitor de produccion fallando"
@@ -1173,7 +1170,7 @@ tasks:
     files: [".github/workflows/prod-monitor.yml"]
     source_signal: issue
     source_ref: "issue#279"
-    priority_score: 95
+    priority_score: 92
     sla_due_at: "2026-02-25T08:07:39.697Z"
     last_attempt_at: ""
     attempts: 0
@@ -1194,7 +1191,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal issue#279. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-013
     title: "Resolver alerta: [ALERTA PROD] Repair git sync fallando"
@@ -1215,7 +1212,7 @@ tasks:
     files: [".github/workflows/repair-git-sync.yml"]
     source_signal: issue
     source_ref: "issue#263"
-    priority_score: 95
+    priority_score: 92
     sla_due_at: "2026-02-25T08:07:39.697Z"
     last_attempt_at: ""
     attempts: 0
@@ -1236,7 +1233,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal issue#263. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-014
     title: "Resolver fallo workflow: CI: refactor(governance): extract remaining commands and add php contract…"
@@ -1257,7 +1254,7 @@ tasks:
     files: [".github/workflows/ci.yml"]
     source_signal: workflow
     source_ref: "run#22379873691"
-    priority_score: 60
+    priority_score: 72
     sla_due_at: "2026-02-27T02:52:05.878Z"
     last_attempt_at: ""
     attempts: 0
@@ -1278,7 +1275,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal run#22379873691. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-015
     title: "Resolver fallo workflow: CI: feat(governance): add warn-first diagnostics and policy enforcement c…"
@@ -1299,7 +1296,7 @@ tasks:
     files: [".github/workflows/ci.yml"]
     source_signal: workflow
     source_ref: "run#22379426844"
-    priority_score: 60
+    priority_score: 72
     sla_due_at: "2026-02-27T02:52:05.878Z"
     last_attempt_at: ""
     attempts: 0
@@ -1320,7 +1317,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal run#22379426844. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-016
     title: "Resolver fallo workflow: CI: feat: automate calendar smoke and add hero AB conversion tracking"
@@ -1341,7 +1338,7 @@ tasks:
     files: ["controllers/AvailabilityController.php", "controllers/AppointmentController.php", "lib/calendar/CalendarAvailabilityService.php", "lib/calendar/CalendarBookingService.php"]
     source_signal: workflow
     source_ref: "run#22379136316"
-    priority_score: 60
+    priority_score: 72
     sla_due_at: "2026-02-27T02:52:05.878Z"
     last_attempt_at: ""
     attempts: 0
@@ -1362,7 +1359,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal run#22379136316. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-017
     title: "Resolver fallo workflow: CI: refactor(orchestrator): extract contribution metrics engine"
@@ -1383,7 +1380,7 @@ tasks:
     files: [".github/workflows/ci.yml"]
     source_signal: workflow
     source_ref: "run#22379059437"
-    priority_score: 60
+    priority_score: 72
     sla_due_at: "2026-02-27T02:52:05.878Z"
     last_attempt_at: ""
     attempts: 0
@@ -1404,7 +1401,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal run#22379059437. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-018
     title: "Resolver fallo workflow: CI: ci(c1): add staging figo-contract and chat smoke gate; close AG-021"
@@ -1425,7 +1422,7 @@ tasks:
     files: ["figo-chat.php", "figo-backend.php", "src/apps/chat/engine.js", "src/apps/chat/ui-engine.js"]
     source_signal: workflow
     source_ref: "workflow:ci:main"
-    priority_score: 60
+    priority_score: 72
     sla_due_at: "2026-02-27T06:27:58.889Z"
     last_attempt_at: ""
     attempts: 0
@@ -1446,7 +1443,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Resolver señal workflow:ci:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-019
     title: "Tech debt P1: consolidate data-engine and data-bundle overlap"
@@ -1488,7 +1485,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Auditar src/bundles/data-engine.js y src/bundles/data-bundle.js. Identificar exports duplicados. Consolidar en un único módulo canónico actualizado en rollup.config.mjs. Agregar test de no-regresión de tamaño de bundle."
     created_at: 2026-02-24
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-020
     title: "Tech debt P2: add compile-time gate to strip debug/console.log from production bundles"
@@ -1530,7 +1527,7 @@ tasks:
     depends_on: ["AG-019"]
     prompt: "Configurar @rollup/plugin-strip o similar para eliminar console.log/debugger en builds de produccion. Agregar regla ESLint no-console (warn en dev, error en CI). Documentar escape hatch para logs intencionales."
     created_at: 2026-02-24
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-021
     title: "Tech debt P3: automate C1 exit gates in CI (smoke + Playwright figo-contract)"
@@ -1572,7 +1569,7 @@ tasks:
     depends_on: []
     prompt: "Agregar job 'c1-exit-gate' en ci.yml que: (1) ejecuta npx playwright test tests/figo-chat-contract.spec.js contra BASE_URL=staging, (2) ejecuta smoke check de endpoint /api/chat, (3) bloquea merge si cualquiera falla. Asegurar que el job tiene acceso a secrets necesarios y que no duplica el job de governance."
     created_at: 2026-02-24
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-023
     title: "Tech debt: unify telemedicina.html CSS to use canonical styles.css (extracted 2026-02-24)"
@@ -1593,7 +1590,7 @@ tasks:
     files: ["templates/partials/tele-head-links.html", "telemedicina.html", "styles.css", "styles-critical.css"]
     source_signal: manual
     source_ref: "html-monolith-refactor-2026-02-24"
-    priority_score: 55
+    priority_score: 47
     sla_due_at: "2026-03-05T00:00:00.000Z"
     last_attempt_at: ""
     attempts: 0
@@ -1614,7 +1611,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "En templates/partials/tele-head-links.html reemplaza <link rel='stylesheet' href='styles-critical.css' /> y <link rel='stylesheet' href='styles-telemedicina.css' /> por <link rel='stylesheet' href='styles.css?v=inline-20260224-extracted1' />. El archivo styles.css es ahora el CSS critico canonico (extraido del monolito index.html el 2026-02-24, 1760 lineas). Ejecuta npm run build:html para regenerar telemedicina.html. Verifica que la pagina carga sin regresion visual (colores, fuentes, layout). styles-critical.css queda como archivo legacy no enlazado."
     created_at: 2026-02-24
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-022
     title: "Resolver fallo workflow: Agent Governance: feat(board): queue P1-P3 tech debt tasks (AG-019, AG-020, AG-021)"
@@ -1635,7 +1632,7 @@ tasks:
     files: [".github/workflows/agent-governance.yml"]
     source_signal: workflow
     source_ref: "workflow:agent-governance:main"
-    priority_score: 60
+    priority_score: 72
     sla_due_at: "2026-02-27T04:09:57.365Z"
     last_attempt_at: ""
     attempts: 0
@@ -1656,7 +1653,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal workflow:agent-governance:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-024
     title: "Resolver alerta: [ALERTA PROD] Repair git sync fallando"
@@ -1677,7 +1674,7 @@ tasks:
     files: [".github/workflows/repair-git-sync.yml"]
     source_signal: issue
     source_ref: "issue#282"
-    priority_score: 95
+    priority_score: 92
     sla_due_at: "2026-02-25T08:31:26.528Z"
     last_attempt_at: ""
     attempts: 0
@@ -1698,7 +1695,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal issue#282. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-025
     title: "Resolver alerta: [ALERTA PROD] Gate post-deploy fallando"
@@ -1719,7 +1716,7 @@ tasks:
     files: [".github/workflows/post-deploy-gate.yml"]
     source_signal: issue
     source_ref: "issue#281"
-    priority_score: 95
+    priority_score: 92
     sla_due_at: "2026-02-25T08:31:26.528Z"
     last_attempt_at: ""
     attempts: 0
@@ -1740,7 +1737,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal issue#281. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-026
     title: "Resolver fallo workflow: Agent Autopilot: Agent Autopilot"
@@ -1761,7 +1758,7 @@ tasks:
     files: [".github/workflows/agent-autopilot.yml"]
     source_signal: workflow
     source_ref: "workflow:agent-autopilot:main"
-    priority_score: 60
+    priority_score: 72
     sla_due_at: "2026-02-27T07:25:57.436Z"
     last_attempt_at: ""
     attempts: 0
@@ -1782,7 +1779,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal workflow:agent-autopilot:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-027
     title: "Resolver fallo workflow: Post-Deploy Gate (Git Sync): fix(orchestrator): prioritize github signals and prevent overlap task…"
@@ -1803,7 +1800,7 @@ tasks:
     files: [".github/workflows/post-deploy-gate.yml"]
     source_signal: workflow
     source_ref: "workflow:post-deploy-gate-git-sync:main"
-    priority_score: 80
+    priority_score: 92
     sla_due_at: "2026-02-25T17:25:58.789Z"
     last_attempt_at: ""
     attempts: 0
@@ -1824,7 +1821,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal workflow:post-deploy-gate-git-sync:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-028
     title: "Resolver fallo workflow: Repair Git Sync (Self-Heal): Repair Git Sync (Self-Heal)"
@@ -1845,7 +1842,7 @@ tasks:
     files: [".github/workflows/repair-git-sync.yml"]
     source_signal: workflow
     source_ref: "workflow:repair-git-sync-self-heal:main"
-    priority_score: 80
+    priority_score: 92
     sla_due_at: "2026-02-25T18:22:50.566Z"
     last_attempt_at: ""
     attempts: 0
@@ -1866,7 +1863,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal workflow:repair-git-sync-self-heal:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-029
     title: "Resolver fallo workflow: CI: CI"
@@ -1887,7 +1884,7 @@ tasks:
     files: [".github/workflows/ci.yml"]
     source_signal: workflow
     source_ref: "workflow:ci:codex/prod-readiness-workflows-20260225"
-    priority_score: 60
+    priority_score: 72
     sla_due_at: "2026-02-27T06:22:50.566Z"
     last_attempt_at: ""
     attempts: 0
@@ -1908,7 +1905,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal workflow:ci:codex/prod-readiness-workflows-20260225. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-030
     title: "Resolver fallo workflow: Post-Deploy Gate (Git Sync): Post-Deploy Gate (Git Sync)"
@@ -1929,7 +1926,7 @@ tasks:
     files: [".github/workflows/post-deploy-gate.yml"]
     source_signal: workflow
     source_ref: "workflow:post-deploy-gate-git-sync:codex/prod-readiness-workflows-20260225"
-    priority_score: 80
+    priority_score: 92
     sla_due_at: "2026-02-25T18:22:50.566Z"
     last_attempt_at: ""
     attempts: 0
@@ -1950,7 +1947,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal workflow:post-deploy-gate-git-sync:codex/prod-readiness-workflows-20260225. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-031
     title: "Stabilize CI signal intake for transient branch failures"
@@ -1971,8 +1968,8 @@ tasks:
     files: ["tools/agent-orchestrator/domain/github-signals.js", "tools/agent-orchestrator/commands/runtime-intake.js", "tools/agent-orchestrator/domain/signals.js"]
     source_signal: workflow
     source_ref: "run#22385808120"
-    priority_score: 88
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: "2026-02-25T07:18:44.683Z"
     attempts: 1
     blocked_reason: ""
@@ -1992,7 +1989,7 @@ tasks:
     depends_on: []
     prompt: "Stabilize CI signal intake for transient branch failures"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-032
     title: "Harden autopilot run diagnostics for fast triage"
@@ -2013,8 +2010,8 @@ tasks:
     files: [".github/workflows/agent-autopilot.yml", "AGENTS.md", "CLAUDE.md"]
     source_signal: workflow
     source_ref: "run#22381918604"
-    priority_score: 72
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: "2026-02-25T07:19:02.801Z"
     attempts: 1
     blocked_reason: ""
@@ -2034,7 +2031,7 @@ tasks:
     depends_on: []
     prompt: "Harden autopilot run diagnostics for fast triage"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-033
     title: "Reduce post-deploy gate false failures from transient network delays"
@@ -2055,8 +2052,8 @@ tasks:
     files: [".github/workflows/post-deploy-gate.yml", "GATE-POSTDEPLOY.ps1", "bin/verify-gate.php"]
     source_signal: workflow
     source_ref: "run#22385825677"
-    priority_score: 84
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: "2026-02-25T07:18:44.683Z"
     attempts: 1
     blocked_reason: ""
@@ -2076,7 +2073,7 @@ tasks:
     depends_on: []
     prompt: "Reduce post-deploy gate false failures from transient network delays"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-034
     title: "Record Fase 6 weekly KPI hardening evidence in board"
@@ -2097,8 +2094,8 @@ tasks:
     files: ["AGENT_BOARD.yaml", "verification/agent-runs/AG-034.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2118,7 +2115,7 @@ tasks:
     depends_on: []
     prompt: "Record Fase 6 weekly KPI hardening evidence in board"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-035
     title: "C1: cerrar flakiness residual en agenda/chat/reprogramacion"
@@ -2139,8 +2136,8 @@ tasks:
     files: [".github/workflows/phase2-flakiness-probe.yml", "bin/run-phase2-flakiness.js", "tests/phase2-calendar-consistency.spec.js", "tests/chat-booking-calendar-errors.spec.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2160,7 +2157,7 @@ tasks:
     depends_on: []
     prompt: "Cerrar flakiness residual de agenda/chat/reprogramacion con evidencia reproducible y guardrails CI"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-036
     title: "C3: cerrar observabilidad accionable y playbook de diagnostico <15m"
@@ -2181,8 +2178,8 @@ tasks:
     files: ["REPORTE-SEMANAL-PRODUCCION.ps1", "controllers/HealthController.php", ".github/workflows/nightly-stability.yml", ".github/workflows/post-deploy-fast.yml", "bin/verify-gate.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2202,7 +2199,7 @@ tasks:
     depends_on: []
     prompt: "Cerrar C3 de observabilidad para diagnostico inicial en menos de 15 minutos"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-037
     title: "Frontend P0: Hero + Above-the-Fold Conversion UX (public)"
@@ -2223,8 +2220,8 @@ tasks:
     files: ["templates/partials/body-hero.html", "styles.css", "styles-deferred.css", "js/main.js", "src/apps/analytics/engine.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 90
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2244,7 +2241,7 @@ tasks:
     depends_on: []
     prompt: "Mejorar hero y above-the-fold (CTA principal/secundario, jerarquia visual, spacing movil, trust/contact) con cambios incrementales y seguros; preservar IDs, data-i18n y experimento A/B actual."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-038
     title: "Frontend P0: Booking Section UX Friction Reduction (public)"
@@ -2265,8 +2262,8 @@ tasks:
     files: ["templates/partials/body-modals.html", "templates/partials/body-sections.html", "styles-deferred.css", "src/apps/booking/engine.js", "src/apps/booking/ui-entry.js", "src/apps/modal-ux/engine.js", "src/apps/engagement/forms.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 88
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2286,7 +2283,7 @@ tasks:
     depends_on: ["AG-037"]
     prompt: "Reducir friccion UX en booking publico: estados claros, microcopy, focus al error, loading consistente y feedback de exito/cancelacion sin tocar backend."
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-039
     title: "Frontend P0: Chat + Booking coexistence UX (mobile/desktop)"
@@ -2307,8 +2304,8 @@ tasks:
     files: ["styles-deferred.css", "src/apps/chat/engine.js", "src/apps/chat/ui-engine.js", "src/apps/chat/widget-engine.js", "src/apps/chat/shell.js", "src/apps/booking/engine.js", "src/apps/booking/ui-entry.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 84
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2328,7 +2325,7 @@ tasks:
     depends_on: ["AG-038"]
     prompt: "Mejorar coexistencia chat+booking: stacking/safe-area, reglas de apertura/cierre y handoff visual a booking, preservando comportamiento actual de errores y contratos."
     created_at: 2026-02-25
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-040
     title: "Frontend P1: Telemedicina conversion polish (structure + CTA)"
@@ -2350,7 +2347,7 @@ tasks:
     source_signal: manual
     source_ref: ""
     priority_score: 72
-    sla_due_at: ""
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2370,7 +2367,7 @@ tasks:
     depends_on: ["AG-037"]
     prompt: "Pulir conversion UX de telemedicina con mejoras incrementales en jerarquia, CTA y spacing, manteniendo compatibilidad de anclas y build templated."
     created_at: 2026-02-25
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-041
     title: "Frontend P1: Public accessibility/performance hardening for touched surfaces"
@@ -2391,8 +2388,8 @@ tasks:
     files: ["templates/partials/body-hero.html", "templates/partials/body-sections.html", "templates/partials/body-modals.html", "styles.css", "styles-deferred.css", "js/main.js", "src/apps/booking/ui-entry.js", "src/apps/chat/ui-engine.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 68
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2412,7 +2409,7 @@ tasks:
     depends_on: ["AG-037", "AG-038", "AG-039", "AG-040"]
     prompt: "Aplicar hardening de accesibilidad y performance en superficies publicas modificadas (focus visible, reduced motion, ARIA, defer/hydration safe) con control de peso."
     created_at: 2026-02-25
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-042
     title: "Frontend P1: Admin dashboard/list UX quick wins"
@@ -2433,8 +2430,8 @@ tasks:
     files: ["admin.html", "admin.css", "src/apps/admin/modules/ui.js", "src/apps/admin/modules/dashboard.js", "src/apps/admin/modules/appointments.js", "src/apps/admin/modules/availability.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 60
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2454,7 +2451,7 @@ tasks:
     depends_on: ["AG-037"]
     prompt: "Aplicar quick wins de UX en admin: jerarquia, estados, badges, acciones y spacing con bajo riesgo."
     created_at: 2026-02-25
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-043
     title: "Frontend P1: Admin navigation and interaction polish"
@@ -2475,8 +2472,8 @@ tasks:
     files: ["admin.html", "admin.css", "src/apps/admin/index.js", "src/apps/admin/modules/ui.js", "src/apps/admin/modules/state.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 56
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2496,7 +2493,7 @@ tasks:
     depends_on: ["AG-042"]
     prompt: "Pulir navegacion e interacciones del admin (keyboard/focus/responsive) manteniendo hashes de secciones y comportamiento actual."
     created_at: 2026-02-25
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-044
     title: "Frontend P1: FE regression suite alignment + visual baseline refresh"
@@ -2517,8 +2514,8 @@ tasks:
     files: ["tests/homepage.spec.js", "tests/chat-mobile-layout.spec.js", "tests/booking.spec.js", "tests/admin.spec.js", "tests/visual-regression.spec.js", "playwright.config.js", "verification/agent-runs/AG-044.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 48
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2538,7 +2535,7 @@ tasks:
     depends_on: ["AG-041", "AG-043"]
     prompt: "Alinear subset de Playwright/visual regression a cambios frontend y refrescar evidencia de QA solo para superficies tocadas."
     created_at: 2026-02-25
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-045
     title: "Frontend P1: Frontend readiness summary + board/docs batch close"
@@ -2559,8 +2556,8 @@ tasks:
     files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_2026_STATUS.md", "PLAN_MAESTRO_OPERATIVO_2026.md", "verification/agent-runs/AG-045.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 40
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2580,7 +2577,7 @@ tasks:
     depends_on: ["AG-044"]
     prompt: "Consolidar cierre frontend en lote (board+planes+evidencia) tras terminar bloques FE/QA para evitar PRs fragmentados de documentacion."
     created_at: 2026-02-25
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-046
     title: "C4: cerrar guardrails release warning->blocking y fallback operativo"
@@ -2601,8 +2598,8 @@ tasks:
     files: [".github/workflows/post-deploy-fast.yml", ".github/workflows/nightly-stability.yml", ".github/workflows/post-deploy-gate.yml", "docs/RUNBOOKS.md", "PLAN_MAESTRO_CODEX_2026.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2622,7 +2619,7 @@ tasks:
     depends_on: []
     prompt: "C4: cerrar guardrails release warning->blocking y fallback operativo"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-047
     title: "C2: baseline automatico y tendencia semanal de retencion"
@@ -2643,8 +2640,8 @@ tasks:
     files: ["REPORTE-SEMANAL-PRODUCCION.ps1", ".github/workflows/weekly-kpi-report.yml", "PLAN_MAESTRO_CODEX_2026.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2664,7 +2661,7 @@ tasks:
     depends_on: []
     prompt: "C2: baseline automatico y tendencia semanal de retencion"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-048
     title: "Normalizar estado final del plan (C4) y validar fast gate"
@@ -2685,8 +2682,8 @@ tasks:
     files: ["PLAN_MAESTRO_CODEX_2026.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2706,7 +2703,7 @@ tasks:
     depends_on: []
     prompt: "Normalizar estado final del plan (C4) y validar fast gate"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-049
     title: "Automatizar KPI de ciclo (fast lane <=10m y nightly success rate)"
@@ -2727,8 +2724,8 @@ tasks:
     files: [".github/workflows/weekly-kpi-report.yml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2748,7 +2745,7 @@ tasks:
     depends_on: []
     prompt: "Automatizar KPI de ciclo (fast lane <=10m y nightly success rate)"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-050
     title: "Registrar evidencia de SLA operativo semanal en plan maestro"
@@ -2769,8 +2766,8 @@ tasks:
     files: ["PLAN_MAESTRO_CODEX_2026.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2790,7 +2787,7 @@ tasks:
     depends_on: []
     prompt: "Registrar evidencia de SLA operativo semanal en plan maestro"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-051
     title: "Eliminar drift recurrente en JULES_TASKS (session/dispatched vacios)"
@@ -2811,8 +2808,8 @@ tasks:
     files: ["tools/agent-orchestrator/core/queues.js", "tests-node/orchestrator/core-queues.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2832,7 +2829,7 @@ tasks:
     depends_on: []
     prompt: "Eliminar drift recurrente en JULES_TASKS (session/dispatched vacios)"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-052
     title: "Automatizar resolucion segura de conflicto revision en AGENT_BOARD"
@@ -2853,8 +2850,8 @@ tasks:
     files: ["bin/resolve-board-revision-conflict.js", "tests-node/resolve-board-revision-conflict.test.js", "package.json", "AGENTS.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2874,7 +2871,7 @@ tasks:
     depends_on: []
     prompt: "Automatizar resolucion segura de conflicto revision en AGENT_BOARD"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-053
     title: "Agregar KPI de incidentes y MTTR 14d al weekly report"
@@ -2895,8 +2892,8 @@ tasks:
     files: [".github/workflows/weekly-kpi-report.yml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2916,7 +2913,7 @@ tasks:
     depends_on: []
     prompt: "Agregar KPI de incidentes y MTTR 14d al weekly report"
     created_at: 2026-02-25
-    updated_at: 2026-02-25
+    updated_at: 2026-03-27
 
   - id: AG-054
     title: "Backend hardening: SQLite missing graceful mode + health signal"
@@ -2937,8 +2934,8 @@ tasks:
     files: ["lib/storage.php", "lib/db.php", "controllers/HealthController.php", "tests/Unit/Storage/StorageSQLiteFallbackTest.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -2958,7 +2955,7 @@ tasks:
     depends_on: []
     prompt: "Backend hardening: SQLite missing graceful mode + health signal"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-055
     title: "Backend hardening: Figo AI failfast + timeout tuning"
@@ -2979,8 +2976,8 @@ tasks:
     files: ["figo-backend.php", "lib/figo_utils.php", "tests/Unit/Figo/FigoUtilsConfigTest.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3000,7 +2997,7 @@ tasks:
     depends_on: []
     prompt: "Backend hardening: Figo AI failfast + timeout tuning"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-056
     title: "Backend hardening: appointment idempotency replay guard"
@@ -3021,8 +3018,8 @@ tasks:
     files: ["controllers/AppointmentController.php", "lib/models.php", "tests/Integration/AppointmentErrorCodesTest.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3042,7 +3039,7 @@ tasks:
     depends_on: []
     prompt: "Backend hardening: appointment idempotency replay guard"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-057
     title: "Backend observability: idempotency metrics in health and weekly report"
@@ -3063,8 +3060,8 @@ tasks:
     files: ["controllers/AppointmentController.php", "controllers/HealthController.php", "controllers/AnalyticsController.php", "REPORTE-SEMANAL-PRODUCCION.ps1", "tests/Integration/AnalyticsRetentionMetricsTest.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3084,7 +3081,7 @@ tasks:
     depends_on: []
     prompt: "Backend observability: idempotency metrics in health and weekly report"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-058
     title: "Backend C2 operativo: retention-report JSON+CSV con alertas"
@@ -3105,8 +3102,8 @@ tasks:
     files: ["controllers/AnalyticsController.php", "lib/routes.php", "lib/ApiConfig.php", "tests/Integration/AnalyticsRetentionReportTest.php", "docs/openapi.yaml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3126,7 +3123,7 @@ tasks:
     depends_on: []
     prompt: "Backend C2 operativo: retention-report JSON+CSV con alertas"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-059
     title: "Frontend P1: Service pages conversion UX + QA hardening (acne/laser)"
@@ -3147,8 +3144,8 @@ tasks:
     files: ["servicios/acne.html", "servicios/laser.html", "styles.css", "styles-deferred.css"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3168,7 +3165,7 @@ tasks:
     depends_on: ["AG-045"]
     prompt: "Frontend P1: Service pages conversion UX + QA hardening (acne/laser)"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-060
     title: "C2 ops: alerta automatica de retencion semanal"
@@ -3189,8 +3186,8 @@ tasks:
     files: [".github/workflows/weekly-kpi-report.yml", "REPORTE-SEMANAL-PRODUCCION.ps1"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3210,7 +3207,7 @@ tasks:
     depends_on: []
     prompt: "C2 ops: alerta automatica de retencion semanal"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-061
     title: "C3 ops: separar incidentes semanales general vs retencion"
@@ -3231,8 +3228,8 @@ tasks:
     files: [".github/workflows/weekly-kpi-report.yml", "PLAN_MAESTRO_CODEX_2026.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3252,7 +3249,7 @@ tasks:
     depends_on: []
     prompt: "C3 ops: separar incidentes semanales general vs retencion"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-062
     title: "C4 ops: externalizar umbrales weekly-kpi por variables"
@@ -3273,8 +3270,8 @@ tasks:
     files: [".github/workflows/weekly-kpi-report.yml", "REPORTE-SEMANAL-PRODUCCION.ps1", "PLAN_MAESTRO_CODEX_2026.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3294,7 +3291,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: externalizar umbrales weekly-kpi por variables"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-063
     title: "C4 ops: documentar variables WEEKLY_KPI y protocolo de ajuste"
@@ -3315,8 +3312,8 @@ tasks:
     files: ["docs/RUNBOOKS.md", "README.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3336,7 +3333,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: documentar variables WEEKLY_KPI y protocolo de ajuste"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-064
     title: "C4 ops: testear contrato de umbrales weekly-kpi workflow"
@@ -3357,8 +3354,8 @@ tasks:
     files: [".github/workflows/weekly-kpi-report.yml", "tests-node/weekly-kpi-workflow-contract.test.js", "package.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3378,7 +3375,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: testear contrato de umbrales weekly-kpi workflow"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-065
     title: "C4 ops: automatizar sync main con autorresolucion de revision board"
@@ -3399,8 +3396,8 @@ tasks:
     files: ["bin/sync-main-safe.js", "tests-node/sync-main-safe.test.js", "package.json", "README.md", "AGENT_BOARD.yaml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3420,7 +3417,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: automatizar sync main con autorresolucion de revision board"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-066
     title: "C4 ops: validar umbrales weekly-kpi y fail opcional por invalidez"
@@ -3441,8 +3438,8 @@ tasks:
     files: [".github/workflows/weekly-kpi-report.yml", "tests-node/weekly-kpi-workflow-contract.test.js", "package.json", "AGENT_BOARD.yaml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3462,7 +3459,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: validar umbrales weekly-kpi y fail opcional por invalidez"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-067
     title: "C4 ops: incidente automatico para fallo nightly-stability"
@@ -3483,8 +3480,8 @@ tasks:
     files: [".github/workflows/nightly-stability.yml", "AGENT_BOARD.yaml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3504,7 +3501,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: incidente automatico para fallo nightly-stability"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-068
     title: "C4 ops: incluir nightly workflow contract en agent:test"
@@ -3525,8 +3522,8 @@ tasks:
     files: ["package.json", "tests-node/nightly-stability-workflow-contract.test.js", "AGENT_BOARD.yaml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3546,7 +3543,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: incluir nightly workflow contract en agent:test"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-069
     title: "C4 ops: incidente automatico para fallo post-deploy-fast"
@@ -3567,8 +3564,8 @@ tasks:
     files: [".github/workflows/post-deploy-fast.yml", "package.json", "AGENT_BOARD.yaml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3588,7 +3585,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: incidente automatico para fallo post-deploy-fast"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-070
     title: "Frontend admin: availability shortcuts and calendar productivity hardening"
@@ -3609,8 +3606,8 @@ tasks:
     files: ["admin.html", "src/apps/admin/index.js", "src/apps/admin/modules/availability.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3630,7 +3627,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin: availability shortcuts and calendar productivity hardening"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-071
     title: "Frontend admin: normalizar copy ES y acentos visibles"
@@ -3651,8 +3648,8 @@ tasks:
     files: ["admin.html", "src/apps/admin/index.js", "src/apps/admin/modules/ui.js", "src/apps/admin/modules/availability.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3672,7 +3669,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin: normalizar copy ES y acentos visibles"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-072
     title: "C4 ops: separar incidente weekly general vs SLA operativo"
@@ -3693,8 +3690,8 @@ tasks:
     files: [".github/workflows/weekly-kpi-report.yml", "tests-node/weekly-kpi-workflow-contract.test.js", "AGENT_BOARD.yaml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3714,7 +3711,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: separar incidente weekly general vs SLA operativo"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-073
     title: "C4 ops: auto-resolver de conflictos AGENT_BOARD para sync-main-safe"
@@ -3735,8 +3732,8 @@ tasks:
     files: ["bin/resolve-board-revision-conflict.js", "tests-node/resolve-board-revision-conflict.test.js", "AGENT_BOARD.yaml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3756,7 +3753,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: auto-resolver de conflictos AGENT_BOARD para sync-main-safe"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-074
     title: "Retry automatico en sync-main-safe para non-fast-forward"
@@ -3777,8 +3774,8 @@ tasks:
     files: ["bin/sync-main-safe.js", "tests-node/sync-main-safe.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3798,7 +3795,7 @@ tasks:
     depends_on: []
     prompt: "Retry automatico en sync-main-safe para non-fast-forward"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-075
     title: "Adoptar sync-main-safe en workflows de cola y reconciliacion"
@@ -3819,8 +3816,8 @@ tasks:
     files: [".github/workflows/agent-intake.yml", ".github/workflows/agent-autopilot.yml", ".github/workflows/agent-kimi-autopilot.yml", ".github/workflows/jules-pr.yml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3840,7 +3837,7 @@ tasks:
     depends_on: []
     prompt: "Adoptar sync-main-safe en workflows de cola y reconciliacion"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-076
     title: "Frontend QA Admin: reducir flakiness y warnings lint en specs clave"
@@ -3861,8 +3858,8 @@ tasks:
     files: ["tests/admin.spec.js", "tests/admin-availability-responsive.spec.js", "tests/admin-navigation-responsive.spec.js", "tests/admin-quick-nav.spec.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3882,7 +3879,7 @@ tasks:
     depends_on: []
     prompt: "Frontend QA Admin: reducir flakiness y warnings lint en specs clave"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-077
     title: "Higiene workspace: desversionar caches PHP y blindar colas derivadas"
@@ -3903,8 +3900,8 @@ tasks:
     files: [".gitignore", "package.json", "JULES_TASKS.md", "KIMI_TASKS.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3924,7 +3921,7 @@ tasks:
     depends_on: []
     prompt: "Higiene workspace: desversionar caches PHP y blindar colas derivadas"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-078
     title: "Frontend P0: Hero service intent shortcuts + booking prefill conversion block"
@@ -3945,8 +3942,8 @@ tasks:
     files: ["templates/partials/body-hero.html", "content/es.json", "content/en.json", "js/main.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -3966,7 +3963,7 @@ tasks:
     depends_on: []
     prompt: "Frontend P0: Hero service intent shortcuts + booking prefill conversion block"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-079
     title: "Auto-resolver colisiones semanticas de task en AGENT_BOARD durante sync"
@@ -3987,8 +3984,8 @@ tasks:
     files: ["bin/resolve-board-revision-conflict.js", "bin/sync-main-safe.js", "tests-node/resolve-board-revision-conflict.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4008,7 +4005,7 @@ tasks:
     depends_on: []
     prompt: "Auto-resolver colisiones semanticas de task en AGENT_BOARD durante sync"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-080
     title: "Frontend admin UX: command bar + contextual actions + refresh status"
@@ -4029,8 +4026,8 @@ tasks:
     files: ["admin.html"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4050,7 +4047,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin UX: command bar + contextual actions + refresh status"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-081
     title: "Frontend admin UX: dashboard operational center + actionable triage"
@@ -4071,8 +4068,8 @@ tasks:
     files: ["admin.html"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4092,7 +4089,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin UX: dashboard operational center + actionable triage"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-082
     title: "Frontend admin UX: callbacks triage rail + context action hardening"
@@ -4113,8 +4110,8 @@ tasks:
     files: ["admin.html"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4134,7 +4131,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin UX: callbacks triage rail + context action hardening"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-083
     title: "Frontend admin UX: collapsible sidebar + nav persistence + keyboard responsive polish"
@@ -4155,8 +4152,8 @@ tasks:
     files: ["admin.html"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4176,7 +4173,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin UX: collapsible sidebar + nav persistence + keyboard responsive polish"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-084
     title: "Frontend admin UX: collapsible sidebar + nav persistence + keyboard responsive polish"
@@ -4197,8 +4194,8 @@ tasks:
     files: ["admin.html"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4218,7 +4215,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin UX: collapsible sidebar + nav persistence + keyboard responsive polish"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-085
     title: "Frontend admin availability draft + bulk actions"
@@ -4239,8 +4236,8 @@ tasks:
     files: ["admin.html", "src/apps/admin/index.js", "src/apps/admin/modules/availability.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4260,7 +4257,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin availability draft + bulk actions"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-086
     title: "C2 hardening: stale-report gate + signal keys en weekly incidents"
@@ -4281,8 +4278,8 @@ tasks:
     files: [".github/workflows/weekly-kpi-report.yml", "tests-node/weekly-kpi-workflow-contract.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4302,7 +4299,7 @@ tasks:
     depends_on: []
     prompt: "C2 hardening: stale-report gate + signal keys en weekly incidents"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-087
     title: "C3 hardening: reason codes diagnosticos para incidentes weekly (general/SLA/retencion)"
@@ -4323,8 +4320,8 @@ tasks:
     files: [".github/workflows/weekly-kpi-report.yml", "tests-node/weekly-kpi-workflow-contract.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4344,7 +4341,7 @@ tasks:
     depends_on: []
     prompt: "C3 hardening: reason codes diagnosticos para incidentes weekly (general/SLA/retencion)"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-088
     title: "Admin navigation guard for availability unsaved draft"
@@ -4365,8 +4362,8 @@ tasks:
     files: ["src/apps/admin/index.js", "src/apps/admin/modules/availability.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4386,7 +4383,7 @@ tasks:
     depends_on: []
     prompt: "Admin navigation guard for availability unsaved draft"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-089
     title: "Frontend hardening: alinear version de script.js en paginas de servicios"
@@ -4407,8 +4404,8 @@ tasks:
     files: ["servicios/acne.html", "servicios/laser.html"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4428,7 +4425,7 @@ tasks:
     depends_on: []
     prompt: "Frontend hardening: alinear version de script.js en paginas de servicios"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-090
     title: "C3 hardening: severidad operativa y labels de incidente en weekly-kpi"
@@ -4449,8 +4446,8 @@ tasks:
     files: [".github/workflows/weekly-kpi-report.yml", "tests-node/weekly-kpi-workflow-contract.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4470,7 +4467,7 @@ tasks:
     depends_on: []
     prompt: "C3 hardening: severidad operativa y labels de incidente en weekly-kpi"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-091
     title: "Frontend public: fuente canonica unica para service pages acne/laser"
@@ -4491,8 +4488,8 @@ tasks:
     files: ["servicios/acne.html", "servicios/laser.html"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4512,7 +4509,7 @@ tasks:
     depends_on: []
     prompt: "Frontend public: fuente canonica unica para service pages acne/laser"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-092
     title: "Frontend admin: corregir mojibake en callbacks triage"
@@ -4533,8 +4530,8 @@ tasks:
     files: ["src/apps/admin/modules/callbacks.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4554,7 +4551,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin: corregir mojibake en callbacks triage"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-093
     title: "C5 hardening: calendar write smoke incident lifecycle + contract gate"
@@ -4575,8 +4572,8 @@ tasks:
     files: [".github/workflows/calendar-write-smoke.yml", "tests-node/calendar-write-smoke-workflow-contract.test.js", "package.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4596,7 +4593,7 @@ tasks:
     depends_on: []
     prompt: "C5 hardening: calendar write smoke incident lifecycle + contract gate"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-094
     title: "C5 hardening: API-only calendar write smoke + JSON diagnostics"
@@ -4617,8 +4614,8 @@ tasks:
     files: ["bin/calendar-write-smoke-api.js", ".github/workflows/calendar-write-smoke.yml", "tests-node/calendar-write-smoke-workflow-contract.test.js", "package.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4638,7 +4635,7 @@ tasks:
     depends_on: []
     prompt: "C5 hardening: API-only calendar write smoke + JSON diagnostics"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-095
     title: "Frontend admin V2: callbacks SLA triage + bulk actions"
@@ -4659,8 +4656,8 @@ tasks:
     files: ["src/apps/admin/modules/callbacks.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4680,7 +4677,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin V2: callbacks SLA triage + bulk actions"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-096
     title: "Frontend admin V2: appointments triage accionable + quick filters"
@@ -4701,8 +4698,8 @@ tasks:
     files: ["src/apps/admin/modules/appointments.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4722,7 +4719,7 @@ tasks:
     depends_on: ["AG-095"]
     prompt: "Frontend admin V2: appointments triage accionable + quick filters"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-097
     title: "Turnero sala A: backend queue + printer"
@@ -4743,8 +4740,8 @@ tasks:
     files: ["controllers/QueueController.php", "lib/QueueService.php", "lib/TicketPrinter.php", "lib/routes.php", "lib/ApiConfig.php", "lib/models.php", "lib/storage.php", "controllers/AdminDataController.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4764,7 +4761,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala A: backend queue + printer"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-098
     title: "Turnero sala B: kiosco + TV frontend"
@@ -4785,8 +4782,8 @@ tasks:
     files: ["src/apps/queue-kiosk/index.js", "src/apps/queue-display/index.js", "src/apps/chat/engine.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4806,7 +4803,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala B: kiosco + TV frontend"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-099
     title: "Turnero sala C: admin control de llamados"
@@ -4827,8 +4824,8 @@ tasks:
     files: ["src/apps/admin/modules/queue.js", "src/apps/admin/index.js", "src/apps/admin/modules/data.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4848,7 +4845,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala C: admin control de llamados"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-100
     title: "Turnero sala D: QA E2E + cierre evidencia"
@@ -4869,8 +4866,8 @@ tasks:
     files: ["tests/queue-kiosk.spec.js", "tests/queue-display.spec.js", "tests/admin-queue.spec.js", "AGENT_BOARD.yaml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4890,7 +4887,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala D: QA E2E + cierre evidencia"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-101
     title: "Turnero sala E: hardening backend de cola y consultorios"
@@ -4911,8 +4908,8 @@ tasks:
     files: ["lib/QueueService.php", "controllers/QueueController.php", "tests/test_queue_service.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4932,7 +4929,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala E: hardening backend de cola y consultorios"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-102
     title: "Turnero sala F: hardening UX admin para liberar y consultorio ocupado"
@@ -4953,8 +4950,8 @@ tasks:
     files: ["src/apps/admin/modules/queue.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -4974,7 +4971,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala F: hardening UX admin para liberar y consultorio ocupado"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-103
     title: "Turnero sala G: controles rapidos C1/C2 y bloqueo inteligente"
@@ -4995,8 +4992,8 @@ tasks:
     files: ["src/apps/admin/modules/queue.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5016,7 +5013,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala G: controles rapidos C1/C2 y bloqueo inteligente"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-104
     title: "Turnero sala H: resiliencia realtime admin+kiosco+TV"
@@ -5037,8 +5034,8 @@ tasks:
     files: ["src/apps/admin/index.js", "src/apps/admin/modules/queue.js", "src/apps/queue-kiosk/index.js", "src/apps/queue-display/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5058,7 +5055,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala H: resiliencia realtime admin+kiosco+TV"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-105
     title: "Turnero sala I: triage SLA con filtros y busqueda en admin"
@@ -5079,8 +5076,8 @@ tasks:
     files: ["src/apps/admin/modules/queue.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5100,7 +5097,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala I: triage SLA con filtros y busqueda en admin"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-106
     title: "Turnero sala J: atajos operativos y bulk workflow en admin queue"
@@ -5121,8 +5118,8 @@ tasks:
     files: ["src/apps/admin/index.js", "src/apps/admin/modules/queue.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5142,7 +5139,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala J: atajos operativos y bulk workflow en admin queue"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-107
     title: "Turnero sala K: consola operativa admin (historial + watchdog + atajos de estado)"
@@ -5163,8 +5160,8 @@ tasks:
     files: ["src/apps/admin/modules/queue.js", "src/apps/admin/index.js", "admin.js", "tests/admin-queue.spec.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5184,7 +5181,7 @@ tasks:
     depends_on: ["AG-106"]
     prompt: "Turnero sala K: consola operativa admin (historial + watchdog + atajos de estado)"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-108
     title: "Turnero sala L: hardening realtime kiosco+TV (watchdog + health state)"
@@ -5205,8 +5202,8 @@ tasks:
     files: ["src/apps/queue-kiosk/index.js", "src/apps/queue-display/index.js", "js/queue-kiosk.js", "js/queue-display.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5226,7 +5223,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala L: hardening realtime kiosco+TV (watchdog + health state)"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-109
     title: "Turnero sala M: UX degradada kiosco+TV (fallback visible + refresh manual)"
@@ -5247,8 +5244,8 @@ tasks:
     files: ["src/apps/queue-kiosk/index.js", "src/apps/queue-display/index.js", "js/queue-kiosk.js", "js/queue-display.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5268,7 +5265,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala M: UX degradada kiosco+TV (fallback visible + refresh manual)"
     created_at: 2026-02-26
-    updated_at: 2026-02-26
+    updated_at: 2026-03-27
 
   - id: AG-110
     title: "Turnero sala N: privacidad operativa kiosco+TV (auto-reset sesion + control campanilla)"
@@ -5289,8 +5286,8 @@ tasks:
     files: ["src/apps/queue-kiosk/index.js", "src/apps/queue-display/index.js", "js/queue-kiosk.js", "js/queue-display.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5310,7 +5307,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala N: privacidad operativa kiosco+TV (auto-reset sesion + control campanilla)"
     created_at: 2026-02-26
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-111
     title: "Turnero sala O: continuidad offline kiosco + snapshot de respaldo en TV"
@@ -5331,8 +5328,8 @@ tasks:
     files: ["src/apps/queue-kiosk/index.js", "src/apps/queue-display/index.js", "js/queue-kiosk.js", "js/queue-display.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5352,7 +5349,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala O: continuidad offline kiosco + snapshot de respaldo en TV"
     created_at: 2026-02-27
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-112
     title: "Turnero sala P: consola de contingencia kiosco+TV (gestionar pendientes/snapshot)"
@@ -5373,8 +5370,8 @@ tasks:
     files: ["src/apps/queue-kiosk/index.js", "src/apps/queue-display/index.js", "js/queue-kiosk.js", "js/queue-display.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5394,7 +5391,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala P: consola de contingencia kiosco+TV (gestionar pendientes/snapshot)"
     created_at: 2026-02-27
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-113
     title: "Turnero sala Q: QA E2E integrado kiosco-admin-tv con privacidad"
@@ -5415,8 +5412,8 @@ tasks:
     files: ["tests/queue-integrated-flow.spec.js", "verification/agent-runs/AG-113.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5436,7 +5433,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala Q: QA E2E integrado kiosco-admin-tv con privacidad"
     created_at: 2026-02-27
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-114
     title: "Turnero sala R: stress/retry QA integrado de llamadas y reconexion"
@@ -5457,8 +5454,8 @@ tasks:
     files: ["tests/admin-queue.spec.js", "tests/queue-integrated-flow.spec.js", "verification/agent-runs/AG-114.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5478,7 +5475,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala R: stress/retry QA integrado de llamadas y reconexion"
     created_at: 2026-02-27
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-115
     title: "Turnero sala S: stress multi-consultorio C1/C2 con consistencia admin+TV"
@@ -5499,8 +5496,8 @@ tasks:
     files: ["tests/admin-queue.spec.js", "tests/queue-integrated-flow.spec.js", "verification/agent-runs/AG-115.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5520,7 +5517,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala S: stress multi-consultorio C1/C2 con consistencia admin+TV"
     created_at: 2026-02-27
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-116
     title: "Turnero sala T: QA ciclo de vida ticket (acciones admin + reflejo TV)"
@@ -5541,8 +5538,8 @@ tasks:
     files: ["tests/admin-queue.spec.js", "tests/queue-integrated-flow.spec.js", "verification/agent-runs/AG-116.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5562,7 +5559,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala T: QA ciclo de vida ticket (acciones admin + reflejo TV)"
     created_at: 2026-02-27
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-117
     title: "Turnero sala U: bloque unico hardening operacion+QA+runbook (6 puntos)"
@@ -5583,8 +5580,8 @@ tasks:
     files: ["src/apps/admin/modules/queue.js", "src/apps/queue-kiosk/index.js", "src/apps/queue-display/index.js", "queue-kiosk.css", "queue-display.css", "admin.css", "tests/admin-queue.spec.js", "tests/queue-kiosk.spec.js", "tests/queue-display.spec.js", "tests/queue-integrated-flow.spec.js", "docs/RUNBOOK_TURNERO_SALA.md", "PLAN_MAESTRO_2026_STATUS.md", "verification/agent-runs/AG-117.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5604,7 +5601,7 @@ tasks:
     depends_on: ["AG-116"]
     prompt: "Ejecutar 6 frentes del turnero en 1 bloque: impresora/reprint, recovery robusto, observabilidad, A11y+performance, stress QA, cierre runbook"
     created_at: 2026-02-27
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-118
     title: "Turnero sala V: numpad por estacion C1/C2 en admin queue"
@@ -5625,8 +5622,8 @@ tasks:
     files: ["src/apps/admin/index.js", "src/apps/admin/modules/queue.js", "admin.html"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5646,7 +5643,7 @@ tasks:
     depends_on: ["AG-117"]
     prompt: "Turnero sala V: numpad por estacion C1/C2 en admin queue"
     created_at: 2026-02-27
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-119
     title: "Turnero sala VI: hardening numpad cross-platform windows/mac"
@@ -5667,8 +5664,8 @@ tasks:
     files: ["src/apps/admin/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5688,7 +5685,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala VI: hardening numpad cross-platform windows/mac"
     created_at: 2026-02-27
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-120
     title: "Turnero sala VII: flujo una tecla con Numpad Enter"
@@ -5709,8 +5706,8 @@ tasks:
     files: ["src/apps/admin/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5730,7 +5727,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala VII: flujo una tecla con Numpad Enter"
     created_at: 2026-02-27
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-121
     title: "Turnero sala VIII: robustez operativa modo una tecla"
@@ -5751,8 +5748,8 @@ tasks:
     files: ["src/apps/admin/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5772,7 +5769,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala VIII: robustez operativa modo una tecla"
     created_at: 2026-02-27
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-122
     title: "Turnero sala IX: TV premium con anuncio claro y privacidad estricta"
@@ -5793,8 +5790,8 @@ tasks:
     files: ["src/apps/queue-display/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5814,7 +5811,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala IX: TV premium con anuncio claro y privacidad estricta"
     created_at: 2026-02-27
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-123
     title: "Turnero sala X: onboarding guiado + práctica asistida en admin"
@@ -5835,8 +5832,8 @@ tasks:
     files: ["src/apps/admin/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5856,7 +5853,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala X: onboarding guiado + práctica asistida en admin"
     created_at: 2026-02-27
-    updated_at: 2026-02-27
+    updated_at: 2026-03-27
 
   - id: AG-124
     title: "Turnero sala estrella: TV premium con campanilla robusta y privacidad estricta"
@@ -5877,8 +5874,8 @@ tasks:
     files: ["sala-turnos.html", "src/apps/queue-display/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5898,7 +5895,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala estrella: TV premium con campanilla robusta y privacidad estricta"
     created_at: 2026-02-28
-    updated_at: 2026-02-28
+    updated_at: 2026-03-27
 
   - id: AG-125
     title: "Turnero sala estrella: kiosco premium con bienvenida guiada y ayuda persistente"
@@ -5919,8 +5916,8 @@ tasks:
     files: ["kiosco-turnos.html", "src/apps/queue-kiosk/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5940,7 +5937,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala estrella: kiosco premium con bienvenida guiada y ayuda persistente"
     created_at: 2026-02-28
-    updated_at: 2026-02-28
+    updated_at: 2026-03-27
 
   - id: AG-126
     title: "Turnero sala QA: atajos numpad seguros (Numpad0 + Enter principal)"
@@ -5961,8 +5958,8 @@ tasks:
     files: ["tests/admin-queue.spec.js", "docs/RUNBOOK_TURNERO_SALA.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -5982,7 +5979,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala QA: atajos numpad seguros (Numpad0 + Enter principal)"
     created_at: 2026-02-28
-    updated_at: 2026-02-28
+    updated_at: 2026-03-27
 
   - id: AG-127
     title: "Turnero sala QA integral cross-surface (admin+kiosco+tv+integrado)"
@@ -6003,8 +6000,8 @@ tasks:
     files: ["tests/admin-queue.spec.js", "tests/queue-kiosk.spec.js", "tests/queue-display.spec.js", "tests/queue-integrated-flow.spec.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6024,7 +6021,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala QA integral cross-surface (admin+kiosco+tv+integrado)"
     created_at: 2026-02-28
-    updated_at: 2026-02-28
+    updated_at: 2026-03-27
 
   - id: AG-128
     title: "Turnero sala: bloque QA Modo 1 tecla + persistencia por estación"
@@ -6045,8 +6042,8 @@ tasks:
     files: ["tests/admin-queue.spec.js", "docs/RUNBOOK_TURNERO_SALA.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6066,7 +6063,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala: bloque QA Modo 1 tecla + persistencia por estación"
     created_at: 2026-02-28
-    updated_at: 2026-02-28
+    updated_at: 2026-03-27
 
   - id: AG-129
     title: "Turnero sala XI: calibracion de tecla externa por estacion (numpad wireless)"
@@ -6087,8 +6084,8 @@ tasks:
     files: ["src/apps/admin/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6108,7 +6105,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XI: calibracion de tecla externa por estacion (numpad wireless)"
     created_at: 2026-02-28
-    updated_at: 2026-02-28
+    updated_at: 2026-03-27
 
   - id: AG-130
     title: "Turnero sala XII: QA + runbook de calibracion de tecla externa por estacion"
@@ -6129,8 +6126,8 @@ tasks:
     files: ["tests/admin-queue.spec.js", "docs/RUNBOOK_TURNERO_SALA.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6150,7 +6147,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XII: QA + runbook de calibracion de tecla externa por estacion"
     created_at: 2026-02-28
-    updated_at: 2026-02-28
+    updated_at: 2026-03-27
 
   - id: AG-131
     title: "Turnero sala XIII: hardening anti-flake de suite QA queue"
@@ -6171,8 +6168,8 @@ tasks:
     files: ["playwright.config.js", "tests/admin-queue.spec.js", "tests/queue-display.spec.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6192,7 +6189,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XIII: hardening anti-flake de suite QA queue"
     created_at: 2026-02-28
-    updated_at: 2026-02-28
+    updated_at: 2026-03-27
 
   - id: AG-132
     title: "Turnero sala XIV: onboarding operativo estrella con checklist persistente"
@@ -6213,8 +6210,8 @@ tasks:
     files: ["src/apps/admin/index.js", "admin.html"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6234,7 +6231,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XIV: onboarding operativo estrella con checklist persistente"
     created_at: 2026-02-28
-    updated_at: 2026-02-28
+    updated_at: 2026-03-27
 
   - id: AG-133
     title: "Turnero sala XV: TV estrella de sala (claridad, privacidad y audio confiable)"
@@ -6255,8 +6252,8 @@ tasks:
     files: ["src/apps/queue-display/index.js", "sala-turnos.html"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6276,7 +6273,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XV: TV estrella de sala (claridad, privacidad y audio confiable)"
     created_at: 2026-02-28
-    updated_at: 2026-02-28
+    updated_at: 2026-03-27
 
   - id: AG-134
     title: "Turnero sala XVI: kiosco senior-first (lectura grande, voz guiada y ayuda rapida)"
@@ -6297,8 +6294,8 @@ tasks:
     files: ["kiosco-turnos.html", "src/apps/queue-kiosk/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6318,7 +6315,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XVI: kiosco senior-first (lectura grande, voz guiada y ayuda rapida)"
     created_at: 2026-02-28
-    updated_at: 2026-02-28
+    updated_at: 2026-03-27
 
   - id: AG-135
     title: "Turnero sala XVII: lock estricto C1/C2 + seguridad numpad en admin"
@@ -6339,8 +6336,8 @@ tasks:
     files: ["src/apps/admin/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6360,7 +6357,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XVII: lock estricto C1/C2 + seguridad numpad en admin"
     created_at: 2026-02-28
-    updated_at: 2026-02-28
+    updated_at: 2026-03-27
 
   - id: AG-136
     title: "Admin sony_v3 claro-editorial rollout inicial"
@@ -6381,8 +6378,8 @@ tasks:
     files: ["admin.html", "src/apps/admin/index.js", "src/apps/admin-v2/core/flags.js", "src/apps/admin-v3/index.js", "src/apps/admin-v3/core/boot.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6402,7 +6399,7 @@ tasks:
     depends_on: []
     prompt: "Admin sony_v3 claro-editorial rollout inicial"
     created_at: 2026-03-01
-    updated_at: 2026-03-01
+    updated_at: 2026-03-27
 
   - id: AG-137
     title: "Admin sony_v3 QA ampliada y closeout"
@@ -6423,8 +6420,8 @@ tasks:
     files: ["admin.html", "src/apps/admin/index.js", "src/apps/admin-v3/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6444,7 +6441,7 @@ tasks:
     depends_on: []
     prompt: "Admin sony_v3 QA ampliada y closeout"
     created_at: 2026-03-01
-    updated_at: 2026-03-01
+    updated_at: 2026-03-27
 
   - id: AG-138
     title: "Admin sony_v3 canary flag contract"
@@ -6465,8 +6462,8 @@ tasks:
     files: ["lib/features.php", "controllers/SystemController.php", "GATE-ADMIN-ROLLOUT.ps1", "ADMIN-UI-CONTINGENCIA.ps1", "tests/test_system_features_endpoint.php", "tests/test_features_class.php", "tests/test-features.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6486,7 +6483,7 @@ tasks:
     depends_on: []
     prompt: "Admin sony_v3 canary flag contract"
     created_at: 2026-03-01
-    updated_at: 2026-03-01
+    updated_at: 2026-03-27
 
   - id: AG-139
     title: "Admin sony_v3 canary smoke docs and clean commit"
@@ -6507,8 +6504,8 @@ tasks:
     files: ["docs/ADMIN-UI-ROLLOUT.md", "docs/DEPLOYMENT.md", "tests/admin-ui-runtime-smoke.spec.js", "tests/admin-ui-variant.spec.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6528,7 +6525,7 @@ tasks:
     depends_on: ["AG-138"]
     prompt: "Admin sony_v3 canary smoke docs and clean commit"
     created_at: 2026-03-01
-    updated_at: 2026-03-01
+    updated_at: 2026-03-27
 
   - id: AG-140
     title: "Admin sony_v3 section refinement workbenches"
@@ -6549,8 +6546,8 @@ tasks:
     files: ["src/apps/admin-v3/sections/dashboard.js", "src/apps/admin-v3/sections/appointments.js", "src/apps/admin-v3/sections/callbacks.js", "src/apps/admin-v3/ui/frame.js", "src/apps/admin-v3/ui/dom.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6570,7 +6567,7 @@ tasks:
     depends_on: ["AG-139"]
     prompt: "Admin sony_v3 section refinement workbenches"
     created_at: 2026-03-01
-    updated_at: 2026-03-01
+    updated_at: 2026-03-27
 
   - id: AG-141
     title: "Admin sony_v3 reviews and availability refinement"
@@ -6591,8 +6588,8 @@ tasks:
     files: ["src/apps/admin-v3/sections/reviews.js", "src/apps/admin-v3/sections/availability.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6612,7 +6609,7 @@ tasks:
     depends_on: ["AG-140"]
     prompt: "Admin sony_v3 reviews and availability refinement"
     created_at: 2026-03-01
-    updated_at: 2026-03-01
+    updated_at: 2026-03-27
 
   - id: AG-142
     title: "Admin sony_v3 editorial visual refinement"
@@ -6633,8 +6630,8 @@ tasks:
     files: ["admin-v3.css"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6654,7 +6651,7 @@ tasks:
     depends_on: []
     prompt: "Admin sony_v3 editorial visual refinement"
     created_at: 2026-03-02
-    updated_at: 2026-03-02
+    updated_at: 2026-03-27
 
   - id: AG-143
     title: "Admin sony_v3 canary rollout hardening"
@@ -6675,8 +6672,8 @@ tasks:
     files: ["GATE-ADMIN-ROLLOUT.ps1", "tests/admin-v3-canary-runtime.spec.js", "docs/ADMIN-UI-ROLLOUT.md", "docs/DEPLOYMENT.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6696,7 +6693,7 @@ tasks:
     depends_on: []
     prompt: "Admin sony_v3 canary rollout hardening"
     created_at: 2026-03-02
-    updated_at: 2026-03-02
+    updated_at: 2026-03-27
 
   - id: AG-144
     title: "Admin sony_v3 rollout contract closeout"
@@ -6717,8 +6714,8 @@ tasks:
     files: ["docs/RUNBOOKS.md", "tests-node/post-deploy-fast-workflow-contract.test.js", "tests-node/post-deploy-gate-workflow-contract.test.js", "tests-node/deploy-hosting-workflow-contract.test.js", "tests-node/admin-rollout-gate-contract.test.js", "package.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6738,7 +6735,7 @@ tasks:
     depends_on: []
     prompt: "Admin sony_v3 rollout contract closeout"
     created_at: 2026-03-02
-    updated_at: 2026-03-02
+    updated_at: 2026-03-27
 
   - id: AG-145
     title: "Production deploy sony_v3 rollout"
@@ -6759,8 +6756,8 @@ tasks:
     files: [".github/workflows/deploy-hosting.yml", ".github/workflows/post-deploy-fast.yml", ".github/workflows/post-deploy-gate.yml", "GATE-ADMIN-ROLLOUT.ps1", "docs/DEPLOYMENT.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6780,7 +6777,7 @@ tasks:
     depends_on: ["AG-139", "AG-143", "AG-144"]
     prompt: "Production deploy sony_v3 rollout"
     created_at: 2026-03-02
-    updated_at: 2026-03-02
+    updated_at: 2026-03-27
 
   - id: AG-146
     title: "Safe cron auto-sync for public deploy"
@@ -6801,8 +6798,8 @@ tasks:
     files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_V3_CRON_INSTALL.md", "verification/agent-runs/AG-146.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6822,7 +6819,7 @@ tasks:
     depends_on: []
     prompt: "Safe cron auto-sync for public deploy"
     created_at: 2026-03-02
-    updated_at: 2026-03-02
+    updated_at: 2026-03-27
 
   - id: AG-147
     title: "Document validated public deploy recovery and cron path"
@@ -6843,8 +6840,8 @@ tasks:
     files: ["docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "docs/PUBLIC_V3_CRON_INSTALL.md", "docs/DEPLOYMENT.md", "verification/agent-runs/AG-147.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6864,7 +6861,7 @@ tasks:
     depends_on: []
     prompt: "Document validated public deploy recovery and cron path"
     created_at: 2026-03-02
-    updated_at: 2026-03-02
+    updated_at: 2026-03-27
 
   - id: AG-148
     title: "Production verify sony_v3 live"
@@ -6885,8 +6882,8 @@ tasks:
     files: ["verification/agent-runs/AG-148.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6906,7 +6903,7 @@ tasks:
     depends_on: []
     prompt: "Production verify sony_v3 live"
     created_at: 2026-03-02
-    updated_at: 2026-03-02
+    updated_at: 2026-03-27
 
   - id: AG-149
     title: "Production smoke public plus admin live"
@@ -6927,8 +6924,8 @@ tasks:
     files: ["verification/agent-runs/AG-149.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6948,7 +6945,7 @@ tasks:
     depends_on: []
     prompt: "Production smoke public plus admin live"
     created_at: 2026-03-02
-    updated_at: 2026-03-02
+    updated_at: 2026-03-27
 
   - id: AG-150
     title: "Align telemedicine production smoke with v3 markup"
@@ -6969,8 +6966,8 @@ tasks:
     files: ["tests/telemedicina-conversion-qa.spec.js", "verification/agent-runs/AG-150.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -6990,7 +6987,7 @@ tasks:
     depends_on: []
     prompt: "Align telemedicine production smoke with v3 markup"
     created_at: 2026-03-02
-    updated_at: 2026-03-02
+    updated_at: 2026-03-27
 
   - id: AG-151
     title: "FE-V6-R6 copy final home-hub-tele-legal-nav"
@@ -7011,8 +7008,8 @@ tasks:
     files: ["content/public-v6/es/home.json", "content/public-v6/en/home.json", "content/public-v6/es/hub.json", "content/public-v6/en/hub.json", "content/public-v6/es/telemedicine.json", "content/public-v6/en/telemedicine.json", "content/public-v6/es/legal.json", "content/public-v6/en/legal.json", "content/public-v6/es/navigation.json", "content/public-v6/en/navigation.json", "src/apps/astro/src/components/public-v6/HeroShowcaseV6.astro", "src/apps/astro/src/components/public-v6/NewsStripV6.astro", "src/apps/astro/src/components/public-v6/EditorialGridV6.astro", "src/apps/astro/src/components/public-v6/ServiceHubV6.astro", "src/apps/astro/src/components/public-v6/ServiceDetailV6.astro", "src/apps/astro/src/components/public-v6/TelemedicinePageV6.astro", "src/apps/astro/src/components/public-v6/LegalPageV6.astro", "src/apps/astro/src/components/public-v6/PublicHeaderV6.astro", "src/apps/astro/src/components/public-v6/PublicFooterV6.astro", "src/apps/astro/src/components/public-v6/BookingStatusV6.astro"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7032,7 +7029,7 @@ tasks:
     depends_on: []
     prompt: "FE-V6-R6 copy final home-hub-tele-legal-nav"
     created_at: 2026-03-04
-    updated_at: 2026-03-04
+    updated_at: 2026-03-27
 
   - id: AG-152
     title: "FE-V6-R7 canonical public source"
@@ -7053,8 +7050,8 @@ tasks:
     files: ["package.json", ".htaccess", "nginx-pielarmonia.conf", "bin/check-public-conversion-smoke.js", "bin/check-public-routing-smoke.js", "bin/check-public-v6-artifacts.js", "bin/assert-public-v6-single-source.js", "bin/lib/public-v6-local-server.js", "bin/run-staging-acceptance-gate.js", "docs/DEPLOYMENT.md", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "docs/PUBLIC_V2_MANUAL_DEPLOY.md", "docs/PUBLIC_V3_CRON_INSTALL.md", "docs/PUBLIC_V3_MANUAL_DEPLOY.md", "docs/public-v6-canonical-source.md", "README.md", "src/apps/astro/scripts/sync-dist.mjs", "tests-node/public-conversion-smoke.test.js", "tests-node/publish-checkpoint-command.test.js", "tools/agent-orchestrator/commands/publish.js", "verification/public-v6-canonical/summary.md", "verification/public-v6-canonical/routes.json", "verification/public-v6-canonical/publish-contract.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7074,7 +7071,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "FE-V6-R7 canonical public source"
     created_at: 2026-03-09
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-153
     title: "FE-V6-R8 normalize V6 test helpers and naming"
@@ -7095,8 +7092,8 @@ tasks:
     files: ["package.json", "AGENT_BOARD.yaml", "tests/helpers/public-v3.js", "tests/helpers/public-v6.js", "tests/public-v6-header-mega.spec.js", "tests/public-v6-hero-stage.spec.js", "tests/public-v6-news-strip.spec.js", "tests/public-v6-editorial-grid.spec.js", "tests/public-v6-copy.spec.js", "tests/public-v6-page-menu.spec.js", "tests/public-v6-hub-featured.spec.js", "tests/public-v6-hub-initiatives.spec.js", "tests/public-v6-internal-geometry.spec.js", "tests/public-v6-internal-rail.spec.js", "tests/public-v6-internal-surfaces.spec.js", "tests/public-v6-mega-two-panel.spec.js", "tests/public-v6-statement-band.spec.js", "tests-node/public-v6-test-helper-contract.test.js", "verification/agent-runs/AG-153.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7116,7 +7113,7 @@ tasks:
     depends_on: ["AG-152"]
     prompt: "FE-V6-R8: normalizar helpers y naming de tests V6 para que la superficie publica deje de colgar de public-v3 en la capa QA."
     created_at: 2026-03-09
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-154
     title: "FE-V6-R9 align public smoke suites with V6 surface contracts"
@@ -7137,8 +7134,8 @@ tasks:
     files: ["AGENT_BOARD.yaml", "src/apps/astro/src/lib/public-v6.js", "tests/helpers/public-v6.js", "tests/homepage.spec.js", "tests/telemedicina-conversion-qa.spec.js", "tests/service-pages-qa.spec.js", "tests/service-pages-premium-new.spec.js", "tests/legal.spec.js", "tests/language-route-equivalence.spec.js", "tests/mobile-overflow-regression.spec.js", "tests/premium-navigation-ia.spec.js", "tests/staging-acceptance-gate.spec.js", "tests/deferred-content-fallback.spec.js", "tests/home-deferred-hydration.spec.js", "tests/public-v3-entry-surface-taxonomy.spec.js", "tests/service-booking-hints-parity.spec.js", "verification/agent-runs/AG-154.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7158,7 +7155,7 @@ tasks:
     depends_on: ["AG-153", "CDX-001"]
     prompt: "FE-V6-R9: reescribir smokes publicos activos para home, service, tele, legal, fallback e idioma sobre contrato V6, sin anclas #citas ni hooks appointmentForm/serviceSelect."
     created_at: 2026-03-09
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-155
     title: "FE-V6-R10 activate V6 header search and news strip interactions"
@@ -7179,8 +7176,8 @@ tasks:
     files: ["src/apps/astro/src/components/public-v6/PublicHeaderV6.astro", "src/apps/astro/src/components/public-v6/NewsStripV6.astro", "src/apps/astro/src/styles/public-v6/layout.css", "src/apps/astro/src/styles/public-v6/components.css", "js/public-v6-shell.js", "content/public-v6/es/navigation.json", "content/public-v6/en/navigation.json", "content/public-v6/es/home.json", "content/public-v6/en/home.json", "tests/helpers/public-v6.js", "tests/public-v6-header-mega.spec.js", "tests/public-v6-news-strip.spec.js", "verification/agent-runs/AG-155.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7200,7 +7197,7 @@ tasks:
     depends_on: ["AG-154", "CDX-001"]
     prompt: "FE-V6-R10: activar affordances muertos de V6 en header y news strip, manteniendo contratos data-v6 y cobertura Playwright."
     created_at: 2026-03-09
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-156
     title: "FE-V6-R11 harden canonical V6 build runner"
@@ -7221,8 +7218,8 @@ tasks:
     files: ["bin/build-public-v6.js", "bin/assert-public-v6-single-source.js", "package.json", "tests-node/public-v6-build-contract.test.js", "docs/public-v6-canonical-source.md", "docs/DEPLOYMENT.md", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "verification/agent-runs/AG-156.md", "verification/public-v6-canonical/artifact-drift.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7242,7 +7239,7 @@ tasks:
     depends_on: ["AG-155"]
     prompt: "FE-V6-R11: endurecer build canonico V6 para que validate, build, sync y drift-check corran bajo un runner unico y no por shell chaining."
     created_at: 2026-03-09
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-157
     title: "Close public V6 internal navigation state sync"
@@ -7263,8 +7260,8 @@ tasks:
     files: ["src/apps/astro/src/components/public-v6/PageHeadV6.astro", "src/apps/astro/src/components/public-v6/ServiceHubV6.astro", "src/apps/astro/src/components/public-v6/ServiceDetailV6.astro", "src/apps/astro/src/components/public-v6/TelemedicinePageV6.astro", "src/apps/astro/src/components/public-v6/LegalPageV6.astro", "src/apps/astro/src/styles/public-v6/components.css", "js/public-v6-shell.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7284,7 +7281,7 @@ tasks:
     depends_on: ["AG-156"]
     prompt: "Close public V6 internal navigation state sync"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-158
     title: "Refine public V6 internal copy across hub service tele legal"
@@ -7305,8 +7302,8 @@ tasks:
     files: ["content/public-v6/es/hub.json", "content/public-v6/es/service.json", "content/public-v6/es/telemedicine.json", "content/public-v6/es/legal.json", "content/public-v6/en/hub.json", "content/public-v6/en/service.json", "content/public-v6/en/telemedicine.json", "content/public-v6/en/legal.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7326,7 +7323,7 @@ tasks:
     depends_on: []
     prompt: "Refine public V6 internal copy across hub service tele legal"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-159
     title: "Refine public V6 home and navigation editorial copy"
@@ -7347,8 +7344,8 @@ tasks:
     files: ["content/public-v6/es/home.json", "content/public-v6/en/home.json", "content/public-v6/es/navigation.json", "content/public-v6/en/navigation.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7368,7 +7365,7 @@ tasks:
     depends_on: []
     prompt: "Refine public V6 home and navigation editorial copy"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-160
     title: "Externalize V6 shell labels and hero microcopy"
@@ -7389,8 +7386,8 @@ tasks:
     files: ["src/apps/astro/src/layouts/PublicShellV6.astro", "src/apps/astro/src/components/public-v6/HeroShowcaseV6.astro", "src/apps/astro/src/components/public-v6/PublicHeaderV6.astro", "content/public-v6/es/navigation.json", "content/public-v6/en/navigation.json", "content/public-v6/es/home.json", "content/public-v6/en/home.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7410,7 +7407,7 @@ tasks:
     depends_on: []
     prompt: "Externalize V6 shell labels and hero microcopy"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-161
     title: "Tighten internal V6 render contracts"
@@ -7431,8 +7428,8 @@ tasks:
     files: ["src/apps/astro/src/components/public-v6/PageHeadV6.astro", "src/apps/astro/src/components/public-v6/ServiceDetailV6.astro", "src/apps/astro/src/components/public-v6/ServiceHubV6.astro", "src/apps/astro/src/components/public-v6/TelemedicinePageV6.astro", "src/apps/astro/src/components/public-v6/LegalPageV6.astro"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7452,7 +7449,7 @@ tasks:
     depends_on: []
     prompt: "Tighten internal V6 render contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-162
     title: "Harden shell V6 widget render contracts"
@@ -7473,8 +7470,8 @@ tasks:
     files: ["src/apps/astro/src/components/public-v6/BookingStatusV6.astro", "src/apps/astro/src/components/public-v6/CorporateMatrixV6.astro", "src/apps/astro/src/components/public-v6/EditorialGridV6.astro", "src/apps/astro/src/components/public-v6/NewsStripV6.astro", "src/apps/astro/src/components/public-v6/PublicFooterV6.astro", "src/apps/astro/src/layouts/PublicShellV6.astro", "content/public-v6/es/home.json", "content/public-v6/en/home.json", "content/public-v6/es/navigation.json", "content/public-v6/en/navigation.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7494,7 +7491,7 @@ tasks:
     depends_on: []
     prompt: "Harden shell V6 widget render contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-163
     title: "Harden V6 header render contracts"
@@ -7515,8 +7512,8 @@ tasks:
     files: ["src/apps/astro/src/components/public-v6/PublicHeaderV6.astro"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7536,7 +7533,7 @@ tasks:
     depends_on: []
     prompt: "Harden V6 header render contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-164
     title: "Harden V6 internal page render contracts"
@@ -7557,8 +7554,8 @@ tasks:
     files: ["src/apps/astro/src/components/public-v6/PageHeadV6.astro", "src/apps/astro/src/components/public-v6/ServiceHubV6.astro", "src/apps/astro/src/components/public-v6/ServiceDetailV6.astro", "src/apps/astro/src/components/public-v6/TelemedicinePageV6.astro", "src/apps/astro/src/components/public-v6/LegalPageV6.astro", "src/apps/astro/src/components/public-v6/InternalStatementBandV6.astro", "content/public-v6/es/hub.json", "content/public-v6/es/service.json", "content/public-v6/es/telemedicine.json", "content/public-v6/es/legal.json", "content/public-v6/en/hub.json", "content/public-v6/en/service.json", "content/public-v6/en/telemedicine.json", "content/public-v6/en/legal.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7578,7 +7575,7 @@ tasks:
     depends_on: []
     prompt: "Harden V6 internal page render contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-165
     title: "Harden V6 hero and shell render contracts"
@@ -7599,8 +7596,8 @@ tasks:
     files: ["src/apps/astro/src/components/public-v6/HeroShowcaseV6.astro", "src/apps/astro/src/components/public-v6/PublicHeaderV6.astro", "src/apps/astro/src/components/public-v6/NewsStripV6.astro", "src/apps/astro/src/components/public-v6/CorporateMatrixV6.astro", "src/apps/astro/src/layouts/PublicShellV6.astro"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7620,7 +7617,7 @@ tasks:
     depends_on: []
     prompt: "Harden V6 hero and shell render contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-166
     title: "Stabilize V6 news strip copy regression spec"
@@ -7641,8 +7638,8 @@ tasks:
     files: ["tests/public-v6-news-strip.spec.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7662,7 +7659,7 @@ tasks:
     depends_on: []
     prompt: "Stabilize V6 news strip copy regression spec"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-167
     title: "Align V6 news strip copy with active regression contract"
@@ -7683,8 +7680,8 @@ tasks:
     files: ["content/public-v6/es/home.json", "content/public-v6/en/home.json", "es/index.html", "en/index.html"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7704,7 +7701,7 @@ tasks:
     depends_on: []
     prompt: "Align V6 news strip copy with active regression contract"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-168
     title: "Harden V6 content loader contracts"
@@ -7725,8 +7722,8 @@ tasks:
     files: ["src/apps/astro/src/lib/public-v6.js", "src/apps/astro/src/pages/es/index.astro", "src/apps/astro/src/pages/en/index.astro", "src/apps/astro/src/pages/es/servicios/index.astro", "src/apps/astro/src/pages/en/services/index.astro"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7746,7 +7743,7 @@ tasks:
     depends_on: []
     prompt: "Harden V6 content loader contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-169
     title: "Fix post-rebase V6 build and booking copy regressions"
@@ -7767,8 +7764,8 @@ tasks:
     files: ["src/apps/astro/src/pages/en/software/clinic-flow-suite/index.astro", "src/apps/astro/src/pages/es/software/turnero-clinicas/index.astro", "src/apps/astro/src/pages/en/software/clinic-flow-suite/[surface].astro", "src/apps/astro/src/pages/es/software/turnero-clinicas/[surface].astro", "content/public-v6/es/home.json", "content/public-v6/en/home.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7788,7 +7785,7 @@ tasks:
     depends_on: []
     prompt: "Fix post-rebase V6 build and booking copy regressions"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-170
     title: "Harden software V6 render contracts and QA"
@@ -7809,8 +7806,8 @@ tasks:
     files: ["src/apps/astro/src/components/public-v6/SoftwareLandingV6.astro", "src/apps/astro/src/components/public-v6/SoftwareSurfacePageV6.astro", "src/apps/astro/src/pages/en/software/clinic-flow-suite/index.astro", "src/apps/astro/src/pages/es/software/turnero-clinicas/index.astro", "src/apps/astro/src/pages/en/software/clinic-flow-suite/[surface].astro", "src/apps/astro/src/pages/es/software/turnero-clinicas/[surface].astro", "content/public-v6/en/software.json", "content/public-v6/es/software.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7830,7 +7827,7 @@ tasks:
     depends_on: []
     prompt: "Harden software V6 render contracts and QA"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-171
     title: "Refine software V6 rail and geometry contracts"
@@ -7851,8 +7848,8 @@ tasks:
     files: ["src/apps/astro/src/components/public-v6/SoftwareLandingV6.astro", "src/apps/astro/src/components/public-v6/SoftwareSurfacePageV6.astro", "src/apps/astro/src/styles/public-v6/components.css"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7872,7 +7869,7 @@ tasks:
     depends_on: []
     prompt: "Refine software V6 rail and geometry contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-172
     title: "Connect software V6 surfaces with suite map"
@@ -7893,8 +7890,8 @@ tasks:
     files: ["src/apps/astro/src/components/public-v6/SoftwareLandingV6.astro", "src/apps/astro/src/components/public-v6/SoftwareSurfacePageV6.astro", "src/apps/astro/src/components/public-v6/SoftwareMockupV6.astro", "src/apps/astro/src/styles/public-v6/components.css"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7914,7 +7911,7 @@ tasks:
     depends_on: []
     prompt: "Connect software V6 surfaces with suite map"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-173
     title: "Polish software V6 density and product chrome"
@@ -7935,8 +7932,8 @@ tasks:
     files: ["src/apps/astro/src/components/public-v6/SoftwareLandingV6.astro", "src/apps/astro/src/components/public-v6/SoftwareSurfacePageV6.astro", "src/apps/astro/src/components/public-v6/SoftwareMockupV6.astro", "src/apps/astro/src/styles/public-v6/components.css"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7956,7 +7953,7 @@ tasks:
     depends_on: []
     prompt: "Polish software V6 density and product chrome"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-174
     title: "Harden software content contract and suite route registry"
@@ -7977,8 +7974,8 @@ tasks:
     files: ["src/apps/astro/src/lib/public-v6.js", "src/apps/astro/src/components/public-v6/SoftwareLandingV6.astro", "src/apps/astro/src/components/public-v6/SoftwareSurfacePageV6.astro"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -7998,7 +7995,7 @@ tasks:
     depends_on: []
     prompt: "Harden software content contract and suite route registry"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-175
     title: "Add software suite progression band and narrative continuity"
@@ -8019,8 +8016,8 @@ tasks:
     files: ["src/apps/astro/src/lib/public-v6.js", "src/apps/astro/src/components/public-v6/SoftwareLandingV6.astro", "src/apps/astro/src/components/public-v6/SoftwareSurfacePageV6.astro", "src/apps/astro/src/styles/public-v6/components.css"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8040,7 +8037,7 @@ tasks:
     depends_on: []
     prompt: "Add software suite progression band and narrative continuity"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-176
     title: "Harden software content contract and progression QA"
@@ -8061,8 +8058,8 @@ tasks:
     files: ["src/apps/astro/src/lib/public-v6.js", "src/apps/astro/src/components/public-v6/SoftwareLandingV6.astro", "src/apps/astro/src/components/public-v6/SoftwareSurfacePageV6.astro"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8082,7 +8079,7 @@ tasks:
     depends_on: []
     prompt: "Harden software content contract and progression QA"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-177
     title: "Refine software suite editorial continuity"
@@ -8103,8 +8100,8 @@ tasks:
     files: ["content/public-v6/es/software.json", "content/public-v6/en/software.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8124,7 +8121,7 @@ tasks:
     depends_on: []
     prompt: "Refine software suite editorial continuity"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-178
     title: "Polish software product chrome density"
@@ -8145,8 +8142,8 @@ tasks:
     files: ["src/apps/astro/src/components/public-v6/SoftwareLandingV6.astro", "src/apps/astro/src/components/public-v6/SoftwareSurfacePageV6.astro", "src/apps/astro/src/components/public-v6/SoftwareMockupV6.astro", "src/apps/astro/src/styles/public-v6/components.css"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8166,7 +8163,7 @@ tasks:
     depends_on: []
     prompt: "Polish software product chrome density"
     created_at: 2026-03-10
-    updated_at: 2026-03-10
+    updated_at: 2026-03-27
 
   - id: AG-182
     title: "Public V6 page integration pass 6"
@@ -8187,8 +8184,8 @@ tasks:
     files: ["src/apps/astro/src/components/public-v6/HeroShowcaseV6.astro", "src/apps/astro/src/components/public-v6/ServiceHubV6.astro", "src/apps/astro/src/components/public-v6/ServiceDetailV6.astro", "src/apps/astro/src/components/public-v6/TelemedicinePageV6.astro", "content/public-v6/es/home.json", "content/public-v6/en/home.json", "content/public-v6/es/hub.json", "content/public-v6/en/hub.json", "content/public-v6/es/telemedicine.json", "content/public-v6/en/telemedicine.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8208,7 +8205,7 @@ tasks:
     depends_on: ["AG-178"]
     prompt: "Public V6 page integration pass 6"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-183
     title: "Operator auth backend with OpenClaw ChatGPT"
@@ -8229,8 +8226,8 @@ tasks:
     files: ["admin-auth.php", "api.php", "lib/ApiKernel.php", "lib/auth.php", "controllers/OperatorAuthController.php", "lib/routes.php", "env.example.php", "tests/CriticalFlowsE2ETest.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8250,7 +8247,7 @@ tasks:
     depends_on: []
     prompt: "Operator auth backend with OpenClaw ChatGPT"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-184
     title: "Humanize shared public V6 editorial language across home hub service and telemedicine"
@@ -8271,8 +8268,8 @@ tasks:
     files: ["content/public-v6/es/home.json", "content/public-v6/en/home.json", "content/public-v6/es/hub.json", "content/public-v6/en/hub.json", "content/public-v6/es/service.json", "content/public-v6/en/service.json", "content/public-v6/es/telemedicine.json", "content/public-v6/en/telemedicine.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8292,7 +8289,7 @@ tasks:
     depends_on: []
     prompt: "Humanize shared public V6 editorial language across home hub service and telemedicine"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-185
     title: "Refine public V6 mobile shell interaction and navigation copy"
@@ -8313,8 +8310,8 @@ tasks:
     files: ["content/public-v6/es/navigation.json", "content/public-v6/en/navigation.json", "src/apps/astro/src/components/public-v6/PublicHeaderV6.astro", "js/public-v6-shell.js", "src/apps/astro/src/styles/public-v6/layout.css"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8334,7 +8331,7 @@ tasks:
     depends_on: []
     prompt: "Refine public V6 mobile shell interaction and navigation copy"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-186
     title: "Refine public V6 telemedicine editorial copy"
@@ -8355,8 +8352,8 @@ tasks:
     files: ["content/public-v6/es/telemedicine.json", "content/public-v6/en/telemedicine.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8376,7 +8373,7 @@ tasks:
     depends_on: []
     prompt: "Refine public V6 telemedicine editorial copy"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-187
     title: "Refine public V6 service detail editorial copy"
@@ -8397,8 +8394,8 @@ tasks:
     files: ["content/public-v6/es/service.json", "content/public-v6/en/service.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8418,7 +8415,7 @@ tasks:
     depends_on: []
     prompt: "Refine public V6 service detail editorial copy"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-188
     title: "Refine public V6 home and hub microcopy"
@@ -8439,8 +8436,8 @@ tasks:
     files: ["content/public-v6/es/home.json", "content/public-v6/en/home.json", "content/public-v6/es/hub.json", "content/public-v6/en/hub.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8460,7 +8457,7 @@ tasks:
     depends_on: []
     prompt: "Refine public V6 home and hub microcopy"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-189
     title: "Polish public V6 mobile shell interactions"
@@ -8481,8 +8478,8 @@ tasks:
     files: ["content/public-v6/es/navigation.json", "content/public-v6/en/navigation.json", "src/apps/astro/src/components/public-v6/PublicHeaderV6.astro", "src/apps/astro/src/styles/public-v6/layout.css"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8502,7 +8499,7 @@ tasks:
     depends_on: []
     prompt: "Polish public V6 mobile shell interactions"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-190
     title: "Turnero release ops stabilization"
@@ -8523,8 +8520,8 @@ tasks:
     files: ["tests/queue-display.spec.js", "docs/RUNBOOK_TURNERO_APPS_RELEASE.md", "docs/TURNERO_NATIVE_SURFACES.md", "verification/agent-runs/AG-190.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8544,7 +8541,7 @@ tasks:
     depends_on: []
     prompt: "Turnero release ops stabilization"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-191
     title: "Turnero native readme portability"
@@ -8565,8 +8562,8 @@ tasks:
     files: ["src/apps/turnero-desktop/README.md", "src/apps/turnero-sala-tv-android/README.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8586,7 +8583,7 @@ tasks:
     depends_on: []
     prompt: "Turnero native readme portability"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-192
     title: "Turnero phase 3: frontend surfaces consolidation"
@@ -8607,8 +8604,8 @@ tasks:
     files: ["src/apps/admin-v3/shared/modules/queue/render/section/install-hub.js", "src/apps/astro/src/components/public-v6/SoftwareLandingV6.astro"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8628,7 +8625,7 @@ tasks:
     depends_on: []
     prompt: "Turnero phase 3: frontend surfaces consolidation"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-193
     title: "Turnero phase 3: distribution backend consolidation"
@@ -8649,8 +8646,8 @@ tasks:
     files: ["app-downloads/app-downloads.js", "app-downloads/index.php", "controllers/AdminDataController.php", "lib/AppDownloadsCatalog.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8670,7 +8667,7 @@ tasks:
     depends_on: []
     prompt: "Turnero phase 3: distribution backend consolidation"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-194
     title: "Turnero phase 3: catalog content consolidation"
@@ -8691,8 +8688,8 @@ tasks:
     files: ["content/app-downloads/catalog.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8712,7 +8709,7 @@ tasks:
     depends_on: []
     prompt: "Turnero phase 3: catalog content consolidation"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-195
     title: "Public main sync canonical deploy stabilization"
@@ -8733,8 +8730,8 @@ tasks:
     files: ["bin/deploy-public-v3-live.sh", "bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "docs/DEPLOYMENT.md", "tests-node/deploy-public-v3-live-script.test.js", "tests-node/deploy-public-v3-cron-sync-script.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8754,7 +8751,7 @@ tasks:
     depends_on: []
     prompt: "Public main sync canonical deploy stabilization"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-196
     title: "Public main sync diagnostics accuracy"
@@ -8775,8 +8772,8 @@ tasks:
     files: ["tools/agent-orchestrator/commands/runtime-governance.js", "tools/agent-orchestrator/commands/conflicts.js", "tools/agent-orchestrator/commands/codex.js", "tools/agent-orchestrator/domain/diagnostics.js", "tests-node/orchestrator/diagnostics.test.js", "tests-node/agent-orchestrator-cli.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8796,7 +8793,7 @@ tasks:
     depends_on: []
     prompt: "Public main sync diagnostics accuracy"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-197
     title: "Turnero PHP contract runner repair"
@@ -8817,8 +8814,8 @@ tasks:
     files: ["bin/run-phpunit.js", "package.json", "tests-node/run-phpunit-wrapper.test.js", "docs/RUNBOOK_TURNERO_APPS_RELEASE.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8838,7 +8835,7 @@ tasks:
     depends_on: []
     prompt: "Turnero PHP contract runner repair"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-198
     title: "Public main sync dirty-tree self-heal hardening"
@@ -8859,8 +8856,8 @@ tasks:
     files: ["bin/deploy-public-v3-cron-sync.sh", "bin/deploy-public-v3-live.sh", "tests-node/deploy-public-v3-cron-sync-script.test.js", "tests-node/deploy-public-v3-live-script.test.js", "verification/agent-runs/AG-198.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8880,7 +8877,7 @@ tasks:
     depends_on: []
     prompt: "Public main sync dirty-tree self-heal hardening"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-199
     title: "Turnero Operador Windows v1 hardening"
@@ -8901,8 +8898,8 @@ tasks:
     files: ["src/apps/turnero-desktop/src/main.mjs", "src/apps/turnero-desktop/src/preload.cjs", "src/apps/turnero-desktop/src/renderer/boot.js", "src/apps/turnero-desktop/README.md", "src/apps/queue-operator/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8922,7 +8919,7 @@ tasks:
     depends_on: []
     prompt: "Turnero Operador Windows v1 hardening"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-200
     title: "Turnero install hub and software suite UX stabilization"
@@ -8943,8 +8940,8 @@ tasks:
     files: ["src/apps/admin-v3/shared/modules/queue/render/section/install-hub.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/index.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/constants.js", "src/apps/astro/src/components/public-v6/SoftwareLandingV6.astro", "src/apps/astro/src/components/public-v6/SoftwareSurfacePageV6.astro", "src/apps/astro/src/lib/public-v6.js", "content/public-v6/es/software.json", "content/public-v6/en/software.json"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -8964,7 +8961,7 @@ tasks:
     depends_on: ["AG-192", "AG-194"]
     prompt: "Turnero install hub and software suite UX stabilization"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-201
     title: "Public main sync telemetry propagation"
@@ -8985,8 +8982,8 @@ tasks:
     files: ["lib/public_sync.php", "tools/agent-orchestrator/domain/jobs.js", "tests-node/orchestrator/jobs-engine.test.js", "tests-node/agent-jobs-cli.test.js", "docs/AGENT_ORCHESTRATION_RUNBOOK.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9006,7 +9003,7 @@ tasks:
     depends_on: []
     prompt: "Public main sync telemetry propagation"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-202
     title: "Turnero native release toolchain hardening"
@@ -9027,8 +9024,8 @@ tasks:
     files: [".github/workflows/release-turnero-apps.yml", "bin/stage-turnero-app-release.js", "bin/resolve-turnero-release-plan.js", "bin/scaffold-turnero-surface.js", "lib/turnero-surface-registry.js", "lib/TurneroSurfaceRegistry.php", "tests-node/turnero-surface-registry.test.js", "tests-node/resolve-turnero-release-plan.test.js", "tests-node/scaffold-turnero-surface-script.test.js", "tests-node/stage-turnero-app-release-script.test.js", "tests-node/release-turnero-apps-workflow-contract.test.js", "docs/TURNERO_NATIVE_SURFACES.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9048,7 +9045,7 @@ tasks:
     depends_on: ["AG-190", "AG-193", "AG-201"]
     prompt: "Turnero native release toolchain hardening"
     created_at: 2026-03-11
-    updated_at: 2026-03-11
+    updated_at: 2026-03-27
 
   - id: AG-203
     title: "Prod ops public sync telemetry adoption"
@@ -9069,8 +9066,8 @@ tasks:
     files: ["scripts/ops/prod/REPORTE-SEMANAL-PRODUCCION.ps1", "scripts/ops/prod/SMOKE-PRODUCCION.ps1", "scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1", "bin/powershell/Common.Warnings.ps1", "tests-node/weekly-report-script-contract.test.js", "tests-node/prod-ops-public-sync-contract.test.js", "scripts/ops/prod/README.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9090,7 +9087,7 @@ tasks:
     depends_on: []
     prompt: "Prod ops public sync telemetry adoption"
     created_at: 2026-03-11
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-204
     title: "Public main sync canonical head-drift diagnostics"
@@ -9111,8 +9108,8 @@ tasks:
     files: ["lib/public_sync.php", "tools/agent-orchestrator/domain/jobs.js", "tools/agent-orchestrator/domain/diagnostics.js", "agent-orchestrator.js", "tests-node/orchestrator/jobs-engine.test.js", "tests-node/agent-jobs-cli.test.js", "tests-node/orchestrator/diagnostics.test.js", "tests-node/agent-orchestrator-cli.test.js", "docs/AGENT_ORCHESTRATION_RUNBOOK.md", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9132,7 +9129,7 @@ tasks:
     depends_on: []
     prompt: "Public main sync canonical head-drift diagnostics"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-205
     title: "Prod monitor public sync incident triage"
@@ -9153,8 +9150,8 @@ tasks:
     files: ["scripts/ops/prod/MONITOR-PRODUCCION.ps1", "scripts/ops/prod/README.md", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "tests-node/prod-monitor-public-sync-contract.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9174,7 +9171,7 @@ tasks:
     depends_on: []
     prompt: "Prod monitor public sync incident triage"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-206
     title: "Agent gate covers prod public sync ops contracts"
@@ -9195,8 +9192,8 @@ tasks:
     files: ["package.json", "verification/agent-runs/AG-206.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9216,7 +9213,7 @@ tasks:
     depends_on: []
     prompt: "Agent gate covers prod public sync ops contracts"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-207
     title: "Repair host git sync rollout and verify public_main_sync"
@@ -9237,8 +9234,8 @@ tasks:
     files: [".github/workflows/repair-git-sync.yml", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9258,7 +9255,7 @@ tasks:
     depends_on: []
     prompt: "Repair host git sync rollout and verify public_main_sync"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-208
     title: "Create transport preflight incident in deploy-hosting"
@@ -9279,8 +9276,8 @@ tasks:
     files: [".github/workflows/deploy-hosting.yml", "tests-node/deploy-hosting-workflow-contract.test.js", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9300,7 +9297,7 @@ tasks:
     depends_on: []
     prompt: "Create transport preflight incident in deploy-hosting"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-209
     title: "Create self-hosted fallback runner incident in repair-git-sync"
@@ -9321,8 +9318,8 @@ tasks:
     files: [".github/workflows/repair-git-sync.yml", "tests-node/deploy-hosting-workflow-contract.test.js", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9342,7 +9339,7 @@ tasks:
     depends_on: []
     prompt: "Create self-hosted fallback runner incident in repair-git-sync"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-210
     title: "Add structured connectivity incident to diagnose-host-connectivity"
@@ -9363,8 +9360,8 @@ tasks:
     files: [".github/workflows/diagnose-host-connectivity.yml", "tests-node/deploy-hosting-workflow-contract.test.js", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9384,7 +9381,7 @@ tasks:
     depends_on: []
     prompt: "Add structured connectivity incident to diagnose-host-connectivity"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-211
     title: "Dispatch connectivity diagnosis from deploy-hosting transport preflight"
@@ -9405,8 +9402,8 @@ tasks:
     files: [".github/workflows/deploy-hosting.yml", "tests-node/deploy-hosting-workflow-contract.test.js", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9426,7 +9423,7 @@ tasks:
     depends_on: []
     prompt: "Dispatch connectivity diagnosis from deploy-hosting transport preflight"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-212
     title: "Publish deploy observability batch to main and refresh production page"
@@ -9447,8 +9444,8 @@ tasks:
     files: ["AGENT_BOARD.yaml", "verification/agent-runs/AG-212.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9468,7 +9465,7 @@ tasks:
     depends_on: []
     prompt: "Publish deploy observability batch to main and refresh production page"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-213
     title: "Remove github-script dependency from diagnose-host-connectivity"
@@ -9489,8 +9486,8 @@ tasks:
     files: [".github/workflows/diagnose-host-connectivity.yml", "tests-node/deploy-hosting-workflow-contract.test.js", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9510,7 +9507,7 @@ tasks:
     depends_on: []
     prompt: "Remove github-script dependency from diagnose-host-connectivity"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-214
     title: "Improve per-asset cache-header diagnostics in prod verify"
@@ -9531,8 +9528,8 @@ tasks:
     files: ["bin/powershell/Common.Http.ps1", "tests-node/prod-ops-public-sync-contract.test.js", "verification/agent-runs/AG-214.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9552,7 +9549,7 @@ tasks:
     depends_on: []
     prompt: "Improve per-asset cache-header diagnostics in prod verify"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-215
     title: "Use remote asset refs for prod cache-header verification"
@@ -9573,8 +9570,8 @@ tasks:
     files: ["scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1", "tests-node/prod-verify-asset-cache-contract.test.js", "verification/agent-runs/AG-215.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9594,7 +9591,7 @@ tasks:
     depends_on: []
     prompt: "Use remote asset refs for prod cache-header verification"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-216
     title: "Propagate GitHub deploy alerts into prod ops triage"
@@ -9615,8 +9612,8 @@ tasks:
     files: ["bin/powershell/Common.Http.ps1", "bin/powershell/Common.Warnings.ps1", "scripts/ops/prod/MONITOR-PRODUCCION.ps1", "scripts/ops/prod/README.md", "scripts/ops/prod/REPORTE-SEMANAL-PRODUCCION.ps1", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "tests-node/prod-monitor-public-sync-contract.test.js", "tests-node/weekly-report-script-contract.test.js", "verification/agent-runs/AG-221.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9636,7 +9633,7 @@ tasks:
     depends_on: []
     prompt: "Propagate GitHub deploy alerts into prod ops triage"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-217
     title: "Propagate GitHub deploy alerts into deploy verify and smoke gates"
@@ -9657,8 +9654,8 @@ tasks:
     files: ["scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1", "scripts/ops/prod/SMOKE-PRODUCCION.ps1", "bin/powershell/Common.Http.ps1", "scripts/ops/prod/README.md", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "tests-node/prod-ops-public-sync-contract.test.js", "tests-node/prod-verify-asset-cache-contract.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9678,7 +9675,7 @@ tasks:
     depends_on: []
     prompt: "Propagate GitHub deploy alerts into deploy verify and smoke gates"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-218
     title: "Auto-close stale deploy alerts when public sync recovers"
@@ -9699,8 +9696,8 @@ tasks:
     files: [".github/workflows/prod-monitor.yml", "tests-node/prod-monitor-workflow-contract.test.js", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "verification/agent-runs/AG-220.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9720,7 +9717,7 @@ tasks:
     depends_on: []
     prompt: "Auto-close stale deploy alerts when public sync recovers"
     created_at: 2026-03-12
-    updated_at: 2026-03-12
+    updated_at: 2026-03-27
 
   - id: AG-219
     title: "Restore admin rollout gate policy compatibility"
@@ -9741,8 +9738,8 @@ tasks:
     files: ["scripts/ops/admin/GATE-ADMIN-ROLLOUT.ps1", "tests-node/admin-rollout-gate-contract.test.js", "docs/RUNBOOKS.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9762,7 +9759,7 @@ tasks:
     depends_on: []
     prompt: "Restore admin rollout gate policy compatibility"
     created_at: 2026-03-13
-    updated_at: 2026-03-13
+    updated_at: 2026-03-27
 
   - id: AG-220
     title: "Consolidar helpers OpenClaw compartidos en specs del operador"
@@ -9783,8 +9780,8 @@ tasks:
     files: ["tests/helpers/admin-auth-mocks.js", "tests/queue-operator.spec.js", "tests/operator-auth-shared-session.spec.js", "tests-node/admin-auth-mocks-helper.test.js", "verification/agent-runs/AG-220.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9804,7 +9801,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar helpers OpenClaw compartidos en specs del operador"
     created_at: 2026-03-13
-    updated_at: 2026-03-13
+    updated_at: 2026-03-27
 
   - id: AG-221
     title: "Alinear specs OpenClaw compartidos con el shell de login nuevo"
@@ -9825,8 +9822,8 @@ tasks:
     files: ["tests/operator-auth-shared-session.spec.js", "tests/operator-auth-local-real.spec.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9846,7 +9843,7 @@ tasks:
     depends_on: []
     prompt: "Alinear specs OpenClaw compartidos con el shell de login nuevo"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-222
     title: "Extraer mock OpenClaw operador a helper compartido"
@@ -9867,8 +9864,8 @@ tasks:
     files: ["tests/helpers/admin-auth-mocks.js", "tests/queue-operator.spec.js", "tests/operator-auth-shared-session.spec.js", "tests-node/admin-auth-mocks-helper.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9888,7 +9885,7 @@ tasks:
     depends_on: []
     prompt: "Extraer mock OpenClaw operador a helper compartido"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-223
     title: "Consolidar auth mock legacy en admin-queue spec"
@@ -9909,8 +9906,8 @@ tasks:
     files: ["tests/admin-queue.spec.js", "tests-node/admin-auth-mocks-helper.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9930,7 +9927,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar auth mock legacy en admin-queue spec"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-224
     title: "Gate telemedicine payment and appointment flows on clinical storage readiness"
@@ -9951,8 +9948,8 @@ tasks:
     files: ["controllers/PaymentController.php", "controllers/AppointmentController.php", "lib/BookingService.php", "lib/storage/StorePersistence.php", "tests/Integration/PaymentFlowTest.php", "tests/Integration/TelemedicineLegacyBridgeTest.php", "tests/Integration/AppointmentUpdateClinicalGateTest.php", "tests/Integration/BookingFlowTest.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -9972,7 +9969,7 @@ tasks:
     depends_on: []
     prompt: "Gate telemedicine payment and appointment flows on clinical storage readiness"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-225
     title: "Consolidar auth mock legacy en queue-integrated-flow"
@@ -9993,8 +9990,8 @@ tasks:
     files: ["tests/queue-integrated-flow.spec.js", "tests-node/admin-auth-mocks-helper.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10014,7 +10011,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar auth mock legacy en queue-integrated-flow"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-226
     title: "Extraer helper compartido para mocks de queue-display"
@@ -10035,8 +10032,8 @@ tasks:
     files: ["tests/helpers/turnero-surface-mocks.js", "tests/queue-display.spec.js", "tests-node/turnero-surface-mocks-helper.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10056,7 +10053,7 @@ tasks:
     depends_on: []
     prompt: "Extraer helper compartido para mocks de queue-display"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-227
     title: "Pause WhatsApp telemedicine bookings when clinical storage is not ready"
@@ -10077,8 +10074,8 @@ tasks:
     files: ["controllers/HealthController.php", "lib/whatsapp_openclaw/ConversationOrchestrator.php", "tests/Integration/HealthVisibilityTest.php", "tests/Integration/WhatsappOpenclawControllerTest.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10098,7 +10095,7 @@ tasks:
     depends_on: []
     prompt: "Pause WhatsApp telemedicine bookings when clinical storage is not ready"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-228
     title: "Migrar queue-kiosk al helper compartido de surfaces"
@@ -10119,8 +10116,8 @@ tasks:
     files: ["tests/queue-kiosk.spec.js", "tests-node/turnero-surface-mocks-helper.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10140,7 +10137,7 @@ tasks:
     depends_on: []
     prompt: "Migrar queue-kiosk al helper compartido de surfaces"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-229
     title: "Consolidate queue-operator turnero surface mocks"
@@ -10161,8 +10158,8 @@ tasks:
     files: ["tests/queue-operator.spec.js", "tests/helpers/turnero-surface-mocks.js", "tests-node/turnero-surface-mocks-helper.test.js", "verification/agent-runs/AG-229.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10182,7 +10179,7 @@ tasks:
     depends_on: []
     prompt: "Consolidate queue-operator turnero surface mocks"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-230
     title: "Consolidate queue-integrated-flow queue-state mock"
@@ -10203,8 +10200,8 @@ tasks:
     files: ["tests/queue-integrated-flow.spec.js", "tests-node/turnero-surface-mocks-helper.test.js", "verification/agent-runs/AG-230.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10224,7 +10221,7 @@ tasks:
     depends_on: []
     prompt: "Consolidate queue-integrated-flow queue-state mock"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-231
     title: "Canonical Windows public cutover on local workspace host"
@@ -10245,8 +10242,8 @@ tasks:
     files: [".htaccess", "nginx-pielarmonia.conf", "docs/DEPLOY_HOSTING_PLAYBOOK.md", "scripts/ops/setup/CONFIGURAR-HOSTING-WINDOWS.ps1", "scripts/ops/setup/ARRANCAR-HOSTING-WINDOWS.ps1", "scripts/ops/setup/PARAR-HOSTING-WINDOWS.ps1", "ops/caddy/Caddyfile", "verification/agent-runs/AG-231.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10266,7 +10263,7 @@ tasks:
     depends_on: []
     prompt: "Canonical Windows public cutover on local workspace host"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-232
     title: "Consolidar primer cluster admin queue api mocks"
@@ -10287,8 +10284,8 @@ tasks:
     files: ["tests/admin-queue.spec.js", "verification/agent-runs/AG-232.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10308,7 +10305,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar primer cluster admin queue api mocks"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-233
     title: "Wire admin copiloto keyboard shortcut"
@@ -10329,8 +10326,8 @@ tasks:
     files: ["src/apps/admin-v3/core/boot.js", "src/apps/admin-v3/shared/core/keyboard/global.js", "src/apps/admin-v3/ui/frame/templates/shell/command-palette.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10350,7 +10347,7 @@ tasks:
     depends_on: []
     prompt: "Wire admin copiloto keyboard shortcut"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-234
     title: "Make Windows hosting stack boot without interactive login"
@@ -10371,8 +10368,8 @@ tasks:
     files: ["scripts/ops/setup/CONFIGURAR-HOSTING-WINDOWS.ps1", "scripts/ops/setup/ARRANCAR-HOSTING-WINDOWS.ps1", "scripts/ops/setup/PARAR-HOSTING-WINDOWS.ps1", "docs/DEPLOY_HOSTING_PLAYBOOK.md", "verification/agent-runs/AG-234.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10392,7 +10389,7 @@ tasks:
     depends_on: []
     prompt: "Make Windows hosting stack boot without interactive login"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-235
     title: "Stabilize admin quick-nav runtime-ready shortcuts"
@@ -10413,8 +10410,8 @@ tasks:
     files: ["tests/admin-quick-nav.spec.js", "verification/agent-runs/AG-235.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10434,7 +10431,7 @@ tasks:
     depends_on: []
     prompt: "Stabilize admin quick-nav runtime-ready shortcuts"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-236
     title: "Alinear readiness health del piloto web en admin queue spec"
@@ -10455,8 +10452,8 @@ tasks:
     files: ["tests/admin-queue.spec.js", "verification/agent-runs/AG-236.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10476,7 +10473,7 @@ tasks:
     depends_on: []
     prompt: "Alinear readiness health del piloto web en admin queue spec"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-237
     title: "Consolidar mocks del piloto web en admin queue spec"
@@ -10497,8 +10494,8 @@ tasks:
     files: ["tests/admin-queue.spec.js", "verification/agent-runs/AG-237.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10518,7 +10515,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar mocks del piloto web en admin queue spec"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-238
     title: "Mantener útil la acción clínica del dashboard con fallback operativo"
@@ -10539,8 +10536,8 @@ tasks:
     files: ["src/apps/admin-v3/ui/frame/templates/sections/dashboard/overview.js", "src/apps/admin-v3/sections/dashboard/markup/actions.js", "src/apps/admin-v3/sections/dashboard/render/index.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10560,7 +10557,7 @@ tasks:
     depends_on: []
     prompt: "Mantener útil la acción clínica del dashboard con fallback operativo"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-239
     title: "Abrir historia clínica desde quick command con aliases clínicos"
@@ -10581,8 +10578,8 @@ tasks:
     files: ["src/apps/admin-v3/core/boot/navigation/commands.js", "src/apps/admin-v3/ui/frame/templates/shell/command-palette.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10602,7 +10599,7 @@ tasks:
     depends_on: []
     prompt: "Abrir historia clínica desde quick command con aliases clínicos"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-240
     title: "Consolidar mocks de apps operativas desktop en admin queue spec"
@@ -10623,8 +10620,8 @@ tasks:
     files: ["tests/admin-queue.spec.js", "verification/agent-runs/AG-240.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10644,7 +10641,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar mocks de apps operativas desktop en admin queue spec"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-241
     title: "Consolidar fallback mocks de queue-state en admin queue spec"
@@ -10665,8 +10662,8 @@ tasks:
     files: ["tests/admin-queue.spec.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10686,7 +10683,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar fallback mocks de queue-state en admin queue spec"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-242
     title: "Consolidate admin quick-nav copiloto mocks"
@@ -10707,8 +10704,8 @@ tasks:
     files: ["tests/helpers/admin-api-mocks.js", "tests/admin-quick-nav.spec.js", "tests-node/admin-api-mocks-helper.test.js", "verification/agent-runs/AG-242.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10728,7 +10725,7 @@ tasks:
     depends_on: []
     prompt: "Consolidate admin quick-nav copiloto mocks"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-243
     title: "Admin queue pilot cut: quick-nav y hub piloto en admin v3"
@@ -10749,8 +10746,8 @@ tasks:
     files: ["src/apps/admin-v3/ui/frame/shell.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/render.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/actions.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10781,7 +10778,7 @@ tasks:
     depends_on: []
     prompt: "Admin queue pilot cut: quick-nav y hub piloto en admin v3"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-244
     title: "Pilot readiness evidence: verify public_main_sync and host sync path"
@@ -10802,8 +10799,8 @@ tasks:
     files: ["docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "docs/AGENT_ORCHESTRATION_RUNBOOK.md", "scripts/ops/prod/MONITOR-PRODUCCION.ps1"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10834,7 +10831,7 @@ tasks:
     depends_on: []
     prompt: "Pilot readiness evidence: verify public_main_sync and host sync path"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-245
     title: "Pilot readiness evidence: explain openclaw runtime red for admin operativo"
@@ -10855,8 +10852,8 @@ tasks:
     files: ["tools/agent-orchestrator/domain/runtime.js", "tools/agent-orchestrator/commands/runtime.js", "TRI_LANE_RUNTIME_RUNBOOK.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10887,7 +10884,7 @@ tasks:
     depends_on: []
     prompt: "Pilot readiness evidence: explain openclaw runtime red for admin operativo"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-246
     title: "Feedback trim: compactar hub piloto y hacer mas claro el corte admin v3"
@@ -10908,8 +10905,8 @@ tasks:
     files: ["src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/render.js", "src/apps/admin-v3/ui/frame/shell.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10940,7 +10937,7 @@ tasks:
     depends_on: []
     prompt: "Feedback trim: compactar hub piloto y hacer mas claro el corte admin v3"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-248
     title: "Focus trim: cubrir checks runtime por surface en contratos del orquestador"
@@ -10961,8 +10958,8 @@ tasks:
     files: ["tests-node/agent-orchestrator-cli.test.js", "tests-node/orchestrator/status-engine.test.js", "tests-node/orchestrator/diagnostics.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -10993,7 +10990,7 @@ tasks:
     depends_on: []
     prompt: "Focus trim: cubrir checks runtime por surface en contratos del orquestador"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-247
     title: "Focus trim: permitir required_checks runtime por surface para el corte admin"
@@ -11014,8 +11011,8 @@ tasks:
     files: ["tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/runtime.js", "AGENT_BOARD.yaml"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -11046,7 +11043,7 @@ tasks:
     depends_on: []
     prompt: "Focus trim: permitir required_checks runtime por surface para el corte admin"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-249
     title: "Public sync verification: exponer resumen seguro en health publico"
@@ -11067,8 +11064,8 @@ tasks:
     files: ["controllers/HealthController.php", "tests-node/agent-jobs-cli.test.js", "tests-node/prod-ops-public-sync-contract.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -11099,7 +11096,7 @@ tasks:
     depends_on: []
     prompt: "Public sync verification: exponer resumen seguro en health publico"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-250
     title: "Public sync rollout: desplegar health publicSync y verificar host"
@@ -11120,8 +11117,8 @@ tasks:
     files: ["controllers/HealthController.php", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -11152,7 +11149,7 @@ tasks:
     depends_on: []
     prompt: "Public sync rollout: desplegar health publicSync y verificar host"
     created_at: 2026-03-14
-    updated_at: 2026-03-17
+    updated_at: 2026-03-27
 
   - id: AG-251
     title: "Operator auth runtime: recuperar modo openclaw_chatgpt en host"
@@ -11173,8 +11170,8 @@ tasks:
     files: ["controllers/OperatorAuthController.php", "lib/auth.php", "TRI_LANE_RUNTIME_RUNBOOK.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -11205,7 +11202,7 @@ tasks:
     depends_on: []
     prompt: "Operator auth runtime: recuperar modo openclaw_chatgpt en host"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-252
     title: "CLI blocked_reason support para tareas bloqueadas"
@@ -11226,8 +11223,8 @@ tasks:
     files: ["tools/agent-orchestrator/commands/task.js", "tests-node/agent-orchestrator-cli.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -11258,7 +11255,7 @@ tasks:
     depends_on: []
     prompt: "CLI blocked_reason support para tareas bloqueadas"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-253
     title: "Alinear HealthVisibilityTest con publicSync en health publico"
@@ -11279,8 +11276,8 @@ tasks:
     files: ["tests/Integration/HealthVisibilityTest.php"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -11311,7 +11308,7 @@ tasks:
     depends_on: []
     prompt: "Alinear HealthVisibilityTest con publicSync en health publico"
     created_at: 2026-03-14
-    updated_at: 2026-03-14
+    updated_at: 2026-03-27
 
   - id: AG-254
     title: "OpenClaw web broker auth: backend y callback remoto"
@@ -11332,8 +11329,8 @@ tasks:
     files: ["admin-auth.php", "lib/auth.php", "controllers/OperatorAuthController.php", "env.example.php", "bin/openclaw-auth-preflight.js", "bin/operator-auth-live-smoke.js", "tests/test_admin_auth_openclaw_facade.php", "tests/Integration/OperatorAuthControllerTest.php", "tests-node/openclaw-auth-local-smoke.test.js", "tests-node/openclaw-auth-rollout-diagnostic.test.js", "tests-node/openclaw-auth-rollout-diagnostic-contract.test.js"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -11364,7 +11361,7 @@ tasks:
     depends_on: []
     prompt: "OpenClaw web broker auth: backend y callback remoto"
     created_at: 2026-03-14
-    updated_at: 2026-03-21
+    updated_at: 2026-03-27
 
   - id: AG-255
     title: "OpenClaw web broker auth: UI admin y turnero"
@@ -11385,8 +11382,8 @@ tasks:
     files: ["src/apps/admin-v3/shared/modules/auth.js", "src/apps/admin-v3/core/boot/auth.js", "src/apps/admin-v3/ui/frame/login.js", "src/apps/admin-v3/ui/frame/templates/login/panel.js", "src/apps/queue-operator/index.js", "operador-turnos.html"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -11417,7 +11414,7 @@ tasks:
     depends_on: []
     prompt: "OpenClaw web broker auth: UI admin y turnero"
     created_at: 2026-03-14
-    updated_at: 2026-03-21
+    updated_at: 2026-03-27
 
   - id: AG-256
     title: "Reescritura public v6 ES con voz ecuatoriana"
@@ -11438,8 +11435,8 @@ tasks:
     files: ["content/public-v6/es/navigation.json", "content/public-v6/es/home.json", "content/public-v6/es/hub.json", "content/public-v6/es/service.json", "content/public-v6/es/telemedicine.json", "content/public-v6/es/legal.json", "content/public-v6/es/software.json"]
     source_signal: manual
     source_ref: "CDX-045"
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -11470,7 +11467,7 @@ tasks:
     depends_on: []
     prompt: "Reescritura public v6 ES con voz ecuatoriana"
     created_at: 2026-03-14
-    updated_at: 2026-03-26
+    updated_at: 2026-03-27
 
   - id: AG-257
     title: "Windows hosting V2 stabilization for OpenClaw"
@@ -11491,8 +11488,8 @@ tasks:
     files: ["scripts/ops/setup/Windows.Hosting.Common.ps1", "scripts/ops/setup/SINCRONIZAR-HOSTING-WINDOWS.ps1", "scripts/ops/setup/REPARAR-HOSTING-WINDOWS.ps1", "scripts/ops/setup/SUPERVISAR-HOSTING-WINDOWS.ps1", "scripts/ops/setup/ARRANCAR-HOSTING-WINDOWS.ps1", "scripts/ops/setup/CONFIGURAR-HOSTING-WINDOWS.ps1", "scripts/ops/setup/SMOKE-HOSTING-WINDOWS.ps1", "scripts/ops/prod/MONITOR-PRODUCCION.ps1", "tests-node/windows-hosting-sync-contract.test.js", "docs/DEPLOY_HOSTING_PLAYBOOK.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
@@ -11523,7 +11520,7 @@ tasks:
     depends_on: []
     prompt: "Windows hosting V2 stabilization for OpenClaw"
     created_at: 2026-03-16
-    updated_at: 2026-03-21
+    updated_at: 2026-03-27
 
   - id: AG-258
     title: "Rollout publico de health/publicSync y verificacion host-side"
@@ -11544,8 +11541,8 @@ tasks:
     files: ["TRI_LANE_RUNTIME_RUNBOOK.md", "bin/clean-local-artifacts.js", "bin/lib/workspace-hygiene.js", "lib/auth.php", "tools/agent-orchestrator/commands/runtime.js", "tools/agent-orchestrator/domain/runtime.js", "tools/agent-orchestrator/domain/task-guards.js", "tools/agent-orchestrator/domain/workspace-truth.js", "tools/agent-orchestrator/domain/workspace.js", "verification/agent-runs/AG-258.md"]
     source_signal: manual
     source_ref: ""
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 92
+    sla_due_at: "2026-03-27T23:57:40.127Z"
     last_attempt_at: "2026-03-24T13:05:00.000Z"
     attempts: 1
     blocked_reason: ""
@@ -11576,7 +11573,7 @@ tasks:
     depends_on: []
     prompt: "Rollout publico de health/publicSync y verificacion host-side"
     created_at: 2026-03-17
-    updated_at: 2026-03-24
+    updated_at: 2026-03-27
 
   - id: AG-259
     title: "Workspace hygiene carryover after public sync recovery"
@@ -11597,8 +11594,8 @@ tasks:
     files: ["bin/agent-daily-pulse.js", "docs/LEADOPS_OPENCLAW.md", "docs/OPERATIONS_INDEX.md", "package.json", "scripts/ops/admin/CHECKLIST-OPENCLAW-AUTH-LOCAL.ps1", "scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1", "tests-node/admin-rollout-gate-contract.test.js", "tests-node/agent-daily-pulse.test.js", "tests-node/agent-orchestrator-cli.test.js", "tests-node/openclaw-auth-local-checklist-contract.test.js", "tests-node/orchestrator/focus.test.js", "tests-node/orchestrator/task-guards.test.js", "tests-node/publish-checkpoint-command.test.js", "tools/agent-orchestrator/commands/close.js", "tools/agent-orchestrator/commands/publish.js", "tools/agent-orchestrator/commands/task.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/workspace-truth.js"]
     source_signal: manual
     source_ref: "codex/AG-259-carryover@70b46666"
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 47
+    sla_due_at: "2026-03-30T11:57:40.127Z"
     last_attempt_at: "2026-03-26T11:56:40Z"
     attempts: 1
     blocked_reason: ""
@@ -11629,7 +11626,7 @@ tasks:
     depends_on: ["CDX-009"]
     prompt: "Workspace hygiene carryover after public sync recovery"
     created_at: 2026-03-26
-    updated_at: 2026-03-26
+    updated_at: 2026-03-27
 
   - id: AG-260
     title: "Queue/turnero web pilot stabilization and follow-through"
@@ -11650,8 +11647,8 @@ tasks:
     files: ["admin-v3.css", "bin/run-playwright-local.js", "operador-turnos.html", "kiosco-turnos.html", "sala-turnos.html", "queue-ops.css", "src/apps/admin-v3/shared/modules/queue/render/section/ops-console.js", "src/apps/queue-shared/turnero-runtime-contract.mjs", "tests/admin-queue.spec.js", "tests/queue-display.spec.js", "tests/queue-kiosk.spec.js", "tests/queue-operator.spec.js", "verification/agent-runs/AG-260.md"]
     source_signal: manual
     source_ref: "a6898376,a35ee683"
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: "2026-03-26T16:24:04Z"
     attempts: 1
     blocked_reason: ""
@@ -11682,7 +11679,7 @@ tasks:
     depends_on: []
     prompt: "Queue/turnero web pilot stabilization and follow-through"
     created_at: 2026-03-26
-    updated_at: 2026-03-26
+    updated_at: 2026-03-27
 
   - id: AG-261
     title: "OpenClaw auth contract mode preservation during CDX-009 triage"
@@ -11703,8 +11700,8 @@ tasks:
     files: ["lib/auth.php", "verification/agent-runs/AG-261.md", "verification/agent-runs/CDX-009.md"]
     source_signal: manual
     source_ref: "CDX-009"
-    priority_score: 0
-    sla_due_at: ""
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: "2026-03-26T16:55:00Z"
     attempts: 1
     blocked_reason: ""
@@ -11735,4 +11732,4 @@ tasks:
     depends_on: ["CDX-009"]
     prompt: "Preservar el contrato OpenClaw auth (mode/recommendedMode) mientras CDX-009 sigue bloqueado por 502 host-side."
     created_at: 2026-03-26
-    updated_at: 2026-03-26
+    updated_at: 2026-03-27
