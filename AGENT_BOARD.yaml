@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 834
+  revision: 835
   updated_at: 2026-03-28
 
 strategy:
@@ -1889,11 +1889,11 @@ tasks:
     updated_at: 2026-03-28
 
   - id: CDX-064
-    title: "Admin shell RC2 draft bootstrap under active multi-clinic governance"
+    title: "Front-scoped orphan reconciliation and board-event drift hardening"
     owner: luciaguadalupecaizasanchez
     executor: codex
-    status: backlog
-    status_since_at: "2026-03-28T17:18:00Z"
+    status: ready
+    status_since_at: "2026-03-28T23:00:08Z"
     risk: low
     scope: codex-governance
     codex_instance: codex_transversal
@@ -1910,14 +1910,14 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/strategy.js", "tests-node/orchestrator/focus.test.js", "verification/agent-runs/CDX-064.md"]
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "agent-orchestrator.js", "tools/agent-orchestrator/commands/codex.js", "tools/agent-orchestrator/commands/status.js", "tools/agent-orchestrator/commands/strategy.js", "tools/agent-orchestrator/domain/board-events.js", "tools/agent-orchestrator/domain/board-sync.js", "tools/agent-orchestrator/domain/codex-mirror.js", "tools/agent-orchestrator/domain/diagnostics.js", "tools/agent-orchestrator/domain/status.js", "tools/agent-orchestrator/domain/strategy.js", "tools/agent-orchestrator/domain/workspace-truth.js", "tests-node/agent-orchestrator-cli.test.js", "tests-node/orchestrator/board-events-engine.test.js", "tests-node/orchestrator/board-sync-engine.test.js", "tests-node/orchestrator/status-engine.test.js", "verification/agent-runs/CDX-064.md"]
     source_signal: manual
-    source_ref: "strategy.next:admin-shell-rc2-polish"
-    priority_score: 61
+    source_ref: "post_cdx063_orphan_reconcile_followup"
+    priority_score: 69
     sla_due_at: "2026-03-31T23:59:00Z"
     last_attempt_at: ""
     attempts: 0
-    blocked_reason: "waiting_for_cdx063_transversal_slot"
+    blocked_reason: ""
     lease_id: ""
     lease_owner: ""
     lease_created_at: ""
@@ -1928,22 +1928,22 @@ tasks:
     lease_cleared_reason: ""
     runtime_impact: low
     critical_zone: false
-    acceptance: "El seed/foco admin-shell-rc2-polish queda disponible en strategy.next, con QA admin como required check único y con la cola RC2 trazada sin reemplazar la estrategia turnero activa."
+    acceptance: "board sync normaliza ready huerfanas fuera del frente activo, strategy activate-next puede degradarlas con --normalize-ready-orphans y codex-check/status separan blocker del frente vivo frente a deuda historica."
     acceptance_ref: "verification/agent-runs/CDX-064.md"
     evidence_ref: "verification/agent-runs/CDX-064.md"
-    strategy_id: "STRAT-2026-03-turnero-web-pilot-multi-clinic-local"
-    subfront_id: "SF-transversal-turnero-web-pilot-multi-clinic"
+    strategy_id: "STRAT-2026-03-admin-shell-rc2-polish"
+    subfront_id: "SF-transversal-admin-shell-rc2-support"
     strategy_role: "support"
-    focus_id: "FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1"
-    focus_step: "local_gate_validation"
+    focus_id: "FOCUS-2026-03-admin-shell-rc2-polish-cut-1"
+    focus_step: "shell_nav_ergonomics"
     integration_slice: "governance_evidence"
     work_type: "support"
-    expected_outcome: "La estrategia siguiente Admin Shell RC2 queda sembrada en el canon sin tocar strategy.active, mientras CDX-063 sigue ocupando la slice transversal activa."
+    expected_outcome: "El orquestador deja de solo diagnosticar ready huerfanas: puede reconciliarlas de forma segura, distinguir blockers del frente activo frente a deuda historica y endurecer drift entre board y ledger."
     decision_ref: ""
     rework_parent: ""
     rework_reason: ""
-    depends_on: ["CDX-063"]
-    prompt: "Preparar el draft de Admin Shell RC2 en strategy.next, registrar la cola futura CDX-065/066/067 y aparcar esta bootstrap transversal hasta que cierre la slice activa CDX-063."
+    depends_on: []
+    prompt: "Extraer como follow-up transversal el donor 01e6190c para reconciliar ready huerfanas, endurecer board_events_drift y separar blockers del frente activo frente a deuda historica sin mezclar historial multi-clinica."
     created_at: 2026-03-28
     updated_at: 2026-03-28
 
