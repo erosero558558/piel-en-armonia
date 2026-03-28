@@ -246,6 +246,7 @@ function turnero_operator_access_generate_pin(int $digits = 6): string
     try {
         return (string) random_int($min, $max);
     } catch (\Throwable $th) {
+        error_log('TurneroOperatorAccess: random_int failed, falling back to mt_rand - ' . $th->getMessage());
         $value = '';
         while (strlen($value) < $safeDigits) {
             $value .= (string) mt_rand(0, 9);
