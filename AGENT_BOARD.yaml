@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 808
+  revision: 810
   updated_at: 2026-03-28
 
 strategy:
@@ -808,8 +808,8 @@ tasks:
     scope: readiness
     codex_instance: codex_backend_ops
     domain_lane: backend_ops
-    lane_lock: strict
-    cross_domain: false
+    lane_lock: handoff_allowed
+    cross_domain: true
     provider_mode: 
     runtime_surface: 
     runtime_transport: 
@@ -831,8 +831,8 @@ tasks:
     lease_id: "lease_CDX-009_20260328040508913_4d424e"
     lease_owner: "deck"
     lease_created_at: "2026-03-28T04:05:08.913Z"
-    heartbeat_at: "2026-03-28T11:43:29.956Z"
-    lease_expires_at: "2026-03-28T15:43:29.956Z"
+    heartbeat_at: "2026-03-28T12:19:09.799Z"
+    lease_expires_at: "2026-03-29T12:19:09.799Z"
     lease_reason: "leases_heartbeat"
     lease_cleared_at: ""
     lease_cleared_reason: ""
@@ -852,7 +852,7 @@ tasks:
     decision_ref: ""
     rework_parent: ""
     rework_reason: ""
-    depends_on: []
+    depends_on: ["CDX-001"]
     prompt: "Mantener evidencia y criterio de reanudacion para CDX-009 mientras public_main_sync y operator_auth sigan bloqueados por 502 host-side y falta de acceso operativo real al host."
     created_at: 2026-03-25
     updated_at: 2026-03-28
