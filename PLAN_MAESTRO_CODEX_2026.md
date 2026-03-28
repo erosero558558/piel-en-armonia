@@ -37,7 +37,7 @@ success_signal: "Un mismo corte operativo puede demostrarse de punta a punta sin
 focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
 focus_title: "Admin operativo demostrable"
 focus_status: active
-focus_next_step: "admin_queue_pilot_cut"
+focus_next_step: "feedback_trim"
 focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]
 subfront_ids: ["SF-frontend-admin-operativo", "SF-frontend-queue-turnero-operativo", "SF-backend-admin-operativo", "SF-transversal-admin-operativo"]
 updated_at: "2026-03-28"
@@ -124,25 +124,16 @@ updated_at: "2026-03-28"
   host publico; no se reabre dentro de este cleanup ni se mezcla con el frente
   editorial ya cerrado.
 
-## Bootstrap Admin Shell RC1 polish 2026-03-28
+## Formalizacion kiosco canonico 2026-03-28
 
-- Se abre `STRAT-2026-03-admin-shell-rc1-polish` como estrategia activa nueva
-  y limpia, sin reusar la seed completa de `admin-operativo`.
-- `CDX-053` queda como unica slice activa del frente en `codex_frontend`.
-- El required check oficial del foco pasa a `test:frontend:qa:admin`.
-- El frente evita por contrato `public_main_sync`, `runtime:operator_auth`,
-  `queue/turnero`, `reviews`, backend y publish.
-- Se modela un subfrente backend minimo solo para satisfacer el contrato de
-  estrategia activa del tooling; no abre slice backend por defecto.
-
-## Repriorizacion a kiosco canonico 2026-03-28
-
-- `CDX-053` queda terminal en `failed` por repriorizacion, no como trabajo
-  completado.
-- La estrategia activa vuelve a `STRAT-2026-03-admin-operativo`.
-- El foco del frente se mueve a `feedback_trim`.
-- `CDX-054` abre el rescate canonico del kiosco/turnero como slice frontend
-  acotada a `kiosco-turnos.html`, sin portar `queue-kiosk.css`.
+- `CDX-053` queda terminal en `failed` por repriorizacion del frente; no se
+  trata como trabajo completado de `admin-shell-rc1-polish`.
+- El rescate funcional del kiosco/turnero se publica aparte sobre `main` en
+  `5e970830` y queda trazado en `CDX-054`.
+- La estrategia vigente del canon remoto es `STRAT-2026-03-admin-operativo`,
+  con `focus_next_step=feedback_trim`.
+- `CDX-054` permanece como slice frontend de formalizacion/cierre del rescate
+  del kiosco, acotada a `kiosco-turnos.html` y su evidencia.
 
 ## Proposito
 
@@ -177,35 +168,24 @@ updated_at: "2026-03-28"
 
 ## Estrategia madre activa
 
-- Estrategia activa: `STRAT-2026-03-admin-shell-rc1-polish`.
+- Estrategia activa: `STRAT-2026-03-admin-operativo`.
 - Sin draft siguiente activo por ahora.
-- Objetivo: pulir el `Admin Shell RC1` visible con foco en navegacion y
-  ergonomia, sin reabrir `queue/turnero`, `reviews` ni dependencias de host.
-- Revision vigente: semanal; el frente sigue siendo `frontend-first` y solo
-  abre soporte backend/transversal si un guardrail real lo exige.
-- Regla de foco: cada hilo Codex toma un solo `subfront_id` valido y rechaza
-  trabajo fuera del frente salvo `strategy_role=exception`; un mismo lane puede
-  correr varios hilos en paralelo mientras no exceda `2` slots y no haya
-  solape de archivos.
-- Intake canonico: trabajo nuevo del frente debe entrar por `strategy intake`
-  o por tarea ya alineada al mismo `subfront_id`.
-- Si un `scope` same-lane es ambiguo entre varios subfrentes candidatos,
-  `strategy intake` exige `--subfront-id` explicito.
-- Exceptions: toda `exception` usa TTL del subfrente y, si expira, bloquea
-  `activate-next` o `close` hasta regularizacion.
+- Objetivo: mantener visible el corte admin/queue operativo mientras
+  `public_main_sync` y `runtime:operator_auth` sigan rojos por blocker externo
+  reconocido.
+- El foco vigente es `feedback_trim`; los required checks siguen siendo
+  `job:public_main_sync` y `runtime:operator_auth`.
+- `CDX-009` sigue bloqueada como evidencia/backend del incidente externo.
+- `CDX-054` queda como slice frontend del rescate de kiosco ya publicado.
 
 ## Tri-lane operativo vigente
 
-- `codex_frontend`: lidera el frente activo con `CDX-053` en
-  `SF-frontend-admin-shell-rc1`.
-- `codex_backend_ops`: queda modelado con
-  `SF-backend-admin-shell-rc1-support`, pero sin slice activa; `AG-250`
-  sigue como deuda operativa diferida del host publico.
-- `codex_transversal`: queda en soporte potencial por
-  `SF-transversal-admin-shell-rc1-support`, pero sin slice activa al abrir el
-  frente.
-- Regla actual: no se abre backend ni runtime en este corte salvo que aparezca
-  un guardrail real no resoluble desde frontend puro.
+- `codex_frontend`: mantiene `CDX-054` en `review` dentro de
+  `SF-frontend-queue-turnero-operativo`.
+- `codex_backend_ops`: conserva `CDX-009` en `blocked` como carryover del
+  blocker host-side.
+- `codex_transversal`: queda libre de slice activa nueva; la gobernanza se
+  formaliza solo como follow-up estructural del canon remoto.
 
 ## Distribucion de esfuerzo
 

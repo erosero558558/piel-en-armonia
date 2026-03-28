@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 794
+  revision: 795
   updated_at: 2026-03-28
 
 strategy:
@@ -928,7 +928,7 @@ tasks:
     domain_lane: transversal_runtime
     lane_lock: strict
     cross_domain: false
-    provider_mode: google_oauth
+    provider_mode: openclaw_chatgpt
     runtime_surface: leadops_worker
     runtime_transport: cli_helper
     runtime_last_transport: cli_helper
@@ -938,7 +938,7 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["AGENT_BOARD.yaml", "AGENT_HANDOFFS.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-009.md", "verification/agent-runs/CDX-011.md"]
+    files: ["AGENT_BOARD.yaml", "AGENT_HANDOFFS.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-011.md"]
     source_signal: manual
     source_ref: "CDX-009"
     priority_score: 47
@@ -1115,7 +1115,7 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", ".gitignore", "verification/agent-runs/CDX-048.md", "verification/agent-runs/CDX-050.md", "tools/agent-orchestrator/commands/focus.js", "tests-node/agent-orchestrator-cli.test.js"]
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-050.md", "tools/agent-orchestrator/commands/focus.js", "tests-node/agent-orchestrator-cli.test.js"]
     source_signal: manual
     source_ref: "CDX-047,CDX-048"
     priority_score: 70
@@ -1388,7 +1388,7 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-045.md", "verification/agent-runs/CDX-048.md", "verification/agent-runs/CDX-047.md", "tools/agent-orchestrator/domain/focus.js", "tests-node/orchestrator/focus.test.js", "tests-node/orchestrator/diagnostics.test.js"]
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-047.md", "tools/agent-orchestrator/domain/focus.js", "tests-node/orchestrator/focus.test.js", "tests-node/orchestrator/diagnostics.test.js"]
     source_signal: manual
     source_ref: "CDX-045,CDX-048"
     priority_score: 71
@@ -1433,8 +1433,8 @@ tasks:
     status_since_at: "2026-02-25"
     risk: medium
     scope: mobile-ux
-    codex_instance: codex_backend_ops
-    domain_lane: backend_ops
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
     lane_lock: handoff_allowed
     cross_domain: true
     provider_mode: 
@@ -7019,8 +7019,8 @@ tasks:
     status_since_at: "2026-03-02T04:06:44.573Z"
     risk: medium
     scope: frontend-admin
-    codex_instance: codex_backend_ops
-    domain_lane: backend_ops
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
     lane_lock: strict
     cross_domain: false
     provider_mode: 
@@ -11563,7 +11563,7 @@ tasks:
     domain_lane: transversal_runtime
     lane_lock: strict
     cross_domain: false
-    provider_mode: openclaw_chatgpt
+    provider_mode: google_oauth
     runtime_surface: operator_auth
     runtime_transport: hybrid_http_cli
     runtime_last_transport: 
@@ -12044,7 +12044,7 @@ tasks:
     runtime_surface: 
     runtime_transport: 
     runtime_last_transport: 
-    files: ["admin-v3.css", "bin/run-playwright-local.js", "operador-turnos.html", "kiosco-turnos.html", "sala-turnos.html", "queue-ops.css", "src/apps/admin-v3/shared/modules/queue/render/section/ops-console.js", "src/apps/queue-shared/turnero-runtime-contract.mjs", "tests/admin-queue.spec.js", "tests/queue-display.spec.js", "tests/queue-kiosk.spec.js", "tests/queue-operator.spec.js", "verification/agent-runs/AG-260.md"]
+    files: ["admin-v3.css", "operador-turnos.html", "kiosco-turnos.html", "sala-turnos.html", "queue-ops.css", "src/apps/admin-v3/shared/modules/queue/render/section/ops-console.js", "src/apps/queue-shared/turnero-runtime-contract.mjs", "verification/agent-runs/AG-260.md"]
     source_signal: manual
     source_ref: "a6898376,a35ee683"
     priority_score: 72
@@ -12093,11 +12093,11 @@ tasks:
     domain_lane: transversal_runtime
     lane_lock: strict
     cross_domain: false
-    provider_mode: openclaw_chatgpt
+    provider_mode: google_oauth
     runtime_surface: operator_auth
     runtime_transport: http_bridge
     runtime_last_transport: 
-    files: ["lib/auth.php", "verification/agent-runs/AG-261.md", "verification/agent-runs/CDX-009.md"]
+    files: ["lib/auth.php", "verification/agent-runs/AG-261.md"]
     source_signal: manual
     source_ref: "CDX-009"
     priority_score: 72
