@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 785
+  revision: 786
   updated_at: 2026-03-28
 
 strategy:
@@ -1188,6 +1188,54 @@ tasks:
     evidence_ref: "verification/agent-runs/CDX-051.md"
     depends_on: []
     prompt: "Absorber el follow-up transversal del orquestador post-Public V6 ES: reparar harness CLI, alias runtime de required checks y regresiones de codex/conflicts/release-publish sin tocar contenido publico."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-052
+    title: "Post-close governance cleanup for Public V6 ES backlog residue"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-28T04:30:00Z"
+    risk: low
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-052.md"]
+    source_signal: manual
+    source_ref: "post_public_v6_es_backlog_cleanup"
+    priority_score: 35
+    sla_due_at: "2026-03-29T23:59:00Z"
+    last_attempt_at: "2026-03-28T04:30:00Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T04:30:00Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El board deja de mostrar AG-256 como backlog despues del cierre del frente Public V6 ES, el plan maestro deja claro que ese backlog residual ya es historico y AG-250 permanece como deuda operativa separada del incidente externo del host."
+    acceptance_ref: "verification/agent-runs/CDX-052.md"
+    evidence_ref: "verification/agent-runs/CDX-052.md"
+    depends_on: ["CDX-050", "CDX-051"]
+    prompt: "Normalizar el backlog residual despues del cierre de Public V6 ES: pasar AG-256 a estado terminal historico y corregir la narrativa del plan para no seguir presentando el frente editorial como trabajo vivo."
     created_at: 2026-03-28
     updated_at: 2026-03-28
 
@@ -11645,8 +11693,8 @@ tasks:
     title: "Reescritura public v6 ES con voz ecuatoriana"
     owner: deck
     executor: codex
-    status: backlog
-    status_since_at: "2026-03-14T22:33:16.401Z"
+    status: done
+    status_since_at: "2026-03-28T04:30:00Z"
     risk: medium
     scope: frontend-public
     codex_instance: codex_frontend
@@ -11671,8 +11719,8 @@ tasks:
     heartbeat_at: ""
     lease_expires_at: ""
     lease_reason: ""
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_cleared_at: "2026-03-28T04:30:00Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "Reescritura public v6 ES con voz ecuatoriana"
@@ -11692,7 +11740,7 @@ tasks:
     depends_on: []
     prompt: "Reescritura public v6 ES con voz ecuatoriana"
     created_at: 2026-03-14
-    updated_at: 2026-03-27
+    updated_at: 2026-03-28
 
   - id: AG-257
     title: "Windows hosting V2 stabilization for OpenClaw"

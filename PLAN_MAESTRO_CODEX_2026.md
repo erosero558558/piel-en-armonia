@@ -94,6 +94,16 @@ updated_at: "2026-03-28"
 - La suite `tests-node/agent-orchestrator-cli.test.js` vuelve a `98/98`
   verde; `task-guards`, `focus` y `publish-checkpoint` se mantienen en verde.
 
+## Normalizacion de backlog residual 2026-03-28
+
+- `CDX-052` cierra la limpieza post-close del frente `Public V6 ES` sin abrir
+  una estrategia nueva.
+- `AG-256` deja de quedar en `backlog` y pasa a estado terminal historico
+  usando su evidencia ya publicada en `verification/agent-runs/AG-256.md`.
+- `AG-250` se mantiene como deuda operativa separada del incidente externo del
+  host publico; no se reabre dentro de este cleanup ni se mezcla con el frente
+  editorial ya cerrado.
+
 ## Proposito
 
 - Completar el copy ES de `Public V6` con una voz clara, humana y natural
@@ -146,15 +156,15 @@ updated_at: "2026-03-28"
 
 ## Tri-lane operativo vigente
 
-- `codex_frontend`: lidera el frente `Public V6 ES` y concentra las slices
-  editoriales ya terminales `CDX-045` y `CDX-048`.
-- `codex_backend_ops`: queda en soporte potencial, no activado por defecto.
-- `codex_transversal`: ya cerro `CDX-047` y `CDX-050` como soporte de
-  checks/gobernanza basado en evidencia; no toca contenido ni runtime
-  público.
-- Regla actual: el frente sigue siendo `copy-first`; si un validador exigiera
-  soporte fuera de frontend, se abre una slice separada y no se mezcla con el
-  write set editorial.
+- `codex_frontend`: conserva el ultimo frente editorial ya cerrado
+  (`CDX-045` y `CDX-048`) como referencia historica, sin slices activas hoy.
+- `codex_backend_ops`: no tiene frente activo; `AG-250` queda solo como deuda
+  operativa diferida del host publico.
+- `codex_transversal`: ya cerro `CDX-047`, `CDX-050`, `CDX-051` y `CDX-052`
+  como soporte de checks/gobernanza basado en evidencia, sin reabrir runtime
+  ni contenido publico.
+- Regla actual: no hay estrategia activa; cualquier frente nuevo debe entrar
+  por bootstrap canonico antes de consumir slots.
 
 ## Distribucion de esfuerzo
 
