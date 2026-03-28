@@ -170,6 +170,17 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
             blockers: [],
             reasons: ['stable'],
             top_blocking_conflicts: [],
+            active_front_blockers: [],
+            historical_debt: [
+                { code: 'done_without_evidence', count: 1, task_ids: ['AG-152'] },
+            ],
+            workspace_visibility_warnings: [
+                {
+                    code: 'workspace_scope_fallback',
+                    scope_requested: 'all-worktrees',
+                    scope_effective: 'current-only',
+                },
+            ],
         },
     });
 
@@ -200,7 +211,7 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
     assert.match(output, /Foco: FOCUS-2026-03-admin-operativo-cut-1/);
     assert.match(
         output,
-        /Cobertura estrategia: aligned=1, support=0, exception=0, orphan=0, dispersion=0, slot_tasks=0/
+        /Cobertura estrategia: aligned=1, support=0, exception=0, orphan=0 \(slot=0, ready=0\), dispersion=0, slot_tasks=0/
     );
     assert.match(output, /Foco compartido:/);
     assert.match(
@@ -213,12 +224,18 @@ test('status-engine buildStatusReport y renderStatusText conservan campos clave'
     assert.match(output, /Por subfrente:/);
     assert.match(
         output,
-        /SF-frontend-admin-operativo: active=1, slot=0, aligned=1, primary=1, support=0, exception=0, orphan=0/
+        /SF-frontend-admin-operativo: active=1, slot=0, aligned=1, primary=1, support=0, exception=0, orphan=0 \(slot=0, ready=0\)/
     );
     assert.match(output, /Por lane:/);
     assert.match(
         output,
-        /codex_frontend: subfronts=2, slot=0\/2, available=2, active=1, orphan=0/
+        /codex_frontend: subfronts=2, slot=0\/2, available=2, active=1, orphan=0 \(slot=0, ready=0\)/
+    );
+    assert.match(output, /Semaforo por frente:/);
+    assert.match(output, /historical_debt: done_without_evidence:1/);
+    assert.match(
+        output,
+        /workspace_visibility_warnings: workspace_scope_fallback:all-worktrees->current-only/
     );
     assert.match(output, /Por codex_instance:/);
     assert.match(

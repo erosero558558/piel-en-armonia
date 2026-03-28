@@ -723,9 +723,9 @@ function buildCodexCheckReport(input = {}, deps = {}) {
                 );
             }
         }
-        if (activeStrategy && strategySummary.orphan_tasks > 0) {
+        if (activeStrategy && strategySummary.orphan_slot_tasks > 0) {
             errors.push(
-                `Estrategia activa con tareas huerfanas (${strategySummary.orphan_task_ids.join(', ')})`
+                `Estrategia activa con tareas huerfanas ocupando slot (${strategySummary.orphan_slot_task_ids.join(', ')})`
             );
         }
     } else if (planStrategyBlock) {
@@ -875,7 +875,11 @@ function buildCodexCheckReport(input = {}, deps = {}) {
             exception_open_tasks: strategySummary.exception_open_tasks,
             exception_expired_tasks: strategySummary.exception_expired_tasks,
             orphan_tasks: strategySummary.orphan_tasks,
+            orphan_ready_tasks: strategySummary.orphan_ready_tasks,
+            orphan_slot_tasks: strategySummary.orphan_slot_tasks,
             orphan_task_ids: strategySummary.orphan_task_ids,
+            orphan_ready_task_ids: strategySummary.orphan_ready_task_ids,
+            orphan_slot_task_ids: strategySummary.orphan_slot_task_ids,
             exception_expired_task_ids:
                 strategySummary.exception_expired_task_ids,
             dispersion_score: strategySummary.dispersion_score,

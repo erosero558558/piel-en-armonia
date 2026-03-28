@@ -158,6 +158,87 @@ function appendBoardEventsForDiff(prevBoard, nextBoard, options = {}) {
     return { events, appended };
 }
 
+function parseBoardRevision(value) {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function buildBoardEventsDriftReport(board, eventRows = []) {
+    const currentRevision = parseBoardRevision(board?.policy?.revision);
+    const rows = Array.isArray(eventRows) ? eventRows : [];
+    const latestByTask = new Map();
+    const revisionAheadRows = [];
+    const taskStatusDrift = [];
+    const currentTasks = new Map(
+        Array.isArray(board?.tasks)
+            ? board.tasks.map((task) => [String(task?.id || ''), task])
+            : []
+    );
+
+    for (const row of rows) {
+        const eventRevision = parseBoardRevision(row?.board_policy_revision);
+        if (
+            currentRevision !== null &&
+            eventRevision !== null &&
+            eventRevision > currentRevision
+        ) {
+            revisionAheadRows.push({
+                event_id: String(row?.event_id || ''),
+                task_id: String(row?.task_id || ''),
+                board_policy_revision: eventRevision,
+                current_board_revision: currentRevision,
+                event_type: String(row?.event_type || ''),
+            });
+        }
+
+        const taskId = String(row?.task_id || '').trim();
+        if (!taskId) {
+            continue;
+        }
+        latestByTask.set(taskId, row);
+    }
+
+    for (const [taskId, row] of latestByTask.entries()) {
+        const eventType = String(row?.event_type || '').trim();
+        if (!['task_closed', 'task_finished'].includes(eventType)) {
+            continue;
+        }
+        const expectedStatus = String(row?.board_task_after?.status || '').trim();
+        const currentStatus = String(currentTasks.get(taskId)?.status || '').trim();
+        if (!expectedStatus || !currentStatus || expectedStatus === currentStatus) {
+            continue;
+        }
+        taskStatusDrift.push({
+            task_id: taskId,
+            event_id: String(row?.event_id || ''),
+            event_type: eventType,
+            expected_status: expectedStatus,
+            current_status: currentStatus,
+        });
+    }
+
+    const errors = [
+        ...revisionAheadRows.map(
+            (row) =>
+                `board_events_drift: ${row.event_id || row.task_id} referencia revision ${row.board_policy_revision} mayor que board.revision=${row.current_board_revision}`
+        ),
+        ...taskStatusDrift.map(
+            (row) =>
+                `board_events_drift: ${row.task_id} tiene ${row.event_type} en ledger con status=${row.expected_status}, pero el board actual muestra ${row.current_status}`
+        ),
+    ];
+
+    return {
+        version: 1,
+        ok: errors.length === 0,
+        error_count: errors.length,
+        errors,
+        current_board_revision: currentRevision,
+        revision_ahead_rows: revisionAheadRows,
+        task_status_drift: taskStatusDrift,
+    };
+}
+
 function toHandoffEventSummary(handoff) {
     if (!handoff || typeof handoff !== 'object') return null;
     return {
@@ -281,6 +362,7 @@ module.exports = {
     toTaskEventSummary,
     diffBoardTaskEvents,
     appendBoardEventsForDiff,
+    buildBoardEventsDriftReport,
     appendHandoffEvent,
     tailBoardEvents,
     statsBoardEvents,

@@ -11,6 +11,9 @@ function buildStatusRedExplanation(input = {}, deps = {}) {
         domainHealth,
         domainHealthHistory,
         diagnostics,
+        strategySummary,
+        evidenceSummary,
+        workspaceReport,
     } = input;
     const { isExpired = () => true, toConflictJsonRecord = (item) => item } =
         deps;
@@ -40,6 +43,69 @@ function buildStatusRedExplanation(input = {}, deps = {}) {
         ? domainHealthHistory.regressions.green_to_red
         : [];
     const errorDiagnostics = getErrorDiagnostics(diagnostics);
+    const workspaceTruth =
+        workspaceReport?.workspace_truth &&
+        typeof workspaceReport.workspace_truth === 'object'
+            ? workspaceReport.workspace_truth
+            : null;
+    const activeFrontBlockers = [];
+    const historicalDebt = [];
+    const workspaceVisibilityWarnings = [];
+
+    if (blockingConflicts.length > 0) {
+        activeFrontBlockers.push({
+            code: 'blocking_conflicts',
+            count: blockingConflicts.length,
+        });
+    }
+    if (Number(strategySummary?.orphan_slot_tasks || 0) > 0) {
+        activeFrontBlockers.push({
+            code: 'orphan_slot_tasks',
+            count: Number(strategySummary.orphan_slot_tasks || 0),
+            task_ids: Array.isArray(strategySummary?.orphan_slot_task_ids)
+                ? strategySummary.orphan_slot_task_ids.slice(0, 10)
+                : [],
+        });
+    }
+    if (Array.isArray(handoffLintErrors) && handoffLintErrors.length > 0) {
+        activeFrontBlockers.push({
+            code: 'handoffs_lint',
+            count: handoffLintErrors.length,
+        });
+    }
+    if (codexCheckReport?.ok === false) {
+        activeFrontBlockers.push({
+            code: 'codex_check',
+            count: Number(codexCheckReport?.error_count || 0),
+        });
+    }
+    if (errorDiagnostics.length > 0) {
+        activeFrontBlockers.push({
+            code: 'diagnostics_error',
+            count: errorDiagnostics.length,
+        });
+    }
+    if (Number(evidenceSummary?.debt_count || 0) > 0) {
+        historicalDebt.push({
+            code: 'done_without_evidence',
+            count: Number(evidenceSummary?.debt_count || 0),
+            task_ids: Array.isArray(evidenceSummary?.sample_task_ids)
+                ? evidenceSummary.sample_task_ids.slice(0, 10)
+                : [],
+        });
+    }
+    if (
+        workspaceTruth &&
+        workspaceTruth.fallback_applied === true &&
+        String(workspaceTruth.scope_requested || '').trim() !==
+            String(workspaceTruth.scope_effective || '').trim()
+    ) {
+        workspaceVisibilityWarnings.push({
+            code: 'workspace_scope_fallback',
+            scope_requested: String(workspaceTruth.scope_requested || ''),
+            scope_effective: String(workspaceTruth.scope_effective || ''),
+        });
+    }
 
     const blockers = [];
     const reasons = [];
@@ -114,6 +180,9 @@ function buildStatusRedExplanation(input = {}, deps = {}) {
             reasons: Array.isArray(row.reasons) ? row.reasons : [],
         })),
         domain_regression_green_to_red: greenToRedRegressions.slice(0, 10),
+        active_front_blockers: activeFrontBlockers,
+        historical_debt: historicalDebt,
+        workspace_visibility_warnings: workspaceVisibilityWarnings,
     };
 }
 

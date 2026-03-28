@@ -67,6 +67,37 @@ test('board-sync detecta ready future step como candidato normalizable', () => {
     assert.deepEqual(report.blocking_findings, []);
 });
 
+test('board-sync detecta ready de otra strategy como candidato normalizable', () => {
+    const report = boardSync.buildBoardSyncReport(
+        buildBoard([
+            baseTask({
+                id: 'CDX-057',
+                strategy_id: 'STRAT-2026-03-turnero-web-pilot-local-first',
+                focus_id: 'FOCUS-2026-03-turnero-web-pilot-local-cut-1',
+                focus_step: 'feedback_trim_local',
+            }),
+        ]),
+        {
+            nowIso: '2026-03-21T06:00:00.000Z',
+        }
+    );
+
+    assert.equal(report.check_ok, false);
+    assert.deepEqual(
+        report.normalized_candidates.map((item) => ({
+            task_id: item.task_id,
+            code: item.code,
+        })),
+        [
+            {
+                task_id: 'CDX-057',
+                code: 'ready_orphan_strategy',
+            },
+        ]
+    );
+    assert.deepEqual(report.blocking_findings, []);
+});
+
 test('board-sync marca slot active fuera del next step como write blocker', () => {
     const report = boardSync.buildBoardSyncReport(
         buildBoard([
@@ -88,6 +119,34 @@ test('board-sync marca slot active fuera del next step como write blocker', () =
             (item) =>
                 item.task_id === 'AG-258' &&
                 item.code === 'task_outside_next_step' &&
+                item.blocks_write === true
+        ),
+        true
+    );
+});
+
+test('board-sync mantiene review de otro foco como blocker y no lo auto-normaliza', () => {
+    const report = boardSync.buildBoardSyncReport(
+        buildBoard([
+            baseTask({
+                id: 'CDX-059',
+                status: 'review',
+                strategy_id: 'STRAT-2026-03-turnero-web-pilot-local-first',
+                focus_id: 'FOCUS-2026-03-turnero-web-pilot-local-cut-1',
+                focus_step: 'feedback_trim_local',
+            }),
+        ]),
+        {
+            nowIso: '2026-03-21T06:00:00.000Z',
+        }
+    );
+
+    assert.deepEqual(report.normalized_candidates, []);
+    assert.equal(
+        report.blocking_findings.some(
+            (item) =>
+                item.task_id === 'CDX-059' &&
+                item.code === 'focus_id_mismatch' &&
                 item.blocks_write === true
         ),
         true

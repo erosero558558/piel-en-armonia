@@ -2255,6 +2255,103 @@ test('strategy activate-next bloquea exceptions expiradas del frente activo', (t
     assert.match(json.error || '', /exceptions expiradas/i);
 });
 
+test('strategy activate-next --normalize-ready-orphans baja ready huérfanas antes del cambio de frente', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForStrategyGuardFixture(`
+  - id: CDX-257
+    title: "Queue future ready"
+    owner: ernesto
+    executor: codex
+    status: ready
+    risk: medium
+    scope: queue
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+${CODEX_MODEL_ROUTING_FIELDS}
+    files: ["admin.js"]
+    acceptance: "Fixture"
+    acceptance_ref: ""
+    evidence_ref: ""
+    strategy_id: STRAT-2026-03-admin-operativo
+    subfront_id: SF-frontend-queue-turnero-operativo
+    strategy_role: primary
+    focus_id: FOCUS-2026-03-admin-operativo-cut-1
+    focus_step: admin_queue_pilot_cut
+    integration_slice: frontend_runtime
+    work_type: forward
+    expected_outcome: "Queue future ready"
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+`),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithStrategyBlock(),
+    });
+
+    runCli(dir, [
+        'strategy',
+        'set-next',
+        '--seed',
+        'turnero-web-pilot-local-first',
+        '--owner',
+        'ernesto',
+        '--expect-rev',
+        '0',
+        '--json',
+    ]);
+
+    let result = runCli(
+        dir,
+        [
+            'strategy',
+            'activate-next',
+            '--reason',
+            'blocked_without_normalize',
+            '--expect-rev',
+            '1',
+            '--json',
+        ],
+        1
+    );
+    let json = parseJsonStdout(result);
+    assert.equal(json.ok, false);
+    assert.match(json.error || '', /tareas activas fuera del nuevo frente/i);
+
+    result = runCli(dir, [
+        'strategy',
+        'activate-next',
+        '--normalize-ready-orphans',
+        '--reason',
+        'normalize_ready_orphans',
+        '--expect-rev',
+        '1',
+        '--json',
+    ]);
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.deepEqual(json.normalized_ready_orphans, ['CDX-257']);
+    assert.equal(
+        json.strategy.id,
+        'STRAT-2026-03-turnero-web-pilot-local-first'
+    );
+
+    const board = readBoard(dir);
+    assert.match(board, /- id: CDX-257[\s\S]*?status: backlog/);
+    assert.match(
+        board,
+        /id:\s+STRAT-2026-03-turnero-web-pilot-local-first[\s\S]*status:\s+active/
+    );
+});
+
 test('task create exige campos de estrategia cuando hay estrategia activa', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
@@ -3802,6 +3899,80 @@ test('board sync apply mueve tareas future-ready a backlog sin ocultar blockers 
     assert.match(board, /id: AG-254[\s\S]*?status: backlog/);
     assert.match(board, /id: AG-255[\s\S]*?status: backlog/);
     assert.match(board, /id: AG-258[\s\S]*?status: in_progress/);
+});
+
+test('board sync normaliza ready huérfanas de otra strategy y codex-check no las trata como error duro', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForBoardSyncFixture(`
+  - id: CDX-257
+    title: "Orphan ready fixture"
+    owner: ernesto
+    executor: codex
+    status: ready
+    risk: medium
+    scope: queue
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+${CODEX_MODEL_ROUTING_FIELDS}
+    files: ["admin.js"]
+    acceptance: "Fixture"
+    acceptance_ref: ""
+    evidence_ref: ""
+    strategy_id: STRAT-2026-03-turnero-web-pilot-local-first
+    subfront_id: SF-frontend-queue-turnero-operativo
+    strategy_role: primary
+    focus_id: FOCUS-2026-03-turnero-web-pilot-local-cut-1
+    focus_step: feedback_trim_local
+    integration_slice: frontend_runtime
+    work_type: forward
+    expected_outcome: "Orphan ready fixture"
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+`),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithStrategyBlock(),
+    });
+
+    const syncCheck = parseJsonStdout(
+        runCli(dir, ['board', 'sync', 'check', '--json'], 1)
+    );
+    assert.equal(syncCheck.ok, false);
+    assert.deepEqual(
+        syncCheck.normalized_candidates.map((item) => ({
+            task_id: item.task_id,
+            code: item.code,
+        })),
+        [
+            {
+                task_id: 'CDX-257',
+                code: 'ready_orphan_strategy',
+            },
+        ]
+    );
+
+    const codexCheck = parseJsonStdout(runCli(dir, ['codex-check', '--json']));
+    assert.equal(codexCheck.ok, true);
+    assert.equal(codexCheck.strategy.orphan_ready_tasks, 1);
+    assert.equal(codexCheck.strategy.orphan_slot_tasks, 0);
+
+    const apply = parseJsonStdout(
+        runCli(dir, ['board', 'sync', 'apply', '--expect-rev', '0', '--json'])
+    );
+    assert.equal(apply.ok, true);
+    assert.deepEqual(apply.applied_task_ids, ['CDX-257']);
+
+    const board = readBoard(dir);
+    assert.match(board, /id: CDX-257[\s\S]*?status: backlog/);
 });
 
 test('focus advance normaliza cola future-ready antes de escribir el nuevo next_step', (t) => {

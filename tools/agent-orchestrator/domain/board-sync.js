@@ -169,6 +169,7 @@ function buildBoardSyncReport(board, options = {}) {
         Array.from(DEFAULT_SLOT_STATUSES)
     );
     const focus = domainFocus.getActiveFocus(board);
+    const activeStrategyId = String(board?.strategy?.active?.id || '').trim();
     const warnings = [];
     const normalizedCandidates = [];
     const blockingFindings = [];
@@ -185,8 +186,6 @@ function buildBoardSyncReport(board, options = {}) {
     const focusSteps = Array.isArray(focus?.steps) ? focus.steps : [];
     const nextStep = String(focus?.next_step || '').trim();
     const focusId = String(focus?.id || '').trim();
-    const nextStepIndex =
-        focusSteps.length > 0 ? focusSteps.indexOf(nextStep) : -1;
 
     for (const task of Array.isArray(board?.tasks) ? board.tasks : []) {
         const status = String(task?.status || '')
@@ -197,6 +196,7 @@ function buildBoardSyncReport(board, options = {}) {
         }
 
         const taskId = String(task?.id || '');
+        const taskStrategyId = String(task?.strategy_id || '').trim();
         const taskFocusId = String(task?.focus_id || '').trim();
         const taskFocusStep = String(task?.focus_step || '').trim();
         const integrationSlice = String(task?.integration_slice || '')
@@ -204,7 +204,48 @@ function buildBoardSyncReport(board, options = {}) {
             .toLowerCase();
 
         if (focus) {
-            if (!taskFocusId || !taskFocusStep || !integrationSlice) {
+            if (
+                status === 'ready' &&
+                activeStrategyId &&
+                taskStrategyId &&
+                taskStrategyId !== activeStrategyId
+            ) {
+                normalizedCandidates.push(
+                    buildCandidate(
+                        'ready_orphan_strategy',
+                        task,
+                        focus,
+                        buildMessage(
+                            taskId,
+                            `esta ready para strategy_id=${taskStrategyId}; se puede mover a backlog mientras strategy.active=${activeStrategyId}`
+                        ),
+                        {
+                            strategy_id: taskStrategyId,
+                            active_strategy_id: activeStrategyId,
+                        }
+                    )
+                );
+            } else if (
+                status === 'ready' &&
+                taskFocusId &&
+                focusId &&
+                taskFocusId !== focusId
+            ) {
+                normalizedCandidates.push(
+                    buildCandidate(
+                        'ready_orphan_focus',
+                        task,
+                        focus,
+                        buildMessage(
+                            taskId,
+                            `esta ready para focus_id=${taskFocusId}; se puede mover a backlog mientras focus activo=${focusId}`
+                        ),
+                        {
+                            active_focus_id: focusId,
+                        }
+                    )
+                );
+            } else if (!taskFocusId || !taskFocusStep || !integrationSlice) {
                 blockingFindings.push(
                     buildBlockingFinding(
                         'task_missing_focus_fields',
@@ -252,14 +293,6 @@ function buildBoardSyncReport(board, options = {}) {
                     )
                 );
             } else if (taskFocusStep !== nextStep) {
-                const taskStepIndex =
-                    focusSteps.length > 0
-                        ? focusSteps.indexOf(taskFocusStep)
-                        : -1;
-                const isFutureStep =
-                    nextStepIndex >= 0 &&
-                    taskStepIndex >= 0 &&
-                    taskStepIndex > nextStepIndex;
                 if (
                     domainFocus.isAllowedExternalBlockerCarryoverTask(
                         task,
@@ -268,10 +301,10 @@ function buildBoardSyncReport(board, options = {}) {
                 ) {
                     // Allow carryover of acknowledged external blockers from a
                     // prior focus step so the next step can move forward.
-                } else if (status === 'ready' && isFutureStep) {
+                } else if (status === 'ready') {
                     normalizedCandidates.push(
                         buildCandidate(
-                            'ready_future_focus_step',
+                            'ready_outside_active_focus_step',
                             task,
                             focus,
                             buildMessage(

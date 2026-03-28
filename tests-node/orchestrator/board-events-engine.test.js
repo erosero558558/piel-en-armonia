@@ -165,3 +165,34 @@ test('board-events appendHandoffEvent registra eventos de handoff', () => {
     assert.equal(appended[0].rows[0].board_policy_revision, 7);
     assert.equal(appended[0].rows[0].handoff.from_task, 'AG-001');
 });
+
+test('board-events drift detecta revision futura y cierre contradictorio', () => {
+    const report = boardEvents.buildBoardEventsDriftReport(
+        {
+            policy: { revision: 8 },
+            tasks: [
+                {
+                    id: 'AG-001',
+                    status: 'review',
+                },
+            ],
+        },
+        [
+            {
+                event_id: 'evt-1',
+                event_type: 'task_closed',
+                task_id: 'AG-001',
+                board_policy_revision: 9,
+                board_task_after: {
+                    status: 'done',
+                },
+            },
+        ]
+    );
+
+    assert.equal(report.ok, false);
+    assert.equal(report.error_count, 2);
+    assert.equal(report.revision_ahead_rows.length, 1);
+    assert.equal(report.task_status_drift.length, 1);
+    assert.match(report.errors.join(' | '), /board_events_drift/i);
+});

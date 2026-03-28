@@ -233,6 +233,9 @@ async function handleStatusCommand(ctx) {
             codexCheckReport,
             domainHealth,
             domainHealthHistory,
+            strategySummary: strategy,
+            evidenceSummary: evidenceReport.summary,
+            workspaceReport,
         });
     }
 

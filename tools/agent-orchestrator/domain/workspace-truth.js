@@ -1240,6 +1240,25 @@ function buildWorkspaceTruthDiagnostics(workspaceReport, options = {}) {
             })
         );
     }
+    if (
+        workspaceTruth.fallback_applied === true &&
+        String(workspaceTruth.scope_requested || '').trim() !==
+            String(workspaceTruth.scope_effective || '').trim()
+    ) {
+        diagnostics.push(
+            makeDiagnostic({
+                code: 'warn.workspace.visibility_scope_fallback',
+                severity: 'warning',
+                source,
+                message: `Workspace truth pidio scope=${workspaceTruth.scope_requested || 'unknown'} pero opero como scope=${workspaceTruth.scope_effective || 'unknown'}`,
+                meta: {
+                    scope_requested: workspaceTruth.scope_requested,
+                    scope_effective: workspaceTruth.scope_effective,
+                    fallback_applied: true,
+                },
+            })
+        );
+    }
     return diagnostics;
 }
 

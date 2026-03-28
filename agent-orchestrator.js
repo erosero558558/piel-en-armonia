@@ -1356,23 +1356,19 @@ function writeBoard(board, options = {}) {
         writeFile: writeFileSync,
     });
     let boardEvents = { events: [], appended: 0 };
-    try {
-        if (prevBoard) {
-            boardEvents = domainBoardEvents.appendBoardEventsForDiff(
-                prevBoard,
-                writtenBoard,
-                {
-                    appendJsonlFile: coreIo.appendJsonlFile,
-                    eventsPath: BOARD_EVENTS_PATH,
-                    nowIso: nowIsoValue,
-                    command,
-                    source,
-                    actor,
-                }
-            );
-        }
-    } catch {
-        boardEvents = { events: [], appended: 0 };
+    if (prevBoard) {
+        boardEvents = domainBoardEvents.appendBoardEventsForDiff(
+            prevBoard,
+            writtenBoard,
+            {
+                appendJsonlFile: coreIo.appendJsonlFile,
+                eventsPath: BOARD_EVENTS_PATH,
+                nowIso: nowIsoValue,
+                command,
+                source,
+                actor,
+            }
+        );
     }
     LAST_BOARD_WRITE_META = {
         now_iso: nowIsoValue,
@@ -2161,11 +2157,79 @@ function getHandoffLintErrors() {
     );
 }
 
+function readJsonlRowsSafe(filePath) {
+    return coreIo.readJsonlFile(filePath, {
+        exists: existsSync,
+        readFile: readFileSync,
+    });
+}
+
+function buildStrategyEventsDriftReport(board, eventRows = []) {
+    const activeStrategy = board?.strategy?.active || null;
+    const nextStrategy = board?.strategy?.next || null;
+    const rows = Array.isArray(eventRows) ? eventRows : [];
+    const latestRow =
+        rows.length > 0 ? rows[rows.length - 1] : null;
+    const errors = [];
+    const warnings = [];
+
+    if ((activeStrategy || nextStrategy) && !latestRow) {
+        warnings.push(
+            'strategy_events_missing: falta verification/agent-strategy-events.jsonl para la estrategia configurada'
+        );
+    }
+
+    const latestActiveId = String(latestRow?.strategy?.active?.id || '').trim();
+    const latestActiveStatus = String(
+        latestRow?.strategy?.active?.status || ''
+    ).trim();
+    const currentActiveId = String(activeStrategy?.id || '').trim();
+    const currentActiveStatus = String(activeStrategy?.status || '').trim();
+    if (
+        latestRow &&
+        activeStrategy &&
+        (latestActiveId !== currentActiveId ||
+            latestActiveStatus !== currentActiveStatus)
+    ) {
+        errors.push(
+            `strategy_events_drift: active desalineada ledger(${latestActiveId || 'vacio'}:${latestActiveStatus || 'vacio'}) != board(${currentActiveId || 'vacio'}:${currentActiveStatus || 'vacio'})`
+        );
+    }
+
+    const latestNextId = String(latestRow?.strategy?.next?.id || '').trim();
+    const latestNextStatus = String(
+        latestRow?.strategy?.next?.status || ''
+    ).trim();
+    const currentNextId = String(nextStrategy?.id || '').trim();
+    const currentNextStatus = String(nextStrategy?.status || '').trim();
+    if (
+        latestRow &&
+        nextStrategy &&
+        (latestNextId !== currentNextId || latestNextStatus !== currentNextStatus)
+    ) {
+        errors.push(
+            `strategy_events_drift: next desalineada ledger(${latestNextId || 'vacio'}:${latestNextStatus || 'vacio'}) != board(${currentNextId || 'vacio'}:${currentNextStatus || 'vacio'})`
+        );
+    }
+
+    return {
+        version: 1,
+        ok: errors.length === 0,
+        error_count: errors.length,
+        errors,
+        warning_count: warnings.length,
+        warnings,
+        latest_event_type: String(latestRow?.event_type || '').trim(),
+        latest_occurred_at: String(latestRow?.occurred_at || '').trim(),
+    };
+}
+
 function buildCodexCheckReport() {
     const codexParallelism = getCodexParallelismPolicy();
+    const board = parseBoard();
     const report = domainCodexMirror.buildCodexCheckReport(
         {
-            board: parseBoard(),
+            board,
             blocks: parseCodexActiveBlocks(),
             strategyBlocks: parseCodexStrategyBlocks(),
             handoffs: parseHandoffs().handoffs,
@@ -2180,8 +2244,36 @@ function buildCodexCheckReport() {
             codexParallelism,
         }
     );
+    const boardEventsDrift = domainBoardEvents.buildBoardEventsDriftReport(
+        board,
+        readJsonlRowsSafe(BOARD_EVENTS_PATH)
+    );
+    report.board_events_drift = boardEventsDrift;
+    if (!boardEventsDrift.ok) {
+        report.ok = false;
+        report.error_count =
+            Number(report.error_count || 0) + boardEventsDrift.error_count;
+        report.errors = [
+            ...(Array.isArray(report.errors) ? report.errors : []),
+            ...boardEventsDrift.errors,
+        ];
+    }
+    const strategyEventsDrift = buildStrategyEventsDriftReport(
+        board,
+        readJsonlRowsSafe(STRATEGY_EVENTS_PATH)
+    );
+    report.strategy_events_drift = strategyEventsDrift;
+    if (strategyEventsDrift.error_count > 0) {
+        report.ok = false;
+        report.error_count =
+            Number(report.error_count || 0) + strategyEventsDrift.error_count;
+        report.errors = [
+            ...(Array.isArray(report.errors) ? report.errors : []),
+            ...strategyEventsDrift.errors,
+        ];
+    }
     const workspaceSyncFindings = collectWorkspaceComplianceFindings(
-        parseBoard().tasks
+        board.tasks
     );
     if (workspaceSyncFindings.length > 0) {
         report.ok = false;

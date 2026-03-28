@@ -570,6 +570,7 @@ async function handleCodexCommand(ctx) {
         getGovernancePolicy,
         collectWorkspaceTruth,
         assertWorkspaceTruthOk,
+        appendModelUsageLedgerEntries,
         ensureTaskWorktree,
         applyWorkspaceTaskSnapshot,
     } = ctx;
@@ -707,6 +708,19 @@ async function handleCodexCommand(ctx) {
             actor: task.owner || task.executor || '',
             expectRevision,
         });
+        if (typeof appendModelUsageLedgerEntries === 'function') {
+            appendModelUsageLedgerEntries([
+                {
+                    timestamp: new Date().toISOString(),
+                    task_id: taskId,
+                    codex_instance: taskInstance,
+                    model_tier: 'gpt-5.4-mini',
+                    reason: 'root_thread_start',
+                    execution_mode: 'root_thread',
+                    notes: 'codex_start',
+                },
+            ]);
+        }
         const wipDiagnostics =
             typeof buildBoardWipLimitDiagnostics === 'function'
                 ? buildBoardWipLimitDiagnostics(board, {

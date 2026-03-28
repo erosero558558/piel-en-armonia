@@ -27,7 +27,7 @@ function formatStrategySummary(summary = {}) {
             `Estrategia activa: ${summary.active.id} (${summary.active.title || 'sin titulo'})`
         );
         lines.push(
-            `Cobertura: aligned=${summary.aligned_tasks || 0}, support=${summary.support_tasks || 0}, exception=${summary.exception_tasks || 0}, orphan=${summary.orphan_tasks || 0}, dispersion=${summary.dispersion_score || 0}, slot_tasks=${summary.slot_tasks || 0}`
+            `Cobertura: aligned=${summary.aligned_tasks || 0}, support=${summary.support_tasks || 0}, exception=${summary.exception_tasks || 0}, orphan=${summary.orphan_tasks || 0} (slot=${summary.orphan_slot_tasks || 0}, ready=${summary.orphan_ready_tasks || 0}), dispersion=${summary.dispersion_score || 0}, slot_tasks=${summary.slot_tasks || 0}`
         );
     } else {
         lines.push('Sin estrategia activa.');
@@ -355,6 +355,10 @@ async function handleStrategyCommand(ctx) {
         if (!nextStrategy || typeof nextStrategy !== 'object') {
             throw new Error('strategy activate-next requiere strategy.next');
         }
+        const normalizeReadyOrphans =
+            args.includes('--normalize-ready-orphans') ||
+            Boolean(flags['normalize-ready-orphans']) ||
+            Boolean(flags.normalize_ready_orphans);
         const expectRevision = parseExpectedRevisionFromFlags(
             flags,
             parseExpectedBoardRevisionFlag,
@@ -365,15 +369,39 @@ async function handleStrategyCommand(ctx) {
                 .trim()
                 .toLowerCase() || 'activate_next';
         const configErrors = validateStrategyConfiguration(board);
-        const impact = buildCoverageForStrategy(board, nextStrategy, {
+        let impact = buildCoverageForStrategy(board, nextStrategy, {
             nowIso: isoNow(),
         });
+        const normalizedReadyOrphanTaskIds = [];
+        if (normalizeReadyOrphans && impact.orphan_ready_tasks > 0) {
+            const candidateIds = new Set(impact.orphan_ready_task_ids || []);
+            for (const task of Array.isArray(board?.tasks) ? board.tasks : []) {
+                if (
+                    String(task?.status || '').trim().toLowerCase() !==
+                    'ready'
+                ) {
+                    continue;
+                }
+                const taskId = String(task?.id || '').trim();
+                if (!candidateIds.has(taskId)) {
+                    continue;
+                }
+                task.status = 'backlog';
+                task.updated_at = currentDate();
+                normalizedReadyOrphanTaskIds.push(taskId);
+            }
+            impact = buildCoverageForStrategy(board, nextStrategy, {
+                nowIso: isoNow(),
+            });
+        }
         const activationBlockers = [
             ...configErrors,
             ...(impact.scope_collisions || []),
-            ...(impact.orphan_tasks > 0
+            ...((normalizeReadyOrphans
+                ? impact.orphan_slot_tasks
+                : impact.orphan_tasks) > 0
                 ? [
-                      `strategy activate-next bloqueado: tareas activas fuera del nuevo frente (${impact.orphan_task_ids.join(', ')})`,
+                      `strategy activate-next bloqueado: tareas activas fuera del nuevo frente (${(normalizeReadyOrphans ? impact.orphan_slot_task_ids : impact.orphan_task_ids).join(', ')})`,
                   ]
                 : []),
             ...(impact.exception_expired_tasks > 0
@@ -413,6 +441,7 @@ async function handleStrategyCommand(ctx) {
                 reason,
                 meta: {
                     previous_active: previousActive,
+                    normalized_ready_orphans: normalizedReadyOrphanTaskIds,
                 },
             })
         );
@@ -425,6 +454,7 @@ async function handleStrategyCommand(ctx) {
             strategy: board.strategy.active,
             previous_active: previousActive,
             impact,
+            normalized_ready_orphans: normalizedReadyOrphanTaskIds,
         };
         if (wantsJson) {
             printJson(payload);

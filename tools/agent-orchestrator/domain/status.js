@@ -89,7 +89,7 @@ function renderStatusText(data, options = {}) {
             `Estrategia activa: ${data.strategy.active.id} (${data.strategy.active.title || 'sin titulo'})`
         );
         lines.push(
-            `Cobertura estrategia: aligned=${data.strategy.aligned_tasks ?? 0}, support=${data.strategy.support_tasks ?? 0}, exception=${data.strategy.exception_tasks ?? 0}, orphan=${data.strategy.orphan_tasks ?? 0}, dispersion=${data.strategy.dispersion_score ?? 0}, slot_tasks=${data.strategy.slot_tasks ?? 0}`
+            `Cobertura estrategia: aligned=${data.strategy.aligned_tasks ?? 0}, support=${data.strategy.support_tasks ?? 0}, exception=${data.strategy.exception_tasks ?? 0}, orphan=${data.strategy.orphan_tasks ?? 0} (slot=${data.strategy.orphan_slot_tasks ?? 0}, ready=${data.strategy.orphan_ready_tasks ?? 0}), dispersion=${data.strategy.dispersion_score ?? 0}, slot_tasks=${data.strategy.slot_tasks ?? 0}`
         );
     }
     if (data?.focus?.configured) {
@@ -183,7 +183,7 @@ function renderStatusText(data, options = {}) {
         lines.push('Por subfrente:');
         for (const row of data.strategy.rows) {
             lines.push(
-                `- ${row.subfront_id}: active=${row.active_tasks}, slot=${row.slot_tasks ?? 0}, aligned=${row.aligned_tasks}, primary=${row.primary_tasks}, support=${row.support_tasks}, exception=${row.exception_tasks}, orphan=${row.orphan_tasks}`
+                `- ${row.subfront_id}: active=${row.active_tasks}, slot=${row.slot_tasks ?? 0}, aligned=${row.aligned_tasks}, primary=${row.primary_tasks}, support=${row.support_tasks}, exception=${row.exception_tasks}, orphan=${row.orphan_tasks} (slot=${row.orphan_slot_tasks ?? 0}, ready=${row.orphan_ready_tasks ?? 0})`
             );
         }
     }
@@ -195,7 +195,7 @@ function renderStatusText(data, options = {}) {
         lines.push('Por lane:');
         for (const row of data.strategy.lane_rows) {
             lines.push(
-                `- ${row.codex_instance}: subfronts=${row.subfront_count}, slot=${row.slot_tasks}/${row.lane_capacity}, available=${row.available_slots}, active=${row.active_tasks}, orphan=${row.orphan_tasks}`
+                `- ${row.codex_instance}: subfronts=${row.subfront_count}, slot=${row.slot_tasks}/${row.lane_capacity}, available=${row.available_slots}, active=${row.active_tasks}, orphan=${row.orphan_tasks} (slot=${row.orphan_slot_tasks ?? 0}, ready=${row.orphan_ready_tasks ?? 0})`
             );
         }
     }
@@ -245,6 +245,43 @@ function renderStatusText(data, options = {}) {
         lines.push(
             `- blocking_findings: ${
                 data.board_sync.summary?.blocking_total ?? 0
+            }`
+        );
+    }
+    if (wantsExplainRed && data?.red_explanation) {
+        lines.push('');
+        lines.push('Semaforo por frente:');
+        lines.push(
+            `- active_front_blockers: ${
+                Array.isArray(data.red_explanation.active_front_blockers) &&
+                data.red_explanation.active_front_blockers.length > 0
+                    ? data.red_explanation.active_front_blockers
+                          .map((item) => `${item.code}:${item.count ?? 0}`)
+                          .join(', ')
+                    : 'none'
+            }`
+        );
+        lines.push(
+            `- historical_debt: ${
+                Array.isArray(data.red_explanation.historical_debt) &&
+                data.red_explanation.historical_debt.length > 0
+                    ? data.red_explanation.historical_debt
+                          .map((item) => `${item.code}:${item.count ?? 0}`)
+                          .join(', ')
+                    : 'none'
+            }`
+        );
+        lines.push(
+            `- workspace_visibility_warnings: ${
+                Array.isArray(data.red_explanation.workspace_visibility_warnings) &&
+                data.red_explanation.workspace_visibility_warnings.length > 0
+                    ? data.red_explanation.workspace_visibility_warnings
+                          .map(
+                              (item) =>
+                                  `${item.code}:${item.scope_requested || 'unknown'}->${item.scope_effective || 'unknown'}`
+                          )
+                          .join(', ')
+                    : 'none'
             }`
         );
     }

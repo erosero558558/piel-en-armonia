@@ -1049,9 +1049,13 @@ function buildEmptyStrategySummary(board, activeStrategy, nextStrategy) {
         exception_open_tasks: 0,
         exception_expired_tasks: 0,
         orphan_tasks: 0,
+        orphan_ready_tasks: 0,
+        orphan_slot_tasks: 0,
         scope_outside_subfront_tasks: 0,
         aged_tasks: 0,
         orphan_task_ids: [],
+        orphan_ready_task_ids: [],
+        orphan_slot_task_ids: [],
         exception_task_ids: [],
         exception_open_task_ids: [],
         exception_expired_task_ids: [],
@@ -1100,6 +1104,8 @@ function buildLaneRows(rows, laneCapacities) {
             exception_open_tasks: 0,
             exception_expired_tasks: 0,
             orphan_tasks: 0,
+            orphan_ready_tasks: 0,
+            orphan_slot_tasks: 0,
             aged_tasks: 0,
             lane_capacity: normalizePositiveInt(
                 laneCapacities?.[codexInstance],
@@ -1127,6 +1133,8 @@ function buildLaneRows(rows, laneCapacities) {
             row.exception_expired_tasks || 0
         );
         laneRow.orphan_tasks += Number(row.orphan_tasks || 0);
+        laneRow.orphan_ready_tasks += Number(row.orphan_ready_tasks || 0);
+        laneRow.orphan_slot_tasks += Number(row.orphan_slot_tasks || 0);
         laneRow.aged_tasks += Number(row.aged_tasks || 0);
     }
 
@@ -1176,6 +1184,8 @@ function buildCoverageForStrategy(board, strategy, options = {}) {
             exception_open_tasks: 0,
             exception_expired_tasks: 0,
             orphan_tasks: 0,
+            orphan_ready_tasks: 0,
+            orphan_slot_tasks: 0,
             aged_tasks: 0,
             aged_task_ids: [],
         });
@@ -1278,17 +1288,28 @@ function buildCoverageForStrategy(board, strategy, options = {}) {
                 if (row) row.primary_tasks += 1;
             }
         } catch (error) {
+            const taskId = String(task.id || '');
             summary.orphan_tasks += 1;
-            summary.orphan_task_ids.push(String(task.id || ''));
+            summary.orphan_task_ids.push(taskId);
             summary.validation_errors.push(String(error.message || error));
+            if (consumesSlot) {
+                summary.orphan_slot_tasks += 1;
+                summary.orphan_slot_task_ids.push(taskId);
+            } else {
+                summary.orphan_ready_tasks += 1;
+                summary.orphan_ready_task_ids.push(taskId);
+            }
             if (String(error?.code || '') === 'scope_outside_subfront') {
                 summary.scope_outside_subfront_tasks += 1;
-                summary.scope_outside_subfront_task_ids.push(
-                    String(task.id || '')
-                );
+                summary.scope_outside_subfront_task_ids.push(taskId);
             }
             if (row) {
                 row.orphan_tasks += 1;
+                if (consumesSlot) {
+                    row.orphan_slot_tasks += 1;
+                } else {
+                    row.orphan_ready_tasks += 1;
+                }
             }
         }
     }
@@ -1308,7 +1329,8 @@ function buildCoverageForStrategy(board, strategy, options = {}) {
     ).length;
     summary.dispersion_score = Math.min(
         100,
-        summary.orphan_tasks * 35 +
+        summary.orphan_slot_tasks * 35 +
+            summary.orphan_ready_tasks * 10 +
             summary.scope_outside_subfront_tasks * 20 +
             summary.exception_open_tasks * 8 +
             summary.exception_expired_tasks * 20 +
