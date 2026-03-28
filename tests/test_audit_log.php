@@ -7,6 +7,8 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Set up the environment for testing
 $tempDir = __DIR__ . '/temp_data';
+// Prevent env.php from overriding our test data directory
+putenv('AURORADERM_SKIP_ENV_FILE=1');
 putenv("PIELARMONIA_DATA_DIR=$tempDir");
 
 // Clean up any existing temp directory
