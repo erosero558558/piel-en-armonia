@@ -5,31 +5,41 @@ Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
 <!-- CODEX_STRATEGY_ACTIVE
-id: STRAT-2026-03-admin-shell-rc1-polish
-title: "Admin Shell RC1 polish"
+id: STRAT-2026-03-admin-operativo
+title: "Admin operativo"
 status: active
-owner: Ernesto
+owner: deck
 owner_policy: "detected_default_owner"
-objective: "Pulir el shell clinico diario del Admin RC1 para que navegacion, ergonomia y chrome visible se sientan coherentes y estables sin reabrir queue/turnero, reviews ni dependencias del host publico."
+objective: "Convertir el frente admin clinico, queue/turnero y OpenClaw UX en una entrega operable y visible, con soporte backend y runtime estrictamente alineado."
 started_at: "2026-03-28"
-review_due_at: "2026-04-02"
-success_signal: "El admin diario se siente claro y estable para uso clinico recurrente, sin filtrar lenguaje de turnero ni reactivar superficies fuera del RC1."
-focus_id: "FOCUS-2026-03-admin-shell-rc1-polish-cut-1"
-focus_title: "Admin Shell RC1 ergonomico"
+review_due_at: "2026-03-21"
+success_signal: "Un mismo corte operativo puede demostrarse de punta a punta sin abrir trabajo fuera del frente admin operativo."
+focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+focus_title: "Admin operativo demostrable"
 focus_status: active
-focus_next_step: "shell_nav_ergonomics"
-focus_required_checks: ["test:frontend:qa:admin"]
-subfront_ids: ["SF-frontend-admin-shell-rc1", "SF-backend-admin-shell-rc1-support", "SF-transversal-admin-shell-rc1-support"]
+focus_next_step: "admin_queue_pilot_cut"
+focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]
+subfront_ids: ["SF-frontend-admin-operativo", "SF-frontend-queue-turnero-operativo", "SF-backend-admin-operativo", "SF-transversal-admin-operativo"]
 updated_at: "2026-03-28"
 -->
 
 <!-- CODEX_ACTIVE
 codex_instance: codex_frontend
 block: C1
-task_id: CDX-053
-subfront_id: SF-frontend-admin-shell-rc1
+task_id: CDX-054
+subfront_id: SF-frontend-queue-turnero-operativo
 status: in_progress
-files: ["admin.html", "admin-v3.css", "src/apps/admin-v3/core", "src/apps/admin-v3/ui", "src/apps/admin-v3/sections"]
+files: ["kiosco-turnos.html", "verification/agent-runs/CDX-054.md"]
+updated_at: "2026-03-28"
+-->
+
+<!-- CODEX_ACTIVE
+codex_instance: codex_backend_ops
+block: C2
+task_id: CDX-009
+subfront_id: SF-backend-admin-operativo
+status: blocked
+files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
 updated_at: "2026-03-28"
 -->
 
@@ -124,6 +134,15 @@ updated_at: "2026-03-28"
   `queue/turnero`, `reviews`, backend y publish.
 - Se modela un subfrente backend minimo solo para satisfacer el contrato de
   estrategia activa del tooling; no abre slice backend por defecto.
+
+## Repriorizacion a kiosco canonico 2026-03-28
+
+- `CDX-053` queda terminal en `failed` por repriorizacion, no como trabajo
+  completado.
+- La estrategia activa vuelve a `STRAT-2026-03-admin-operativo`.
+- El foco del frente se mueve a `feedback_trim`.
+- `CDX-054` abre el rescate canonico del kiosco/turnero como slice frontend
+  acotada a `kiosco-turnos.html`, sin portar `queue-kiosk.css`.
 
 ## Proposito
 
