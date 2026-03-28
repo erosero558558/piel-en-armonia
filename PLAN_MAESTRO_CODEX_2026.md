@@ -14,6 +14,16 @@ files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md
 updated_at: 2026-03-28
 -->
 
+<!-- CODEX_ACTIVE
+codex_instance: codex_backend_ops
+block: C1
+task_id: CDX-060
+subfront_id: SF-backend-admin-operativo
+status: in_progress
+files: ["tests/admin-queue-controls-numpad.spec.js", "tests/admin-queue-guidance-live-ops.spec.js", "tests/admin-queue-ops-hub.spec.js", "tests/admin-queue-pilot-governance.spec.js", "tests/admin-queue-reception-escalation.spec.js", "tests/helpers/admin-queue-fixtures.js", "tests/admin-queue.spec.js", "verification/agent-runs/CDX-060.md"]
+updated_at: 2026-03-28
+-->
+
 <!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-admin-operativo
 title: "Admin operativo"

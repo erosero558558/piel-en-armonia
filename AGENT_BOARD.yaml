@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 816
+  revision: 817
   updated_at: 2026-03-28
 
 strategy:
@@ -12367,6 +12367,124 @@ tasks:
     rework_reason: ""
     depends_on: []
     prompt: "Turnero gate runtime tooling: node runner and package gate"
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-060
+    title: "Admin queue pilot UI specs and fixtures"
+    owner: deck
+    executor: codex
+    status: in_progress
+    status_since_at: "2026-03-28T19:31:24.834Z"
+    risk: medium
+    scope: gates
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["tests/admin-queue-controls-numpad.spec.js", "tests/admin-queue-guidance-live-ops.spec.js", "tests/admin-queue-ops-hub.spec.js", "tests/admin-queue-pilot-governance.spec.js", "tests/admin-queue-reception-escalation.spec.js", "tests/helpers/admin-queue-fixtures.js", "tests/admin-queue.spec.js", "verification/agent-runs/CDX-060.md"]
+    source_signal: manual
+    source_ref: "AG-260"
+    priority_score: 70
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: "lease_CDX-060_20260328193124834_985659"
+    lease_owner: "deck"
+    lease_created_at: "2026-03-28T19:31:24.834Z"
+    heartbeat_at: "2026-03-28T19:31:24.834Z"
+    lease_expires_at: "2026-03-28T23:31:24.834Z"
+    lease_reason: "board_write"
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El smoke suite de admin-queue abandona el spec monolitico y queda repartido en cinco specs focalizadas con fixtures compartidos, sin tocar package.json, kiosco, public-v6 ni turnero-gates."
+    acceptance_ref: "verification/agent-runs/CDX-060.md"
+    evidence_ref: "verification/agent-runs/CDX-060.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-backend-admin-operativo"
+    strategy_role: "primary"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "admin_queue_pilot_cut"
+    integration_slice: "tests_quality"
+    work_type: "support"
+    expected_outcome: "Admin-queue queda segmentado en specs de guidance, reception, numpad, governance y ops hub con helper compartido, listo para que el harness se rewiree en una slice posterior sin reabrir otros carriles."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: []
+    prompt: "Portar solo el split del smoke suite de admin-queue: cinco specs focalizadas + fixtures compartidos, eliminando tests/admin-queue.spec.js y sin tocar package.json ni runners Node."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-061
+    title: "Admin queue UI runner and smoke gate wiring"
+    owner: deck
+    executor: codex
+    status: backlog
+    status_since_at: "2026-03-28T17:05:00Z"
+    risk: medium
+    scope: gates
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["bin/lib/admin-queue-ui-suites.js", "bin/run-admin-queue-ui.js", "package.json", "docs/RUNBOOK_TURNERO_SALA.md", "tests-node/run-admin-queue-ui-contract.test.js", "tests-node/admin-auth-mocks-helper.test.js", "verification/agent-runs/CDX-061.md"]
+    source_signal: manual
+    source_ref: "AG-260"
+    priority_score: 68
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "test:admin:queue pasa a un runner segmentado con evidencia persistida, package.json se rewirea sin tocar otros carriles y el smoke backend_ops/gates puede cerrar bajo el carve-out vigente."
+    acceptance_ref: "verification/agent-runs/CDX-061.md"
+    evidence_ref: "verification/agent-runs/CDX-061.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-backend-admin-operativo"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "admin_queue_pilot_cut"
+    integration_slice: "tests_quality"
+    work_type: "support"
+    expected_outcome: "Admin-queue gana un runner UI canonico, evidencia persistida y wiring de smoke sin reabrir turnero-gates, kiosco ni public-v6."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-060"]
+    prompt: "Portar solo el harness de admin-queue: runner UI, suite registry, hunk puntual de package.json, ajuste del runbook y contratos Node para el split fixtures/specs."
     created_at: 2026-03-28
     updated_at: 2026-03-28
 
