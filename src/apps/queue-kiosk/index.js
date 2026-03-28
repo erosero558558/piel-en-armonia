@@ -2248,6 +2248,7 @@ function ensureKioskSurfaceExecutiveReviewPanel() {
     );
     if (!(host instanceof HTMLElement)) {
         host = document.createElement('div');
+        host.id = 'kioskSurfaceExecutiveReviewHost';
         host.dataset.turneroKioskSurfaceExecutiveReview = 'true';
         host.className = 'turnero-surface-ops__stack';
         const packageHost = statusNode.parentElement?.querySelector(
@@ -2273,6 +2274,7 @@ function ensureKioskSurfaceExecutiveReviewPanel() {
             }
         }
     }
+    host.id = 'kioskSurfaceExecutiveReviewHost';
 
     let bannerHost = host.querySelector('[data-role="banner"]');
     if (!(bannerHost instanceof HTMLElement)) {

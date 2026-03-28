@@ -2287,6 +2287,7 @@ function ensureOperatorSurfaceExecutiveReviewPanel() {
     );
     if (!(host instanceof HTMLElement)) {
         host = document.createElement('div');
+        host.id = 'operatorSurfaceExecutiveReviewHost';
         host.dataset.turneroOperatorSurfaceExecutiveReview = 'true';
         host.className = 'turnero-surface-ops__stack';
         const packageHost = statusNode.parentElement?.querySelector(
@@ -2312,6 +2313,7 @@ function ensureOperatorSurfaceExecutiveReviewPanel() {
             }
         }
     }
+    host.id = 'operatorSurfaceExecutiveReviewHost';
 
     let bannerHost = host.querySelector('[data-role="banner"]');
     if (!(bannerHost instanceof HTMLElement)) {

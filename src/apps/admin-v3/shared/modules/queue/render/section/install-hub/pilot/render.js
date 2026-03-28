@@ -45,6 +45,8 @@ import {
     isFlowOsRecoveryPilotHostFrozen,
 } from '../../../../../../../../queue-shared/flow-os-recovery-freeze.js';
 
+const queueOpsPilotOpenDetailGroupIds = new Set();
+
 function resolvePublicShellDriftOptions(manifest = {}) {
     const config =
         manifest?.publicShellDrift ||
@@ -168,9 +170,12 @@ function renderPilotDetailGroup({
     meta = '',
     tone = 'neutral',
     content = '',
+    open = false,
 }) {
     return `
-        <details id="${id}" class="queue-ops-pilot__detail-group" data-tone="${tone}">
+        <details id="${id}" class="queue-ops-pilot__detail-group" data-tone="${tone}"${
+            open ? ' open' : ''
+        }>
             <summary class="queue-ops-pilot__detail-summary">
                 <div class="queue-ops-pilot__detail-copy">
                     <p class="queue-app-card__eyebrow">${eyebrow}</p>
@@ -1761,6 +1766,21 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
         return;
     }
 
+    const openDetailGroups = new Set(
+        Array.from(root.querySelectorAll('.queue-ops-pilot__detail-group'))
+            .filter(
+                (element) =>
+                    element instanceof HTMLDetailsElement &&
+                    element.id &&
+                    element.open
+            )
+            .map((element) => element.id)
+    );
+    const detailGroupShouldStayOpen = (id, defaultOpen = false) =>
+        queueOpsPilotOpenDetailGroupIds.has(id) ||
+        openDetailGroups.has(id) ||
+        defaultOpen;
+
     const pilot = buildQueueOpsPilot(manifest, detectedPlatform);
     const validationGroup = renderPilotDetailGroup({
         id: 'queueOpsPilotValidationGroup',
@@ -1774,6 +1794,7 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
                 : 'Checklist extendido'
         ),
         tone: pilot.smokeState,
+        open: detailGroupShouldStayOpen('queueOpsPilotValidationGroup'),
         content: `
             <section
                 id="queueOpsPilotSmoke"
@@ -1911,6 +1932,7 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
                 : 'On demand'
         ),
         tone: pilot.goLiveIssueState,
+        open: detailGroupShouldStayOpen('queueOpsPilotAdvancedGroup', true),
         content: `
             <div
                 id="queuePublicShellDriftCard"
@@ -2284,6 +2306,26 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
             </section>
         `
     );
+
+    root.querySelectorAll('.queue-ops-pilot__detail-group').forEach((element) => {
+        if (!(element instanceof HTMLDetailsElement) || !element.id) {
+            return;
+        }
+
+        if (element.open) {
+            queueOpsPilotOpenDetailGroupIds.add(element.id);
+        } else {
+            queueOpsPilotOpenDetailGroupIds.delete(element.id);
+        }
+
+        element.addEventListener('toggle', () => {
+            if (element.open) {
+                queueOpsPilotOpenDetailGroupIds.add(element.id);
+                return;
+            }
+            queueOpsPilotOpenDetailGroupIds.delete(element.id);
+        });
+    });
 
     const releaseWarRoomSnapshot = renderQueueOpsPilotReleaseWarRoom(
         root,
