@@ -128,6 +128,22 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
                     'units' => '',
                     'ambiguous' => true,
                 ],
+                'hcu005' => [
+                    'evolutionNote' => 'Rosacea facial en revision.',
+                    'diagnosticImpression' => 'Rosacea en control parcial.',
+                    'therapeuticPlan' => '',
+                    'careIndications' => '',
+                    'prescriptionItems' => [[
+                        'medication' => 'Metronidazol topico',
+                        'presentation' => '',
+                        'dose' => 'Aplicacion fina',
+                        'route' => 'Topica',
+                        'frequency' => '',
+                        'duration' => '',
+                        'quantity' => '',
+                        'instructions' => '',
+                    ]],
+                ],
             ],
             'recordMeta' => [
                 'archiveState' => 'active',
@@ -249,6 +265,9 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame(1, (int) ($meta['summary']['recordsGovernance']['overdueCopyRequests'] ?? -1));
         self::assertSame(1, (int) ($meta['summary']['recordsGovernance']['disclosures'] ?? -1));
         self::assertSame(1, (int) ($meta['summary']['recordsGovernance']['archiveEligible'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu005']['complete'] ?? -1));
+        self::assertSame(1, (int) ($meta['summary']['drafts']['hcu005']['partial'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu005']['missing'] ?? -1));
         self::assertSame('critical', (string) ($meta['summary']['diagnostics']['status'] ?? ''));
         self::assertCount(1, $meta['reviewQueue'] ?? []);
         self::assertSame('Paciente Clinico', (string) ($meta['reviewQueue'][0]['patientName'] ?? ''));
@@ -258,6 +277,8 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame('Alerta clinica abierta', (string) ($meta['reviewQueue'][0]['latestOpenEventTitle'] ?? ''));
         self::assertSame('blocked', (string) ($meta['reviewQueue'][0]['legalReadinessStatus'] ?? ''));
         self::assertSame('Bloqueada', (string) ($meta['reviewQueue'][0]['legalReadinessLabel'] ?? ''));
+        self::assertSame('partial', (string) ($meta['reviewQueue'][0]['hcu005Status'] ?? ''));
+        self::assertSame('HCU-005 parcial', (string) ($meta['reviewQueue'][0]['hcu005Label'] ?? ''));
         self::assertSame(1, (int) ($meta['reviewQueue'][0]['pendingCopyRequests'] ?? -1));
         self::assertSame(1, (int) ($meta['reviewQueue'][0]['overdueCopyRequests'] ?? -1));
         self::assertSame(1, (int) ($meta['reviewQueue'][0]['disclosureCount'] ?? -1));

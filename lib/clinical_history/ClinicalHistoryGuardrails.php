@@ -130,6 +130,13 @@ final class ClinicalHistoryGuardrails
                     'units' => '',
                     'ambiguous' => true,
                 ],
+                'hcu005' => [
+                    'evolutionNote' => '',
+                    'diagnosticImpression' => '',
+                    'therapeuticPlan' => '',
+                    'careIndications' => '',
+                    'prescriptionItems' => [],
+                ],
             ],
             'requiresHumanReview' => true,
             'confidence' => 0.38,
@@ -486,6 +493,10 @@ final class ClinicalHistoryGuardrails
             $current['posologiaBorrador'] ?? [],
             $incoming['posologiaBorrador'] ?? []
         );
+        $current['hcu005'] = ClinicalHistoryRepository::normalizeHcu005Draft(array_merge(
+            $current['hcu005'] ?? [],
+            $incoming['hcu005'] ?? []
+        ));
 
         return $current;
     }

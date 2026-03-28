@@ -94,7 +94,9 @@ function resolveClinicalMeta(snapshot) {
         return 'El snapshot clinico todavia no esta disponible en este panel.';
     }
 
-    const latestActivityAt = String(snapshot?.summary?.latestActivityAt || '').trim();
+    const latestActivityAt = String(
+        snapshot?.summary?.latestActivityAt || ''
+    ).trim();
     const unreadEvents = Number(snapshot?.summary?.events?.unreadCount || 0);
     if (latestActivityAt) {
         return unreadEvents > 0
@@ -117,7 +119,9 @@ function resolveClinicalSummary(snapshot) {
             snapshot?.summary?.drafts?.reviewQueueCount ||
             0
     );
-    const pendingAiCount = Number(snapshot?.summary?.drafts?.pendingAiCount || 0);
+    const pendingAiCount = Number(
+        snapshot?.summary?.drafts?.pendingAiCount || 0
+    );
     const openEventsCount = Number(snapshot?.summary?.events?.openCount || 0);
     const criticalEvents = Number(
         snapshot?.summary?.events?.openBySeverity?.critical || 0
@@ -131,9 +135,18 @@ function resolveClinicalSummary(snapshot) {
     const archiveEligible = Number(
         snapshot?.summary?.recordsGovernance?.archiveEligible || 0
     );
+    const hcu005Partial = Number(
+        snapshot?.summary?.drafts?.hcu005?.partial || 0
+    );
+    const hcu005Missing = Number(
+        snapshot?.summary?.drafts?.hcu005?.missing || 0
+    );
 
     if (criticalEvents > 0) {
         return `${criticalEvents} evento(s) critico(s) siguen abiertos y requieren validacion medica inmediata.`;
+    }
+    if (hcu005Partial > 0 || hcu005Missing > 0) {
+        return `${hcu005Partial} episodio(s) tienen HCU-005 parcial y ${hcu005Missing} siguen pendientes de cobertura trazable.`;
     }
     if (overdueCopyRequests > 0) {
         return `${overdueCopyRequests} copia(s) certificada(s) ya vencieron su SLA y requieren entrega o regularizacion.`;
@@ -158,7 +171,9 @@ function resolveClinicalSummary(snapshot) {
 }
 
 function resolveClinicalQueueHeadline(snapshot) {
-    const reviewQueue = Array.isArray(snapshot?.reviewQueue) ? snapshot.reviewQueue : [];
+    const reviewQueue = Array.isArray(snapshot?.reviewQueue)
+        ? snapshot.reviewQueue
+        : [];
     const first = reviewQueue[0] || null;
     if (!first) {
         return 'Sin casos pendientes';
@@ -168,7 +183,9 @@ function resolveClinicalQueueHeadline(snapshot) {
 }
 
 function resolveClinicalQueueMeta(snapshot) {
-    const reviewQueue = Array.isArray(snapshot?.reviewQueue) ? snapshot.reviewQueue : [];
+    const reviewQueue = Array.isArray(snapshot?.reviewQueue)
+        ? snapshot.reviewQueue
+        : [];
     const first = reviewQueue[0] || null;
     if (!first) {
         return 'Cuando existan episodios en revision medico-legal apareceran aqui.';
@@ -185,6 +202,9 @@ function resolveClinicalQueueMeta(snapshot) {
     const pendingCopyRequests = Number(
         snapshot?.summary?.recordsGovernance?.pendingCopyRequests || 0
     );
+    const hcu005Partial = Number(
+        snapshot?.summary?.drafts?.hcu005?.partial || 0
+    );
     const confidence = Number(first?.confidence || 0);
     const confidenceLabel =
         Number.isFinite(confidence) && confidence > 0
@@ -192,7 +212,7 @@ function resolveClinicalQueueMeta(snapshot) {
             : 'sin score de confianza';
 
     return reviewQueueCount > 1
-        ? `${reviewQueueCount} caso(s) en cola • ${missingFields} dato(s) faltante(s) • ${pendingCopyRequests} copia(s) pendiente(s) • ${confidenceLabel}`
+        ? `${reviewQueueCount} caso(s) en cola • ${missingFields} dato(s) faltante(s) • ${pendingCopyRequests} copia(s) pendiente(s) • ${hcu005Partial} HCU-005 parcial(es) • ${confidenceLabel}`
         : `${missingFields} dato(s) faltante(s) • ${pendingCopyRequests} copia(s) pendiente(s) • ${confidenceLabel}`;
 }
 
@@ -215,7 +235,9 @@ function resolveClinicalEventMeta(snapshot) {
 
     const unreadEvents = Number(snapshot?.summary?.events?.unreadCount || 0);
     const openEvents = Number(snapshot?.summary?.events?.openCount || 0);
-    const occurredAt = String(first?.occurredAt || first?.createdAt || '').trim();
+    const occurredAt = String(
+        first?.occurredAt || first?.createdAt || ''
+    ).trim();
 
     return [
         occurredAt ? formatDateTime(occurredAt) : '',
@@ -331,7 +353,10 @@ export function setOverviewMetrics(state) {
         .getElementById('dashboardClinicalHistoryChip')
         ?.setAttribute('data-state', resolveClinicalChipTone(clinical));
     setText('#dashboardClinicalHistoryMeta', resolveClinicalMeta(clinical));
-    setText('#dashboardClinicalHistorySummary', resolveClinicalSummary(clinical));
+    setText(
+        '#dashboardClinicalHistorySummary',
+        resolveClinicalSummary(clinical)
+    );
     setText(
         '#clinicalHistorySessionCount',
         Number(clinical?.summary?.sessions?.total || 0)
@@ -352,8 +377,14 @@ export function setOverviewMetrics(state) {
         '#clinicalHistoryEventCount',
         Number(clinical?.summary?.events?.openCount || 0)
     );
-    setText('#clinicalHistoryQueueHeadline', resolveClinicalQueueHeadline(clinical));
+    setText(
+        '#clinicalHistoryQueueHeadline',
+        resolveClinicalQueueHeadline(clinical)
+    );
     setText('#clinicalHistoryQueueMeta', resolveClinicalQueueMeta(clinical));
-    setText('#clinicalHistoryEventHeadline', resolveClinicalEventHeadline(clinical));
+    setText(
+        '#clinicalHistoryEventHeadline',
+        resolveClinicalEventHeadline(clinical)
+    );
     setText('#clinicalHistoryEventMeta', resolveClinicalEventMeta(clinical));
 }

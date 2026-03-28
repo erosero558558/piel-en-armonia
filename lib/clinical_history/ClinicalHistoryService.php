@@ -596,7 +596,7 @@ final class ClinicalHistoryService
     private function buildClinicalRecordPayload(array $store, array $session, array $draft): array
     {
         $session = ClinicalHistoryRepository::adminSession($session);
-        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $draft = $this->synchronizeHcu005Draft(ClinicalHistoryRepository::adminDraft($draft));
         $events = ClinicalHistoryRepository::findEventsBySessionId(
             $store,
             (string) ($session['sessionId'] ?? '')
@@ -635,6 +635,9 @@ final class ClinicalHistoryService
             $disclosureLog,
             $accessAudit
         );
+        $hcu005Status = is_array($legalReadiness['hcu005Status'] ?? null)
+            ? $legalReadiness['hcu005Status']
+            : ['status' => 'missing', 'label' => 'HCU-005 pendiente', 'summary' => ''];
 
         return [
             'session' => $session,
@@ -671,10 +674,11 @@ final class ClinicalHistoryService
                 'updatedAt' => (string) ($draft['updatedAt'] ?? $session['updatedAt'] ?? ''),
             ],
             'liveNote' => [
-                'summary' => (string) (($draft['clinicianDraft']['resumen'] ?? '') ?: ($draft['intake']['resumenClinico'] ?? '')),
+                'summary' => $this->buildLiveNoteSummary($draft),
                 'draftVersion' => max(1, (int) ($draft['version'] ?? 1)),
                 'requiresHumanReview' => (bool) ($draft['requiresHumanReview'] ?? true),
                 'reviewStatus' => (string) ($draft['reviewStatus'] ?? ''),
+                'hcu005Status' => $hcu005Status,
             ],
             'documents' => $documents,
             'consent' => $consent,
@@ -1018,19 +1022,26 @@ final class ClinicalHistoryService
             ));
         }
 
-        return $draft;
+        return $this->synchronizeHcu005Draft($draft);
     }
 
     private function applyClinicalApproval(array $session, array $draft, array $legalReadiness): array
     {
-        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $draft = $this->synchronizeHcu005Draft(ClinicalHistoryRepository::adminDraft($draft));
         $documents = ClinicalHistoryRepository::normalizeClinicalDocuments(
             is_array($draft['documents'] ?? null) ? $draft['documents'] : []
         );
-        $summary = ClinicalHistoryRepository::trimString(
-            ($draft['clinicianDraft']['resumen'] ?? '') ?: ($draft['intake']['resumenClinico'] ?? '')
+        $clinicianDraft = ClinicalHistoryRepository::normalizeClinicianDraft(
+            is_array($draft['clinicianDraft'] ?? null) ? $draft['clinicianDraft'] : []
         );
+        $hcu005 = ClinicalHistoryRepository::normalizeHcu005Draft(
+            $clinicianDraft['hcu005'] ?? []
+        );
+        $summary = ClinicalHistoryRepository::renderHcu005Summary($hcu005);
         $content = $this->buildFinalNoteContent($session, $draft);
+        $prescriptionItems = ClinicalHistoryRepository::normalizePrescriptionItems(
+            $hcu005['prescriptionItems'] ?? []
+        );
         $now = local_date('c');
 
         $documents['finalNote'] = [
@@ -1040,7 +1051,13 @@ final class ClinicalHistoryService
             'version' => max(1, (int) ($draft['version'] ?? 1)) + 1,
             'generatedAt' => $now,
             'confidential' => true,
+            'sections' => [
+                'hcu005' => ClinicalHistoryRepository::normalizeHcu005Section($hcu005),
+            ],
         ];
+        $documents['prescription']['items'] = $prescriptionItems;
+        $documents['prescription']['medication'] = ClinicalHistoryRepository::renderPrescriptionMedicationMirror($prescriptionItems);
+        $documents['prescription']['directions'] = ClinicalHistoryRepository::renderPrescriptionDirectionsMirror($prescriptionItems);
 
         if (ClinicalHistoryRepository::trimString($documents['prescription']['medication'] ?? '') !== ''
             || ClinicalHistoryRepository::trimString($documents['prescription']['directions'] ?? '') !== ''
@@ -1076,9 +1093,11 @@ final class ClinicalHistoryService
     {
         $patient = is_array($session['patient'] ?? null) ? $session['patient'] : [];
         $intake = is_array($draft['intake'] ?? null) ? $draft['intake'] : [];
-        $clinicianDraft = is_array($draft['clinicianDraft'] ?? null) ? $draft['clinicianDraft'] : [];
-        $documents = ClinicalHistoryRepository::normalizeClinicalDocuments(
-            is_array($draft['documents'] ?? null) ? $draft['documents'] : []
+        $clinicianDraft = ClinicalHistoryRepository::normalizeClinicianDraft(
+            is_array($draft['clinicianDraft'] ?? null) ? $draft['clinicianDraft'] : []
+        );
+        $hcu005 = ClinicalHistoryRepository::normalizeHcu005Draft(
+            $clinicianDraft['hcu005'] ?? []
         );
         $consent = ClinicalHistoryRepository::normalizeConsentRecord(
             is_array($draft['consent'] ?? null) ? $draft['consent'] : []
@@ -1092,17 +1111,79 @@ final class ClinicalHistoryService
             ),
             'Motivo de consulta: ' . ClinicalHistoryRepository::trimString($intake['motivoConsulta'] ?? ''),
             'Enfermedad actual: ' . ClinicalHistoryRepository::trimString($intake['enfermedadActual'] ?? ''),
-            'Resumen medico: ' . ClinicalHistoryRepository::trimString(($clinicianDraft['resumen'] ?? '') ?: ($intake['resumenClinico'] ?? '')),
-            'CIE-10 sugeridos: ' . implode(', ', ClinicalHistoryRepository::normalizeStringList($clinicianDraft['cie10Sugeridos'] ?? [])),
-            'Plan/indicaciones: ' . ClinicalHistoryRepository::trimString(
-                ($documents['prescription']['directions'] ?? '') ?: ($clinicianDraft['tratamientoBorrador'] ?? '')
-            ),
+            'Evolucion clinica: ' . ClinicalHistoryRepository::trimString($hcu005['evolutionNote'] ?? ''),
+            'Impresion diagnostica: ' . ClinicalHistoryRepository::trimString($hcu005['diagnosticImpression'] ?? ''),
+            'Plan terapeutico: ' . ClinicalHistoryRepository::trimString($hcu005['therapeuticPlan'] ?? ''),
+            'Indicaciones / cuidados: ' . ClinicalHistoryRepository::trimString($hcu005['careIndications'] ?? ''),
             'Consentimiento: ' . ClinicalHistoryRepository::trimString($consent['status'] ?? 'not_required'),
         ];
 
         return trim(implode("\n", array_filter($parts, static function ($item): bool {
             return is_string($item) && trim($item) !== '';
         })));
+    }
+
+    private function synchronizeHcu005Draft(array $draft): array
+    {
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $clinicianDraft = ClinicalHistoryRepository::normalizeClinicianDraft(
+            is_array($draft['clinicianDraft'] ?? null) ? $draft['clinicianDraft'] : []
+        );
+        $documents = ClinicalHistoryRepository::normalizeClinicalDocuments(
+            is_array($draft['documents'] ?? null) ? $draft['documents'] : []
+        );
+
+        $existingItems = ClinicalHistoryRepository::normalizePrescriptionItems(
+            $documents['prescription']['items'] ?? []
+        );
+        if (($clinicianDraft['hcu005']['prescriptionItems'] ?? []) === [] && $existingItems !== []) {
+            $clinicianDraft['hcu005']['prescriptionItems'] = $existingItems;
+            $clinicianDraft = ClinicalHistoryRepository::normalizeClinicianDraft($clinicianDraft);
+        }
+
+        $hcu005 = ClinicalHistoryRepository::normalizeHcu005Draft(
+            $clinicianDraft['hcu005'] ?? []
+        );
+        $documents['finalNote']['sections'] = [
+            'hcu005' => ClinicalHistoryRepository::normalizeHcu005Section($hcu005),
+        ];
+        $documents['finalNote']['summary'] = ClinicalHistoryRepository::renderHcu005Summary($hcu005);
+        $documents['finalNote']['content'] = $this->buildFinalNoteContent([], [
+            'intake' => $draft['intake'] ?? [],
+            'clinicianDraft' => $clinicianDraft,
+            'consent' => $draft['consent'] ?? [],
+        ]);
+        $documents['prescription']['items'] = ClinicalHistoryRepository::normalizePrescriptionItems(
+            $hcu005['prescriptionItems'] ?? []
+        );
+        $documents['prescription']['medication'] = ClinicalHistoryRepository::renderPrescriptionMedicationMirror(
+            $documents['prescription']['items']
+        );
+        $documents['prescription']['directions'] = ClinicalHistoryRepository::renderPrescriptionDirectionsMirror(
+            $documents['prescription']['items']
+        );
+
+        $draft['clinicianDraft'] = $clinicianDraft;
+        $draft['documents'] = $documents;
+
+        return $draft;
+    }
+
+    private function buildLiveNoteSummary(array $draft): string
+    {
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $clinicianDraft = ClinicalHistoryRepository::normalizeClinicianDraft(
+            is_array($draft['clinicianDraft'] ?? null) ? $draft['clinicianDraft'] : []
+        );
+        $hcu005 = ClinicalHistoryRepository::normalizeHcu005Draft(
+            $clinicianDraft['hcu005'] ?? []
+        );
+
+        return ClinicalHistoryRepository::trimString(
+            ClinicalHistoryRepository::renderHcu005Summary($hcu005)
+                ?: ($clinicianDraft['resumen'] ?? '')
+                ?: ($draft['intake']['resumenClinico'] ?? '')
+        );
     }
 
     private function buildAiTraceSnapshot(array $session, array $draft): array

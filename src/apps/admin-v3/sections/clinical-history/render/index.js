@@ -135,6 +135,29 @@ function emptyPosology() {
     };
 }
 
+function emptyPrescriptionItem() {
+    return {
+        medication: '',
+        presentation: '',
+        dose: '',
+        route: '',
+        frequency: '',
+        duration: '',
+        quantity: '',
+        instructions: '',
+    };
+}
+
+function emptyHcu005() {
+    return {
+        evolutionNote: '',
+        diagnosticImpression: '',
+        therapeuticPlan: '',
+        careIndications: '',
+        prescriptionItems: [],
+    };
+}
+
 function emptyDraft() {
     return {
         sessionId: '',
@@ -173,6 +196,7 @@ function emptyDraft() {
             cie10Sugeridos: [],
             tratamientoBorrador: '',
             posologiaBorrador: emptyPosology(),
+            hcu005: emptyHcu005(),
         },
         recordMeta: {
             archiveState: 'active',
@@ -198,6 +222,9 @@ function emptyDraft() {
                 version: 1,
                 generatedAt: '',
                 confidential: true,
+                sections: {
+                    hcu005: emptyHcu005(),
+                },
             },
             prescription: {
                 status: 'draft',
@@ -205,6 +232,7 @@ function emptyDraft() {
                 directions: '',
                 signedAt: '',
                 confidential: true,
+                items: [],
             },
             certificate: {
                 status: 'draft',
@@ -286,6 +314,7 @@ function emptyReview() {
             summary: '',
             checklist: [],
             blockingReasons: [],
+            hcu005Status: hcu005StatusMeta('missing'),
         },
         recordsGovernance: {},
         accessAudit: [],
@@ -357,39 +386,256 @@ function normalizePosology(posology) {
     };
 }
 
+function normalizePrescriptionItem(item) {
+    const source = item && typeof item === 'object' ? item : {};
+    return {
+        medication: normalizeString(source.medication),
+        presentation: normalizeString(source.presentation),
+        dose: normalizeString(source.dose),
+        route: normalizeString(source.route),
+        frequency: normalizeString(source.frequency),
+        duration: normalizeString(source.duration),
+        quantity: normalizeString(source.quantity),
+        instructions: normalizeString(source.instructions),
+    };
+}
+
+function normalizePrescriptionItems(items) {
+    return normalizeList(items).map(normalizePrescriptionItem);
+}
+
+function prescriptionItemStarted(item) {
+    return Object.values(normalizePrescriptionItem(item)).some(
+        (value) => normalizeString(value) !== ''
+    );
+}
+
+function normalizeHcu005(source, fallback = {}) {
+    const defaults = emptyHcu005();
+    const safeSource = source && typeof source === 'object' ? source : {};
+    const safeFallback =
+        fallback && typeof fallback === 'object' ? fallback : {};
+
+    return {
+        ...defaults,
+        ...safeFallback,
+        ...safeSource,
+        evolutionNote: normalizeString(
+            safeSource.evolutionNote ?? safeFallback.evolutionNote
+        ),
+        diagnosticImpression: normalizeString(
+            safeSource.diagnosticImpression ?? safeFallback.diagnosticImpression
+        ),
+        therapeuticPlan: normalizeString(
+            safeSource.therapeuticPlan ?? safeFallback.therapeuticPlan
+        ),
+        careIndications: normalizeString(
+            safeSource.careIndications ?? safeFallback.careIndications
+        ),
+        prescriptionItems: normalizePrescriptionItems(
+            safeSource.prescriptionItems ?? safeFallback.prescriptionItems
+        ),
+    };
+}
+
+function renderHcu005Summary(hcu005) {
+    const normalized = normalizeHcu005(hcu005);
+    return (
+        normalized.diagnosticImpression ||
+        normalized.evolutionNote ||
+        [normalized.therapeuticPlan, normalized.careIndications]
+            .filter(Boolean)
+            .join(' | ')
+    );
+}
+
+function renderHcu005Content(hcu005) {
+    const normalized = normalizeHcu005(hcu005);
+    return [
+        normalized.evolutionNote
+            ? `Evolución clínica: ${normalized.evolutionNote}`
+            : '',
+        normalized.diagnosticImpression
+            ? `Impresión diagnóstica: ${normalized.diagnosticImpression}`
+            : '',
+        normalized.therapeuticPlan
+            ? `Plan terapéutico: ${normalized.therapeuticPlan}`
+            : '',
+        normalized.careIndications
+            ? `Indicaciones / cuidados: ${normalized.careIndications}`
+            : '',
+    ]
+        .filter(Boolean)
+        .join('\n');
+}
+
+function renderPrescriptionMedicationMirror(items) {
+    return normalizePrescriptionItems(items)
+        .filter(prescriptionItemStarted)
+        .map((item) =>
+            [item.medication, item.presentation].filter(Boolean).join(' ')
+        )
+        .filter(Boolean)
+        .join('\n');
+}
+
+function renderPrescriptionDirectionsMirror(items) {
+    return normalizePrescriptionItems(items)
+        .filter(prescriptionItemStarted)
+        .map((item) => {
+            const segments = [
+                item.dose,
+                item.route,
+                item.frequency,
+                item.duration,
+                item.quantity ? `Cantidad ${item.quantity}` : '',
+            ].filter(Boolean);
+            const base = item.medication
+                ? `${item.medication}: ${segments.join(' • ')}`
+                : segments.join(' • ');
+            return item.instructions
+                ? [base, item.instructions].filter(Boolean).join('. ')
+                : base;
+        })
+        .filter(Boolean)
+        .join('\n');
+}
+
+function evaluateHcu005(hcu005) {
+    const normalized = normalizeHcu005(hcu005);
+    const startedItems = normalized.prescriptionItems.filter(
+        prescriptionItemStarted
+    );
+    const incompleteItems = startedItems.filter((item) =>
+        Object.values(item).some((value) => normalizeString(value) === '')
+    );
+    const hasEvolutionNote = normalized.evolutionNote !== '';
+    const hasDiagnosticImpression = normalized.diagnosticImpression !== '';
+    const hasPlanOrCare =
+        normalized.therapeuticPlan !== '' || normalized.careIndications !== '';
+    const hasAnyContent =
+        hasEvolutionNote ||
+        hasDiagnosticImpression ||
+        hasPlanOrCare ||
+        startedItems.length > 0;
+    const status = !hasAnyContent
+        ? 'missing'
+        : hasEvolutionNote &&
+            hasDiagnosticImpression &&
+            hasPlanOrCare &&
+            incompleteItems.length === 0
+          ? 'complete'
+          : 'partial';
+
+    return {
+        status,
+        hasEvolutionNote,
+        hasDiagnosticImpression,
+        hasPlanOrCare,
+        startedPrescriptionItems: startedItems.length,
+        incompletePrescriptionItems: incompleteItems.length,
+    };
+}
+
+function hcu005StatusMeta(status) {
+    switch (normalizeString(status)) {
+        case 'complete':
+            return {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolución, la impresión diagnóstica y el plan ya sostienen el HCU-005.',
+            };
+        case 'partial':
+            return {
+                status: 'partial',
+                label: 'HCU-005 parcial',
+                summary:
+                    'El episodio ya tiene contenido HCU-005, pero faltan bloques o prescripciones por cerrar.',
+            };
+        default:
+            return {
+                status: 'missing',
+                label: 'HCU-005 pendiente',
+                summary:
+                    'Todavía no hay cobertura suficiente del HCU-005 para este episodio.',
+            };
+    }
+}
+
 function normalizeDocuments(documents) {
     const defaults = emptyDraft().documents;
     const source = documents && typeof documents === 'object' ? documents : {};
+    const sectionSource =
+        source?.finalNote?.sections?.hcu005 &&
+        typeof source.finalNote.sections.hcu005 === 'object'
+            ? source.finalNote.sections.hcu005
+            : {};
+    const fallbackHcu005 = normalizeHcu005({
+        evolutionNote: source?.finalNote?.summary,
+        diagnosticImpression: '',
+        therapeuticPlan: '',
+        careIndications: source?.prescription?.directions,
+        prescriptionItems:
+            source?.prescription?.items || source?.prescriptionItems || [],
+    });
+    const hcu005 = normalizeHcu005(sectionSource, fallbackHcu005);
+    const prescriptionItems = normalizePrescriptionItems(
+        source?.prescription?.items ||
+            source?.prescriptionItems ||
+            hcu005.prescriptionItems ||
+            []
+    );
+    const summary = renderHcu005Summary(hcu005);
+    const content = renderHcu005Content(hcu005);
+    const medication = renderPrescriptionMedicationMirror(prescriptionItems);
+    const directions = renderPrescriptionDirectionsMirror(prescriptionItems);
+
     return {
         finalNote: {
             ...defaults.finalNote,
             ...(source.finalNote && typeof source.finalNote === 'object'
                 ? source.finalNote
                 : {}),
-            status: normalizeString(source?.finalNote?.status || defaults.finalNote.status),
-            summary: normalizeString(source?.finalNote?.summary),
-            content: normalizeString(source?.finalNote?.content),
-            version: Math.max(1, normalizeNumber(source?.finalNote?.version || defaults.finalNote.version)),
+            status: normalizeString(
+                source?.finalNote?.status || defaults.finalNote.status
+            ),
+            summary,
+            content,
+            version: Math.max(
+                1,
+                normalizeNumber(
+                    source?.finalNote?.version || defaults.finalNote.version
+                )
+            ),
             generatedAt: normalizeString(source?.finalNote?.generatedAt),
             confidential: source?.finalNote?.confidential !== false,
+            sections: {
+                hcu005,
+            },
         },
         prescription: {
             ...defaults.prescription,
             ...(source.prescription && typeof source.prescription === 'object'
                 ? source.prescription
                 : {}),
-            status: normalizeString(source?.prescription?.status || defaults.prescription.status),
-            medication: normalizeString(source?.prescription?.medication),
-            directions: normalizeString(source?.prescription?.directions),
+            status: normalizeString(
+                source?.prescription?.status || defaults.prescription.status
+            ),
+            medication,
+            directions,
             signedAt: normalizeString(source?.prescription?.signedAt),
             confidential: source?.prescription?.confidential !== false,
+            items: prescriptionItems,
         },
         certificate: {
             ...defaults.certificate,
             ...(source.certificate && typeof source.certificate === 'object'
                 ? source.certificate
                 : {}),
-            status: normalizeString(source?.certificate?.status || defaults.certificate.status),
+            status: normalizeString(
+                source?.certificate?.status || defaults.certificate.status
+            ),
             summary: normalizeString(source?.certificate?.summary),
             restDays: normalizeNullableInt(source?.certificate?.restDays),
             signedAt: normalizeString(source?.certificate?.signedAt),
@@ -412,7 +658,8 @@ function normalizeConsent(consent) {
         risksExplained: normalizeString(source.risksExplained),
         alternativesExplained: normalizeString(source.alternativesExplained),
         capacityAssessment: normalizeString(source.capacityAssessment),
-        privateCommunicationConfirmed: source.privateCommunicationConfirmed === true,
+        privateCommunicationConfirmed:
+            source.privateCommunicationConfirmed === true,
         companionShareAuthorized: source.companionShareAuthorized === true,
         acceptedAt: normalizeString(source.acceptedAt),
         declinedAt: normalizeString(source.declinedAt),
@@ -494,18 +741,20 @@ function normalizeDisclosureEntry(entry) {
 
 function normalizeCopyRequest(entry) {
     const source = entry && typeof entry === 'object' ? entry : {};
-    const effectiveStatus = normalizeString(source.effectiveStatus) || (() => {
-        if (
-            normalizeString(source.status) === 'delivered' ||
-            normalizeString(source.deliveredAt)
-        ) {
-            return 'delivered';
-        }
-        if (isPastTimestamp(source.dueAt)) {
-            return 'overdue';
-        }
-        return 'requested';
-    })();
+    const effectiveStatus =
+        normalizeString(source.effectiveStatus) ||
+        (() => {
+            if (
+                normalizeString(source.status) === 'delivered' ||
+                normalizeString(source.deliveredAt)
+            ) {
+                return 'delivered';
+            }
+            if (isPastTimestamp(source.dueAt)) {
+                return 'overdue';
+            }
+            return 'requested';
+        })();
 
     return {
         requestId: normalizeString(source.requestId || source.id),
@@ -555,7 +804,8 @@ function normalizeArchiveReadiness(readiness) {
 }
 
 function normalizeRecordsGovernance(governance) {
-    const source = governance && typeof governance === 'object' ? governance : {};
+    const source =
+        governance && typeof governance === 'object' ? governance : {};
     return {
         archiveState: normalizeString(source.archiveState || 'active'),
         archiveReadiness: normalizeArchiveReadiness(source.archiveReadiness),
@@ -627,12 +877,14 @@ function normalizeLegalReadiness(readiness) {
         blockingReasons: normalizeList(
             source.blockingReasons || source.approvalBlockedReasons
         ),
+        hcu005Status: hcu005StatusMeta(source?.hcu005Status?.status),
     };
 }
 
 function normalizeDraftSnapshot(draft) {
     const defaults = emptyDraft();
     const source = draft && typeof draft === 'object' ? draft : {};
+    const normalizedDocuments = normalizeDocuments(source.documents);
     const intakeSource =
         source.intake && typeof source.intake === 'object' ? source.intake : {};
     const clinicianSource =
@@ -718,7 +970,7 @@ function normalizeDraftSnapshot(draft) {
                       ),
                   }
                 : cloneValue(defaults.recordMeta),
-        documents: normalizeDocuments(source.documents),
+        documents: normalizedDocuments,
         consent: normalizeConsent(source.consent),
         approval: normalizeApproval(source.approval),
         pendingAi:
@@ -775,9 +1027,72 @@ function normalizeDraftSnapshot(draft) {
             posologiaBorrador: normalizePosology(
                 clinicianSource.posologiaBorrador
             ),
+            hcu005: normalizeHcu005(
+                clinicianSource.hcu005,
+                normalizeHcu005({
+                    evolutionNote:
+                        clinicianSource.resumen || intakeSource.resumenClinico,
+                    diagnosticImpression: normalizeStringList(
+                        clinicianSource.cie10Sugeridos
+                    ).join(', '),
+                    therapeuticPlan: clinicianSource.tratamientoBorrador,
+                    careIndications:
+                        clinicianSource?.posologiaBorrador?.texto ||
+                        normalizedDocuments.prescription.directions,
+                    prescriptionItems:
+                        clinicianSource?.hcu005?.prescriptionItems ||
+                        normalizedDocuments.prescription.items,
+                })
+            ),
         },
         updatedAt: normalizeString(source.updatedAt),
         createdAt: normalizeString(source.createdAt),
+    };
+}
+
+function synchronizeDraftHcu005(draft) {
+    const snapshot = draft && typeof draft === 'object' ? draft : emptyDraft();
+    const clinicianDraft = {
+        ...snapshot.clinicianDraft,
+        hcu005: normalizeHcu005(
+            snapshot?.clinicianDraft?.hcu005,
+            normalizeHcu005({
+                evolutionNote:
+                    snapshot?.clinicianDraft?.resumen ||
+                    snapshot?.intake?.resumenClinico,
+                diagnosticImpression: normalizeStringList(
+                    snapshot?.clinicianDraft?.cie10Sugeridos
+                ).join(', '),
+                therapeuticPlan: snapshot?.clinicianDraft?.tratamientoBorrador,
+                careIndications:
+                    snapshot?.clinicianDraft?.posologiaBorrador?.texto ||
+                    snapshot?.documents?.prescription?.directions,
+                prescriptionItems:
+                    snapshot?.documents?.prescription?.items || [],
+            })
+        ),
+    };
+    const documents = normalizeDocuments({
+        ...snapshot.documents,
+        finalNote: {
+            ...snapshot?.documents?.finalNote,
+            sections: {
+                ...(snapshot?.documents?.finalNote?.sections || {}),
+                hcu005: normalizeHcu005(clinicianDraft.hcu005),
+            },
+        },
+        prescription: {
+            ...snapshot?.documents?.prescription,
+            items: normalizePrescriptionItems(
+                clinicianDraft.hcu005.prescriptionItems
+            ),
+        },
+    });
+
+    return {
+        ...snapshot,
+        clinicianDraft,
+        documents,
     };
 }
 
@@ -828,6 +1143,9 @@ function normalizeReviewQueueItem(item) {
         legalReadinessStatus: normalizeString(source.legalReadinessStatus),
         legalReadinessLabel: normalizeString(source.legalReadinessLabel),
         legalReadinessSummary: normalizeString(source.legalReadinessSummary),
+        hcu005Status: normalizeString(source.hcu005Status || 'missing'),
+        hcu005Label: normalizeString(source.hcu005Label),
+        hcu005Summary: normalizeString(source.hcu005Summary),
         approvalBlockedReasons: normalizeList(source.approvalBlockedReasons),
         summary: normalizeString(source.summary),
         createdAt: normalizeString(source.createdAt),
@@ -885,7 +1203,9 @@ function normalizeReviewPayload(payload) {
         source.documents || review.draft.documents
     );
     review.consent = normalizeConsent(source.consent || review.draft.consent);
-    review.approval = normalizeApproval(source.approval || review.draft.approval);
+    review.approval = normalizeApproval(
+        source.approval || review.draft.approval
+    );
     review.approvalState = normalizeApproval(
         source.approvalState || source.approval || review.draft.approval
     );
@@ -1278,6 +1598,7 @@ function buildSummaryCards(review) {
     const patient = review.session.patient;
     const draft = review.draft;
     const readiness = normalizeLegalReadiness(review.legalReadiness);
+    const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
     const pendingAiStatus = formatPendingAiStatus(
         review.session.pendingAi?.status || draft.pendingAi?.status
     );
@@ -1302,6 +1623,17 @@ function buildSummaryCards(review) {
             value: readiness.label || 'Bloqueada',
             meta: pendingAiStatus || readiness.summary || 'Sin resumen legal',
             tone: statusTone,
+        },
+        {
+            title: 'HCU-005',
+            value: hcu005Status.label,
+            meta: hcu005Status.summary,
+            tone:
+                hcu005Status.status === 'complete'
+                    ? 'success'
+                    : hcu005Status.status === 'partial'
+                      ? 'warning'
+                      : 'neutral',
         },
         {
             title: 'Cierre',
@@ -1427,6 +1759,7 @@ function buildAttachmentStrip(review) {
 
 function buildLegalReadinessPanel(review) {
     const readiness = normalizeLegalReadiness(review.legalReadiness);
+    const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
     const checklist = normalizeList(readiness.checklist);
 
     if (checklist.length === 0) {
@@ -1444,14 +1777,20 @@ function buildLegalReadinessPanel(review) {
                 <div>
                     <h4>Aptitud de cierre</h4>
                     <p>${escapeHtml(
-                        readiness.summary || 'Checklist medico-legal del episodio activo.'
+                        readiness.summary ||
+                            'Checklist medico-legal del episodio activo.'
                     )}</p>
                 </div>
-                <span class="clinical-history-mini-chip" data-tone="${escapeHtml(
-                    readiness.ready ? 'success' : 'warning'
-                )}">
-                    ${escapeHtml(readiness.label || 'Bloqueada')}
-                </span>
+                <div class="clinical-history-mini-chip-row">
+                    <span class="clinical-history-mini-chip" data-tone="${escapeHtml(
+                        readiness.ready ? 'success' : 'warning'
+                    )}">
+                        ${escapeHtml(readiness.label || 'Bloqueada')}
+                    </span>
+                    <span class="clinical-history-mini-chip">
+                        ${escapeHtml(hcu005Status.label)}
+                    </span>
+                </div>
             </header>
             <div class="clinical-history-events">
                 ${checklist
@@ -1467,7 +1806,9 @@ function buildLegalReadinessPanel(review) {
                             >
                                 <div class="clinical-history-event-head">
                                     <span class="clinical-history-mini-chip">${escapeHtml(
-                                        normalizeString(item?.label || item?.code)
+                                        normalizeString(
+                                            item?.label || item?.code
+                                        )
                                     )}</span>
                                     <span class="clinical-history-mini-chip">${escapeHtml(
                                         normalizeString(item?.status) === 'pass'
@@ -1637,14 +1978,18 @@ function buildRecordsGovernancePanel(review, saving = false) {
             ),
         (entry) => `
             <article class="clinical-history-event-card" data-tone="${escapeHtml(
-                entry.targetType === 'external_third_party' ? 'warning' : 'neutral'
+                entry.targetType === 'external_third_party'
+                    ? 'warning'
+                    : 'neutral'
             )}">
                 <div class="clinical-history-event-head">
                     <span class="clinical-history-mini-chip">${escapeHtml(
                         formatDisclosureTarget(entry.targetType)
                     )}</span>
                     <span class="clinical-history-mini-chip">${escapeHtml(
-                        entry.authorizedByConsent === true ? 'Consentido' : 'Registrado'
+                        entry.authorizedByConsent === true
+                            ? 'Consentido'
+                            : 'Registrado'
                     )}</span>
                 </div>
                 <strong>${escapeHtml(
@@ -1731,17 +2076,21 @@ function buildRecordsGovernancePanel(review, saving = false) {
                         : latestCopy.requestId
                           ? `Ultima ${latestCopy.statusLabel.toLowerCase()}`
                           : 'Sin solicitudes activas',
-                    governance.copyRequestSummary.overdue > 0 ? 'warning' : 'neutral'
+                    governance.copyRequestSummary.overdue > 0
+                        ? 'warning'
+                        : 'neutral'
                 )}
                 ${summaryStatCard(
                     'Disclosure',
                     String(governance.disclosureSummary.total || 0),
                     latestDisclosure.disclosureId
-                        ? `${
-                              formatDisclosureTarget(latestDisclosure.targetType)
-                          } • ${readableTimestamp(latestDisclosure.performedAt)}`
+                        ? `${formatDisclosureTarget(
+                              latestDisclosure.targetType
+                          )} • ${readableTimestamp(latestDisclosure.performedAt)}`
                         : 'Sin registros recientes',
-                    governance.disclosureSummary.total > 0 ? 'neutral' : 'success'
+                    governance.disclosureSummary.total > 0
+                        ? 'neutral'
+                        : 'success'
                 )}
                 ${summaryStatCard(
                     'Ultimo acceso',
@@ -1764,7 +2113,10 @@ function buildRecordsGovernancePanel(review, saving = false) {
                                 'patient',
                                 [
                                     { value: 'patient', label: 'Paciente' },
-                                    { value: 'companion', label: 'Acompanante' },
+                                    {
+                                        value: 'companion',
+                                        label: 'Acompanante',
+                                    },
                                     {
                                         value: 'external_third_party',
                                         label: 'Tercero externo',
@@ -1864,7 +2216,10 @@ function buildRecordsGovernancePanel(review, saving = false) {
                                 'patient',
                                 [
                                     { value: 'patient', label: 'Paciente' },
-                                    { value: 'companion', label: 'Acompanante' },
+                                    {
+                                        value: 'companion',
+                                        label: 'Acompanante',
+                                    },
                                     {
                                         value: 'external_third_party',
                                         label: 'Tercero externo',
@@ -2062,9 +2417,7 @@ function buildWorkspaceTabs(activeWorkspace, meta) {
         ({ workspace, label, metaLabel }) => {
             const isActive = activeWorkspace === workspace;
             const workspaceMetaLabel =
-                typeof metaLabel === 'function'
-                    ? metaLabel(meta)
-                    : '';
+                typeof metaLabel === 'function' ? metaLabel(meta) : '';
             return `
                 <button
                     type="button"
@@ -2097,6 +2450,7 @@ function buildQueueItemChips(item, status) {
     return [
         status,
         item.legalReadinessStatus === 'ready' ? 'Lista para aprobar' : '',
+        item.hcu005Label || '',
         formatConfidence(item.confidence),
         queueAlertMeta(item),
         item.attachmentCount > 0 ? `${item.attachmentCount} adjunto(s)` : '',
@@ -2131,6 +2485,7 @@ function buildQueueItemCard(item, selectedSessionId, loading) {
     const sessionId = normalizeString(item.sessionId);
     const summary = truncateText(
         item.legalReadinessSummary ||
+            item.hcu005Summary ||
             item.summary ||
             queueReasons(item).join(' • ') ||
             'Caso listo para lectura clinica.',
@@ -2645,29 +3000,141 @@ function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
     );
 }
 
-function buildClinicalHistoryClinicianSection(draft, disabled, reviewReasons) {
+function buildPrescriptionItemEditor(item, index, disabled) {
+    const safeItem = normalizePrescriptionItem(item);
+    return `
+        <article class="clinical-history-event-card" data-hcu005-prescription-item="${escapeHtml(
+            String(index)
+        )}">
+            <div class="clinical-history-event-head">
+                <span class="clinical-history-mini-chip">Prescripción ${escapeHtml(
+                    String(index + 1)
+                )}</span>
+                <button
+                    type="button"
+                    class="clinical-history-mini-chip"
+                    data-clinical-draft-action="remove-prescription-item"
+                    data-prescription-index="${escapeHtml(String(index))}"
+                    ${disabled ? 'disabled' : ''}
+                >
+                    Quitar
+                </button>
+            </div>
+            ${buildClinicalHistoryInlineGrid([
+                inputField(
+                    `hcu005_prescription_${index}_medication`,
+                    'Medicamento',
+                    safeItem.medication,
+                    {
+                        placeholder: 'Nombre del medicamento',
+                        disabled,
+                    }
+                ),
+                inputField(
+                    `hcu005_prescription_${index}_presentation`,
+                    'Presentación',
+                    safeItem.presentation,
+                    {
+                        placeholder: 'Tableta, crema, solución',
+                        disabled,
+                    }
+                ),
+            ])}
+            ${buildClinicalHistoryInlineGrid([
+                inputField(
+                    `hcu005_prescription_${index}_dose`,
+                    'Dosis',
+                    safeItem.dose,
+                    {
+                        placeholder: '500 mg',
+                        disabled,
+                    }
+                ),
+                inputField(
+                    `hcu005_prescription_${index}_route`,
+                    'Vía',
+                    safeItem.route,
+                    {
+                        placeholder: 'VO, tópica, IM',
+                        disabled,
+                    }
+                ),
+                inputField(
+                    `hcu005_prescription_${index}_frequency`,
+                    'Frecuencia',
+                    safeItem.frequency,
+                    {
+                        placeholder: 'Cada 12 horas',
+                        disabled,
+                    }
+                ),
+            ])}
+            ${buildClinicalHistoryInlineGrid([
+                inputField(
+                    `hcu005_prescription_${index}_duration`,
+                    'Duración',
+                    safeItem.duration,
+                    {
+                        placeholder: '7 días',
+                        disabled,
+                    }
+                ),
+                inputField(
+                    `hcu005_prescription_${index}_quantity`,
+                    'Cantidad',
+                    safeItem.quantity,
+                    {
+                        placeholder: '14 tabletas',
+                        disabled,
+                    }
+                ),
+            ])}
+            ${textareaField(
+                `hcu005_prescription_${index}_instructions`,
+                'Indicaciones',
+                safeItem.instructions,
+                {
+                    rows: 3,
+                    placeholder:
+                        'Instrucciones detalladas para uso y seguimiento.',
+                    disabled,
+                }
+            )}
+        </article>
+    `;
+}
+
+function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons) {
+    const hcu005 = normalizeHcu005(draft.clinicianDraft.hcu005);
+    const visibleItems =
+        hcu005.prescriptionItems.length > 0
+            ? hcu005.prescriptionItems
+            : [emptyPrescriptionItem()];
+
     return buildClinicalHistorySection(
-        'Sintesis del medico',
-        'Bloque solo interno: resumen, CIE-10, plan y guardrails.',
+        'HCU-form.005/2008',
+        'Paridad semántica trazable para evolución, impresión, plan e indicaciones del episodio.',
         `
                 ${textareaField(
-                    'clinician_resumen',
-                    'Resumen medico',
-                    draft.clinicianDraft.resumen,
+                    'hcu005_evolution_note',
+                    'Evolución clínica',
+                    hcu005.evolutionNote,
                     {
-                        rows: 4,
-                        placeholder: 'Sintesis final para presentar o firmar.',
+                        rows: 5,
+                        placeholder:
+                            'Describe la evolución clínica del episodio.',
                         disabled,
                     }
                 )}
                 ${buildClinicalHistoryInlineGrid([
                     textareaField(
-                        'clinician_preguntas_faltantes',
-                        'Preguntas faltantes',
-                        listToTextarea(draft.clinicianDraft.preguntasFaltantes),
+                        'hcu005_diagnostic_impression',
+                        'Impresión diagnóstica',
+                        hcu005.diagnosticImpression,
                         {
                             rows: 4,
-                            placeholder: 'Una linea por pregunta.',
+                            placeholder:
+                                'Impresión diagnóstica clínicamente defendible.',
                             disabled,
                         }
                     ),
@@ -2682,89 +3149,71 @@ function buildClinicalHistoryClinicianSection(draft, disabled, reviewReasons) {
                         }
                     ),
                 ])}
+                ${buildClinicalHistoryInlineGrid([
+                    textareaField(
+                        'hcu005_therapeutic_plan',
+                        'Plan terapéutico',
+                        hcu005.therapeuticPlan,
+                        {
+                            rows: 4,
+                            placeholder: 'Plan terapéutico del episodio.',
+                            disabled,
+                        }
+                    ),
+                    textareaField(
+                        'hcu005_care_indications',
+                        'Indicaciones / cuidados',
+                        hcu005.careIndications,
+                        {
+                            rows: 4,
+                            placeholder:
+                                'Cuidados, advertencias y recomendaciones.',
+                            disabled,
+                        }
+                    ),
+                ])}
                 ${textareaField(
-                    'clinician_tratamiento',
-                    'Tratamiento borrador',
-                    draft.clinicianDraft.tratamientoBorrador,
+                    'clinician_preguntas_faltantes',
+                    'Preguntas faltantes',
+                    listToTextarea(draft.clinicianDraft.preguntasFaltantes),
                     {
-                        rows: 4,
-                        placeholder:
-                            'No se muestra al paciente; requiere firma humana.',
+                        rows: 3,
+                        placeholder: 'Una línea por pregunta pendiente.',
                         disabled,
                     }
                 )}
-                ${buildClinicalHistoryInlineGrid([
-                    textareaField(
-                        'posologia_texto',
-                        'Posologia borrador',
-                        draft.clinicianDraft.posologiaBorrador.texto,
-                        {
-                            rows: 4,
-                            placeholder: 'Ej. 1 comp cada 12 h por 7 dias.',
-                            disabled,
-                        }
-                    ),
-                    textareaField(
-                        'posologia_base_calculo',
-                        'Base de calculo',
-                        draft.clinicianDraft.posologiaBorrador.baseCalculo,
-                        {
-                            rows: 4,
-                            placeholder: 'Regla, mg/kg, fuente o criterio.',
-                            disabled,
-                        }
-                    ),
-                ])}
-                ${buildClinicalHistoryInlineGrid([
-                    inputField(
-                        'posologia_peso_kg',
-                        'Peso usado (kg)',
-                        draft.clinicianDraft.posologiaBorrador.pesoKg ?? '',
-                        {
-                            type: 'number',
-                            min: '0',
-                            step: '0.1',
-                            disabled,
-                        }
-                    ),
-                    inputField(
-                        'posologia_edad_anios',
-                        'Edad usada (anos)',
-                        draft.clinicianDraft.posologiaBorrador.edadAnios ?? '',
-                        {
-                            type: 'number',
-                            min: '0',
-                            step: '1',
-                            disabled,
-                        }
-                    ),
-                    inputField(
-                        'posologia_units',
-                        'Unidades',
-                        draft.clinicianDraft.posologiaBorrador.units,
-                        {
-                            placeholder: 'mg, mg/kg/dia, ml',
-                            disabled,
-                        }
-                    ),
-                ])}
-                ${checkboxField(
-                    'posologia_ambiguous',
-                    'La posologia sigue ambigua',
-                    draft.clinicianDraft.posologiaBorrador.ambiguous === true,
-                    {
-                        hint: 'Mantiene el caso en revisado con cautela.',
-                        disabled,
-                    }
-                )}
+                <div class="clinical-history-section-block">
+                    <div class="clinical-history-event-head">
+                        <strong>Prescripciones</strong>
+                        <button
+                            type="button"
+                            class="clinical-history-mini-chip"
+                            data-clinical-draft-action="add-prescription-item"
+                            ${disabled ? 'disabled' : ''}
+                        >
+                            Agregar prescripción
+                        </button>
+                    </div>
+                    <div class="clinical-history-events">
+                        ${visibleItems
+                            .map((item, index) =>
+                                buildPrescriptionItemEditor(
+                                    item,
+                                    index,
+                                    disabled
+                                )
+                            )
+                            .join('')}
+                    </div>
+                </div>
                 ${checkboxField(
                     'requires_human_review',
-                    'Requiere revision humana',
+                    'Requiere revisión humana',
                     draft.requiresHumanReview === true,
                     {
                         hint:
                             reviewReasons ||
-                            'Toda aprobacion final sigue siendo humana.',
+                            'Toda aprobación final sigue siendo un acto clínico humano.',
                         disabled,
                     }
                 )}
@@ -2800,14 +3249,24 @@ function buildClinicalHistoryConsentSection(draft, disabled) {
                     { disabled }
                 )}
                 ${buildClinicalHistoryInlineGrid([
-                    inputField('consent_informed_by', 'Quien informo', draft.consent.informedBy, {
-                        placeholder: 'Profesional responsable',
-                        disabled,
-                    }),
-                    inputField('consent_informed_at', 'Fecha/hora', draft.consent.informedAt, {
-                        placeholder: '2026-03-26T20:00:00-05:00',
-                        disabled,
-                    }),
+                    inputField(
+                        'consent_informed_by',
+                        'Quien informo',
+                        draft.consent.informedBy,
+                        {
+                            placeholder: 'Profesional responsable',
+                            disabled,
+                        }
+                    ),
+                    inputField(
+                        'consent_informed_at',
+                        'Fecha/hora',
+                        draft.consent.informedAt,
+                        {
+                            placeholder: '2026-03-26T20:00:00-05:00',
+                            disabled,
+                        }
+                    ),
                 ])}
                 ${buildClinicalHistoryInlineGrid([
                     textareaField(
@@ -2849,37 +3308,43 @@ function buildClinicalHistoryConsentSection(draft, disabled) {
                     draft.consent.companionShareAuthorized === true,
                     { disabled }
                 )}
-                ${textareaField('consent_notes', 'Notas de consentimiento', draft.consent.notes, {
-                    rows: 3,
-                    disabled,
-                })}
+                ${textareaField(
+                    'consent_notes',
+                    'Notas de consentimiento',
+                    draft.consent.notes,
+                    {
+                        rows: 3,
+                        disabled,
+                    }
+                )}
             `
     );
 }
 
 function buildClinicalHistoryDocumentsSection(draft, disabled) {
     return buildClinicalHistorySection(
-        'Documentos de salida',
-        'Nota final, receta y certificado dentro del mismo cockpit clinico.',
+        'Certificado y salida',
+        'La nota final y la receta se regeneran desde HCU-005; aquí solo mantienes el certificado.',
         `
-                ${textareaField(
-                    'document_final_note_summary',
-                    'Resumen de nota final',
-                    draft.documents.finalNote.summary,
-                    { rows: 3, disabled }
-                )}
-                ${textareaField(
-                    'document_prescription_medication',
-                    'Receta / medicamento',
-                    draft.documents.prescription.medication,
-                    { rows: 3, disabled }
-                )}
-                ${textareaField(
-                    'document_prescription_directions',
-                    'Indicaciones de receta',
-                    draft.documents.prescription.directions,
-                    { rows: 3, disabled }
-                )}
+                <article class="clinical-history-event-card">
+                    <div class="clinical-history-event-head">
+                        <span class="clinical-history-mini-chip">Mirror HCU-005</span>
+                        <span class="clinical-history-mini-chip">${escapeHtml(
+                            hcu005StatusMeta(
+                                evaluateHcu005(draft.clinicianDraft.hcu005)
+                                    .status
+                            ).label
+                        )}</span>
+                    </div>
+                    <p>${escapeHtml(
+                        draft.documents.finalNote.summary ||
+                            'La nota final se construirá desde HCU-005.'
+                    )}</p>
+                    <small>${escapeHtml(
+                        draft.documents.prescription.directions ||
+                            'La receta se reflejará aquí cuando existan prescripciones completas.'
+                    )}</small>
+                </article>
                 ${buildClinicalHistoryInlineGrid([
                     textareaField(
                         'document_certificate_summary',
@@ -2913,7 +3378,7 @@ function buildDraftForm(draft, saving) {
     return `
         <div class="clinical-history-form-grid">
             ${buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue)}
-            ${buildClinicalHistoryClinicianSection(draft, disabled, reviewReasons)}
+            ${buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons)}
             ${buildClinicalHistoryConsentSection(draft, disabled)}
             ${buildClinicalHistoryDocumentsSection(draft, disabled)}
         </div>
@@ -3016,7 +3481,7 @@ function serializeDraftForm(form, baseDraft) {
     };
 
     snapshot.clinicianDraft.resumen = normalizeString(
-        readValue('clinician_resumen')
+        readValue('hcu005_evolution_note')
     );
     snapshot.clinicianDraft.preguntasFaltantes = serializeTextareaLines(
         readValue('clinician_preguntas_faltantes')
@@ -3025,15 +3490,49 @@ function serializeDraftForm(form, baseDraft) {
         readValue('clinician_cie10')
     );
     snapshot.clinicianDraft.tratamientoBorrador = normalizeString(
-        readValue('clinician_tratamiento')
+        readValue('hcu005_therapeutic_plan')
     );
     snapshot.clinicianDraft.posologiaBorrador = normalizePosology({
-        texto: readValue('posologia_texto'),
-        baseCalculo: readValue('posologia_base_calculo'),
-        pesoKg: readValue('posologia_peso_kg'),
-        edadAnios: readValue('posologia_edad_anios'),
-        units: readValue('posologia_units'),
-        ambiguous: readChecked('posologia_ambiguous'),
+        texto: readValue('hcu005_care_indications'),
+        baseCalculo: '',
+        pesoKg: snapshot.clinicianDraft.posologiaBorrador.pesoKg,
+        edadAnios: snapshot.clinicianDraft.posologiaBorrador.edadAnios,
+        units: snapshot.clinicianDraft.posologiaBorrador.units,
+        ambiguous: false,
+    });
+    snapshot.clinicianDraft.hcu005 = normalizeHcu005({
+        evolutionNote: readValue('hcu005_evolution_note'),
+        diagnosticImpression: readValue('hcu005_diagnostic_impression'),
+        therapeuticPlan: readValue('hcu005_therapeutic_plan'),
+        careIndications: readValue('hcu005_care_indications'),
+        prescriptionItems: Array.from(
+            form.querySelectorAll('[data-hcu005-prescription-item]')
+        )
+            .map((row, index) =>
+                normalizePrescriptionItem({
+                    medication: readValue(
+                        `hcu005_prescription_${index}_medication`
+                    ),
+                    presentation: readValue(
+                        `hcu005_prescription_${index}_presentation`
+                    ),
+                    dose: readValue(`hcu005_prescription_${index}_dose`),
+                    route: readValue(`hcu005_prescription_${index}_route`),
+                    frequency: readValue(
+                        `hcu005_prescription_${index}_frequency`
+                    ),
+                    duration: readValue(
+                        `hcu005_prescription_${index}_duration`
+                    ),
+                    quantity: readValue(
+                        `hcu005_prescription_${index}_quantity`
+                    ),
+                    instructions: readValue(
+                        `hcu005_prescription_${index}_instructions`
+                    ),
+                })
+            )
+            .filter(prescriptionItemStarted),
     });
 
     snapshot.consent = normalizeConsent({
@@ -3057,12 +3556,9 @@ function serializeDraftForm(form, baseDraft) {
     snapshot.documents = normalizeDocuments({
         finalNote: {
             ...snapshot.documents.finalNote,
-            summary: readValue('document_final_note_summary'),
         },
         prescription: {
             ...snapshot.documents.prescription,
-            medication: readValue('document_prescription_medication'),
-            directions: readValue('document_prescription_directions'),
         },
         certificate: {
             ...snapshot.documents.certificate,
@@ -3072,7 +3568,7 @@ function serializeDraftForm(form, baseDraft) {
     });
 
     snapshot.requiresHumanReview = readChecked('requires_human_review');
-    return snapshot;
+    return synchronizeDraftHcu005(snapshot);
 }
 
 function readClinicalControlValue(id) {
@@ -3090,7 +3586,9 @@ function readClinicalControlValue(id) {
 function buildGovernanceActionPayload(action) {
     const review = currentReviewSource();
     const sessionId = normalizeString(review.session.sessionId);
-    const copyNotes = normalizeString(readClinicalControlValue('governance_copy_notes'));
+    const copyNotes = normalizeString(
+        readClinicalControlValue('governance_copy_notes')
+    );
     const requestId = normalizeString(
         readClinicalControlValue('governance_copy_request_id')
     );
@@ -3110,7 +3608,9 @@ function buildGovernanceActionPayload(action) {
             action: 'request_certified_copy',
             requestedByType:
                 normalizeString(
-                    readClinicalControlValue('governance_copy_requested_by_type')
+                    readClinicalControlValue(
+                        'governance_copy_requested_by_type'
+                    )
                 ) || 'patient',
             requestedByName: normalizeString(
                 readClinicalControlValue('governance_copy_requested_by_name')
@@ -3177,13 +3677,22 @@ async function submitGovernanceAction(action) {
     const review = currentReviewSource();
     const sessionId = normalizeString(review.session.sessionId);
     if (!sessionId) {
-        createToast('Selecciona un caso clinico antes de registrar gobernanza documental.', 'warning');
+        createToast(
+            'Selecciona un caso clinico antes de registrar gobernanza documental.',
+            'warning'
+        );
         return null;
     }
 
     const payload = buildGovernanceActionPayload(action);
-    if (action === 'deliver-certified-copy' && !normalizeString(payload.requestId)) {
-        createToast('Selecciona un request ID antes de marcar la entrega de la copia certificada.', 'warning');
+    if (
+        action === 'deliver-certified-copy' &&
+        !normalizeString(payload.requestId)
+    ) {
+        createToast(
+            'Selecciona un request ID antes de marcar la entrega de la copia certificada.',
+            'warning'
+        );
         return null;
     }
     if (
@@ -3191,7 +3700,10 @@ async function submitGovernanceAction(action) {
         payload.targetType === 'companion' &&
         review.consent?.companionShareAuthorized !== true
     ) {
-        createToast('El disclosure a acompanante requiere autorizacion expresa en el consentimiento.', 'warning');
+        createToast(
+            'El disclosure a acompanante requiere autorizacion expresa en el consentimiento.',
+            'warning'
+        );
         return null;
     }
     if (
@@ -3199,7 +3711,10 @@ async function submitGovernanceAction(action) {
         payload.targetType === 'external_third_party' &&
         !normalizeString(payload.legalBasis)
     ) {
-        createToast('El disclosure a tercero externo requiere base legal escrita.', 'warning');
+        createToast(
+            'El disclosure a tercero externo requiere base legal escrita.',
+            'warning'
+        );
         return null;
     }
     if (
@@ -3208,7 +3723,10 @@ async function submitGovernanceAction(action) {
         review.archiveReadiness?.eligibleForPassive !== true &&
         !normalizeString(payload.overrideReason)
     ) {
-        createToast('Para pasar a archivo pasivo antes de tiempo debes documentar una razon de override.', 'warning');
+        createToast(
+            'Para pasar a archivo pasivo antes de tiempo debes documentar una razon de override.',
+            'warning'
+        );
         return null;
     }
 
@@ -3246,13 +3764,25 @@ async function submitGovernanceAction(action) {
 
         const targetLabel = currentSelectionLabel(nextReview);
         if (action === 'request-certified-copy') {
-            createToast(`Solicitud de copia certificada registrada para ${targetLabel}.`, 'success');
+            createToast(
+                `Solicitud de copia certificada registrada para ${targetLabel}.`,
+                'success'
+            );
         } else if (action === 'deliver-certified-copy') {
-            createToast(`Entrega de copia certificada registrada para ${targetLabel}.`, 'success');
+            createToast(
+                `Entrega de copia certificada registrada para ${targetLabel}.`,
+                'success'
+            );
         } else if (action === 'log-disclosure') {
-            createToast(`Disclosure documentado para ${targetLabel}.`, 'success');
+            createToast(
+                `Disclosure documentado para ${targetLabel}.`,
+                'success'
+            );
         } else if (action === 'set-passive-archive') {
-            createToast(`El record de ${targetLabel} ya quedo marcado en archivo pasivo.`, 'success');
+            createToast(
+                `El record de ${targetLabel} ya quedo marcado en archivo pasivo.`,
+                'success'
+            );
         }
 
         return nextReview;
@@ -3569,6 +4099,38 @@ function captureDraftFromDom() {
     syncDraftStatusMeta();
 }
 
+function mutatePrescriptionItems(mutator) {
+    const rootForm = document.getElementById('clinicalHistoryDraftForm');
+    const baseDraft =
+        rootForm instanceof HTMLFormElement
+            ? serializeDraftForm(rootForm, currentDraftSource())
+            : currentDraftSource();
+    const nextDraft = synchronizeDraftHcu005(cloneValue(baseDraft));
+    const items = normalizePrescriptionItems(
+        nextDraft?.clinicianDraft?.hcu005?.prescriptionItems || []
+    );
+    const mutatedItems = mutator(items) || items;
+
+    nextDraft.clinicianDraft.hcu005 = normalizeHcu005(
+        nextDraft.clinicianDraft.hcu005,
+        {
+            prescriptionItems: mutatedItems,
+        }
+    );
+
+    const review = currentReviewSource();
+    const normalizedNext = synchronizeDraftHcu005(nextDraft);
+    const dirty =
+        JSON.stringify(normalizedNext) !==
+        JSON.stringify(normalizeDraftSnapshot(review.draft));
+
+    setClinicalHistoryState({
+        draftForm: cloneValue(normalizedNext),
+        dirty,
+    });
+    renderClinicalHistorySection();
+}
+
 async function maybeSwitchSession(sessionId) {
     const desiredSessionId = normalizeString(sessionId);
     const slice = getClinicalHistorySlice();
@@ -3682,6 +4244,10 @@ function bindClinicalHistoryEvents() {
             event.target instanceof Element
                 ? event.target.closest('[data-clinical-review-action]')
                 : null;
+        const draftActionTarget =
+            event.target instanceof Element
+                ? event.target.closest('[data-clinical-draft-action]')
+                : null;
         const workspaceTarget =
             event.target instanceof Element
                 ? event.target.closest('[data-clinical-workspace]')
@@ -3718,6 +4284,27 @@ function bindClinicalHistoryEvents() {
         }
 
         if (!(actionTarget instanceof HTMLButtonElement)) {
+            if (draftActionTarget instanceof HTMLButtonElement) {
+                event.preventDefault();
+                const draftAction = normalizeString(
+                    draftActionTarget.dataset.clinicalDraftAction
+                );
+                if (draftAction === 'add-prescription-item') {
+                    mutatePrescriptionItems((items) => [
+                        ...items,
+                        emptyPrescriptionItem(),
+                    ]);
+                    return;
+                }
+                if (draftAction === 'remove-prescription-item') {
+                    const index = normalizeNumber(
+                        draftActionTarget.dataset.prescriptionIndex
+                    );
+                    mutatePrescriptionItems((items) =>
+                        items.filter((_, itemIndex) => itemIndex !== index)
+                    );
+                }
+            }
             return;
         }
 

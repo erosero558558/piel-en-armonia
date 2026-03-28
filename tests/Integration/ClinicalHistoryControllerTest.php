@@ -147,6 +147,22 @@ final class ClinicalHistoryControllerTest extends TestCase
                     'units' => 'mg',
                     'ambiguous' => false,
                 ],
+                'hcu005' => [
+                    'evolutionNote' => 'Adolescente con placas pruriginosas de 2 semanas.',
+                    'diagnosticImpression' => 'Dermatitis atopica en evaluacion.',
+                    'therapeuticPlan' => 'Control sintomatico y reevaluacion medica.',
+                    'careIndications' => 'Vigilar progresion y evitar desencadenantes.',
+                    'prescriptionItems' => [[
+                        'medication' => 'Prednisona',
+                        'presentation' => 'Tabletas 20 mg',
+                        'dose' => '20 mg',
+                        'route' => 'VO',
+                        'frequency' => 'Cada 12 horas',
+                        'duration' => '5 dias',
+                        'quantity' => '10 tabletas',
+                        'instructions' => 'Tomar despues de alimentos.',
+                    ]],
+                ],
             ],
             'requiresHumanReview' => false,
             'confidence' => 0.82,
@@ -201,6 +217,14 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertSame(200, $review['status']);
         self::assertSame(['L20.9'], $review['payload']['data']['draft']['clinicianDraft']['cie10Sugeridos'] ?? []);
         self::assertSame('Prednisona 20 mg cada 12 horas', (string) ($review['payload']['data']['draft']['clinicianDraft']['tratamientoBorrador'] ?? ''));
+        self::assertSame(
+            'Adolescente con placas pruriginosas de 2 semanas.',
+            (string) ($review['payload']['data']['draft']['clinicianDraft']['hcu005']['evolutionNote'] ?? '')
+        );
+        self::assertSame(
+            'complete',
+            (string) ($review['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? '')
+        );
 
         self::assertSame('blocked', (string) ($review['payload']['data']['legalReadiness']['status'] ?? ''));
         self::assertSame(
@@ -225,6 +249,22 @@ final class ClinicalHistoryControllerTest extends TestCase
                     'clinicianDraft' => [
                         'resumen' => 'Resumen aprobado por medico.',
                         'preguntasFaltantes' => [],
+                        'hcu005' => [
+                            'evolutionNote' => 'Resumen aprobado por medico.',
+                            'diagnosticImpression' => 'Dermatitis en evaluacion clinica.',
+                            'therapeuticPlan' => 'Prednisona 20 mg cada 12 horas por 5 dias.',
+                            'careIndications' => 'Control en 72 horas y vigilancia de sintomas.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Prednisona',
+                                'presentation' => 'Tabletas 20 mg',
+                                'dose' => '20 mg',
+                                'route' => 'VO',
+                                'frequency' => 'Cada 12 horas',
+                                'duration' => '5 dias',
+                                'quantity' => '10 tabletas',
+                                'instructions' => 'Tomar despues de alimentos.',
+                            ]],
+                        ],
                     ],
                 ],
                 'documents' => [
@@ -239,6 +279,10 @@ final class ClinicalHistoryControllerTest extends TestCase
 
         self::assertSame(200, $recordPatch['status']);
         self::assertSame('ready', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame(
+            'complete',
+            (string) ($recordPatch['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? '')
+        );
 
         $approve = $this->captureResponse(
             static fn () => \ClinicalHistoryController::episodeActionPost([
@@ -255,6 +299,14 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertSame('approved', (string) ($approve['payload']['data']['draft']['reviewStatus'] ?? ''));
         self::assertSame('approved', (string) ($approve['payload']['data']['approval']['status'] ?? ''));
         self::assertSame('Resumen aprobado por medico.', (string) ($approve['payload']['data']['draft']['clinicianDraft']['resumen'] ?? ''));
+        self::assertSame(
+            'Resumen aprobado por medico.',
+            (string) ($approve['payload']['data']['documents']['finalNote']['sections']['hcu005']['evolutionNote'] ?? '')
+        );
+        self::assertSame(
+            'Prednisona',
+            (string) ($approve['payload']['data']['documents']['prescription']['items'][0]['medication'] ?? '')
+        );
         self::assertSame('admin@local', (string) ($approve['payload']['data']['approval']['approvedBy'] ?? ''));
         self::assertNotSame('', (string) ($approve['payload']['data']['approval']['approvedAt'] ?? ''));
     }
@@ -311,6 +363,22 @@ final class ClinicalHistoryControllerTest extends TestCase
                             'units' => '',
                             'ambiguous' => false,
                         ],
+                        'hcu005' => [
+                            'evolutionNote' => 'Rosacea con plan topico y control.',
+                            'diagnosticImpression' => 'Rosacea inflamatoria en control.',
+                            'therapeuticPlan' => 'Mantener metronidazol topico.',
+                            'careIndications' => 'Fotoproteccion y seguimiento clinico.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Metronidazol topico',
+                                'presentation' => 'Gel 0.75%',
+                                'dose' => 'Aplicacion fina',
+                                'route' => 'Topica',
+                                'frequency' => 'Nocturna',
+                                'duration' => '8 semanas',
+                                'quantity' => '1 tubo',
+                                'instructions' => 'Aplicar sobre piel limpia.',
+                            ]],
+                        ],
                     ],
                 ],
                 'documents' => [
@@ -337,6 +405,10 @@ final class ClinicalHistoryControllerTest extends TestCase
 
         self::assertSame(200, $recordPatch['status']);
         self::assertSame('blocked', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame(
+            'complete',
+            (string) ($recordPatch['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? '')
+        );
         self::assertSame(
             'consent_incomplete',
             (string) ($recordPatch['payload']['data']['approvalBlockedReasons'][0]['code'] ?? '')
@@ -384,6 +456,10 @@ final class ClinicalHistoryControllerTest extends TestCase
 
         self::assertSame(200, $consentAccepted['status']);
         self::assertSame('ready', (string) ($consentAccepted['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame(
+            'complete',
+            (string) ($consentAccepted['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? '')
+        );
 
         $approved = $this->captureResponse(
             static fn () => \ClinicalHistoryController::episodeActionPost([
@@ -458,6 +534,22 @@ final class ClinicalHistoryControllerTest extends TestCase
                             'units' => '',
                             'ambiguous' => false,
                         ],
+                        'hcu005' => [
+                            'evolutionNote' => 'Dermatitis leve en control.',
+                            'diagnosticImpression' => 'Dermatitis en control.',
+                            'therapeuticPlan' => 'Emoliente y observacion.',
+                            'careIndications' => 'Aplicacion local dos veces al dia.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Emoliente',
+                                'presentation' => 'Crema',
+                                'dose' => 'Aplicacion local',
+                                'route' => 'Topica',
+                                'frequency' => 'Dos veces al dia',
+                                'duration' => '14 dias',
+                                'quantity' => '1 tubo',
+                                'instructions' => 'Aplicar en antebrazos.',
+                            ]],
+                        ],
                     ],
                 ],
                 'documents' => [
@@ -485,6 +577,10 @@ final class ClinicalHistoryControllerTest extends TestCase
 
         self::assertSame(200, $recordPatch['status']);
         self::assertSame('ready', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame(
+            'complete',
+            (string) ($recordPatch['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? '')
+        );
         self::assertSame('edit_record', (string) ($recordPatch['payload']['data']['accessAudit'][0]['action'] ?? ''));
 
         $_GET = ['sessionId' => (string) ($session['sessionId'] ?? '')];
@@ -623,6 +719,161 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertSame('set_archive_state', (string) ($archivePassive['payload']['data']['accessAudit'][0]['action'] ?? ''));
         self::assertSame('passive', (string) ($archivePassive['payload']['data']['archiveReadiness']['archiveState'] ?? ''));
         self::assertSame('Pasiva', (string) ($archivePassive['payload']['data']['recordsGovernance']['archiveReadiness']['label'] ?? ''));
+    }
+
+    public function testClinicalHistoryApprovalBlocksWhenHcu005EvolutionIsMissing(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Eva Mora',
+                    'email' => 'eva@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-test';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-test';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Control dermatologico',
+                        'enfermedadActual' => 'Seguimiento de lesiones',
+                        'antecedentes' => 'Sin antecedentes relevantes',
+                        'alergias' => 'Niega alergias',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 29,
+                            'pesoKg' => 55,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => '',
+                        'preguntasFaltantes' => [],
+                        'hcu005' => [
+                            'evolutionNote' => '',
+                            'diagnosticImpression' => 'Dermatitis leve en observacion.',
+                            'therapeuticPlan' => 'Continuar hidratacion cutanea.',
+                            'careIndications' => '',
+                            'prescriptionItems' => [],
+                        ],
+                    ],
+                ],
+                'consent' => [
+                    'required' => false,
+                    'status' => 'not_required',
+                ],
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+        self::assertSame('blocked', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame('partial', (string) ($recordPatch['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? ''));
+        self::assertContains(
+            'hcu005_evolution_missing',
+            array_values(array_map(
+                static fn (array $reason): string => (string) ($reason['code'] ?? ''),
+                $recordPatch['payload']['data']['approvalBlockedReasons'] ?? []
+            ))
+        );
+    }
+
+    public function testClinicalHistoryApprovalBlocksWhenHcu005PrescriptionIsIncomplete(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Luis Naranjo',
+                    'email' => 'luis@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-test';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-test';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Acne inflamatorio',
+                        'enfermedadActual' => 'Brote reciente en rostro',
+                        'antecedentes' => 'Sin antecedentes relevantes',
+                        'alergias' => 'Niega alergias',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 24,
+                            'pesoKg' => 68,
+                            'sexoBiologico' => 'masculino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Acne inflamatorio en manejo inicial.',
+                        'preguntasFaltantes' => [],
+                        'hcu005' => [
+                            'evolutionNote' => 'Acne inflamatorio en manejo inicial.',
+                            'diagnosticImpression' => 'Acne inflamatorio moderado.',
+                            'therapeuticPlan' => 'Iniciar tratamiento topico.',
+                            'careIndications' => 'Control dermatologico en 4 semanas.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Adapaleno',
+                                'presentation' => '',
+                                'dose' => 'Aplicacion fina',
+                                'route' => 'Topica',
+                                'frequency' => 'Nocturna',
+                                'duration' => '8 semanas',
+                                'quantity' => '',
+                                'instructions' => 'Aplicar en rostro limpio.',
+                            ]],
+                        ],
+                    ],
+                ],
+                'consent' => [
+                    'required' => false,
+                    'status' => 'not_required',
+                ],
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+        self::assertSame('blocked', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame('partial', (string) ($recordPatch['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? ''));
+        self::assertContains(
+            'hcu005_prescription_incomplete',
+            array_values(array_map(
+                static fn (array $reason): string => (string) ($reason['code'] ?? ''),
+                $recordPatch['payload']['data']['approvalBlockedReasons'] ?? []
+            ))
+        );
     }
 
     public function testClinicalHistoryFallbackKeepsTranscriptAndMarksReviewRequired(): void
@@ -802,6 +1053,22 @@ final class ClinicalHistoryControllerTest extends TestCase
                             'edadAnios' => 29,
                             'units' => '',
                             'ambiguous' => false,
+                        ],
+                        'hcu005' => [
+                            'evolutionNote' => 'Acne inflamatorio facial de 3 meses.',
+                            'diagnosticImpression' => 'Acne inflamatorio facial en control.',
+                            'therapeuticPlan' => 'Retinoide topico nocturno.',
+                            'careIndications' => 'Aplicacion nocturna por 8 semanas.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Retinoide topico',
+                                'presentation' => 'Gel',
+                                'dose' => 'Aplicacion fina',
+                                'route' => 'Topica',
+                                'frequency' => 'Nocturna',
+                                'duration' => '8 semanas',
+                                'quantity' => '1 tubo',
+                                'instructions' => 'Aplicar sobre rostro limpio.',
+                            ]],
                         ],
                     ],
                 ],

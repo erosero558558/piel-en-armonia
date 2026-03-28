@@ -30,6 +30,68 @@ function buildClinicalRecordPayload({
     archiveReadiness = {},
     recordsGovernance = {},
 }) {
+    const normalizedHcu005 = {
+        evolutionNote:
+            documents.finalNote?.sections?.hcu005?.evolutionNote ||
+            clinicianSummary ||
+            '',
+        diagnosticImpression:
+            documents.finalNote?.sections?.hcu005?.diagnosticImpression ||
+            (legalReadiness.status === 'ready'
+                ? 'Rosacea inflamatoria en control clinico.'
+                : ''),
+        therapeuticPlan:
+            documents.finalNote?.sections?.hcu005?.therapeuticPlan ||
+            (legalReadiness.status === 'ready'
+                ? 'Mantener manejo topico y control clinico.'
+                : ''),
+        careIndications:
+            documents.finalNote?.sections?.hcu005?.careIndications ||
+            (legalReadiness.status === 'ready'
+                ? 'Evitar desencadenantes, fotoproteccion y reevaluacion.'
+                : ''),
+        prescriptionItems: Array.isArray(
+            documents.prescription?.items ||
+                documents.finalNote?.sections?.hcu005?.prescriptionItems
+        )
+            ? documents.prescription?.items ||
+              documents.finalNote?.sections?.hcu005?.prescriptionItems
+            : legalReadiness.status === 'ready'
+              ? [
+                    {
+                        medication: 'Metronidazol topico',
+                        presentation: 'Gel 0.75%',
+                        dose: 'Aplicacion fina',
+                        route: 'Topica',
+                        frequency: 'Nocturna',
+                        duration: '8 semanas',
+                        quantity: '1 tubo',
+                        instructions:
+                            'Aplicar sobre piel limpia y reevaluar al finalizar.',
+                    },
+                ]
+              : [],
+    };
+    const prescriptionMedication = normalizedHcu005.prescriptionItems
+        .map((item) => item.medication)
+        .filter(Boolean)
+        .join(', ');
+    const prescriptionDirections = normalizedHcu005.prescriptionItems
+        .map((item) =>
+            [
+                item.presentation,
+                item.dose,
+                item.route,
+                item.frequency,
+                item.duration,
+                item.quantity,
+                item.instructions,
+            ]
+                .filter(Boolean)
+                .join(' | ')
+        )
+        .filter(Boolean)
+        .join('\n');
     const normalizedArchiveReadiness = {
         archiveState: 'active',
         lastAttentionAt: '2026-03-15T09:06:00-05:00',
@@ -48,9 +110,7 @@ function buildClinicalRecordPayload({
     const normalizedDisclosureLog = Array.isArray(disclosureLog)
         ? disclosureLog
         : [];
-    const normalizedAccessAudit = Array.isArray(accessAudit)
-        ? accessAudit
-        : [];
+    const normalizedAccessAudit = Array.isArray(accessAudit) ? accessAudit : [];
     const normalizedRecordsGovernance = {
         archiveState: normalizedArchiveReadiness.archiveState,
         archiveReadiness: normalizedArchiveReadiness,
@@ -83,7 +143,10 @@ function buildClinicalRecordPayload({
             caseId,
             appointmentId: 451,
             surface: 'telemedicine_chat',
-            status: approval?.status === 'approved' ? 'approved' : 'review_required',
+            status:
+                approval?.status === 'approved'
+                    ? 'approved'
+                    : 'review_required',
             patient: {
                 name: patientName,
                 email: `${sessionId}@example.test`,
@@ -122,7 +185,9 @@ function buildClinicalRecordPayload({
             episodeId: `ep-${sessionId}`,
             encounterId: `enc-${sessionId}`,
             reviewStatus:
-                approval?.status === 'approved' ? 'approved' : 'review_required',
+                approval?.status === 'approved'
+                    ? 'approved'
+                    : 'review_required',
             requiresHumanReview: approval?.status !== 'approved',
             reviewReasons:
                 legalReadiness.status === 'ready'
@@ -175,27 +240,33 @@ function buildClinicalRecordPayload({
                 },
             },
             clinicianDraft: {
-                resumen: clinicianSummary,
+                resumen:
+                    normalizedHcu005.evolutionNote || clinicianSummary || '',
                 preguntasFaltantes:
                     legalReadiness.status === 'ready'
                         ? []
                         : ['Confirmar alergias'],
                 cie10Sugeridos: ['L71.9'],
-                tratamientoBorrador: 'Mantener metronidazol topico',
+                tratamientoBorrador:
+                    normalizedHcu005.therapeuticPlan ||
+                    'Mantener metronidazol topico',
                 posologiaBorrador: {
-                    texto: 'Aplicacion nocturna',
+                    texto:
+                        normalizedHcu005.careIndications ||
+                        prescriptionDirections ||
+                        'Aplicacion nocturna',
                     baseCalculo: 'criterio_clinico',
                     pesoKg: 63,
                     edadAnios: 34,
                     units: '',
                     ambiguous: legalReadiness.status !== 'ready',
                 },
+                hcu005: normalizedHcu005,
             },
             recordMeta: {
                 archiveState: normalizedArchiveReadiness.archiveState,
                 lastAttentionAt: normalizedArchiveReadiness.lastAttentionAt,
-                passiveAfterYears:
-                    normalizedArchiveReadiness.passiveAfterYears,
+                passiveAfterYears: normalizedArchiveReadiness.passiveAfterYears,
                 confidentialityLabel: 'CONFIDENCIAL',
                 identityProtectionMode: 'standard',
                 copyDeliverySlaHours: 48,
@@ -210,11 +281,25 @@ function buildClinicalRecordPayload({
             },
             documents: {
                 finalNote: {
-                    status: approval?.status === 'approved' ? 'approved' : 'draft',
+                    status:
+                        approval?.status === 'approved' ? 'approved' : 'draft',
                     summary:
                         documents.finalNote?.summary ||
+                        normalizedHcu005.evolutionNote ||
                         'Nota final en preparacion medico-legal.',
-                    content: documents.finalNote?.content || '',
+                    content:
+                        documents.finalNote?.content ||
+                        [
+                            normalizedHcu005.evolutionNote,
+                            normalizedHcu005.diagnosticImpression,
+                            normalizedHcu005.therapeuticPlan,
+                            normalizedHcu005.careIndications,
+                        ]
+                            .filter(Boolean)
+                            .join('\n\n'),
+                    sections: {
+                        hcu005: normalizedHcu005,
+                    },
                     version: approval?.finalDraftVersion || 1,
                     generatedAt: approval?.approvedAt || '',
                     confidential: true,
@@ -225,14 +310,11 @@ function buildClinicalRecordPayload({
                         (legalReadiness.status === 'ready' ? 'draft' : 'draft'),
                     medication:
                         documents.prescription?.medication ||
-                        (legalReadiness.status === 'ready'
-                            ? 'Metronidazol topico'
-                            : ''),
+                        prescriptionMedication,
                     directions:
                         documents.prescription?.directions ||
-                        (legalReadiness.status === 'ready'
-                            ? 'Aplicacion nocturna por 8 semanas'
-                            : ''),
+                        prescriptionDirections,
+                    items: normalizedHcu005.prescriptionItems,
                     signedAt: approval?.approvedAt || '',
                     confidential: true,
                 },
@@ -317,7 +399,10 @@ function buildClinicalRecordPayload({
         activeEpisode: {
             episodeId: `ep-${sessionId}`,
             caseId,
-            status: approval?.status === 'approved' ? 'approved' : 'review_required',
+            status:
+                approval?.status === 'approved'
+                    ? 'approved'
+                    : 'review_required',
             legalStatus: legalReadiness.status,
             legalLabel: legalReadiness.label,
             updatedAt: '2026-03-15T09:06:00-05:00',
@@ -330,19 +415,37 @@ function buildClinicalRecordPayload({
             updatedAt: '2026-03-15T09:06:00-05:00',
         },
         liveNote: {
-            summary: clinicianSummary,
+            summary: normalizedHcu005.evolutionNote || clinicianSummary,
             draftVersion: approval?.finalDraftVersion || 1,
             requiresHumanReview: approval?.status !== 'approved',
             reviewStatus:
-                approval?.status === 'approved' ? 'approved' : 'review_required',
+                approval?.status === 'approved'
+                    ? 'approved'
+                    : 'review_required',
+            hcu005Status:
+                legalReadiness.hcu005Status?.status ||
+                (legalReadiness.status === 'ready' ? 'complete' : 'partial'),
         },
         documents: {
             finalNote: {
                 status: approval?.status === 'approved' ? 'approved' : 'draft',
                 summary:
                     documents.finalNote?.summary ||
+                    normalizedHcu005.evolutionNote ||
                     'Nota final en preparacion medico-legal.',
-                content: documents.finalNote?.content || '',
+                content:
+                    documents.finalNote?.content ||
+                    [
+                        normalizedHcu005.evolutionNote,
+                        normalizedHcu005.diagnosticImpression,
+                        normalizedHcu005.therapeuticPlan,
+                        normalizedHcu005.careIndications,
+                    ]
+                        .filter(Boolean)
+                        .join('\n\n'),
+                sections: {
+                    hcu005: normalizedHcu005,
+                },
                 version: approval?.finalDraftVersion || 1,
                 generatedAt: approval?.approvedAt || '',
                 confidential: true,
@@ -353,14 +456,11 @@ function buildClinicalRecordPayload({
                     (legalReadiness.status === 'ready' ? 'draft' : 'draft'),
                 medication:
                     documents.prescription?.medication ||
-                    (legalReadiness.status === 'ready'
-                        ? 'Metronidazol topico'
-                        : ''),
+                    prescriptionMedication,
                 directions:
                     documents.prescription?.directions ||
-                    (legalReadiness.status === 'ready'
-                        ? 'Aplicacion nocturna por 8 semanas'
-                        : ''),
+                    prescriptionDirections,
+                items: normalizedHcu005.prescriptionItems,
                 signedAt: approval?.approvedAt || '',
                 confidential: true,
             },
@@ -383,8 +483,7 @@ function buildClinicalRecordPayload({
             capacityAssessment: consent.capacityAssessment || '',
             privateCommunicationConfirmed:
                 consent.privateCommunicationConfirmed === true,
-            companionShareAuthorized:
-                consent.companionShareAuthorized === true,
+            companionShareAuthorized: consent.companionShareAuthorized === true,
             acceptedAt: consent.acceptedAt || '',
             notes: consent.notes || '',
         },
@@ -424,8 +523,36 @@ function buildClinicalRecordPayload({
                 'MSP-HCU-FORM-024',
             ],
         },
-        legalReadiness,
-        closureChecklist: legalReadiness,
+        legalReadiness: {
+            ...legalReadiness,
+            hcu005Status: legalReadiness.hcu005Status || {
+                status:
+                    legalReadiness.status === 'ready' ? 'complete' : 'partial',
+                label:
+                    legalReadiness.status === 'ready'
+                        ? 'HCU-005 completo'
+                        : 'HCU-005 parcial',
+                summary:
+                    legalReadiness.status === 'ready'
+                        ? 'La evolucion, la impresion y la prescripcion trazable estan completas.'
+                        : 'La evolucion o las prescripciones del HCU-005 aun tienen faltantes.',
+            },
+        },
+        closureChecklist: {
+            ...legalReadiness,
+            hcu005Status: legalReadiness.hcu005Status || {
+                status:
+                    legalReadiness.status === 'ready' ? 'complete' : 'partial',
+                label:
+                    legalReadiness.status === 'ready'
+                        ? 'HCU-005 completo'
+                        : 'HCU-005 parcial',
+                summary:
+                    legalReadiness.status === 'ready'
+                        ? 'La evolucion, la impresion y la prescripcion trazable estan completas.'
+                        : 'La evolucion o las prescripciones del HCU-005 aun tienen faltantes.',
+            },
+        },
         recordsGovernance: normalizedRecordsGovernance,
         accessAudit: normalizedAccessAudit,
         disclosureLog: normalizedDisclosureLog,
@@ -462,6 +589,11 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
             label: 'Bloqueada',
             summary:
                 'La aprobacion esta bloqueada hasta resolver los faltantes medico-legales visibles.',
+            hcu005Status: {
+                status: 'partial',
+                label: 'HCU-005 parcial',
+                summary: 'Falta completar la evolucion clinica del episodio.',
+            },
             checklist: [
                 {
                     code: 'minimum_clinical_data',
@@ -493,12 +625,19 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
             label: 'Lista para aprobar',
             summary:
                 'La historia clinica cumple los bloqueos medico-legales minimos para aprobar.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y la prescripcion trazable estan completas.',
+            },
             checklist: [
                 {
                     code: 'minimum_clinical_data',
                     status: 'pass',
                     label: 'Datos minimos clinicos',
-                    message: 'No hay preguntas faltantes abiertas en el intake.',
+                    message:
+                        'No hay preguntas faltantes abiertas en el intake.',
                 },
                 {
                     code: 'consent',
@@ -536,12 +675,19 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
             label: 'Lista para aprobar',
             summary:
                 'La historia clinica cumple los bloqueos medico-legales minimos para aprobar.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y la prescripcion trazable estan completas.',
+            },
             checklist: [
                 {
                     code: 'minimum_clinical_data',
                     status: 'pass',
                     label: 'Datos minimos clinicos',
-                    message: 'No hay preguntas faltantes abiertas en el intake.',
+                    message:
+                        'No hay preguntas faltantes abiertas en el intake.',
                 },
             ],
             blockingReasons: [],
@@ -634,6 +780,10 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
                     legalReadinessLabel: 'Bloqueada',
                     legalReadinessSummary:
                         'La aprobacion esta bloqueada hasta resolver los faltantes medico-legales visibles.',
+                    hcu005Status: 'partial',
+                    hcu005Label: 'HCU-005 parcial',
+                    hcu005Summary:
+                        'Falta completar la evolucion clinica del episodio.',
                     approvalBlockedReasons: [
                         {
                             code: 'missing_minimum_clinical_data',
@@ -658,6 +808,10 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
                     legalReadinessLabel: 'Lista para aprobar',
                     legalReadinessSummary:
                         'La historia clinica cumple los bloqueos medico-legales minimos para aprobar.',
+                    hcu005Status: 'complete',
+                    hcu005Label: 'HCU-005 completo',
+                    hcu005Summary:
+                        'La evolucion, la impresion y la prescripcion trazable estan completas.',
                     approvalBlockedReasons: [],
                 },
             ],
@@ -743,34 +897,43 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
         page.locator('[data-clinical-workspace="media-flow"]')
     ).toHaveCount(0);
 
-    await expect(page.locator('#clinicalHistoryLegalReadinessPanel')).toContainText(
-        'Aptitud de cierre'
-    );
-    await expect(page.locator('#clinicalHistoryLegalReadinessPanel')).toContainText(
-        'Bloqueada'
-    );
-    await expect(page.locator('#clinicalHistoryLegalReadinessPanel')).toContainText(
-        'Datos minimos clinicos'
-    );
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('Aptitud de cierre');
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('Bloqueada');
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-005 parcial');
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('Datos minimos clinicos');
     await expect(page.locator('#clinicalHistoryApproveBtn')).toBeDisabled();
 
     await page.locator('[data-clinical-session-id="chs-002"]').click();
-    await expect(page.locator('#clinicalHistoryLegalReadinessPanel')).toContainText(
-        'Lista para aprobar'
-    );
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('Lista para aprobar');
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-005 completo');
     await expect(page.locator('#clinicalHistoryApproveBtn')).toBeEnabled();
     await expect(page.locator('#consent_status')).toHaveValue('accepted');
-    await expect(page.locator('#document_prescription_medication')).toHaveValue(
+    await expect(page.locator('#hcu005_prescription_0_medication')).toHaveValue(
         'Metronidazol topico'
+    );
+    await expect(page.locator('#hcu005_diagnostic_impression')).toHaveValue(
+        'Rosacea inflamatoria en control clinico.'
     );
 
     await page.locator('#clinicalHistoryApproveBtn').click();
-    await expect(page.locator('#clinicalHistoryApprovalConstancy')).toContainText(
-        'Constancia de aprobacion'
-    );
-    await expect(page.locator('#clinicalHistoryApprovalConstancy')).toContainText(
-        'Dra. Laura Mena'
-    );
+    await expect(
+        page.locator('#clinicalHistoryApprovalConstancy')
+    ).toContainText('Constancia de aprobacion');
+    await expect(
+        page.locator('#clinicalHistoryApprovalConstancy')
+    ).toContainText('Dra. Laura Mena');
     await expect(page.locator('#clinicalHistoryStatusChip')).toContainText(
         'Aprobada'
     );
@@ -783,12 +946,14 @@ test('gobernanza documental muestra SLA, bloquea disclosure no autorizado y exig
         sessionId: 'chs-gov-001',
         caseId: 'case-gov-001',
         patientName: 'Marta Leon',
-        clinicianSummary: 'Historia clinica con custodia activa y copia pendiente.',
+        clinicianSummary:
+            'Historia clinica con custodia activa y copia pendiente.',
         legalReadiness: {
             status: 'ready',
             ready: true,
             label: 'Lista para aprobar',
-            summary: 'La nota esta lista, pero la gobernanza documental sigue visible.',
+            summary:
+                'La nota esta lista, pero la gobernanza documental sigue visible.',
             checklist: [
                 {
                     code: 'minimum_clinical_data',
@@ -947,7 +1112,8 @@ test('gobernanza documental muestra SLA, bloquea disclosure no autorizado y exig
                         sessionId: 'chs-gov-001',
                         caseId: 'case-gov-001',
                         patientName: 'Marta Leon',
-                        summary: 'Copia certificada pendiente y custodia activa.',
+                        summary:
+                            'Copia certificada pendiente y custodia activa.',
                         sessionStatus: 'review_required',
                         reviewStatus: 'review_required',
                         requiresHumanReview: false,
@@ -1014,15 +1180,15 @@ test('gobernanza documental muestra SLA, bloquea disclosure no autorizado y exig
     await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
     await page.keyboard.press('Enter');
 
-    await expect(page.locator('#clinicalHistoryRecordsGovernancePanel')).toContainText(
-        'Gobernanza documental'
-    );
-    await expect(page.locator('#clinicalHistoryRecordsGovernancePanel')).toContainText(
-        'Vencida'
-    );
-    await expect(page.locator('#clinicalHistoryRecordsGovernancePanel')).toContainText(
-        'Dra. Sofia Paredes'
-    );
+    await expect(
+        page.locator('#clinicalHistoryRecordsGovernancePanel')
+    ).toContainText('Gobernanza documental');
+    await expect(
+        page.locator('#clinicalHistoryRecordsGovernancePanel')
+    ).toContainText('Vencida');
+    await expect(
+        page.locator('#clinicalHistoryRecordsGovernancePanel')
+    ).toContainText('Dra. Sofia Paredes');
 
     await page
         .locator('#governance_disclosure_target_type')
@@ -1049,7 +1215,7 @@ test('gobernanza documental muestra SLA, bloquea disclosure no autorizado y exig
         action: 'set_archive_state',
         archiveState: 'passive',
     });
-    await expect(page.locator('#clinicalHistoryRecordsGovernancePanel')).toContainText(
-        'Pasiva'
-    );
+    await expect(
+        page.locator('#clinicalHistoryRecordsGovernancePanel')
+    ).toContainText('Pasiva');
 });

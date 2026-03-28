@@ -20,6 +20,13 @@ final class ClinicalHistoryLegalReadiness
         $documents = ClinicalHistoryRepository::normalizeClinicalDocuments(
             is_array($draft['documents'] ?? null) ? $draft['documents'] : []
         );
+        $clinicianDraft = ClinicalHistoryRepository::normalizeClinicianDraft(
+            is_array($draft['clinicianDraft'] ?? null) ? $draft['clinicianDraft'] : []
+        );
+        $hcu005 = ClinicalHistoryRepository::normalizeHcu005Draft(
+            $clinicianDraft['hcu005'] ?? []
+        );
+        $hcu005Evaluation = ClinicalHistoryRepository::evaluateHcu005($hcu005);
 
         $pendingAi = ClinicalHistoryRepository::normalizePendingAi(
             is_array($session['pendingAi'] ?? null)
@@ -28,13 +35,15 @@ final class ClinicalHistoryLegalReadiness
         );
         $pendingAiStatus = ClinicalHistoryRepository::trimString($pendingAi['status'] ?? '');
         $summary = ClinicalHistoryRepository::trimString(
-            ($draft['clinicianDraft']['resumen'] ?? '') ?: ($draft['intake']['resumenClinico'] ?? '')
+            ($hcu005['evolutionNote'] ?? '')
+                ?: ($clinicianDraft['resumen'] ?? '')
+                ?: ($draft['intake']['resumenClinico'] ?? '')
         );
         $treatment = ClinicalHistoryRepository::trimString(
-            ($documents['prescription']['medication'] ?? '') ?: ($draft['clinicianDraft']['tratamientoBorrador'] ?? '')
+            ($documents['prescription']['medication'] ?? '') ?: ($clinicianDraft['tratamientoBorrador'] ?? '')
         );
-        $posology = is_array($draft['clinicianDraft']['posologiaBorrador'] ?? null)
-            ? $draft['clinicianDraft']['posologiaBorrador']
+        $posology = is_array($clinicianDraft['posologiaBorrador'] ?? null)
+            ? $clinicianDraft['posologiaBorrador']
             : [];
         $missingFields = ClinicalHistoryRepository::normalizeStringList(
             $draft['intake']['preguntasFaltantes'] ?? []
@@ -79,20 +88,86 @@ final class ClinicalHistoryLegalReadiness
 
         self::appendChecklist(
             $checklist,
-            'final_summary',
-            $summary !== '',
-            'Resumen clinico final',
-            $summary !== ''
-                ? 'La nota tiene una sintesis clinica final documentada.'
-                : 'Todavia no existe un resumen clinico final defendible.',
-            []
+            'hcu005_evolution_note',
+            $hcu005Evaluation['hasEvolutionNote'] === true,
+            'HCU-005 evolucion clinica',
+            $hcu005Evaluation['hasEvolutionNote'] === true
+                ? 'La evolucion clinica ya esta documentada en el bloque HCU-005.'
+                : 'Falta documentar la evolucion clinica del episodio en HCU-005.',
+            ['hcu005Status' => $hcu005Evaluation['status']]
         );
-        if ($summary === '') {
+        if ($hcu005Evaluation['hasEvolutionNote'] !== true) {
             $blockingReasons[] = self::blockingReason(
-                'final_summary_missing',
-                'Falta el resumen clinico final',
-                'La nota final no puede aprobarse sin una sintesis clinica clara.',
-                []
+                'hcu005_evolution_missing',
+                'Falta la evolucion clinica',
+                'Completa la evolucion clinica antes de aprobar la nota final.',
+                ['hcu005Status' => $hcu005Evaluation['status']]
+            );
+        }
+
+        self::appendChecklist(
+            $checklist,
+            'hcu005_diagnostic_impression',
+            $hcu005Evaluation['hasDiagnosticImpression'] === true,
+            'HCU-005 impresion diagnostica',
+            $hcu005Evaluation['hasDiagnosticImpression'] === true
+                ? 'La impresion diagnostica ya quedo documentada.'
+                : 'Falta registrar la impresion diagnostica del episodio.',
+            ['hcu005Status' => $hcu005Evaluation['status']]
+        );
+        if ($hcu005Evaluation['hasDiagnosticImpression'] !== true) {
+            $blockingReasons[] = self::blockingReason(
+                'hcu005_diagnostic_impression_missing',
+                'Falta la impresion diagnostica',
+                'Completa la impresion diagnostica antes de aprobar la nota final.',
+                ['hcu005Status' => $hcu005Evaluation['status']]
+            );
+        }
+
+        self::appendChecklist(
+            $checklist,
+            'hcu005_plan_of_care',
+            $hcu005Evaluation['hasPlanOrCare'] === true,
+            'HCU-005 plan e indicaciones',
+            $hcu005Evaluation['hasPlanOrCare'] === true
+                ? 'El plan terapeutico o las indicaciones de cuidado ya estan visibles.'
+                : 'Falta documentar plan terapeutico o indicaciones de cuidado.',
+            ['hcu005Status' => $hcu005Evaluation['status']]
+        );
+        if ($hcu005Evaluation['hasPlanOrCare'] !== true) {
+            $blockingReasons[] = self::blockingReason(
+                'hcu005_plan_missing',
+                'Falta plan terapeutico o indicaciones',
+                'Documenta plan terapeutico o indicaciones antes de aprobar la nota final.',
+                ['hcu005Status' => $hcu005Evaluation['status']]
+            );
+        }
+
+        self::appendChecklist(
+            $checklist,
+            'hcu005_prescription_items',
+            (int) ($hcu005Evaluation['incompletePrescriptionItems'] ?? 0) === 0,
+            'HCU-005 prescripciones',
+            (int) ($hcu005Evaluation['startedPrescriptionItems'] ?? 0) === 0
+                ? 'No hay prescripciones iniciadas con campos parciales.'
+                : (
+                    (int) ($hcu005Evaluation['incompletePrescriptionItems'] ?? 0) === 0
+                        ? 'Las prescripciones iniciadas tienen todos los campos minimos completos.'
+                        : 'Hay prescripciones iniciadas con campos todavia incompletos.'
+                ),
+            [
+                'startedPrescriptionItems' => (int) ($hcu005Evaluation['startedPrescriptionItems'] ?? 0),
+                'incompletePrescriptionItems' => (int) ($hcu005Evaluation['incompletePrescriptionItems'] ?? 0),
+            ]
+        );
+        if ((int) ($hcu005Evaluation['incompletePrescriptionItems'] ?? 0) > 0) {
+            $blockingReasons[] = self::blockingReason(
+                'hcu005_prescription_incomplete',
+                'Hay prescripciones incompletas',
+                'Completa todos los campos minimos de cada prescripcion iniciada antes de aprobar.',
+                [
+                    'incompletePrescriptionItems' => (int) ($hcu005Evaluation['incompletePrescriptionItems'] ?? 0),
+                ]
             );
         }
 
@@ -188,11 +263,24 @@ final class ClinicalHistoryLegalReadiness
             'ready' => $ready,
             'label' => $ready ? 'Lista para aprobar' : 'Bloqueada',
             'summary' => $ready
-                ? 'La historia clinica cumple los bloqueos medico-legales minimos para aprobar.'
-                : 'La aprobacion esta bloqueada hasta resolver los faltantes medico-legales visibles.',
+                ? 'La historia clinica cubre el HCU-005 y los bloqueos medico-legales minimos para aprobar.'
+                : 'La aprobacion esta bloqueada hasta completar los faltantes medico-legales y el HCU-005 visible.',
             'checklist' => $checklist,
             'blockingReasons' => $blockingReasons,
             'approvalBlockedReasons' => $blockingReasons,
+            'hcu005Status' => [
+                'status' => (string) ($hcu005Evaluation['status'] ?? 'missing'),
+                'label' => match ((string) ($hcu005Evaluation['status'] ?? 'missing')) {
+                    'complete' => 'HCU-005 completo',
+                    'partial' => 'HCU-005 parcial',
+                    default => 'HCU-005 pendiente',
+                },
+                'summary' => match ((string) ($hcu005Evaluation['status'] ?? 'missing')) {
+                    'complete' => 'La evolucion, la impresion diagnostica y el plan ya sostienen el HCU-005 del episodio.',
+                    'partial' => 'El episodio ya tiene contenido HCU-005, pero todavia faltan bloques o prescripciones por cerrar.',
+                    default => 'Todavia no hay cobertura suficiente del HCU-005 para este episodio.',
+                },
+            ],
             'normativeSources' => [
                 'MSP-AM-5216A',
                 'MSP-AM-0457-ref',

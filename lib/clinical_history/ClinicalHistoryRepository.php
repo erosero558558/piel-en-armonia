@@ -559,12 +559,56 @@ final class ClinicalHistoryRepository
         $certificate = isset($documents['certificate']) && is_array($documents['certificate'])
             ? $documents['certificate']
             : [];
+        $finalSections = isset($finalNote['sections']) && is_array($finalNote['sections'])
+            ? $finalNote['sections']
+            : [];
+        $legacySection = self::normalizeHcu005Section([
+            'evolutionNote' => self::trimString($finalNote['summary'] ?? ''),
+            'diagnosticImpression' => '',
+            'therapeuticPlan' => '',
+            'careIndications' => self::trimString($prescription['directions'] ?? ''),
+        ]);
+        $hcu005Section = self::normalizeHcu005Section(
+            isset($finalSections['hcu005']) && is_array($finalSections['hcu005'])
+                ? $finalSections['hcu005']
+                : [],
+            $legacySection
+        );
+        $prescriptionItems = self::normalizePrescriptionItems($prescription['items'] ?? []);
+        if ($prescriptionItems === []) {
+            $prescriptionItems = self::normalizePrescriptionItems(
+                $documents['prescriptionItems'] ?? $documents['hcu005']['prescriptionItems'] ?? []
+            );
+        }
+        if (
+            $prescriptionItems === []
+            && (
+                self::trimString($prescription['medication'] ?? '') !== ''
+                || self::trimString($prescription['directions'] ?? '') !== ''
+            )
+        ) {
+            $prescriptionItems = self::normalizePrescriptionItems([[
+                'medication' => self::trimString($prescription['medication'] ?? ''),
+                'presentation' => '',
+                'dose' => '',
+                'route' => '',
+                'frequency' => '',
+                'duration' => '',
+                'quantity' => '',
+                'instructions' => self::trimString($prescription['directions'] ?? ''),
+            ]]);
+        }
+
+        $finalSummary = self::renderHcu005Summary($hcu005Section);
+        $finalContent = self::renderHcu005Content($hcu005Section);
+        $legacyMedication = self::renderPrescriptionMedicationMirror($prescriptionItems);
+        $legacyDirections = self::renderPrescriptionDirectionsMirror($prescriptionItems);
 
         return [
             'finalNote' => [
                 'status' => self::trimString($finalNote['status'] ?? 'draft') ?: 'draft',
-                'summary' => self::trimString($finalNote['summary'] ?? ''),
-                'content' => self::trimString($finalNote['content'] ?? ''),
+                'summary' => $finalSummary,
+                'content' => $finalContent,
                 'version' => is_numeric($finalNote['version'] ?? null)
                     ? max(1, (int) $finalNote['version'])
                     : 1,
@@ -572,15 +616,19 @@ final class ClinicalHistoryRepository
                 'confidential' => array_key_exists('confidential', $finalNote)
                     ? (bool) $finalNote['confidential']
                     : true,
+                'sections' => [
+                    'hcu005' => $hcu005Section,
+                ],
             ],
             'prescription' => [
                 'status' => self::trimString($prescription['status'] ?? 'draft') ?: 'draft',
-                'medication' => self::trimString($prescription['medication'] ?? ''),
-                'directions' => self::trimString($prescription['directions'] ?? ''),
+                'medication' => $legacyMedication,
+                'directions' => $legacyDirections,
                 'signedAt' => self::trimString($prescription['signedAt'] ?? ''),
                 'confidential' => array_key_exists('confidential', $prescription)
                     ? (bool) $prescription['confidential']
                     : true,
+                'items' => $prescriptionItems,
             ],
             'certificate' => [
                 'status' => self::trimString($certificate['status'] ?? 'draft') ?: 'draft',
@@ -592,6 +640,215 @@ final class ClinicalHistoryRepository
                     : true,
             ],
         ];
+    }
+
+    public static function normalizeHcu005Draft(array $draft): array
+    {
+        $sectionSeed = isset($draft['hcu005']) && is_array($draft['hcu005'])
+            ? $draft['hcu005']
+            : $draft;
+
+        return array_merge(
+            self::normalizeHcu005Section($sectionSeed, [
+                'evolutionNote' => self::trimString($draft['resumen'] ?? $draft['resumenClinico'] ?? ''),
+                'diagnosticImpression' => implode(', ', self::normalizeStringList($draft['cie10Sugeridos'] ?? [])),
+                'therapeuticPlan' => self::trimString($draft['tratamientoBorrador'] ?? ''),
+                'careIndications' => self::trimString(
+                    is_array($draft['posologiaBorrador'] ?? null)
+                        ? ($draft['posologiaBorrador']['texto'] ?? '')
+                        : ''
+                ),
+            ]),
+            [
+                'prescriptionItems' => self::normalizePrescriptionItems(
+                    $sectionSeed['prescriptionItems'] ?? $draft['prescriptionItems'] ?? []
+                ),
+            ]
+        );
+    }
+
+    public static function normalizeHcu005Section(array $section, array $fallback = []): array
+    {
+        $source = array_merge($fallback, $section);
+
+        return [
+            'evolutionNote' => self::trimString($source['evolutionNote'] ?? ''),
+            'diagnosticImpression' => self::trimString($source['diagnosticImpression'] ?? ''),
+            'therapeuticPlan' => self::trimString($source['therapeuticPlan'] ?? ''),
+            'careIndications' => self::trimString($source['careIndications'] ?? ''),
+        ];
+    }
+
+    public static function normalizePrescriptionItems($items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $normalized[] = self::normalizePrescriptionItem($item);
+        }
+
+        return array_values($normalized);
+    }
+
+    public static function normalizePrescriptionItem(array $item): array
+    {
+        return [
+            'medication' => self::trimString($item['medication'] ?? ''),
+            'presentation' => self::trimString($item['presentation'] ?? ''),
+            'dose' => self::trimString($item['dose'] ?? ''),
+            'route' => self::trimString($item['route'] ?? ''),
+            'frequency' => self::trimString($item['frequency'] ?? ''),
+            'duration' => self::trimString($item['duration'] ?? ''),
+            'quantity' => self::trimString($item['quantity'] ?? ''),
+            'instructions' => self::trimString($item['instructions'] ?? ''),
+        ];
+    }
+
+    public static function evaluateHcu005(array $hcu005): array
+    {
+        $normalized = self::normalizeHcu005Draft($hcu005);
+        $items = self::normalizePrescriptionItems($normalized['prescriptionItems'] ?? []);
+        $startedItems = array_values(array_filter($items, static fn (array $item): bool => self::prescriptionItemIsStarted($item)));
+        $incompleteItems = array_values(array_filter($startedItems, static fn (array $item): bool => !self::prescriptionItemIsComplete($item)));
+
+        $hasEvolution = self::trimString($normalized['evolutionNote'] ?? '') !== '';
+        $hasDiagnostic = self::trimString($normalized['diagnosticImpression'] ?? '') !== '';
+        $hasPlanOrCare =
+            self::trimString($normalized['therapeuticPlan'] ?? '') !== ''
+            || self::trimString($normalized['careIndications'] ?? '') !== '';
+        $hasAnyContent = $hasEvolution || $hasDiagnostic || $hasPlanOrCare || $startedItems !== [];
+
+        $status = 'missing';
+        if ($hasAnyContent) {
+            $status = ($hasEvolution && $hasDiagnostic && $hasPlanOrCare && $incompleteItems === [])
+                ? 'complete'
+                : 'partial';
+        }
+
+        return [
+            'status' => $status,
+            'hasAnyContent' => $hasAnyContent,
+            'hasEvolutionNote' => $hasEvolution,
+            'hasDiagnosticImpression' => $hasDiagnostic,
+            'hasPlanOrCare' => $hasPlanOrCare,
+            'startedPrescriptionItems' => count($startedItems),
+            'incompletePrescriptionItems' => count($incompleteItems),
+            'incompletePrescriptionDetails' => array_values($incompleteItems),
+        ];
+    }
+
+    public static function prescriptionItemIsStarted(array $item): bool
+    {
+        foreach (self::normalizePrescriptionItem($item) as $value) {
+            if (self::trimString($value) !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static function prescriptionItemIsComplete(array $item): bool
+    {
+        foreach (self::normalizePrescriptionItem($item) as $value) {
+            if (self::trimString($value) === '') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static function renderHcu005Summary(array $section): string
+    {
+        $normalized = self::normalizeHcu005Section($section);
+        if ($normalized['diagnosticImpression'] !== '') {
+            return $normalized['diagnosticImpression'];
+        }
+        if ($normalized['evolutionNote'] !== '') {
+            return $normalized['evolutionNote'];
+        }
+
+        return implode(' | ', array_filter([
+            $normalized['therapeuticPlan'],
+            $normalized['careIndications'],
+        ]));
+    }
+
+    public static function renderHcu005Content(array $section): string
+    {
+        $normalized = self::normalizeHcu005Section($section);
+        $lines = [
+            self::trimString($normalized['evolutionNote']) !== ''
+                ? 'Evolucion clinica: ' . $normalized['evolutionNote']
+                : '',
+            self::trimString($normalized['diagnosticImpression']) !== ''
+                ? 'Impresion diagnostica: ' . $normalized['diagnosticImpression']
+                : '',
+            self::trimString($normalized['therapeuticPlan']) !== ''
+                ? 'Plan terapeutico: ' . $normalized['therapeuticPlan']
+                : '',
+            self::trimString($normalized['careIndications']) !== ''
+                ? 'Indicaciones / cuidados: ' . $normalized['careIndications']
+                : '',
+        ];
+
+        return trim(implode("\n", array_filter($lines, static fn ($line): bool => is_string($line) && trim($line) !== '')));
+    }
+
+    public static function renderPrescriptionMedicationMirror(array $items): string
+    {
+        $labels = [];
+        foreach (self::normalizePrescriptionItems($items) as $item) {
+            if (!self::prescriptionItemIsStarted($item)) {
+                continue;
+            }
+            $labels[] = trim(implode(' ', array_filter([
+                $item['medication'],
+                $item['presentation'],
+            ])));
+        }
+
+        return trim(implode("\n", array_filter($labels, static fn ($value): bool => self::trimString($value) !== '')));
+    }
+
+    public static function renderPrescriptionDirectionsMirror(array $items): string
+    {
+        $lines = [];
+        foreach (self::normalizePrescriptionItems($items) as $item) {
+            if (!self::prescriptionItemIsStarted($item)) {
+                continue;
+            }
+
+            $segments = array_filter([
+                self::trimString($item['dose'] ?? ''),
+                self::trimString($item['route'] ?? ''),
+                self::trimString($item['frequency'] ?? ''),
+                self::trimString($item['duration'] ?? ''),
+                self::trimString($item['quantity'] ?? '') !== ''
+                    ? 'Cantidad ' . self::trimString($item['quantity'] ?? '')
+                    : '',
+            ], static fn ($value): bool => self::trimString((string) $value) !== '');
+
+            $instructions = self::trimString($item['instructions'] ?? '');
+            $medication = self::trimString($item['medication'] ?? '');
+            $line = $medication !== '' ? $medication . ': ' : '';
+            $line .= implode(' • ', $segments);
+            if ($instructions !== '') {
+                $line = trim($line) !== ''
+                    ? trim($line) . '. ' . $instructions
+                    : $instructions;
+            }
+            $lines[] = trim($line);
+        }
+
+        return trim(implode("\n", array_filter($lines, static fn ($value): bool => self::trimString($value) !== '')));
     }
 
     public static function normalizeConsentRecord(array $consent): array
@@ -928,20 +1185,31 @@ final class ClinicalHistoryRepository
         $posologia = isset($draft['posologiaBorrador']) && is_array($draft['posologiaBorrador'])
             ? $draft['posologiaBorrador']
             : [];
+        $hcu005 = self::normalizeHcu005Draft($draft);
 
         return [
-            'resumen' => self::trimString($draft['resumen'] ?? $draft['resumenClinico'] ?? ''),
+            'resumen' => self::trimString(
+                $draft['resumen']
+                    ?? $draft['resumenClinico']
+                    ?? $hcu005['evolutionNote']
+                    ?? ''
+            ),
             'preguntasFaltantes' => self::normalizeStringList($draft['preguntasFaltantes'] ?? []),
             'cie10Sugeridos' => self::normalizeStringList($draft['cie10Sugeridos'] ?? []),
-            'tratamientoBorrador' => self::trimString($draft['tratamientoBorrador'] ?? ''),
+            'tratamientoBorrador' => self::trimString(
+                $draft['tratamientoBorrador'] ?? $hcu005['therapeuticPlan'] ?? ''
+            ),
             'posologiaBorrador' => [
-                'texto' => self::trimString($posologia['texto'] ?? ''),
+                'texto' => self::trimString(
+                    $posologia['texto'] ?? $hcu005['careIndications'] ?? ''
+                ),
                 'baseCalculo' => self::trimString($posologia['baseCalculo'] ?? ''),
                 'pesoKg' => self::nullableFloat($posologia['pesoKg'] ?? null),
                 'edadAnios' => self::nullablePositiveInt($posologia['edadAnios'] ?? null),
                 'units' => self::trimString($posologia['units'] ?? ''),
                 'ambiguous' => array_key_exists('ambiguous', $posologia) ? (bool) $posologia['ambiguous'] : true,
             ],
+            'hcu005' => $hcu005,
         ];
     }
 

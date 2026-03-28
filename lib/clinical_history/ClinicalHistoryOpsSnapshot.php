@@ -63,6 +63,11 @@ final class ClinicalHistoryOpsSnapshot
         $overdueCopyRequests = 0;
         $disclosuresCount = 0;
         $archiveEligibleCount = 0;
+        $hcu005Coverage = [
+            'complete' => 0,
+            'partial' => 0,
+            'missing' => 0,
+        ];
 
         foreach ($sessions as $sessionRecord) {
             $session = ClinicalHistoryRepository::adminSession($sessionRecord);
@@ -108,6 +113,13 @@ final class ClinicalHistoryOpsSnapshot
                 $draft,
                 $eventsBySessionId[$sessionId] ?? []
             );
+            $hcu005Status = ClinicalHistoryRepository::trimString(
+                $legalReadiness['hcu005Status']['status'] ?? 'missing'
+            );
+            if (!array_key_exists($hcu005Status, $hcu005Coverage)) {
+                $hcu005Status = 'missing';
+            }
+            $hcu005Coverage[$hcu005Status]++;
 
             if (self::needsReviewQueue($session, $draft, $pendingAi)) {
                 $reviewQueue[] = self::buildReviewQueueRow(
@@ -193,6 +205,7 @@ final class ClinicalHistoryOpsSnapshot
                 'byReviewStatus' => $reviewStatusCounts,
                 'pendingAiCount' => $pendingAiCount,
                 'reviewQueueCount' => count($reviewQueue),
+                'hcu005' => $hcu005Coverage,
             ],
             'events' => [
                 'total' => count($eventFeed),
@@ -301,6 +314,9 @@ final class ClinicalHistoryOpsSnapshot
             'legalReadinessStatus' => (string) ($legalReadiness['status'] ?? 'blocked'),
             'legalReadinessLabel' => (string) ($legalReadiness['label'] ?? 'Bloqueada'),
             'legalReadinessSummary' => (string) ($legalReadiness['summary'] ?? ''),
+            'hcu005Status' => (string) ($legalReadiness['hcu005Status']['status'] ?? 'missing'),
+            'hcu005Label' => (string) ($legalReadiness['hcu005Status']['label'] ?? 'HCU-005 pendiente'),
+            'hcu005Summary' => (string) ($legalReadiness['hcu005Status']['summary'] ?? ''),
             'approvalBlockedReasons' => isset($legalReadiness['blockingReasons']) && is_array($legalReadiness['blockingReasons'])
                 ? array_values($legalReadiness['blockingReasons'])
                 : [],
