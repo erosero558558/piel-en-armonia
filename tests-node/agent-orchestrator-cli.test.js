@@ -22,6 +22,9 @@ const REPO_ROOT = resolve(__dirname, '..');
 const ORCHESTRATOR_SOURCE = join(REPO_ROOT, 'agent-orchestrator.js');
 const ORCHESTRATOR_TOOLS_DIR = join(REPO_ROOT, 'tools', 'agent-orchestrator');
 const GOVERNANCE_POLICY_SOURCE = join(REPO_ROOT, 'governance-policy.json');
+const GITIGNORE_SOURCE = join(REPO_ROOT, '.gitignore');
+const JULES_TOMBSTONE_SOURCE = join(REPO_ROOT, 'JULES_TASKS.md');
+const KIMI_TOMBSTONE_SOURCE = join(REPO_ROOT, 'KIMI_TASKS.md');
 const WORKSPACE_HYGIENE_SOURCE = join(
     REPO_ROOT,
     'bin',
@@ -124,6 +127,9 @@ function createFixtureDir() {
         recursive: true,
     });
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
+    copyFileSync(GITIGNORE_SOURCE, join(dir, '.gitignore'));
+    copyFileSync(JULES_TOMBSTONE_SOURCE, join(dir, 'JULES_TASKS.md'));
+    copyFileSync(KIMI_TOMBSTONE_SOURCE, join(dir, 'KIMI_TASKS.md'));
     mkdirSync(join(dir, 'bin', 'lib'), { recursive: true });
     copyFileSync(
         WORKSPACE_HYGIENE_SOURCE,
@@ -296,7 +302,6 @@ function runCli(dir, args, expectedStatus = 0) {
     if (expectedStatus === 0 && isMutatingCommandArgs(finalArgs)) {
         commitFixtureState(dir, `fixture post ${finalArgs.slice(0, 2).join(' ')}`);
     }
-
     return result;
 }
 
@@ -325,7 +330,6 @@ function runCliWithEnv(dir, args, envPatch, expectedStatus = 0) {
     if (expectedStatus === 0 && isMutatingCommandArgs(finalArgs)) {
         commitFixtureState(dir, `fixture post ${finalArgs.slice(0, 2).join(' ')}`);
     }
-
     return result;
 }
 
@@ -373,7 +377,6 @@ async function runCliWithEnvAsync(dir, args, envPatch, expectedStatus = 0) {
     if (expectedStatus === 0 && isMutatingCommandArgs(finalArgs)) {
         commitFixtureState(dir, `fixture post ${finalArgs.slice(0, 2).join(' ')}`);
     }
-
     return result;
 }
 
@@ -1224,10 +1227,11 @@ tasks:
     lane_lock: strict
     cross_domain: false
     files: ["controllers/AdminController.php"]
-    depends_on: []
+    depends_on: ["CDX-102"]
     critical_zone: false
     runtime_impact: low
     updated_at: ${DATE}
+${alignedAdminBackendMirrorYaml()}
 `;
 }
 
@@ -1295,9 +1299,32 @@ tasks:
     lane_lock: strict
     cross_domain: false
     files: ["content/public-v6/es/home.json"]
-    depends_on: []
+    depends_on: ["CDX-201"]
     critical_zone: false
     runtime_impact: low
+    updated_at: ${DATE}
+  - id: CDX-201
+    title: "Frontend release mirror"
+    owner: ernesto
+    executor: codex
+    status: review
+    risk: medium
+    scope: queue
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+${CODEX_MODEL_ROUTING_FIELDS}
+    files: ["src/apps/queue/fixture-shell.js"]
+    acceptance: "Fixture"
+    acceptance_ref: ""
+    evidence_ref: ""
+    strategy_id: STRAT-2026-03-turnero-web-pilot
+    subfront_id: SF-frontend-turnero-web-pilot
+    strategy_role: primary
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
     updated_at: ${DATE}
 `;
 }
@@ -1505,6 +1532,7 @@ tasks:
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v1"
     files: ["tests/agenda.spec.js", "lib/booking.php"]
+    depends_on: ["CDX-001"]
   - id: CDX-001
     executor: codex
     status: ${codexStatus}
@@ -1601,22 +1629,36 @@ test('codex start/stop lifecycle mantiene espejo valido y actualiza CODEX_ACTIVE
         plan: basePlanWithoutCodexBlock(),
     });
 
-    runCli(dir, ['codex-check']);
+    runCli(dir, ['codex-check', '--current-only']);
 
-    runCli(dir, ['codex', 'start', 'CDX-001', '--block', 'C1']);
-    runCli(dir, ['codex-check']);
+    runCli(dir, [
+        'codex',
+        'start',
+        'CDX-001',
+        '--block',
+        'C1',
+        '--current-only',
+    ]);
+    runCli(dir, ['codex-check', '--current-only']);
     let plan = readPlan(dir);
     assert.match(plan, /<!-- CODEX_ACTIVE/);
     assert.match(plan, /status: in_progress/);
     assert.match(plan, /task_id: CDX-001/);
 
-    runCli(dir, ['codex', 'stop', 'CDX-001', '--to', 'review']);
-    runCli(dir, ['codex-check']);
+    runCli(dir, [
+        'codex',
+        'stop',
+        'CDX-001',
+        '--to',
+        'review',
+        '--current-only',
+    ]);
+    runCli(dir, ['codex-check', '--current-only']);
     plan = readPlan(dir);
     assert.match(plan, /status: review/);
 
-    runCli(dir, ['codex', 'stop', 'CDX-001', '--to', 'done']);
-    runCli(dir, ['codex-check']);
+    runCli(dir, ['codex', 'stop', 'CDX-001', '--to', 'done', '--current-only']);
+    runCli(dir, ['codex-check', '--current-only']);
     plan = readPlan(dir);
     assert.doesNotMatch(plan, /<!-- CODEX_ACTIVE/);
 
@@ -1712,9 +1754,30 @@ test('codex start permite dos slots por lane, review y blocked ocupan slot, read
         plan: basePlanWithoutCodexBlock(),
     });
 
-    runCli(dir, ['codex', 'start', 'CDX-010', '--block', 'C1']);
-    runCli(dir, ['codex', 'stop', 'CDX-010', '--to', 'review']);
-    runCli(dir, ['codex', 'start', 'CDX-011', '--block', 'C2']);
+    runCli(dir, [
+        'codex',
+        'start',
+        'CDX-010',
+        '--block',
+        'C1',
+        '--current-only',
+    ]);
+    runCli(dir, [
+        'codex',
+        'stop',
+        'CDX-010',
+        '--to',
+        'review',
+        '--current-only',
+    ]);
+    runCli(dir, [
+        'codex',
+        'start',
+        'CDX-011',
+        '--block',
+        'C2',
+        '--current-only',
+    ]);
     runCli(dir, [
         'codex',
         'stop',
@@ -1723,21 +1786,40 @@ test('codex start permite dos slots por lane, review y blocked ocupan slot, read
         'blocked',
         '--blocked-reason',
         'awaiting_smoke',
+        '--current-only',
     ]);
-    runCli(dir, ['codex-check']);
+    runCli(dir, ['codex-check', '--current-only']);
 
-    let result = runCli(dir, ['codex', 'start', 'CDX-012', '--block', 'C3'], 1);
+    let result = runCli(
+        dir,
+        ['codex', 'start', 'CDX-012', '--block', 'C3', '--current-only'],
+        1
+    );
     assert.match(result.stderr, /ya ocupa 2\/2 slot\(s\)/i);
 
-    runCli(dir, ['codex', 'stop', 'CDX-010', '--to', 'ready']);
-    runCli(dir, ['codex-check']);
+    runCli(dir, [
+        'codex',
+        'stop',
+        'CDX-010',
+        '--to',
+        'ready',
+        '--current-only',
+    ]);
+    runCli(dir, ['codex-check', '--current-only']);
 
     let plan = readPlan(dir);
     assert.doesNotMatch(plan, /task_id: CDX-010/);
     assert.match(plan, /task_id: CDX-011/);
 
-    runCli(dir, ['codex', 'start', 'CDX-012', '--block', 'C3']);
-    runCli(dir, ['codex-check']);
+    runCli(dir, [
+        'codex',
+        'start',
+        'CDX-012',
+        '--block',
+        'C3',
+        '--current-only',
+    ]);
+    runCli(dir, ['codex-check', '--current-only']);
     plan = readPlan(dir);
     assert.match(plan, /task_id: CDX-011/);
     assert.match(plan, /task_id: CDX-012/);
@@ -1753,7 +1835,7 @@ test('conflicts --strict se exime por handoff valido y vuelve a bloquear tras cl
         plan: basePlanWithCodexBlock(),
     });
 
-    let result = runCli(dir, ['conflicts', '--strict'], 1);
+    let result = runCli(dir, ['conflicts', '--strict', '--current-only'], 1);
     assert.match(result.stdout, /Blocking:\s+1/);
 
     result = runCli(dir, [
@@ -1776,7 +1858,7 @@ test('conflicts --strict se exime por handoff valido y vuelve a bloquear tras cl
 
     runCli(dir, ['handoffs', 'lint']);
 
-    result = runCli(dir, ['conflicts', '--strict']);
+    result = runCli(dir, ['conflicts', '--strict', '--current-only']);
     assert.match(result.stdout, /Blocking:\s+0/);
     assert.match(result.stdout, /Eximidos por handoff:\s+1/);
 
@@ -1789,7 +1871,7 @@ test('conflicts --strict se exime por handoff valido y vuelve a bloquear tras cl
     ]);
     assert.match(result.stdout, /Handoff cerrado:\s+HO-001/);
 
-    result = runCli(dir, ['conflicts', '--strict'], 1);
+    result = runCli(dir, ['conflicts', '--strict', '--current-only'], 1);
     assert.match(result.stdout, /Blocking:\s+1/);
 });
 
@@ -2268,6 +2350,8 @@ test('task create exige campos de estrategia cuando hay estrategia activa', (t) 
         'frontend_runtime',
         '--work-type',
         'forward',
+        '--depends-on',
+        'CDX-101',
         '--json',
     ]);
     json = parseJsonStdout(result);
@@ -3031,7 +3115,9 @@ ${CODEX_MODEL_ROUTING_FIELDS}
         'utf8'
     );
 
-    const verifyJson = parseJsonStdout(runCli(dir, ['focus', 'verify', '--json']));
+    const verifyJson = parseJsonStdout(
+        runCli(dir, ['focus', 'verify', '--json'])
+    );
     assert.equal(verifyJson.ok, true);
 
     const snapshotPath = join(
@@ -3057,7 +3143,9 @@ ${CODEX_MODEL_ROUTING_FIELDS}
         ]
     );
 
-    const statusJson = parseJsonStdout(runCli(dir, ['focus', 'status', '--json']));
+    const statusJson = parseJsonStdout(
+        runCli(dir, ['focus', 'status', '--json'])
+    );
     assert.equal(statusJson.focus.required_checks_ok, true);
     assert.deepEqual(
         statusJson.focus.required_checks.map((item) => [item.id, item.state]),
@@ -3210,10 +3298,8 @@ ${CODEX_MODEL_ROUTING_FIELDS}
                 name: 'focus-refresh-fixture',
                 private: true,
                 scripts: {
-                    'content:public-v6:validate':
-                        'node -e "process.exit(0)"',
-                    'audit:public:v6:copy':
-                        'node -e "process.exit(0)"',
+                    'content:public-v6:validate': 'node -e "process.exit(0)"',
+                    'audit:public:v6:copy': 'node -e "process.exit(0)"',
                     'test:frontend:qa:v6': 'node -e "process.exit(0)"',
                 },
             },
@@ -3232,7 +3318,10 @@ ${CODEX_MODEL_ROUTING_FIELDS}
     const json = parseJsonStdout(result);
     assert.equal(json.ok, true);
     assert.equal(json.required_checks_refresh.context_task_id, 'CDX-045');
-    assert.equal(json.focus.required_checks_snapshot.context_task_id, 'CDX-045');
+    assert.equal(
+        json.focus.required_checks_snapshot.context_task_id,
+        'CDX-045'
+    );
     assert.deepEqual(
         json.focus.required_checks.map((item) => item.state),
         ['green', 'green', 'green']
@@ -3412,10 +3501,8 @@ ${CODEX_MODEL_ROUTING_FIELDS}
                 name: 'focus-refresh-task-fixture',
                 private: true,
                 scripts: {
-                    'content:public-v6:validate':
-                        'node -e "process.exit(0)"',
-                    'audit:public:v6:copy':
-                        'node -e "process.exit(0)"',
+                    'content:public-v6:validate': 'node -e "process.exit(0)"',
+                    'audit:public:v6:copy': 'node -e "process.exit(0)"',
                     'test:frontend:qa:v6': 'node -e "process.exit(0)"',
                 },
             },
@@ -3436,7 +3523,10 @@ ${CODEX_MODEL_ROUTING_FIELDS}
     const json = parseJsonStdout(result);
     assert.equal(json.ok, true);
     assert.equal(json.required_checks_refresh.context_task_id, 'CDX-045');
-    assert.equal(json.focus.required_checks_snapshot.context_task_id, 'CDX-045');
+    assert.equal(
+        json.focus.required_checks_snapshot.context_task_id,
+        'CDX-045'
+    );
 });
 
 test('board sync check detecta tareas ready en paso futuro y leases activos stale', (t) => {
@@ -3750,8 +3840,8 @@ test('focus advance normaliza cola future-ready antes de escribir el nuevo next_
     updated_at: ${DATE}
 `,
             activeAdminStrategyYaml().replace(
-            'focus_required_checks: ["job:public_main_sync", "runtime:openclaw_chatgpt"]',
-            'focus_required_checks: ["job:public_main_sync"]'
+                'focus_required_checks: ["job:public_main_sync", "runtime:openclaw_chatgpt"]',
+                'focus_required_checks: ["job:public_main_sync"]'
             )
         ),
         handoffs: baseHandoffs(),
@@ -4294,7 +4384,10 @@ test('task start --release-publish falla si required checks del foco no estan ve
 
     assert.equal(json.ok, false);
     assert.equal(json.error_code, 'required_check_unverified');
-    assert.match(json.error, /task start --release-publish requiere required checks en verde/i);
+    assert.match(
+        json.error,
+        /task start --release-publish requiere required checks en verde/i
+    );
     assert.match(json.error, /job:public_main_sync=unverified/i);
 });
 
@@ -4791,8 +4884,14 @@ test('task create --preview/--dry-run no escribe board ni colas derivadas', (t) 
 
     const afterBoard = readBoard(dir);
     assert.equal(afterBoard, beforeBoard);
-    assert.equal(existsSync(join(dir, 'JULES_TASKS.md')), false);
-    assert.equal(existsSync(join(dir, 'KIMI_TASKS.md')), false);
+    assert.match(
+        readFileSync(join(dir, 'JULES_TASKS.md'), 'utf8'),
+        /Retired Derived Queue/
+    );
+    assert.match(
+        readFileSync(join(dir, 'KIMI_TASKS.md'), 'utf8'),
+        /Retired Derived Queue/
+    );
 });
 
 test('task create --validate-only valida sin escribir board y devuelve diagnostico', (t) => {

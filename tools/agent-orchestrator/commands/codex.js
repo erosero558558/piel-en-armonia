@@ -386,7 +386,9 @@ async function handleCodexCheckCommand(ctx) {
     const { flags = {} } =
         typeof parseFlags === 'function' ? parseFlags(args) : { flags: {} };
     const workspaceOptions =
-        args.includes('--current-only') || Boolean(flags['current-only']) || Boolean(flags.current_only)
+        args.includes('--current-only') ||
+        Boolean(flags['current-only']) ||
+        Boolean(flags.current_only)
             ? { currentOnly: true, allWorktrees: false }
             : { allWorktrees: true, currentOnly: false };
     const board = parseBoard();
@@ -496,33 +498,26 @@ async function handleCodexCheckCommand(ctx) {
             : null;
     report.workspace_hygiene = workspaceReport?.workspace_hygiene || null;
     report.workspace_truth = workspaceReport?.workspace_truth || null;
-    const reportWithDiagnostics = attachDiagnostics(
-        report,
-        [
-            ...buildWarnFirstDiagnostics({
-                source: 'codex-check',
-                board,
-                handoffData: parseHandoffs(),
-                focusSummary: focusData?.summary || null,
-                metricsSnapshot,
-                jobsSnapshot,
-            }),
-            ...(
-                typeof buildWorkspaceComplianceDiagnostics === 'function'
-                    ? buildWorkspaceComplianceDiagnostics(board.tasks, {
-                          source: 'codex-check',
-                      })
-                    : []
-            ),
-            ...(
-                typeof buildWorkspaceTruthDiagnostics === 'function'
-                    ? buildWorkspaceTruthDiagnostics(workspaceReport, {
-                          source: 'codex-check',
-                      })
-                    : []
-            ),
-        ]
-    );
+    const reportWithDiagnostics = attachDiagnostics(report, [
+        ...buildWarnFirstDiagnostics({
+            source: 'codex-check',
+            board,
+            handoffData: parseHandoffs(),
+            focusSummary: focusData?.summary || null,
+            metricsSnapshot,
+            jobsSnapshot,
+        }),
+        ...(typeof buildWorkspaceComplianceDiagnostics === 'function'
+            ? buildWorkspaceComplianceDiagnostics(board.tasks, {
+                  source: 'codex-check',
+              })
+            : []),
+        ...(typeof buildWorkspaceTruthDiagnostics === 'function'
+            ? buildWorkspaceTruthDiagnostics(workspaceReport, {
+                  source: 'codex-check',
+              })
+            : []),
+    ]);
     if (workspaceReport?.workspace_truth?.ok === false) {
         report.ok = false;
         report.error_count = Number(report.error_count || 0) + 1;
@@ -603,12 +598,15 @@ async function handleCodexCommand(ctx) {
     const task = ensureCodexTask(ensureTask(board, taskId), taskId);
 
     if (subcommand === 'start') {
+        const workspaceOptions =
+            args.includes('--current-only') ||
+            Boolean(flags['current-only']) ||
+            Boolean(flags.current_only)
+                ? { allWorktrees: false, currentOnly: true }
+                : { allWorktrees: true, currentOnly: false };
         const workspaceReport =
             typeof collectWorkspaceTruth === 'function'
-                ? collectWorkspaceTruth({
-                      allWorktrees: true,
-                      currentOnly: false,
-                  })
+                ? collectWorkspaceTruth(workspaceOptions)
                 : null;
         if (typeof assertWorkspaceTruthOk === 'function') {
             assertWorkspaceTruthOk(workspaceReport, {

@@ -21,6 +21,9 @@ const REPO_ROOT = resolve(__dirname, '..');
 const ORCHESTRATOR_SOURCE = join(REPO_ROOT, 'agent-orchestrator.js');
 const ORCHESTRATOR_TOOLS_DIR = join(REPO_ROOT, 'tools', 'agent-orchestrator');
 const GOVERNANCE_POLICY_SOURCE = join(REPO_ROOT, 'governance-policy.json');
+const GITIGNORE_SOURCE = join(REPO_ROOT, '.gitignore');
+const JULES_TOMBSTONE_SOURCE = join(REPO_ROOT, 'JULES_TASKS.md');
+const KIMI_TOMBSTONE_SOURCE = join(REPO_ROOT, 'KIMI_TASKS.md');
 const DAILY_PULSE_SCRIPT = join(REPO_ROOT, 'bin', 'agent-daily-pulse.js');
 const CLEAN_LOCAL_ARTIFACTS_SOURCE = join(
     REPO_ROOT,
@@ -41,6 +44,32 @@ const GENERATED_SITE_ROOT_SOURCE = join(
 );
 const PULSE_NOW = '2026-03-16T12:00:00Z';
 
+function runFixtureGit(dir, args) {
+    const result = spawnSync('git', args, {
+        cwd: dir,
+        encoding: 'utf8',
+    });
+    if (result.error) {
+        throw result.error;
+    }
+    assert.equal(
+        result.status,
+        0,
+        `Unexpected git exit for ${args.join(' ')}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`
+    );
+    return result;
+}
+
+function commitFixtureState(dir, message = 'fixture checkpoint') {
+    const status = runFixtureGit(dir, ['status', '--short']);
+    if (!String(status.stdout || '').trim()) {
+        return;
+    }
+    runFixtureGit(dir, ['add', '.']);
+    runFixtureGit(dir, ['commit', '-m', message]);
+    runFixtureGit(dir, ['push', 'origin', 'main']);
+}
+
 function createFixtureDir() {
     const dir = mkdtempSync(join(tmpdir(), 'agent-daily-pulse-'));
     copyFileSync(ORCHESTRATOR_SOURCE, join(dir, 'agent-orchestrator.js'));
@@ -48,6 +77,9 @@ function createFixtureDir() {
         recursive: true,
     });
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
+    copyFileSync(GITIGNORE_SOURCE, join(dir, '.gitignore'));
+    copyFileSync(JULES_TOMBSTONE_SOURCE, join(dir, 'JULES_TASKS.md'));
+    copyFileSync(KIMI_TOMBSTONE_SOURCE, join(dir, 'KIMI_TASKS.md'));
     mkdirSync(join(dir, 'bin'), { recursive: true });
     mkdirSync(join(dir, 'bin', 'lib'), { recursive: true });
     copyFileSync(
@@ -62,11 +94,22 @@ function createFixtureDir() {
         GENERATED_SITE_ROOT_SOURCE,
         join(dir, 'bin', 'lib', 'generated-site-root.js')
     );
+    runFixtureGit(dir, ['init']);
+    runFixtureGit(dir, ['config', 'user.name', 'Fixture User']);
+    runFixtureGit(dir, ['config', 'user.email', 'fixture@example.com']);
+    runFixtureGit(dir, ['add', '.']);
+    runFixtureGit(dir, ['commit', '-m', 'fixture init']);
+    runFixtureGit(dir, ['branch', '-M', 'main']);
+    const originDir = `${dir}-origin.git`;
+    runFixtureGit(dir, ['init', '--bare', originDir]);
+    runFixtureGit(dir, ['remote', 'add', 'origin', originDir]);
+    runFixtureGit(dir, ['push', '-u', 'origin', 'main']);
     return dir;
 }
 
 function cleanupFixtureDir(dir) {
     rmSync(dir, { recursive: true, force: true });
+    rmSync(`${dir}-origin.git`, { recursive: true, force: true });
 }
 
 function writeCommonFiles(dir) {
@@ -91,6 +134,7 @@ function writeCommonFiles(dir) {
         'version: 1\nsignals: []\n',
         'utf8'
     );
+    commitFixtureState(dir, 'fixture common files');
 }
 
 function writeJobsFixture(dir) {
@@ -147,6 +191,7 @@ jobs:
 `,
         'utf8'
     );
+    commitFixtureState(dir, 'fixture jobs state');
 }
 
 function writePlanFile(dir, includeCodexActive = false) {
@@ -182,6 +227,7 @@ Fixture.
 `,
         'utf8'
     );
+    commitFixtureState(dir, 'fixture plan state');
 }
 
 function writeBoardFixture(dir, options = {}) {
@@ -282,13 +328,13 @@ tasks:
     heartbeat_at: "2026-03-14T01:00:00Z"
     lease_expires_at: "2026-03-14T05:00:00Z"
     blocked_reason: ""
-    depends_on: []
+    depends_on: ["CDX-901"]
     created_at: "2026-03-14"
     updated_at: "2026-03-16"
   - id: AG-102
     title: "Blocked by dependency"
     owner: deck
-    executor: codex
+    executor: ci
     status: blocked
     risk: medium
     scope: backend
@@ -331,7 +377,7 @@ tasks:
     status_since_at: "2026-03-16T01:30:00Z"
     blocked_reason: "waiting_public_sync"
     expected_outcome: "public_main_sync vuelve a verde"
-    depends_on: []
+    depends_on: ["CDX-901"]
     created_at: "2026-03-14"
     updated_at: "2026-03-16"
   - id: AG-104
@@ -361,6 +407,39 @@ tasks:
     heartbeat_at: "2026-03-16T04:05:00Z"
     lease_expires_at: "2026-03-16T08:00:00Z"
     depends_on: []
+    created_at: "2026-03-16"
+    updated_at: "2026-03-16"
+  - id: CDX-901
+    title: "Backend mirror fixture"
+    owner: deck
+    executor: codex
+    status: review
+    risk: medium
+    scope: backend
+    files: ["controllers/FixtureMirrorController.php"]
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    strategy_id: STRAT-2026-03-admin-operativo
+    subfront_id: SF-backend-admin-operativo
+    strategy_role: primary
+    focus_id: FOCUS-2026-03-admin-operativo-cut-1
+    focus_step: feedback_trim
+    integration_slice: backend_readiness
+    work_type: forward
+    expected_outcome: "Backend mirror fixture"
+    depends_on: []
+    acceptance: "Fixture"
+    acceptance_ref: ""
+    evidence_ref: ""
+    prompt: "Fixture"
     created_at: "2026-03-16"
     updated_at: "2026-03-16"
 ${
@@ -394,6 +473,7 @@ ${
         : ''
 }`;
     writeFileSync(join(dir, 'AGENT_BOARD.yaml'), board, 'utf8');
+    commitFixtureState(dir, 'fixture board state');
 }
 
 function runPulse(dir, args = [], envPatch = null) {
