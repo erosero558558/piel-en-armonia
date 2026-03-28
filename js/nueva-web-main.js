@@ -14,12 +14,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const nav = document.querySelector('.nav-bar'),
         sticky = document.getElementById('stickyCta'),
         heroH = document.querySelector('.hero-fullscreen')?.offsetHeight || 700;
+    let ticking = false;
     window.addEventListener(
         'scroll',
         () => {
-            const y = window.scrollY;
-            nav.classList.toggle('scrolled', y > 80);
-            if (sticky) sticky.classList.toggle('visible', y > heroH * 0.7);
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    const y = window.scrollY;
+                    if (nav) nav.classList.toggle('scrolled', y > 80);
+                    if (sticky)
+                        sticky.classList.toggle('visible', y > heroH * 0.7);
+                    ticking = false;
+                });
+                ticking = true;
+            }
         },
         { passive: true }
     );
