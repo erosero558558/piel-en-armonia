@@ -1414,8 +1414,10 @@ function isOperatorAuthRecommendedModeHealthy(surface = {}) {
     return true;
 }
 
-function runtimeProviderMatchesRequiredCheckTarget(target, runtimeVerification) {
-function runtimeProviderMatchesRequiredCheckTarget(target, runtimeVerification) {
+function runtimeProviderMatchesRequiredCheckTarget(
+    target,
+    runtimeVerification
+) {
     const safeTarget = normalizeOptionalToken(target);
     if (!safeTarget) return false;
     const provider = normalizeOptionalToken(runtimeVerification?.provider);
