@@ -3,9 +3,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { spawnSync } = require('node:child_process');
 const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
+const { runInlinePhp } = require('./runtime-contract-helpers.js');
 
 const REPO_ROOT = resolve(__dirname, '..');
 const SMOKE_PATH = resolve(
@@ -295,7 +295,7 @@ test('prod ops readme documenta triage de publicSync', () => {
     }
 });
 
-test('HealthController expone checks.publicSync en health publico sin rutas internas', () => {
+test('HealthController expone checks.publicSync en health publico sin rutas internas', (t) => {
     const phpScript = `
         $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'health-public-sync-' . bin2hex(random_bytes(6));
         mkdir($tempDir, 0777, true);
@@ -321,10 +321,13 @@ test('HealthController expone checks.publicSync en health publico sin rutas inte
         }
     `;
 
-    const result = spawnSync('php', ['-r', phpScript], {
-        cwd: REPO_ROOT,
-        encoding: 'utf8',
+    const result = runInlinePhp(phpScript, {
+        t,
+        label: 'HealthController publicSync contract',
     });
+    if (!result) {
+        return;
+    }
 
     assert.equal(result.status, 0, result.stderr);
 

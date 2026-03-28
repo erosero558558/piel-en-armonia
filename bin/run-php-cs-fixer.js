@@ -65,6 +65,27 @@ function listLaragonPhpCandidates() {
     return candidates.sort((a, b) => b.localeCompare(a));
 }
 
+function listPkgxPhpCandidates() {
+    if (isWin) return [];
+    const base = join(homedir(), '.pkgx', 'php.net');
+    if (!existsSync(base)) return [];
+
+    const candidates = [];
+    try {
+        for (const entry of readdirSync(base, { withFileTypes: true })) {
+            if (!entry.isDirectory()) continue;
+            const phpBin = join(base, entry.name, 'bin', 'php');
+            if (existsSync(phpBin)) {
+                candidates.push(phpBin);
+            }
+        }
+    } catch {
+        return [];
+    }
+
+    return candidates.sort((a, b) => b.localeCompare(a));
+}
+
 function buildPhpCandidates() {
     const home = homedir();
     const winCandidates = isWin
@@ -85,7 +106,7 @@ function buildPhpCandidates() {
                   : '',
               ...listLaragonPhpCandidates(),
           ]
-        : [process.env.PHP_BIN || '', 'php'];
+        : [process.env.PHP_BIN || '', 'php', ...listPkgxPhpCandidates()];
 
     return uniqueList(winCandidates);
 }

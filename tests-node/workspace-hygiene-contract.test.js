@@ -4,13 +4,17 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { existsSync, readFileSync, readdirSync } = require('fs');
-const { execFileSync, spawnSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const { resolve } = require('path');
 const workspaceHygiene = require('../bin/lib/workspace-hygiene.js');
 const {
     buildDeployBundleManifest,
 } = require('../bin/lib/deploy-bundle-contract.js');
 const { GENERATED_SITE_ROOT } = require('../bin/lib/generated-site-root.js');
+const {
+    requireRepoPath,
+    runLocalNodeScript,
+} = require('./runtime-contract-helpers.js');
 
 const REPO_ROOT = resolve(__dirname, '..');
 let generatedRuntimePrepared = false;
@@ -59,20 +63,13 @@ function ensureGeneratedRuntimeArtifact(relativePath) {
     }
 
     if (!generatedRuntimePrepared) {
-        const result =
-            process.platform === 'win32'
-                ? spawnSync(
-                      'cmd.exe',
-                      ['/d', '/s', '/c', 'npx rollup -c rollup.config.mjs'],
-                      {
-                          cwd: REPO_ROOT,
-                          encoding: 'utf8',
-                      }
-                  )
-                : spawnSync('npx', ['rollup', '-c', 'rollup.config.mjs'], {
-                      cwd: REPO_ROOT,
-                      encoding: 'utf8',
-                  });
+        requireRepoPath(
+            'node_modules/@rollup/plugin-node-resolve/package.json'
+        );
+        const result = runLocalNodeScript(
+            'node_modules/rollup/dist/bin/rollup',
+            ['-c', 'rollup.config.mjs']
+        );
         generatedRuntimePrepared = true;
         assert.equal(
             result.status,
