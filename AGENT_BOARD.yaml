@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 800
+  revision: 801
   updated_at: 2026-03-28
 
 strategy:
@@ -961,7 +961,7 @@ tasks:
     evidence_ref: "verification/agent-runs/CDX-011.md"
     strategy_id: "STRAT-2026-03-admin-operativo"
     subfront_id: "SF-transversal-admin-operativo"
-    strategy_role: "support"
+    strategy_role: "primary"
     focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
     focus_step: "pilot_readiness_evidence"
     integration_slice: "governance_evidence"
@@ -1470,7 +1470,7 @@ tasks:
     evidence_ref: "verification/agent-runs/CDX-056.md"
     strategy_id: "STRAT-2026-03-admin-operativo"
     subfront_id: "SF-backend-admin-operativo"
-    strategy_role: "support"
+    strategy_role: "primary"
     focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
     focus_step: "feedback_trim"
     integration_slice: "tests_quality"
