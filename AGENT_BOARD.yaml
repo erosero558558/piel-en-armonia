@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 835
+  revision: 836
   updated_at: 2026-03-28
 
 strategy:
@@ -1892,8 +1892,8 @@ tasks:
     title: "Front-scoped orphan reconciliation and board-event drift hardening"
     owner: luciaguadalupecaizasanchez
     executor: codex
-    status: ready
-    status_since_at: "2026-03-28T23:00:08Z"
+    status: done
+    status_since_at: "2026-03-28T23:05:36Z"
     risk: low
     scope: codex-governance
     codex_instance: codex_transversal
