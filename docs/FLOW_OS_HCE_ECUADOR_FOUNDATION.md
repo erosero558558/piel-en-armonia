@@ -1,142 +1,191 @@
 # FlowOS HCE Ecuador Foundation
 
 ## Proposito
-Definir la base funcional y normativa para evolucionar FlowOS hacia una **Historia Clinica Conversacional** comercializable en Ecuador.
+Re-fundar la historia clinica de FlowOS como una **HCE defendible para consultorio privado en Ecuador**, separando por completo el producto clinico de cualquier semantica editorial o de `Media Flow`.
 
 ## Tesis del producto
-FlowOS HCE Ecuador **no** es un chat medico aislado.
-Es un sistema de **Historia Clinica Unica** con una interfaz conversacional de captura.
+FlowOS HCE Ecuador no es un chat medico.
+Es una **Historia Clinica Unica longitudinal** con:
+
+- expediente unico por paciente;
+- episodios clinicos enlazados al caso operativo de FlowOS;
+- cabina clinica IA como interfaz principal;
+- nota viva estructurada;
+- cierre medico-legal defendible.
 
 Principio rector:
 
-**entrada libre, salida normativa**
+**entrada libre, salida normativa ecuatoriana**
 
-Esto significa:
-- el profesional puede escribir o dictar el caso en lenguaje natural;
-- el sistema transforma esa captura en una estructura clinica formal;
-- el cierre final sigue siendo responsabilidad del profesional;
-- ninguna atencion puede cerrarse sin cumplir campos, validaciones y trazabilidad requeridos.
+## Base normativa oficial ya adoptada
 
-## Objetivo de negocio
-Construir una historia clinica que:
-- agilice el trabajo medico;
-- reduzca friccion documental;
-- mantenga cumplimiento documental y medico-legal;
-- sea defendible para comercializacion en Ecuador.
+### Acuerdo Ministerial 5216-A
+Fuente oficial MSP:
+`https://www.salud.gob.ec/wp-content/uploads/2021/09/Acuerdo-Ministerial-5216.pdf`
 
-## Objetivo funcional
-Permitir que el medico trabaje como conversa hoy, pero convertir esa interaccion en:
-- anamnesis estructurada;
-- examen fisico estructurado;
-- impresion diagnostica;
-- plan e indicaciones;
-- seguimiento;
-- evidencia auditable.
+Esta re-fundacion asume como obligatorios, desde el dia 0, estos principios:
 
-## Principios de diseno
+- la historia clinica es unica, tecnico-legal, obligatoria y confidencial;
+- la redaccion debe ser precisa, comprensible y completa;
+- los datos clinicos deben manejarse con separacion o acceso restringido respecto de datos identificativos;
+- debe existir trazabilidad de uso de la informacion: lectura, edicion, exportacion, copia y entrega;
+- el archivo electronico debe operar con claves personales y acceso por personal autorizado;
+- debe existir archivo activo/pasivo con regla de 5 anos desde la ultima atencion;
+- debe existir solicitud y entrega de copia certificada con SLA de 48 horas;
+- la documentacion y las salidas deben tratarse como `CONFIDENCIAL`;
+- deben existir mecanismos reforzados para proteger identidad en casos sensibles.
 
-### 1. Conversacion como interfaz, no como documento final
-La conversacion es la entrada primaria.
-La historia clinica final es el documento medico-legal persistido.
+### Acuerdo Ministerial 5316
+Fuente oficial MSP:
+`https://www.salud.gob.ec/wp-content/uploads/2022/09/A.M.5316-Consentimiento-Informado_-AM-5316.pdf`
 
-### 2. Autoridad humana final
-La IA puede resumir, ordenar, detectar faltantes y sugerir.
-La aprobacion final siempre corresponde al profesional responsable.
+Esta re-fundacion asume como obligatorios, desde el dia 0, estos principios:
 
-### 3. Cumplimiento por diseno
-El sistema debe impedir cierres incompletos cuando falten campos, consentimientos, validaciones o evidencia minima.
+- el consentimiento informado es proceso de comunicacion y deliberacion, no checkbox;
+- deben modelarse aceptacion, negativa y revocacion;
+- debe registrarse quien informo, cuando, que se explico, riesgos, alternativas y capacidad para decidir;
+- debe existir autorizacion explicita cuando se comparta informacion con acompanantes;
+- la comunicacion debe poder registrarse como realizada en entorno privado.
 
-### 4. Trazabilidad total
-Toda sugerencia, edicion, aceptacion, rechazo, firma y exportacion debe dejar huella.
+## Dependencias normativas abiertas de Fase 0
+La dependencia normativa abierta ya no es “si existen o no” `A.M. 0457` y los formularios HCU, sino anexar el texto oficial completo y cerrar el catalogo final de campos obligatorios por formulario.
 
-### 5. Modularidad progresiva
-La primera ola debe enfocarse en consulta externa y episodio ambulatorio.
-Las integraciones, especialidades y caminos complejos vienen despues.
+Lo ya confirmado por fuente oficial MSP:
 
-## Definicion del producto
-FlowOS HCE Ecuador debe entenderse como la union de 6 capas:
+- `A.M. 5216-A` remite expresamente al `A.M. 0457`, `Manual de Normas de Conservacion de las Historias Clinicas`, como referencia de archivo y custodia;
+- el instructivo oficial MSP `INSTRUCTIVO DE APLICACION HISTORIA CLINICA` (octubre 2020) confirma, al menos, los formularios HCU de apoyo `001 admision`, `005 evolucion y prescripciones` y `007 interconsulta`;
+- `A.M. 5316` actualiza el manejo de consentimiento informado y aterriza el `HCU-form.024`.
 
-1. **HCU Core**
-   - expediente longitudinal del paciente
-   - episodios y atenciones
-   - formularios clinicos versionados
+Todavia falta anexar de forma completa la fuente oficial de:
 
-2. **Conversational Capture**
-   - chat o dictado libre
-   - extraccion a campos estructurados
-   - borrador clinico revisable
+- el texto oficial completo de `A.M. 0457`;
+- el catalogo oficial consolidado de formularios basicos y de especialidad MSP.
 
-3. **Compliance Engine**
-   - validacion de campos obligatorios
-   - control de consentimiento
-   - reglas de cierre
-   - alertas de incompletitud
+Regla operativa:
 
-4. **Audit & Privacy**
-   - bitacora de acceso
-   - bitacora de cambios
-   - trazabilidad de sugerencias IA
-   - control de exportaciones
+**no se inventan campos normativos obligatorios antes de cerrar esa matriz.**
 
-5. **Clinical Guidance**
-   - sugerencias de diferenciales
-   - datos faltantes
-   - red flags
-   - reglas configurables segun guias oficiales
+Mientras esa dependencia siga abierta:
 
-6. **Episode & Follow-up**
-   - estado del episodio
-   - siguiente accion
-   - tareas y seguimiento
-   - continuidad asistencial
+- se permiten solo bloqueos medico-legales nucleares;
+- no se declara “compliance completo por formulario”;
+- cualquier checklist adicional debe marcarse como puente transitorio y no como verdad normativa final.
 
-## Alcance inicial recomendado
-La primera version comercial defendible debe cubrir:
-- identificacion/admision del paciente;
-- consulta externa;
-- anamnesis y examen fisico;
-- evolucion;
-- indicaciones y plan;
-- consentimiento informado cuando aplique;
-- cierre de episodio;
-- auditoria basica;
-- historia clinica conversacional.
+## Formularios HCU oficialmente confirmados para esta base
 
-## No alcance inicial
-No abrir en esta etapa:
-- hospitalizacion completa;
-- quirurgico complejo;
-- interoperabilidad nacional completa;
-- facturacion compleja;
-- analitica avanzada;
-- automatizaciones de gran escala.
+Por fuente oficial MSP ya podemos tomar como confirmados para la base de producto:
+
+- `SNS-MSP/HCU-form.001/2008`: admision;
+- `SNS-MSP/HCU-form.005/2008`: evolucion y prescripciones;
+- `SNS-MSP/HCU-form.007/2008`: interconsulta;
+- `SNS-MSP/HCU-form.024`: consentimiento informado.
+
+Esto no sustituye el catalogo completo pendiente, pero ya evita disenar “a ciegas” el nucleo documental minimo de V1.
+
+## Decisiones de producto
+
+### 1. `Media Flow` sale de HCE
+`Media Flow` deja de compartir workspace con historia clinica.
+Se preserva como modulo dormido o producto aparte, pero no participa del cockpit clinico ni del cierre medico-legal.
+
+### 2. Unidad canonica
+
+- 1 paciente = 1 historia clinica unica longitudinal
+- cada atencion = 1 episodio/encuentro dentro del expediente
+- cada `patientCase` de FlowOS debe apuntar al episodio clinico activo o al mas relevante
+
+### 3. Cobertura V1
+
+- consultorio privado defendible
+- adulto ambulatorio general
+- dermatologia entra como overlay posterior sobre este nucleo
+
+### 4. UX canonica
+
+- banda superior: paciente + episodio activo + estado legal
+- centro: cabina clinica IA
+- lateral: nota viva estructurada
+- rail de salida: receta, certificado, consentimiento y aprobacion final
+
+### 5. Salidas minimas defendibles de V1
+
+- nota clinica final
+- receta / plan
+- certificado
+
+## Modelo canonico
+
+### Capa operativa FlowOS
+
+- `patientCase`
+- journey
+- tareas
+- follow-up
+- contexto operativo del episodio activo
+
+### Capa clinica HCE
+
+- `PatientRecord/HCU`
+- `ClinicalEpisode`
+- `ClinicalEncounter`
+- `LiveNoteDraft`
+- `FinalClinicalNote`
+- `Prescription`
+- `MedicalCertificate`
+- `ConsentRecord`
+- `ClinicalApproval`
+- `AccessAudit`
+- `DisclosureLog`
+
+## Regla fuerte de aprobacion
+Aprobar no significa cambiar `reviewStatus`.
+Aprobar significa cerrar una version clinica defendible con:
+
+- `approvedBy`
+- `approvedAt`
+- `noteVersion`
+- `checklistSnapshot`
+- huella de sugerencias IA / estado IA reconciliado
+
+La aprobacion debe bloquearse, como minimo, cuando exista cualquiera de estos estados:
+
+- faltan datos clinicos minimos;
+- consentimiento exigible incompleto o revocado;
+- alerta clinica critica abierta;
+- posologia ambigua con tratamiento propuesto;
+- IA pendiente sin reconciliar.
 
 ## Guardrails del sistema
 
 ### Prohibido
-- cerrar automaticamente una historia clinica sin validacion humana;
-- emitir diagnostico final sin revision del profesional;
-- borrar trazabilidad de sugerencias IA;
-- permitir accesos amplios sin rol;
-- usar el chat como unico respaldo documental.
+
+- usar el chat como documento clinico final;
+- cerrar automaticamente sin aprobacion humana;
+- mezclar editorial/publicacion con la HCE;
+- borrar la trazabilidad de acceso, cambios o sugerencias IA;
+- tratar la HCE como si ya cubriera todos los formularios MSP mientras siga abierta la dependencia de A.M. 0457.
 
 ### Obligatorio
-- guardar la nota final estructurada;
-- guardar el estado del episodio;
-- guardar que partes fueron generadas por IA;
-- guardar quien valido y cuando;
-- bloquear el cierre cuando falten minimos requeridos.
 
-## Forma correcta de vender el producto
-No venderlo como "chat medico".
-Venderlo como:
+- mantener la historia clinica como documento final estructurado;
+- preservar trazabilidad de acceso, exportacion, copia y entrega;
+- distinguir borrador IA de documento final aprobado;
+- registrar consentimiento como proceso, no como casilla aislada;
+- tratar la documentacion como confidencial por diseno.
 
-**Historia Clinica Conversacional con salida normativa ecuatoriana.**
+## Fases de entrega
 
-## Resultado esperado de esta linea
-Un sistema donde el medico trabaja rapido, pero el producto garantiza:
-- estructura formal;
-- consistencia documental;
-- continuidad del episodio;
-- cumplimiento por diseno;
-- trazabilidad medico-legal.
+### Fase 0
+Matriz normativa oficial trazable de Ecuador.
+
+### Fase 1
+Dominio HCE nuevo + puente legacy desde `clinical-history-review`.
+
+### Fase 2
+Cabina clinica `chat + nota viva`.
+
+### Fase 3
+Receta, certificado, consentimiento y aprobacion defendible.
+
+### Fase 4
+Archivo, copias certificadas, auditoria de acceso y readiness legal de cola.

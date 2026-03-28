@@ -1,65 +1,59 @@
 # FlowOS HCE Compliance Matrix
 
 ## Objetivo
-Convertir los requisitos regulatorios y operativos del producto en una matriz accionable para desarrollo.
+Traducir la normativa MSP y las decisiones de producto de FlowOS a una matriz accionable para desarrollo, validacion y venta responsable.
 
-## Leyenda de prioridad
-- **P0**: obligatorio para una primera version comercial seria.
-- **P1**: muy importante para escalamiento y adopcion institucional.
-- **P2**: posterior a MVP comercial.
+## Leyenda
 
-| Requisito | Requisito funcional | Modulo FlowOS | Prioridad | Evidencia esperada |
-|---|---|---|---|---|
-| Historia clinica unica longitudinal | Un expediente por paciente con episodios vinculados | HCU Core | P0 | ID unico de historia, episodios, persistencia longitudinal |
-| Captura conversacional con salida estructurada | Chat/dictado libre convertido en nota clinica formal | Conversational Capture | P0 | Vista conversacion + nota estructurada |
-| Formularios clinicos versionados | Plantillas por tipo de atencion y version normativa | Form Engine | P0 | Motor de formularios y versionado |
-| Consulta externa / anamnesis / examen | Estructura completa para atencion ambulatoria | HCU Core | P0 | Plantilla de consulta externa lista |
-| Evolucion clinica | Registro de cambios y controles posteriores | HCU Core | P0 | Nota de evolucion versionada |
-| Plan, indicaciones y cierre | Cierre del episodio con resumen y proxima accion | Episode & Follow-up | P0 | Resumen final y estado del episodio |
-| Consentimiento informado | Registro de aceptacion, negativa y revocatoria | Consent Manager | P0 | Documento vinculado al episodio |
-| Autoridad humana final | Validacion clinica obligatoria antes de cerrar | Compliance Engine | P0 | Accion explicita de validacion profesional |
-| Trazabilidad de IA | Registrar sugerencias, aceptacion y rechazo | AI Governance | P0 | Log de sugerencias IA |
-| Trazabilidad de acceso y cambios | Saber quien vio, edito, exporto e imprimio | Audit & Privacy | P0 | Audit trail por evento |
-| Control de acceso por roles | Permisos segun usuario y funcion | Security Layer | P0 | Matriz de roles y permisos |
-| Archivo y custodia | Politicas de historia activa/inactiva y resguardo | Privacy & Records | P0 | Estado documental y politicas de archivo |
-| Proteccion de datos sensibles | Gobierno de datos de salud y control de uso | Data Governance | P0 | Politica y registro de tratamiento |
-| Validacion de completitud | Bloquear cierres con datos minimos faltantes | Compliance Engine | P0 | Lista de errores de cierre |
-| Banderas rojas y faltantes clinicos | Detectar huecos relevantes durante la captura | Clinical Guidance | P1 | Panel de faltantes y alertas |
-| Sugerencia de diferenciales | Apoyo clinico estructurado, no diagnostico automatico | Clinical Guidance | P1 | Lista de diferenciales revisable |
-| Versionado de reglas clinicas | Reglas atadas a guias y fuentes configurables | Clinical Rules & Guidance | P1 | Version y fuente de regla visible |
-| Exportacion estructurada | Exportar historia y episodio de forma ordenada | Interoperability Hub | P1 | Export JSON/PDF/documental |
-| Integracion futura HL7/FHIR | Preparacion para interoperabilidad progresiva | Interoperability Hub | P1 | Esquema de recursos y mapeos |
-| Flujos especiales VBG / grupos prioritarios | Rutas especificas con privacidad reforzada | Priority Care Pathways | P1 | Plantillas y acceso restringido |
-| Firma / validacion fuerte para cierre | Cierre con evidencia del profesional responsable | Security Layer | P1 | Firma o accion fuerte registrada |
-| Analitica operativa clinica | Medir seguimiento, cierres y continuidad | Episode & Follow-up | P2 | KPIs de uso y continuidad |
+- `P0`: obligatorio para V1 defendible
+- `P1`: obligatorio para escalamiento serio
+- `OPEN_DEP`: dependencia normativa abierta; no se declara cumplimiento final mientras siga abierta
+
+| Requisito | Fuente oficial | Requisito funcional | Modulo FlowOS/HCE | Prioridad | Estado |
+|---|---|---|---|---|---|
+| Historia clinica unica | A.M. 5216-A | Un expediente unico longitudinal por paciente | `PatientRecord/HCU` | P0 | Adoptado |
+| Documento tecnico-legal, obligatorio y confidencial | A.M. 5216-A | La HCE no puede ser solo chat ni borrador informal | `FinalClinicalNote` | P0 | Adoptado |
+| Redaccion precisa, comprensible y completa | A.M. 5216-A | La nota final debe cerrarse con checklist minimo | `ClinicalApproval` | P0 | Adoptado |
+| Separacion/restriccion entre datos clinicos e identificativos | A.M. 5216-A | Controles de acceso y vistas diferenciadas | `AccessAudit` / seguridad | P0 | Adoptado |
+| Trazabilidad de uso de la informacion | A.M. 5216-A | Registrar lectura, edicion, exportacion, copia y entrega | `AccessAudit` / `DisclosureLog` | P0 | Adoptado |
+| Acceso archivado electronico con claves personales | A.M. 5216-A | Acceso autenticado, personal y auditable | auth + `AccessAudit` | P0 | Adoptado |
+| Archivo activa/pasiva con regla de 5 anos | A.M. 5216-A | `archiveState`, `lastAttentionAt`, politica de paso a pasiva | `recordMeta` | P0 | Adoptado |
+| Copia certificada en 48h | A.M. 5216-A | Solicitud, SLA y constancia de entrega | `copyRequests` / `DisclosureLog` | P0 | Adoptado |
+| Marcacion y manejo confidencial | A.M. 5216-A | Label `CONFIDENCIAL` en record/documentos | `recordMeta` / documentos | P0 | Adoptado |
+| Proteccion reforzada de identidad en casos sensibles | A.M. 5216-A | `identityProtectionMode` y acceso restringido | `recordMeta` / seguridad | P0 | Adoptado |
+| Consentimiento como proceso deliberativo | A.M. 5316 | No checkbox aislado; registro estructurado del proceso | `ConsentRecord` | P0 | Adoptado |
+| Aceptacion, negativa y revocacion | A.M. 5316 | Estados formales del consentimiento | `ConsentRecord` | P0 | Adoptado |
+| Quien informo, cuando, riesgos, alternativas y capacidad | A.M. 5316 | Campos explicitos y auditables | `ConsentRecord` | P0 | Adoptado |
+| Compartir con acompanante solo por autorizacion explicita | A.M. 5316 | Autorizacion de disclosure a tercero | `ConsentRecord` / `DisclosureLog` | P0 | Adoptado |
+| Comunicacion en entorno privado | A.M. 5316 | Campo expreso de confirmacion | `ConsentRecord` | P0 | Adoptado |
+| Formulario HCU de admision | Instructivo MSP octubre 2020 | Mantener identificacion y apertura del expediente/episodio sobre base HCU | `PatientRecord/HCU` / admision | P0 | Referencia oficial confirmada |
+| Formulario HCU de evolucion y prescripciones (`HCU-form.005/2008`) | Instructivo MSP octubre 2020 | La nota final y la receta viven en el mismo flujo clinico defendible | `FinalClinicalNote` / `Prescription` | P0 | Adoptado |
+| Formulario HCU de interconsulta (`HCU-form.007/2008`) | Instructivo MSP octubre 2020 | La interconsulta entra como documento/accion clinica separada del chat | `ClinicalEncounter` / futuro modulo de interconsulta | P1 | Pendiente |
+| Formulario HCU de consentimiento (`HCU-form.024`) | A.M. 5316 | Consentimiento estructurado, revocable y auditable | `ConsentRecord` | P0 | Adoptado |
+| Receta y certificado dentro del mismo episodio | Decision de producto | No saltar de superficie para documentos de salida | `Prescription` / `MedicalCertificate` | P0 | Adoptado |
+| Aprobacion humana final defendible | Decision de producto + A.M. 5216-A | `approve_final_note` con aprobador, fecha, version y checklist | `ClinicalApproval` | P0 | Adoptado |
+| Bloqueos medico-legales minimos | Decision de producto + A.M. 5216-A/5316 | bloquear por faltantes, consentimiento, alerta critica, IA pendiente y posologia ambigua | `ClinicalHistoryLegalReadiness` | P0 | Adoptado |
+| Formularios basicos y de especialidad MSP | Catalogo oficial consolidado MSP pendiente | Catalogo normativo final de campos obligatorios | motor de formularios | OPEN_DEP | Abierto parcial |
+| Manual de Conservacion de Historias Clinicas A.M. 0457 | Referencia oficial confirmada por A.M. 5216-A; texto completo oficial pendiente | Reglas completas de archivo y conservacion | records governance | OPEN_DEP | Referencia confirmada |
 
 ## Reglas de interpretacion
 
 ### Regla 1
-Ningun modulo conversacional puede reemplazar el documento clinico final persistido.
+Ningun modulo conversacional reemplaza el documento clinico final persistido.
 
 ### Regla 2
-Toda sugerencia automatica debe quedar separada de la autoridad final del profesional.
+Ninguna aprobacion final se permite solo por `reviewStatus`; debe existir constancia de aprobacion.
 
 ### Regla 3
-No se debe abrir comercializacion seria sin cubrir todos los puntos P0.
+Mientras siga abierta la dependencia del texto completo de `A.M. 0457` y del catalogo oficial consolidado de formularios, no se declara cumplimiento completo por formulario MSP.
 
 ### Regla 4
-Los puntos P1 deben quedar disenados desde el inicio aunque no todos se implementen en la primera entrega.
+`Media Flow` queda fuera de esta matriz porque ya no pertenece al producto HCE activo.
 
-## Orden recomendado de implementacion
-1. HCU Core
-2. Conversational Capture
-3. Compliance Engine
-4. Audit & Privacy
-5. Consent Manager
-6. Episode & Follow-up
-7. Clinical Guidance
-8. Interoperability Hub
+## Uso
+Esta matriz debe servir para:
 
-## Uso de esta matriz
-Esta matriz debe servir como base para:
-- priorizar tareas;
-- abrir paquetes de trabajo para Codex;
-- revisar brechas antes de vender;
-- mapear evidencia de cumplimiento del producto.
+- abrir slices de backend y frontend;
+- revisar gaps antes de vender;
+- decidir que blockers son regulatorios y cuales son solo UX;
+- enlazar evidencia tecnica con fuente oficial del MSP.

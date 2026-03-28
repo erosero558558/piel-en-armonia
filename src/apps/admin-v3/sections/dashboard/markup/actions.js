@@ -359,12 +359,26 @@ function describeClinicalQueueItem(item) {
     const reasons = normalizeStringList(item?.reviewReasons);
     const missingFields = normalizeStringList(item?.missingFields);
     const redFlags = normalizeStringList(item?.redFlags);
+    const legalLabel = String(item?.legalReadinessLabel || '').trim();
+    const legalSummary = String(item?.legalReadinessSummary || '').trim();
+    const pendingCopyRequests = Number(item?.pendingCopyRequests || 0);
+    const overdueCopyRequests = Number(item?.overdueCopyRequests || 0);
+    const disclosureCount = Number(item?.disclosureCount || 0);
 
     return truncateSnippet(
         [
-            String(item?.summary || '').trim(),
+            legalSummary || String(item?.summary || '').trim(),
+            legalLabel,
             missingFields.length > 0
                 ? `${missingFields.length} dato(s) faltante(s)`
+                : '',
+            pendingCopyRequests > 0
+                ? overdueCopyRequests > 0
+                    ? `${overdueCopyRequests} copia(s) vencida(s)`
+                    : `${pendingCopyRequests} copia(s) pendiente(s)`
+                : '',
+            disclosureCount > 0
+                ? `${disclosureCount} disclosure(s) registrado(s)`
                 : '',
             reasons.length > 0 ? `${reasons.length} motivo(s) de revision` : '',
             redFlags.length > 0 ? `${redFlags.length} red flag(s)` : '',
@@ -455,9 +469,9 @@ export function buildClinicalHistoryActions(input) {
                 'context-open-clinical-history',
                 clinicalActionLabel(
                     item,
-                    index === 0 ? 'Abrir borrador' : 'Abrir siguiente'
+                    index === 0 ? 'Abrir cabina' : 'Abrir siguiente'
                 ),
-                describeClinicalQueueItem(item) || 'Abrir revision clinica',
+                describeClinicalQueueItem(item) || 'Abrir cabina clinica',
                 { 'session-id': item.sessionId }
             )
         );
@@ -496,7 +510,7 @@ export function buildClinicalHistoryActions(input) {
                     'context-open-clinical-history',
                     'Abrir frente clinico',
                     clinicalReady
-                        ? `${telemedicineReviewQueueCount} intake(s) telemedicina pendientes de revision`
+                        ? `${telemedicineReviewQueueCount} intake(s) telemedicina pendientes de validacion medico-legal`
                         : `${telemedicineReviewQueueCount} intake(s) telemedicina pausados por gate clinico`
                 )
             );
@@ -521,7 +535,7 @@ export function buildClinicalHistoryActions(input) {
                 'refresh-admin-data',
                 'Actualizar snapshot',
                 pendingAiCount > 0
-                    ? `${pendingAiCount} borrador(es) siguen en reconciliacion`
+                    ? `${pendingAiCount} borrador(es) siguen en reconciliacion IA`
                     : `${unreadEvents} evento(s) clinicos sin leer`
             )
         );
@@ -554,11 +568,14 @@ export function buildClinicalHistoryQueueItems(snapshot) {
                 item?.reviewStatus || item?.sessionStatus || ''
             ).trim();
             const pendingAiStatus = String(item?.pendingAiStatus || '').trim();
+            const legalReadinessLabel = String(
+                item?.legalReadinessLabel || ''
+            ).trim();
             return attentionItem(
                 label || 'Caso clinico',
                 pendingAiStatus
                     ? formatClinicalPendingAiStatus(pendingAiStatus)
-                    : formatClinicalReviewStatus(reviewStatus),
+                    : legalReadinessLabel || formatClinicalReviewStatus(reviewStatus),
                 describeClinicalQueueItem(item) ||
                     'Sin detalles clinicos adicionales.',
                 resolveClinicalTone(reviewStatus, pendingAiStatus, '')

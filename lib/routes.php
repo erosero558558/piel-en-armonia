@@ -45,6 +45,9 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'clinical-history-message', [ClinicalHistoryController::class, 'messagePost']);
     $router->add('GET', 'clinical-history-review', [ClinicalHistoryController::class, 'reviewGet']);
     $router->add('PATCH', 'clinical-history-review', [ClinicalHistoryController::class, 'reviewPatch']);
+    $router->add('GET', 'clinical-record', [ClinicalHistoryController::class, 'recordGet']);
+    $router->add('PATCH', 'clinical-record', [ClinicalHistoryController::class, 'recordPatch']);
+    $router->add('POST', 'clinical-episode-action', [ClinicalHistoryController::class, 'episodeActionPost']);
     $router->add('GET', 'media-flow-queue', [CaseMediaFlowController::class, 'queue']);
     $router->add('GET', 'media-flow-case', [CaseMediaFlowController::class, 'caseGet']);
     $router->add('POST', 'media-flow-proposal-generate', [CaseMediaFlowController::class, 'proposalGenerate']);

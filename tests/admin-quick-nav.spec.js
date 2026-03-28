@@ -149,7 +149,7 @@ test.describe('Admin navigation desktop', () => {
         await expect(page).toHaveURL(/#clinical-history$/);
         await expect(page.locator('#pageTitle')).toHaveText('Historia clinica');
         await expect(page.locator('#adminContextTitle')).toContainText(
-            'Historia clinica conversacional'
+            'Historia clinica defendible'
         );
     });
 

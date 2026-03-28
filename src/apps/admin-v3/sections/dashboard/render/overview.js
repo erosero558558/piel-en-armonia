@@ -109,7 +109,7 @@ function resolveClinicalMeta(snapshot) {
 
 function resolveClinicalSummary(snapshot) {
     if (!snapshot?.summary?.configured) {
-        return 'La historia clinica conversacional aparecera aqui cuando el backend canonico empiece a emitir sesiones y drafts.';
+        return 'La cabina de historia clinica defendible aparecera aqui cuando el backend canonico empiece a emitir episodios, notas y bloqueos legales.';
     }
 
     const reviewQueueCount = Number(
@@ -122,12 +122,30 @@ function resolveClinicalSummary(snapshot) {
     const criticalEvents = Number(
         snapshot?.summary?.events?.openBySeverity?.critical || 0
     );
+    const pendingCopyRequests = Number(
+        snapshot?.summary?.recordsGovernance?.pendingCopyRequests || 0
+    );
+    const overdueCopyRequests = Number(
+        snapshot?.summary?.recordsGovernance?.overdueCopyRequests || 0
+    );
+    const archiveEligible = Number(
+        snapshot?.summary?.recordsGovernance?.archiveEligible || 0
+    );
 
     if (criticalEvents > 0) {
         return `${criticalEvents} evento(s) critico(s) siguen abiertos y requieren validacion medica inmediata.`;
     }
+    if (overdueCopyRequests > 0) {
+        return `${overdueCopyRequests} copia(s) certificada(s) ya vencieron su SLA y requieren entrega o regularizacion.`;
+    }
+    if (pendingCopyRequests > 0) {
+        return `${pendingCopyRequests} solicitud(es) de copia certificada siguen pendientes dentro de la cabina clinica.`;
+    }
     if (reviewQueueCount > 0) {
         return `${reviewQueueCount} historia(s) clinica(s) quedaron listas para revision humana desde la misma consola operativa.`;
+    }
+    if (archiveEligible > 0) {
+        return `${archiveEligible} record(s) ya pueden pasar a archivo pasivo segun la regla de custodia.`;
     }
     if (pendingAiCount > 0) {
         return `${pendingAiCount} borrador(es) siguen esperando reconciliacion asincrona de OpenClaw.`;
@@ -153,7 +171,7 @@ function resolveClinicalQueueMeta(snapshot) {
     const reviewQueue = Array.isArray(snapshot?.reviewQueue) ? snapshot.reviewQueue : [];
     const first = reviewQueue[0] || null;
     if (!first) {
-        return 'Cuando OpenClaw deje historias en review_required apareceran aqui.';
+        return 'Cuando existan episodios en revision medico-legal apareceran aqui.';
     }
 
     const reviewQueueCount = Number(
@@ -164,6 +182,9 @@ function resolveClinicalQueueMeta(snapshot) {
     const missingFields = Array.isArray(first?.missingFields)
         ? first.missingFields.length
         : 0;
+    const pendingCopyRequests = Number(
+        snapshot?.summary?.recordsGovernance?.pendingCopyRequests || 0
+    );
     const confidence = Number(first?.confidence || 0);
     const confidenceLabel =
         Number.isFinite(confidence) && confidence > 0
@@ -171,8 +192,8 @@ function resolveClinicalQueueMeta(snapshot) {
             : 'sin score de confianza';
 
     return reviewQueueCount > 1
-        ? `${reviewQueueCount} caso(s) en cola • ${missingFields} dato(s) faltante(s) • ${confidenceLabel}`
-        : `${missingFields} dato(s) faltante(s) • ${confidenceLabel}`;
+        ? `${reviewQueueCount} caso(s) en cola • ${missingFields} dato(s) faltante(s) • ${pendingCopyRequests} copia(s) pendiente(s) • ${confidenceLabel}`
+        : `${missingFields} dato(s) faltante(s) • ${pendingCopyRequests} copia(s) pendiente(s) • ${confidenceLabel}`;
 }
 
 function resolveClinicalEventHeadline(snapshot) {

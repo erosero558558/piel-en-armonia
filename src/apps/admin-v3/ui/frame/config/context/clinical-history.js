@@ -1,8 +1,8 @@
 export const CLINICAL_HISTORY_CONTEXT = {
-    eyebrow: 'Revision medica',
-    title: 'Historia clinica conversacional',
+    eyebrow: 'Cabina medico-legal',
+    title: 'Historia clinica defendible',
     summary:
-        'Revisa el transcript, ajusta el borrador y aprueba el caso antes de la atencion.',
+        'Revisa el episodio, ajusta la nota viva y aprueba una salida clinica defendible para Ecuador.',
     actions: [
         {
             action: 'refresh-admin-data',

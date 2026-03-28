@@ -1,11 +1,7 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 const { installLegacyAdminAuthMock } = require('./helpers/admin-auth-mocks');
-const {
-    buildAdminAgentSnapshot,
-    buildAdminAgentStatusPayload,
-    installBasicAdminApiMocks,
-} = require('./helpers/admin-api-mocks');
+const { installBasicAdminApiMocks } = require('./helpers/admin-api-mocks');
 
 test.use({
     serviceWorkers: 'block',
@@ -19,19 +15,75 @@ async function waitForAdminRuntimeReady(page) {
     );
 }
 
-function buildClinicalReviewPayload({
+function buildClinicalRecordPayload({
     sessionId,
     caseId,
     patientName,
     clinicianSummary,
+    legalReadiness,
+    approval,
+    documents = {},
+    consent = {},
+    copyRequests = [],
+    disclosureLog = [],
+    accessAudit = [],
+    archiveReadiness = {},
+    recordsGovernance = {},
 }) {
+    const normalizedArchiveReadiness = {
+        archiveState: 'active',
+        lastAttentionAt: '2026-03-15T09:06:00-05:00',
+        passiveAfterYears: 5,
+        eligibleForPassive: false,
+        eligibleAt: '2031-03-15T09:06:00-05:00',
+        daysUntilPassive: 1825,
+        recommendedState: 'active',
+        label: 'Activa',
+        overrideRequired: true,
+        ...archiveReadiness,
+    };
+    const normalizedCopyRequests = Array.isArray(copyRequests)
+        ? copyRequests
+        : [];
+    const normalizedDisclosureLog = Array.isArray(disclosureLog)
+        ? disclosureLog
+        : [];
+    const normalizedAccessAudit = Array.isArray(accessAudit)
+        ? accessAudit
+        : [];
+    const normalizedRecordsGovernance = {
+        archiveState: normalizedArchiveReadiness.archiveState,
+        archiveReadiness: normalizedArchiveReadiness,
+        copyRequestSummary: {
+            total: normalizedCopyRequests.length,
+            pending: normalizedCopyRequests.filter(
+                (item) => item.effectiveStatus !== 'delivered'
+            ).length,
+            delivered: normalizedCopyRequests.filter(
+                (item) => item.effectiveStatus === 'delivered'
+            ).length,
+            overdue: normalizedCopyRequests.filter(
+                (item) => item.effectiveStatus === 'overdue'
+            ).length,
+            latestRequest: normalizedCopyRequests[0] || null,
+        },
+        disclosureSummary: {
+            total: normalizedDisclosureLog.length,
+            latest: normalizedDisclosureLog[0] || null,
+        },
+        lastAccessEvent: normalizedAccessAudit[0] || null,
+        confidentialityLabel: 'CONFIDENCIAL',
+        identityProtectionMode: 'standard',
+        ...recordsGovernance,
+    };
+
     return {
         session: {
             sessionId,
             caseId,
             appointmentId: 451,
             surface: 'telemedicine_chat',
-            status: 'review_required',
+            status: approval?.status === 'approved' ? 'approved' : 'review_required',
             patient: {
                 name: patientName,
                 email: `${sessionId}@example.test`,
@@ -49,8 +101,9 @@ function buildClinicalReviewPayload({
                 {
                     id: `${sessionId}-msg-2`,
                     role: 'assistant',
-                    actor: 'assistant',
-                    content: 'Se solicita documentar factores desencadenantes.',
+                    actor: 'clinical_intake',
+                    content:
+                        'Se solicita documentar factores desencadenantes y plan de manejo.',
                     surface: 'telemedicine_chat',
                     createdAt: '2026-03-15T09:03:00-05:00',
                 },
@@ -65,15 +118,28 @@ function buildClinicalReviewPayload({
             sessionId,
             caseId,
             appointmentId: 451,
-            reviewStatus: 'review_required',
-            requiresHumanReview: true,
-            reviewReasons: ['dose_ambiguous'],
-            confidence: 0.62,
+            patientRecordId: `hcu-${sessionId}`,
+            episodeId: `ep-${sessionId}`,
+            encounterId: `enc-${sessionId}`,
+            reviewStatus:
+                approval?.status === 'approved' ? 'approved' : 'review_required',
+            requiresHumanReview: approval?.status !== 'approved',
+            reviewReasons:
+                legalReadiness.status === 'ready'
+                    ? []
+                    : ['legal_blockers_present'],
+            confidence: 0.81,
             intake: {
                 motivoConsulta: 'Rosacea facial',
                 enfermedadActual: 'Brote recurrente con eritema centrofacial.',
-                antecedentes: '',
-                alergias: '',
+                antecedentes:
+                    legalReadiness.status === 'ready'
+                        ? 'Sin antecedentes dermatologicos de alarma.'
+                        : '',
+                alergias:
+                    legalReadiness.status === 'ready'
+                        ? 'Niega alergias medicamentosas.'
+                        : '',
                 medicacionActual: '',
                 rosRedFlags: ['ardor'],
                 adjuntos: [
@@ -97,7 +163,10 @@ function buildClinicalReviewPayload({
                     units: '',
                     ambiguous: true,
                 },
-                preguntasFaltantes: ['Alergias actuales'],
+                preguntasFaltantes:
+                    legalReadiness.status === 'ready'
+                        ? []
+                        : ['Alergias actuales'],
                 datosPaciente: {
                     edadAnios: 34,
                     pesoKg: 63,
@@ -107,7 +176,10 @@ function buildClinicalReviewPayload({
             },
             clinicianDraft: {
                 resumen: clinicianSummary,
-                preguntasFaltantes: ['Confirmar alergias'],
+                preguntasFaltantes:
+                    legalReadiness.status === 'ready'
+                        ? []
+                        : ['Confirmar alergias'],
                 cie10Sugeridos: ['L71.9'],
                 tratamientoBorrador: 'Mantener metronidazol topico',
                 posologiaBorrador: {
@@ -116,9 +188,92 @@ function buildClinicalReviewPayload({
                     pesoKg: 63,
                     edadAnios: 34,
                     units: '',
-                    ambiguous: true,
+                    ambiguous: legalReadiness.status !== 'ready',
                 },
             },
+            recordMeta: {
+                archiveState: normalizedArchiveReadiness.archiveState,
+                lastAttentionAt: normalizedArchiveReadiness.lastAttentionAt,
+                passiveAfterYears:
+                    normalizedArchiveReadiness.passiveAfterYears,
+                confidentialityLabel: 'CONFIDENCIAL',
+                identityProtectionMode: 'standard',
+                copyDeliverySlaHours: 48,
+                formsCatalogStatus: 'official_partial_traceability',
+                confirmedForms: [
+                    'SNS-MSP/HCU-form.001/2008',
+                    'SNS-MSP/HCU-form.005/2008',
+                    'SNS-MSP/HCU-form.007/2008',
+                    'SNS-MSP/HCU-form.024',
+                ],
+                normativeScope: 'ecuador_private_consultorio_v1',
+            },
+            documents: {
+                finalNote: {
+                    status: approval?.status === 'approved' ? 'approved' : 'draft',
+                    summary:
+                        documents.finalNote?.summary ||
+                        'Nota final en preparacion medico-legal.',
+                    content: documents.finalNote?.content || '',
+                    version: approval?.finalDraftVersion || 1,
+                    generatedAt: approval?.approvedAt || '',
+                    confidential: true,
+                },
+                prescription: {
+                    status:
+                        documents.prescription?.status ||
+                        (legalReadiness.status === 'ready' ? 'draft' : 'draft'),
+                    medication:
+                        documents.prescription?.medication ||
+                        (legalReadiness.status === 'ready'
+                            ? 'Metronidazol topico'
+                            : ''),
+                    directions:
+                        documents.prescription?.directions ||
+                        (legalReadiness.status === 'ready'
+                            ? 'Aplicacion nocturna por 8 semanas'
+                            : ''),
+                    signedAt: approval?.approvedAt || '',
+                    confidential: true,
+                },
+                certificate: {
+                    status: documents.certificate?.status || 'draft',
+                    summary: documents.certificate?.summary || '',
+                    restDays: documents.certificate?.restDays || null,
+                    signedAt: approval?.approvedAt || '',
+                    confidential: true,
+                },
+            },
+            consent: {
+                required: consent.required === true,
+                status: consent.status || 'not_required',
+                informedBy: consent.informedBy || '',
+                informedAt: consent.informedAt || '',
+                explainedWhat: consent.explainedWhat || '',
+                risksExplained: consent.risksExplained || '',
+                alternativesExplained: consent.alternativesExplained || '',
+                capacityAssessment: consent.capacityAssessment || '',
+                privateCommunicationConfirmed:
+                    consent.privateCommunicationConfirmed === true,
+                companionShareAuthorized:
+                    consent.companionShareAuthorized === true,
+                acceptedAt: consent.acceptedAt || '',
+                declinedAt: '',
+                revokedAt: '',
+                notes: consent.notes || '',
+            },
+            approval: approval || {
+                status: 'pending',
+                approvedBy: '',
+                approvedAt: '',
+                finalDraftVersion: null,
+                checklistSnapshot: [],
+                aiTraceSnapshot: {},
+                notes: '',
+                normativeSources: [],
+            },
+            disclosureLog: normalizedDisclosureLog,
+            copyRequests: normalizedCopyRequests,
             pendingAi: {},
             updatedAt: '2026-03-15T09:06:00-05:00',
             createdAt: '2026-03-15T08:50:00-05:00',
@@ -126,110 +281,323 @@ function buildClinicalReviewPayload({
         events: [
             {
                 eventId: `${sessionId}-evt-1`,
+                sessionId,
                 type: 'clinical_alert',
-                severity: 'critical',
-                status: 'open',
-                title: 'Alerta clinica abierta',
-                message: 'Persisten hallazgos que requieren revision.',
+                severity:
+                    legalReadiness.status === 'ready' ? 'info' : 'critical',
+                status: legalReadiness.status === 'ready' ? 'resolved' : 'open',
+                title:
+                    legalReadiness.status === 'ready'
+                        ? 'Caso estable para aprobacion'
+                        : 'Alerta clinica abierta',
+                message:
+                    legalReadiness.status === 'ready'
+                        ? 'El caso esta alineado para cierre.'
+                        : 'Persisten hallazgos que requieren revision.',
                 createdAt: '2026-03-15T09:05:00-05:00',
             },
         ],
+        patientRecord: {
+            recordId: `hcu-${sessionId}`,
+            archiveState: normalizedArchiveReadiness.archiveState,
+            archiveStatusLabel: normalizedArchiveReadiness.label,
+            archiveReadiness: normalizedArchiveReadiness,
+            lastAttentionAt: '2026-03-15T09:06:00-05:00',
+            confidentialityLabel: 'CONFIDENCIAL',
+            identityProtectionMode: 'standard',
+            copyDeliverySlaHours: 48,
+            formsCatalogStatus: 'official_partial_traceability',
+            confirmedForms: [
+                'SNS-MSP/HCU-form.001/2008',
+                'SNS-MSP/HCU-form.005/2008',
+                'SNS-MSP/HCU-form.007/2008',
+                'SNS-MSP/HCU-form.024',
+            ],
+        },
+        activeEpisode: {
+            episodeId: `ep-${sessionId}`,
+            caseId,
+            status: approval?.status === 'approved' ? 'approved' : 'review_required',
+            legalStatus: legalReadiness.status,
+            legalLabel: legalReadiness.label,
+            updatedAt: '2026-03-15T09:06:00-05:00',
+        },
+        encounter: {
+            encounterId: `enc-${sessionId}`,
+            appointmentId: 451,
+            surface: 'telemedicine_chat',
+            startedAt: '2026-03-15T08:45:00-05:00',
+            updatedAt: '2026-03-15T09:06:00-05:00',
+        },
+        liveNote: {
+            summary: clinicianSummary,
+            draftVersion: approval?.finalDraftVersion || 1,
+            requiresHumanReview: approval?.status !== 'approved',
+            reviewStatus:
+                approval?.status === 'approved' ? 'approved' : 'review_required',
+        },
+        documents: {
+            finalNote: {
+                status: approval?.status === 'approved' ? 'approved' : 'draft',
+                summary:
+                    documents.finalNote?.summary ||
+                    'Nota final en preparacion medico-legal.',
+                content: documents.finalNote?.content || '',
+                version: approval?.finalDraftVersion || 1,
+                generatedAt: approval?.approvedAt || '',
+                confidential: true,
+            },
+            prescription: {
+                status:
+                    documents.prescription?.status ||
+                    (legalReadiness.status === 'ready' ? 'draft' : 'draft'),
+                medication:
+                    documents.prescription?.medication ||
+                    (legalReadiness.status === 'ready'
+                        ? 'Metronidazol topico'
+                        : ''),
+                directions:
+                    documents.prescription?.directions ||
+                    (legalReadiness.status === 'ready'
+                        ? 'Aplicacion nocturna por 8 semanas'
+                        : ''),
+                signedAt: approval?.approvedAt || '',
+                confidential: true,
+            },
+            certificate: {
+                status: documents.certificate?.status || 'draft',
+                summary: documents.certificate?.summary || '',
+                restDays: documents.certificate?.restDays || null,
+                signedAt: approval?.approvedAt || '',
+                confidential: true,
+            },
+        },
+        consent: {
+            required: consent.required === true,
+            status: consent.status || 'not_required',
+            informedBy: consent.informedBy || '',
+            informedAt: consent.informedAt || '',
+            explainedWhat: consent.explainedWhat || '',
+            risksExplained: consent.risksExplained || '',
+            alternativesExplained: consent.alternativesExplained || '',
+            capacityAssessment: consent.capacityAssessment || '',
+            privateCommunicationConfirmed:
+                consent.privateCommunicationConfirmed === true,
+            companionShareAuthorized:
+                consent.companionShareAuthorized === true,
+            acceptedAt: consent.acceptedAt || '',
+            notes: consent.notes || '',
+        },
+        approval: approval || {
+            status: 'pending',
+            approvedBy: '',
+            approvedAt: '',
+            finalDraftVersion: null,
+            checklistSnapshot: [],
+            aiTraceSnapshot: {},
+            notes: '',
+            normativeSources: [
+                'MSP-AM-5216A',
+                'MSP-AM-0457-ref',
+                'MSP-AM-5316',
+                'MSP-HCU-FORM-001',
+                'MSP-HCU-FORM-005',
+                'MSP-HCU-FORM-007',
+                'MSP-HCU-FORM-024',
+            ],
+        },
+        approvalState: approval || {
+            status: 'pending',
+            approvedBy: '',
+            approvedAt: '',
+            finalDraftVersion: null,
+            checklistSnapshot: [],
+            aiTraceSnapshot: {},
+            notes: '',
+            normativeSources: [
+                'MSP-AM-5216A',
+                'MSP-AM-0457-ref',
+                'MSP-AM-5316',
+                'MSP-HCU-FORM-001',
+                'MSP-HCU-FORM-005',
+                'MSP-HCU-FORM-007',
+                'MSP-HCU-FORM-024',
+            ],
+        },
+        legalReadiness,
+        closureChecklist: legalReadiness,
+        recordsGovernance: normalizedRecordsGovernance,
+        accessAudit: normalizedAccessAudit,
+        disclosureLog: normalizedDisclosureLog,
+        copyRequests: normalizedCopyRequests,
+        archiveReadiness: normalizedArchiveReadiness,
+        approvalBlockedReasons: legalReadiness.blockingReasons || [],
+        auditSummary: {
+            accessAuditCount: normalizedAccessAudit.length,
+            disclosureLogCount: normalizedDisclosureLog.length,
+            copyRequestsCount: normalizedCopyRequests.length,
+            pendingCopyRequestsCount:
+                normalizedRecordsGovernance.copyRequestSummary.pending,
+            overdueCopyRequestsCount:
+                normalizedRecordsGovernance.copyRequestSummary.overdue,
+            lastAccessAt:
+                normalizedRecordsGovernance.lastAccessEvent?.createdAt || '',
+            lastApprovedAt: approval?.approvedAt || '',
+            approvalStatus: approval?.status || 'pending',
+        },
     };
 }
 
-test('historia clinica conserva review y media flow en una sola superficie sin perder contexto', async ({
+test('historia clinica opera como cabina medico-legal y deja media flow fuera del workspace', async ({
     page,
 }) => {
-    const reviewBySessionId = {
-        'chs-001': buildClinicalReviewPayload({
-            sessionId: 'chs-001',
-            caseId: 'case-001',
-            patientName: 'Ana Ruiz',
-            clinicianSummary: 'Rosacea facial en seguimiento clinico.',
-        }),
-        'chs-002': buildClinicalReviewPayload({
-            sessionId: 'chs-002',
-            caseId: 'case-002',
-            patientName: 'Bruno Paz',
-            clinicianSummary: 'Dermatitis en observacion.',
-        }),
-    };
-
-    const mediaCase = {
+    const blockedRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-001',
         caseId: 'case-001',
-        summary: {
-            headline: 'Caso Ana Ruiz',
-        },
-        service: {
-            label: 'Teledermatologia',
-        },
-        consent: {
-            status: 'granted',
-            privacyAccepted: true,
-            publicationExplicit: true,
-        },
-        policy: {
-            status: 'eligible',
-            flags: ['consent_ok'],
-        },
-        publication: {
-            status: 'draft',
-        },
-        mediaAssets: [
-            {
-                assetId: 'asset-001',
-                originalName: 'ana-before.jpg',
-                kind: 'before',
-                visibility: 'private_only',
-                previewUrl:
-                    'data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=',
-                qualityFlags: ['frontal'],
-                riskFlags: [],
-            },
-        ],
-        proposal: {
-            proposalId: 'prop-001',
-            status: 'draft',
-            recommendation: 'needs_review',
-            selectedAssetIds: ['asset-001'],
-            copy: {
-                es: {
-                    title: 'Caso rosacea controlada',
-                    summary: 'Seguimiento de respuesta al tratamiento topico.',
-                },
-                en: {
-                    title: 'Rosacea follow-up case',
-                    summary: 'Follow-up on topical treatment response.',
-                },
-            },
-            alt: {
-                es: {
-                    cover: 'Antes y despues del control de rosacea.',
-                },
-                en: {
-                    cover: 'Rosacea before and after treatment.',
-                },
-            },
-            category: 'rosacea',
-            tags: ['rosacea', 'seguimiento'],
-            publicationScore: 82,
-            comparePairs: [
+        patientName: 'Ana Ruiz',
+        clinicianSummary: 'Rosacea facial en seguimiento clinico.',
+        legalReadiness: {
+            status: 'blocked',
+            ready: false,
+            label: 'Bloqueada',
+            summary:
+                'La aprobacion esta bloqueada hasta resolver los faltantes medico-legales visibles.',
+            checklist: [
                 {
-                    beforeAssetId: 'asset-001',
-                    afterAssetId: 'asset-001',
-                    reason: 'documentacion clinica privada',
+                    code: 'minimum_clinical_data',
+                    status: 'fail',
+                    label: 'Datos minimos clinicos',
+                    message:
+                        'Aun faltan datos clinicos minimos para sostener el cierre.',
                 },
             ],
-            disclaimer: 'Material sujeto a revision editorial.',
+            blockingReasons: [
+                {
+                    code: 'missing_minimum_clinical_data',
+                    label: 'Faltan datos clinicos minimos',
+                    message:
+                        'Completa intake y preguntas faltantes antes de aprobar.',
+                },
+            ],
         },
-        timeline: [
-            {
-                eventId: 'mf-evt-001',
-                status: 'queued',
-                label: 'Caso editorial creado',
-                createdAt: '2026-03-15T10:00:00-05:00',
+    });
+
+    const readyRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-002',
+        caseId: 'case-002',
+        patientName: 'Bruno Paz',
+        clinicianSummary: 'Dermatitis en observacion con nota final lista.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La historia clinica cumple los bloqueos medico-legales minimos para aprobar.',
+            checklist: [
+                {
+                    code: 'minimum_clinical_data',
+                    status: 'pass',
+                    label: 'Datos minimos clinicos',
+                    message: 'No hay preguntas faltantes abiertas en el intake.',
+                },
+                {
+                    code: 'consent',
+                    status: 'pass',
+                    label: 'Consentimiento informado',
+                    message:
+                        'El consentimiento exigible ya esta resuelto para este episodio.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: {
+            required: true,
+            status: 'accepted',
+            informedBy: 'Dra. Laura Mena',
+            informedAt: '2026-03-15T09:10:00-05:00',
+            explainedWhat: 'Se explico el plan y las alternativas.',
+            risksExplained: 'Irritacion transitoria',
+            alternativesExplained: 'Observacion y cambios topicos',
+            capacityAssessment: 'Paciente capaz de decidir',
+            privateCommunicationConfirmed: true,
+            companionShareAuthorized: false,
+            acceptedAt: '2026-03-15T09:10:00-05:00',
+        },
+    });
+
+    const approvedRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-002',
+        caseId: 'case-002',
+        patientName: 'Bruno Paz',
+        clinicianSummary: 'Dermatitis aprobada y cerrada.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La historia clinica cumple los bloqueos medico-legales minimos para aprobar.',
+            checklist: [
+                {
+                    code: 'minimum_clinical_data',
+                    status: 'pass',
+                    label: 'Datos minimos clinicos',
+                    message: 'No hay preguntas faltantes abiertas en el intake.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        approval: {
+            status: 'approved',
+            approvedBy: 'Dra. Laura Mena',
+            approvedAt: '2026-03-15T09:22:00-05:00',
+            finalDraftVersion: 4,
+            checklistSnapshot: [
+                {
+                    code: 'minimum_clinical_data',
+                    status: 'pass',
+                },
+            ],
+            aiTraceSnapshot: {},
+            notes: '',
+            normativeSources: [
+                'MSP-AM-5216A',
+                'MSP-AM-0457-ref',
+                'MSP-AM-5316',
+                'MSP-HCU-FORM-001',
+                'MSP-HCU-FORM-005',
+                'MSP-HCU-FORM-007',
+                'MSP-HCU-FORM-024',
+            ],
+        },
+        documents: {
+            finalNote: {
+                summary: 'Nota final aprobada y defendible.',
+                content: 'Contenido final de la nota.',
             },
-        ],
+            prescription: {
+                status: 'issued',
+                medication: 'Metronidazol topico',
+                directions: 'Aplicacion nocturna por 8 semanas',
+            },
+        },
+        consent: {
+            required: true,
+            status: 'accepted',
+            informedBy: 'Dra. Laura Mena',
+            informedAt: '2026-03-15T09:10:00-05:00',
+            explainedWhat: 'Se explico el plan y las alternativas.',
+            risksExplained: 'Irritacion transitoria',
+            alternativesExplained: 'Observacion y cambios topicos',
+            capacityAssessment: 'Paciente capaz de decidir',
+            privateCommunicationConfirmed: true,
+            companionShareAuthorized: false,
+            acceptedAt: '2026-03-15T09:10:00-05:00',
+        },
+    });
+
+    const reviewBySessionId = {
+        'chs-001': blockedRecord,
+        'chs-002': readyRecord,
     };
 
     const dataState = {
@@ -237,11 +605,11 @@ test('historia clinica conserva review y media flow en una sola superficie sin p
             summary: {
                 drafts: {
                     reviewQueueCount: 2,
-                    pendingAiCount: 1,
+                    pendingAiCount: 0,
                 },
                 events: {
-                    openCount: 2,
-                    unreadCount: 2,
+                    openCount: 1,
+                    unreadCount: 1,
                 },
                 diagnostics: {
                     status: 'degraded',
@@ -252,31 +620,45 @@ test('historia clinica conserva review y media flow en una sola superficie sin p
                     sessionId: 'chs-001',
                     caseId: 'case-001',
                     patientName: 'Ana Ruiz',
-                    summary: 'Rosacea facial con brote recurrente',
+                    summary: 'Rosacea facial con faltantes clinicos.',
                     sessionStatus: 'review_required',
                     reviewStatus: 'review_required',
                     requiresHumanReview: true,
-                    reviewReasons: ['dose_ambiguous'],
-                    pendingAiStatus: 'queued',
+                    reviewReasons: ['legal_blockers_present'],
+                    pendingAiStatus: '',
                     attachmentCount: 1,
-                    openEventCount: 2,
+                    openEventCount: 1,
                     highestOpenSeverity: 'critical',
                     latestOpenEventTitle: 'Alerta clinica abierta',
+                    legalReadinessStatus: 'blocked',
+                    legalReadinessLabel: 'Bloqueada',
+                    legalReadinessSummary:
+                        'La aprobacion esta bloqueada hasta resolver los faltantes medico-legales visibles.',
+                    approvalBlockedReasons: [
+                        {
+                            code: 'missing_minimum_clinical_data',
+                        },
+                    ],
                 },
                 {
                     sessionId: 'chs-002',
                     caseId: 'case-002',
                     patientName: 'Bruno Paz',
-                    summary: 'Dermatitis en observacion',
+                    summary: 'Dermatitis lista para aprobacion final.',
                     sessionStatus: 'review_required',
                     reviewStatus: 'review_required',
                     requiresHumanReview: true,
-                    reviewReasons: ['low_confidence'],
+                    reviewReasons: [],
                     pendingAiStatus: '',
                     attachmentCount: 0,
                     openEventCount: 0,
                     highestOpenSeverity: '',
                     latestOpenEventTitle: '',
+                    legalReadinessStatus: 'ready',
+                    legalReadinessLabel: 'Lista para aprobar',
+                    legalReadinessSummary:
+                        'La historia clinica cumple los bloqueos medico-legales minimos para aprobar.',
+                    approvalBlockedReasons: [],
                 },
             ],
             events: [
@@ -288,29 +670,14 @@ test('historia clinica conserva review y media flow en una sola superficie sin p
                 },
             ],
         },
-        mediaFlowMeta: {
-            queue: [
-                {
-                    caseId: 'case-001',
-                    patientName: 'Ana Ruiz',
-                    summary: 'Caso dermatologico para curacion editorial',
-                    serviceLabel: 'Teledermatologia',
-                    assetCount: 1,
-                    publicationStatus: 'draft',
-                    policyStatus: 'eligible',
-                    policyFlags: ['consent_ok'],
-                },
-            ],
-        },
     };
-
-    let agentSessionStartPayload = null;
 
     await installLegacyAdminAuthMock(page, {
         capabilities: {
             adminAgent: true,
         },
     });
+
     await installBasicAdminApiMocks(page, {
         dataOverrides: dataState,
         handleRoute: async ({
@@ -320,86 +687,38 @@ test('historia clinica conserva review y media flow en una sola superficie sin p
             payload,
             fulfillJson,
         }) => {
-            if (resource === 'clinical-history-review' && method === 'GET') {
+            if (resource === 'clinical-record' && method === 'GET') {
                 const requestUrl = new URL(route.request().url());
                 const sessionId =
                     requestUrl.searchParams.get('sessionId') || 'chs-001';
                 await fulfillJson(route, {
                     ok: true,
-                    data: reviewBySessionId[sessionId] || reviewBySessionId['chs-001'],
+                    data: reviewBySessionId[sessionId] || blockedRecord,
                 });
                 return true;
             }
 
-            if (resource === 'media-flow-case' && method === 'GET') {
+            if (resource === 'clinical-record' && method === 'PATCH') {
                 await fulfillJson(route, {
                     ok: true,
-                    data: mediaCase,
+                    data: readyRecord,
                 });
                 return true;
             }
 
-            if (
-                resource === 'media-flow-proposal-review' &&
-                method === 'POST'
-            ) {
-                mediaCase.proposal.status = 'approved';
-                mediaCase.proposal.recommendation = 'ready_to_publish';
-                mediaCase.publication.status = 'approved';
-                dataState.mediaFlowMeta.queue[0].publicationStatus = 'approved';
-                await fulfillJson(route, {
-                    ok: true,
-                    data: {
-                        caseId: payload.caseId,
-                        proposalId: payload.proposalId,
-                        decision: payload.decision,
-                    },
-                });
-                return true;
-            }
-
-            if (resource === 'admin-agent-status') {
-                await fulfillJson(route, buildAdminAgentStatusPayload());
-                return true;
-            }
-
-            if (resource === 'admin-agent-session-start') {
-                agentSessionStartPayload = payload;
-                await fulfillJson(
-                    route,
-                    {
+            if (resource === 'clinical-episode-action' && method === 'POST') {
+                if (payload.action === 'approve_final_note') {
+                    reviewBySessionId['chs-002'] = approvedRecord;
+                    await fulfillJson(route, {
                         ok: true,
-                        data: buildAdminAgentSnapshot({
-                            context: payload.context || {},
-                        }),
-                    },
-                    201
-                );
-                return true;
-            }
+                        data: approvedRecord,
+                    });
+                    return true;
+                }
 
-            if (resource === 'admin-agent-turn') {
                 await fulfillJson(route, {
                     ok: true,
-                    data: {
-                        session: buildAdminAgentSnapshot({
-                            context: payload.context || {},
-                            messages: [
-                                {
-                                    role: 'user',
-                                    content: payload.message || '',
-                                    createdAt: new Date().toISOString(),
-                                },
-                                {
-                                    role: 'assistant',
-                                    content:
-                                        'Contexto editorial recibido para el caso activo.',
-                                    createdAt: new Date().toISOString(),
-                                },
-                            ],
-                        }),
-                        clientActions: [],
-                    },
+                    data: readyRecord,
                 });
                 return true;
             }
@@ -420,68 +739,317 @@ test('historia clinica conserva review y media flow en una sola superficie sin p
     await expect(
         page.locator('[data-clinical-workspace="review"]')
     ).toHaveClass(/is-active/);
-    await expect(page.locator('#clinicalHistoryTranscriptMeta')).toContainText(
-        'Ana Ruiz'
-    );
-    await expect(page.locator('#clinician_resumen')).toHaveValue(
-        'Rosacea facial en seguimiento clinico.'
-    );
-
-    await page.locator('#clinician_resumen').fill(
-        'Rosacea facial ajustada manualmente por el medico.'
-    );
-    page.once('dialog', (dialog) => dialog.dismiss());
-    await page.locator('[data-clinical-session-id="chs-002"]').click();
-    await expect(page.locator('#clinicalHistoryTranscriptMeta')).toContainText(
-        'Ana Ruiz'
-    );
-    await expect(page.locator('#clinician_resumen')).toHaveValue(
-        'Rosacea facial ajustada manualmente por el medico.'
-    );
-    await expect(
-        page.locator('[data-clinical-session-id="chs-001"]')
-    ).toHaveClass(/is-selected/);
-
-    await page.locator('[data-clinical-workspace="media-flow"]').click();
-    await expect(page).toHaveURL(/clinicalWorkspace=media-flow/);
     await expect(
         page.locator('[data-clinical-workspace="media-flow"]')
-    ).toHaveClass(/is-active/);
-    await expect(page.locator('#clinicalMediaFlowCaseMeta')).toContainText(
-        'Caso Ana Ruiz'
-    );
-    await expect(
-        page.locator('[data-media-case-id="case-001"]')
-    ).toHaveClass(/is-selected/);
+    ).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'Abrir panel global' }).click();
-    await expect(page.locator('#adminAgentPanel')).toBeVisible();
-    await expect(page.locator('#adminAgentContextSummary')).toContainText(
-        'clinical-history / media-flow'
+    await expect(page.locator('#clinicalHistoryLegalReadinessPanel')).toContainText(
+        'Aptitud de cierre'
     );
-    await expect(page.locator('#adminAgentContextMeta')).toHaveText(
-        'case case-001 · prop-001'
+    await expect(page.locator('#clinicalHistoryLegalReadinessPanel')).toContainText(
+        'Bloqueada'
+    );
+    await expect(page.locator('#clinicalHistoryLegalReadinessPanel')).toContainText(
+        'Datos minimos clinicos'
+    );
+    await expect(page.locator('#clinicalHistoryApproveBtn')).toBeDisabled();
+
+    await page.locator('[data-clinical-session-id="chs-002"]').click();
+    await expect(page.locator('#clinicalHistoryLegalReadinessPanel')).toContainText(
+        'Lista para aprobar'
+    );
+    await expect(page.locator('#clinicalHistoryApproveBtn')).toBeEnabled();
+    await expect(page.locator('#consent_status')).toHaveValue('accepted');
+    await expect(page.locator('#document_prescription_medication')).toHaveValue(
+        'Metronidazol topico'
     );
 
-    await page.locator('#adminAgentPrompt').fill(
-        'Resume el estado editorial del caso'
+    await page.locator('#clinicalHistoryApproveBtn').click();
+    await expect(page.locator('#clinicalHistoryApprovalConstancy')).toContainText(
+        'Constancia de aprobacion'
     );
-    await page.locator('#adminAgentSubmitBtn').click();
-    await expect
-        .poll(() => agentSessionStartPayload)
-        .not.toBeNull();
-    expect(agentSessionStartPayload.context.workspace).toBe('media-flow');
-    expect(agentSessionStartPayload.context.caseId).toBe('case-001');
-    expect(agentSessionStartPayload.context.proposalId).toBe('prop-001');
-    expect(agentSessionStartPayload.context.selectedAssetIds).toEqual([
-        'asset-001',
-    ]);
+    await expect(page.locator('#clinicalHistoryApprovalConstancy')).toContainText(
+        'Dra. Laura Mena'
+    );
+    await expect(page.locator('#clinicalHistoryStatusChip')).toContainText(
+        'Aprobada'
+    );
+});
 
-    await page.getByRole('button', { name: 'Aprobar' }).click();
-    await expect(page.locator('#clinicalMediaFlowStatusMeta')).toHaveText(
-        'approved · ready_to_publish'
+test('gobernanza documental muestra SLA, bloquea disclosure no autorizado y exige override para archivo pasivo', async ({
+    page,
+}) => {
+    const baseRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-gov-001',
+        caseId: 'case-gov-001',
+        patientName: 'Marta Leon',
+        clinicianSummary: 'Historia clinica con custodia activa y copia pendiente.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary: 'La nota esta lista, pero la gobernanza documental sigue visible.',
+            checklist: [
+                {
+                    code: 'minimum_clinical_data',
+                    status: 'pass',
+                    label: 'Datos minimos clinicos',
+                    message: 'La nota ya puede sostener cierre medico-legal.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: {
+            required: true,
+            status: 'accepted',
+            informedBy: 'Dra. Sofia Paredes',
+            informedAt: '2026-03-15T09:10:00-05:00',
+            explainedWhat: 'Se explico el manejo terapeutico.',
+            risksExplained: 'Irritacion leve',
+            alternativesExplained: 'Observacion',
+            capacityAssessment: 'Paciente capaz',
+            privateCommunicationConfirmed: true,
+            companionShareAuthorized: false,
+            acceptedAt: '2026-03-15T09:10:00-05:00',
+        },
+        copyRequests: [
+            {
+                requestId: 'copy-gov-001',
+                requestedByType: 'patient',
+                requestedByName: 'Marta Leon',
+                requestedAt: '2026-03-13T09:00:00-05:00',
+                dueAt: '2026-03-14T09:00:00-05:00',
+                status: 'requested',
+                effectiveStatus: 'overdue',
+                statusLabel: 'Vencida',
+                legalBasis: '',
+                notes: 'Paciente solicita copia certificada para archivo personal.',
+                deliveredAt: '',
+                deliveryChannel: '',
+                deliveredTo: '',
+            },
+        ],
+        disclosureLog: [
+            {
+                disclosureId: 'disclosure-gov-001',
+                targetType: 'patient',
+                targetName: 'Marta Leon',
+                purpose: 'Entrega previa de indicaciones',
+                legalBasis: '',
+                authorizedByConsent: false,
+                performedBy: 'Dra. Sofia Paredes',
+                performedAt: '2026-03-15T09:20:00-05:00',
+                channel: 'entrega_privada',
+                notes: '',
+            },
+        ],
+        accessAudit: [
+            {
+                auditId: 'audit-gov-001',
+                recordId: 'hcu-chs-gov-001',
+                sessionId: 'chs-gov-001',
+                episodeId: 'ep-chs-gov-001',
+                actor: 'Dra. Sofia Paredes',
+                actorRole: 'clinician_admin',
+                action: 'view_record',
+                resource: 'clinical_record',
+                reason: 'authorized_clinical_record_read',
+                createdAt: '2026-03-15T09:21:00-05:00',
+                meta: {},
+            },
+        ],
+        archiveReadiness: {
+            archiveState: 'active',
+            lastAttentionAt: '2026-03-15T09:06:00-05:00',
+            passiveAfterYears: 5,
+            eligibleForPassive: false,
+            eligibleAt: '2031-03-15T09:06:00-05:00',
+            daysUntilPassive: 1825,
+            recommendedState: 'active',
+            label: 'Activa',
+            overrideRequired: true,
+        },
+    });
+
+    const passiveRecord = buildClinicalRecordPayload({
+        ...baseRecord.session,
+        sessionId: 'chs-gov-001',
+        caseId: 'case-gov-001',
+        patientName: 'Marta Leon',
+        clinicianSummary: 'Historia clinica con custodia pasiva justificada.',
+        legalReadiness: baseRecord.legalReadiness,
+        consent: baseRecord.consent,
+        copyRequests: baseRecord.copyRequests,
+        disclosureLog: baseRecord.disclosureLog,
+        accessAudit: [
+            {
+                auditId: 'audit-gov-002',
+                recordId: 'hcu-chs-gov-001',
+                sessionId: 'chs-gov-001',
+                episodeId: 'ep-chs-gov-001',
+                actor: 'Dra. Sofia Paredes',
+                actorRole: 'clinician_admin',
+                action: 'set_archive_state',
+                resource: 'clinical_record',
+                reason: 'archive_state_changed',
+                createdAt: '2026-03-15T09:30:00-05:00',
+                meta: {
+                    archiveState: 'passive',
+                },
+            },
+            ...baseRecord.accessAudit,
+        ],
+        archiveReadiness: {
+            archiveState: 'passive',
+            lastAttentionAt: '2026-03-15T09:06:00-05:00',
+            passiveAfterYears: 5,
+            eligibleForPassive: false,
+            eligibleAt: '2031-03-15T09:06:00-05:00',
+            daysUntilPassive: 1825,
+            recommendedState: 'active',
+            label: 'Pasiva',
+            overrideRequired: false,
+        },
+    });
+
+    const actionPayloads = [];
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    recordsGovernance: {
+                        pendingCopyRequests: 1,
+                        overdueCopyRequests: 1,
+                        disclosures: 1,
+                        archiveEligible: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-gov-001',
+                        caseId: 'case-gov-001',
+                        patientName: 'Marta Leon',
+                        summary: 'Copia certificada pendiente y custodia activa.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: false,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 1,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'La nota ya esta lista y la gobernanza documental sigue disponible.',
+                        approvalBlockedReasons: [],
+                        pendingCopyRequests: 1,
+                        overdueCopyRequests: 1,
+                        disclosureCount: 1,
+                        archiveEligibleForPassive: false,
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            payload,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: baseRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'clinical-episode-action' && method === 'POST') {
+                actionPayloads.push(payload);
+                if (payload.action === 'set_archive_state') {
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: passiveRecord,
+                    });
+                    return true;
+                }
+
+                await fulfillJson(route, {
+                    ok: true,
+                    data: baseRecord,
+                });
+                return true;
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.keyboard.press('Control+K');
+    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#clinicalHistoryRecordsGovernancePanel')).toContainText(
+        'Gobernanza documental'
     );
-    await expect(
-        page.locator('[data-media-case-id="case-001"]')
-    ).toHaveClass(/is-selected/);
+    await expect(page.locator('#clinicalHistoryRecordsGovernancePanel')).toContainText(
+        'Vencida'
+    );
+    await expect(page.locator('#clinicalHistoryRecordsGovernancePanel')).toContainText(
+        'Dra. Sofia Paredes'
+    );
+
+    await page
+        .locator('#governance_disclosure_target_type')
+        .selectOption('companion');
+    await page
+        .locator('#governance_disclosure_target_name')
+        .fill('Hermana de Marta');
+    await page
+        .locator('#governance_disclosure_purpose')
+        .fill('Compartir indicaciones');
+    await page.locator('#clinicalHistoryLogDisclosureBtn').click();
+    expect(actionPayloads).toHaveLength(0);
+
+    await page.locator('#clinicalHistorySetPassiveArchiveBtn').click();
+    expect(actionPayloads).toHaveLength(0);
+
+    await page
+        .locator('#governance_archive_override_reason')
+        .fill('Cierre anticipado por reorganizacion documental supervisada.');
+    await page.locator('#clinicalHistorySetPassiveArchiveBtn').click();
+
+    expect(actionPayloads).toHaveLength(1);
+    expect(actionPayloads[0]).toMatchObject({
+        action: 'set_archive_state',
+        archiveState: 'passive',
+    });
+    await expect(page.locator('#clinicalHistoryRecordsGovernancePanel')).toContainText(
+        'Pasiva'
+    );
 });

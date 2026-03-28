@@ -129,6 +129,40 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
                     'ambiguous' => true,
                 ],
             ],
+            'recordMeta' => [
+                'archiveState' => 'active',
+                'lastAttentionAt' => '2020-03-10T10:00:00-05:00',
+                'passiveAfterYears' => 5,
+                'confidentialityLabel' => 'CONFIDENCIAL',
+                'identityProtectionMode' => 'standard',
+                'copyDeliverySlaHours' => 48,
+                'formsCatalogStatus' => 'official_partial_traceability',
+            ],
+            'copyRequests' => [[
+                'requestId' => 'copy-admin-001',
+                'requestedByType' => 'patient',
+                'requestedByName' => 'Paciente Clinico',
+                'requestedAt' => '2026-03-11T08:00:00-05:00',
+                'dueAt' => '2026-03-11T20:00:00-05:00',
+                'status' => 'requested',
+                'legalBasis' => '',
+                'notes' => 'Solicita copia certificada.',
+                'deliveredAt' => '',
+                'deliveryChannel' => '',
+                'deliveredTo' => '',
+            ]],
+            'disclosureLog' => [[
+                'disclosureId' => 'disclosure-admin-001',
+                'targetType' => 'patient',
+                'targetName' => 'Paciente Clinico',
+                'purpose' => 'Entrega de indicaciones',
+                'legalBasis' => '',
+                'authorizedByConsent' => false,
+                'performedBy' => 'Dra. Laura Mena',
+                'performedAt' => '2026-03-11T10:17:00-05:00',
+                'channel' => 'entrega_privada',
+                'notes' => '',
+            ]],
             'lastAiEnvelope' => [
                 'redFlags' => ['rosacea_flare'],
             ],
@@ -211,6 +245,10 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame(1, (int) ($meta['summary']['drafts']['reviewQueueCount'] ?? -1));
         self::assertSame(2, (int) ($meta['summary']['events']['openCount'] ?? -1));
         self::assertSame(2, (int) ($meta['summary']['events']['unreadCount'] ?? -1));
+        self::assertSame(1, (int) ($meta['summary']['recordsGovernance']['pendingCopyRequests'] ?? -1));
+        self::assertSame(1, (int) ($meta['summary']['recordsGovernance']['overdueCopyRequests'] ?? -1));
+        self::assertSame(1, (int) ($meta['summary']['recordsGovernance']['disclosures'] ?? -1));
+        self::assertSame(1, (int) ($meta['summary']['recordsGovernance']['archiveEligible'] ?? -1));
         self::assertSame('critical', (string) ($meta['summary']['diagnostics']['status'] ?? ''));
         self::assertCount(1, $meta['reviewQueue'] ?? []);
         self::assertSame('Paciente Clinico', (string) ($meta['reviewQueue'][0]['patientName'] ?? ''));
@@ -218,6 +256,13 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame(2, (int) ($meta['reviewQueue'][0]['openEventCount'] ?? -1));
         self::assertSame('critical', (string) ($meta['reviewQueue'][0]['highestOpenSeverity'] ?? ''));
         self::assertSame('Alerta clinica abierta', (string) ($meta['reviewQueue'][0]['latestOpenEventTitle'] ?? ''));
+        self::assertSame('blocked', (string) ($meta['reviewQueue'][0]['legalReadinessStatus'] ?? ''));
+        self::assertSame('Bloqueada', (string) ($meta['reviewQueue'][0]['legalReadinessLabel'] ?? ''));
+        self::assertSame(1, (int) ($meta['reviewQueue'][0]['pendingCopyRequests'] ?? -1));
+        self::assertSame(1, (int) ($meta['reviewQueue'][0]['overdueCopyRequests'] ?? -1));
+        self::assertSame(1, (int) ($meta['reviewQueue'][0]['disclosureCount'] ?? -1));
+        self::assertTrue((bool) ($meta['reviewQueue'][0]['archiveEligibleForPassive'] ?? false));
+        self::assertNotEmpty($meta['reviewQueue'][0]['approvalBlockedReasons'] ?? []);
         self::assertCount(2, $meta['events'] ?? []);
         self::assertSame(
             ['clinical_alert', 'draft_reconciled'],

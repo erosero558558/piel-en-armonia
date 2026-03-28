@@ -142,6 +142,95 @@ final class ClinicalHistoryController
         self::emitMutationResponse($result);
     }
 
+    public static function recordGet(array $context): void
+    {
+        if (($context['isAdmin'] ?? false) !== true) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        self::requireClinicalStorageReady([
+            'session' => null,
+            'draft' => null,
+            'events' => [],
+            'response' => null,
+            'ai' => [
+                'mode' => 'blocked',
+            ],
+        ]);
+
+        $service = new ClinicalHistoryService();
+        $result = self::readStore(static function (array $store) use ($service): array {
+            return $service->getRecord($store, $_GET);
+        });
+
+        if (($result['ok'] ?? false) !== true) {
+            json_response([
+                'ok' => false,
+                'error' => (string) ($result['error'] ?? 'No se pudo cargar el registro clinico'),
+                'code' => (string) ($result['errorCode'] ?? 'clinical_record_error'),
+            ], (int) ($result['statusCode'] ?? 500));
+        }
+
+        json_response([
+            'ok' => true,
+            'data' => $result['data'] ?? [],
+        ]);
+    }
+
+    public static function recordPatch(array $context): void
+    {
+        if (($context['isAdmin'] ?? false) !== true) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        self::requireClinicalStorageReady([
+            'session' => null,
+            'draft' => null,
+            'events' => [],
+            'response' => null,
+            'ai' => [
+                'mode' => 'blocked',
+            ],
+        ]);
+
+        require_csrf();
+
+        $payload = require_json_body();
+        $service = new ClinicalHistoryService();
+        $result = self::mutateStore(static function (array $store) use ($service, $payload): array {
+            return $service->patchRecord($store, $payload);
+        });
+
+        self::emitMutationResponse($result);
+    }
+
+    public static function episodeActionPost(array $context): void
+    {
+        if (($context['isAdmin'] ?? false) !== true) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        self::requireClinicalStorageReady([
+            'session' => null,
+            'draft' => null,
+            'events' => [],
+            'response' => null,
+            'ai' => [
+                'mode' => 'blocked',
+            ],
+        ]);
+
+        require_csrf();
+
+        $payload = require_json_body();
+        $service = new ClinicalHistoryService();
+        $result = self::mutateStore(static function (array $store) use ($service, $payload): array {
+            return $service->episodeAction($store, $payload);
+        });
+
+        self::emitMutationResponse($result);
+    }
+
     private static function mutateStore(callable $callback): array
     {
         $lockResult = with_store_lock(static function () use ($callback): array {

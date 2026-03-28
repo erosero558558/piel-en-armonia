@@ -52,12 +52,17 @@ final class ClinicalHistoryOpsSnapshot
         }
 
         $openEventStatsBySessionId = self::buildOpenEventStatsBySession($events);
+        $eventsBySessionId = self::groupEventsBySession($events);
 
         $sessionStatusCounts = self::initializeCounters(self::SESSION_STATUS_KEYS);
         $reviewStatusCounts = self::initializeCounters(self::REVIEW_STATUS_KEYS);
         $reviewQueue = [];
         $pendingAiCount = 0;
         $latestActivityAt = '';
+        $pendingCopyRequests = 0;
+        $overdueCopyRequests = 0;
+        $disclosuresCount = 0;
+        $archiveEligibleCount = 0;
 
         foreach ($sessions as $sessionRecord) {
             $session = ClinicalHistoryRepository::adminSession($sessionRecord);
@@ -89,13 +94,31 @@ final class ClinicalHistoryOpsSnapshot
                 $latestActivityAt,
                 (string) ($session['updatedAt'] ?? $draft['updatedAt'] ?? '')
             );
+            $copyRequests = ClinicalHistoryRepository::normalizeCopyRequests($draft['copyRequests'] ?? []);
+            $disclosureLog = ClinicalHistoryRepository::normalizeDisclosureLog($draft['disclosureLog'] ?? []);
+            $archiveReadiness = self::buildArchiveReadiness($session, $draft);
+            $pendingCopyRequests += self::countPendingCopyRequests($copyRequests);
+            $overdueCopyRequests += self::countOverdueCopyRequests($copyRequests);
+            $disclosuresCount += count($disclosureLog);
+            if (($archiveReadiness['eligibleForPassive'] ?? false) === true) {
+                $archiveEligibleCount++;
+            }
+            $legalReadiness = ClinicalHistoryLegalReadiness::build(
+                $session,
+                $draft,
+                $eventsBySessionId[$sessionId] ?? []
+            );
 
             if (self::needsReviewQueue($session, $draft, $pendingAi)) {
                 $reviewQueue[] = self::buildReviewQueueRow(
                     $session,
                     $draft,
                     $pendingAi,
-                    $openEventStatsBySessionId[$sessionId] ?? []
+                    $openEventStatsBySessionId[$sessionId] ?? [],
+                    $legalReadiness,
+                    $copyRequests,
+                    $disclosureLog,
+                    $archiveReadiness
                 );
             }
         }
@@ -185,6 +208,12 @@ final class ClinicalHistoryOpsSnapshot
                 'count' => count($reviewQueue),
                 'items' => array_values($reviewQueue),
             ],
+            'recordsGovernance' => [
+                'pendingCopyRequests' => $pendingCopyRequests,
+                'overdueCopyRequests' => $overdueCopyRequests,
+                'disclosures' => $disclosuresCount,
+                'archiveEligible' => $archiveEligibleCount,
+            ],
             'latestActivityAt' => $latestActivityAt,
         ];
 
@@ -207,6 +236,12 @@ final class ClinicalHistoryOpsSnapshot
                     'bySeverity' => $snapshot['events']['bySeverity'] ?? [],
                     'openBySeverity' => $snapshot['events']['openBySeverity'] ?? [],
                     'byType' => $snapshot['events']['byType'] ?? [],
+                ],
+                'recordsGovernance' => $snapshot['recordsGovernance'] ?? [
+                    'pendingCopyRequests' => 0,
+                    'overdueCopyRequests' => 0,
+                    'disclosures' => 0,
+                    'archiveEligible' => 0,
                 ],
                 'reviewQueueCount' => (int) ($snapshot['reviewQueue']['count'] ?? 0),
                 'latestActivityAt' => (string) ($snapshot['latestActivityAt'] ?? ''),
@@ -232,7 +267,11 @@ final class ClinicalHistoryOpsSnapshot
         array $session,
         array $draft,
         array $pendingAi,
-        array $eventStats
+        array $eventStats,
+        array $legalReadiness,
+        array $copyRequests,
+        array $disclosureLog,
+        array $archiveReadiness
     ): array {
         $patient = isset($session['patient']) && is_array($session['patient']) ? $session['patient'] : [];
         $intake = isset($draft['intake']) && is_array($draft['intake']) ? $draft['intake'] : [];
@@ -259,10 +298,82 @@ final class ClinicalHistoryOpsSnapshot
             'openEventCount' => (int) ($eventStats['openEventCount'] ?? 0),
             'highestOpenSeverity' => (string) ($eventStats['highestOpenSeverity'] ?? ''),
             'latestOpenEventTitle' => (string) ($eventStats['latestOpenEventTitle'] ?? ''),
+            'legalReadinessStatus' => (string) ($legalReadiness['status'] ?? 'blocked'),
+            'legalReadinessLabel' => (string) ($legalReadiness['label'] ?? 'Bloqueada'),
+            'legalReadinessSummary' => (string) ($legalReadiness['summary'] ?? ''),
+            'approvalBlockedReasons' => isset($legalReadiness['blockingReasons']) && is_array($legalReadiness['blockingReasons'])
+                ? array_values($legalReadiness['blockingReasons'])
+                : [],
+            'pendingCopyRequests' => self::countPendingCopyRequests($copyRequests),
+            'overdueCopyRequests' => self::countOverdueCopyRequests($copyRequests),
+            'disclosureCount' => count($disclosureLog),
+            'archiveEligibleForPassive' => (bool) ($archiveReadiness['eligibleForPassive'] ?? false),
             'summary' => (string) (($draft['clinicianDraft']['resumen'] ?? '') ?: ($intake['resumenClinico'] ?? '')),
             'createdAt' => (string) ($draft['createdAt'] ?? $session['createdAt'] ?? ''),
             'updatedAt' => (string) ($draft['updatedAt'] ?? $session['updatedAt'] ?? ''),
         ];
+    }
+
+    private static function buildArchiveReadiness(array $session, array $draft): array
+    {
+        $recordMeta = ClinicalHistoryRepository::normalizeRecordMeta(
+            isset($draft['recordMeta']) && is_array($draft['recordMeta']) ? $draft['recordMeta'] : [],
+            $session,
+            $draft
+        );
+        $archiveState = ClinicalHistoryRepository::trimString($recordMeta['archiveState'] ?? 'active');
+        if ($archiveState === '') {
+            $archiveState = 'active';
+        }
+
+        $lastAttentionAt = ClinicalHistoryRepository::trimString($recordMeta['lastAttentionAt'] ?? '');
+        $eligibleForPassive = false;
+        $eligibleAt = '';
+
+        if ($lastAttentionAt !== '') {
+            try {
+                $lastAttention = new \DateTimeImmutable($lastAttentionAt);
+                $eligibleAt = $lastAttention
+                    ->add(new \DateInterval('P' . max(1, (int) ($recordMeta['passiveAfterYears'] ?? 5)) . 'Y'))
+                    ->format('c');
+                $eligibleForPassive = new \DateTimeImmutable($eligibleAt) <= new \DateTimeImmutable(date('c'));
+            } catch (\Throwable $e) {
+                $eligibleAt = '';
+                $eligibleForPassive = false;
+            }
+        }
+
+        return [
+            'archiveState' => $archiveState,
+            'eligibleForPassive' => $eligibleForPassive,
+            'eligibleAt' => $eligibleAt,
+        ];
+    }
+
+    private static function countPendingCopyRequests(array $copyRequests): int
+    {
+        return count(array_filter($copyRequests, static function (array $request): bool {
+            $status = ClinicalHistoryRepository::trimString($request['status'] ?? '');
+            return $status !== 'delivered'
+                && ClinicalHistoryRepository::trimString($request['deliveredAt'] ?? '') === '';
+        }));
+    }
+
+    private static function countOverdueCopyRequests(array $copyRequests): int
+    {
+        return count(array_filter($copyRequests, static function (array $request): bool {
+            $status = ClinicalHistoryRepository::trimString($request['status'] ?? '');
+            $dueAt = ClinicalHistoryRepository::trimString($request['dueAt'] ?? '');
+            if ($status === 'delivered' || $dueAt === '') {
+                return false;
+            }
+
+            try {
+                return new \DateTimeImmutable($dueAt) <= new \DateTimeImmutable(date('c'));
+            } catch (\Throwable $e) {
+                return false;
+            }
+        }));
     }
 
     private static function buildEventRow(array $event, array $draft): array
@@ -481,6 +592,24 @@ final class ClinicalHistoryOpsSnapshot
         }
 
         return $statsBySessionId;
+    }
+
+    private static function groupEventsBySession(array $events): array
+    {
+        $grouped = [];
+
+        foreach ($events as $eventRecord) {
+            $event = ClinicalHistoryRepository::defaultEvent($eventRecord);
+            $sessionId = ClinicalHistoryRepository::trimString($event['sessionId'] ?? '');
+            if ($sessionId === '') {
+                continue;
+            }
+
+            $grouped[$sessionId] = $grouped[$sessionId] ?? [];
+            $grouped[$sessionId][] = $event;
+        }
+
+        return $grouped;
     }
 
     private static function preferHigherSeverity(string $current, string $candidate): string

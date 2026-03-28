@@ -202,27 +202,427 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertSame(['L20.9'], $review['payload']['data']['draft']['clinicianDraft']['cie10Sugeridos'] ?? []);
         self::assertSame('Prednisona 20 mg cada 12 horas', (string) ($review['payload']['data']['draft']['clinicianDraft']['tratamientoBorrador'] ?? ''));
 
+        self::assertSame('blocked', (string) ($review['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame(
+            'missing_minimum_clinical_data',
+            (string) ($review['payload']['data']['approvalBlockedReasons'][0]['code'] ?? '')
+        );
+
         $_SESSION['csrf_token'] = 'csrf-test';
         $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-test';
-        $reviewPatch = $this->captureResponse(
-            static fn () => \ClinicalHistoryController::reviewPatch([
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
                 'isAdmin' => true,
             ]),
             'PATCH',
             [
                 'sessionId' => (string) ($session['sessionId'] ?? ''),
-                'approve' => true,
                 'draft' => [
+                    'intake' => [
+                        'antecedentes' => 'Sin antecedentes dermatologicos de alarma.',
+                        'preguntasFaltantes' => [],
+                    ],
                     'clinicianDraft' => [
                         'resumen' => 'Resumen aprobado por medico.',
+                        'preguntasFaltantes' => [],
                     ],
+                ],
+                'documents' => [
+                    'prescription' => [
+                        'medication' => 'Prednisona',
+                        'directions' => '20 mg cada 12 horas por 5 dias',
+                    ],
+                ],
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+        self::assertSame('ready', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+
+        $approve = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'approve_final_note',
+            ]
+        );
+
+        self::assertSame(200, $approve['status']);
+        self::assertSame('approved', (string) ($approve['payload']['data']['draft']['reviewStatus'] ?? ''));
+        self::assertSame('approved', (string) ($approve['payload']['data']['approval']['status'] ?? ''));
+        self::assertSame('Resumen aprobado por medico.', (string) ($approve['payload']['data']['draft']['clinicianDraft']['resumen'] ?? ''));
+        self::assertSame('admin@local', (string) ($approve['payload']['data']['approval']['approvedBy'] ?? ''));
+        self::assertNotSame('', (string) ($approve['payload']['data']['approval']['approvedAt'] ?? ''));
+    }
+
+    public function testClinicalHistoryApprovalRequiresAcceptedConsentWhenEpisodeNeedsIt(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Carla Torres',
+                    'email' => 'carla@example.com',
                 ],
             ]
         );
 
-        self::assertSame(200, $reviewPatch['status']);
-        self::assertSame('approved', (string) ($reviewPatch['payload']['data']['draft']['reviewStatus'] ?? ''));
-        self::assertSame('Resumen aprobado por medico.', (string) ($reviewPatch['payload']['data']['draft']['clinicianDraft']['resumen'] ?? ''));
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-test';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-test';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Rosacea inflamatoria',
+                        'enfermedadActual' => 'Brote facial de varias semanas',
+                        'antecedentes' => 'Niega antecedentes relevantes',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 33,
+                            'pesoKg' => 58,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Rosacea con plan topico y control.',
+                        'preguntasFaltantes' => [],
+                        'tratamientoBorrador' => 'Metronidazol topico',
+                        'posologiaBorrador' => [
+                            'texto' => 'Aplicacion nocturna por 8 semanas',
+                            'baseCalculo' => 'standard',
+                            'pesoKg' => 58,
+                            'edadAnios' => 33,
+                            'units' => '',
+                            'ambiguous' => false,
+                        ],
+                    ],
+                ],
+                'documents' => [
+                    'prescription' => [
+                        'medication' => 'Metronidazol topico',
+                        'directions' => 'Aplicacion nocturna por 8 semanas',
+                    ],
+                ],
+                'consent' => [
+                    'required' => true,
+                    'status' => 'pending',
+                    'informedBy' => 'Dra. Laura Mena',
+                    'informedAt' => '2026-03-16T10:00:00-05:00',
+                    'explainedWhat' => 'Se explico diagnostico, plan y seguimiento.',
+                    'risksExplained' => 'Irritacion local transitoria',
+                    'alternativesExplained' => 'Observacion y cuidado topico',
+                    'capacityAssessment' => 'Paciente capaz de decidir',
+                    'privateCommunicationConfirmed' => true,
+                    'companionShareAuthorized' => false,
+                ],
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+        self::assertSame('blocked', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame(
+            'consent_incomplete',
+            (string) ($recordPatch['payload']['data']['approvalBlockedReasons'][0]['code'] ?? '')
+        );
+
+        $blockedApprove = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'approve_final_note',
+            ]
+        );
+
+        self::assertSame(409, $blockedApprove['status']);
+        self::assertSame(
+            'clinical_history_approval_blocked',
+            (string) ($blockedApprove['payload']['code'] ?? '')
+        );
+
+        $consentAccepted = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'consent' => [
+                    'required' => true,
+                    'status' => 'accepted',
+                    'informedBy' => 'Dra. Laura Mena',
+                    'informedAt' => '2026-03-16T10:00:00-05:00',
+                    'explainedWhat' => 'Se explico diagnostico, plan y seguimiento.',
+                    'risksExplained' => 'Irritacion local transitoria',
+                    'alternativesExplained' => 'Observacion y cuidado topico',
+                    'capacityAssessment' => 'Paciente capaz de decidir',
+                    'privateCommunicationConfirmed' => true,
+                    'companionShareAuthorized' => false,
+                    'acceptedAt' => '2026-03-16T10:05:00-05:00',
+                ],
+            ]
+        );
+
+        self::assertSame(200, $consentAccepted['status']);
+        self::assertSame('ready', (string) ($consentAccepted['payload']['data']['legalReadiness']['status'] ?? ''));
+
+        $approved = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'approve_final_note',
+            ]
+        );
+
+        self::assertSame(200, $approved['status']);
+        self::assertSame('approved', (string) ($approved['payload']['data']['approval']['status'] ?? ''));
+        self::assertSame('issued', (string) ($approved['payload']['data']['documents']['prescription']['status'] ?? ''));
+        self::assertContains(
+            'MSP-HCU-FORM-024',
+            $approved['payload']['data']['approval']['normativeSources'] ?? []
+        );
+    }
+
+    public function testClinicalRecordGovernanceAuditsAccessAndEnforcesDisclosureAndArchiveRules(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Marta Leon',
+                    'email' => 'marta@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-test';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-test';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Dermatitis',
+                        'enfermedadActual' => 'Brote leve en antebrazos',
+                        'antecedentes' => 'Niega antecedentes relevantes',
+                        'alergias' => 'Niega alergias',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 37,
+                            'pesoKg' => 61,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Dermatitis leve en control.',
+                        'preguntasFaltantes' => [],
+                        'tratamientoBorrador' => 'Emoliente y observacion',
+                        'posologiaBorrador' => [
+                            'texto' => 'Aplicacion local dos veces al dia',
+                            'baseCalculo' => 'standard',
+                            'pesoKg' => 61,
+                            'edadAnios' => 37,
+                            'units' => '',
+                            'ambiguous' => false,
+                        ],
+                    ],
+                ],
+                'documents' => [
+                    'prescription' => [
+                        'medication' => 'Emoliente',
+                        'directions' => 'Aplicacion local dos veces al dia',
+                    ],
+                ],
+                'consent' => [
+                    'required' => true,
+                    'status' => 'accepted',
+                    'informedBy' => 'Dra. Laura Mena',
+                    'informedAt' => '2026-03-16T10:00:00-05:00',
+                    'explainedWhat' => 'Se explico el plan terapeutico.',
+                    'risksExplained' => 'Irritacion leve',
+                    'alternativesExplained' => 'Observacion',
+                    'capacityAssessment' => 'Paciente capaz de decidir',
+                    'privateCommunicationConfirmed' => true,
+                    'companionShareAuthorized' => false,
+                    'acceptedAt' => '2026-03-16T10:05:00-05:00',
+                ],
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+        self::assertSame('ready', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame('edit_record', (string) ($recordPatch['payload']['data']['accessAudit'][0]['action'] ?? ''));
+
+        $_GET = ['sessionId' => (string) ($session['sessionId'] ?? '')];
+        $recordView = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordGet([
+                'isAdmin' => true,
+            ])
+        );
+
+        self::assertSame(200, $recordView['status']);
+        self::assertSame('view_record', (string) ($recordView['payload']['data']['accessAudit'][0]['action'] ?? ''));
+
+        $copyRequest = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'request_certified_copy',
+                'requestedByType' => 'patient',
+                'requestedByName' => 'Marta Leon',
+                'notes' => 'Solicita copia certificada para archivo personal.',
+            ]
+        );
+
+        self::assertSame(200, $copyRequest['status']);
+        self::assertSame(1, (int) ($copyRequest['payload']['data']['auditSummary']['copyRequestsCount'] ?? -1));
+        self::assertSame('request_certified_copy', (string) ($copyRequest['payload']['data']['accessAudit'][0]['action'] ?? ''));
+        $request = $copyRequest['payload']['data']['copyRequests'][0] ?? [];
+        self::assertNotSame('', (string) ($request['requestId'] ?? ''));
+        self::assertSame('requested', (string) ($request['status'] ?? ''));
+        self::assertSame('requested', (string) ($request['effectiveStatus'] ?? ''));
+        self::assertNotSame('', (string) ($request['dueAt'] ?? ''));
+
+        $dueAt = new \DateTimeImmutable((string) ($request['dueAt'] ?? ''));
+        $requestedAt = new \DateTimeImmutable((string) ($request['requestedAt'] ?? ''));
+        self::assertLessThanOrEqual(48 * 3600, abs($dueAt->getTimestamp() - $requestedAt->getTimestamp()));
+
+        $blockedCompanionDisclosure = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'log_disclosure',
+                'targetType' => 'companion',
+                'targetName' => 'Hermana de Marta',
+                'purpose' => 'Compartir indicaciones',
+            ]
+        );
+
+        self::assertSame(409, $blockedCompanionDisclosure['status']);
+        self::assertSame(
+            'clinical_companion_disclosure_requires_consent',
+            (string) ($blockedCompanionDisclosure['payload']['code'] ?? '')
+        );
+
+        $blockedThirdPartyDisclosure = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'log_disclosure',
+                'targetType' => 'external_third_party',
+                'targetName' => 'Aseguradora externa',
+                'purpose' => 'Soporte documental',
+            ]
+        );
+
+        self::assertSame(409, $blockedThirdPartyDisclosure['status']);
+        self::assertSame(
+            'clinical_external_disclosure_requires_legal_basis',
+            (string) ($blockedThirdPartyDisclosure['payload']['code'] ?? '')
+        );
+
+        $copyDelivered = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'deliver_certified_copy',
+                'requestId' => (string) ($request['requestId'] ?? ''),
+                'deliveredTo' => 'Marta Leon',
+                'deliveryChannel' => 'retiro_fisico',
+                'notes' => 'Entrega firmada en consultorio.',
+            ]
+        );
+
+        self::assertSame(200, $copyDelivered['status']);
+        self::assertSame('deliver_certified_copy', (string) ($copyDelivered['payload']['data']['accessAudit'][0]['action'] ?? ''));
+        self::assertSame('delivered', (string) ($copyDelivered['payload']['data']['copyRequests'][0]['status'] ?? ''));
+        self::assertSame('delivered', (string) ($copyDelivered['payload']['data']['copyRequests'][0]['effectiveStatus'] ?? ''));
+        self::assertSame(
+            'Entrega de copia certificada',
+            (string) ($copyDelivered['payload']['data']['disclosureLog'][0]['purpose'] ?? '')
+        );
+
+        $archiveBlocked = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'set_archive_state',
+                'archiveState' => 'passive',
+            ]
+        );
+
+        self::assertSame(409, $archiveBlocked['status']);
+        self::assertSame(
+            'clinical_archive_override_required',
+            (string) ($archiveBlocked['payload']['code'] ?? '')
+        );
+
+        $archivePassive = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'set_archive_state',
+                'archiveState' => 'passive',
+                'overrideReason' => 'Custodia anticipada por reorganizacion documental supervisada.',
+            ]
+        );
+
+        self::assertSame(200, $archivePassive['status']);
+        self::assertSame('set_archive_state', (string) ($archivePassive['payload']['data']['accessAudit'][0]['action'] ?? ''));
+        self::assertSame('passive', (string) ($archivePassive['payload']['data']['archiveReadiness']['archiveState'] ?? ''));
+        self::assertSame('Pasiva', (string) ($archivePassive['payload']['data']['recordsGovernance']['archiveReadiness']['label'] ?? ''));
     }
 
     public function testClinicalHistoryFallbackKeepsTranscriptAndMarksReviewRequired(): void
@@ -373,24 +773,68 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertSame('draft_reconciled', (string) ($review['payload']['data']['events'][0]['type'] ?? ''));
         self::assertSame('open', (string) ($review['payload']['data']['events'][0]['status'] ?? ''));
 
+        self::assertSame('blocked', (string) ($review['payload']['data']['legalReadiness']['status'] ?? ''));
+
         $_SESSION['csrf_token'] = 'csrf-queued';
         $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-queued';
-        $reviewPatch = $this->captureResponse(
-            static fn () => \ClinicalHistoryController::reviewPatch([
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
                 'isAdmin' => true,
             ]),
             'PATCH',
             [
                 'sessionId' => (string) ($session['sessionId'] ?? ''),
-                'approve' => true,
+                'draft' => [
+                    'intake' => [
+                        'antecedentes' => 'Sin antecedentes dermatologicos relevantes.',
+                        'alergias' => 'Niega alergias medicamentosas.',
+                        'datosPaciente' => [
+                            'edadAnios' => 29,
+                        ],
+                        'preguntasFaltantes' => [],
+                    ],
+                    'clinicianDraft' => [
+                        'preguntasFaltantes' => [],
+                        'posologiaBorrador' => [
+                            'texto' => 'Aplicacion nocturna',
+                            'baseCalculo' => 'standard',
+                            'pesoKg' => 70,
+                            'edadAnios' => 29,
+                            'units' => '',
+                            'ambiguous' => false,
+                        ],
+                    ],
+                ],
+                'documents' => [
+                    'prescription' => [
+                        'medication' => 'Retinoide topico',
+                        'directions' => 'Aplicacion nocturna por 8 semanas',
+                    ],
+                ],
+                'requiresHumanReview' => false,
             ]
         );
 
-        self::assertSame(200, $reviewPatch['status']);
-        self::assertCount(1, $reviewPatch['payload']['data']['events'] ?? []);
-        self::assertSame('resolved', (string) ($reviewPatch['payload']['data']['events'][0]['status'] ?? ''));
-        self::assertNotSame('', (string) ($reviewPatch['payload']['data']['events'][0]['acknowledgedAt'] ?? ''));
-        self::assertNotSame('', (string) ($reviewPatch['payload']['data']['events'][0]['resolvedAt'] ?? ''));
+        self::assertSame(200, $recordPatch['status']);
+        self::assertSame('ready', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+
+        $approve = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'approve_final_note',
+            ]
+        );
+
+        self::assertSame(200, $approve['status']);
+        self::assertCount(1, $approve['payload']['data']['events'] ?? []);
+        self::assertSame('resolved', (string) ($approve['payload']['data']['events'][0]['status'] ?? ''));
+        self::assertNotSame('', (string) ($approve['payload']['data']['events'][0]['acknowledgedAt'] ?? ''));
+        self::assertNotSame('', (string) ($approve['payload']['data']['events'][0]['resolvedAt'] ?? ''));
+        self::assertSame('approved', (string) ($approve['payload']['data']['approval']['status'] ?? ''));
     }
 
     public function testClinicalHistoryBackgroundReconcilerProcessesPendingSessionsWithoutReopeningSession(): void

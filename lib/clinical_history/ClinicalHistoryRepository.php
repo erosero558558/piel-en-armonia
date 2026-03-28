@@ -76,13 +76,28 @@ final class ClinicalHistoryRepository
         $draftId = self::trimString($seed['draftId'] ?? '') !== ''
             ? self::trimString($seed['draftId'] ?? '')
             : self::newOpaqueId('chd');
+        $sessionId = self::trimString($seed['sessionId'] ?? ($session['sessionId'] ?? ''));
+        $caseId = self::trimString($seed['caseId'] ?? ($session['caseId'] ?? ''));
+        $appointmentId = self::nullablePositiveInt($seed['appointmentId'] ?? ($session['appointmentId'] ?? null));
+        $patientRecordId = self::trimString($seed['patientRecordId'] ?? '');
+        $episodeId = self::trimString($seed['episodeId'] ?? '');
+        $encounterId = self::trimString($seed['encounterId'] ?? '');
 
         return [
             'id' => (int) ($seed['id'] ?? 0),
             'draftId' => $draftId,
-            'sessionId' => self::trimString($seed['sessionId'] ?? ($session['sessionId'] ?? '')),
-            'caseId' => self::trimString($seed['caseId'] ?? ($session['caseId'] ?? '')),
-            'appointmentId' => self::nullablePositiveInt($seed['appointmentId'] ?? ($session['appointmentId'] ?? null)),
+            'sessionId' => $sessionId,
+            'caseId' => $caseId,
+            'appointmentId' => $appointmentId,
+            'patientRecordId' => $patientRecordId !== ''
+                ? $patientRecordId
+                : self::stableDerivedId('hcu', [$caseId, $sessionId, (string) ($appointmentId ?? '')]),
+            'episodeId' => $episodeId !== ''
+                ? $episodeId
+                : self::stableDerivedId('ep', [$sessionId, $caseId, 'active_episode']),
+            'encounterId' => $encounterId !== ''
+                ? $encounterId
+                : self::stableDerivedId('enc', [$sessionId, (string) ($appointmentId ?? ''), 'encounter']),
             'status' => self::trimString($seed['status'] ?? 'draft') !== ''
                 ? self::trimString($seed['status'] ?? 'draft')
                 : 'draft',
@@ -96,6 +111,16 @@ final class ClinicalHistoryRepository
             'reviewReasons' => self::normalizeStringList($seed['reviewReasons'] ?? []),
             'intake' => self::normalizeIntake(isset($seed['intake']) && is_array($seed['intake']) ? $seed['intake'] : []),
             'clinicianDraft' => self::normalizeClinicianDraft(isset($seed['clinicianDraft']) && is_array($seed['clinicianDraft']) ? $seed['clinicianDraft'] : []),
+            'recordMeta' => self::normalizeRecordMeta(
+                isset($seed['recordMeta']) && is_array($seed['recordMeta']) ? $seed['recordMeta'] : [],
+                $session,
+                $seed
+            ),
+            'documents' => self::normalizeClinicalDocuments(isset($seed['documents']) && is_array($seed['documents']) ? $seed['documents'] : []),
+            'consent' => self::normalizeConsentRecord(isset($seed['consent']) && is_array($seed['consent']) ? $seed['consent'] : []),
+            'approval' => self::normalizeApprovalRecord(isset($seed['approval']) && is_array($seed['approval']) ? $seed['approval'] : []),
+            'disclosureLog' => self::normalizeDisclosureLog($seed['disclosureLog'] ?? []),
+            'copyRequests' => self::normalizeCopyRequests($seed['copyRequests'] ?? []),
             'lastAiEnvelope' => isset($seed['lastAiEnvelope']) && is_array($seed['lastAiEnvelope']) ? $seed['lastAiEnvelope'] : [],
             'pendingAi' => self::normalizePendingAi(isset($seed['pendingAi']) && is_array($seed['pendingAi']) ? $seed['pendingAi'] : []),
             'version' => max(1, (int) ($seed['version'] ?? 1)),
@@ -486,6 +511,326 @@ final class ClinicalHistoryRepository
         return self::defaultDraft(['sessionId' => $draft['sessionId'] ?? '', 'caseId' => $draft['caseId'] ?? ''], $draft);
     }
 
+    public static function normalizeRecordMeta(array $meta, array $session = [], array $draft = []): array
+    {
+        $lastAttentionAt = self::trimString(
+            $meta['lastAttentionAt']
+                ?? $draft['updatedAt']
+                ?? $session['updatedAt']
+                ?? $draft['createdAt']
+                ?? $session['createdAt']
+                ?? ''
+        );
+        $archiveState = self::trimString($meta['archiveState'] ?? 'active');
+        if ($archiveState === '') {
+            $archiveState = 'active';
+        }
+
+        return [
+            'archiveState' => $archiveState,
+            'lastAttentionAt' => $lastAttentionAt,
+            'passiveAfterYears' => is_numeric($meta['passiveAfterYears'] ?? null)
+                ? max(1, (int) $meta['passiveAfterYears'])
+                : 5,
+            'confidentialityLabel' => self::trimString($meta['confidentialityLabel'] ?? 'CONFIDENCIAL'),
+            'identityProtectionMode' => self::trimString($meta['identityProtectionMode'] ?? 'standard'),
+            'copyDeliverySlaHours' => is_numeric($meta['copyDeliverySlaHours'] ?? null)
+                ? max(1, (int) $meta['copyDeliverySlaHours'])
+                : 48,
+            'formsCatalogStatus' => self::trimString($meta['formsCatalogStatus'] ?? 'official_partial_traceability'),
+            'confirmedForms' => self::normalizeStringList($meta['confirmedForms'] ?? [
+                'SNS-MSP/HCU-form.001/2008',
+                'SNS-MSP/HCU-form.005/2008',
+                'SNS-MSP/HCU-form.007/2008',
+                'SNS-MSP/HCU-form.024',
+            ]),
+            'normativeScope' => self::trimString($meta['normativeScope'] ?? 'ecuador_private_consultorio_v1'),
+        ];
+    }
+
+    public static function normalizeClinicalDocuments(array $documents): array
+    {
+        $finalNote = isset($documents['finalNote']) && is_array($documents['finalNote'])
+            ? $documents['finalNote']
+            : [];
+        $prescription = isset($documents['prescription']) && is_array($documents['prescription'])
+            ? $documents['prescription']
+            : [];
+        $certificate = isset($documents['certificate']) && is_array($documents['certificate'])
+            ? $documents['certificate']
+            : [];
+
+        return [
+            'finalNote' => [
+                'status' => self::trimString($finalNote['status'] ?? 'draft') ?: 'draft',
+                'summary' => self::trimString($finalNote['summary'] ?? ''),
+                'content' => self::trimString($finalNote['content'] ?? ''),
+                'version' => is_numeric($finalNote['version'] ?? null)
+                    ? max(1, (int) $finalNote['version'])
+                    : 1,
+                'generatedAt' => self::trimString($finalNote['generatedAt'] ?? ''),
+                'confidential' => array_key_exists('confidential', $finalNote)
+                    ? (bool) $finalNote['confidential']
+                    : true,
+            ],
+            'prescription' => [
+                'status' => self::trimString($prescription['status'] ?? 'draft') ?: 'draft',
+                'medication' => self::trimString($prescription['medication'] ?? ''),
+                'directions' => self::trimString($prescription['directions'] ?? ''),
+                'signedAt' => self::trimString($prescription['signedAt'] ?? ''),
+                'confidential' => array_key_exists('confidential', $prescription)
+                    ? (bool) $prescription['confidential']
+                    : true,
+            ],
+            'certificate' => [
+                'status' => self::trimString($certificate['status'] ?? 'draft') ?: 'draft',
+                'summary' => self::trimString($certificate['summary'] ?? ''),
+                'restDays' => self::nullablePositiveInt($certificate['restDays'] ?? null),
+                'signedAt' => self::trimString($certificate['signedAt'] ?? ''),
+                'confidential' => array_key_exists('confidential', $certificate)
+                    ? (bool) $certificate['confidential']
+                    : true,
+            ],
+        ];
+    }
+
+    public static function normalizeConsentRecord(array $consent): array
+    {
+        $status = self::trimString($consent['status'] ?? 'not_required');
+        if ($status === '') {
+            $status = 'not_required';
+        }
+
+        return [
+            'required' => array_key_exists('required', $consent)
+                ? (bool) $consent['required']
+                : false,
+            'status' => $status,
+            'informedBy' => self::trimString($consent['informedBy'] ?? ''),
+            'informedAt' => self::trimString($consent['informedAt'] ?? ''),
+            'explainedWhat' => self::trimString($consent['explainedWhat'] ?? ''),
+            'risksExplained' => self::trimString($consent['risksExplained'] ?? ''),
+            'alternativesExplained' => self::trimString($consent['alternativesExplained'] ?? ''),
+            'capacityAssessment' => self::trimString($consent['capacityAssessment'] ?? ''),
+            'privateCommunicationConfirmed' => array_key_exists('privateCommunicationConfirmed', $consent)
+                ? (bool) $consent['privateCommunicationConfirmed']
+                : false,
+            'companionShareAuthorized' => array_key_exists('companionShareAuthorized', $consent)
+                ? (bool) $consent['companionShareAuthorized']
+                : false,
+            'acceptedAt' => self::trimString($consent['acceptedAt'] ?? ''),
+            'declinedAt' => self::trimString($consent['declinedAt'] ?? ''),
+            'revokedAt' => self::trimString($consent['revokedAt'] ?? ''),
+            'notes' => self::trimString($consent['notes'] ?? ''),
+        ];
+    }
+
+    public static function normalizeApprovalRecord(array $approval): array
+    {
+        $status = self::trimString($approval['status'] ?? 'pending');
+        if ($status === '') {
+            $status = 'pending';
+        }
+
+        return [
+            'status' => $status,
+            'approvedBy' => self::trimString($approval['approvedBy'] ?? ''),
+            'approvedAt' => self::trimString($approval['approvedAt'] ?? ''),
+            'finalDraftVersion' => is_numeric($approval['finalDraftVersion'] ?? null)
+                ? max(1, (int) $approval['finalDraftVersion'])
+                : null,
+            'checklistSnapshot' => isset($approval['checklistSnapshot']) && is_array($approval['checklistSnapshot'])
+                ? array_values($approval['checklistSnapshot'])
+                : [],
+            'aiTraceSnapshot' => isset($approval['aiTraceSnapshot']) && is_array($approval['aiTraceSnapshot'])
+                ? $approval['aiTraceSnapshot']
+                : [],
+            'notes' => self::trimString($approval['notes'] ?? ''),
+            'normativeSources' => self::normalizeStringList($approval['normativeSources'] ?? []),
+        ];
+    }
+
+    public static function normalizeDisclosureLog($items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $disclosureId = self::trimString($item['disclosureId'] ?? $item['id'] ?? '');
+            if ($disclosureId === '') {
+                $disclosureId = self::newOpaqueId('disclosure');
+            }
+            $performedAt = self::trimString($item['performedAt'] ?? $item['deliveredAt'] ?? '');
+            $targetType = self::trimString($item['targetType'] ?? '');
+            if ($targetType === '') {
+                $targetType = self::trimString($item['authorizedByConsent'] ?? '') === '1'
+                    ? 'companion'
+                    : 'patient';
+            }
+
+            $normalized[] = [
+                'disclosureId' => $disclosureId,
+                'id' => $disclosureId,
+                'targetType' => $targetType !== '' ? $targetType : 'patient',
+                'targetName' => self::trimString($item['targetName'] ?? $item['deliveredTo'] ?? ''),
+                'purpose' => self::trimString($item['purpose'] ?? ''),
+                'legalBasis' => self::trimString($item['legalBasis'] ?? ''),
+                'authorizedByConsent' => array_key_exists('authorizedByConsent', $item)
+                    ? (bool) $item['authorizedByConsent']
+                    : false,
+                'performedBy' => self::trimString($item['performedBy'] ?? $item['requestedBy'] ?? ''),
+                'performedAt' => $performedAt,
+                'channel' => self::trimString($item['channel'] ?? $item['mode'] ?? ''),
+                'notes' => self::trimString($item['notes'] ?? ''),
+            ];
+        }
+
+        usort($normalized, static function (array $left, array $right): int {
+            return strcmp(
+                (string) ($right['performedAt'] ?? ''),
+                (string) ($left['performedAt'] ?? '')
+            );
+        });
+
+        return $normalized;
+    }
+
+    public static function normalizeCopyRequests($items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $requestId = self::trimString($item['requestId'] ?? $item['id'] ?? '');
+            if ($requestId === '') {
+                $requestId = self::newOpaqueId('copy');
+            }
+            $status = self::trimString($item['status'] ?? 'requested');
+            if ($status === '') {
+                $status = 'requested';
+            }
+
+            $normalized[] = [
+                'requestId' => $requestId,
+                'id' => $requestId,
+                'requestedByType' => self::trimString($item['requestedByType'] ?? ''),
+                'requestedByName' => self::trimString($item['requestedByName'] ?? $item['requestedBy'] ?? ''),
+                'requestedAt' => self::trimString($item['requestedAt'] ?? ''),
+                'dueAt' => self::trimString($item['dueAt'] ?? ''),
+                'status' => $status,
+                'legalBasis' => self::trimString($item['legalBasis'] ?? ''),
+                'notes' => self::trimString($item['notes'] ?? ''),
+                'deliveredAt' => self::trimString($item['deliveredAt'] ?? ''),
+                'deliveryChannel' => self::trimString($item['deliveryChannel'] ?? ''),
+                'deliveredTo' => self::trimString($item['deliveredTo'] ?? ''),
+            ];
+        }
+
+        usort($normalized, static function (array $left, array $right): int {
+            $leftStamp = (string) (($left['deliveredAt'] ?? '') ?: ($left['requestedAt'] ?? ''));
+            $rightStamp = (string) (($right['deliveredAt'] ?? '') ?: ($right['requestedAt'] ?? ''));
+            return strcmp($rightStamp, $leftStamp);
+        });
+
+        return $normalized;
+    }
+
+    public static function normalizeAccessAuditEntries($items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $normalized[] = self::normalizeAccessAuditEntry($item);
+        }
+
+        usort($normalized, static function (array $left, array $right): int {
+            return strcmp(
+                (string) ($right['createdAt'] ?? ''),
+                (string) ($left['createdAt'] ?? '')
+            );
+        });
+
+        return $normalized;
+    }
+
+    public static function normalizeAccessAuditEntry(array $item): array
+    {
+        return [
+            'id' => (int) ($item['id'] ?? 0),
+            'auditId' => self::trimString($item['auditId'] ?? '') ?: self::newOpaqueId('audit'),
+            'recordId' => self::trimString($item['recordId'] ?? ''),
+            'sessionId' => self::trimString($item['sessionId'] ?? ''),
+            'episodeId' => self::trimString($item['episodeId'] ?? ''),
+            'actor' => self::trimString($item['actor'] ?? ''),
+            'actorRole' => self::trimString($item['actorRole'] ?? 'clinician_admin'),
+            'action' => self::trimString($item['action'] ?? ''),
+            'resource' => self::trimString($item['resource'] ?? 'clinical_record'),
+            'reason' => self::trimString($item['reason'] ?? ''),
+            'createdAt' => self::trimString($item['createdAt'] ?? local_date('c')),
+            'meta' => isset($item['meta']) && is_array($item['meta']) ? $item['meta'] : [],
+        ];
+    }
+
+    public static function appendAccessAudit(array $store, array $entry): array
+    {
+        $records = isset($store['clinical_history_access_audits']) && is_array($store['clinical_history_access_audits'])
+            ? array_values($store['clinical_history_access_audits'])
+            : [];
+
+        $normalized = self::normalizeAccessAuditEntry($entry);
+        if (($normalized['id'] ?? 0) <= 0) {
+            $normalized['id'] = self::nextId($records);
+        }
+
+        $records[] = $normalized;
+        $store['clinical_history_access_audits'] = array_values($records);
+        return $store;
+    }
+
+    public static function findAccessAuditForRecord(array $store, string $recordId, string $sessionId): array
+    {
+        $records = isset($store['clinical_history_access_audits']) && is_array($store['clinical_history_access_audits'])
+            ? array_values($store['clinical_history_access_audits'])
+            : [];
+
+        $normalizedRecordId = self::trimString($recordId);
+        $normalizedSessionId = self::trimString($sessionId);
+        $filtered = array_filter($records, static function ($item) use ($normalizedRecordId, $normalizedSessionId): bool {
+            if (!is_array($item)) {
+                return false;
+            }
+
+            $entryRecordId = self::trimString($item['recordId'] ?? '');
+            $entrySessionId = self::trimString($item['sessionId'] ?? '');
+            if ($normalizedRecordId !== '' && $entryRecordId === $normalizedRecordId) {
+                return true;
+            }
+
+            return $normalizedSessionId !== '' && $entrySessionId === $normalizedSessionId;
+        });
+
+        return self::normalizeAccessAuditEntries(array_values($filtered));
+    }
+
     public static function normalizePatient(array $patient): array
     {
         $normalized = [
@@ -745,5 +1090,22 @@ final class ClinicalHistoryRepository
 
         $floatValue = (float) $value;
         return $floatValue > 0 ? round($floatValue, 2) : null;
+    }
+
+    /**
+     * @param array<int,string> $parts
+     */
+    private static function stableDerivedId(string $prefix, array $parts): string
+    {
+        $seed = implode('|', array_values(array_filter(array_map(
+            static fn ($value): string => trim((string) $value),
+            $parts
+        ))));
+
+        if ($seed === '') {
+            return self::newOpaqueId($prefix);
+        }
+
+        return strtolower(trim($prefix)) . '-' . substr(sha1($seed), 0, 20);
     }
 }

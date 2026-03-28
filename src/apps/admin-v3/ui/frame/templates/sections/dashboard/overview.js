@@ -59,7 +59,7 @@ export function renderDashboardOperationsGrid() {
                     <div><span>Eventos</span><strong id="clinicalHistoryEventCount">0</strong></div>
                 </div>
                 <p id="dashboardClinicalHistorySummary">
-                    La historia clinica conversacional aparecera aqui cuando existan sesiones o eventos en el flujo interno.
+                    La cabina de historia clinica defendible aparecera aqui cuando existan episodios, bloqueos legales o eventos clinicos en el flujo interno.
                 </p>
                 <div id="dashboardClinicalHistoryActions" class="operations-action-list"></div>
                 <div class="dashboard-signal-stack">
@@ -67,7 +67,7 @@ export function renderDashboardOperationsGrid() {
                         <span>Cola clinica</span>
                         <strong id="clinicalHistoryQueueHeadline">Sin casos pendientes</strong>
                         <small id="clinicalHistoryQueueMeta">
-                            Cuando OpenClaw deje historias o telemedicina en revision apareceran aqui.
+                            Cuando existan episodios en revision medico-legal apareceran aqui.
                         </small>
                     </article>
                     <article class="dashboard-signal-card">

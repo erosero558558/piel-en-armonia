@@ -5,9 +5,9 @@ export function renderClinicalHistorySection() {
                 <article class="sony-panel clinical-history-summary-panel">
                     <header class="section-header">
                         <div>
-                            <h3>Historia clinica</h3>
+                            <h3>Historia clinica defendible</h3>
                             <p id="clinicalHistoryHeaderMeta">
-                                Selecciona un caso para revisar la conversacion y el borrador medico.
+                                Selecciona un caso para revisar la nota viva, el consentimiento y la aptitud legal de cierre.
                             </p>
                         </div>
                         <div class="clinical-history-header-status">
@@ -22,7 +22,7 @@ export function renderClinicalHistorySection() {
                                 class="clinical-history-status-meta"
                                 id="clinicalHistoryStatusMeta"
                             >
-                                Cola lista para revision
+                                Cola clinica lista para lectura medico-legal
                             </span>
                         </div>
                     </header>
@@ -30,6 +30,18 @@ export function renderClinicalHistorySection() {
                         id="clinicalHistorySummaryGrid"
                         class="clinical-history-summary-grid"
                     ></div>
+                    <section
+                        id="clinicalHistoryLegalReadinessPanel"
+                        class="clinical-history-legal-panel"
+                    ></section>
+                    <section
+                        id="clinicalHistoryApprovalConstancy"
+                        class="clinical-history-approval-constancy"
+                    ></section>
+                    <section
+                        id="clinicalHistoryRecordsGovernancePanel"
+                        class="clinical-history-approval-constancy"
+                    ></section>
                     <div
                         id="clinicalHistoryAttachmentStrip"
                         class="clinical-history-attachment-strip"
@@ -41,7 +53,7 @@ export function renderClinicalHistorySection() {
                         <div>
                             <h3>Cola clinica</h3>
                             <p id="clinicalHistoryQueueMeta">
-                                Casos listos para revision humana.
+                                Casos ordenados por aptitud medico-legal y riesgo clinico.
                             </p>
                         </div>
                         <button
@@ -75,9 +87,9 @@ export function renderClinicalHistorySection() {
                 <article class="sony-panel clinical-history-transcript-panel">
                     <header class="section-header">
                         <div>
-                            <h3>Conversacion</h3>
+                            <h3>Cabina clinica IA</h3>
                             <p id="clinicalHistoryTranscriptMeta">
-                                El transcript del paciente aparece aqui.
+                                La conversacion del episodio activo aparece aqui.
                             </p>
                         </div>
                         <span
@@ -96,9 +108,9 @@ export function renderClinicalHistorySection() {
                 <article class="sony-panel clinical-history-draft-panel">
                     <header class="section-header">
                         <div>
-                            <h3>Borrador medico</h3>
+                            <h3>Nota viva</h3>
                             <p id="clinicalHistoryDraftSummary">
-                                Ajusta anamnesis, guardrails y plan antes de aprobar.
+                                Ajusta anamnesis, plan, consentimiento y documentos antes de aprobar la nota final.
                             </p>
                         </div>
                         <span
@@ -122,9 +134,9 @@ export function renderClinicalHistorySection() {
                 <article class="sony-panel soft clinical-history-events-panel">
                     <header class="section-header">
                         <div>
-                            <h3>Eventos del caso</h3>
+                            <h3>Eventos del episodio</h3>
                             <p id="clinicalHistoryEventsMeta">
-                                Alertas, conciliacion y acciones pendientes.
+                                Alertas clinicas, conciliacion de IA y acciones pendientes.
                             </p>
                         </div>
                     </header>
@@ -137,9 +149,9 @@ export function renderClinicalHistorySection() {
                 <article class="sony-panel soft clinical-history-followup-panel">
                     <header class="section-header">
                         <div>
-                            <h3>Pregunta adicional</h3>
+                            <h3>Solicitud clinica</h3>
                             <p id="clinicalHistoryFollowUpMeta">
-                                Envia una pregunta puntual al paciente sin salir del review.
+                                Solicita el dato faltante sin salir del episodio activo.
                             </p>
                         </div>
                     </header>
@@ -147,7 +159,7 @@ export function renderClinicalHistorySection() {
                         id="clinicalHistoryFollowUpInput"
                         class="clinical-history-followup-input"
                         rows="4"
-                        placeholder="Ej.: ¿Puedes decirme si el brote empeora con el sol o el calor?"
+                        placeholder="Ej.: Confirma alergias, tiempo de evolucion o factor desencadenante relevante."
                     ></textarea>
                     <div class="toolbar-row clinical-history-actions-row">
                         <button
@@ -155,14 +167,14 @@ export function renderClinicalHistorySection() {
                             id="clinicalHistorySendFollowUpBtn"
                             data-clinical-review-action="send-follow-up"
                         >
-                            Pedir pregunta
+                            Solicitar dato faltante
                         </button>
                         <button
                             type="button"
                             id="clinicalHistoryReviewRequiredBtn"
                             data-clinical-review-action="mark-review-required"
                         >
-                            Marcar revision
+                            Mantener bloqueada
                         </button>
                         <button
                             type="submit"
@@ -176,92 +188,9 @@ export function renderClinicalHistorySection() {
                             id="clinicalHistoryApproveBtn"
                             data-clinical-review-action="approve-current"
                         >
-                            Aprobar
+                            Aprobar nota final
                         </button>
                     </div>
-                </article>
-            </div>
-
-            <div
-                id="clinicalMediaFlowGrid"
-                class="clinical-media-flow-grid"
-            >
-                <article class="sony-panel soft clinical-media-flow-queue-panel">
-                    <header class="section-header">
-                        <div>
-                            <h3>Media Flow</h3>
-                            <p id="clinicalMediaFlowQueueMeta">
-                                Cola editorial con media clinica privada disponible.
-                            </p>
-                        </div>
-                        <div class="clinical-history-header-status">
-                            <span
-                                class="clinical-history-status-chip"
-                                id="clinicalMediaFlowStatusChip"
-                                data-tone="neutral"
-                            >
-                                Sin caso
-                            </span>
-                            <span
-                                class="clinical-history-status-meta"
-                                id="clinicalMediaFlowStatusMeta"
-                            >
-                                Esperando seleccion
-                            </span>
-                        </div>
-                    </header>
-                    <div
-                        id="clinicalMediaFlowQueueList"
-                        class="clinical-media-flow-queue-list"
-                    ></div>
-                </article>
-
-                <article class="sony-panel clinical-media-flow-workspace-panel">
-                    <header class="section-header">
-                        <div>
-                            <h3>Workspace editorial</h3>
-                            <p id="clinicalMediaFlowCaseMeta">
-                                OpenClaw prepara comparativas, copy y paquete publico antes de publicar.
-                            </p>
-                        </div>
-                        <div class="toolbar-row clinical-media-flow-toolbar">
-                            <button
-                                type="button"
-                                id="clinicalMediaFlowRefreshBtn"
-                                data-media-flow-action="refresh"
-                            >
-                                Refrescar
-                            </button>
-                            <button
-                                type="button"
-                                id="clinicalMediaFlowGenerateBtn"
-                                data-media-flow-action="generate-proposal"
-                            >
-                                Generar propuesta
-                            </button>
-                        </div>
-                    </header>
-
-                    <div
-                        id="clinicalMediaFlowConsentStrip"
-                        class="clinical-media-flow-consent-strip"
-                    ></div>
-                    <div
-                        id="clinicalMediaFlowAssetGrid"
-                        class="clinical-media-flow-asset-grid"
-                    ></div>
-                    <section
-                        id="clinicalMediaFlowAgentSurface"
-                        class="clinical-media-flow-agent-surface"
-                    ></section>
-                    <form
-                        id="clinicalMediaFlowProposalForm"
-                        class="clinical-media-flow-form"
-                    ></form>
-                    <div
-                        id="clinicalMediaFlowTimeline"
-                        class="clinical-media-flow-timeline"
-                    ></div>
                 </article>
             </div>
         </section>

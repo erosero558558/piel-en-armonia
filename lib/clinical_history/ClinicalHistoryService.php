@@ -250,6 +250,146 @@ final class ClinicalHistoryService
         ];
     }
 
+    public function getRecord(array $store, array $query): array
+    {
+        [$session, $draft] = $this->findContext($store, $query);
+        if ($session === null || $draft === null) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'Registro clinico no encontrado',
+                'errorCode' => 'clinical_record_not_found',
+            ];
+        }
+
+        $reconciled = $this->reconcilePendingAi($store, $session, $draft);
+        $store = $reconciled['store'];
+        $session = $reconciled['session'];
+        $draft = $reconciled['draft'];
+        $mutated = (bool) ($reconciled['mutated'] ?? false);
+
+        if ($mutated === true) {
+            $sessionSave = ClinicalHistoryRepository::upsertSession($store, $session);
+            $store = $sessionSave['store'];
+            $session = $sessionSave['session'];
+
+            $draftSave = ClinicalHistoryRepository::upsertDraft($store, $draft);
+            $store = $draftSave['store'];
+            $draft = $draftSave['draft'];
+        }
+
+        $store = $this->recordAccessAudit(
+            $store,
+            $session,
+            $draft,
+            'view_record',
+            'authorized_clinical_record_read',
+            [
+                'surface' => 'clinical-record',
+                'approvalStatus' => (string) ($draft['approval']['status'] ?? 'pending'),
+            ]
+        );
+        $mutated = true;
+
+        return [
+            'ok' => true,
+            'statusCode' => 200,
+            'store' => $store,
+            'session' => $session,
+            'draft' => $draft,
+            'mutated' => $mutated,
+            'data' => $this->buildClinicalRecordPayload($store, $session, $draft),
+        ];
+    }
+
+    public function patchRecord(array $store, array $payload): array
+    {
+        return $this->mutateClinicalRecord($store, $payload, 'save');
+    }
+
+    public function episodeAction(array $store, array $payload): array
+    {
+        $action = ClinicalHistoryRepository::trimString($payload['action'] ?? '');
+        if ($action === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 400,
+                'error' => 'action es obligatorio',
+                'errorCode' => 'clinical_episode_action_required',
+            ];
+        }
+
+        if ($action === 'open_episode') {
+            return $this->openEpisode($store, $payload);
+        }
+
+        if ($action === 'resume_episode') {
+            return $this->getRecord($store, $payload);
+        }
+
+        if ($action === 'record_consent') {
+            return $this->mutateClinicalRecord($store, $payload, 'consent');
+        }
+
+        if ($action === 'revoke_consent') {
+            $payload['consent'] = array_merge(
+                isset($payload['consent']) && is_array($payload['consent']) ? $payload['consent'] : [],
+                [
+                    'status' => 'revoked',
+                    'revokedAt' => local_date('c'),
+                ]
+            );
+            return $this->mutateClinicalRecord($store, $payload, 'revoke-consent');
+        }
+
+        if ($action === 'issue_prescription') {
+            return $this->mutateClinicalRecord($store, $payload, 'prescription');
+        }
+
+        if ($action === 'issue_certificate') {
+            return $this->mutateClinicalRecord($store, $payload, 'certificate');
+        }
+
+        if ($action === 'request_missing_data') {
+            return $this->mutateClinicalRecord($store, $payload, 'follow-up');
+        }
+
+        if ($action === 'mark_review_required') {
+            return $this->mutateClinicalRecord($store, $payload, 'review-required');
+        }
+
+        if ($action === 'approve_final_note') {
+            return $this->mutateClinicalRecord($store, $payload, 'approve');
+        }
+
+        if ($action === 'save_draft') {
+            return $this->mutateClinicalRecord($store, $payload, 'save');
+        }
+
+        if ($action === 'request_certified_copy') {
+            return $this->mutateClinicalRecord($store, $payload, 'copy-request');
+        }
+
+        if ($action === 'deliver_certified_copy') {
+            return $this->mutateClinicalRecord($store, $payload, 'copy-delivery');
+        }
+
+        if ($action === 'log_disclosure') {
+            return $this->mutateClinicalRecord($store, $payload, 'disclosure');
+        }
+
+        if ($action === 'set_archive_state') {
+            return $this->mutateClinicalRecord($store, $payload, 'archive-state');
+        }
+
+        return [
+            'ok' => false,
+            'statusCode' => 400,
+            'error' => 'Accion clinica no soportada',
+            'errorCode' => 'clinical_episode_action_invalid',
+        ];
+    }
+
     public function reconcilePendingSessions(array $store, array $options = []): array
     {
         $sessions = isset($store['clinical_history_sessions']) && is_array($store['clinical_history_sessions'])
@@ -351,114 +491,16 @@ final class ClinicalHistoryService
 
     public function applyReview(array $store, array $payload): array
     {
-        [$session, $draft] = $this->findContext($store, $payload);
-        if ($session === null || $draft === null) {
-            return [
-                'ok' => false,
-                'statusCode' => 404,
-                'error' => 'Sesion clinica no encontrada',
-                'errorCode' => 'clinical_history_not_found',
-            ];
+        $mode = 'save';
+        if (($payload['approve'] ?? false) === true) {
+            $mode = 'approve';
+        } elseif (ClinicalHistoryRepository::trimString($payload['requestAdditionalQuestion'] ?? $payload['followUpQuestion'] ?? '') !== '') {
+            $mode = 'follow-up';
+        } elseif (ClinicalHistoryRepository::trimString($payload['reviewStatus'] ?? '') === 'review_required') {
+            $mode = 'review-required';
         }
 
-        $reconciled = $this->reconcilePendingAi($store, $session, $draft);
-        $store = $reconciled['store'];
-        $session = $reconciled['session'];
-        $draft = $reconciled['draft'];
-
-        [$session, $draft] = $this->clearPendingAi($session, $draft, 'closed_by_clinician_review');
-
-        $draftPatch = isset($payload['draft']) && is_array($payload['draft'])
-            ? $payload['draft']
-            : [];
-        if (isset($payload['intakePatch']) && is_array($payload['intakePatch'])) {
-            $draftPatch['intake'] = array_merge(
-                isset($draftPatch['intake']) && is_array($draftPatch['intake']) ? $draftPatch['intake'] : [],
-                $payload['intakePatch']
-            );
-        }
-        if (isset($draftPatch['intake']) && is_array($draftPatch['intake'])) {
-            $draft = ClinicalHistoryGuardrails::applyPatchToDraft($draft, $draftPatch['intake']);
-        }
-
-        if (isset($draftPatch['clinicianDraft']) && is_array($draftPatch['clinicianDraft'])) {
-            $draft['clinicianDraft'] = ClinicalHistoryRepository::normalizeClinicianDraft(array_merge(
-                $draft['clinicianDraft'] ?? [],
-                $draftPatch['clinicianDraft']
-            ));
-        }
-
-        $reviewStatus = ClinicalHistoryRepository::trimString($payload['reviewStatus'] ?? $draftPatch['reviewStatus'] ?? '');
-        $approve = ($payload['approve'] ?? false) === true;
-        if ($approve) {
-            $reviewStatus = 'approved';
-        }
-
-        if ($reviewStatus !== '') {
-            $draft['reviewStatus'] = $reviewStatus;
-            $draft['status'] = $reviewStatus;
-            if ($reviewStatus === 'approved') {
-                $draft['requiresHumanReview'] = false;
-                $session['status'] = 'approved';
-            } elseif ($reviewStatus === 'review_required') {
-                $draft['requiresHumanReview'] = true;
-                $session['status'] = 'review_required';
-            }
-        }
-
-        if (array_key_exists('requiresHumanReview', $payload)) {
-            $draft['requiresHumanReview'] = (bool) $payload['requiresHumanReview'];
-            if ($draft['requiresHumanReview']) {
-                $session['status'] = 'review_required';
-            } elseif (ClinicalHistoryRepository::trimString($session['status'] ?? '') !== 'approved') {
-                $session['status'] = 'active';
-            }
-        }
-
-        $question = ClinicalHistoryRepository::trimString($payload['requestAdditionalQuestion'] ?? $payload['followUpQuestion'] ?? '');
-        if ($question !== '') {
-            $session = ClinicalHistoryRepository::appendTranscriptMessage($session, [
-                'role' => 'assistant',
-                'actor' => 'clinician_review',
-                'content' => ClinicalHistoryGuardrails::sanitizePatientText($question),
-                'surface' => 'clinician_review',
-                'meta' => [
-                    'requestedBy' => 'clinician',
-                ],
-            ]);
-        }
-
-        $draft['updatedAt'] = local_date('c');
-        $draft['version'] = max(1, (int) ($draft['version'] ?? 1)) + 1;
-        $session['updatedAt'] = local_date('c');
-
-        $resolveEvents = ($approve === true)
-            || ($reviewStatus !== '' && $reviewStatus !== 'review_required')
-            || ((bool) ($draft['requiresHumanReview'] ?? true) === false);
-        $store = $this->touchSessionEventsForReview($store, $session, $resolveEvents);
-
-        $sessionSave = ClinicalHistoryRepository::upsertSession($store, $session);
-        $store = $sessionSave['store'];
-        $session = $sessionSave['session'];
-
-        $draftSave = ClinicalHistoryRepository::upsertDraft($store, $draft);
-        $store = $draftSave['store'];
-        $draft = $draftSave['draft'];
-
-        audit_log_event('clinical_history.review_updated', [
-            'sessionId' => (string) ($session['sessionId'] ?? ''),
-            'reviewStatus' => (string) ($draft['reviewStatus'] ?? ''),
-            'requiresHumanReview' => (bool) ($draft['requiresHumanReview'] ?? true),
-        ]);
-
-        return [
-            'ok' => true,
-            'statusCode' => 200,
-            'store' => $store,
-            'session' => $session,
-            'draft' => $draft,
-            'data' => $this->buildAdminPayload($store, $session, $draft),
-        ];
+        return $this->mutateClinicalRecord($store, $payload, $mode);
     }
 
     public function buildChatCompletionPayload(array $result): array
@@ -520,14 +562,1107 @@ final class ClinicalHistoryService
 
     private function buildAdminPayload(array $store, array $session, array $draft): array
     {
+        $payload = $this->buildClinicalRecordPayload($store, $session, $draft);
+
         return [
-            'session' => ClinicalHistoryRepository::adminSession($session),
-            'draft' => ClinicalHistoryRepository::adminDraft($draft),
-            'events' => ClinicalHistoryRepository::findEventsBySessionId(
-                $store,
-                (string) ($session['sessionId'] ?? '')
+            'session' => $payload['session'] ?? [],
+            'draft' => $payload['draft'] ?? [],
+            'events' => $payload['events'] ?? [],
+            'patientRecord' => $payload['patientRecord'] ?? [],
+            'activeEpisode' => $payload['activeEpisode'] ?? [],
+            'encounter' => $payload['encounter'] ?? [],
+            'liveNote' => $payload['liveNote'] ?? [],
+            'documents' => $payload['documents'] ?? [],
+            'consent' => $payload['consent'] ?? [],
+            'approval' => $payload['approval'] ?? [],
+            'approvalState' => $payload['approvalState'] ?? [],
+            'legalReadiness' => $payload['legalReadiness'] ?? [],
+            'closureChecklist' => $payload['closureChecklist'] ?? [],
+            'approvalBlockedReasons' => $payload['approvalBlockedReasons'] ?? [],
+            'recordsGovernance' => $payload['recordsGovernance'] ?? [],
+            'accessAudit' => $payload['accessAudit'] ?? [],
+            'disclosureLog' => $payload['disclosureLog'] ?? [],
+            'copyRequests' => $payload['copyRequests'] ?? [],
+            'archiveReadiness' => $payload['archiveReadiness'] ?? [],
+            'auditSummary' => $payload['auditSummary'] ?? [],
+            'legacyBridge' => [
+                'session' => $payload['session'] ?? [],
+                'draft' => $payload['draft'] ?? [],
+                'events' => $payload['events'] ?? [],
+            ],
+        ];
+    }
+
+    private function buildClinicalRecordPayload(array $store, array $session, array $draft): array
+    {
+        $session = ClinicalHistoryRepository::adminSession($session);
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $events = ClinicalHistoryRepository::findEventsBySessionId(
+            $store,
+            (string) ($session['sessionId'] ?? '')
+        );
+        $legalReadiness = ClinicalHistoryLegalReadiness::build($session, $draft, $events);
+        $documents = ClinicalHistoryRepository::normalizeClinicalDocuments(
+            is_array($draft['documents'] ?? null) ? $draft['documents'] : []
+        );
+        $consent = ClinicalHistoryRepository::normalizeConsentRecord(
+            is_array($draft['consent'] ?? null) ? $draft['consent'] : []
+        );
+        $approval = ClinicalHistoryRepository::normalizeApprovalRecord(
+            is_array($draft['approval'] ?? null) ? $draft['approval'] : []
+        );
+        $recordMeta = ClinicalHistoryRepository::normalizeRecordMeta(
+            is_array($draft['recordMeta'] ?? null) ? $draft['recordMeta'] : [],
+            $session,
+            $draft
+        );
+        $patient = is_array($session['patient'] ?? null) ? $session['patient'] : [];
+        $disclosureLog = ClinicalHistoryRepository::normalizeDisclosureLog($draft['disclosureLog'] ?? []);
+        $copyRequests = array_map(
+            fn (array $request): array => $this->decorateCopyRequest($request),
+            ClinicalHistoryRepository::normalizeCopyRequests($draft['copyRequests'] ?? [])
+        );
+        $accessAudit = ClinicalHistoryRepository::findAccessAuditForRecord(
+            $store,
+            (string) ($draft['patientRecordId'] ?? ''),
+            (string) ($session['sessionId'] ?? '')
+        );
+        $archiveReadiness = $this->buildArchiveReadiness($recordMeta);
+        $recordsGovernance = $this->buildRecordsGovernance(
+            $recordMeta,
+            $archiveReadiness,
+            $copyRequests,
+            $disclosureLog,
+            $accessAudit
+        );
+
+        return [
+            'session' => $session,
+            'draft' => $draft,
+            'events' => $events,
+            'patientRecord' => [
+                'recordId' => (string) ($draft['patientRecordId'] ?? ''),
+                'patient' => ClinicalHistoryRepository::normalizePatient($patient),
+                'archiveState' => (string) ($recordMeta['archiveState'] ?? 'active'),
+                'archiveStatusLabel' => (string) ($archiveReadiness['label'] ?? 'Activa'),
+                'archiveReadiness' => $archiveReadiness,
+                'lastAttentionAt' => (string) ($recordMeta['lastAttentionAt'] ?? ''),
+                'confidentialityLabel' => (string) ($recordMeta['confidentialityLabel'] ?? 'CONFIDENCIAL'),
+                'identityProtectionMode' => (string) ($recordMeta['identityProtectionMode'] ?? 'standard'),
+                'copyDeliverySlaHours' => (int) ($recordMeta['copyDeliverySlaHours'] ?? 48),
+                'formsCatalogStatus' => (string) ($recordMeta['formsCatalogStatus'] ?? 'official_partial_traceability'),
+                'confirmedForms' => is_array($recordMeta['confirmedForms'] ?? null)
+                    ? array_values($recordMeta['confirmedForms'])
+                    : [],
+            ],
+            'activeEpisode' => [
+                'episodeId' => (string) ($draft['episodeId'] ?? ''),
+                'caseId' => (string) ($session['caseId'] ?? ''),
+                'status' => (string) ($session['status'] ?? 'active'),
+                'legalStatus' => (string) ($legalReadiness['status'] ?? 'blocked'),
+                'legalLabel' => (string) ($legalReadiness['label'] ?? 'Bloqueada'),
+                'updatedAt' => (string) ($draft['updatedAt'] ?? $session['updatedAt'] ?? ''),
+            ],
+            'encounter' => [
+                'encounterId' => (string) ($draft['encounterId'] ?? ''),
+                'appointmentId' => $draft['appointmentId'] ?? $session['appointmentId'] ?? null,
+                'surface' => (string) ($session['surface'] ?? ''),
+                'startedAt' => (string) ($session['createdAt'] ?? ''),
+                'updatedAt' => (string) ($draft['updatedAt'] ?? $session['updatedAt'] ?? ''),
+            ],
+            'liveNote' => [
+                'summary' => (string) (($draft['clinicianDraft']['resumen'] ?? '') ?: ($draft['intake']['resumenClinico'] ?? '')),
+                'draftVersion' => max(1, (int) ($draft['version'] ?? 1)),
+                'requiresHumanReview' => (bool) ($draft['requiresHumanReview'] ?? true),
+                'reviewStatus' => (string) ($draft['reviewStatus'] ?? ''),
+            ],
+            'documents' => $documents,
+            'consent' => $consent,
+            'approval' => $approval,
+            'approvalState' => $approval,
+            'legalReadiness' => $legalReadiness,
+            'closureChecklist' => $legalReadiness,
+            'approvalBlockedReasons' => $legalReadiness['blockingReasons'] ?? [],
+            'recordsGovernance' => $recordsGovernance,
+            'accessAudit' => $accessAudit,
+            'disclosureLog' => $disclosureLog,
+            'copyRequests' => $copyRequests,
+            'archiveReadiness' => $archiveReadiness,
+            'auditSummary' => [
+                'accessAuditCount' => count($accessAudit),
+                'disclosureLogCount' => count($disclosureLog),
+                'copyRequestsCount' => count($copyRequests),
+                'pendingCopyRequestsCount' => (int) ($recordsGovernance['copyRequestSummary']['pending'] ?? 0),
+                'overdueCopyRequestsCount' => (int) ($recordsGovernance['copyRequestSummary']['overdue'] ?? 0),
+                'lastAccessAt' => (string) (($recordsGovernance['lastAccessEvent']['createdAt'] ?? '')),
+                'lastApprovedAt' => (string) ($approval['approvedAt'] ?? ''),
+                'approvalStatus' => (string) ($approval['status'] ?? 'pending'),
+            ],
+        ];
+    }
+
+    private function openEpisode(array $store, array $payload): array
+    {
+        [$store, $session, $draft, $created] = $this->resolveSessionContext($store, $payload, true);
+
+        $sessionSave = ClinicalHistoryRepository::upsertSession($store, $session);
+        $store = $sessionSave['store'];
+        $session = $sessionSave['session'];
+
+        $draftSave = ClinicalHistoryRepository::upsertDraft($store, $draft);
+        $store = $draftSave['store'];
+        $draft = $draftSave['draft'];
+
+        audit_log_event($created ? 'clinical_history.episode_opened' : 'clinical_history.episode_resumed', [
+            'sessionId' => (string) ($session['sessionId'] ?? ''),
+            'caseId' => (string) ($session['caseId'] ?? ''),
+            'episodeId' => (string) ($draft['episodeId'] ?? ''),
+        ]);
+
+        return [
+            'ok' => true,
+            'statusCode' => $created ? 201 : 200,
+            'store' => $store,
+            'session' => $session,
+            'draft' => $draft,
+            'data' => $this->buildClinicalRecordPayload($store, $session, $draft),
+        ];
+    }
+
+    private function mutateClinicalRecord(array $store, array $payload, string $mode): array
+    {
+        [$session, $draft] = $this->findContext($store, $payload);
+        if ($session === null || $draft === null) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'Sesion clinica no encontrada',
+                'errorCode' => 'clinical_history_not_found',
+            ];
+        }
+
+        $reconciled = $this->reconcilePendingAi($store, $session, $draft);
+        $store = $reconciled['store'];
+        $session = $reconciled['session'];
+        $draft = $reconciled['draft'];
+
+        $draft = $this->applyDraftPatches($draft, $payload);
+        $modeAuditReason = '';
+        $modeAuditMeta = [];
+
+        if (array_key_exists('requiresHumanReview', $payload)) {
+            $draft['requiresHumanReview'] = (bool) $payload['requiresHumanReview'];
+        }
+
+        $question = ClinicalHistoryRepository::trimString(
+            $payload['requestAdditionalQuestion'] ?? $payload['followUpQuestion'] ?? ''
+        );
+        if ($mode === 'follow-up' && $question !== '') {
+            $session = ClinicalHistoryRepository::appendTranscriptMessage($session, [
+                'role' => 'assistant',
+                'actor' => 'clinician_review',
+                'content' => ClinicalHistoryGuardrails::sanitizePatientText($question),
+                'surface' => 'clinician_review',
+                'meta' => [
+                    'requestedBy' => $this->currentClinicalActor(),
+                ],
+            ]);
+            $draft['requiresHumanReview'] = true;
+            $draft['reviewStatus'] = 'review_required';
+            $draft['status'] = 'review_required';
+            $session['status'] = 'review_required';
+        }
+
+        if ($mode === 'copy-request') {
+            $copyRequestResult = $this->applyCertifiedCopyRequest($session, $draft, $payload);
+            if (($copyRequestResult['ok'] ?? false) !== true) {
+                return $copyRequestResult;
+            }
+            $draft = $copyRequestResult['draft'];
+            $modeAuditReason = 'certified_copy_requested';
+            $modeAuditMeta = $copyRequestResult['meta'] ?? [];
+        } elseif ($mode === 'copy-delivery') {
+            $copyDeliveryResult = $this->applyCertifiedCopyDelivery($session, $draft, $payload);
+            if (($copyDeliveryResult['ok'] ?? false) !== true) {
+                return $copyDeliveryResult;
+            }
+            $draft = $copyDeliveryResult['draft'];
+            $modeAuditReason = 'certified_copy_delivered';
+            $modeAuditMeta = $copyDeliveryResult['meta'] ?? [];
+        } elseif ($mode === 'disclosure') {
+            $disclosureResult = $this->applyDisclosureAction($session, $draft, $payload);
+            if (($disclosureResult['ok'] ?? false) !== true) {
+                return $disclosureResult;
+            }
+            $draft = $disclosureResult['draft'];
+            $modeAuditReason = 'disclosure_logged';
+            $modeAuditMeta = $disclosureResult['meta'] ?? [];
+        } elseif ($mode === 'archive-state') {
+            $archiveResult = $this->applyArchiveStateAction($draft, $payload);
+            if (($archiveResult['ok'] ?? false) !== true) {
+                return $archiveResult;
+            }
+            $draft = $archiveResult['draft'];
+            $modeAuditReason = 'archive_state_changed';
+            $modeAuditMeta = $archiveResult['meta'] ?? [];
+        }
+
+        if ($mode === 'review-required') {
+            $draft['requiresHumanReview'] = true;
+            $draft['reviewStatus'] = 'review_required';
+            $draft['status'] = 'review_required';
+            $session['status'] = 'review_required';
+        } elseif ($mode !== 'approve' && (bool) ($draft['requiresHumanReview'] ?? true) === false) {
+            $session['status'] = ClinicalHistoryRepository::trimString($session['status'] ?? '') === 'approved'
+                ? 'approved'
+                : 'active';
+            if (ClinicalHistoryRepository::trimString($draft['reviewStatus'] ?? '') === '') {
+                $draft['reviewStatus'] = 'ready_for_review';
+            }
+        }
+
+        $events = ClinicalHistoryRepository::findEventsBySessionId($store, (string) ($session['sessionId'] ?? ''));
+        $legalReadiness = ClinicalHistoryLegalReadiness::build($session, $draft, $events);
+
+        if ($mode === 'approve') {
+            if (($legalReadiness['ready'] ?? false) !== true) {
+                audit_log_event('clinical_history.approval_blocked', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'blockingReasons' => $legalReadiness['blockingReasons'] ?? [],
+                ]);
+
+                return [
+                    'ok' => false,
+                    'statusCode' => 409,
+                    'error' => 'La nota final no esta lista para aprobar.',
+                    'errorCode' => 'clinical_history_approval_blocked',
+                ];
+            }
+
+            $draft = $this->applyClinicalApproval($session, $draft, $legalReadiness);
+            $session['status'] = 'approved';
+            $store = $this->touchSessionEventsForReview($store, $session, true);
+            audit_log_event('clinical_history.approved', [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'caseId' => (string) ($session['caseId'] ?? ''),
+                'approvedBy' => (string) ($draft['approval']['approvedBy'] ?? ''),
+                'finalDraftVersion' => (int) ($draft['approval']['finalDraftVersion'] ?? 0),
+            ]);
+        } else {
+            $resolveEvents = in_array($mode, ['save', 'consent', 'revoke-consent', 'prescription', 'certificate'], true)
+                && ((bool) ($draft['requiresHumanReview'] ?? true) === false);
+            $store = $this->touchSessionEventsForReview($store, $session, $resolveEvents);
+
+            if ($mode === 'save') {
+                audit_log_event('clinical_history.draft_saved', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                ]);
+            } elseif ($mode === 'follow-up') {
+                audit_log_event('clinical_history.follow_up_requested', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'question' => $question,
+                ]);
+            } elseif ($mode === 'review-required') {
+                audit_log_event('clinical_history.review_required', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                ]);
+            } elseif ($mode === 'consent') {
+                audit_log_event('clinical_history.consent_recorded', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'status' => (string) ($draft['consent']['status'] ?? ''),
+                ]);
+            } elseif ($mode === 'revoke-consent') {
+                audit_log_event('clinical_history.consent_revoked', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                ]);
+            } elseif ($mode === 'prescription') {
+                audit_log_event('clinical_history.prescription_saved', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                ]);
+            } elseif ($mode === 'certificate') {
+                audit_log_event('clinical_history.certificate_saved', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                ]);
+            } elseif ($mode === 'copy-request') {
+                audit_log_event('clinical_history.certified_copy_requested', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'requestId' => (string) (($modeAuditMeta['requestId'] ?? '')),
+                ]);
+            } elseif ($mode === 'copy-delivery') {
+                audit_log_event('clinical_history.certified_copy_delivered', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'requestId' => (string) (($modeAuditMeta['requestId'] ?? '')),
+                    'deliveredTo' => (string) (($modeAuditMeta['deliveredTo'] ?? '')),
+                ]);
+            } elseif ($mode === 'disclosure') {
+                audit_log_event('clinical_history.disclosure_logged', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'targetType' => (string) (($modeAuditMeta['targetType'] ?? '')),
+                    'targetName' => (string) (($modeAuditMeta['targetName'] ?? '')),
+                ]);
+            } elseif ($mode === 'archive-state') {
+                audit_log_event('clinical_history.archive_state_set', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'archiveState' => (string) (($modeAuditMeta['archiveState'] ?? '')),
+                    'overrideReason' => (string) (($modeAuditMeta['overrideReason'] ?? '')),
+                ]);
+            }
+        }
+
+        $draft = $this->touchDraft($draft);
+        $session = $this->touchSession($session);
+
+        $sessionSave = ClinicalHistoryRepository::upsertSession($store, $session);
+        $store = $sessionSave['store'];
+        $session = $sessionSave['session'];
+
+        $draftSave = ClinicalHistoryRepository::upsertDraft($store, $draft);
+        $store = $draftSave['store'];
+        $draft = $draftSave['draft'];
+        $store = $this->recordAccessAudit(
+            $store,
+            $session,
+            $draft,
+            $this->accessAuditActionForMode($mode),
+            $modeAuditReason !== '' ? $modeAuditReason : $mode,
+            $modeAuditMeta
+        );
+
+        return [
+            'ok' => true,
+            'statusCode' => 200,
+            'store' => $store,
+            'session' => $session,
+            'draft' => $draft,
+            'data' => $this->buildClinicalRecordPayload($store, $session, $draft),
+        ];
+    }
+
+    private function applyDraftPatches(array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $draftPatch = isset($payload['draft']) && is_array($payload['draft'])
+            ? $payload['draft']
+            : [];
+
+        if (isset($payload['intakePatch']) && is_array($payload['intakePatch'])) {
+            $draftPatch['intake'] = array_merge(
+                isset($draftPatch['intake']) && is_array($draftPatch['intake']) ? $draftPatch['intake'] : [],
+                $payload['intakePatch']
+            );
+        }
+
+        if (isset($payload['liveNote']) && is_array($payload['liveNote'])) {
+            $draftPatch['clinicianDraft'] = array_merge(
+                isset($draftPatch['clinicianDraft']) && is_array($draftPatch['clinicianDraft']) ? $draftPatch['clinicianDraft'] : [],
+                $payload['liveNote']
+            );
+        }
+
+        if (isset($draftPatch['intake']) && is_array($draftPatch['intake'])) {
+            $draft = ClinicalHistoryGuardrails::applyPatchToDraft($draft, $draftPatch['intake']);
+            if (array_key_exists('preguntasFaltantes', $draftPatch['intake'])) {
+                $draft['intake']['preguntasFaltantes'] = ClinicalHistoryRepository::normalizeStringList(
+                    $draftPatch['intake']['preguntasFaltantes']
+                );
+            }
+            if (array_key_exists('rosRedFlags', $draftPatch['intake'])) {
+                $draft['intake']['rosRedFlags'] = ClinicalHistoryRepository::normalizeStringList(
+                    $draftPatch['intake']['rosRedFlags']
+                );
+            }
+            if (array_key_exists('cie10Sugeridos', $draftPatch['intake'])) {
+                $draft['intake']['cie10Sugeridos'] = ClinicalHistoryRepository::normalizeStringList(
+                    $draftPatch['intake']['cie10Sugeridos']
+                );
+            }
+        }
+
+        if (isset($draftPatch['clinicianDraft']) && is_array($draftPatch['clinicianDraft'])) {
+            $draft['clinicianDraft'] = ClinicalHistoryRepository::normalizeClinicianDraft(array_merge(
+                $draft['clinicianDraft'] ?? [],
+                $draftPatch['clinicianDraft']
+            ));
+        }
+
+        if (isset($payload['documents']) && is_array($payload['documents'])) {
+            $draft['documents'] = ClinicalHistoryRepository::normalizeClinicalDocuments(array_replace_recursive(
+                is_array($draft['documents'] ?? null) ? $draft['documents'] : [],
+                $payload['documents']
+            ));
+        }
+
+        if (isset($payload['consent']) && is_array($payload['consent'])) {
+            $draft['consent'] = ClinicalHistoryRepository::normalizeConsentRecord(array_merge(
+                is_array($draft['consent'] ?? null) ? $draft['consent'] : [],
+                $payload['consent']
+            ));
+        }
+
+        if (isset($payload['recordMeta']) && is_array($payload['recordMeta'])) {
+            $draft['recordMeta'] = ClinicalHistoryRepository::normalizeRecordMeta(array_merge(
+                is_array($draft['recordMeta'] ?? null) ? $draft['recordMeta'] : [],
+                $payload['recordMeta']
+            ));
+        }
+
+        return $draft;
+    }
+
+    private function applyClinicalApproval(array $session, array $draft, array $legalReadiness): array
+    {
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $documents = ClinicalHistoryRepository::normalizeClinicalDocuments(
+            is_array($draft['documents'] ?? null) ? $draft['documents'] : []
+        );
+        $summary = ClinicalHistoryRepository::trimString(
+            ($draft['clinicianDraft']['resumen'] ?? '') ?: ($draft['intake']['resumenClinico'] ?? '')
+        );
+        $content = $this->buildFinalNoteContent($session, $draft);
+        $now = local_date('c');
+
+        $documents['finalNote'] = [
+            'status' => 'approved',
+            'summary' => $summary,
+            'content' => $content,
+            'version' => max(1, (int) ($draft['version'] ?? 1)) + 1,
+            'generatedAt' => $now,
+            'confidential' => true,
+        ];
+
+        if (ClinicalHistoryRepository::trimString($documents['prescription']['medication'] ?? '') !== ''
+            || ClinicalHistoryRepository::trimString($documents['prescription']['directions'] ?? '') !== ''
+        ) {
+            $documents['prescription']['status'] = 'issued';
+            $documents['prescription']['signedAt'] = $now;
+        }
+
+        if (ClinicalHistoryRepository::trimString($documents['certificate']['summary'] ?? '') !== '') {
+            $documents['certificate']['status'] = 'issued';
+            $documents['certificate']['signedAt'] = $now;
+        }
+
+        $draft['documents'] = $documents;
+        $draft['approval'] = ClinicalHistoryRepository::normalizeApprovalRecord([
+            'status' => 'approved',
+            'approvedBy' => $this->currentClinicalActor(),
+            'approvedAt' => $now,
+            'finalDraftVersion' => max(1, (int) ($draft['version'] ?? 1)) + 1,
+            'checklistSnapshot' => $legalReadiness['checklist'] ?? [],
+            'aiTraceSnapshot' => $this->buildAiTraceSnapshot($session, $draft),
+            'notes' => ClinicalHistoryRepository::trimString($draft['approval']['notes'] ?? ''),
+            'normativeSources' => $legalReadiness['normativeSources'] ?? [],
+        ]);
+        $draft['reviewStatus'] = 'approved';
+        $draft['status'] = 'approved';
+        $draft['requiresHumanReview'] = false;
+
+        return $draft;
+    }
+
+    private function buildFinalNoteContent(array $session, array $draft): string
+    {
+        $patient = is_array($session['patient'] ?? null) ? $session['patient'] : [];
+        $intake = is_array($draft['intake'] ?? null) ? $draft['intake'] : [];
+        $clinicianDraft = is_array($draft['clinicianDraft'] ?? null) ? $draft['clinicianDraft'] : [];
+        $documents = ClinicalHistoryRepository::normalizeClinicalDocuments(
+            is_array($draft['documents'] ?? null) ? $draft['documents'] : []
+        );
+        $consent = ClinicalHistoryRepository::normalizeConsentRecord(
+            is_array($draft['consent'] ?? null) ? $draft['consent'] : []
+        );
+
+        $parts = [
+            'Paciente: ' . (
+                ClinicalHistoryRepository::trimString($patient['name'] ?? '') !== ''
+                    ? ClinicalHistoryRepository::trimString($patient['name'] ?? '')
+                    : 'Sin identificacion visible'
+            ),
+            'Motivo de consulta: ' . ClinicalHistoryRepository::trimString($intake['motivoConsulta'] ?? ''),
+            'Enfermedad actual: ' . ClinicalHistoryRepository::trimString($intake['enfermedadActual'] ?? ''),
+            'Resumen medico: ' . ClinicalHistoryRepository::trimString(($clinicianDraft['resumen'] ?? '') ?: ($intake['resumenClinico'] ?? '')),
+            'CIE-10 sugeridos: ' . implode(', ', ClinicalHistoryRepository::normalizeStringList($clinicianDraft['cie10Sugeridos'] ?? [])),
+            'Plan/indicaciones: ' . ClinicalHistoryRepository::trimString(
+                ($documents['prescription']['directions'] ?? '') ?: ($clinicianDraft['tratamientoBorrador'] ?? '')
+            ),
+            'Consentimiento: ' . ClinicalHistoryRepository::trimString($consent['status'] ?? 'not_required'),
+        ];
+
+        return trim(implode("\n", array_filter($parts, static function ($item): bool {
+            return is_string($item) && trim($item) !== '';
+        })));
+    }
+
+    private function buildAiTraceSnapshot(array $session, array $draft): array
+    {
+        $pendingAi = ClinicalHistoryRepository::normalizePendingAi(
+            is_array($session['pendingAi'] ?? null)
+                ? $session['pendingAi']
+                : (is_array($draft['pendingAi'] ?? null) ? $draft['pendingAi'] : [])
+        );
+
+        return [
+            'pendingAi' => $pendingAi,
+            'lastPendingAi' => isset($session['metadata']['lastPendingAi']) && is_array($session['metadata']['lastPendingAi'])
+                ? $session['metadata']['lastPendingAi']
+                : [],
+            'lastAiEnvelope' => isset($draft['lastAiEnvelope']) && is_array($draft['lastAiEnvelope'])
+                ? $draft['lastAiEnvelope']
+                : [],
+        ];
+    }
+
+    private function decorateCopyRequest(array $request): array
+    {
+        $request = ClinicalHistoryRepository::normalizeCopyRequests([$request])[0] ?? [];
+        $effectiveStatus = $this->resolveCopyRequestEffectiveStatus($request);
+
+        return array_merge($request, [
+            'effectiveStatus' => $effectiveStatus,
+            'statusLabel' => match ($effectiveStatus) {
+                'delivered' => 'Entregada',
+                'overdue' => 'Vencida',
+                default => 'Pendiente',
+            },
+        ]);
+    }
+
+    private function resolveCopyRequestEffectiveStatus(array $request): string
+    {
+        $status = ClinicalHistoryRepository::trimString($request['status'] ?? '');
+        if ($status === 'delivered' || ClinicalHistoryRepository::trimString($request['deliveredAt'] ?? '') !== '') {
+            return 'delivered';
+        }
+
+        $dueAt = ClinicalHistoryRepository::trimString($request['dueAt'] ?? '');
+        if ($dueAt !== '' && $this->timestampIsPast($dueAt)) {
+            return 'overdue';
+        }
+
+        return 'requested';
+    }
+
+    private function buildArchiveReadiness(array $recordMeta): array
+    {
+        $archiveState = ClinicalHistoryRepository::trimString($recordMeta['archiveState'] ?? 'active');
+        if ($archiveState === '') {
+            $archiveState = 'active';
+        }
+
+        $lastAttentionAt = ClinicalHistoryRepository::trimString($recordMeta['lastAttentionAt'] ?? '');
+        $passiveAfterYears = max(1, (int) ($recordMeta['passiveAfterYears'] ?? 5));
+        $eligibleAt = '';
+        $eligibleForPassive = false;
+        $daysUntilPassive = null;
+
+        if ($lastAttentionAt !== '') {
+            try {
+                $lastAttention = new \DateTimeImmutable($lastAttentionAt);
+                $eligibleDate = $lastAttention->add(new \DateInterval('P' . $passiveAfterYears . 'Y'));
+                $eligibleAt = $eligibleDate->format('c');
+                $now = new \DateTimeImmutable(local_date('c'));
+                $eligibleForPassive = $eligibleDate <= $now;
+                $daysUntilPassive = $eligibleForPassive
+                    ? 0
+                    : (int) $now->diff($eligibleDate)->format('%a');
+            } catch (\Throwable $e) {
+                $eligibleAt = '';
+                $eligibleForPassive = false;
+                $daysUntilPassive = null;
+            }
+        }
+
+        $label = 'Activa';
+        if ($archiveState === 'passive') {
+            $label = 'Pasiva';
+        } elseif ($eligibleForPassive) {
+            $label = 'Elegible para pasiva';
+        }
+
+        return [
+            'archiveState' => $archiveState,
+            'lastAttentionAt' => $lastAttentionAt,
+            'passiveAfterYears' => $passiveAfterYears,
+            'eligibleForPassive' => $eligibleForPassive,
+            'eligibleAt' => $eligibleAt,
+            'daysUntilPassive' => $daysUntilPassive,
+            'recommendedState' => $eligibleForPassive ? 'passive' : 'active',
+            'label' => $label,
+            'overrideRequired' => $archiveState !== 'passive' && $eligibleForPassive !== true,
+        ];
+    }
+
+    private function buildRecordsGovernance(
+        array $recordMeta,
+        array $archiveReadiness,
+        array $copyRequests,
+        array $disclosureLog,
+        array $accessAudit
+    ): array {
+        $pending = 0;
+        $delivered = 0;
+        $overdue = 0;
+
+        foreach ($copyRequests as $request) {
+            $effectiveStatus = ClinicalHistoryRepository::trimString($request['effectiveStatus'] ?? '');
+            if ($effectiveStatus === 'delivered') {
+                $delivered++;
+                continue;
+            }
+
+            $pending++;
+            if ($effectiveStatus === 'overdue') {
+                $overdue++;
+            }
+        }
+
+        return [
+            'archiveState' => (string) ($recordMeta['archiveState'] ?? 'active'),
+            'archiveReadiness' => $archiveReadiness,
+            'copyRequestSummary' => [
+                'total' => count($copyRequests),
+                'pending' => $pending,
+                'delivered' => $delivered,
+                'overdue' => $overdue,
+                'latestRequest' => $copyRequests[0] ?? null,
+            ],
+            'disclosureSummary' => [
+                'total' => count($disclosureLog),
+                'latest' => $disclosureLog[0] ?? null,
+            ],
+            'lastAccessEvent' => $accessAudit[0] ?? null,
+            'confidentialityLabel' => (string) ($recordMeta['confidentialityLabel'] ?? 'CONFIDENCIAL'),
+            'identityProtectionMode' => (string) ($recordMeta['identityProtectionMode'] ?? 'standard'),
+        ];
+    }
+
+    private function applyCertifiedCopyRequest(array $session, array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $recordMeta = ClinicalHistoryRepository::normalizeRecordMeta(
+            is_array($draft['recordMeta'] ?? null) ? $draft['recordMeta'] : [],
+            $session,
+            $draft
+        );
+        $patient = ClinicalHistoryRepository::normalizePatient(
+            is_array($session['patient'] ?? null) ? $session['patient'] : []
+        );
+        $requestedByType = ClinicalHistoryRepository::trimString(
+            $payload['requestedByType'] ?? $payload['copyRequest']['requestedByType'] ?? 'patient'
+        );
+        if ($requestedByType === '') {
+            $requestedByType = 'patient';
+        }
+
+        $requestedByName = ClinicalHistoryRepository::trimString(
+            $payload['requestedByName']
+                ?? $payload['copyRequest']['requestedByName']
+                ?? $payload['requestedBy']
+                ?? ($requestedByType === 'patient' ? ($patient['name'] ?? '') : '')
+        );
+        if ($requestedByName === '') {
+            $requestedByName = $requestedByType === 'patient' ? 'Paciente' : 'Solicitante';
+        }
+
+        $requestedAt = local_date('c');
+        $dueAt = $this->addHoursToTimestamp(
+            $requestedAt,
+            (int) ($recordMeta['copyDeliverySlaHours'] ?? 48)
+        );
+        $requestId = ClinicalHistoryRepository::newOpaqueId('copy');
+
+        $copyRequests = ClinicalHistoryRepository::normalizeCopyRequests($draft['copyRequests'] ?? []);
+        $copyRequests[] = [
+            'requestId' => $requestId,
+            'requestedByType' => $requestedByType,
+            'requestedByName' => $requestedByName,
+            'requestedAt' => $requestedAt,
+            'dueAt' => $dueAt,
+            'status' => 'requested',
+            'legalBasis' => ClinicalHistoryRepository::trimString(
+                $payload['legalBasis'] ?? $payload['copyRequest']['legalBasis'] ?? ''
+            ),
+            'notes' => ClinicalHistoryRepository::trimString(
+                $payload['notes'] ?? $payload['copyRequest']['notes'] ?? ''
+            ),
+            'deliveredAt' => '',
+            'deliveryChannel' => '',
+            'deliveredTo' => '',
+        ];
+        $draft['copyRequests'] = ClinicalHistoryRepository::normalizeCopyRequests($copyRequests);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'requestId' => $requestId,
+                'requestedByType' => $requestedByType,
+                'requestedByName' => $requestedByName,
+                'dueAt' => $dueAt,
+            ],
+        ];
+    }
+
+    private function applyCertifiedCopyDelivery(array $session, array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $copyRequests = ClinicalHistoryRepository::normalizeCopyRequests($draft['copyRequests'] ?? []);
+        $requestId = ClinicalHistoryRepository::trimString(
+            $payload['requestId'] ?? $payload['copyRequest']['requestId'] ?? ''
+        );
+        if ($requestId === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 400,
+                'error' => 'requestId es obligatorio para entregar una copia certificada.',
+                'errorCode' => 'clinical_copy_request_required',
+            ];
+        }
+
+        $matchedIndex = null;
+        foreach ($copyRequests as $index => $request) {
+            if (ClinicalHistoryRepository::trimString($request['requestId'] ?? '') === $requestId) {
+                $matchedIndex = $index;
+                break;
+            }
+        }
+
+        if ($matchedIndex === null) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe la solicitud de copia certificada indicada.',
+                'errorCode' => 'clinical_copy_request_not_found',
+            ];
+        }
+
+        $selectedRequest = $copyRequests[$matchedIndex];
+        if ($this->resolveCopyRequestEffectiveStatus($selectedRequest) === 'delivered') {
+            return [
+                'ok' => false,
+                'statusCode' => 409,
+                'error' => 'La copia certificada seleccionada ya fue entregada.',
+                'errorCode' => 'clinical_copy_request_already_delivered',
+            ];
+        }
+
+        $deliveredAt = local_date('c');
+        $deliveryChannel = ClinicalHistoryRepository::trimString(
+            $payload['deliveryChannel'] ?? $payload['copyRequest']['deliveryChannel'] ?? 'manual_delivery'
+        );
+        $deliveredTo = ClinicalHistoryRepository::trimString(
+            $payload['deliveredTo']
+                ?? $payload['copyRequest']['deliveredTo']
+                ?? ($selectedRequest['requestedByName'] ?? '')
+        );
+        if ($deliveredTo === '') {
+            $deliveredTo = 'Paciente';
+        }
+
+        $targetType = ClinicalHistoryRepository::trimString($selectedRequest['requestedByType'] ?? 'patient');
+        $consent = ClinicalHistoryRepository::normalizeConsentRecord(
+            is_array($draft['consent'] ?? null) ? $draft['consent'] : []
+        );
+        $legalBasis = ClinicalHistoryRepository::trimString($selectedRequest['legalBasis'] ?? '');
+        if ($targetType === 'companion' && ($consent['companionShareAuthorized'] ?? false) !== true) {
+            return [
+                'ok' => false,
+                'statusCode' => 409,
+                'error' => 'No se puede entregar la copia a un acompanante sin autorizacion expresa.',
+                'errorCode' => 'clinical_companion_disclosure_requires_consent',
+            ];
+        }
+        if ($targetType === 'external_third_party' && $legalBasis === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 409,
+                'error' => 'No se puede entregar la copia a un tercero externo sin base legal escrita.',
+                'errorCode' => 'clinical_external_disclosure_requires_legal_basis',
+            ];
+        }
+
+        $selectedRequest['status'] = 'delivered';
+        $selectedRequest['deliveredAt'] = $deliveredAt;
+        $selectedRequest['deliveryChannel'] = $deliveryChannel;
+        $selectedRequest['deliveredTo'] = $deliveredTo;
+        $selectedRequest['notes'] = ClinicalHistoryRepository::trimString(
+            $payload['notes'] ?? $payload['copyRequest']['notes'] ?? $selectedRequest['notes'] ?? ''
+        );
+        $copyRequests[$matchedIndex] = $selectedRequest;
+        $draft['copyRequests'] = ClinicalHistoryRepository::normalizeCopyRequests($copyRequests);
+
+        $disclosureLog = ClinicalHistoryRepository::normalizeDisclosureLog($draft['disclosureLog'] ?? []);
+        $disclosureId = ClinicalHistoryRepository::newOpaqueId('disclosure');
+        $disclosureLog[] = [
+            'disclosureId' => $disclosureId,
+            'targetType' => $targetType !== '' ? $targetType : 'patient',
+            'targetName' => $deliveredTo,
+            'purpose' => 'Entrega de copia certificada',
+            'legalBasis' => $legalBasis,
+            'authorizedByConsent' => $targetType === 'companion'
+                ? (($consent['companionShareAuthorized'] ?? false) === true)
+                : false,
+            'performedBy' => $this->currentClinicalActor(),
+            'performedAt' => $deliveredAt,
+            'channel' => $deliveryChannel,
+            'notes' => $selectedRequest['notes'] ?? '',
+        ];
+        $draft['disclosureLog'] = ClinicalHistoryRepository::normalizeDisclosureLog($disclosureLog);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'requestId' => $requestId,
+                'deliveredTo' => $deliveredTo,
+                'deliveryChannel' => $deliveryChannel,
+                'disclosureId' => $disclosureId,
+            ],
+        ];
+    }
+
+    private function applyDisclosureAction(array $session, array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $patient = ClinicalHistoryRepository::normalizePatient(
+            is_array($session['patient'] ?? null) ? $session['patient'] : []
+        );
+        $consent = ClinicalHistoryRepository::normalizeConsentRecord(
+            is_array($draft['consent'] ?? null) ? $draft['consent'] : []
+        );
+        $targetType = ClinicalHistoryRepository::trimString(
+            $payload['targetType'] ?? $payload['disclosure']['targetType'] ?? 'patient'
+        );
+        if ($targetType === '') {
+            $targetType = 'patient';
+        }
+
+        $targetName = ClinicalHistoryRepository::trimString(
+            $payload['targetName']
+                ?? $payload['disclosure']['targetName']
+                ?? ($targetType === 'patient' ? ($patient['name'] ?? '') : '')
+        );
+        if ($targetName === '') {
+            $targetName = $targetType === 'patient' ? 'Paciente' : 'Destinatario';
+        }
+
+        $legalBasis = ClinicalHistoryRepository::trimString(
+            $payload['legalBasis'] ?? $payload['disclosure']['legalBasis'] ?? ''
+        );
+        if ($targetType === 'companion' && ($consent['companionShareAuthorized'] ?? false) !== true) {
+            return [
+                'ok' => false,
+                'statusCode' => 409,
+                'error' => 'No se puede registrar disclosure a acompanante sin autorizacion expresa.',
+                'errorCode' => 'clinical_companion_disclosure_requires_consent',
+            ];
+        }
+        if ($targetType === 'external_third_party' && $legalBasis === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 409,
+                'error' => 'No se puede registrar disclosure a tercero externo sin base legal escrita.',
+                'errorCode' => 'clinical_external_disclosure_requires_legal_basis',
+            ];
+        }
+
+        $performedAt = local_date('c');
+        $disclosureLog = ClinicalHistoryRepository::normalizeDisclosureLog($draft['disclosureLog'] ?? []);
+        $disclosureId = ClinicalHistoryRepository::newOpaqueId('disclosure');
+        $disclosureLog[] = [
+            'disclosureId' => $disclosureId,
+            'targetType' => $targetType,
+            'targetName' => $targetName,
+            'purpose' => ClinicalHistoryRepository::trimString(
+                $payload['purpose'] ?? $payload['disclosure']['purpose'] ?? ''
+            ),
+            'legalBasis' => $legalBasis,
+            'authorizedByConsent' => $targetType === 'companion'
+                ? (($consent['companionShareAuthorized'] ?? false) === true)
+                : false,
+            'performedBy' => $this->currentClinicalActor(),
+            'performedAt' => $performedAt,
+            'channel' => ClinicalHistoryRepository::trimString(
+                $payload['channel'] ?? $payload['disclosure']['channel'] ?? 'manual_note'
+            ),
+            'notes' => ClinicalHistoryRepository::trimString(
+                $payload['notes'] ?? $payload['disclosure']['notes'] ?? ''
             ),
         ];
+        $draft['disclosureLog'] = ClinicalHistoryRepository::normalizeDisclosureLog($disclosureLog);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'disclosureId' => $disclosureId,
+                'targetType' => $targetType,
+                'targetName' => $targetName,
+            ],
+        ];
+    }
+
+    private function applyArchiveStateAction(array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $desiredState = ClinicalHistoryRepository::trimString(
+            $payload['archiveState'] ?? $payload['recordMeta']['archiveState'] ?? ''
+        );
+        if ($desiredState === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 400,
+                'error' => 'archiveState es obligatorio para actualizar la custodia del record.',
+                'errorCode' => 'clinical_archive_state_required',
+            ];
+        }
+
+        if (!in_array($desiredState, ['active', 'passive'], true)) {
+            return [
+                'ok' => false,
+                'statusCode' => 400,
+                'error' => 'archiveState debe ser active o passive.',
+                'errorCode' => 'clinical_archive_state_invalid',
+            ];
+        }
+
+        $recordMeta = ClinicalHistoryRepository::normalizeRecordMeta(
+            is_array($draft['recordMeta'] ?? null) ? $draft['recordMeta'] : []
+        );
+        $overrideReason = ClinicalHistoryRepository::trimString(
+            $payload['overrideReason'] ?? $payload['recordMeta']['overrideReason'] ?? ''
+        );
+        $archiveReadiness = $this->buildArchiveReadiness($recordMeta);
+        if (
+            $desiredState === 'passive'
+            && ($archiveReadiness['eligibleForPassive'] ?? false) !== true
+            && $overrideReason === ''
+        ) {
+            return [
+                'ok' => false,
+                'statusCode' => 409,
+                'error' => 'El record todavia no es elegible para archivo pasivo sin una razon de override.',
+                'errorCode' => 'clinical_archive_override_required',
+            ];
+        }
+
+        $recordMeta['archiveState'] = $desiredState;
+        $draft['recordMeta'] = ClinicalHistoryRepository::normalizeRecordMeta($recordMeta);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'archiveState' => $desiredState,
+                'overrideReason' => $overrideReason,
+            ],
+        ];
+    }
+
+    private function accessAuditActionForMode(string $mode): string
+    {
+        return match ($mode) {
+            'save' => 'edit_record',
+            'approve' => 'approve_final_note',
+            'follow-up' => 'request_missing_data',
+            'review-required' => 'mark_review_required',
+            'consent' => 'record_consent',
+            'revoke-consent' => 'revoke_consent',
+            'prescription' => 'issue_prescription',
+            'certificate' => 'issue_certificate',
+            'copy-request' => 'request_certified_copy',
+            'copy-delivery' => 'deliver_certified_copy',
+            'disclosure' => 'log_disclosure',
+            'archive-state' => 'set_archive_state',
+            default => 'edit_record',
+        };
+    }
+
+    private function recordAccessAudit(
+        array $store,
+        array $session,
+        array $draft,
+        string $action,
+        string $reason,
+        array $meta = []
+    ): array {
+        return ClinicalHistoryRepository::appendAccessAudit(
+            $store,
+            $this->buildAccessAuditEntry($session, $draft, $action, $reason, $meta)
+        );
+    }
+
+    private function buildAccessAuditEntry(
+        array $session,
+        array $draft,
+        string $action,
+        string $reason,
+        array $meta = []
+    ): array {
+        return [
+            'recordId' => (string) ($draft['patientRecordId'] ?? ''),
+            'sessionId' => (string) ($session['sessionId'] ?? ''),
+            'episodeId' => (string) ($draft['episodeId'] ?? ''),
+            'actor' => $this->currentClinicalActor(),
+            'actorRole' => 'clinician_admin',
+            'action' => $action,
+            'resource' => 'clinical_record',
+            'reason' => $reason,
+            'createdAt' => local_date('c'),
+            'meta' => $meta,
+        ];
+    }
+
+    private function addHoursToTimestamp(string $stamp, int $hours): string
+    {
+        $hours = max(1, $hours);
+        try {
+            return (new \DateTimeImmutable($stamp))
+                ->add(new \DateInterval('PT' . $hours . 'H'))
+                ->format('c');
+        } catch (\Throwable $e) {
+            return $stamp;
+        }
+    }
+
+    private function timestampIsPast(string $stamp): bool
+    {
+        try {
+            return (new \DateTimeImmutable($stamp)) <= new \DateTimeImmutable(local_date('c'));
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    private function currentClinicalActor(): string
+    {
+        if (function_exists('operator_auth_current_identity')) {
+            $operator = operator_auth_current_identity(false);
+            if (is_array($operator)) {
+                $name = ClinicalHistoryRepository::trimString($operator['name'] ?? '');
+                if ($name !== '') {
+                    return $name;
+                }
+                $email = ClinicalHistoryRepository::trimString($operator['email'] ?? '');
+                if ($email !== '') {
+                    return $email;
+                }
+            }
+        }
+
+        return 'admin@local';
     }
 
     private function resolveSessionContext(array $store, array $payload, bool $createIfMissing): array
