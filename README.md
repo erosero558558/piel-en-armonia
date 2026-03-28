@@ -198,7 +198,20 @@ Higiene local:
 
 ### Gobernanza de agentes
 
+- Flujo diario recomendado:
+  - `npm run agent:work:doctor`
+  - `npm run agent:work:begin -- <task_id> --expect-rev <n>`
+  - `npm run agent:work:doctor`
+  - `npm run agent:work:close -- <task_id> --evidence verification/agent-runs/<task_id>.md --expect-rev <n>`
+  - `npm run agent:work:publish -- <task_id> --summary "..." --expect-rev <n>`
+- `integration_root` queda para sync, doctor, reconciliacion y publish; el authored diario debe vivir en worktrees de tarea.
+- `work doctor` resume `status + board doctor + codex-check` en una sola pasada.
+- `work begin` tolera el root solo cuando aplica la excepcion `integration_root` ya implementada; `close/publish` siguen estrictos globalmente.
 - `npm run agent:status`
+- `npm run agent:work:doctor`
+- `npm run agent:work:begin -- <task_id> --expect-rev <n>`
+- `npm run agent:work:close -- <task_id> --evidence verification/agent-runs/<task_id>.md --expect-rev <n>`
+- `npm run agent:work:publish -- <task_id> --summary "..." --expect-rev <n>`
 - `npm run agent:board:doctor`
 - `npm run agent:summary:local`
 - `npm run agent:gate`

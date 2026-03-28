@@ -289,6 +289,12 @@ Los cierres requieren evidencia:
 Comandos canonicos:
 
 ```bash
+node agent-orchestrator.js work doctor
+node agent-orchestrator.js work doctor --json
+node agent-orchestrator.js work begin CDX-001 --block C1 --expect-rev 12
+node agent-orchestrator.js work begin AG-003 --status in_progress --expect-rev 12 --json
+node agent-orchestrator.js work close AG-003 --evidence verification/agent-runs/AG-003.md --expect-rev 12 --json
+node agent-orchestrator.js work publish CDX-001 --summary "..." --expect-rev 12 --json
 node agent-orchestrator.js status
 node agent-orchestrator.js status --explain-red
 node agent-orchestrator.js status --json --explain-red
@@ -378,6 +384,10 @@ php bin/validate-agent-governance.php
 npm run agent:test
 npm run agent:summary
 npm run agent:policy:lint
+npm run agent:work:doctor
+npm run agent:work:begin -- CDX-001 --expect-rev 12
+npm run agent:work:close -- AG-003 --evidence verification/agent-runs/AG-003.md --expect-rev 12
+npm run agent:work:publish -- CDX-001 --summary "..." --expect-rev 12
 npm run agent:metrics:baseline -- show --json
 npm run agent:leases
 npm run agent:board:doctor
@@ -389,20 +399,21 @@ npm run agent:gate
 
 Flujo recomendado:
 
-1. Preparar estrategia con `strategy preview -> strategy set-next -> strategy activate-next` cuando el frente cambie.
-2. Abrir trabajo nuevo con `strategy intake` siempre que exista `strategy.active`; usar `task create` solo si necesitas compatibilidad o un caso `exception`.
-3. Reservar trabajo en board (`AGENT_BOARD.yaml`) o usar `codex start` / `handoffs create`.
+1. Para flujo diario humano, preferir `work doctor -> work begin <task_id> -> work doctor -> work close|work publish`.
+2. Preparar estrategia con `strategy preview -> strategy set-next -> strategy activate-next` cuando el frente cambie.
+3. Abrir trabajo nuevo con `strategy intake` siempre que exista `strategy.active`; usar `task create` solo si necesitas compatibilidad o un caso `exception`.
+4. Reservar trabajo en board (`AGENT_BOARD.yaml`) o usar `codex start` / `handoffs create`.
    Para tareas no-Codex, preferir `task claim/start/finish` en lugar de editar `status/owner` a mano.
    Para inspeccionar backlog/activos sin abrir YAML, usar `task ls` con filtros (`--active`, `--mine`, `--status`, `--executor`, `--scope`).
    Para crear tareas AG nuevas sin editar YAML, usar `task create` (auto-asigna `AG-###` siguiente salvo `--id`).
-4. Ejecutar `npm run agent:test` si cambiaste el orquestador/validadores.
-5. Ejecutar `npm run agent:gate` (o al menos `conflicts`, `handoffs lint`, `codex-check`).
+5. Ejecutar `npm run agent:test` si cambiaste el orquestador/validadores.
+6. Ejecutar `npm run agent:gate` (o al menos `conflicts`, `handoffs lint`, `codex-check`).
    Para diagnostico semantico del board (leases, stale, WIP, evidencia), ejecutar `node agent-orchestrator.js board doctor --json` (warn-first, no bloqueante por defecto).
-6. Ejecutar validaciones del cambio (`npm run lint`, tests aplicables).
-7. Confirmar evidencia y cerrar con `node agent-orchestrator.js close <AG-ID|CDX-ID> --evidence verification/agent-runs/<task_id>.md --expect-rev <rev> --json` cuando la tarea tenga `executor=codex`; ese closeout debe publicar a `origin/main`, refrescar `origin/main` local y dejar la rama actual `0 ahead / 0 behind`.
-8. Usar `node agent-orchestrator.js publish checkpoint <AG-ID|CDX-ID> --summary "..." --expect-rev <rev> --json` solo como ruta manual/de excepción. Para promocion formal de release sobre una tarea existente, usar antes `node agent-orchestrator.js task start <AG-ID|CDX-ID> --release-publish --expect-rev <rev> --json`.
-9. Usar `task finish` y `codex stop` como transiciones de estado o cierres no publicables; no reemplazan el closeout publicado de Codex.
-10. Ejecutar `node agent-orchestrator.js sync` cuando haga falta refrescar tombstones/estado derivado.
+7. Ejecutar validaciones del cambio (`npm run lint`, tests aplicables).
+8. Confirmar evidencia y cerrar con `node agent-orchestrator.js close <AG-ID|CDX-ID> --evidence verification/agent-runs/<task_id>.md --expect-rev <rev> --json` cuando la tarea tenga `executor=codex`; ese closeout debe publicar a `origin/main`, refrescar `origin/main` local y dejar la rama actual `0 ahead / 0 behind`.
+9. Usar `node agent-orchestrator.js publish checkpoint <AG-ID|CDX-ID> --summary "..." --expect-rev <rev> --json` solo como ruta manual/de excepción. Para promocion formal de release sobre una tarea existente, usar antes `node agent-orchestrator.js task start <AG-ID|CDX-ID> --release-publish --expect-rev <rev> --json`.
+10. Usar `task finish` y `codex stop` como transiciones de estado o cierres no publicables; no reemplazan el closeout publicado de Codex.
+11. Ejecutar `node agent-orchestrator.js sync` cuando haga falta refrescar tombstones/estado derivado.
 
 Candado de concurrencia:
 

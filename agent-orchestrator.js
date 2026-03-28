@@ -6,6 +6,7 @@
  * Legacy tombstones: JULES_TASKS.md, KIMI_TASKS.md
  *
  * Commands:
+ *   node agent-orchestrator.js --help
  *   node agent-orchestrator.js status [--json]
  *   node agent-orchestrator.js conflicts [--strict]
  *   node agent-orchestrator.js handoffs <status|lint|create|close>
@@ -25,6 +26,7 @@
 const { readFileSync, writeFileSync, existsSync, mkdirSync } = require('fs');
 const readline = require('readline');
 const { resolve, dirname } = require('path');
+const { spawnSync } = require('child_process');
 const coreFlags = require('./tools/agent-orchestrator/core/flags');
 const coreParsers = require('./tools/agent-orchestrator/core/parsers');
 const coreSerializers = require('./tools/agent-orchestrator/core/serializers');
@@ -727,6 +729,181 @@ function writeDecisions(data, options = {}) {
 
 function parseFlags(args) {
     return coreFlags.parseFlags(args);
+}
+
+const HELP_TOKENS = new Set(['--help', '-h', 'help']);
+
+function isHelpToken(value) {
+    return HELP_TOKENS.has(
+        String(value || '')
+            .trim()
+            .toLowerCase()
+    );
+}
+
+function buildCliHelpText() {
+    return [
+        'Uso: node agent-orchestrator.js <command> [args]',
+        '',
+        'Flujo diario recomendado:',
+        '  node agent-orchestrator.js work doctor',
+        '  node agent-orchestrator.js work begin <task_id> --expect-rev <n>',
+        '  node agent-orchestrator.js work close <task_id> --evidence verification/agent-runs/<task_id>.md --expect-rev <n>',
+        '  node agent-orchestrator.js work publish <task_id> --summary "..." --expect-rev <n>',
+        '',
+        'Comandos principales:',
+        '  work, status, board, codex, task, close, publish, strategy, focus, leases, runtime, jobs, metrics, sync',
+        '',
+        'Modo experto:',
+        '  conflicts, handoffs, policy, decision, intake, score, stale, budget, dispatch, reconcile, workspace',
+        '',
+        'Ayuda especifica:',
+        '  node agent-orchestrator.js work --help',
+        '  node agent-orchestrator.js task --help',
+        '  node agent-orchestrator.js strategy --help',
+    ].join('\n');
+}
+
+function buildWorkHelpText() {
+    return [
+        'Uso: node agent-orchestrator.js work <doctor|begin|close|publish> [args]',
+        '',
+        'Subcomandos:',
+        '  doctor                         Resume status + board doctor + codex-check',
+        '  begin <task_id>               Abre trabajo diario (CDX -> codex start, AG -> task start)',
+        '  close <task_id> --evidence    Envuelve el closeout canonico',
+        '  publish <task_id>             Envuelve publish checkpoint; acepta --summary o deriva un resumen minimo desde --evidence',
+        '',
+        'Ejemplos:',
+        '  node agent-orchestrator.js work doctor --json',
+        '  node agent-orchestrator.js work begin CDX-001 --block C1 --expect-rev 12',
+        '  node agent-orchestrator.js work begin AG-003 --status in_progress --expect-rev 12 --json',
+        '  node agent-orchestrator.js work close AG-003 --evidence verification/agent-runs/AG-003.md --expect-rev 12 --json',
+        '  node agent-orchestrator.js work publish CDX-001 --summary "checkpoint listo" --expect-rev 12 --json',
+    ].join('\n');
+}
+
+function buildSoftLegacyHint(commandRaw, args = []) {
+    const command = String(commandRaw || '')
+        .trim()
+        .toLowerCase();
+    const subcommand = String(args[0] || '')
+        .trim()
+        .toLowerCase();
+    if (args.includes('--json')) return null;
+
+    if (command === 'status') {
+        return 'Sugerencia: use `node agent-orchestrator.js work doctor` para el flujo corto diario.';
+    }
+    if (command === 'board' && subcommand === 'doctor') {
+        return 'Sugerencia: use `node agent-orchestrator.js work doctor` para el flujo corto diario.';
+    }
+    if (command === 'codex' && subcommand === 'start') {
+        return 'Sugerencia: use `node agent-orchestrator.js work begin <task_id>` para abrir trabajo diario.';
+    }
+    if (
+        command === 'task' &&
+        subcommand === 'start' &&
+        !args.includes('--release-publish')
+    ) {
+        return 'Sugerencia: use `node agent-orchestrator.js work begin <task_id>` para abrir trabajo diario.';
+    }
+    if (command === 'close') {
+        return 'Sugerencia: use `node agent-orchestrator.js work close <task_id> --evidence ...` para el closeout diario.';
+    }
+    if (command === 'publish' && subcommand === 'checkpoint') {
+        return 'Sugerencia: use `node agent-orchestrator.js work publish <task_id> ...` para el publish manual.';
+    }
+    return null;
+}
+
+function printSoftLegacyHint(commandRaw, args = []) {
+    const hint = buildSoftLegacyHint(commandRaw, args);
+    if (!hint) return;
+    console.error(`[hint] ${hint}`);
+}
+
+function invokeSelfCommand(commandArgs, options = {}) {
+    const scriptPath = process.argv[1] || resolve(ROOT, 'agent-orchestrator.js');
+    return spawnSync(process.execPath, [scriptPath, ...commandArgs], {
+        cwd: options.cwd || process.cwd(),
+        encoding: 'utf8',
+        env: options.env || process.env,
+    });
+}
+
+function mirrorDelegatedResult(result) {
+    if (result?.error) {
+        throw result.error;
+    }
+    if (result?.stdout) {
+        process.stdout.write(result.stdout);
+    }
+    if (result?.stderr) {
+        process.stderr.write(result.stderr);
+    }
+    const status =
+        Number.isInteger(result?.status) && result.status >= 0
+            ? result.status
+            : 1;
+    if (status !== 0) {
+        process.exitCode = status;
+    }
+    return {
+        ok: status === 0,
+        status,
+        stdout: String(result?.stdout || ''),
+        stderr: String(result?.stderr || ''),
+    };
+}
+
+function parseDelegatedJsonResult(commandArgs, options = {}) {
+    const result = invokeSelfCommand(commandArgs, options);
+    if (result?.error) {
+        throw result.error;
+    }
+    const stdout = String(result?.stdout || '').trim();
+    if (!stdout) {
+        throw new Error(
+            `Comando delegado sin JSON: ${commandArgs.join(' ')}`
+        );
+    }
+    return {
+        status:
+            Number.isInteger(result?.status) && result.status >= 0
+                ? result.status
+                : 1,
+        payload: JSON.parse(stdout),
+        stderr: String(result?.stderr || ''),
+    };
+}
+
+function renderWorkDoctorText(report) {
+    const lines = [
+        '== Work Doctor ==',
+        `ok=${report.ok} blocking_scope=${report.blocking_scope} current_worktree_blocked=${report.current_worktree_blocked} global_findings=${report.global_findings_count}`,
+        `workspace_role=${report.workspace_role || 'unknown'}`,
+    ];
+    if (report.workspace_role_reason) {
+        lines.push(`workspace_role_reason=${report.workspace_role_reason}`);
+    }
+    if (report.daily_work_allowed_with_warning) {
+        lines.push(
+            `daily_work_allowed_with_warning=true (${(report.daily_work_warning_codes || []).join(', ')})`
+        );
+    }
+    if (report.recommended_next_command) {
+        lines.push(`recommended_next_command=${report.recommended_next_command}`);
+    }
+    lines.push(
+        `status.ok=${Boolean(report.status?.ok)} board_doctor.ok=${Boolean(
+            report.board_doctor?.ok
+        )} codex_check.ok=${Boolean(report.codex_check?.ok)}`
+    );
+    lines.push(
+        'Expert mode: status --json --explain-red, board doctor --json --profile ci, codex-check --json'
+    );
+    return lines.join('\n');
 }
 
 function parseCsvList(value) {
@@ -2377,6 +2554,165 @@ async function cmdClose(args) {
     });
 }
 
+async function cmdWork(args = []) {
+    const wantsJson = args.includes('--json');
+    const [subcommandRaw = '', ...restArgs] = args;
+    const subcommand = String(subcommandRaw || '')
+        .trim()
+        .toLowerCase();
+
+    if (!subcommand) {
+        if (wantsJson) {
+            const error = new Error(
+                'Uso: node agent-orchestrator.js work <doctor|begin|close|publish> [args]'
+            );
+            error.code = 'work_invalid_usage';
+            error.error_code = 'work_invalid_usage';
+            throw error;
+        }
+        console.log(buildWorkHelpText());
+        process.exitCode = 1;
+        return;
+    }
+
+    if (isHelpToken(subcommandRaw)) {
+        console.log(buildWorkHelpText());
+        return;
+    }
+
+    if (subcommand === 'doctor') {
+        const statusResult = parseDelegatedJsonResult(['status', '--json']);
+        const boardResult = parseDelegatedJsonResult([
+            'board',
+            'doctor',
+            '--json',
+        ]);
+        const codexCheckResult = parseDelegatedJsonResult([
+            'codex-check',
+            '--json',
+        ]);
+        const report = {
+            version: 1,
+            ok:
+                Boolean(statusResult.payload?.ok) &&
+                Boolean(boardResult.payload?.ok) &&
+                Boolean(codexCheckResult.payload?.ok),
+            command: 'work',
+            action: 'doctor',
+            blocking_scope:
+                statusResult.payload?.blocking_scope || 'global',
+            workspace_role:
+                statusResult.payload?.workspace_role ||
+                boardResult.payload?.workspace_role ||
+                'unknown',
+            workspace_role_reason:
+                statusResult.payload?.workspace_role_reason ||
+                boardResult.payload?.workspace_role_reason ||
+                '',
+            current_worktree_blocked: Boolean(
+                statusResult.payload?.current_worktree_blocked
+            ),
+            daily_work_allowed_with_warning: Boolean(
+                statusResult.payload?.daily_work_allowed_with_warning
+            ),
+            daily_work_warning_codes:
+                statusResult.payload?.daily_work_warning_codes || [],
+            global_findings_count: Number(
+                statusResult.payload?.global_findings_count || 0
+            ),
+            recommended_next_command:
+                statusResult.payload?.recommended_next_command ||
+                'node agent-orchestrator.js status --json --explain-red',
+            status: statusResult.payload,
+            board_doctor: boardResult.payload,
+            codex_check: codexCheckResult.payload,
+        };
+        if (wantsJson) {
+            coreOutput.printJson(report);
+            return report;
+        }
+        console.log(renderWorkDoctorText(report));
+        return report;
+    }
+
+    if (subcommand === 'begin') {
+        const taskId = String(restArgs[0] || '').trim();
+        if (!taskId) {
+            const error = new Error(
+                'Uso: node agent-orchestrator.js work begin <task_id> [--expect-rev n] [--json]'
+            );
+            error.code = 'work_invalid_usage';
+            error.error_code = 'work_invalid_usage';
+            throw error;
+        }
+        const delegatedArgs = /^CDX-\d+$/i.test(taskId)
+            ? ['codex', 'start', ...restArgs]
+            : ['task', 'start', ...restArgs];
+        return mirrorDelegatedResult(invokeSelfCommand(delegatedArgs));
+    }
+
+    if (subcommand === 'close') {
+        if (!restArgs.length) {
+            const error = new Error(
+                'Uso: node agent-orchestrator.js work close <task_id> --evidence path [--expect-rev n] [--json]'
+            );
+            error.code = 'work_invalid_usage';
+            error.error_code = 'work_invalid_usage';
+            throw error;
+        }
+        return mirrorDelegatedResult(invokeSelfCommand(['close', ...restArgs]));
+    }
+
+    if (subcommand === 'publish') {
+        if (!restArgs.length) {
+            const error = new Error(
+                'Uso: node agent-orchestrator.js work publish <task_id> [--summary \"...\"] [--evidence path] [--expect-rev n] [--json]'
+            );
+            error.code = 'work_invalid_usage';
+            error.error_code = 'work_invalid_usage';
+            throw error;
+        }
+        const parsed = parseFlags(restArgs);
+        const taskId = String(parsed.positionals[0] || '').trim();
+        if (!taskId) {
+            const error = new Error(
+                'work publish requiere task_id como primer argumento posicional'
+            );
+            error.code = 'work_invalid_usage';
+            error.error_code = 'work_invalid_usage';
+            throw error;
+        }
+        const hasSummary = restArgs.includes('--summary');
+        let delegatedArgs = ['publish', 'checkpoint', ...restArgs];
+        if (!hasSummary) {
+            const evidencePath = String(parsed.flags.evidence || '').trim();
+            const derivedSummary = evidencePath
+                ? `work publish ${taskId} via ${evidencePath}`
+                : `work publish ${taskId}`;
+            delegatedArgs = [
+                'publish',
+                'checkpoint',
+                taskId,
+                '--summary',
+                derivedSummary,
+                ...restArgs.slice(1),
+            ];
+        }
+        return mirrorDelegatedResult(invokeSelfCommand(delegatedArgs));
+    }
+
+    if (wantsJson) {
+        const error = new Error(
+            'Uso: node agent-orchestrator.js work <doctor|begin|close|publish> [args]'
+        );
+        error.code = 'work_invalid_usage';
+        error.error_code = 'work_invalid_usage';
+        throw error;
+    }
+    console.log(buildWorkHelpText());
+    process.exitCode = 1;
+}
+
 // â”€â”€â”€ Signal / Intake helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const githubSignalsRuntime = domainGitHubSignals.createGitHubSignalsRuntime({
@@ -2858,6 +3194,21 @@ const governanceRuntime =
 
 async function main() {
     const [command = 'status', ...args] = process.argv.slice(2);
+    if (!command || isHelpToken(command)) {
+        console.log(buildCliHelpText());
+        return;
+    }
+    if (String(command).trim().toLowerCase() === 'help') {
+        if (!args[0] || isHelpToken(args[0])) {
+            console.log(buildCliHelpText());
+            return;
+        }
+        if (String(args[0]).trim().toLowerCase() === 'work') {
+            console.log(buildWorkHelpText());
+            return;
+        }
+        throw new Error(`Comando no soportado: ${args[0]}`);
+    }
     const commands = {
         status: () => cmdStatus(args),
         conflicts: () => governanceRuntime.conflicts(args),
@@ -2881,6 +3232,7 @@ async function main() {
         runtime: () => cmdRuntime(args),
         publish: () => cmdPublish(args),
         workspace: () => cmdWorkspace(args),
+        work: () => cmdWork(args),
         sync: () => cmdSync(),
         close: () => cmdClose(args),
         metrics: () => cmdMetrics(args),
@@ -2890,6 +3242,9 @@ async function main() {
         throw new Error(`Comando no soportado: ${command}`);
     }
     await commands[command]();
+    if ((process.exitCode || 0) === 0) {
+        printSoftLegacyHint(command, args);
+    }
 }
 
 main().catch((error) => {

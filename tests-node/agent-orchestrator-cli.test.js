@@ -435,6 +435,10 @@ function isMutatingCommandArgs(args = []) {
         .toLowerCase();
 
     if (command === 'close') return true;
+    if (command === 'work') {
+        if (['close', 'publish'].includes(subcommand)) return true;
+        return subcommand === 'begin';
+    }
     if (command === 'codex') {
         if (['start', 'stop'].includes(subcommand)) return true;
         return (
@@ -6077,6 +6081,215 @@ test('metrics baseline show/set/reset controla baseline explicito en agent-metri
     assert.equal(written.baseline.tasks_total, written.current.tasks_total);
     assert.equal(written.delta.tasks_total, 0);
     assert.equal(written.baseline_meta.action, 'reset');
+});
+
+test('help expone work como flujo corto y work --help lista subcomandos', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    const rootHelp = runCli(dir, ['--help']);
+    assert.match(rootHelp.stdout, /Flujo diario recomendado:/);
+    assert.match(rootHelp.stdout, /node agent-orchestrator\.js work doctor/);
+    assert.match(rootHelp.stdout, /Comandos principales:\s*\n  work,/);
+
+    const workHelp = runCli(dir, ['work', '--help']);
+    assert.match(
+        workHelp.stdout,
+        /Uso: node agent-orchestrator\.js work <doctor\|begin\|close\|publish> \[args\]/
+    );
+    assert.match(workHelp.stdout, /doctor\s+Resume status \+ board doctor \+ codex-check/);
+    assert.match(workHelp.stdout, /begin <task_id>/);
+    assert.match(workHelp.stdout, /close <task_id> --evidence/);
+    assert.match(workHelp.stdout, /publish <task_id>/);
+
+    const invalidUsage = runCli(dir, ['work'], 1);
+    assert.match(
+        invalidUsage.stdout,
+        /Uso: node agent-orchestrator\.js work <doctor\|begin\|close\|publish> \[args\]/
+    );
+});
+
+test('work doctor --json combina status, board doctor y codex-check', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const result = runCli(dir, ['work', 'doctor', '--json']);
+    const json = parseJsonStdout(result);
+
+    assert.equal(json.command, 'work');
+    assert.equal(json.action, 'doctor');
+    assert.ok(Object.hasOwn(json, 'status'));
+    assert.ok(Object.hasOwn(json, 'board_doctor'));
+    assert.ok(Object.hasOwn(json, 'codex_check'));
+    assert.equal(typeof json.current_worktree_blocked, 'boolean');
+    assert.equal(typeof json.global_findings_count, 'number');
+    assert.equal(typeof json.recommended_next_command, 'string');
+    assert.equal(typeof json.status, 'object');
+    assert.equal(typeof json.board_doctor, 'object');
+    assert.equal(typeof json.codex_check, 'object');
+});
+
+test('work begin enruta CDX hacia codex start y AG hacia task start', (t) => {
+    const codexDir = createFixtureDir();
+    const taskDir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(codexDir));
+    t.after(() => cleanupFixtureDir(taskDir));
+
+    writeFixtureFiles(codexDir, {
+        board: boardForCodexLifecycle(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+    writeFixtureFiles(taskDir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const codexResult = runCli(codexDir, [
+        'work',
+        'begin',
+        'CDX-001',
+        '--block',
+        'C1',
+    ]);
+    assert.match(codexResult.stdout, /Codex start OK: CDX-001 \(C1\)/);
+    assert.match(readBoard(codexDir), /status: in_progress/);
+
+    const taskResult = runCli(taskDir, [
+        'work',
+        'begin',
+        'AG-010',
+        '--status',
+        'in_progress',
+        '--json',
+    ]);
+    const taskJson = parseJsonStdout(taskResult);
+    assert.equal(taskJson.command, 'task');
+    assert.equal(taskJson.action, 'start');
+    assert.equal(taskJson.task.id, 'AG-010');
+    assert.match(readBoard(taskDir), /status: in_progress/);
+});
+
+test('legacy texto sugiere work doctor mientras JSON queda silencioso', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const statusText = runCli(dir, ['status']);
+    assert.match(
+        statusText.stderr,
+        /Sugerencia: use `node agent-orchestrator\.js work doctor`/
+    );
+
+    const statusJson = runCli(dir, ['status', '--json']);
+    assert.equal(statusJson.stderr.trim(), '');
+
+    const boardDoctorText = runCli(dir, ['board', 'doctor']);
+    assert.match(
+        boardDoctorText.stderr,
+        /Sugerencia: use `node agent-orchestrator\.js work doctor`/
+    );
+
+    const boardDoctorJson = runCli(dir, ['board', 'doctor', '--json']);
+    assert.equal(boardDoctorJson.stderr.trim(), '');
+});
+
+test('legacy start y close sugieren work en salida humana y no en JSON', (t) => {
+    const codexTextDir = createFixtureDir();
+    const codexJsonDir = createFixtureDir();
+    const closeTextDir = createFixtureDir();
+    const closeJsonDir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(codexTextDir));
+    t.after(() => cleanupFixtureDir(codexJsonDir));
+    t.after(() => cleanupFixtureDir(closeTextDir));
+    t.after(() => cleanupFixtureDir(closeJsonDir));
+
+    writeFixtureFiles(codexTextDir, {
+        board: boardForCodexLifecycle(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+    writeFixtureFiles(codexJsonDir, {
+        board: boardForCodexLifecycle(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+    writeFixtureFiles(closeTextDir, {
+        board: boardForTaskOpsFixture().replace(
+            'executor: codex',
+            'executor: ci'
+        ),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+    writeFixtureFiles(closeJsonDir, {
+        board: boardForTaskOpsFixture().replace(
+            'executor: codex',
+            'executor: ci'
+        ),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    mkdirSync(join(closeTextDir, 'verification', 'agent-runs'), {
+        recursive: true,
+    });
+    mkdirSync(join(closeJsonDir, 'verification', 'agent-runs'), {
+        recursive: true,
+    });
+    writeFileSync(
+        join(closeTextDir, 'verification', 'agent-runs', 'AG-010.md'),
+        '# evidence\n',
+        'utf8'
+    );
+    writeFileSync(
+        join(closeJsonDir, 'verification', 'agent-runs', 'AG-010.md'),
+        '# evidence\n',
+        'utf8'
+    );
+
+    const codexText = runCli(codexTextDir, [
+        'codex',
+        'start',
+        'CDX-001',
+        '--block',
+        'C1',
+    ]);
+    assert.match(
+        codexText.stderr,
+        /Sugerencia: use `node agent-orchestrator\.js work begin <task_id>`/
+    );
+
+    const codexJson = runCli(codexJsonDir, [
+        'codex',
+        'start',
+        'CDX-001',
+        '--block',
+        'C1',
+        '--json',
+    ]);
+    assert.equal(codexJson.stderr.trim(), '');
+
+    const closeText = runCli(closeTextDir, ['close', 'AG-010']);
+    assert.match(
+        closeText.stderr,
+        /Sugerencia: use `node agent-orchestrator\.js work close <task_id> --evidence \.\.\.`/
+    );
+
+    const closeJson = runCli(closeJsonDir, ['close', 'AG-010', '--json']);
+    assert.equal(closeJson.stderr.trim(), '');
 });
 
 test('status --json expone porcentajes de aporte por agente y ranking', (t) => {
