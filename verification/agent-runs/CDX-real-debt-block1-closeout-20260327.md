@@ -61,7 +61,16 @@ Result:
 
 No production behavior change was introduced for `HealthController`. The closeout revalidated the public payload contract without editing `controllers/HealthController.php`.
 
+## Promotion State
+
+- Commit: `126d4072`
+- Branch: `codex/ops-debt-block1-isolation-closeout-20260327`
+- Remote branch: `origin/codex/ops-debt-block1-isolation-closeout-20260327`
+- Draft PR: `https://github.com/erosero558558/Aurora-Derm/pull/462`
+- Review parking: this slice is parked for review while `CDX-045` and `CDX-048` remain in `review` under the active `Public V6 ES` strategy.
+- Next debt step: `Block 2 - Queue and Turnero Domain Decomposition` remains parked until the current strategy is closed, replaced, or exceptioned separately.
+
 ## Residual Risk
 
-- This closeout verified the isolated worktree locally; promotion, commit, and PR flow remain pending by design.
+- This closeout is now committed, pushed, and parked in draft PR `#462`; merge timing still depends on the current strategy and review queue.
 - `npm ci` reported dependency audit warnings during bootstrap, but they are outside the Block 1 closeout slice and were not changed here.
