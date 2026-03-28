@@ -278,6 +278,36 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
                 'updatedAt' => '2026-03-11T10:16:00-05:00',
             ]],
             'activeConsentPacketId' => 'consent-admin-001',
+            'interconsultations' => [[
+                'interconsultId' => 'inter-admin-001',
+                'status' => 'draft',
+                'requiredForCurrentPlan' => true,
+                'priority' => 'routine',
+                'requestedAt' => '2026-03-11T10:13:00-05:00',
+                'requestingEstablishment' => 'Piel Armonia',
+                'requestingService' => 'Dermatologia ambulatoria',
+                'destinationEstablishment' => 'Hospital dermatologico aliado',
+                'destinationService' => 'Dermatologia clinica',
+                'consultedProfessionalName' => 'Dr. Rafael Suarez',
+                'clinicalPicture' => 'Rosacea facial de varios meses con respuesta parcial.',
+                'requestReason' => 'Solicito valoracion complementaria del plan ambulatorio.',
+                'diagnoses' => [[
+                    'type' => 'pre',
+                    'label' => 'Rosacea en control parcial.',
+                    'cie10' => 'L71.9',
+                ]],
+                'performedDiagnosticsSummary' => 'Evaluacion clinica y fotografia de control.',
+                'therapeuticMeasuresDone' => 'Metronidazol topico y medidas de cuidado cutaneo.',
+                'questionForConsultant' => 'Confirmar conducta y prioridad del seguimiento.',
+                'issuedBy' => 'Dra. Laura Mena',
+                'issuedAt' => '',
+                'cancelledAt' => '',
+                'cancelReason' => '',
+                'history' => [],
+                'createdAt' => '2026-03-11T10:13:00-05:00',
+                'updatedAt' => '2026-03-11T10:16:00-05:00',
+            ]],
+            'activeInterconsultationId' => 'inter-admin-001',
             'recordMeta' => [
                 'archiveState' => 'active',
                 'lastAttentionAt' => '2020-03-10T10:00:00-05:00',
@@ -405,6 +435,11 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu005']['complete'] ?? -1));
         self::assertSame(1, (int) ($meta['summary']['drafts']['hcu005']['partial'] ?? -1));
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu005']['missing'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu007']['issued'] ?? -1));
+        self::assertSame(1, (int) ($meta['summary']['drafts']['hcu007']['ready_to_issue'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu007']['cancelled'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu007']['incomplete'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu007']['draft'] ?? -1));
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu024']['accepted'] ?? -1));
         self::assertSame(1, (int) ($meta['summary']['drafts']['hcu024']['draft'] ?? -1));
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu024']['declined'] ?? -1));
@@ -422,6 +457,8 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame('HCU-001 completa', (string) ($meta['reviewQueue'][0]['hcu001Label'] ?? ''));
         self::assertSame('partial', (string) ($meta['reviewQueue'][0]['hcu005Status'] ?? ''));
         self::assertSame('HCU-005 parcial', (string) ($meta['reviewQueue'][0]['hcu005Label'] ?? ''));
+        self::assertSame('ready_to_issue', (string) ($meta['reviewQueue'][0]['hcu007Status'] ?? ''));
+        self::assertSame('HCU-007 lista para emitir', (string) ($meta['reviewQueue'][0]['hcu007Label'] ?? ''));
         self::assertSame('draft', (string) ($meta['reviewQueue'][0]['hcu024Status'] ?? ''));
         self::assertSame('HCU-024 borrador', (string) ($meta['reviewQueue'][0]['hcu024Label'] ?? ''));
         self::assertSame(1, (int) ($meta['reviewQueue'][0]['pendingCopyRequests'] ?? -1));

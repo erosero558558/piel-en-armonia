@@ -28,7 +28,7 @@ Dejar trazabilidad directa entre fuente oficial MSP, decision de producto y arte
 Lo que queda abierto ya no es la fuente oficial, sino la implementacion o parametrizacion:
 
 - paridad documental completa de `HCU-form.001`, `HCU-form.005` y `HCU-form.024`;
-- implementacion de `HCU-form.007`, `HCU-form.010A` y `HCU-form.012A`;
+- emision trazable de `HCU-form.007` ya cubierta de forma parcial; la recepcion/informe y las ordenes `HCU-form.010A` y `HCU-form.012A` siguen pendientes;
 - parametrizacion exacta de conservacion/eliminacion por tipologia de unidad;
 - catalogo hospitalario y de especialidades fuera del consultorio V1.
 
@@ -47,7 +47,7 @@ Lo que queda abierto ya no es la fuente oficial, sino la implementacion o parame
 | Trazabilidad de acceso/uso | A.M. 5216-A + Manual 0457 | toda accion relevante debe dejar huella | `accessAudit`, `DisclosureLog`, `copyRequests` | Cubierto |
 | HCU-form.001 admision | Instructivo MSP octubre 2020 | apertura del expediente y del episodio sobre base HCU | `PatientRecord/HCU`, apertura de episodio | Parcial |
 | HCU-form.005 evolucion y prescripciones | Instructivo MSP octubre 2020 | la nota final y la receta salen del mismo cockpit | `documents.finalNote`, `documents.prescription` | Parcial |
-| HCU-form.007 interconsulta | Instructivo MSP octubre 2020 | la interconsulta no se modela como chat; queda pendiente como documento/accion formal | backlog HCE v2 | Pendiente |
+| HCU-form.007 interconsulta | Instructivo MSP octubre 2020 | la interconsulta no se modela como chat; se emite como documento formal sin esperar aun informe del consultado | `interconsultations[]`, `activeInterconsultation`, `documents.interconsultForms[]`, `legalReadiness.hcu007Status` | Parcial: emision/cancelacion trazable; recepcion e informe siguen diferidos |
 | HCU-form.010A solicitud de laboratorio | Instructivo MSP octubre 2020 | solicitud formal de examenes cuando aplique | backlog ordenes diagnosticas | Pendiente |
 | HCU-form.012A solicitud de imagenologia | Instructivo MSP octubre 2020 | solicitud formal de imagenologia cuando aplique | backlog ordenes diagnosticas | Pendiente |
 | Consentimiento como proceso | A.M. 5316 | campos estructurados, no checkbox aislado | `draft.consent`, `consent` | Cubierto |

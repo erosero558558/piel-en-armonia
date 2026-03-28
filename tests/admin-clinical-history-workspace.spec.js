@@ -169,6 +169,123 @@ function buildHcu024StatusFixture(status) {
     }
 }
 
+function buildHcu007StatusFixture(status) {
+    switch (status) {
+        case 'issued':
+            return {
+                status: 'issued',
+                label: 'HCU-007 emitida',
+                summary:
+                    'La interconsulta requerida ya fue emitida sin esperar respuesta del consultado.',
+            };
+        case 'ready_to_issue':
+            return {
+                status: 'ready_to_issue',
+                label: 'HCU-007 lista para emitir',
+                summary:
+                    'La interconsulta ya cubre los campos mínimos del MSP y está lista para emitirse.',
+            };
+        case 'cancelled':
+            return {
+                status: 'cancelled',
+                label: 'HCU-007 cancelada',
+                summary:
+                    'La interconsulta del episodio fue cancelada y no bloquea el cierre actual.',
+            };
+        case 'incomplete':
+            return {
+                status: 'incomplete',
+                label: 'HCU-007 incompleta',
+                summary:
+                    'Existe una interconsulta requerida con campos clínicos todavía incompletos.',
+            };
+        case 'draft':
+            return {
+                status: 'draft',
+                label: 'HCU-007 borrador',
+                summary:
+                    'Existe una interconsulta en borrador que aún no se ha emitido.',
+            };
+        default:
+            return {
+                status: 'not_applicable',
+                label: 'HCU-007 no aplica',
+                summary:
+                    'No hay interconsulta formal exigible para este episodio.',
+            };
+    }
+}
+
+function buildInterconsultationFixture(
+    patientName,
+    sessionId,
+    admission001,
+    hcu005,
+    overrides = {}
+) {
+    return {
+        interconsultId:
+            overrides.interconsultId || `interconsult-${sessionId}-001`,
+        status: overrides.status || 'draft',
+        requiredForCurrentPlan:
+            overrides.requiredForCurrentPlan === true,
+        priority: overrides.priority || 'routine',
+        requestedAt: overrides.requestedAt || '2026-03-15T09:12:00-05:00',
+        requestingEstablishment:
+            overrides.requestingEstablishment || 'Piel Armonía',
+        requestingService:
+            overrides.requestingService || 'Dermatología ambulatoria',
+        destinationEstablishment: overrides.destinationEstablishment || '',
+        destinationService: overrides.destinationService || '',
+        consultedProfessionalName:
+            overrides.consultedProfessionalName || '',
+        patientName,
+        patientDocumentNumber:
+            overrides.patientDocumentNumber ||
+            admission001.identity.documentNumber,
+        patientRecordId: overrides.patientRecordId || `hcu-${sessionId}`,
+        patientAgeYears:
+            overrides.patientAgeYears || admission001.demographics.ageYears,
+        patientSexAtBirth:
+            overrides.patientSexAtBirth ||
+            admission001.demographics.sexAtBirth,
+        clinicalPicture:
+            overrides.clinicalPicture || hcu005.evolutionNote || '',
+        requestReason:
+            overrides.requestReason || 'Valoración complementaria especializada.',
+        diagnoses: Array.isArray(overrides.diagnoses)
+            ? overrides.diagnoses
+            : [
+                  {
+                      type: 'pre',
+                      label:
+                          overrides.diagnosisLabel ||
+                          hcu005.diagnosticImpression ||
+                          'Diagnóstico en evaluación',
+                      cie10: overrides.diagnosisCie10 || 'L71.9',
+                  },
+              ],
+        performedDiagnosticsSummary:
+            overrides.performedDiagnosticsSummary ||
+            'Evaluación clínica y dermatoscópica ambulatoria.',
+        therapeuticMeasuresDone:
+            overrides.therapeuticMeasuresDone ||
+            hcu005.therapeuticPlan ||
+            hcu005.careIndications ||
+            '',
+        questionForConsultant:
+            overrides.questionForConsultant ||
+            'Solicito criterio complementario de especialidad.',
+        issuedBy: overrides.issuedBy || 'Dra. Laura Mena',
+        issuedAt: overrides.issuedAt || '',
+        cancelledAt: overrides.cancelledAt || '',
+        cancelReason: overrides.cancelReason || '',
+        history: Array.isArray(overrides.history) ? overrides.history : [],
+        createdAt: overrides.createdAt || '2026-03-15T09:12:00-05:00',
+        updatedAt: overrides.updatedAt || '2026-03-15T09:12:00-05:00',
+    };
+}
+
 function buildConsentPacketFixture(
     patientName,
     sessionId,
@@ -336,6 +453,8 @@ function buildClinicalRecordPayload({
     consent = {},
     consentPackets = [],
     activeConsentPacketId = '',
+    interconsultations = [],
+    activeInterconsultationId = '',
     copyRequests = [],
     disclosureLog = [],
     accessAudit = [],
@@ -429,6 +548,31 @@ function buildClinicalRecordPayload({
                 ]
               : [],
     };
+    const normalizedInterconsultations = Array.isArray(interconsultations)
+        ? interconsultations
+        : [];
+    const normalizedActiveInterconsultationId =
+        activeInterconsultationId ||
+        normalizedInterconsultations[0]?.interconsultId ||
+        '';
+    const normalizedActiveInterconsultation =
+        normalizedInterconsultations.find(
+            (item) =>
+                item.interconsultId === normalizedActiveInterconsultationId
+        ) || null;
+    const normalizedInterconsultForms = Array.isArray(documents.interconsultForms)
+        ? documents.interconsultForms
+        : normalizedInterconsultations.filter((item) =>
+              ['issued', 'cancelled'].includes(item.status)
+          );
+    const normalizedHcu007Status =
+        legalReadiness.hcu007Status ||
+        buildHcu007StatusFixture(
+            normalizedActiveInterconsultation?.status ||
+                (normalizedInterconsultations.length > 0
+                    ? 'draft'
+                    : 'not_applicable')
+        );
     const prescriptionMedication = normalizedHcu005.prescriptionItems
         .map((item) => item.medication)
         .filter(Boolean)
@@ -695,9 +839,12 @@ function buildClinicalRecordPayload({
                     confidential: true,
                 },
                 consentForms: normalizedConsentForms,
+                interconsultForms: normalizedInterconsultForms,
             },
             consentPackets: normalizedConsentPackets,
             activeConsentPacketId: normalizedActiveConsentPacketId,
+            interconsultations: normalizedInterconsultations,
+            activeInterconsultationId: normalizedActiveInterconsultationId,
             consent: {
                 required: consent.required === true,
                 status:
@@ -851,6 +998,7 @@ function buildClinicalRecordPayload({
             hcu005Status:
                 legalReadiness.hcu005Status?.status ||
                 (legalReadiness.status === 'ready' ? 'complete' : 'partial'),
+            hcu007Status: normalizedHcu007Status.status,
             hcu024Status: normalizedHcu024Status.status,
         },
         documents: {
@@ -900,7 +1048,11 @@ function buildClinicalRecordPayload({
                 confidential: true,
             },
             consentForms: normalizedConsentForms,
+            interconsultForms: normalizedInterconsultForms,
         },
+        interconsultations: normalizedInterconsultations,
+        activeInterconsultationId: normalizedActiveInterconsultationId,
+        activeInterconsultation: normalizedActiveInterconsultation,
         consentPackets: normalizedConsentPackets,
         activeConsentPacketId: normalizedActiveConsentPacketId,
         activeConsentPacket: normalizedActiveConsentPacket,
@@ -1009,6 +1161,7 @@ function buildClinicalRecordPayload({
                         ? 'La evolucion, la impresion y la prescripcion trazable estan completas.'
                         : 'La evolucion o las prescripciones del HCU-005 aun tienen faltantes.',
             },
+            hcu007Status: normalizedHcu007Status,
             hcu024Status: normalizedHcu024Status,
         },
         closureChecklist: {
@@ -1026,6 +1179,7 @@ function buildClinicalRecordPayload({
                         ? 'La evolucion, la impresion y la prescripcion trazable estan completas.'
                         : 'La evolucion o las prescripciones del HCU-005 aun tienen faltantes.',
             },
+            hcu007Status: normalizedHcu007Status,
             hcu024Status: normalizedHcu024Status,
         },
         recordsGovernance: normalizedRecordsGovernance,
@@ -1406,6 +1560,9 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     await expect(
         page.locator('#clinicalHistoryLegalReadinessPanel')
     ).toContainText('HCU-005 parcial');
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-007 no aplica');
     await expect(page.locator('#clinicalHistoryHeaderMeta')).toContainText(
         'cedula 0912345678'
     );
@@ -1417,6 +1574,9 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     ).toContainText('Datos minimos clinicos');
     await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
         'Admisión HCU-form.001/2008'
+    );
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Interconsulta HCU-form.007/2008'
     );
     await expect(page.locator('#clinicalHistoryApproveBtn')).toBeDisabled();
 
@@ -1430,6 +1590,9 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     await expect(
         page.locator('#clinicalHistoryLegalReadinessPanel')
     ).toContainText('HCU-005 completo');
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-007 no aplica');
     await expect(
         page.locator('#clinicalHistoryLegalReadinessPanel')
     ).toContainText('HCU-024 aceptado');
@@ -1462,6 +1625,451 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     ).toContainText('Dra. Laura Mena');
     await expect(page.locator('#clinicalHistoryStatusChip')).toContainText(
         'Aprobada'
+    );
+});
+
+test('interconsulta HCU-007 permite crear, emitir y cancelar documentos del episodio', async ({
+    page,
+}) => {
+    const baseRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu007-001',
+        caseId: 'case-hcu007-001',
+        patientName: 'Paula Vera',
+        clinicianSummary:
+            'Caso con necesidad eventual de interconsulta dermatológica.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La nota actual no exige interconsulta emitida antes del cierre.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolución, la impresión y el plan terapéutico ya están trazados.',
+            },
+            hcu007Status: buildHcu007StatusFixture('not_applicable'),
+            checklist: [
+                {
+                    code: 'hcu007_interconsultation',
+                    status: 'pass',
+                    label: 'HCU-007 interconsulta',
+                    message:
+                        'No hay interconsultas exigibles para este episodio.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: {
+            required: true,
+            status: 'accepted',
+            informedBy: 'Dra. Laura Mena',
+            informedAt: '2026-03-15T09:00:00-05:00',
+            explainedWhat: 'Se explicó el plan terapéutico del episodio.',
+            risksExplained: 'Irritación transitoria',
+            alternativesExplained: 'Observación y ajustes tópicos',
+            capacityAssessment: 'Paciente capaz de decidir',
+            privateCommunicationConfirmed: true,
+            companionShareAuthorized: false,
+            acceptedAt: '2026-03-15T09:05:00-05:00',
+        },
+    });
+
+    const draftInterconsultation = buildInterconsultationFixture(
+        'Paula Vera',
+        'chs-hcu007-001',
+        baseRecord.patientRecord.admission001,
+        baseRecord.draft.clinicianDraft.hcu005,
+        {
+            interconsultId: 'interconsult-hcu007-001',
+            requiredForCurrentPlan: false,
+            destinationEstablishment: '',
+            destinationService: '',
+            consultedProfessionalName: '',
+            requestReason: '',
+            questionForConsultant: '',
+            performedDiagnosticsSummary: '',
+            therapeuticMeasuresDone: '',
+            issuedAt: '',
+            cancelReason: '',
+        }
+    );
+
+    const createdRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu007-001',
+        caseId: 'case-hcu007-001',
+        patientName: 'Paula Vera',
+        clinicianSummary:
+            'Caso con interconsulta en borrador aún no emitida.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La interconsulta existe como borrador, pero aún no forma parte obligatoria del plan.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolución, la impresión y el plan terapéutico ya están trazados.',
+            },
+            hcu007Status: buildHcu007StatusFixture('draft'),
+            checklist: [
+                {
+                    code: 'hcu007_interconsultation',
+                    status: 'pass',
+                    label: 'HCU-007 interconsulta',
+                    message:
+                        'La interconsulta está en borrador, pero no congela el cierre mientras no sea parte obligatoria del plan.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: baseRecord.consent,
+        interconsultations: [draftInterconsultation],
+        activeInterconsultationId: draftInterconsultation.interconsultId,
+    });
+
+    const issuedInterconsultation = buildInterconsultationFixture(
+        'Paula Vera',
+        'chs-hcu007-001',
+        baseRecord.patientRecord.admission001,
+        baseRecord.draft.clinicianDraft.hcu005,
+        {
+            ...draftInterconsultation,
+            status: 'issued',
+            requiredForCurrentPlan: true,
+            destinationEstablishment: 'Hospital dermatológico aliado',
+            destinationService: 'Dermatología clínica',
+            consultedProfessionalName: 'Dr. Rafael Suárez',
+            requestReason:
+                'Solicito valoración complementaria para plan ambulatorio.',
+            questionForConsultant:
+                'Confirmar conducta y prioridad del seguimiento especializado.',
+            performedDiagnosticsSummary:
+                'Evaluación clínica, dermatoscopia y fotografías de control.',
+            therapeuticMeasuresDone:
+                'Metronidazol tópico, fotoprotección y educación del paciente.',
+            issuedAt: '2026-03-15T09:40:00-05:00',
+        }
+    );
+
+    const issuedRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu007-001',
+        caseId: 'case-hcu007-001',
+        patientName: 'Paula Vera',
+        clinicianSummary:
+            'Interconsulta emitida como parte del plan actual.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La interconsulta requerida ya fue emitida y no espera aún respuesta del consultado.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolución, la impresión y el plan terapéutico ya están trazados.',
+            },
+            hcu007Status: buildHcu007StatusFixture('issued'),
+            checklist: [
+                {
+                    code: 'hcu007_interconsultation',
+                    status: 'pass',
+                    label: 'HCU-007 interconsulta',
+                    message:
+                        'La interconsulta marcada como parte del plan actual ya fue emitida.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: baseRecord.consent,
+        interconsultations: [issuedInterconsultation],
+        activeInterconsultationId: issuedInterconsultation.interconsultId,
+        documents: {
+            interconsultForms: [issuedInterconsultation],
+        },
+    });
+
+    const cancelledInterconsultation = buildInterconsultationFixture(
+        'Paula Vera',
+        'chs-hcu007-001',
+        baseRecord.patientRecord.admission001,
+        baseRecord.draft.clinicianDraft.hcu005,
+        {
+            ...issuedInterconsultation,
+            status: 'cancelled',
+            cancelledAt: '2026-03-15T09:48:00-05:00',
+            cancelReason: 'La paciente decidió diferir la valoración externa.',
+        }
+    );
+
+    const cancelledRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu007-001',
+        caseId: 'case-hcu007-001',
+        patientName: 'Paula Vera',
+        clinicianSummary:
+            'Interconsulta cancelada y documentada en el episodio.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La interconsulta fue cancelada y quedó documentada sin bloquear el cierre actual.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolución, la impresión y el plan terapéutico ya están trazados.',
+            },
+            hcu007Status: buildHcu007StatusFixture('cancelled'),
+            checklist: [
+                {
+                    code: 'hcu007_interconsultation',
+                    status: 'pass',
+                    label: 'HCU-007 interconsulta',
+                    message:
+                        'La interconsulta marcada como parte del plan actual fue cancelada.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: baseRecord.consent,
+        interconsultations: [cancelledInterconsultation],
+        activeInterconsultationId: cancelledInterconsultation.interconsultId,
+        documents: {
+            interconsultForms: [issuedInterconsultation, cancelledInterconsultation],
+        },
+    });
+
+    let currentRecord = baseRecord;
+    const actionPayloads = [];
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                        hcu007: {
+                            not_applicable: 0,
+                            draft: 1,
+                            ready_to_issue: 0,
+                            issued: 0,
+                            cancelled: 0,
+                            incomplete: 0,
+                        },
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-hcu007-001',
+                        caseId: 'case-hcu007-001',
+                        patientName: 'Paula Vera',
+                        summary:
+                            'Caso ambulatorio con posibilidad de interconsulta.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: true,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 0,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'El caso está listo y la interconsulta no es requerida todavía.',
+                        hcu001Status: 'complete',
+                        hcu001Label: 'HCU-001 completa',
+                        hcu001Summary:
+                            'La admisión longitudinal ya deja identidad y contacto base defendibles.',
+                        hcu005Status: 'complete',
+                        hcu005Label: 'HCU-005 completo',
+                        hcu005Summary:
+                            'La evolución y el plan terapéutico ya están trazados.',
+                        hcu007Status: 'draft',
+                        hcu007Label: 'HCU-007 borrador',
+                        hcu007Summary:
+                            'Existe una interconsulta en borrador que aún no se ha emitido.',
+                        hcu024Status: 'accepted',
+                        hcu024Label: 'HCU-024 aceptado',
+                        hcu024Summary:
+                            'El consentimiento escrito por procedimiento ya quedó aceptado.',
+                        approvalBlockedReasons: [],
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            payload,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: currentRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'clinical-episode-action' && method === 'POST') {
+                actionPayloads.push(payload);
+
+                if (payload.action === 'create_interconsultation') {
+                    currentRecord = createdRecord;
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: createdRecord,
+                    });
+                    return true;
+                }
+
+                if (payload.action === 'issue_interconsultation') {
+                    currentRecord = issuedRecord;
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: issuedRecord,
+                    });
+                    return true;
+                }
+
+                if (payload.action === 'cancel_interconsultation') {
+                    currentRecord = cancelledRecord;
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: cancelledRecord,
+                    });
+                    return true;
+                }
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.keyboard.press('Control+K');
+    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
+    await page.keyboard.press('Enter');
+
+    await expect(
+        page.locator('#clinicalHistoryDraftForm')
+    ).toContainText('Interconsulta HCU-form.007/2008');
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-007 no aplica');
+
+    await page
+        .locator('[data-clinical-review-action="create-interconsultation"]')
+        .click();
+
+    expect(actionPayloads[0]).toMatchObject({
+        action: 'create_interconsultation',
+        sessionId: 'chs-hcu007-001',
+    });
+
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-007 borrador');
+
+    await page
+        .locator('#interconsult_destination_establishment')
+        .fill('Hospital dermatológico aliado');
+    await page
+        .locator('#interconsult_destination_service')
+        .fill('Dermatología clínica');
+    await page
+        .locator('#interconsult_consulted_professional_name')
+        .fill('Dr. Rafael Suárez');
+    await page
+        .locator('#interconsult_request_reason')
+        .fill('Solicito valoración complementaria para plan ambulatorio.');
+    await page
+        .locator('#interconsult_question_for_consultant')
+        .fill(
+            'Confirmar conducta y prioridad del seguimiento especializado.'
+        );
+    await page
+        .locator('#interconsult_performed_diagnostics_summary')
+        .fill('Evaluación clínica, dermatoscopia y fotografías de control.');
+    await page
+        .locator('#interconsult_therapeutic_measures_done')
+        .fill(
+            'Metronidazol tópico, fotoprotección y educación del paciente.'
+        );
+    await page
+        .locator('#interconsult_required_for_current_plan')
+        .check();
+    await page
+        .locator('[data-clinical-review-action="issue-current-interconsultation"]')
+        .click();
+
+    expect(actionPayloads[1]).toMatchObject({
+        action: 'issue_interconsultation',
+        sessionId: 'chs-hcu007-001',
+        interconsultId: 'interconsult-hcu007-001',
+        activeInterconsultationId: 'interconsult-hcu007-001',
+        interconsultations: [
+            expect.objectContaining({
+                interconsultId: 'interconsult-hcu007-001',
+                requiredForCurrentPlan: true,
+                destinationEstablishment: 'Hospital dermatológico aliado',
+                destinationService: 'Dermatología clínica',
+                consultedProfessionalName: 'Dr. Rafael Suárez',
+            }),
+        ],
+    });
+
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-007 emitida');
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Snapshots documentales HCU-007 emitidos o cancelados'
+    );
+
+    await page
+        .locator('#interconsult_cancel_reason')
+        .fill('La paciente decidió diferir la valoración externa.');
+    await page
+        .locator('[data-clinical-review-action="cancel-current-interconsultation"]')
+        .click();
+
+    expect(actionPayloads[2]).toMatchObject({
+        action: 'cancel_interconsultation',
+        sessionId: 'chs-hcu007-001',
+        interconsultId: 'interconsult-hcu007-001',
+        cancelReason: 'La paciente decidió diferir la valoración externa.',
+    });
+
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-007 cancelada');
+    await expect(page.locator('#interconsult_cancel_reason')).toHaveValue(
+        'La paciente decidió diferir la valoración externa.'
     );
 });
 

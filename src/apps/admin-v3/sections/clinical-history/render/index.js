@@ -270,6 +270,59 @@ function emptyConsentFormSnapshot() {
     };
 }
 
+function emptyInterconsultationDiagnosis(type = 'pre') {
+    return {
+        type,
+        label: '',
+        cie10: '',
+    };
+}
+
+function emptyInterconsultation() {
+    return {
+        interconsultId: '',
+        status: 'draft',
+        requiredForCurrentPlan: false,
+        priority: 'normal',
+        requestedAt: '',
+        requestingEstablishment: '',
+        requestingService: '',
+        destinationEstablishment: '',
+        destinationService: '',
+        consultedProfessionalName: '',
+        patientName: '',
+        patientDocumentNumber: '',
+        patientRecordId: '',
+        patientAgeYears: null,
+        patientSexAtBirth: '',
+        clinicalPicture: '',
+        requestReason: '',
+        diagnoses: [
+            emptyInterconsultationDiagnosis('pre'),
+            emptyInterconsultationDiagnosis('def'),
+        ],
+        performedDiagnosticsSummary: '',
+        therapeuticMeasuresDone: '',
+        questionForConsultant: '',
+        issuedBy: '',
+        issuedAt: '',
+        cancelledAt: '',
+        cancelReason: '',
+        history: [],
+        createdAt: '',
+        updatedAt: '',
+    };
+}
+
+function emptyInterconsultFormSnapshot() {
+    return {
+        snapshotId: '',
+        finalizedAt: '',
+        snapshotAt: '',
+        ...emptyInterconsultation(),
+    };
+}
+
 function emptyAdmission001() {
     return {
         identity: {
@@ -412,8 +465,11 @@ function emptyDraft() {
                 signedAt: '',
                 confidential: true,
             },
+            interconsultForms: [],
             consentForms: [],
         },
+        interconsultations: [],
+        activeInterconsultationId: '',
         consentPackets: [],
         activeConsentPacketId: '',
         consent: {
@@ -482,6 +538,9 @@ function emptyReview() {
         activeEpisode: {},
         encounter: {},
         documents: cloneValue(emptyDraft().documents),
+        interconsultations: [],
+        activeInterconsultationId: '',
+        activeInterconsultation: emptyInterconsultation(),
         consentPackets: [],
         activeConsentPacketId: '',
         activeConsentPacket: emptyConsentPacket(),
@@ -497,6 +556,7 @@ function emptyReview() {
             blockingReasons: [],
             hcu001Status: hcu001StatusMeta('missing'),
             hcu005Status: hcu005StatusMeta('missing'),
+            hcu007Status: hcu007StatusMeta('not_applicable'),
             hcu024Status: hcu024StatusMeta('not_applicable'),
         },
         recordsGovernance: {},
@@ -1054,6 +1114,274 @@ function hcu005StatusMeta(status) {
     }
 }
 
+function normalizeInterconsultationDiagnosis(diagnosis, fallbackType = 'pre') {
+    const source = diagnosis && typeof diagnosis === 'object' ? diagnosis : {};
+    const type = normalizeString(source.type || fallbackType);
+    return {
+        type: ['pre', 'def'].includes(type) ? type : fallbackType,
+        label: normalizeString(source.label),
+        cie10: normalizeString(source.cie10),
+    };
+}
+
+function normalizeInterconsultationDiagnoses(items) {
+    const normalized = normalizeList(items).map((item, index) =>
+        normalizeInterconsultationDiagnosis(
+            item,
+            index === 1 ? 'def' : 'pre'
+        )
+    );
+    if (normalized.length === 0) {
+        return [
+            emptyInterconsultationDiagnosis('pre'),
+            emptyInterconsultationDiagnosis('def'),
+        ];
+    }
+    if (!normalized.some((item) => item.type === 'pre')) {
+        normalized.unshift(emptyInterconsultationDiagnosis('pre'));
+    }
+    if (!normalized.some((item) => item.type === 'def')) {
+        normalized.push(emptyInterconsultationDiagnosis('def'));
+    }
+    return normalized;
+}
+
+function normalizeInterconsultation(interconsultation, fallback = {}) {
+    const defaults = emptyInterconsultation();
+    const safeSource =
+        interconsultation && typeof interconsultation === 'object'
+            ? interconsultation
+            : {};
+    const safeFallback =
+        fallback && typeof fallback === 'object' ? fallback : {};
+
+    return {
+        ...defaults,
+        ...safeFallback,
+        ...safeSource,
+        interconsultId: normalizeString(
+            safeSource.interconsultId ?? safeFallback.interconsultId
+        ),
+        status:
+            normalizeString(safeSource.status ?? safeFallback.status) ||
+            defaults.status,
+        requiredForCurrentPlan:
+            safeSource.requiredForCurrentPlan === true ||
+            (safeSource.requiredForCurrentPlan === undefined &&
+                safeFallback.requiredForCurrentPlan === true),
+        priority:
+            normalizeString(safeSource.priority ?? safeFallback.priority) ||
+            defaults.priority,
+        requestedAt: normalizeString(
+            safeSource.requestedAt ?? safeFallback.requestedAt
+        ),
+        requestingEstablishment: normalizeString(
+            safeSource.requestingEstablishment ??
+                safeFallback.requestingEstablishment
+        ),
+        requestingService: normalizeString(
+            safeSource.requestingService ?? safeFallback.requestingService
+        ),
+        destinationEstablishment: normalizeString(
+            safeSource.destinationEstablishment ??
+                safeFallback.destinationEstablishment
+        ),
+        destinationService: normalizeString(
+            safeSource.destinationService ?? safeFallback.destinationService
+        ),
+        consultedProfessionalName: normalizeString(
+            safeSource.consultedProfessionalName ??
+                safeFallback.consultedProfessionalName
+        ),
+        patientName: normalizeString(
+            safeSource.patientName ?? safeFallback.patientName
+        ),
+        patientDocumentNumber: normalizeString(
+            safeSource.patientDocumentNumber ??
+                safeFallback.patientDocumentNumber
+        ),
+        patientRecordId: normalizeString(
+            safeSource.patientRecordId ?? safeFallback.patientRecordId
+        ),
+        patientAgeYears: normalizeNullableInt(
+            safeSource.patientAgeYears ?? safeFallback.patientAgeYears
+        ),
+        patientSexAtBirth: normalizeString(
+            safeSource.patientSexAtBirth ?? safeFallback.patientSexAtBirth
+        ),
+        clinicalPicture: normalizeString(
+            safeSource.clinicalPicture ?? safeFallback.clinicalPicture
+        ),
+        requestReason: normalizeString(
+            safeSource.requestReason ?? safeFallback.requestReason
+        ),
+        diagnoses: normalizeInterconsultationDiagnoses(
+            safeSource.diagnoses ?? safeFallback.diagnoses
+        ),
+        performedDiagnosticsSummary: normalizeString(
+            safeSource.performedDiagnosticsSummary ??
+                safeFallback.performedDiagnosticsSummary
+        ),
+        therapeuticMeasuresDone: normalizeString(
+            safeSource.therapeuticMeasuresDone ??
+                safeFallback.therapeuticMeasuresDone
+        ),
+        questionForConsultant: normalizeString(
+            safeSource.questionForConsultant ??
+                safeFallback.questionForConsultant
+        ),
+        issuedBy: normalizeString(safeSource.issuedBy ?? safeFallback.issuedBy),
+        issuedAt: normalizeString(safeSource.issuedAt ?? safeFallback.issuedAt),
+        cancelledAt: normalizeString(
+            safeSource.cancelledAt ?? safeFallback.cancelledAt
+        ),
+        cancelReason: normalizeString(
+            safeSource.cancelReason ?? safeFallback.cancelReason
+        ),
+        history: normalizeList(safeSource.history ?? safeFallback.history),
+        createdAt: normalizeString(
+            safeSource.createdAt ?? safeFallback.createdAt
+        ),
+        updatedAt: normalizeString(
+            safeSource.updatedAt ?? safeFallback.updatedAt
+        ),
+    };
+}
+
+function normalizeInterconsultations(items) {
+    return normalizeList(items).map((item) => normalizeInterconsultation(item));
+}
+
+function normalizeInterconsultFormSnapshot(snapshot) {
+    const source = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    return {
+        ...emptyInterconsultFormSnapshot(),
+        ...normalizeInterconsultation(source),
+        snapshotId: normalizeString(source.snapshotId),
+        finalizedAt: normalizeString(source.finalizedAt),
+        snapshotAt: normalizeString(source.snapshotAt),
+    };
+}
+
+function normalizeInterconsultFormSnapshots(items) {
+    return normalizeList(items).map(normalizeInterconsultFormSnapshot);
+}
+
+function evaluateInterconsultation(interconsultation) {
+    const normalized = normalizeInterconsultation(interconsultation);
+    const diagnoses = normalizeInterconsultationDiagnoses(normalized.diagnoses);
+    const missing = [];
+    if (!normalizeString(normalized.destinationEstablishment)) {
+        missing.push('destination_establishment');
+    }
+    if (!normalizeString(normalized.destinationService)) {
+        missing.push('destination_service');
+    }
+    if (
+        !normalizeString(normalized.requestReason) &&
+        !normalizeString(normalized.questionForConsultant)
+    ) {
+        missing.push('request_reason');
+    }
+    if (!normalizeString(normalized.clinicalPicture)) {
+        missing.push('clinical_picture');
+    }
+    if (!diagnoses.some((item) => normalizeString(item.label))) {
+        missing.push('diagnosis');
+    }
+    if (!normalizeString(normalized.performedDiagnosticsSummary)) {
+        missing.push('performed_diagnostics_summary');
+    }
+    if (!normalizeString(normalized.therapeuticMeasuresDone)) {
+        missing.push('therapeutic_measures_done');
+    }
+    if (!normalizeString(normalized.issuedBy)) {
+        missing.push('issued_by');
+    }
+    const readyToIssue = missing.length === 0;
+    const hasAnyContent =
+        normalizeString(normalized.destinationEstablishment) ||
+        normalizeString(normalized.destinationService) ||
+        normalizeString(normalized.consultedProfessionalName) ||
+        normalizeString(normalized.requestReason) ||
+        normalizeString(normalized.questionForConsultant) ||
+        normalizeString(normalized.clinicalPicture) ||
+        normalizeString(normalized.performedDiagnosticsSummary) ||
+        normalizeString(normalized.therapeuticMeasuresDone) ||
+        diagnoses.some(
+            (item) => normalizeString(item.label) || normalizeString(item.cie10)
+        );
+
+    let status = 'draft';
+    if (normalizeString(normalized.status) === 'issued') {
+        status =
+            readyToIssue && normalizeString(normalized.issuedAt)
+                ? 'issued'
+                : 'incomplete';
+    } else if (normalizeString(normalized.status) === 'cancelled') {
+        status = normalizeString(normalized.cancelledAt)
+            ? 'cancelled'
+            : 'incomplete';
+    } else if (readyToIssue) {
+        status = 'ready_to_issue';
+    } else if (hasAnyContent) {
+        status = 'incomplete';
+    }
+
+    return {
+        status,
+        readyToIssue,
+        missingFields: Array.from(new Set(missing)),
+    };
+}
+
+function hcu007StatusMeta(status) {
+    switch (normalizeString(status)) {
+        case 'issued':
+            return {
+                status: 'issued',
+                label: 'HCU-007 emitida',
+                summary:
+                    'La interconsulta requerida ya fue emitida sin esperar respuesta del consultado.',
+            };
+        case 'ready_to_issue':
+            return {
+                status: 'ready_to_issue',
+                label: 'HCU-007 lista para emitir',
+                summary:
+                    'La interconsulta ya cubre los campos mínimos para emisión.',
+            };
+        case 'cancelled':
+            return {
+                status: 'cancelled',
+                label: 'HCU-007 cancelada',
+                summary:
+                    'La interconsulta del episodio fue cancelada y no bloquea el cierre actual.',
+            };
+        case 'incomplete':
+            return {
+                status: 'incomplete',
+                label: 'HCU-007 incompleta',
+                summary:
+                    'Existe una interconsulta con campos clínicos todavía incompletos.',
+            };
+        case 'draft':
+            return {
+                status: 'draft',
+                label: 'HCU-007 borrador',
+                summary:
+                    'Existe una interconsulta en borrador aún no emitida.',
+            };
+        default:
+            return {
+                status: 'not_applicable',
+                label: 'HCU-007 no aplica',
+                summary:
+                    'No hay interconsulta formal exigible para este episodio.',
+            };
+    }
+}
+
 function consentPacketTemplate(templateKey) {
     const normalizedTemplate = normalizeString(templateKey) || 'generic';
     const base = {
@@ -1569,6 +1897,80 @@ function resolveClinicProfileDisplay() {
     };
 }
 
+function deriveInterconsultationContext(
+    interconsultation,
+    draft,
+    fallbackPatient = {}
+) {
+    const normalized = normalizeInterconsultation(interconsultation);
+    const admission = normalizeAdmission001(
+        draft?.admission001,
+        fallbackPatient,
+        draft?.intake
+    );
+    const patient = normalizePatient(fallbackPatient);
+    const clinic = resolveClinicProfileDisplay();
+    const hcu005 = normalizeHcu005(draft?.clinicianDraft?.hcu005);
+    const cie10List = normalizeStringList(draft?.clinicianDraft?.cie10Sugeridos);
+    const diagnoses = normalizeInterconsultationDiagnoses(
+        normalized.diagnoses
+    ).map((item, index) =>
+        normalizeInterconsultationDiagnosis(
+            {
+                ...item,
+                label:
+                    item.label ||
+                    (index === 0
+                        ? normalizeString(hcu005.diagnosticImpression)
+                        : ''),
+                cie10:
+                    item.cie10 || (index === 0 ? normalizeString(cie10List[0]) : ''),
+            },
+            index === 1 ? 'def' : 'pre'
+        )
+    );
+
+    return normalizeInterconsultation({
+        ...normalized,
+        patientName:
+            normalized.patientName ||
+            buildAdmissionLegalName(admission, patient),
+        patientDocumentNumber:
+            normalized.patientDocumentNumber ||
+            normalizeString(admission.identity.documentNumber),
+        patientRecordId:
+            normalized.patientRecordId || normalizeString(draft.patientRecordId),
+        patientAgeYears:
+            normalized.patientAgeYears ?? admission.demographics.ageYears,
+        patientSexAtBirth:
+            normalized.patientSexAtBirth ||
+            normalizeString(admission.demographics.sexAtBirth),
+        requestedAt:
+            normalized.requestedAt ||
+            normalizeString(
+                draft.updatedAt ||
+                    draft.createdAt ||
+                    admission?.admissionMeta?.admissionDate
+            ),
+        requestingEstablishment:
+            normalized.requestingEstablishment || clinic.establishmentLabel,
+        requestingService:
+            normalized.requestingService || clinic.serviceLabel,
+        clinicalPicture:
+            normalized.clinicalPicture ||
+            normalizeString(hcu005.evolutionNote || draft?.intake?.enfermedadActual),
+        requestReason:
+            normalized.requestReason ||
+            normalizeString(draft?.intake?.motivoConsulta),
+        diagnoses,
+        therapeuticMeasuresDone:
+            normalized.therapeuticMeasuresDone ||
+            [hcu005.therapeuticPlan, hcu005.careIndications]
+                .filter(Boolean)
+                .join('\n'),
+    });
+}
+
 function deriveConsentPacketContext(packet, draft, fallbackPatient = {}) {
     const normalized = normalizeConsentPacket(packet);
     const admission = normalizeAdmission001(
@@ -1653,6 +2055,9 @@ function normalizeDocuments(documents) {
     const content = renderHcu005Content(hcu005);
     const medication = renderPrescriptionMedicationMirror(prescriptionItems);
     const directions = renderPrescriptionDirectionsMirror(prescriptionItems);
+    const interconsultForms = normalizeInterconsultFormSnapshots(
+        source?.interconsultForms
+    );
     const consentForms = normalizeConsentFormSnapshots(source?.consentForms);
 
     return {
@@ -1706,6 +2111,7 @@ function normalizeDocuments(documents) {
             signedAt: normalizeString(source?.certificate?.signedAt),
             confidential: source?.certificate?.confidential !== false,
         },
+        interconsultForms,
         consentForms,
     };
 }
@@ -1945,6 +2351,7 @@ function normalizeLegalReadiness(readiness) {
         ),
         hcu001Status: hcu001StatusMeta(source?.hcu001Status?.status),
         hcu005Status: hcu005StatusMeta(source?.hcu005Status?.status),
+        hcu007Status: hcu007StatusMeta(source?.hcu007Status?.status),
         hcu024Status: hcu024StatusMeta(source?.hcu024Status?.status),
     };
 }
@@ -2043,6 +2450,12 @@ function normalizeDraftSnapshot(draft) {
                   }
                 : cloneValue(defaults.recordMeta),
         documents: normalizedDocuments,
+        interconsultations: normalizeInterconsultations(
+            source.interconsultations
+        ),
+        activeInterconsultationId: normalizeString(
+            source.activeInterconsultationId
+        ),
         consentPackets: normalizeConsentPackets(source.consentPackets),
         activeConsentPacketId: normalizeString(source.activeConsentPacketId),
         consent: normalizeConsent(source.consent),
@@ -2196,6 +2609,28 @@ function synchronizeDraftClinicalState(draft) {
             ),
         },
     });
+    const interconsultations = normalizeInterconsultations(
+        snapshot.interconsultations
+    ).map((interconsultation) =>
+        deriveInterconsultationContext(
+            interconsultation,
+            {
+                ...snapshot,
+                admission001,
+                clinicianDraft,
+                documents,
+            },
+            normalizePatient({})
+        )
+    );
+    let activeInterconsultationId = normalizeString(
+        snapshot.activeInterconsultationId
+    );
+    if (!activeInterconsultationId && interconsultations.length > 0) {
+        activeInterconsultationId = normalizeString(
+            interconsultations[0].interconsultId
+        );
+    }
     const packets = normalizeConsentPackets(snapshot.consentPackets).map(
         (packet) =>
             deriveConsentPacketContext(packet, snapshot, normalizePatient({}))
@@ -2224,6 +2659,8 @@ function synchronizeDraftClinicalState(draft) {
             datosPaciente: patientFacts,
         },
         documents,
+        interconsultations,
+        activeInterconsultationId,
         consentPackets: packets,
         activeConsentPacketId,
         consent,
@@ -2283,6 +2720,11 @@ function normalizeReviewQueueItem(item) {
         hcu005Status: normalizeString(source.hcu005Status || 'missing'),
         hcu005Label: normalizeString(source.hcu005Label),
         hcu005Summary: normalizeString(source.hcu005Summary),
+        hcu007Status: normalizeString(
+            source.hcu007Status || 'not_applicable'
+        ),
+        hcu007Label: normalizeString(source.hcu007Label),
+        hcu007Summary: normalizeString(source.hcu007Summary),
         hcu024Status: normalizeString(source.hcu024Status || 'not_applicable'),
         hcu024Label: normalizeString(source.hcu024Label),
         hcu024Summary: normalizeString(source.hcu024Summary),
@@ -2359,6 +2801,21 @@ function normalizeReviewPayload(payload) {
             : {};
     review.documents = normalizeDocuments(
         source.documents || review.draft.documents
+    );
+    review.interconsultations = normalizeInterconsultations(
+        source.interconsultations || review.draft.interconsultations
+    );
+    review.activeInterconsultationId = normalizeString(
+        source.activeInterconsultationId || review.draft.activeInterconsultationId
+    );
+    review.activeInterconsultation = normalizeInterconsultation(
+        source.activeInterconsultation ||
+            review.interconsultations.find(
+                (interconsultation) =>
+                    normalizeString(interconsultation.interconsultId) ===
+                    review.activeInterconsultationId
+            ) ||
+            {}
     );
     review.consentPackets = normalizeConsentPackets(
         source.consentPackets || review.draft.consentPackets
@@ -2793,6 +3250,7 @@ function buildSummaryCards(review) {
         .join(' ');
     const hcu001Status = hcu001StatusMeta(readiness.hcu001Status?.status);
     const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
+    const hcu007Status = hcu007StatusMeta(readiness.hcu007Status?.status);
     const hcu024Status = hcu024StatusMeta(readiness.hcu024Status?.status);
     const pendingAiStatus = formatPendingAiStatus(
         review.session.pendingAi?.status || draft.pendingAi?.status
@@ -2849,6 +3307,19 @@ function buildSummaryCards(review) {
                     ? 'success'
                     : hcu005Status.status === 'partial'
                         ? 'warning'
+                      : 'neutral',
+        },
+        {
+            title: 'HCU-007',
+            value: hcu007Status.label,
+            meta: hcu007Status.summary,
+            tone:
+                hcu007Status.status === 'issued'
+                    ? 'success'
+                    : ['ready_to_issue', 'incomplete', 'draft'].includes(
+                            hcu007Status.status
+                        )
+                      ? 'warning'
                       : 'neutral',
         },
         {
@@ -2977,6 +3448,7 @@ function buildLegalReadinessPanel(review) {
     const readiness = normalizeLegalReadiness(review.legalReadiness);
     const hcu001Status = hcu001StatusMeta(readiness.hcu001Status?.status);
     const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
+    const hcu007Status = hcu007StatusMeta(readiness.hcu007Status?.status);
     const hcu024Status = hcu024StatusMeta(readiness.hcu024Status?.status);
     const checklist = normalizeList(readiness.checklist);
 
@@ -3010,6 +3482,9 @@ function buildLegalReadinessPanel(review) {
                     </span>
                     <span class="clinical-history-mini-chip">
                         ${escapeHtml(hcu005Status.label)}
+                    </span>
+                    <span class="clinical-history-mini-chip">
+                        ${escapeHtml(hcu007Status.label)}
                     </span>
                     <span class="clinical-history-mini-chip">
                         ${escapeHtml(hcu024Status.label)}
@@ -3682,6 +4157,7 @@ function buildQueueItemChips(item, status) {
         item.legalReadinessStatus === 'ready' ? 'Lista para aprobar' : '',
         item.hcu001Label || '',
         item.hcu005Label || '',
+        item.hcu007Label || '',
         item.hcu024Label || '',
         formatConfidence(item.confidence),
         queueAlertMeta(item),
@@ -3719,6 +4195,7 @@ function buildQueueItemCard(item, selectedSessionId, loading) {
         item.legalReadinessSummary ||
             item.hcu001Summary ||
             item.hcu005Summary ||
+            item.hcu007Summary ||
             item.summary ||
             queueReasons(item).join(' • ') ||
             'Caso listo para lectura clinica.',
@@ -3958,6 +4435,9 @@ function buildDraftMetaText(slice, review, draft) {
             ? `Ultima actualizacion ${readableTimestamp(draft.updatedAt)}`
             : '',
         hcu001Status.label,
+        hcu007StatusMeta(
+            normalizeLegalReadiness(review.legalReadiness).hcu007Status?.status
+        ).label,
         hcu024Status.label,
         admissionKindLabel,
     ].filter(Boolean);
@@ -3974,6 +4454,7 @@ function buildDraftSummaryText(review, draft) {
     );
     const hcu001Status = hcu001StatusMeta(readiness.hcu001Status?.status);
     const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
+    const hcu007Status = hcu007StatusMeta(readiness.hcu007Status?.status);
     const hcu024Status = hcu024StatusMeta(readiness.hcu024Status?.status);
     const documentLabel = [
         normalizeString(admission.identity.documentType),
@@ -3988,6 +4469,7 @@ function buildDraftSummaryText(review, draft) {
               documentLabel,
               hcu001Status.label,
               hcu005Status.label,
+              hcu007Status.label,
               hcu024Status.label,
               readiness.label || formatReviewStatus(draft.reviewStatus),
           ]
@@ -4023,6 +4505,9 @@ function buildClinicalHeaderMetaText(review) {
     const hcu024Status = hcu024StatusMeta(
         normalizeLegalReadiness(review.legalReadiness).hcu024Status?.status
     );
+    const hcu007Status = hcu007StatusMeta(
+        normalizeLegalReadiness(review.legalReadiness).hcu007Status?.status
+    );
     const headerMeta = [
         review.session.caseId ? `Caso ${review.session.caseId}` : '',
         review.session.surface || '',
@@ -4034,6 +4519,7 @@ function buildClinicalHeaderMetaText(review) {
         admission.residence.phone ? `Tel. ${admission.residence.phone}` : '',
         formatAdmissionKindLabel(admission.admissionMeta.admissionKind),
         hcu001Status.label,
+        hcu007Status.label,
         hcu024Status.label,
     ]
         .filter(Boolean)
@@ -4055,6 +4541,10 @@ function buildClinicalStatusMetaText(draft, pendingAiStatus, meta) {
     const hcu005Status = hcu005StatusMeta(
         evaluateHcu005(draft.clinicianDraft.hcu005).status
     );
+    const hcu007Status = hcu007StatusMeta(
+        normalizeLegalReadiness(currentReviewSource().legalReadiness).hcu007Status
+            ?.status
+    );
     const hcu024Status = hcu024StatusMeta(
         normalizeLegalReadiness(currentReviewSource().legalReadiness).hcu024Status
             ?.status
@@ -4063,6 +4553,7 @@ function buildClinicalStatusMetaText(draft, pendingAiStatus, meta) {
         pendingAiStatus,
         hcu001Status.label,
         hcu005Status.label,
+        hcu007Status.label,
         hcu024Status.label,
         draft.requiresHumanReview
             ? 'Firma humana requerida'
@@ -4878,6 +5369,341 @@ function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons) {
     );
 }
 
+function buildInterconsultationChip(
+    interconsultation,
+    activeInterconsultationId,
+    disabled
+) {
+    const normalized = normalizeInterconsultation(interconsultation);
+    const status = hcu007StatusMeta(evaluateInterconsultation(normalized).status);
+    const isActive =
+        normalizeString(normalized.interconsultId) ===
+        normalizeString(activeInterconsultationId);
+
+    return `
+        <button
+            type="button"
+            class="clinical-history-workspace-tab${isActive ? ' is-active' : ''}"
+            data-clinical-review-action="select-interconsultation"
+            data-interconsult-id="${escapeHtml(normalized.interconsultId)}"
+            ${disabled ? 'disabled' : ''}
+        >
+            <strong>${escapeHtml(
+                normalized.destinationService ||
+                    normalized.requestReason ||
+                    'Interconsulta'
+            )}</strong>
+            <small>${escapeHtml(status.label)}</small>
+        </button>
+    `;
+}
+
+function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
+    const interconsultations = normalizeInterconsultations(draft.interconsultations);
+    const activeInterconsultationId = normalizeString(
+        draft.activeInterconsultationId
+    );
+    const activeInterconsultation =
+        interconsultations.find(
+            (item) =>
+                normalizeString(item.interconsultId) === activeInterconsultationId
+        ) || null;
+    const hydratedInterconsultation = activeInterconsultation
+        ? deriveInterconsultationContext(
+              activeInterconsultation,
+              draft,
+              review.session.patient
+          )
+        : null;
+    const activeStatus = hcu007StatusMeta(
+        hydratedInterconsultation
+            ? evaluateInterconsultation(hydratedInterconsultation).status
+            : 'not_applicable'
+    );
+    const interconsultForms = normalizeInterconsultFormSnapshots(
+        draft.documents.interconsultForms
+    );
+    const diagnoses = hydratedInterconsultation
+        ? normalizeInterconsultationDiagnoses(hydratedInterconsultation.diagnoses)
+        : normalizeInterconsultationDiagnoses([]);
+    const preDiagnosis =
+        diagnoses.find((item) => item.type === 'pre') ||
+        emptyInterconsultationDiagnosis('pre');
+    const defDiagnosis =
+        diagnoses.find((item) => item.type === 'def') ||
+        emptyInterconsultationDiagnosis('def');
+
+    return buildClinicalHistorySection(
+        'Interconsulta HCU-form.007/2008',
+        'Documento formal de interconsulta emitida, sin esperar todavía el informe del consultado.',
+        `
+                <input
+                    type="hidden"
+                    id="interconsult_active_id"
+                    name="interconsult_active_id"
+                    value="${escapeHtml(activeInterconsultationId)}"
+                />
+                <div class="clinical-history-summary-grid">
+                    ${summaryStatCard(
+                        'HCU-007',
+                        activeStatus.label,
+                        activeStatus.summary,
+                        activeStatus.status === 'issued'
+                            ? 'success'
+                            : ['ready_to_issue', 'incomplete', 'draft'].includes(
+                                    activeStatus.status
+                                )
+                              ? 'warning'
+                              : 'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Paciente / HCU',
+                        hydratedInterconsultation?.patientName ||
+                            buildAdmissionLegalName(
+                                draft.admission001,
+                                review.session.patient
+                            ) ||
+                            'Sin paciente',
+                        [
+                            hydratedInterconsultation?.patientDocumentNumber,
+                            hydratedInterconsultation?.patientRecordId,
+                        ]
+                            .filter(Boolean)
+                            .join(' • ') || 'Sin documento',
+                        'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Solicitante',
+                        hydratedInterconsultation?.requestingService ||
+                            resolveClinicProfileDisplay().serviceLabel,
+                        hydratedInterconsultation?.requestingEstablishment ||
+                            resolveClinicProfileDisplay().establishmentLabel,
+                        'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Snapshots',
+                        String(interconsultForms.length),
+                        interconsultForms.length > 0
+                            ? 'Snapshots documentales HCU-007 emitidos o cancelados'
+                            : 'Todavía no hay snapshots HCU-007 emitidos',
+                        interconsultForms.length > 0 ? 'success' : 'neutral'
+                    )}
+                </div>
+                <div class="toolbar-row clinical-history-actions-row">
+                    <button
+                        type="button"
+                        data-clinical-review-action="create-interconsultation"
+                        ${disabled ? 'disabled' : ''}
+                    >
+                        Nueva interconsulta
+                    </button>
+                    <button
+                        type="button"
+                        data-clinical-review-action="issue-current-interconsultation"
+                        ${disabled || !hydratedInterconsultation ? 'disabled' : ''}
+                    >
+                        Emitir interconsulta
+                    </button>
+                    <button
+                        type="button"
+                        data-clinical-review-action="cancel-current-interconsultation"
+                        ${disabled || !hydratedInterconsultation ? 'disabled' : ''}
+                    >
+                        Cancelar interconsulta
+                    </button>
+                </div>
+                <div class="toolbar-row clinical-history-actions-row">
+                    ${interconsultations
+                        .map((item) =>
+                            buildInterconsultationChip(
+                                item,
+                                activeInterconsultationId,
+                                disabled
+                            )
+                        )
+                        .join('')}
+                </div>
+                ${
+                    !hydratedInterconsultation
+                        ? buildEmptyClinicalCard(
+                              'Sin interconsulta activa',
+                              'Crea una interconsulta del episodio para empezar el HCU-007.'
+                          )
+                        : `
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'interconsult_requested_at',
+                                    'Fecha/hora',
+                                    hydratedInterconsultation.requestedAt,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'interconsult_priority',
+                                    'Prioridad',
+                                    hydratedInterconsultation.priority,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'interconsult_issued_by',
+                                    'Profesional solicitante',
+                                    hydratedInterconsultation.issuedBy,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${checkboxField(
+                                'interconsult_required_for_current_plan',
+                                'La interconsulta es parte del plan actual',
+                                hydratedInterconsultation.requiredForCurrentPlan ===
+                                    true,
+                                {
+                                    hint: 'Si está marcada, la aprobación final exige emitirla o cancelarla.',
+                                    disabled,
+                                }
+                            )}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'interconsult_patient_name',
+                                    'Paciente',
+                                    hydratedInterconsultation.patientName,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'interconsult_patient_record',
+                                    'Documento / HCU',
+                                    [
+                                        hydratedInterconsultation.patientDocumentNumber,
+                                        hydratedInterconsultation.patientRecordId,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' '),
+                                    { disabled: true }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'interconsult_requesting_establishment',
+                                    'Establecimiento solicitante',
+                                    hydratedInterconsultation.requestingEstablishment,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'interconsult_requesting_service',
+                                    'Servicio solicitante',
+                                    hydratedInterconsultation.requestingService,
+                                    { disabled: true }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'interconsult_destination_establishment',
+                                    'Establecimiento destino',
+                                    hydratedInterconsultation.destinationEstablishment,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'interconsult_destination_service',
+                                    'Servicio destino',
+                                    hydratedInterconsultation.destinationService,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'interconsult_consulted_professional_name',
+                                    'Profesional consultado',
+                                    hydratedInterconsultation.consultedProfessionalName,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                textareaField(
+                                    'interconsult_request_reason',
+                                    'Motivo de interconsulta',
+                                    hydratedInterconsultation.requestReason,
+                                    { rows: 4, disabled }
+                                ),
+                                textareaField(
+                                    'interconsult_question_for_consultant',
+                                    'Pregunta para el consultado',
+                                    hydratedInterconsultation.questionForConsultant,
+                                    { rows: 4, disabled }
+                                ),
+                            ])}
+                            ${textareaField(
+                                'interconsult_clinical_picture',
+                                'Cuadro clínico actual',
+                                hydratedInterconsultation.clinicalPicture,
+                                {
+                                    rows: 5,
+                                    placeholder:
+                                        'Resumen clínico actual del episodio que justifica la interconsulta.',
+                                    disabled,
+                                }
+                            )}
+                            ${buildClinicalHistoryInlineGrid([
+                                textareaField(
+                                    'interconsult_performed_diagnostics_summary',
+                                    'Exámenes y procedimientos diagnósticos relevantes',
+                                    hydratedInterconsultation.performedDiagnosticsSummary,
+                                    { rows: 4, disabled }
+                                ),
+                                textareaField(
+                                    'interconsult_therapeutic_measures_done',
+                                    'Medidas terapéuticas y educativas realizadas',
+                                    hydratedInterconsultation.therapeuticMeasuresDone,
+                                    { rows: 4, disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'interconsult_diagnosis_pre_label',
+                                    'Diagnóstico PRE',
+                                    preDiagnosis.label,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'interconsult_diagnosis_pre_cie10',
+                                    'CIE-10 PRE',
+                                    preDiagnosis.cie10,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'interconsult_diagnosis_def_label',
+                                    'Diagnóstico DEF',
+                                    defDiagnosis.label,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'interconsult_diagnosis_def_cie10',
+                                    'CIE-10 DEF',
+                                    defDiagnosis.cie10,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'interconsult_issued_at',
+                                    'Emitida el',
+                                    hydratedInterconsultation.issuedAt,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'interconsult_cancelled_at',
+                                    'Cancelada el',
+                                    hydratedInterconsultation.cancelledAt,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'interconsult_cancel_reason',
+                                    'Razón de cancelación',
+                                    hydratedInterconsultation.cancelReason,
+                                    { disabled }
+                                ),
+                            ])}
+                        `
+                }
+            `
+    );
+}
+
 function buildConsentPacketChip(packet, activePacketId, disabled) {
     const normalized = normalizeConsentPacket(packet);
     const status = hcu024StatusMeta(evaluateConsentPacket(normalized).status);
@@ -5489,6 +6315,7 @@ function buildDraftForm(review, draft, saving) {
             ${buildClinicalHistoryAdmissionSection(review, draft, disabled)}
             ${buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue)}
             ${buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons)}
+            ${buildClinicalHistoryInterconsultSection(review, draft, disabled)}
             ${buildClinicalHistoryConsentSection(review, draft, disabled)}
             ${buildClinicalHistoryDocumentsSection(draft, disabled)}
         </div>
@@ -5718,6 +6545,86 @@ function serializeDraftForm(form, baseDraft) {
             )
             .filter(prescriptionItemStarted),
     });
+
+    const interconsultations = normalizeInterconsultations(
+        snapshot.interconsultations
+    );
+    let activeInterconsultationId =
+        normalizeString(readValue('interconsult_active_id')) ||
+        normalizeString(snapshot.activeInterconsultationId);
+    if (!activeInterconsultationId && interconsultations.length > 0) {
+        activeInterconsultationId = normalizeString(
+            interconsultations[0].interconsultId
+        );
+    }
+    const activeInterconsultationIndex = interconsultations.findIndex(
+        (interconsultation) =>
+            normalizeString(interconsultation.interconsultId) ===
+            activeInterconsultationId
+    );
+    if (activeInterconsultationIndex >= 0) {
+        const baseInterconsultation = deriveInterconsultationContext(
+            interconsultations[activeInterconsultationIndex],
+            snapshot
+        );
+        interconsultations[activeInterconsultationIndex] =
+            normalizeInterconsultation({
+                ...baseInterconsultation,
+                requestedAt:
+                    readValue('interconsult_requested_at') ||
+                    baseInterconsultation.requestedAt,
+                priority:
+                    readValue('interconsult_priority') ||
+                    baseInterconsultation.priority,
+                issuedBy:
+                    readValue('interconsult_issued_by') ||
+                    baseInterconsultation.issuedBy,
+                requiredForCurrentPlan: readChecked(
+                    'interconsult_required_for_current_plan'
+                ),
+                destinationEstablishment: readValue(
+                    'interconsult_destination_establishment'
+                ),
+                destinationService: readValue(
+                    'interconsult_destination_service'
+                ),
+                consultedProfessionalName: readValue(
+                    'interconsult_consulted_professional_name'
+                ),
+                requestReason: readValue('interconsult_request_reason'),
+                questionForConsultant: readValue(
+                    'interconsult_question_for_consultant'
+                ),
+                clinicalPicture: readValue('interconsult_clinical_picture'),
+                performedDiagnosticsSummary: readValue(
+                    'interconsult_performed_diagnostics_summary'
+                ),
+                therapeuticMeasuresDone: readValue(
+                    'interconsult_therapeutic_measures_done'
+                ),
+                diagnoses: [
+                    normalizeInterconsultationDiagnosis({
+                        type: 'pre',
+                        label: readValue('interconsult_diagnosis_pre_label'),
+                        cie10: readValue('interconsult_diagnosis_pre_cie10'),
+                    }),
+                    normalizeInterconsultationDiagnosis({
+                        type: 'def',
+                        label: readValue('interconsult_diagnosis_def_label'),
+                        cie10: readValue('interconsult_diagnosis_def_cie10'),
+                    }),
+                ],
+                issuedAt:
+                    readValue('interconsult_issued_at') ||
+                    baseInterconsultation.issuedAt,
+                cancelledAt:
+                    readValue('interconsult_cancelled_at') ||
+                    baseInterconsultation.cancelledAt,
+                cancelReason: readValue('interconsult_cancel_reason'),
+            });
+    }
+    snapshot.interconsultations = interconsultations;
+    snapshot.activeInterconsultationId = activeInterconsultationId;
 
     const consentPackets = normalizeConsentPackets(snapshot.consentPackets);
     let activeConsentPacketId =
@@ -5979,6 +6886,8 @@ function buildConsentPacketActionPayload(action) {
             admission001: cloneValue(draft.admission001),
         },
         documents: cloneValue(draft.documents),
+        interconsultations: cloneValue(draft.interconsultations),
+        activeInterconsultationId: draft.activeInterconsultationId,
         consentPackets: cloneValue(draft.consentPackets),
         activeConsentPacketId: packetId,
         consent: cloneValue(draft.consent),
@@ -6023,6 +6932,9 @@ async function submitConsentPacketAction(action) {
                 ...currentDraftSource(),
                 ...payload.draft,
                 documents: payload.documents,
+                interconsultations: payload.interconsultations,
+                activeInterconsultationId:
+                    payload.activeInterconsultationId,
                 consentPackets: payload.consentPackets,
                 activeConsentPacketId: payload.activeConsentPacketId,
                 consent: payload.consent,
@@ -6088,6 +7000,161 @@ async function submitConsentPacketAction(action) {
         syncDraftStatusMeta();
         createToast(
             error?.message || 'No se pudo actualizar el consentimiento HCU-024.',
+            'error'
+        );
+        return null;
+    }
+}
+
+function buildInterconsultationActionPayload(action, interconsultId = '') {
+    const review = currentReviewSource();
+    const draft = currentSerializedDraft();
+    const sessionId = normalizeString(
+        review.session.sessionId || draft.sessionId
+    );
+    const resolvedInterconsultId =
+        normalizeString(interconsultId) ||
+        normalizeString(
+            draft.activeInterconsultationId ||
+                draft.interconsultations?.[0]?.interconsultId ||
+                review.activeInterconsultationId
+        );
+
+    const payload = {
+        sessionId,
+        action,
+        interconsultId: resolvedInterconsultId,
+        draft: {
+            intake: cloneValue(draft.intake),
+            clinicianDraft: cloneValue(draft.clinicianDraft),
+            admission001: cloneValue(draft.admission001),
+        },
+        documents: cloneValue(draft.documents),
+        interconsultations: cloneValue(draft.interconsultations),
+        activeInterconsultationId:
+            resolvedInterconsultId || draft.activeInterconsultationId,
+        consentPackets: cloneValue(draft.consentPackets),
+        activeConsentPacketId: draft.activeConsentPacketId,
+        consent: cloneValue(draft.consent),
+        requiresHumanReview: draft.requiresHumanReview === true,
+    };
+
+    if (action === 'cancel_interconsultation') {
+        payload.cancelReason = normalizeString(
+            draft.interconsultations.find(
+                (item) =>
+                    normalizeString(item.interconsultId) ===
+                    resolvedInterconsultId
+            )?.cancelReason
+        );
+    }
+
+    if (action === 'create_interconsultation') {
+        delete payload.interconsultId;
+    }
+
+    return payload;
+}
+
+async function submitInterconsultationAction(action, interconsultId = '') {
+    const sessionId = normalizeString(currentSessionId());
+    if (!sessionId) {
+        createToast(
+            'Selecciona un caso clínico antes de operar la interconsulta HCU-007.',
+            'warning'
+        );
+        return null;
+    }
+
+    const payload = buildInterconsultationActionPayload(action, interconsultId);
+    if (
+        action !== 'create_interconsultation' &&
+        !normalizeString(payload.interconsultId)
+    ) {
+        createToast(
+            'Crea o selecciona una interconsulta antes de continuar.',
+            'warning'
+        );
+        return null;
+    }
+
+    setClinicalHistoryState({
+        saving: true,
+        error: '',
+        draftForm: cloneValue(
+            synchronizeDraftClinicalState({
+                ...currentDraftSource(),
+                ...payload.draft,
+                documents: payload.documents,
+                interconsultations: payload.interconsultations,
+                activeInterconsultationId:
+                    payload.activeInterconsultationId,
+                consentPackets: payload.consentPackets,
+                activeConsentPacketId: payload.activeConsentPacketId,
+                consent: payload.consent,
+                requiresHumanReview: payload.requiresHumanReview,
+            })
+        ),
+        dirty: true,
+    });
+    syncDraftStatusMeta();
+
+    try {
+        const response = await apiRequest('clinical-episode-action', {
+            method: 'POST',
+            body: payload,
+        });
+        const nextReview = normalizeReviewPayload(response.data);
+        setClinicalHistoryState({
+            saving: false,
+            error: '',
+            dirty: false,
+            current: nextReview,
+            draftForm: cloneValue(nextReview.draft),
+            selectedSessionId: nextReview.session.sessionId || sessionId,
+            lastLoadedAt: Date.now(),
+        });
+
+        try {
+            await refreshAdminData();
+        } catch (_error) {
+            // Keep the workspace usable even if the admin snapshot refresh fails.
+        }
+
+        renderAdminChrome(getState());
+        renderDashboard(getState());
+        renderClinicalHistorySection();
+
+        const targetLabel = currentSelectionLabel(nextReview);
+        if (action === 'create_interconsultation') {
+            createToast(
+                `Interconsulta HCU-007 creada para ${targetLabel}.`,
+                'success'
+            );
+        } else if (action === 'issue_interconsultation') {
+            createToast(
+                `Interconsulta HCU-007 emitida para ${targetLabel}.`,
+                'success'
+            );
+        } else if (action === 'cancel_interconsultation') {
+            createToast(
+                `Interconsulta HCU-007 cancelada para ${targetLabel}.`,
+                'success'
+            );
+        }
+
+        return nextReview;
+    } catch (error) {
+        setClinicalHistoryState({
+            saving: false,
+            error:
+                error?.message ||
+                'No se pudo actualizar la interconsulta HCU-007.',
+        });
+        syncDraftStatusMeta();
+        createToast(
+            error?.message ||
+                'No se pudo actualizar la interconsulta HCU-007.',
             'error'
         );
         return null;
@@ -6471,6 +7538,8 @@ function buildReviewPatch(mode, question) {
             admission001: cloneValue(draft.admission001),
         },
         documents: cloneValue(draft.documents),
+        interconsultations: cloneValue(draft.interconsultations),
+        activeInterconsultationId: draft.activeInterconsultationId,
         consentPackets: cloneValue(draft.consentPackets),
         activeConsentPacketId: draft.activeConsentPacketId,
         consent: cloneValue(draft.consent),
@@ -6482,6 +7551,8 @@ function buildReviewPatch(mode, question) {
         action: 'save_draft',
         draft: draftPatch.draft,
         documents: draftPatch.documents,
+        interconsultations: draftPatch.interconsultations,
+        activeInterconsultationId: draftPatch.activeInterconsultationId,
         consentPackets: draftPatch.consentPackets,
         activeConsentPacketId: draftPatch.activeConsentPacketId,
         consent: draftPatch.consent,
@@ -6885,6 +7956,29 @@ function bindClinicalHistoryEvents() {
 
         if (action === 'approve-current') {
             await saveClinicalHistoryReview('approve', '');
+            return;
+        }
+
+        if (action === 'create-interconsultation') {
+            await submitInterconsultationAction('create_interconsultation');
+            return;
+        }
+
+        if (action === 'select-interconsultation') {
+            await submitInterconsultationAction(
+                'select_interconsultation',
+                actionTarget.dataset.interconsultId || ''
+            );
+            return;
+        }
+
+        if (action === 'issue-current-interconsultation') {
+            await submitInterconsultationAction('issue_interconsultation');
+            return;
+        }
+
+        if (action === 'cancel-current-interconsultation') {
+            await submitInterconsultationAction('cancel_interconsultation');
             return;
         }
 

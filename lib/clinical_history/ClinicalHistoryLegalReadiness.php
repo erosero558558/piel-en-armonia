@@ -14,7 +14,11 @@ final class ClinicalHistoryLegalReadiness
     {
         $session = ClinicalHistoryRepository::adminSession($session);
         $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $draft = ClinicalHistoryRepository::syncInterconsultationArtifacts($draft, $session);
         $draft = ClinicalHistoryRepository::syncConsentArtifacts($draft, $session);
+        $interconsultations = ClinicalHistoryRepository::normalizeInterconsultations(
+            $draft['interconsultations'] ?? []
+        );
         $consent = ClinicalHistoryRepository::normalizeConsentRecord(
             is_array($draft['consent'] ?? null) ? $draft['consent'] : []
         );
@@ -51,6 +55,16 @@ final class ClinicalHistoryLegalReadiness
             $writtenConsentPackets[] = $packet;
             $writtenConsentEvaluations[] = ClinicalHistoryRepository::evaluateConsentPacket($packet);
         }
+        $requiredInterconsultations = array_values(array_filter($interconsultations, static function (array $interconsultation): bool {
+            return ($interconsultation['requiredForCurrentPlan'] ?? false) === true;
+        }));
+        $interconsultationScope = $requiredInterconsultations !== []
+            ? $requiredInterconsultations
+            : $interconsultations;
+        $interconsultationEvaluations = array_map(
+            static fn (array $interconsultation): array => ClinicalHistoryRepository::evaluateInterconsultation($interconsultation),
+            $interconsultationScope
+        );
         $activeConsentPacketId = ClinicalHistoryRepository::trimString($draft['activeConsentPacketId'] ?? '');
         $activeConsentEvaluation = null;
         foreach ($writtenConsentPackets as $index => $packet) {
@@ -236,6 +250,66 @@ final class ClinicalHistoryLegalReadiness
             );
         }
 
+        $hcu007Status = 'not_applicable';
+        if ($interconsultationEvaluations !== []) {
+            $statuses = array_map(
+                static fn (array $evaluation): string => ClinicalHistoryRepository::trimString($evaluation['status'] ?? 'draft'),
+                $interconsultationEvaluations
+            );
+            $pendingStatuses = array_values(array_intersect($statuses, ['draft', 'ready_to_issue', 'incomplete']));
+            if ($pendingStatuses === []) {
+                $hasIssued = count(array_filter($statuses, static fn (string $status): bool => $status === 'issued')) > 0;
+                $hcu007Status = $hasIssued ? 'issued' : 'cancelled';
+            } elseif (in_array('incomplete', $statuses, true)) {
+                $hcu007Status = 'incomplete';
+            } elseif (in_array('draft', $statuses, true)) {
+                $hcu007Status = 'draft';
+            } else {
+                $hcu007Status = 'ready_to_issue';
+            }
+        }
+        $requiredInterconsultationPending = count(array_filter(
+            array_map(
+                static fn (array $interconsultation): array => ClinicalHistoryRepository::evaluateInterconsultation($interconsultation),
+                $requiredInterconsultations
+            ),
+            static fn (array $evaluation): bool => !in_array(
+                ClinicalHistoryRepository::trimString($evaluation['status'] ?? ''),
+                ['issued', 'cancelled'],
+                true
+            )
+        ));
+        $hcu007Ready = $requiredInterconsultationPending === 0;
+        self::appendChecklist(
+            $checklist,
+            'hcu007_interconsultation',
+            $hcu007Ready,
+            'HCU-007 interconsulta',
+            $requiredInterconsultations === []
+                ? ($interconsultations === []
+                    ? 'No hay interconsultas exigibles para este episodio.'
+                    : 'Las interconsultas del episodio no fueron marcadas como obligatorias para aprobar el plan actual.')
+                : ($hcu007Ready
+                    ? 'Las interconsultas marcadas como parte del plan actual ya fueron emitidas o canceladas.'
+                    : 'Todavia hay interconsultas requeridas que no se han emitido o cancelado.'),
+            [
+                'status' => $hcu007Status,
+                'requiredInterconsultations' => count($requiredInterconsultations),
+                'pendingRequiredInterconsultations' => $requiredInterconsultationPending,
+            ]
+        );
+        if (!$hcu007Ready) {
+            $blockingReasons[] = self::blockingReason(
+                'hcu007_interconsultation_pending_issue',
+                'Falta emitir o cancelar una interconsulta requerida',
+                'Emite o cancela la interconsulta marcada como parte del plan actual antes de aprobar la nota final.',
+                [
+                    'status' => $hcu007Status,
+                    'pendingRequiredInterconsultations' => $requiredInterconsultationPending,
+                ]
+            );
+        }
+
         $aiTerminal = $pendingAi === []
             || in_array($pendingAiStatus, ['completed', 'failed', 'superseded', 'closed'], true);
         self::appendChecklist(
@@ -365,8 +439,8 @@ final class ClinicalHistoryLegalReadiness
             'ready' => $ready,
             'label' => $ready ? 'Lista para aprobar' : 'Bloqueada',
             'summary' => $ready
-                ? 'La historia clinica cubre HCU-001, HCU-005, HCU-024 y los bloqueos medico-legales minimos para aprobar.'
-                : 'La aprobacion esta bloqueada hasta completar la admision HCU-001, HCU-005, HCU-024 y los faltantes medico-legales visibles.',
+                ? 'La historia clinica cubre HCU-001, HCU-005, HCU-007, HCU-024 y los bloqueos medico-legales minimos para aprobar.'
+                : 'La aprobacion esta bloqueada hasta completar la admision HCU-001, HCU-005, HCU-007, HCU-024 y los faltantes medico-legales visibles.',
             'checklist' => $checklist,
             'blockingReasons' => $blockingReasons,
             'approvalBlockedReasons' => $blockingReasons,
@@ -398,6 +472,25 @@ final class ClinicalHistoryLegalReadiness
                     'complete' => 'La evolucion, la impresion diagnostica y el plan ya sostienen el HCU-005 del episodio.',
                     'partial' => 'El episodio ya tiene contenido HCU-005, pero todavia faltan bloques o prescripciones por cerrar.',
                     default => 'Todavia no hay cobertura suficiente del HCU-005 para este episodio.',
+                },
+            ],
+            'hcu007Status' => [
+                'status' => $hcu007Status,
+                'label' => match ($hcu007Status) {
+                    'issued' => 'HCU-007 emitida',
+                    'ready_to_issue' => 'HCU-007 lista para emitir',
+                    'cancelled' => 'HCU-007 cancelada',
+                    'incomplete' => 'HCU-007 incompleta',
+                    'draft' => 'HCU-007 borrador',
+                    default => 'HCU-007 no aplica',
+                },
+                'summary' => match ($hcu007Status) {
+                    'issued' => 'La interconsulta requerida ya fue emitida sin esperar respuesta del consultado.',
+                    'ready_to_issue' => 'La interconsulta ya cubre los campos minimos del MSP y esta lista para emitirse.',
+                    'cancelled' => 'La interconsulta del episodio fue cancelada y no bloquea el cierre actual.',
+                    'incomplete' => 'Existe una interconsulta requerida con campos clinicos todavia incompletos.',
+                    'draft' => 'Existe una interconsulta en borrador que aun no se ha emitido.',
+                    default => 'No hay interconsulta formal exigible para este episodio.',
                 },
             ],
             'hcu024Status' => [

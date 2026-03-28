@@ -147,6 +147,18 @@ function resolveClinicalSummary(snapshot) {
     const hcu005Missing = Number(
         snapshot?.summary?.drafts?.hcu005?.missing || 0
     );
+    const hcu007Issued = Number(
+        snapshot?.summary?.drafts?.hcu007?.issued || 0
+    );
+    const hcu007ReadyToIssue = Number(
+        snapshot?.summary?.drafts?.hcu007?.ready_to_issue || 0
+    );
+    const hcu007Incomplete = Number(
+        snapshot?.summary?.drafts?.hcu007?.incomplete || 0
+    );
+    const hcu007Draft = Number(
+        snapshot?.summary?.drafts?.hcu007?.draft || 0
+    );
 
     if (criticalEvents > 0) {
         return `${criticalEvents} evento(s) critico(s) siguen abiertos y requieren validacion medica inmediata.`;
@@ -160,6 +172,12 @@ function resolveClinicalSummary(snapshot) {
     if (hcu005Partial > 0 || hcu005Missing > 0) {
         return `${hcu005Partial} episodio(s) tienen HCU-005 parcial y ${hcu005Missing} siguen pendientes de cobertura trazable.`;
     }
+    if (hcu007Incomplete > 0 || hcu007Draft > 0) {
+        return `${hcu007Incomplete} interconsulta(s) HCU-007 siguen incompletas y ${hcu007Draft} permanecen en borrador sin emitir.`;
+    }
+    if (hcu007ReadyToIssue > 0) {
+        return `${hcu007ReadyToIssue} interconsulta(s) HCU-007 ya están listas para emisión y solo esperan acto médico final.`;
+    }
     if (overdueCopyRequests > 0) {
         return `${overdueCopyRequests} copia(s) certificada(s) ya vencieron su SLA y requieren entrega o regularizacion.`;
     }
@@ -171,6 +189,9 @@ function resolveClinicalSummary(snapshot) {
     }
     if (archiveEligible > 0) {
         return `${archiveEligible} record(s) ya pueden pasar a archivo pasivo segun la regla de custodia.`;
+    }
+    if (hcu007Issued > 0) {
+        return `${hcu007Issued} interconsulta(s) HCU-007 ya quedaron emitidas sin esperar todavía informe del consultado.`;
     }
     if (pendingAiCount > 0) {
         return `${pendingAiCount} borrador(es) siguen esperando reconciliacion asincrona de OpenClaw.`;
@@ -226,6 +247,12 @@ function resolveClinicalQueueMeta(snapshot) {
     const hcu005Partial = Number(
         snapshot?.summary?.drafts?.hcu005?.partial || 0
     );
+    const hcu007ReadyToIssue = Number(
+        snapshot?.summary?.drafts?.hcu007?.ready_to_issue || 0
+    );
+    const hcu007Draft = Number(
+        snapshot?.summary?.drafts?.hcu007?.draft || 0
+    );
     const confidence = Number(first?.confidence || 0);
     const confidenceLabel =
         Number.isFinite(confidence) && confidence > 0
@@ -247,6 +274,10 @@ function resolveClinicalQueueMeta(snapshot) {
                   ? `${hcu001LegacyPartial} HCU-001 heredada(s)`
                   : '',
               hcu005Partial > 0 ? `${hcu005Partial} HCU-005 parcial(es)` : '',
+              hcu007ReadyToIssue > 0
+                  ? `${hcu007ReadyToIssue} HCU-007 lista(s)`
+                  : '',
+              hcu007Draft > 0 ? `${hcu007Draft} HCU-007 borrador(es)` : '',
               confidenceLabel,
           ]
               .filter(Boolean)
@@ -254,6 +285,7 @@ function resolveClinicalQueueMeta(snapshot) {
         : [
               String(first?.hcu001Label || '').trim(),
               String(first?.hcu005Label || '').trim(),
+              String(first?.hcu007Label || '').trim(),
               missingFields > 0 ? `${missingFields} dato(s) faltante(s)` : '',
               pendingCopyRequests > 0
                   ? `${pendingCopyRequests} copia(s) pendiente(s)`

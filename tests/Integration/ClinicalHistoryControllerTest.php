@@ -758,6 +758,363 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertSame('Pasiva', (string) ($archivePassive['payload']['data']['recordsGovernance']['archiveReadiness']['label'] ?? ''));
     }
 
+    public function testClinicalHistoryApprovalBlocksUntilRequiredInterconsultationIsIssued(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Paula Vera',
+                    'email' => 'paula@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-hcu007-issue';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-hcu007-issue';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Rosacea facial',
+                        'enfermedadActual' => 'Brote facial recurrente con respuesta parcial',
+                        'antecedentes' => 'Niega antecedentes relevantes',
+                        'alergias' => 'Niega alergias medicamentosas',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 34,
+                            'pesoKg' => 58,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Caso apto para interconsulta emitida dentro del plan actual.',
+                        'preguntasFaltantes' => [],
+                        'cie10Sugeridos' => ['L71.9'],
+                        'tratamientoBorrador' => 'Metronidazol topico y seguimiento',
+                        'posologiaBorrador' => [
+                            'texto' => 'Aplicacion nocturna por 8 semanas',
+                            'baseCalculo' => 'standard',
+                            'pesoKg' => 58,
+                            'edadAnios' => 34,
+                            'units' => '',
+                            'ambiguous' => false,
+                        ],
+                        'hcu005' => [
+                            'evolutionNote' => 'Rosacea facial con control parcial y necesidad de criterio complementario.',
+                            'diagnosticImpression' => 'Rosacea inflamatoria en control parcial.',
+                            'therapeuticPlan' => 'Metronidazol topico, fotoproteccion y posible interconsulta.',
+                            'careIndications' => 'Control clinico y vigilancia de desencadenantes.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Metronidazol topico',
+                                'presentation' => 'Gel 0.75%',
+                                'dose' => 'Aplicacion fina',
+                                'route' => 'Topica',
+                                'frequency' => 'Nocturna',
+                                'duration' => '8 semanas',
+                                'quantity' => '1 tubo',
+                                'instructions' => 'Aplicar sobre piel limpia.',
+                            ]],
+                        ],
+                    ],
+                ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Vera',
+                        'primerNombre' => 'Paula',
+                    ],
+                ]),
+                'consent' => [
+                    'required' => true,
+                    'status' => 'accepted',
+                    'informedBy' => 'Dra. Laura Mena',
+                    'informedAt' => '2026-03-16T09:00:00-05:00',
+                    'explainedWhat' => 'Se explico el plan y la posibilidad de interconsulta.',
+                    'risksExplained' => 'Irritacion transitoria',
+                    'alternativesExplained' => 'Observacion o ajuste topico',
+                    'capacityAssessment' => 'Paciente capaz de decidir',
+                    'privateCommunicationConfirmed' => true,
+                    'companionShareAuthorized' => false,
+                    'acceptedAt' => '2026-03-16T09:05:00-05:00',
+                ],
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+        self::assertSame('ready', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+
+        $created = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'create_interconsultation',
+            ]
+        );
+
+        self::assertSame(200, $created['status']);
+        self::assertSame(
+            'create_interconsultation',
+            (string) ($created['payload']['data']['accessAudit'][0]['action'] ?? '')
+        );
+        self::assertCount(1, $created['payload']['data']['interconsultations'] ?? []);
+
+        $interconsultation = $created['payload']['data']['interconsultations'][0] ?? [];
+        $interconsultId = (string) ($interconsultation['interconsultId'] ?? '');
+        self::assertNotSame('', $interconsultId);
+        self::assertSame(
+            'Paula Vera Lopez',
+            (string) ($interconsultation['patientName'] ?? '')
+        );
+        self::assertSame(
+            '0912345678',
+            (string) ($interconsultation['patientDocumentNumber'] ?? '')
+        );
+
+        $interconsultation['requiredForCurrentPlan'] = true;
+        $interconsultation['destinationEstablishment'] = 'Hospital dermatologico aliado';
+        $interconsultation['destinationService'] = 'Dermatologia clinica';
+        $interconsultation['consultedProfessionalName'] = 'Dr. Rafael Suarez';
+        $interconsultation['requestReason'] = 'Solicito valoracion complementaria del plan ambulatorio.';
+        $interconsultation['questionForConsultant'] = 'Confirmar conducta y prioridad del seguimiento.';
+        $interconsultation['performedDiagnosticsSummary'] = 'Evaluacion clinica, dermatoscopia y fotografia de control.';
+        $interconsultation['therapeuticMeasuresDone'] = 'Metronidazol topico, fotoproteccion y educacion del paciente.';
+        $interconsultation['issuedBy'] = 'Dra. Laura Mena';
+
+        $interconsultationPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'interconsultations' => [$interconsultation],
+                'activeInterconsultationId' => $interconsultId,
+            ]
+        );
+
+        self::assertSame(200, $interconsultationPatch['status']);
+        self::assertSame(
+            'blocked',
+            (string) ($interconsultationPatch['payload']['data']['legalReadiness']['status'] ?? '')
+        );
+        self::assertSame(
+            'ready_to_issue',
+            (string) ($interconsultationPatch['payload']['data']['legalReadiness']['hcu007Status']['status'] ?? '')
+        );
+        self::assertContains(
+            'hcu007_interconsultation_pending_issue',
+            array_values(array_map(
+                static fn (array $reason): string => (string) ($reason['code'] ?? ''),
+                $interconsultationPatch['payload']['data']['approvalBlockedReasons'] ?? []
+            ))
+        );
+
+        $blockedApprove = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'approve_final_note',
+            ]
+        );
+
+        self::assertSame(409, $blockedApprove['status']);
+        self::assertSame(
+            'clinical_history_approval_blocked',
+            (string) ($blockedApprove['payload']['code'] ?? '')
+        );
+
+        $issued = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'issue_interconsultation',
+                'interconsultId' => $interconsultId,
+            ]
+        );
+
+        self::assertSame(200, $issued['status']);
+        self::assertSame(
+            'issue_interconsultation',
+            (string) ($issued['payload']['data']['accessAudit'][0]['action'] ?? '')
+        );
+        self::assertSame(
+            'issued',
+            (string) ($issued['payload']['data']['interconsultations'][0]['status'] ?? '')
+        );
+        self::assertSame(
+            'issued',
+            (string) ($issued['payload']['data']['legalReadiness']['hcu007Status']['status'] ?? '')
+        );
+        self::assertCount(1, $issued['payload']['data']['documents']['interconsultForms'] ?? []);
+
+        $approved = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'approve_final_note',
+            ]
+        );
+
+        self::assertSame(200, $approved['status']);
+        self::assertSame('approved', (string) ($approved['payload']['data']['approval']['status'] ?? ''));
+    }
+
+    public function testClinicalHistoryInterconsultationCanBeCancelledAndSnapshotted(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Nora Ibarra',
+                    'email' => 'nora@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-hcu007-cancel';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-hcu007-cancel';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Control dermatologico',
+                        'enfermedadActual' => 'Seguimiento ambulatorio con posible referencia',
+                        'antecedentes' => 'Niega antecedentes relevantes',
+                        'alergias' => 'Niega alergias',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 31,
+                            'pesoKg' => 57,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Seguimiento ambulatorio con posible referencia externa.',
+                        'preguntasFaltantes' => [],
+                        'hcu005' => [
+                            'evolutionNote' => 'Seguimiento ambulatorio con posible referencia externa.',
+                            'diagnosticImpression' => 'Dermatitis en control clinico.',
+                            'therapeuticPlan' => 'Tratamiento topico y control posterior.',
+                            'careIndications' => 'Mantener fotoproteccion y reevaluar sintomas.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Emoliente',
+                                'presentation' => 'Crema',
+                                'dose' => 'Aplicacion local',
+                                'route' => 'Topica',
+                                'frequency' => 'Dos veces al dia',
+                                'duration' => '14 dias',
+                                'quantity' => '1 tubo',
+                                'instructions' => 'Aplicar en zonas afectadas.',
+                            ]],
+                        ],
+                    ],
+                ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Ibarra',
+                        'primerNombre' => 'Nora',
+                    ],
+                ]),
+                'consent' => [
+                    'required' => false,
+                    'status' => 'not_required',
+                ],
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+
+        $created = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'create_interconsultation',
+            ]
+        );
+
+        self::assertSame(200, $created['status']);
+        $interconsultation = $created['payload']['data']['interconsultations'][0] ?? [];
+        $interconsultId = (string) ($interconsultation['interconsultId'] ?? '');
+        self::assertNotSame('', $interconsultId);
+
+        $cancelled = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'cancel_interconsultation',
+                'interconsultId' => $interconsultId,
+                'cancelReason' => 'La paciente difirio la referencia externa.',
+            ]
+        );
+
+        self::assertSame(200, $cancelled['status']);
+        self::assertSame(
+            'cancel_interconsultation',
+            (string) ($cancelled['payload']['data']['accessAudit'][0]['action'] ?? '')
+        );
+        self::assertSame(
+            'cancelled',
+            (string) ($cancelled['payload']['data']['interconsultations'][0]['status'] ?? '')
+        );
+        self::assertSame(
+            'cancelled',
+            (string) ($cancelled['payload']['data']['legalReadiness']['hcu007Status']['status'] ?? '')
+        );
+        self::assertSame(
+            'La paciente difirio la referencia externa.',
+            (string) ($cancelled['payload']['data']['interconsultations'][0]['cancelReason'] ?? '')
+        );
+        self::assertCount(1, $cancelled['payload']['data']['documents']['interconsultForms'] ?? []);
+        self::assertSame(
+            'cancelled',
+            (string) ($cancelled['payload']['data']['documents']['interconsultForms'][0]['status'] ?? '')
+        );
+    }
+
     public function testClinicalHistoryApprovalBlocksWhenHcu005EvolutionIsMissing(): void
     {
         $sessionCreate = $this->captureResponse(
