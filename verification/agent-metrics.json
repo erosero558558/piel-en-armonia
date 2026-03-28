@@ -3,7 +3,7 @@
     "period": {
         "timezone": "America/Guayaquil",
         "window_days": 7,
-        "updated_at": "2026-03-21T17:31:25.410Z"
+        "updated_at": "2026-03-27T11:57:45.421Z"
     },
     "targets": {
         "rework_reduction_pct": 40,
@@ -22,9 +22,9 @@
         "traceability_pct": 100
     },
     "current": {
-        "tasks_total": 263,
+        "tasks_total": 270,
         "tasks_in_progress": 0,
-        "tasks_done": 260,
+        "tasks_done": 267,
         "tasks_with_rework": 0,
         "file_conflicts": 0,
         "file_conflicts_handoff": 0,
@@ -42,28 +42,28 @@
             }
         },
         "totals": {
-            "tasks": 263,
-            "done_tasks": 260,
-            "active_tasks": 1,
-            "weighted_points_total": 517,
-            "weighted_done_points_total": 510,
-            "weighted_active_points_total": 3
+            "tasks": 270,
+            "done_tasks": 267,
+            "active_tasks": 0,
+            "weighted_points_total": 528,
+            "weighted_done_points_total": 522,
+            "weighted_active_points_total": 0
         },
         "executors": [
             {
                 "executor": "codex",
-                "tasks": 242,
-                "done_tasks": 239,
-                "active_tasks": 1,
-                "weighted_points": 481,
-                "weighted_done_points": 474,
-                "weighted_active_points": 3,
-                "tasks_pct": 92,
-                "done_tasks_pct": 91.9,
-                "active_tasks_pct": 100,
-                "weighted_points_pct": 93,
-                "weighted_done_points_pct": 92.9,
-                "weighted_active_points_pct": 100
+                "tasks": 249,
+                "done_tasks": 246,
+                "active_tasks": 0,
+                "weighted_points": 492,
+                "weighted_done_points": 486,
+                "weighted_active_points": 0,
+                "tasks_pct": 92.2,
+                "done_tasks_pct": 92.1,
+                "active_tasks_pct": 0,
+                "weighted_points_pct": 93.2,
+                "weighted_done_points_pct": 93.1,
+                "weighted_active_points_pct": 0
             },
             {
                 "executor": "jules",
@@ -73,11 +73,11 @@
                 "weighted_points": 23,
                 "weighted_done_points": 23,
                 "weighted_active_points": 0,
-                "tasks_pct": 4.6,
-                "done_tasks_pct": 4.6,
+                "tasks_pct": 4.4,
+                "done_tasks_pct": 4.5,
                 "active_tasks_pct": 0,
                 "weighted_points_pct": 4.4,
-                "weighted_done_points_pct": 4.5,
+                "weighted_done_points_pct": 4.4,
                 "weighted_active_points_pct": 0
             },
             {
@@ -88,8 +88,8 @@
                 "weighted_points": 13,
                 "weighted_done_points": 13,
                 "weighted_active_points": 0,
-                "tasks_pct": 3.4,
-                "done_tasks_pct": 3.5,
+                "tasks_pct": 3.3,
+                "done_tasks_pct": 3.4,
                 "active_tasks_pct": 0,
                 "weighted_points_pct": 2.5,
                 "weighted_done_points_pct": 2.5,
@@ -100,18 +100,18 @@
             {
                 "rank": 1,
                 "executor": "codex",
-                "weighted_done_points": 474,
-                "weighted_done_points_pct": 92.9,
-                "done_tasks": 239,
-                "done_tasks_pct": 91.9
+                "weighted_done_points": 486,
+                "weighted_done_points_pct": 93.1,
+                "done_tasks": 246,
+                "done_tasks_pct": 92.1
             },
             {
                 "rank": 2,
                 "executor": "jules",
                 "weighted_done_points": 23,
-                "weighted_done_points_pct": 4.5,
+                "weighted_done_points_pct": 4.4,
                 "done_tasks": 12,
-                "done_tasks_pct": 4.6
+                "done_tasks_pct": 4.5
             },
             {
                 "rank": 3,
@@ -119,16 +119,16 @@
                 "weighted_done_points": 13,
                 "weighted_done_points_pct": 2.5,
                 "done_tasks": 9,
-                "done_tasks_pct": 3.5
+                "done_tasks_pct": 3.4
             }
         ],
         "top_executor": {
             "rank": 1,
             "executor": "codex",
-            "weighted_done_points": 474,
-            "weighted_done_points_pct": 92.9,
-            "done_tasks": 239,
-            "done_tasks_pct": 91.9
+            "weighted_done_points": 486,
+            "weighted_done_points_pct": 93.1,
+            "done_tasks": 246,
+            "done_tasks_pct": 92.1
         }
     },
     "codex_instances": {
@@ -136,20 +136,46 @@
         "rows": [
             {
                 "codex_instance": "codex_backend_ops",
-                "tasks": 167,
-                "active_tasks": 1,
+                "tasks": 168,
+                "active_tasks": 0,
                 "in_progress_tasks": 0,
-                "done_tasks": 165
+                "done_tasks": 167
             },
             {
                 "codex_instance": "codex_frontend",
-                "tasks": 93,
+                "tasks": 95,
                 "active_tasks": 0,
                 "in_progress_tasks": 0,
-                "done_tasks": 92
+                "done_tasks": 93
             },
             {
                 "codex_instance": "codex_transversal",
+                "tasks": 7,
+                "active_tasks": 0,
+                "in_progress_tasks": 0,
+                "done_tasks": 7
+            }
+        ]
+    },
+    "provider_modes": {
+        "total_provider_modes": 3,
+        "rows": [
+            {
+                "provider_mode": "google_oauth",
+                "tasks": 2,
+                "active_tasks": 0,
+                "in_progress_tasks": 0,
+                "done_tasks": 2
+            },
+            {
+                "provider_mode": "none",
+                "tasks": 265,
+                "active_tasks": 0,
+                "in_progress_tasks": 0,
+                "done_tasks": 262
+            },
+            {
+                "provider_mode": "openclaw_chatgpt",
                 "tasks": 3,
                 "active_tasks": 0,
                 "in_progress_tasks": 0,
@@ -157,27 +183,8 @@
             }
         ]
     },
-    "provider_modes": {
-        "total_provider_modes": 2,
-        "rows": [
-            {
-                "provider_mode": "none",
-                "tasks": 261,
-                "active_tasks": 1,
-                "in_progress_tasks": 0,
-                "done_tasks": 258
-            },
-            {
-                "provider_mode": "openclaw_chatgpt",
-                "tasks": 2,
-                "active_tasks": 0,
-                "in_progress_tasks": 0,
-                "done_tasks": 2
-            }
-        ]
-    },
     "runtime_surfaces": {
-        "total_runtime_surfaces": 3,
+        "total_runtime_surfaces": 4,
         "rows": [
             {
                 "runtime_surface": "figo_queue",
@@ -187,107 +194,118 @@
                 "done_tasks": 1
             },
             {
-                "runtime_surface": "none",
-                "tasks": 261,
-                "active_tasks": 1,
-                "in_progress_tasks": 0,
-                "done_tasks": 258
-            },
-            {
-                "runtime_surface": "operator_auth",
+                "runtime_surface": "leadops_worker",
                 "tasks": 1,
                 "active_tasks": 0,
                 "in_progress_tasks": 0,
                 "done_tasks": 1
+            },
+            {
+                "runtime_surface": "none",
+                "tasks": 265,
+                "active_tasks": 0,
+                "in_progress_tasks": 0,
+                "done_tasks": 262
+            },
+            {
+                "runtime_surface": "operator_auth",
+                "tasks": 3,
+                "active_tasks": 0,
+                "in_progress_tasks": 0,
+                "done_tasks": 3
             }
         ]
     },
     "focus": {
-        "focus_id": "FOCUS-2026-03-admin-operativo-cut-1",
+        "focus_id": "FOCUS-2026-03-public-v6-es-voz-cut-1",
         "focus_status": "active",
-        "focus_idle_windows": 0,
+        "focus_idle_windows": 1,
         "focus_split_incidents": 0,
         "rework_tasks_pct": 0,
         "open_decisions_overdue": 0,
-        "distinct_active_slices": 1
+        "distinct_active_slices": 0
     },
     "focus_summary": {
         "configured": {
-            "id": "FOCUS-2026-03-admin-operativo-cut-1",
-            "title": "Admin operativo demostrable",
-            "summary": "Unificar admin clinico, quick-nav, queue/turnero piloto y readiness operacional en un solo corte legible.",
+            "id": "FOCUS-2026-03-public-v6-es-voz-cut-1",
+            "title": "Public V6 ES claro y humano",
+            "summary": "Reescribir el copy ES de Public V6 como ola copy-first, con voz natural para Ecuador y sin abrir trabajo cross-lane por defecto.",
             "status": "active",
-            "proof": "Operador inicia sesion, entra al admin, usa quick-nav, revisa queue/turnero piloto y el corte queda respaldado por runtime/deploy verificables",
+            "proof": "Las siete fuentes ES de public-v6 mantienen schema y rutas, pero ya leen con una voz coherente, en usted, sin brochure ni drift de marca.",
             "steps": [
-                "admin_queue_pilot_cut",
-                "pilot_readiness_evidence",
-                "feedback_trim"
+                "ecuadorian_copy_rewrite",
+                "copy_contract_validation",
+                "publish_readiness_review"
             ],
-            "next_step": "admin_queue_pilot_cut",
+            "next_step": "ecuadorian_copy_rewrite",
             "required_checks": [
-                "job:public_main_sync",
-                "runtime:operator_auth"
+                "content:public-v6:validate",
+                "audit:public-v6:copy",
+                "test:frontend:qa:v6"
             ],
             "non_goals": [
-                "rediseno_publico",
-                "expansion_payments",
-                "refactor_orchestrator_no_bloqueante",
-                "modularizacion_fuera_del_corte"
+                "runtime_publico",
+                "en_copy_rewrite",
+                "legacy_route_changes",
+                "public_publish",
+                "backend_support_by_default",
+                "transversal_support_by_default"
             ],
             "owner": "Ernesto",
-            "review_due_at": "2026-03-21",
+            "review_due_at": "2026-03-30",
             "evidence_ref": "",
-            "max_active_slices": 3
+            "max_active_slices": 1
         },
         "active": {
-            "id": "FOCUS-2026-03-admin-operativo-cut-1",
-            "title": "Admin operativo demostrable",
-            "summary": "Unificar admin clinico, quick-nav, queue/turnero piloto y readiness operacional en un solo corte legible.",
+            "id": "FOCUS-2026-03-public-v6-es-voz-cut-1",
+            "title": "Public V6 ES claro y humano",
+            "summary": "Reescribir el copy ES de Public V6 como ola copy-first, con voz natural para Ecuador y sin abrir trabajo cross-lane por defecto.",
             "status": "active",
-            "proof": "Operador inicia sesion, entra al admin, usa quick-nav, revisa queue/turnero piloto y el corte queda respaldado por runtime/deploy verificables",
+            "proof": "Las siete fuentes ES de public-v6 mantienen schema y rutas, pero ya leen con una voz coherente, en usted, sin brochure ni drift de marca.",
             "steps": [
-                "admin_queue_pilot_cut",
-                "pilot_readiness_evidence",
-                "feedback_trim"
+                "ecuadorian_copy_rewrite",
+                "copy_contract_validation",
+                "publish_readiness_review"
             ],
-            "next_step": "admin_queue_pilot_cut",
+            "next_step": "ecuadorian_copy_rewrite",
             "required_checks": [
-                "job:public_main_sync",
-                "runtime:operator_auth"
+                "content:public-v6:validate",
+                "audit:public-v6:copy",
+                "test:frontend:qa:v6"
             ],
             "non_goals": [
-                "rediseno_publico",
-                "expansion_payments",
-                "refactor_orchestrator_no_bloqueante",
-                "modularizacion_fuera_del_corte"
+                "runtime_publico",
+                "en_copy_rewrite",
+                "legacy_route_changes",
+                "public_publish",
+                "backend_support_by_default",
+                "transversal_support_by_default"
             ],
             "owner": "Ernesto",
-            "review_due_at": "2026-03-21",
+            "review_due_at": "2026-03-30",
             "evidence_ref": "",
-            "max_active_slices": 3
+            "max_active_slices": 1
         },
-        "active_tasks_total": 1,
-        "aligned_tasks": 1,
+        "active_tasks_total": 0,
+        "aligned_tasks": 0,
         "forward_tasks_total": 0,
-        "support_tasks_total": 1,
-        "blocked_tasks_total": 1,
-        "blocked_task_ids": ["AG-258"],
-        "acknowledged_external_blocker": true,
-        "external_blocker_task_ids": ["AG-258"],
-        "support_only": true,
-        "idle": false,
-        "active_slices": ["ops_deploy"],
-        "active_steps": ["admin_queue_pilot_cut"],
-        "distinct_active_slices": 1,
-        "distinct_active_steps": 1,
+        "support_tasks_total": 0,
+        "blocked_tasks_total": 0,
+        "blocked_task_ids": [],
+        "acknowledged_external_blocker": false,
+        "external_blocker_task_ids": [],
+        "support_only": false,
+        "idle": true,
+        "active_slices": [],
+        "active_steps": [],
+        "distinct_active_slices": 0,
+        "distinct_active_steps": 0,
         "too_many_active_slices": false,
         "missing_focus_task_ids": [],
         "outside_next_step_task_ids": [],
         "invalid_slice_task_ids": [],
         "rework_without_reason_task_ids": [],
-        "work_type_counts": {
-            "support": 1
-        },
+        "work_type_counts": {},
         "decisions": {
             "total": 0,
             "open": 0,
@@ -297,29 +315,35 @@
         },
         "required_checks": [
             {
-                "id": "job:public_main_sync",
-                "type": "job",
-                "target": "public_main_sync",
+                "id": "content:public-v6:validate",
+                "type": "content",
+                "target": "public-v6:validate",
                 "state": "unverified",
                 "ok": false,
-                "message": "job public_main_sync no verificado"
+                "message": "required_check no soportado (content:public-v6:validate)"
             },
             {
-                "id": "runtime:operator_auth",
-                "type": "runtime",
-                "target": "operator_auth",
-                "state": "red",
+                "id": "audit:public-v6:copy",
+                "type": "audit",
+                "target": "public-v6:copy",
+                "state": "unverified",
                 "ok": false,
-                "reason": "auth_status_http_503",
-                "next_action": "revisar Cloudflare/origen y la ruta /api.php?resource=operator-auth-status",
-                "message": "operator_auth unhealthy: endpoint devolvio HTTP 503"
+                "message": "required_check no soportado (audit:public-v6:copy)"
+            },
+            {
+                "id": "test:frontend:qa:v6",
+                "type": "test",
+                "target": "frontend:qa:v6",
+                "state": "unverified",
+                "ok": false,
+                "message": "required_check no soportado (test:frontend:qa:v6)"
             }
         ],
         "required_checks_ok": false,
         "release_ready": false,
         "blocking_errors": [],
         "release_blocking_errors": ["required_check_unverified"],
-        "warnings": ["required_check_unverified", "support_only_active"]
+        "warnings": ["focus_without_active_tasks", "required_check_unverified"]
     },
     "baseline_contribution": {
         "scoring": {
@@ -425,30 +449,30 @@
         "rows": [
             {
                 "executor": "codex",
-                "weighted_done_points_pct_current": 92.9,
+                "weighted_done_points_pct_current": 93.1,
                 "weighted_done_points_pct_baseline": 90.1,
-                "weighted_done_points_pct_delta": 2.8,
-                "done_tasks_pct_current": 91.9,
+                "weighted_done_points_pct_delta": 3,
+                "done_tasks_pct_current": 92.1,
                 "done_tasks_pct_baseline": 89.2,
-                "done_tasks_pct_delta": 2.7
+                "done_tasks_pct_delta": 2.9
             },
             {
                 "executor": "jules",
-                "weighted_done_points_pct_current": 4.5,
+                "weighted_done_points_pct_current": 4.4,
                 "weighted_done_points_pct_baseline": 6.3,
-                "weighted_done_points_pct_delta": -1.8,
-                "done_tasks_pct_current": 4.6,
+                "weighted_done_points_pct_delta": -1.9,
+                "done_tasks_pct_current": 4.5,
                 "done_tasks_pct_baseline": 6.2,
-                "done_tasks_pct_delta": -1.6
+                "done_tasks_pct_delta": -1.7
             },
             {
                 "executor": "kimi",
                 "weighted_done_points_pct_current": 2.5,
                 "weighted_done_points_pct_baseline": 3.6,
                 "weighted_done_points_pct_delta": -1.1,
-                "done_tasks_pct_current": 3.5,
+                "done_tasks_pct_current": 3.4,
                 "done_tasks_pct_baseline": 4.6,
-                "done_tasks_pct_delta": -1.1
+                "done_tasks_pct_delta": -1.2
             }
         ]
     },
@@ -459,23 +483,23 @@
         "snapshots_total": 1,
         "daily": [
             {
-                "date": "2026-03-21",
-                "captured_at": "2026-03-21T17:31:25.408Z",
+                "date": "2026-03-27",
+                "captured_at": "2026-03-27T11:57:45.420Z",
                 "top_executor": "codex",
                 "executors": {
                     "codex": {
-                        "weighted_done_points_pct": 92.9,
-                        "done_tasks_pct": 91.9,
-                        "active_tasks_pct": 100
+                        "weighted_done_points_pct": 93.1,
+                        "done_tasks_pct": 92.1,
+                        "active_tasks_pct": 0
                     },
                     "jules": {
-                        "weighted_done_points_pct": 4.5,
-                        "done_tasks_pct": 4.6,
+                        "weighted_done_points_pct": 4.4,
+                        "done_tasks_pct": 4.5,
                         "active_tasks_pct": 0
                     },
                     "kimi": {
                         "weighted_done_points_pct": 2.5,
-                        "done_tasks_pct": 3.5,
+                        "done_tasks_pct": 3.4,
                         "active_tasks_pct": 0
                     }
                 }
@@ -503,8 +527,8 @@
                 "default": 1
             },
             "total_weight": 39,
-            "total_weighted_points": 3860,
-            "overall_weighted_score_pct": 99,
+            "total_weighted_points": 3900,
+            "overall_weighted_score_pct": 100,
             "priority_weight": 10,
             "priority_weighted_points": 1000,
             "priority_weighted_score_pct": 100,
@@ -514,8 +538,8 @@
         "totals": {
             "domains": 32,
             "by_signal": {
-                "GREEN": 31,
-                "YELLOW": 1,
+                "GREEN": 32,
+                "YELLOW": 0,
                 "RED": 0
             }
         },
@@ -579,7 +603,7 @@
             },
             "frontend-public": {
                 "domain": "frontend-public",
-                "tasks_total": 46,
+                "tasks_total": 47,
                 "active_tasks": 0,
                 "done_tasks": 45,
                 "blocked_tasks": 0,
@@ -618,9 +642,9 @@
             "deploy": {
                 "domain": "deploy",
                 "tasks_total": 30,
-                "active_tasks": 1,
-                "done_tasks": 28,
-                "blocked_tasks": 1,
+                "active_tasks": 0,
+                "done_tasks": 29,
+                "blocked_tasks": 0,
                 "failed_tasks": 0,
                 "ready_tasks": 0,
                 "review_tasks": 0,
@@ -628,11 +652,11 @@
                 "blocking_conflicts": 0,
                 "handoff_conflicts": 0,
                 "active_expired_handoffs": 0,
-                "reasons": ["blocked_tasks:1"],
-                "signal": "YELLOW",
+                "reasons": ["stable"],
+                "signal": "GREEN",
                 "weight": 1,
-                "signal_score_pct": 60,
-                "weighted_score_points": 60
+                "signal_score_pct": 100,
+                "weighted_score_points": 100
             },
             "ops": {
                 "domain": "ops",
@@ -710,11 +734,11 @@
                 "signal_score_pct": 100,
                 "weighted_score_points": 100
             },
-            ".github": {
-                "domain": ".github",
-                "tasks_total": 9,
+            "openclaw_runtime": {
+                "domain": "openclaw_runtime",
+                "tasks_total": 10,
                 "active_tasks": 0,
-                "done_tasks": 9,
+                "done_tasks": 10,
                 "blocked_tasks": 0,
                 "failed_tasks": 0,
                 "ready_tasks": 0,
@@ -729,11 +753,11 @@
                 "signal_score_pct": 100,
                 "weighted_score_points": 100
             },
-            "openclaw_runtime": {
-                "domain": "openclaw_runtime",
-                "tasks_total": 8,
+            ".github": {
+                "domain": ".github",
+                "tasks_total": 9,
                 "active_tasks": 0,
-                "done_tasks": 8,
+                "done_tasks": 9,
                 "blocked_tasks": 0,
                 "failed_tasks": 0,
                 "ready_tasks": 0,
@@ -805,6 +829,25 @@
                 "signal_score_pct": 100,
                 "weighted_score_points": 100
             },
+            "codex-governance": {
+                "domain": "codex-governance",
+                "tasks_total": 4,
+                "active_tasks": 0,
+                "done_tasks": 4,
+                "blocked_tasks": 0,
+                "failed_tasks": 0,
+                "ready_tasks": 0,
+                "review_tasks": 0,
+                "in_progress_tasks": 0,
+                "blocking_conflicts": 0,
+                "handoff_conflicts": 0,
+                "active_expired_handoffs": 0,
+                "reasons": ["stable"],
+                "signal": "GREEN",
+                "weight": 1,
+                "signal_score_pct": 100,
+                "weighted_score_points": 100
+            },
             "monitoring": {
                 "domain": "monitoring",
                 "tasks_total": 4,
@@ -824,11 +867,11 @@
                 "signal_score_pct": 100,
                 "weighted_score_points": 100
             },
-            "auth": {
-                "domain": "auth",
-                "tasks_total": 2,
+            "queue": {
+                "domain": "queue",
+                "tasks_total": 3,
                 "active_tasks": 0,
-                "done_tasks": 2,
+                "done_tasks": 3,
                 "blocked_tasks": 0,
                 "failed_tasks": 0,
                 "ready_tasks": 0,
@@ -843,8 +886,27 @@
                 "signal_score_pct": 100,
                 "weighted_score_points": 100
             },
-            "codex-governance": {
-                "domain": "codex-governance",
+            "readiness": {
+                "domain": "readiness",
+                "tasks_total": 3,
+                "active_tasks": 0,
+                "done_tasks": 3,
+                "blocked_tasks": 0,
+                "failed_tasks": 0,
+                "ready_tasks": 0,
+                "review_tasks": 0,
+                "in_progress_tasks": 0,
+                "blocking_conflicts": 0,
+                "handoff_conflicts": 0,
+                "active_expired_handoffs": 0,
+                "reasons": ["stable"],
+                "signal": "GREEN",
+                "weight": 1,
+                "signal_score_pct": 100,
+                "weighted_score_points": 100
+            },
+            "auth": {
+                "domain": "auth",
                 "tasks_total": 2,
                 "active_tasks": 0,
                 "done_tasks": 2,
@@ -902,44 +964,6 @@
             },
             "platform": {
                 "domain": "platform",
-                "tasks_total": 2,
-                "active_tasks": 0,
-                "done_tasks": 2,
-                "blocked_tasks": 0,
-                "failed_tasks": 0,
-                "ready_tasks": 0,
-                "review_tasks": 0,
-                "in_progress_tasks": 0,
-                "blocking_conflicts": 0,
-                "handoff_conflicts": 0,
-                "active_expired_handoffs": 0,
-                "reasons": ["stable"],
-                "signal": "GREEN",
-                "weight": 1,
-                "signal_score_pct": 100,
-                "weighted_score_points": 100
-            },
-            "queue": {
-                "domain": "queue",
-                "tasks_total": 2,
-                "active_tasks": 0,
-                "done_tasks": 2,
-                "blocked_tasks": 0,
-                "failed_tasks": 0,
-                "ready_tasks": 0,
-                "review_tasks": 0,
-                "in_progress_tasks": 0,
-                "blocking_conflicts": 0,
-                "handoff_conflicts": 0,
-                "active_expired_handoffs": 0,
-                "reasons": ["stable"],
-                "signal": "GREEN",
-                "weight": 1,
-                "signal_score_pct": 100,
-                "weighted_score_points": 100
-            },
-            "readiness": {
-                "domain": "readiness",
                 "tasks_total": 2,
                 "active_tasks": 0,
                 "done_tasks": 2,
@@ -1189,7 +1213,7 @@
             },
             {
                 "domain": "frontend-public",
-                "tasks_total": 46,
+                "tasks_total": 47,
                 "active_tasks": 0,
                 "done_tasks": 45,
                 "blocked_tasks": 0,
@@ -1228,9 +1252,9 @@
             {
                 "domain": "deploy",
                 "tasks_total": 30,
-                "active_tasks": 1,
-                "done_tasks": 28,
-                "blocked_tasks": 1,
+                "active_tasks": 0,
+                "done_tasks": 29,
+                "blocked_tasks": 0,
                 "failed_tasks": 0,
                 "ready_tasks": 0,
                 "review_tasks": 0,
@@ -1238,11 +1262,11 @@
                 "blocking_conflicts": 0,
                 "handoff_conflicts": 0,
                 "active_expired_handoffs": 0,
-                "reasons": ["blocked_tasks:1"],
-                "signal": "YELLOW",
+                "reasons": ["stable"],
+                "signal": "GREEN",
                 "weight": 1,
-                "signal_score_pct": 60,
-                "weighted_score_points": 60
+                "signal_score_pct": 100,
+                "weighted_score_points": 100
             },
             {
                 "domain": "ops",
@@ -1321,10 +1345,10 @@
                 "weighted_score_points": 100
             },
             {
-                "domain": ".github",
-                "tasks_total": 9,
+                "domain": "openclaw_runtime",
+                "tasks_total": 10,
                 "active_tasks": 0,
-                "done_tasks": 9,
+                "done_tasks": 10,
                 "blocked_tasks": 0,
                 "failed_tasks": 0,
                 "ready_tasks": 0,
@@ -1340,10 +1364,10 @@
                 "weighted_score_points": 100
             },
             {
-                "domain": "openclaw_runtime",
-                "tasks_total": 8,
+                "domain": ".github",
+                "tasks_total": 9,
                 "active_tasks": 0,
-                "done_tasks": 8,
+                "done_tasks": 9,
                 "blocked_tasks": 0,
                 "failed_tasks": 0,
                 "ready_tasks": 0,
@@ -1416,6 +1440,25 @@
                 "weighted_score_points": 100
             },
             {
+                "domain": "codex-governance",
+                "tasks_total": 4,
+                "active_tasks": 0,
+                "done_tasks": 4,
+                "blocked_tasks": 0,
+                "failed_tasks": 0,
+                "ready_tasks": 0,
+                "review_tasks": 0,
+                "in_progress_tasks": 0,
+                "blocking_conflicts": 0,
+                "handoff_conflicts": 0,
+                "active_expired_handoffs": 0,
+                "reasons": ["stable"],
+                "signal": "GREEN",
+                "weight": 1,
+                "signal_score_pct": 100,
+                "weighted_score_points": 100
+            },
+            {
                 "domain": "monitoring",
                 "tasks_total": 4,
                 "active_tasks": 0,
@@ -1435,10 +1478,10 @@
                 "weighted_score_points": 100
             },
             {
-                "domain": "auth",
-                "tasks_total": 2,
+                "domain": "queue",
+                "tasks_total": 3,
                 "active_tasks": 0,
-                "done_tasks": 2,
+                "done_tasks": 3,
                 "blocked_tasks": 0,
                 "failed_tasks": 0,
                 "ready_tasks": 0,
@@ -1454,7 +1497,26 @@
                 "weighted_score_points": 100
             },
             {
-                "domain": "codex-governance",
+                "domain": "readiness",
+                "tasks_total": 3,
+                "active_tasks": 0,
+                "done_tasks": 3,
+                "blocked_tasks": 0,
+                "failed_tasks": 0,
+                "ready_tasks": 0,
+                "review_tasks": 0,
+                "in_progress_tasks": 0,
+                "blocking_conflicts": 0,
+                "handoff_conflicts": 0,
+                "active_expired_handoffs": 0,
+                "reasons": ["stable"],
+                "signal": "GREEN",
+                "weight": 1,
+                "signal_score_pct": 100,
+                "weighted_score_points": 100
+            },
+            {
+                "domain": "auth",
                 "tasks_total": 2,
                 "active_tasks": 0,
                 "done_tasks": 2,
@@ -1512,44 +1574,6 @@
             },
             {
                 "domain": "platform",
-                "tasks_total": 2,
-                "active_tasks": 0,
-                "done_tasks": 2,
-                "blocked_tasks": 0,
-                "failed_tasks": 0,
-                "ready_tasks": 0,
-                "review_tasks": 0,
-                "in_progress_tasks": 0,
-                "blocking_conflicts": 0,
-                "handoff_conflicts": 0,
-                "active_expired_handoffs": 0,
-                "reasons": ["stable"],
-                "signal": "GREEN",
-                "weight": 1,
-                "signal_score_pct": 100,
-                "weighted_score_points": 100
-            },
-            {
-                "domain": "queue",
-                "tasks_total": 2,
-                "active_tasks": 0,
-                "done_tasks": 2,
-                "blocked_tasks": 0,
-                "failed_tasks": 0,
-                "ready_tasks": 0,
-                "review_tasks": 0,
-                "in_progress_tasks": 0,
-                "blocking_conflicts": 0,
-                "handoff_conflicts": 0,
-                "active_expired_handoffs": 0,
-                "reasons": ["stable"],
-                "signal": "GREEN",
-                "weight": 1,
-                "signal_score_pct": 100,
-                "weighted_score_points": 100
-            },
-            {
-                "domain": "readiness",
                 "tasks_total": 2,
                 "active_tasks": 0,
                 "done_tasks": 2,
@@ -1781,11 +1805,11 @@
         ],
         "daily": [
             {
-                "date": "2026-03-21",
-                "captured_at": "2026-03-21T17:31:25.409Z",
+                "date": "2026-03-27",
+                "captured_at": "2026-03-27T11:57:45.421Z",
                 "counts_by_signal": {
-                    "GREEN": 31,
-                    "YELLOW": 1,
+                    "GREEN": 32,
+                    "YELLOW": 0,
                     "RED": 0
                 },
                 "domains": {
@@ -1872,9 +1896,9 @@
                     },
                     "codex-governance": {
                         "signal": "GREEN",
-                        "tasks_total": 2,
+                        "tasks_total": 4,
                         "active_tasks": 0,
-                        "done_tasks": 2,
+                        "done_tasks": 4,
                         "blocking_conflicts": 0,
                         "handoff_conflicts": 0,
                         "active_expired_handoffs": 0
@@ -1889,10 +1913,10 @@
                         "active_expired_handoffs": 0
                     },
                     "deploy": {
-                        "signal": "YELLOW",
+                        "signal": "GREEN",
                         "tasks_total": 30,
-                        "active_tasks": 1,
-                        "done_tasks": 28,
+                        "active_tasks": 0,
+                        "done_tasks": 29,
                         "blocking_conflicts": 0,
                         "handoff_conflicts": 0,
                         "active_expired_handoffs": 0
@@ -1926,7 +1950,7 @@
                     },
                     "frontend-public": {
                         "signal": "GREEN",
-                        "tasks_total": 46,
+                        "tasks_total": 47,
                         "active_tasks": 0,
                         "done_tasks": 45,
                         "blocking_conflicts": 0,
@@ -1980,9 +2004,9 @@
                     },
                     "openclaw_runtime": {
                         "signal": "GREEN",
-                        "tasks_total": 8,
+                        "tasks_total": 10,
                         "active_tasks": 0,
-                        "done_tasks": 8,
+                        "done_tasks": 10,
                         "blocking_conflicts": 0,
                         "handoff_conflicts": 0,
                         "active_expired_handoffs": 0
@@ -2025,18 +2049,18 @@
                     },
                     "queue": {
                         "signal": "GREEN",
-                        "tasks_total": 2,
+                        "tasks_total": 3,
                         "active_tasks": 0,
-                        "done_tasks": 2,
+                        "done_tasks": 3,
                         "blocking_conflicts": 0,
                         "handoff_conflicts": 0,
                         "active_expired_handoffs": 0
                     },
                     "readiness": {
                         "signal": "GREEN",
-                        "tasks_total": 2,
+                        "tasks_total": 3,
                         "active_tasks": 0,
-                        "done_tasks": 2,
+                        "done_tasks": 3,
                         "blocking_conflicts": 0,
                         "handoff_conflicts": 0,
                         "active_expired_handoffs": 0
@@ -2098,7 +2122,7 @@
         "premium_budget_unit": "premium_session",
         "ledger_path": "verification/codex-model-usage.jsonl",
         "decision_packets_dir": "verification/codex-decisions",
-        "codex_tasks_total": 8,
+        "codex_tasks_total": 12,
         "active_codex_tasks": 0,
         "premium_calls_total": 0,
         "premium_subagent_sessions_total": 0,
@@ -2124,15 +2148,47 @@
         "by_lane": [
             {
                 "codex_instance": "codex_backend_ops",
-                "tasks_total": 8,
+                "tasks_total": 9,
                 "active_tasks": 0,
-                "closed_tasks": 8,
+                "closed_tasks": 9,
                 "premium_calls_total": 0,
                 "premium_subagent_sessions_total": 0,
                 "premium_root_exceptions_total": 0,
                 "premium_budget_total": 10,
                 "premium_budget_remaining": 10,
-                "tasks_zero_premium": 8,
+                "tasks_zero_premium": 9,
+                "avoided_rework_calls": 0,
+                "mini_root_compliant_sessions": 0,
+                "tasks_zero_premium_pct": 100,
+                "mini_root_compliance_pct": 100
+            },
+            {
+                "codex_instance": "codex_frontend",
+                "tasks_total": 1,
+                "active_tasks": 0,
+                "closed_tasks": 0,
+                "premium_calls_total": 0,
+                "premium_subagent_sessions_total": 0,
+                "premium_root_exceptions_total": 0,
+                "premium_budget_total": 0,
+                "premium_budget_remaining": 0,
+                "tasks_zero_premium": 1,
+                "avoided_rework_calls": 0,
+                "mini_root_compliant_sessions": 0,
+                "tasks_zero_premium_pct": 100,
+                "mini_root_compliance_pct": 100
+            },
+            {
+                "codex_instance": "codex_transversal",
+                "tasks_total": 2,
+                "active_tasks": 0,
+                "closed_tasks": 2,
+                "premium_calls_total": 0,
+                "premium_subagent_sessions_total": 0,
+                "premium_root_exceptions_total": 0,
+                "premium_budget_total": 1,
+                "premium_budget_remaining": 1,
+                "tasks_zero_premium": 2,
                 "avoided_rework_calls": 0,
                 "mini_root_compliant_sessions": 0,
                 "tasks_zero_premium_pct": 100,
@@ -2181,7 +2237,7 @@
         }
     },
     "io": {
-        "profile": "default",
+        "profile": "ci",
         "no_write": false,
         "dry_run": false,
         "write_mode": "write",
@@ -2193,7 +2249,7 @@
         ]
     },
     "delta": {
-        "tasks_total": 69,
+        "tasks_total": 76,
         "file_conflicts": 0,
         "file_conflicts_handoff": 0,
         "traceability_pct": -1
