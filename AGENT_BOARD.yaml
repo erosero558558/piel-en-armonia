@@ -17,17 +17,17 @@ strategy:
     objective: "Reactivar queue/turnero como piloto web local-first por clinica, separando el carril web del bloqueo remoto/productivo y sin exigir desktop o Android como precondicion de salida local."
     owner: deck
     owner_policy: "detected_default_owner"
-    status: active
+    status: closed
     started_at: "2026-03-28"
     review_due_at: "2026-04-01"
-    closed_at: ""
-    close_reason: ""
+    closed_at: "2026-03-28T15:35:11Z"
+    close_reason: "review_complete"
     exit_criteria: ["El perfil de clinica acepta release.mode=web_pilot sin romper suite_v2 ni el schema v1", "Admin, operador, kiosco y sala leen web_pilot como piloto local valido y dejan desktop/Android como carriles diferidos", "El gate local de turnero vuelve a verde sin verify-remote, smoke prod ni dependencia de public_main_sync"]
     success_signal: "Piel Armonia Quito puede operar el piloto web local por clinica con readiness, labels y gates locales consistentes, dejando native apps como fase posterior."
     focus_id: "FOCUS-2026-03-turnero-web-pilot-local-cut-1"
     focus_title: "Turnero web pilot local-first por clinica"
     focus_summary: "Alinear perfil clinico, surfaces web y gate local para operar turnero como web_pilot por clinica, sin depender de native apps ni de verificacion remota."
-    focus_status: active
+    focus_status: closed
     focus_proof: "Admin, operador, kiosco y sala leen el perfil web_pilot de la clinica activa, el gate local vuelve a verde y desktop/Android quedan como carriles diferidos del piloto."
     focus_steps: ["web_pilot_contract_alignment", "web_surface_local_readiness", "local_gate_validation"]
     focus_next_step: "local_gate_validation"
@@ -35,8 +35,8 @@ strategy:
     focus_non_goals: ["verify_remote_turnero", "prod_smoke_turnero", "desktop_android_blocking", "public_main_sync_recovery"]
     focus_owner: "deck"
     focus_review_due_at: "2026-04-01"
-    focus_evidence_ref: "verification/agent-runs/CDX-058.md"
-    focus_max_active_slices: 3
+    focus_evidence_ref: "verification/agent-runs/CDX-060.md"
+    focus_max_active_slices: 2
     subfronts:
       - codex_instance: codex_frontend
         subfront_id: SF-frontend-turnero-web-pilot-local
@@ -1479,8 +1479,8 @@ tasks:
     title: "Turnero web pilot local-first backend gates and contract alignment"
     owner: deck
     executor: codex
-    status: review
-    status_since_at: "2026-03-28T12:46:44Z"
+    status: done
+    status_since_at: "2026-03-28T15:32:11Z"
     risk: medium
     scope: turnero
     codex_instance: codex_backend_ops
@@ -1505,14 +1505,14 @@ tasks:
     last_attempt_at: "2026-03-28T12:46:44Z"
     attempts: 1
     blocked_reason: ""
-    lease_id: "lease_CDX-057_20260328131845116_98e77a"
-    lease_owner: "deck"
-    lease_created_at: "2026-03-28T13:18:45.116Z"
-    heartbeat_at: "2026-03-28T13:18:45.181Z"
-    lease_expires_at: "2026-03-28T17:18:45.181Z"
-    lease_reason: "leases_heartbeat"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T15:32:11Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "Admin, operador, kiosco y sala leen release.mode=web_pilot como salida local valida, muestran desktop/Android como carriles diferidos y el runtime regenerado pasa build/check/UI sobre el canon remoto."
@@ -1649,6 +1649,65 @@ tasks:
     rework_reason: ""
     depends_on: ["CDX-056"]
     prompt: "Separar en lane transversal los cambios de board y plan requeridos para el hotfix frontend de CDX-056 y destrabar el closeout canonico."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-060
+    title: "Turnero web pilot local-first formal front closeout"
+    owner: deck
+    executor: codex
+    status: done
+    status_since_at: "2026-03-28T15:43:31Z"
+    risk: low
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode:
+    runtime_surface:
+    runtime_transport:
+    runtime_last_transport:
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-056.md", "verification/agent-runs/CDX-057.md", "verification/agent-runs/CDX-058.md", "verification/agent-runs/CDX-060.md"]
+    source_signal: manual
+    source_ref: "CDX-056,CDX-057,CDX-058"
+    priority_score: 61
+    sla_due_at: "2026-03-28T23:59:00Z"
+    last_attempt_at: "2026-03-28T15:43:31Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T15:43:31Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El frente local-first queda sin WIP residual: CDX-056 y CDX-057 en done, foco y estrategia en closed, evidencia durable en CDX-060 y public_main_sync aislado como warning externo."
+    acceptance_ref: "verification/agent-runs/CDX-060.md"
+    evidence_ref: "verification/agent-runs/CDX-060.md"
+    strategy_id: "STRAT-2026-03-turnero-web-pilot-local-first"
+    subfront_id: "SF-transversal-turnero-web-pilot-local"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-turnero-web-pilot-local-cut-1"
+    focus_step: "local_gate_validation"
+    integration_slice: "governance_evidence"
+    work_type: "support"
+    expected_outcome: "Board, plan y evidencia quedan normalizados como cierre formal del frente turnero local-first, sin reabrir producto ni mezclar deuda operativa externa."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-056", "CDX-057", "CDX-058"]
+    prompt: "Normalizar evidencia, cerrar slices residuales y dejar el frente turnero local-first en estado historico cerrado con CDX-060 como evidencia durable."
     created_at: 2026-03-28
     updated_at: 2026-03-28
 

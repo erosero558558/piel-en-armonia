@@ -4,39 +4,33 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
-<!-- CODEX_ACTIVE
-codex_instance: codex_backend_ops
-block: C2
-task_id: CDX-057
-subfront_id: SF-backend-turnero-web-pilot-local
-status: review
-files: ["controllers/AdminDataController.php", "package.json", "bin/run-playwright-local.js", "tests/admin-queue.spec.js", "tests-node/admin-data-turnero-clinic-profile-contract.test.js", "tests-node/admin-queue-pilot-readiness.test.js", "tests-node/health-turnero-pilot-contract.test.js", "tests-node/queue-operator-shell-state.test.js", "tests-node/turnero-clinic-profile-registry.test.js", "tests-node/turnero-runtime-contract.test.js", "tests-node/turnero-v2-gate-contract.test.js", "verification/agent-runs/CDX-057.md"]
-updated_at: 2026-03-28
--->
-
 <!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-turnero-web-pilot-local-first
 title: "Turnero web pilot local-first"
-status: active
+status: closed
 owner: deck
 owner_policy: "detected_default_owner"
 objective: "Reactivar queue/turnero como piloto web local-first por clinica, separando el carril web del bloqueo remoto/productivo y sin exigir desktop o Android como precondicion de salida local."
 started_at: "2026-03-28"
 review_due_at: "2026-04-01"
+closed_at: "2026-03-28T15:35:11Z"
+close_reason: "review_complete"
 success_signal: "Piel Armonia Quito puede operar el piloto web local por clinica con readiness, labels y gates locales consistentes, dejando native apps como fase posterior."
 focus_id: "FOCUS-2026-03-turnero-web-pilot-local-cut-1"
 focus_title: "Turnero web pilot local-first por clinica"
-focus_status: active
+focus_status: closed
 focus_next_step: "local_gate_validation"
 focus_required_checks: ["test:turnero:web-pilot:contracts", "test:turnero:web-pilot:php-contract", "test:turnero:web-pilot:ui"]
+focus_evidence_ref: "verification/agent-runs/CDX-060.md"
+focus_max_active_slices: 2
 subfront_ids: ["SF-frontend-turnero-web-pilot-local", "SF-backend-turnero-web-pilot-local", "SF-transversal-turnero-web-pilot-local"]
 updated_at: "2026-03-28"
 -->
 
 ## Integracion canonica Turnero local-first 2026-03-28
 
-- `STRAT-2026-03-turnero-web-pilot-local-first` vuelve a ser el frente activo
-  del canon remoto.
+- `STRAT-2026-03-turnero-web-pilot-local-first` queda historizada como frente
+  publicado y ya cerrado sobre el canónico.
 - `CDX-056` reemplaza la slice local `CDX-053` y consolida el replay frontend
   del piloto web local-first sobre el canon remoto.
 - `CDX-057` reemplaza la slice local `CDX-054` y consolida contrato, gates y
@@ -45,6 +39,8 @@ updated_at: "2026-03-28"
   gobernanza, snapshot del foco y publicación final del frente.
 - `CDX-059` absorbe el split transversal de board/plan requerido para
   cerrar `CDX-056` sin volver a bloquear `workspace truth`.
+- `CDX-060` cierra la evidencia durable del frente, terminaliza el review
+  residual y deja foco/estrategia en `closed` sin reabrir cambios de producto.
 - `CDX-009` deja de consumir slot del frente activo y queda como deuda externa
   no bloqueante; `public_main_sync` se tolera solo como warning operativo
   fuera del foco local-first.
@@ -183,28 +179,31 @@ updated_at: "2026-03-28"
 
 ## Estrategia madre activa
 
-- Estrategia activa: `STRAT-2026-03-turnero-web-pilot-local-first`.
+- Estrategia cerrada: `STRAT-2026-03-turnero-web-pilot-local-first`.
 - Sin draft siguiente activo por ahora.
 - Objetivo: operar `turnero` como `web_pilot` por clinica en local-first,
   con contrato, runtime y UI validados sobre `origin/main`.
-- El foco vigente es `local_gate_validation`; los required checks son
+- El foco queda cerrado sobre `local_gate_validation`; los required checks
+  verificados fueron
   `test:turnero:web-pilot:contracts`,
   `test:turnero:web-pilot:php-contract` y
   `test:turnero:web-pilot:ui`.
-- `CDX-056` queda en `review` como slice frontend primaria del replay canonico.
-- `CDX-057` queda en `review` como slice backend/gates de soporte ya validada.
-- `CDX-058` queda en `in_progress` como slice transversal de closeout/publicacion.
+- `CDX-056` queda en `done` como slice frontend primaria del replay canonico.
+- `CDX-057` queda en `done` como slice backend/gates ya validada.
+- `CDX-058` y `CDX-059` quedan en `done` como slices transversales ya
+  absorbidas por el canon remoto.
+- `CDX-060` queda en `done` como evidencia durable del cierre formal de
+  gobernanza, foco y estrategia.
 - `CDX-009` pasa a deuda externa no bloqueante y queda fuera del foco activo.
 
 ## Tri-lane operativo vigente
 
-- `codex_frontend`: mantiene `CDX-056` en `review` dentro de
-  `SF-frontend-turnero-web-pilot-local`.
-- `codex_backend_ops`: mantiene `CDX-057` en `review` como slice de gates,
-  contratos y runner local del frente.
-- `codex_transversal`: mantiene `CDX-058` en `in_progress` para cerrar
-  gobernanza/publish del frente y dejar el foco con evidencia durable en
-  `verification/agent-runs/CDX-058.md`.
+- `codex_frontend`: sin slices activas; `CDX-056` queda historizada en
+  `done`.
+- `codex_backend_ops`: sin slices activas; `CDX-057` queda historizada en
+  `done`.
+- `codex_transversal`: sin slices activas; `CDX-058`, `CDX-059` y `CDX-060`
+  quedan historizadas en `done`.
 
 ## Distribucion de esfuerzo
 
