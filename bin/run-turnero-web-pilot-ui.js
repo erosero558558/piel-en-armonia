@@ -15,7 +15,7 @@ const SUITES = [
     {
         id: 'admin_queue',
         label: 'Admin queue',
-        args: ['tests/admin-queue.spec.js', '--workers=1'],
+        args: ['tests/admin-queue-pilot-governance.spec.js', '--workers=1'],
     },
     {
         id: 'queue_kiosk',
