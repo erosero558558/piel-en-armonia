@@ -4,34 +4,46 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
-<!-- CODEX_ACTIVE
-codex_instance: codex_backend_ops
-block: C2
-task_id: CDX-009
-subfront_id: SF-backend-admin-operativo
-status: blocked
-files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
-updated_at: 2026-03-28
--->
-
 <!-- CODEX_STRATEGY_ACTIVE
-id: STRAT-2026-03-admin-operativo
-title: "Admin operativo"
-status: active
+id: STRAT-2026-03-turnero-web-pilot-local-first
+title: "Turnero web pilot local-first"
+status: closed
 owner: deck
 owner_policy: "detected_default_owner"
-objective: "Convertir el frente admin clinico, queue/turnero y OpenClaw UX en una entrega operable y visible, con soporte backend y runtime estrictamente alineado."
+objective: "Reactivar queue/turnero como piloto web local-first por clinica, separando el carril web del bloqueo remoto/productivo y sin exigir desktop o Android como precondicion de salida local."
 started_at: "2026-03-28"
-review_due_at: "2026-03-21"
-success_signal: "Un mismo corte operativo puede demostrarse de punta a punta sin abrir trabajo fuera del frente admin operativo."
-focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
-focus_title: "Admin operativo demostrable"
-focus_status: active
-focus_next_step: "admin_queue_pilot_cut"
-focus_required_checks: ["test:admin:queue", "test:turnero:ui"]
-subfront_ids: ["SF-frontend-admin-operativo", "SF-frontend-queue-turnero-operativo", "SF-backend-admin-operativo", "SF-transversal-admin-operativo"]
+review_due_at: "2026-04-01"
+closed_at: "2026-03-28T15:35:11Z"
+close_reason: "review_complete"
+success_signal: "Piel Armonia Quito puede operar el piloto web local por clinica con readiness, labels y gates locales consistentes, dejando native apps como fase posterior."
+focus_id: "FOCUS-2026-03-turnero-web-pilot-local-cut-1"
+focus_title: "Turnero web pilot local-first por clinica"
+focus_status: closed
+focus_next_step: "local_gate_validation"
+focus_required_checks: ["test:turnero:web-pilot:contracts", "test:turnero:web-pilot:php-contract", "test:turnero:web-pilot:ui"]
+focus_evidence_ref: "verification/agent-runs/CDX-060.md"
+focus_max_active_slices: 2
+subfront_ids: ["SF-frontend-turnero-web-pilot-local", "SF-backend-turnero-web-pilot-local", "SF-transversal-turnero-web-pilot-local"]
 updated_at: "2026-03-28"
 -->
+
+## Integracion canonica Turnero local-first 2026-03-28
+
+- `STRAT-2026-03-turnero-web-pilot-local-first` queda historizada como frente
+  publicado y ya cerrado sobre el canónico.
+- `CDX-056` reemplaza la slice local `CDX-053` y consolida el replay frontend
+  del piloto web local-first sobre el canon remoto.
+- `CDX-057` reemplaza la slice local `CDX-054` y consolida contrato, gates y
+  runner local del carril web-pilot.
+- `CDX-058` reemplaza la slice local `CDX-055` y cierra la remap canónica de
+  gobernanza, snapshot del foco y publicación final del frente.
+- `CDX-059` absorbe el split transversal de board/plan requerido para
+  cerrar `CDX-056` sin volver a bloquear `workspace truth`.
+- `CDX-060` cierra la evidencia durable del frente, terminaliza el review
+  residual y deja foco/estrategia en `closed` sin reabrir cambios de producto.
+- `CDX-009` deja de consumir slot del frente activo y queda como deuda externa
+  no bloqueante; `public_main_sync` se tolera solo como warning operativo
+  fuera del foco local-first.
 
 ## Normalizacion 2026-03-26
 
@@ -116,46 +128,32 @@ updated_at: "2026-03-28"
 
 ## Formalizacion kiosco canonico 2026-03-28
 
-- `CDX-053` queda terminal en `failed` por repriorizacion del frente; no se
-  trata como trabajo completado de `admin-shell-rc1-polish`.
-- El rescate funcional del kiosco/turnero se publica aparte sobre `main` en
-  `5e970830` y queda trazado en `CDX-054`.
-- La estrategia vigente del canon remoto es `STRAT-2026-03-admin-operativo`,
-  con `focus_next_step=feedback_trim`.
-- `CDX-054` permanece como slice frontend de formalizacion/cierre del rescate
-  del kiosco, acotada a `kiosco-turnos.html` y su evidencia.
+- Estado historico previo a la reactivacion local-first.
+- `CDX-053` queda como tombstone del donor frontend local; su continuidad
+  canonica se remapea a `CDX-056`.
+- `CDX-054` queda como tombstone del donor backend local; su continuidad
+  canonica se remapea a `CDX-057`.
 
 ## Bootstrap Turnero Gates 2026-03-28
 
-- `CDX-055` deja el bootstrap minimo de gobernanza para rescatar
-  `Turnero Gates` desde el canon actual de `admin-operativo`.
-- `external_blocker_escape` pasa a aceptar reglas multiples manteniendo
-  compatibilidad con la regla legacy de `forward + codex_frontend`.
-- Se agrega un carve-out nuevo y acotado solo para
-  `support + codex_backend_ops + scope=gates + subfront_id=SF-backend-admin-operativo`
-  en `feedback_trim`.
-- El objetivo es permitir el cierre canonico de una slice de soporte de gates
-  sin abrir el escape a `deploy`, `ops`, `monitoring`, `tests` genericos ni
-  otros scopes/lane fuera del rescate de `Turnero Gates`.
+- `CDX-055` queda como donor transversal local del que nace `CDX-058`.
+- El bootstrap previo ya no gobierna el canon remoto; queda absorbido por la
+  estrategia activa `turnero-web-pilot-local-first`.
 
 ## Rescue Turnero Gates 2026-03-28
 
-- `CDX-056` queda abierta como slice `backend_ops/gates` primaria dentro de
-  `feedback_trim`, aunque conserva `work_type=support` para reutilizar el
-  carve-out acotado del blocker externo reconocido.
-- El write set del rescue queda acotado a wrappers/scripts locales,
-  `package.json`, runbook y contratos Node del carril `turnero/web-pilot`.
-- `kiosco`, `public-v6`, `auth` y runtime de producto quedan expresamente
-  fuera de esta iteracion y preservados en patchsets separados.
+- El rescate preintegracion de gates queda absorbido por `CDX-057`.
+- `CDX-056` deja de referir a ese rescue y pasa a ser la slice frontend
+  primaria del piloto web local-first en el canónico.
 
 ## Proposito
 
-- Pulir el shell clinico diario del admin sin reabrir surfaces fuera del RC1.
-- Mantener exactas las cinco secciones visibles ya canonicas:
-  `dashboard`, `appointments`, `callbacks`, `availability`,
-  `clinical-history`.
-- Mejorar navegacion, ergonomia y chrome visible sin tocar runtime, backend,
-  publish ni host publico.
+- Consolidar `queue/turnero` como piloto web local-first por clinica sobre el
+  canon remoto.
+- Tratar `web_pilot` como salida local valida en admin, operador, kiosco y
+  sala, dejando desktop/Android como carriles diferidos.
+- Validar contrato, runtime local y UI sin depender de `verify-remote`,
+  `smoke:prod:*` ni `public_main_sync`.
 
 ## Gobernanza
 
@@ -181,30 +179,37 @@ updated_at: "2026-03-28"
 
 ## Estrategia madre activa
 
-- Estrategia activa: `STRAT-2026-03-admin-operativo`.
+- Estrategia cerrada: `STRAT-2026-03-turnero-web-pilot-local-first`.
 - Sin draft siguiente activo por ahora.
-- Objetivo: mantener visible el corte admin/queue operativo mientras
-  `public_main_sync` y `runtime:operator_auth` sigan rojos por blocker externo
-  reconocido.
-- El foco vigente es `feedback_trim`; los required checks siguen siendo
-  `job:public_main_sync` y `runtime:operator_auth`.
-- `CDX-009` sigue bloqueada como evidencia/backend del incidente externo.
-- `CDX-054` queda como slice frontend del rescate de kiosco ya publicado.
+- Objetivo: operar `turnero` como `web_pilot` por clinica en local-first,
+  con contrato, runtime y UI validados sobre `origin/main`.
+- El foco queda cerrado sobre `local_gate_validation`; los required checks
+  verificados fueron
+  `test:turnero:web-pilot:contracts`,
+  `test:turnero:web-pilot:php-contract` y
+  `test:turnero:web-pilot:ui`.
+- `CDX-056` queda en `done` como slice frontend primaria del replay canonico.
+- `CDX-057` queda en `done` como slice backend/gates ya validada.
+- `CDX-058` y `CDX-059` quedan en `done` como slices transversales ya
+  absorbidas por el canon remoto.
+- `CDX-060` queda en `done` como evidencia durable del cierre formal de
+  gobernanza, foco y estrategia.
+- `CDX-009` pasa a deuda externa no bloqueante y queda fuera del foco activo.
 
 ## Tri-lane operativo vigente
 
-- `codex_frontend`: mantiene `CDX-054` en `review` dentro de
-  `SF-frontend-queue-turnero-operativo`.
-- `codex_backend_ops`: conserva `CDX-009` en `blocked` como carryover del
-  blocker host-side.
-- `codex_transversal`: queda libre de slice activa nueva; la gobernanza se
-  formaliza solo como follow-up estructural del canon remoto.
+- `codex_frontend`: sin slices activas; `CDX-056` queda historizada en
+  `done`.
+- `codex_backend_ops`: sin slices activas; `CDX-057` queda historizada en
+  `done`.
+- `codex_transversal`: sin slices activas; `CDX-058`, `CDX-059` y `CDX-060`
+  quedan historizadas en `done`.
 
 ## Distribucion de esfuerzo
 
-- 60% navegacion y ergonomia del shell visible.
-- 25% claridad de chrome y continuidad del flujo diario.
-- 15% QA frontend del shell RC1.
+- 45% surfaces web y runtime local del piloto.
+- 35% contrato, readiness y gates locales por clinica.
+- 20% gobernanza, snapshot del foco y closeout canonico.
 
 ## A1.1 - Base impecable del Admin Shell RC1
 

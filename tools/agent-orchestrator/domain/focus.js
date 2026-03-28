@@ -71,7 +71,13 @@ const FRONTEND_REQUIRED_CHECK_SCRIPT_OVERRIDES = {
     'audit:public-v6:copy': 'audit:public:v6:copy',
 };
 const EVIDENCE_REQUIRED_CHECK_STATUSES = new Set(['review', 'done']);
-const EVIDENCE_REQUIRED_CHECK_SUBFRONT_ID = 'SF-frontend-public-v6-es-copy';
+const EVIDENCE_REQUIRED_CHECK_SUBFRONT_IDS_BY_FOCUS = Object.freeze({
+    'FOCUS-2026-03-public-v6-es-voz-cut-1': ['SF-frontend-public-v6-es-copy'],
+    'FOCUS-2026-03-turnero-web-pilot-local-cut-1': [
+        'SF-frontend-turnero-web-pilot-local',
+        'SF-backend-turnero-web-pilot-local',
+    ],
+});
 const REQUIRED_CHECK_EVIDENCE_PATTERN =
     /^\s*-\s*required_check:\s*([^|]+?)\s*\|\s*state:\s*(green|red)\s*\|\s*command:\s*(.+?)\s*$/gim;
 let cachedWorkspaceDomain = null;
@@ -129,6 +135,15 @@ function normalizeFocusStatus(value) {
     const status = normalizeOptionalToken(value);
     if (!status) return '';
     return ALLOWED_FOCUS_STATUSES.has(status) ? status : status;
+}
+
+function getEvidenceRequiredCheckSubfrontIds(focusId) {
+    const safeFocusId = String(focusId || '').trim();
+    const configured =
+        EVIDENCE_REQUIRED_CHECK_SUBFRONT_IDS_BY_FOCUS[safeFocusId];
+    return Array.isArray(configured)
+        ? configured.map((item) => String(item || '').trim()).filter(Boolean)
+        : [];
 }
 
 function normalizeFocusMaxActiveSlices(value, fallback = 3) {
@@ -532,6 +547,18 @@ function buildLocalRequiredCheckSnapshotFromEvidence(
     const requiredCheckIds = normalizeRequiredCheckList(
         resolvedFocus?.required_checks
     );
+    const allowedSubfrontIds = new Set(
+        getEvidenceRequiredCheckSubfrontIds(focusId)
+    );
+    if (allowedSubfrontIds.size === 0) {
+        return {
+            available: false,
+            valid: false,
+            reason: 'missing_evidence',
+            path: '',
+            snapshot: null,
+        };
+    }
     const tasks = Array.isArray(board?.tasks) ? board.tasks : [];
     const candidates = tasks
         .filter((task) => {
@@ -549,8 +576,7 @@ function buildLocalRequiredCheckSnapshotFromEvidence(
                 return false;
             }
             if (
-                String(task?.subfront_id || '').trim() !==
-                EVIDENCE_REQUIRED_CHECK_SUBFRONT_ID
+                !allowedSubfrontIds.has(String(task?.subfront_id || '').trim())
             ) {
                 return false;
             }
@@ -2080,45 +2106,76 @@ async function buildLiveFocusSummary(board, deps = {}) {
 
 function buildFocusSeed(strategy, options = {}) {
     const strategyId = String(strategy?.id || '').trim();
-    if (strategyId !== 'STRAT-2026-03-admin-operativo') {
-        throw new Error(
-            `focus set-active: seed no soportado para estrategia ${strategyId || 'vacia'}`
-        );
-    }
     const reviewDueAt =
         String(strategy?.review_due_at || '').trim() || '2026-03-21';
     const owner =
         String(strategy?.owner || options.owner || '').trim() || 'ernesto';
-    return {
-        focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
-        focus_title: 'Admin operativo demostrable',
-        focus_summary:
-            'Unificar admin clinico, quick-nav, queue/turnero piloto y readiness operacional en un solo corte legible.',
-        focus_status: 'active',
-        focus_proof:
-            'Operador inicia sesion, entra al admin, usa quick-nav, revisa queue/turnero piloto y el corte queda respaldado por runtime/deploy verificables',
-        focus_steps: [
-            'admin_queue_pilot_cut',
-            'pilot_readiness_evidence',
-            'feedback_trim',
-        ],
-        focus_next_step: 'admin_queue_pilot_cut',
-        focus_required_checks: ['test:admin:queue', 'test:turnero:ui'],
-        focus_non_goals: [
-            'rediseno_publico',
-            'expansion_payments',
-            'refactor_orchestrator_no_bloqueante',
-            'modularizacion_fuera_del_corte',
-            'public_main_sync',
-            'operator_auth',
-            'figo_queue',
-            'openclaw_runtime_recovery',
-        ],
-        focus_owner: owner,
-        focus_review_due_at: reviewDueAt,
-        focus_evidence_ref: '',
-        focus_max_active_slices: 3,
-    };
+    if (strategyId === 'STRAT-2026-03-admin-operativo') {
+        return {
+            focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+            focus_title: 'Admin operativo demostrable',
+            focus_summary:
+                'Unificar admin clinico, quick-nav, queue/turnero piloto y readiness operacional en un solo corte legible.',
+            focus_status: 'active',
+            focus_proof:
+                'Operador inicia sesion, entra al admin, usa quick-nav, revisa queue/turnero piloto y el corte queda respaldado por runtime/deploy verificables',
+            focus_steps: [
+                'admin_queue_pilot_cut',
+                'pilot_readiness_evidence',
+                'feedback_trim',
+            ],
+            focus_next_step: 'admin_queue_pilot_cut',
+            focus_required_checks: [
+                'job:public_main_sync',
+                'runtime:operator_auth',
+            ],
+            focus_non_goals: [
+                'rediseno_publico',
+                'expansion_payments',
+                'refactor_orchestrator_no_bloqueante',
+                'modularizacion_fuera_del_corte',
+            ],
+            focus_owner: owner,
+            focus_review_due_at: reviewDueAt,
+            focus_evidence_ref: '',
+            focus_max_active_slices: 3,
+        };
+    }
+    if (strategyId === 'STRAT-2026-03-turnero-web-pilot-local-first') {
+        return {
+            focus_id: 'FOCUS-2026-03-turnero-web-pilot-local-cut-1',
+            focus_title: 'Turnero web pilot local-first por clinica',
+            focus_summary:
+                'Alinear perfil clinico, surfaces web y gate local para operar turnero como web_pilot por clinica, sin depender de native apps ni de verificacion remota.',
+            focus_status: 'active',
+            focus_proof:
+                'Admin, operador, kiosco y sala leen el perfil web_pilot de la clinica activa, el gate local vuelve a verde y desktop/Android quedan como carriles diferidos del piloto.',
+            focus_steps: [
+                'web_pilot_contract_alignment',
+                'web_surface_local_readiness',
+                'local_gate_validation',
+            ],
+            focus_next_step: 'web_pilot_contract_alignment',
+            focus_required_checks: [
+                'test:turnero:web-pilot:contracts',
+                'test:turnero:web-pilot:php-contract',
+                'test:turnero:web-pilot:ui',
+            ],
+            focus_non_goals: [
+                'verify_remote_turnero',
+                'prod_smoke_turnero',
+                'desktop_android_blocking',
+                'public_main_sync_recovery',
+            ],
+            focus_owner: owner,
+            focus_review_due_at: reviewDueAt,
+            focus_evidence_ref: '',
+            focus_max_active_slices: 2,
+        };
+    }
+    throw new Error(
+        `focus set-active: seed no soportado para estrategia ${strategyId || 'vacia'}`
+    );
 }
 
 module.exports = {

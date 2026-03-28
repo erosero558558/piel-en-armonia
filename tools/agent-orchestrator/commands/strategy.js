@@ -532,7 +532,6 @@ async function handleStrategyCommand(ctx) {
         board,
         {
             title: flags.title,
-            id: flags.id,
             scope: flags.scope,
             files,
             subfront_id: flags['subfront-id'] || flags.subfront_id || '',
