@@ -145,6 +145,54 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
                     ]],
                 ],
             ],
+            'admission001' => [
+                'identity' => [
+                    'documentType' => 'cedula',
+                    'documentNumber' => '0912345678',
+                    'apellidoPaterno' => 'Clinico',
+                    'apellidoMaterno' => '',
+                    'primerNombre' => 'Paciente',
+                    'segundoNombre' => '',
+                ],
+                'demographics' => [
+                    'birthDate' => '1991-05-11',
+                    'ageYears' => 34,
+                    'sexAtBirth' => 'femenino',
+                    'maritalStatus' => 'soltera',
+                    'educationLevel' => 'superior',
+                    'occupation' => 'Paciente ambulatoria',
+                    'employer' => '',
+                    'nationalityCountry' => 'Ecuador',
+                    'culturalGroup' => '',
+                    'birthPlace' => 'Quito',
+                ],
+                'residence' => [
+                    'addressLine' => 'Av. Central 123',
+                    'neighborhood' => 'Centro norte',
+                    'zoneType' => 'urban',
+                    'parish' => 'Inaquito',
+                    'canton' => 'Quito',
+                    'province' => 'Pichincha',
+                    'phone' => '0990001111',
+                ],
+                'coverage' => [
+                    'healthInsuranceType' => 'private',
+                ],
+                'referral' => [
+                    'referredBy' => 'Consulta espontanea',
+                ],
+                'emergencyContact' => [
+                    'name' => 'Contacto principal',
+                    'kinship' => 'Hermana',
+                    'phone' => '0981112233',
+                ],
+                'admissionMeta' => [
+                    'admissionDate' => '2026-03-11T09:45:00-05:00',
+                    'admissionKind' => 'first',
+                    'admittedBy' => 'Recepcion FlowOS',
+                    'transitionMode' => 'new_required',
+                ],
+            ],
             'recordMeta' => [
                 'archiveState' => 'active',
                 'lastAttentionAt' => '2020-03-10T10:00:00-05:00',
@@ -265,6 +313,10 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame(1, (int) ($meta['summary']['recordsGovernance']['overdueCopyRequests'] ?? -1));
         self::assertSame(1, (int) ($meta['summary']['recordsGovernance']['disclosures'] ?? -1));
         self::assertSame(1, (int) ($meta['summary']['recordsGovernance']['archiveEligible'] ?? -1));
+        self::assertSame(1, (int) ($meta['summary']['drafts']['hcu001']['complete'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu001']['partial'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu001']['legacy_partial'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu001']['missing'] ?? -1));
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu005']['complete'] ?? -1));
         self::assertSame(1, (int) ($meta['summary']['drafts']['hcu005']['partial'] ?? -1));
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu005']['missing'] ?? -1));
@@ -277,6 +329,8 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame('Alerta clinica abierta', (string) ($meta['reviewQueue'][0]['latestOpenEventTitle'] ?? ''));
         self::assertSame('blocked', (string) ($meta['reviewQueue'][0]['legalReadinessStatus'] ?? ''));
         self::assertSame('Bloqueada', (string) ($meta['reviewQueue'][0]['legalReadinessLabel'] ?? ''));
+        self::assertSame('complete', (string) ($meta['reviewQueue'][0]['hcu001Status'] ?? ''));
+        self::assertSame('HCU-001 completa', (string) ($meta['reviewQueue'][0]['hcu001Label'] ?? ''));
         self::assertSame('partial', (string) ($meta['reviewQueue'][0]['hcu005Status'] ?? ''));
         self::assertSame('HCU-005 parcial', (string) ($meta['reviewQueue'][0]['hcu005Label'] ?? ''));
         self::assertSame(1, (int) ($meta['reviewQueue'][0]['pendingCopyRequests'] ?? -1));

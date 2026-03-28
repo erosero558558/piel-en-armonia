@@ -82,6 +82,19 @@ final class ClinicalHistoryRepository
         $patientRecordId = self::trimString($seed['patientRecordId'] ?? '');
         $episodeId = self::trimString($seed['episodeId'] ?? '');
         $encounterId = self::trimString($seed['encounterId'] ?? '');
+        $defaultAdmissionTransition = array_key_exists('admission001', $seed)
+            ? 'new_required'
+            : 'legacy_inferred';
+        $normalizedIntake = self::normalizeIntake(isset($seed['intake']) && is_array($seed['intake']) ? $seed['intake'] : []);
+        $admission001 = self::normalizeAdmission001(
+            isset($seed['admission001']) && is_array($seed['admission001']) ? $seed['admission001'] : [],
+            isset($session['patient']) && is_array($session['patient']) ? $session['patient'] : [],
+            $normalizedIntake,
+            [
+                'draft' => $seed,
+                'transitionMode' => $defaultAdmissionTransition,
+            ]
+        );
 
         return [
             'id' => (int) ($seed['id'] ?? 0),
@@ -109,8 +122,9 @@ final class ClinicalHistoryRepository
                 : true,
             'confidence' => self::normalizeConfidence($seed['confidence'] ?? 0),
             'reviewReasons' => self::normalizeStringList($seed['reviewReasons'] ?? []),
-            'intake' => self::normalizeIntake(isset($seed['intake']) && is_array($seed['intake']) ? $seed['intake'] : []),
+            'intake' => $normalizedIntake,
             'clinicianDraft' => self::normalizeClinicianDraft(isset($seed['clinicianDraft']) && is_array($seed['clinicianDraft']) ? $seed['clinicianDraft'] : []),
+            'admission001' => $admission001,
             'recordMeta' => self::normalizeRecordMeta(
                 isset($seed['recordMeta']) && is_array($seed['recordMeta']) ? $seed['recordMeta'] : [],
                 $session,
@@ -562,6 +576,11 @@ final class ClinicalHistoryRepository
         $finalSections = isset($finalNote['sections']) && is_array($finalNote['sections'])
             ? $finalNote['sections']
             : [];
+        $hcu001Section = self::normalizeAdmission001(
+            isset($finalSections['hcu001']) && is_array($finalSections['hcu001'])
+                ? $finalSections['hcu001']
+                : []
+        );
         $legacySection = self::normalizeHcu005Section([
             'evolutionNote' => self::trimString($finalNote['summary'] ?? ''),
             'diagnosticImpression' => '',
@@ -617,6 +636,7 @@ final class ClinicalHistoryRepository
                     ? (bool) $finalNote['confidential']
                     : true,
                 'sections' => [
+                    'hcu001' => $hcu001Section,
                     'hcu005' => $hcu005Section,
                 ],
             ],
@@ -741,6 +761,360 @@ final class ClinicalHistoryRepository
             'incompletePrescriptionItems' => count($incompleteItems),
             'incompletePrescriptionDetails' => array_values($incompleteItems),
         ];
+    }
+
+    public static function normalizeAdmission001(
+        array $admission,
+        array $patient = [],
+        array $intake = [],
+        array $options = []
+    ): array {
+        $facts = self::normalizePatientFacts($intake['datosPaciente'] ?? []);
+        $normalizedPatient = self::normalizePatient($patient);
+        $identitySource = isset($admission['identity']) && is_array($admission['identity'])
+            ? $admission['identity']
+            : [];
+        $demographicsSource = isset($admission['demographics']) && is_array($admission['demographics'])
+            ? $admission['demographics']
+            : [];
+        $residenceSource = isset($admission['residence']) && is_array($admission['residence'])
+            ? $admission['residence']
+            : [];
+        $coverageSource = isset($admission['coverage']) && is_array($admission['coverage'])
+            ? $admission['coverage']
+            : [];
+        $referralSource = isset($admission['referral']) && is_array($admission['referral'])
+            ? $admission['referral']
+            : [];
+        $emergencySource = isset($admission['emergencyContact']) && is_array($admission['emergencyContact'])
+            ? $admission['emergencyContact']
+            : [];
+        $metaSource = isset($admission['admissionMeta']) && is_array($admission['admissionMeta'])
+            ? $admission['admissionMeta']
+            : [];
+        $historySource = isset($admission['history']) && is_array($admission['history'])
+            ? $admission['history']
+            : [];
+
+        $transitionMode = self::trimString(
+            $metaSource['transitionMode'] ?? $options['transitionMode'] ?? ''
+        );
+        if (!in_array($transitionMode, ['new_required', 'legacy_inferred'], true)) {
+            $transitionMode = 'legacy_inferred';
+        }
+
+        $documentType = self::trimString(
+            $identitySource['documentType']
+                ?? $normalizedPatient['documentType']
+                ?? 'cedula'
+        );
+        if (!in_array($documentType, ['cedula', 'passport', 'other'], true)) {
+            $documentType = 'cedula';
+        }
+
+        $birthDate = self::trimString(
+            $demographicsSource['birthDate']
+                ?? $facts['fechaNacimiento']
+                ?? $normalizedPatient['birthDate']
+                ?? ''
+        );
+        $ageYears = self::nullablePositiveInt(
+            $demographicsSource['ageYears']
+                ?? $facts['edadAnios']
+                ?? $normalizedPatient['ageYears']
+                ?? self::deriveAgeYearsFromBirthDate($birthDate)
+        );
+
+        return [
+            'identity' => [
+                'documentType' => $documentType,
+                'documentNumber' => self::trimString(
+                    $identitySource['documentNumber']
+                        ?? $normalizedPatient['documentNumber']
+                        ?? ''
+                ),
+                'apellidoPaterno' => self::trimString($identitySource['apellidoPaterno'] ?? ''),
+                'apellidoMaterno' => self::trimString($identitySource['apellidoMaterno'] ?? ''),
+                'primerNombre' => self::trimString($identitySource['primerNombre'] ?? ''),
+                'segundoNombre' => self::trimString($identitySource['segundoNombre'] ?? ''),
+            ],
+            'demographics' => [
+                'birthDate' => $birthDate,
+                'ageYears' => $ageYears,
+                'sexAtBirth' => self::trimString(
+                    $demographicsSource['sexAtBirth']
+                        ?? $facts['sexoBiologico']
+                        ?? $normalizedPatient['sexAtBirth']
+                        ?? ''
+                ),
+                'maritalStatus' => self::trimString($demographicsSource['maritalStatus'] ?? ''),
+                'educationLevel' => self::trimString($demographicsSource['educationLevel'] ?? ''),
+                'occupation' => self::trimString($demographicsSource['occupation'] ?? ''),
+                'employer' => self::trimString($demographicsSource['employer'] ?? ''),
+                'nationalityCountry' => self::trimString($demographicsSource['nationalityCountry'] ?? ''),
+                'culturalGroup' => self::trimString($demographicsSource['culturalGroup'] ?? ''),
+                'birthPlace' => self::trimString($demographicsSource['birthPlace'] ?? ''),
+            ],
+            'residence' => [
+                'addressLine' => self::trimString($residenceSource['addressLine'] ?? ''),
+                'neighborhood' => self::trimString($residenceSource['neighborhood'] ?? ''),
+                'zoneType' => self::trimString($residenceSource['zoneType'] ?? ''),
+                'parish' => self::trimString($residenceSource['parish'] ?? ''),
+                'canton' => self::trimString($residenceSource['canton'] ?? ''),
+                'province' => self::trimString($residenceSource['province'] ?? ''),
+                'phone' => self::trimString(
+                    $residenceSource['phone']
+                        ?? $facts['telefono']
+                        ?? $normalizedPatient['phone']
+                        ?? ''
+                ),
+            ],
+            'coverage' => [
+                'healthInsuranceType' => self::trimString($coverageSource['healthInsuranceType'] ?? ''),
+            ],
+            'referral' => [
+                'referredBy' => self::trimString($referralSource['referredBy'] ?? ''),
+            ],
+            'emergencyContact' => [
+                'name' => self::trimString($emergencySource['name'] ?? ''),
+                'kinship' => self::trimString($emergencySource['kinship'] ?? ''),
+                'phone' => self::trimString($emergencySource['phone'] ?? ''),
+            ],
+            'admissionMeta' => [
+                'admissionDate' => self::trimString($metaSource['admissionDate'] ?? ''),
+                'admissionKind' => self::trimString($metaSource['admissionKind'] ?? ''),
+                'admittedBy' => self::trimString($metaSource['admittedBy'] ?? ''),
+                'transitionMode' => $transitionMode,
+            ],
+            'history' => [
+                'admissionHistory' => self::normalizeAdmissionHistory(
+                    $historySource['admissionHistory'] ?? $admission['admissionHistory'] ?? []
+                ),
+                'changeLog' => self::normalizeAdmissionChangeLog(
+                    $historySource['changeLog'] ?? $admission['changeLog'] ?? []
+                ),
+            ],
+        ];
+    }
+
+    public static function normalizeAdmissionHistory($history): array
+    {
+        if (!is_array($history)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($history as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $normalized[] = [
+                'entryId' => self::trimString($item['entryId'] ?? self::newOpaqueId('adm')),
+                'episodeId' => self::trimString($item['episodeId'] ?? ''),
+                'caseId' => self::trimString($item['caseId'] ?? ''),
+                'admissionDate' => self::trimString($item['admissionDate'] ?? ''),
+                'admissionKind' => self::trimString($item['admissionKind'] ?? ''),
+                'admittedBy' => self::trimString($item['admittedBy'] ?? ''),
+                'createdAt' => self::trimString($item['createdAt'] ?? $item['admissionDate'] ?? ''),
+            ];
+        }
+
+        return array_values($normalized);
+    }
+
+    public static function normalizeAdmissionChangeLog($changeLog): array
+    {
+        if (!is_array($changeLog)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($changeLog as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $normalized[] = [
+                'changeId' => self::trimString($item['changeId'] ?? self::newOpaqueId('admchg')),
+                'actor' => self::trimString($item['actor'] ?? ''),
+                'actorRole' => self::trimString($item['actorRole'] ?? ''),
+                'changedAt' => self::trimString($item['changedAt'] ?? $item['createdAt'] ?? ''),
+                'fields' => self::normalizeStringList($item['fields'] ?? []),
+                'summary' => self::trimString($item['summary'] ?? ''),
+            ];
+        }
+
+        return array_values($normalized);
+    }
+
+    public static function evaluateHcu001(array $admission, array $context = []): array
+    {
+        $normalized = self::normalizeAdmission001(
+            $admission,
+            isset($context['patient']) && is_array($context['patient']) ? $context['patient'] : [],
+            isset($context['intake']) && is_array($context['intake']) ? $context['intake'] : [],
+            isset($context['draft']) && is_array($context['draft']) ? ['draft' => $context['draft']] : []
+        );
+        $identity = $normalized['identity'];
+        $demographics = $normalized['demographics'];
+        $residence = $normalized['residence'];
+        $coverage = $normalized['coverage'];
+        $emergencyContact = $normalized['emergencyContact'];
+        $meta = $normalized['admissionMeta'];
+
+        $hasResidence = self::trimString($residence['addressLine'] ?? '') !== ''
+            || self::trimString($residence['neighborhood'] ?? '') !== ''
+            || self::trimString($residence['parish'] ?? '') !== ''
+            || self::trimString($residence['canton'] ?? '') !== ''
+            || self::trimString($residence['province'] ?? '') !== '';
+        $hasIdentity = self::trimString($identity['documentNumber'] ?? '') !== ''
+            && self::trimString($identity['primerNombre'] ?? '') !== ''
+            && self::trimString($identity['apellidoPaterno'] ?? '') !== '';
+        $hasBirthReference = self::trimString($demographics['birthDate'] ?? '') !== ''
+            || self::nullablePositiveInt($demographics['ageYears'] ?? null) !== null;
+        $hasSex = self::trimString($demographics['sexAtBirth'] ?? '') !== '';
+        $hasResidenceContact = self::trimString($residence['phone'] ?? '') !== '' && $hasResidence;
+        $hasInsurance = self::trimString($coverage['healthInsuranceType'] ?? '') !== '';
+        $hasEmergency = self::trimString($emergencyContact['name'] ?? '') !== ''
+            && self::trimString($emergencyContact['phone'] ?? '') !== '';
+        $hasAdmissionDate = self::trimString($meta['admissionDate'] ?? '') !== '';
+        $hasAdmissionKind = in_array(
+            self::trimString($meta['admissionKind'] ?? ''),
+            ['first', 'subsequent'],
+            true
+        );
+
+        $complete = $hasIdentity
+            && $hasBirthReference
+            && $hasSex
+            && $hasResidenceContact
+            && $hasInsurance
+            && $hasEmergency
+            && $hasAdmissionDate
+            && $hasAdmissionKind;
+
+        $patient = self::normalizePatient(
+            isset($context['patient']) && is_array($context['patient']) ? $context['patient'] : []
+        );
+        $intake = isset($context['intake']) && is_array($context['intake']) ? $context['intake'] : [];
+        $legacySignals = self::trimString($patient['name'] ?? '') !== ''
+            || self::trimString($patient['phone'] ?? '') !== ''
+            || self::nullablePositiveInt($patient['ageYears'] ?? null) !== null
+            || self::trimString($patient['sexAtBirth'] ?? '') !== ''
+            || self::trimString($intake['motivoConsulta'] ?? '') !== ''
+            || self::trimString($intake['resumenClinico'] ?? '') !== '';
+        $explicitContent = $complete
+            || self::trimString($identity['apellidoMaterno'] ?? '') !== ''
+            || self::trimString($identity['segundoNombre'] ?? '') !== ''
+            || self::trimString($demographics['maritalStatus'] ?? '') !== ''
+            || self::trimString($demographics['educationLevel'] ?? '') !== ''
+            || self::trimString($demographics['occupation'] ?? '') !== ''
+            || self::trimString($demographics['employer'] ?? '') !== ''
+            || self::trimString($demographics['nationalityCountry'] ?? '') !== ''
+            || self::trimString($demographics['culturalGroup'] ?? '') !== ''
+            || self::trimString($demographics['birthPlace'] ?? '') !== ''
+            || self::trimString($residence['zoneType'] ?? '') !== ''
+            || self::trimString($residence['phone'] ?? '') !== ''
+            || self::normalizeAdmissionHistory($normalized['history']['admissionHistory'] ?? []) !== [];
+        $transitionMode = self::trimString($meta['transitionMode'] ?? 'legacy_inferred');
+        $legacyPartial = !$complete
+            && $transitionMode !== 'new_required'
+            && ($legacySignals || $explicitContent);
+
+        $missingCoreFields = [];
+        if (!$hasIdentity) {
+            $missingCoreFields[] = 'identity';
+        }
+        if (!$hasAdmissionDate) {
+            $missingCoreFields[] = 'admission_date';
+        }
+        if (!$hasAdmissionKind) {
+            $missingCoreFields[] = 'admission_kind';
+        }
+        if (!$hasSex) {
+            $missingCoreFields[] = 'sex_at_birth';
+        }
+        if (!$hasBirthReference) {
+            $missingCoreFields[] = 'birth_reference';
+        }
+        if (!$hasResidenceContact) {
+            $missingCoreFields[] = 'residence_contact';
+        }
+        if (!$hasInsurance) {
+            $missingCoreFields[] = 'health_insurance_type';
+        }
+        if (!$hasEmergency) {
+            $missingCoreFields[] = 'emergency_contact';
+        }
+
+        return [
+            'status' => $complete
+                ? 'complete'
+                : ($legacyPartial ? 'legacy_partial' : ($explicitContent ? 'partial' : 'missing')),
+            'missingCoreFields' => $missingCoreFields,
+            'blocksApproval' => !$complete && !$legacyPartial,
+            'transitionMode' => $transitionMode,
+        ];
+    }
+
+    public static function buildPatientMirrorFromAdmission(array $patient, array $admission, array $intake = []): array
+    {
+        $normalizedPatient = self::normalizePatient($patient);
+        $normalizedAdmission = self::normalizeAdmission001($admission, $patient, $intake);
+        $legalName = self::buildAdmissionLegalName($normalizedAdmission, $normalizedPatient);
+
+        return array_merge($normalizedPatient, [
+            'name' => $legalName !== '' ? $legalName : self::trimString($normalizedPatient['name'] ?? ''),
+            'phone' => self::trimString($normalizedAdmission['residence']['phone'] ?? $normalizedPatient['phone'] ?? ''),
+            'ageYears' => self::nullablePositiveInt(
+                $normalizedAdmission['demographics']['ageYears'] ?? $normalizedPatient['ageYears'] ?? null
+            ),
+            'sexAtBirth' => self::trimString(
+                $normalizedAdmission['demographics']['sexAtBirth'] ?? $normalizedPatient['sexAtBirth'] ?? ''
+            ),
+            'birthDate' => self::trimString($normalizedAdmission['demographics']['birthDate'] ?? ''),
+            'documentType' => self::trimString($normalizedAdmission['identity']['documentType'] ?? ''),
+            'documentNumber' => self::trimString($normalizedAdmission['identity']['documentNumber'] ?? ''),
+            'legalName' => $legalName,
+        ]);
+    }
+
+    public static function buildPatientFactsMirrorFromAdmission(array $facts, array $admission): array
+    {
+        $normalizedFacts = self::normalizePatientFacts($facts);
+        $normalizedAdmission = self::normalizeAdmission001($admission);
+
+        return array_merge($normalizedFacts, [
+            'edadAnios' => self::nullablePositiveInt(
+                $normalizedAdmission['demographics']['ageYears'] ?? $normalizedFacts['edadAnios'] ?? null
+            ),
+            'sexoBiologico' => self::trimString(
+                $normalizedAdmission['demographics']['sexAtBirth'] ?? $normalizedFacts['sexoBiologico'] ?? ''
+            ),
+            'telefono' => self::trimString(
+                $normalizedAdmission['residence']['phone'] ?? $normalizedFacts['telefono'] ?? ''
+            ),
+            'fechaNacimiento' => self::trimString(
+                $normalizedAdmission['demographics']['birthDate'] ?? $normalizedFacts['fechaNacimiento'] ?? ''
+            ),
+        ]);
+    }
+
+    public static function buildAdmissionLegalName(array $admission, array $patient = []): string
+    {
+        $normalized = self::normalizeAdmission001($admission, $patient);
+        $identity = $normalized['identity'];
+        $legalName = trim(implode(' ', array_filter([
+            self::trimString($identity['primerNombre'] ?? ''),
+            self::trimString($identity['segundoNombre'] ?? ''),
+            self::trimString($identity['apellidoPaterno'] ?? ''),
+            self::trimString($identity['apellidoMaterno'] ?? ''),
+        ])));
+
+        if ($legalName !== '') {
+            return $legalName;
+        }
+
+        return self::trimString($patient['name'] ?? '');
     }
 
     public static function prescriptionItemIsStarted(array $item): bool
@@ -1097,6 +1471,10 @@ final class ClinicalHistoryRepository
             'ageYears' => self::nullablePositiveInt($patient['ageYears'] ?? $patient['edadAnios'] ?? null),
             'weightKg' => self::nullableFloat($patient['weightKg'] ?? $patient['pesoKg'] ?? null),
             'sexAtBirth' => self::trimString($patient['sexAtBirth'] ?? $patient['sexoBiologico'] ?? ''),
+            'birthDate' => self::trimString($patient['birthDate'] ?? $patient['fechaNacimiento'] ?? ''),
+            'documentType' => self::trimString($patient['documentType'] ?? ''),
+            'documentNumber' => self::trimString($patient['documentNumber'] ?? ''),
+            'legalName' => self::trimString($patient['legalName'] ?? ''),
             'pregnant' => array_key_exists('pregnant', $patient)
                 ? (bool) $patient['pregnant']
                 : (array_key_exists('embarazo', $patient) ? (bool) $patient['embarazo'] : null),
@@ -1118,6 +1496,8 @@ final class ClinicalHistoryRepository
             'edadAnios' => self::nullablePositiveInt($facts['edadAnios'] ?? $facts['ageYears'] ?? null),
             'pesoKg' => self::nullableFloat($facts['pesoKg'] ?? $facts['weightKg'] ?? null),
             'sexoBiologico' => self::trimString($facts['sexoBiologico'] ?? $facts['sexAtBirth'] ?? ''),
+            'telefono' => self::trimString($facts['telefono'] ?? $facts['phone'] ?? ''),
+            'fechaNacimiento' => self::trimString($facts['fechaNacimiento'] ?? $facts['birthDate'] ?? ''),
             'embarazo' => array_key_exists('embarazo', $facts)
                 ? (bool) $facts['embarazo']
                 : (array_key_exists('pregnant', $facts) ? (bool) $facts['pregnant'] : null),
@@ -1150,6 +1530,8 @@ final class ClinicalHistoryRepository
                 'edadAnios' => null,
                 'pesoKg' => null,
                 'sexoBiologico' => '',
+                'telefono' => '',
+                'fechaNacimiento' => '',
                 'embarazo' => null,
             ],
         ];
@@ -1178,6 +1560,22 @@ final class ClinicalHistoryRepository
         ];
 
         return $normalized;
+    }
+
+    private static function deriveAgeYearsFromBirthDate(string $birthDate): ?int
+    {
+        $normalized = self::trimString($birthDate);
+        if ($normalized === '') {
+            return null;
+        }
+
+        try {
+            $birth = new DateTimeImmutable(substr($normalized, 0, 10));
+            $today = new DateTimeImmutable(local_date('Y-m-d'));
+            return max(0, (int) $today->diff($birth)->y);
+        } catch (Throwable $e) {
+            return null;
+        }
     }
 
     public static function normalizeClinicianDraft(array $draft): array

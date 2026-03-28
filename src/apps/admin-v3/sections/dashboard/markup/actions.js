@@ -361,14 +361,21 @@ function describeClinicalQueueItem(item) {
     const redFlags = normalizeStringList(item?.redFlags);
     const legalLabel = String(item?.legalReadinessLabel || '').trim();
     const legalSummary = String(item?.legalReadinessSummary || '').trim();
+    const hcu001Label = String(item?.hcu001Label || '').trim();
+    const hcu001Summary = String(item?.hcu001Summary || '').trim();
+    const hcu005Label = String(item?.hcu005Label || '').trim();
     const pendingCopyRequests = Number(item?.pendingCopyRequests || 0);
     const overdueCopyRequests = Number(item?.overdueCopyRequests || 0);
     const disclosureCount = Number(item?.disclosureCount || 0);
 
     return truncateSnippet(
         [
-            legalSummary || String(item?.summary || '').trim(),
+            legalSummary ||
+                hcu001Summary ||
+                String(item?.summary || '').trim(),
             legalLabel,
+            hcu001Label,
+            hcu005Label,
             missingFields.length > 0
                 ? `${missingFields.length} dato(s) faltante(s)`
                 : '',

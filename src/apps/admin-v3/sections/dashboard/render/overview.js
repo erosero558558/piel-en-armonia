@@ -135,6 +135,12 @@ function resolveClinicalSummary(snapshot) {
     const archiveEligible = Number(
         snapshot?.summary?.recordsGovernance?.archiveEligible || 0
     );
+    const hcu001Complete = Number(snapshot?.summary?.drafts?.hcu001?.complete || 0);
+    const hcu001Partial = Number(snapshot?.summary?.drafts?.hcu001?.partial || 0);
+    const hcu001LegacyPartial = Number(
+        snapshot?.summary?.drafts?.hcu001?.legacy_partial || 0
+    );
+    const hcu001Missing = Number(snapshot?.summary?.drafts?.hcu001?.missing || 0);
     const hcu005Partial = Number(
         snapshot?.summary?.drafts?.hcu005?.partial || 0
     );
@@ -144,6 +150,12 @@ function resolveClinicalSummary(snapshot) {
 
     if (criticalEvents > 0) {
         return `${criticalEvents} evento(s) critico(s) siguen abiertos y requieren validacion medica inmediata.`;
+    }
+    if (hcu001Missing > 0 || hcu001Partial > 0) {
+        return `${hcu001Missing} expediente(s) siguen sin HCU-001 y ${hcu001Partial} mantienen admision parcial que todavia no sostiene cierre defendible.`;
+    }
+    if (hcu001LegacyPartial > 0) {
+        return `${hcu001LegacyPartial} expediente(s) heredado(s) siguen por regularizar en HCU-001, sin bloquear el cierre clinico por defecto.`;
     }
     if (hcu005Partial > 0 || hcu005Missing > 0) {
         return `${hcu005Partial} episodio(s) tienen HCU-005 parcial y ${hcu005Missing} siguen pendientes de cobertura trazable.`;
@@ -165,6 +177,9 @@ function resolveClinicalSummary(snapshot) {
     }
     if (openEventsCount > 0) {
         return `${openEventsCount} evento(s) siguen visibles para seguimiento del staff, aunque no haya cola de revision abierta.`;
+    }
+    if (hcu001Complete > 0) {
+        return `La admision HCU-001 y el seguimiento HCU-005 ya estan alineados para ${hcu001Complete} expediente(s) activos.`;
     }
 
     return 'Sin cola clinica pendiente: las sesiones recientes ya quedaron estables o aprobadas.';
@@ -202,6 +217,12 @@ function resolveClinicalQueueMeta(snapshot) {
     const pendingCopyRequests = Number(
         snapshot?.summary?.recordsGovernance?.pendingCopyRequests || 0
     );
+    const hcu001Partial = Number(
+        snapshot?.summary?.drafts?.hcu001?.partial || 0
+    );
+    const hcu001LegacyPartial = Number(
+        snapshot?.summary?.drafts?.hcu001?.legacy_partial || 0
+    );
     const hcu005Partial = Number(
         snapshot?.summary?.drafts?.hcu005?.partial || 0
     );
@@ -212,8 +233,35 @@ function resolveClinicalQueueMeta(snapshot) {
             : 'sin score de confianza';
 
     return reviewQueueCount > 1
-        ? `${reviewQueueCount} caso(s) en cola • ${missingFields} dato(s) faltante(s) • ${pendingCopyRequests} copia(s) pendiente(s) • ${hcu005Partial} HCU-005 parcial(es) • ${confidenceLabel}`
-        : `${missingFields} dato(s) faltante(s) • ${pendingCopyRequests} copia(s) pendiente(s) • ${confidenceLabel}`;
+        ? [
+              `${reviewQueueCount} caso(s) en cola`,
+              String(first?.hcu001Label || '').trim(),
+              missingFields > 0 ? `${missingFields} dato(s) faltante(s)` : '',
+              pendingCopyRequests > 0
+                  ? `${pendingCopyRequests} copia(s) pendiente(s)`
+                  : '',
+              hcu001Partial > 0
+                  ? `${hcu001Partial} HCU-001 parcial(es)`
+                  : '',
+              hcu001LegacyPartial > 0
+                  ? `${hcu001LegacyPartial} HCU-001 heredada(s)`
+                  : '',
+              hcu005Partial > 0 ? `${hcu005Partial} HCU-005 parcial(es)` : '',
+              confidenceLabel,
+          ]
+              .filter(Boolean)
+              .join(' • ')
+        : [
+              String(first?.hcu001Label || '').trim(),
+              String(first?.hcu005Label || '').trim(),
+              missingFields > 0 ? `${missingFields} dato(s) faltante(s)` : '',
+              pendingCopyRequests > 0
+                  ? `${pendingCopyRequests} copia(s) pendiente(s)`
+                  : '',
+              confidenceLabel,
+          ]
+              .filter(Boolean)
+              .join(' • ');
 }
 
 function resolveClinicalEventHeadline(snapshot) {

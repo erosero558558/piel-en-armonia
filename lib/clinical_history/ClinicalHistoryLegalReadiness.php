@@ -23,6 +23,17 @@ final class ClinicalHistoryLegalReadiness
         $clinicianDraft = ClinicalHistoryRepository::normalizeClinicianDraft(
             is_array($draft['clinicianDraft'] ?? null) ? $draft['clinicianDraft'] : []
         );
+        $admission001 = ClinicalHistoryRepository::normalizeAdmission001(
+            is_array($draft['admission001'] ?? null) ? $draft['admission001'] : [],
+            is_array($session['patient'] ?? null) ? $session['patient'] : [],
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : [],
+            ['draft' => $draft]
+        );
+        $hcu001Evaluation = ClinicalHistoryRepository::evaluateHcu001($admission001, [
+            'patient' => $session['patient'] ?? [],
+            'intake' => $draft['intake'] ?? [],
+            'draft' => $draft,
+        ]);
         $hcu005 = ClinicalHistoryRepository::normalizeHcu005Draft(
             $clinicianDraft['hcu005'] ?? []
         );
@@ -64,6 +75,36 @@ final class ClinicalHistoryLegalReadiness
 
         $checklist = [];
         $blockingReasons = [];
+
+        $hcu001Pass = ($hcu001Evaluation['blocksApproval'] ?? false) !== true;
+        self::appendChecklist(
+            $checklist,
+            'hcu001_admission',
+            $hcu001Pass,
+            'HCU-001 admision',
+            match ((string) ($hcu001Evaluation['status'] ?? 'missing')) {
+                'complete' => 'La admision HCU-001 cubre los datos nucleares del expediente.',
+                'legacy_partial' => 'Expediente heredado: la admision requiere regularizacion, pero no congela la aprobacion clinica en esta fase.',
+                'partial' => 'La admision HCU-001 ya tiene datos, pero aun faltan campos nucleares para el expediente nuevo.',
+                default => 'Todavia falta registrar la admision HCU-001 del expediente.',
+            },
+            [
+                'hcu001Status' => (string) ($hcu001Evaluation['status'] ?? 'missing'),
+                'missingCoreFields' => $hcu001Evaluation['missingCoreFields'] ?? [],
+                'transitionMode' => $hcu001Evaluation['transitionMode'] ?? 'legacy_inferred',
+            ]
+        );
+        if (($hcu001Evaluation['blocksApproval'] ?? false) === true) {
+            $blockingReasons[] = self::blockingReason(
+                'hcu001_admission_incomplete',
+                'Falta admision HCU-001 defendible',
+                'Completa la identidad, admision y contacto base del expediente antes de aprobar la nota final.',
+                [
+                    'hcu001Status' => (string) ($hcu001Evaluation['status'] ?? 'missing'),
+                    'missingCoreFields' => $hcu001Evaluation['missingCoreFields'] ?? [],
+                ]
+            );
+        }
 
         self::appendChecklist(
             $checklist,
@@ -263,11 +304,28 @@ final class ClinicalHistoryLegalReadiness
             'ready' => $ready,
             'label' => $ready ? 'Lista para aprobar' : 'Bloqueada',
             'summary' => $ready
-                ? 'La historia clinica cubre el HCU-005 y los bloqueos medico-legales minimos para aprobar.'
-                : 'La aprobacion esta bloqueada hasta completar los faltantes medico-legales y el HCU-005 visible.',
+                ? 'La historia clinica cubre HCU-001, HCU-005 y los bloqueos medico-legales minimos para aprobar.'
+                : 'La aprobacion esta bloqueada hasta completar la admision HCU-001, los faltantes medico-legales y el HCU-005 visible.',
             'checklist' => $checklist,
             'blockingReasons' => $blockingReasons,
             'approvalBlockedReasons' => $blockingReasons,
+            'hcu001Status' => [
+                'status' => (string) ($hcu001Evaluation['status'] ?? 'missing'),
+                'label' => match ((string) ($hcu001Evaluation['status'] ?? 'missing')) {
+                    'complete' => 'HCU-001 completa',
+                    'legacy_partial' => 'HCU-001 heredada por regularizar',
+                    'partial' => 'HCU-001 parcial',
+                    default => 'HCU-001 faltante',
+                },
+                'summary' => match ((string) ($hcu001Evaluation['status'] ?? 'missing')) {
+                    'complete' => 'La admision longitudinal ya deja identidad y contacto base defendibles.',
+                    'legacy_partial' => 'El expediente heredado necesita regularizacion de admision, pero no se congela por eso.',
+                    'partial' => 'La admision ya tiene datos, pero aun faltan campos nucleo del expediente.',
+                    default => 'Todavia falta registrar la admision HCU-001 del expediente.',
+                },
+                'missingCoreFields' => $hcu001Evaluation['missingCoreFields'] ?? [],
+                'transitionMode' => $hcu001Evaluation['transitionMode'] ?? 'legacy_inferred',
+            ],
             'hcu005Status' => [
                 'status' => (string) ($hcu005Evaluation['status'] ?? 'missing'),
                 'label' => match ((string) ($hcu005Evaluation['status'] ?? 'missing')) {

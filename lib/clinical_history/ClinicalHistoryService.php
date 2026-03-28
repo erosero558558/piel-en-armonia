@@ -596,7 +596,9 @@ final class ClinicalHistoryService
     private function buildClinicalRecordPayload(array $store, array $session, array $draft): array
     {
         $session = ClinicalHistoryRepository::adminSession($session);
-        $draft = $this->synchronizeHcu005Draft(ClinicalHistoryRepository::adminDraft($draft));
+        $draft = $this->synchronizeDraftClinicalState(
+            ClinicalHistoryRepository::adminDraft($draft)
+        );
         $events = ClinicalHistoryRepository::findEventsBySessionId(
             $store,
             (string) ($session['sessionId'] ?? '')
@@ -616,7 +618,18 @@ final class ClinicalHistoryService
             $session,
             $draft
         );
-        $patient = is_array($session['patient'] ?? null) ? $session['patient'] : [];
+        $admission001 = ClinicalHistoryRepository::normalizeAdmission001(
+            is_array($draft['admission001'] ?? null) ? $draft['admission001'] : [],
+            is_array($session['patient'] ?? null) ? $session['patient'] : [],
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : [],
+            ['draft' => $draft]
+        );
+        $patient = ClinicalHistoryRepository::buildPatientMirrorFromAdmission(
+            is_array($session['patient'] ?? null) ? $session['patient'] : [],
+            $admission001,
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : []
+        );
+        $session['patient'] = $patient;
         $disclosureLog = ClinicalHistoryRepository::normalizeDisclosureLog($draft['disclosureLog'] ?? []);
         $copyRequests = array_map(
             fn (array $request): array => $this->decorateCopyRequest($request),
@@ -635,9 +648,18 @@ final class ClinicalHistoryService
             $disclosureLog,
             $accessAudit
         );
+        $hcu001Status = is_array($legalReadiness['hcu001Status'] ?? null)
+            ? $legalReadiness['hcu001Status']
+            : ['status' => 'missing', 'label' => 'HCU-001 faltante', 'summary' => ''];
         $hcu005Status = is_array($legalReadiness['hcu005Status'] ?? null)
             ? $legalReadiness['hcu005Status']
             : ['status' => 'missing', 'label' => 'HCU-005 pendiente', 'summary' => ''];
+        $admissionHistory = ClinicalHistoryRepository::normalizeAdmissionHistory(
+            $admission001['history']['admissionHistory'] ?? []
+        );
+        $changeLog = ClinicalHistoryRepository::normalizeAdmissionChangeLog(
+            $admission001['history']['changeLog'] ?? []
+        );
 
         return [
             'session' => $session,
@@ -646,6 +668,10 @@ final class ClinicalHistoryService
             'patientRecord' => [
                 'recordId' => (string) ($draft['patientRecordId'] ?? ''),
                 'patient' => ClinicalHistoryRepository::normalizePatient($patient),
+                'admission001' => $admission001,
+                'admissionHistory' => $admissionHistory,
+                'changeLog' => $changeLog,
+                'admission001Status' => $hcu001Status,
                 'archiveState' => (string) ($recordMeta['archiveState'] ?? 'active'),
                 'archiveStatusLabel' => (string) ($archiveReadiness['label'] ?? 'Activa'),
                 'archiveReadiness' => $archiveReadiness,
@@ -678,6 +704,7 @@ final class ClinicalHistoryService
                 'draftVersion' => max(1, (int) ($draft['version'] ?? 1)),
                 'requiresHumanReview' => (bool) ($draft['requiresHumanReview'] ?? true),
                 'reviewStatus' => (string) ($draft['reviewStatus'] ?? ''),
+                'hcu001Status' => $hcu001Status,
                 'hcu005Status' => $hcu005Status,
             ],
             'documents' => $documents,
@@ -708,6 +735,12 @@ final class ClinicalHistoryService
     private function openEpisode(array $store, array $payload): array
     {
         [$store, $session, $draft, $created] = $this->resolveSessionContext($store, $payload, true);
+        $draft = $this->ensureAdmissionHistoryForEpisode($draft, $session);
+        $session['patient'] = ClinicalHistoryRepository::buildPatientMirrorFromAdmission(
+            is_array($session['patient'] ?? null) ? $session['patient'] : [],
+            is_array($draft['admission001'] ?? null) ? $draft['admission001'] : [],
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : []
+        );
 
         $sessionSave = ClinicalHistoryRepository::upsertSession($store, $session);
         $store = $sessionSave['store'];
@@ -750,9 +783,39 @@ final class ClinicalHistoryService
         $session = $reconciled['session'];
         $draft = $reconciled['draft'];
 
+        $beforeAdmission = ClinicalHistoryRepository::normalizeAdmission001(
+            is_array($draft['admission001'] ?? null) ? $draft['admission001'] : [],
+            is_array($session['patient'] ?? null) ? $session['patient'] : [],
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : [],
+            ['draft' => $draft]
+        );
         $draft = $this->applyDraftPatches($draft, $payload);
         $modeAuditReason = '';
+        $modeAuditAction = $this->accessAuditActionForMode($mode);
         $modeAuditMeta = [];
+        $afterAdmission = ClinicalHistoryRepository::normalizeAdmission001(
+            is_array($draft['admission001'] ?? null) ? $draft['admission001'] : [],
+            is_array($session['patient'] ?? null) ? $session['patient'] : [],
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : [],
+            ['draft' => $draft]
+        );
+        $changedAdmissionFields = $this->admissionChangedFields(
+            $beforeAdmission,
+            $afterAdmission
+        );
+        if ($changedAdmissionFields !== []) {
+            $draft = $this->appendAdmissionChangeLog(
+                $draft,
+                $changedAdmissionFields
+            );
+            $modeAuditAction = 'edit_admission_record';
+            $modeAuditMeta['changedFields'] = $changedAdmissionFields;
+        }
+        $session['patient'] = ClinicalHistoryRepository::buildPatientMirrorFromAdmission(
+            is_array($session['patient'] ?? null) ? $session['patient'] : [],
+            $afterAdmission,
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : []
+        );
 
         if (array_key_exists('requiresHumanReview', $payload)) {
             $draft['requiresHumanReview'] = (bool) $payload['requiresHumanReview'];
@@ -939,7 +1002,7 @@ final class ClinicalHistoryService
             $store,
             $session,
             $draft,
-            $this->accessAuditActionForMode($mode),
+            $modeAuditAction,
             $modeAuditReason !== '' ? $modeAuditReason : $mode,
             $modeAuditMeta
         );
@@ -975,6 +1038,13 @@ final class ClinicalHistoryService
             );
         }
 
+        if (isset($payload['admission001']) && is_array($payload['admission001'])) {
+            $draftPatch['admission001'] = array_merge(
+                isset($draftPatch['admission001']) && is_array($draftPatch['admission001']) ? $draftPatch['admission001'] : [],
+                $payload['admission001']
+            );
+        }
+
         if (isset($draftPatch['intake']) && is_array($draftPatch['intake'])) {
             $draft = ClinicalHistoryGuardrails::applyPatchToDraft($draft, $draftPatch['intake']);
             if (array_key_exists('preguntasFaltantes', $draftPatch['intake'])) {
@@ -1001,6 +1071,18 @@ final class ClinicalHistoryService
             ));
         }
 
+        if (isset($draftPatch['admission001']) && is_array($draftPatch['admission001'])) {
+            $draft['admission001'] = ClinicalHistoryRepository::normalizeAdmission001(
+                array_replace_recursive(
+                    is_array($draft['admission001'] ?? null) ? $draft['admission001'] : [],
+                    $draftPatch['admission001']
+                ),
+                [],
+                is_array($draft['intake'] ?? null) ? $draft['intake'] : [],
+                ['draft' => $draft]
+            );
+        }
+
         if (isset($payload['documents']) && is_array($payload['documents'])) {
             $draft['documents'] = ClinicalHistoryRepository::normalizeClinicalDocuments(array_replace_recursive(
                 is_array($draft['documents'] ?? null) ? $draft['documents'] : [],
@@ -1022,17 +1104,25 @@ final class ClinicalHistoryService
             ));
         }
 
-        return $this->synchronizeHcu005Draft($draft);
+        return $this->synchronizeDraftClinicalState($draft);
     }
 
     private function applyClinicalApproval(array $session, array $draft, array $legalReadiness): array
     {
-        $draft = $this->synchronizeHcu005Draft(ClinicalHistoryRepository::adminDraft($draft));
+        $draft = $this->synchronizeDraftClinicalState(
+            ClinicalHistoryRepository::adminDraft($draft)
+        );
         $documents = ClinicalHistoryRepository::normalizeClinicalDocuments(
             is_array($draft['documents'] ?? null) ? $draft['documents'] : []
         );
         $clinicianDraft = ClinicalHistoryRepository::normalizeClinicianDraft(
             is_array($draft['clinicianDraft'] ?? null) ? $draft['clinicianDraft'] : []
+        );
+        $admission001 = ClinicalHistoryRepository::normalizeAdmission001(
+            is_array($draft['admission001'] ?? null) ? $draft['admission001'] : [],
+            is_array($session['patient'] ?? null) ? $session['patient'] : [],
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : [],
+            ['draft' => $draft]
         );
         $hcu005 = ClinicalHistoryRepository::normalizeHcu005Draft(
             $clinicianDraft['hcu005'] ?? []
@@ -1052,6 +1142,7 @@ final class ClinicalHistoryService
             'generatedAt' => $now,
             'confidential' => true,
             'sections' => [
+                'hcu001' => $admission001,
                 'hcu005' => ClinicalHistoryRepository::normalizeHcu005Section($hcu005),
             ],
         ];
@@ -1093,6 +1184,17 @@ final class ClinicalHistoryService
     {
         $patient = is_array($session['patient'] ?? null) ? $session['patient'] : [];
         $intake = is_array($draft['intake'] ?? null) ? $draft['intake'] : [];
+        $admission001 = ClinicalHistoryRepository::normalizeAdmission001(
+            is_array($draft['admission001'] ?? null) ? $draft['admission001'] : [],
+            $patient,
+            $intake,
+            ['draft' => $draft]
+        );
+        $patient = ClinicalHistoryRepository::buildPatientMirrorFromAdmission(
+            $patient,
+            $admission001,
+            $intake
+        );
         $clinicianDraft = ClinicalHistoryRepository::normalizeClinicianDraft(
             is_array($draft['clinicianDraft'] ?? null) ? $draft['clinicianDraft'] : []
         );
@@ -1105,11 +1207,18 @@ final class ClinicalHistoryService
 
         $parts = [
             'Paciente: ' . (
-                ClinicalHistoryRepository::trimString($patient['name'] ?? '') !== ''
-                    ? ClinicalHistoryRepository::trimString($patient['name'] ?? '')
+                ClinicalHistoryRepository::buildAdmissionLegalName($admission001, $patient) !== ''
+                    ? ClinicalHistoryRepository::buildAdmissionLegalName($admission001, $patient)
                     : 'Sin identificacion visible'
             ),
+            'Documento: ' . trim(implode(' ', array_filter([
+                ClinicalHistoryRepository::trimString($admission001['identity']['documentType'] ?? ''),
+                ClinicalHistoryRepository::trimString($admission001['identity']['documentNumber'] ?? ''),
+            ]))),
             'Motivo de consulta: ' . ClinicalHistoryRepository::trimString($intake['motivoConsulta'] ?? ''),
+            'Fecha de admision: ' . ClinicalHistoryRepository::trimString($admission001['admissionMeta']['admissionDate'] ?? ''),
+            'Tipo de admision: ' . ClinicalHistoryRepository::trimString($admission001['admissionMeta']['admissionKind'] ?? ''),
+            'Telefono: ' . ClinicalHistoryRepository::trimString($admission001['residence']['phone'] ?? ''),
             'Enfermedad actual: ' . ClinicalHistoryRepository::trimString($intake['enfermedadActual'] ?? ''),
             'Evolucion clinica: ' . ClinicalHistoryRepository::trimString($hcu005['evolutionNote'] ?? ''),
             'Impresion diagnostica: ' . ClinicalHistoryRepository::trimString($hcu005['diagnosticImpression'] ?? ''),
@@ -1123,9 +1232,15 @@ final class ClinicalHistoryService
         })));
     }
 
-    private function synchronizeHcu005Draft(array $draft): array
+    private function synchronizeDraftClinicalState(array $draft): array
     {
         $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $admission001 = ClinicalHistoryRepository::normalizeAdmission001(
+            is_array($draft['admission001'] ?? null) ? $draft['admission001'] : [],
+            [],
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : [],
+            ['draft' => $draft]
+        );
         $clinicianDraft = ClinicalHistoryRepository::normalizeClinicianDraft(
             is_array($draft['clinicianDraft'] ?? null) ? $draft['clinicianDraft'] : []
         );
@@ -1145,11 +1260,13 @@ final class ClinicalHistoryService
             $clinicianDraft['hcu005'] ?? []
         );
         $documents['finalNote']['sections'] = [
+            'hcu001' => $admission001,
             'hcu005' => ClinicalHistoryRepository::normalizeHcu005Section($hcu005),
         ];
         $documents['finalNote']['summary'] = ClinicalHistoryRepository::renderHcu005Summary($hcu005);
         $documents['finalNote']['content'] = $this->buildFinalNoteContent([], [
             'intake' => $draft['intake'] ?? [],
+            'admission001' => $admission001,
             'clinicianDraft' => $clinicianDraft,
             'consent' => $draft['consent'] ?? [],
         ]);
@@ -1163,8 +1280,154 @@ final class ClinicalHistoryService
             $documents['prescription']['items']
         );
 
+        $draft['admission001'] = $admission001;
+        $draft['intake']['datosPaciente'] = ClinicalHistoryRepository::buildPatientFactsMirrorFromAdmission(
+            is_array($draft['intake']['datosPaciente'] ?? null) ? $draft['intake']['datosPaciente'] : [],
+            $admission001
+        );
         $draft['clinicianDraft'] = $clinicianDraft;
         $draft['documents'] = $documents;
+
+        return $draft;
+    }
+
+    private function ensureAdmissionHistoryForEpisode(array $draft, array $session): array
+    {
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $admission001 = ClinicalHistoryRepository::normalizeAdmission001(
+            is_array($draft['admission001'] ?? null) ? $draft['admission001'] : [],
+            is_array($session['patient'] ?? null) ? $session['patient'] : [],
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : [],
+            ['draft' => $draft]
+        );
+        $history = ClinicalHistoryRepository::normalizeAdmissionHistory(
+            $admission001['history']['admissionHistory'] ?? []
+        );
+        $episodeId = ClinicalHistoryRepository::trimString($draft['episodeId'] ?? '');
+        if ($episodeId === '') {
+            return $draft;
+        }
+
+        foreach ($history as $item) {
+            if (ClinicalHistoryRepository::trimString($item['episodeId'] ?? '') === $episodeId) {
+                return $draft;
+            }
+        }
+
+        $admission001['admissionMeta']['transitionMode'] = 'new_required';
+        $admissionKind = ClinicalHistoryRepository::trimString($admission001['admissionMeta']['admissionKind'] ?? '');
+        if (!in_array($admissionKind, ['first', 'subsequent'], true)) {
+            $admissionKind = $history === [] ? 'first' : 'subsequent';
+        }
+        $admissionDate = ClinicalHistoryRepository::trimString($admission001['admissionMeta']['admissionDate'] ?? '');
+        if ($admissionDate === '') {
+            $admissionDate = ClinicalHistoryRepository::trimString(
+                $session['createdAt'] ?? $draft['createdAt'] ?? local_date('c')
+            );
+        }
+
+        $history[] = [
+            'entryId' => ClinicalHistoryRepository::newOpaqueId('adm'),
+            'episodeId' => $episodeId,
+            'caseId' => ClinicalHistoryRepository::trimString($session['caseId'] ?? $draft['caseId'] ?? ''),
+            'admissionDate' => $admissionDate,
+            'admissionKind' => $admissionKind,
+            'admittedBy' => ClinicalHistoryRepository::trimString(
+                $admission001['admissionMeta']['admittedBy'] ?? ''
+            ) !== ''
+                ? ClinicalHistoryRepository::trimString($admission001['admissionMeta']['admittedBy'] ?? '')
+                : $this->currentClinicalActor(),
+            'createdAt' => local_date('c'),
+        ];
+
+        $admission001['admissionMeta']['admissionKind'] = $admissionKind;
+        $admission001['admissionMeta']['admissionDate'] = $admissionDate;
+        if (ClinicalHistoryRepository::trimString($admission001['admissionMeta']['admittedBy'] ?? '') === '') {
+            $admission001['admissionMeta']['admittedBy'] = $this->currentClinicalActor();
+        }
+        $admission001['history']['admissionHistory'] = ClinicalHistoryRepository::normalizeAdmissionHistory($history);
+        $draft['admission001'] = $admission001;
+
+        return $draft;
+    }
+
+    private function admissionChangedFields(array $before, array $after): array
+    {
+        $beforeFlat = $this->flattenAdmissionFields($before);
+        $afterFlat = $this->flattenAdmissionFields($after);
+        $fields = [];
+
+        foreach (array_unique(array_merge(array_keys($beforeFlat), array_keys($afterFlat))) as $key) {
+            if (($beforeFlat[$key] ?? null) === ($afterFlat[$key] ?? null)) {
+                continue;
+            }
+            $fields[] = $key;
+        }
+
+        return array_values($fields);
+    }
+
+    private function flattenAdmissionFields(array $admission): array
+    {
+        $normalized = ClinicalHistoryRepository::normalizeAdmission001($admission);
+
+        return [
+            'identity.documentType' => ClinicalHistoryRepository::trimString($normalized['identity']['documentType'] ?? ''),
+            'identity.documentNumber' => ClinicalHistoryRepository::trimString($normalized['identity']['documentNumber'] ?? ''),
+            'identity.apellidoPaterno' => ClinicalHistoryRepository::trimString($normalized['identity']['apellidoPaterno'] ?? ''),
+            'identity.apellidoMaterno' => ClinicalHistoryRepository::trimString($normalized['identity']['apellidoMaterno'] ?? ''),
+            'identity.primerNombre' => ClinicalHistoryRepository::trimString($normalized['identity']['primerNombre'] ?? ''),
+            'identity.segundoNombre' => ClinicalHistoryRepository::trimString($normalized['identity']['segundoNombre'] ?? ''),
+            'demographics.birthDate' => ClinicalHistoryRepository::trimString($normalized['demographics']['birthDate'] ?? ''),
+            'demographics.ageYears' => $normalized['demographics']['ageYears'] ?? null,
+            'demographics.sexAtBirth' => ClinicalHistoryRepository::trimString($normalized['demographics']['sexAtBirth'] ?? ''),
+            'demographics.maritalStatus' => ClinicalHistoryRepository::trimString($normalized['demographics']['maritalStatus'] ?? ''),
+            'demographics.educationLevel' => ClinicalHistoryRepository::trimString($normalized['demographics']['educationLevel'] ?? ''),
+            'demographics.occupation' => ClinicalHistoryRepository::trimString($normalized['demographics']['occupation'] ?? ''),
+            'demographics.employer' => ClinicalHistoryRepository::trimString($normalized['demographics']['employer'] ?? ''),
+            'demographics.nationalityCountry' => ClinicalHistoryRepository::trimString($normalized['demographics']['nationalityCountry'] ?? ''),
+            'demographics.culturalGroup' => ClinicalHistoryRepository::trimString($normalized['demographics']['culturalGroup'] ?? ''),
+            'demographics.birthPlace' => ClinicalHistoryRepository::trimString($normalized['demographics']['birthPlace'] ?? ''),
+            'residence.addressLine' => ClinicalHistoryRepository::trimString($normalized['residence']['addressLine'] ?? ''),
+            'residence.neighborhood' => ClinicalHistoryRepository::trimString($normalized['residence']['neighborhood'] ?? ''),
+            'residence.zoneType' => ClinicalHistoryRepository::trimString($normalized['residence']['zoneType'] ?? ''),
+            'residence.parish' => ClinicalHistoryRepository::trimString($normalized['residence']['parish'] ?? ''),
+            'residence.canton' => ClinicalHistoryRepository::trimString($normalized['residence']['canton'] ?? ''),
+            'residence.province' => ClinicalHistoryRepository::trimString($normalized['residence']['province'] ?? ''),
+            'residence.phone' => ClinicalHistoryRepository::trimString($normalized['residence']['phone'] ?? ''),
+            'coverage.healthInsuranceType' => ClinicalHistoryRepository::trimString($normalized['coverage']['healthInsuranceType'] ?? ''),
+            'referral.referredBy' => ClinicalHistoryRepository::trimString($normalized['referral']['referredBy'] ?? ''),
+            'emergencyContact.name' => ClinicalHistoryRepository::trimString($normalized['emergencyContact']['name'] ?? ''),
+            'emergencyContact.kinship' => ClinicalHistoryRepository::trimString($normalized['emergencyContact']['kinship'] ?? ''),
+            'emergencyContact.phone' => ClinicalHistoryRepository::trimString($normalized['emergencyContact']['phone'] ?? ''),
+            'admissionMeta.admissionDate' => ClinicalHistoryRepository::trimString($normalized['admissionMeta']['admissionDate'] ?? ''),
+            'admissionMeta.admissionKind' => ClinicalHistoryRepository::trimString($normalized['admissionMeta']['admissionKind'] ?? ''),
+            'admissionMeta.admittedBy' => ClinicalHistoryRepository::trimString($normalized['admissionMeta']['admittedBy'] ?? ''),
+        ];
+    }
+
+    private function appendAdmissionChangeLog(array $draft, array $fields): array
+    {
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $admission001 = ClinicalHistoryRepository::normalizeAdmission001(
+            is_array($draft['admission001'] ?? null) ? $draft['admission001'] : [],
+            [],
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : [],
+            ['draft' => $draft]
+        );
+        $changeLog = ClinicalHistoryRepository::normalizeAdmissionChangeLog(
+            $admission001['history']['changeLog'] ?? []
+        );
+        $changeLog[] = [
+            'changeId' => ClinicalHistoryRepository::newOpaqueId('admchg'),
+            'actor' => $this->currentClinicalActor(),
+            'actorRole' => 'clinician_admin',
+            'changedAt' => local_date('c'),
+            'fields' => $fields,
+            'summary' => 'Regularización de admisión HCU-001 actualizada.',
+        ];
+        $admission001['history']['changeLog'] = ClinicalHistoryRepository::normalizeAdmissionChangeLog($changeLog);
+        $draft['admission001'] = $admission001;
 
         return $draft;
     }
@@ -1802,7 +2065,18 @@ final class ClinicalHistoryService
 
         $draft = ClinicalHistoryRepository::findDraftBySessionId($store, (string) ($session['sessionId'] ?? ''));
         if ($draft === null) {
-            $draft = ClinicalHistoryRepository::defaultDraft($session);
+            $draft = ClinicalHistoryRepository::defaultDraft(
+                $session,
+                $created
+                    ? [
+                          'admission001' => [
+                              'admissionMeta' => [
+                                  'transitionMode' => 'new_required',
+                              ],
+                          ],
+                      ]
+                    : []
+            );
         } else {
             $draft = ClinicalHistoryRepository::adminDraft($draft);
         }

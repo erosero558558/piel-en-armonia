@@ -227,9 +227,12 @@ final class ClinicalHistoryControllerTest extends TestCase
         );
 
         self::assertSame('blocked', (string) ($review['payload']['data']['legalReadiness']['status'] ?? ''));
-        self::assertSame(
+        self::assertContains(
             'missing_minimum_clinical_data',
-            (string) ($review['payload']['data']['approvalBlockedReasons'][0]['code'] ?? '')
+            array_values(array_map(
+                static fn (array $reason): string => (string) ($reason['code'] ?? ''),
+                $review['payload']['data']['approvalBlockedReasons'] ?? []
+            ))
         );
 
         $_SESSION['csrf_token'] = 'csrf-test';
@@ -273,12 +276,22 @@ final class ClinicalHistoryControllerTest extends TestCase
                         'directions' => '20 mg cada 12 horas por 5 dias',
                     ],
                 ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Perez',
+                        'primerNombre' => 'Ana',
+                    ],
+                ]),
                 'requiresHumanReview' => false,
             ]
         );
 
         self::assertSame(200, $recordPatch['status']);
         self::assertSame('ready', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame(
+            'complete',
+            (string) ($recordPatch['payload']['data']['legalReadiness']['hcu001Status']['status'] ?? '')
+        );
         self::assertSame(
             'complete',
             (string) ($recordPatch['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? '')
@@ -387,6 +400,12 @@ final class ClinicalHistoryControllerTest extends TestCase
                         'directions' => 'Aplicacion nocturna por 8 semanas',
                     ],
                 ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Torres',
+                        'primerNombre' => 'Carla',
+                    ],
+                ]),
                 'consent' => [
                     'required' => true,
                     'status' => 'pending',
@@ -405,6 +424,10 @@ final class ClinicalHistoryControllerTest extends TestCase
 
         self::assertSame(200, $recordPatch['status']);
         self::assertSame('blocked', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame(
+            'complete',
+            (string) ($recordPatch['payload']['data']['legalReadiness']['hcu001Status']['status'] ?? '')
+        );
         self::assertSame(
             'complete',
             (string) ($recordPatch['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? '')
@@ -456,6 +479,10 @@ final class ClinicalHistoryControllerTest extends TestCase
 
         self::assertSame(200, $consentAccepted['status']);
         self::assertSame('ready', (string) ($consentAccepted['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame(
+            'complete',
+            (string) ($consentAccepted['payload']['data']['legalReadiness']['hcu001Status']['status'] ?? '')
+        );
         self::assertSame(
             'complete',
             (string) ($consentAccepted['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? '')
@@ -558,6 +585,12 @@ final class ClinicalHistoryControllerTest extends TestCase
                         'directions' => 'Aplicacion local dos veces al dia',
                     ],
                 ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Leon',
+                        'primerNombre' => 'Marta',
+                    ],
+                ]),
                 'consent' => [
                     'required' => true,
                     'status' => 'accepted',
@@ -579,9 +612,13 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertSame('ready', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
         self::assertSame(
             'complete',
+            (string) ($recordPatch['payload']['data']['legalReadiness']['hcu001Status']['status'] ?? '')
+        );
+        self::assertSame(
+            'complete',
             (string) ($recordPatch['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? '')
         );
-        self::assertSame('edit_record', (string) ($recordPatch['payload']['data']['accessAudit'][0]['action'] ?? ''));
+        self::assertSame('edit_admission_record', (string) ($recordPatch['payload']['data']['accessAudit'][0]['action'] ?? ''));
 
         $_GET = ['sessionId' => (string) ($session['sessionId'] ?? '')];
         $recordView = $this->captureResponse(
@@ -778,6 +815,12 @@ final class ClinicalHistoryControllerTest extends TestCase
                     'required' => false,
                     'status' => 'not_required',
                 ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Mora',
+                        'primerNombre' => 'Eva',
+                    ],
+                ]),
                 'requiresHumanReview' => false,
             ]
         );
@@ -791,6 +834,136 @@ final class ClinicalHistoryControllerTest extends TestCase
                 static fn (array $reason): string => (string) ($reason['code'] ?? ''),
                 $recordPatch['payload']['data']['approvalBlockedReasons'] ?? []
             ))
+        );
+    }
+
+    public function testClinicalHistoryLegacyAdmissionRegularizationDoesNotBlockApproval(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Rosa Vega',
+                    'email' => 'rosa@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-legacy';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-legacy';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Control dermatologico',
+                        'enfermedadActual' => 'Seguimiento de rosacea facial',
+                        'antecedentes' => 'Niega antecedentes de alarma',
+                        'alergias' => 'Niega alergias',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 42,
+                            'pesoKg' => 60,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Rosacea facial estable en seguimiento.',
+                        'preguntasFaltantes' => [],
+                        'tratamientoBorrador' => 'Continuar metronidazol topico.',
+                        'posologiaBorrador' => [
+                            'texto' => 'Aplicacion nocturna por 6 semanas.',
+                            'baseCalculo' => 'standard',
+                            'pesoKg' => 60,
+                            'edadAnios' => 42,
+                            'units' => '',
+                            'ambiguous' => false,
+                        ],
+                        'hcu005' => [
+                            'evolutionNote' => 'Rosacea facial estable en seguimiento.',
+                            'diagnosticImpression' => 'Rosacea en control.',
+                            'therapeuticPlan' => 'Continuar manejo topico.',
+                            'careIndications' => 'Fotoproteccion y reevaluacion en 6 semanas.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Metronidazol topico',
+                                'presentation' => 'Gel 0.75%',
+                                'dose' => 'Aplicacion fina',
+                                'route' => 'Topica',
+                                'frequency' => 'Nocturna',
+                                'duration' => '6 semanas',
+                                'quantity' => '1 tubo',
+                                'instructions' => 'Aplicar en piel limpia.',
+                            ]],
+                        ],
+                    ],
+                ],
+                'consent' => [
+                    'required' => false,
+                    'status' => 'not_required',
+                ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Vega',
+                        'primerNombre' => 'Rosa',
+                    ],
+                    'emergencyContact' => [
+                        'name' => '',
+                        'kinship' => '',
+                        'phone' => '',
+                    ],
+                    'admissionMeta' => [
+                        'transitionMode' => 'legacy_inferred',
+                    ],
+                ]),
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+        self::assertSame('ready', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame(
+            'legacy_partial',
+            (string) ($recordPatch['payload']['data']['legalReadiness']['hcu001Status']['status'] ?? '')
+        );
+        self::assertSame(
+            'complete',
+            (string) ($recordPatch['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? '')
+        );
+        self::assertNotContains(
+            'hcu001_admission_incomplete',
+            array_values(array_map(
+                static fn (array $reason): string => (string) ($reason['code'] ?? ''),
+                $recordPatch['payload']['data']['approvalBlockedReasons'] ?? []
+            ))
+        );
+
+        $approve = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'approve_final_note',
+            ]
+        );
+
+        self::assertSame(200, $approve['status']);
+        self::assertSame('approved', (string) ($approve['payload']['data']['approval']['status'] ?? ''));
+        self::assertSame(
+            'legacy_inferred',
+            (string) ($approve['payload']['data']['documents']['finalNote']['sections']['hcu001']['admissionMeta']['transitionMode'] ?? '')
         );
     }
 
@@ -860,6 +1033,19 @@ final class ClinicalHistoryControllerTest extends TestCase
                     'required' => false,
                     'status' => 'not_required',
                 ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Naranjo',
+                        'primerNombre' => 'Luis',
+                        'documentType' => 'passport',
+                        'documentNumber' => 'EC-998877',
+                    ],
+                    'demographics' => [
+                        'sexAtBirth' => 'masculino',
+                        'ageYears' => 24,
+                        'birthDate' => '2002-06-14',
+                    ],
+                ]),
                 'requiresHumanReview' => false,
             ]
         );
@@ -1078,12 +1264,24 @@ final class ClinicalHistoryControllerTest extends TestCase
                         'directions' => 'Aplicacion nocturna por 8 semanas',
                     ],
                 ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Andrade',
+                        'primerNombre' => 'Luis',
+                    ],
+                    'demographics' => [
+                        'sexAtBirth' => 'masculino',
+                        'ageYears' => 29,
+                        'birthDate' => '1996-05-18',
+                    ],
+                ]),
                 'requiresHumanReview' => false,
             ]
         );
 
         self::assertSame(200, $recordPatch['status']);
         self::assertSame('ready', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+        self::assertSame('complete', (string) ($recordPatch['payload']['data']['legalReadiness']['hcu001Status']['status'] ?? ''));
 
         $approve = $this->captureResponse(
             static fn () => \ClinicalHistoryController::episodeActionPost([
@@ -1193,6 +1391,58 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertSame(2, count($sessionRecord['transcript'] ?? []));
         self::assertSame(['L71.9'], $draftRecord['clinicianDraft']['cie10Sugeridos'] ?? []);
         self::assertSame('Rosacea facial', (string) ($draftRecord['intake']['motivoConsulta'] ?? ''));
+    }
+
+    private function buildAdmission001Payload(array $overrides = []): array
+    {
+        return array_replace_recursive([
+            'identity' => [
+                'documentType' => 'cedula',
+                'documentNumber' => '0912345678',
+                'apellidoPaterno' => 'Perez',
+                'apellidoMaterno' => 'Lopez',
+                'primerNombre' => 'Ana',
+                'segundoNombre' => '',
+            ],
+            'demographics' => [
+                'birthDate' => '1992-04-10',
+                'ageYears' => 34,
+                'sexAtBirth' => 'femenino',
+                'maritalStatus' => 'soltera',
+                'educationLevel' => 'superior',
+                'occupation' => 'Paciente ambulatoria',
+                'employer' => '',
+                'nationalityCountry' => 'Ecuador',
+                'culturalGroup' => '',
+                'birthPlace' => 'Quito',
+            ],
+            'residence' => [
+                'addressLine' => 'Av. Siempre Viva 123',
+                'neighborhood' => 'Centro norte',
+                'zoneType' => 'urban',
+                'parish' => 'Inaquito',
+                'canton' => 'Quito',
+                'province' => 'Pichincha',
+                'phone' => '0990001111',
+            ],
+            'coverage' => [
+                'healthInsuranceType' => 'private',
+            ],
+            'referral' => [
+                'referredBy' => 'Consulta espontanea',
+            ],
+            'emergencyContact' => [
+                'name' => 'Contacto principal',
+                'kinship' => 'Hermana',
+                'phone' => '0981112233',
+            ],
+            'admissionMeta' => [
+                'admissionDate' => '2026-03-15T08:45:00-05:00',
+                'admissionKind' => 'first',
+                'admittedBy' => 'Recepcion FlowOS',
+                'transitionMode' => 'new_required',
+            ],
+        ], $overrides);
     }
 
     private function completeQueuedClinicalJob(string $jobId, array $envelope): void

@@ -45,6 +45,21 @@ const CLINICAL_HISTORY_SEX_CHOICES = Object.freeze([
     { value: 'masculino', label: 'Masculino' },
     { value: 'intersexual', label: 'Intersexual' },
 ]);
+const CLINICAL_HISTORY_DOCUMENT_TYPE_CHOICES = Object.freeze([
+    { value: 'cedula', label: 'Cédula' },
+    { value: 'passport', label: 'Pasaporte' },
+    { value: 'other', label: 'Otro' },
+]);
+const CLINICAL_HISTORY_ADMISSION_KIND_CHOICES = Object.freeze([
+    { value: '', label: 'Sin dato' },
+    { value: 'first', label: 'Primera' },
+    { value: 'subsequent', label: 'Subsecuente' },
+]);
+const CLINICAL_HISTORY_ZONE_TYPE_CHOICES = Object.freeze([
+    { value: '', label: 'Sin dato' },
+    { value: 'urbana', label: 'Urbana' },
+    { value: 'rural', label: 'Rural' },
+]);
 const CLINICAL_HISTORY_PREGNANCY_CHOICES = Object.freeze([
     { value: '', label: 'Sin dato' },
     { value: 'no', label: 'No' },
@@ -135,6 +150,84 @@ function emptyPosology() {
     };
 }
 
+function emptyPrescriptionItem() {
+    return {
+        medication: '',
+        presentation: '',
+        dose: '',
+        route: '',
+        frequency: '',
+        duration: '',
+        quantity: '',
+        instructions: '',
+    };
+}
+
+function emptyHcu005() {
+    return {
+        evolutionNote: '',
+        diagnosticImpression: '',
+        therapeuticPlan: '',
+        careIndications: '',
+        prescriptionItems: [],
+    };
+}
+
+function emptyAdmission001() {
+    return {
+        identity: {
+            documentType: 'cedula',
+            documentNumber: '',
+            apellidoPaterno: '',
+            apellidoMaterno: '',
+            primerNombre: '',
+            segundoNombre: '',
+        },
+        demographics: {
+            birthDate: '',
+            ageYears: null,
+            sexAtBirth: '',
+            maritalStatus: '',
+            educationLevel: '',
+            occupation: '',
+            employer: '',
+            nationalityCountry: '',
+            culturalGroup: '',
+            birthPlace: '',
+        },
+        residence: {
+            addressLine: '',
+            neighborhood: '',
+            zoneType: '',
+            parish: '',
+            canton: '',
+            province: '',
+            phone: '',
+        },
+        coverage: {
+            healthInsuranceType: '',
+        },
+        referral: {
+            referredBy: '',
+        },
+        emergencyContact: {
+            name: '',
+            kinship: '',
+            phone: '',
+        },
+        admissionMeta: {
+            admissionDate: '',
+            admissionKind: '',
+            admittedBy: '',
+            transitionMode: 'legacy_inferred',
+        },
+        history: {
+            admissionHistory: [],
+            changeLog: [],
+        },
+    };
+}
+
 function emptyDraft() {
     return {
         sessionId: '',
@@ -164,6 +257,8 @@ function emptyDraft() {
                 edadAnios: null,
                 pesoKg: null,
                 sexoBiologico: '',
+                telefono: '',
+                fechaNacimiento: '',
                 embarazo: null,
             },
         },
@@ -173,7 +268,9 @@ function emptyDraft() {
             cie10Sugeridos: [],
             tratamientoBorrador: '',
             posologiaBorrador: emptyPosology(),
+            hcu005: emptyHcu005(),
         },
+        admission001: emptyAdmission001(),
         recordMeta: {
             archiveState: 'active',
             lastAttentionAt: '',
@@ -198,6 +295,10 @@ function emptyDraft() {
                 version: 1,
                 generatedAt: '',
                 confidential: true,
+                sections: {
+                    hcu001: emptyAdmission001(),
+                    hcu005: emptyHcu005(),
+                },
             },
             prescription: {
                 status: 'draft',
@@ -205,6 +306,7 @@ function emptyDraft() {
                 directions: '',
                 signedAt: '',
                 confidential: true,
+                items: [],
             },
             certificate: {
                 status: 'draft',
@@ -261,6 +363,10 @@ function emptyReview() {
                 ageYears: null,
                 weightKg: null,
                 sexAtBirth: '',
+                birthDate: '',
+                documentType: '',
+                documentNumber: '',
+                legalName: '',
                 pregnant: null,
             },
             transcript: [],
@@ -286,6 +392,8 @@ function emptyReview() {
             summary: '',
             checklist: [],
             blockingReasons: [],
+            hcu001Status: hcu001StatusMeta('missing'),
+            hcu005Status: hcu005StatusMeta('missing'),
         },
         recordsGovernance: {},
         accessAudit: [],
@@ -307,6 +415,10 @@ function normalizePatient(patient) {
         ageYears: normalizeNullableInt(source.ageYears || source.edadAnios),
         weightKg: normalizeNullableFloat(source.weightKg || source.pesoKg),
         sexAtBirth: normalizeString(source.sexAtBirth || source.sexoBiologico),
+        birthDate: normalizeString(source.birthDate || source.fechaNacimiento),
+        documentType: normalizeString(source.documentType),
+        documentNumber: normalizeString(source.documentNumber),
+        legalName: normalizeString(source.legalName),
         pregnant:
             source.pregnant === null || source.pregnant === undefined
                 ? source.embarazo === null || source.embarazo === undefined
@@ -357,9 +469,521 @@ function normalizePosology(posology) {
     };
 }
 
+function normalizePrescriptionItem(item) {
+    const source = item && typeof item === 'object' ? item : {};
+    return {
+        medication: normalizeString(source.medication),
+        presentation: normalizeString(source.presentation),
+        dose: normalizeString(source.dose),
+        route: normalizeString(source.route),
+        frequency: normalizeString(source.frequency),
+        duration: normalizeString(source.duration),
+        quantity: normalizeString(source.quantity),
+        instructions: normalizeString(source.instructions),
+    };
+}
+
+function normalizePrescriptionItems(items) {
+    return normalizeList(items).map(normalizePrescriptionItem);
+}
+
+function prescriptionItemStarted(item) {
+    return Object.values(normalizePrescriptionItem(item)).some(
+        (value) => normalizeString(value) !== ''
+    );
+}
+
+function normalizeHcu005(source, fallback = {}) {
+    const defaults = emptyHcu005();
+    const safeSource = source && typeof source === 'object' ? source : {};
+    const safeFallback =
+        fallback && typeof fallback === 'object' ? fallback : {};
+
+    return {
+        ...defaults,
+        ...safeFallback,
+        ...safeSource,
+        evolutionNote: normalizeString(
+            safeSource.evolutionNote ?? safeFallback.evolutionNote
+        ),
+        diagnosticImpression: normalizeString(
+            safeSource.diagnosticImpression ?? safeFallback.diagnosticImpression
+        ),
+        therapeuticPlan: normalizeString(
+            safeSource.therapeuticPlan ?? safeFallback.therapeuticPlan
+        ),
+        careIndications: normalizeString(
+            safeSource.careIndications ?? safeFallback.careIndications
+        ),
+        prescriptionItems: normalizePrescriptionItems(
+            safeSource.prescriptionItems ?? safeFallback.prescriptionItems
+        ),
+    };
+}
+
+function normalizeAdmissionHistoryItem(item) {
+    const source = item && typeof item === 'object' ? item : {};
+    return {
+        entryId: normalizeString(source.entryId || source.id),
+        episodeId: normalizeString(source.episodeId),
+        caseId: normalizeString(source.caseId),
+        admissionDate: normalizeString(source.admissionDate),
+        admissionKind: normalizeString(source.admissionKind),
+        admittedBy: normalizeString(source.admittedBy),
+        createdAt: normalizeString(source.createdAt || source.admissionDate),
+    };
+}
+
+function normalizeAdmissionChangeItem(item) {
+    const source = item && typeof item === 'object' ? item : {};
+    return {
+        changeId: normalizeString(source.changeId || source.id),
+        actor: normalizeString(source.actor),
+        actorRole: normalizeString(source.actorRole),
+        changedAt: normalizeString(source.changedAt || source.createdAt),
+        fields: normalizeStringList(source.fields),
+        summary: normalizeString(source.summary),
+    };
+}
+
+function buildAdmissionLegalName(admission, fallbackPatient = {}) {
+    const normalized = normalizeAdmission001(admission, fallbackPatient);
+    const identity = normalized.identity;
+    const legalName = [
+        identity.primerNombre,
+        identity.segundoNombre,
+        identity.apellidoPaterno,
+        identity.apellidoMaterno,
+    ]
+        .filter(Boolean)
+        .join(' ');
+
+    return legalName || normalizeString(fallbackPatient.name);
+}
+
+function normalizeAdmission001(source, fallbackPatient = {}, fallbackIntake = {}) {
+    const defaults = emptyAdmission001();
+    const safeSource = source && typeof source === 'object' ? source : {};
+    const facts =
+        fallbackIntake?.datosPaciente && typeof fallbackIntake.datosPaciente === 'object'
+            ? fallbackIntake.datosPaciente
+            : {};
+    const patient = normalizePatient(fallbackPatient);
+    const identity = safeSource.identity && typeof safeSource.identity === 'object'
+        ? safeSource.identity
+        : {};
+    const demographics =
+        safeSource.demographics && typeof safeSource.demographics === 'object'
+            ? safeSource.demographics
+            : {};
+    const residence =
+        safeSource.residence && typeof safeSource.residence === 'object'
+            ? safeSource.residence
+            : {};
+    const coverage =
+        safeSource.coverage && typeof safeSource.coverage === 'object'
+            ? safeSource.coverage
+            : {};
+    const referral =
+        safeSource.referral && typeof safeSource.referral === 'object'
+            ? safeSource.referral
+            : {};
+    const emergency =
+        safeSource.emergencyContact &&
+        typeof safeSource.emergencyContact === 'object'
+            ? safeSource.emergencyContact
+            : {};
+    const admissionMeta =
+        safeSource.admissionMeta && typeof safeSource.admissionMeta === 'object'
+            ? safeSource.admissionMeta
+            : {};
+    const history =
+        safeSource.history && typeof safeSource.history === 'object'
+            ? safeSource.history
+            : {};
+    const documentType = normalizeString(
+        identity.documentType || patient.documentType || defaults.identity.documentType
+    );
+
+    return {
+        identity: {
+            ...defaults.identity,
+            documentType: ['cedula', 'passport', 'other'].includes(documentType)
+                ? documentType
+                : defaults.identity.documentType,
+            documentNumber: normalizeString(
+                identity.documentNumber || patient.documentNumber
+            ),
+            apellidoPaterno: normalizeString(identity.apellidoPaterno),
+            apellidoMaterno: normalizeString(identity.apellidoMaterno),
+            primerNombre: normalizeString(identity.primerNombre),
+            segundoNombre: normalizeString(identity.segundoNombre),
+        },
+        demographics: {
+            ...defaults.demographics,
+            birthDate: normalizeString(
+                demographics.birthDate || facts.fechaNacimiento || patient.birthDate
+            ),
+            ageYears: normalizeNullableInt(
+                demographics.ageYears || facts.edadAnios || patient.ageYears
+            ),
+            sexAtBirth: normalizeString(
+                demographics.sexAtBirth || facts.sexoBiologico || patient.sexAtBirth
+            ),
+            maritalStatus: normalizeString(demographics.maritalStatus),
+            educationLevel: normalizeString(demographics.educationLevel),
+            occupation: normalizeString(demographics.occupation),
+            employer: normalizeString(demographics.employer),
+            nationalityCountry: normalizeString(demographics.nationalityCountry),
+            culturalGroup: normalizeString(demographics.culturalGroup),
+            birthPlace: normalizeString(demographics.birthPlace),
+        },
+        residence: {
+            ...defaults.residence,
+            addressLine: normalizeString(residence.addressLine),
+            neighborhood: normalizeString(residence.neighborhood),
+            zoneType: normalizeString(residence.zoneType),
+            parish: normalizeString(residence.parish),
+            canton: normalizeString(residence.canton),
+            province: normalizeString(residence.province),
+            phone: normalizeString(residence.phone || facts.telefono || patient.phone),
+        },
+        coverage: {
+            ...defaults.coverage,
+            healthInsuranceType: normalizeString(coverage.healthInsuranceType),
+        },
+        referral: {
+            ...defaults.referral,
+            referredBy: normalizeString(referral.referredBy),
+        },
+        emergencyContact: {
+            ...defaults.emergencyContact,
+            name: normalizeString(emergency.name),
+            kinship: normalizeString(emergency.kinship),
+            phone: normalizeString(emergency.phone),
+        },
+        admissionMeta: {
+            ...defaults.admissionMeta,
+            admissionDate: normalizeString(admissionMeta.admissionDate),
+            admissionKind: normalizeString(admissionMeta.admissionKind),
+            admittedBy: normalizeString(admissionMeta.admittedBy),
+            transitionMode:
+                normalizeString(admissionMeta.transitionMode) ||
+                defaults.admissionMeta.transitionMode,
+        },
+        history: {
+            admissionHistory: normalizeList(
+                history.admissionHistory || safeSource.admissionHistory
+            ).map(normalizeAdmissionHistoryItem),
+            changeLog: normalizeList(
+                history.changeLog || safeSource.changeLog
+            ).map(normalizeAdmissionChangeItem),
+        },
+    };
+}
+
+function evaluateHcu001(admission, fallbackPatient = {}, fallbackIntake = {}) {
+    const normalized = normalizeAdmission001(
+        admission,
+        fallbackPatient,
+        fallbackIntake
+    );
+    const identity = normalized.identity;
+    const demographics = normalized.demographics;
+    const residence = normalized.residence;
+    const coverage = normalized.coverage;
+    const emergencyContact = normalized.emergencyContact;
+    const admissionMeta = normalized.admissionMeta;
+    const hasResidence = Boolean(
+        normalizeString(residence.addressLine) ||
+            normalizeString(residence.neighborhood) ||
+            normalizeString(residence.parish) ||
+            normalizeString(residence.canton) ||
+            normalizeString(residence.province)
+    );
+    const hasIdentity =
+        normalizeString(identity.documentNumber) !== '' &&
+        normalizeString(identity.primerNombre) !== '' &&
+        normalizeString(identity.apellidoPaterno) !== '';
+    const hasBirthReference =
+        normalizeString(demographics.birthDate) !== '' ||
+        demographics.ageYears !== null;
+    const hasSex = normalizeString(demographics.sexAtBirth) !== '';
+    const hasResidenceContact =
+        normalizeString(residence.phone) !== '' && hasResidence;
+    const hasInsurance =
+        normalizeString(coverage.healthInsuranceType) !== '';
+    const hasEmergency =
+        normalizeString(emergencyContact.name) !== '' &&
+        normalizeString(emergencyContact.phone) !== '';
+    const hasAdmissionDate =
+        normalizeString(admissionMeta.admissionDate) !== '';
+    const hasAdmissionKind =
+        normalizeString(admissionMeta.admissionKind) === 'first' ||
+        normalizeString(admissionMeta.admissionKind) === 'subsequent';
+    const complete =
+        hasIdentity &&
+        hasBirthReference &&
+        hasSex &&
+        hasResidenceContact &&
+        hasInsurance &&
+        hasEmergency &&
+        hasAdmissionDate &&
+        hasAdmissionKind;
+    const patient = normalizePatient(fallbackPatient);
+    const legacySignals =
+        normalizeString(patient.name) !== '' ||
+        normalizeString(patient.phone) !== '' ||
+        patient.ageYears !== null ||
+        normalizeString(patient.sexAtBirth) !== '' ||
+        normalizeString(fallbackIntake?.motivoConsulta) !== '' ||
+        normalizeString(fallbackIntake?.resumenClinico) !== '';
+    const explicitContent =
+        complete ||
+        normalizeString(identity.apellidoMaterno) !== '' ||
+        normalizeString(identity.segundoNombre) !== '' ||
+        normalizeString(demographics.maritalStatus) !== '' ||
+        normalizeString(demographics.educationLevel) !== '' ||
+        normalizeString(demographics.occupation) !== '' ||
+        normalizeString(demographics.employer) !== '' ||
+        normalizeString(demographics.nationalityCountry) !== '' ||
+        normalizeString(demographics.culturalGroup) !== '' ||
+        normalizeString(demographics.birthPlace) !== '' ||
+        normalizeString(residence.zoneType) !== '' ||
+        normalizeString(residence.phone) !== '' ||
+        normalizeList(normalized.history.admissionHistory).length > 0;
+    const legacyPartial =
+        !complete &&
+        normalizeString(admissionMeta.transitionMode) !== 'new_required' &&
+        (legacySignals || explicitContent);
+    const missingCoreFields = [];
+    if (!hasIdentity) missingCoreFields.push('identity');
+    if (!hasAdmissionDate) missingCoreFields.push('admission_date');
+    if (!hasAdmissionKind) missingCoreFields.push('admission_kind');
+    if (!hasSex) missingCoreFields.push('sex_at_birth');
+    if (!hasBirthReference) missingCoreFields.push('birth_reference');
+    if (!hasResidenceContact) missingCoreFields.push('residence_contact');
+    if (!hasInsurance) missingCoreFields.push('health_insurance_type');
+    if (!hasEmergency) missingCoreFields.push('emergency_contact');
+
+    return {
+        status: complete
+            ? 'complete'
+            : legacyPartial
+              ? 'legacy_partial'
+              : explicitContent
+                ? 'partial'
+                : 'missing',
+        missingCoreFields,
+        blocksApproval: !complete && !legacyPartial,
+        transitionMode:
+            normalizeString(admissionMeta.transitionMode) || 'legacy_inferred',
+    };
+}
+
+function hcu001StatusMeta(status) {
+    switch (normalizeString(status)) {
+        case 'complete':
+            return {
+                status: 'complete',
+                label: 'HCU-001 completa',
+                summary:
+                    'La admisión longitudinal ya deja identidad y contacto base defendibles.',
+            };
+        case 'legacy_partial':
+            return {
+                status: 'legacy_partial',
+                label: 'HCU-001 heredada por regularizar',
+                summary:
+                    'El expediente heredado necesita regularización de admisión, pero no se congela por eso.',
+            };
+        case 'partial':
+            return {
+                status: 'partial',
+                label: 'HCU-001 parcial',
+                summary:
+                    'La admisión ya tiene datos, pero aún faltan campos núcleo del expediente.',
+            };
+        default:
+            return {
+                status: 'missing',
+                label: 'HCU-001 faltante',
+                summary:
+                    'Todavía falta registrar la admisión HCU-001 del expediente.',
+            };
+    }
+}
+
+function formatAdmissionKindLabel(kind) {
+    switch (normalizeString(kind)) {
+        case 'first':
+            return 'Primera admision';
+        case 'subsequent':
+            return 'Admision subsecuente';
+        default:
+            return '';
+    }
+}
+
+function renderHcu005Summary(hcu005) {
+    const normalized = normalizeHcu005(hcu005);
+    return (
+        normalized.diagnosticImpression ||
+        normalized.evolutionNote ||
+        [normalized.therapeuticPlan, normalized.careIndications]
+            .filter(Boolean)
+            .join(' | ')
+    );
+}
+
+function renderHcu005Content(hcu005) {
+    const normalized = normalizeHcu005(hcu005);
+    return [
+        normalized.evolutionNote
+            ? `Evolución clínica: ${normalized.evolutionNote}`
+            : '',
+        normalized.diagnosticImpression
+            ? `Impresión diagnóstica: ${normalized.diagnosticImpression}`
+            : '',
+        normalized.therapeuticPlan
+            ? `Plan terapéutico: ${normalized.therapeuticPlan}`
+            : '',
+        normalized.careIndications
+            ? `Indicaciones / cuidados: ${normalized.careIndications}`
+            : '',
+    ]
+        .filter(Boolean)
+        .join('\n');
+}
+
+function renderPrescriptionMedicationMirror(items) {
+    return normalizePrescriptionItems(items)
+        .filter(prescriptionItemStarted)
+        .map((item) =>
+            [item.medication, item.presentation].filter(Boolean).join(' ')
+        )
+        .filter(Boolean)
+        .join('\n');
+}
+
+function renderPrescriptionDirectionsMirror(items) {
+    return normalizePrescriptionItems(items)
+        .filter(prescriptionItemStarted)
+        .map((item) => {
+            const segments = [
+                item.dose,
+                item.route,
+                item.frequency,
+                item.duration,
+                item.quantity ? `Cantidad ${item.quantity}` : '',
+            ].filter(Boolean);
+            const base = item.medication
+                ? `${item.medication}: ${segments.join(' • ')}`
+                : segments.join(' • ');
+            return item.instructions
+                ? [base, item.instructions].filter(Boolean).join('. ')
+                : base;
+        })
+        .filter(Boolean)
+        .join('\n');
+}
+
+function evaluateHcu005(hcu005) {
+    const normalized = normalizeHcu005(hcu005);
+    const startedItems = normalized.prescriptionItems.filter(
+        prescriptionItemStarted
+    );
+    const incompleteItems = startedItems.filter((item) =>
+        Object.values(item).some((value) => normalizeString(value) === '')
+    );
+    const hasEvolutionNote = normalized.evolutionNote !== '';
+    const hasDiagnosticImpression = normalized.diagnosticImpression !== '';
+    const hasPlanOrCare =
+        normalized.therapeuticPlan !== '' || normalized.careIndications !== '';
+    const hasAnyContent =
+        hasEvolutionNote ||
+        hasDiagnosticImpression ||
+        hasPlanOrCare ||
+        startedItems.length > 0;
+    const status = !hasAnyContent
+        ? 'missing'
+        : hasEvolutionNote &&
+            hasDiagnosticImpression &&
+            hasPlanOrCare &&
+            incompleteItems.length === 0
+          ? 'complete'
+          : 'partial';
+
+    return {
+        status,
+        hasEvolutionNote,
+        hasDiagnosticImpression,
+        hasPlanOrCare,
+        startedPrescriptionItems: startedItems.length,
+        incompletePrescriptionItems: incompleteItems.length,
+    };
+}
+
+function hcu005StatusMeta(status) {
+    switch (normalizeString(status)) {
+        case 'complete':
+            return {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolución, la impresión diagnóstica y el plan ya sostienen el HCU-005.',
+            };
+        case 'partial':
+            return {
+                status: 'partial',
+                label: 'HCU-005 parcial',
+                summary:
+                    'El episodio ya tiene contenido HCU-005, pero faltan bloques o prescripciones por cerrar.',
+            };
+        default:
+            return {
+                status: 'missing',
+                label: 'HCU-005 pendiente',
+                summary:
+                    'Todavía no hay cobertura suficiente del HCU-005 para este episodio.',
+            };
+    }
+}
+
 function normalizeDocuments(documents) {
     const defaults = emptyDraft().documents;
     const source = documents && typeof documents === 'object' ? documents : {};
+    const hcu001Source =
+        source?.finalNote?.sections?.hcu001 &&
+        typeof source.finalNote.sections.hcu001 === 'object'
+            ? source.finalNote.sections.hcu001
+            : {};
+    const sectionSource =
+        source?.finalNote?.sections?.hcu005 &&
+        typeof source.finalNote.sections.hcu005 === 'object'
+            ? source.finalNote.sections.hcu005
+            : {};
+    const hcu001 = normalizeAdmission001(hcu001Source);
+    const fallbackHcu005 = normalizeHcu005({
+        evolutionNote: source?.finalNote?.summary,
+        diagnosticImpression: '',
+        therapeuticPlan: '',
+        careIndications: source?.prescription?.directions,
+        prescriptionItems:
+            source?.prescription?.items || source?.prescriptionItems || [],
+    });
+    const hcu005 = normalizeHcu005(sectionSource, fallbackHcu005);
+    const prescriptionItems = normalizePrescriptionItems(
+        source?.prescription?.items ||
+            source?.prescriptionItems ||
+            hcu005.prescriptionItems ||
+            []
+    );
+    const summary = renderHcu005Summary(hcu005);
+    const content = renderHcu005Content(hcu005);
+    const medication = renderPrescriptionMedicationMirror(prescriptionItems);
+    const directions = renderPrescriptionDirectionsMirror(prescriptionItems);
+
     return {
         finalNote: {
             ...defaults.finalNote,
@@ -369,8 +993,8 @@ function normalizeDocuments(documents) {
             status: normalizeString(
                 source?.finalNote?.status || defaults.finalNote.status
             ),
-            summary: normalizeString(source?.finalNote?.summary),
-            content: normalizeString(source?.finalNote?.content),
+            summary,
+            content,
             version: Math.max(
                 1,
                 normalizeNumber(
@@ -379,6 +1003,10 @@ function normalizeDocuments(documents) {
             ),
             generatedAt: normalizeString(source?.finalNote?.generatedAt),
             confidential: source?.finalNote?.confidential !== false,
+            sections: {
+                hcu001,
+                hcu005,
+            },
         },
         prescription: {
             ...defaults.prescription,
@@ -388,10 +1016,11 @@ function normalizeDocuments(documents) {
             status: normalizeString(
                 source?.prescription?.status || defaults.prescription.status
             ),
-            medication: normalizeString(source?.prescription?.medication),
-            directions: normalizeString(source?.prescription?.directions),
+            medication,
+            directions,
             signedAt: normalizeString(source?.prescription?.signedAt),
             confidential: source?.prescription?.confidential !== false,
+            items: prescriptionItems,
         },
         certificate: {
             ...defaults.certificate,
@@ -642,17 +1271,24 @@ function normalizeLegalReadiness(readiness) {
         blockingReasons: normalizeList(
             source.blockingReasons || source.approvalBlockedReasons
         ),
+        hcu001Status: hcu001StatusMeta(source?.hcu001Status?.status),
+        hcu005Status: hcu005StatusMeta(source?.hcu005Status?.status),
     };
 }
 
 function normalizeDraftSnapshot(draft) {
     const defaults = emptyDraft();
     const source = draft && typeof draft === 'object' ? draft : {};
+    const normalizedDocuments = normalizeDocuments(source.documents);
     const intakeSource =
         source.intake && typeof source.intake === 'object' ? source.intake : {};
     const clinicianSource =
         source.clinicianDraft && typeof source.clinicianDraft === 'object'
             ? source.clinicianDraft
+            : {};
+    const admissionSource =
+        source.admission001 && typeof source.admission001 === 'object'
+            ? source.admission001
             : {};
     const patientFactsSource =
         intakeSource.datosPaciente &&
@@ -733,7 +1369,7 @@ function normalizeDraftSnapshot(draft) {
                       ),
                   }
                 : cloneValue(defaults.recordMeta),
-        documents: normalizeDocuments(source.documents),
+        documents: normalizedDocuments,
         consent: normalizeConsent(source.consent),
         approval: normalizeApproval(source.approval),
         pendingAi:
@@ -768,6 +1404,10 @@ function normalizeDraftSnapshot(draft) {
                 sexoBiologico: normalizeString(
                     patientFactsSource.sexoBiologico
                 ),
+                telefono: normalizeString(patientFactsSource.telefono),
+                fechaNacimiento: normalizeString(
+                    patientFactsSource.fechaNacimiento
+                ),
                 embarazo:
                     patientFactsSource.embarazo === null ||
                     patientFactsSource.embarazo === undefined
@@ -790,9 +1430,107 @@ function normalizeDraftSnapshot(draft) {
             posologiaBorrador: normalizePosology(
                 clinicianSource.posologiaBorrador
             ),
+            hcu005: normalizeHcu005(
+                clinicianSource.hcu005,
+                normalizeHcu005({
+                    evolutionNote:
+                        clinicianSource.resumen || intakeSource.resumenClinico,
+                    diagnosticImpression: normalizeStringList(
+                        clinicianSource.cie10Sugeridos
+                    ).join(', '),
+                    therapeuticPlan: clinicianSource.tratamientoBorrador,
+                    careIndications:
+                        clinicianSource?.posologiaBorrador?.texto ||
+                        normalizedDocuments.prescription.directions,
+                    prescriptionItems:
+                        clinicianSource?.hcu005?.prescriptionItems ||
+                        normalizedDocuments.prescription.items,
+                })
+            ),
         },
+        admission001: normalizeAdmission001(
+            admissionSource,
+            {},
+            intakeSource
+        ),
         updatedAt: normalizeString(source.updatedAt),
         createdAt: normalizeString(source.createdAt),
+    };
+}
+
+function synchronizeDraftClinicalState(draft) {
+    const snapshot = draft && typeof draft === 'object' ? draft : emptyDraft();
+    const admission001 = normalizeAdmission001(
+        snapshot.admission001,
+        {},
+        snapshot.intake
+    );
+    const clinicianDraft = {
+        ...snapshot.clinicianDraft,
+        hcu005: normalizeHcu005(
+            snapshot?.clinicianDraft?.hcu005,
+            normalizeHcu005({
+                evolutionNote:
+                    snapshot?.clinicianDraft?.resumen ||
+                    snapshot?.intake?.resumenClinico,
+                diagnosticImpression: normalizeStringList(
+                    snapshot?.clinicianDraft?.cie10Sugeridos
+                ).join(', '),
+                therapeuticPlan: snapshot?.clinicianDraft?.tratamientoBorrador,
+                careIndications:
+                    snapshot?.clinicianDraft?.posologiaBorrador?.texto ||
+                    snapshot?.documents?.prescription?.directions,
+                prescriptionItems:
+                    snapshot?.documents?.prescription?.items || [],
+            })
+        ),
+    };
+    const patientFacts = {
+        ...snapshot.intake.datosPaciente,
+        edadAnios:
+            admission001.demographics.ageYears ??
+            snapshot?.intake?.datosPaciente?.edadAnios ??
+            null,
+        sexoBiologico:
+            admission001.demographics.sexAtBirth ||
+            snapshot?.intake?.datosPaciente?.sexoBiologico ||
+            '',
+        telefono:
+            admission001.residence.phone ||
+            snapshot?.intake?.datosPaciente?.telefono ||
+            '',
+        fechaNacimiento:
+            admission001.demographics.birthDate ||
+            snapshot?.intake?.datosPaciente?.fechaNacimiento ||
+            '',
+    };
+    const documents = normalizeDocuments({
+        ...snapshot.documents,
+        finalNote: {
+            ...snapshot?.documents?.finalNote,
+            sections: {
+                ...(snapshot?.documents?.finalNote?.sections || {}),
+                hcu001: admission001,
+                hcu005: normalizeHcu005(clinicianDraft.hcu005),
+            },
+        },
+        prescription: {
+            ...snapshot?.documents?.prescription,
+            items: normalizePrescriptionItems(
+                clinicianDraft.hcu005.prescriptionItems
+            ),
+        },
+    });
+
+    return {
+        ...snapshot,
+        admission001,
+        clinicianDraft,
+        intake: {
+            ...(snapshot.intake || {}),
+            datosPaciente: patientFacts,
+        },
+        documents,
     };
 }
 
@@ -843,6 +1581,12 @@ function normalizeReviewQueueItem(item) {
         legalReadinessStatus: normalizeString(source.legalReadinessStatus),
         legalReadinessLabel: normalizeString(source.legalReadinessLabel),
         legalReadinessSummary: normalizeString(source.legalReadinessSummary),
+        hcu001Status: normalizeString(source.hcu001Status || 'missing'),
+        hcu001Label: normalizeString(source.hcu001Label),
+        hcu001Summary: normalizeString(source.hcu001Summary),
+        hcu005Status: normalizeString(source.hcu005Status || 'missing'),
+        hcu005Label: normalizeString(source.hcu005Label),
+        hcu005Summary: normalizeString(source.hcu005Summary),
         approvalBlockedReasons: normalizeList(source.approvalBlockedReasons),
         summary: normalizeString(source.summary),
         createdAt: normalizeString(source.createdAt),
@@ -886,7 +1630,25 @@ function normalizeReviewPayload(payload) {
     review.events = normalizeList(source.events).map(normalizeEvent);
     review.patientRecord =
         source.patientRecord && typeof source.patientRecord === 'object'
-            ? source.patientRecord
+            ? {
+                  ...source.patientRecord,
+                  patient: normalizePatient(source.patientRecord.patient),
+                  admission001: normalizeAdmission001(
+                      source.patientRecord.admission001,
+                      source.patientRecord.patient,
+                      review.draft.intake
+                  ),
+                  admissionHistory: normalizeList(
+                      source.patientRecord.admissionHistory
+                  ).map(normalizeAdmissionHistoryItem),
+                  changeLog: normalizeList(
+                      source.patientRecord.changeLog
+                  ).map(normalizeAdmissionChangeItem),
+                  admission001Status: hcu001StatusMeta(
+                      source?.patientRecord?.admission001Status?.status ||
+                          source?.patientRecord?.admission001Status
+                  ),
+              }
             : {};
     review.activeEpisode =
         source.activeEpisode && typeof source.activeEpisode === 'object'
@@ -1121,7 +1883,11 @@ function readableTimestamp(value) {
 }
 
 function currentSelectionLabel(review) {
-    const patientName = normalizeString(review.session.patient.name);
+    const patientName =
+        buildAdmissionLegalName(
+            review.patientRecord?.admission001,
+            review.session.patient
+        ) || normalizeString(review.session.patient.name);
     if (patientName) {
         return patientName;
     }
@@ -1221,12 +1987,16 @@ function formatPatientFacts(patient, intake) {
         intake?.datosPaciente?.embarazo !== undefined
             ? intake.datosPaciente.embarazo
             : patient.pregnant;
+    const phone =
+        normalizeString(intake?.datosPaciente?.telefono) ||
+        normalizeString(patient.phone);
 
     return [
         age !== null ? `${age} anos` : '',
         weight !== null ? `${weight} kg` : '',
         sex,
         formatPregnancy(pregnancy),
+        phone ? `Tel. ${phone}` : '',
     ]
         .filter(Boolean)
         .join(' • ');
@@ -1295,6 +2065,20 @@ function buildSummaryCards(review) {
     const patient = review.session.patient;
     const draft = review.draft;
     const readiness = normalizeLegalReadiness(review.legalReadiness);
+    const admission = normalizeAdmission001(
+        review.patientRecord?.admission001 || draft.admission001,
+        patient,
+        draft.intake
+    );
+    const legalName = buildAdmissionLegalName(admission, patient);
+    const documentLabel = [
+        normalizeString(admission.identity.documentType),
+        normalizeString(admission.identity.documentNumber),
+    ]
+        .filter(Boolean)
+        .join(' ');
+    const hcu001Status = hcu001StatusMeta(readiness.hcu001Status?.status);
+    const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
     const pendingAiStatus = formatPendingAiStatus(
         review.session.pendingAi?.status || draft.pendingAi?.status
     );
@@ -1312,13 +2096,45 @@ function buildSummaryCards(review) {
         {
             title: 'Paciente',
             value: currentSelectionLabel(review),
-            meta: patient.email || patient.phone || 'Sin contacto documentado',
+            meta:
+                documentLabel ||
+                patient.email ||
+                admission.residence.phone ||
+                patient.phone ||
+                'Sin contacto documentado',
+        },
+        {
+            title: 'HCU-001',
+            value: hcu001Status.label,
+            meta:
+                hcu001Status.summary ||
+                legalName ||
+                'Admisión longitudinal del expediente.',
+            tone:
+                hcu001Status.status === 'complete'
+                    ? 'success'
+                    : hcu001Status.status === 'legacy_partial'
+                      ? 'warning'
+                      : hcu001Status.status === 'partial'
+                        ? 'warning'
+                        : 'neutral',
         },
         {
             title: 'Estado legal',
             value: readiness.label || 'Bloqueada',
             meta: pendingAiStatus || readiness.summary || 'Sin resumen legal',
             tone: statusTone,
+        },
+        {
+            title: 'HCU-005',
+            value: hcu005Status.label,
+            meta: hcu005Status.summary,
+            tone:
+                hcu005Status.status === 'complete'
+                    ? 'success'
+                    : hcu005Status.status === 'partial'
+                      ? 'warning'
+                      : 'neutral',
         },
         {
             title: 'Cierre',
@@ -1444,6 +2260,8 @@ function buildAttachmentStrip(review) {
 
 function buildLegalReadinessPanel(review) {
     const readiness = normalizeLegalReadiness(review.legalReadiness);
+    const hcu001Status = hcu001StatusMeta(readiness.hcu001Status?.status);
+    const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
     const checklist = normalizeList(readiness.checklist);
 
     if (checklist.length === 0) {
@@ -1465,11 +2283,19 @@ function buildLegalReadinessPanel(review) {
                             'Checklist medico-legal del episodio activo.'
                     )}</p>
                 </div>
-                <span class="clinical-history-mini-chip" data-tone="${escapeHtml(
-                    readiness.ready ? 'success' : 'warning'
-                )}">
-                    ${escapeHtml(readiness.label || 'Bloqueada')}
-                </span>
+                <div class="clinical-history-mini-chip-row">
+                    <span class="clinical-history-mini-chip" data-tone="${escapeHtml(
+                        readiness.ready ? 'success' : 'warning'
+                    )}">
+                        ${escapeHtml(readiness.label || 'Bloqueada')}
+                    </span>
+                    <span class="clinical-history-mini-chip">
+                        ${escapeHtml(hcu001Status.label)}
+                    </span>
+                    <span class="clinical-history-mini-chip">
+                        ${escapeHtml(hcu005Status.label)}
+                    </span>
+                </div>
             </header>
             <div class="clinical-history-events">
                 ${checklist
@@ -2129,6 +2955,8 @@ function buildQueueItemChips(item, status) {
     return [
         status,
         item.legalReadinessStatus === 'ready' ? 'Lista para aprobar' : '',
+        item.hcu001Label || '',
+        item.hcu005Label || '',
         formatConfidence(item.confidence),
         queueAlertMeta(item),
         item.attachmentCount > 0 ? `${item.attachmentCount} adjunto(s)` : '',
@@ -2163,6 +2991,8 @@ function buildQueueItemCard(item, selectedSessionId, loading) {
     const sessionId = normalizeString(item.sessionId);
     const summary = truncateText(
         item.legalReadinessSummary ||
+            item.hcu001Summary ||
+            item.hcu005Summary ||
             item.summary ||
             queueReasons(item).join(' • ') ||
             'Caso listo para lectura clinica.',
@@ -2365,7 +3195,22 @@ function highestReviewEventSeverity(review) {
     return highest;
 }
 
-function buildDraftMetaText(slice, draft) {
+function buildDraftMetaText(slice, review, draft) {
+    const admission = normalizeAdmission001(
+        review.patientRecord?.admission001 || draft.admission001,
+        review.session.patient,
+        draft.intake
+    );
+    const hcu001Status = hcu001StatusMeta(
+        evaluateHcu001(admission, {
+            patient: review.session.patient,
+            intake: draft.intake,
+        }).status
+    );
+    const admissionKindLabel = formatAdmissionKindLabel(
+        admission.admissionMeta.admissionKind
+    );
+
     if (slice.saving) {
         return 'Guardando borrador clinico...';
     }
@@ -2378,20 +3223,45 @@ function buildDraftMetaText(slice, draft) {
     if (slice.dirty) {
         return 'Cambios sin guardar';
     }
-    if (draft.updatedAt) {
-        return `Ultima actualizacion ${readableTimestamp(draft.updatedAt)}`;
-    }
 
-    return 'Sin cambios';
+    const marks = [
+        draft.updatedAt
+            ? `Ultima actualizacion ${readableTimestamp(draft.updatedAt)}`
+            : '',
+        hcu001Status.label,
+        admissionKindLabel,
+    ].filter(Boolean);
+
+    return marks.join(' • ') || 'Sin cambios';
 }
 
 function buildDraftSummaryText(review, draft) {
+    const readiness = normalizeLegalReadiness(review.legalReadiness);
+    const admission = normalizeAdmission001(
+        review.patientRecord?.admission001 || draft.admission001,
+        review.session.patient,
+        draft.intake
+    );
+    const hcu001Status = hcu001StatusMeta(readiness.hcu001Status?.status);
+    const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
+    const documentLabel = [
+        normalizeString(admission.identity.documentType),
+        normalizeString(admission.identity.documentNumber),
+    ]
+        .filter(Boolean)
+        .join(' ');
+
     return review.session.sessionId
-        ? `Editando ${currentSelectionLabel(review)} • ${
-              normalizeLegalReadiness(review.legalReadiness).label ||
-              formatReviewStatus(draft.reviewStatus)
-          }`
-        : 'Selecciona un caso para editar nota viva, consentimiento y documentos.';
+        ? [
+              `Editando ${currentSelectionLabel(review)}`,
+              documentLabel,
+              hcu001Status.label,
+              hcu005Status.label,
+              readiness.label || formatReviewStatus(draft.reviewStatus),
+          ]
+              .filter(Boolean)
+              .join(' • ')
+        : 'Selecciona un caso para regularizar admision HCU-001, nota viva y documentos.';
 }
 
 function buildFollowUpMetaText(review) {
@@ -2403,7 +3273,21 @@ function buildFollowUpMetaText(review) {
 }
 
 function buildClinicalHeaderMetaText(review) {
+    const admission = normalizeAdmission001(
+        review.patientRecord?.admission001 || review.draft.admission001,
+        review.session.patient,
+        review.draft.intake
+    );
     const selectedLabel = currentSelectionLabel(review);
+    const documentLabel = [
+        normalizeString(admission.identity.documentType),
+        normalizeString(admission.identity.documentNumber),
+    ]
+        .filter(Boolean)
+        .join(' ');
+    const hcu001Status = hcu001StatusMeta(
+        normalizeLegalReadiness(review.legalReadiness).hcu001Status?.status
+    );
     const headerMeta = [
         review.session.caseId ? `Caso ${review.session.caseId}` : '',
         review.session.surface || '',
@@ -2411,6 +3295,10 @@ function buildClinicalHeaderMetaText(review) {
             ? `Cita ${review.session.appointmentId}`
             : '',
         selectedLabel,
+        documentLabel,
+        admission.residence.phone ? `Tel. ${admission.residence.phone}` : '',
+        formatAdmissionKindLabel(admission.admissionMeta.admissionKind),
+        hcu001Status.label,
     ]
         .filter(Boolean)
         .join(' • ');
@@ -2422,8 +3310,19 @@ function buildClinicalHeaderMetaText(review) {
 }
 
 function buildClinicalStatusMetaText(draft, pendingAiStatus, meta) {
+    const admission = normalizeAdmission001(draft.admission001, {}, draft.intake);
+    const hcu001Status = hcu001StatusMeta(
+        evaluateHcu001(admission, {
+            intake: draft.intake,
+        }).status
+    );
+    const hcu005Status = hcu005StatusMeta(
+        evaluateHcu005(draft.clinicianDraft.hcu005).status
+    );
     const statusMeta = [
         pendingAiStatus,
+        hcu001Status.label,
+        hcu005Status.label,
         draft.requiresHumanReview
             ? 'Firma humana requerida'
             : 'Pendiente de aprobacion final',
@@ -2541,6 +3440,346 @@ function buildClinicalHistorySection(title, description, body) {
                 ${body}
             </section>
     `;
+}
+
+function buildAdmissionHistoryCards(admission) {
+    const history = normalizeList(admission?.history?.admissionHistory);
+    if (history.length === 0) {
+        return buildEmptyClinicalCard(
+            'Sin historial de admisiones',
+            'La primera apertura del episodio creará la traza longitudinal en este expediente.'
+        );
+    }
+
+    return history
+        .map(
+            (item) => `
+                <article class="clinical-history-event-card">
+                    <div class="clinical-history-event-head">
+                        <span class="clinical-history-mini-chip">${escapeHtml(
+                            formatAdmissionKindLabel(item.admissionKind) ||
+                                'Admisión'
+                        )}</span>
+                        <span class="clinical-history-mini-chip">${escapeHtml(
+                            readableTimestamp(
+                                item.admissionDate || item.createdAt
+                            ) || 'Sin fecha'
+                        )}</span>
+                    </div>
+                    <p>${escapeHtml(
+                        item.caseId || item.episodeId || 'Episodio longitudinal'
+                    )}</p>
+                    <small>${escapeHtml(
+                        item.admittedBy || 'Sin responsable registrado'
+                    )}</small>
+                </article>
+            `
+        )
+        .join('');
+}
+
+function buildAdmissionChangeLogCards(admission) {
+    const changeLog = normalizeList(admission?.history?.changeLog);
+    if (changeLog.length === 0) {
+        return buildEmptyClinicalCard(
+            'Sin cambios registrados',
+            'Los cambios de identidad, cobertura o residencia quedarán auditados aquí.'
+        );
+    }
+
+    return changeLog
+        .map(
+            (item) => `
+                <article class="clinical-history-event-card">
+                    <div class="clinical-history-event-head">
+                        <span class="clinical-history-mini-chip">${escapeHtml(
+                            item.actor || 'Staff clinico'
+                        )}</span>
+                        <span class="clinical-history-mini-chip">${escapeHtml(
+                            readableTimestamp(item.changedAt) || 'Sin fecha'
+                        )}</span>
+                    </div>
+                    <p>${escapeHtml(
+                        item.summary ||
+                            normalizeList(item.fields).join(', ') ||
+                            'Cambio de admisión'
+                    )}</p>
+                    <small>${escapeHtml(
+                        normalizeList(item.fields).join(', ') ||
+                            item.actorRole ||
+                            'Sin detalle adicional'
+                    )}</small>
+                </article>
+            `
+        )
+        .join('');
+}
+
+function buildClinicalHistoryAdmissionSection(review, draft, disabled) {
+    const admission = normalizeAdmission001(
+        draft.admission001,
+        review.session.patient,
+        draft.intake
+    );
+
+    return buildClinicalHistorySection(
+        'Admisión HCU-form.001/2008',
+        'Datos de admisión FlowOS en espejo editable para el expediente longitudinal.',
+        `
+                ${buildClinicalHistoryInlineGrid([
+                    selectField(
+                        'admission_identity_document_type',
+                        'Tipo de documento',
+                        admission.identity.documentType,
+                        CLINICAL_HISTORY_DOCUMENT_TYPE_CHOICES,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_identity_document_number',
+                        'Número de documento',
+                        admission.identity.documentNumber,
+                        {
+                            placeholder: '0102030405',
+                            disabled,
+                        }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    inputField(
+                        'admission_identity_last_name_1',
+                        'Apellido paterno',
+                        admission.identity.apellidoPaterno,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_identity_last_name_2',
+                        'Apellido materno',
+                        admission.identity.apellidoMaterno,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_identity_first_name',
+                        'Primer nombre',
+                        admission.identity.primerNombre,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_identity_second_name',
+                        'Segundo nombre',
+                        admission.identity.segundoNombre,
+                        { disabled }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    inputField(
+                        'admission_demographics_birth_date',
+                        'Fecha de nacimiento',
+                        admission.demographics.birthDate,
+                        {
+                            type: 'date',
+                            disabled,
+                        }
+                    ),
+                    inputField(
+                        'admission_demographics_age_years',
+                        'Edad (años)',
+                        admission.demographics.ageYears ?? '',
+                        {
+                            type: 'number',
+                            min: '0',
+                            step: '1',
+                            disabled,
+                        }
+                    ),
+                    selectField(
+                        'admission_demographics_sex_at_birth',
+                        'Sexo biológico',
+                        admission.demographics.sexAtBirth,
+                        CLINICAL_HISTORY_SEX_CHOICES,
+                        { disabled }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    inputField(
+                        'admission_demographics_marital_status',
+                        'Estado civil',
+                        admission.demographics.maritalStatus,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_demographics_education_level',
+                        'Instrucción',
+                        admission.demographics.educationLevel,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_demographics_occupation',
+                        'Ocupación',
+                        admission.demographics.occupation,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_demographics_employer',
+                        'Empresa',
+                        admission.demographics.employer,
+                        { disabled }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    inputField(
+                        'admission_demographics_nationality_country',
+                        'Nacionalidad',
+                        admission.demographics.nationalityCountry,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_demographics_cultural_group',
+                        'Grupo cultural',
+                        admission.demographics.culturalGroup,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_demographics_birth_place',
+                        'Lugar de nacimiento',
+                        admission.demographics.birthPlace,
+                        { disabled }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    inputField(
+                        'admission_residence_address_line',
+                        'Dirección',
+                        admission.residence.addressLine,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_residence_neighborhood',
+                        'Barrio / sector',
+                        admission.residence.neighborhood,
+                        { disabled }
+                    ),
+                    selectField(
+                        'admission_residence_zone_type',
+                        'Zona',
+                        admission.residence.zoneType,
+                        CLINICAL_HISTORY_ZONE_TYPE_CHOICES,
+                        { disabled }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    inputField(
+                        'admission_residence_parish',
+                        'Parroquia',
+                        admission.residence.parish,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_residence_canton',
+                        'Cantón',
+                        admission.residence.canton,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_residence_province',
+                        'Provincia',
+                        admission.residence.province,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_residence_phone',
+                        'Teléfono',
+                        admission.residence.phone,
+                        { disabled }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    inputField(
+                        'admission_coverage_health_insurance_type',
+                        'Tipo de seguro',
+                        admission.coverage.healthInsuranceType,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_referral_referred_by',
+                        'Referido por',
+                        admission.referral.referredBy,
+                        { disabled }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    inputField(
+                        'admission_meta_admission_date',
+                        'Fecha de admisión',
+                        admission.admissionMeta.admissionDate,
+                        {
+                            placeholder: '2026-03-15T08:45:00-05:00',
+                            disabled,
+                        }
+                    ),
+                    selectField(
+                        'admission_meta_admission_kind',
+                        'Tipo de admisión',
+                        admission.admissionMeta.admissionKind,
+                        CLINICAL_HISTORY_ADMISSION_KIND_CHOICES,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_meta_admitted_by',
+                        'Admitido por',
+                        admission.admissionMeta.admittedBy,
+                        { disabled }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
+                    inputField(
+                        'admission_emergency_name',
+                        'Contacto de emergencia',
+                        admission.emergencyContact.name,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_emergency_kinship',
+                        'Parentesco',
+                        admission.emergencyContact.kinship,
+                        { disabled }
+                    ),
+                    inputField(
+                        'admission_emergency_phone',
+                        'Teléfono de emergencia',
+                        admission.emergencyContact.phone,
+                        { disabled }
+                    ),
+                ])}
+                <div class="clinical-history-section-block">
+                    <div class="clinical-history-event-head">
+                        <strong>Historial de admisiones</strong>
+                        <span class="clinical-history-mini-chip">${escapeHtml(
+                            formatAdmissionKindLabel(
+                                admission.admissionMeta.admissionKind
+                            ) || 'Sin clasificación'
+                        )}</span>
+                    </div>
+                    <div class="clinical-history-events">
+                        ${buildAdmissionHistoryCards(admission)}
+                    </div>
+                </div>
+                <div class="clinical-history-section-block">
+                    <div class="clinical-history-event-head">
+                        <strong>Registro de cambios</strong>
+                        <span class="clinical-history-mini-chip">${escapeHtml(
+                            normalizeString(
+                                admission.admissionMeta.transitionMode
+                            ) === 'new_required'
+                                ? 'Nueva admisión'
+                                : 'Regularización heredada'
+                        )}</span>
+                    </div>
+                    <div class="clinical-history-events">
+                        ${buildAdmissionChangeLogCards(admission)}
+                    </div>
+                </div>
+            `
+    );
 }
 
 function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
@@ -2677,29 +3916,141 @@ function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
     );
 }
 
-function buildClinicalHistoryClinicianSection(draft, disabled, reviewReasons) {
+function buildPrescriptionItemEditor(item, index, disabled) {
+    const safeItem = normalizePrescriptionItem(item);
+    return `
+        <article class="clinical-history-event-card" data-hcu005-prescription-item="${escapeHtml(
+            String(index)
+        )}">
+            <div class="clinical-history-event-head">
+                <span class="clinical-history-mini-chip">Prescripción ${escapeHtml(
+                    String(index + 1)
+                )}</span>
+                <button
+                    type="button"
+                    class="clinical-history-mini-chip"
+                    data-clinical-draft-action="remove-prescription-item"
+                    data-prescription-index="${escapeHtml(String(index))}"
+                    ${disabled ? 'disabled' : ''}
+                >
+                    Quitar
+                </button>
+            </div>
+            ${buildClinicalHistoryInlineGrid([
+                inputField(
+                    `hcu005_prescription_${index}_medication`,
+                    'Medicamento',
+                    safeItem.medication,
+                    {
+                        placeholder: 'Nombre del medicamento',
+                        disabled,
+                    }
+                ),
+                inputField(
+                    `hcu005_prescription_${index}_presentation`,
+                    'Presentación',
+                    safeItem.presentation,
+                    {
+                        placeholder: 'Tableta, crema, solución',
+                        disabled,
+                    }
+                ),
+            ])}
+            ${buildClinicalHistoryInlineGrid([
+                inputField(
+                    `hcu005_prescription_${index}_dose`,
+                    'Dosis',
+                    safeItem.dose,
+                    {
+                        placeholder: '500 mg',
+                        disabled,
+                    }
+                ),
+                inputField(
+                    `hcu005_prescription_${index}_route`,
+                    'Vía',
+                    safeItem.route,
+                    {
+                        placeholder: 'VO, tópica, IM',
+                        disabled,
+                    }
+                ),
+                inputField(
+                    `hcu005_prescription_${index}_frequency`,
+                    'Frecuencia',
+                    safeItem.frequency,
+                    {
+                        placeholder: 'Cada 12 horas',
+                        disabled,
+                    }
+                ),
+            ])}
+            ${buildClinicalHistoryInlineGrid([
+                inputField(
+                    `hcu005_prescription_${index}_duration`,
+                    'Duración',
+                    safeItem.duration,
+                    {
+                        placeholder: '7 días',
+                        disabled,
+                    }
+                ),
+                inputField(
+                    `hcu005_prescription_${index}_quantity`,
+                    'Cantidad',
+                    safeItem.quantity,
+                    {
+                        placeholder: '14 tabletas',
+                        disabled,
+                    }
+                ),
+            ])}
+            ${textareaField(
+                `hcu005_prescription_${index}_instructions`,
+                'Indicaciones',
+                safeItem.instructions,
+                {
+                    rows: 3,
+                    placeholder:
+                        'Instrucciones detalladas para uso y seguimiento.',
+                    disabled,
+                }
+            )}
+        </article>
+    `;
+}
+
+function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons) {
+    const hcu005 = normalizeHcu005(draft.clinicianDraft.hcu005);
+    const visibleItems =
+        hcu005.prescriptionItems.length > 0
+            ? hcu005.prescriptionItems
+            : [emptyPrescriptionItem()];
+
     return buildClinicalHistorySection(
-        'Sintesis del medico',
-        'Bloque solo interno: resumen, CIE-10, plan y guardrails.',
+        'HCU-form.005/2008',
+        'Paridad semántica trazable para evolución, impresión, plan e indicaciones del episodio.',
         `
                 ${textareaField(
-                    'clinician_resumen',
-                    'Resumen medico',
-                    draft.clinicianDraft.resumen,
+                    'hcu005_evolution_note',
+                    'Evolución clínica',
+                    hcu005.evolutionNote,
                     {
-                        rows: 4,
-                        placeholder: 'Sintesis final para presentar o firmar.',
+                        rows: 5,
+                        placeholder:
+                            'Describe la evolución clínica del episodio.',
                         disabled,
                     }
                 )}
                 ${buildClinicalHistoryInlineGrid([
                     textareaField(
-                        'clinician_preguntas_faltantes',
-                        'Preguntas faltantes',
-                        listToTextarea(draft.clinicianDraft.preguntasFaltantes),
+                        'hcu005_diagnostic_impression',
+                        'Impresión diagnóstica',
+                        hcu005.diagnosticImpression,
                         {
                             rows: 4,
-                            placeholder: 'Una linea por pregunta.',
+                            placeholder:
+                                'Impresión diagnóstica clínicamente defendible.',
                             disabled,
                         }
                     ),
@@ -2714,89 +4065,71 @@ function buildClinicalHistoryClinicianSection(draft, disabled, reviewReasons) {
                         }
                     ),
                 ])}
+                ${buildClinicalHistoryInlineGrid([
+                    textareaField(
+                        'hcu005_therapeutic_plan',
+                        'Plan terapéutico',
+                        hcu005.therapeuticPlan,
+                        {
+                            rows: 4,
+                            placeholder: 'Plan terapéutico del episodio.',
+                            disabled,
+                        }
+                    ),
+                    textareaField(
+                        'hcu005_care_indications',
+                        'Indicaciones / cuidados',
+                        hcu005.careIndications,
+                        {
+                            rows: 4,
+                            placeholder:
+                                'Cuidados, advertencias y recomendaciones.',
+                            disabled,
+                        }
+                    ),
+                ])}
                 ${textareaField(
-                    'clinician_tratamiento',
-                    'Tratamiento borrador',
-                    draft.clinicianDraft.tratamientoBorrador,
+                    'clinician_preguntas_faltantes',
+                    'Preguntas faltantes',
+                    listToTextarea(draft.clinicianDraft.preguntasFaltantes),
                     {
-                        rows: 4,
-                        placeholder:
-                            'No se muestra al paciente; requiere firma humana.',
+                        rows: 3,
+                        placeholder: 'Una línea por pregunta pendiente.',
                         disabled,
                     }
                 )}
-                ${buildClinicalHistoryInlineGrid([
-                    textareaField(
-                        'posologia_texto',
-                        'Posologia borrador',
-                        draft.clinicianDraft.posologiaBorrador.texto,
-                        {
-                            rows: 4,
-                            placeholder: 'Ej. 1 comp cada 12 h por 7 dias.',
-                            disabled,
-                        }
-                    ),
-                    textareaField(
-                        'posologia_base_calculo',
-                        'Base de calculo',
-                        draft.clinicianDraft.posologiaBorrador.baseCalculo,
-                        {
-                            rows: 4,
-                            placeholder: 'Regla, mg/kg, fuente o criterio.',
-                            disabled,
-                        }
-                    ),
-                ])}
-                ${buildClinicalHistoryInlineGrid([
-                    inputField(
-                        'posologia_peso_kg',
-                        'Peso usado (kg)',
-                        draft.clinicianDraft.posologiaBorrador.pesoKg ?? '',
-                        {
-                            type: 'number',
-                            min: '0',
-                            step: '0.1',
-                            disabled,
-                        }
-                    ),
-                    inputField(
-                        'posologia_edad_anios',
-                        'Edad usada (anos)',
-                        draft.clinicianDraft.posologiaBorrador.edadAnios ?? '',
-                        {
-                            type: 'number',
-                            min: '0',
-                            step: '1',
-                            disabled,
-                        }
-                    ),
-                    inputField(
-                        'posologia_units',
-                        'Unidades',
-                        draft.clinicianDraft.posologiaBorrador.units,
-                        {
-                            placeholder: 'mg, mg/kg/dia, ml',
-                            disabled,
-                        }
-                    ),
-                ])}
-                ${checkboxField(
-                    'posologia_ambiguous',
-                    'La posologia sigue ambigua',
-                    draft.clinicianDraft.posologiaBorrador.ambiguous === true,
-                    {
-                        hint: 'Mantiene el caso en revisado con cautela.',
-                        disabled,
-                    }
-                )}
+                <div class="clinical-history-section-block">
+                    <div class="clinical-history-event-head">
+                        <strong>Prescripciones</strong>
+                        <button
+                            type="button"
+                            class="clinical-history-mini-chip"
+                            data-clinical-draft-action="add-prescription-item"
+                            ${disabled ? 'disabled' : ''}
+                        >
+                            Agregar prescripción
+                        </button>
+                    </div>
+                    <div class="clinical-history-events">
+                        ${visibleItems
+                            .map((item, index) =>
+                                buildPrescriptionItemEditor(
+                                    item,
+                                    index,
+                                    disabled
+                                )
+                            )
+                            .join('')}
+                    </div>
+                </div>
                 ${checkboxField(
                     'requires_human_review',
-                    'Requiere revision humana',
+                    'Requiere revisión humana',
                     draft.requiresHumanReview === true,
                     {
                         hint:
                             reviewReasons ||
-                            'Toda aprobacion final sigue siendo humana.',
+                            'Toda aprobación final sigue siendo un acto clínico humano.',
                         disabled,
                     }
                 )}
@@ -2906,27 +4239,28 @@ function buildClinicalHistoryConsentSection(draft, disabled) {
 
 function buildClinicalHistoryDocumentsSection(draft, disabled) {
     return buildClinicalHistorySection(
-        'Documentos de salida',
-        'Nota final, receta y certificado dentro del mismo cockpit clinico.',
+        'Certificado y salida',
+        'La nota final y la receta se regeneran desde HCU-005; aquí solo mantienes el certificado.',
         `
-                ${textareaField(
-                    'document_final_note_summary',
-                    'Resumen de nota final',
-                    draft.documents.finalNote.summary,
-                    { rows: 3, disabled }
-                )}
-                ${textareaField(
-                    'document_prescription_medication',
-                    'Receta / medicamento',
-                    draft.documents.prescription.medication,
-                    { rows: 3, disabled }
-                )}
-                ${textareaField(
-                    'document_prescription_directions',
-                    'Indicaciones de receta',
-                    draft.documents.prescription.directions,
-                    { rows: 3, disabled }
-                )}
+                <article class="clinical-history-event-card">
+                    <div class="clinical-history-event-head">
+                        <span class="clinical-history-mini-chip">Mirror HCU-005</span>
+                        <span class="clinical-history-mini-chip">${escapeHtml(
+                            hcu005StatusMeta(
+                                evaluateHcu005(draft.clinicianDraft.hcu005)
+                                    .status
+                            ).label
+                        )}</span>
+                    </div>
+                    <p>${escapeHtml(
+                        draft.documents.finalNote.summary ||
+                            'La nota final se construirá desde HCU-005.'
+                    )}</p>
+                    <small>${escapeHtml(
+                        draft.documents.prescription.directions ||
+                            'La receta se reflejará aquí cuando existan prescripciones completas.'
+                    )}</small>
+                </article>
                 ${buildClinicalHistoryInlineGrid([
                     textareaField(
                         'document_certificate_summary',
@@ -2950,7 +4284,7 @@ function buildClinicalHistoryDocumentsSection(draft, disabled) {
     );
 }
 
-function buildDraftForm(draft, saving) {
+function buildDraftForm(review, draft, saving) {
     const disabled = saving || normalizeString(draft.sessionId) === '';
     const pregnancyValue = pregnancySelectValue(
         draft.intake.datosPaciente.embarazo
@@ -2959,8 +4293,9 @@ function buildDraftForm(draft, saving) {
 
     return `
         <div class="clinical-history-form-grid">
+            ${buildClinicalHistoryAdmissionSection(review, draft, disabled)}
             ${buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue)}
-            ${buildClinicalHistoryClinicianSection(draft, disabled, reviewReasons)}
+            ${buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons)}
             ${buildClinicalHistoryConsentSection(draft, disabled)}
             ${buildClinicalHistoryDocumentsSection(draft, disabled)}
         </div>
@@ -2974,7 +4309,7 @@ function syncDraftStatusMeta() {
     const draft = currentDraftSource(state);
     const readiness = normalizeLegalReadiness(review.legalReadiness);
 
-    setText('#clinicalHistoryDraftMeta', buildDraftMetaText(slice, draft));
+    setText('#clinicalHistoryDraftMeta', buildDraftMetaText(slice, review, draft));
     setText(
         '#clinicalHistoryDraftSummary',
         buildDraftSummaryText(review, draft)
@@ -3032,6 +4367,74 @@ function serializeDraftForm(form, baseDraft) {
         return field instanceof HTMLInputElement ? field.checked : false;
     };
 
+    snapshot.admission001 = normalizeAdmission001({
+        ...snapshot.admission001,
+        identity: {
+            ...snapshot.admission001.identity,
+            documentType: readValue('admission_identity_document_type'),
+            documentNumber: readValue('admission_identity_document_number'),
+            apellidoPaterno: readValue('admission_identity_last_name_1'),
+            apellidoMaterno: readValue('admission_identity_last_name_2'),
+            primerNombre: readValue('admission_identity_first_name'),
+            segundoNombre: readValue('admission_identity_second_name'),
+        },
+        demographics: {
+            ...snapshot.admission001.demographics,
+            birthDate: readValue('admission_demographics_birth_date'),
+            ageYears: normalizeNullableInt(
+                readValue('admission_demographics_age_years')
+            ),
+            sexAtBirth: readValue('admission_demographics_sex_at_birth'),
+            maritalStatus: readValue(
+                'admission_demographics_marital_status'
+            ),
+            educationLevel: readValue(
+                'admission_demographics_education_level'
+            ),
+            occupation: readValue('admission_demographics_occupation'),
+            employer: readValue('admission_demographics_employer'),
+            nationalityCountry: readValue(
+                'admission_demographics_nationality_country'
+            ),
+            culturalGroup: readValue(
+                'admission_demographics_cultural_group'
+            ),
+            birthPlace: readValue('admission_demographics_birth_place'),
+        },
+        residence: {
+            ...snapshot.admission001.residence,
+            addressLine: readValue('admission_residence_address_line'),
+            neighborhood: readValue('admission_residence_neighborhood'),
+            zoneType: readValue('admission_residence_zone_type'),
+            parish: readValue('admission_residence_parish'),
+            canton: readValue('admission_residence_canton'),
+            province: readValue('admission_residence_province'),
+            phone: readValue('admission_residence_phone'),
+        },
+        coverage: {
+            ...snapshot.admission001.coverage,
+            healthInsuranceType: readValue(
+                'admission_coverage_health_insurance_type'
+            ),
+        },
+        referral: {
+            ...snapshot.admission001.referral,
+            referredBy: readValue('admission_referral_referred_by'),
+        },
+        emergencyContact: {
+            ...snapshot.admission001.emergencyContact,
+            name: readValue('admission_emergency_name'),
+            kinship: readValue('admission_emergency_kinship'),
+            phone: readValue('admission_emergency_phone'),
+        },
+        admissionMeta: {
+            ...snapshot.admission001.admissionMeta,
+            admissionDate: readValue('admission_meta_admission_date'),
+            admissionKind: readValue('admission_meta_admission_kind'),
+            admittedBy: readValue('admission_meta_admitted_by'),
+        },
+    });
+
     snapshot.intake.motivoConsulta = normalizeString(
         readValue('intake_motivo_consulta')
     );
@@ -3059,11 +4462,17 @@ function serializeDraftForm(form, baseDraft) {
         edadAnios: normalizeNullableInt(readValue('patient_edad_anios')),
         pesoKg: normalizeNullableFloat(readValue('patient_peso_kg')),
         sexoBiologico: normalizeString(readValue('patient_sexo_biologico')),
+        telefono:
+            normalizeString(readValue('admission_residence_phone')) ||
+            normalizeString(snapshot.intake.datosPaciente.telefono),
+        fechaNacimiento:
+            normalizeString(readValue('admission_demographics_birth_date')) ||
+            normalizeString(snapshot.intake.datosPaciente.fechaNacimiento),
         embarazo: normalizePregnancyValue(readValue('patient_embarazo')),
     };
 
     snapshot.clinicianDraft.resumen = normalizeString(
-        readValue('clinician_resumen')
+        readValue('hcu005_evolution_note')
     );
     snapshot.clinicianDraft.preguntasFaltantes = serializeTextareaLines(
         readValue('clinician_preguntas_faltantes')
@@ -3072,15 +4481,49 @@ function serializeDraftForm(form, baseDraft) {
         readValue('clinician_cie10')
     );
     snapshot.clinicianDraft.tratamientoBorrador = normalizeString(
-        readValue('clinician_tratamiento')
+        readValue('hcu005_therapeutic_plan')
     );
     snapshot.clinicianDraft.posologiaBorrador = normalizePosology({
-        texto: readValue('posologia_texto'),
-        baseCalculo: readValue('posologia_base_calculo'),
-        pesoKg: readValue('posologia_peso_kg'),
-        edadAnios: readValue('posologia_edad_anios'),
-        units: readValue('posologia_units'),
-        ambiguous: readChecked('posologia_ambiguous'),
+        texto: readValue('hcu005_care_indications'),
+        baseCalculo: '',
+        pesoKg: snapshot.clinicianDraft.posologiaBorrador.pesoKg,
+        edadAnios: snapshot.clinicianDraft.posologiaBorrador.edadAnios,
+        units: snapshot.clinicianDraft.posologiaBorrador.units,
+        ambiguous: false,
+    });
+    snapshot.clinicianDraft.hcu005 = normalizeHcu005({
+        evolutionNote: readValue('hcu005_evolution_note'),
+        diagnosticImpression: readValue('hcu005_diagnostic_impression'),
+        therapeuticPlan: readValue('hcu005_therapeutic_plan'),
+        careIndications: readValue('hcu005_care_indications'),
+        prescriptionItems: Array.from(
+            form.querySelectorAll('[data-hcu005-prescription-item]')
+        )
+            .map((row, index) =>
+                normalizePrescriptionItem({
+                    medication: readValue(
+                        `hcu005_prescription_${index}_medication`
+                    ),
+                    presentation: readValue(
+                        `hcu005_prescription_${index}_presentation`
+                    ),
+                    dose: readValue(`hcu005_prescription_${index}_dose`),
+                    route: readValue(`hcu005_prescription_${index}_route`),
+                    frequency: readValue(
+                        `hcu005_prescription_${index}_frequency`
+                    ),
+                    duration: readValue(
+                        `hcu005_prescription_${index}_duration`
+                    ),
+                    quantity: readValue(
+                        `hcu005_prescription_${index}_quantity`
+                    ),
+                    instructions: readValue(
+                        `hcu005_prescription_${index}_instructions`
+                    ),
+                })
+            )
+            .filter(prescriptionItemStarted),
     });
 
     snapshot.consent = normalizeConsent({
@@ -3104,12 +4547,9 @@ function serializeDraftForm(form, baseDraft) {
     snapshot.documents = normalizeDocuments({
         finalNote: {
             ...snapshot.documents.finalNote,
-            summary: readValue('document_final_note_summary'),
         },
         prescription: {
             ...snapshot.documents.prescription,
-            medication: readValue('document_prescription_medication'),
-            directions: readValue('document_prescription_directions'),
         },
         certificate: {
             ...snapshot.documents.certificate,
@@ -3119,7 +4559,7 @@ function serializeDraftForm(form, baseDraft) {
     });
 
     snapshot.requiresHumanReview = readChecked('requires_human_review');
-    return snapshot;
+    return synchronizeDraftClinicalState(snapshot);
 }
 
 function readClinicalControlValue(id) {
@@ -3496,6 +4936,7 @@ function buildReviewPatch(mode, question) {
                 datosPaciente: cloneValue(draft.intake.datosPaciente),
             },
             clinicianDraft: cloneValue(draft.clinicianDraft),
+            admission001: cloneValue(draft.admission001),
         },
         documents: cloneValue(draft.documents),
         consent: cloneValue(draft.consent),
@@ -3650,6 +5091,38 @@ function captureDraftFromDom() {
     syncDraftStatusMeta();
 }
 
+function mutatePrescriptionItems(mutator) {
+    const rootForm = document.getElementById('clinicalHistoryDraftForm');
+    const baseDraft =
+        rootForm instanceof HTMLFormElement
+            ? serializeDraftForm(rootForm, currentDraftSource())
+            : currentDraftSource();
+    const nextDraft = synchronizeDraftClinicalState(cloneValue(baseDraft));
+    const items = normalizePrescriptionItems(
+        nextDraft?.clinicianDraft?.hcu005?.prescriptionItems || []
+    );
+    const mutatedItems = mutator(items) || items;
+
+    nextDraft.clinicianDraft.hcu005 = normalizeHcu005(
+        nextDraft.clinicianDraft.hcu005,
+        {
+            prescriptionItems: mutatedItems,
+        }
+    );
+
+    const review = currentReviewSource();
+    const normalizedNext = synchronizeDraftClinicalState(nextDraft);
+    const dirty =
+        JSON.stringify(normalizedNext) !==
+        JSON.stringify(normalizeDraftSnapshot(review.draft));
+
+    setClinicalHistoryState({
+        draftForm: cloneValue(normalizedNext),
+        dirty,
+    });
+    renderClinicalHistorySection();
+}
+
 async function maybeSwitchSession(sessionId) {
     const desiredSessionId = normalizeString(sessionId);
     const slice = getClinicalHistorySlice();
@@ -3763,6 +5236,10 @@ function bindClinicalHistoryEvents() {
             event.target instanceof Element
                 ? event.target.closest('[data-clinical-review-action]')
                 : null;
+        const draftActionTarget =
+            event.target instanceof Element
+                ? event.target.closest('[data-clinical-draft-action]')
+                : null;
         const workspaceTarget =
             event.target instanceof Element
                 ? event.target.closest('[data-clinical-workspace]')
@@ -3799,6 +5276,27 @@ function bindClinicalHistoryEvents() {
         }
 
         if (!(actionTarget instanceof HTMLButtonElement)) {
+            if (draftActionTarget instanceof HTMLButtonElement) {
+                event.preventDefault();
+                const draftAction = normalizeString(
+                    draftActionTarget.dataset.clinicalDraftAction
+                );
+                if (draftAction === 'add-prescription-item') {
+                    mutatePrescriptionItems((items) => [
+                        ...items,
+                        emptyPrescriptionItem(),
+                    ]);
+                    return;
+                }
+                if (draftAction === 'remove-prescription-item') {
+                    const index = normalizeNumber(
+                        draftActionTarget.dataset.prescriptionIndex
+                    );
+                    mutatePrescriptionItems((items) =>
+                        items.filter((_, itemIndex) => itemIndex !== index)
+                    );
+                }
+            }
             return;
         }
 
@@ -3994,7 +5492,10 @@ export function renderClinicalHistorySection() {
         '#clinicalHistoryTranscript',
         buildTranscript(review, slice.loading, slice.error)
     );
-    setHtml('#clinicalHistoryDraftForm', buildDraftForm(draft, slice.saving));
+    setHtml(
+        '#clinicalHistoryDraftForm',
+        buildDraftForm(review, draft, slice.saving)
+    );
     setHtml('#clinicalHistoryEvents', buildEvents(review));
 
     syncFollowUpInput();
