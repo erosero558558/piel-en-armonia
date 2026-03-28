@@ -808,8 +808,8 @@ tasks:
     scope: readiness
     codex_instance: codex_backend_ops
     domain_lane: backend_ops
-    lane_lock: strict
-    cross_domain: false
+    lane_lock: handoff_allowed
+    cross_domain: true
     provider_mode: 
     runtime_surface: 
     runtime_transport: 
@@ -852,10 +852,10 @@ tasks:
     decision_ref: ""
     rework_parent: ""
     rework_reason: ""
-    depends_on: []
+    depends_on: ["AG-258"]
     prompt: "Recuperar public_main_sync stale en produccion verificando wrapper/cron host-side, corrida forzada del sync y revalidacion final de health sin tocar runtime auth salvo regresion."
     created_at: 2026-03-25
-    updated_at: 2026-03-27
+    updated_at: 2026-03-28
 
   - id: CDX-010
     title: "Codex governance cleanup for blocked public sync evidence"
@@ -926,8 +926,8 @@ tasks:
     scope: tooling
     codex_instance: codex_transversal
     domain_lane: transversal_runtime
-    lane_lock: strict
-    cross_domain: false
+    lane_lock: handoff_allowed
+    cross_domain: true
     provider_mode: 
     runtime_surface: 
     runtime_transport: 
@@ -973,7 +973,7 @@ tasks:
     depends_on: ["CDX-009"]
     prompt: "Desbloquear el gate transversal del orquestador para que CDX-009 pueda cerrarse canónicamente sin bypasses ni relajación del publish gate."
     created_at: 2026-03-26
-    updated_at: 2026-03-27
+    updated_at: 2026-03-28
 
   - id: CDX-046
     title: "Admin v3 feedback trim follow-up: quick-nav y hub piloto"
