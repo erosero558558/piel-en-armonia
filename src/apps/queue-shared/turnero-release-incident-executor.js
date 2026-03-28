@@ -28,7 +28,9 @@ export function createIncidentExecutorStore({
     const key = buildStorageKey(clinicId);
 
     function read() {
-        if (!storage) return { incidents: {}, updatedAt: null };
+        if (!storage || typeof storage.getItem !== 'function') {
+            return { incidents: {}, updatedAt: null };
+        }
         return safeParse(storage.getItem(key), {
             incidents: {},
             updatedAt: null,
@@ -36,7 +38,7 @@ export function createIncidentExecutorStore({
     }
 
     function write(value) {
-        if (!storage) return value;
+        if (!storage || typeof storage.setItem !== 'function') return value;
         storage.setItem(key, JSON.stringify(value, null, 2));
         return value;
     }
