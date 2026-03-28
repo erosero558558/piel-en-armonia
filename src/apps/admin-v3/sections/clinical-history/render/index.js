@@ -278,10 +278,35 @@ function emptyInterconsultationDiagnosis(type = 'pre') {
     };
 }
 
+function emptyInterconsultReport() {
+    return {
+        status: 'not_received',
+        reportedAt: '',
+        reportedBy: '',
+        receivedBy: '',
+        respondingEstablishment: '',
+        respondingService: '',
+        consultantProfessionalName: '',
+        consultantProfessionalRole: '',
+        reportSummary: '',
+        clinicalFindings: '',
+        diagnosticOpinion: '',
+        recommendations: '',
+        followUpIndications: '',
+        sourceDocumentType: '',
+        sourceReference: '',
+        attachments: [],
+        history: [],
+        createdAt: '',
+        updatedAt: '',
+    };
+}
+
 function emptyInterconsultation() {
     return {
         interconsultId: '',
         status: 'draft',
+        reportStatus: 'not_received',
         requiredForCurrentPlan: false,
         priority: 'normal',
         requestedAt: '',
@@ -308,6 +333,7 @@ function emptyInterconsultation() {
         issuedAt: '',
         cancelledAt: '',
         cancelReason: '',
+        report: emptyInterconsultReport(),
         history: [],
         createdAt: '',
         updatedAt: '',
@@ -320,6 +346,21 @@ function emptyInterconsultFormSnapshot() {
         finalizedAt: '',
         snapshotAt: '',
         ...emptyInterconsultation(),
+    };
+}
+
+function emptyInterconsultReportSnapshot() {
+    return {
+        snapshotId: '',
+        interconsultId: '',
+        interconsultStatus: '',
+        destinationEstablishment: '',
+        destinationService: '',
+        consultedProfessionalName: '',
+        reportStatus: 'draft',
+        finalizedAt: '',
+        snapshotAt: '',
+        report: emptyInterconsultReport(),
     };
 }
 
@@ -466,6 +507,7 @@ function emptyDraft() {
                 confidential: true,
             },
             interconsultForms: [],
+            interconsultReports: [],
             consentForms: [],
         },
         interconsultations: [],
@@ -557,6 +599,7 @@ function emptyReview() {
             hcu001Status: hcu001StatusMeta('missing'),
             hcu005Status: hcu005StatusMeta('missing'),
             hcu007Status: hcu007StatusMeta('not_applicable'),
+            hcu007ReportStatus: hcu007ReportStatusMeta('not_received'),
             hcu024Status: hcu024StatusMeta('not_applicable'),
         },
         recordsGovernance: {},
@@ -618,6 +661,10 @@ function normalizeAttachment(attachment) {
         privatePath: normalizeString(source.privatePath),
         appointmentId: normalizeNullableInt(source.appointmentId),
     };
+}
+
+function normalizeAttachmentList(items) {
+    return normalizeList(items).map(normalizeAttachment);
 }
 
 function normalizePosology(posology) {
@@ -1146,6 +1193,104 @@ function normalizeInterconsultationDiagnoses(items) {
     return normalized;
 }
 
+function normalizeInterconsultReport(report, fallback = {}) {
+    const defaults = emptyInterconsultReport();
+    const safeSource = report && typeof report === 'object' ? report : {};
+    const safeFallback =
+        fallback && typeof fallback === 'object' ? fallback : {};
+
+    return {
+        ...defaults,
+        ...safeFallback,
+        ...safeSource,
+        status:
+            normalizeString(safeSource.status ?? safeFallback.status) ||
+            defaults.status,
+        reportedAt: normalizeString(
+            safeSource.reportedAt ?? safeFallback.reportedAt
+        ),
+        reportedBy: normalizeString(
+            safeSource.reportedBy ?? safeFallback.reportedBy
+        ),
+        receivedBy: normalizeString(
+            safeSource.receivedBy ?? safeFallback.receivedBy
+        ),
+        respondingEstablishment: normalizeString(
+            safeSource.respondingEstablishment ??
+                safeFallback.respondingEstablishment
+        ),
+        respondingService: normalizeString(
+            safeSource.respondingService ?? safeFallback.respondingService
+        ),
+        consultantProfessionalName: normalizeString(
+            safeSource.consultantProfessionalName ??
+                safeFallback.consultantProfessionalName
+        ),
+        consultantProfessionalRole: normalizeString(
+            safeSource.consultantProfessionalRole ??
+                safeFallback.consultantProfessionalRole
+        ),
+        reportSummary: normalizeString(
+            safeSource.reportSummary ?? safeFallback.reportSummary
+        ),
+        clinicalFindings: normalizeString(
+            safeSource.clinicalFindings ?? safeFallback.clinicalFindings
+        ),
+        diagnosticOpinion: normalizeString(
+            safeSource.diagnosticOpinion ?? safeFallback.diagnosticOpinion
+        ),
+        recommendations: normalizeString(
+            safeSource.recommendations ?? safeFallback.recommendations
+        ),
+        followUpIndications: normalizeString(
+            safeSource.followUpIndications ??
+                safeFallback.followUpIndications
+        ),
+        sourceDocumentType: normalizeString(
+            safeSource.sourceDocumentType ?? safeFallback.sourceDocumentType
+        ),
+        sourceReference: normalizeString(
+            safeSource.sourceReference ?? safeFallback.sourceReference
+        ),
+        attachments: normalizeAttachmentList(
+            safeSource.attachments ?? safeFallback.attachments
+        ),
+        history: normalizeList(safeSource.history ?? safeFallback.history),
+        createdAt: normalizeString(
+            safeSource.createdAt ?? safeFallback.createdAt
+        ),
+        updatedAt: normalizeString(
+            safeSource.updatedAt ?? safeFallback.updatedAt
+        ),
+    };
+}
+
+function normalizeInterconsultReportSnapshot(snapshot) {
+    const source = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    return {
+        ...emptyInterconsultReportSnapshot(),
+        ...source,
+        snapshotId: normalizeString(source.snapshotId),
+        interconsultId: normalizeString(source.interconsultId),
+        interconsultStatus: normalizeString(source.interconsultStatus),
+        destinationEstablishment: normalizeString(
+            source.destinationEstablishment
+        ),
+        destinationService: normalizeString(source.destinationService),
+        consultedProfessionalName: normalizeString(
+            source.consultedProfessionalName
+        ),
+        reportStatus: normalizeString(source.reportStatus || 'draft'),
+        finalizedAt: normalizeString(source.finalizedAt),
+        snapshotAt: normalizeString(source.snapshotAt),
+        report: normalizeInterconsultReport(source.report || source),
+    };
+}
+
+function normalizeInterconsultReportSnapshots(items) {
+    return normalizeList(items).map(normalizeInterconsultReportSnapshot);
+}
+
 function normalizeInterconsultation(interconsultation, fallback = {}) {
     const defaults = emptyInterconsultation();
     const safeSource =
@@ -1154,6 +1299,30 @@ function normalizeInterconsultation(interconsultation, fallback = {}) {
             : {};
     const safeFallback =
         fallback && typeof fallback === 'object' ? fallback : {};
+    const report = normalizeInterconsultReport(
+        safeSource.report ?? safeFallback.report,
+        {
+            consultantProfessionalName: normalizeString(
+                safeSource.consultedProfessionalName ??
+                    safeFallback.consultedProfessionalName
+            ),
+            respondingEstablishment: normalizeString(
+                safeSource.destinationEstablishment ??
+                    safeFallback.destinationEstablishment
+            ),
+            respondingService: normalizeString(
+                safeSource.destinationService ??
+                    safeFallback.destinationService
+            ),
+        }
+    );
+    const reportEvaluation = evaluateInterconsultReport(report);
+    let reportStatus = normalizeString(
+        safeSource.reportStatus ?? safeFallback.reportStatus
+    );
+    if (!reportStatus) {
+        reportStatus = reportEvaluation.status;
+    }
 
     return {
         ...defaults,
@@ -1165,6 +1334,7 @@ function normalizeInterconsultation(interconsultation, fallback = {}) {
         status:
             normalizeString(safeSource.status ?? safeFallback.status) ||
             defaults.status,
+        reportStatus: reportStatus || defaults.reportStatus,
         requiredForCurrentPlan:
             safeSource.requiredForCurrentPlan === true ||
             (safeSource.requiredForCurrentPlan === undefined &&
@@ -1238,6 +1408,7 @@ function normalizeInterconsultation(interconsultation, fallback = {}) {
         cancelReason: normalizeString(
             safeSource.cancelReason ?? safeFallback.cancelReason
         ),
+        report,
         history: normalizeList(safeSource.history ?? safeFallback.history),
         createdAt: normalizeString(
             safeSource.createdAt ?? safeFallback.createdAt
@@ -1267,9 +1438,70 @@ function normalizeInterconsultFormSnapshots(items) {
     return normalizeList(items).map(normalizeInterconsultFormSnapshot);
 }
 
+function evaluateInterconsultReport(report) {
+    const normalized = normalizeInterconsultReport(report);
+    const missing = [];
+    if (
+        !normalizeString(normalized.respondingEstablishment) &&
+        !normalizeString(normalized.respondingService)
+    ) {
+        missing.push('responding_service');
+    }
+    if (!normalizeString(normalized.consultantProfessionalName)) {
+        missing.push('consultant_professional_name');
+    }
+    if (!normalizeString(normalized.reportedAt)) {
+        missing.push('reported_at');
+    }
+    if (
+        !normalizeString(normalized.clinicalFindings) &&
+        !normalizeString(normalized.diagnosticOpinion)
+    ) {
+        missing.push('clinical_findings');
+    }
+    if (
+        !normalizeString(normalized.recommendations) &&
+        !normalizeString(normalized.followUpIndications)
+    ) {
+        missing.push('recommendations');
+    }
+    const readyToReceive = missing.length === 0;
+    const hasAnyContent =
+        normalizeString(normalized.reportedAt) ||
+        normalizeString(normalized.reportedBy) ||
+        normalizeString(normalized.respondingEstablishment) ||
+        normalizeString(normalized.respondingService) ||
+        normalizeString(normalized.consultantProfessionalName) ||
+        normalizeString(normalized.consultantProfessionalRole) ||
+        normalizeString(normalized.reportSummary) ||
+        normalizeString(normalized.clinicalFindings) ||
+        normalizeString(normalized.diagnosticOpinion) ||
+        normalizeString(normalized.recommendations) ||
+        normalizeString(normalized.followUpIndications) ||
+        normalizeString(normalized.sourceDocumentType) ||
+        normalizeString(normalized.sourceReference) ||
+        normalized.attachments.length > 0;
+
+    let status = 'not_received';
+    if (normalizeString(normalized.status) === 'received') {
+        status = readyToReceive ? 'received' : 'draft';
+    } else if (readyToReceive) {
+        status = 'ready_to_receive';
+    } else if (hasAnyContent) {
+        status = 'draft';
+    }
+
+    return {
+        status,
+        readyToReceive,
+        missingFields: Array.from(new Set(missing)),
+    };
+}
+
 function evaluateInterconsultation(interconsultation) {
     const normalized = normalizeInterconsultation(interconsultation);
     const diagnoses = normalizeInterconsultationDiagnoses(normalized.diagnoses);
+    const reportEvaluation = evaluateInterconsultReport(normalized.report);
     const missing = [];
     if (!normalizeString(normalized.destinationEstablishment)) {
         missing.push('destination_establishment');
@@ -1315,9 +1547,11 @@ function evaluateInterconsultation(interconsultation) {
     let status = 'draft';
     if (normalizeString(normalized.status) === 'issued') {
         status =
-            readyToIssue && normalizeString(normalized.issuedAt)
-                ? 'issued'
-                : 'incomplete';
+            reportEvaluation.status === 'received'
+                ? 'received'
+                : readyToIssue && normalizeString(normalized.issuedAt)
+                  ? 'issued'
+                  : 'incomplete';
     } else if (normalizeString(normalized.status) === 'cancelled') {
         status = normalizeString(normalized.cancelledAt)
             ? 'cancelled'
@@ -1331,12 +1565,20 @@ function evaluateInterconsultation(interconsultation) {
     return {
         status,
         readyToIssue,
+        reportStatus: reportEvaluation.status,
         missingFields: Array.from(new Set(missing)),
     };
 }
 
 function hcu007StatusMeta(status) {
     switch (normalizeString(status)) {
+        case 'received':
+            return {
+                status: 'received',
+                label: 'HCU-007 informe recibido',
+                summary:
+                    'La interconsulta ya fue emitida y el informe del consultado quedó recibido como respaldo documental.',
+            };
         case 'issued':
             return {
                 status: 'issued',
@@ -1378,6 +1620,39 @@ function hcu007StatusMeta(status) {
                 label: 'HCU-007 no aplica',
                 summary:
                     'No hay interconsulta formal exigible para este episodio.',
+            };
+    }
+}
+
+function hcu007ReportStatusMeta(status) {
+    switch (normalizeString(status)) {
+        case 'received':
+            return {
+                status: 'received',
+                label: 'Informe recibido',
+                summary:
+                    'El informe del consultado ya quedó recibido y anexado al episodio.',
+            };
+        case 'ready_to_receive':
+            return {
+                status: 'ready_to_receive',
+                label: 'Informe listo para recibir',
+                summary:
+                    'El informe ya cubre los mínimos y puede recibirse formalmente.',
+            };
+        case 'draft':
+            return {
+                status: 'draft',
+                label: 'Informe en borrador',
+                summary:
+                    'Existe un borrador del informe del consultado aún sin recepción formal.',
+            };
+        default:
+            return {
+                status: 'not_received',
+                label: 'Informe no recibido',
+                summary:
+                    'Todavía no se ha recibido informe del consultado en este episodio.',
             };
     }
 }
@@ -1930,6 +2205,14 @@ function deriveInterconsultationContext(
         )
     );
 
+    const report = normalizeInterconsultReport(normalized.report, {
+        consultantProfessionalName:
+            normalized.consultedProfessionalName || '',
+        respondingEstablishment:
+            normalized.destinationEstablishment || '',
+        respondingService: normalized.destinationService || '',
+    });
+
     return normalizeInterconsultation({
         ...normalized,
         patientName:
@@ -1968,6 +2251,7 @@ function deriveInterconsultationContext(
             [hcu005.therapeuticPlan, hcu005.careIndications]
                 .filter(Boolean)
                 .join('\n'),
+        report,
     });
 }
 
@@ -2058,6 +2342,9 @@ function normalizeDocuments(documents) {
     const interconsultForms = normalizeInterconsultFormSnapshots(
         source?.interconsultForms
     );
+    const interconsultReports = normalizeInterconsultReportSnapshots(
+        source?.interconsultReports
+    );
     const consentForms = normalizeConsentFormSnapshots(source?.consentForms);
 
     return {
@@ -2112,6 +2399,7 @@ function normalizeDocuments(documents) {
             confidential: source?.certificate?.confidential !== false,
         },
         interconsultForms,
+        interconsultReports,
         consentForms,
     };
 }
@@ -2352,6 +2640,9 @@ function normalizeLegalReadiness(readiness) {
         hcu001Status: hcu001StatusMeta(source?.hcu001Status?.status),
         hcu005Status: hcu005StatusMeta(source?.hcu005Status?.status),
         hcu007Status: hcu007StatusMeta(source?.hcu007Status?.status),
+        hcu007ReportStatus: hcu007ReportStatusMeta(
+            source?.hcu007ReportStatus?.status
+        ),
         hcu024Status: hcu024StatusMeta(source?.hcu024Status?.status),
     };
 }
@@ -5420,9 +5711,72 @@ function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
             ? evaluateInterconsultation(hydratedInterconsultation).status
             : 'not_applicable'
     );
+    const activeReport = hydratedInterconsultation
+        ? normalizeInterconsultReport(hydratedInterconsultation.report, {
+              consultantProfessionalName:
+                  hydratedInterconsultation.consultedProfessionalName,
+              respondingEstablishment:
+                  hydratedInterconsultation.destinationEstablishment,
+              respondingService:
+                  hydratedInterconsultation.destinationService,
+          })
+        : emptyInterconsultReport();
+    const activeReportStatus = hcu007ReportStatusMeta(
+        hydratedInterconsultation
+            ? evaluateInterconsultReport(activeReport).status
+            : 'not_received'
+    );
     const interconsultForms = normalizeInterconsultFormSnapshots(
         draft.documents.interconsultForms
     );
+    const interconsultReports = normalizeInterconsultReportSnapshots(
+        draft.documents.interconsultReports
+    );
+    const supportAttachments = normalizeAttachmentList(draft.intake.adjuntos);
+    const selectedAttachmentIds = new Set(
+        normalizeAttachmentList(activeReport.attachments).map((attachment) =>
+            String(attachment.id || '')
+        )
+    );
+    const attachmentSelector =
+        supportAttachments.length > 0
+            ? supportAttachments
+                  .map((attachment) => {
+                      const attachmentId = String(attachment.id || '');
+                      const checked =
+                          attachmentId &&
+                          selectedAttachmentIds.has(attachmentId);
+                      const meta = [
+                          normalizeString(attachment.kind) || 'archivo',
+                          normalizeString(attachment.mime),
+                          attachment.size > 0 ? formatBytes(attachment.size) : '',
+                      ]
+                          .filter(Boolean)
+                          .join(' • ');
+                      return `
+                            <label class="clinical-history-inline-checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="interconsult_report_attachment_ids"
+                                    value="${escapeHtml(attachmentId)}"
+                                    ${checked ? 'checked' : ''}
+                                    ${disabled ? 'disabled' : ''}
+                                />
+                                <span>
+                                    <strong>${escapeHtml(
+                                        attachment.originalName ||
+                                            `Adjunto ${attachmentId}`
+                                    )}</strong>
+                                    <small>${escapeHtml(meta || 'Soporte clínico')}</small>
+                                </span>
+                            </label>
+                        `;
+                  })
+                  .join('')
+            : buildEmptyClinicalCard(
+                  'Sin adjuntos clínicos disponibles',
+                  'Cuando el caso tenga adjuntos de clinical_uploads podrás seleccionarlos como respaldo del informe.'
+              );
     const diagnoses = hydratedInterconsultation
         ? normalizeInterconsultationDiagnoses(hydratedInterconsultation.diagnoses)
         : normalizeInterconsultationDiagnoses([]);
@@ -5435,7 +5789,7 @@ function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
 
     return buildClinicalHistorySection(
         'Interconsulta HCU-form.007/2008',
-        'Documento formal de interconsulta emitida, sin esperar todavía el informe del consultado.',
+        'Documento formal de interconsulta emitida con captura estructurada del informe del consultado y adjunto opcional.',
         `
                 <input
                     type="hidden"
@@ -5448,10 +5802,22 @@ function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
                         'HCU-007',
                         activeStatus.label,
                         activeStatus.summary,
-                        activeStatus.status === 'issued'
+                        ['issued', 'received'].includes(activeStatus.status)
                             ? 'success'
                             : ['ready_to_issue', 'incomplete', 'draft'].includes(
                                     activeStatus.status
+                                )
+                              ? 'warning'
+                              : 'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Informe del consultado',
+                        activeReportStatus.label,
+                        activeReportStatus.summary,
+                        activeReportStatus.status === 'received'
+                            ? 'success'
+                            : ['ready_to_receive', 'draft'].includes(
+                                    activeReportStatus.status
                                 )
                               ? 'warning'
                               : 'neutral'
@@ -5482,11 +5848,15 @@ function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
                     )}
                     ${summaryStatCard(
                         'Snapshots',
-                        String(interconsultForms.length),
-                        interconsultForms.length > 0
-                            ? 'Snapshots documentales HCU-007 emitidos o cancelados'
-                            : 'Todavía no hay snapshots HCU-007 emitidos',
-                        interconsultForms.length > 0 ? 'success' : 'neutral'
+                        String(interconsultForms.length + interconsultReports.length),
+                        interconsultReports.length > 0
+                            ? 'Hay snapshots emitidos/cancelados y al menos un informe recibido.'
+                            : interconsultForms.length > 0
+                              ? 'Snapshots documentales HCU-007 emitidos o cancelados.'
+                              : 'Todavía no hay snapshots HCU-007 emitidos.',
+                        interconsultForms.length + interconsultReports.length > 0
+                            ? 'success'
+                            : 'neutral'
                     )}
                 </div>
                 <div class="toolbar-row clinical-history-actions-row">
@@ -5510,6 +5880,13 @@ function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
                         ${disabled || !hydratedInterconsultation ? 'disabled' : ''}
                     >
                         Cancelar interconsulta
+                    </button>
+                    <button
+                        type="button"
+                        data-clinical-review-action="receive-current-interconsult-report"
+                        ${disabled || !hydratedInterconsultation ? 'disabled' : ''}
+                    >
+                        Recibir informe
                     </button>
                 </div>
                 <div class="toolbar-row clinical-history-actions-row">
@@ -5698,6 +6075,143 @@ function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
                                     { disabled }
                                 ),
                             ])}
+                            <div class="clinical-history-section-block">
+                                <div class="clinical-history-event-head">
+                                    <strong>Informe del consultado</strong>
+                                    <span class="clinical-history-mini-chip">${escapeHtml(
+                                        activeReportStatus.label
+                                    )}</span>
+                                </div>
+                                ${
+                                    activeReportStatus.status === 'received'
+                                        ? `
+                                            <div class="clinical-history-banner clinical-history-banner-success">
+                                                Informe recibido: reconciliar manualmente en HCU-005/HCU-024 si aplica.
+                                            </div>
+                                        `
+                                        : ''
+                                }
+                                ${buildClinicalHistoryInlineGrid([
+                                    inputField(
+                                        'interconsult_report_reported_at',
+                                        'Fecha/hora del informe',
+                                        activeReport.reportedAt,
+                                        { disabled }
+                                    ),
+                                    inputField(
+                                        'interconsult_report_reported_by',
+                                        'Reportado por',
+                                        activeReport.reportedBy,
+                                        { disabled }
+                                    ),
+                                    inputField(
+                                        'interconsult_report_received_by',
+                                        'Recibido por',
+                                        activeReport.receivedBy,
+                                        { disabled: true }
+                                    ),
+                                ])}
+                                ${buildClinicalHistoryInlineGrid([
+                                    inputField(
+                                        'interconsult_report_responding_establishment',
+                                        'Establecimiento respondiente',
+                                        activeReport.respondingEstablishment,
+                                        { disabled }
+                                    ),
+                                    inputField(
+                                        'interconsult_report_responding_service',
+                                        'Servicio respondiente',
+                                        activeReport.respondingService,
+                                        { disabled }
+                                    ),
+                                ])}
+                                ${buildClinicalHistoryInlineGrid([
+                                    inputField(
+                                        'interconsult_report_consultant_professional_name',
+                                        'Profesional consultado',
+                                        activeReport.consultantProfessionalName,
+                                        { disabled }
+                                    ),
+                                    inputField(
+                                        'interconsult_report_consultant_professional_role',
+                                        'Rol profesional',
+                                        activeReport.consultantProfessionalRole,
+                                        { disabled }
+                                    ),
+                                ])}
+                                ${textareaField(
+                                    'interconsult_report_summary',
+                                    'Resumen del informe',
+                                    activeReport.reportSummary,
+                                    {
+                                        rows: 3,
+                                        disabled,
+                                    }
+                                )}
+                                ${buildClinicalHistoryInlineGrid([
+                                    textareaField(
+                                        'interconsult_report_clinical_findings',
+                                        'Hallazgos clínicos',
+                                        activeReport.clinicalFindings,
+                                        {
+                                            rows: 4,
+                                            disabled,
+                                        }
+                                    ),
+                                    textareaField(
+                                        'interconsult_report_diagnostic_opinion',
+                                        'Criterio / impresión del consultado',
+                                        activeReport.diagnosticOpinion,
+                                        {
+                                            rows: 4,
+                                            disabled,
+                                        }
+                                    ),
+                                ])}
+                                ${buildClinicalHistoryInlineGrid([
+                                    textareaField(
+                                        'interconsult_report_recommendations',
+                                        'Recomendaciones',
+                                        activeReport.recommendations,
+                                        {
+                                            rows: 4,
+                                            disabled,
+                                        }
+                                    ),
+                                    textareaField(
+                                        'interconsult_report_follow_up_indications',
+                                        'Conducta sugerida / seguimiento',
+                                        activeReport.followUpIndications,
+                                        {
+                                            rows: 4,
+                                            disabled,
+                                        }
+                                    ),
+                                ])}
+                                ${buildClinicalHistoryInlineGrid([
+                                    inputField(
+                                        'interconsult_report_source_document_type',
+                                        'Tipo de documento fuente',
+                                        activeReport.sourceDocumentType,
+                                        { disabled }
+                                    ),
+                                    inputField(
+                                        'interconsult_report_source_reference',
+                                        'Referencia / folio',
+                                        activeReport.sourceReference,
+                                        { disabled }
+                                    ),
+                                ])}
+                                <div class="clinical-history-section-block">
+                                    <div class="clinical-history-event-head">
+                                        <strong>Adjunto opcional de respaldo</strong>
+                                        <small>Reutiliza adjuntos ya cargados por clinical_uploads.</small>
+                                    </div>
+                                    <div class="clinical-history-inline-checkbox-list">
+                                        ${attachmentSelector}
+                                    </div>
+                                </div>
+                            </div>
                         `
                 }
             `
@@ -6567,6 +7081,16 @@ function serializeDraftForm(form, baseDraft) {
             interconsultations[activeInterconsultationIndex],
             snapshot
         );
+        const supportAttachments = normalizeAttachmentList(
+            snapshot.intake.adjuntos
+        );
+        const selectedReportAttachmentIds = Array.from(
+            form.querySelectorAll(
+                'input[name="interconsult_report_attachment_ids"]:checked'
+            )
+        )
+            .map((field) => normalizeString(field.value))
+            .filter(Boolean);
         interconsultations[activeInterconsultationIndex] =
             normalizeInterconsultation({
                 ...baseInterconsultation,
@@ -6621,6 +7145,51 @@ function serializeDraftForm(form, baseDraft) {
                     readValue('interconsult_cancelled_at') ||
                     baseInterconsultation.cancelledAt,
                 cancelReason: readValue('interconsult_cancel_reason'),
+                report: normalizeInterconsultReport({
+                    ...baseInterconsultation.report,
+                    reportedAt:
+                        readValue('interconsult_report_reported_at') ||
+                        baseInterconsultation.report.reportedAt,
+                    reportedBy: readValue('interconsult_report_reported_by'),
+                    receivedBy:
+                        baseInterconsultation.report.receivedBy || '',
+                    respondingEstablishment: readValue(
+                        'interconsult_report_responding_establishment'
+                    ),
+                    respondingService: readValue(
+                        'interconsult_report_responding_service'
+                    ),
+                    consultantProfessionalName: readValue(
+                        'interconsult_report_consultant_professional_name'
+                    ),
+                    consultantProfessionalRole: readValue(
+                        'interconsult_report_consultant_professional_role'
+                    ),
+                    reportSummary: readValue('interconsult_report_summary'),
+                    clinicalFindings: readValue(
+                        'interconsult_report_clinical_findings'
+                    ),
+                    diagnosticOpinion: readValue(
+                        'interconsult_report_diagnostic_opinion'
+                    ),
+                    recommendations: readValue(
+                        'interconsult_report_recommendations'
+                    ),
+                    followUpIndications: readValue(
+                        'interconsult_report_follow_up_indications'
+                    ),
+                    sourceDocumentType: readValue(
+                        'interconsult_report_source_document_type'
+                    ),
+                    sourceReference: readValue(
+                        'interconsult_report_source_reference'
+                    ),
+                    attachments: supportAttachments.filter((attachment) =>
+                        selectedReportAttachmentIds.includes(
+                            normalizeString(attachment.id)
+                        )
+                    ),
+                }),
             });
     }
     snapshot.interconsultations = interconsultations;
@@ -7139,6 +7708,11 @@ async function submitInterconsultationAction(action, interconsultId = '') {
         } else if (action === 'cancel_interconsultation') {
             createToast(
                 `Interconsulta HCU-007 cancelada para ${targetLabel}.`,
+                'success'
+            );
+        } else if (action === 'receive_interconsult_report') {
+            createToast(
+                `Informe del consultado recibido para ${targetLabel}.`,
                 'success'
             );
         }
@@ -7979,6 +8553,11 @@ function bindClinicalHistoryEvents() {
 
         if (action === 'cancel-current-interconsultation') {
             await submitInterconsultationAction('cancel_interconsultation');
+            return;
+        }
+
+        if (action === 'receive-current-interconsult-report') {
+            await submitInterconsultationAction('receive_interconsult_report');
             return;
         }
 

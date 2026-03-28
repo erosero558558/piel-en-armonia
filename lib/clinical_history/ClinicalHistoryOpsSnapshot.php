@@ -78,6 +78,7 @@ final class ClinicalHistoryOpsSnapshot
             'not_applicable' => 0,
             'draft' => 0,
             'ready_to_issue' => 0,
+            'received' => 0,
             'issued' => 0,
             'cancelled' => 0,
             'incomplete' => 0,

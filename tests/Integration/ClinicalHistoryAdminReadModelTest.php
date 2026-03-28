@@ -490,6 +490,223 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         );
     }
 
+    public function testAdminDataSummarizesReceivedInterconsultReport(): void
+    {
+        $store = \read_store();
+        $store['appointments'] = [];
+        $store['clinical_history_sessions'] = [[
+            'id' => 911,
+            'sessionId' => 'chs-admin-007-report',
+            'caseId' => 'case-admin-007-report',
+            'appointmentId' => 452,
+            'surface' => 'waiting_room',
+            'status' => 'review_required',
+            'patient' => [
+                'name' => 'Paciente Reporte',
+                'email' => 'reporte@example.com',
+                'phone' => '0990002222',
+            ],
+            'transcript' => [],
+            'questionHistory' => [],
+            'surfaces' => ['waiting_room'],
+            'lastTurn' => [],
+            'pendingAi' => [],
+            'metadata' => [],
+            'version' => 2,
+            'createdAt' => '2026-03-16T09:00:00-05:00',
+            'updatedAt' => '2026-03-16T10:10:00-05:00',
+            'lastMessageAt' => '2026-03-16T10:05:00-05:00',
+        ]];
+        $store['clinical_history_drafts'] = [[
+            'id' => 912,
+            'draftId' => 'chd-admin-007-report',
+            'sessionId' => 'chs-admin-007-report',
+            'caseId' => 'case-admin-007-report',
+            'appointmentId' => 452,
+            'status' => 'review_required',
+            'reviewStatus' => 'review_required',
+            'requiresHumanReview' => true,
+            'confidence' => 0.83,
+            'reviewReasons' => [],
+            'intake' => [
+                'motivoConsulta' => 'Rosacea facial',
+                'enfermedadActual' => 'Seguimiento ambulatorio con criterio externo.',
+                'antecedentes' => 'Sin antecedentes relevantes',
+                'alergias' => 'Niega alergias',
+                'medicacionActual' => '',
+                'rosRedFlags' => [],
+                'adjuntos' => [],
+                'resumenClinico' => 'Caso en seguimiento.',
+                'cie10Sugeridos' => ['L71.9'],
+                'tratamientoBorrador' => '',
+                'posologiaBorrador' => [
+                    'texto' => 'Aplicacion nocturna',
+                    'baseCalculo' => 'standard',
+                    'pesoKg' => 58,
+                    'edadAnios' => 34,
+                    'units' => '',
+                    'ambiguous' => false,
+                ],
+                'preguntasFaltantes' => [],
+                'datosPaciente' => [
+                    'edadAnios' => 34,
+                    'pesoKg' => 58,
+                    'sexoBiologico' => 'femenino',
+                    'embarazo' => false,
+                ],
+            ],
+            'clinicianDraft' => [
+                'resumen' => 'Interconsulta emitida con informe recibido.',
+                'preguntasFaltantes' => [],
+                'cie10Sugeridos' => ['L71.9'],
+                'tratamientoBorrador' => 'Metronidazol topico',
+                'posologiaBorrador' => [
+                    'texto' => 'Aplicacion nocturna',
+                    'baseCalculo' => 'standard',
+                    'pesoKg' => 58,
+                    'edadAnios' => 34,
+                    'units' => '',
+                    'ambiguous' => false,
+                ],
+                'hcu005' => [
+                    'evolutionNote' => 'Seguimiento ambulatorio con criterio externo recibido.',
+                    'diagnosticImpression' => 'Rosacea inflamatoria en control parcial.',
+                    'therapeuticPlan' => 'Mantener manejo topico y seguimiento.',
+                    'careIndications' => 'Fotoproteccion y vigilancia de desencadenantes.',
+                    'prescriptionItems' => [[
+                        'medication' => 'Metronidazol topico',
+                        'presentation' => 'Gel 0.75%',
+                        'dose' => 'Aplicacion fina',
+                        'route' => 'Topica',
+                        'frequency' => 'Nocturna',
+                        'duration' => '8 semanas',
+                        'quantity' => '1 tubo',
+                        'instructions' => 'Aplicar sobre piel limpia.',
+                    ]],
+                ],
+            ],
+            'admission001' => [
+                'identity' => [
+                    'documentType' => 'cedula',
+                    'documentNumber' => '0912345678',
+                    'apellidoPaterno' => 'Reporte',
+                    'apellidoMaterno' => '',
+                    'primerNombre' => 'Paciente',
+                    'segundoNombre' => '',
+                ],
+                'demographics' => [
+                    'birthDate' => '1991-05-11',
+                    'ageYears' => 34,
+                    'sexAtBirth' => 'femenino',
+                ],
+                'residence' => [
+                    'phone' => '0990002222',
+                ],
+                'coverage' => [
+                    'healthInsuranceType' => 'private',
+                ],
+                'emergencyContact' => [
+                    'name' => 'Contacto principal',
+                    'kinship' => 'Hermana',
+                    'phone' => '0981112233',
+                ],
+                'admissionMeta' => [
+                    'admissionDate' => '2026-03-16T09:00:00-05:00',
+                    'admissionKind' => 'first',
+                    'admittedBy' => 'Recepcion FlowOS',
+                    'transitionMode' => 'new_required',
+                ],
+            ],
+            'consentPackets' => [],
+            'activeConsentPacketId' => '',
+            'interconsultations' => [[
+                'interconsultId' => 'inter-admin-007-report',
+                'status' => 'issued',
+                'reportStatus' => 'received',
+                'requiredForCurrentPlan' => true,
+                'priority' => 'routine',
+                'requestedAt' => '2026-03-16T09:20:00-05:00',
+                'requestingEstablishment' => 'Piel Armonia',
+                'requestingService' => 'Dermatologia ambulatoria',
+                'destinationEstablishment' => 'Hospital dermatologico aliado',
+                'destinationService' => 'Dermatologia clinica',
+                'consultedProfessionalName' => 'Dr. Rafael Suarez',
+                'clinicalPicture' => 'Rosacea facial de varios meses con respuesta parcial.',
+                'requestReason' => 'Solicito valoracion complementaria del plan ambulatorio.',
+                'diagnoses' => [[
+                    'type' => 'pre',
+                    'label' => 'Rosacea en control parcial.',
+                    'cie10' => 'L71.9',
+                ]],
+                'performedDiagnosticsSummary' => 'Evaluacion clinica y fotografia de control.',
+                'therapeuticMeasuresDone' => 'Metronidazol topico y medidas de cuidado cutaneo.',
+                'questionForConsultant' => 'Confirmar conducta y prioridad del seguimiento.',
+                'issuedBy' => 'Dra. Laura Mena',
+                'issuedAt' => '2026-03-16T09:30:00-05:00',
+                'cancelledAt' => '',
+                'cancelReason' => '',
+                'report' => [
+                    'status' => 'received',
+                    'reportedAt' => '2026-03-16T10:00:00-05:00',
+                    'reportedBy' => 'Lic. Andrea Paredes',
+                    'receivedBy' => 'Dra. Laura Mena',
+                    'respondingEstablishment' => 'Hospital dermatologico aliado',
+                    'respondingService' => 'Dermatologia clinica',
+                    'consultantProfessionalName' => 'Dr. Rafael Suarez',
+                    'consultantProfessionalRole' => 'Dermatologo',
+                    'reportSummary' => 'Criterio complementario recibido.',
+                    'clinicalFindings' => 'Rosacea inflamatoria en control parcial, sin signos de alarma.',
+                    'diagnosticOpinion' => 'Mantener manejo ambulatorio.',
+                    'recommendations' => 'Continuar manejo topico y reevaluar en 4 semanas.',
+                    'followUpIndications' => 'Control si hay recrudecimiento.',
+                    'sourceDocumentType' => 'nota_especialista',
+                    'sourceReference' => 'INT-007-2026',
+                    'attachments' => [],
+                    'history' => [],
+                ],
+                'history' => [],
+                'createdAt' => '2026-03-16T09:20:00-05:00',
+                'updatedAt' => '2026-03-16T10:00:00-05:00',
+            ]],
+            'activeInterconsultationId' => 'inter-admin-007-report',
+            'recordMeta' => [
+                'archiveState' => 'active',
+                'lastAttentionAt' => '2026-03-16T10:00:00-05:00',
+                'passiveAfterYears' => 5,
+                'confidentialityLabel' => 'CONFIDENCIAL',
+                'identityProtectionMode' => 'standard',
+                'copyDeliverySlaHours' => 48,
+                'formsCatalogStatus' => 'official_partial_traceability',
+            ],
+            'copyRequests' => [],
+            'disclosureLog' => [],
+            'lastAiEnvelope' => [],
+            'pendingAi' => [],
+            'version' => 2,
+            'createdAt' => '2026-03-16T09:00:00-05:00',
+            'updatedAt' => '2026-03-16T10:00:00-05:00',
+        ]];
+        $store['clinical_history_events'] = [];
+        \write_store($store, false);
+
+        try {
+            \AdminDataController::index([
+                'store' => \read_store(),
+                'isAdmin' => true,
+            ]);
+            self::fail('Se esperaba TestingExitException');
+        } catch (\TestingExitException $e) {
+            $payload = $e->payload;
+        }
+
+        self::assertTrue((bool) ($payload['ok'] ?? false));
+        $meta = $payload['data']['clinicalHistoryMeta'] ?? [];
+        self::assertSame(1, (int) ($meta['summary']['drafts']['hcu007']['received'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu007']['issued'] ?? -1));
+        self::assertSame('received', (string) ($meta['reviewQueue'][0]['hcu007Status'] ?? ''));
+        self::assertSame('HCU-007 informe recibido', (string) ($meta['reviewQueue'][0]['hcu007Label'] ?? ''));
+    }
+
     private function removeDirectory(string $dir): void
     {
         if (!is_dir($dir)) {

@@ -64,7 +64,7 @@ Cerrar la Fase 0 normativa de HCE para el alcance **consultorio defendible V1** 
 |---|---|---|---|---|
 | `SNS-MSP/HCU-form.001/2008` Admision | Instructivo MSP 2020, anexo 7 | Obligatorio para apertura de HCU y primera admision | `PatientRecord/HCU`, apertura de episodio, identificacion/filiacion | Parcial |
 | `SNS-MSP/HCU-form.005/2008` Evolucion y prescripciones | Instructivo MSP 2020, anexo 8 | Nucleo documental ambulatorio | `FinalClinicalNote`, `Prescription` | Parcial |
-| `SNS-MSP/HCU-form.007/2008` Interconsulta | Instructivo MSP 2020, anexo 9 | Aplicable cuando el consultorio emite o recibe interconsulta | `interconsultations[]`, `activeInterconsultation`, `documents.interconsultForms[]`, `legalReadiness.hcu007Status` | Parcial: emision/cancelacion implementadas; recepcion/informe diferidos |
+| `SNS-MSP/HCU-form.007/2008` Interconsulta | Instructivo MSP 2020, anexo 9 | Aplicable cuando el consultorio emite o recibe interconsulta | `interconsultations[]`, `activeInterconsultation`, `documents.interconsultForms[]`, `documents.interconsultReports[]`, `legalReadiness.hcu007Status`, `legalReadiness.hcu007ReportStatus` | Parcial: emision/cancelacion e informe recibido implementados; siguen diferidos portal externo y firma avanzada |
 | `SNS-MSP/HCU-form.010A/2008` Solicitud de laboratorio clinico | Instructivo MSP 2020, anexo 10 | Aplicable cuando el caso requiere examenes de laboratorio | modulo futuro de ordenes/solicitudes | Pendiente |
 | `SNS-MSP/HCU-form.012A/2008` Solicitud de imagenologia | Instructivo MSP 2020, anexo 11 | Aplicable cuando el caso requiere imagenologia | modulo futuro de ordenes/solicitudes | Pendiente |
 | `SNS-MSP/HCU-form.024` Consentimiento informado | A.M. 5316 y su modelo de gestion | Obligatorio cuando el procedimiento lo requiere | `ConsentRecord`, `consentPackets`, `documents.consentForms`, `DisclosureLog`, `ClinicalApproval` | Parcial: atestacion estructurada V1, sin firma avanzada/biometrica |
@@ -87,7 +87,7 @@ Cerrar la Fase 0 normativa de HCE para el alcance **consultorio defendible V1** 
 - eliminacion formal del archivo pasivo y actas del comite de historia clinica.
 
 ### Pendiente
-- interconsulta formal `HCU-form.007` en su tramo de recepcion/informe del consultado;
+- portal externo y circuito federado para respuesta del consultado sobre `HCU-form.007`;
 - solicitudes `HCU-form.010A` y `HCU-form.012A`;
 - catalogo hospitalario y de especialidades fuera del consultorio V1.
 

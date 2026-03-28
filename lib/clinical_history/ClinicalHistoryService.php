@@ -367,6 +367,10 @@ final class ClinicalHistoryService
             return $this->mutateClinicalRecord($store, $payload, 'cancel-interconsultation');
         }
 
+        if ($action === 'receive_interconsult_report') {
+            return $this->mutateClinicalRecord($store, $payload, 'receive-interconsult-report');
+        }
+
         if ($action === 'issue_prescription') {
             return $this->mutateClinicalRecord($store, $payload, 'prescription');
         }
@@ -992,6 +996,14 @@ final class ClinicalHistoryService
             $draft = $interconsultationResult['draft'];
             $modeAuditReason = 'interconsultation_cancelled';
             $modeAuditMeta = $interconsultationResult['meta'] ?? [];
+        } elseif ($mode === 'receive-interconsult-report') {
+            $interconsultationResult = $this->applyReceiveInterconsultReportAction($session, $draft, $payload);
+            if (($interconsultationResult['ok'] ?? false) !== true) {
+                return $interconsultationResult;
+            }
+            $draft = $interconsultationResult['draft'];
+            $modeAuditReason = 'interconsult_report_received';
+            $modeAuditMeta = $interconsultationResult['meta'] ?? [];
         } elseif (in_array($mode, ['declare-consent', 'deny-consent', 'revoke-consent'], true)) {
             $consentDecisionResult = $this->applyConsentDecisionAction($session, $draft, $payload, $mode);
             if (($consentDecisionResult['ok'] ?? false) !== true) {
@@ -1045,7 +1057,7 @@ final class ClinicalHistoryService
                 'finalDraftVersion' => (int) ($draft['approval']['finalDraftVersion'] ?? 0),
             ]);
         } else {
-            $resolveEvents = in_array($mode, ['save', 'declare-consent', 'deny-consent', 'revoke-consent', 'create-interconsultation', 'issue-interconsultation', 'cancel-interconsultation', 'prescription', 'certificate'], true)
+            $resolveEvents = in_array($mode, ['save', 'declare-consent', 'deny-consent', 'revoke-consent', 'create-interconsultation', 'issue-interconsultation', 'cancel-interconsultation', 'receive-interconsult-report', 'prescription', 'certificate'], true)
                 && ((bool) ($draft['requiresHumanReview'] ?? true) === false);
             $store = $this->touchSessionEventsForReview($store, $session, $resolveEvents);
 
@@ -1122,6 +1134,13 @@ final class ClinicalHistoryService
                     'caseId' => (string) ($session['caseId'] ?? ''),
                     'interconsultId' => (string) ($modeAuditMeta['interconsultId'] ?? ''),
                     'cancelReason' => (string) ($modeAuditMeta['cancelReason'] ?? ''),
+                ]);
+            } elseif ($mode === 'receive-interconsult-report') {
+                audit_log_event('clinical_history.interconsult_report_received', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'interconsultId' => (string) ($modeAuditMeta['interconsultId'] ?? ''),
+                    'consultantProfessionalName' => (string) ($modeAuditMeta['consultantProfessionalName'] ?? ''),
                 ]);
             } elseif ($mode === 'prescription') {
                 audit_log_event('clinical_history.prescription_saved', [
@@ -2643,6 +2662,104 @@ final class ClinicalHistoryService
         ];
     }
 
+    private function applyReceiveInterconsultReportAction(array $session, array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::syncInterconsultationArtifacts($draft, $session);
+        $interconsultations = ClinicalHistoryRepository::normalizeInterconsultations($draft['interconsultations'] ?? []);
+        $interconsultId = ClinicalHistoryRepository::trimString(
+            $payload['interconsultId'] ?? $draft['activeInterconsultationId'] ?? ''
+        );
+        if ($interconsultId === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe una interconsulta activa para recibir informe.',
+                'errorCode' => 'clinical_interconsultation_not_found',
+            ];
+        }
+
+        $targetIndex = null;
+        foreach ($interconsultations as $index => $interconsultation) {
+            if (ClinicalHistoryRepository::trimString($interconsultation['interconsultId'] ?? '') === $interconsultId) {
+                $targetIndex = $index;
+                break;
+            }
+        }
+        if ($targetIndex === null) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe la interconsulta indicada para este episodio.',
+                'errorCode' => 'clinical_interconsultation_not_found',
+            ];
+        }
+
+        $interconsultation = ClinicalHistoryRepository::normalizeInterconsultation($interconsultations[$targetIndex]);
+        if (ClinicalHistoryRepository::trimString($interconsultation['status'] ?? '') !== 'issued') {
+            return [
+                'ok' => false,
+                'statusCode' => 409,
+                'error' => 'Solo se puede recibir informe sobre una interconsulta ya emitida.',
+                'errorCode' => 'clinical_interconsultation_report_requires_issued',
+            ];
+        }
+
+        $report = ClinicalHistoryRepository::normalizeInterconsultReport(
+            isset($interconsultation['report']) && is_array($interconsultation['report']) ? $interconsultation['report'] : []
+        );
+        $evaluation = ClinicalHistoryRepository::evaluateInterconsultReport($report);
+        if (($evaluation['readyToReceive'] ?? false) !== true) {
+            return [
+                'ok' => false,
+                'statusCode' => 409,
+                'error' => 'El informe del consultado todavía no cubre los campos mínimos para recepción.',
+                'errorCode' => 'clinical_interconsultation_report_incomplete',
+            ];
+        }
+
+        $now = local_date('c');
+        $report['status'] = 'received';
+        $report['receivedBy'] = $this->currentClinicalActor();
+        $report['updatedAt'] = $now;
+        $report['history'][] = [
+            'eventId' => ClinicalHistoryRepository::newOpaqueId('interconsult-report-history'),
+            'type' => 'received',
+            'status' => 'received',
+            'actor' => $this->currentClinicalActor(),
+            'actorRole' => 'clinician_admin',
+            'at' => $now,
+            'notes' => 'Informe del consultado recibido y anexado al HCU-007.',
+        ];
+
+        $interconsultation['report'] = ClinicalHistoryRepository::normalizeInterconsultReport($report);
+        $interconsultation['reportStatus'] = 'received';
+        $interconsultation['updatedAt'] = $now;
+        $interconsultation['history'][] = [
+            'eventId' => ClinicalHistoryRepository::newOpaqueId('interconsult-history'),
+            'type' => 'report_received',
+            'status' => 'received',
+            'actor' => $this->currentClinicalActor(),
+            'actorRole' => 'clinician_admin',
+            'at' => $now,
+            'notes' => 'Informe del consultado recibido sobre la interconsulta emitida.',
+        ];
+
+        $interconsultations[$targetIndex] = ClinicalHistoryRepository::normalizeInterconsultation($interconsultation);
+        $draft['interconsultations'] = $interconsultations;
+        $draft['activeInterconsultationId'] = $interconsultId;
+        $draft = ClinicalHistoryRepository::syncInterconsultationArtifacts($draft, $session);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'interconsultId' => $interconsultId,
+                'consultantProfessionalName' => (string) ($interconsultation['report']['consultantProfessionalName'] ?? ''),
+                'status' => 'received',
+            ],
+        ];
+    }
+
     private function accessAuditActionForMode(string $mode): string
     {
         return match ($mode) {
@@ -2659,6 +2776,7 @@ final class ClinicalHistoryService
             'select-interconsultation' => 'select_interconsultation',
             'issue-interconsultation' => 'issue_interconsultation',
             'cancel-interconsultation' => 'cancel_interconsultation',
+            'receive-interconsult-report' => 'receive_interconsult_report',
             'prescription' => 'issue_prescription',
             'certificate' => 'issue_certificate',
             'copy-request' => 'request_certified_copy',

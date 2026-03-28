@@ -1115,6 +1115,411 @@ final class ClinicalHistoryControllerTest extends TestCase
         );
     }
 
+    public function testClinicalHistoryInterconsultationCanReceiveStructuredReport(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Paula Vera',
+                    'email' => 'paula@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-hcu007-report';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-hcu007-report';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Rosacea facial',
+                        'enfermedadActual' => 'Brote facial recurrente con respuesta parcial',
+                        'antecedentes' => 'Niega antecedentes relevantes',
+                        'alergias' => 'Niega alergias medicamentosas',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 34,
+                            'pesoKg' => 58,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Caso apto para interconsulta emitida dentro del plan actual.',
+                        'preguntasFaltantes' => [],
+                        'cie10Sugeridos' => ['L71.9'],
+                        'tratamientoBorrador' => 'Metronidazol topico y seguimiento',
+                        'posologiaBorrador' => [
+                            'texto' => 'Aplicacion nocturna por 8 semanas',
+                            'baseCalculo' => 'standard',
+                            'pesoKg' => 58,
+                            'edadAnios' => 34,
+                            'units' => '',
+                            'ambiguous' => false,
+                        ],
+                        'hcu005' => [
+                            'evolutionNote' => 'Rosacea facial con control parcial y necesidad de criterio complementario.',
+                            'diagnosticImpression' => 'Rosacea inflamatoria en control parcial.',
+                            'therapeuticPlan' => 'Metronidazol topico, fotoproteccion y posible interconsulta.',
+                            'careIndications' => 'Control clinico y vigilancia de desencadenantes.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Metronidazol topico',
+                                'presentation' => 'Gel 0.75%',
+                                'dose' => 'Aplicacion fina',
+                                'route' => 'Topica',
+                                'frequency' => 'Nocturna',
+                                'duration' => '8 semanas',
+                                'quantity' => '1 tubo',
+                                'instructions' => 'Aplicar sobre piel limpia.',
+                            ]],
+                        ],
+                    ],
+                ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Vera',
+                        'primerNombre' => 'Paula',
+                    ],
+                ]),
+                'consent' => [
+                    'required' => false,
+                    'status' => 'not_required',
+                ],
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+
+        $created = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'create_interconsultation',
+            ]
+        );
+
+        $interconsultation = $created['payload']['data']['interconsultations'][0] ?? [];
+        $interconsultId = (string) ($interconsultation['interconsultId'] ?? '');
+        self::assertNotSame('', $interconsultId);
+
+        $interconsultation['requiredForCurrentPlan'] = true;
+        $interconsultation['destinationEstablishment'] = 'Hospital dermatologico aliado';
+        $interconsultation['destinationService'] = 'Dermatologia clinica';
+        $interconsultation['consultedProfessionalName'] = 'Dr. Rafael Suarez';
+        $interconsultation['requestReason'] = 'Solicito valoracion complementaria del plan ambulatorio.';
+        $interconsultation['questionForConsultant'] = 'Confirmar conducta y prioridad del seguimiento.';
+        $interconsultation['performedDiagnosticsSummary'] = 'Evaluacion clinica, dermatoscopia y fotografia de control.';
+        $interconsultation['therapeuticMeasuresDone'] = 'Metronidazol topico, fotoproteccion y educacion del paciente.';
+        $interconsultation['issuedBy'] = 'Dra. Laura Mena';
+
+        $patchedInterconsultation = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'interconsultations' => [$interconsultation],
+                'activeInterconsultationId' => $interconsultId,
+            ]
+        );
+
+        self::assertSame(200, $patchedInterconsultation['status']);
+
+        $issued = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'issue_interconsultation',
+                'interconsultId' => $interconsultId,
+            ]
+        );
+
+        self::assertSame(200, $issued['status']);
+
+        $issuedInterconsultation = $issued['payload']['data']['interconsultations'][0] ?? [];
+        $issuedInterconsultation['report'] = [
+            'reportedAt' => '2026-03-16T11:20:00-05:00',
+            'reportedBy' => 'Lic. Andrea Paredes',
+            'respondingEstablishment' => 'Hospital dermatologico aliado',
+            'respondingService' => 'Dermatologia clinica',
+            'consultantProfessionalName' => 'Dr. Rafael Suarez',
+            'consultantProfessionalRole' => 'Dermatologo',
+            'reportSummary' => 'Criterio complementario recibido.',
+            'clinicalFindings' => 'Rosacea inflamatoria en control parcial, sin signos de alarma.',
+            'diagnosticOpinion' => 'Mantener manejo ambulatorio y control evolutivo.',
+            'recommendations' => 'Continuar metronidazol topico y reevaluar en cuatro semanas.',
+            'followUpIndications' => 'Control dermatologico si hay recrudecimiento.',
+            'sourceDocumentType' => 'nota_especialista',
+            'sourceReference' => 'INT-007-2026',
+            'attachments' => [[
+                'id' => 1,
+                'kind' => 'interconsult_report',
+                'originalName' => 'test-photo.jpg',
+                'mime' => 'image/jpeg',
+                'size' => 1024,
+                'privatePath' => 'clinical-media/test-photo.jpg',
+            ]],
+        ];
+
+        $reportPatched = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'interconsultations' => [$issuedInterconsultation],
+                'activeInterconsultationId' => $interconsultId,
+            ]
+        );
+
+        self::assertSame(200, $reportPatched['status']);
+        self::assertSame(
+            'ready_to_receive',
+            (string) ($reportPatched['payload']['data']['legalReadiness']['hcu007ReportStatus']['status'] ?? '')
+        );
+
+        $received = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'receive_interconsult_report',
+                'interconsultId' => $interconsultId,
+            ]
+        );
+
+        self::assertSame(200, $received['status']);
+        self::assertSame(
+            'receive_interconsult_report',
+            (string) ($received['payload']['data']['accessAudit'][0]['action'] ?? '')
+        );
+        self::assertSame(
+            'received',
+            (string) ($received['payload']['data']['interconsultations'][0]['reportStatus'] ?? '')
+        );
+        self::assertSame(
+            'received',
+            (string) ($received['payload']['data']['interconsultations'][0]['report']['status'] ?? '')
+        );
+        self::assertSame(
+            'received',
+            (string) ($received['payload']['data']['legalReadiness']['hcu007Status']['status'] ?? '')
+        );
+        self::assertSame(
+            'received',
+            (string) ($received['payload']['data']['legalReadiness']['hcu007ReportStatus']['status'] ?? '')
+        );
+        self::assertCount(1, $received['payload']['data']['documents']['interconsultReports'] ?? []);
+        self::assertSame(
+            1,
+            (int) ($received['payload']['data']['documents']['interconsultReports'][0]['report']['attachments'][0]['id'] ?? 0)
+        );
+    }
+
+    public function testClinicalHistoryInterconsultReportRequiresIssuedInterconsultationAndMinimumFields(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Lina Ochoa',
+                    'email' => 'lina@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-hcu007-report-negative';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-hcu007-report-negative';
+
+        $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Control dermatologico',
+                        'enfermedadActual' => 'Seguimiento ambulatorio',
+                        'antecedentes' => 'Sin antecedentes relevantes',
+                        'alergias' => 'Niega alergias',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 30,
+                            'pesoKg' => 55,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Caso ambulatorio con posible referencia.',
+                        'hcu005' => [
+                            'evolutionNote' => 'Seguimiento ambulatorio con posible referencia.',
+                            'diagnosticImpression' => 'Dermatitis en control clinico.',
+                            'therapeuticPlan' => 'Tratamiento topico y control posterior.',
+                            'careIndications' => 'Mantener fotoproteccion.',
+                            'prescriptionItems' => [],
+                        ],
+                    ],
+                ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Ochoa',
+                        'primerNombre' => 'Lina',
+                    ],
+                ]),
+                'consent' => [
+                    'required' => false,
+                    'status' => 'not_required',
+                ],
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        $created = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'create_interconsultation',
+            ]
+        );
+        $interconsultation = $created['payload']['data']['interconsultations'][0] ?? [];
+        $interconsultId = (string) ($interconsultation['interconsultId'] ?? '');
+        self::assertNotSame('', $interconsultId);
+
+        $interconsultation['destinationEstablishment'] = 'Hospital aliado';
+        $interconsultation['destinationService'] = 'Dermatologia';
+        $interconsultation['consultedProfessionalName'] = 'Dr. Vega';
+        $interconsultation['requestReason'] = 'Solicito criterio complementario.';
+        $interconsultation['clinicalPicture'] = 'Seguimiento ambulatorio.';
+        $interconsultation['performedDiagnosticsSummary'] = 'Evaluacion clinica.';
+        $interconsultation['therapeuticMeasuresDone'] = 'Tratamiento topico.';
+        $interconsultation['issuedBy'] = 'Dra. Laura Mena';
+        $interconsultation['report'] = [
+            'reportedAt' => '2026-03-16T11:20:00-05:00',
+            'consultantProfessionalName' => 'Dr. Vega',
+            'respondingService' => 'Dermatologia',
+            'clinicalFindings' => 'Hallazgos resumidos.',
+            'recommendations' => 'Continuar control.',
+        ];
+
+        $patched = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'interconsultations' => [$interconsultation],
+                'activeInterconsultationId' => $interconsultId,
+            ]
+        );
+        self::assertSame(200, $patched['status']);
+
+        $beforeIssue = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'receive_interconsult_report',
+                'interconsultId' => $interconsultId,
+            ]
+        );
+
+        self::assertSame(409, $beforeIssue['status']);
+        self::assertSame(
+            'clinical_interconsultation_report_requires_issued',
+            (string) ($beforeIssue['payload']['code'] ?? '')
+        );
+
+        $issued = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'issue_interconsultation',
+                'interconsultId' => $interconsultId,
+            ]
+        );
+        self::assertSame(200, $issued['status']);
+
+        $issuedInterconsultation = $issued['payload']['data']['interconsultations'][0] ?? [];
+        $issuedInterconsultation['report'] = [
+            'reportedAt' => '',
+            'consultantProfessionalName' => 'Dr. Vega',
+            'respondingService' => '',
+            'clinicalFindings' => '',
+            'recommendations' => '',
+        ];
+
+        $patchedIncomplete = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'interconsultations' => [$issuedInterconsultation],
+                'activeInterconsultationId' => $interconsultId,
+            ]
+        );
+        self::assertSame(200, $patchedIncomplete['status']);
+
+        $incomplete = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'receive_interconsult_report',
+                'interconsultId' => $interconsultId,
+            ]
+        );
+
+        self::assertSame(409, $incomplete['status']);
+        self::assertSame(
+            'clinical_interconsultation_report_incomplete',
+            (string) ($incomplete['payload']['code'] ?? '')
+        );
+    }
+
     public function testClinicalHistoryApprovalBlocksWhenHcu005EvolutionIsMissing(): void
     {
         $sessionCreate = $this->captureResponse(

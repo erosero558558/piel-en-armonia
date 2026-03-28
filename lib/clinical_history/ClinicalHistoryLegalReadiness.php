@@ -65,6 +65,12 @@ final class ClinicalHistoryLegalReadiness
             static fn (array $interconsultation): array => ClinicalHistoryRepository::evaluateInterconsultation($interconsultation),
             $interconsultationScope
         );
+        $interconsultationReportEvaluations = array_map(
+            static fn (array $interconsultation): array => ClinicalHistoryRepository::evaluateInterconsultReport(
+                isset($interconsultation['report']) && is_array($interconsultation['report']) ? $interconsultation['report'] : []
+            ),
+            $interconsultationScope
+        );
         $activeConsentPacketId = ClinicalHistoryRepository::trimString($draft['activeConsentPacketId'] ?? '');
         $activeConsentEvaluation = null;
         foreach ($writtenConsentPackets as $index => $packet) {
@@ -258,14 +264,31 @@ final class ClinicalHistoryLegalReadiness
             );
             $pendingStatuses = array_values(array_intersect($statuses, ['draft', 'ready_to_issue', 'incomplete']));
             if ($pendingStatuses === []) {
+                $hasReceived = count(array_filter($statuses, static fn (string $status): bool => $status === 'received')) > 0;
                 $hasIssued = count(array_filter($statuses, static fn (string $status): bool => $status === 'issued')) > 0;
-                $hcu007Status = $hasIssued ? 'issued' : 'cancelled';
+                $hcu007Status = $hasReceived
+                    ? 'received'
+                    : ($hasIssued ? 'issued' : 'cancelled');
             } elseif (in_array('incomplete', $statuses, true)) {
                 $hcu007Status = 'incomplete';
             } elseif (in_array('draft', $statuses, true)) {
                 $hcu007Status = 'draft';
             } else {
                 $hcu007Status = 'ready_to_issue';
+            }
+        }
+        $hcu007ReportStatus = 'not_received';
+        if ($interconsultationReportEvaluations !== []) {
+            $reportStatuses = array_map(
+                static fn (array $evaluation): string => ClinicalHistoryRepository::trimString($evaluation['status'] ?? 'not_received'),
+                $interconsultationReportEvaluations
+            );
+            if (in_array('received', $reportStatuses, true)) {
+                $hcu007ReportStatus = 'received';
+            } elseif (in_array('ready_to_receive', $reportStatuses, true)) {
+                $hcu007ReportStatus = 'ready_to_receive';
+            } elseif (in_array('draft', $reportStatuses, true)) {
+                $hcu007ReportStatus = 'draft';
             }
         }
         $requiredInterconsultationPending = count(array_filter(
@@ -275,7 +298,7 @@ final class ClinicalHistoryLegalReadiness
             ),
             static fn (array $evaluation): bool => !in_array(
                 ClinicalHistoryRepository::trimString($evaluation['status'] ?? ''),
-                ['issued', 'cancelled'],
+                ['issued', 'received', 'cancelled'],
                 true
             )
         ));
@@ -477,6 +500,7 @@ final class ClinicalHistoryLegalReadiness
             'hcu007Status' => [
                 'status' => $hcu007Status,
                 'label' => match ($hcu007Status) {
+                    'received' => 'HCU-007 informe recibido',
                     'issued' => 'HCU-007 emitida',
                     'ready_to_issue' => 'HCU-007 lista para emitir',
                     'cancelled' => 'HCU-007 cancelada',
@@ -485,12 +509,28 @@ final class ClinicalHistoryLegalReadiness
                     default => 'HCU-007 no aplica',
                 },
                 'summary' => match ($hcu007Status) {
+                    'received' => 'La interconsulta ya fue emitida y el informe del consultado quedó recibido como respaldo documental.',
                     'issued' => 'La interconsulta requerida ya fue emitida sin esperar respuesta del consultado.',
                     'ready_to_issue' => 'La interconsulta ya cubre los campos minimos del MSP y esta lista para emitirse.',
                     'cancelled' => 'La interconsulta del episodio fue cancelada y no bloquea el cierre actual.',
                     'incomplete' => 'Existe una interconsulta requerida con campos clinicos todavia incompletos.',
                     'draft' => 'Existe una interconsulta en borrador que aun no se ha emitido.',
                     default => 'No hay interconsulta formal exigible para este episodio.',
+                },
+            ],
+            'hcu007ReportStatus' => [
+                'status' => $hcu007ReportStatus,
+                'label' => match ($hcu007ReportStatus) {
+                    'received' => 'Informe del consultado recibido',
+                    'ready_to_receive' => 'Informe listo para recibir',
+                    'draft' => 'Informe del consultado en borrador',
+                    default => 'Informe del consultado no recibido',
+                },
+                'summary' => match ($hcu007ReportStatus) {
+                    'received' => 'El informe del consultado ya quedó capturado y anexado al episodio.',
+                    'ready_to_receive' => 'El informe del consultado ya cubre los campos mínimos para recepción formal.',
+                    'draft' => 'Existe un borrador del informe del consultado aún sin recepción formal.',
+                    default => 'Todavía no se ha recibido informe del consultado.',
                 },
             ],
             'hcu024Status' => [

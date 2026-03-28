@@ -578,6 +578,7 @@ final class ClinicalHistoryRepository
             ? $documents['certificate']
             : [];
         $interconsultForms = self::normalizeInterconsultFormSnapshots($documents['interconsultForms'] ?? []);
+        $interconsultReports = self::normalizeInterconsultReportSnapshots($documents['interconsultReports'] ?? []);
         $consentForms = self::normalizeConsentFormSnapshots($documents['consentForms'] ?? []);
         $finalSections = isset($finalNote['sections']) && is_array($finalNote['sections'])
             ? $finalNote['sections']
@@ -666,6 +667,7 @@ final class ClinicalHistoryRepository
                     : true,
             ],
             'interconsultForms' => $interconsultForms,
+            'interconsultReports' => $interconsultReports,
             'consentForms' => $consentForms,
         ];
     }
@@ -698,9 +700,11 @@ final class ClinicalHistoryRepository
         $source = array_replace_recursive([
             'priority' => 'normal',
             'status' => 'draft',
+            'reportStatus' => 'not_received',
             'requiredForCurrentPlan' => false,
             'history' => [],
             'diagnoses' => [],
+            'report' => [],
         ], $fallback, $interconsultation);
         $interconsultId = self::trimString($source['interconsultId'] ?? '');
         $now = local_date('c');
@@ -723,11 +727,29 @@ final class ClinicalHistoryRepository
             ];
         }
 
+        $report = self::normalizeInterconsultReport(
+            isset($source['report']) && is_array($source['report']) ? $source['report'] : [],
+            isset($fallback['report']) && is_array($fallback['report']) ? $fallback['report'] : []
+        );
+        $reportEvaluation = self::evaluateInterconsultReport($report);
+        $reportStatus = self::trimString($source['reportStatus'] ?? '');
+        if ($reportStatus === '') {
+            $reportStatus = self::trimString(
+                isset($source['report']) && is_array($source['report'])
+                    ? ($source['report']['status'] ?? '')
+                    : ''
+            );
+        }
+        if ($reportStatus === '') {
+            $reportStatus = self::trimString($reportEvaluation['status'] ?? 'not_received');
+        }
+
         return [
             'interconsultId' => $interconsultId !== ''
                 ? $interconsultId
                 : self::newOpaqueId('interconsult'),
             'status' => self::trimString($source['status'] ?? 'draft') ?: 'draft',
+            'reportStatus' => $reportStatus !== '' ? $reportStatus : 'not_received',
             'requiredForCurrentPlan' => array_key_exists('requiredForCurrentPlan', $source)
                 ? (bool) $source['requiredForCurrentPlan']
                 : false,
@@ -753,6 +775,7 @@ final class ClinicalHistoryRepository
             'issuedAt' => self::trimString($source['issuedAt'] ?? ''),
             'cancelledAt' => self::trimString($source['cancelledAt'] ?? ''),
             'cancelReason' => self::trimString($source['cancelReason'] ?? ''),
+            'report' => $report,
             'history' => array_values($history),
             'createdAt' => self::trimString($source['createdAt'] ?? $now) ?: $now,
             'updatedAt' => self::trimString($source['updatedAt'] ?? $now) ?: $now,
@@ -830,6 +853,100 @@ final class ClinicalHistoryRepository
         return array_values($normalized);
     }
 
+    public static function normalizeInterconsultReport(array $report, array $fallback = []): array
+    {
+        $source = array_replace_recursive([
+            'status' => 'not_received',
+            'attachments' => [],
+            'history' => [],
+        ], $fallback, $report);
+        $now = local_date('c');
+
+        $history = [];
+        foreach (($source['history'] ?? []) as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            $history[] = [
+                'eventId' => self::trimString($entry['eventId'] ?? $entry['id'] ?? '') !== ''
+                    ? self::trimString($entry['eventId'] ?? $entry['id'] ?? '')
+                    : self::newOpaqueId('interconsult-report-history'),
+                'type' => self::trimString($entry['type'] ?? ''),
+                'status' => self::trimString($entry['status'] ?? ''),
+                'actor' => self::trimString($entry['actor'] ?? ''),
+                'actorRole' => self::trimString($entry['actorRole'] ?? ''),
+                'at' => self::trimString($entry['at'] ?? $entry['createdAt'] ?? ''),
+                'notes' => self::trimString($entry['notes'] ?? ''),
+            ];
+        }
+
+        $normalized = [
+            'status' => self::trimString($source['status'] ?? 'not_received') ?: 'not_received',
+            'reportedAt' => self::trimString($source['reportedAt'] ?? ''),
+            'reportedBy' => self::trimString($source['reportedBy'] ?? ''),
+            'receivedBy' => self::trimString($source['receivedBy'] ?? ''),
+            'respondingEstablishment' => self::trimString($source['respondingEstablishment'] ?? ''),
+            'respondingService' => self::trimString($source['respondingService'] ?? ''),
+            'consultantProfessionalName' => self::trimString($source['consultantProfessionalName'] ?? ''),
+            'consultantProfessionalRole' => self::trimString($source['consultantProfessionalRole'] ?? ''),
+            'reportSummary' => self::trimString($source['reportSummary'] ?? ''),
+            'clinicalFindings' => self::trimString($source['clinicalFindings'] ?? ''),
+            'diagnosticOpinion' => self::trimString($source['diagnosticOpinion'] ?? ''),
+            'recommendations' => self::trimString($source['recommendations'] ?? ''),
+            'followUpIndications' => self::trimString($source['followUpIndications'] ?? ''),
+            'sourceDocumentType' => self::trimString($source['sourceDocumentType'] ?? ''),
+            'sourceReference' => self::trimString($source['sourceReference'] ?? ''),
+            'attachments' => self::normalizeAttachmentList($source['attachments'] ?? []),
+            'history' => array_values($history),
+            'createdAt' => self::trimString($source['createdAt'] ?? $now) ?: $now,
+            'updatedAt' => self::trimString($source['updatedAt'] ?? $now) ?: $now,
+        ];
+
+        return $normalized;
+    }
+
+    public static function normalizeInterconsultReportSnapshots($items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $report = self::normalizeInterconsultReport(
+                isset($item['report']) && is_array($item['report']) ? $item['report'] : $item
+            );
+            $finalizedAt = self::trimString($item['finalizedAt'] ?? $report['reportedAt'] ?? '');
+            $normalized[] = [
+                'snapshotId' => self::trimString($item['snapshotId'] ?? '') !== ''
+                    ? self::trimString($item['snapshotId'] ?? '')
+                    : self::newOpaqueId('interconsult-report'),
+                'interconsultId' => self::trimString($item['interconsultId'] ?? ''),
+                'interconsultStatus' => self::trimString($item['interconsultStatus'] ?? $item['status'] ?? ''),
+                'destinationEstablishment' => self::trimString($item['destinationEstablishment'] ?? ''),
+                'destinationService' => self::trimString($item['destinationService'] ?? ''),
+                'consultedProfessionalName' => self::trimString($item['consultedProfessionalName'] ?? ''),
+                'reportStatus' => self::trimString($item['reportStatus'] ?? $report['status'] ?? 'draft') ?: 'draft',
+                'finalizedAt' => $finalizedAt,
+                'snapshotAt' => self::trimString($item['snapshotAt'] ?? $finalizedAt) ?: ($finalizedAt !== '' ? $finalizedAt : local_date('c')),
+                'report' => $report,
+            ];
+        }
+
+        usort($normalized, static function (array $left, array $right): int {
+            return strcmp(
+                (string) (($right['finalizedAt'] ?? '') ?: ($right['snapshotAt'] ?? '')),
+                (string) (($left['finalizedAt'] ?? '') ?: ($left['snapshotAt'] ?? ''))
+            );
+        });
+
+        return array_values($normalized);
+    }
+
     public static function syncInterconsultationArtifacts(array $draft, array $session = []): array
     {
         $draft = self::defaultDraft($session, $draft);
@@ -864,6 +981,10 @@ final class ClinicalHistoryRepository
             $documents['interconsultForms'] ?? [],
             $interconsultations
         );
+        $documents['interconsultReports'] = self::ensureInterconsultReportSnapshots(
+            $documents['interconsultReports'] ?? [],
+            $interconsultations
+        );
 
         $draft['documents'] = $documents;
         $draft['interconsultations'] = $interconsultations;
@@ -877,6 +998,9 @@ final class ClinicalHistoryRepository
         $normalized = self::normalizeInterconsultation($interconsultation);
         $diagnoses = self::normalizeInterconsultationDiagnoses($normalized['diagnoses'] ?? []);
         $status = self::trimString($normalized['status'] ?? 'draft');
+        $reportEvaluation = self::evaluateInterconsultReport(
+            isset($normalized['report']) && is_array($normalized['report']) ? $normalized['report'] : []
+        );
 
         $missing = [];
         if (self::trimString($normalized['destinationEstablishment'] ?? '') === '') {
@@ -921,9 +1045,11 @@ final class ClinicalHistoryRepository
 
         $effectiveStatus = 'draft';
         if ($status === 'issued') {
-            $effectiveStatus = ($readyToIssue && self::trimString($normalized['issuedAt'] ?? '') !== '')
-                ? 'issued'
-                : 'incomplete';
+            $effectiveStatus = ($reportEvaluation['status'] ?? 'not_received') === 'received'
+                ? 'received'
+                : (($readyToIssue && self::trimString($normalized['issuedAt'] ?? '') !== '')
+                    ? 'issued'
+                    : 'incomplete');
         } elseif ($status === 'cancelled') {
             $effectiveStatus = self::trimString($normalized['cancelledAt'] ?? '') !== ''
                 ? 'cancelled'
@@ -937,8 +1063,73 @@ final class ClinicalHistoryRepository
         return [
             'status' => $effectiveStatus,
             'readyToIssue' => $readyToIssue,
+            'reportStatus' => (string) ($reportEvaluation['status'] ?? 'not_received'),
             'missingFields' => array_values(array_unique($missing)),
             'hasAnyContent' => $hasAnyContent,
+        ];
+    }
+
+    public static function evaluateInterconsultReport(array $report): array
+    {
+        $normalized = self::normalizeInterconsultReport($report);
+        $status = self::trimString($normalized['status'] ?? 'not_received');
+
+        $missing = [];
+        if (
+            self::trimString($normalized['respondingEstablishment'] ?? '') === ''
+            && self::trimString($normalized['respondingService'] ?? '') === ''
+        ) {
+            $missing[] = 'responding_service';
+        }
+        if (self::trimString($normalized['consultantProfessionalName'] ?? '') === '') {
+            $missing[] = 'consultant_professional_name';
+        }
+        if (self::trimString($normalized['reportedAt'] ?? '') === '') {
+            $missing[] = 'reported_at';
+        }
+        if (
+            self::trimString($normalized['clinicalFindings'] ?? '') === ''
+            && self::trimString($normalized['diagnosticOpinion'] ?? '') === ''
+        ) {
+            $missing[] = 'clinical_findings';
+        }
+        if (
+            self::trimString($normalized['recommendations'] ?? '') === ''
+            && self::trimString($normalized['followUpIndications'] ?? '') === ''
+        ) {
+            $missing[] = 'recommendations';
+        }
+
+        $readyToReceive = $missing === [];
+        $hasAnyContent =
+            self::trimString($normalized['reportedAt'] ?? '') !== ''
+            || self::trimString($normalized['reportedBy'] ?? '') !== ''
+            || self::trimString($normalized['respondingEstablishment'] ?? '') !== ''
+            || self::trimString($normalized['respondingService'] ?? '') !== ''
+            || self::trimString($normalized['consultantProfessionalName'] ?? '') !== ''
+            || self::trimString($normalized['consultantProfessionalRole'] ?? '') !== ''
+            || self::trimString($normalized['reportSummary'] ?? '') !== ''
+            || self::trimString($normalized['clinicalFindings'] ?? '') !== ''
+            || self::trimString($normalized['diagnosticOpinion'] ?? '') !== ''
+            || self::trimString($normalized['recommendations'] ?? '') !== ''
+            || self::trimString($normalized['followUpIndications'] ?? '') !== ''
+            || self::trimString($normalized['sourceDocumentType'] ?? '') !== ''
+            || self::trimString($normalized['sourceReference'] ?? '') !== ''
+            || count($normalized['attachments'] ?? []) > 0;
+
+        $effectiveStatus = 'not_received';
+        if ($status === 'received') {
+            $effectiveStatus = $readyToReceive ? 'received' : 'draft';
+        } elseif ($readyToReceive) {
+            $effectiveStatus = 'ready_to_receive';
+        } elseif ($hasAnyContent) {
+            $effectiveStatus = 'draft';
+        }
+
+        return [
+            'status' => $effectiveStatus,
+            'readyToReceive' => $readyToReceive,
+            'missingFields' => array_values(array_unique($missing)),
         ];
     }
 
@@ -2805,6 +2996,15 @@ final class ClinicalHistoryRepository
                 self::trimString($hcu005['careIndications'] ?? ''),
             ], static fn ($value): bool => self::trimString((string) $value) !== '')));
         }
+        $updated['report'] = self::normalizeInterconsultReport(
+            isset($updated['report']) && is_array($updated['report']) ? $updated['report'] : [],
+            [
+                'consultantProfessionalName' => self::trimString($updated['consultedProfessionalName'] ?? ''),
+                'respondingEstablishment' => self::trimString($updated['destinationEstablishment'] ?? ''),
+                'respondingService' => self::trimString($updated['destinationService'] ?? ''),
+            ]
+        );
+        $updated['reportStatus'] = self::trimString($updated['reportStatus'] ?? $updated['report']['status'] ?? '') ?: 'not_received';
         if (self::trimString($updated['updatedAt'] ?? '') === '') {
             $updated['updatedAt'] = local_date('c');
         }
@@ -2844,6 +3044,50 @@ final class ClinicalHistoryRepository
         }
 
         return self::normalizeInterconsultFormSnapshots($snapshots);
+    }
+
+    private static function ensureInterconsultReportSnapshots(array $existingSnapshots, array $interconsultations): array
+    {
+        $snapshots = self::normalizeInterconsultReportSnapshots($existingSnapshots);
+        $existingKeys = [];
+        foreach ($snapshots as $snapshot) {
+            $existingKeys[] = self::trimString($snapshot['interconsultId'] ?? '') . '|' . self::trimString($snapshot['reportStatus'] ?? '');
+        }
+
+        foreach ($interconsultations as $interconsultation) {
+            $normalizedInterconsultation = self::normalizeInterconsultation($interconsultation);
+            $report = self::normalizeInterconsultReport(
+                isset($normalizedInterconsultation['report']) && is_array($normalizedInterconsultation['report'])
+                    ? $normalizedInterconsultation['report']
+                    : []
+            );
+            $reportStatus = self::trimString($normalizedInterconsultation['reportStatus'] ?? $report['status'] ?? '');
+            if ($reportStatus !== 'received') {
+                continue;
+            }
+
+            $key = self::trimString($normalizedInterconsultation['interconsultId'] ?? '') . '|received';
+            if (in_array($key, $existingKeys, true)) {
+                continue;
+            }
+
+            $finalizedAt = self::trimString($report['reportedAt'] ?? '');
+            $snapshots[] = [
+                'snapshotId' => self::newOpaqueId('interconsult-report'),
+                'interconsultId' => self::trimString($normalizedInterconsultation['interconsultId'] ?? ''),
+                'interconsultStatus' => self::trimString($normalizedInterconsultation['status'] ?? ''),
+                'destinationEstablishment' => self::trimString($normalizedInterconsultation['destinationEstablishment'] ?? ''),
+                'destinationService' => self::trimString($normalizedInterconsultation['destinationService'] ?? ''),
+                'consultedProfessionalName' => self::trimString($normalizedInterconsultation['consultedProfessionalName'] ?? ''),
+                'reportStatus' => 'received',
+                'finalizedAt' => $finalizedAt,
+                'snapshotAt' => $finalizedAt !== '' ? $finalizedAt : local_date('c'),
+                'report' => $report,
+            ];
+            $existingKeys[] = $key;
+        }
+
+        return self::normalizeInterconsultReportSnapshots($snapshots);
     }
 
     private static function ensureConsentFormSnapshots(array $existingSnapshots, array $packets): array
