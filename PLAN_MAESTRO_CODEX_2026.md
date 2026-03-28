@@ -39,7 +39,7 @@ block: C1
 task_id: CDX-062
 subfront_id: SF-backend-turnero-web-pilot-multi-clinic
 status: review
-files: ["controllers/AdminDataController.php", "lib/TurneroClinicProfile.php", "tests-node/admin-data-turnero-clinic-profile-contract.test.js", "tests-node/turnero-clinic-profile-registry.test.js", "tests-node/turnero-clinic-profile-cli.test.js", "verification/agent-runs/CDX-062.md"]
+files: ["controllers/AdminDataController.php", "lib/TurneroClinicProfile.php", "bin/run-turnero-web-pilot-ui.js", "package.json", "tests-node/admin-data-turnero-clinic-profile-contract.test.js", "tests-node/turnero-clinic-profile-registry.test.js", "tests-node/turnero-clinic-profile-cli.test.js", "verification/agent-runs/CDX-062.md"]
 updated_at: 2026-03-28
 -->
 
