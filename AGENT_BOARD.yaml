@@ -7,49 +7,49 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 786
+  revision: 787
   updated_at: 2026-03-28
 
 strategy:
   active:
-    id: STRAT-2026-03-public-v6-es-voz-ecuatoriana
-    title: "Public V6 ES voz ecuatoriana"
-    objective: "Reescribir el copy ES de Public V6 para que suene humano, claro y natural para Ecuador sin romper contratos de contenido, marca ni runtime."
+    id: STRAT-2026-03-admin-shell-rc1-polish
+    title: "Admin Shell RC1 polish"
+    objective: "Pulir el shell clinico diario del Admin RC1 para que navegacion, ergonomia y chrome visible se sientan coherentes y estables sin reabrir queue/turnero, reviews ni dependencias del host publico."
     owner: Ernesto
     owner_policy: "detected_default_owner"
-    status: closed
-    started_at: "2026-03-26"
-    review_due_at: "2026-03-30"
-    closed_at: "2026-03-28"
-    close_reason: "review_complete"
-    exit_criteria: ["Navigation, home, hub, services, telemedicine, legal y software en ES quedan reescritos sin romper schema ni rutas", "La validacion de contenido y copy vuelve a verde en un workspace aislado, sin abrir soporte backend/transversal salvo que un validador lo exija", "Legal y software conservan prudencia, marca canonica y tono B2B sobrio"]
-    success_signal: "La siguiente ola de frontend-public queda lista para activarse con copy ES humano y consistente para Ecuador, sin abrir trabajo cross-lane innecesario."
-    focus_id: "FOCUS-2026-03-public-v6-es-voz-cut-1"
-    focus_title: "Public V6 ES claro y humano"
-    focus_summary: "Reescribir el copy ES de Public V6 como ola copy-first, con voz natural para Ecuador y sin abrir trabajo cross-lane por defecto."
-    focus_status: closed
-    focus_proof: "Las siete fuentes ES de public-v6 mantienen schema y rutas, pero ya leen con una voz coherente, en usted, sin brochure ni drift de marca."
-    focus_steps: ["ecuadorian_copy_rewrite", "copy_contract_validation", "publish_readiness_review"]
-    focus_next_step: "publish_readiness_review"
-    focus_required_checks: ["content:public-v6:validate", "audit:public-v6:copy", "test:frontend:qa:v6"]
-    focus_non_goals: ["runtime_publico", "en_copy_rewrite", "legacy_route_changes", "public_publish", "backend_support_by_default", "transversal_support_by_default"]
+    status: active
+    started_at: "2026-03-28"
+    review_due_at: "2026-04-02"
+    closed_at: ""
+    close_reason: ""
+    exit_criteria: ["El shell visible mantiene exactamente dashboard, appointments, callbacks, availability y clinical-history", "Sidebar/hash, quick-nav, command palette y responsive tablet quedan estables sin reabrir queue/turnero ni reviews", "test:frontend:qa:admin vuelve a verde desde un worktree limpio sin tocar runtime, publish ni backend"]
+    success_signal: "El admin diario se siente claro y estable para uso clinico recurrente, sin filtrar lenguaje de turnero ni reactivar superficies fuera del RC1."
+    focus_id: "FOCUS-2026-03-admin-shell-rc1-polish-cut-1"
+    focus_title: "Admin Shell RC1 ergonomico"
+    focus_summary: "Pulir navegacion, ergonomia y chrome visible del shell clinico RC1 manteniendo solo las cinco secciones diarias ya canonicas."
+    focus_status: active
+    focus_proof: "Operador entra al admin RC1, navega con sidebar/hash y quick-nav sin ruido de turnero, y las cinco secciones visibles se mantienen coherentes en desktop y tablet."
+    focus_steps: ["shell_nav_ergonomics", "shell_daily_flow_validation", "feedback_trim"]
+    focus_next_step: "shell_nav_ergonomics"
+    focus_required_checks: ["test:frontend:qa:admin"]
+    focus_non_goals: ["queue_turnero_reactivation", "reviews_return", "runtime_openclaw_changes", "public_publish", "backend_auth_rework", "frontend_public_changes"]
     focus_owner: "Ernesto"
-    focus_review_due_at: "2026-03-30"
-    focus_evidence_ref: "verification/agent-runs/CDX-050.md"
+    focus_review_due_at: "2026-04-02"
+    focus_evidence_ref: "verification/agent-runs/CDX-053.md"
     focus_max_active_slices: 1
     subfronts:
       - codex_instance: codex_frontend
-        subfront_id: SF-frontend-public-v6-es-copy
-        title: "Copy ES de Public V6"
-        allowed_scopes: ["frontend-public"]
+        subfront_id: SF-frontend-admin-shell-rc1
+        title: "Admin Shell RC1 visible"
+        allowed_scopes: ["frontend-admin"]
         support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["payments", "queue", "turnero", "calendar", "auth"]
+        blocked_scopes: ["queue", "turnero", "payments", "frontend-public"]
         wip_limit: 1
         default_acceptance_profile: "frontend_delivery_checkpoint"
         exception_ttl_hours: 8
       - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-public-v6-es-support
-        title: "Soporte backend minimo para Public V6 ES"
+        subfront_id: SF-backend-admin-shell-rc1-support
+        title: "Soporte backend minimo para Admin Shell RC1"
         allowed_scopes: []
         support_only_scopes: ["backend", "tests", "gates"]
         blocked_scopes: ["auth", "payments", "security", "deploy"]
@@ -57,8 +57,8 @@ strategy:
         default_acceptance_profile: "backend_gate_checkpoint"
         exception_ttl_hours: 6
       - codex_instance: codex_transversal
-        subfront_id: SF-transversal-public-v6-es-support
-        title: "Soporte transversal minimo para Public V6 ES"
+        subfront_id: SF-transversal-admin-shell-rc1-support
+        title: "Soporte transversal minimo para Admin Shell RC1"
         allowed_scopes: []
         support_only_scopes: ["tooling", "codex-governance"]
         blocked_scopes: ["openclaw_runtime", "legacy-runtime"]
@@ -1236,6 +1236,65 @@ tasks:
     evidence_ref: "verification/agent-runs/CDX-052.md"
     depends_on: ["CDX-050", "CDX-051"]
     prompt: "Normalizar el backlog residual despues del cierre de Public V6 ES: pasar AG-256 a estado terminal historico y corregir la narrativa del plan para no seguir presentando el frente editorial como trabajo vivo."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-053
+    title: "Admin Shell RC1 navigation and ergonomics polish"
+    owner: Ernesto
+    executor: codex
+    status: in_progress
+    status_since_at: "2026-03-28T05:20:00Z"
+    risk: medium
+    scope: frontend-admin
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["admin.html", "admin-v3.css", "src/apps/admin-v3/core", "src/apps/admin-v3/ui", "src/apps/admin-v3/sections"]
+    source_signal: manual
+    source_ref: "admin_shell_rc1_polish_bootstrap"
+    priority_score: 72
+    sla_due_at: "2026-04-02T23:59:00Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El shell RC1 mantiene solo dashboard, appointments, callbacks, availability y clinical-history, mejora sidebar/hash, quick-nav, command palette y responsive, y no reintroduce queue/turnero, reviews ni naming visible de turnero."
+    acceptance_ref: "verification/agent-runs/CDX-053.md"
+    evidence_ref: "verification/agent-runs/CDX-053.md"
+    strategy_id: "STRAT-2026-03-admin-shell-rc1-polish"
+    subfront_id: "SF-frontend-admin-shell-rc1"
+    strategy_role: "primary"
+    focus_id: "FOCUS-2026-03-admin-shell-rc1-polish-cut-1"
+    focus_step: "shell_nav_ergonomics"
+    integration_slice: "frontend_runtime"
+    work_type: "forward"
+    expected_outcome: "El shell clinico diario queda mas legible y estable para uso recurrente, manteniendo el contrato RC1 de cinco secciones visibles y sin reabrir surfaces de queue/turnero o reviews."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: []
+    prompt: "Pulir navegacion, ergonomia y chrome visible del Admin Shell RC1 desde un lane frontend limpio, manteniendo solo dashboard, appointments, callbacks, availability y clinical-history, sin reabrir queue/turnero, reviews, runtime ni backend."
     created_at: 2026-03-28
     updated_at: 2026-03-28
 

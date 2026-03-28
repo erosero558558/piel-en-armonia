@@ -5,21 +5,31 @@ Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
 <!-- CODEX_STRATEGY_ACTIVE
-id: STRAT-2026-03-public-v6-es-voz-ecuatoriana
-title: "Public V6 ES voz ecuatoriana"
-status: closed
+id: STRAT-2026-03-admin-shell-rc1-polish
+title: "Admin Shell RC1 polish"
+status: active
 owner: Ernesto
 owner_policy: "detected_default_owner"
-objective: "Reescribir el copy ES de Public V6 para que suene humano, claro y natural para Ecuador sin romper contratos de contenido, marca ni runtime."
-started_at: "2026-03-26"
-review_due_at: "2026-03-30"
-success_signal: "La siguiente ola de frontend-public queda lista para activarse con copy ES humano y consistente para Ecuador, sin abrir trabajo cross-lane innecesario."
-focus_id: "FOCUS-2026-03-public-v6-es-voz-cut-1"
-focus_title: "Public V6 ES claro y humano"
-focus_status: closed
-focus_next_step: "publish_readiness_review"
-focus_required_checks: ["content:public-v6:validate", "audit:public-v6:copy", "test:frontend:qa:v6"]
-subfront_ids: ["SF-frontend-public-v6-es-copy", "SF-backend-public-v6-es-support", "SF-transversal-public-v6-es-support"]
+objective: "Pulir el shell clinico diario del Admin RC1 para que navegacion, ergonomia y chrome visible se sientan coherentes y estables sin reabrir queue/turnero, reviews ni dependencias del host publico."
+started_at: "2026-03-28"
+review_due_at: "2026-04-02"
+success_signal: "El admin diario se siente claro y estable para uso clinico recurrente, sin filtrar lenguaje de turnero ni reactivar superficies fuera del RC1."
+focus_id: "FOCUS-2026-03-admin-shell-rc1-polish-cut-1"
+focus_title: "Admin Shell RC1 ergonomico"
+focus_status: active
+focus_next_step: "shell_nav_ergonomics"
+focus_required_checks: ["test:frontend:qa:admin"]
+subfront_ids: ["SF-frontend-admin-shell-rc1", "SF-backend-admin-shell-rc1-support", "SF-transversal-admin-shell-rc1-support"]
+updated_at: "2026-03-28"
+-->
+
+<!-- CODEX_ACTIVE
+codex_instance: codex_frontend
+block: C1
+task_id: CDX-053
+subfront_id: SF-frontend-admin-shell-rc1
+status: in_progress
+files: ["admin.html", "admin-v3.css", "src/apps/admin-v3/core", "src/apps/admin-v3/ui", "src/apps/admin-v3/sections"]
 updated_at: "2026-03-28"
 -->
 
@@ -104,14 +114,25 @@ updated_at: "2026-03-28"
   host publico; no se reabre dentro de este cleanup ni se mezcla con el frente
   editorial ya cerrado.
 
+## Bootstrap Admin Shell RC1 polish 2026-03-28
+
+- Se abre `STRAT-2026-03-admin-shell-rc1-polish` como estrategia activa nueva
+  y limpia, sin reusar la seed completa de `admin-operativo`.
+- `CDX-053` queda como unica slice activa del frente en `codex_frontend`.
+- El required check oficial del foco pasa a `test:frontend:qa:admin`.
+- El frente evita por contrato `public_main_sync`, `runtime:operator_auth`,
+  `queue/turnero`, `reviews`, backend y publish.
+- Se modela un subfrente backend minimo solo para satisfacer el contrato de
+  estrategia activa del tooling; no abre slice backend por defecto.
+
 ## Proposito
 
-- Completar el copy ES de `Public V6` con una voz clara, humana y natural
-  para Ecuador.
-- Mantener contrato de contenido, marca, rutas y runtime intactos mientras se
-  avanza por slices editoriales validables.
-- Dejar el frente listo para la siguiente verificacion de contratos sin
-  mezclar runtime, EN ni publish.
+- Pulir el shell clinico diario del admin sin reabrir surfaces fuera del RC1.
+- Mantener exactas las cinco secciones visibles ya canonicas:
+  `dashboard`, `appointments`, `callbacks`, `availability`,
+  `clinical-history`.
+- Mejorar navegacion, ergonomia y chrome visible sin tocar runtime, backend,
+  publish ni host publico.
 
 ## Gobernanza
 
@@ -137,12 +158,12 @@ updated_at: "2026-03-28"
 
 ## Estrategia madre activa
 
-- Estrategia activa: `STRAT-2026-03-public-v6-es-voz-ecuatoriana`.
+- Estrategia activa: `STRAT-2026-03-admin-shell-rc1-polish`.
 - Sin draft siguiente activo por ahora.
-- Objetivo: cerrar el copy ES de `Public V6` por slices, con validacion en
-  worktrees dedicados y sin abrir soporte cross-lane salvo necesidad real.
-- Revision vigente: semanal; `carry-over` permitido mientras el frente siga
-  siendo estrictamente editorial y validable.
+- Objetivo: pulir el `Admin Shell RC1` visible con foco en navegacion y
+  ergonomia, sin reabrir `queue/turnero`, `reviews` ni dependencias de host.
+- Revision vigente: semanal; el frente sigue siendo `frontend-first` y solo
+  abre soporte backend/transversal si un guardrail real lo exige.
 - Regla de foco: cada hilo Codex toma un solo `subfront_id` valido y rechaza
   trabajo fuera del frente salvo `strategy_role=exception`; un mismo lane puede
   correr varios hilos en paralelo mientras no exceda `2` slots y no haya
@@ -156,21 +177,22 @@ updated_at: "2026-03-28"
 
 ## Tri-lane operativo vigente
 
-- `codex_frontend`: conserva el ultimo frente editorial ya cerrado
-  (`CDX-045` y `CDX-048`) como referencia historica, sin slices activas hoy.
-- `codex_backend_ops`: no tiene frente activo; `AG-250` queda solo como deuda
-  operativa diferida del host publico.
-- `codex_transversal`: ya cerro `CDX-047`, `CDX-050`, `CDX-051` y `CDX-052`
-  como soporte de checks/gobernanza basado en evidencia, sin reabrir runtime
-  ni contenido publico.
-- Regla actual: no hay estrategia activa; cualquier frente nuevo debe entrar
-  por bootstrap canonico antes de consumir slots.
+- `codex_frontend`: lidera el frente activo con `CDX-053` en
+  `SF-frontend-admin-shell-rc1`.
+- `codex_backend_ops`: queda modelado con
+  `SF-backend-admin-shell-rc1-support`, pero sin slice activa; `AG-250`
+  sigue como deuda operativa diferida del host publico.
+- `codex_transversal`: queda en soporte potencial por
+  `SF-transversal-admin-shell-rc1-support`, pero sin slice activa al abrir el
+  frente.
+- Regla actual: no se abre backend ni runtime en este corte salvo que aparezca
+  un guardrail real no resoluble desde frontend puro.
 
 ## Distribucion de esfuerzo
 
-- 60% copy editorial de superficies paciente en ES.
-- 20% prudencia legal y consistencia de tono.
-- 20% validacion de contratos, build y QA frontend.
+- 60% navegacion y ergonomia del shell visible.
+- 25% claridad de chrome y continuidad del flujo diario.
+- 15% QA frontend del shell RC1.
 
 ## A1.1 - Base impecable del Admin Shell RC1
 
