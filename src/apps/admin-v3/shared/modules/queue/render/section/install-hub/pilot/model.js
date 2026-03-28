@@ -148,6 +148,31 @@ function getSurfaceTelemetryAlertDetail(telemetryEntry, fallbackText = '') {
     return String(fallbackText || '').trim();
 }
 
+function getPilotReleaseMode(release) {
+    const normalized = String(release?.mode || '').trim().toLowerCase();
+    if (normalized === 'web_pilot' || normalized === 'suite_v2') {
+        return normalized;
+    }
+    return '';
+}
+
+function isLocalFirstWebPilot(release) {
+    return getPilotReleaseMode(release) === 'web_pilot';
+}
+
+function getPilotReleaseLabel(release) {
+    return isLocalFirstWebPilot(release) ? 'Piloto web' : 'Turnero V2';
+}
+
+function getPilotReleaseNativeLabel(release) {
+    if (isLocalFirstWebPilot(release)) {
+        return 'nativas diferidas';
+    }
+    return release?.native_apps_blocking === true
+        ? 'nativas bloqueantes'
+        : 'nativas no bloqueantes';
+}
+
 function buildGoLiveIssue({
     id,
     label,
@@ -172,6 +197,10 @@ function buildGoLiveIssue({
 }
 
 function buildPublicationReadinessDetail(publicSync, clinicName, release) {
+    if (isLocalFirstWebPilot(release)) {
+        return `${clinicName} puede operar localmente en web_pilot; la publicación remota y public_main_sync quedan diferidos para una fase posterior.`;
+    }
+
     if (release?.separate_deploy !== true) {
         return 'Este release no exige deploy separado por clínica.';
     }
@@ -212,8 +241,24 @@ function buildPilotHealthReadinessDetail(
     profileFingerprint,
     syncHealth,
     telemetryReadyCount,
-    telemetryCount
+    telemetryCount,
+    release
 ) {
+    if (isLocalFirstWebPilot(release)) {
+        if (syncHealth.state !== 'ready') {
+            return 'La cola local todavía no reporta sincronización viva; primero recupera el sync antes de abrir la clínica.';
+        }
+
+        if (telemetryReadyCount !== telemetryCount) {
+            return `Todavía faltan ${Math.max(
+                0,
+                telemetryCount - telemetryReadyCount
+            )} superficie(s) web con heartbeat listo para operar localmente.`;
+        }
+
+        return `El piloto local ya confirma ${clinicName} (${clinicId}) con heartbeats web y sincronización lista; el health público queda diferido para la publicación posterior.`;
+    }
+
     if (!turneroPilotHealth || turneroPilotHealth.available !== true) {
         return 'El host no publica `checks.turneroPilot`; falta confirmar clinic_id, catálogo, canon y la señal viva + heartbeats de Turnero V2 desde `/health`.';
     }
@@ -401,7 +446,20 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
         typeof getTurneroV2Readiness === 'function'
             ? getTurneroV2Readiness()
             : null;
-    const suiteV2Enabled = turneroV2Readiness?.enabled === true;
+    const releaseMode = getPilotReleaseMode(release);
+    const localWebPilot = isLocalFirstWebPilot(release);
+    const releaseLabel = getPilotReleaseLabel(release);
+    const releaseContractEnabled = turneroV2Readiness?.enabled === true;
+    const releaseContractReady =
+        Boolean(profile) &&
+        profileSource === 'remote' &&
+        String(profile?.clinic_id || '').trim() !== '' &&
+        release?.separate_deploy === true &&
+        String(release?.admin_mode_default || '').trim() === 'basic' &&
+        ((releaseMode === 'web_pilot' &&
+            release?.native_apps_blocking === false) ||
+            (releaseMode === 'suite_v2' &&
+                release?.native_apps_blocking === true));
     const operatorAccessConfigured =
         turneroV2Readiness?.operatorAccess?.configured === true ||
         operatorAccessMeta?.configured === true ||
@@ -425,9 +483,9 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
             ? turneroV2Readiness.hardware
             : {};
     const nativeSurfaceLabels = {
-        operator: 'Operator desktop',
-        kiosk: 'Kiosk desktop',
-        display: 'Sala TV Android',
+        operator: localWebPilot ? 'Operador web' : 'Operator desktop',
+        kiosk: localWebPilot ? 'Kiosco web' : 'Kiosk desktop',
+        display: localWebPilot ? 'Sala web' : 'Sala TV Android',
     };
     const hardwareLabels = {
         assistant: 'Asistente de kiosco',
@@ -450,26 +508,28 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
             ).trim();
         })
         .filter(Boolean);
-    const hardwareBlocking = [
-        'assistant',
-        'printer',
-        'numpad',
-        'desktopShell',
-        'tvAudio',
-        'syncMode',
-    ]
-        .map((hardwareKey) => {
-            const item = hardwareReadiness[hardwareKey];
-            if (item?.ready === true) {
-                return '';
-            }
+    const hardwareBlocking = localWebPilot
+        ? []
+        : [
+              'assistant',
+              'printer',
+              'numpad',
+              'desktopShell',
+              'tvAudio',
+              'syncMode',
+          ]
+              .map((hardwareKey) => {
+                  const item = hardwareReadiness[hardwareKey];
+                  if (item?.ready === true) {
+                      return '';
+                  }
 
-            return String(
-                item?.summary ||
-                    `${hardwareLabels[hardwareKey]} todavía no quedó validado.`
-            ).trim();
-        })
-        .filter(Boolean);
+                  return String(
+                      item?.summary ||
+                          `${hardwareLabels[hardwareKey]} todavía no quedó validado.`
+                  ).trim();
+              })
+              .filter(Boolean);
     const requiredSurfaceKeys = ['admin', 'operator', 'kiosk', 'display'];
     const enabledSurfaceKeys = requiredSurfaceKeys.filter(
         (surfaceKey) =>
@@ -482,15 +542,16 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
     const smokeReady =
         Boolean(checklist.steps.smoke_ready) ||
         Boolean(hasRecentQueueSmokeSignal?.());
-    const publicationReady =
-        release?.separate_deploy === true
-            ? Boolean(
-                  publicSync?.configured &&
-                  publicSync?.healthy &&
-                  publicSync?.headDrift !== true &&
-                  String(publicSync?.deployedCommit || '').trim() !== ''
-              )
-            : true;
+    const publicationReady = localWebPilot
+        ? true
+        : release?.separate_deploy === true
+          ? Boolean(
+                publicSync?.configured &&
+                publicSync?.healthy &&
+                publicSync?.headDrift !== true &&
+                String(publicSync?.deployedCommit || '').trim() !== ''
+            )
+          : true;
     const catalogReady = Boolean(
         profileCatalogStatus?.catalogAvailable &&
         profileCatalogStatus?.matchingProfileId &&
@@ -625,27 +686,16 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
     const readinessItems = [
         {
             id: 'profile',
-            ready:
-                Boolean(profile) &&
-                profileSource === 'remote' &&
-                String(profile?.clinic_id || '').trim() !== '' &&
-                String(release?.mode || '').trim() === 'suite_v2' &&
-                release?.separate_deploy === true &&
-                String(release?.admin_mode_default || '').trim() === 'basic' &&
-                release?.native_apps_blocking === true,
+            ready: releaseContractReady,
             label: 'Perfil por clínica',
             detail:
                 Boolean(profile) && profileSource !== 'remote'
                     ? 'El admin sigue usando un perfil cacheado localmente. Recupera `/data` o vuelve a publicar antes de abrir esta clínica.'
-                    : Boolean(profile) &&
-                        String(profile?.clinic_id || '').trim() !== '' &&
-                        String(release?.mode || '').trim() === 'suite_v2' &&
-                        release?.separate_deploy === true &&
-                        String(release?.admin_mode_default || '').trim() ===
-                            'basic' &&
-                        release?.native_apps_blocking === true
-                      ? `${clinicName} ya quedó perfilada como suite_v2 separada y con apps nativas bloqueantes.`
-                      : 'Falta cerrar `clinic_id`, `suite_v2`, `basic` por defecto o apps nativas bloqueantes antes de abrir otra clínica.',
+                    : releaseContractReady
+                      ? localWebPilot
+                          ? `${clinicName} ya quedó perfilada como web_pilot separada, en basic y con nativas diferidas.`
+                          : `${clinicName} ya quedó perfilada como suite_v2 separada y con apps nativas bloqueantes.`
+                      : 'Falta cerrar `clinic_id`, `release.mode`, `basic` por defecto o la semántica correcta de nativas antes de abrir otra clínica.',
             blocker: true,
         },
         {
@@ -673,15 +723,17 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
                     ? `Solo ${enabledSurfaceKeys.length}/${requiredSurfaceKeys.length} superficies web de fallback quedaron habilitadas en el perfil.`
                     : canonicalSurfaceAlertCount > 0
                       ? `${canonicalSurfaceAlertCount} superficie(s) están vivas fuera de la ruta canónica del perfil.`
-                      : 'Admin, operador, kiosco y sala web ya están declarados como fallback y soporte canónico de la clínica.',
+                      : localWebPilot
+                        ? 'Admin, operador, kiosco y sala web ya están declarados como superficies operativas del piloto local.'
+                        : 'Admin, operador, kiosco y sala web ya están declarados como fallback y soporte canónico de la clínica.',
             blocker: true,
         },
         {
             id: 'operator_access',
-            ready: suiteV2Enabled && operatorAccessConfigured,
+            ready: releaseContractEnabled && operatorAccessConfigured,
             label: 'PIN operativo',
-            detail: !suiteV2Enabled
-                ? 'La clínica todavía no está declarada como suite_v2.'
+            detail: !releaseContractEnabled
+                ? 'La clínica todavía no declara un release local válido para abrir por clínica.'
                 : operatorAccessConfigured
                   ? operatorPinMaskedLabel && operatorPinSessionTtlHours > 0
                       ? `PIN ${operatorPinMaskedLabel} configurado con sesión operativa de ${operatorPinSessionTtlHours}h.`
@@ -694,55 +746,80 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
         },
         {
             id: 'native_surfaces',
-            ready: suiteV2Enabled && nativeSurfaceBlocking.length === 0,
-            label: 'Superficies nativas bloqueantes',
-            detail: !suiteV2Enabled
-                ? 'La release todavía no está declarada como suite_v2.'
-                : nativeSurfaceBlocking.length === 0
-                  ? 'Operator desktop, kiosk desktop y sala TV Android reportan readiness de salida.'
-                  : nativeSurfaceBlocking.join(' '),
+            ready: localWebPilot
+                ? enabledSurfaceKeys.length === requiredSurfaceKeys.length &&
+                  canonicalSurfaceAlertCount === 0 &&
+                  telemetryReadyCount === telemetry.length
+                : releaseContractEnabled && nativeSurfaceBlocking.length === 0,
+            label: localWebPilot
+                ? 'Superficies web locales'
+                : 'Superficies nativas bloqueantes',
+            detail: localWebPilot
+                ? telemetryReadyCount === telemetry.length &&
+                  enabledSurfaceKeys.length === requiredSurfaceKeys.length &&
+                  canonicalSurfaceAlertCount === 0
+                    ? 'Operador, kiosco y sala web ya reportan heartbeats locales listos.'
+                    : 'Falta dejar operador, kiosco o sala web en verde para cerrar el corte local.'
+                : !releaseContractEnabled
+                  ? 'La release todavía no está declarada como suite_v2.'
+                  : nativeSurfaceBlocking.length === 0
+                    ? 'Operator desktop, kiosk desktop y sala TV Android reportan readiness de salida.'
+                    : nativeSurfaceBlocking.join(' '),
             blocker: true,
         },
         {
             id: 'hardware',
-            ready: suiteV2Enabled && hardwareBlocking.length === 0,
-            label: 'Hardware crítico',
-            detail: !suiteV2Enabled
-                ? 'La release todavía no está declarada como suite_v2.'
-                : hardwareBlocking.length === 0
-                  ? 'Asistente, impresora, numpad, shell desktop, audio TV y sync clínico quedaron validados.'
-                  : hardwareBlocking.join(' '),
-            blocker: true,
+            ready: localWebPilot
+                ? true
+                : releaseContractEnabled && hardwareBlocking.length === 0,
+            label: localWebPilot
+                ? 'Hardware y nativas posteriores'
+                : 'Hardware crítico',
+            detail: localWebPilot
+                ? 'Desktop, Android TV, impresión y periféricos extendidos quedan diferidos para la ola nativa posterior.'
+                : !releaseContractEnabled
+                  ? 'La release todavía no está declarada como suite_v2.'
+                  : hardwareBlocking.length === 0
+                    ? 'Asistente, impresora, numpad, shell desktop, audio TV y sync clínico quedaron validados.'
+                    : hardwareBlocking.join(' '),
+            blocker: !localWebPilot,
         },
         {
             id: 'publish',
             ready: publicationReady,
-            label: 'Publicación del release',
+            label: localWebPilot
+                ? 'Publicación remota'
+                : 'Publicación del release',
             detail: buildPublicationReadinessDetail(
                 publicSync,
                 clinicName,
                 release
             ),
-            blocker: true,
+            blocker: !localWebPilot,
         },
         {
             id: 'health',
-            ready:
-                turneroPilotHealth?.available === true &&
-                turneroPilotHealth?.configured === true &&
-                turneroPilotHealth?.profileSource === 'file' &&
-                String(turneroPilotHealth?.clinicId || '')
-                    .trim()
-                    .toLowerCase() === clinicId.toLowerCase() &&
-                (!profileFingerprint ||
-                    String(
-                        turneroPilotHealth?.profileFingerprint || ''
-                    ).trim() === profileFingerprint) &&
-                turneroPilotHealth?.catalogReady === true &&
-                turneroPilotHealth?.ready === true &&
-                syncHealth.state === 'ready' &&
-                telemetryReadyCount === telemetry.length,
-            label: 'Señal viva + heartbeats',
+            ready: localWebPilot
+                ? syncHealth.state === 'ready' &&
+                  telemetryReadyCount === telemetry.length &&
+                  canonicalSurfaceAlertCount === 0
+                : turneroPilotHealth?.available === true &&
+                  turneroPilotHealth?.configured === true &&
+                  turneroPilotHealth?.profileSource === 'file' &&
+                  String(turneroPilotHealth?.clinicId || '')
+                      .trim()
+                      .toLowerCase() === clinicId.toLowerCase() &&
+                  (!profileFingerprint ||
+                      String(
+                          turneroPilotHealth?.profileFingerprint || ''
+                      ).trim() === profileFingerprint) &&
+                  turneroPilotHealth?.catalogReady === true &&
+                  turneroPilotHealth?.ready === true &&
+                  syncHealth.state === 'ready' &&
+                  telemetryReadyCount === telemetry.length,
+            label: localWebPilot
+                ? 'Heartbeats locales'
+                : 'Señal viva + heartbeats',
             detail: buildPilotHealthReadinessDetail(
                 turneroPilotHealth,
                 clinicName,
@@ -750,7 +827,8 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
                 profileFingerprint,
                 syncHealth,
                 telemetryReadyCount,
-                telemetry.length
+                telemetry.length,
+                release
             ),
             blocker: false,
         },
@@ -778,23 +856,32 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
               : 'warning';
     const readinessTitle =
         readinessState === 'ready'
-            ? 'Turnero V2 listo para operar'
+            ? `${releaseLabel} listo para operar`
             : readinessState === 'alert'
-              ? 'Turnero V2 bloqueado'
-              : 'Turnero V2 casi listo';
+              ? `${releaseLabel} bloqueado`
+              : `${releaseLabel} casi listo`;
     const readinessSummary =
         readinessState === 'ready'
-            ? `${clinicName} ya cumple el corte de Turnero V2: perfil separado, PIN operativo, apps nativas listas, fallback web canonizado, publicación verificada y smoke confirmado.`
+            ? localWebPilot
+                ? `${clinicName} ya cumple el corte local del piloto web: perfil separado, PIN operativo, superficies web listas y smoke repetible sin depender del host público.`
+                : `${clinicName} ya cumple el corte de Turnero V2: perfil separado, PIN operativo, apps nativas listas, fallback web canonizado, publicación verificada y smoke confirmado.`
             : readinessState === 'alert'
-              ? `Faltan ${readinessBlockingCount} bloqueo(s) para abrir ${clinicName} en Turnero V2. Resuelve primero perfil, PIN, superficies nativas o publicación antes del smoke final.`
-              : `Faltan ${readinessBlockingCount} cierre(s) operativos para abrir ${clinicName} en Turnero V2 sin depender del modo expert.`;
-    const nativeAppsSupport =
-        release?.native_apps_blocking === true
-            ? 'Las apps nativas y el hardware crítico sí bloquean el go-live de Turnero V2.'
-            : 'La política de release todavía no cumple el estándar de Turnero V2 para apps nativas bloqueantes.';
-    const readinessSupport = publicationReady
-        ? `La clínica ya quedó publicada con commit verificable. ${nativeAppsSupport}`
-        : `Este gate separa "lista localmente" de "publicada". ${nativeAppsSupport}`;
+              ? localWebPilot
+                  ? `Faltan ${readinessBlockingCount} bloqueo(s) para abrir ${clinicName} en piloto web local. Resuelve primero perfil, PIN, surfaces web o smoke antes de ampliar el rollout.`
+                  : `Faltan ${readinessBlockingCount} bloqueo(s) para abrir ${clinicName} en Turnero V2. Resuelve primero perfil, PIN, superficies nativas o publicación antes del smoke final.`
+              : localWebPilot
+                ? `Faltan ${readinessBlockingCount} cierre(s) operativos para abrir ${clinicName} en piloto web local sin depender del host público.`
+                : `Faltan ${readinessBlockingCount} cierre(s) operativos para abrir ${clinicName} en Turnero V2 sin depender del modo expert.`;
+    const nativeAppsSupport = localWebPilot
+        ? 'Desktop, Android TV y hardware extendido quedan como fases posteriores; no bloquean este piloto web local.'
+        : release?.native_apps_blocking === true
+          ? 'Las apps nativas y el hardware crítico sí bloquean el go-live de Turnero V2.'
+          : 'La política de release todavía no cumple el estándar de Turnero V2 para apps nativas bloqueantes.';
+    const readinessSupport = localWebPilot
+        ? `Este gate valida solo la operación local por clínica. ${nativeAppsSupport}`
+        : publicationReady
+          ? `La clínica ya quedó publicada con commit verificable. ${nativeAppsSupport}`
+          : `Este gate separa "lista localmente" de "publicada". ${nativeAppsSupport}`;
     const smokeSteps = [
         {
             id: 'admin',
@@ -808,7 +895,7 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
                 canonicalSurfaceMap.admin?.ready &&
                 String(release?.admin_mode_default || '').trim() === 'basic'
                     ? 'Verifica que la cola abra en `basic` y muestre el sello de la clínica activa.'
-                    : 'Falta una ruta canónica de admin o Turnero V2 no arranca en `basic` por defecto.',
+                    : `Falta una ruta canónica de admin o ${releaseLabel.toLowerCase()} no arranca en \`basic\` por defecto.`,
             href: canonicalSurfaceMap.admin?.url || '/admin.html#queue',
             actionLabel: 'Abrir admin',
         },
@@ -827,7 +914,7 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
                     'alert'
                     ? getSurfaceTelemetryAlertDetail(
                           telemetryMap.operator,
-                          'Operador fuera del canon de Turnero V2.'
+                          `Operador fuera del canon de ${releaseLabel.toLowerCase()}.`
                       )
                     : canonicalSurfaceMap.operator?.ready &&
                         getSurfaceTelemetryClinicId(telemetryMap.operator) &&
@@ -870,7 +957,7 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
                 getSurfaceTelemetryContractState(telemetryMap.kiosk) === 'alert'
                     ? getSurfaceTelemetryAlertDetail(
                           telemetryMap.kiosk,
-                          'Kiosco fuera del canon de Turnero V2.'
+                          `Kiosco fuera del canon de ${releaseLabel.toLowerCase()}.`
                       )
                     : canonicalSurfaceMap.kiosk?.ready &&
                         getSurfaceTelemetryClinicId(telemetryMap.kiosk) &&
@@ -914,7 +1001,7 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
                     'alert'
                     ? getSurfaceTelemetryAlertDetail(
                           telemetryMap.display,
-                          'Sala fuera del canon de Turnero V2.'
+                          `Sala fuera del canon de ${releaseLabel.toLowerCase()}.`
                       )
                     : canonicalSurfaceMap.display?.ready &&
                         getSurfaceTelemetryClinicId(telemetryMap.display) &&
@@ -948,7 +1035,7 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
             label: 'Llamado final',
             state: smokeReady ? 'ready' : 'warning',
             detail: smokeReady
-                ? 'Ya existe un llamado end-to-end reciente para cerrar Turnero V2 de la clínica.'
+                ? `Ya existe un llamado end-to-end reciente para cerrar ${releaseLabel.toLowerCase()} de la clínica.`
                 : 'Cierra la secuencia con un llamado real o de prueba desde la cola antes de abrir la clínica.',
             href: canonicalSurfaceMap.admin?.url || '/admin.html#queue',
             actionLabel: 'Cerrar smoke',
@@ -965,9 +1052,9 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
           : 'warning';
     const smokeSummary =
         smokeState === 'ready'
-            ? `${clinicName} ya tiene una secuencia repetible de Turnero V2 por clínica.`
+            ? `${clinicName} ya tiene una secuencia repetible de ${releaseLabel.toLowerCase()} por clínica.`
             : smokeState === 'alert'
-              ? 'La secuencia de smoke tiene bloqueos de perfil o rutas canónicas antes del go-live.'
+              ? `La secuencia de smoke tiene bloqueos de perfil o rutas canónicas antes del go-live de ${releaseLabel.toLowerCase()}.`
               : 'La secuencia ya está armada; solo faltan validar superficies pendientes y cerrar el llamado final.';
     const smokeSupport =
         'Usa esta secuencia como checklist corto de apertura por clínica: admin, operador, kiosco, sala y llamado final.';
@@ -1155,7 +1242,7 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
               : 'warning';
     const goLiveSummary =
         goLiveIssues.length === 0
-            ? `${clinicName} ya no tiene bloqueos de salida para Turnero V2.`
+            ? `${clinicName} ya no tiene bloqueos de salida para ${releaseLabel.toLowerCase()}.`
             : goLiveBlockingCount > 0
               ? `${goLiveBlockingCount} bloqueo(s) siguen frenando el go-live de ${clinicName}.`
               : `${goLiveIssues.length} pendiente(s) menores todavía requieren cierre antes del go-live.`;
@@ -1198,7 +1285,7 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
         {
             id: 'release',
             label: 'Release',
-            value: `suite_v2 · basic · ${release?.separate_deploy === true ? 'deploy separado' : 'deploy sin aislar'} · ${release?.native_apps_blocking === true ? 'nativas bloqueantes' : 'nativas no bloqueantes'}`,
+            value: `${releaseMode || 'unknown'} · basic · ${release?.separate_deploy === true ? 'deploy separado' : 'deploy sin aislar'} · ${getPilotReleaseNativeLabel(release)}`,
         },
         {
             id: 'pin',
@@ -1212,9 +1299,11 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
         {
             id: 'publish',
             label: 'Publicación',
-            value: deployedCommit
-                ? `${publicSync?.healthy ? 'commit' : 'estado'} ${deployedCommit}`
-                : 'sin commit verificable',
+            value: localWebPilot
+                ? 'diferida para publicación posterior'
+                : deployedCommit
+                  ? `${publicSync?.healthy ? 'commit' : 'estado'} ${deployedCommit}`
+                  : 'sin commit verificable',
         },
         {
             id: 'canon',
@@ -1227,18 +1316,22 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
         {
             id: 'native',
             label: 'Nativo',
-            value:
-                nativeSurfaceBlocking.length === 0
-                    ? 'operator + kiosk + sala_tv listos'
-                    : `${nativeSurfaceBlocking.length} bloqueo(s) nativos`,
+            value: localWebPilot
+                ? telemetryReadyCount === telemetry.length
+                    ? 'operator + kiosk + sala web listos'
+                    : `${Math.max(0, telemetry.length - telemetryReadyCount)} pendiente(s) web`
+                : nativeSurfaceBlocking.length === 0
+                  ? 'operator + kiosk + sala_tv listos'
+                  : `${nativeSurfaceBlocking.length} bloqueo(s) nativos`,
         },
         {
             id: 'hardware',
             label: 'Hardware',
-            value:
-                hardwareBlocking.length === 0
-                    ? 'assistant, printer, numpad, shell y tv audio listos'
-                    : `${hardwareBlocking.length} bloqueo(s) de hardware`,
+            value: localWebPilot
+                ? 'ola nativa diferida'
+                : hardwareBlocking.length === 0
+                  ? 'assistant, printer, numpad, shell y tv audio listos'
+                  : `${hardwareBlocking.length} bloqueo(s) de hardware`,
         },
         {
             id: 'blockers',
@@ -1255,11 +1348,15 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
     ];
     const handoffSummary =
         readinessState === 'ready'
-            ? `Paquete listo para compartir con ${clinicName}: Turnero V2 ya tiene gate en verde, publicación verificable y secuencia repetible.`
-            : `Paquete listo para handoff interno: comparte este resumen antes de abrir ${clinicName} para que todos usen el mismo estado de Turnero V2.`;
+            ? localWebPilot
+                ? `Paquete listo para compartir con ${clinicName}: el piloto web local ya tiene gate en verde y una secuencia repetible por clínica.`
+                : `Paquete listo para compartir con ${clinicName}: Turnero V2 ya tiene gate en verde, publicación verificable y secuencia repetible.`
+            : `Paquete listo para handoff interno: comparte este resumen antes de abrir ${clinicName} para que todos usen el mismo estado de ${releaseLabel.toLowerCase()}.`;
     const handoffSupport =
         readinessState === 'ready'
-            ? 'Usa “Copiar paquete” para pasar el estado del go-live con surfaces nativas y fallback web de la clínica.'
+            ? localWebPilot
+                ? 'Usa “Copiar paquete” para pasar el estado local del piloto con admin, operador, kiosco y sala web.'
+                : 'Usa “Copiar paquete” para pasar el estado del go-live con surfaces nativas y fallback web de la clínica.'
             : 'Aunque el gate siga en warning o alert, este paquete resume exactamente qué falta antes del go-live.';
     const sharedPilotPayload = {
         clinicProfile: profile,

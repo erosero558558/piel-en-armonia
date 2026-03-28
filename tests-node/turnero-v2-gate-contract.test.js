@@ -34,12 +34,16 @@ test('package.json expone scripts canonicos para Turnero V2', () => {
     }
 });
 
-test('gate:turnero promueve Turnero V2 como carril canonico actual', () => {
+test('Turnero V2 conserva su carril historico sin seguir como alias canonico del piloto local', () => {
     const scripts = loadPackageScripts();
 
     assert.match(
         String(scripts['gate:turnero'] || ''),
-        /gate:turnero:v2/
+        /gate:turnero:web-pilot/
+    );
+    assert.match(
+        String(scripts['gate:turnero:v2'] || ''),
+        /test:turnero:v2:contracts/
     );
     assert.match(
         String(scripts['test:turnero:v2:contracts'] || ''),

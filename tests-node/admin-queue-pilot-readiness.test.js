@@ -55,10 +55,10 @@ function buildPilotProfile(overrides = {}) {
             },
         },
         release: {
-            mode: 'suite_v2',
+            mode: 'web_pilot',
             admin_mode_default: 'basic',
             separate_deploy: true,
-            native_apps_blocking: true,
+            native_apps_blocking: false,
             notes: [],
         },
         runtime_meta: {
@@ -133,7 +133,7 @@ test('clinic-profile expone aliases compatibles con el ZIP y el opening package 
     assert.equal(openingPackage.finalStatus, 'ready');
     assert.equal(openingPackage.blocked, false);
     assert.equal(openingPackage.profileFingerprint, '1234abcd');
-    assert.equal(openingPackage.releaseMode, 'suite_v2');
+    assert.equal(openingPackage.releaseMode, 'web_pilot');
     assert.equal(blockers.length, 0);
 });
 

@@ -10,6 +10,7 @@ const {
     DEFAULT_SERVER_ENGINE,
     DEFAULT_PHP_SERVER_WORKERS,
     buildPlaywrightCommandArgs,
+    buildChildEnv,
     extractListeningPids,
     parseArgs,
     resolveLocalServerPort,
@@ -24,7 +25,7 @@ function readPackageScripts() {
 }
 
 test('run-playwright-local arma el comando canonico de playwright test', () => {
-    assert.equal(DEFAULT_PHP_SERVER_WORKERS, '4');
+    assert.equal(DEFAULT_PHP_SERVER_WORKERS, '1');
     assert.equal(DEFAULT_SERVER_ENGINE, 'php');
     assert.deepEqual(
         buildPlaywrightCommandArgs(['tests/admin-queue.spec.js']),
@@ -108,6 +109,41 @@ test('run-playwright-local extrae pids desde la salida de ss sin duplicados', ()
         ),
         [60854, 70001]
     );
+});
+
+test('run-playwright-local fuerza TEST_BASE_URL y desactiva reuseExistingServer cuando levanta servidor propio', () => {
+    const env = buildChildEnv(
+        {
+            TEST_REUSE_EXISTING_SERVER: '1',
+            TEST_LOCAL_SERVER_PORT: '8011',
+        },
+        {
+            host: '127.0.0.1',
+            baseUrl: '',
+        },
+        9124
+    );
+
+    assert.equal(env.TEST_BASE_URL, 'http://127.0.0.1:9124');
+    assert.equal(env.TEST_LOCAL_SERVER_PORT, '9124');
+    assert.equal(env.TEST_REUSE_EXISTING_SERVER, '0');
+});
+
+test('run-playwright-local conserva un base URL explicito y limpia el puerto local heredado', () => {
+    const env = buildChildEnv(
+        {
+            TEST_LOCAL_SERVER_PORT: '8011',
+        },
+        {
+            host: '127.0.0.1',
+            baseUrl: 'https://pielarmonia.com',
+        },
+        0
+    );
+
+    assert.equal(env.TEST_BASE_URL, 'https://pielarmonia.com');
+    assert.equal('TEST_LOCAL_SERVER_PORT' in env, false);
+    assert.equal(env.TEST_REUSE_EXISTING_SERVER, '0');
 });
 
 test('scripts de admin y turnero usan wrappers locales o runners canonicos para aislar Playwright del webServer', () => {

@@ -7,71 +7,62 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 811
+  revision: 815
   updated_at: 2026-03-28
 
 strategy:
   active:
-    id: STRAT-2026-03-admin-operativo
-    title: "Admin operativo"
-    objective: "Convertir el frente admin clinico, queue/turnero y OpenClaw UX en una entrega operable y visible, con soporte backend y runtime estrictamente alineado."
+    id: STRAT-2026-03-turnero-web-pilot-local-first
+    title: "Turnero web pilot local-first"
+    objective: "Reactivar queue/turnero como piloto web local-first por clinica, separando el carril web del bloqueo remoto/productivo y sin exigir desktop o Android como precondicion de salida local."
     owner: deck
     owner_policy: "detected_default_owner"
     status: active
     started_at: "2026-03-28"
-    review_due_at: "2026-03-21"
+    review_due_at: "2026-04-01"
     closed_at: ""
     close_reason: ""
-    exit_criteria: ["Admin clinico y queue/turnero navegables sin flujos rotos", "Auth/readiness/gates en verde para el frente activo", "Runtime OpenClaw solo usado como desbloqueo directo del mismo objetivo"]
-    success_signal: "Un mismo corte operativo puede demostrarse de punta a punta sin abrir trabajo fuera del frente admin operativo."
-    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
-    focus_title: "Admin operativo demostrable"
-    focus_summary: "Unificar admin clinico, quick-nav, queue/turnero piloto y readiness operacional en un solo corte legible."
+    exit_criteria: ["El perfil de clinica acepta release.mode=web_pilot sin romper suite_v2 ni el schema v1", "Admin, operador, kiosco y sala leen web_pilot como piloto local valido y dejan desktop/Android como carriles diferidos", "El gate local de turnero vuelve a verde sin verify-remote, smoke prod ni dependencia de public_main_sync"]
+    success_signal: "Piel Armonia Quito puede operar el piloto web local por clinica con readiness, labels y gates locales consistentes, dejando native apps como fase posterior."
+    focus_id: "FOCUS-2026-03-turnero-web-pilot-local-cut-1"
+    focus_title: "Turnero web pilot local-first por clinica"
+    focus_summary: "Alinear perfil clinico, surfaces web y gate local para operar turnero como web_pilot por clinica, sin depender de native apps ni de verificacion remota."
     focus_status: active
-    focus_proof: "Operador inicia sesion, entra al admin, usa quick-nav, revisa queue/turnero piloto y el corte queda respaldado por runtime/deploy verificables"
-    focus_steps: ["admin_queue_pilot_cut", "pilot_readiness_evidence", "feedback_trim"]
-    focus_next_step: "feedback_trim"
-    focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]
-    focus_non_goals: ["rediseno_publico", "expansion_payments", "refactor_orchestrator_no_bloqueante", "modularizacion_fuera_del_corte"]
+    focus_proof: "Admin, operador, kiosco y sala leen el perfil web_pilot de la clinica activa, el gate local vuelve a verde y desktop/Android quedan como carriles diferidos del piloto."
+    focus_steps: ["web_pilot_contract_alignment", "web_surface_local_readiness", "local_gate_validation"]
+    focus_next_step: "local_gate_validation"
+    focus_required_checks: ["test:turnero:web-pilot:contracts", "test:turnero:web-pilot:php-contract", "test:turnero:web-pilot:ui"]
+    focus_non_goals: ["verify_remote_turnero", "prod_smoke_turnero", "desktop_android_blocking", "public_main_sync_recovery"]
     focus_owner: "deck"
-    focus_review_due_at: "2026-03-21"
-    focus_evidence_ref: ""
+    focus_review_due_at: "2026-04-01"
+    focus_evidence_ref: "verification/agent-runs/CDX-058.md"
     focus_max_active_slices: 3
     subfronts:
       - codex_instance: codex_frontend
-        subfront_id: SF-frontend-admin-operativo
-        title: "Admin clinico y shell principal"
-        allowed_scopes: ["frontend-admin"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["payments"]
-        wip_limit: 2
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-queue-turnero-operativo
-        title: "Queue, turnero y OpenClaw UX de soporte"
-        allowed_scopes: ["queue", "turnero"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["calendar"]
-        wip_limit: 2
+        subfront_id: SF-frontend-turnero-web-pilot-local
+        title: "Turnero web surfaces y canon UI local-first"
+        allowed_scopes: ["queue"]
+        support_only_scopes: ["frontend-admin", "docs", "frontend-qa"]
+        blocked_scopes: ["frontend-public", "payments", "calendar"]
+        wip_limit: 1
         default_acceptance_profile: "frontend_delivery_checkpoint"
         exception_ttl_hours: 8
       - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-admin-operativo
-        title: "Auth, readiness, gates y backend de soporte directo"
-        allowed_scopes: ["auth", "backend", "readiness", "gates"]
-        support_only_scopes: ["deploy", "ops", "monitoring", "tests"]
-        blocked_scopes: ["frontend-public", "security"]
-        wip_limit: 2
+        subfront_id: SF-backend-turnero-web-pilot-local
+        title: "Perfil clinico, validadores y gates locales de turnero"
+        allowed_scopes: ["backend", "readiness", "gates"]
+        support_only_scopes: ["turnero", "tests", "ops"]
+        blocked_scopes: ["deploy", "security", "payments"]
+        wip_limit: 1
         default_acceptance_profile: "backend_gate_checkpoint"
         exception_ttl_hours: 6
       - codex_instance: codex_transversal
-        subfront_id: SF-transversal-admin-operativo
-        title: "Runtime/orquestacion solo como desbloqueo del frente"
+        subfront_id: SF-transversal-turnero-web-pilot-local
+        title: "Soporte transversal eventual para el piloto web local"
         allowed_scopes: []
-        support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
-        blocked_scopes: ["legacy-runtime"]
-        wip_limit: 2
+        support_only_scopes: ["codex-governance", "tooling"]
+        blocked_scopes: ["openclaw_runtime", "legacy-runtime"]
+        wip_limit: 1
         default_acceptance_profile: "transversal_runtime_checkpoint"
         exception_ttl_hours: 4
   next: null
@@ -118,7 +109,7 @@ tasks:
     depends_on: []
     prompt: "Implementar checksum SHA-256 por header, cifrado AES-256-CBC y prueba de integridad con test."
     created_at: 2026-02-24
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-002
     title: "PHP rate-limiter sliding window and per-user limits"
@@ -160,7 +151,7 @@ tasks:
     depends_on: []
     prompt: "Actualizar rate-limiter a sliding window, incluir limite por user token y pruebas de regresion."
     created_at: 2026-02-24
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-003
     title: "OpenAPI 3.1 specification for public API resources"
@@ -202,7 +193,7 @@ tasks:
     depends_on: []
     prompt: "Generar OpenAPI 3.1 para api.php recursos principales y documentar como visualizarla localmente."
     created_at: 2026-02-24
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-004
     title: "Email notification system for appointment confirmations"
@@ -244,7 +235,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Implementar wrapper PHPMailer para confirmaciones y recordatorios con templates HTML y test."
     created_at: 2026-02-24
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-005
     title: "Audit dead code in js engines"
@@ -286,7 +277,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Auditar js/engines y generar docs/dead-code-audit.md sin tocar logica de JS."
     created_at: 2026-02-24
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-006
     title: "Add editorconfig and normalize line-end policy"
@@ -328,7 +319,7 @@ tasks:
     depends_on: []
     prompt: "Crear/ajustar .editorconfig y .gitattributes para estandarizar indentacion y finales de linea."
     created_at: 2026-02-24
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-007
     title: "Add missing PHPDoc in core lib files"
@@ -370,7 +361,7 @@ tasks:
     depends_on: []
     prompt: "Agregar PHPDoc faltantes en librerias core sin modificar comportamiento funcional."
     created_at: 2026-02-24
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-008
     title: "Kimi autopilot smoke task (no-op)"
@@ -412,7 +403,7 @@ tasks:
     depends_on: []
     prompt: "Smoke test: no hagas cambios de codigo. Solo confirma ejecucion y finaliza sin modificar archivos."
     created_at: 2026-02-24
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: CDX-001
     title: "Codex governance coexistence guardrails (C4 support)"
@@ -460,7 +451,7 @@ tasks:
     depends_on: []
     prompt: "Implementar guardrails de convivencia entre AGENT_BOARD y Plan Codex (handoffs, codex-check, conflict gate con excepciones temporales) alineado al bloque C4."
     created_at: 2026-02-24
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: CDX-002
     title: "Package P1: Sentry evidence normalization and readiness scorecard"
@@ -508,7 +499,7 @@ tasks:
     depends_on: []
     prompt: "Ejecutar Package P1: normalizar sentry-events-last.json con razon accionable, integrar la evidencia en prod-readiness-summary y fijar la plantilla de scorecard de paquetes."
     created_at: 2026-03-02
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: CDX-003
     title: "Package P2: shared PowerShell kernel for production ops scripts"
@@ -556,7 +547,7 @@ tasks:
     depends_on: ["CDX-002"]
     prompt: "Ejecutar Package P2: extraer helpers comunes a bin/powershell y adelgazar REPORTE-SEMANAL-PRODUCCION, VERIFICAR-DESPLIEGUE y MONITOR-PRODUCCION sin romper contratos de CLI ni salida."
     created_at: 2026-03-02
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: CDX-004
     title: "Package P3: analytics controller decomposition into pure services"
@@ -604,7 +595,7 @@ tasks:
     depends_on: ["CDX-003"]
     prompt: "Ejecutar Package P3: extraer calculo de funnel, retention, parseo Prometheus, normalizacion y CSV fuera de AnalyticsController sin romper consumidores ni contratos."
     created_at: 2026-03-02
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: CDX-005
     title: "Package P4: durable storage and backup core extraction"
@@ -652,7 +643,7 @@ tasks:
     depends_on: ["CDX-004"]
     prompt: "Ejecutar Package P4: extraer paths, config, cifrado, persistencia, health y replicacion desde storage.php y backup.php sin breaking changes en funciones globales, formatos de archivos ni validaciones."
     created_at: 2026-03-03
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: CDX-006
     title: "Package P5: queue and figo chat core extraction"
@@ -700,7 +691,7 @@ tasks:
     depends_on: ["CDX-005"]
     prompt: "Ejecutar Package P5: extraer configuracion, repositorio, gateway y procesamiento desde figo_queue.php, y politica de prioridad/resumen desde QueueService.php, manteniendo contratos de chat, backend y cola."
     created_at: 2026-03-03
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: CDX-007
     title: "Telemedicine backend rebuild: intake, suitability and clinical media separation"
@@ -748,7 +739,7 @@ tasks:
     depends_on: ["CDX-005"]
     prompt: "Rehacer telemedicina backend desde cero con dominio propio de intake, suitability shadow, media clinica separada de payment proof, persistencia JSON/SQLite, bridge legacy sobre payment-intent/appointments/transfer-proof y backfill historico sin tocar frontend."
     created_at: 2026-03-03
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: CDX-008
     title: "Telemedicine ops hardening: health snapshot, metrics and admin triage"
@@ -796,14 +787,14 @@ tasks:
     depends_on: ["CDX-007"]
     prompt: "Endurecer operacion backend de telemedicina con snapshot reusable para health, metrics y admin data, de modo que staff vea review_required, staged uploads, counts por suitability y consistencia de linkage sin tocar frontend."
     created_at: 2026-03-03
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: CDX-009
     title: "Public sync stale recovery: refrescar cron host-side y revalidar health"
     owner: deck
     executor: codex
-    status: blocked
-    status_since_at: "2026-03-28T04:01:16Z"
+    status: backlog
+    status_since_at: "2026-03-28T05:50:07Z"
     risk: medium
     scope: readiness
     codex_instance: codex_backend_ops
@@ -820,22 +811,22 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["bin/deploy-public-v3-cron-sync.sh", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
+    files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
     source_signal: manual
     source_ref: "issue#461"
-    priority_score: 66
+    priority_score: 72
     sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: "2026-03-26T11:42:20.790Z"
     attempts: 3
-    blocked_reason: "host_public_health_502_external_blocker"
-    lease_id: "lease_CDX-009_20260328040508913_4d424e"
-    lease_owner: "deck"
-    lease_created_at: "2026-03-28T04:05:08.913Z"
-    heartbeat_at: "2026-03-28T12:19:09.799Z"
-    lease_expires_at: "2026-03-29T12:19:09.799Z"
-    lease_reason: "leases_heartbeat"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    blocked_reason: "external_debt_non_blocking_for_turnero_local_first"
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T05:50:07Z"
+    lease_cleared_reason: "reprioritized:external_debt"
     runtime_impact: low
     critical_zone: false
     acceptance: "public_main_sync vuelve a healthy con lastCheckedAt fresco, headDrift=false, telemetryGap=false y dirtyPathsCount=0 sin regresion en runtime:operator_auth."
@@ -914,7 +905,7 @@ tasks:
     depends_on: ["CDX-009"]
     prompt: "Encapsular la evidencia bloqueada de CDX-009 en una slice transversal de gobernanza para que workspace hygiene deje de reportar unknown_scope sin tocar runtime ni el frente host-side."
     created_at: 2026-03-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: CDX-011
     title: "Codex governance ownership cleanup for CDX-009 external blocker"
@@ -973,7 +964,7 @@ tasks:
     depends_on: ["CDX-009"]
     prompt: "Absorber en una slice transversal la gobernanza y el espejo board/plan del blocker externo de CDX-009 para que workspace hygiene deje de marcar AGENT_BOARD.yaml y PLAN_MAESTRO_CODEX_2026.md como out_of_scope."
     created_at: 2026-03-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: CDX-045
     title: "Public V6 ES ecuatorian voice rewrite mirror"
@@ -1000,7 +991,7 @@ tasks:
     files: ["content/public-v6/en/software.json", "content/public-v6/es/navigation.json", "content/public-v6/es/home.json", "content/public-v6/es/hub.json", "content/public-v6/es/software.json"]
     source_signal: manual
     source_ref: "AG-256"
-    priority_score: 66
+    priority_score: 72
     sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
@@ -1059,7 +1050,7 @@ tasks:
     files: ["content/public-v6/es/service.json", "content/public-v6/es/telemedicine.json", "content/public-v6/es/legal.json"]
     source_signal: manual
     source_ref: "CDX-045"
-    priority_score: 66
+    priority_score: 74
     sla_due_at: "2026-03-30T23:59:00Z"
     last_attempt_at: "2026-03-27T23:32:25Z"
     attempts: 1
@@ -1118,7 +1109,7 @@ tasks:
     files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-050.md", "tools/agent-orchestrator/commands/focus.js", "tests-node/agent-orchestrator-cli.test.js"]
     source_signal: manual
     source_ref: "CDX-047,CDX-048"
-    priority_score: 66
+    priority_score: 70
     sla_due_at: "2026-03-30T23:59:00Z"
     last_attempt_at: "2026-03-28T01:53:26Z"
     attempts: 1
@@ -1177,7 +1168,7 @@ tasks:
     files: ["agent-orchestrator.js", "tests-node/agent-orchestrator-cli.test.js", "tests-node/orchestrator/focus.test.js", "tools/agent-orchestrator/commands/codex.js", "tools/agent-orchestrator/commands/conflicts.js", "tools/agent-orchestrator/commands/runtime-governance.js", "tools/agent-orchestrator/commands/task.js", "tools/agent-orchestrator/domain/codex-mirror.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/task-guards.js", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-051.md"]
     source_signal: manual
     source_ref: "post_public_v6_es_cleanup"
-    priority_score: 66
+    priority_score: 68
     sla_due_at: "2026-03-29T23:59:00Z"
     last_attempt_at: "2026-03-28T03:40:00Z"
     attempts: 1
@@ -1225,7 +1216,7 @@ tasks:
     files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-052.md"]
     source_signal: manual
     source_ref: "post_public_v6_es_backlog_cleanup"
-    priority_score: 41
+    priority_score: 35
     sla_due_at: "2026-03-29T23:59:00Z"
     last_attempt_at: "2026-03-28T04:30:00Z"
     attempts: 1
@@ -1273,7 +1264,7 @@ tasks:
     files: ["admin.html", "admin-v3.css", "src/apps/admin-v3/core", "src/apps/admin-v3/ui", "src/apps/admin-v3/sections"]
     source_signal: manual
     source_ref: "admin_shell_rc1_polish_bootstrap"
-    priority_score: 66
+    priority_score: 72
     sla_due_at: "2026-04-02T23:59:00Z"
     last_attempt_at: ""
     attempts: 0
@@ -1332,7 +1323,7 @@ tasks:
     files: ["kiosco-turnos.html", "verification/agent-runs/CDX-054.md"]
     source_signal: manual
     source_ref: "AG-260"
-    priority_score: 66
+    priority_score: 68
     sla_due_at: "2026-03-31T23:59:00Z"
     last_attempt_at: "2026-03-28T04:01:16Z"
     attempts: 1
@@ -1391,7 +1382,7 @@ tasks:
     files: ["governance-policy.json", "tools/agent-orchestrator/commands/publish.js", "tools/agent-orchestrator/core/policy.js", "tests-node/close-command.test.js", "tests-node/publish-checkpoint-command.test.js", "tests-node/orchestrator/policy-config.test.js", "AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-055.md"]
     source_signal: manual
     source_ref: "turnero_gates_rescue_bootstrap"
-    priority_score: 66
+    priority_score: 64
     sla_due_at: "2026-03-31T23:59:00Z"
     last_attempt_at: "2026-03-28T05:01:30Z"
     attempts: 1
@@ -1426,13 +1417,72 @@ tasks:
     updated_at: 2026-03-28
 
   - id: CDX-056
-    title: "Turnero web pilot local gates and presentation wrapper cleanup"
+    title: "Turnero web pilot local-first frontend surfaces and runtime replay"
     owner: deck
     executor: codex
-    status: done
-    status_since_at: "2026-03-28T05:34:21.438Z"
+    status: review
+    status_since_at: "2026-03-28T12:46:44Z"
     risk: medium
-    scope: gates
+    scope: queue
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["content/turnero/clinic-profile.json", "content/turnero/clinic-profiles/piel-armonia-quito.json", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/model.js", "admin.js", "js/queue-operator.js", "verification/agent-runs/CDX-056.md"]
+    source_signal: manual
+    source_ref: "local:CDX-053"
+    priority_score: 74
+    sla_due_at: "2026-03-31T23:59:00Z"
+    last_attempt_at: "2026-03-28T12:46:44Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: "lease_CDX-056_20260328131845110_43d186"
+    lease_owner: "deck"
+    lease_created_at: "2026-03-28T13:18:45.110Z"
+    heartbeat_at: "2026-03-28T13:18:45.110Z"
+    lease_expires_at: "2026-03-28T17:18:45.110Z"
+    lease_reason: "leases_heartbeat"
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Admin, operador, kiosco y sala leen release.mode=web_pilot como salida local valida, muestran desktop/Android como carriles diferidos y el runtime regenerado pasa build/check/UI sobre el canon remoto."
+    acceptance_ref: "verification/agent-runs/CDX-056.md"
+    evidence_ref: "verification/agent-runs/CDX-056.md"
+    strategy_id: "STRAT-2026-03-turnero-web-pilot-local-first"
+    subfront_id: "SF-frontend-turnero-web-pilot-local"
+    strategy_role: "primary"
+    focus_id: "FOCUS-2026-03-turnero-web-pilot-local-cut-1"
+    focus_step: "local_gate_validation"
+    integration_slice: "frontend_runtime"
+    work_type: "forward"
+    expected_outcome: "Las surfaces web del piloto quedan alineadas al perfil web_pilot por clinica y el runtime publicado se regenera desde fuente sobre origin/main, sin merge manual de artefactos."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-057"]
+    prompt: "Reaplicar sobre origin/main los cambios fuente del piloto web local-first, regenerar admin.js y los bundles queue-operator, y validar la UI sin tocar verify-remote ni host productivo."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-057
+    title: "Turnero web pilot local-first backend gates and contract alignment"
+    owner: deck
+    executor: codex
+    status: review
+    status_since_at: "2026-03-28T12:46:44Z"
+    risk: medium
+    scope: turnero
     codex_instance: codex_backend_ops
     domain_lane: backend_ops
     lane_lock: strict
@@ -1447,40 +1497,99 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["bin/gate-turnero-presentation-local.js", "bin/run-turnero-web-pilot-ui.js", "package.json", "docs/RUNBOOK_TURNERO_APPS_RELEASE.md", "tests-node/run-playwright-local.test.js", "tests-node/turnero-presentation-local-gate-contract.test.js", "tests-node/turnero-web-pilot-gate-contract.test.js", "tests-node/run-turnero-web-pilot-ui-contract.test.js", "verification/agent-runs/CDX-056.md"]
+    files: ["controllers/AdminDataController.php", "package.json", "bin/run-playwright-local.js", "tests/admin-queue.spec.js", "tests-node/admin-data-turnero-clinic-profile-contract.test.js", "tests-node/admin-queue-pilot-readiness.test.js", "tests-node/health-turnero-pilot-contract.test.js", "tests-node/queue-operator-shell-state.test.js", "tests-node/turnero-clinic-profile-registry.test.js", "tests-node/turnero-runtime-contract.test.js", "tests-node/turnero-v2-gate-contract.test.js", "verification/agent-runs/CDX-057.md"]
     source_signal: manual
-    source_ref: "AG-260"
-    priority_score: 66
-    sla_due_at: "2026-03-31T23:59:00Z"
-    last_attempt_at: ""
-    attempts: 0
+    source_ref: "local:CDX-054"
+    priority_score: 70
+    sla_due_at: "2026-04-01T23:59:00Z"
+    last_attempt_at: "2026-03-28T12:46:44Z"
+    attempts: 1
     blocked_reason: ""
-    lease_id: ""
-    lease_owner: ""
-    lease_created_at: ""
-    heartbeat_at: ""
-    lease_expires_at: ""
-    lease_reason: ""
-    lease_cleared_at: "2026-03-28T05:34:21.438Z"
-    lease_cleared_reason: "terminal:done"
+    lease_id: "lease_CDX-057_20260328131845116_98e77a"
+    lease_owner: "deck"
+    lease_created_at: "2026-03-28T13:18:45.116Z"
+    heartbeat_at: "2026-03-28T13:18:45.181Z"
+    lease_expires_at: "2026-03-28T17:18:45.181Z"
+    lease_reason: "leases_heartbeat"
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
     runtime_impact: low
     critical_zone: false
-    acceptance: "El carril local de Turnero usa wrappers canonicos para presentation cut y web-pilot UI, mantiene evidencia persistida y no toca kiosco, public-v6, auth ni runtime de producto."
-    acceptance_ref: "verification/agent-runs/CDX-056.md"
-    evidence_ref: "verification/agent-runs/CDX-056.md"
-    strategy_id: "STRAT-2026-03-admin-operativo"
-    subfront_id: "SF-backend-admin-operativo"
-    strategy_role: "primary"
-    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
-    focus_step: "feedback_trim"
+    acceptance: "Admin, operador, kiosco y sala leen release.mode=web_pilot como salida local valida, muestran desktop/Android como carriles diferidos y el runtime regenerado pasa build/check/UI sobre el canon remoto."
+    acceptance_ref: "verification/agent-runs/CDX-057.md"
+    evidence_ref: "verification/agent-runs/CDX-057.md"
+    strategy_id: "STRAT-2026-03-turnero-web-pilot-local-first"
+    subfront_id: "SF-backend-turnero-web-pilot-local"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-turnero-web-pilot-local-cut-1"
+    focus_step: "local_gate_validation"
     integration_slice: "tests_quality"
     work_type: "support"
-    expected_outcome: "Turnero Gates queda rescatado en el canon actual con runner UI segmentado, wrapper local con streaming y cobertura contractual nueva, usando el carve-out acotado de blocker externo."
+    expected_outcome: "El canon remoto acepta web_pilot como piloto local valido, conserva suite_v2 intacto y deja contratos, gates y runner local en verde sin arrastrar el blocker externo de public_main_sync."
     decision_ref: ""
     rework_parent: ""
     rework_reason: ""
-    depends_on: ["CDX-055"]
-    prompt: "Portar solo el carril turnero/presentation + web-pilot desde el donor patch, sin mezclar kiosco, public-v6, auth ni runtime transversal."
+    depends_on: []
+    prompt: "Alinear contrato, readiness y gates locales de turnero para que web_pilot sea valido por clinica en el canon remoto, incluyendo el runner local de Playwright, sin tocar verify-remote ni recovery host-side."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-058
+    title: "Turnero web pilot canonical integration and publish closeout"
+    owner: deck
+    executor: codex
+    status: in_progress
+    status_since_at: "2026-03-28T12:46:44Z"
+    risk: medium
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/strategy.js", "verification/agent-runs/CDX-058.md"]
+    source_signal: manual
+    source_ref: "local:CDX-055"
+    priority_score: 73
+    sla_due_at: "2026-04-01T23:59:00Z"
+    last_attempt_at: "2026-03-28T12:46:44Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: "lease_CDX-058_20260328131845116_5e0dbc"
+    lease_owner: "deck"
+    lease_created_at: "2026-03-28T13:18:45.116Z"
+    heartbeat_at: "2026-03-28T13:18:45.253Z"
+    lease_expires_at: "2026-03-28T17:18:45.253Z"
+    lease_reason: "leases_heartbeat"
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El canon remoto promueve STRAT-2026-03-turnero-web-pilot-local-first, required_checks_ok y release_ready quedan en verde con snapshot local del foco, board/plan quedan sin drift y public_main_sync deja de bloquear el frente."
+    acceptance_ref: "verification/agent-runs/CDX-058.md"
+    evidence_ref: "verification/agent-runs/CDX-058.md"
+    strategy_id: "STRAT-2026-03-turnero-web-pilot-local-first"
+    subfront_id: "SF-transversal-turnero-web-pilot-local"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-turnero-web-pilot-local-cut-1"
+    focus_step: "local_gate_validation"
+    integration_slice: "governance_evidence"
+    work_type: "support"
+    expected_outcome: "La ola local-first queda integrada y publicada sobre origin/main con estrategia activa correcta, snapshot local regenerado y trazabilidad canonica nueva en CDX-056/057/058."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-056", "CDX-057"]
+    prompt: "Remapear el frente turnero local-first sobre el canon remoto, regenerar el snapshot del foco y publicar el closeout sin arrastrar public_main_sync como blocker del piloto web."
     created_at: 2026-03-28
     updated_at: 2026-03-28
 
@@ -1509,7 +1618,7 @@ tasks:
     files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-047.md", "tools/agent-orchestrator/domain/focus.js", "tests-node/orchestrator/focus.test.js", "tests-node/orchestrator/diagnostics.test.js"]
     source_signal: manual
     source_ref: "CDX-045,CDX-048"
-    priority_score: 72
+    priority_score: 71
     sla_due_at: "2026-03-30T23:59:00Z"
     last_attempt_at: "2026-03-28T00:31:20Z"
     attempts: 1
@@ -1541,7 +1650,7 @@ tasks:
     depends_on: ["CDX-045", "CDX-048"]
     prompt: "Resolver los required checks de Public V6 ES desde evidencia canonica de slices en review, sin tocar copy, runtime publico ni public_main_sync."
     created_at: 2026-03-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-009
     title: "Mobile UX phase 4: fix chat/header overlap and spacing consistency"
@@ -1583,7 +1692,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Corregir solapes y espaciado en mobile-first sin romper desktop."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-010
     title: "Conversion phase 3: instrument booking drop-off reasons in funnel"
@@ -1625,7 +1734,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Agregar medicion consistente de drop-off en checkout y exponer resumen para admin."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-011
     title: "Performance phase 4: split non-critical JS and lazy-init below-the-fold modules"
@@ -1667,7 +1776,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Aplicar particion adicional de JS no critico y verificar que no rompa interacciones clave."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-012
     title: "Resolver alerta: [ALERTA PROD] Monitor de produccion fallando"
@@ -1709,7 +1818,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal issue#279. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-013
     title: "Resolver alerta: [ALERTA PROD] Repair git sync fallando"
@@ -1751,7 +1860,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal issue#263. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-014
     title: "Resolver fallo workflow: CI: refactor(governance): extract remaining commands and add php contract…"
@@ -1793,7 +1902,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal run#22379873691. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-015
     title: "Resolver fallo workflow: CI: feat(governance): add warn-first diagnostics and policy enforcement c…"
@@ -1835,7 +1944,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal run#22379426844. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-016
     title: "Resolver fallo workflow: CI: feat: automate calendar smoke and add hero AB conversion tracking"
@@ -1877,7 +1986,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal run#22379136316. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-017
     title: "Resolver fallo workflow: CI: refactor(orchestrator): extract contribution metrics engine"
@@ -1919,7 +2028,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal run#22379059437. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-018
     title: "Resolver fallo workflow: CI: ci(c1): add staging figo-contract and chat smoke gate; close AG-021"
@@ -1961,7 +2070,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Resolver señal workflow:ci:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-019
     title: "Tech debt P1: consolidate data-engine and data-bundle overlap"
@@ -2003,7 +2112,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "Auditar src/bundles/data-engine.js y src/bundles/data-bundle.js. Identificar exports duplicados. Consolidar en un único módulo canónico actualizado en rollup.config.mjs. Agregar test de no-regresión de tamaño de bundle."
     created_at: 2026-02-24
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-020
     title: "Tech debt P2: add compile-time gate to strip debug/console.log from production bundles"
@@ -2045,7 +2154,7 @@ tasks:
     depends_on: ["AG-019"]
     prompt: "Configurar @rollup/plugin-strip o similar para eliminar console.log/debugger en builds de produccion. Agregar regla ESLint no-console (warn en dev, error en CI). Documentar escape hatch para logs intencionales."
     created_at: 2026-02-24
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-021
     title: "Tech debt P3: automate C1 exit gates in CI (smoke + Playwright figo-contract)"
@@ -2087,7 +2196,7 @@ tasks:
     depends_on: []
     prompt: "Agregar job 'c1-exit-gate' en ci.yml que: (1) ejecuta npx playwright test tests/figo-chat-contract.spec.js contra BASE_URL=staging, (2) ejecuta smoke check de endpoint /api/chat, (3) bloquea merge si cualquiera falla. Asegurar que el job tiene acceso a secrets necesarios y que no duplica el job de governance."
     created_at: 2026-02-24
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-023
     title: "Tech debt: unify telemedicina.html CSS to use canonical styles.css (extracted 2026-02-24)"
@@ -2129,7 +2238,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "En templates/partials/tele-head-links.html reemplaza <link rel='stylesheet' href='styles-critical.css' /> y <link rel='stylesheet' href='styles-telemedicina.css' /> por <link rel='stylesheet' href='styles.css?v=inline-20260224-extracted1' />. El archivo styles.css es ahora el CSS critico canonico (extraido del monolito index.html el 2026-02-24, 1760 lineas). Ejecuta npm run build:html para regenerar telemedicina.html. Verifica que la pagina carga sin regresion visual (colores, fuentes, layout). styles-critical.css queda como archivo legacy no enlazado."
     created_at: 2026-02-24
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-022
     title: "Resolver fallo workflow: Agent Governance: feat(board): queue P1-P3 tech debt tasks (AG-019, AG-020, AG-021)"
@@ -2171,7 +2280,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal workflow:agent-governance:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-024
     title: "Resolver alerta: [ALERTA PROD] Repair git sync fallando"
@@ -2213,7 +2322,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal issue#282. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-025
     title: "Resolver alerta: [ALERTA PROD] Gate post-deploy fallando"
@@ -2255,7 +2364,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal issue#281. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-026
     title: "Resolver fallo workflow: Agent Autopilot: Agent Autopilot"
@@ -2297,7 +2406,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal workflow:agent-autopilot:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-027
     title: "Resolver fallo workflow: Post-Deploy Gate (Git Sync): fix(orchestrator): prioritize github signals and prevent overlap task…"
@@ -2339,7 +2448,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal workflow:post-deploy-gate-git-sync:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-028
     title: "Resolver fallo workflow: Repair Git Sync (Self-Heal): Repair Git Sync (Self-Heal)"
@@ -2381,7 +2490,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal workflow:repair-git-sync-self-heal:main. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-029
     title: "Resolver fallo workflow: CI: CI"
@@ -2423,7 +2532,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal workflow:ci:codex/prod-readiness-workflows-20260225. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-030
     title: "Resolver fallo workflow: Post-Deploy Gate (Git Sync): Post-Deploy Gate (Git Sync)"
@@ -2465,7 +2574,7 @@ tasks:
     depends_on: []
     prompt: "Resolver señal workflow:post-deploy-gate-git-sync:codex/prod-readiness-workflows-20260225. Verificar causa raíz, aplicar fix mínimo seguro y adjuntar evidencia en verification/agent-runs/."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-031
     title: "Stabilize CI signal intake for transient branch failures"
@@ -2507,7 +2616,7 @@ tasks:
     depends_on: []
     prompt: "Stabilize CI signal intake for transient branch failures"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-032
     title: "Harden autopilot run diagnostics for fast triage"
@@ -2549,7 +2658,7 @@ tasks:
     depends_on: []
     prompt: "Harden autopilot run diagnostics for fast triage"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-033
     title: "Reduce post-deploy gate false failures from transient network delays"
@@ -2591,7 +2700,7 @@ tasks:
     depends_on: []
     prompt: "Reduce post-deploy gate false failures from transient network delays"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-034
     title: "Record Fase 6 weekly KPI hardening evidence in board"
@@ -2633,7 +2742,7 @@ tasks:
     depends_on: []
     prompt: "Record Fase 6 weekly KPI hardening evidence in board"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-035
     title: "C1: cerrar flakiness residual en agenda/chat/reprogramacion"
@@ -2675,7 +2784,7 @@ tasks:
     depends_on: []
     prompt: "Cerrar flakiness residual de agenda/chat/reprogramacion con evidencia reproducible y guardrails CI"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-036
     title: "C3: cerrar observabilidad accionable y playbook de diagnostico <15m"
@@ -2717,7 +2826,7 @@ tasks:
     depends_on: []
     prompt: "Cerrar C3 de observabilidad para diagnostico inicial en menos de 15 minutos"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-037
     title: "Frontend P0: Hero + Above-the-Fold Conversion UX (public)"
@@ -2759,7 +2868,7 @@ tasks:
     depends_on: []
     prompt: "Mejorar hero y above-the-fold (CTA principal/secundario, jerarquia visual, spacing movil, trust/contact) con cambios incrementales y seguros; preservar IDs, data-i18n y experimento A/B actual."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-038
     title: "Frontend P0: Booking Section UX Friction Reduction (public)"
@@ -2801,7 +2910,7 @@ tasks:
     depends_on: ["AG-037"]
     prompt: "Reducir friccion UX en booking publico: estados claros, microcopy, focus al error, loading consistente y feedback de exito/cancelacion sin tocar backend."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-039
     title: "Frontend P0: Chat + Booking coexistence UX (mobile/desktop)"
@@ -2843,7 +2952,7 @@ tasks:
     depends_on: ["AG-038"]
     prompt: "Mejorar coexistencia chat+booking: stacking/safe-area, reglas de apertura/cierre y handoff visual a booking, preservando comportamiento actual de errores y contratos."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-040
     title: "Frontend P1: Telemedicina conversion polish (structure + CTA)"
@@ -2885,7 +2994,7 @@ tasks:
     depends_on: ["AG-037"]
     prompt: "Pulir conversion UX de telemedicina con mejoras incrementales en jerarquia, CTA y spacing, manteniendo compatibilidad de anclas y build templated."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-041
     title: "Frontend P1: Public accessibility/performance hardening for touched surfaces"
@@ -2927,7 +3036,7 @@ tasks:
     depends_on: ["AG-037", "AG-038", "AG-039", "AG-040"]
     prompt: "Aplicar hardening de accesibilidad y performance en superficies publicas modificadas (focus visible, reduced motion, ARIA, defer/hydration safe) con control de peso."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-042
     title: "Frontend P1: Admin dashboard/list UX quick wins"
@@ -2969,7 +3078,7 @@ tasks:
     depends_on: ["AG-037"]
     prompt: "Aplicar quick wins de UX en admin: jerarquia, estados, badges, acciones y spacing con bajo riesgo."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-043
     title: "Frontend P1: Admin navigation and interaction polish"
@@ -3011,7 +3120,7 @@ tasks:
     depends_on: ["AG-042"]
     prompt: "Pulir navegacion e interacciones del admin (keyboard/focus/responsive) manteniendo hashes de secciones y comportamiento actual."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-044
     title: "Frontend P1: FE regression suite alignment + visual baseline refresh"
@@ -3053,7 +3162,7 @@ tasks:
     depends_on: ["AG-041", "AG-043"]
     prompt: "Alinear subset de Playwright/visual regression a cambios frontend y refrescar evidencia de QA solo para superficies tocadas."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-045
     title: "Frontend P1: Frontend readiness summary + board/docs batch close"
@@ -3095,7 +3204,7 @@ tasks:
     depends_on: ["AG-044"]
     prompt: "Consolidar cierre frontend en lote (board+planes+evidencia) tras terminar bloques FE/QA para evitar PRs fragmentados de documentacion."
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-046
     title: "C4: cerrar guardrails release warning->blocking y fallback operativo"
@@ -3137,7 +3246,7 @@ tasks:
     depends_on: []
     prompt: "C4: cerrar guardrails release warning->blocking y fallback operativo"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-047
     title: "C2: baseline automatico y tendencia semanal de retencion"
@@ -3179,7 +3288,7 @@ tasks:
     depends_on: []
     prompt: "C2: baseline automatico y tendencia semanal de retencion"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-048
     title: "Normalizar estado final del plan (C4) y validar fast gate"
@@ -3221,7 +3330,7 @@ tasks:
     depends_on: []
     prompt: "Normalizar estado final del plan (C4) y validar fast gate"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-049
     title: "Automatizar KPI de ciclo (fast lane <=10m y nightly success rate)"
@@ -3263,7 +3372,7 @@ tasks:
     depends_on: []
     prompt: "Automatizar KPI de ciclo (fast lane <=10m y nightly success rate)"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-050
     title: "Registrar evidencia de SLA operativo semanal en plan maestro"
@@ -3305,7 +3414,7 @@ tasks:
     depends_on: []
     prompt: "Registrar evidencia de SLA operativo semanal en plan maestro"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-051
     title: "Eliminar drift recurrente en JULES_TASKS (session/dispatched vacios)"
@@ -3347,7 +3456,7 @@ tasks:
     depends_on: []
     prompt: "Eliminar drift recurrente en JULES_TASKS (session/dispatched vacios)"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-052
     title: "Automatizar resolucion segura de conflicto revision en AGENT_BOARD"
@@ -3389,7 +3498,7 @@ tasks:
     depends_on: []
     prompt: "Automatizar resolucion segura de conflicto revision en AGENT_BOARD"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-053
     title: "Agregar KPI de incidentes y MTTR 14d al weekly report"
@@ -3431,7 +3540,7 @@ tasks:
     depends_on: []
     prompt: "Agregar KPI de incidentes y MTTR 14d al weekly report"
     created_at: 2026-02-25
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-054
     title: "Backend hardening: SQLite missing graceful mode + health signal"
@@ -3473,7 +3582,7 @@ tasks:
     depends_on: []
     prompt: "Backend hardening: SQLite missing graceful mode + health signal"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-055
     title: "Backend hardening: Figo AI failfast + timeout tuning"
@@ -3515,7 +3624,7 @@ tasks:
     depends_on: []
     prompt: "Backend hardening: Figo AI failfast + timeout tuning"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-056
     title: "Backend hardening: appointment idempotency replay guard"
@@ -3557,7 +3666,7 @@ tasks:
     depends_on: []
     prompt: "Backend hardening: appointment idempotency replay guard"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-057
     title: "Backend observability: idempotency metrics in health and weekly report"
@@ -3599,7 +3708,7 @@ tasks:
     depends_on: []
     prompt: "Backend observability: idempotency metrics in health and weekly report"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-058
     title: "Backend C2 operativo: retention-report JSON+CSV con alertas"
@@ -3641,7 +3750,7 @@ tasks:
     depends_on: []
     prompt: "Backend C2 operativo: retention-report JSON+CSV con alertas"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-059
     title: "Frontend P1: Service pages conversion UX + QA hardening (acne/laser)"
@@ -3683,7 +3792,7 @@ tasks:
     depends_on: ["AG-045"]
     prompt: "Frontend P1: Service pages conversion UX + QA hardening (acne/laser)"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-060
     title: "C2 ops: alerta automatica de retencion semanal"
@@ -3725,7 +3834,7 @@ tasks:
     depends_on: []
     prompt: "C2 ops: alerta automatica de retencion semanal"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-061
     title: "C3 ops: separar incidentes semanales general vs retencion"
@@ -3767,7 +3876,7 @@ tasks:
     depends_on: []
     prompt: "C3 ops: separar incidentes semanales general vs retencion"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-062
     title: "C4 ops: externalizar umbrales weekly-kpi por variables"
@@ -3809,7 +3918,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: externalizar umbrales weekly-kpi por variables"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-063
     title: "C4 ops: documentar variables WEEKLY_KPI y protocolo de ajuste"
@@ -3851,7 +3960,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: documentar variables WEEKLY_KPI y protocolo de ajuste"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-064
     title: "C4 ops: testear contrato de umbrales weekly-kpi workflow"
@@ -3893,7 +4002,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: testear contrato de umbrales weekly-kpi workflow"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-065
     title: "C4 ops: automatizar sync main con autorresolucion de revision board"
@@ -3935,7 +4044,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: automatizar sync main con autorresolucion de revision board"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-066
     title: "C4 ops: validar umbrales weekly-kpi y fail opcional por invalidez"
@@ -3977,7 +4086,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: validar umbrales weekly-kpi y fail opcional por invalidez"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-067
     title: "C4 ops: incidente automatico para fallo nightly-stability"
@@ -4019,7 +4128,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: incidente automatico para fallo nightly-stability"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-068
     title: "C4 ops: incluir nightly workflow contract en agent:test"
@@ -4061,7 +4170,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: incluir nightly workflow contract en agent:test"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-069
     title: "C4 ops: incidente automatico para fallo post-deploy-fast"
@@ -4103,7 +4212,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: incidente automatico para fallo post-deploy-fast"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-070
     title: "Frontend admin: availability shortcuts and calendar productivity hardening"
@@ -4145,7 +4254,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin: availability shortcuts and calendar productivity hardening"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-071
     title: "Frontend admin: normalizar copy ES y acentos visibles"
@@ -4187,7 +4296,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin: normalizar copy ES y acentos visibles"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-072
     title: "C4 ops: separar incidente weekly general vs SLA operativo"
@@ -4229,7 +4338,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: separar incidente weekly general vs SLA operativo"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-073
     title: "C4 ops: auto-resolver de conflictos AGENT_BOARD para sync-main-safe"
@@ -4271,7 +4380,7 @@ tasks:
     depends_on: []
     prompt: "C4 ops: auto-resolver de conflictos AGENT_BOARD para sync-main-safe"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-074
     title: "Retry automatico en sync-main-safe para non-fast-forward"
@@ -4313,7 +4422,7 @@ tasks:
     depends_on: []
     prompt: "Retry automatico en sync-main-safe para non-fast-forward"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-075
     title: "Adoptar sync-main-safe en workflows de cola y reconciliacion"
@@ -4355,7 +4464,7 @@ tasks:
     depends_on: []
     prompt: "Adoptar sync-main-safe en workflows de cola y reconciliacion"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-076
     title: "Frontend QA Admin: reducir flakiness y warnings lint en specs clave"
@@ -4397,7 +4506,7 @@ tasks:
     depends_on: []
     prompt: "Frontend QA Admin: reducir flakiness y warnings lint en specs clave"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-077
     title: "Higiene workspace: desversionar caches PHP y blindar colas derivadas"
@@ -4439,7 +4548,7 @@ tasks:
     depends_on: []
     prompt: "Higiene workspace: desversionar caches PHP y blindar colas derivadas"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-078
     title: "Frontend P0: Hero service intent shortcuts + booking prefill conversion block"
@@ -4481,7 +4590,7 @@ tasks:
     depends_on: []
     prompt: "Frontend P0: Hero service intent shortcuts + booking prefill conversion block"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-079
     title: "Auto-resolver colisiones semanticas de task en AGENT_BOARD durante sync"
@@ -4523,7 +4632,7 @@ tasks:
     depends_on: []
     prompt: "Auto-resolver colisiones semanticas de task en AGENT_BOARD durante sync"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-080
     title: "Frontend admin UX: command bar + contextual actions + refresh status"
@@ -4565,7 +4674,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin UX: command bar + contextual actions + refresh status"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-081
     title: "Frontend admin UX: dashboard operational center + actionable triage"
@@ -4607,7 +4716,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin UX: dashboard operational center + actionable triage"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-082
     title: "Frontend admin UX: callbacks triage rail + context action hardening"
@@ -4649,7 +4758,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin UX: callbacks triage rail + context action hardening"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-083
     title: "Frontend admin UX: collapsible sidebar + nav persistence + keyboard responsive polish"
@@ -4691,7 +4800,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin UX: collapsible sidebar + nav persistence + keyboard responsive polish"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-084
     title: "Frontend admin UX: collapsible sidebar + nav persistence + keyboard responsive polish"
@@ -4733,7 +4842,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin UX: collapsible sidebar + nav persistence + keyboard responsive polish"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-085
     title: "Frontend admin availability draft + bulk actions"
@@ -4775,7 +4884,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin availability draft + bulk actions"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-086
     title: "C2 hardening: stale-report gate + signal keys en weekly incidents"
@@ -4817,7 +4926,7 @@ tasks:
     depends_on: []
     prompt: "C2 hardening: stale-report gate + signal keys en weekly incidents"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-087
     title: "C3 hardening: reason codes diagnosticos para incidentes weekly (general/SLA/retencion)"
@@ -4859,7 +4968,7 @@ tasks:
     depends_on: []
     prompt: "C3 hardening: reason codes diagnosticos para incidentes weekly (general/SLA/retencion)"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-088
     title: "Admin navigation guard for availability unsaved draft"
@@ -4901,7 +5010,7 @@ tasks:
     depends_on: []
     prompt: "Admin navigation guard for availability unsaved draft"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-089
     title: "Frontend hardening: alinear version de script.js en paginas de servicios"
@@ -4943,7 +5052,7 @@ tasks:
     depends_on: []
     prompt: "Frontend hardening: alinear version de script.js en paginas de servicios"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-090
     title: "C3 hardening: severidad operativa y labels de incidente en weekly-kpi"
@@ -4985,7 +5094,7 @@ tasks:
     depends_on: []
     prompt: "C3 hardening: severidad operativa y labels de incidente en weekly-kpi"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-091
     title: "Frontend public: fuente canonica unica para service pages acne/laser"
@@ -5027,7 +5136,7 @@ tasks:
     depends_on: []
     prompt: "Frontend public: fuente canonica unica para service pages acne/laser"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-092
     title: "Frontend admin: corregir mojibake en callbacks triage"
@@ -5069,7 +5178,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin: corregir mojibake en callbacks triage"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-093
     title: "C5 hardening: calendar write smoke incident lifecycle + contract gate"
@@ -5111,7 +5220,7 @@ tasks:
     depends_on: []
     prompt: "C5 hardening: calendar write smoke incident lifecycle + contract gate"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-094
     title: "C5 hardening: API-only calendar write smoke + JSON diagnostics"
@@ -5153,7 +5262,7 @@ tasks:
     depends_on: []
     prompt: "C5 hardening: API-only calendar write smoke + JSON diagnostics"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-095
     title: "Frontend admin V2: callbacks SLA triage + bulk actions"
@@ -5195,7 +5304,7 @@ tasks:
     depends_on: []
     prompt: "Frontend admin V2: callbacks SLA triage + bulk actions"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-096
     title: "Frontend admin V2: appointments triage accionable + quick filters"
@@ -5237,7 +5346,7 @@ tasks:
     depends_on: ["AG-095"]
     prompt: "Frontend admin V2: appointments triage accionable + quick filters"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-097
     title: "Turnero sala A: backend queue + printer"
@@ -5279,7 +5388,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala A: backend queue + printer"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-098
     title: "Turnero sala B: kiosco + TV frontend"
@@ -5321,7 +5430,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala B: kiosco + TV frontend"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-099
     title: "Turnero sala C: admin control de llamados"
@@ -5363,7 +5472,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala C: admin control de llamados"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-100
     title: "Turnero sala D: QA E2E + cierre evidencia"
@@ -5405,7 +5514,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala D: QA E2E + cierre evidencia"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-101
     title: "Turnero sala E: hardening backend de cola y consultorios"
@@ -5447,7 +5556,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala E: hardening backend de cola y consultorios"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-102
     title: "Turnero sala F: hardening UX admin para liberar y consultorio ocupado"
@@ -5489,7 +5598,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala F: hardening UX admin para liberar y consultorio ocupado"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-103
     title: "Turnero sala G: controles rapidos C1/C2 y bloqueo inteligente"
@@ -5531,7 +5640,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala G: controles rapidos C1/C2 y bloqueo inteligente"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-104
     title: "Turnero sala H: resiliencia realtime admin+kiosco+TV"
@@ -5573,7 +5682,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala H: resiliencia realtime admin+kiosco+TV"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-105
     title: "Turnero sala I: triage SLA con filtros y busqueda en admin"
@@ -5615,7 +5724,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala I: triage SLA con filtros y busqueda en admin"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-106
     title: "Turnero sala J: atajos operativos y bulk workflow en admin queue"
@@ -5657,7 +5766,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala J: atajos operativos y bulk workflow en admin queue"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-107
     title: "Turnero sala K: consola operativa admin (historial + watchdog + atajos de estado)"
@@ -5699,7 +5808,7 @@ tasks:
     depends_on: ["AG-106"]
     prompt: "Turnero sala K: consola operativa admin (historial + watchdog + atajos de estado)"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-108
     title: "Turnero sala L: hardening realtime kiosco+TV (watchdog + health state)"
@@ -5741,7 +5850,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala L: hardening realtime kiosco+TV (watchdog + health state)"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-109
     title: "Turnero sala M: UX degradada kiosco+TV (fallback visible + refresh manual)"
@@ -5783,7 +5892,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala M: UX degradada kiosco+TV (fallback visible + refresh manual)"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-110
     title: "Turnero sala N: privacidad operativa kiosco+TV (auto-reset sesion + control campanilla)"
@@ -5825,7 +5934,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala N: privacidad operativa kiosco+TV (auto-reset sesion + control campanilla)"
     created_at: 2026-02-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-111
     title: "Turnero sala O: continuidad offline kiosco + snapshot de respaldo en TV"
@@ -5867,7 +5976,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala O: continuidad offline kiosco + snapshot de respaldo en TV"
     created_at: 2026-02-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-112
     title: "Turnero sala P: consola de contingencia kiosco+TV (gestionar pendientes/snapshot)"
@@ -5909,7 +6018,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala P: consola de contingencia kiosco+TV (gestionar pendientes/snapshot)"
     created_at: 2026-02-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-113
     title: "Turnero sala Q: QA E2E integrado kiosco-admin-tv con privacidad"
@@ -5951,7 +6060,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala Q: QA E2E integrado kiosco-admin-tv con privacidad"
     created_at: 2026-02-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-114
     title: "Turnero sala R: stress/retry QA integrado de llamadas y reconexion"
@@ -5993,7 +6102,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala R: stress/retry QA integrado de llamadas y reconexion"
     created_at: 2026-02-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-115
     title: "Turnero sala S: stress multi-consultorio C1/C2 con consistencia admin+TV"
@@ -6035,7 +6144,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala S: stress multi-consultorio C1/C2 con consistencia admin+TV"
     created_at: 2026-02-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-116
     title: "Turnero sala T: QA ciclo de vida ticket (acciones admin + reflejo TV)"
@@ -6077,7 +6186,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala T: QA ciclo de vida ticket (acciones admin + reflejo TV)"
     created_at: 2026-02-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-117
     title: "Turnero sala U: bloque unico hardening operacion+QA+runbook (6 puntos)"
@@ -6119,7 +6228,7 @@ tasks:
     depends_on: ["AG-116"]
     prompt: "Ejecutar 6 frentes del turnero en 1 bloque: impresora/reprint, recovery robusto, observabilidad, A11y+performance, stress QA, cierre runbook"
     created_at: 2026-02-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-118
     title: "Turnero sala V: numpad por estacion C1/C2 en admin queue"
@@ -6161,7 +6270,7 @@ tasks:
     depends_on: ["AG-117"]
     prompt: "Turnero sala V: numpad por estacion C1/C2 en admin queue"
     created_at: 2026-02-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-119
     title: "Turnero sala VI: hardening numpad cross-platform windows/mac"
@@ -6203,7 +6312,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala VI: hardening numpad cross-platform windows/mac"
     created_at: 2026-02-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-120
     title: "Turnero sala VII: flujo una tecla con Numpad Enter"
@@ -6245,7 +6354,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala VII: flujo una tecla con Numpad Enter"
     created_at: 2026-02-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-121
     title: "Turnero sala VIII: robustez operativa modo una tecla"
@@ -6287,7 +6396,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala VIII: robustez operativa modo una tecla"
     created_at: 2026-02-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-122
     title: "Turnero sala IX: TV premium con anuncio claro y privacidad estricta"
@@ -6329,7 +6438,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala IX: TV premium con anuncio claro y privacidad estricta"
     created_at: 2026-02-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-123
     title: "Turnero sala X: onboarding guiado + práctica asistida en admin"
@@ -6371,7 +6480,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala X: onboarding guiado + práctica asistida en admin"
     created_at: 2026-02-27
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-124
     title: "Turnero sala estrella: TV premium con campanilla robusta y privacidad estricta"
@@ -6413,7 +6522,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala estrella: TV premium con campanilla robusta y privacidad estricta"
     created_at: 2026-02-28
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-125
     title: "Turnero sala estrella: kiosco premium con bienvenida guiada y ayuda persistente"
@@ -6455,7 +6564,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala estrella: kiosco premium con bienvenida guiada y ayuda persistente"
     created_at: 2026-02-28
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-126
     title: "Turnero sala QA: atajos numpad seguros (Numpad0 + Enter principal)"
@@ -6497,7 +6606,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala QA: atajos numpad seguros (Numpad0 + Enter principal)"
     created_at: 2026-02-28
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-127
     title: "Turnero sala QA integral cross-surface (admin+kiosco+tv+integrado)"
@@ -6539,7 +6648,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala QA integral cross-surface (admin+kiosco+tv+integrado)"
     created_at: 2026-02-28
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-128
     title: "Turnero sala: bloque QA Modo 1 tecla + persistencia por estación"
@@ -6581,7 +6690,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala: bloque QA Modo 1 tecla + persistencia por estación"
     created_at: 2026-02-28
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-129
     title: "Turnero sala XI: calibracion de tecla externa por estacion (numpad wireless)"
@@ -6623,7 +6732,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XI: calibracion de tecla externa por estacion (numpad wireless)"
     created_at: 2026-02-28
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-130
     title: "Turnero sala XII: QA + runbook de calibracion de tecla externa por estacion"
@@ -6665,7 +6774,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XII: QA + runbook de calibracion de tecla externa por estacion"
     created_at: 2026-02-28
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-131
     title: "Turnero sala XIII: hardening anti-flake de suite QA queue"
@@ -6707,7 +6816,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XIII: hardening anti-flake de suite QA queue"
     created_at: 2026-02-28
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-132
     title: "Turnero sala XIV: onboarding operativo estrella con checklist persistente"
@@ -6749,7 +6858,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XIV: onboarding operativo estrella con checklist persistente"
     created_at: 2026-02-28
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-133
     title: "Turnero sala XV: TV estrella de sala (claridad, privacidad y audio confiable)"
@@ -6791,7 +6900,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XV: TV estrella de sala (claridad, privacidad y audio confiable)"
     created_at: 2026-02-28
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-134
     title: "Turnero sala XVI: kiosco senior-first (lectura grande, voz guiada y ayuda rapida)"
@@ -6833,7 +6942,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XVI: kiosco senior-first (lectura grande, voz guiada y ayuda rapida)"
     created_at: 2026-02-28
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-135
     title: "Turnero sala XVII: lock estricto C1/C2 + seguridad numpad en admin"
@@ -6875,7 +6984,7 @@ tasks:
     depends_on: []
     prompt: "Turnero sala XVII: lock estricto C1/C2 + seguridad numpad en admin"
     created_at: 2026-02-28
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-136
     title: "Admin sony_v3 claro-editorial rollout inicial"
@@ -6917,7 +7026,7 @@ tasks:
     depends_on: []
     prompt: "Admin sony_v3 claro-editorial rollout inicial"
     created_at: 2026-03-01
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-137
     title: "Admin sony_v3 QA ampliada y closeout"
@@ -6959,7 +7068,7 @@ tasks:
     depends_on: []
     prompt: "Admin sony_v3 QA ampliada y closeout"
     created_at: 2026-03-01
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-138
     title: "Admin sony_v3 canary flag contract"
@@ -7001,7 +7110,7 @@ tasks:
     depends_on: []
     prompt: "Admin sony_v3 canary flag contract"
     created_at: 2026-03-01
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-139
     title: "Admin sony_v3 canary smoke docs and clean commit"
@@ -7043,7 +7152,7 @@ tasks:
     depends_on: ["AG-138"]
     prompt: "Admin sony_v3 canary smoke docs and clean commit"
     created_at: 2026-03-01
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-140
     title: "Admin sony_v3 section refinement workbenches"
@@ -7085,7 +7194,7 @@ tasks:
     depends_on: ["AG-139"]
     prompt: "Admin sony_v3 section refinement workbenches"
     created_at: 2026-03-01
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-141
     title: "Admin sony_v3 reviews and availability refinement"
@@ -7127,7 +7236,7 @@ tasks:
     depends_on: ["AG-140"]
     prompt: "Admin sony_v3 reviews and availability refinement"
     created_at: 2026-03-01
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-142
     title: "Admin sony_v3 editorial visual refinement"
@@ -7169,7 +7278,7 @@ tasks:
     depends_on: []
     prompt: "Admin sony_v3 editorial visual refinement"
     created_at: 2026-03-02
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-143
     title: "Admin sony_v3 canary rollout hardening"
@@ -7211,7 +7320,7 @@ tasks:
     depends_on: []
     prompt: "Admin sony_v3 canary rollout hardening"
     created_at: 2026-03-02
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-144
     title: "Admin sony_v3 rollout contract closeout"
@@ -7253,7 +7362,7 @@ tasks:
     depends_on: []
     prompt: "Admin sony_v3 rollout contract closeout"
     created_at: 2026-03-02
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-145
     title: "Production deploy sony_v3 rollout"
@@ -7295,7 +7404,7 @@ tasks:
     depends_on: ["AG-139", "AG-143", "AG-144"]
     prompt: "Production deploy sony_v3 rollout"
     created_at: 2026-03-02
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-146
     title: "Safe cron auto-sync for public deploy"
@@ -7337,7 +7446,7 @@ tasks:
     depends_on: []
     prompt: "Safe cron auto-sync for public deploy"
     created_at: 2026-03-02
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-147
     title: "Document validated public deploy recovery and cron path"
@@ -7379,7 +7488,7 @@ tasks:
     depends_on: []
     prompt: "Document validated public deploy recovery and cron path"
     created_at: 2026-03-02
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-148
     title: "Production verify sony_v3 live"
@@ -7421,7 +7530,7 @@ tasks:
     depends_on: []
     prompt: "Production verify sony_v3 live"
     created_at: 2026-03-02
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-149
     title: "Production smoke public plus admin live"
@@ -7463,7 +7572,7 @@ tasks:
     depends_on: []
     prompt: "Production smoke public plus admin live"
     created_at: 2026-03-02
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-150
     title: "Align telemedicine production smoke with v3 markup"
@@ -7505,7 +7614,7 @@ tasks:
     depends_on: []
     prompt: "Align telemedicine production smoke with v3 markup"
     created_at: 2026-03-02
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-151
     title: "FE-V6-R6 copy final home-hub-tele-legal-nav"
@@ -7547,7 +7656,7 @@ tasks:
     depends_on: []
     prompt: "FE-V6-R6 copy final home-hub-tele-legal-nav"
     created_at: 2026-03-04
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-152
     title: "FE-V6-R7 canonical public source"
@@ -7589,7 +7698,7 @@ tasks:
     depends_on: ["CDX-001"]
     prompt: "FE-V6-R7 canonical public source"
     created_at: 2026-03-09
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-153
     title: "FE-V6-R8 normalize V6 test helpers and naming"
@@ -7631,7 +7740,7 @@ tasks:
     depends_on: ["AG-152"]
     prompt: "FE-V6-R8: normalizar helpers y naming de tests V6 para que la superficie publica deje de colgar de public-v3 en la capa QA."
     created_at: 2026-03-09
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-154
     title: "FE-V6-R9 align public smoke suites with V6 surface contracts"
@@ -7673,7 +7782,7 @@ tasks:
     depends_on: ["AG-153", "CDX-001"]
     prompt: "FE-V6-R9: reescribir smokes publicos activos para home, service, tele, legal, fallback e idioma sobre contrato V6, sin anclas #citas ni hooks appointmentForm/serviceSelect."
     created_at: 2026-03-09
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-155
     title: "FE-V6-R10 activate V6 header search and news strip interactions"
@@ -7715,7 +7824,7 @@ tasks:
     depends_on: ["AG-154", "CDX-001"]
     prompt: "FE-V6-R10: activar affordances muertos de V6 en header y news strip, manteniendo contratos data-v6 y cobertura Playwright."
     created_at: 2026-03-09
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-156
     title: "FE-V6-R11 harden canonical V6 build runner"
@@ -7757,7 +7866,7 @@ tasks:
     depends_on: ["AG-155"]
     prompt: "FE-V6-R11: endurecer build canonico V6 para que validate, build, sync y drift-check corran bajo un runner unico y no por shell chaining."
     created_at: 2026-03-09
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-157
     title: "Close public V6 internal navigation state sync"
@@ -7799,7 +7908,7 @@ tasks:
     depends_on: ["AG-156"]
     prompt: "Close public V6 internal navigation state sync"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-158
     title: "Refine public V6 internal copy across hub service tele legal"
@@ -7841,7 +7950,7 @@ tasks:
     depends_on: []
     prompt: "Refine public V6 internal copy across hub service tele legal"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-159
     title: "Refine public V6 home and navigation editorial copy"
@@ -7883,7 +7992,7 @@ tasks:
     depends_on: []
     prompt: "Refine public V6 home and navigation editorial copy"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-160
     title: "Externalize V6 shell labels and hero microcopy"
@@ -7925,7 +8034,7 @@ tasks:
     depends_on: []
     prompt: "Externalize V6 shell labels and hero microcopy"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-161
     title: "Tighten internal V6 render contracts"
@@ -7967,7 +8076,7 @@ tasks:
     depends_on: []
     prompt: "Tighten internal V6 render contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-162
     title: "Harden shell V6 widget render contracts"
@@ -8009,7 +8118,7 @@ tasks:
     depends_on: []
     prompt: "Harden shell V6 widget render contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-163
     title: "Harden V6 header render contracts"
@@ -8051,7 +8160,7 @@ tasks:
     depends_on: []
     prompt: "Harden V6 header render contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-164
     title: "Harden V6 internal page render contracts"
@@ -8093,7 +8202,7 @@ tasks:
     depends_on: []
     prompt: "Harden V6 internal page render contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-165
     title: "Harden V6 hero and shell render contracts"
@@ -8135,7 +8244,7 @@ tasks:
     depends_on: []
     prompt: "Harden V6 hero and shell render contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-166
     title: "Stabilize V6 news strip copy regression spec"
@@ -8177,7 +8286,7 @@ tasks:
     depends_on: []
     prompt: "Stabilize V6 news strip copy regression spec"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-167
     title: "Align V6 news strip copy with active regression contract"
@@ -8219,7 +8328,7 @@ tasks:
     depends_on: []
     prompt: "Align V6 news strip copy with active regression contract"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-168
     title: "Harden V6 content loader contracts"
@@ -8261,7 +8370,7 @@ tasks:
     depends_on: []
     prompt: "Harden V6 content loader contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-169
     title: "Fix post-rebase V6 build and booking copy regressions"
@@ -8303,7 +8412,7 @@ tasks:
     depends_on: []
     prompt: "Fix post-rebase V6 build and booking copy regressions"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-170
     title: "Harden software V6 render contracts and QA"
@@ -8345,7 +8454,7 @@ tasks:
     depends_on: []
     prompt: "Harden software V6 render contracts and QA"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-171
     title: "Refine software V6 rail and geometry contracts"
@@ -8387,7 +8496,7 @@ tasks:
     depends_on: []
     prompt: "Refine software V6 rail and geometry contracts"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-172
     title: "Connect software V6 surfaces with suite map"
@@ -8429,7 +8538,7 @@ tasks:
     depends_on: []
     prompt: "Connect software V6 surfaces with suite map"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-173
     title: "Polish software V6 density and product chrome"
@@ -8471,7 +8580,7 @@ tasks:
     depends_on: []
     prompt: "Polish software V6 density and product chrome"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-174
     title: "Harden software content contract and suite route registry"
@@ -8513,7 +8622,7 @@ tasks:
     depends_on: []
     prompt: "Harden software content contract and suite route registry"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-175
     title: "Add software suite progression band and narrative continuity"
@@ -8555,7 +8664,7 @@ tasks:
     depends_on: []
     prompt: "Add software suite progression band and narrative continuity"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-176
     title: "Harden software content contract and progression QA"
@@ -8597,7 +8706,7 @@ tasks:
     depends_on: []
     prompt: "Harden software content contract and progression QA"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-177
     title: "Refine software suite editorial continuity"
@@ -8639,7 +8748,7 @@ tasks:
     depends_on: []
     prompt: "Refine software suite editorial continuity"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-178
     title: "Polish software product chrome density"
@@ -8681,7 +8790,7 @@ tasks:
     depends_on: []
     prompt: "Polish software product chrome density"
     created_at: 2026-03-10
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-182
     title: "Public V6 page integration pass 6"
@@ -8723,7 +8832,7 @@ tasks:
     depends_on: ["AG-178"]
     prompt: "Public V6 page integration pass 6"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-183
     title: "Operator auth backend with OpenClaw ChatGPT"
@@ -8765,7 +8874,7 @@ tasks:
     depends_on: []
     prompt: "Operator auth backend with OpenClaw ChatGPT"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-184
     title: "Humanize shared public V6 editorial language across home hub service and telemedicine"
@@ -8807,7 +8916,7 @@ tasks:
     depends_on: []
     prompt: "Humanize shared public V6 editorial language across home hub service and telemedicine"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-185
     title: "Refine public V6 mobile shell interaction and navigation copy"
@@ -8849,7 +8958,7 @@ tasks:
     depends_on: []
     prompt: "Refine public V6 mobile shell interaction and navigation copy"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-186
     title: "Refine public V6 telemedicine editorial copy"
@@ -8891,7 +9000,7 @@ tasks:
     depends_on: []
     prompt: "Refine public V6 telemedicine editorial copy"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-187
     title: "Refine public V6 service detail editorial copy"
@@ -8933,7 +9042,7 @@ tasks:
     depends_on: []
     prompt: "Refine public V6 service detail editorial copy"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-188
     title: "Refine public V6 home and hub microcopy"
@@ -8975,7 +9084,7 @@ tasks:
     depends_on: []
     prompt: "Refine public V6 home and hub microcopy"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-189
     title: "Polish public V6 mobile shell interactions"
@@ -9017,7 +9126,7 @@ tasks:
     depends_on: []
     prompt: "Polish public V6 mobile shell interactions"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-190
     title: "Turnero release ops stabilization"
@@ -9059,7 +9168,7 @@ tasks:
     depends_on: []
     prompt: "Turnero release ops stabilization"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-191
     title: "Turnero native readme portability"
@@ -9101,7 +9210,7 @@ tasks:
     depends_on: []
     prompt: "Turnero native readme portability"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-192
     title: "Turnero phase 3: frontend surfaces consolidation"
@@ -9143,7 +9252,7 @@ tasks:
     depends_on: []
     prompt: "Turnero phase 3: frontend surfaces consolidation"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-193
     title: "Turnero phase 3: distribution backend consolidation"
@@ -9185,7 +9294,7 @@ tasks:
     depends_on: []
     prompt: "Turnero phase 3: distribution backend consolidation"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-194
     title: "Turnero phase 3: catalog content consolidation"
@@ -9227,7 +9336,7 @@ tasks:
     depends_on: []
     prompt: "Turnero phase 3: catalog content consolidation"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-195
     title: "Public main sync canonical deploy stabilization"
@@ -9269,7 +9378,7 @@ tasks:
     depends_on: []
     prompt: "Public main sync canonical deploy stabilization"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-196
     title: "Public main sync diagnostics accuracy"
@@ -9311,7 +9420,7 @@ tasks:
     depends_on: []
     prompt: "Public main sync diagnostics accuracy"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-197
     title: "Turnero PHP contract runner repair"
@@ -9353,7 +9462,7 @@ tasks:
     depends_on: []
     prompt: "Turnero PHP contract runner repair"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-198
     title: "Public main sync dirty-tree self-heal hardening"
@@ -9395,7 +9504,7 @@ tasks:
     depends_on: []
     prompt: "Public main sync dirty-tree self-heal hardening"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-199
     title: "Turnero Operador Windows v1 hardening"
@@ -9437,7 +9546,7 @@ tasks:
     depends_on: []
     prompt: "Turnero Operador Windows v1 hardening"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-200
     title: "Turnero install hub and software suite UX stabilization"
@@ -9479,7 +9588,7 @@ tasks:
     depends_on: ["AG-192", "AG-194"]
     prompt: "Turnero install hub and software suite UX stabilization"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-201
     title: "Public main sync telemetry propagation"
@@ -9521,7 +9630,7 @@ tasks:
     depends_on: []
     prompt: "Public main sync telemetry propagation"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-202
     title: "Turnero native release toolchain hardening"
@@ -9563,7 +9672,7 @@ tasks:
     depends_on: ["AG-190", "AG-193", "AG-201"]
     prompt: "Turnero native release toolchain hardening"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-203
     title: "Prod ops public sync telemetry adoption"
@@ -9605,7 +9714,7 @@ tasks:
     depends_on: []
     prompt: "Prod ops public sync telemetry adoption"
     created_at: 2026-03-11
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-204
     title: "Public main sync canonical head-drift diagnostics"
@@ -9647,7 +9756,7 @@ tasks:
     depends_on: []
     prompt: "Public main sync canonical head-drift diagnostics"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-205
     title: "Prod monitor public sync incident triage"
@@ -9689,7 +9798,7 @@ tasks:
     depends_on: []
     prompt: "Prod monitor public sync incident triage"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-206
     title: "Agent gate covers prod public sync ops contracts"
@@ -9731,7 +9840,7 @@ tasks:
     depends_on: []
     prompt: "Agent gate covers prod public sync ops contracts"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-207
     title: "Repair host git sync rollout and verify public_main_sync"
@@ -9773,7 +9882,7 @@ tasks:
     depends_on: []
     prompt: "Repair host git sync rollout and verify public_main_sync"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-208
     title: "Create transport preflight incident in deploy-hosting"
@@ -9815,7 +9924,7 @@ tasks:
     depends_on: []
     prompt: "Create transport preflight incident in deploy-hosting"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-209
     title: "Create self-hosted fallback runner incident in repair-git-sync"
@@ -9857,7 +9966,7 @@ tasks:
     depends_on: []
     prompt: "Create self-hosted fallback runner incident in repair-git-sync"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-210
     title: "Add structured connectivity incident to diagnose-host-connectivity"
@@ -9899,7 +10008,7 @@ tasks:
     depends_on: []
     prompt: "Add structured connectivity incident to diagnose-host-connectivity"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-211
     title: "Dispatch connectivity diagnosis from deploy-hosting transport preflight"
@@ -9941,7 +10050,7 @@ tasks:
     depends_on: []
     prompt: "Dispatch connectivity diagnosis from deploy-hosting transport preflight"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-212
     title: "Publish deploy observability batch to main and refresh production page"
@@ -9983,7 +10092,7 @@ tasks:
     depends_on: []
     prompt: "Publish deploy observability batch to main and refresh production page"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-213
     title: "Remove github-script dependency from diagnose-host-connectivity"
@@ -10025,7 +10134,7 @@ tasks:
     depends_on: []
     prompt: "Remove github-script dependency from diagnose-host-connectivity"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-214
     title: "Improve per-asset cache-header diagnostics in prod verify"
@@ -10067,7 +10176,7 @@ tasks:
     depends_on: []
     prompt: "Improve per-asset cache-header diagnostics in prod verify"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-215
     title: "Use remote asset refs for prod cache-header verification"
@@ -10109,7 +10218,7 @@ tasks:
     depends_on: []
     prompt: "Use remote asset refs for prod cache-header verification"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-216
     title: "Propagate GitHub deploy alerts into prod ops triage"
@@ -10151,7 +10260,7 @@ tasks:
     depends_on: []
     prompt: "Propagate GitHub deploy alerts into prod ops triage"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-217
     title: "Propagate GitHub deploy alerts into deploy verify and smoke gates"
@@ -10193,7 +10302,7 @@ tasks:
     depends_on: []
     prompt: "Propagate GitHub deploy alerts into deploy verify and smoke gates"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-218
     title: "Auto-close stale deploy alerts when public sync recovers"
@@ -10235,7 +10344,7 @@ tasks:
     depends_on: []
     prompt: "Auto-close stale deploy alerts when public sync recovers"
     created_at: 2026-03-12
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-219
     title: "Restore admin rollout gate policy compatibility"
@@ -10277,7 +10386,7 @@ tasks:
     depends_on: []
     prompt: "Restore admin rollout gate policy compatibility"
     created_at: 2026-03-13
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-220
     title: "Consolidar helpers OpenClaw compartidos en specs del operador"
@@ -10319,7 +10428,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar helpers OpenClaw compartidos en specs del operador"
     created_at: 2026-03-13
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-221
     title: "Alinear specs OpenClaw compartidos con el shell de login nuevo"
@@ -10361,7 +10470,7 @@ tasks:
     depends_on: []
     prompt: "Alinear specs OpenClaw compartidos con el shell de login nuevo"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-222
     title: "Extraer mock OpenClaw operador a helper compartido"
@@ -10403,7 +10512,7 @@ tasks:
     depends_on: []
     prompt: "Extraer mock OpenClaw operador a helper compartido"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-223
     title: "Consolidar auth mock legacy en admin-queue spec"
@@ -10445,7 +10554,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar auth mock legacy en admin-queue spec"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-224
     title: "Gate telemedicine payment and appointment flows on clinical storage readiness"
@@ -10487,7 +10596,7 @@ tasks:
     depends_on: []
     prompt: "Gate telemedicine payment and appointment flows on clinical storage readiness"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-225
     title: "Consolidar auth mock legacy en queue-integrated-flow"
@@ -10529,7 +10638,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar auth mock legacy en queue-integrated-flow"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-226
     title: "Extraer helper compartido para mocks de queue-display"
@@ -10571,7 +10680,7 @@ tasks:
     depends_on: []
     prompt: "Extraer helper compartido para mocks de queue-display"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-227
     title: "Pause WhatsApp telemedicine bookings when clinical storage is not ready"
@@ -10613,7 +10722,7 @@ tasks:
     depends_on: []
     prompt: "Pause WhatsApp telemedicine bookings when clinical storage is not ready"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-228
     title: "Migrar queue-kiosk al helper compartido de surfaces"
@@ -10655,7 +10764,7 @@ tasks:
     depends_on: []
     prompt: "Migrar queue-kiosk al helper compartido de surfaces"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-229
     title: "Consolidate queue-operator turnero surface mocks"
@@ -10697,7 +10806,7 @@ tasks:
     depends_on: []
     prompt: "Consolidate queue-operator turnero surface mocks"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-230
     title: "Consolidate queue-integrated-flow queue-state mock"
@@ -10739,7 +10848,7 @@ tasks:
     depends_on: []
     prompt: "Consolidate queue-integrated-flow queue-state mock"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-231
     title: "Canonical Windows public cutover on local workspace host"
@@ -10781,7 +10890,7 @@ tasks:
     depends_on: []
     prompt: "Canonical Windows public cutover on local workspace host"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-232
     title: "Consolidar primer cluster admin queue api mocks"
@@ -10823,7 +10932,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar primer cluster admin queue api mocks"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-233
     title: "Wire admin copiloto keyboard shortcut"
@@ -10865,7 +10974,7 @@ tasks:
     depends_on: []
     prompt: "Wire admin copiloto keyboard shortcut"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-234
     title: "Make Windows hosting stack boot without interactive login"
@@ -10907,7 +11016,7 @@ tasks:
     depends_on: []
     prompt: "Make Windows hosting stack boot without interactive login"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-235
     title: "Stabilize admin quick-nav runtime-ready shortcuts"
@@ -10949,7 +11058,7 @@ tasks:
     depends_on: []
     prompt: "Stabilize admin quick-nav runtime-ready shortcuts"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-236
     title: "Alinear readiness health del piloto web en admin queue spec"
@@ -10991,7 +11100,7 @@ tasks:
     depends_on: []
     prompt: "Alinear readiness health del piloto web en admin queue spec"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-237
     title: "Consolidar mocks del piloto web en admin queue spec"
@@ -11033,7 +11142,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar mocks del piloto web en admin queue spec"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-238
     title: "Mantener útil la acción clínica del dashboard con fallback operativo"
@@ -11075,7 +11184,7 @@ tasks:
     depends_on: []
     prompt: "Mantener útil la acción clínica del dashboard con fallback operativo"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-239
     title: "Abrir historia clínica desde quick command con aliases clínicos"
@@ -11117,7 +11226,7 @@ tasks:
     depends_on: []
     prompt: "Abrir historia clínica desde quick command con aliases clínicos"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-240
     title: "Consolidar mocks de apps operativas desktop en admin queue spec"
@@ -11159,7 +11268,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar mocks de apps operativas desktop en admin queue spec"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-241
     title: "Consolidar fallback mocks de queue-state en admin queue spec"
@@ -11201,7 +11310,7 @@ tasks:
     depends_on: []
     prompt: "Consolidar fallback mocks de queue-state en admin queue spec"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-242
     title: "Consolidate admin quick-nav copiloto mocks"
@@ -11243,7 +11352,7 @@ tasks:
     depends_on: []
     prompt: "Consolidate admin quick-nav copiloto mocks"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-243
     title: "Admin queue pilot cut: quick-nav y hub piloto en admin v3"
@@ -11296,7 +11405,7 @@ tasks:
     depends_on: []
     prompt: "Admin queue pilot cut: quick-nav y hub piloto en admin v3"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-244
     title: "Pilot readiness evidence: verify public_main_sync and host sync path"
@@ -11349,7 +11458,7 @@ tasks:
     depends_on: []
     prompt: "Pilot readiness evidence: verify public_main_sync and host sync path"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-245
     title: "Pilot readiness evidence: explain openclaw runtime red for admin operativo"
@@ -11402,7 +11511,7 @@ tasks:
     depends_on: []
     prompt: "Pilot readiness evidence: explain openclaw runtime red for admin operativo"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-246
     title: "Feedback trim: compactar hub piloto y hacer mas claro el corte admin v3"
@@ -11455,7 +11564,7 @@ tasks:
     depends_on: []
     prompt: "Feedback trim: compactar hub piloto y hacer mas claro el corte admin v3"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-248
     title: "Focus trim: cubrir checks runtime por surface en contratos del orquestador"
@@ -11508,7 +11617,7 @@ tasks:
     depends_on: []
     prompt: "Focus trim: cubrir checks runtime por surface en contratos del orquestador"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-247
     title: "Focus trim: permitir required_checks runtime por surface para el corte admin"
@@ -11561,7 +11670,7 @@ tasks:
     depends_on: []
     prompt: "Focus trim: permitir required_checks runtime por surface para el corte admin"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-249
     title: "Public sync verification: exponer resumen seguro en health publico"
@@ -11614,7 +11723,7 @@ tasks:
     depends_on: []
     prompt: "Public sync verification: exponer resumen seguro en health publico"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-250
     title: "Public sync rollout: desplegar health publicSync y verificar host"
@@ -11626,8 +11735,8 @@ tasks:
     scope: deploy
     codex_instance: codex_backend_ops
     domain_lane: backend_ops
-    lane_lock: handoff_allowed
-    cross_domain: true
+    lane_lock: strict
+    cross_domain: false
     provider_mode: 
     runtime_surface: 
     runtime_transport: 
@@ -11664,10 +11773,10 @@ tasks:
     decision_ref: ""
     rework_parent: ""
     rework_reason: ""
-    depends_on: ["AG-249"]
+    depends_on: []
     prompt: "Public sync rollout: desplegar health publicSync y verificar host"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-251
     title: "Operator auth runtime: recuperar modo openclaw_chatgpt en host"
@@ -11720,7 +11829,7 @@ tasks:
     depends_on: []
     prompt: "Operator auth runtime: recuperar modo openclaw_chatgpt en host"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-252
     title: "CLI blocked_reason support para tareas bloqueadas"
@@ -11773,7 +11882,7 @@ tasks:
     depends_on: []
     prompt: "CLI blocked_reason support para tareas bloqueadas"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-253
     title: "Alinear HealthVisibilityTest con publicSync en health publico"
@@ -11826,7 +11935,7 @@ tasks:
     depends_on: []
     prompt: "Alinear HealthVisibilityTest con publicSync en health publico"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-254
     title: "OpenClaw web broker auth: backend y callback remoto"
@@ -11879,7 +11988,7 @@ tasks:
     depends_on: []
     prompt: "OpenClaw web broker auth: backend y callback remoto"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-255
     title: "OpenClaw web broker auth: UI admin y turnero"
@@ -11932,7 +12041,7 @@ tasks:
     depends_on: []
     prompt: "OpenClaw web broker auth: UI admin y turnero"
     created_at: 2026-03-14
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-256
     title: "Reescritura public v6 ES con voz ecuatoriana"
@@ -11953,7 +12062,7 @@ tasks:
     files: ["content/public-v6/es/navigation.json", "content/public-v6/es/home.json", "content/public-v6/es/hub.json", "content/public-v6/es/service.json", "content/public-v6/es/telemedicine.json", "content/public-v6/es/legal.json", "content/public-v6/es/software.json"]
     source_signal: manual
     source_ref: "CDX-045"
-    priority_score: 66
+    priority_score: 72
     sla_due_at: "2026-03-29T11:57:40.127Z"
     last_attempt_at: ""
     attempts: 0
@@ -12038,7 +12147,7 @@ tasks:
     depends_on: []
     prompt: "Windows hosting V2 stabilization for OpenClaw"
     created_at: 2026-03-16
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-258
     title: "Rollout publico de health/publicSync y verificacion host-side"
@@ -12091,7 +12200,7 @@ tasks:
     depends_on: []
     prompt: "Rollout publico de health/publicSync y verificacion host-side"
     created_at: 2026-03-17
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-259
     title: "Workspace hygiene carryover after public sync recovery"
@@ -12144,7 +12253,7 @@ tasks:
     depends_on: ["CDX-009"]
     prompt: "Workspace hygiene carryover after public sync recovery"
     created_at: 2026-03-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-260
     title: "Queue/turnero web pilot stabilization and follow-through"
@@ -12197,7 +12306,7 @@ tasks:
     depends_on: []
     prompt: "Queue/turnero web pilot stabilization and follow-through"
     created_at: 2026-03-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27
 
   - id: AG-261
     title: "OpenClaw auth contract mode preservation during CDX-009 triage"
@@ -12250,4 +12359,4 @@ tasks:
     depends_on: ["CDX-009"]
     prompt: "Preservar el contrato OpenClaw auth (mode/recommendedMode) mientras CDX-009 sigue bloqueado por 502 host-side."
     created_at: 2026-03-26
-    updated_at: 2026-03-28
+    updated_at: 2026-03-27

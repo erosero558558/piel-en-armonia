@@ -40,13 +40,13 @@
         }
     },
     "release": {
-        "mode": "suite_v2",
+        "mode": "web_pilot",
         "admin_mode_default": "basic",
         "separate_deploy": true,
-        "native_apps_blocking": true,
+        "native_apps_blocking": false,
         "notes": [
-            "La suite v2 usa operator desktop, kiosk desktop y sala TV Android como bloqueo de salida.",
-            "Las superficies web quedan activas como fallback y soporte operativo."
+            "El piloto web local usa admin, operador, kiosco y sala web como corte canonico por clínica.",
+            "Desktop, Android TV y periféricos extendidos quedan diferidos para la ola nativa posterior."
         ]
     }
 }

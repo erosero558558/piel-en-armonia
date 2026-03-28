@@ -15,7 +15,7 @@ const DEFAULT_HOST = process.env.TEST_LOCAL_SERVER_HOST || '127.0.0.1';
 const DEFAULT_PORT = 8011;
 const DEFAULT_PORT_SCAN_WINDOW = 12;
 const DEFAULT_TIMEOUT_MS = 15000;
-const DEFAULT_PHP_SERVER_WORKERS = '4';
+const DEFAULT_PHP_SERVER_WORKERS = '1';
 const DEFAULT_SERVER_ENGINE = 'php';
 
 function parsePortEnv(value, fallback = DEFAULT_PORT) {
@@ -231,7 +231,9 @@ function startLocalPhpServer(host, port) {
                     String(process.env.PHP_CLI_SERVER_WORKERS || '').trim() ||
                     DEFAULT_PHP_SERVER_WORKERS,
             },
-            stdio: ['ignore', 'pipe', 'pipe'],
+            // The PHP dev server is verbose under Playwright. If we leave stdout/stderr
+            // piped without consumers, the buffers can fill and stall the local gate.
+            stdio: ['ignore', 'ignore', 'ignore'],
             shell: false,
         }
     );
@@ -340,6 +342,28 @@ function runPlaywrightCommand(playwrightArgs, env) {
     });
 }
 
+function buildChildEnv(baseEnv, options, resolvedLocalPort = 0) {
+    const childEnv = {
+        ...baseEnv,
+        TEST_LOCAL_SERVER: 'php',
+        TEST_REUSE_EXISTING_SERVER: '0',
+    };
+
+    if (options.baseUrl) {
+        childEnv.TEST_BASE_URL = options.baseUrl;
+        delete childEnv.TEST_LOCAL_SERVER_PORT;
+        return childEnv;
+    }
+
+    if (resolvedLocalPort > 0) {
+        const baseUrl = `http://${options.host}:${resolvedLocalPort}`;
+        childEnv.TEST_BASE_URL = baseUrl;
+        childEnv.TEST_LOCAL_SERVER_PORT = String(resolvedLocalPort);
+    }
+
+    return childEnv;
+}
+
 async function main() {
     const options = parseArgs(process.argv.slice(2));
     if (options.playwrightArgs.length === 0) {
@@ -390,18 +414,18 @@ async function main() {
     process.once('SIGTERM', () => forwardSignal('SIGTERM'));
 
     try {
-        const childEnv = {
-            ...process.env,
-            TEST_LOCAL_SERVER: 'php',
-            TEST_REUSE_EXISTING_SERVER: '1',
-        };
+        let childEnv = null;
 
         if (options.baseUrl) {
-            childEnv.TEST_BASE_URL = options.baseUrl;
+            childEnv = buildChildEnv(process.env, options, 0);
         } else {
             resolvedLocalPort = await resolveLocalServerPort(options);
             const baseUrl = `http://${options.host}:${resolvedLocalPort}`;
-            childEnv.TEST_LOCAL_SERVER_PORT = String(resolvedLocalPort);
+            childEnv = buildChildEnv(
+                process.env,
+                options,
+                resolvedLocalPort
+            );
             process.stdout.write(
                 `[run-playwright-local] local server ${baseUrl}\n`
             );
@@ -464,4 +488,5 @@ module.exports = {
     parseArgs,
     parsePortEnv,
     resolveLocalServerPort,
+    buildChildEnv,
 };

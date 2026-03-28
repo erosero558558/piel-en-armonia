@@ -253,10 +253,10 @@ test('shared turnero runtime contract exposes the shared facade for surface stat
             },
         },
         release: {
-            mode: 'suite_v2',
+            mode: 'web_pilot',
             admin_mode_default: 'basic',
             separate_deploy: true,
-            native_apps_blocking: true,
+            native_apps_blocking: false,
             notes: [],
         },
         runtime_meta: {

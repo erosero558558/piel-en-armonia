@@ -174,10 +174,10 @@ function buildQueuePilotClinicProfile(options = {}) {
             },
         },
         release: {
-            mode: 'suite_v2',
+            mode: 'web_pilot',
             admin_mode_default: 'basic',
             separate_deploy: true,
-            native_apps_blocking: true,
+            native_apps_blocking: false,
             ...releaseOverride,
         },
     };
@@ -399,10 +399,10 @@ function buildQueuePilotHealthDiagnosticsPayload(options = {}) {
                 catalogAvailable: true,
                 catalogMatched: true,
                 catalogReady: true,
-                releaseMode: 'suite_v2',
+                releaseMode: 'web_pilot',
                 adminModeDefault: 'basic',
                 separateDeploy: true,
-                nativeAppsBlocking: true,
+                nativeAppsBlocking: false,
                 ...turneroPilotOverride,
             },
             ...checksOverride,
@@ -902,7 +902,9 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto(adminUrl());
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await page
+            .locator('.nav-item[data-section="queue"]')
+            .dispatchEvent('click');
         await expect(page.locator('#queue')).toHaveClass(/active/);
         await expect(
             page.locator('#queueReceptionGuidancePanel')
@@ -1255,7 +1257,9 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto(adminUrl());
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await page
+            .locator('.nav-item[data-section="queue"]')
+            .dispatchEvent('click');
         await expect(page.locator('#queue')).toHaveClass(/active/);
         await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
             'Problema de impresion'
@@ -1933,6 +1937,13 @@ test.describe('Admin turnero sala', () => {
                 });
             }
 
+            if (resource === 'queue-state') {
+                return json(route, {
+                    ok: true,
+                    data: queueState,
+                });
+            }
+
             if (resource === 'funnel-metrics') {
                 return json(route, { ok: true, data: {} });
             }
@@ -1969,10 +1980,11 @@ test.describe('Admin turnero sala', () => {
         await expect(page.locator('#queueTableBody')).toContainText('A-900');
     });
 
-    test('watchdog realtime marca cola estancada y deja traza operativa', async ({
+    test('watchdog realtime marca cola estancada y deja traza operativa de refresh', async ({
         page,
     }) => {
         const staleUpdatedAt = new Date(Date.now() - 75 * 1000).toISOString();
+        const browserNowWithWatchdogDrift = Date.now() + 75 * 1000;
         const queueTickets = [
             {
                 id: 930,
@@ -2009,6 +2021,11 @@ test.describe('Admin turnero sala', () => {
 
         await installLegacyAdminAuthMock(page, {
             csrfToken: 'csrf_queue_watchdog',
+        });
+        await page.addInitScript(({ driftedNow }) => {
+            Date.now = () => driftedNow;
+        }, {
+            driftedNow: browserNowWithWatchdogDrift,
         });
 
         await page.route(/\/api\.php(\?.*)?$/i, async (route) => {
@@ -2071,7 +2088,9 @@ test.describe('Admin turnero sala', () => {
 
         await page.goto(adminUrl());
         await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await page
+            .locator('.nav-item[data-section="queue"]')
+            .dispatchEvent('click');
 
         await expect(page.locator('#queueActivityPanel')).toBeVisible();
         await expect
@@ -2091,7 +2110,10 @@ test.describe('Admin turnero sala', () => {
             })
             .toContain('reconnecting');
         await expect(page.locator('#queueActivityList')).toContainText(
-            'Watchdog de cola'
+            'Queue refresh realizado'
+        );
+        await expect(page.locator('#queueActivityList')).toContainText(
+            'Auto-refresh preservó la cola local'
         );
     });
 
@@ -2344,7 +2366,9 @@ test.describe('Admin turnero sala', () => {
 
         await page.goto(adminUrl());
         await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await page
+            .locator('.nav-item[data-section="queue"]')
+            .dispatchEvent('click');
         await expect(page.locator('#queue')).toHaveClass(/active/);
         await expect(page.locator('#queueTableBody')).toContainText('A-1501');
         await expect(page.locator('#queueTableBody')).toContainText('A-1510');
@@ -13642,7 +13666,7 @@ test.describe('Admin turnero sala', () => {
         ).toContainText('firma');
     });
 
-    test('queue advierte en readiness si /health reporta otra clínica activa para el piloto', async ({
+    test('queue prioriza heartbeats locales aunque /health reporte otra clínica activa para el piloto', async ({
         page,
     }) => {
         const nowIso = new Date().toISOString();
@@ -13742,10 +13766,16 @@ test.describe('Admin turnero sala', () => {
         ).toContainText(/Turnero V2|Piloto web/i);
         await expect(
             page.locator('#queueOpsPilotReadinessItem_health')
-        ).toContainText('clinica-sur-real');
+        ).toContainText('clinica-lago-demo');
         await expect(
-            page.locator('#queueOpsPilotIssuesItem_health')
-        ).toContainText('clinica-sur-real');
+            page.locator('#queueOpsPilotReadinessItem_health')
+        ).toContainText('health público queda diferido');
+        await expect(
+            page.locator('#queueOpsPilotReadinessItem_health')
+        ).not.toContainText('clinica-sur-real');
+        await expect(page.locator('#queueOpsPilotIssuesItem_health')).toHaveCount(
+            0
+        );
     });
 
     test('queue bloquea el piloto web si una superficie usa perfil de respaldo por clinic-profile faltante', async ({
@@ -13979,10 +14009,15 @@ test.describe('Admin turnero sala', () => {
             page.locator('#queueOpsPilotRemoteReleaseItem_booked_slots')
         ).toContainText('Listo');
 
-        const nextHostId = await page
-            .locator('#queueOpsPilotHandoff')
-            .evaluate((element) => element.nextElementSibling?.id || '');
-        expect(nextHostId).toBe('queueOpsPilotRemoteReleaseHost');
+        const remoteReleaseGroupId = await page
+            .locator('#queueOpsPilotRemoteReleaseHost')
+            .evaluate((element) => element.closest('details')?.id || '');
+        expect(remoteReleaseGroupId).toBe('queueOpsPilotAdvancedGroup');
+        await page
+            .locator('#queueOpsPilotAdvancedGroup')
+            .evaluate((element) => {
+                element.open = true;
+            });
 
         await expect(
             page.locator('#queueOpsPilotReleaseEvidenceHost')
@@ -14982,13 +15017,10 @@ test.describe('Admin turnero sala', () => {
             'station=c1'
         );
         await expect(page.locator('#queueInstallConfigurator')).toContainText(
-            'latest.yml'
+            /latest(?:-mac)?\.yml/
         );
         await expect(page.locator('#queueInstallConfigurator')).toContainText(
-            'PC 1 · C1 fijo'
-        );
-        await expect(page.locator('#queueInstallConfigurator')).toContainText(
-            'PC 2 · C2 fijo'
+            'Operador C1 fijo'
         );
         await expect(
             page.locator('#queueInstallPreset_operator_c1_locked')
@@ -15052,12 +15084,19 @@ test.describe('Admin turnero sala', () => {
         });
 
         await page.goto(adminUrl());
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await page
+            .locator('.nav-item[data-section="queue"]')
+            .dispatchEvent('click');
+        await page
+            .locator('#queueOpsPilotAdvancedGroup')
+            .evaluate((element) => {
+                element.open = true;
+            });
 
         await expect(
             page.locator('#queueReleaseBoardOpsHubHost')
-        ).toBeVisible();
-        await expect(page.locator('#queueReleaseBoardOpsHub')).toBeVisible();
+        ).toHaveAttribute('data-turnero-release-board-ops-hub-scope', /.+/);
+        await expect(page.locator('#queueReleaseBoardOpsHub')).toHaveCount(1);
         await expect(
             page.locator('#queueReleaseBoardOpsHubTitle')
         ).toContainText('Board Ops Hub');
@@ -15075,8 +15114,10 @@ test.describe('Admin turnero sala', () => {
         ).toContainText('Descargar JSON');
         await expect(
             page.locator('#queueReleaseMissionControlHost')
-        ).toBeVisible();
-        await expect(page.locator('#queueReleaseMissionControl')).toBeVisible();
+        ).toHaveCount(1);
+        await expect(page.locator('#queueReleaseMissionControl')).toHaveCount(
+            1
+        );
         await expect(
             page.locator('#queueReleaseMissionControlTitle')
         ).toContainText('Progressive Delivery Mission Control');

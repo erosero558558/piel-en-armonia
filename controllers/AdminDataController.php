@@ -381,6 +381,7 @@ class AdminDataController
             ? $profile['release']
             : [];
         $releaseMode = trim((string) ($release['mode'] ?? ''));
+        $localWebPilot = $releaseMode === 'web_pilot';
         $nativeAppsBlocking = (bool) ($release['native_apps_blocking'] ?? false);
         $operatorAccessMeta = isset($store['turneroOperatorAccessMeta']) && is_array($store['turneroOperatorAccessMeta'])
             ? $store['turneroOperatorAccessMeta']
@@ -391,19 +392,19 @@ class AdminDataController
 
         $operatorSurface = self::buildTurneroSurfaceReadiness(
             'operator',
-            'desktop',
+            $localWebPilot ? 'browser' : 'desktop',
             $surfaceStatus['operator'] ?? null,
             $nativeAppsBlocking
         );
         $kioskSurface = self::buildTurneroSurfaceReadiness(
             'kiosk',
-            'desktop',
+            $localWebPilot ? 'browser' : 'desktop',
             $surfaceStatus['kiosk'] ?? null,
             $nativeAppsBlocking
         );
         $displaySurface = self::buildTurneroSurfaceReadiness(
             'display',
-            'android_tv',
+            $localWebPilot ? 'browser' : 'android_tv',
             $surfaceStatus['display'] ?? null,
             $nativeAppsBlocking
         );
@@ -420,8 +421,12 @@ class AdminDataController
             'blocking' => false,
             'state' => $adminReady ? 'ready' : 'warning',
             'summary' => $adminReady
-                ? 'Admin listo como consola de supervisión y fallback.'
-                : 'Admin debe quedar habilitado en basic como consola de recuperación.',
+                ? ($localWebPilot
+                    ? 'Admin listo como consola web local y centro de supervisión.'
+                    : 'Admin listo como consola de supervisión y fallback.')
+                : ($localWebPilot
+                    ? 'Admin debe quedar habilitado en basic como consola local del piloto.'
+                    : 'Admin debe quedar habilitado en basic como consola de recuperación.'),
             'stale' => false,
             'updatedAt' => '',
         ];
@@ -432,39 +437,49 @@ class AdminDataController
 
         $hardware = [
             'assistant' => self::buildTurneroHardwareReadiness(
-                trim((string) ($kioskDetails['assistantSessionId'] ?? '')) !== '',
+                $localWebPilot || trim((string) ($kioskDetails['assistantSessionId'] ?? '')) !== '',
                 'Asistente de kiosco',
-                trim((string) ($kioskDetails['assistantSessionId'] ?? '')) !== ''
-                    ? 'Asistente activo y midiendo sesiones.'
-                    : 'Falta confirmar el asistente del kiosco con una sesión activa.'
+                $localWebPilot
+                    ? 'El asistente de kiosco queda diferido para la ola nativa y no bloquea el piloto web local.'
+                    : (trim((string) ($kioskDetails['assistantSessionId'] ?? '')) !== ''
+                        ? 'Asistente activo y midiendo sesiones.'
+                        : 'Falta confirmar el asistente del kiosco con una sesión activa.')
             ),
             'printer' => self::buildTurneroHardwareReadiness(
-                (bool) ($kioskDetails['printerPrinted'] ?? false),
+                $localWebPilot || (bool) ($kioskDetails['printerPrinted'] ?? false),
                 'Impresora térmica',
-                (bool) ($kioskDetails['printerPrinted'] ?? false)
-                    ? 'Impresora térmica validada con ticket reciente.'
-                    : 'Falta una impresión térmica satisfactoria para salida.'
+                $localWebPilot
+                    ? 'La impresión térmica queda como validación posterior y no bloquea este corte local.'
+                    : ((bool) ($kioskDetails['printerPrinted'] ?? false)
+                        ? 'Impresora térmica validada con ticket reciente.'
+                        : 'Falta una impresión térmica satisfactoria para salida.')
             ),
             'numpad' => self::buildTurneroHardwareReadiness(
-                (bool) ($operatorDetails['numpadReady'] ?? false),
+                $localWebPilot || (bool) ($operatorDetails['numpadReady'] ?? false),
                 'Numpad operador',
-                (bool) ($operatorDetails['numpadReady'] ?? false)
-                    ? 'Numpad operativo confirmado.'
-                    : 'Falta validar el numpad antes del primer llamado.'
+                $localWebPilot
+                    ? 'El numpad del operador queda diferido para la superficie nativa y no bloquea el piloto web.'
+                    : ((bool) ($operatorDetails['numpadReady'] ?? false)
+                        ? 'Numpad operativo confirmado.'
+                        : 'Falta validar el numpad antes del primer llamado.')
             ),
             'desktopShell' => self::buildTurneroHardwareReadiness(
-                ($operatorSurface['ready'] ?? false) === true && ($kioskSurface['ready'] ?? false) === true,
+                $localWebPilot || (($operatorSurface['ready'] ?? false) === true && ($kioskSurface['ready'] ?? false) === true),
                 'Shell desktop',
-                (($operatorSurface['ready'] ?? false) === true && ($kioskSurface['ready'] ?? false) === true)
-                    ? 'Operator y kiosk reportan shell nativa lista.'
-                    : 'Falta confirmar operator y kiosk como apps nativas listas.'
+                $localWebPilot
+                    ? 'Las shells desktop quedan como etapa posterior; el piloto actual valida solo las superficies web locales.'
+                    : ((($operatorSurface['ready'] ?? false) === true && ($kioskSurface['ready'] ?? false) === true)
+                        ? 'Operator y kiosk reportan shell nativa lista.'
+                        : 'Falta confirmar operator y kiosk como apps nativas listas.')
             ),
             'tvAudio' => self::buildTurneroHardwareReadiness(
-                (bool) ($displayDetails['bellPrimed'] ?? false) && !($displayDetails['bellMuted'] ?? false),
+                $localWebPilot || ((bool) ($displayDetails['bellPrimed'] ?? false) && !($displayDetails['bellMuted'] ?? false)),
                 'Audio sala TV',
-                ((bool) ($displayDetails['bellPrimed'] ?? false) && !($displayDetails['bellMuted'] ?? false))
-                    ? 'Audio y campanilla de sala TV listos.'
-                    : 'Falta destrabar audio o reactivar campanilla en sala TV.'
+                $localWebPilot
+                    ? 'El audio de sala TV queda diferido hasta la ola nativa y no bloquea el piloto web local.'
+                    : (((bool) ($displayDetails['bellPrimed'] ?? false) && !($displayDetails['bellMuted'] ?? false))
+                        ? 'Audio y campanilla de sala TV listos.'
+                        : 'Falta destrabar audio o reactivar campanilla en sala TV.')
             ),
             'syncMode' => self::buildTurneroHardwareReadiness(
                 (string) ($operatorDetails['queueSyncMode'] ?? '') === 'live'
@@ -495,16 +510,20 @@ class AdminDataController
             !((bool) ($hardware['tvAudio']['ready'] ?? false)),
             !((bool) ($hardware['syncMode']['ready'] ?? false)),
         ]));
+        $releaseEnabled = in_array($releaseMode, ['web_pilot', 'suite_v2'], true)
+            && (string) ($release['admin_mode_default'] ?? '') === 'basic'
+            && ($release['separate_deploy'] ?? null) === true
+            && (($localWebPilot && $nativeAppsBlocking === false) || (!$localWebPilot && $releaseMode === 'suite_v2' && $nativeAppsBlocking === true));
         $blockingCount = $surfaceBlockingCount + $hardwareBlockingCount;
 
         return [
-            'enabled' => $releaseMode === 'suite_v2',
+            'enabled' => $releaseEnabled,
             'releaseMode' => $releaseMode,
             'nativeAppsBlocking' => $nativeAppsBlocking,
-            'ready' => $releaseMode === 'suite_v2' && $blockingCount === 0,
-            'blockingCount' => $releaseMode === 'suite_v2' ? $blockingCount : 0,
-            'surfaceBlockingCount' => $releaseMode === 'suite_v2' ? $surfaceBlockingCount : 0,
-            'hardwareBlockingCount' => $releaseMode === 'suite_v2' ? $hardwareBlockingCount : 0,
+            'ready' => $releaseEnabled && $blockingCount === 0,
+            'blockingCount' => $releaseEnabled ? $blockingCount : 0,
+            'surfaceBlockingCount' => $releaseEnabled ? $surfaceBlockingCount : 0,
+            'hardwareBlockingCount' => $releaseEnabled ? $hardwareBlockingCount : 0,
             'operatorAccess' => [
                 'configured' => (bool) ($operatorAccessMeta['configured'] ?? false),
                 'detail' => (bool) ($operatorAccessMeta['configured'] ?? false)
@@ -548,7 +567,11 @@ class AdminDataController
                 ? (string) ($group['summary'] ?? 'Superficie lista.')
                 : (!$statusReady
                     ? (string) ($group['summary'] ?? 'Sin heartbeat listo.')
-                    : sprintf('La superficie reporta %s, pero suite_v2 exige %s.', $appMode !== '' ? $appMode : 'modo desconocido', $expectedAppMode)),
+                    : sprintf(
+                        'La superficie reporta %s, pero este release exige %s.',
+                        $appMode !== '' ? $appMode : 'modo desconocido',
+                        $expectedAppMode
+                    )),
             'stale' => (bool) ($latest['stale'] ?? true),
             'updatedAt' => (string) ($latest['updatedAt'] ?? ''),
         ];

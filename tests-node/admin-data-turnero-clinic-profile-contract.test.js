@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const { resolve } = require('node:path');
 
-test('AdminDataController expone turneroClinicProfile y readiness de Turnero V2 por clinica', () => {
+test('AdminDataController expone turneroClinicProfile y readiness del piloto web por clinica', () => {
     const phpScript = `
         $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'admin-data-turnero-profile-' . bin2hex(random_bytes(6));
         mkdir($tempDir, 0777, true);
@@ -45,10 +45,10 @@ test('AdminDataController expone turneroClinicProfile y readiness de Turnero V2 
     assert.equal(payload.ok, true);
     assert.equal(profile?.schema, 'turnero-clinic-profile/v1');
     assert.equal(profile?.clinic_id, 'piel-armonia-quito');
-    assert.equal(profile?.release?.mode, 'suite_v2');
+    assert.equal(profile?.release?.mode, 'web_pilot');
     assert.equal(profile?.release?.admin_mode_default, 'basic');
     assert.equal(profile?.release?.separate_deploy, true);
-    assert.equal(profile?.release?.native_apps_blocking, true);
+    assert.equal(profile?.release?.native_apps_blocking, false);
     assert.equal(profile?.surfaces?.operator?.route, '/operador-turnos.html');
     assert.equal(profile?.surfaces?.kiosk?.route, '/kiosco-turnos.html');
     assert.equal(profile?.surfaces?.display?.route, '/sala-turnos.html');
@@ -64,12 +64,12 @@ test('AdminDataController expone turneroClinicProfile y readiness de Turnero V2 
     assert.equal(operatorAccess?.maskedPinLabel, '');
     assert.equal(operatorAccess?.sessionTtlHours, 8);
     assert.equal(readiness?.enabled, true);
-    assert.equal(readiness?.releaseMode, 'suite_v2');
-    assert.equal(readiness?.nativeAppsBlocking, true);
+    assert.equal(readiness?.releaseMode, 'web_pilot');
+    assert.equal(readiness?.nativeAppsBlocking, false);
     assert.equal(readiness?.ready, false);
     assert.equal(readiness?.operatorAccess?.configured, false);
     assert.equal(readiness?.surfaces?.admin?.ready, true);
-    assert.equal(readiness?.hardware?.assistant?.ready, false);
-    assert.equal(readiness?.hardware?.printer?.ready, false);
+    assert.equal(readiness?.hardware?.assistant?.ready, true);
+    assert.equal(readiness?.hardware?.printer?.ready, true);
     assert.equal(readiness?.blockingCount > 0, true);
 });

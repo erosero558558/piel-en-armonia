@@ -281,6 +281,105 @@ test('focus loadLocalRequiredCheckSnapshot usa evidencia de slices en review com
     );
 });
 
+test('focus loadLocalRequiredCheckSnapshot usa evidencia frontend/backend para el foco turnero local-first', (t) => {
+    const root = mkdtempSync(join(tmpdir(), 'focus-turnero-evidence-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+
+    mkdirSync(join(root, 'verification', 'agent-runs'), { recursive: true });
+    writeFileSync(
+        join(root, 'verification', 'agent-runs', 'CDX-056.md'),
+        [
+            '# CDX-056',
+            '- required_check: test:turnero:web-pilot:contracts | state: green | command: npm run test:turnero:web-pilot:contracts',
+            '- required_check: test:turnero:web-pilot:php-contract | state: green | command: npm run test:turnero:web-pilot:php-contract',
+            '- required_check: test:turnero:web-pilot:ui | state: green | command: npm run test:turnero:web-pilot:ui',
+            '',
+        ].join('\n'),
+        'utf8'
+    );
+    writeFileSync(
+        join(root, 'verification', 'agent-runs', 'CDX-057.md'),
+        [
+            '# CDX-057',
+            '- required_check: test:turnero:web-pilot:contracts | state: green | command: npm run test:turnero:web-pilot:contracts',
+            '- required_check: test:turnero:web-pilot:php-contract | state: green | command: npm run test:turnero:web-pilot:php-contract',
+            '- required_check: test:turnero:web-pilot:ui | state: green | command: npm run test:turnero:web-pilot:ui',
+            '',
+        ].join('\n'),
+        'utf8'
+    );
+
+    const snapshotState = focusDomain.loadLocalRequiredCheckSnapshot(
+        {
+            id: 'FOCUS-2026-03-turnero-web-pilot-local-cut-1',
+            required_checks: [
+                'test:turnero:web-pilot:contracts',
+                'test:turnero:web-pilot:php-contract',
+                'test:turnero:web-pilot:ui',
+            ],
+        },
+        {
+            rootPath: root,
+            board: {
+                strategy: {
+                    active: {
+                        id: 'STRAT-2026-03-turnero-web-pilot-local-first',
+                        started_at: '2026-03-28T12:00:00Z',
+                    },
+                },
+                tasks: [
+                    {
+                        id: 'CDX-056',
+                        status: 'review',
+                        strategy_id: 'STRAT-2026-03-turnero-web-pilot-local-first',
+                        subfront_id: 'SF-frontend-turnero-web-pilot-local',
+                        focus_id: 'FOCUS-2026-03-turnero-web-pilot-local-cut-1',
+                        updated_at: '2026-03-28T12:46:44Z',
+                        acceptance_ref: 'verification/agent-runs/CDX-056.md',
+                        evidence_ref: 'verification/agent-runs/CDX-056.md',
+                    },
+                    {
+                        id: 'CDX-057',
+                        status: 'review',
+                        strategy_id: 'STRAT-2026-03-turnero-web-pilot-local-first',
+                        subfront_id: 'SF-backend-turnero-web-pilot-local',
+                        focus_id: 'FOCUS-2026-03-turnero-web-pilot-local-cut-1',
+                        updated_at: '2026-03-28T12:46:43Z',
+                        acceptance_ref: 'verification/agent-runs/CDX-057.md',
+                        evidence_ref: 'verification/agent-runs/CDX-057.md',
+                    },
+                ],
+            },
+        }
+    );
+
+    assert.equal(snapshotState.available, true);
+    assert.equal(snapshotState.valid, true);
+    assert.equal(snapshotState.reason, 'evidence');
+
+    const checks = focusDomain.evaluateRequiredChecks(
+        {
+            required_checks: [
+                'test:turnero:web-pilot:contracts',
+                'test:turnero:web-pilot:php-contract',
+                'test:turnero:web-pilot:ui',
+            ],
+        },
+        {
+            localRequiredCheckSnapshot: snapshotState,
+        }
+    );
+
+    assert.deepEqual(
+        checks.map((item) => [item.id, item.state]),
+        [
+            ['test:turnero:web-pilot:contracts', 'green'],
+            ['test:turnero:web-pilot:php-contract', 'green'],
+            ['test:turnero:web-pilot:ui', 'green'],
+        ]
+    );
+});
+
 test('focus loadLocalRequiredCheckSnapshot prefiere snapshot JSON valido sobre evidencia legacy', (t) => {
     const root = mkdtempSync(join(tmpdir(), 'focus-evidence-precedence-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));

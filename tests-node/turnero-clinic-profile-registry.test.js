@@ -132,6 +132,55 @@ test('valida perfil turnero y exige native_apps_blocking para suite_v2', () => {
     );
 });
 
+test('valida perfil turnero en modo web_pilot con nativas no bloqueantes', () => {
+    const validation = validateTurneroClinicProfile({
+        schema: PROFILE_SCHEMA,
+        clinic_id: 'clinica-demo',
+        branding: {
+            name: 'Clinica Demo',
+            short_name: 'Demo',
+            city: 'Quito',
+            base_url: 'https://demo.example.com',
+        },
+        consultorios: {
+            c1: { label: 'Uno', short_label: 'U1' },
+            c2: { label: 'Dos', short_label: 'D2' },
+        },
+        surfaces: {
+            admin: {
+                enabled: true,
+                label: 'Admin',
+                route: '/admin.html#queue',
+            },
+            operator: {
+                enabled: true,
+                label: 'Operador',
+                route: '/operador-turnos.html',
+            },
+            kiosk: {
+                enabled: true,
+                label: 'Kiosco',
+                route: '/kiosco-turnos.html',
+            },
+            display: {
+                enabled: true,
+                label: 'Sala',
+                route: '/sala-turnos.html',
+            },
+        },
+        release: {
+            mode: 'web_pilot',
+            admin_mode_default: 'basic',
+            separate_deploy: true,
+            native_apps_blocking: false,
+            notes: [],
+        },
+    });
+
+    assert.equal(validation.ok, true);
+    assert.deepEqual(validation.errors, []);
+});
+
 test('stagea un perfil catalogado al clinic-profile activo', () => {
     const tempRoot = fs.mkdtempSync(
         path.join(os.tmpdir(), 'turnero-clinic-profile-stage-')

@@ -54,8 +54,8 @@ test('operator shell state hydrates desktop snapshot and keeps support metadata 
     );
 
     assert.deepEqual(shellState.getOperatorShellSettingsButtonCopy(hydrated), {
-        text: 'Configurar Windows app (F10)',
-        title: 'Reabre la configuracion local de Turnero Operador (Windows). Atajos: F10 o Ctrl/Cmd + ,',
+        text: 'Configurar este equipo (F10)',
+        title: 'Reabre la configuración local de Turnero Operador (Windows). Atajos: F10 o Ctrl/Cmd + ,',
     });
 });
 
@@ -67,15 +67,15 @@ test('operator shell labels keep fallback, download and error copy stable', asyn
     const fallback = shellState.createEmptyOperatorShellState();
     assert.equal(
         shellState.getOperatorShellModeLabel(fallback),
-        'Fallback web'
+        'Usando navegador'
     );
     assert.equal(
         shellState.getOperatorShellMetaLabel(fallback),
-        'Instala la desktop para autoarranque, updates y configuración local.'
+        'La app del equipo ayuda con arranque automático, actualizaciones y ajustes locales.'
     );
     assert.deepEqual(shellState.getOperatorShellReadiness(fallback), {
         state: 'warning',
-        detail: 'Fallback web activo · instala el shell para autostart y updates.',
+        detail: 'Estás usando navegador. La app del equipo ayuda con arranque automático y actualizaciones.',
     });
 
     const download = shellState.hydrateOperatorShellState({
@@ -98,7 +98,7 @@ test('operator shell labels keep fallback, download and error copy stable', asyn
 
     assert.equal(
         shellState.getOperatorShellModeLabel(download),
-        'Desktop instalada · Update 42%'
+        'App del equipo lista · Actualización 42%'
     );
     assert.match(
         shellState.getOperatorShellMetaLabel(download),
@@ -128,7 +128,7 @@ test('operator shell labels keep fallback, download and error copy stable', asyn
 
     assert.equal(
         shellState.getOperatorShellStatusLabel(failure),
-        'Update con error'
+        'Actualización con error'
     );
     assert.equal(
         shellState.getOperatorShellStatusDetail(failure),

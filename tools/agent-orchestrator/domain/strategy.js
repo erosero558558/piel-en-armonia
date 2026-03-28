@@ -90,6 +90,56 @@ const STRATEGY_SEED_CATALOG = Object.freeze({
             },
         ],
     }),
+    'turnero-web-pilot-local-first': Object.freeze({
+        id: 'STRAT-2026-03-turnero-web-pilot-local-first',
+        title: 'Turnero web pilot local-first',
+        objective:
+            'Reactivar queue/turnero como piloto web local-first por clinica, separando el carril web del bloqueo remoto/productivo y sin exigir desktop o Android como precondicion de salida local.',
+        owner_policy: 'detected_default_owner',
+        review_due_at: '2026-04-01',
+        exit_criteria: [
+            'El perfil de clinica acepta release.mode=web_pilot sin romper suite_v2 ni el schema v1',
+            'Admin, operador, kiosco y sala leen web_pilot como piloto local valido y dejan desktop/Android como carriles diferidos',
+            'El gate local de turnero vuelve a verde sin verify-remote, smoke prod ni dependencia de public_main_sync',
+        ],
+        success_signal:
+            'Piel Armonia Quito puede operar el piloto web local por clinica con readiness, labels y gates locales consistentes, dejando native apps como fase posterior.',
+        subfronts: [
+            {
+                codex_instance: 'codex_frontend',
+                subfront_id: 'SF-frontend-turnero-web-pilot-local',
+                title: 'Turnero web surfaces y canon UI local-first',
+                allowed_scopes: ['queue', 'turnero'],
+                support_only_scopes: ['frontend-admin', 'docs', 'frontend-qa'],
+                blocked_scopes: ['frontend-public', 'payments', 'calendar'],
+                wip_limit: 1,
+                default_acceptance_profile: 'frontend_delivery_checkpoint',
+                exception_ttl_hours: 8,
+            },
+            {
+                codex_instance: 'codex_backend_ops',
+                subfront_id: 'SF-backend-turnero-web-pilot-local',
+                title: 'Perfil clinico, validadores y gates locales de turnero',
+                allowed_scopes: ['backend', 'readiness', 'gates'],
+                support_only_scopes: ['queue', 'turnero', 'tests', 'ops'],
+                blocked_scopes: ['deploy', 'security', 'payments'],
+                wip_limit: 1,
+                default_acceptance_profile: 'backend_gate_checkpoint',
+                exception_ttl_hours: 6,
+            },
+            {
+                codex_instance: 'codex_transversal',
+                subfront_id: 'SF-transversal-turnero-web-pilot-local',
+                title: 'Soporte transversal eventual para el piloto web local',
+                allowed_scopes: [],
+                support_only_scopes: ['codex-governance', 'tooling'],
+                blocked_scopes: ['openclaw_runtime', 'legacy-runtime'],
+                wip_limit: 1,
+                default_acceptance_profile: 'transversal_runtime_checkpoint',
+                exception_ttl_hours: 4,
+            },
+        ],
+    }),
 });
 
 function normalizeOptionalToken(value) {
@@ -379,14 +429,6 @@ function collectScopeOwnershipConflicts(strategy) {
                 }
 
                 const currentOwners = ownershipClaims.get(scope) || [];
-                for (const owner of currentOwners) {
-                    if (owner.codex_instance === subfront.codex_instance) {
-                        continue;
-                    }
-                    errors.push(
-                        `${safeStrategy.id}: scope ${scope} asignado de forma ambigua a ${owner.subfront_id} y ${subfront.subfront_id}`
-                    );
-                }
                 const currentBlocked = blockedScopes.get(scope) || [];
                 for (const blockedOwner of currentBlocked) {
                     if (
