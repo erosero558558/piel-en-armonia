@@ -11117,8 +11117,8 @@ tasks:
     scope: deploy
     codex_instance: codex_backend_ops
     domain_lane: backend_ops
-    lane_lock: strict
-    cross_domain: false
+    lane_lock: handoff_allowed
+    cross_domain: true
     provider_mode: 
     runtime_surface: 
     runtime_transport: 
@@ -11155,10 +11155,10 @@ tasks:
     decision_ref: ""
     rework_parent: ""
     rework_reason: ""
-    depends_on: []
+    depends_on: ["AG-249"]
     prompt: "Public sync rollout: desplegar health publicSync y verificar host"
     created_at: 2026-03-14
-    updated_at: 2026-03-27
+    updated_at: 2026-03-28
 
   - id: AG-251
     title: "Operator auth runtime: recuperar modo openclaw_chatgpt en host"
