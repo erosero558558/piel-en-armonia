@@ -2,7 +2,7 @@
   "nav": {
     "brand": {
       "logo": "Flow OS",
-      "tag": "Orquesta el recorrido del paciente para clinicas dermatologicas"
+      "tag": "Coordina el recorrido del paciente para clinicas dermatologicas"
     },
     "ui": {
       "header": {
@@ -85,7 +85,7 @@
           "label": "Clinic Dashboard",
           "href": "/es/software/turnero-clinicas/dashboard/",
           "eyebrow": "Direccion",
-          "deck": "Lectura gerencial de espera, no-show, carga y cierre del recorrido sobre el mismo runtime."
+          "deck": "Lectura gerencial de espera, no-show, carga y cierre del recorrido sobre la misma base operativa."
         }
       ]
     },
@@ -168,7 +168,7 @@
       "hero": {
         "eyebrow": "Flow OS",
         "title": "Coordina el recorrido del paciente para que el equipo no duplique trabajo ni el paciente se pierda entre captura, agenda, consulta y seguimiento.",
-        "deck": "Flow OS es el producto B2B. Aurora Derm es la clinica de referencia que usamos para mostrar el recorrido completo sobre un solo tenant y un solo patient case.",
+        "deck": "Flow OS es el producto B2B. Aurora Derm es la clinica de referencia que usamos para mostrar el recorrido completo sobre una sola base operativa y un solo patient case.",
         "pills": [
           "Aurora Derm como clinica de referencia",
           "Una sede dermatologica",
@@ -415,7 +415,7 @@
           {
             "eyebrow": "Patient Flow Link",
             "title": "El paciente entiende que sigue sobre el mismo caso",
-            "copy": "El enlace muestra el siguiente paso y el estado del case sin crear una experiencia aparte del runtime principal.",
+            "copy": "El enlace muestra el siguiente paso y el estado del case sin crear una experiencia aparte de la operacion principal.",
             "href": "/es/software/turnero-clinicas/demo/",
             "ctaLabel": "Ver Patient Flow Link",
             "mockup": {
@@ -564,7 +564,7 @@
           {
             "title": "Un patient case activo por paciente",
             "items": [
-              "TenantId obligatorio en el runtime",
+              "Tenant unico y obligatorio por clinica",
               "Regla reforzada por paciente y tenant",
               "Trazabilidad completa del recorrido"
             ]
@@ -755,7 +755,7 @@
           },
           {
             "title": "Mas continuidad entre agenda y sala",
-            "copy": "El paso siguiente no se inventa al llegar. Ya viene preparado desde el mismo runtime."
+            "copy": "El paso siguiente no se inventa al llegar. Ya viene preparado desde la misma base operativa."
           }
         ]
       },
@@ -849,7 +849,7 @@
           {
             "value": "A-021",
             "label": "ticket en cola",
-            "detail": "La misma cola ya visible en el runtime operativo."
+            "detail": "La misma cola ya visible en la operacion diaria."
           },
           {
             "value": "1 tenant",

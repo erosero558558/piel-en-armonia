@@ -85,7 +85,7 @@
           "label": "Clinic Dashboard",
           "href": "/en/software/clinic-flow-suite/dashboard/",
           "eyebrow": "Leadership",
-          "deck": "Management readout for wait time, no-show, load, and closure on the same runtime."
+          "deck": "Management readout for wait time, no-show, load, and closure across the same operating journey."
         }
       ]
     },
@@ -415,7 +415,7 @@
           {
             "eyebrow": "Patient Flow Link",
             "title": "The patient understands what happens next on the same case",
-            "copy": "The link shows next step and case status without becoming a detached experience from the main runtime.",
+            "copy": "The link shows next step and case status without becoming a detached experience from the main operating flow.",
             "href": "/en/software/clinic-flow-suite/demo/",
             "ctaLabel": "See Patient Flow Link",
             "mockup": {
@@ -564,7 +564,7 @@
           {
             "title": "One active patient case per patient",
             "items": [
-              "tenantId required in the runtime",
+              "Every active case stays tied to its tenant",
               "Rule enforced by patient and tenant",
               "Full journey traceability"
             ]
@@ -755,7 +755,7 @@
           },
           {
             "title": "More continuity from booking to room",
-            "copy": "The next step is not invented at arrival. It is already prepared by the same runtime."
+            "copy": "The next step is not invented at arrival. It is already prepared by the same operating flow."
           }
         ]
       },
@@ -849,7 +849,7 @@
           {
             "value": "A-021",
             "label": "ticket in queue",
-            "detail": "The same queue already visible in the operating runtime."
+            "detail": "The same queue already visible in the operating flow."
           },
           {
             "value": "1 tenant",

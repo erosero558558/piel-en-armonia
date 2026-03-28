@@ -1,6 +1,6 @@
 {
     "title": "Legal | Aurora Derm",
-    "description": "Informacion legal clara de Aurora Derm sobre uso del sitio, privacidad, cookies y limites de la orientacion medica digital.",
+    "description": "Informacion legal de Aurora Derm explicada con claridad: uso del sitio, privacidad, cookies y limites de la orientacion medica digital.",
     "index": [
         {
             "slug": "terminos",
@@ -30,17 +30,17 @@
         },
         "menu": {
             "legalIndex": "Indice legal",
-            "clausesSummary": "Resumen rapido",
+            "clausesSummary": "Resumen claro",
             "policyIndex": "Documentos"
         },
         "thesis": {
             "eyebrow": "Uso del sitio",
             "title": "Reglas claras para usar el sitio y sus canales",
-            "body": "Aqui explicamos que cubre cada politica, que limites existen y que puede esperar cuando comparte informacion con Aurora Derm."
+            "body": "Aqui se resume que cubre cada politica, que limites existen y que puede esperar cuando comparte informacion con Aurora Derm."
         },
         "statement": {
             "eyebrow": "Lenguaje claro",
-            "title": "Lo legal tambien debe entenderse sin esfuerzo",
+            "title": "Lo legal tambien debe leerse claro y sin rodeos",
             "signature": "Aurora Derm",
             "image": "/images/optimized/v6-clinic-legal-governance.webp",
             "alt": "Privacidad, consentimiento y reglas del sitio en un marco claro"
@@ -61,7 +61,7 @@
                 {
                     "title": "Uso del sitio",
                     "items": [
-                        "La informacion publica orienta, pero no reemplaza una consulta medica individual.",
+                        "La informacion publica orienta decisiones, pero no reemplaza una consulta medica individual.",
                         "Cuando usted usa formularios o canales oficiales, debe compartir datos reales y actualizados.",
                         "Si detectamos uso indebido del sitio, podemos limitar acceso para proteger el servicio y a terceros."
                     ]
@@ -92,7 +92,7 @@
                 {
                     "title": "Como se usan y protegen",
                     "items": [
-                        "Los datos sirven para continuidad de atencion, soporte operativo y comunicaciones necesarias.",
+                        "Los datos se usan para continuidad de atencion, soporte operativo y comunicaciones necesarias.",
                         "Aplicamos controles tecnicos y organizativos para reducir accesos no autorizados.",
                         "Usted puede solicitar correccion o eliminacion de datos segun la normativa aplicable."
                     ]
@@ -124,7 +124,7 @@
         },
         "aviso-medico": {
             "heading": "Aviso medico",
-            "summary": "El contenido del sitio orienta, pero no sustituye un diagnostico personalizado ni una consulta directa.",
+            "summary": "El contenido del sitio puede orientar, pero no sustituye un diagnostico personalizado ni una consulta directa.",
             "heroImage": "/images/optimized/v6-clinic-statement-clinical-direction.webp",
             "sections": [
                 {

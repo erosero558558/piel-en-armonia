@@ -30,6 +30,7 @@ js/queue-operator.js
 verification/
 !verification/
 verification/*
+verification/focus-checks/
 !verification/agent-metrics.json
 !verification/agent-runs/
 verification/agent-runs/*
@@ -57,6 +58,8 @@ vendor/composer/*
 .phpunit.cache/
 coverage.xml
 .tmp-calendar-write-report.json
+.codex-local/
+.codex-worktrees/
 .codex-public-paths.txt
 build_analysis.txt
 conflict_branches.txt

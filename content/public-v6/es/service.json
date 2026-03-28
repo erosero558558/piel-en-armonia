@@ -1,13 +1,13 @@
 {
     "title": "Detalle de especialidad | Aurora Derm",
-    "description": "Fichas dermatologicas de Aurora Derm con explicacion clara, etapas entendibles y seguimiento bien llevado.",
-    "voiceNote": "Cada ficha esta escrita para que usted entienda de que se trata, que suele ayudar y cuando conviene consultar.",
+    "description": "Fichas dermatologicas de Aurora Derm para entender que suele revisarse primero, como avanza cada ruta y cuando conviene cambiar de paso.",
+    "voiceNote": "Cada ficha busca ayudarle a entender la ruta con claridad, sin exagerar resultados ni dejar el siguiente paso en el aire.",
     "ui": {
         "menu": {
-            "glance": "Vista rapida",
-            "checkpoints": "Esto ordena primero",
-            "process": "Como se trabaja",
-            "faq": "Preguntas frecuentes",
+            "glance": "Vista general",
+            "checkpoints": "Que se revisa primero",
+            "process": "Como avanza",
+            "faq": "Dudas frecuentes",
             "related": "Cuando cambiar de ruta",
             "booking": "Siguiente paso"
         },
@@ -18,38 +18,38 @@
         "thesis": {
             "eyebrow": "Aurora Derm",
             "titleSuffix": "con una ruta clara y un siguiente paso visible",
-            "body": "Esta ficha muestra que suele ordenar primero, como se trabaja, cuando conviene cambiar de ruta y cual deberia ser el siguiente paso para que nada se quede a medias."
+            "body": "Esta ficha resume que suele revisarse primero, como avanza la atencion, cuando conviene cambiar de ruta y cual es el siguiente paso mas razonable para no dejar decisiones a medias."
         },
         "statement": {
             "eyebrow": "Lectura medica",
-            "titleTemplate": "{service} se define despues de revisar bien su caso",
+            "titleTemplate": "{service} se indica despues de revisar bien su caso",
             "signature": "Aurora Derm, Quito",
             "image": "/images/optimized/v6-clinic-statement-clinical-direction.webp",
             "alt": "Direccion clinica dermatologica con lectura estructurada"
         },
-        "internalMessageFallback": "La decision final siempre se confirma en consulta, con explicacion clara y tiempos reales.",
+        "internalMessageFallback": "La conducta final se confirma en consulta, con explicacion clara y tiempos realistas.",
         "rail": {
             "title": "Secciones",
             "aria": "Secciones del servicio"
         },
         "glance": {
             "routeType": "Ruta sugerida",
-            "checkpoints": "Lo que ordena",
+            "checkpoints": "Que se prioriza",
             "processStages": "Etapas del cuidado"
         },
         "sections": {
-            "checkpointsTitle": "Esto ordena primero",
-            "processTitle": "Como se trabaja",
-            "faqTitle": "Preguntas frecuentes",
-            "relatedTitle": "Cuando cambiar de ruta"
+            "checkpointsTitle": "Que se revisa primero",
+            "processTitle": "Como avanza",
+            "faqTitle": "Dudas frecuentes",
+            "relatedTitle": "Cuando conviene cambiar de ruta"
         },
         "faqPrefix": "P",
-        "faqAnswerNote": "Respuesta orientativa; el plan final se define en consulta.",
+        "faqAnswerNote": "Respuesta orientativa; la decision final se define en consulta.",
         "relatedCta": "Abrir ruta",
         "bookingStatus": {
             "eyebrow": "Siguiente paso",
             "title": "Reserva online en mantenimiento",
-            "description": "Si esta ficha se parece a su caso, escribanos por WhatsApp para decidir la ruta correcta. Si por fotos e historia conviene teledermatologia primero, tambien se lo decimos.",
+            "description": "Si esta ficha se parece a su caso, escribanos por WhatsApp para ubicar la ruta mas razonable. Si por fotos e historia primero conviene teledermatologia, tambien se lo diremos.",
             "ctaLabel": "Escribir por WhatsApp",
             "ctaHref": "https://wa.me/593982453672"
         }
@@ -59,32 +59,32 @@
             "slug": "diagnostico-integral",
             "category": "Diagnostico",
             "title": "Diagnostico integral",
-            "summary": "Una primera cita completa para entender lo que pasa y poner prioridades desde el comienzo.",
+            "summary": "Primera consulta para ordenar sintomas, prioridades y siguiente paso sin empezar a ciegas.",
             "heroImage": "/images/optimized/v6-clinic-diagnostico-integral.webp",
             "heroAlt": "Consulta dermatologica integral",
-            "lead": "La idea es salir de esa primera consulta sabiendo que atender primero, que vigilar despues y como medir si el plan va funcionando.",
+            "lead": "Esta cita sirve para entender que esta pasando, que requiere atencion primero y como conviene seguir sin dejar cabos sueltos.",
             "bullets": [
-                "Historia bien contada",
-                "Revision completa de piel, cabello y unas",
-                "Plan claro para casa",
-                "Seguimiento segun prioridad"
+                "Ordenar la historia clinica",
+                "Revisar piel, cabello y unas",
+                "Definir prioridades reales",
+                "Dejar un plan inicial claro"
             ],
             "process": [
-                "Escuchamos su caso",
-                "Revisamos hallazgos",
-                "Ordenamos prioridades",
-                "Definimos el primer control"
+                "Escuchamos lo que viene pasando",
+                "Revisamos los hallazgos clinicos",
+                "Priorizamos lo importante",
+                "Definimos control y siguiente paso"
             ],
             "faq": [
-                "Que informacion debo llevar a la cita?",
-                "Necesito examenes previos?",
-                "Cuando se revisa la evolucion inicial?"
+                "Que conviene llevar a la primera cita?",
+                "Hace falta llegar con examenes?",
+                "Cuando suele revisarse la evolucion inicial?"
             ],
             "related": ["acne-rosacea", "piel-cabello-unas"],
             "faqAnswers": [
-                "Traiga medicamentos, alergias, tratamientos previos y fotos recientes. Esa base ayuda a entender rapido lo que viene pasando.",
-                "Solo si ya tiene examenes utiles. Si hacen falta otros, se piden despues de la revision clinica inicial.",
-                "El primer control suele fijarse entre 3 y 6 semanas, o antes si aparecen dolor, sangrado o empeoramiento rapido."
+                "Conviene llevar medicamentos, alergias, tratamientos previos y fotos recientes. Esa base ayuda a entender mejor lo que ha venido pasando.",
+                "Solo si ya tiene examenes utiles. Si hace falta pedir otros, se decide despues de la revision clinica inicial.",
+                "El primer control suele ubicarse entre 3 y 6 semanas, o antes si hay dolor, sangrado o empeoramiento rapido."
             ],
             "cardAssetId": "v6-clinic-diagnostico-integral",
             "cardAlt": "Consulta dermatologica integral con lectura inicial estructurada",
@@ -95,32 +95,32 @@
             "slug": "acne-rosacea",
             "category": "Inflamacion",
             "title": "Acne y rosacea",
-            "summary": "Control de acne y rosacea con metas realistas, ajustes oportunos y una rutina que su piel pueda aguantar.",
+            "summary": "Control de acne y rosacea con metas realistas, menos irritacion y ajustes segun la respuesta de su piel.",
             "heroImage": "/images/optimized/v6-clinic-acne-rosacea.webp",
             "heroAlt": "Control medico de acne y rosacea",
-            "lead": "No se trata de llenarle de productos; se trata de bajar inflamacion, cuidar la barrera y corregir a tiempo segun su respuesta.",
+            "lead": "Buscamos bajar inflamacion, cuidar la barrera y ajustar a tiempo, sin llenarle de productos que despues no pueda sostener.",
             "bullets": [
-                "Bajar inflamacion",
-                "Cuidar sensibilidad",
+                "Bajar inflamacion activa",
+                "Cuidar la sensibilidad",
                 "Prevenir marcas",
-                "Ajustar rutina sin exceso"
+                "Sostener una rutina posible"
             ],
             "process": [
-                "Vemos el tipo de brote",
-                "Arrancamos tratamiento",
+                "Leemos el tipo de brote",
+                "Indicamos tratamiento inicial",
                 "Ajustamos segun respuesta",
                 "Pasamos a mantenimiento"
             ],
             "faq": [
-                "Cuando suelen verse cambios?",
+                "En que momento suelen verse cambios?",
                 "Puede combinarse con laser?",
-                "Que hacer en una recaida intensa?"
+                "Que conviene hacer si hay una recaida fuerte?"
             ],
             "related": ["peeling-quimico", "diagnostico-integral"],
             "faqAnswers": [
-                "La mayoria nota menos inflamacion entre semanas 4 y 8, siempre que la rutina elegida se sostenga con constancia.",
-                "Si, pero solo cuando la barrera cutanea esta mas estable y el momento del tratamiento tiene sentido clinico.",
-                "Suspenda irritantes, mantenga limpieza suave y pida ajuste medico en 48 a 72 horas para cortar el avance."
+                "Muchas personas notan menos inflamacion entre las semanas 4 y 8, siempre que la rutina elegida pueda sostenerse con constancia.",
+                "Si, pero cuando la barrera cutanea esta mas estable y el momento del tratamiento tiene sentido clinico.",
+                "Conviene suspender irritantes, mantener limpieza suave y pedir ajuste medico dentro de 48 a 72 horas."
             ],
             "cardAssetId": "v6-clinic-acne-rosacea",
             "cardAlt": "Seguimiento dermatologico de inflamacion y sensibilidad cutanea",
@@ -131,32 +131,32 @@
             "slug": "verrugas",
             "category": "Procedimientos",
             "title": "Verrugas",
-            "summary": "Manejo de verrugas segun la zona, la profundidad y lo facil que vuelvan a salir.",
+            "summary": "Manejo de verrugas segun tipo, zona y riesgo de recurrencia, sin castigar piel sana de mas.",
             "heroImage": "/images/optimized/v6-clinic-verrugas.webp",
             "heroAlt": "Procedimiento dermatologico para verrugas",
-            "lead": "Elegimos la tecnica que mejor resuelve la verruga sin maltratar de mas la piel sana que la rodea.",
+            "lead": "La tecnica se elige por lo que vemos en consulta, la zona comprometida y lo que conviene para resolver la lesion con cuidado.",
             "bullets": [
-                "Confirmar el tipo de lesion",
+                "Confirmar que lesion es",
                 "Elegir tecnica segun zona",
-                "Cuidar la piel despues",
-                "Bajar riesgo de recurrencia"
+                "Cuidar la recuperacion",
+                "Reducir recurrencia"
             ],
             "process": [
                 "Revisamos la lesion",
                 "Definimos la tecnica",
-                "Controlamos la evolucion",
-                "Cerramos con vigilancia"
+                "Controlamos la cicatrizacion",
+                "Seguimos segun respuesta"
             ],
             "faq": [
-                "Cuantas sesiones suelen requerirse?",
-                "Hay molestias durante el procedimiento?",
-                "Puede reaparecer la verruga?"
+                "Cuantas sesiones suelen hacer falta?",
+                "Hay molestia durante el procedimiento?",
+                "Puede volver a salir la verruga?"
             ],
             "related": ["diagnostico-integral", "cancer-piel"],
             "faqAnswers": [
-                "Muchas verrugas responden en 1 a 3 sesiones, pero las plantares profundas suelen pedir controles adicionales.",
+                "Muchas verrugas responden en 1 a 3 sesiones, pero las plantares profundas suelen necesitar controles adicionales.",
                 "Puede haber molestia breve. Ajustamos tecnica y tiempos para que el procedimiento sea tolerable y bien controlado.",
-                "Si puede reaparecer. El riesgo baja cuando se completa el control posterior y se cuida la zona tratada."
+                "Si, puede reaparecer. El riesgo baja cuando se completa el control posterior y se cuida bien la zona tratada."
             ],
             "cardAssetId": "v6-clinic-verrugas",
             "cardAlt": "Procedimiento dermatologico de precision para lesiones localizadas",
@@ -167,30 +167,30 @@
             "slug": "granitos-brazos-piernas",
             "category": "Textura",
             "title": "Granitos en brazos y piernas",
-            "summary": "Atencion para brazos y piernas con textura aspera, resequedad o cambios foliculares que no mejoran solos.",
+            "summary": "Atencion para textura aspera, resequedad o cambios foliculares que no mejoran solo con cremas al azar.",
             "heroImage": "/images/optimized/v6-clinic-granitos-brazos-piernas.webp",
             "heroAlt": "Manejo clinico de textura cutanea",
-            "lead": "Cuando la piel se siente rasposa o llena de granitos, buscamos mejorar barrera, textura y tolerancia sin sobrecargar la rutina.",
+            "lead": "Cuando la piel se siente rasposa o con granitos persistentes, conviene mejorar barrera y rutina sin irritarla mas.",
             "bullets": [
-                "Leer bien la textura",
+                "Entender la textura",
                 "Reforzar la barrera",
                 "Bajar irritacion",
-                "Ajustar la rutina"
+                "Ajustar cuidados diarios"
             ],
             "process": [
                 "Evaluamos la piel",
-                "Armamos cuidados en casa",
-                "Ajustamos segun respuesta",
+                "Definimos rutina para casa",
+                "Ajustamos segun tolerancia",
                 "Pasamos a mantenimiento"
             ],
             "faq": [
-                "Siempre corresponde a queratosis pilar?",
-                "En cuanto tiempo mejora la textura?",
+                "Siempre se trata de queratosis pilar?",
+                "Cuanto suele tardar en mejorar la textura?",
                 "Que productos conviene evitar?"
             ],
             "related": ["acne-rosacea", "piel-cabello-unas"],
             "faqAnswers": [
-                "Con frecuencia es queratosis pilar, aunque tambien evaluamos eczema, foliculitis u otras causas inflamatorias parecidas.",
+                "Con frecuencia es queratosis pilar, pero tambien valoramos eczema, foliculitis u otras causas inflamatorias parecidas.",
                 "Con cuidado diario y rutina constante, la textura suele mejorar entre la semana 6 y la 10 del plan.",
                 "Conviene evitar exfoliantes agresivos, fragancias intensas y jabones resecantes que dejan la barrera mas irritable."
             ],
@@ -203,30 +203,30 @@
             "slug": "cicatrices",
             "category": "Reparacion",
             "title": "Cicatrices",
-            "summary": "Ruta por etapas para mejorar relieve, tono y textura segun el tipo de cicatriz y el tiempo que lleva.",
+            "summary": "Plan por etapas para trabajar relieve, tono y textura segun el tipo de cicatriz y el tiempo que lleva.",
             "heroImage": "/images/optimized/v6-clinic-cicatrices.webp",
             "heroAlt": "Tratamiento dermatologico de cicatrices",
-            "lead": "Las cicatrices no cambian todas igual, por eso armamos una secuencia realista para ir mejorando por capas y no prometer de mas.",
+            "lead": "Como no todas las cicatrices responden igual, ordenamos una secuencia realista para mejorar relieve, tono y textura sin prometer de mas.",
             "bullets": [
-                "Identificar el tipo de cicatriz",
-                "Combinar recursos por etapas",
-                "Medir progreso real",
+                "Diferenciar el tipo de cicatriz",
+                "Ordenar recursos por etapas",
+                "Medir cambios reales",
                 "Cuidar la piel entre sesiones"
             ],
             "process": [
                 "Leemos la cicatriz",
                 "Definimos la secuencia",
-                "Controlamos cambios visibles",
-                "Refinamos el plan"
+                "Revisamos cambios visibles",
+                "Ajustamos el plan"
             ],
             "faq": [
                 "Todas las cicatrices responden igual?",
-                "Cuantas sesiones suelen requerirse?",
-                "Que cuidados son clave despues?"
+                "Cuantas sesiones suelen planificarse?",
+                "Que cuidados pesan mas despues?"
             ],
             "related": ["laser-dermatologico", "peeling-quimico"],
             "faqAnswers": [
-                "No responden igual. Influyen tipo de cicatriz, antiguedad, fototipo y que tan constante pueda ser el seguimiento.",
+                "No responden igual. Influyen el tipo de cicatriz, la antiguedad, el fototipo y que tan constante pueda ser el seguimiento.",
                 "Suelen planificarse 3 a 6 sesiones, con reevaluacion en cada etapa para ajustar intensidad y combinaciones.",
                 "Fotoproteccion diaria, hidratacion de barrera y menos roce sobre la zona ayudan a consolidar mejor los cambios."
             ],
@@ -239,30 +239,30 @@
             "slug": "cancer-piel",
             "category": "Tamizaje",
             "title": "Cancer de piel",
-            "summary": "Revision de lesiones sospechosas para decidir pronto si basta control o si hace falta un paso mas.",
+            "summary": "Revision de lesiones sospechosas para decidir pronto si basta control o si hace falta un paso adicional.",
             "heroImage": "/images/optimized/v6-clinic-cancer-piel.webp",
             "heroAlt": "Tamizaje temprano de cancer de piel",
-            "lead": "Cuando un lunar o una mancha cambian, lo importante es no dejarlo para despues y decidir con criterio desde la primera revision.",
+            "lead": "Si un lunar o una mancha cambiaron, conviene revisar a tiempo para decidir con criterio y no dejarlo avanzar por espera innecesaria.",
             "bullets": [
-                "Revisar lesiones sospechosas",
-                "Detectar alertas importantes",
+                "Revisar lesiones con alerta",
+                "Identificar signos relevantes",
                 "Definir conducta y tiempos",
-                "Ordenar el seguimiento"
+                "Ordenar seguimiento"
             ],
             "process": [
-                "Triage del motivo",
-                "Examen dermatologico",
-                "Decision de conducta",
-                "Control segun riesgo"
+                "Escuchamos el motivo",
+                "Hacemos examen dermatologico",
+                "Decidimos conducta",
+                "Programamos control segun riesgo"
             ],
             "faq": [
                 "Cada cuanto conviene revisar lunares?",
-                "Que signos exigen consulta inmediata?",
-                "Puede comenzar por teledermatologia?"
+                "Que cambios piden consulta pronta?",
+                "Puede empezar por teledermatologia?"
             ],
             "related": ["diagnostico-integral", "piel-cabello-unas"],
             "faqAnswers": [
-                "En personas de mayor riesgo solemos revisar entre 6 y 12 meses, aunque el intervalo se define por hallazgos y antecedentes.",
+                "En personas de mayor riesgo solemos revisar entre 6 y 12 meses, aunque el intervalo final depende de hallazgos y antecedentes.",
                 "Conviene consultar pronto si hay asimetria, bordes irregulares, cambio rapido de color o una lesion que sangra y no cierra.",
                 "Si para triage inicial. Si vemos senales de riesgo, priorizamos evaluacion presencial sin dejar pasar tiempo."
             ],
@@ -275,30 +275,30 @@
             "slug": "peeling-quimico",
             "category": "Procedimientos",
             "title": "Peeling quimico",
-            "summary": "Renovacion cutanea para manchas, textura o tono cuando la piel esta lista para hacerlo con seguridad.",
+            "summary": "Renovacion cutanea para manchas, textura o tono cuando la piel esta lista y el cuidado posterior puede sostenerse.",
             "heroImage": "/images/optimized/v6-clinic-peeling-quimico.webp",
             "heroAlt": "Peeling quimico dermatologico",
-            "lead": "El peeling no se elige por moda; se ajusta a su fototipo, su sensibilidad y el tiempo real de recuperacion.",
+            "lead": "El peeling se indica por criterio clinico, no por moda. Importan su fototipo, su sensibilidad y el tiempo real de recuperacion.",
             "bullets": [
-                "Elegir la formula correcta",
-                "Medir tolerancia de la piel",
+                "Escoger formula y profundidad",
+                "Medir tolerancia cutanea",
                 "Explicar recuperacion",
-                "Planear las sesiones"
+                "Planificar sesiones"
             ],
             "process": [
-                "Vemos el estado de piel",
+                "Revisamos el estado de piel",
                 "Aplicamos de forma controlada",
-                "Indicamos el cuidado post",
+                "Indicamos cuidado posterior",
                 "Revisamos la respuesta"
             ],
             "faq": [
                 "Cuantos dias dura la recuperacion?",
                 "Puede combinarse con laser?",
-                "Que factores limitan su indicacion?"
+                "Que factores frenan su indicacion?"
             ],
             "related": ["mesoterapia", "laser-dermatologico"],
             "faqAnswers": [
-                "La recuperacion suele durar entre 3 y 7 dias, segun profundidad del peeling y sensibilidad de su piel.",
+                "La recuperacion suele durar entre 3 y 7 dias, segun la profundidad del peeling y la sensibilidad de su piel.",
                 "Si, pero dentro de una secuencia medica que respete tiempos de seguridad y evite irritacion acumulada.",
                 "Embarazo, irritacion activa, mala adherencia a fotoproteccion o sensibilidad marcada pueden hacer que se postergue."
             ],
@@ -311,26 +311,26 @@
             "slug": "mesoterapia",
             "category": "Rejuvenecimiento",
             "title": "Mesoterapia",
-            "summary": "Sesiones de apoyo para hidratacion, luminosidad y mejor calidad de piel cuando hace sentido sumarlas.",
+            "summary": "Sesiones de apoyo para hidratacion, luminosidad y calidad de piel cuando tiene sentido sumarlas a un plan.",
             "heroImage": "/images/optimized/v6-clinic-mesoterapia.webp",
             "heroAlt": "Mesoterapia dermatologica",
-            "lead": "La mesoterapia rinde mas cuando entra en un plan bien armado, no como una sesion aislada que promete todo.",
+            "lead": "La mesoterapia funciona mejor como parte de una estrategia ordenada, no como una promesa aislada para resolverlo todo.",
             "bullets": [
-                "Leer la calidad de piel",
-                "Definir un plan por sesiones",
-                "Sumar cuidado complementario",
+                "Leer calidad de piel",
+                "Definir plan por sesiones",
+                "Sumar cuidados utiles",
                 "Controlar la respuesta"
             ],
             "process": [
                 "Valoramos la piel",
                 "Hacemos la primera sesion",
-                "Revisamos como evoluciona",
+                "Vemos como evoluciona",
                 "Definimos mantenimiento"
             ],
             "faq": [
-                "Hay tiempo de reposo?",
-                "Cada cuanto se repite?",
-                "Con que servicios se combina mejor?"
+                "Hace falta reposo despues?",
+                "Cada cuanto suele repetirse?",
+                "Con que servicios suele combinarse mejor?"
             ],
             "related": ["bioestimuladores-colageno", "peeling-quimico"],
             "faqAnswers": [
@@ -347,24 +347,24 @@
             "slug": "laser-dermatologico",
             "category": "Tecnologia",
             "title": "Laser dermatologico",
-            "summary": "Tratamientos laser con parametros medicos claros y controles despues de cada sesion.",
+            "summary": "Tratamientos laser con indicacion medica clara, parametros cuidadosos y control despues de cada sesion.",
             "heroImage": "/images/optimized/v6-clinic-laser-dermatologico.webp",
             "heroAlt": "Laser dermatologico medico",
-            "lead": "Ajustamos cada parametro segun lo que queremos corregir, como responde su piel y que tan seguro es avanzar.",
+            "lead": "Cada parametro se ajusta a lo que queremos tratar, al fototipo y a la forma en que su piel tolera avanzar con seguridad.",
             "bullets": [
-                "Indicar segun fototipo",
+                "Indicar segun objetivo y fototipo",
                 "Cuidar seguridad y tiempos",
                 "Ajustar por tipo de lesion",
-                "Seguir de cerca la evolucion"
+                "Revisar evolucion"
             ],
             "process": [
-                "Valoramos el caso",
+                "Valoramos la indicacion",
                 "Hacemos la primera sesion",
-                "Ajustamos parametros",
-                "Cerramos o continuamos el ciclo"
+                "Ajustamos parametros si hace falta",
+                "Definimos continuidad o cierre"
             ],
             "faq": [
-                "Es apto para todos los fototipos?",
+                "Sirve para todos los fototipos?",
                 "Cuantas sesiones son frecuentes?",
                 "Que cuidados posteriores son obligatorios?"
             ],
@@ -383,13 +383,13 @@
             "slug": "botox",
             "category": "Rejuvenecimiento",
             "title": "Botox medico",
-            "summary": "Suavizamos lineas de expresion con dosis responsables y un resultado que siga pareciendo suyo.",
+            "summary": "Suavizamos lineas de expresion con dosis prudentes y un resultado que siga viendose suyo.",
             "heroImage": "/images/optimized/v6-clinic-botox.webp",
             "heroAlt": "Aplicacion medica de botox",
-            "lead": "La meta no es congelar el rostro; es relajar zonas puntuales para que usted se vea descansado sin perder expresion.",
+            "lead": "La idea no es congelar el rostro. Buscamos relajar zonas puntuales para que usted se vea descansado y siga expresandose con naturalidad.",
             "bullets": [
-                "Ver la expresion en movimiento",
-                "Aplicar solo donde hace falta",
+                "Leer la expresion en movimiento",
+                "Indicar solo lo necesario",
                 "Controlar el resultado temprano",
                 "Reevaluar con calma"
             ],
@@ -397,16 +397,16 @@
                 "Consulta y valoracion",
                 "Aplicacion dirigida",
                 "Control temprano",
-                "Mantenimiento"
+                "Mantenimiento segun respuesta"
             ],
             "faq": [
-                "Cuando se aprecia el efecto?",
-                "Cada cuanto suele repetirse?",
-                "Que cuidados debo mantener despues?"
+                "Cuando suele apreciarse el efecto?",
+                "Cada cuanto se repite normalmente?",
+                "Que cuidados conviene mantener despues?"
             ],
             "related": ["bioestimuladores-colageno", "mesoterapia"],
             "faqAnswers": [
-                "El cambio inicial suele notarse entre dias 3 y 5, y el efecto completo aparece cerca del dia 10 a 14.",
+                "El cambio inicial suele notarse entre los dias 3 y 5, y el efecto completo aparece cerca del dia 10 a 14.",
                 "En promedio dura 3 a 4 meses, aunque cambia por metabolismo, zona tratada y forma de gesticular.",
                 "Conviene evitar masaje fuerte y ejercicio intenso por 24 horas, ademas de seguir lo indicado en consulta."
             ],
@@ -419,30 +419,30 @@
             "slug": "bioestimuladores-colageno",
             "category": "Rejuvenecimiento",
             "title": "Bioestimuladores de colageno",
-            "summary": "Estimulo progresivo para dar soporte y firmeza cuando la piel ha perdido estructura.",
+            "summary": "Estimulo progresivo para soporte y firmeza cuando la piel ha perdido estructura, con tiempos realistas.",
             "heroImage": "/images/optimized/v6-clinic-bioestimuladores-colageno.webp",
             "heroAlt": "Bioestimulacion de colageno",
-            "lead": "Lo planificamos por zonas y con tiempos reales, para que el cambio se vea natural y no parezca forzado.",
+            "lead": "Se planifica por zonas y etapas, para que el cambio se vea natural y no se sienta forzado.",
             "bullets": [
-                "Leer flacidez y soporte",
+                "Leer soporte y flacidez",
                 "Planificar por zonas",
                 "Controlar la evolucion",
-                "Combinar solo si aporta"
+                "Combinar solo si suma"
             ],
             "process": [
-                "Diagnostico facial",
-                "Aplicacion",
-                "Seguimiento",
-                "Sesion complementaria"
+                "Valoramos el rostro",
+                "Aplicamos el plan indicado",
+                "Seguimos la respuesta",
+                "Definimos sesion adicional si hace falta"
             ],
             "faq": [
-                "En cuanto tiempo se observan cambios?",
+                "En cuanto tiempo suelen verse cambios?",
                 "Cuantas sesiones se recomiendan?",
                 "Puede combinarse con botox medico?"
             ],
             "related": ["botox", "mesoterapia"],
             "faqAnswers": [
-                "El cambio es progresivo. Suele empezar a verse desde semana 6 y consolidarse entre 3 y 6 meses.",
+                "El cambio es progresivo. Suele empezar a verse desde la semana 6 y consolidarse entre 3 y 6 meses.",
                 "Lo habitual son 2 o 3 sesiones, definidas por flacidez, zonas tratadas y respuesta de los tejidos.",
                 "Si, puede combinarse dentro de un plan facial integral con tiempos claros y seguimiento medico."
             ],
@@ -455,26 +455,26 @@
             "slug": "piel-cabello-unas",
             "category": "Integral",
             "title": "Piel, cabello y unas",
-            "summary": "Consulta integral para sintomas mezclados o cronicos que no se explican bien viendo una sola parte.",
+            "summary": "Consulta integral para sintomas mezclados o cronicos que no conviene separar en varias rutas sin contexto.",
             "heroImage": "/images/optimized/v6-clinic-piel-cabello-unas.webp",
             "heroAlt": "Dermatologia integral",
-            "lead": "Si la caida de cabello, los cambios en unas y los sintomas de piel van juntos, conviene leer el caso completo.",
+            "lead": "Si piel, cabello y unas se estan afectando a la vez, conviene leer el cuadro completo antes de partirlo en consultas desconectadas.",
             "bullets": [
-                "Lectura integral del caso",
-                "Control de sintomas mixtos",
-                "Plan coordinado",
-                "Revision segun evolucion"
+                "Leer el caso completo",
+                "Ordenar sintomas cruzados",
+                "Definir plan coordinado",
+                "Controlar por evolucion"
             ],
             "process": [
                 "Escuchamos el conjunto",
-                "Hacemos diagnostico integral",
+                "Hacemos una lectura integral",
                 "Armamos un plan por etapas",
                 "Monitoreamos cambios"
             ],
             "faq": [
-                "Que casos entran en este servicio?",
-                "Puede iniciar por teledermatologia?",
-                "Cada cuanto se realiza control?"
+                "Que casos suelen entrar aqui?",
+                "Puede empezar por teledermatologia?",
+                "Cada cuanto suele hacerse control?"
             ],
             "related": ["diagnostico-integral", "dermatologia-pediatrica"],
             "faqAnswers": [
@@ -491,24 +491,24 @@
             "slug": "dermatologia-pediatrica",
             "category": "Pediatria",
             "title": "Dermatologia pediatrica",
-            "summary": "Atencion para ninos y adolescentes con explicaciones claras para quienes cuidan y acompanan.",
+            "summary": "Atencion para ninos y adolescentes con explicaciones claras para quien cuida y acompana.",
             "heroImage": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
             "heroAlt": "Consulta pediatrica dermatologica",
-            "lead": "Queremos que familia y paciente entiendan el plan sin enredos, con pasos concretos para casa, escuela y control.",
+            "lead": "La idea es que familia y paciente entiendan el plan, sepan que hacer en casa y tengan claro cuando toca volver a revisar.",
             "bullets": [
-                "Diagnostico pediatrico",
-                "Guia clara para cuidadores",
-                "Seguimiento progresivo",
-                "Escalamiento cuando toca"
+                "Leer el caso segun la edad",
+                "Explicar con claridad a cuidadores",
+                "Dar pasos concretos para casa",
+                "Escalar cuando haga falta"
             ],
             "process": [
                 "Consulta inicial",
-                "Plan para la familia",
+                "Plan para familia y paciente",
                 "Control",
                 "Ajustes segun evolucion"
             ],
             "faq": [
-                "Que debo llevar a la primera cita?",
+                "Que conviene llevar a la primera cita?",
                 "Como se explica el plan al nino o adolescente?",
                 "Puede combinarse con teledermatologia?"
             ],

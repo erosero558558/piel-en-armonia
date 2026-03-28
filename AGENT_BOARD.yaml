@@ -7,8 +7,8 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 780
-  updated_at: 2026-03-27
+  revision: 781
+  updated_at: 2026-03-28
 
 strategy:
   active:
@@ -35,7 +35,7 @@ strategy:
     focus_non_goals: ["runtime_publico", "en_copy_rewrite", "legacy_route_changes", "public_publish", "backend_support_by_default", "transversal_support_by_default"]
     focus_owner: "Ernesto"
     focus_review_due_at: "2026-03-30"
-    focus_evidence_ref: "verification/agent-runs/CDX-047.md"
+    focus_evidence_ref: "verification/agent-runs/CDX-050.md"
     focus_max_active_slices: 1
     subfronts:
       - codex_instance: codex_frontend
@@ -66,7 +66,7 @@ strategy:
         default_acceptance_profile: "transversal_runtime_checkpoint"
         exception_ttl_hours: 4
   next: null
-  updated_at: "2026-03-27"
+  updated_at: "2026-03-28"
 
 tasks:
   - id: AG-001
@@ -970,8 +970,8 @@ tasks:
     title: "Public V6 ES ecuatorian voice rewrite mirror"
     owner: Ernesto
     executor: codex
-    status: review
-    status_since_at: "2026-03-27T23:36:00Z"
+    status: done
+    status_since_at: "2026-03-28T01:03:15.449Z"
     risk: medium
     scope: frontend-public
     codex_instance: codex_frontend
@@ -1002,8 +1002,8 @@ tasks:
     heartbeat_at: ""
     lease_expires_at: ""
     lease_reason: ""
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_cleared_at: "2026-03-28T01:03:15.449Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "Paquete validado de Public V6 con voz ecuatoriana en ES y limpieza puntual de lenguaje tecnico visible en en/software, manteniendo schema, rutas, marca canonica y una sola oferta."
@@ -1023,7 +1023,7 @@ tasks:
     depends_on: ["AG-256"]
     prompt: "Activar la ola draft de Public V6 desde el patch validado, limitando el write set a navigation/home/hub/software en ES y limpieza puntual de en/software, usando AG-256 solo como referencia historica del frente, sin reabrir service/telemedicine/legal ni tocar runtime."
     created_at: 2026-03-26
-    updated_at: 2026-03-27
+    updated_at: 2026-03-28
 
   - id: CDX-048
     title: "Public V6 ES service telemedicine legal rewrite mirror"
@@ -1055,12 +1055,12 @@ tasks:
     last_attempt_at: "2026-03-27T23:32:25Z"
     attempts: 1
     blocked_reason: ""
-    lease_id: ""
-    lease_owner: ""
-    lease_created_at: ""
-    heartbeat_at: ""
-    lease_expires_at: ""
-    lease_reason: ""
+    lease_id: "lease_CDX-048_20260328005507814_2a5106"
+    lease_owner: "Ernesto"
+    lease_created_at: "2026-03-28T00:55:07.814Z"
+    heartbeat_at: "2026-03-28T01:59:16.836Z"
+    lease_expires_at: "2026-03-28T05:59:16.836Z"
+    lease_reason: "leases_heartbeat"
     lease_cleared_at: ""
     lease_cleared_reason: ""
     runtime_impact: low
@@ -1082,7 +1082,66 @@ tasks:
     depends_on: ["CDX-045"]
     prompt: "Completar la segunda slice editorial de Public V6 ES reescribiendo solo service, telemedicine y legal en ES con voz natural para Ecuador, claridad en usted y prudencia clinica/legal, sin tocar runtime ni rutas fuera del write set."
     created_at: 2026-03-27
-    updated_at: 2026-03-27
+    updated_at: 2026-03-28
+
+  - id: CDX-050
+    title: "Public V6 ES publish readiness evidence snapshot"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-28T01:53:26Z"
+    risk: medium
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", ".gitignore", "verification/agent-runs/CDX-048.md", "verification/agent-runs/CDX-050.md", "tools/agent-orchestrator/commands/focus.js", "tests-node/agent-orchestrator-cli.test.js"]
+    source_signal: manual
+    source_ref: "CDX-047,CDX-048"
+    priority_score: 70
+    sla_due_at: "2026-03-30T23:59:00Z"
+    last_attempt_at: "2026-03-28T01:53:26Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T01:53:26Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El foco Public V6 ES queda en publish_readiness_review con snapshot local canonico de required checks, evidencia durable en CDX-050, sin board forks activos y sin tocar copy, runtime publico ni public_main_sync."
+    acceptance_ref: "verification/agent-runs/CDX-050.md"
+    evidence_ref: "verification/agent-runs/CDX-050.md"
+    strategy_id: "STRAT-2026-03-public-v6-es-voz-ecuatoriana"
+    subfront_id: "SF-transversal-public-v6-es-support"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-public-v6-es-voz-cut-1"
+    focus_step: "publish_readiness_review"
+    integration_slice: "governance_evidence"
+    work_type: "support"
+    expected_outcome: "El frente Public V6 ES queda listo para review de readiness con focus verify, snapshot local canonico, evidencia de cierre y sin worktrees forked activos ensuciando el workspace."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-047", "CDX-048"]
+    prompt: "Cerrar publish_readiness_review de Public V6 ES desde gobernanza: materializar focus verify, dejar snapshot local canonico, corregir drift narrativo y retirar el worktree forked de CDX-049 sin tocar copy ni runtime."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
 
   - id: CDX-047
     title: "Public V6 ES required checks evidence resolver"

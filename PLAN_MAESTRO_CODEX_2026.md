@@ -21,18 +21,7 @@ focus_next_step: "publish_readiness_review"
 focus_required_checks: ["content:public-v6:validate", "audit:public-v6:copy", "test:frontend:qa:v6"]
 focus_max_active_slices: 1
 subfront_ids: ["SF-frontend-public-v6-es-copy", "SF-backend-public-v6-es-support", "SF-transversal-public-v6-es-support"]
-updated_at: "2026-03-27"
--->
-
-<!-- CODEX_ACTIVE
-task_id: CDX-045
-codex_instance: codex_frontend
-subfront_id: SF-frontend-public-v6-es-copy
-status: review
-focus_step: "publish_readiness_review"
-updated_at: "2026-03-27"
-acceptance_ref: "verification/agent-runs/CDX-045.md"
-evidence_ref: "verification/agent-runs/CDX-045.md"
+updated_at: "2026-03-28"
 -->
 
 <!-- CODEX_ACTIVE
@@ -41,7 +30,7 @@ codex_instance: codex_frontend
 subfront_id: SF-frontend-public-v6-es-copy
 status: review
 focus_step: "publish_readiness_review"
-updated_at: "2026-03-27"
+updated_at: "2026-03-28"
 acceptance_ref: "verification/agent-runs/CDX-048.md"
 evidence_ref: "verification/agent-runs/CDX-048.md"
 -->
@@ -83,12 +72,17 @@ evidence_ref: "verification/agent-runs/CDX-048.md"
 ## Public V6 ES activo 2026-03-27
 
 - `STRAT-2026-03-public-v6-es-voz-ecuatoriana` es el frente activo canónico.
-- `CDX-045` queda en `review` como slice 1 validada
+- `CDX-045` queda en `done` como slice 1 validada
   (`navigation/home/hub/software`).
 - `CDX-048` queda en `review` como slice 2 validada
   (`service/telemedicine/legal`).
 - `CDX-047` cierra el adapter minimo de required checks usando evidencia
   canonica de `CDX-045` y `CDX-048`, sin tocar contenido ni runtime.
+- `CDX-050` cierra la evidencia de `publish_readiness_review`, fija el
+  snapshot local canonico del foco y retira del set activo el residuo
+  operativo de `CDX-049`.
+- `CDX-049` queda absorbido historicamente por `CDX-047` y no se reabre
+  como slice separada.
 - El foco avanza de `copy_contract_validation` a
   `publish_readiness_review`.
 - `public_main_sync` sigue fuera de alcance de este frente y se tolera solo
@@ -149,8 +143,9 @@ evidence_ref: "verification/agent-runs/CDX-048.md"
 - `codex_frontend`: lidera el frente `Public V6 ES` y concentra las slices
   editoriales `CDX-045` y `CDX-048`.
 - `codex_backend_ops`: queda en soporte potencial, no activado por defecto.
-- `codex_transversal`: ya cerro `CDX-047` como soporte de checks/gobernanza
-  basado en evidencia; no toca contenido ni runtime público.
+- `codex_transversal`: ya cerro `CDX-047` y `CDX-050` como soporte de
+  checks/gobernanza basado en evidencia; no toca contenido ni runtime
+  público.
 - Regla actual: el frente sigue siendo `copy-first`; si un validador exigiera
   soporte fuera de frontend, se abre una slice separada y no se mezcla con el
   write set editorial.

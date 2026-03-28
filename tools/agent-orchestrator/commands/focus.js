@@ -1,6 +1,5 @@
 'use strict';
 
-const { spawnSync } = require('child_process');
 const { existsSync, mkdirSync, writeFileSync } = require('fs');
 const { dirname, join } = require('path');
 
@@ -298,60 +297,29 @@ function resolveLocalRequiredCheckScriptId(checkId) {
     return LOCAL_REQUIRED_CHECK_SCRIPT_OVERRIDES[safeId] || safeId;
 }
 
-function resolveNpmProgram() {
-    const nodeDir = dirname(process.execPath);
-    const candidate = join(
-        nodeDir,
-        process.platform === 'win32' ? 'npm.cmd' : 'npm'
-    );
-    if (existsSync(candidate)) {
-        return candidate;
-    }
-    return process.platform === 'win32' ? 'npm.cmd' : 'npm';
-}
-
-function buildLocalCheckEnv() {
-    const nodeDir = dirname(process.execPath);
-    const currentPath = String(process.env.PATH || '').trim();
-    const segments = [nodeDir];
-    if (currentPath) {
-        segments.push(currentPath);
-    }
-    return {
-        ...process.env,
-        PATH: segments.join(process.platform === 'win32' ? ';' : ':'),
-    };
-}
-
-function runLocalRequiredCheck(check, options = {}) {
-    const npmProgram = options.npmProgram || resolveNpmProgram();
-    const scriptId = resolveLocalRequiredCheckScriptId(check.id);
-    const command = `npm run ${scriptId}`;
-    const checkedAt = new Date().toISOString();
-    const result = spawnSync(npmProgram, ['run', scriptId], {
-        cwd: String(options.rootPath || process.cwd()).trim() || process.cwd(),
-        env: options.env || buildLocalCheckEnv(),
-        encoding: 'utf8',
-        shell: false,
-    });
-    const exitCode =
-        typeof result.status === 'number'
-            ? result.status
-            : result.error
-              ? 127
+function buildLocalSnapshotChecks(requiredChecks = [], nowIso) {
+    return requiredChecks.map((check) => {
+        const ok = check?.ok === true;
+        const exitCode = Number.isInteger(check?.exit_code)
+            ? check.exit_code
+            : ok
+              ? 0
               : 1;
-    return {
-        id: check.id,
-        type: check.type,
-        command,
-        ok: exitCode === 0,
-        exit_code: exitCode,
-        checked_at: checkedAt,
-        stdout: String(result.stdout || '').trim(),
-        stderr: String(result.stderr || '').trim(),
-        spawn_error:
-            result.error instanceof Error ? result.error.message : '',
-    };
+        return {
+            id: String(check?.id || '')
+                .trim()
+                .toLowerCase(),
+            type: String(check?.type || '')
+                .trim()
+                .toLowerCase(),
+            command:
+                String(check?.command || '').trim() ||
+                `npm run ${resolveLocalRequiredCheckScriptId(check?.id)}`,
+            ok,
+            exit_code: exitCode,
+            checked_at: String(check?.checked_at || '').trim() || nowIso,
+        };
+    });
 }
 
 function writeLocalRequiredCheckSnapshot(summary = {}, checkResults, options = {}) {
@@ -535,11 +503,14 @@ async function handleFocusCommand(ctx) {
         if (!summary?.configured) {
             throw new Error('focus verify requiere foco configurado');
         }
-        const localChecks = collectLocalRequiredChecks(summary);
-        const checkResults = localChecks.map((check) =>
-            runLocalRequiredCheck(check, {
-                rootPath: rootPath || process.cwd(),
-            })
+        const nowIso = new Date().toISOString();
+        const checkResults = buildLocalSnapshotChecks(
+            Array.isArray(summary?.required_checks)
+                ? summary.required_checks.filter((item) =>
+                      focusDomain.isLocalRequiredCheckType(item?.type)
+                  )
+                : [],
+            nowIso
         );
         const snapshot = writeLocalRequiredCheckSnapshot(summary, checkResults, {
             rootPath: rootPath || process.cwd(),
@@ -587,9 +558,7 @@ async function handleFocusCommand(ctx) {
                 `focus verify ${item.id}: ${item.ok ? 'green' : 'red'} (${item.command})`
             );
         }
-        if (!payload.ok) {
-            process.exitCode = 1;
-        }
+        if (!payload.ok) process.exitCode = 1;
         return payload;
     }
 

@@ -1,6 +1,6 @@
 {
-    "title": "Aurora Derm | Dermatologia clara para empezar en Quito",
-    "description": "Aurora Derm le ayuda a empezar por WhatsApp, consulta dermatologica o teledermatologia en Quito, con explicaciones claras y seguimiento entendible.",
+    "title": "Aurora Derm | Dermatologia clara y cercana en Quito",
+    "description": "Aurora Derm le ayuda a ubicar si hoy conviene WhatsApp, consulta dermatologica o teledermatologia en Quito, con explicaciones claras y seguimiento entendible.",
     "hero": {
         "autoplayMs": 7000,
         "labels": {
@@ -36,7 +36,7 @@
             {
                 "id": "s3",
                 "category": "Teledermatologia",
-                "title": "Si su caso puede avanzar a distancia, se lo decimos de una.",
+                "title": "Si su caso puede avanzar a distancia, se lo diremos.",
                 "description": "La teledermatologia sirve cuando fotos utiles e historia clara ayudan a orientar el caso y a decidir cuando ya conviene verle en Quito.",
                 "image": "/images/optimized/v6-clinic-telemedicine-intake.webp",
                 "srcset": "/images/optimized/v6-clinic-telemedicine-intake-400.webp 400w, /images/optimized/v6-clinic-telemedicine-intake-640.webp 640w, /images/optimized/v6-clinic-telemedicine-intake-800.webp 800w, /images/optimized/v6-clinic-telemedicine-intake-900.webp 900w, /images/optimized/v6-clinic-telemedicine-intake-1200.webp 1200w, /images/optimized/v6-clinic-telemedicine-intake.webp 1400w",
@@ -66,8 +66,8 @@
         ]
     },
     "newsStrip": {
-        "label": "Como empezar hoy",
-        "headline": "Escribanos por WhatsApp y le ayudamos a ubicar si hoy conviene consulta, tratamiento o teledermatologia.",
+        "label": "Empiece hoy",
+        "headline": "Escribanos por WhatsApp y le ayudamos a ver si hoy conviene consulta, tratamiento o teledermatologia.",
         "href": "https://wa.me/593982453672",
         "expandLabel": "Expandir",
         "collapseLabel": "Contraer",
@@ -77,8 +77,8 @@
     },
     "editorial": {
         "eyebrow": "Puertas de entrada",
-        "title": "Tres formas claras de empezar.",
-        "deck": "Una consulta presencial, una decision de tratamiento o una orientacion remota, segun lo que usted necesita hoy.",
+        "title": "Tres maneras sensatas de empezar.",
+        "deck": "Consulta presencial, decision de tratamiento u orientacion remota, segun lo que usted necesita resolver hoy.",
         "ctaLabel": "Ver servicio",
         "cards": [
             {
@@ -86,7 +86,7 @@
                 "type": "video",
                 "size": "tall",
                 "category": "Primera consulta",
-                "title": "Empiece con una lectura completa",
+                "title": "Empiece con una lectura completa del caso",
                 "copy": "Cuando se mezclan sintomas o todo empezo hace poco, esta consulta ordena prioridades, riesgo y siguiente paso sin hacerle adivinar.",
                 "href": "/es/servicios/diagnostico-integral/",
                 "image": "/images/optimized/v6-clinic-home-diagnostic-brief.webp",
@@ -98,8 +98,8 @@
                 "type": "info",
                 "size": "wide",
                 "category": "Tratamientos",
-                "title": "Tratamientos indicados, no por impulso",
-                "copy": "Laser, peelings y bioestimulacion se eligen solo cuando aportan valor clinico real y pueden seguirse con seguridad.",
+                "title": "Tratamientos cuando ya hay criterio clinico",
+                "copy": "Laser, peelings y bioestimulacion se eligen cuando aportan valor clinico real y pueden seguirse con seguridad.",
                 "href": "/es/servicios/laser-dermatologico/",
                 "image": "/images/optimized/v6-clinic-laser-dermatologico.webp",
                 "alt": "Plataforma laser dermatologica con parametros controlados",
@@ -110,7 +110,7 @@
                 "type": "info",
                 "size": "standard",
                 "category": "Teledermatologia",
-                "title": "Avance hoy sin decidir a ciegas",
+                "title": "Avance a distancia con limites claros",
                 "copy": "La teledermatologia ayuda a empezar temprano, ordenar imagenes y saber cuando remoto basta y cuando ya conviene verle.",
                 "href": "/es/telemedicina/",
                 "image": "/images/optimized/v6-clinic-telemedicine-review.webp",
@@ -149,15 +149,15 @@
     },
     "corporateMatrix": {
         "eyebrow": "Despues de entrar",
-        "title": "Luego afine la ruta a lo que su caso necesita.",
-        "deck": "Estas opciones afinan la decision cuando ya sabe si busca control inflamatorio, revision de lesiones, seguimiento integral o un procedimiento medico especifico.",
+        "title": "Despues afine la ruta segun lo que su piel necesita.",
+        "deck": "Estas opciones afinan la decision cuando usted ya sabe si busca control inflamatorio, revision de lesiones, seguimiento integral o un procedimiento medico especifico.",
         "ctaLabel": "Ver servicio",
         "cards": [
             {
                 "id": "m1",
                 "category": "Inflamacion",
                 "title": "Acne y rosacea",
-                "copy": "Plan por etapas para bajar brotes, calmar sensibilidad y evitar recaidas innecesarias.",
+                "copy": "Plan por etapas para bajar brotes, calmar sensibilidad y evitar recaidas que le hagan volver a empezar.",
                 "href": "/es/servicios/acne-rosacea/",
                 "image": "/images/optimized/v6-clinic-acne-rosacea.webp",
                 "alt": "Seguimiento dermatologico de inflamacion y sensibilidad cutanea",
@@ -167,7 +167,7 @@
                 "id": "m2",
                 "category": "Tamizaje",
                 "title": "Lesiones que vale la pena revisar",
-                "copy": "Revise cambios recientes, sangrado o senales de alarma antes de dejar pasar mas tiempo.",
+                "copy": "Revise cambios recientes, sangrado o senales de alarma antes de dejar pasar mas tiempo del necesario.",
                 "href": "/es/servicios/cancer-piel/",
                 "image": "/images/optimized/v6-clinic-cancer-piel.webp",
                 "alt": "Dermatoscopia y lectura de lesiones con criterios de alarma",
@@ -177,7 +177,7 @@
                 "id": "m3",
                 "category": "Pediatria",
                 "title": "Dermatologia pediatrica",
-                "copy": "Indicaciones claras para casa, escuela y cuidadores cuando la piel de un nino cambia o recae.",
+                "copy": "Indicaciones claras para casa, escuela y cuidadores cuando la piel de un nino cambia o vuelve a irritarse.",
                 "href": "/es/servicios/dermatologia-pediatrica/",
                 "image": "/images/optimized/v6-clinic-dermatologia-pediatrica.webp",
                 "alt": "Consulta dermatologica pediatrica con acompanamiento familiar",
@@ -216,9 +216,9 @@
         ]
     },
     "bookingStatus": {
-        "eyebrow": "Como empezar hoy",
+        "eyebrow": "Empiece hoy",
         "title": "Reserva online en mantenimiento",
-        "description": "Si quiere empezar hoy, escribanos por WhatsApp. Desde ahi le indicamos si conviene consulta presencial, teledermatologia o la ficha de servicio que mejor se parece a su caso.",
+        "description": "Si quiere empezar hoy, escribanos por WhatsApp. Desde ahi le ayudamos a ubicar si conviene consulta presencial, teledermatologia o la ficha que mejor se parece a su caso.",
         "ctaLabel": "Escribir por WhatsApp",
         "ctaHref": "https://wa.me/593982453672"
     }

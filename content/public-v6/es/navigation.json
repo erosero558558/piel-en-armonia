@@ -2,11 +2,11 @@
     "locale": "es",
     "brand": {
         "logo": "Aurora Derm",
-        "tag": "Dermatologia medica clara en Quito",
+        "tag": "Dermatologia medica clara y cercana en Quito",
         "voicePillars": [
             "criterio medico",
-            "explicacion sencilla",
-            "seguimiento claro"
+            "explicacion sin rodeos",
+            "seguimiento que se entiende"
         ],
         "utility": {
             "label": "Para clinicas",
@@ -25,12 +25,12 @@
             "mobileNavAria": "Menu principal",
             "search": {
                 "dialogAria": "Buscador de servicios y temas",
-                "eyebrow": "Encuentre por donde empezar",
-                "inputLabel": "Escriba un sintoma, servicio o tratamiento",
+                "eyebrow": "Ubique su siguiente paso",
+                "inputLabel": "Escriba su sintoma, servicio o tratamiento",
                 "placeholder": "Acne, lunares, caida de cabello, laser...",
-                "hint": "Busque por sintoma, servicio o tratamiento. Le mostramos por donde empezar y cuando conviene WhatsApp, consulta o teledermatologia.",
+                "hint": "Busque por sintoma, servicio o tratamiento. Le mostramos por donde conviene empezar y cuando basta WhatsApp, consulta o teledermatologia.",
                 "resultsAria": "Resultados de busqueda",
-                "emptyTitle": "No vimos una opcion clara",
+                "emptyTitle": "No vimos una ruta clara",
                 "emptyBody": "Pruebe con acne, lunares, caida de cabello, laser o teledermatologia.",
                 "closeLabel": "Cerrar buscador",
                 "resultsLimit": 8
@@ -50,7 +50,7 @@
     "header": {
         "contactLabel": "WhatsApp",
         "contactHref": "https://wa.me/593982453672",
-        "searchLabel": "Buscar por donde empezar",
+        "searchLabel": "Buscar la ruta correcta",
         "menuLabel": "Menu",
         "closeMenuLabel": "Cerrar",
         "switchLabel": "EN",
@@ -178,7 +178,7 @@
                 "context": {
                     "eyebrow": "Empiece aqui",
                     "title": "Empiece por la cita que mejor ordena su caso",
-                    "deck": "Si usted no sabe por donde arrancar, aqui reunimos las rutas que ayudan a entender primero y tratar despues.",
+                    "deck": "Si usted todavia no sabe por donde conviene entrar, aqui reunimos las rutas que ayudan a entender primero y decidir despues.",
                     "href": "/es/servicios/diagnostico-integral/"
                 },
                 "items": [
@@ -285,8 +285,8 @@
                 "heading": "Seguimiento",
                 "context": {
                     "eyebrow": "Acompanamiento continuo",
-                    "title": "Teledermatologia, controles y cambio de ruta en un mismo recorrido",
-                    "deck": "Aqui encuentra orientacion remota, seguimiento y el siguiente paso cuando el caso pide volver a primera consulta o pasar a revision presencial.",
+                    "title": "Teledermatologia, controles y cambio de ruta sin perder contexto",
+                    "deck": "Aqui encuentra orientacion remota, seguimiento y el paso a consulta cuando el caso pide volver a mirarse en persona.",
                     "href": "/es/telemedicina/"
                 },
                 "items": [
@@ -337,14 +337,14 @@
         ],
         "featured": {
             "eyebrow": "Aurora Derm",
-            "title": "Dermatologia que se explica bien y se siente cercana",
-            "deck": "La idea es simple: entender lo que le pasa, decirle claro que vemos y acompanarle sin enredarle.",
+            "title": "Dermatologia que le explica bien lo que pasa y lo que sigue",
+            "deck": "Queremos que usted entienda su caso, vea sus opciones con calma y sepa cual es el paso mas razonable hoy.",
             "href": "/es/servicios/"
         }
     },
     "footer": {
         "headline": "Aurora Derm",
-        "deck": "Dermatologia en Quito con explicaciones claras, trato cercano y seguimiento bien llevado.",
+        "deck": "Dermatologia en Quito para entender bien su caso y saber que sigue sin dar vueltas innecesarias.",
         "columns": [
             {
                 "title": "Empezar",
@@ -364,7 +364,7 @@
                 ]
             },
             {
-                "title": "Legal y consentimiento",
+                "title": "Politicas y consentimientos",
                 "links": [
                     {
                         "label": "Terminos",
@@ -396,7 +396,7 @@
                 "title": "Para clinicas",
                 "links": [
                     {
-                        "label": "Turnero para clinicas",
+                        "label": "Flow OS para clinicas",
                         "href": "/es/software/turnero-clinicas/"
                     },
                     {
@@ -424,7 +424,7 @@
                 "href": "/es/legal/aviso-medico/"
             },
             {
-                "label": "Acerca del sitio",
+                "label": "Sobre este sitio",
                 "href": "/es/legal/terminos/"
             },
             {

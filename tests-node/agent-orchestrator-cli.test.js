@@ -2669,6 +2669,151 @@ ${CODEX_MODEL_ROUTING_FIELDS}
     assert.ok(json.structural_errors.includes('required_check_unverified'));
 });
 
+test('focus verify materializa snapshot JSON canonico desde evidencia local ya validada', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForBoardSyncFixture(
+            `
+  - id: CDX-045
+    title: "Public V6 ES slice 1"
+    owner: ernesto
+    executor: codex
+    status: done
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+${CODEX_MODEL_ROUTING_FIELDS}
+    files: ["content/public-v6/es/home.json"]
+    acceptance: "Fixture"
+    acceptance_ref: "verification/agent-runs/CDX-045.md"
+    evidence_ref: "verification/agent-runs/CDX-045.md"
+    strategy_id: STRAT-2026-03-public-v6-es-voz-ecuatoriana
+    subfront_id: SF-frontend-public-v6-es-copy
+    strategy_role: primary
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: 2026-03-27T10:00:00Z
+    focus_id: FOCUS-2026-03-public-v6-es-voz-cut-1
+    focus_step: publish_readiness_review
+    integration_slice: frontend_runtime
+    work_type: forward
+    expected_outcome: "Slice 1"
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+  - id: CDX-048
+    title: "Public V6 ES slice 2"
+    owner: ernesto
+    executor: codex
+    status: review
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+${CODEX_MODEL_ROUTING_FIELDS}
+    files: ["content/public-v6/es/legal.json"]
+    acceptance: "Fixture"
+    acceptance_ref: "verification/agent-runs/CDX-048.md"
+    evidence_ref: "verification/agent-runs/CDX-048.md"
+    strategy_id: STRAT-2026-03-public-v6-es-voz-ecuatoriana
+    subfront_id: SF-frontend-public-v6-es-copy
+    strategy_role: primary
+    depends_on: ["CDX-045"]
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: 2026-03-27T23:36:00Z
+    focus_id: FOCUS-2026-03-public-v6-es-voz-cut-1
+    focus_step: publish_readiness_review
+    integration_slice: frontend_runtime
+    work_type: forward
+    expected_outcome: "Slice 2"
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+`,
+            activePublicV6StrategyYaml().replace(
+                'focus_next_step: "copy_contract_validation"',
+                'focus_next_step: "publish_readiness_review"'
+            )
+        ),
+        handoffs: baseHandoffs(),
+        plan: '# plan fixture\n',
+    });
+    mkdirSync(join(dir, 'verification', 'agent-runs'), { recursive: true });
+    writeFileSync(
+        join(dir, 'verification', 'agent-runs', 'CDX-045.md'),
+        [
+            '# CDX-045',
+            '- required_check: content:public-v6:validate | state: red | command: npm run content:public-v6:validate',
+            '- required_check: audit:public-v6:copy | state: red | command: npm run audit:public:v6:copy',
+            '- required_check: test:frontend:qa:v6 | state: red | command: TEST_LOCAL_SERVER=php npm run test:frontend:qa:v6',
+            '',
+        ].join('\n'),
+        'utf8'
+    );
+    writeFileSync(
+        join(dir, 'verification', 'agent-runs', 'CDX-048.md'),
+        [
+            '# CDX-048',
+            '- required_check: content:public-v6:validate | state: green | command: npm run content:public-v6:validate',
+            '- required_check: audit:public:v6:copy | state: green | command: npm run audit:public:v6:copy',
+            '- required_check: test:frontend:qa:v6 | state: green | command: TEST_LOCAL_SERVER=php npm run test:frontend:qa:v6',
+            '',
+        ].join('\n'),
+        'utf8'
+    );
+
+    const verifyJson = parseJsonStdout(runCli(dir, ['focus', 'verify', '--json']));
+    assert.equal(verifyJson.ok, true);
+
+    const snapshotPath = join(
+        dir,
+        'verification',
+        'focus-checks',
+        'FOCUS-2026-03-public-v6-es-voz-cut-1.json'
+    );
+    assert.equal(existsSync(snapshotPath), true);
+
+    const snapshot = JSON.parse(readFileSync(snapshotPath, 'utf8'));
+    assert.deepEqual(snapshot.focus_required_checks, [
+        'content:public-v6:validate',
+        'audit:public-v6:copy',
+        'test:frontend:qa:v6',
+    ]);
+    assert.deepEqual(
+        snapshot.checks.map((item) => [item.id, item.ok]),
+        [
+            ['content:public-v6:validate', true],
+            ['audit:public-v6:copy', true],
+            ['test:frontend:qa:v6', true],
+        ]
+    );
+
+    const statusJson = parseJsonStdout(runCli(dir, ['focus', 'status', '--json']));
+    assert.equal(statusJson.focus.required_checks_ok, true);
+    assert.deepEqual(
+        statusJson.focus.required_checks.map((item) => [item.id, item.state]),
+        [
+            ['content:public-v6:validate', 'green'],
+            ['audit:public-v6:copy', 'green'],
+            ['test:frontend:qa:v6', 'green'],
+        ]
+    );
+
+    const checkJson = parseJsonStdout(
+        runCli(dir, ['focus', 'check', '--enforce-required-checks', '--json'])
+    );
+    assert.equal(checkJson.ok, true);
+});
+
 test('focus check --refresh-required-checks soporta families frontend con una sola slice activa', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
