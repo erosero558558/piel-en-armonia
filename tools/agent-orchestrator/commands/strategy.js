@@ -532,6 +532,7 @@ async function handleStrategyCommand(ctx) {
         board,
         {
             title: flags.title,
+            id: flags.id,
             scope: flags.scope,
             files,
             subfront_id: flags['subfront-id'] || flags.subfront_id || '',
@@ -557,7 +558,12 @@ async function handleStrategyCommand(ctx) {
         typeof findAlignedActiveCodexMirrorTasks === 'function'
     ) {
         const alignedMirrors = findAlignedActiveCodexMirrorTasks(board, task, {
-            activeStatuses: new Set(['ready', 'in_progress', 'review', 'blocked']),
+            activeStatuses: new Set([
+                'ready',
+                'in_progress',
+                'review',
+                'blocked',
+            ]),
         }).map((candidate) => String(candidate?.id || '').trim());
         if (alignedMirrors.length === 0) {
             throw new Error(

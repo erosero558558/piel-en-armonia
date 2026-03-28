@@ -1,11 +1,6 @@
 'use strict';
 
-const {
-    existsSync,
-    mkdirSync,
-    readFileSync,
-    writeFileSync,
-} = require('fs');
+const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('fs');
 const crypto = require('crypto');
 const path = require('path');
 const { spawnSync } = require('child_process');
@@ -68,8 +63,7 @@ const FRONTEND_REQUIRED_CHECK_TYPES = new Set(['content', 'audit', 'test']);
 const LOCAL_REQUIRED_CHECK_TYPES = FRONTEND_REQUIRED_CHECK_TYPES;
 const LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION = 1;
 const REQUIRED_CHECKS_SNAPSHOT_VERSION = 1;
-const REQUIRED_CHECKS_SNAPSHOT_DIRNAME =
-    '.codex-local/focus-required-checks';
+const REQUIRED_CHECKS_SNAPSHOT_DIRNAME = '.codex-local/focus-required-checks';
 const LOCAL_REQUIRED_CHECK_ID_ALIASES = {
     'audit:public:v6:copy': 'audit:public-v6:copy',
 };
@@ -77,15 +71,7 @@ const FRONTEND_REQUIRED_CHECK_SCRIPT_OVERRIDES = {
     'audit:public-v6:copy': 'audit:public:v6:copy',
 };
 const EVIDENCE_REQUIRED_CHECK_STATUSES = new Set(['review', 'done']);
-const EVIDENCE_REQUIRED_CHECK_SUBFRONT_IDS_BY_FOCUS = Object.freeze({
-    'FOCUS-2026-03-public-v6-es-voz-cut-1': [
-        'SF-frontend-public-v6-es-copy',
-    ],
-    'FOCUS-2026-03-turnero-web-pilot-local-cut-1': [
-        'SF-frontend-turnero-web-pilot-local',
-        'SF-backend-turnero-web-pilot-local',
-    ],
-});
+const EVIDENCE_REQUIRED_CHECK_SUBFRONT_ID = 'SF-frontend-public-v6-es-copy';
 const REQUIRED_CHECK_EVIDENCE_PATTERN =
     /^\s*-\s*required_check:\s*([^|]+?)\s*\|\s*state:\s*(green|red)\s*\|\s*command:\s*(.+?)\s*$/gim;
 let cachedWorkspaceDomain = null;
@@ -143,17 +129,6 @@ function normalizeFocusStatus(value) {
     const status = normalizeOptionalToken(value);
     if (!status) return '';
     return ALLOWED_FOCUS_STATUSES.has(status) ? status : status;
-}
-
-function getEvidenceRequiredCheckSubfrontIds(focusId) {
-    const safeFocusId = String(focusId || '').trim();
-    const configured =
-        EVIDENCE_REQUIRED_CHECK_SUBFRONT_IDS_BY_FOCUS[safeFocusId];
-    return Array.isArray(configured)
-        ? configured
-              .map((item) => String(item || '').trim())
-              .filter(Boolean)
-        : [];
 }
 
 function normalizeFocusMaxActiveSlices(value, fallback = 3) {
@@ -432,7 +407,9 @@ function normalizeLocalRequiredCheckSnapshot(snapshot = {}) {
     return {
         version:
             Number.parseInt(
-                String(snapshot.version || LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION),
+                String(
+                    snapshot.version || LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION
+                ),
                 10
             ) || LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION,
         focus_id: String(snapshot.focus_id || '').trim(),
@@ -502,9 +479,13 @@ function compareTasksByUpdatedAtDesc(left = {}, right = {}) {
     if (leftMs !== rightMs) {
         return rightMs - leftMs;
     }
-    return String(left.id || '').localeCompare(String(right.id || ''), undefined, {
-        numeric: true,
-    });
+    return String(left.id || '').localeCompare(
+        String(right.id || ''),
+        undefined,
+        {
+            numeric: true,
+        }
+    );
 }
 
 function getTaskEvidenceRefs(task = {}) {
@@ -517,7 +498,11 @@ function getTaskEvidenceRefs(task = {}) {
     );
 }
 
-function buildLocalRequiredCheckSnapshotFromEvidence(board, focus, options = {}) {
+function buildLocalRequiredCheckSnapshotFromEvidence(
+    board,
+    focus,
+    options = {}
+) {
     const resolvedFocus = focus?.configured ? focus.configured : focus;
     const focusId = String(resolvedFocus?.id || '').trim();
     const activeStrategy =
@@ -536,7 +521,9 @@ function buildLocalRequiredCheckSnapshotFromEvidence(board, focus, options = {})
     const rootPath =
         String(options.rootPath || process.cwd()).trim() || process.cwd();
     const existsImpl =
-        typeof options.existsSync === 'function' ? options.existsSync : existsSync;
+        typeof options.existsSync === 'function'
+            ? options.existsSync
+            : existsSync;
     const readFileImpl =
         typeof options.readFileSync === 'function'
             ? options.readFileSync
@@ -545,22 +532,14 @@ function buildLocalRequiredCheckSnapshotFromEvidence(board, focus, options = {})
     const requiredCheckIds = normalizeRequiredCheckList(
         resolvedFocus?.required_checks
     );
-    const allowedSubfrontIds = new Set(
-        getEvidenceRequiredCheckSubfrontIds(focusId)
-    );
-    if (allowedSubfrontIds.size === 0) {
-        return {
-            available: false,
-            valid: false,
-            reason: 'missing_evidence',
-            path: '',
-            snapshot: null,
-        };
-    }
     const tasks = Array.isArray(board?.tasks) ? board.tasks : [];
     const candidates = tasks
         .filter((task) => {
-            if (!EVIDENCE_REQUIRED_CHECK_STATUSES.has(normalizeOptionalToken(task?.status))) {
+            if (
+                !EVIDENCE_REQUIRED_CHECK_STATUSES.has(
+                    normalizeOptionalToken(task?.status)
+                )
+            ) {
                 return false;
             }
             if (
@@ -570,7 +549,8 @@ function buildLocalRequiredCheckSnapshotFromEvidence(board, focus, options = {})
                 return false;
             }
             if (
-                !allowedSubfrontIds.has(String(task?.subfront_id || '').trim())
+                String(task?.subfront_id || '').trim() !==
+                EVIDENCE_REQUIRED_CHECK_SUBFRONT_ID
             ) {
                 return false;
             }
@@ -578,7 +558,10 @@ function buildLocalRequiredCheckSnapshotFromEvidence(board, focus, options = {})
                 return false;
             }
             const updatedAtMs = parseDateMs(task?.updated_at);
-            if (startedAtMs !== null && (updatedAtMs === null || updatedAtMs < startedAtMs)) {
+            if (
+                startedAtMs !== null &&
+                (updatedAtMs === null || updatedAtMs < startedAtMs)
+            ) {
                 return false;
             }
             return getTaskEvidenceRefs(task).length > 0;
@@ -619,7 +602,8 @@ function buildLocalRequiredCheckSnapshotFromEvidence(board, focus, options = {})
                     cache.set(cacheKey, parsedChecks);
                 }
                 const matchedCheck =
-                    parsedChecks.find((item) => item.id === requiredCheckId) || null;
+                    parsedChecks.find((item) => item.id === requiredCheckId) ||
+                    null;
                 if (matchedCheck) {
                     resolvedChecks.push({
                         ...matchedCheck,
@@ -657,7 +641,9 @@ function loadLocalRequiredCheckSnapshot(focus, options = {}) {
         resolvedFocus?.required_checks
     );
     const board =
-        options.board && typeof options.board === 'object' ? options.board : null;
+        options.board && typeof options.board === 'object'
+            ? options.board
+            : null;
     const snapshotPath = resolveFocusCheckSnapshotPath(focusId, options);
     if (!focusId) {
         return {
@@ -669,7 +655,9 @@ function loadLocalRequiredCheckSnapshot(focus, options = {}) {
         };
     }
     const existsImpl =
-        typeof options.existsSync === 'function' ? options.existsSync : existsSync;
+        typeof options.existsSync === 'function'
+            ? options.existsSync
+            : existsSync;
     const readFileImpl =
         typeof options.readFileSync === 'function'
             ? options.readFileSync
@@ -787,8 +775,7 @@ function runCommand(program, args, options = {}) {
                   : 1,
         stdout: String(result.stdout || ''),
         stderr: String(result.stderr || ''),
-        error:
-            result.error instanceof Error ? result.error.message : '',
+        error: result.error instanceof Error ? result.error.message : '',
     };
 }
 
@@ -809,7 +796,8 @@ function normalizeWorkspaceRoots(options = {}) {
         const workspaceDomain = getWorkspaceDomain();
         if (
             workspaceDomain &&
-            typeof workspaceDomain.normalizeWorkspaceSyncPolicy === 'function' &&
+            typeof workspaceDomain.normalizeWorkspaceSyncPolicy ===
+                'function' &&
             typeof workspaceDomain.resolveWorkspaceRoots === 'function'
         ) {
             const policy =
@@ -819,7 +807,8 @@ function normalizeWorkspaceRoots(options = {}) {
                 cwd,
                 root_path: path.resolve(roots.main_root || fallbackRoot),
                 local_dir: path.resolve(
-                    roots.local_dir || path.resolve(fallbackRoot, '.codex-local')
+                    roots.local_dir ||
+                        path.resolve(fallbackRoot, '.codex-local')
                 ),
                 worktrees_dir: path.resolve(
                     roots.worktrees_dir ||
@@ -946,7 +935,10 @@ function resolveTaskExecutionContext(task, options = {}) {
     let worktreePath = roots.root_path;
     try {
         const workspaceDomain = getWorkspaceDomain();
-        if (workspaceDomain && typeof workspaceDomain.captureTaskWorkspace === 'function') {
+        if (
+            workspaceDomain &&
+            typeof workspaceDomain.captureTaskWorkspace === 'function'
+        ) {
             const capture = workspaceDomain.captureTaskWorkspace(task.id, {
                 cwd: roots.cwd,
                 governancePolicy: options.governancePolicy || null,
@@ -957,7 +949,10 @@ function resolveTaskExecutionContext(task, options = {}) {
             }
         }
     } catch {
-        const candidate = path.resolve(roots.worktrees_dir, String(task?.id || ''));
+        const candidate = path.resolve(
+            roots.worktrees_dir,
+            String(task?.id || '')
+        );
         if (existsSync(candidate)) {
             worktreePath = candidate;
         }
@@ -1099,14 +1094,16 @@ function validateRequiredChecksSnapshot(snapshot, metadata, options = {}) {
 }
 
 function buildRequiredChecksSnapshotState(state = {}) {
-    const snapshot = state.snapshot && typeof state.snapshot === 'object'
-        ? state.snapshot
-        : null;
+    const snapshot =
+        state.snapshot && typeof state.snapshot === 'object'
+            ? state.snapshot
+            : null;
     const generatedAt = String(
         state.generated_at || snapshot?.generated_at || ''
     ).trim();
     const valid = state.valid === true;
-    const reason = String(state.reason || '').trim() || (valid ? 'ok' : 'missing');
+    const reason =
+        String(state.reason || '').trim() || (valid ? 'ok' : 'missing');
     return {
         source: 'task_snapshot',
         available: state.available === true,
@@ -1193,7 +1190,8 @@ function evaluateFrontendRequiredCheck(check, snapshotState) {
     const snapshotCheck =
         snapshotChecks.find(
             (item) =>
-                normalizeRequiredCheckId(item?.id) === normalizeRequiredCheckId(check.id)
+                normalizeRequiredCheckId(item?.id) ===
+                normalizeRequiredCheckId(check.id)
         ) || null;
     if (!snapshotCheck) {
         return {
@@ -1205,8 +1203,9 @@ function evaluateFrontendRequiredCheck(check, snapshotState) {
         };
     }
     const command = String(snapshotCheck.command || '').trim();
-    const checkedAt =
-        String(snapshotCheck.checked_at || snapshotState.generated_at || '').trim();
+    const checkedAt = String(
+        snapshotCheck.checked_at || snapshotState.generated_at || ''
+    ).trim();
     if (snapshotCheck.ok === true) {
         return {
             ...check,
@@ -1254,9 +1253,7 @@ function refreshRequiredChecksSnapshot(board, options = {}) {
     });
     const checks = normalizeArray(focus.required_checks, { lowerCase: true })
         .map((token) => parseRequiredCheckToken(token))
-        .filter(
-            (item) => item && isFrontendRequiredCheckType(item.type)
-        );
+        .filter((item) => item && isFrontendRequiredCheckType(item.type));
     const npmProgram = resolveNpmProgram();
     const env = buildTaskCommandEnv(executionContext.root_path);
     const results = checks.map((check) => {
@@ -1289,7 +1286,11 @@ function refreshRequiredChecksSnapshot(board, options = {}) {
         ...metadata,
         checks: results,
     };
-    writeFileSync(`${snapshotPath}`, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+    writeFileSync(
+        `${snapshotPath}`,
+        `${JSON.stringify(payload, null, 2)}\n`,
+        'utf8'
+    );
     return {
         version: 1,
         ok: true,
@@ -1413,7 +1414,10 @@ function isOperatorAuthRecommendedModeHealthy(surface = {}) {
     return true;
 }
 
-function runtimeProviderMatchesRequiredCheckTarget(target, runtimeVerification) {
+function runtimeProviderMatchesRequiredCheckTarget(
+    target,
+    runtimeVerification
+) {
     const safeTarget = normalizeOptionalToken(target);
     if (!safeTarget) return false;
     const provider = normalizeOptionalToken(runtimeVerification?.provider);
@@ -1595,7 +1599,10 @@ function evaluateRequiredChecks(focus, options = {}) {
                     requiredChecksSnapshot
                 );
             }
-            return evaluateLocalRequiredCheck(check, localRequiredCheckSnapshot);
+            return evaluateLocalRequiredCheck(
+                check,
+                localRequiredCheckSnapshot
+            );
         }
         if (check.type === 'job') {
             const job = jobsSnapshot.find(
@@ -1747,7 +1754,9 @@ function buildFocusSummary(board, options = {}) {
 
     for (const task of activeTasks) {
         const taskId = String(task.id || '');
-        const taskStatus = String(task.status || '').trim().toLowerCase();
+        const taskStatus = String(task.status || '')
+            .trim()
+            .toLowerCase();
         const workType = String(task.work_type || '')
             .trim()
             .toLowerCase();
@@ -2024,8 +2033,9 @@ async function buildLiveFocusSummary(board, deps = {}) {
                 available: false,
                 valid: false,
                 reason:
-                    String(error?.error_code || error?.code || 'missing').trim() ||
-                    'missing',
+                    String(
+                        error?.error_code || error?.code || 'missing'
+                    ).trim() || 'missing',
                 path: getRequiredChecksSnapshotPath(requestedTaskId, {
                     cwd: deps.cwd || deps.rootPath || process.cwd(),
                     rootPath: deps.rootPath || deps.cwd || process.cwd(),
@@ -2070,76 +2080,45 @@ async function buildLiveFocusSummary(board, deps = {}) {
 
 function buildFocusSeed(strategy, options = {}) {
     const strategyId = String(strategy?.id || '').trim();
+    if (strategyId !== 'STRAT-2026-03-admin-operativo') {
+        throw new Error(
+            `focus set-active: seed no soportado para estrategia ${strategyId || 'vacia'}`
+        );
+    }
     const reviewDueAt =
         String(strategy?.review_due_at || '').trim() || '2026-03-21';
     const owner =
         String(strategy?.owner || options.owner || '').trim() || 'ernesto';
-    if (strategyId === 'STRAT-2026-03-admin-operativo') {
-        return {
-            focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
-            focus_title: 'Admin operativo demostrable',
-            focus_summary:
-                'Unificar admin clinico, quick-nav, queue/turnero piloto y readiness operacional en un solo corte legible.',
-            focus_status: 'active',
-            focus_proof:
-                'Operador inicia sesion, entra al admin, usa quick-nav, revisa queue/turnero piloto y el corte queda respaldado por runtime/deploy verificables',
-            focus_steps: [
-                'admin_queue_pilot_cut',
-                'pilot_readiness_evidence',
-                'feedback_trim',
-            ],
-            focus_next_step: 'admin_queue_pilot_cut',
-            focus_required_checks: [
-                'job:public_main_sync',
-                'runtime:operator_auth',
-            ],
-            focus_non_goals: [
-                'rediseno_publico',
-                'expansion_payments',
-                'refactor_orchestrator_no_bloqueante',
-                'modularizacion_fuera_del_corte',
-            ],
-            focus_owner: owner,
-            focus_review_due_at: reviewDueAt,
-            focus_evidence_ref: '',
-            focus_max_active_slices: 3,
-        };
-    }
-    if (strategyId === 'STRAT-2026-03-turnero-web-pilot-local-first') {
-        return {
-            focus_id: 'FOCUS-2026-03-turnero-web-pilot-local-cut-1',
-            focus_title: 'Turnero web pilot local-first por clinica',
-            focus_summary:
-                'Alinear perfil clinico, surfaces web y gate local para operar turnero como web_pilot por clinica, sin depender de native apps ni de verificacion remota.',
-            focus_status: 'active',
-            focus_proof:
-                'Admin, operador, kiosco y sala leen el perfil web_pilot de la clinica activa, el gate local vuelve a verde y desktop/Android quedan como carriles diferidos del piloto.',
-            focus_steps: [
-                'web_pilot_contract_alignment',
-                'web_surface_local_readiness',
-                'local_gate_validation',
-            ],
-            focus_next_step: 'web_pilot_contract_alignment',
-            focus_required_checks: [
-                'test:turnero:web-pilot:contracts',
-                'test:turnero:web-pilot:php-contract',
-                'test:turnero:web-pilot:ui',
-            ],
-            focus_non_goals: [
-                'verify_remote_turnero',
-                'prod_smoke_turnero',
-                'desktop_android_blocking',
-                'public_main_sync_recovery',
-            ],
-            focus_owner: owner,
-            focus_review_due_at: reviewDueAt,
-            focus_evidence_ref: '',
-            focus_max_active_slices: 2,
-        };
-    }
-    throw new Error(
-        `focus set-active: seed no soportado para estrategia ${strategyId || 'vacia'}`
-    );
+    return {
+        focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+        focus_title: 'Admin operativo demostrable',
+        focus_summary:
+            'Unificar admin clinico, quick-nav, queue/turnero piloto y readiness operacional en un solo corte legible.',
+        focus_status: 'active',
+        focus_proof:
+            'Operador inicia sesion, entra al admin, usa quick-nav, revisa queue/turnero piloto y el corte queda respaldado por runtime/deploy verificables',
+        focus_steps: [
+            'admin_queue_pilot_cut',
+            'pilot_readiness_evidence',
+            'feedback_trim',
+        ],
+        focus_next_step: 'admin_queue_pilot_cut',
+        focus_required_checks: ['test:admin:queue', 'test:turnero:ui'],
+        focus_non_goals: [
+            'rediseno_publico',
+            'expansion_payments',
+            'refactor_orchestrator_no_bloqueante',
+            'modularizacion_fuera_del_corte',
+            'public_main_sync',
+            'operator_auth',
+            'figo_queue',
+            'openclaw_runtime_recovery',
+        ],
+        focus_owner: owner,
+        focus_review_due_at: reviewDueAt,
+        focus_evidence_ref: '',
+        focus_max_active_slices: 3,
+    };
 }
 
 module.exports = {
