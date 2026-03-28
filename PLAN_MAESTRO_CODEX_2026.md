@@ -5,16 +5,6 @@ Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
 <!-- CODEX_ACTIVE
-codex_instance: codex_frontend
-block: C1
-task_id: CDX-056
-subfront_id: SF-frontend-turnero-web-pilot-local
-status: review
-files: ["content/turnero/clinic-profile.json", "content/turnero/clinic-profiles/piel-armonia-quito.json", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/model.js", "admin.js", "js/queue-operator.js", "verification/agent-runs/CDX-056.md"]
-updated_at: 2026-03-28
--->
-
-<!-- CODEX_ACTIVE
 codex_instance: codex_backend_ops
 block: C2
 task_id: CDX-057
@@ -25,12 +15,12 @@ updated_at: 2026-03-28
 -->
 
 <!-- CODEX_ACTIVE
-codex_instance: codex_transversal
-block: C3
-task_id: CDX-058
-subfront_id: SF-transversal-turnero-web-pilot-local
-status: in_progress
-files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/strategy.js", "verification/agent-runs/CDX-058.md"]
+codex_instance: codex_frontend
+block: C1
+task_id: CDX-056
+subfront_id: SF-frontend-turnero-web-pilot-local
+status: review
+files: ["content/turnero/clinic-profile.json", "content/turnero/clinic-profiles/piel-armonia-quito.json", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/model.js", "admin.js", "js/queue-operator.js", "verification/agent-runs/CDX-056.md"]
 updated_at: 2026-03-28
 -->
 
