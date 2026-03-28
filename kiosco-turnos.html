@@ -332,6 +332,83 @@
             </section>
 
             <aside class="kiosk-side">
+                <section class="kiosk-card kiosk-card--queue">
+                    <h2>Cola y pantalla</h2>
+                    <p
+                        id="queueConnectionState"
+                        class="queue-connection-state"
+                        data-state="live"
+                        role="status"
+                        aria-live="polite"
+                    >
+                        Cola conectada
+                    </p>
+                    <p id="queueUpdatedAt" class="queue-updated-at">
+                        Actualizacion pendiente
+                    </p>
+                    <div
+                        id="kioskSurfaceSyncHost"
+                        class="turnero-surface-sync-host turnero-surface-sync-host--kiosk"
+                        aria-live="polite"
+                    ></div>
+                    <div class="queue-kpi-row">
+                        <article>
+                            <span>En espera</span>
+                            <strong id="queueWaitingCount">0</strong>
+                        </article>
+                        <article>
+                            <span>Llamados</span>
+                            <strong id="queueCalledCount">0</strong>
+                        </article>
+                    </div>
+
+                    <h3>Llamando ahora</h3>
+                    <div
+                        id="queueCallingNow"
+                        class="queue-calling-now"
+                        aria-live="polite"
+                        aria-atomic="true"
+                    >
+                        <p class="queue-empty">Sin llamados activos.</p>
+                    </div>
+
+                    <h3>Siguientes turnos</h3>
+                    <ol
+                        id="queueNextList"
+                        class="queue-next-list"
+                        aria-live="polite"
+                    >
+                        <li class="queue-empty">No hay turnos en espera.</li>
+                    </ol>
+                </section>
+
+                <section class="kiosk-card kiosk-card--assistant">
+                    <h2>Asistente de orientación</h2>
+                    <p class="assistant-note">
+                        Solo orienta sobre turnos y sala de espera. No da
+                        indicaciones médicas.
+                    </p>
+                    <div
+                        id="assistantMessages"
+                        class="assistant-messages"
+                        role="log"
+                        aria-live="polite"
+                        aria-relevant="additions text"
+                    ></div>
+                    <form id="assistantForm" class="assistant-form">
+                        <input
+                            id="assistantInput"
+                            type="text"
+                            placeholder="Ejemplo: donde espero para consultorio 2"
+                            autocomplete="off"
+                            aria-label="Mensaje para asistente de sala"
+                        />
+                        <button id="assistantSend" type="submit">
+                            Enviar
+                        </button>
+                    </form>
+                </section>
+
                 <details id="kioskSupportShell" class="kiosk-support-shell">
                     <summary id="kioskSupportSummary">
                         Estado del kiosco y soporte
@@ -361,85 +438,6 @@
                                 Si la termica no imprime, revisa energia, papel y
                                 cable USB, luego crea un turno de prueba.
                             </p>
-                        </section>
-
-                        <section class="kiosk-card kiosk-card--queue">
-                            <h2>Cola y pantalla</h2>
-                            <p
-                                id="queueConnectionState"
-                                class="queue-connection-state"
-                                data-state="live"
-                                role="status"
-                                aria-live="polite"
-                            >
-                                Cola conectada
-                            </p>
-                            <p id="queueUpdatedAt" class="queue-updated-at">
-                                Actualizacion pendiente
-                            </p>
-                            <div
-                                id="kioskSurfaceSyncHost"
-                                class="turnero-surface-sync-host turnero-surface-sync-host--kiosk"
-                                aria-live="polite"
-                            ></div>
-                            <div class="queue-kpi-row">
-                                <article>
-                                    <span>En espera</span>
-                                    <strong id="queueWaitingCount">0</strong>
-                                </article>
-                                <article>
-                                    <span>Llamados</span>
-                                    <strong id="queueCalledCount">0</strong>
-                                </article>
-                            </div>
-
-                            <h3>Llamando ahora</h3>
-                            <div
-                                id="queueCallingNow"
-                                class="queue-calling-now"
-                                aria-live="polite"
-                                aria-atomic="true"
-                            >
-                                <p class="queue-empty">Sin llamados activos.</p>
-                            </div>
-
-                            <h3>Siguientes turnos</h3>
-                            <ol
-                                id="queueNextList"
-                                class="queue-next-list"
-                                aria-live="polite"
-                            >
-                                <li class="queue-empty">
-                                    No hay turnos en espera.
-                                </li>
-                            </ol>
-                        </section>
-
-                        <section class="kiosk-card kiosk-card--assistant">
-                            <h2>Asistente de orientación</h2>
-                            <p class="assistant-note">
-                                Solo orienta sobre turnos y sala de espera. No da
-                                indicaciones médicas.
-                            </p>
-                            <div
-                                id="assistantMessages"
-                                class="assistant-messages"
-                                role="log"
-                                aria-live="polite"
-                                aria-relevant="additions text"
-                            ></div>
-                            <form id="assistantForm" class="assistant-form">
-                                <input
-                                    id="assistantInput"
-                                    type="text"
-                                    placeholder="Ejemplo: donde espero para consultorio 2"
-                                    autocomplete="off"
-                                    aria-label="Mensaje para asistente de sala"
-                                />
-                                <button id="assistantSend" type="submit">
-                                    Enviar
-                                </button>
-                            </form>
                         </section>
                     </div>
                 </details>

@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 793
+  revision: 794
   updated_at: 2026-03-28
 
 strategy:
@@ -828,12 +828,12 @@ tasks:
     last_attempt_at: "2026-03-26T11:42:20.790Z"
     attempts: 3
     blocked_reason: "host_public_health_502_external_blocker"
-    lease_id: ""
-    lease_owner: ""
-    lease_created_at: ""
-    heartbeat_at: ""
-    lease_expires_at: ""
-    lease_reason: ""
+    lease_id: "lease_CDX-009_20260328040508913_4d424e"
+    lease_owner: "deck"
+    lease_created_at: "2026-03-28T04:05:08.913Z"
+    heartbeat_at: "2026-03-28T04:05:08.913Z"
+    lease_expires_at: "2026-03-28T08:05:08.913Z"
+    lease_reason: "board_write"
     lease_cleared_at: ""
     lease_cleared_reason: ""
     runtime_impact: low
@@ -1311,18 +1311,18 @@ tasks:
     title: "Queue kiosk feedback trim: queue y asistente visibles"
     owner: deck
     executor: codex
-    status: in_progress
-    status_since_at: "2026-03-28T04:01:16Z"
+    status: review
+    status_since_at: "2026-03-28T04:05:08.913Z"
     risk: medium
     scope: queue
     codex_instance: codex_frontend
     domain_lane: frontend_content
     lane_lock: strict
     cross_domain: false
-    provider_mode:
-    runtime_surface:
-    runtime_transport:
-    runtime_last_transport:
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
     model_tier_default: "gpt-5.4-mini"
     premium_budget: 0
     premium_calls_used: 0
@@ -1337,12 +1337,12 @@ tasks:
     last_attempt_at: "2026-03-28T04:01:16Z"
     attempts: 1
     blocked_reason: ""
-    lease_id: ""
-    lease_owner: ""
-    lease_created_at: ""
-    heartbeat_at: ""
-    lease_expires_at: ""
-    lease_reason: ""
+    lease_id: "lease_CDX-054_20260328040508913_b8d37c"
+    lease_owner: "deck"
+    lease_created_at: "2026-03-28T04:05:08.913Z"
+    heartbeat_at: "2026-03-28T04:05:08.913Z"
+    lease_expires_at: "2026-03-28T08:05:08.913Z"
+    lease_reason: "board_write"
     lease_cleared_at: ""
     lease_cleared_reason: ""
     runtime_impact: low

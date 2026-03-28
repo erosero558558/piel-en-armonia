@@ -4,6 +4,26 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
+<!-- CODEX_ACTIVE
+codex_instance: codex_backend_ops
+block: C2
+task_id: CDX-009
+subfront_id: SF-backend-admin-operativo
+status: blocked
+files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
+updated_at: "2026-03-28"
+-->
+
+<!-- CODEX_ACTIVE
+codex_instance: codex_frontend
+block: C1
+task_id: CDX-054
+subfront_id: SF-frontend-queue-turnero-operativo
+status: review
+files: ["kiosco-turnos.html", "verification/agent-runs/CDX-054.md"]
+updated_at: 2026-03-28
+-->
+
 <!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-admin-operativo
 title: "Admin operativo"
@@ -20,26 +40,6 @@ focus_status: active
 focus_next_step: "admin_queue_pilot_cut"
 focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]
 subfront_ids: ["SF-frontend-admin-operativo", "SF-frontend-queue-turnero-operativo", "SF-backend-admin-operativo", "SF-transversal-admin-operativo"]
-updated_at: "2026-03-28"
--->
-
-<!-- CODEX_ACTIVE
-codex_instance: codex_frontend
-block: C1
-task_id: CDX-054
-subfront_id: SF-frontend-queue-turnero-operativo
-status: in_progress
-files: ["kiosco-turnos.html", "verification/agent-runs/CDX-054.md"]
-updated_at: "2026-03-28"
--->
-
-<!-- CODEX_ACTIVE
-codex_instance: codex_backend_ops
-block: C2
-task_id: CDX-009
-subfront_id: SF-backend-admin-operativo
-status: blocked
-files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
 updated_at: "2026-03-28"
 -->
 
