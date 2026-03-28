@@ -23,36 +23,6 @@ subfront_ids: ["SF-frontend-turnero-web-pilot-multi-clinic", "SF-backend-turnero
 updated_at: "2026-03-28"
 -->
 
-<!-- CODEX_ACTIVE
-codex_instance: codex_transversal
-block: C1
-task_id: CDX-063
-subfront_id: SF-transversal-turnero-web-pilot-multi-clinic
-status: review
-files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "tools/agent-orchestrator/domain/strategy.js", "tools/agent-orchestrator/domain/focus.js", "tests-node/orchestrator/focus.test.js", "verification/agent-runs/CDX-063.md"]
-updated_at: 2026-03-28
--->
-
-<!-- CODEX_ACTIVE
-codex_instance: codex_backend_ops
-block: C1
-task_id: CDX-062
-subfront_id: SF-backend-turnero-web-pilot-multi-clinic
-status: review
-files: ["controllers/AdminDataController.php", "lib/TurneroClinicProfile.php", "bin/run-turnero-web-pilot-ui.js", "package.json", "tests-node/admin-data-turnero-clinic-profile-contract.test.js", "tests-node/turnero-clinic-profile-registry.test.js", "tests-node/turnero-clinic-profile-cli.test.js", "verification/agent-runs/CDX-062.md"]
-updated_at: 2026-03-28
--->
-
-<!-- CODEX_ACTIVE
-codex_instance: codex_frontend
-block: C1
-task_id: CDX-061
-subfront_id: SF-frontend-turnero-web-pilot-multi-clinic
-status: review
-files: ["content/turnero/clinic-profiles/clinica-norte-demo.json", "src/apps/admin-v3/shared/core/store.js", "src/apps/admin-v3/shared/modules/data/normalizers.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/model.js", "src/apps/queue-shared/turnero-runtime-contract.mjs", "admin.js", "js/queue-operator.js", "tests/admin-queue.spec.js", "tests-node/turnero-runtime-contract.test.js", "verification/agent-runs/CDX-061.md"]
-updated_at: 2026-03-28
--->
-
 ## Fase 2 multi-clínica local 2026-03-28
 
 - `STRAT-2026-03-turnero-web-pilot-multi-clinic-local` queda activa como

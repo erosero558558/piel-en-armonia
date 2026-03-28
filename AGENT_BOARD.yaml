@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 828
+  revision: 831
   updated_at: 2026-03-28
 
 strategy:
@@ -1715,8 +1715,8 @@ tasks:
     title: "Turnero multi-clinic local surfaces and readiness exposure"
     owner: luciaguadalupecaizasanchez
     executor: codex
-    status: review
-    status_since_at: "2026-03-28T20:08:38Z"
+    status: done
+    status_since_at: "2026-03-28T22:26:01.506Z"
     risk: medium
     scope: queue
     codex_instance: codex_frontend
@@ -1741,14 +1741,14 @@ tasks:
     last_attempt_at: "2026-03-28T20:08:38Z"
     attempts: 1
     blocked_reason: ""
-    lease_id: "lease_CDX-061_20260328210152250_ec705a"
-    lease_owner: "luciaguadalupecaizasanchez"
-    lease_created_at: "2026-03-28T21:01:52.250Z"
-    heartbeat_at: "2026-03-28T21:01:52.250Z"
-    lease_expires_at: "2026-03-29T01:01:52.250Z"
-    lease_reason: "leases_heartbeat"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T22:26:01.506Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: medium
     critical_zone: false
     acceptance: "Install hub, control tower multi-clinica, registry regional y readiness local exponen a clinica-norte-demo como segunda clinica web_pilot local-ready sin tocar el perfil activo versionado."
@@ -1774,8 +1774,8 @@ tasks:
     title: "Turnero multi-clinic local contract and clinic catalog support"
     owner: luciaguadalupecaizasanchez
     executor: codex
-    status: review
-    status_since_at: "2026-03-28T20:08:38Z"
+    status: done
+    status_since_at: "2026-03-28T22:27:12.215Z"
     risk: medium
     scope: turnero
     codex_instance: codex_backend_ops
@@ -1800,14 +1800,14 @@ tasks:
     last_attempt_at: "2026-03-28T20:08:38Z"
     attempts: 1
     blocked_reason: ""
-    lease_id: "lease_CDX-062_20260328210152258_009edd"
-    lease_owner: "luciaguadalupecaizasanchez"
-    lease_created_at: "2026-03-28T21:01:52.258Z"
-    heartbeat_at: "2026-03-28T21:01:56.199Z"
-    lease_expires_at: "2026-03-29T01:01:56.199Z"
-    lease_reason: "leases_heartbeat"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T22:27:12.215Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: medium
     critical_zone: false
     acceptance: "clinica-norte-demo valida y stagea como web_pilot, el catalogo PHP/admin-data expone la segunda clinica local-ready y clinic-profile.json sigue apuntando a piel-armonia-quito."
@@ -1833,8 +1833,8 @@ tasks:
     title: "Turnero multi-clinic local governance and required-check support"
     owner: luciaguadalupecaizasanchez
     executor: codex
-    status: review
-    status_since_at: "2026-03-28T21:05:00Z"
+    status: done
+    status_since_at: "2026-03-28T22:27:32.283Z"
     risk: low
     scope: codex-governance
     codex_instance: codex_transversal
@@ -1859,14 +1859,14 @@ tasks:
     last_attempt_at: "2026-03-28T21:05:00Z"
     attempts: 1
     blocked_reason: ""
-    lease_id: "lease_CDX-063_20260328210152258_66e516"
-    lease_owner: "luciaguadalupecaizasanchez"
-    lease_created_at: "2026-03-28T21:01:52.258Z"
-    heartbeat_at: "2026-03-28T21:02:00.743Z"
-    lease_expires_at: "2026-03-29T01:02:00.743Z"
-    lease_reason: "leases_heartbeat"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T22:27:32.283Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "El orquestador reconoce el seed/focus multi-clinica, el support scope backend deja de quedar huerfano y los required checks del foco pueden resolverse desde la evidencia local de CDX-061 y CDX-062."
