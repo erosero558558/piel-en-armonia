@@ -7,7 +7,7 @@ Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite po
 <!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-public-v6-es-voz-ecuatoriana
 title: "Public V6 ES voz ecuatoriana"
-status: active
+status: closed
 owner: Ernesto
 owner_policy: "detected_default_owner"
 objective: "Reescribir el copy ES de Public V6 para que suene humano, claro y natural para Ecuador sin romper contratos de contenido, marca ni runtime."
@@ -19,20 +19,8 @@ focus_title: "Public V6 ES claro y humano"
 focus_status: active
 focus_next_step: "publish_readiness_review"
 focus_required_checks: ["content:public-v6:validate", "audit:public-v6:copy", "test:frontend:qa:v6"]
-focus_max_active_slices: 1
 subfront_ids: ["SF-frontend-public-v6-es-copy", "SF-backend-public-v6-es-support", "SF-transversal-public-v6-es-support"]
 updated_at: "2026-03-28"
--->
-
-<!-- CODEX_ACTIVE
-task_id: CDX-048
-codex_instance: codex_frontend
-subfront_id: SF-frontend-public-v6-es-copy
-status: review
-focus_step: "publish_readiness_review"
-updated_at: "2026-03-28"
-acceptance_ref: "verification/agent-runs/CDX-048.md"
-evidence_ref: "verification/agent-runs/CDX-048.md"
 -->
 
 ## Normalizacion 2026-03-26
