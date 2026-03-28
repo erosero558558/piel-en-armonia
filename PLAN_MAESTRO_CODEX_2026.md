@@ -14,16 +14,6 @@ files: ["controllers/AdminDataController.php", "package.json", "bin/run-playwrig
 updated_at: 2026-03-28
 -->
 
-<!-- CODEX_ACTIVE
-codex_instance: codex_frontend
-block: C1
-task_id: CDX-056
-subfront_id: SF-frontend-turnero-web-pilot-local
-status: review
-files: ["content/turnero/clinic-profile.json", "content/turnero/clinic-profiles/piel-armonia-quito.json", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/model.js", "src/apps/queue-shared/turnero-release-incident-executor.js", "admin.js", "js/queue-operator.js", "verification/agent-runs/CDX-056.md"]
-updated_at: 2026-03-28
--->
-
 <!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-turnero-web-pilot-local-first
 title: "Turnero web pilot local-first"
