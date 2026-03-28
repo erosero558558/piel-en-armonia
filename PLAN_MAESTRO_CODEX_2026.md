@@ -149,8 +149,9 @@ updated_at: "2026-03-28"
 
 ## Rescue Turnero Gates 2026-03-28
 
-- `CDX-056` queda abierta como slice `backend_ops/gates` de soporte dentro de
-  `feedback_trim`.
+- `CDX-056` queda abierta como slice `backend_ops/gates` primaria dentro de
+  `feedback_trim`, aunque conserva `work_type=support` para reutilizar el
+  carve-out acotado del blocker externo reconocido.
 - El write set del rescue queda acotado a wrappers/scripts locales,
   `package.json`, runbook y contratos Node del carril `turnero/web-pilot`.
 - `kiosco`, `public-v6`, `auth` y runtime de producto quedan expresamente
