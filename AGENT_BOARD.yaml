@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 802
+  revision: 805
   updated_at: 2026-03-28
 
 strategy:
@@ -1429,8 +1429,8 @@ tasks:
     title: "Turnero web pilot local gates and presentation wrapper cleanup"
     owner: deck
     executor: codex
-    status: in_progress
-    status_since_at: "2026-03-28T05:10:02.890Z"
+    status: done
+    status_since_at: "2026-03-28T05:34:21.438Z"
     risk: medium
     scope: gates
     codex_instance: codex_backend_ops
@@ -1455,14 +1455,14 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: "lease_CDX-056_20260328051002890_d4cb41"
-    lease_owner: "deck"
-    lease_created_at: "2026-03-28T05:10:02.890Z"
-    heartbeat_at: "2026-03-28T05:10:02.890Z"
-    lease_expires_at: "2026-03-28T09:10:02.890Z"
-    lease_reason: "board_write"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T05:34:21.438Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "El carril local de Turnero usa wrappers canonicos para presentation cut y web-pilot UI, mantiene evidencia persistida y no toca kiosco, public-v6, auth ni runtime de producto."

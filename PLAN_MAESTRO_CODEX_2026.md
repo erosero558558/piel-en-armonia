@@ -14,15 +14,6 @@ files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md
 updated_at: 2026-03-28
 -->
 
-<!-- CODEX_ACTIVE
-codex_instance: codex_backend_ops
-block: C1
-task_id: CDX-056
-subfront_id: SF-backend-admin-operativo
-status: in_progress
-files: ["bin/gate-turnero-presentation-local.js", "bin/run-turnero-web-pilot-ui.js", "package.json", "docs/RUNBOOK_TURNERO_APPS_RELEASE.md", "tests-node/run-playwright-local.test.js", "tests-node/turnero-presentation-local-gate-contract.test.js", "tests-node/turnero-web-pilot-gate-contract.test.js", "tests-node/run-turnero-web-pilot-ui-contract.test.js", "verification/agent-runs/CDX-056.md"]
-updated_at: 2026-03-28
--->
 <!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-admin-operativo
 title: "Admin operativo"
