@@ -1,8 +1,8 @@
 export const SECTION_SHORTCUTS = Object.freeze({
-    digit1: 'queue',
+    digit1: 'dashboard',
     digit2: 'appointments',
     digit3: 'callbacks',
-    digit4: 'clinical-history',
+    digit4: 'reviews',
     digit5: 'availability',
 });
 

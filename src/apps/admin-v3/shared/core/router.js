@@ -6,6 +6,7 @@ const VALID_SECTIONS = new Set([
     'clinical-history',
     'appointments',
     'callbacks',
+    'reviews',
     'availability',
 ]);
 

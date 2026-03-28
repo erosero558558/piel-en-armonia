@@ -1,10 +1,10 @@
 const QUICK_NAV_ITEMS = [
-    { section: 'queue', label: 'Turnero' },
     { section: 'dashboard', label: 'Inicio' },
     { section: 'appointments', label: 'Agenda' },
     { section: 'callbacks', label: 'Pendientes' },
+    { section: 'reviews', label: 'Resenas' },
     { section: 'availability', label: 'Horarios' },
-    { section: 'clinical-history', label: 'Historia clinica' },
+    { section: 'queue', label: 'Turnero' },
 ];
 
 function renderShellQuickNav() {
@@ -30,9 +30,9 @@ export function renderShellContextStrip() {
     return `
         <section class="admin-v3-context-strip" id="adminProductivityStrip">
             <div class="admin-v3-context-copy" data-admin-section-hero>
-                <p class="sony-kicker" id="adminSectionEyebrow">Turnero primero</p>
-                <h3 id="adminContextTitle">Control room del consultorio</h3>
-                <p id="adminContextSummary">Queue, surfaces y release registry visibles desde la primera lectura del admin.</p>
+                <p class="sony-kicker" id="adminSectionEyebrow">Inicio operativo</p>
+                <h3 id="adminContextTitle">Resumen del consultorio</h3>
+                <p id="adminContextSummary">Agenda, feedback y disponibilidad visibles desde la primera lectura, con acceso rapido al turnero cuando haga falta.</p>
                 ${renderShellQuickNav()}
                 <div id="adminContextActions" class="sony-context-actions"></div>
             </div>
