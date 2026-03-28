@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 816
+  revision: 819
   updated_at: 2026-03-28
 
 strategy:
@@ -1438,7 +1438,7 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["content/turnero/clinic-profile.json", "content/turnero/clinic-profiles/piel-armonia-quito.json", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/model.js", "admin.js", "js/queue-operator.js", "verification/agent-runs/CDX-056.md"]
+    files: ["content/turnero/clinic-profile.json", "content/turnero/clinic-profiles/piel-armonia-quito.json", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/model.js", "src/apps/queue-shared/turnero-release-incident-executor.js", "admin.js", "js/queue-operator.js", "verification/agent-runs/CDX-056.md"]
     source_signal: manual
     source_ref: "local:CDX-053"
     priority_score: 74
@@ -1590,6 +1590,65 @@ tasks:
     rework_reason: ""
     depends_on: ["CDX-056", "CDX-057"]
     prompt: "Remapear el frente turnero local-first sobre el canon remoto, regenerar el snapshot del foco y publicar el closeout sin arrastrar public_main_sync como blocker del piloto web."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-059
+    title: "Turnero web pilot governance split for CDX-056 closeout"
+    owner: deck
+    executor: codex
+    status: done
+    status_since_at: "2026-03-28T14:36:13.047Z"
+    risk: low
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-059.md"]
+    source_signal: manual
+    source_ref: "CDX-056"
+    priority_score: 66
+    sla_due_at: "2026-03-29T23:59:00Z"
+    last_attempt_at: "2026-03-28T14:10:00Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T14:36:13.047Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El split de gobernanza deja board y plan alineados a su hotfix frontend, con trazabilidad propia en CDX-059, sin volver a bloquear close/publish por workspace truth."
+    acceptance_ref: "verification/agent-runs/CDX-059.md"
+    evidence_ref: "verification/agent-runs/CDX-059.md"
+    strategy_id: "STRAT-2026-03-turnero-web-pilot-local-first"
+    subfront_id: "SF-transversal-turnero-web-pilot-local"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-turnero-web-pilot-local-cut-1"
+    focus_step: "local_gate_validation"
+    integration_slice: "governance_evidence"
+    work_type: "support"
+    expected_outcome: "Board y plan quedan separados del hotfix frontend de CDX-056 para permitir closeout canonico sin mixed-lane ni board_fork."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-056"]
+    prompt: "Separar en lane transversal los cambios de board y plan requeridos para el hotfix frontend de CDX-056 y destrabar el closeout canonico."
     created_at: 2026-03-28
     updated_at: 2026-03-28
 

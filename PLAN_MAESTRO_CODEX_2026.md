@@ -20,7 +20,7 @@ block: C1
 task_id: CDX-056
 subfront_id: SF-frontend-turnero-web-pilot-local
 status: review
-files: ["content/turnero/clinic-profile.json", "content/turnero/clinic-profiles/piel-armonia-quito.json", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/model.js", "admin.js", "js/queue-operator.js", "verification/agent-runs/CDX-056.md"]
+files: ["content/turnero/clinic-profile.json", "content/turnero/clinic-profiles/piel-armonia-quito.json", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/model.js", "src/apps/queue-shared/turnero-release-incident-executor.js", "admin.js", "js/queue-operator.js", "verification/agent-runs/CDX-056.md"]
 updated_at: 2026-03-28
 -->
 
@@ -53,6 +53,8 @@ updated_at: "2026-03-28"
   runner local del carril web-pilot.
 - `CDX-058` reemplaza la slice local `CDX-055` y cierra la remap canónica de
   gobernanza, snapshot del foco y publicación final del frente.
+- `CDX-059` absorbe el split transversal de board/plan requerido para
+  cerrar `CDX-056` sin volver a bloquear `workspace truth`.
 - `CDX-009` deja de consumir slot del frente activo y queda como deuda externa
   no bloqueante; `public_main_sync` se tolera solo como warning operativo
   fuera del foco local-first.
