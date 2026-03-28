@@ -5,27 +5,72 @@ Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
 <!-- CODEX_STRATEGY_ACTIVE
-id: STRAT-2026-03-turnero-web-pilot-local-first
-title: "Turnero web pilot local-first"
-status: closed
-owner: deck
+id: STRAT-2026-03-turnero-web-pilot-multi-clinic-local
+title: "Turnero web pilot multi-clinic local"
+status: active
+owner: luciaguadalupecaizasanchez
 owner_policy: "detected_default_owner"
-objective: "Reactivar queue/turnero como piloto web local-first por clinica, separando el carril web del bloqueo remoto/productivo y sin exigir desktop o Android como precondicion de salida local."
+objective: "Habilitar una segunda clinica web_pilot catalogada dentro del carril local-first de turnero, manteniendo un perfil activo versionado unico y sin reabrir verify-remote ni blockers nativos."
 started_at: "2026-03-28"
-review_due_at: "2026-04-01"
-closed_at: "2026-03-28T15:35:11Z"
-close_reason: "review_complete"
-success_signal: "Piel Armonia Quito puede operar el piloto web local por clinica con readiness, labels y gates locales consistentes, dejando native apps como fase posterior."
-focus_id: "FOCUS-2026-03-turnero-web-pilot-local-cut-1"
-focus_title: "Turnero web pilot local-first por clinica"
-focus_status: closed
+review_due_at: "2026-04-04"
+success_signal: "Piel Armonia Quito sigue como perfil activo versionado y Clinica Norte Demo queda visible, stageable y local-ready como segunda clinica web_pilot."
+focus_id: "FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1"
+focus_title: "Turnero web pilot multi-clinic local-first"
+focus_status: active
 focus_next_step: "local_gate_validation"
 focus_required_checks: ["test:turnero:web-pilot:contracts", "test:turnero:web-pilot:php-contract", "test:turnero:web-pilot:ui"]
-focus_evidence_ref: "verification/agent-runs/CDX-060.md"
-focus_max_active_slices: 2
-subfront_ids: ["SF-frontend-turnero-web-pilot-local", "SF-backend-turnero-web-pilot-local", "SF-transversal-turnero-web-pilot-local"]
+subfront_ids: ["SF-frontend-turnero-web-pilot-multi-clinic", "SF-backend-turnero-web-pilot-multi-clinic", "SF-transversal-turnero-web-pilot-multi-clinic"]
 updated_at: "2026-03-28"
 -->
+
+<!-- CODEX_ACTIVE
+codex_instance: codex_transversal
+block: C1
+task_id: CDX-063
+subfront_id: SF-transversal-turnero-web-pilot-multi-clinic
+status: review
+files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "tools/agent-orchestrator/domain/strategy.js", "tools/agent-orchestrator/domain/focus.js", "tests-node/orchestrator/focus.test.js", "verification/agent-runs/CDX-063.md"]
+updated_at: 2026-03-28
+-->
+
+<!-- CODEX_ACTIVE
+codex_instance: codex_backend_ops
+block: C1
+task_id: CDX-062
+subfront_id: SF-backend-turnero-web-pilot-multi-clinic
+status: review
+files: ["controllers/AdminDataController.php", "lib/TurneroClinicProfile.php", "tests-node/admin-data-turnero-clinic-profile-contract.test.js", "tests-node/turnero-clinic-profile-registry.test.js", "tests-node/turnero-clinic-profile-cli.test.js", "verification/agent-runs/CDX-062.md"]
+updated_at: 2026-03-28
+-->
+
+<!-- CODEX_ACTIVE
+codex_instance: codex_frontend
+block: C1
+task_id: CDX-061
+subfront_id: SF-frontend-turnero-web-pilot-multi-clinic
+status: review
+files: ["content/turnero/clinic-profiles/clinica-norte-demo.json", "src/apps/admin-v3/shared/core/store.js", "src/apps/admin-v3/shared/modules/data/normalizers.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/model.js", "src/apps/queue-shared/turnero-runtime-contract.mjs", "admin.js", "js/queue-operator.js", "tests/admin-queue.spec.js", "tests-node/turnero-runtime-contract.test.js", "verification/agent-runs/CDX-061.md"]
+updated_at: 2026-03-28
+-->
+
+## Fase 2 multi-clínica local 2026-03-28
+
+- `STRAT-2026-03-turnero-web-pilot-multi-clinic-local` queda activa como
+  segunda fase de `turnero`, reutilizando el carril `web_pilot` local-first y
+  sin reabrir validaciones remotas ni blockers nativos.
+- `CDX-061` queda como slice `frontend` en `review`: surfaces, install hub,
+  control tower y estado compartido exponen a `clinica-norte-demo` como
+  segunda clínica `web_pilot` local-ready.
+- `CDX-062` queda como slice `backend_ops` en `review`: contrato, CLI y
+  payload PHP/admin-data validan y stagean `clinica-norte-demo` sin cambiar
+  el `clinic-profile.json` activo.
+- `CDX-063` se abre como soporte `codex_transversal` porque el frente ya
+  exigió seed/focus canónicos, resolución de required checks por evidencia y
+  alineación de board/plan más allá del write set de producto.
+- `piel-armonia-quito` sigue siendo el perfil activo versionado; la
+  multi-clínica se modela como catálogo + stage local por clínica.
+- `CDX-009` y `AG-250` se mantienen como deuda externa no bloqueante y fuera
+  del frente activo.
 
 ## Integracion canonica Turnero local-first 2026-03-28
 
@@ -148,12 +193,13 @@ updated_at: "2026-03-28"
 
 ## Proposito
 
-- Consolidar `queue/turnero` como piloto web local-first por clinica sobre el
-  canon remoto.
-- Tratar `web_pilot` como salida local valida en admin, operador, kiosco y
-  sala, dejando desktop/Android como carriles diferidos.
-- Validar contrato, runtime local y UI sin depender de `verify-remote`,
-  `smoke:prod:*` ni `public_main_sync`.
+- Abrir la fase 2 de `queue/turnero` como frente multi-clinica local-first,
+  sin reusar el frente cerrado `turnero-web-pilot-local-first`.
+- Mantener `piel-armonia-quito` como perfil activo versionado y promover
+  `clinica-norte-demo` a segunda clinica `web_pilot` catalogada, stageable y
+  visible en readiness local.
+- Validar contrato, payload PHP/admin-data y surfaces web sin depender de
+  `verify-remote`, `smoke:prod:*`, `public_main_sync` ni blockers nativos.
 
 ## Gobernanza
 
@@ -179,37 +225,38 @@ updated_at: "2026-03-28"
 
 ## Estrategia madre activa
 
-- Estrategia cerrada: `STRAT-2026-03-turnero-web-pilot-local-first`.
-- Sin draft siguiente activo por ahora.
-- Objetivo: operar `turnero` como `web_pilot` por clinica en local-first,
-  con contrato, runtime y UI validados sobre `origin/main`.
-- El foco queda cerrado sobre `local_gate_validation`; los required checks
-  verificados fueron
+- Estrategia activa: `STRAT-2026-03-turnero-web-pilot-multi-clinic-local`.
+- Sin `strategy.next` activa por ahora; el objetivo es cerrar esta fase 2 con
+  producto y contratos en `review`, no publicar ni cerrar estrategia.
+- Objetivo: habilitar a `clinica-norte-demo` como segunda clinica
+  `web_pilot` local-ready dentro del catalogo, manteniendo
+  `piel-armonia-quito` como perfil activo versionado.
+- El foco vigente es
+  `FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1`, hoy en
+  `active` sobre `local_gate_validation`.
+- Required checks del foco:
   `test:turnero:web-pilot:contracts`,
   `test:turnero:web-pilot:php-contract` y
   `test:turnero:web-pilot:ui`.
-- `CDX-056` queda en `done` como slice frontend primaria del replay canonico.
-- `CDX-057` queda en `done` como slice backend/gates ya validada.
-- `CDX-058` y `CDX-059` quedan en `done` como slices transversales ya
-  absorbidas por el canon remoto.
-- `CDX-060` queda en `done` como evidencia durable del cierre formal de
-  gobernanza, foco y estrategia.
-- `CDX-009` pasa a deuda externa no bloqueante y queda fuera del foco activo.
+- `CDX-061` queda como slice frontend primaria en `review`.
+- `CDX-062` queda como slice backend/support en `review`.
+- `CDX-009` y `AG-250` siguen como deuda externa no bloqueante y fuera del
+  frente activo.
 
 ## Tri-lane operativo vigente
 
-- `codex_frontend`: sin slices activas; `CDX-056` queda historizada en
-  `done`.
-- `codex_backend_ops`: sin slices activas; `CDX-057` queda historizada en
-  `done`.
-- `codex_transversal`: sin slices activas; `CDX-058`, `CDX-059` y `CDX-060`
-  quedan historizadas en `done`.
+- `codex_frontend`: `CDX-061` en `review` para install hub, control tower,
+  registry regional y readiness multi-clinica local.
+- `codex_backend_ops`: `CDX-062` en `review` para contrato, CLI, catalogo y
+  payload PHP/admin-data de la segunda clinica `web_pilot`.
+- `codex_transversal`: sin slice activa al inicio de esta fase; se abre solo
+  si aparece un bloqueo real de gobernanza/orquestador.
 
 ## Distribucion de esfuerzo
 
-- 45% surfaces web y runtime local del piloto.
-- 35% contrato, readiness y gates locales por clinica.
-- 20% gobernanza, snapshot del foco y closeout canonico.
+- 50% surfaces web y readiness multi-clinica en admin/install hub.
+- 35% contrato, stage local y catalogo PHP/CLI por clinica.
+- 15% gobernanza y evidencia del frente activo.
 
 ## A1.1 - Base impecable del Admin Shell RC1
 
@@ -288,136 +335,65 @@ Validacion final ejecutada:
 - `npm run checklist:admin:openclaw-auth:local`
 - `npm run gate:admin:rollout:internal`
 
-Resumen para ola 2:
+Resumen para fase 2:
 
-- Soportado en RC1: shell core interno + auth OpenClaw primario + contingencia web anunciada por backend.
-- Oculto en RC1: `queue/turnero`, `reviews`, kiosco/TV y side effects de boot asociados.
-- Condicion para abrir la ola 2: mantener `main` verde, activar `STRAT-2026-03-turnero-web-pilot` y reintroducir `queue/turnero` solo dentro de ese corte dedicado.
+- Soportado en esta ola local: el catalogo multi-clinica y las surfaces web de
+  `turnero` muestran a `clinica-norte-demo` como segunda clinica `web_pilot`
+  lista para trabajo local-first.
+- Fuera de alcance: `public_main_sync`, `verify-remote`, deploy productivo,
+  Electron, APK Android TV, centros de descarga como flujo principal y
+  cualquier cambio del perfil activo versionado.
+- La salida se decide por `catalogo + stage local + required checks locales`;
+  si aparece un bloqueo transversal real, se abre una slice nueva, no se
+  mezcla dentro de `CDX-061` o `CDX-062`.
 
-## A2.0 - Turnero web por clinica
+## A2.0 - Turnero multi-clinica local-first
 
-Estado: `BLOCKED`
-Ventana activa: `2026-03-14` -> `2026-03-28`
+Estado: `ACTIVE`
+Ventana activa: `2026-03-28` -> `2026-04-04`
 Objetivo:
 
-- Reabrir `queue/turnero` a proposito, no como arrastre del `Admin Shell RC1`.
-- Cerrar un piloto web por clinica con cuatro superficies visibles: `admin.html#queue`, `operador-turnos.html`, `kiosco-turnos.html` y `sala-turnos.html`.
-- Usar `clinic-profile` como fuente unica de verdad para branding, rutas canonicas, bloqueos y smoke de salida.
+- Habilitar una segunda clinica `web_pilot` catalogada dentro del carril
+  local-first de `turnero`.
+- Mantener `content/turnero/clinic-profile.json` apuntando a
+  `piel-armonia-quito` como perfil activo versionado.
+- Validar que `clinica-norte-demo` puede stagearse por `--id`, aparecer en
+  catalogo/readiness y mostrarse en admin sin blockers nativos ni remotos.
 
-Demostracion objetivo:
+Slices abiertas:
 
-- Un paciente toma turno o hace check-in en `kiosco`.
-- `admin basic` y `operador` ven la misma cola, con el mismo contexto de clinica.
-- El operador llama desde `C1` o `C2` y `sala` refleja el llamado vivo.
-- El cierre (`completed` o `no_show`) queda sincronizado en las superficies web.
-- Si el perfil, la firma o la ruta activa quedan fuera de canon, las superficies se bloquean y lo muestran en pantalla.
+- `CDX-061 / codex_frontend / SF-frontend-turnero-web-pilot-multi-clinic`:
+  install hub, control tower, registry regional y readiness local.
+- `CDX-062 / codex_backend_ops / SF-backend-turnero-web-pilot-multi-clinic`:
+  contrato, CLI, catalogo PHP/admin-data y dry-run de stage por clinica.
 
-Criterio de orgullo de la ola:
+Fases vigentes:
 
-- una demo de punta a punta, corta y legible
-- una sola clinica, bien marcada, en las cuatro superficies
-- `admin.html#queue` util en modo `basic`, sin ruido de hub experto
-- el sistema se protege solo cuando la clinica o la ruta son invalidas
+- `second_clinic_web_pilot_contract`:
+  promover `clinica-norte-demo` a `web_pilot` con invariantes locales del
+  perfil.
+- `multi_clinic_local_readiness`:
+  exponer la segunda clinica en catalogo, payloads y surfaces del admin sin
+  convertir el perfil activo en multi-tenant.
+- `local_gate_validation`:
+  cerrar los required checks locales del foco manteniendo fuera de alcance los
+  flows remotos y nativos.
 
-Definicion del release A2.0:
+Gates de la ola:
 
-- `admin.html#queue` vuelve a abrirse, pero solo en modo `basic`
-- `operator`, `kiosk` y `display` quedan alineados al mismo `clinic-profile`
-- el piloto no depende de instaladores Electron ni APK de Android TV
-- el go-live se decide por `canon + heartbeat + smoke`, no por intuicion
-
-Fuera de alcance en A2.0:
-
-- `expert mode` del hub admin
-- instaladores Electron y `desktop-updates/`
-- APK Android TV como blocker de salida
-- centro de descargas como flujo principal
-- multi-tenant entre clinicas
-- agenda publica, pagos y superficies comerciales
-
-Lanes propuestos al activar la ola:
-
-- `codex_frontend / SF-frontend-turnero-web-pilot`:
-  reabrir `admin.html#queue` en `basic`, reforzar `operator`, `kiosk` y `display`, y hacer visibles branding, estado de perfil y bloqueos por canon.
-- `codex_backend_ops / SF-backend-turnero-web-pilot`:
-  sostener `turneroClinicProfile`, `queueSurfaceStatus`, `queueOpsPilotReadiness`, `health`, `verify-remote` y los gates del piloto web por clinica.
-- `codex_transversal / SF-transversal-turnero-web-pilot`:
-  queda inactivo; solo entra por excepcion si el runtime OpenClaw bloquea el acceso real del operador o del admin.
-
-Primeras `CDX-*` activadas:
-
-- `CDX-043 / codex_backend_ops / SF-backend-turnero-web-pilot`:
-  sostener `clinic-profile`, `queue state`, `queueSurfaceStatus`, readiness y `verify-remote` del piloto web por clinica.
-- `CDX-044 / codex_frontend / SF-frontend-turnero-web-pilot`:
-  reabrir `admin.html#queue` en `basic` y alinear `operator`, `kiosk` y `display` a un mismo canon por clinica.
-
-Fase 0 - Activacion limpia:
-
-- estrategia draft ya promovida a activa
-- abrir exactamente 2 lanes activos (`frontend` y `backend_ops`)
-- dejar `transversal` en espera salvo bloqueo real de runtime/auth
-- mantener `main` verde durante toda la reintroduccion de `queue`
-
-Fase 1 - Canon por clinica:
-
-- el perfil activo vive en `content/turnero/clinic-profile.json` y debe coincidir con `content/turnero/clinic-profiles/*.json`
-- `admin.html#queue` expone el `canon web por clinica`, el `paquete de apertura` y los `bloqueos de salida`
-- el estado persistido del hub y de las superficies queda aislado por `clinic_id`
-- una ruta, clinica o firma fuera de canon debe pasar a estado `Bloquea`
-
-Fase 2 - Operacion web util:
-
-- `admin.html#queue` vuelve con cola, consultorios, resolucion, heartbeats e incidentes directos
-- `operador-turnos.html` permite llamar, rellamar, completar y marcar `no_show`
-- `kiosco-turnos.html` crea tickets y hace check-in con el mismo branding/contexto
-- `sala-turnos.html` refleja llamados y se bloquea si la clinica o la ruta quedan fuera de canon
-
-Fase 3 - Salida de release:
-
-- el panel de readiness muestra solo los bloqueos reales del piloto
-- el smoke final deja una secuencia repetible para `admin`, `operator`, `kiosk` y `display`
-- el commit desplegado y `public_main_sync` quedan verificables
-- la evidencia final deja claro que se difiere a una ola nativa posterior
-
-Gates de salida recomendados:
-
-- `npx playwright test tests/admin-queue.spec.js tests/queue-operator.spec.js tests/queue-kiosk.spec.js tests/queue-display.spec.js tests/queue-integrated-flow.spec.js`
-- `php tests/test_figo_queue_core.php`
-- `php tests/test_queue_service.php`
-- `node bin/turnero-clinic-profile.js validate --id <clinic_id> --json`
-- `node bin/turnero-clinic-profile.js stage --id <clinic_id> --json`
-- `node bin/turnero-clinic-profile.js verify-remote --base-url https://TU_DOMINIO --json`
-- `npm run gate:turnero`
-- `pwsh -File scripts/ops/prod/VERIFICAR-DESPLIEGUE.ps1 -Domain https://TU_DOMINIO`
-
-Estado del corte `2026-03-14`:
-
-- canon de salida confirmado: `turnero-clinic-profile/v1` con perfil activo `piel-armonia-quito`
-- validacion local en verde: `tests/admin-queue.spec.js` (`84 passed`) y `npm run gate:turnero:web-pilot` (`OK`)
-- gobernanza pre-write revalidada con `node agent-orchestrator.js status --json`, `node agent-orchestrator.js task ls --active --json`, `npm run chunks:admin:check` y `npm run agent:gate`: estrategia sigue activa, solo `CDX-043/CDX-044` quedan bloqueadas, `policy.revision=699`, y la gobernanza local vuelve a verde
-- deuda de tooling local resuelta: `SMOKE-PRODUCCION.ps1` vuelve a parsear, `verify-remote` ya no acepta `publicHealthRedacted=true` como piloto sano, y los contratos Node del carril `turnero/health/prod-ops/monitor` quedan `27/27`
-- `verify:prod:turnero:web-pilot` (`rerun3`) todavia alcanzó a demostrar el mismatch remoto de identidad: `health-diagnostics` seguia en `403`, el `health` publico seguia sin exponer `checks.turneroPilot` / `checks.publicSync`, y el verify ahora lo marca explicitamente como `turnero pilot remote health redacted`
-- el entorno remoto empeoro despues de ese punto: `smoke:prod:turnero:web-pilot` (`rerun3`) y `gate:prod:turnero:web-pilot` (`rerun4`) observan `502` sostenido en `health`, `reviews`, `availability`, `figo-chat.php` y `figo-backend.php`; el smoke cae a `12/22` checks HTTP base `OK` y el benchmark confirma `25/25` fallas de status en los endpoints operativos
-- `node agent-orchestrator.js jobs verify public_main_sync --json` deja `public_main_sync` en `verified=false`, `healthy=false`, `failure_reason=unverified`, sin `deployed_commit` ni timestamps; `MONITOR-PRODUCCION.ps1` suma `502` en `health-diagnostics`, `reviews`, `availability`, `booked-slots`, `service-priorities` y `figo-get`
-- el spot-check directo posterior confirma `502` sostenido en `health`, `reviews`, `availability` y `figo-chat.php`, mientras la alerta de conectividad `#442` sigue abierta con `connectivity_status=unreachable` y `open_targets=none`
-- hay fixes recientes en el repo remoto para `publicSync`/health (`696c8b9`, `b248421`), pero no se publicaron: sus corridas `CI` fallaron y los `Deploy Hosting (Canary Pipeline)` asociados quedaron `skipped`
-- el frente local de CI que dejaba esos deploys en `skipped` ya no muestra un rojo reproducible por codigo: `phpunit tests/Integration/HealthVisibilityTest.php` pasa (`6 tests, 58 assertions`), `tests-node/queue-pilot-smoke-signal-contract.test.js` pasa (`3/3`), `npm run lint:js` queda en `0 errors` y `npm run test:critical:funnel` vuelve a verde (`6 passed`, `1 skipped`) tras alinear tests stale a la nomenclatura canonica actual de `public-v6`
-- rerun operativo posterior (`verify/smoke/gate` remotos del `2026-03-14 17:01` -> `17:04`, `America/Guayaquil`) muestra recuperacion parcial del host: `health`, `reviews`, `availability`, `figo-chat.php` y las tres superficies web del piloto vuelven a `200`, `smoke` queda en `22/22` checks HTTP base `OK` y el benchmark vuelve a verde
-- pese a esa recuperacion HTTP, A2.0 sigue `BLOCKED` por drift de release/entorno: `health-diagnostics` sigue en `403`, el `health` publico sigue sin `checks.turneroPilot` / `checks.publicSync`, `verify` marca `turnero pilot remote health redacted`, `public_main_sync` sigue `registry_only/unverified`, `figo` sigue `mode=degraded` con `upstreamReachable=false`, y `MONITOR-PRODUCCION.ps1` sigue viendo `availability/booked-slots` en `meta.source=fallback`
-- mejora repo-side posterior: los workflows `prod-monitor`, `post-deploy-fast`, `post-deploy-gate`, `deploy-hosting`, `deploy-frontend-selfhosted` y `repair-git-sync` ahora propagan `PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN/PIELARMONIA_CRON_SECRET` al entorno, de modo que `Common.Http.ps1` y `verify-remote` puedan usar `health-diagnostics` autenticado cuando el secreto exista en Actions
-- la mejora de wiring queda validada localmente: contratos focales de workflow `53/53`, `npm run agent:test` `508 pass`, `0 fail`, y `npm run agent:gate` vuelve a verde; sigue pendiente demostrar en un rerun real si GitHub Actions tiene el secreto configurado y si eso destraba la identidad remota del piloto
-- rerun remoto posterior del `2026-03-14 17:44` -> `17:48` (`America/Guayaquil`) desde esta shell local confirma que el bloqueo ya no es outage general: `smoke` mantiene `22/22` checks HTTP base `OK` y `gate` mantiene benchmark sano, pero `verify` vuelve a caer con `14` fallas por mezcla de `health-diagnostics=403`, `turnero pilot remote health redacted`, issue `#442`, `figo-status mode=degraded` y drift del shell publico desplegado (`styles.css` / `public-v6-shell.js` con hash distinto, `index` con inline executable script, y faltantes de markers GA4 del corte actual)
-- la shell local usada para ese rerun sigue sin `PIELARMONIA_DIAGNOSTICS_ACCESS_TOKEN` / `PIELARMONIA_CRON_SECRET`, asi que el wiring de workflows sigue pendiente de verificacion real en GitHub Actions con secreto cargado
-- snapshot de gobernanza posterior al rerun deja `policy.revision=701`, `CDX-043=blocked`, `CDX-044=review`, estrategia `STRAT-2026-03-turnero-web-pilot` aun `active`, y `public_main_sync` todavia `healthy=false`
-- tras sincronizar evidencia, `agent:gate` solo detecto un residuo local de frontend (`js/admin-chunks/index-MyvPG610.js`); `npm run chunks:admin:prune` lo elimino y `npm run agent:gate` (`rerun4` y `rerun5`) volvio y se mantuvo en verde, asi que la gobernanza local sigue sin ser el bloqueo real del corte
-- `CDX-043` no se cierra y `CDX-044` no sale de `review`; A2.0 sigue en bloqueo operativo hasta repetir `verify + smoke + gate` en verde y sin drift entre deploy remoto y corte local
-- `CODEX_STRATEGY_ACTIVE` se mantiene en `active`; la estrategia no se cierra mientras persista esta brecha remota
+- `test:turnero:web-pilot:contracts`
+- `test:turnero:web-pilot:php-contract`
+- `test:turnero:web-pilot:ui`
+- `gate:turnero:web-pilot`
 
 Notas de disciplina:
 
-- si tocamos `src/apps/queue-shared` o contratos compartidos, sumar `tests-node/turnero-runtime-contract.test.js`
-- si tocamos soporte desktop por accidente, tratarlo como regresion, no como scope de salida
-- no reabrir `queue` dentro del shell admin fuera de esta ola y de este contrato
+- si tocamos `src/apps/queue-shared` o contratos compartidos, sumar
+  `tests-node/turnero-runtime-contract.test.js`
+- `content/turnero/clinic-profile.json` no cambia de clinica activa en esta
+  fase
+- soporte desktop/Android sigue diferido; si aparece como blocker, se trata
+  como regresion de scope
 
 ## Bloques
 

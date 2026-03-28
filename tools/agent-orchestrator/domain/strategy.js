@@ -23,7 +23,7 @@ const DEFAULT_CODEX_INSTANCES = [
 ];
 const DEFAULT_EXCEPTION_TTL_HOURS = 8;
 const DEFAULT_AGED_TASK_HOURS = 24;
-const STRATEGY_SEED_CATALOG_VERSION = '2026.03.14';
+const STRATEGY_SEED_CATALOG_VERSION = '2026.03.28';
 const STRATEGY_SEED_CATALOG = Object.freeze({
     'admin-operativo': Object.freeze({
         id: 'STRAT-2026-03-admin-operativo',
@@ -134,6 +134,130 @@ const STRATEGY_SEED_CATALOG = Object.freeze({
                 allowed_scopes: [],
                 support_only_scopes: ['codex-governance', 'tooling'],
                 blocked_scopes: ['openclaw_runtime', 'legacy-runtime'],
+                wip_limit: 1,
+                default_acceptance_profile: 'transversal_runtime_checkpoint',
+                exception_ttl_hours: 4,
+            },
+        ],
+    }),
+    'turnero-web-pilot-multi-clinic-local': Object.freeze({
+        id: 'STRAT-2026-03-turnero-web-pilot-multi-clinic-local',
+        title: 'Turnero web pilot multi-clinic local',
+        objective:
+            'Habilitar una segunda clinica web_pilot catalogada dentro del carril local-first de turnero, manteniendo un perfil activo versionado unico y sin reabrir verify-remote ni blockers nativos.',
+        owner_policy: 'detected_default_owner',
+        review_due_at: '2026-04-04',
+        exit_criteria: [
+            'clinica-norte-demo valida y stagea como web_pilot sin cambiar el schema v1 ni reemplazar clinic-profile.json',
+            'Admin e install hub muestran catalogo multi-clinica y readiness local para la segunda clinica sin blockers nativos o remotos',
+            'Los gates locales de turnero permanecen en verde reutilizando los mismos required checks del frente web_pilot',
+        ],
+        success_signal:
+            'Piel Armonia Quito sigue como perfil activo versionado y Clinica Norte Demo queda visible, stageable y local-ready como segunda clinica web_pilot.',
+        subfronts: [
+            {
+                codex_instance: 'codex_frontend',
+                subfront_id: 'SF-frontend-turnero-web-pilot-multi-clinic',
+                title: 'Surfaces web y control tower multi-clinica local',
+                allowed_scopes: ['queue', 'turnero'],
+                support_only_scopes: ['docs', 'frontend-qa'],
+                blocked_scopes: ['frontend-public', 'payments', 'calendar'],
+                wip_limit: 1,
+                default_acceptance_profile: 'frontend_delivery_checkpoint',
+                exception_ttl_hours: 8,
+            },
+            {
+                codex_instance: 'codex_backend_ops',
+                subfront_id: 'SF-backend-turnero-web-pilot-multi-clinic',
+                title: 'Contrato, CLI y catalogo multi-clinica local-first',
+                allowed_scopes: ['backend', 'readiness', 'gates'],
+                support_only_scopes: ['turnero', 'tests', 'ops'],
+                blocked_scopes: ['deploy', 'security', 'payments'],
+                wip_limit: 1,
+                default_acceptance_profile: 'backend_gate_checkpoint',
+                exception_ttl_hours: 6,
+            },
+            {
+                codex_instance: 'codex_transversal',
+                subfront_id: 'SF-transversal-turnero-web-pilot-multi-clinic',
+                title: 'Soporte transversal eventual para la ola multi-clinica',
+                allowed_scopes: [],
+                support_only_scopes: ['codex-governance', 'tooling'],
+                blocked_scopes: ['openclaw_runtime', 'legacy-runtime'],
+                wip_limit: 1,
+                default_acceptance_profile: 'transversal_runtime_checkpoint',
+                exception_ttl_hours: 4,
+            },
+        ],
+    }),
+    'turnero-web-pilot': Object.freeze({
+        id: 'STRAT-2026-03-turnero-web-pilot',
+        title: 'Turnero web pilot',
+        objective:
+            'Reintroducir queue/turnero como piloto web remoto por clinica, con canon unico de surfaces web, readiness repo-side y validacion remota de salida.',
+        owner_policy: 'detected_default_owner',
+        review_due_at: '2026-04-04',
+        exit_criteria: [
+            'Admin basic, operador, kiosco y sala quedan alineados al mismo clinic-profile remoto por clinica',
+            'Los gates locales del piloto web quedan en verde y la validacion remota de salida deja evidencia reproducible',
+            'El release remoto se cierra en verde o el frente queda blocked con evidencia host-side actualizada y sin falso positivo',
+        ],
+        success_signal:
+            'Una sola clinica canonica queda visible y operable en admin queue, operator, kiosk y display, con readiness remota verificable para el corte web.',
+        subfronts: [
+            {
+                codex_instance: 'codex_frontend',
+                subfront_id: 'SF-frontend-turnero-web-pilot',
+                title: 'Turnero web surfaces por clinica',
+                allowed_scopes: ['frontend-admin', 'queue', 'turnero'],
+                support_only_scopes: ['docs', 'frontend-qa'],
+                blocked_scopes: ['frontend-public', 'payments', 'calendar'],
+                wip_limit: 1,
+                default_acceptance_profile: 'frontend_delivery_checkpoint',
+                exception_ttl_hours: 8,
+            },
+            {
+                codex_instance: 'codex_backend_ops',
+                subfront_id: 'SF-backend-turnero-web-pilot',
+                title: 'Canon remoto, readiness y gates del piloto web',
+                allowed_scopes: [
+                    'backend',
+                    'readiness',
+                    'gates',
+                    'deploy',
+                    'ops',
+                ],
+                support_only_scopes: ['monitoring', 'tests'],
+                blocked_scopes: [
+                    'frontend-public',
+                    'frontend-admin',
+                    'payments',
+                    'calendar',
+                    'auth',
+                ],
+                wip_limit: 1,
+                default_acceptance_profile: 'backend_gate_checkpoint',
+                exception_ttl_hours: 6,
+            },
+            {
+                codex_instance: 'codex_transversal',
+                subfront_id: 'SF-transversal-turnero-web-pilot',
+                title: 'Bootstrap y soporte eventual del piloto web remoto',
+                allowed_scopes: [],
+                support_only_scopes: [
+                    'openclaw_runtime',
+                    'codex-governance',
+                    'tooling',
+                ],
+                blocked_scopes: [
+                    'frontend-public',
+                    'frontend-admin',
+                    'backend',
+                    'deploy',
+                    'auth',
+                    'queue',
+                    'turnero',
+                ],
                 wip_limit: 1,
                 default_acceptance_profile: 'transversal_runtime_checkpoint',
                 exception_ttl_hours: 4,

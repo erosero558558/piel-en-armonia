@@ -7,49 +7,49 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 820
+  revision: 827
   updated_at: 2026-03-28
 
 strategy:
   active:
-    id: STRAT-2026-03-turnero-web-pilot-local-first
-    title: "Turnero web pilot local-first"
-    objective: "Reactivar queue/turnero como piloto web local-first por clinica, separando el carril web del bloqueo remoto/productivo y sin exigir desktop o Android como precondicion de salida local."
-    owner: deck
+    id: STRAT-2026-03-turnero-web-pilot-multi-clinic-local
+    title: "Turnero web pilot multi-clinic local"
+    objective: "Habilitar una segunda clinica web_pilot catalogada dentro del carril local-first de turnero, manteniendo un perfil activo versionado unico y sin reabrir verify-remote ni blockers nativos."
+    owner: luciaguadalupecaizasanchez
     owner_policy: "detected_default_owner"
-    status: closed
+    status: active
     started_at: "2026-03-28"
-    review_due_at: "2026-04-01"
-    closed_at: "2026-03-28T15:35:11Z"
-    close_reason: "review_complete"
-    exit_criteria: ["El perfil de clinica acepta release.mode=web_pilot sin romper suite_v2 ni el schema v1", "Admin, operador, kiosco y sala leen web_pilot como piloto local valido y dejan desktop/Android como carriles diferidos", "El gate local de turnero vuelve a verde sin verify-remote, smoke prod ni dependencia de public_main_sync"]
-    success_signal: "Piel Armonia Quito puede operar el piloto web local por clinica con readiness, labels y gates locales consistentes, dejando native apps como fase posterior."
-    focus_id: "FOCUS-2026-03-turnero-web-pilot-local-cut-1"
-    focus_title: "Turnero web pilot local-first por clinica"
-    focus_summary: "Alinear perfil clinico, surfaces web y gate local para operar turnero como web_pilot por clinica, sin depender de native apps ni de verificacion remota."
-    focus_status: closed
-    focus_proof: "Admin, operador, kiosco y sala leen el perfil web_pilot de la clinica activa, el gate local vuelve a verde y desktop/Android quedan como carriles diferidos del piloto."
-    focus_steps: ["web_pilot_contract_alignment", "web_surface_local_readiness", "local_gate_validation"]
+    review_due_at: "2026-04-04"
+    closed_at: ""
+    close_reason: ""
+    exit_criteria: ["clinica-norte-demo valida y stagea como web_pilot sin cambiar el schema v1 ni reemplazar clinic-profile.json", "Admin e install hub muestran catalogo multi-clinica y readiness local para la segunda clinica sin blockers nativos o remotos", "Los gates locales de turnero permanecen en verde reutilizando los mismos required checks del frente web_pilot"]
+    success_signal: "Piel Armonia Quito sigue como perfil activo versionado y Clinica Norte Demo queda visible, stageable y local-ready como segunda clinica web_pilot."
+    focus_id: "FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1"
+    focus_title: "Turnero web pilot multi-clinic local-first"
+    focus_summary: "Habilitar una segunda clinica web_pilot dentro del catalogo local-first de turnero, mostrando readiness multi-clinica sin depender de verify-remote ni de carriles nativos."
+    focus_status: active
+    focus_proof: "clinica-norte-demo valida y stagea como web_pilot, el admin expone el catalogo multi-clinica con readiness local y los tres checks del frente vuelven a verde."
+    focus_steps: ["second_clinic_web_pilot_contract", "multi_clinic_local_readiness", "local_gate_validation"]
     focus_next_step: "local_gate_validation"
     focus_required_checks: ["test:turnero:web-pilot:contracts", "test:turnero:web-pilot:php-contract", "test:turnero:web-pilot:ui"]
-    focus_non_goals: ["verify_remote_turnero", "prod_smoke_turnero", "desktop_android_blocking", "public_main_sync_recovery"]
-    focus_owner: "deck"
-    focus_review_due_at: "2026-04-01"
-    focus_evidence_ref: "verification/agent-runs/CDX-060.md"
-    focus_max_active_slices: 2
+    focus_non_goals: ["public_main_sync_recovery", "verify_remote_turnero", "prod_smoke_turnero", "desktop_android_blocking", "new_clinic_from_scratch"]
+    focus_owner: "luciaguadalupecaizasanchez"
+    focus_review_due_at: "2026-04-04"
+    focus_evidence_ref: ""
+    focus_max_active_slices: 3
     subfronts:
       - codex_instance: codex_frontend
-        subfront_id: SF-frontend-turnero-web-pilot-local
-        title: "Turnero web surfaces y canon UI local-first"
-        allowed_scopes: ["queue"]
-        support_only_scopes: ["frontend-admin", "docs", "frontend-qa"]
+        subfront_id: SF-frontend-turnero-web-pilot-multi-clinic
+        title: "Surfaces web y control tower multi-clinica local"
+        allowed_scopes: ["queue", "turnero"]
+        support_only_scopes: ["docs", "frontend-qa"]
         blocked_scopes: ["frontend-public", "payments", "calendar"]
         wip_limit: 1
         default_acceptance_profile: "frontend_delivery_checkpoint"
         exception_ttl_hours: 8
       - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-turnero-web-pilot-local
-        title: "Perfil clinico, validadores y gates locales de turnero"
+        subfront_id: SF-backend-turnero-web-pilot-multi-clinic
+        title: "Contrato, CLI y catalogo multi-clinica local-first"
         allowed_scopes: ["backend", "readiness", "gates"]
         support_only_scopes: ["turnero", "tests", "ops"]
         blocked_scopes: ["deploy", "security", "payments"]
@@ -57,8 +57,8 @@ strategy:
         default_acceptance_profile: "backend_gate_checkpoint"
         exception_ttl_hours: 6
       - codex_instance: codex_transversal
-        subfront_id: SF-transversal-turnero-web-pilot-local
-        title: "Soporte transversal eventual para el piloto web local"
+        subfront_id: SF-transversal-turnero-web-pilot-multi-clinic
+        title: "Soporte transversal eventual para la ola multi-clinica"
         allowed_scopes: []
         support_only_scopes: ["codex-governance", "tooling"]
         blocked_scopes: ["openclaw_runtime", "legacy-runtime"]
@@ -1664,10 +1664,10 @@ tasks:
     domain_lane: transversal_runtime
     lane_lock: strict
     cross_domain: false
-    provider_mode:
-    runtime_surface:
-    runtime_transport:
-    runtime_last_transport:
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
     model_tier_default: "gpt-5.4-mini"
     premium_budget: 0
     premium_calls_used: 0
@@ -1708,6 +1708,183 @@ tasks:
     rework_reason: ""
     depends_on: ["CDX-056", "CDX-057", "CDX-058"]
     prompt: "Normalizar evidencia, cerrar slices residuales y dejar el frente turnero local-first en estado historico cerrado con CDX-060 como evidencia durable."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-061
+    title: "Turnero multi-clinic local surfaces and readiness exposure"
+    owner: luciaguadalupecaizasanchez
+    executor: codex
+    status: review
+    status_since_at: "2026-03-28T20:08:38Z"
+    risk: medium
+    scope: queue
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["content/turnero/clinic-profiles/clinica-norte-demo.json", "src/apps/admin-v3/shared/core/store.js", "src/apps/admin-v3/shared/modules/data/normalizers.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/model.js", "src/apps/queue-shared/turnero-runtime-contract.mjs", "admin.js", "js/queue-operator.js", "tests/admin-queue.spec.js", "tests-node/turnero-runtime-contract.test.js", "verification/agent-runs/CDX-061.md"]
+    source_signal: manual
+    source_ref: "phase2:multi-clinic-local"
+    priority_score: 76
+    sla_due_at: "2026-04-04T23:59:00Z"
+    last_attempt_at: "2026-03-28T20:08:38Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: "lease_CDX-061_20260328210152250_ec705a"
+    lease_owner: "luciaguadalupecaizasanchez"
+    lease_created_at: "2026-03-28T21:01:52.250Z"
+    heartbeat_at: "2026-03-28T21:01:52.250Z"
+    lease_expires_at: "2026-03-29T01:01:52.250Z"
+    lease_reason: "leases_heartbeat"
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: medium
+    critical_zone: false
+    acceptance: "Install hub, control tower multi-clinica, registry regional y readiness local exponen a clinica-norte-demo como segunda clinica web_pilot local-ready sin tocar el perfil activo versionado."
+    acceptance_ref: "verification/agent-runs/CDX-061.md"
+    evidence_ref: "verification/agent-runs/CDX-061.md"
+    strategy_id: "STRAT-2026-03-turnero-web-pilot-multi-clinic-local"
+    subfront_id: "SF-frontend-turnero-web-pilot-multi-clinic"
+    strategy_role: "primary"
+    focus_id: "FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1"
+    focus_step: "local_gate_validation"
+    integration_slice: "frontend_runtime"
+    work_type: "forward"
+    expected_outcome: "Admin e install hub muestran el catalogo multi-clinica con clinica-norte-demo lista en web_pilot, manteniendo piel-armonia-quito como profile activo versionado."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-062"]
+    prompt: "Actualizar surfaces y modelo compartido para exponer clinica-norte-demo como segunda clinica web_pilot local-ready en install hub, control tower multi-clinica y readiness del admin."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-062
+    title: "Turnero multi-clinic local contract and clinic catalog support"
+    owner: luciaguadalupecaizasanchez
+    executor: codex
+    status: review
+    status_since_at: "2026-03-28T20:08:38Z"
+    risk: medium
+    scope: turnero
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["controllers/AdminDataController.php", "lib/TurneroClinicProfile.php", "tests-node/admin-data-turnero-clinic-profile-contract.test.js", "tests-node/turnero-clinic-profile-registry.test.js", "tests-node/turnero-clinic-profile-cli.test.js", "verification/agent-runs/CDX-062.md"]
+    source_signal: manual
+    source_ref: "phase2:multi-clinic-local"
+    priority_score: 77
+    sla_due_at: "2026-04-04T23:59:00Z"
+    last_attempt_at: "2026-03-28T20:08:38Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: "lease_CDX-062_20260328210152258_009edd"
+    lease_owner: "luciaguadalupecaizasanchez"
+    lease_created_at: "2026-03-28T21:01:52.258Z"
+    heartbeat_at: "2026-03-28T21:01:56.199Z"
+    lease_expires_at: "2026-03-29T01:01:56.199Z"
+    lease_reason: "leases_heartbeat"
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: medium
+    critical_zone: false
+    acceptance: "clinica-norte-demo valida y stagea como web_pilot, el catalogo PHP/admin-data expone la segunda clinica local-ready y clinic-profile.json sigue apuntando a piel-armonia-quito."
+    acceptance_ref: "verification/agent-runs/CDX-062.md"
+    evidence_ref: "verification/agent-runs/CDX-062.md"
+    strategy_id: "STRAT-2026-03-turnero-web-pilot-multi-clinic-local"
+    subfront_id: "SF-backend-turnero-web-pilot-multi-clinic"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1"
+    focus_step: "local_gate_validation"
+    integration_slice: "backend_readiness"
+    work_type: "support"
+    expected_outcome: "El catalogo multi-clinica acepta a clinica-norte-demo como web_pilot local-first y el dry-run de stage por id funciona sin cambiar el profile activo versionado."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: []
+    prompt: "Alinear contrato, CLI y lecturas PHP para que clinica-norte-demo quede catalogada como segunda clinica web_pilot local-ready sin tocar verify-remote, deploy productivo ni clinic-profile.json."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-063
+    title: "Turnero multi-clinic local governance and required-check support"
+    owner: luciaguadalupecaizasanchez
+    executor: codex
+    status: review
+    status_since_at: "2026-03-28T21:05:00Z"
+    risk: low
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "tools/agent-orchestrator/domain/strategy.js", "tools/agent-orchestrator/domain/focus.js", "tests-node/orchestrator/focus.test.js", "verification/agent-runs/CDX-063.md"]
+    source_signal: manual
+    source_ref: "phase2:multi-clinic-local:governance"
+    priority_score: 63
+    sla_due_at: "2026-04-04T23:59:00Z"
+    last_attempt_at: "2026-03-28T21:05:00Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: "lease_CDX-063_20260328210152258_66e516"
+    lease_owner: "luciaguadalupecaizasanchez"
+    lease_created_at: "2026-03-28T21:01:52.258Z"
+    heartbeat_at: "2026-03-28T21:02:00.743Z"
+    lease_expires_at: "2026-03-29T01:02:00.743Z"
+    lease_reason: "leases_heartbeat"
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El orquestador reconoce el seed/focus multi-clinica, el support scope backend deja de quedar huerfano y los required checks del foco pueden resolverse desde la evidencia local de CDX-061 y CDX-062."
+    acceptance_ref: "verification/agent-runs/CDX-063.md"
+    evidence_ref: "verification/agent-runs/CDX-063.md"
+    strategy_id: "STRAT-2026-03-turnero-web-pilot-multi-clinic-local"
+    subfront_id: "SF-transversal-turnero-web-pilot-multi-clinic"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1"
+    focus_step: "local_gate_validation"
+    integration_slice: "governance_evidence"
+    work_type: "support"
+    expected_outcome: "La ola multi-clinica queda soportada por seed/focus canónicos, snapshot local de required checks y gobernanza coherente sin tocar deploy ni verify-remote."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-061", "CDX-062"]
+    prompt: "Abrir la slice transversal mínima para soportar seed/focus multi-clinica, evidence-based required checks y alineación de gobernanza cuando el frente deja de caber en frontend/backend solamente."
     created_at: 2026-03-28
     updated_at: 2026-03-28
 

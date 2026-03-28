@@ -73,9 +73,17 @@ const FRONTEND_REQUIRED_CHECK_SCRIPT_OVERRIDES = {
 const EVIDENCE_REQUIRED_CHECK_STATUSES = new Set(['review', 'done']);
 const EVIDENCE_REQUIRED_CHECK_SUBFRONT_IDS_BY_FOCUS = Object.freeze({
     'FOCUS-2026-03-public-v6-es-voz-cut-1': ['SF-frontend-public-v6-es-copy'],
+    'FOCUS-2026-03-turnero-web-pilot-cut-1': [
+        'SF-frontend-turnero-web-pilot',
+        'SF-backend-turnero-web-pilot',
+    ],
     'FOCUS-2026-03-turnero-web-pilot-local-cut-1': [
         'SF-frontend-turnero-web-pilot-local',
         'SF-backend-turnero-web-pilot-local',
+    ],
+    'FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1': [
+        'SF-frontend-turnero-web-pilot-multi-clinic',
+        'SF-backend-turnero-web-pilot-multi-clinic',
     ],
 });
 const REQUIRED_CHECK_EVIDENCE_PATTERN =
@@ -2166,6 +2174,72 @@ function buildFocusSeed(strategy, options = {}) {
                 'prod_smoke_turnero',
                 'desktop_android_blocking',
                 'public_main_sync_recovery',
+            ],
+            focus_owner: owner,
+            focus_review_due_at: reviewDueAt,
+            focus_evidence_ref: '',
+            focus_max_active_slices: 2,
+        };
+    }
+    if (strategyId === 'STRAT-2026-03-turnero-web-pilot-multi-clinic-local') {
+        return {
+            focus_id: 'FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1',
+            focus_title: 'Turnero web pilot multi-clinic local-first',
+            focus_summary:
+                'Habilitar una segunda clinica web_pilot dentro del catalogo local-first de turnero, mostrando readiness multi-clinica sin depender de verify-remote ni de carriles nativos.',
+            focus_status: 'active',
+            focus_proof:
+                'clinica-norte-demo valida y stagea como web_pilot, el admin expone el catalogo multi-clinica con readiness local y los tres checks del frente vuelven a verde.',
+            focus_steps: [
+                'second_clinic_web_pilot_contract',
+                'multi_clinic_local_readiness',
+                'local_gate_validation',
+            ],
+            focus_next_step: 'second_clinic_web_pilot_contract',
+            focus_required_checks: [
+                'test:turnero:web-pilot:contracts',
+                'test:turnero:web-pilot:php-contract',
+                'test:turnero:web-pilot:ui',
+            ],
+            focus_non_goals: [
+                'public_main_sync_recovery',
+                'verify_remote_turnero',
+                'prod_smoke_turnero',
+                'desktop_android_blocking',
+                'new_clinic_from_scratch',
+            ],
+            focus_owner: owner,
+            focus_review_due_at: reviewDueAt,
+            focus_evidence_ref: '',
+            focus_max_active_slices: 2,
+        };
+    }
+    if (strategyId === 'STRAT-2026-03-turnero-web-pilot') {
+        return {
+            focus_id: 'FOCUS-2026-03-turnero-web-pilot-cut-1',
+            focus_title: 'Turnero web remoto por clinica',
+            focus_summary:
+                'Reintroducir admin queue, operator, kiosk y display bajo un mismo clinic-profile remoto por clinica, con readiness local y salida remota verificable.',
+            focus_status: 'active',
+            focus_proof:
+                'Las cuatro superficies web del piloto quedan alineadas a una sola clinica canonica, los checks locales quedan verdes y la validacion remota decide salida o bloqueo con evidencia host-side.',
+            focus_steps: [
+                'clinic_canon_alignment',
+                'web_surface_reintro',
+                'remote_release_validation',
+            ],
+            focus_next_step: 'clinic_canon_alignment',
+            focus_required_checks: [
+                'test:turnero:web-pilot:contracts',
+                'test:turnero:web-pilot:php-contract',
+                'test:turnero:web-pilot:ui',
+            ],
+            focus_non_goals: [
+                'desktop_electron',
+                'android_tv_as_blocker',
+                'public_commercial_surfaces',
+                'payments',
+                'multi_clinic',
             ],
             focus_owner: owner,
             focus_review_due_at: reviewDueAt,

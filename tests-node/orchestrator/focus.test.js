@@ -232,7 +232,8 @@ test('focus loadLocalRequiredCheckSnapshot usa evidencia de slices en review com
                     {
                         id: 'CDX-045',
                         status: 'review',
-                        strategy_id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                        strategy_id:
+                            'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
                         subfront_id: 'SF-frontend-public-v6-es-copy',
                         focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
                         updated_at: '2026-03-27T10:00:00Z',
@@ -242,7 +243,8 @@ test('focus loadLocalRequiredCheckSnapshot usa evidencia de slices en review com
                     {
                         id: 'CDX-048',
                         status: 'review',
-                        strategy_id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                        strategy_id:
+                            'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
                         subfront_id: 'SF-frontend-public-v6-es-copy',
                         focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
                         updated_at: '2026-03-27T23:36:00Z',
@@ -331,7 +333,8 @@ test('focus loadLocalRequiredCheckSnapshot usa evidencia frontend/backend para e
                     {
                         id: 'CDX-056',
                         status: 'review',
-                        strategy_id: 'STRAT-2026-03-turnero-web-pilot-local-first',
+                        strategy_id:
+                            'STRAT-2026-03-turnero-web-pilot-local-first',
                         subfront_id: 'SF-frontend-turnero-web-pilot-local',
                         focus_id: 'FOCUS-2026-03-turnero-web-pilot-local-cut-1',
                         updated_at: '2026-03-28T12:46:44Z',
@@ -341,12 +344,217 @@ test('focus loadLocalRequiredCheckSnapshot usa evidencia frontend/backend para e
                     {
                         id: 'CDX-057',
                         status: 'review',
-                        strategy_id: 'STRAT-2026-03-turnero-web-pilot-local-first',
+                        strategy_id:
+                            'STRAT-2026-03-turnero-web-pilot-local-first',
                         subfront_id: 'SF-backend-turnero-web-pilot-local',
                         focus_id: 'FOCUS-2026-03-turnero-web-pilot-local-cut-1',
                         updated_at: '2026-03-28T12:46:43Z',
                         acceptance_ref: 'verification/agent-runs/CDX-057.md',
                         evidence_ref: 'verification/agent-runs/CDX-057.md',
+                    },
+                ],
+            },
+        }
+    );
+
+    assert.equal(snapshotState.available, true);
+    assert.equal(snapshotState.valid, true);
+    assert.equal(snapshotState.reason, 'evidence');
+
+    const checks = focusDomain.evaluateRequiredChecks(
+        {
+            required_checks: [
+                'test:turnero:web-pilot:contracts',
+                'test:turnero:web-pilot:php-contract',
+                'test:turnero:web-pilot:ui',
+            ],
+        },
+        {
+            localRequiredCheckSnapshot: snapshotState,
+        }
+    );
+
+    assert.deepEqual(
+        checks.map((item) => [item.id, item.state]),
+        [
+            ['test:turnero:web-pilot:contracts', 'green'],
+            ['test:turnero:web-pilot:php-contract', 'green'],
+            ['test:turnero:web-pilot:ui', 'green'],
+        ]
+    );
+});
+
+test('focus loadLocalRequiredCheckSnapshot usa evidencia frontend/backend para el foco turnero multi-clinica', (t) => {
+    const root = mkdtempSync(join(tmpdir(), 'focus-turnero-multi-clinic-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+
+    mkdirSync(join(root, 'verification', 'agent-runs'), { recursive: true });
+    writeFileSync(
+        join(root, 'verification', 'agent-runs', 'CDX-061.md'),
+        [
+            '# CDX-061',
+            '- required_check: test:turnero:web-pilot:contracts | state: green | command: npm run test:turnero:web-pilot:contracts',
+            '- required_check: test:turnero:web-pilot:php-contract | state: green | command: npm run test:turnero:web-pilot:php-contract',
+            '- required_check: test:turnero:web-pilot:ui | state: green | command: npm run test:turnero:web-pilot:ui',
+            '',
+        ].join('\n'),
+        'utf8'
+    );
+    writeFileSync(
+        join(root, 'verification', 'agent-runs', 'CDX-062.md'),
+        [
+            '# CDX-062',
+            '- required_check: test:turnero:web-pilot:contracts | state: green | command: npm run test:turnero:web-pilot:contracts',
+            '- required_check: test:turnero:web-pilot:php-contract | state: green | command: npm run test:turnero:web-pilot:php-contract',
+            '- required_check: test:turnero:web-pilot:ui | state: green | command: npm run test:turnero:web-pilot:ui',
+            '',
+        ].join('\n'),
+        'utf8'
+    );
+
+    const snapshotState = focusDomain.loadLocalRequiredCheckSnapshot(
+        {
+            id: 'FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1',
+            required_checks: [
+                'test:turnero:web-pilot:contracts',
+                'test:turnero:web-pilot:php-contract',
+                'test:turnero:web-pilot:ui',
+            ],
+        },
+        {
+            rootPath: root,
+            board: {
+                strategy: {
+                    active: {
+                        id: 'STRAT-2026-03-turnero-web-pilot-multi-clinic-local',
+                        started_at: '2026-03-28T20:00:00Z',
+                    },
+                },
+                tasks: [
+                    {
+                        id: 'CDX-061',
+                        status: 'review',
+                        strategy_id:
+                            'STRAT-2026-03-turnero-web-pilot-multi-clinic-local',
+                        subfront_id:
+                            'SF-frontend-turnero-web-pilot-multi-clinic',
+                        focus_id:
+                            'FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1',
+                        updated_at: '2026-03-28T20:46:44Z',
+                        acceptance_ref: 'verification/agent-runs/CDX-061.md',
+                        evidence_ref: 'verification/agent-runs/CDX-061.md',
+                    },
+                    {
+                        id: 'CDX-062',
+                        status: 'review',
+                        strategy_id:
+                            'STRAT-2026-03-turnero-web-pilot-multi-clinic-local',
+                        subfront_id:
+                            'SF-backend-turnero-web-pilot-multi-clinic',
+                        focus_id:
+                            'FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1',
+                        updated_at: '2026-03-28T20:46:43Z',
+                        acceptance_ref: 'verification/agent-runs/CDX-062.md',
+                        evidence_ref: 'verification/agent-runs/CDX-062.md',
+                    },
+                ],
+            },
+        }
+    );
+
+    assert.equal(snapshotState.available, true);
+    assert.equal(snapshotState.valid, true);
+    assert.equal(snapshotState.reason, 'evidence');
+
+    const checks = focusDomain.evaluateRequiredChecks(
+        {
+            required_checks: [
+                'test:turnero:web-pilot:contracts',
+                'test:turnero:web-pilot:php-contract',
+                'test:turnero:web-pilot:ui',
+            ],
+        },
+        {
+            localRequiredCheckSnapshot: snapshotState,
+        }
+    );
+
+    assert.deepEqual(
+        checks.map((item) => [item.id, item.state]),
+        [
+            ['test:turnero:web-pilot:contracts', 'green'],
+            ['test:turnero:web-pilot:php-contract', 'green'],
+            ['test:turnero:web-pilot:ui', 'green'],
+        ]
+    );
+});
+
+test('focus loadLocalRequiredCheckSnapshot usa evidencia frontend/backend para el foco turnero remoto por clinica', (t) => {
+    const root = mkdtempSync(join(tmpdir(), 'focus-turnero-web-pilot-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+
+    mkdirSync(join(root, 'verification', 'agent-runs'), { recursive: true });
+    writeFileSync(
+        join(root, 'verification', 'agent-runs', 'CDX-062.md'),
+        [
+            '# CDX-062',
+            '- required_check: test:turnero:web-pilot:contracts | state: green | command: npm run test:turnero:web-pilot:contracts',
+            '- required_check: test:turnero:web-pilot:php-contract | state: green | command: npm run test:turnero:web-pilot:php-contract',
+            '- required_check: test:turnero:web-pilot:ui | state: green | command: npm run test:turnero:web-pilot:ui',
+            '',
+        ].join('\n'),
+        'utf8'
+    );
+    writeFileSync(
+        join(root, 'verification', 'agent-runs', 'CDX-063.md'),
+        [
+            '# CDX-063',
+            '- required_check: test:turnero:web-pilot:contracts | state: green | command: npm run test:turnero:web-pilot:contracts',
+            '- required_check: test:turnero:web-pilot:php-contract | state: green | command: npm run test:turnero:web-pilot:php-contract',
+            '- required_check: test:turnero:web-pilot:ui | state: green | command: npm run test:turnero:web-pilot:ui',
+            '',
+        ].join('\n'),
+        'utf8'
+    );
+
+    const snapshotState = focusDomain.loadLocalRequiredCheckSnapshot(
+        {
+            id: 'FOCUS-2026-03-turnero-web-pilot-cut-1',
+            required_checks: [
+                'test:turnero:web-pilot:contracts',
+                'test:turnero:web-pilot:php-contract',
+                'test:turnero:web-pilot:ui',
+            ],
+        },
+        {
+            rootPath: root,
+            board: {
+                strategy: {
+                    active: {
+                        id: 'STRAT-2026-03-turnero-web-pilot',
+                        started_at: '2026-03-28T17:00:00Z',
+                    },
+                },
+                tasks: [
+                    {
+                        id: 'CDX-062',
+                        status: 'review',
+                        strategy_id: 'STRAT-2026-03-turnero-web-pilot',
+                        subfront_id: 'SF-backend-turnero-web-pilot',
+                        focus_id: 'FOCUS-2026-03-turnero-web-pilot-cut-1',
+                        updated_at: '2026-03-28T17:46:44Z',
+                        acceptance_ref: 'verification/agent-runs/CDX-062.md',
+                        evidence_ref: 'verification/agent-runs/CDX-062.md',
+                    },
+                    {
+                        id: 'CDX-063',
+                        status: 'review',
+                        strategy_id: 'STRAT-2026-03-turnero-web-pilot',
+                        subfront_id: 'SF-frontend-turnero-web-pilot',
+                        focus_id: 'FOCUS-2026-03-turnero-web-pilot-cut-1',
+                        updated_at: '2026-03-28T17:46:43Z',
+                        acceptance_ref: 'verification/agent-runs/CDX-063.md',
+                        evidence_ref: 'verification/agent-runs/CDX-063.md',
                     },
                 ],
             },
@@ -467,7 +675,8 @@ test('focus loadLocalRequiredCheckSnapshot prefiere snapshot JSON valido sobre e
                     {
                         id: 'CDX-048',
                         status: 'review',
-                        strategy_id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                        strategy_id:
+                            'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
                         subfront_id: 'SF-frontend-public-v6-es-copy',
                         focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
                         updated_at: '2026-03-27T23:36:00Z',
@@ -546,7 +755,8 @@ test('focus buildFocusSummary expone snapshot local y release_ready cuando el fo
                     {
                         id: 'test:frontend:qa:v6',
                         type: 'test',
-                        command: 'TEST_LOCAL_SERVER=php npm run test:frontend:qa:v6',
+                        command:
+                            'TEST_LOCAL_SERVER=php npm run test:frontend:qa:v6',
                         ok: true,
                         exit_code: 0,
                         checked_at: '2026-03-28',
@@ -718,7 +928,8 @@ test('focus evaluateRequiredChecks deja local required checks como unverified cu
                     {
                         id: 'CDX-048',
                         status: 'review',
-                        strategy_id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                        strategy_id:
+                            'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
                         subfront_id: 'SF-backend-public-v6-es-support',
                         focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
                         updated_at: '2026-03-27T23:36:00Z',
@@ -748,10 +959,8 @@ test('focus refreshRequiredChecksSnapshot persiste snapshot task-scoped y buildL
                 name: 'focus-task-snapshot-fixture',
                 private: true,
                 scripts: {
-                    'content:public-v6:validate':
-                        'node -e "process.exit(0)"',
-                    'audit:public:v6:copy':
-                        'node -e "process.exit(0)"',
+                    'content:public-v6:validate': 'node -e "process.exit(0)"',
+                    'audit:public:v6:copy': 'node -e "process.exit(0)"',
                     'test:frontend:qa:v6': 'node -e "process.exit(0)"',
                 },
             },
@@ -851,10 +1060,8 @@ test('focus loadRequiredChecksSnapshotContext invalida snapshot task-scoped si c
                 name: 'focus-task-stale-fixture',
                 private: true,
                 scripts: {
-                    'content:public-v6:validate':
-                        'node -e "process.exit(0)"',
-                    'audit:public:v6:copy':
-                        'node -e "process.exit(0)"',
+                    'content:public-v6:validate': 'node -e "process.exit(0)"',
+                    'audit:public:v6:copy': 'node -e "process.exit(0)"',
                     'test:frontend:qa:v6': 'node -e "process.exit(0)"',
                 },
             },
@@ -923,10 +1130,7 @@ test('focus loadRequiredChecksSnapshotContext invalida snapshot task-scoped si c
 
     assert.equal(snapshotState.available, true);
     assert.equal(snapshotState.valid, false);
-    assert.equal(
-        snapshotState.reason,
-        'worktree_status_fingerprint_mismatch'
-    );
+    assert.equal(snapshotState.reason, 'worktree_status_fingerprint_mismatch');
     assert.equal(
         snapshotState.stale_reason,
         'worktree_status_fingerprint_mismatch'
