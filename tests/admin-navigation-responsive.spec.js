@@ -87,6 +87,45 @@ async function setupAdminApiMocks(page) {
 }
 
 test.describe('Admin navigation responsive (tablet)', () => {
+    test('topbar operational nav sigue visible y navega sin abrir el sidebar', async ({
+        page,
+    }) => {
+        await setupAdminApiMocks(page);
+        await page.goto('/admin.html');
+
+        const operationalNav = page.locator('#adminTopbarOperationalNav');
+        const callbacksItem = operationalNav.locator(
+            '.admin-v3-topbar-subnav-item[data-section="callbacks"]'
+        );
+        const appointmentsItem = operationalNav.locator(
+            '.admin-v3-topbar-subnav-item[data-section="appointments"]'
+        );
+        const queueItem = operationalNav.locator(
+            '.admin-v3-topbar-subnav-item[data-section="queue"]'
+        );
+
+        await expect(operationalNav).toBeVisible();
+        await expect(page.locator('.admin-quick-nav-item')).toHaveCount(0);
+        await expect(queueItem).toHaveAttribute('aria-current', 'page');
+        await expect(page.locator('#adminSidebar')).not.toHaveClass(/is-open/);
+
+        await callbacksItem.click();
+        await expect(page.locator('#callbacks')).toHaveClass(/active/);
+        await expect(page.locator('#pageTitle')).toHaveText('Pendientes');
+        await expect(page).toHaveURL(/#callbacks$/);
+        await expect(page.locator('#adminSidebar')).not.toHaveClass(/is-open/);
+
+        await appointmentsItem.click();
+        await expect(page.locator('#appointments')).toHaveClass(/active/);
+        await expect(page.locator('#pageTitle')).toHaveText('Agenda');
+        await expect(page).toHaveURL(/#appointments$/);
+
+        await queueItem.click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page.locator('#pageTitle')).toHaveText('Turnero');
+        await expect(page).toHaveURL(/#queue$/);
+    });
+
     test('sidebar compacto mantiene trap de foco y cierra con Escape', async ({
         page,
     }) => {

@@ -110,7 +110,7 @@ export function renderClinicalHistorySection() {
                         <div>
                             <h3>Nota viva</h3>
                             <p id="clinicalHistoryDraftSummary">
-                                Ajusta HCU-005, consentimiento y documentos clínicos antes de aprobar la nota final.
+                                Ajusta anamnesis, plan, consentimiento y documentos antes de aprobar la nota final.
                             </p>
                         </div>
                         <span

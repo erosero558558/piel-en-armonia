@@ -71,10 +71,14 @@ export function setActiveSection(section) {
         }
     });
 
-    qsa('.admin-quick-nav-item[data-section]').forEach((node) => {
+    qsa('.admin-v3-topbar-subnav-item[data-section]').forEach((node) => {
         const active = node.dataset.section === section;
         node.classList.toggle('active', active);
-        node.setAttribute('aria-pressed', String(active));
+        if (active) {
+            node.setAttribute('aria-current', 'page');
+        } else {
+            node.removeAttribute('aria-current');
+        }
     });
 
     const title = SECTION_TITLES[section] || 'Inicio';

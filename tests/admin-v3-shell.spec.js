@@ -216,9 +216,12 @@ test.describe('Admin sony_v3 shell', () => {
 
         await expect(page.locator('#adminProductivityStrip')).toBeVisible();
         await expect(page.locator('#pageTitle')).toHaveText('Turnero');
-        await expect(page.locator('.admin-quick-nav-item')).toHaveCount(6);
+        await expect(page.locator('#adminTopbarOperationalNav')).toBeVisible();
+        await expect(page.locator('.admin-quick-nav-item')).toHaveCount(0);
         await expect(
-            page.locator('.admin-quick-nav-item[data-section="queue"]')
+            page.locator(
+                '#adminTopbarOperationalNav .admin-v3-topbar-subnav-item[data-section="queue"]'
+            )
         ).toHaveClass(/active/);
         await expect(page.locator('#adminPrimaryNav')).toContainText('Turnero');
         await expect(page.locator('#adminPrimaryNav')).toContainText('Inicio');
@@ -241,7 +244,6 @@ test.describe('Admin sony_v3 shell', () => {
         await expect(
             page.locator('.nav-item[data-section="reviews"]')
         ).toHaveCount(0);
-        await expect(page.locator('#reviews')).toHaveCount(0);
         await expect(
             page.locator('.nav-item[data-section="queue"]')
         ).toHaveClass(/active/);
@@ -296,13 +298,23 @@ test.describe('Admin sony_v3 shell', () => {
         );
 
         await page
-            .locator('.admin-quick-nav-item[data-section="callbacks"]')
+            .locator(
+                '#adminTopbarOperationalNav .admin-v3-topbar-subnav-item[data-section="callbacks"]'
+            )
             .click();
         await expect(page.locator('#callbacks')).toHaveClass(/active/);
         await expect(page.locator('#pageTitle')).toHaveText('Pendientes');
         await expect(page).toHaveURL(/#callbacks$/);
 
         await page.keyboard.press('Alt+Shift+Digit1');
+        await expect(page.locator('#dashboard')).toHaveClass(/active/);
+        await expect(page.locator('#pageTitle')).toHaveText('Inicio');
+
+        await page
+            .locator(
+                '#adminTopbarOperationalNav .admin-v3-topbar-subnav-item[data-section="queue"]'
+            )
+            .click();
         await expect(page.locator('#queue')).toHaveClass(/active/);
         await expect(page.locator('#pageTitle')).toHaveText('Turnero');
     });

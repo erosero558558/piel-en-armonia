@@ -124,6 +124,14 @@ async function waitForAdminReady(page) {
     );
 }
 
+async function openDashboardSection(page) {
+    await page
+        .locator('#adminSidebar .nav-item[data-section="dashboard"]')
+        .click();
+    await expect(page.locator('#dashboard')).toHaveClass(/active/);
+    await expect(page.locator('#pageTitle')).toHaveText('Inicio');
+}
+
 test.describe('Panel de administracion', () => {
     test('pagina admin carga correctamente', async ({ page }) => {
         await page.goto('/admin.html');
@@ -376,6 +384,7 @@ test.describe('Panel de administracion', () => {
         });
 
         await page.goto('/admin.html');
+        await openDashboardSection(page);
         await expect(page.locator('#dashboardAssistantUtility')).toBeVisible();
         await expect(page.locator('#dashboardAssistantStatus')).toHaveText(
             'Con derivaciones'
@@ -447,7 +456,7 @@ test.describe('Panel de administracion', () => {
 
         await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
-        await expect(page.locator('#pageTitle')).toHaveText('Inicio');
+        await openDashboardSection(page);
         await expect(page.locator('#opsTodaySummaryCard')).toBeVisible();
         await expect(page.locator('#opsPendingSummaryCard')).toBeVisible();
         await expect(page.locator('#opsAvailabilitySummaryCard')).toBeVisible();
@@ -536,6 +545,7 @@ test.describe('Panel de administracion', () => {
 
         await page.goto('/admin.html');
         await expect(page.locator('#adminDashboard')).toBeVisible();
+        await openDashboardSection(page);
 
         const telemedicineItem = page
             .locator('#dashboardAttentionList .dashboard-attention-item')
@@ -603,6 +613,7 @@ test.describe('Panel de administracion', () => {
         await page.goto('/admin.html');
         await waitForAdminReady(page);
         await expect(page.locator('#adminDashboard')).toBeVisible();
+        await openDashboardSection(page);
 
         const clinicalAction = page
             .locator('#dashboardClinicalHistoryActions .operations-action-item')
@@ -648,6 +659,7 @@ test.describe('Panel de administracion', () => {
         });
 
         await page.goto('/admin.html');
+        await openDashboardSection(page);
         await expect(page.locator('.dashboard-card-operations')).toBeVisible();
         await expect(
             page.locator('#operationActionList .operations-action-item')

@@ -668,6 +668,55 @@ body.admin-v3-mode .admin-v3-topbar {
 body.admin-v3-mode .admin-v3-topbar__copy {
     display: grid;
     gap: 8px;
+    min-width: 0;
+}
+
+body.admin-v3-mode .admin-v3-topbar__subnav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+body.admin-v3-mode .admin-v3-topbar-subnav-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid var(--admin3-line);
+    background: rgba(255, 255, 255, 0.68);
+    color: var(--admin3-ink);
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+    transition:
+        border-color 160ms ease,
+        background 160ms ease,
+        color 160ms ease,
+        transform 160ms ease,
+        box-shadow 160ms ease;
+}
+
+body.admin-v3-mode .admin-v3-topbar-subnav-item:hover,
+body.admin-v3-mode .admin-v3-topbar-subnav-item:focus-visible {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(22, 26, 31, 0.14);
+    transform: translateY(-1px);
+}
+
+body.admin-v3-mode .admin-v3-topbar-subnav-item:focus-visible {
+    outline: 2px solid rgba(22, 26, 31, 0.16);
+    outline-offset: 2px;
+}
+
+body.admin-v3-mode .admin-v3-topbar-subnav-item.active {
+    background: var(--admin3-stage);
+    border-color: var(--admin3-stage);
+    box-shadow: 0 16px 26px rgba(21, 26, 31, 0.18);
+    color: #fff;
 }
 
 body.admin-v3-mode .admin-v3-topbar__actions {
@@ -723,52 +772,6 @@ body.admin-v3-mode .admin-v3-context-copy p {
 body.admin-v3-mode .admin-v3-context-copy h3 {
     max-width: 12ch;
     font-size: clamp(2.2rem, 3.5vw, 3.35rem);
-}
-
-body.admin-v3-mode .admin-quick-nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin: 2px 0 2px;
-}
-
-body.admin-v3-mode .admin-quick-nav-item {
-    appearance: none;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-    min-height: 44px;
-    padding: 10px 14px;
-    border-radius: 999px;
-    font: inherit;
-    font-size: 0.9rem;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
-    cursor: pointer;
-    transition:
-        background 120ms ease,
-        border-color 120ms ease,
-        color 120ms ease,
-        transform 120ms ease;
-}
-
-body.admin-v3-mode .admin-quick-nav-item:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-body.admin-v3-mode .admin-quick-nav-item:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.7);
-    outline-offset: 2px;
-}
-
-body.admin-v3-mode .admin-quick-nav-item.active,
-body.admin-v3-mode .admin-quick-nav-item[aria-pressed='true'] {
-    background: rgba(255, 255, 255, 0.96);
-    border-color: rgba(255, 255, 255, 0.96);
-    color: var(--admin3-ink);
-    transform: translateY(-1px);
 }
 
 body.admin-v3-mode .sony-context-actions {
@@ -2885,16 +2888,8 @@ body.admin-v3-mode .clinical-media-flow-form-grid {
         justify-content: flex-start;
     }
 
-    body.admin-v3-mode .admin-quick-nav {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        padding-bottom: 4px;
-        margin-right: -4px;
-        scrollbar-width: thin;
-    }
-
-    body.admin-v3-mode .admin-quick-nav-item {
-        flex: 0 0 auto;
+    body.admin-v3-mode .admin-v3-topbar__subnav {
+        width: 100%;
     }
 
     body.admin-v3-mode .admin-agent-panel {

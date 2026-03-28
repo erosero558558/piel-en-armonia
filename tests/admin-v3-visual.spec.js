@@ -158,32 +158,41 @@ test.describe('Admin sony_v3 visual structure', () => {
         await expect(
             page.locator('[data-admin-priority-rail]').first()
         ).toBeVisible();
+        await expect(page.locator('#adminTopbarOperationalNav')).toBeVisible();
+        await expect(
+            page.locator(
+                '#adminTopbarOperationalNav .admin-v3-topbar-subnav-item[data-section="callbacks"]'
+            )
+        ).toHaveText('Pendientes');
+        await expect(
+            page.locator(
+                '#adminTopbarOperationalNav .admin-v3-topbar-subnav-item[data-section="appointments"]'
+            )
+        ).toHaveText('Agenda');
+        await expect(
+            page.locator(
+                '#adminTopbarOperationalNav .admin-v3-topbar-subnav-item[data-section="queue"]'
+            )
+        ).toHaveAttribute('aria-current', 'page');
+        await expect(page.locator('.admin-quick-nav-item')).toHaveCount(0);
+
+        await page
+            .locator('#adminPrimaryNav .nav-item[data-section="dashboard"]')
+            .click();
+        await expect(page.locator('#dashboard')).toHaveClass(/active/);
+        await expect(page.locator('#pageTitle')).toHaveText('Inicio');
         await expect(
             page.locator('[data-admin-workbench]').first()
         ).toBeVisible();
-        await expect(page.locator('#openOperatorAppBtn')).toHaveCount(1);
         await expect(
             page.locator('#dashboardAdvancedAnalytics')
         ).not.toHaveJSProperty('open', true);
-        await expect(page.locator('.admin-quick-nav')).toBeVisible();
-        await expect(page.locator('.admin-quick-nav-item')).toHaveCount(6);
-        await expect(page.locator('#queueOpsPilot')).toBeVisible();
-        await expect(page.locator('#queueOpsPilotValidationGroup')).toBeVisible();
-        await expect(page.locator('#queueOpsPilotAdvancedGroup')).toBeVisible();
-        await expect(page.locator('#queueOpsPilotValidationGroup')).not.toHaveJSProperty(
-            'open',
-            true
-        );
-        await expect(page.locator('#queueOpsPilotAdvancedGroup')).not.toHaveJSProperty(
-            'open',
-            true
-        );
-        await expect(page.locator('#queueOpsPilotValidationGroup summary')).toContainText(
-            'Validacion operativa'
-        );
-        await expect(page.locator('#queueOpsPilotAdvancedGroup summary')).toContainText(
-            'Consolas avanzadas'
-        );
+        await expect(
+            page.locator(
+                '#adminTopbarOperationalNav .admin-v3-topbar-subnav-item.active'
+            )
+        ).toHaveCount(0);
+        await expect(page.locator('#openOperatorAppBtn')).toBeVisible();
 
         const bgToken = await page.evaluate(() =>
             getComputedStyle(document.documentElement)
@@ -199,10 +208,13 @@ test.describe('Admin sony_v3 visual structure', () => {
         await page.setViewportSize({ width: 375, height: 812 });
         await openSonyV3(page);
 
-        await expect(page.locator('.admin-quick-nav')).toBeVisible();
+        await expect(page.locator('#adminTopbarOperationalNav')).toBeVisible();
         await expect(
-            page.locator('.admin-quick-nav-item[data-section="queue"]')
+            page.locator(
+                '#adminTopbarOperationalNav .admin-v3-topbar-subnav-item[data-section="queue"]'
+            )
         ).toBeVisible();
+        await expect(page.locator('.admin-quick-nav-item')).toHaveCount(0);
 
         await page.locator('#adminMenuToggle').click();
         await expect(page.locator('#adminSidebar')).toHaveClass(/is-open/);

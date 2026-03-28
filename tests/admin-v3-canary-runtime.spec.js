@@ -201,7 +201,7 @@ async function openAdminSonyV3(page, request) {
 }
 
 test.describe('Admin sony_v3 runtime', () => {
-    test('arranca por defecto con shell editorial y assets v3 unicos', async ({
+    test('arranca por defecto con shell queue-first y assets v3 unicos', async ({
         page,
         request,
     }) => {
@@ -224,8 +224,10 @@ test.describe('Admin sony_v3 runtime', () => {
         await expect(
             page.locator('[data-admin-workbench]').first()
         ).toBeVisible();
-        await expect(page.locator('#pageTitle')).toHaveText('Inicio');
-        await expect(page.locator('#openOperatorAppBtn')).toBeVisible();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page.locator('#pageTitle')).toHaveText('Turnero');
+        await expect(page.locator('#queueSurfaceTruthPanel')).toBeVisible();
+        await expect(page.locator('#queueReleaseCommandDeck')).toBeVisible();
         await expect(
             page.locator('#dashboardAdvancedAnalytics')
         ).not.toHaveJSProperty('open', true);
@@ -241,26 +243,35 @@ test.describe('Admin sony_v3 runtime', () => {
         await expect(page.locator('#callbackFilter')).toHaveValue('sla_urgent');
     });
 
-    test('mantiene navegacion operativa entre citas, callbacks, resenas y disponibilidad', async ({
+    test('mantiene navegacion operativa entre inicio, citas, callbacks, historia clinica y disponibilidad', async ({
         page,
         request,
     }) => {
         await openAdminSonyV3(page, request);
 
-        await page.keyboard.press('Alt+Shift+Digit2');
+        await page.locator('.nav-item[data-section="dashboard"]').click();
+        await expect(page.locator('#dashboard')).toHaveClass(/active/);
+        await expect(page.locator('#pageTitle')).toHaveText('Inicio');
+        await expect(page.locator('#openOperatorAppBtn')).toBeVisible();
+
+        await page.locator('.nav-item[data-section="appointments"]').click();
         await expect(page.locator('#appointments')).toHaveClass(/active/);
         await expect(page.locator('#pageTitle')).toHaveText('Agenda');
         await expect(
             page.locator('#appointmentsTableBody tr.appointment-row')
         ).toHaveCount(2);
 
-        await page.keyboard.press('Alt+Shift+Digit3');
+        await page.locator('.nav-item[data-section="callbacks"]').click();
         await expect(page.locator('#callbacks')).toHaveClass(/active/);
 
-        await page.keyboard.press('Alt+Shift+Digit4');
-        await expect(page.locator('#reviews')).toHaveClass(/active/);
+        await page
+            .locator('.nav-item[data-section="clinical-history"]')
+            .click();
+        await expect(page.locator('#clinical-history')).toHaveClass(/active/);
+        await expect(page.locator('#pageTitle')).toHaveText('Historia clinica');
 
-        await page.keyboard.press('Alt+Shift+Digit5');
+        await page.locator('.nav-item[data-section="availability"]').click();
         await expect(page.locator('#availability')).toHaveClass(/active/);
+        await expect(page.locator('#pageTitle')).toHaveText('Horarios');
     });
 });

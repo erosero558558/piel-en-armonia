@@ -58,17 +58,19 @@ export function attachLayoutListeners() {
 
         const currentIndex = focusables.indexOf(document.activeElement);
         if (event.shiftKey) {
-            if (currentIndex === 0) {
-                event.preventDefault();
-                focusables[focusables.length - 1].focus();
-            }
+            event.preventDefault();
+            const previousIndex =
+                currentIndex <= 0 ? focusables.length - 1 : currentIndex - 1;
+            focusables[previousIndex]?.focus();
             return;
         }
 
-        if (currentIndex === -1 || currentIndex === focusables.length - 1) {
-            event.preventDefault();
-            focusables[0].focus();
-        }
+        event.preventDefault();
+        const nextIndex =
+            currentIndex === -1 || currentIndex === focusables.length - 1
+                ? 0
+                : currentIndex + 1;
+        focusables[nextIndex]?.focus();
     });
 
     window.addEventListener('hashchange', async () => {

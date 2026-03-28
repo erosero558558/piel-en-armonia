@@ -47,6 +47,67 @@ async function waitForAdminRuntimeReady(page) {
 }
 
 test.describe('Admin navigation desktop', () => {
+    test('topbar operational nav mantiene hash, titulo y estado activo del trio operativo', async ({
+        page,
+    }) => {
+        await setupAdminApiMocks(page);
+        await page.goto('/admin.html');
+
+        const operationalNav = page.locator('#adminTopbarOperationalNav');
+        const callbacksItem = operationalNav.locator(
+            '.admin-v3-topbar-subnav-item[data-section="callbacks"]'
+        );
+        const appointmentsItem = operationalNav.locator(
+            '.admin-v3-topbar-subnav-item[data-section="appointments"]'
+        );
+        const queueItem = operationalNav.locator(
+            '.admin-v3-topbar-subnav-item[data-section="queue"]'
+        );
+
+        await expect(operationalNav).toBeVisible();
+        await expect(
+            operationalNav.locator('.admin-v3-topbar-subnav-item')
+        ).toHaveCount(3);
+        await expect(queueItem).toHaveClass(/active/);
+        await expect(queueItem).toHaveAttribute('aria-current', 'page');
+
+        await callbacksItem.click();
+        await expect(page.locator('#callbacks')).toHaveClass(/active/);
+        await expect(page).toHaveURL(/#callbacks$/);
+        await expect(page.locator('#pageTitle')).toHaveText('Pendientes');
+        await expect(callbacksItem).toHaveClass(/active/);
+        await expect(callbacksItem).toHaveAttribute('aria-current', 'page');
+        await expect(queueItem).not.toHaveClass(/active/);
+
+        await appointmentsItem.click();
+        await expect(page.locator('#appointments')).toHaveClass(/active/);
+        await expect(page).toHaveURL(/#appointments$/);
+        await expect(page.locator('#pageTitle')).toHaveText('Agenda');
+        await expect(appointmentsItem).toHaveAttribute('aria-current', 'page');
+        await expect(callbacksItem).not.toHaveAttribute('aria-current', 'page');
+
+        await queueItem.click();
+        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await expect(page).toHaveURL(/#queue$/);
+        await expect(page.locator('#pageTitle')).toHaveText('Turnero');
+        await expect(queueItem).toHaveAttribute('aria-current', 'page');
+
+        await page
+            .locator('#adminPrimaryNav .nav-item[data-section="dashboard"]')
+            .click();
+        await expect(page.locator('#dashboard')).toHaveClass(/active/);
+        await expect(page.locator('#pageTitle')).toHaveText('Inicio');
+        await expect(callbacksItem).not.toHaveClass(/active/);
+        await expect(appointmentsItem).not.toHaveClass(/active/);
+        await expect(queueItem).not.toHaveClass(/active/);
+        await expect(callbacksItem).not.toHaveAttribute('aria-current', 'page');
+        await expect(appointmentsItem).not.toHaveAttribute(
+            'aria-current',
+            'page'
+        );
+        await expect(queueItem).not.toHaveAttribute('aria-current', 'page');
+    });
+
     test('sidebar keeps section and hash in sync', async ({ page }) => {
         await setupAdminApiMocks(page);
         await page.goto('/admin.html');
