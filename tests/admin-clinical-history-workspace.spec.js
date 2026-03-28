@@ -223,6 +223,133 @@ function buildHcu007StatusFixture(status) {
     }
 }
 
+function buildHcu010AStatusFixture(status) {
+    switch (status) {
+        case 'issued':
+            return {
+                status: 'issued',
+                label: 'HCU-010A emitida',
+                summary:
+                    'La solicitud de laboratorio ya fue emitida como soporte diagnostico del episodio.',
+            };
+        case 'ready_to_issue':
+            return {
+                status: 'ready_to_issue',
+                label: 'HCU-010A lista para emitir',
+                summary:
+                    'La solicitud de laboratorio ya cubre los campos minimos del MSP y esta lista para emitirse.',
+            };
+        case 'cancelled':
+            return {
+                status: 'cancelled',
+                label: 'HCU-010A cancelada',
+                summary:
+                    'La solicitud de laboratorio fue cancelada y ya no bloquea el plan actual.',
+            };
+        case 'incomplete':
+            return {
+                status: 'incomplete',
+                label: 'HCU-010A incompleta',
+                summary:
+                    'La solicitud de laboratorio sigue con campos clinicos o tecnicos incompletos.',
+            };
+        case 'draft':
+            return {
+                status: 'draft',
+                label: 'HCU-010A borrador',
+                summary:
+                    'Existe una solicitud de laboratorio en borrador aun sin emitir.',
+            };
+        default:
+            return {
+                status: 'not_applicable',
+                label: 'HCU-010A no aplica',
+                summary:
+                    'No hay solicitud de laboratorio formal exigible para este episodio.',
+            };
+    }
+}
+
+function buildLabOrderFixture(
+    patientName,
+    sessionId,
+    admission001,
+    hcu005,
+    overrides = {}
+) {
+    return {
+        labOrderId: overrides.labOrderId || `lab-order-${sessionId}-001`,
+        status: overrides.status || 'draft',
+        requiredForCurrentPlan: overrides.requiredForCurrentPlan === true,
+        priority: overrides.priority || 'routine',
+        requestedAt: overrides.requestedAt || '2026-03-15T09:18:00-05:00',
+        sampleDate: overrides.sampleDate || '',
+        requestingEstablishment:
+            overrides.requestingEstablishment || 'Piel Armonía',
+        requestingService:
+            overrides.requestingService || 'Dermatología ambulatoria',
+        careSite: overrides.careSite || 'Consulta externa',
+        bedLabel: overrides.bedLabel || '',
+        requestedBy: overrides.requestedBy || 'Dra. Laura Mena',
+        patientName,
+        patientDocumentNumber:
+            overrides.patientDocumentNumber ||
+            admission001.identity.documentNumber,
+        patientRecordId: overrides.patientRecordId || `hcu-${sessionId}`,
+        patientAgeYears:
+            overrides.patientAgeYears || admission001.demographics.ageYears,
+        patientSexAtBirth:
+            overrides.patientSexAtBirth ||
+            admission001.demographics.sexAtBirth,
+        diagnoses: Array.isArray(overrides.diagnoses)
+            ? overrides.diagnoses
+            : [
+                  {
+                      type: 'pre',
+                      label:
+                          overrides.diagnosisLabel ||
+                          hcu005.diagnosticImpression ||
+                          'Diagnóstico clínico en evaluación',
+                      cie10: overrides.diagnosisCie10 || 'L71.9',
+                  },
+              ],
+        studySelections: {
+            hematology: Array.isArray(overrides.studySelections?.hematology)
+                ? overrides.studySelections.hematology
+                : [],
+            urinalysis: Array.isArray(overrides.studySelections?.urinalysis)
+                ? overrides.studySelections.urinalysis
+                : [],
+            coprological: Array.isArray(overrides.studySelections?.coprological)
+                ? overrides.studySelections.coprological
+                : [],
+            bloodChemistry: Array.isArray(
+                overrides.studySelections?.bloodChemistry
+            )
+                ? overrides.studySelections.bloodChemistry
+                : [],
+            serology: Array.isArray(overrides.studySelections?.serology)
+                ? overrides.studySelections.serology
+                : [],
+            bacteriology: Array.isArray(overrides.studySelections?.bacteriology)
+                ? overrides.studySelections.bacteriology
+                : [],
+            others: overrides.studySelections?.others || '',
+        },
+        bacteriologySampleSource:
+            overrides.bacteriologySampleSource || '',
+        physicianPresentAtExam:
+            overrides.physicianPresentAtExam === true,
+        notes: overrides.notes || '',
+        issuedAt: overrides.issuedAt || '',
+        cancelledAt: overrides.cancelledAt || '',
+        cancelReason: overrides.cancelReason || '',
+        history: Array.isArray(overrides.history) ? overrides.history : [],
+        createdAt: overrides.createdAt || '2026-03-15T09:18:00-05:00',
+        updatedAt: overrides.updatedAt || '2026-03-15T09:18:00-05:00',
+    };
+}
+
 function buildInterconsultationFixture(
     patientName,
     sessionId,
@@ -499,6 +626,8 @@ function buildClinicalRecordPayload({
     activeConsentPacketId = '',
     interconsultations = [],
     activeInterconsultationId = '',
+    labOrders = [],
+    activeLabOrderId = '',
     copyRequests = [],
     disclosureLog = [],
     accessAudit = [],
@@ -656,6 +785,40 @@ function buildClinicalRecordPayload({
                     ? 'Existe un borrador del informe del consultado aún sin recepción formal.'
                     : 'Todavía no se ha recibido informe del consultado.',
     };
+    const normalizedLabOrders = Array.isArray(labOrders) ? labOrders : [];
+    const normalizedActiveLabOrderId =
+        activeLabOrderId || normalizedLabOrders[0]?.labOrderId || '';
+    const normalizedActiveLabOrder =
+        normalizedLabOrders.find(
+            (item) => item.labOrderId === normalizedActiveLabOrderId
+        ) || null;
+    const normalizedLabOrderSnapshots = Array.isArray(documents.labOrders)
+        ? documents.labOrders
+        : normalizedLabOrders
+              .filter((item) => ['issued', 'cancelled'].includes(item.status))
+              .map((item) => ({
+                  labOrderId: item.labOrderId,
+                  status: item.status,
+                  finalizedAt:
+                      item.issuedAt || item.cancelledAt || item.updatedAt || '',
+                  snapshotAt:
+                      item.issuedAt || item.cancelledAt || item.updatedAt || '',
+                  patientName: item.patientName,
+                  patientDocumentNumber: item.patientDocumentNumber,
+                  patientRecordId: item.patientRecordId,
+                  sampleDate: item.sampleDate,
+                  priority: item.priority,
+                  requestedBy: item.requestedBy,
+                  diagnoses: item.diagnoses,
+                  studySelections: item.studySelections,
+                  notes: item.notes,
+              }));
+    const normalizedHcu010AStatus =
+        legalReadiness.hcu010AStatus ||
+        buildHcu010AStatusFixture(
+            normalizedActiveLabOrder?.status ||
+                (normalizedLabOrders.length > 0 ? 'draft' : 'not_applicable')
+        );
     const prescriptionMedication = normalizedHcu005.prescriptionItems
         .map((item) => item.medication)
         .filter(Boolean)
@@ -870,6 +1033,7 @@ function buildClinicalRecordPayload({
                     'SNS-MSP/HCU-form.001/2008',
                     'SNS-MSP/HCU-form.005/2008',
                     'SNS-MSP/HCU-form.007/2008',
+                    'SNS-MSP/HCU-form.010A/2008',
                     'SNS-MSP/HCU-form.024',
                 ],
                 normativeScope: 'ecuador_private_consultorio_v1',
@@ -924,7 +1088,10 @@ function buildClinicalRecordPayload({
                 consentForms: normalizedConsentForms,
                 interconsultForms: normalizedInterconsultForms,
                 interconsultReports: normalizedInterconsultReports,
+                labOrders: normalizedLabOrderSnapshots,
             },
+            labOrders: normalizedLabOrders,
+            activeLabOrderId: normalizedActiveLabOrderId,
             consentPackets: normalizedConsentPackets,
             activeConsentPacketId: normalizedActiveConsentPacketId,
             interconsultations: normalizedInterconsultations,
@@ -1049,6 +1216,7 @@ function buildClinicalRecordPayload({
                 'SNS-MSP/HCU-form.001/2008',
                 'SNS-MSP/HCU-form.005/2008',
                 'SNS-MSP/HCU-form.007/2008',
+                'SNS-MSP/HCU-form.010A/2008',
                 'SNS-MSP/HCU-form.024',
             ],
         },
@@ -1083,6 +1251,7 @@ function buildClinicalRecordPayload({
                 legalReadiness.hcu005Status?.status ||
                 (legalReadiness.status === 'ready' ? 'complete' : 'partial'),
             hcu007Status: normalizedHcu007Status.status,
+            hcu010AStatus: normalizedHcu010AStatus.status,
             hcu024Status: normalizedHcu024Status.status,
         },
         documents: {
@@ -1133,10 +1302,15 @@ function buildClinicalRecordPayload({
             },
             consentForms: normalizedConsentForms,
             interconsultForms: normalizedInterconsultForms,
+            interconsultReports: normalizedInterconsultReports,
+            labOrders: normalizedLabOrderSnapshots,
         },
         interconsultations: normalizedInterconsultations,
         activeInterconsultationId: normalizedActiveInterconsultationId,
         activeInterconsultation: normalizedActiveInterconsultation,
+        labOrders: normalizedLabOrders,
+        activeLabOrderId: normalizedActiveLabOrderId,
+        activeLabOrder: normalizedActiveLabOrder,
         consentPackets: normalizedConsentPackets,
         activeConsentPacketId: normalizedActiveConsentPacketId,
         activeConsentPacket: normalizedActiveConsentPacket,
@@ -1209,6 +1383,7 @@ function buildClinicalRecordPayload({
                 'MSP-HCU-FORM-001',
                 'MSP-HCU-FORM-005',
                 'MSP-HCU-FORM-007',
+                'MSP-HCU-FORM-010A',
                 'MSP-HCU-FORM-024',
             ],
         },
@@ -1227,6 +1402,7 @@ function buildClinicalRecordPayload({
                 'MSP-HCU-FORM-001',
                 'MSP-HCU-FORM-005',
                 'MSP-HCU-FORM-007',
+                'MSP-HCU-FORM-010A',
                 'MSP-HCU-FORM-024',
             ],
         },
@@ -1247,6 +1423,7 @@ function buildClinicalRecordPayload({
             },
             hcu007Status: normalizedHcu007Status,
             hcu007ReportStatus: normalizedHcu007ReportStatus,
+            hcu010AStatus: normalizedHcu010AStatus,
             hcu024Status: normalizedHcu024Status,
         },
         closureChecklist: {
@@ -1266,6 +1443,7 @@ function buildClinicalRecordPayload({
             },
             hcu007Status: normalizedHcu007Status,
             hcu007ReportStatus: normalizedHcu007ReportStatus,
+            hcu010AStatus: normalizedHcu010AStatus,
             hcu024Status: normalizedHcu024Status,
         },
         recordsGovernance: normalizedRecordsGovernance,
@@ -2556,6 +2734,353 @@ test('interconsulta HCU-007 permite recibir el informe del consultado y mostrar 
     );
     await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
         'ana-ruiz-1.jpg'
+    );
+});
+
+test('laboratorio HCU-010A permite crear y emitir solicitudes del episodio', async ({
+    page,
+}) => {
+    const baseRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu010a-001',
+        caseId: 'case-hcu010a-001',
+        patientName: 'Lina Vela',
+        clinicianSummary:
+            'Caso con apoyo diagnostico de laboratorio aun no formalizado.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'Todavia no existe una solicitud formal de laboratorio exigible para este episodio.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y el plan terapeutico ya estan trazados.',
+            },
+            hcu010AStatus: buildHcu010AStatusFixture('not_applicable'),
+            checklist: [
+                {
+                    code: 'hcu010a_laboratory',
+                    status: 'pass',
+                    label: 'HCU-010A laboratorio',
+                    message:
+                        'No hay solicitud de laboratorio requerida para este episodio.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: {
+            required: false,
+            status: 'not_required',
+        },
+    });
+
+    const draftLabOrder = buildLabOrderFixture(
+        'Lina Vela',
+        'chs-hcu010a-001',
+        baseRecord.patientRecord.admission001,
+        baseRecord.draft.clinicianDraft.hcu005,
+        {
+            labOrderId: 'lab-order-hcu010a-001',
+            requiredForCurrentPlan: false,
+            sampleDate: '',
+            requestedBy: '',
+            studySelections: {
+                hematology: [],
+                urinalysis: [],
+                coprological: [],
+                bloodChemistry: [],
+                serology: [],
+                bacteriology: [],
+                others: '',
+            },
+        }
+    );
+
+    const createdRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu010a-001',
+        caseId: 'case-hcu010a-001',
+        patientName: 'Lina Vela',
+        clinicianSummary:
+            'Solicitud de laboratorio creada y aun en borrador.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La solicitud existe como borrador, pero todavia no forma parte obligatoria del plan.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y el plan terapeutico ya estan trazados.',
+            },
+            hcu010AStatus: buildHcu010AStatusFixture('draft'),
+            checklist: [
+                {
+                    code: 'hcu010a_laboratory',
+                    status: 'pass',
+                    label: 'HCU-010A laboratorio',
+                    message:
+                        'La solicitud existe como borrador y aun no congela el cierre.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: baseRecord.consent,
+        labOrders: [draftLabOrder],
+        activeLabOrderId: draftLabOrder.labOrderId,
+    });
+
+    const issuedLabOrder = buildLabOrderFixture(
+        'Lina Vela',
+        'chs-hcu010a-001',
+        baseRecord.patientRecord.admission001,
+        baseRecord.draft.clinicianDraft.hcu005,
+        {
+            ...draftLabOrder,
+            status: 'issued',
+            requiredForCurrentPlan: true,
+            sampleDate: '2026-03-15',
+            requestedBy: 'Dra. Laura Mena',
+            studySelections: {
+                hematology: ['Biometria hematica'],
+                urinalysis: [],
+                coprological: [],
+                bloodChemistry: [],
+                serology: [],
+                bacteriology: [],
+                others: '',
+            },
+            issuedAt: '2026-03-15T10:15:00-05:00',
+            notes: 'Solicitar biometria hematica de control.',
+        }
+    );
+
+    const issuedRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu010a-001',
+        caseId: 'case-hcu010a-001',
+        patientName: 'Lina Vela',
+        clinicianSummary:
+            'Solicitud de laboratorio emitida y documentada.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La solicitud de laboratorio requerida ya fue emitida y no bloquea el cierre actual.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y el plan terapeutico ya estan trazados.',
+            },
+            hcu010AStatus: buildHcu010AStatusFixture('issued'),
+            checklist: [
+                {
+                    code: 'hcu010a_laboratory',
+                    status: 'pass',
+                    label: 'HCU-010A laboratorio',
+                    message:
+                        'La solicitud de laboratorio requerida ya fue emitida.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: baseRecord.consent,
+        labOrders: [issuedLabOrder],
+        activeLabOrderId: issuedLabOrder.labOrderId,
+        documents: {
+            labOrders: [issuedLabOrder],
+        },
+    });
+
+    let currentRecord = baseRecord;
+    const actionPayloads = [];
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                        hcu010A: {
+                            not_applicable: 1,
+                            draft: 0,
+                            ready_to_issue: 0,
+                            issued: 0,
+                            cancelled: 0,
+                            incomplete: 0,
+                        },
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-hcu010a-001',
+                        caseId: 'case-hcu010a-001',
+                        patientName: 'Lina Vela',
+                        summary:
+                            'Caso ambulatorio con apoyo diagnostico potencial.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: true,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 0,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'Todavia no existe una solicitud formal de laboratorio exigible para este episodio.',
+                        hcu001Status: 'complete',
+                        hcu001Label: 'HCU-001 completa',
+                        hcu001Summary:
+                            'La admision longitudinal ya deja identidad y contacto base defendibles.',
+                        hcu005Status: 'complete',
+                        hcu005Label: 'HCU-005 completo',
+                        hcu005Summary:
+                            'La evolucion y el plan terapeutico ya estan trazados.',
+                        hcu010AStatus: 'not_applicable',
+                        hcu010ALabel: 'HCU-010A no aplica',
+                        hcu010ASummary:
+                            'No hay solicitud de laboratorio formal exigible para este episodio.',
+                        hcu024Status: 'not_applicable',
+                        hcu024Label: 'HCU-024 no aplica',
+                        hcu024Summary:
+                            'No hay consentimiento escrito por procedimiento exigible para este episodio.',
+                        approvalBlockedReasons: [],
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            payload,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: currentRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'clinical-episode-action' && method === 'POST') {
+                actionPayloads.push(payload);
+
+                if (payload.action === 'create_lab_order') {
+                    currentRecord = createdRecord;
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: createdRecord,
+                    });
+                    return true;
+                }
+
+                if (payload.action === 'issue_lab_order') {
+                    currentRecord = issuedRecord;
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: issuedRecord,
+                    });
+                    return true;
+                }
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.keyboard.press('Control+K');
+    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Laboratorio HCU-form.010A/2008'
+    );
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-010A no aplica');
+
+    await page
+        .locator('[data-clinical-review-action="create-lab-order"]')
+        .click();
+
+    await expect.poll(() => actionPayloads.length).toBe(1);
+    expect(actionPayloads[0]).toMatchObject({
+        action: 'create_lab_order',
+        sessionId: 'chs-hcu010a-001',
+    });
+
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-010A borrador');
+
+    await page.locator('#lab_order_sample_date').fill('2026-03-15');
+    await page.locator('#lab_order_requested_by').fill('Dra. Laura Mena');
+    await page.locator('#lab_order_required_for_current_plan').check();
+    await page
+        .locator('input[name="lab_order_study_hematology"][value="Biometria hematica"]')
+        .check();
+    await page
+        .locator('#lab_order_notes')
+        .fill('Solicitar biometria hematica de control.');
+
+    await page
+        .locator('[data-clinical-review-action="issue-current-lab-order"]')
+        .click();
+
+    await expect.poll(() => actionPayloads.length).toBe(2);
+    expect(actionPayloads[1]).toMatchObject({
+        action: 'issue_lab_order',
+        sessionId: 'chs-hcu010a-001',
+        labOrderId: 'lab-order-hcu010a-001',
+        activeLabOrderId: 'lab-order-hcu010a-001',
+        labOrders: [
+            expect.objectContaining({
+                labOrderId: 'lab-order-hcu010a-001',
+                requiredForCurrentPlan: true,
+                sampleDate: '2026-03-15',
+                requestedBy: 'Dra. Laura Mena',
+                studySelections: expect.objectContaining({
+                    hematology: ['Biometria hematica'],
+                }),
+            }),
+        ],
+    });
+
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-010A emitida');
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Snapshots documentales HCU-010A'
+    );
+    await expect(page.locator('#lab_order_issued_at')).toHaveValue(
+        /2026-03-15/
     );
 });
 

@@ -308,6 +308,48 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
                 'updatedAt' => '2026-03-11T10:16:00-05:00',
             ]],
             'activeInterconsultationId' => 'inter-admin-001',
+            'labOrders' => [[
+                'labOrderId' => 'lab-admin-001',
+                'status' => 'ready_to_issue',
+                'requiredForCurrentPlan' => true,
+                'priority' => 'routine',
+                'requestedAt' => '2026-03-11T10:15:00-05:00',
+                'sampleDate' => '2026-03-11',
+                'requestingEstablishment' => 'Piel Armonia',
+                'requestingService' => 'Dermatologia ambulatoria',
+                'careSite' => 'Consulta externa',
+                'bedLabel' => '',
+                'requestedBy' => 'Dra. Laura Mena',
+                'patientName' => 'Paciente Clinico',
+                'patientDocumentNumber' => '0912345678',
+                'patientRecordId' => 'hcu-chs-admin-001',
+                'patientAgeYears' => 34,
+                'patientSexAtBirth' => 'femenino',
+                'diagnoses' => [[
+                    'type' => 'pre',
+                    'label' => 'Rosacea en control parcial.',
+                    'cie10' => 'L71.9',
+                ]],
+                'studySelections' => [
+                    'hematology' => ['Biometria hematica'],
+                    'urinalysis' => [],
+                    'coprological' => [],
+                    'bloodChemistry' => [],
+                    'serology' => [],
+                    'bacteriology' => [],
+                    'others' => '',
+                ],
+                'bacteriologySampleSource' => '',
+                'physicianPresentAtExam' => false,
+                'notes' => 'Solicitar biometria hematica de control.',
+                'issuedAt' => '',
+                'cancelledAt' => '',
+                'cancelReason' => '',
+                'history' => [],
+                'createdAt' => '2026-03-11T10:15:00-05:00',
+                'updatedAt' => '2026-03-11T10:16:00-05:00',
+            ]],
+            'activeLabOrderId' => 'lab-admin-001',
             'recordMeta' => [
                 'archiveState' => 'active',
                 'lastAttentionAt' => '2020-03-10T10:00:00-05:00',
@@ -440,6 +482,11 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu007']['cancelled'] ?? -1));
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu007']['incomplete'] ?? -1));
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu007']['draft'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu010A']['issued'] ?? -1));
+        self::assertSame(1, (int) ($meta['summary']['drafts']['hcu010A']['ready_to_issue'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu010A']['cancelled'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu010A']['incomplete'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu010A']['draft'] ?? -1));
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu024']['accepted'] ?? -1));
         self::assertSame(1, (int) ($meta['summary']['drafts']['hcu024']['draft'] ?? -1));
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu024']['declined'] ?? -1));
@@ -459,6 +506,8 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame('HCU-005 parcial', (string) ($meta['reviewQueue'][0]['hcu005Label'] ?? ''));
         self::assertSame('ready_to_issue', (string) ($meta['reviewQueue'][0]['hcu007Status'] ?? ''));
         self::assertSame('HCU-007 lista para emitir', (string) ($meta['reviewQueue'][0]['hcu007Label'] ?? ''));
+        self::assertSame('ready_to_issue', (string) ($meta['reviewQueue'][0]['hcu010AStatus'] ?? ''));
+        self::assertSame('HCU-010A lista para emitir', (string) ($meta['reviewQueue'][0]['hcu010ALabel'] ?? ''));
         self::assertSame('draft', (string) ($meta['reviewQueue'][0]['hcu024Status'] ?? ''));
         self::assertSame('HCU-024 borrador', (string) ($meta['reviewQueue'][0]['hcu024Label'] ?? ''));
         self::assertSame(1, (int) ($meta['reviewQueue'][0]['pendingCopyRequests'] ?? -1));
