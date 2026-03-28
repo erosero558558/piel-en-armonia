@@ -1,11 +1,6 @@
 'use strict';
 
-const {
-    existsSync,
-    mkdirSync,
-    readFileSync,
-    writeFileSync,
-} = require('fs');
+const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('fs');
 const crypto = require('crypto');
 const path = require('path');
 const { spawnSync } = require('child_process');
@@ -68,8 +63,7 @@ const FRONTEND_REQUIRED_CHECK_TYPES = new Set(['content', 'audit', 'test']);
 const LOCAL_REQUIRED_CHECK_TYPES = FRONTEND_REQUIRED_CHECK_TYPES;
 const LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION = 1;
 const REQUIRED_CHECKS_SNAPSHOT_VERSION = 1;
-const REQUIRED_CHECKS_SNAPSHOT_DIRNAME =
-    '.codex-local/focus-required-checks';
+const REQUIRED_CHECKS_SNAPSHOT_DIRNAME = '.codex-local/focus-required-checks';
 const LOCAL_REQUIRED_CHECK_ID_ALIASES = {
     'audit:public:v6:copy': 'audit:public-v6:copy',
 };
@@ -77,8 +71,7 @@ const FRONTEND_REQUIRED_CHECK_SCRIPT_OVERRIDES = {
     'audit:public-v6:copy': 'audit:public:v6:copy',
 };
 const EVIDENCE_REQUIRED_CHECK_STATUSES = new Set(['review', 'done']);
-const EVIDENCE_REQUIRED_CHECK_SUBFRONT_ID =
-    'SF-frontend-public-v6-es-copy';
+const EVIDENCE_REQUIRED_CHECK_SUBFRONT_ID = 'SF-frontend-public-v6-es-copy';
 const REQUIRED_CHECK_EVIDENCE_PATTERN =
     /^\s*-\s*required_check:\s*([^|]+?)\s*\|\s*state:\s*(green|red)\s*\|\s*command:\s*(.+?)\s*$/gim;
 let cachedWorkspaceDomain = null;
@@ -414,7 +407,9 @@ function normalizeLocalRequiredCheckSnapshot(snapshot = {}) {
     return {
         version:
             Number.parseInt(
-                String(snapshot.version || LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION),
+                String(
+                    snapshot.version || LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION
+                ),
                 10
             ) || LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION,
         focus_id: String(snapshot.focus_id || '').trim(),
@@ -484,9 +479,13 @@ function compareTasksByUpdatedAtDesc(left = {}, right = {}) {
     if (leftMs !== rightMs) {
         return rightMs - leftMs;
     }
-    return String(left.id || '').localeCompare(String(right.id || ''), undefined, {
-        numeric: true,
-    });
+    return String(left.id || '').localeCompare(
+        String(right.id || ''),
+        undefined,
+        {
+            numeric: true,
+        }
+    );
 }
 
 function getTaskEvidenceRefs(task = {}) {
@@ -499,7 +498,11 @@ function getTaskEvidenceRefs(task = {}) {
     );
 }
 
-function buildLocalRequiredCheckSnapshotFromEvidence(board, focus, options = {}) {
+function buildLocalRequiredCheckSnapshotFromEvidence(
+    board,
+    focus,
+    options = {}
+) {
     const resolvedFocus = focus?.configured ? focus.configured : focus;
     const focusId = String(resolvedFocus?.id || '').trim();
     const activeStrategy =
@@ -518,7 +521,9 @@ function buildLocalRequiredCheckSnapshotFromEvidence(board, focus, options = {})
     const rootPath =
         String(options.rootPath || process.cwd()).trim() || process.cwd();
     const existsImpl =
-        typeof options.existsSync === 'function' ? options.existsSync : existsSync;
+        typeof options.existsSync === 'function'
+            ? options.existsSync
+            : existsSync;
     const readFileImpl =
         typeof options.readFileSync === 'function'
             ? options.readFileSync
@@ -530,7 +535,11 @@ function buildLocalRequiredCheckSnapshotFromEvidence(board, focus, options = {})
     const tasks = Array.isArray(board?.tasks) ? board.tasks : [];
     const candidates = tasks
         .filter((task) => {
-            if (!EVIDENCE_REQUIRED_CHECK_STATUSES.has(normalizeOptionalToken(task?.status))) {
+            if (
+                !EVIDENCE_REQUIRED_CHECK_STATUSES.has(
+                    normalizeOptionalToken(task?.status)
+                )
+            ) {
                 return false;
             }
             if (
@@ -549,7 +558,10 @@ function buildLocalRequiredCheckSnapshotFromEvidence(board, focus, options = {})
                 return false;
             }
             const updatedAtMs = parseDateMs(task?.updated_at);
-            if (startedAtMs !== null && (updatedAtMs === null || updatedAtMs < startedAtMs)) {
+            if (
+                startedAtMs !== null &&
+                (updatedAtMs === null || updatedAtMs < startedAtMs)
+            ) {
                 return false;
             }
             return getTaskEvidenceRefs(task).length > 0;
@@ -590,7 +602,8 @@ function buildLocalRequiredCheckSnapshotFromEvidence(board, focus, options = {})
                     cache.set(cacheKey, parsedChecks);
                 }
                 const matchedCheck =
-                    parsedChecks.find((item) => item.id === requiredCheckId) || null;
+                    parsedChecks.find((item) => item.id === requiredCheckId) ||
+                    null;
                 if (matchedCheck) {
                     resolvedChecks.push({
                         ...matchedCheck,
@@ -628,7 +641,9 @@ function loadLocalRequiredCheckSnapshot(focus, options = {}) {
         resolvedFocus?.required_checks
     );
     const board =
-        options.board && typeof options.board === 'object' ? options.board : null;
+        options.board && typeof options.board === 'object'
+            ? options.board
+            : null;
     const snapshotPath = resolveFocusCheckSnapshotPath(focusId, options);
     if (!focusId) {
         return {
@@ -640,7 +655,9 @@ function loadLocalRequiredCheckSnapshot(focus, options = {}) {
         };
     }
     const existsImpl =
-        typeof options.existsSync === 'function' ? options.existsSync : existsSync;
+        typeof options.existsSync === 'function'
+            ? options.existsSync
+            : existsSync;
     const readFileImpl =
         typeof options.readFileSync === 'function'
             ? options.readFileSync
@@ -758,8 +775,7 @@ function runCommand(program, args, options = {}) {
                   : 1,
         stdout: String(result.stdout || ''),
         stderr: String(result.stderr || ''),
-        error:
-            result.error instanceof Error ? result.error.message : '',
+        error: result.error instanceof Error ? result.error.message : '',
     };
 }
 
@@ -780,7 +796,8 @@ function normalizeWorkspaceRoots(options = {}) {
         const workspaceDomain = getWorkspaceDomain();
         if (
             workspaceDomain &&
-            typeof workspaceDomain.normalizeWorkspaceSyncPolicy === 'function' &&
+            typeof workspaceDomain.normalizeWorkspaceSyncPolicy ===
+                'function' &&
             typeof workspaceDomain.resolveWorkspaceRoots === 'function'
         ) {
             const policy =
@@ -790,7 +807,8 @@ function normalizeWorkspaceRoots(options = {}) {
                 cwd,
                 root_path: path.resolve(roots.main_root || fallbackRoot),
                 local_dir: path.resolve(
-                    roots.local_dir || path.resolve(fallbackRoot, '.codex-local')
+                    roots.local_dir ||
+                        path.resolve(fallbackRoot, '.codex-local')
                 ),
                 worktrees_dir: path.resolve(
                     roots.worktrees_dir ||
@@ -917,7 +935,10 @@ function resolveTaskExecutionContext(task, options = {}) {
     let worktreePath = roots.root_path;
     try {
         const workspaceDomain = getWorkspaceDomain();
-        if (workspaceDomain && typeof workspaceDomain.captureTaskWorkspace === 'function') {
+        if (
+            workspaceDomain &&
+            typeof workspaceDomain.captureTaskWorkspace === 'function'
+        ) {
             const capture = workspaceDomain.captureTaskWorkspace(task.id, {
                 cwd: roots.cwd,
                 governancePolicy: options.governancePolicy || null,
@@ -928,7 +949,10 @@ function resolveTaskExecutionContext(task, options = {}) {
             }
         }
     } catch {
-        const candidate = path.resolve(roots.worktrees_dir, String(task?.id || ''));
+        const candidate = path.resolve(
+            roots.worktrees_dir,
+            String(task?.id || '')
+        );
         if (existsSync(candidate)) {
             worktreePath = candidate;
         }
@@ -1070,14 +1094,16 @@ function validateRequiredChecksSnapshot(snapshot, metadata, options = {}) {
 }
 
 function buildRequiredChecksSnapshotState(state = {}) {
-    const snapshot = state.snapshot && typeof state.snapshot === 'object'
-        ? state.snapshot
-        : null;
+    const snapshot =
+        state.snapshot && typeof state.snapshot === 'object'
+            ? state.snapshot
+            : null;
     const generatedAt = String(
         state.generated_at || snapshot?.generated_at || ''
     ).trim();
     const valid = state.valid === true;
-    const reason = String(state.reason || '').trim() || (valid ? 'ok' : 'missing');
+    const reason =
+        String(state.reason || '').trim() || (valid ? 'ok' : 'missing');
     return {
         source: 'task_snapshot',
         available: state.available === true,
@@ -1164,7 +1190,8 @@ function evaluateFrontendRequiredCheck(check, snapshotState) {
     const snapshotCheck =
         snapshotChecks.find(
             (item) =>
-                normalizeRequiredCheckId(item?.id) === normalizeRequiredCheckId(check.id)
+                normalizeRequiredCheckId(item?.id) ===
+                normalizeRequiredCheckId(check.id)
         ) || null;
     if (!snapshotCheck) {
         return {
@@ -1176,8 +1203,9 @@ function evaluateFrontendRequiredCheck(check, snapshotState) {
         };
     }
     const command = String(snapshotCheck.command || '').trim();
-    const checkedAt =
-        String(snapshotCheck.checked_at || snapshotState.generated_at || '').trim();
+    const checkedAt = String(
+        snapshotCheck.checked_at || snapshotState.generated_at || ''
+    ).trim();
     if (snapshotCheck.ok === true) {
         return {
             ...check,
@@ -1225,9 +1253,7 @@ function refreshRequiredChecksSnapshot(board, options = {}) {
     });
     const checks = normalizeArray(focus.required_checks, { lowerCase: true })
         .map((token) => parseRequiredCheckToken(token))
-        .filter(
-            (item) => item && isFrontendRequiredCheckType(item.type)
-        );
+        .filter((item) => item && isFrontendRequiredCheckType(item.type));
     const npmProgram = resolveNpmProgram();
     const env = buildTaskCommandEnv(executionContext.root_path);
     const results = checks.map((check) => {
@@ -1260,7 +1286,11 @@ function refreshRequiredChecksSnapshot(board, options = {}) {
         ...metadata,
         checks: results,
     };
-    writeFileSync(`${snapshotPath}`, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+    writeFileSync(
+        `${snapshotPath}`,
+        `${JSON.stringify(payload, null, 2)}\n`,
+        'utf8'
+    );
     return {
         version: 1,
         ok: true,
@@ -1384,7 +1414,10 @@ function isOperatorAuthRecommendedModeHealthy(surface = {}) {
     return true;
 }
 
-function runtimeProviderMatchesRequiredCheckTarget(target, runtimeVerification) {
+function runtimeProviderMatchesRequiredCheckTarget(
+    target,
+    runtimeVerification
+) {
     const safeTarget = normalizeOptionalToken(target);
     if (!safeTarget) return false;
     const provider = normalizeOptionalToken(runtimeVerification?.provider);
@@ -1566,7 +1599,10 @@ function evaluateRequiredChecks(focus, options = {}) {
                     requiredChecksSnapshot
                 );
             }
-            return evaluateLocalRequiredCheck(check, localRequiredCheckSnapshot);
+            return evaluateLocalRequiredCheck(
+                check,
+                localRequiredCheckSnapshot
+            );
         }
         if (check.type === 'job') {
             const job = jobsSnapshot.find(
@@ -1718,7 +1754,9 @@ function buildFocusSummary(board, options = {}) {
 
     for (const task of activeTasks) {
         const taskId = String(task.id || '');
-        const taskStatus = String(task.status || '').trim().toLowerCase();
+        const taskStatus = String(task.status || '')
+            .trim()
+            .toLowerCase();
         const workType = String(task.work_type || '')
             .trim()
             .toLowerCase();
@@ -1995,8 +2033,9 @@ async function buildLiveFocusSummary(board, deps = {}) {
                 available: false,
                 valid: false,
                 reason:
-                    String(error?.error_code || error?.code || 'missing').trim() ||
-                    'missing',
+                    String(
+                        error?.error_code || error?.code || 'missing'
+                    ).trim() || 'missing',
                 path: getRequiredChecksSnapshotPath(requestedTaskId, {
                     cwd: deps.cwd || deps.rootPath || process.cwd(),
                     rootPath: deps.rootPath || deps.cwd || process.cwd(),

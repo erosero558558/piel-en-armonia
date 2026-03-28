@@ -73,20 +73,153 @@ test('php-governance-contract ejecuta validador canonico de gobernanza', (t) => 
         return;
     }
 
-    const result = spawnSync('php', ['bin/validate-agent-governance.php'], {
-        cwd: REPO_ROOT,
-        encoding: 'utf8',
-    });
+    const dir = createPhpGovernanceFixtureDir();
+    try {
+        writeFileSync(
+            join(dir, 'AGENT_BOARD.yaml'),
+            `version: 1
+policy:
+  canonical: AGENTS.md
+  autonomy: semi_autonomous_guardrails
+  kpi: reduce_rework
+  revision: 0
+  updated_at: 2026-03-15
+strategy:
+  active:
+    id: STRAT-TEST-VALID
+    title: "Fixture valida"
+    objective: "Validar contrato PHP"
+    owner: ernesto
+    owner_policy: "detected_default_owner"
+    status: active
+    started_at: "2026-03-15"
+    review_due_at: "2026-03-20"
+    exit_criteria: ["uno"]
+    success_signal: "demo"
+    subfronts:
+      - codex_instance: codex_frontend
+        subfront_id: SF-frontend
+        title: "Frontend"
+        allowed_scopes: ["frontend-admin"]
+        support_only_scopes: ["frontend-qa"]
+        blocked_scopes: ["frontend-public"]
+        wip_limit: 1
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
+      - codex_instance: codex_backend_ops
+        subfront_id: SF-backend
+        title: "Backend"
+        allowed_scopes: ["backend"]
+        support_only_scopes: ["tests"]
+        blocked_scopes: ["payments"]
+        wip_limit: 1
+        default_acceptance_profile: "backend_gate_checkpoint"
+        exception_ttl_hours: 8
+      - codex_instance: codex_transversal
+        subfront_id: SF-transversal
+        title: "Transversal"
+        allowed_scopes: []
+        support_only_scopes: ["codex-governance"]
+        blocked_scopes: ["deploy"]
+        wip_limit: 1
+        default_acceptance_profile: "transversal_runtime_checkpoint"
+        exception_ttl_hours: 8
+  next: null
+  updated_at: "2026-03-15"
+tasks:
+  - id: AG-001
+    title: "Fixture valida"
+    owner: deck
+    executor: codex
+    status: review
+    status_since_at: "2026-03-15T00:00:00.000Z"
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    provider_mode:
+    runtime_surface:
+    runtime_transport:
+    runtime_last_transport:
+    files: ["content/public-v6/es/home.json", "tests/public-v6-news-strip.spec.js"]
+    source_signal: manual
+    source_ref: ""
+    priority_score: 0
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "release"
+    acceptance_ref: "verification/agent-runs/AG-001.md"
+    evidence_ref: "verification/agent-runs/AG-001.md"
+    strategy_id: "STRAT-TEST-VALID"
+    subfront_id: "SF-frontend"
+    strategy_role: "exception"
+    strategy_reason: "validated_release_promotion"
+    focus_id: ""
+    focus_step: ""
+    integration_slice: "governance_evidence"
+    work_type: "evidence"
+    expected_outcome: ""
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: []
+    prompt: "fixture valida"
+    created_at: 2026-03-15
+    updated_at: 2026-03-15
+`,
+            'utf8'
+        );
+        writeFileSync(
+            join(dir, 'PLAN_MAESTRO_CODEX_2026.md'),
+            `# Plan fixture
 
-    assert.equal(
-        result.status,
-        0,
-        `php bin/validate-agent-governance.php fallo\nSTDOUT:\n${result.stdout || ''}\nSTDERR:\n${result.stderr || ''}`
-    );
-    assert.match(
-        String(result.stdout || ''),
-        /OK:\s+gobernanza de agentes valida/i
-    );
+<!-- CODEX_STRATEGY_ACTIVE
+id: STRAT-TEST-VALID
+title: "Fixture valida"
+status: active
+owner: ernesto
+owner_policy: "detected_default_owner"
+subfront_ids: ["SF-frontend", "SF-backend", "SF-transversal"]
+updated_at: "2026-03-15"
+-->
+
+Relacion con Operativo 2026:
+- Fixture.
+`,
+            'utf8'
+        );
+
+        const result = spawnSync('php', ['bin/validate-agent-governance.php'], {
+            cwd: dir,
+            encoding: 'utf8',
+        });
+
+        assert.equal(
+            result.status,
+            0,
+            `php bin/validate-agent-governance.php fallo\nSTDOUT:\n${result.stdout || ''}\nSTDERR:\n${result.stderr || ''}`
+        );
+        assert.match(
+            String(result.stdout || ''),
+            /OK:\s+gobernanza de agentes valida/i
+        );
+    } finally {
+        cleanupPhpGovernanceFixtureDir(dir);
+    }
 });
 
 test('php-governance-contract rechaza colision same-lane entre claim y blocked_scope', (t) => {
@@ -369,7 +502,10 @@ Relacion con Operativo 2026:
             0,
             `validator deberia aceptar validated_release_promotion\nSTDOUT:\n${result.stdout || ''}\nSTDERR:\n${result.stderr || ''}`
         );
-        assert.match(String(result.stdout || ''), /OK:\s+gobernanza de agentes valida/i);
+        assert.match(
+            String(result.stdout || ''),
+            /OK:\s+gobernanza de agentes valida/i
+        );
     } finally {
         cleanupPhpGovernanceFixtureDir(dir);
     }
@@ -526,7 +662,10 @@ Relacion con Operativo 2026:
             0,
             `validator deberia aceptar validated_release_promotion ya done\nSTDOUT:\n${result.stdout || ''}\nSTDERR:\n${result.stderr || ''}`
         );
-        assert.match(String(result.stdout || ''), /OK:\s+gobernanza de agentes valida/i);
+        assert.match(
+            String(result.stdout || ''),
+            /OK:\s+gobernanza de agentes valida/i
+        );
     } finally {
         cleanupPhpGovernanceFixtureDir(dir);
     }

@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 808
+  revision: 811
   updated_at: 2026-03-28
 
 strategy:
@@ -820,7 +820,7 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
+    files: ["bin/deploy-public-v3-cron-sync.sh", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
     source_signal: manual
     source_ref: "issue#461"
     priority_score: 66
@@ -831,8 +831,8 @@ tasks:
     lease_id: "lease_CDX-009_20260328040508913_4d424e"
     lease_owner: "deck"
     lease_created_at: "2026-03-28T04:05:08.913Z"
-    heartbeat_at: "2026-03-28T11:43:29.956Z"
-    lease_expires_at: "2026-03-28T15:43:29.956Z"
+    heartbeat_at: "2026-03-28T12:19:09.799Z"
+    lease_expires_at: "2026-03-29T12:19:09.799Z"
     lease_reason: "leases_heartbeat"
     lease_cleared_at: ""
     lease_cleared_reason: ""
@@ -11626,8 +11626,8 @@ tasks:
     scope: deploy
     codex_instance: codex_backend_ops
     domain_lane: backend_ops
-    lane_lock: strict
-    cross_domain: false
+    lane_lock: handoff_allowed
+    cross_domain: true
     provider_mode: 
     runtime_surface: 
     runtime_transport: 
@@ -11664,7 +11664,7 @@ tasks:
     decision_ref: ""
     rework_parent: ""
     rework_reason: ""
-    depends_on: []
+    depends_on: ["AG-249"]
     prompt: "Public sync rollout: desplegar health publicSync y verificar host"
     created_at: 2026-03-14
     updated_at: 2026-03-28
