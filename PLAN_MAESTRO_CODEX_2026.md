@@ -4,10 +4,10 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
-<!-- CODEX_STRATEGY_NEXT
+<!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-admin-shell-rc2-polish
 title: "Admin shell RC2 polish"
-status: draft
+status: active
 owner: luciaguadalupecaizasanchez
 owner_policy: "detected_default_owner"
 objective: "Cerrar un frente dedicado al shell admin clinico diario, con navegacion mas limpia, cinco secciones visibles y sin reabrir queue/turnero, reviews ni readiness remota."
@@ -20,25 +20,6 @@ focus_status: active
 focus_next_step: "shell_nav_ergonomics"
 focus_required_checks: ["test:frontend:qa:admin"]
 subfront_ids: ["SF-frontend-admin-shell-rc2", "SF-backend-admin-shell-rc2-support", "SF-transversal-admin-shell-rc2-support"]
-updated_at: "2026-03-28"
--->
-
-<!-- CODEX_STRATEGY_ACTIVE
-id: STRAT-2026-03-turnero-web-pilot-multi-clinic-local
-title: "Turnero web pilot multi-clinic local"
-status: closed
-owner: luciaguadalupecaizasanchez
-owner_policy: "detected_default_owner"
-objective: "Habilitar una segunda clinica web_pilot catalogada dentro del carril local-first de turnero, manteniendo un perfil activo versionado unico y sin reabrir verify-remote ni blockers nativos."
-started_at: "2026-03-28"
-review_due_at: "2026-04-04"
-success_signal: "Piel Armonia Quito sigue como perfil activo versionado y Clinica Norte Demo queda visible, stageable y local-ready como segunda clinica web_pilot."
-focus_id: "FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1"
-focus_title: "Turnero web pilot multi-clinic local-first"
-focus_status: active
-focus_next_step: "local_gate_validation"
-focus_required_checks: ["test:turnero:web-pilot:contracts", "test:turnero:web-pilot:php-contract", "test:turnero:web-pilot:ui"]
-subfront_ids: ["SF-frontend-turnero-web-pilot-multi-clinic", "SF-backend-turnero-web-pilot-multi-clinic", "SF-transversal-turnero-web-pilot-multi-clinic"]
 updated_at: "2026-03-28"
 -->
 

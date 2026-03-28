@@ -7,71 +7,17 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 833
+  revision: 834
   updated_at: 2026-03-28
 
 strategy:
   active:
-    id: STRAT-2026-03-turnero-web-pilot-multi-clinic-local
-    title: "Turnero web pilot multi-clinic local"
-    objective: "Habilitar una segunda clinica web_pilot catalogada dentro del carril local-first de turnero, manteniendo un perfil activo versionado unico y sin reabrir verify-remote ni blockers nativos."
-    owner: luciaguadalupecaizasanchez
-    owner_policy: "detected_default_owner"
-    status: closed
-    started_at: "2026-03-28"
-    review_due_at: "2026-04-04"
-    closed_at: "2026-03-28"
-    close_reason: "review_complete"
-    exit_criteria: ["clinica-norte-demo valida y stagea como web_pilot sin cambiar el schema v1 ni reemplazar clinic-profile.json", "Admin e install hub muestran catalogo multi-clinica y readiness local para la segunda clinica sin blockers nativos o remotos", "Los gates locales de turnero permanecen en verde reutilizando los mismos required checks del frente web_pilot"]
-    success_signal: "Piel Armonia Quito sigue como perfil activo versionado y Clinica Norte Demo queda visible, stageable y local-ready como segunda clinica web_pilot."
-    focus_id: "FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1"
-    focus_title: "Turnero web pilot multi-clinic local-first"
-    focus_summary: "Habilitar una segunda clinica web_pilot dentro del catalogo local-first de turnero, mostrando readiness multi-clinica sin depender de verify-remote ni de carriles nativos."
-    focus_status: active
-    focus_proof: "clinica-norte-demo valida y stagea como web_pilot, el admin expone el catalogo multi-clinica con readiness local y los tres checks del frente vuelven a verde."
-    focus_steps: ["second_clinic_web_pilot_contract", "multi_clinic_local_readiness", "local_gate_validation"]
-    focus_next_step: "local_gate_validation"
-    focus_required_checks: ["test:turnero:web-pilot:contracts", "test:turnero:web-pilot:php-contract", "test:turnero:web-pilot:ui"]
-    focus_non_goals: ["public_main_sync_recovery", "verify_remote_turnero", "prod_smoke_turnero", "desktop_android_blocking", "new_clinic_from_scratch"]
-    focus_owner: "luciaguadalupecaizasanchez"
-    focus_review_due_at: "2026-04-04"
-    focus_evidence_ref: ""
-    focus_max_active_slices: 3
-    subfronts:
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-turnero-web-pilot-multi-clinic
-        title: "Surfaces web y control tower multi-clinica local"
-        allowed_scopes: ["queue", "turnero"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["frontend-public", "payments", "calendar"]
-        wip_limit: 1
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-turnero-web-pilot-multi-clinic
-        title: "Contrato, CLI y catalogo multi-clinica local-first"
-        allowed_scopes: ["backend", "readiness", "gates"]
-        support_only_scopes: ["turnero", "tests", "ops"]
-        blocked_scopes: ["deploy", "security", "payments"]
-        wip_limit: 1
-        default_acceptance_profile: "backend_gate_checkpoint"
-        exception_ttl_hours: 6
-      - codex_instance: codex_transversal
-        subfront_id: SF-transversal-turnero-web-pilot-multi-clinic
-        title: "Soporte transversal eventual para la ola multi-clinica"
-        allowed_scopes: []
-        support_only_scopes: ["codex-governance", "tooling"]
-        blocked_scopes: ["openclaw_runtime", "legacy-runtime"]
-        wip_limit: 1
-        default_acceptance_profile: "transversal_runtime_checkpoint"
-        exception_ttl_hours: 4
-  next:
     id: STRAT-2026-03-admin-shell-rc2-polish
     title: "Admin shell RC2 polish"
     objective: "Cerrar un frente dedicado al shell admin clinico diario, con navegacion mas limpia, cinco secciones visibles y sin reabrir queue/turnero, reviews ni readiness remota."
     owner: luciaguadalupecaizasanchez
     owner_policy: "detected_default_owner"
-    status: draft
+    status: active
     started_at: "2026-03-28"
     review_due_at: "2026-03-31"
     closed_at: ""
@@ -119,6 +65,7 @@ strategy:
         wip_limit: 1
         default_acceptance_profile: "transversal_runtime_checkpoint"
         exception_ttl_hours: 4
+  next: null
   updated_at: "2026-03-28"
 
 tasks:
