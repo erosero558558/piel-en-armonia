@@ -7,7 +7,7 @@ Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite po
 <!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-turnero-web-pilot-multi-clinic-local
 title: "Turnero web pilot multi-clinic local"
-status: active
+status: closed
 owner: luciaguadalupecaizasanchez
 owner_policy: "detected_default_owner"
 objective: "Habilitar una segunda clinica web_pilot catalogada dentro del carril local-first de turnero, manteniendo un perfil activo versionado unico y sin reabrir verify-remote ni blockers nativos."
