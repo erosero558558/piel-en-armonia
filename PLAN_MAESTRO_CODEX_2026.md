@@ -14,6 +14,15 @@ files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md
 updated_at: 2026-03-28
 -->
 
+<!-- CODEX_ACTIVE
+codex_instance: codex_transversal
+block: C3
+task_id: CDX-055
+subfront_id: SF-transversal-admin-operativo
+status: review
+files: ["governance-policy.json", "tools/agent-orchestrator/commands/publish.js", "tools/agent-orchestrator/core/policy.js", "tests-node/close-command.test.js", "tests-node/publish-checkpoint-command.test.js", "tests-node/orchestrator/policy-config.test.js", "AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-055.md"]
+updated_at: 2026-03-28
+-->
 <!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-admin-operativo
 title: "Admin operativo"
@@ -124,6 +133,19 @@ updated_at: "2026-03-28"
   con `focus_next_step=feedback_trim`.
 - `CDX-054` permanece como slice frontend de formalizacion/cierre del rescate
   del kiosco, acotada a `kiosco-turnos.html` y su evidencia.
+
+## Bootstrap Turnero Gates 2026-03-28
+
+- `CDX-055` deja el bootstrap minimo de gobernanza para rescatar
+  `Turnero Gates` desde el canon actual de `admin-operativo`.
+- `external_blocker_escape` pasa a aceptar reglas multiples manteniendo
+  compatibilidad con la regla legacy de `forward + codex_frontend`.
+- Se agrega un carve-out nuevo y acotado solo para
+  `support + codex_backend_ops + scope=gates + subfront_id=SF-backend-admin-operativo`
+  en `feedback_trim`.
+- El objetivo es permitir el cierre canonico de una slice de soporte de gates
+  sin abrir el escape a `deploy`, `ops`, `monitoring`, `tests` genericos ni
+  otros scopes/lane fuera del rescate de `Turnero Gates`.
 
 ## Proposito
 

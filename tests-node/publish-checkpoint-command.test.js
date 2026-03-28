@@ -570,6 +570,177 @@ test('publish checkpoint falla si required checks del foco no estan verdes', asy
     }
 });
 
+test('publish checkpoint permite escape acotado para support backend gates en feedback_trim', async () => {
+    const root = createRepoFixture();
+    try {
+        writeFileSync(
+            join(root, 'docs', 'in-scope.md'),
+            '# updated scope\n',
+            'utf8'
+        );
+        const ctx = buildPublishContext(root, {
+            summary: 'feedback_trim gates support checkpoint',
+            task: {
+                status: 'review',
+                codex_instance: 'codex_backend_ops',
+                scope: 'gates',
+                subfront_id: 'SF-backend-admin-operativo',
+                work_type: 'support',
+                focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                focus_step: 'feedback_trim',
+            },
+            buildLiveFocusSummary: async () => ({
+                summary: {
+                    active: {
+                        id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                        next_step: 'feedback_trim',
+                    },
+                    acknowledged_external_blocker: true,
+                    external_blocker_tasks: [
+                        {
+                            id: 'CDX-009',
+                            blocked_reason:
+                                'host_public_health_502_external_blocker',
+                        },
+                    ],
+                    blocking_errors: [],
+                    release_blocking_errors: ['required_check_unverified'],
+                    required_checks: [
+                        {
+                            id: 'job:public_main_sync',
+                            state: 'red',
+                            ok: false,
+                            reason: 'health_http_502',
+                        },
+                    ],
+                },
+            }),
+            getGovernancePolicy: () => ({
+                publishing: {
+                    external_blocker_escape: {
+                        enabled: true,
+                        blocked_reasons: [
+                            'host_public_health_502_external_blocker',
+                        ],
+                        allowed_focus_steps: ['feedback_trim'],
+                        allowed_work_types: ['forward'],
+                        allowed_codex_instances: ['codex_frontend'],
+                        rules: [
+                            {
+                                blocked_reasons: [
+                                    'host_public_health_502_external_blocker',
+                                ],
+                                allowed_focus_steps: ['feedback_trim'],
+                                allowed_work_types: ['support'],
+                                allowed_codex_instances: [
+                                    'codex_backend_ops',
+                                ],
+                                allowed_scopes: ['gates'],
+                                allowed_subfront_ids: [
+                                    'SF-backend-admin-operativo',
+                                ],
+                            },
+                        ],
+                    },
+                },
+            }),
+        });
+
+        const report = await handlePublishCommand(ctx);
+        assert.equal(report.ok, true);
+    } finally {
+        cleanupRepoFixture(root);
+    }
+});
+
+test('publish checkpoint mantiene bloqueado support fuera de scope gates', async () => {
+    const root = createRepoFixture();
+    try {
+        writeFileSync(
+            join(root, 'docs', 'in-scope.md'),
+            '# updated scope\n',
+            'utf8'
+        );
+        const ctx = buildPublishContext(root, {
+            summary: 'feedback_trim backend support checkpoint',
+            task: {
+                status: 'review',
+                codex_instance: 'codex_backend_ops',
+                scope: 'backend',
+                subfront_id: 'SF-backend-admin-operativo',
+                work_type: 'support',
+                focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                focus_step: 'feedback_trim',
+            },
+            buildLiveFocusSummary: async () => ({
+                summary: {
+                    active: {
+                        id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                        next_step: 'feedback_trim',
+                    },
+                    acknowledged_external_blocker: true,
+                    external_blocker_tasks: [
+                        {
+                            id: 'CDX-009',
+                            blocked_reason:
+                                'host_public_health_502_external_blocker',
+                        },
+                    ],
+                    blocking_errors: [],
+                    release_blocking_errors: ['required_check_unverified'],
+                    required_checks: [
+                        {
+                            id: 'job:public_main_sync',
+                            state: 'red',
+                            ok: false,
+                            reason: 'health_http_502',
+                        },
+                    ],
+                },
+            }),
+            getGovernancePolicy: () => ({
+                publishing: {
+                    external_blocker_escape: {
+                        enabled: true,
+                        blocked_reasons: [
+                            'host_public_health_502_external_blocker',
+                        ],
+                        allowed_focus_steps: ['feedback_trim'],
+                        allowed_work_types: ['forward'],
+                        allowed_codex_instances: ['codex_frontend'],
+                        rules: [
+                            {
+                                blocked_reasons: [
+                                    'host_public_health_502_external_blocker',
+                                ],
+                                allowed_focus_steps: ['feedback_trim'],
+                                allowed_work_types: ['support'],
+                                allowed_codex_instances: [
+                                    'codex_backend_ops',
+                                ],
+                                allowed_scopes: ['gates'],
+                                allowed_subfront_ids: [
+                                    'SF-backend-admin-operativo',
+                                ],
+                            },
+                        ],
+                    },
+                },
+            }),
+        });
+
+        await assert.rejects(
+            () => handlePublishCommand(ctx),
+            (error) => {
+                assert.equal(error.error_code, 'required_check_unverified');
+                return true;
+            }
+        );
+    } finally {
+        cleanupRepoFixture(root);
+    }
+});
+
 test('publish checkpoint bloquea legacy generated root trackeado fuera de scope', async () => {
     const root = createRepoFixture();
     try {

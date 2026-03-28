@@ -43,6 +43,45 @@ function readGovernancePolicyStrict(options) {
     return JSON.parse(readFileSync(policyPath, 'utf8'));
 }
 
+function validateStringArrayField(container, key, pathPrefix, errors) {
+    if (!Object.prototype.hasOwnProperty.call(container, key)) {
+        return;
+    }
+    if (!Array.isArray(container[key])) {
+        errors.push(`${pathPrefix}.${key} debe ser array`);
+        return;
+    }
+    const invalidValue = container[key].find(
+        (value) => typeof value !== 'string' || !String(value).trim()
+    );
+    if (invalidValue !== undefined) {
+        errors.push(`${pathPrefix}.${key} debe contener strings no vacios`);
+    }
+}
+
+function normalizeExternalBlockerEscapeRuleForPolicy(rule) {
+    if (!rule || typeof rule !== 'object' || Array.isArray(rule)) {
+        return {
+            blocked_reasons: [],
+            allowed_focus_steps: [],
+            allowed_work_types: [],
+            allowed_codex_instances: [],
+            allowed_scopes: [],
+            allowed_subfront_ids: [],
+        };
+    }
+    const normalizeList = (values) =>
+        Array.isArray(values) ? values.map((value) => String(value)) : [];
+    return {
+        blocked_reasons: normalizeList(rule.blocked_reasons),
+        allowed_focus_steps: normalizeList(rule.allowed_focus_steps),
+        allowed_work_types: normalizeList(rule.allowed_work_types),
+        allowed_codex_instances: normalizeList(rule.allowed_codex_instances),
+        allowed_scopes: normalizeList(rule.allowed_scopes),
+        allowed_subfront_ids: normalizeList(rule.allowed_subfront_ids),
+    };
+}
+
 function validateGovernancePolicy(rawPolicy, options = {}) {
     const { defaultPolicy, policyExists = false } = options;
     const errors = [];
@@ -388,28 +427,66 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
                             'allowed_focus_steps',
                             'allowed_work_types',
                             'allowed_codex_instances',
+                            'allowed_scopes',
+                            'allowed_subfront_ids',
                         ]) {
-                            if (
-                                Object.prototype.hasOwnProperty.call(
-                                    escapePolicy,
-                                    key
-                                ) &&
-                                !Array.isArray(escapePolicy[key])
-                            ) {
+                            validateStringArrayField(
+                                escapePolicy,
+                                key,
+                                'publishing.external_blocker_escape',
+                                errors
+                            );
+                        }
+                        if (
+                            Object.prototype.hasOwnProperty.call(
+                                escapePolicy,
+                                'rules'
+                            )
+                        ) {
+                            if (!Array.isArray(escapePolicy.rules)) {
                                 errors.push(
-                                    `publishing.external_blocker_escape.${key} debe ser array`
+                                    'publishing.external_blocker_escape.rules debe ser array'
                                 );
-                                continue;
-                            }
-                            if (Array.isArray(escapePolicy[key])) {
-                                const invalidValue = escapePolicy[key].find(
-                                    (value) =>
-                                        typeof value !== 'string' ||
-                                        !String(value).trim()
-                                );
-                                if (invalidValue !== undefined) {
-                                    errors.push(
-                                        `publishing.external_blocker_escape.${key} debe contener strings no vacios`
+                            } else {
+                                for (const [index, rule] of escapePolicy.rules.entries()) {
+                                    const rulePath =
+                                        `publishing.external_blocker_escape.rules[${index}]`;
+                                    if (
+                                        !rule ||
+                                        typeof rule !== 'object' ||
+                                        Array.isArray(rule)
+                                    ) {
+                                        errors.push(
+                                            `${rulePath} debe ser objeto`
+                                        );
+                                        continue;
+                                    }
+                                    for (const key of [
+                                        'blocked_reasons',
+                                        'allowed_focus_steps',
+                                        'allowed_work_types',
+                                        'allowed_codex_instances',
+                                        'allowed_scopes',
+                                        'allowed_subfront_ids',
+                                    ]) {
+                                        validateStringArrayField(
+                                            rule,
+                                            key,
+                                            rulePath,
+                                            errors
+                                        );
+                                    }
+                                    warnUnknownKeys(
+                                        rule,
+                                        [
+                                            'blocked_reasons',
+                                            'allowed_focus_steps',
+                                            'allowed_work_types',
+                                            'allowed_codex_instances',
+                                            'allowed_scopes',
+                                            'allowed_subfront_ids',
+                                        ],
+                                        rulePath
                                     );
                                 }
                             }
@@ -422,6 +499,9 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
                                 'allowed_focus_steps',
                                 'allowed_work_types',
                                 'allowed_codex_instances',
+                                'allowed_scopes',
+                                'allowed_subfront_ids',
+                                'rules',
                             ],
                             'publishing.external_blocker_escape'
                         );
@@ -1283,6 +1363,32 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
                                         (value) => String(value)
                                     )
                                   : [],
+                              allowed_scopes: Array.isArray(
+                                  publishing.external_blocker_escape
+                                      .allowed_scopes
+                              )
+                                  ? publishing.external_blocker_escape.allowed_scopes.map(
+                                        (value) => String(value)
+                                    )
+                                  : [],
+                              allowed_subfront_ids: Array.isArray(
+                                  publishing.external_blocker_escape
+                                      .allowed_subfront_ids
+                              )
+                                  ? publishing.external_blocker_escape.allowed_subfront_ids.map(
+                                        (value) => String(value)
+                                    )
+                                  : [],
+                              rules: Array.isArray(
+                                  publishing.external_blocker_escape.rules
+                              )
+                                  ? publishing.external_blocker_escape.rules.map(
+                                        (rule) =>
+                                            normalizeExternalBlockerEscapeRuleForPolicy(
+                                                rule
+                                            )
+                                    )
+                                  : [],
                           }
                         : {
                               enabled: null,
@@ -1290,6 +1396,9 @@ function validateGovernancePolicy(rawPolicy, options = {}) {
                               allowed_focus_steps: [],
                               allowed_work_types: [],
                               allowed_codex_instances: [],
+                              allowed_scopes: [],
+                              allowed_subfront_ids: [],
+                              rules: [],
                           },
             },
             runtime:

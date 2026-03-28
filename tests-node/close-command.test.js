@@ -616,3 +616,154 @@ test('close reutiliza el escape acotado para feedback_trim frontend con blocker 
         )
     );
 });
+
+test('close permite escape acotado para support backend gates en feedback_trim', () => {
+    assert.doesNotThrow(() =>
+        publishCommandHandlers.assertReleaseRequiredChecks(
+            {
+                active: {
+                    id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    next_step: 'feedback_trim',
+                },
+                acknowledged_external_blocker: true,
+                external_blocker_tasks: [
+                    {
+                        id: 'CDX-009',
+                        blocked_reason:
+                            'host_public_health_502_external_blocker',
+                    },
+                ],
+                blocking_errors: [],
+                release_blocking_errors: ['required_check_unverified'],
+                required_checks: [
+                    {
+                        id: 'job:public_main_sync',
+                        state: 'red',
+                        ok: false,
+                        reason: 'health_http_502',
+                    },
+                ],
+            },
+            'close',
+            {
+                task: {
+                    id: 'CDX-056',
+                    codex_instance: 'codex_backend_ops',
+                    scope: 'gates',
+                    subfront_id: 'SF-backend-admin-operativo',
+                    work_type: 'support',
+                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                    focus_step: 'feedback_trim',
+                },
+                getGovernancePolicy: () => ({
+                    publishing: {
+                        external_blocker_escape: {
+                            enabled: true,
+                            blocked_reasons: [
+                                'host_public_health_502_external_blocker',
+                            ],
+                            allowed_focus_steps: ['feedback_trim'],
+                            allowed_work_types: ['forward'],
+                            allowed_codex_instances: ['codex_frontend'],
+                            rules: [
+                                {
+                                    blocked_reasons: [
+                                        'host_public_health_502_external_blocker',
+                                    ],
+                                    allowed_focus_steps: ['feedback_trim'],
+                                    allowed_work_types: ['support'],
+                                    allowed_codex_instances: [
+                                        'codex_backend_ops',
+                                    ],
+                                    allowed_scopes: ['gates'],
+                                    allowed_subfront_ids: [
+                                        'SF-backend-admin-operativo',
+                                    ],
+                                },
+                            ],
+                        },
+                    },
+                }),
+            }
+        )
+    );
+});
+
+test('close mantiene bloqueado support fuera de scope gates aunque exista blocker externo reconocido', () => {
+    assert.throws(
+        () =>
+            publishCommandHandlers.assertReleaseRequiredChecks(
+                {
+                    active: {
+                        id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                        next_step: 'feedback_trim',
+                    },
+                    acknowledged_external_blocker: true,
+                    external_blocker_tasks: [
+                        {
+                            id: 'CDX-009',
+                            blocked_reason:
+                                'host_public_health_502_external_blocker',
+                        },
+                    ],
+                    blocking_errors: [],
+                    release_blocking_errors: ['required_check_unverified'],
+                    required_checks: [
+                        {
+                            id: 'job:public_main_sync',
+                            state: 'red',
+                            ok: false,
+                            reason: 'health_http_502',
+                        },
+                    ],
+                },
+                'close',
+                {
+                    task: {
+                        id: 'CDX-056',
+                        codex_instance: 'codex_backend_ops',
+                        scope: 'backend',
+                        subfront_id: 'SF-backend-admin-operativo',
+                        work_type: 'support',
+                        focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                        focus_step: 'feedback_trim',
+                    },
+                    getGovernancePolicy: () => ({
+                        publishing: {
+                            external_blocker_escape: {
+                                enabled: true,
+                                blocked_reasons: [
+                                    'host_public_health_502_external_blocker',
+                                ],
+                                allowed_focus_steps: ['feedback_trim'],
+                                allowed_work_types: ['forward'],
+                                allowed_codex_instances: ['codex_frontend'],
+                                rules: [
+                                    {
+                                        blocked_reasons: [
+                                            'host_public_health_502_external_blocker',
+                                        ],
+                                        allowed_focus_steps: [
+                                            'feedback_trim',
+                                        ],
+                                        allowed_work_types: ['support'],
+                                        allowed_codex_instances: [
+                                            'codex_backend_ops',
+                                        ],
+                                        allowed_scopes: ['gates'],
+                                        allowed_subfront_ids: [
+                                            'SF-backend-admin-operativo',
+                                        ],
+                                    },
+                                ],
+                            },
+                        },
+                    }),
+                }
+            ),
+        (error) => {
+            assert.equal(error.error_code, 'required_check_unverified');
+            return true;
+        }
+    );
+});

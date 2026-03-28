@@ -352,6 +352,29 @@ function normalizeStringList(values = []) {
         .filter(Boolean);
 }
 
+function normalizeExternalBlockerEscapeRule(rule = {}) {
+    if (!rule || typeof rule !== 'object' || Array.isArray(rule)) {
+        return {
+            blocked_reasons: [],
+            allowed_focus_steps: [],
+            allowed_work_types: [],
+            allowed_codex_instances: [],
+            allowed_scopes: [],
+            allowed_subfront_ids: [],
+        };
+    }
+    return {
+        blocked_reasons: normalizeStringList(rule.blocked_reasons),
+        allowed_focus_steps: normalizeStringList(rule.allowed_focus_steps),
+        allowed_work_types: normalizeStringList(rule.allowed_work_types),
+        allowed_codex_instances: normalizeStringList(
+            rule.allowed_codex_instances
+        ),
+        allowed_scopes: normalizeStringList(rule.allowed_scopes),
+        allowed_subfront_ids: normalizeStringList(rule.allowed_subfront_ids),
+    };
+}
+
 function getExternalBlockerEscapePolicy(getGovernancePolicy) {
     const governancePolicy =
         typeof getGovernancePolicy === 'function' ? getGovernancePolicy() : {};
@@ -363,22 +386,40 @@ function getExternalBlockerEscapePolicy(getGovernancePolicy) {
     ) {
         return {
             enabled: false,
-            blocked_reasons: [],
-            allowed_focus_steps: [],
-            allowed_work_types: [],
-            allowed_codex_instances: [],
+            rules: [],
         };
+    }
+    const rules = [];
+    const legacyRule = normalizeExternalBlockerEscapeRule(escapePolicy);
+    if (
+        legacyRule.blocked_reasons.length > 0 ||
+        legacyRule.allowed_focus_steps.length > 0 ||
+        legacyRule.allowed_work_types.length > 0 ||
+        legacyRule.allowed_codex_instances.length > 0 ||
+        legacyRule.allowed_scopes.length > 0 ||
+        legacyRule.allowed_subfront_ids.length > 0
+    ) {
+        rules.push(legacyRule);
+    }
+    if (Array.isArray(escapePolicy.rules)) {
+        for (const rule of escapePolicy.rules) {
+            const normalizedRule = normalizeExternalBlockerEscapeRule(rule);
+            if (
+                normalizedRule.blocked_reasons.length === 0 &&
+                normalizedRule.allowed_focus_steps.length === 0 &&
+                normalizedRule.allowed_work_types.length === 0 &&
+                normalizedRule.allowed_codex_instances.length === 0 &&
+                normalizedRule.allowed_scopes.length === 0 &&
+                normalizedRule.allowed_subfront_ids.length === 0
+            ) {
+                continue;
+            }
+            rules.push(normalizedRule);
+        }
     }
     return {
         enabled: escapePolicy.enabled === true,
-        blocked_reasons: normalizeStringList(escapePolicy.blocked_reasons),
-        allowed_focus_steps: normalizeStringList(
-            escapePolicy.allowed_focus_steps
-        ),
-        allowed_work_types: normalizeStringList(escapePolicy.allowed_work_types),
-        allowed_codex_instances: normalizeStringList(
-            escapePolicy.allowed_codex_instances
-        ),
+        rules,
     };
 }
 
@@ -409,21 +450,6 @@ function canUseExternalBlockerEscape(summary = {}, options = {}) {
         return false;
     }
     if (
-        !escapePolicy.allowed_focus_steps.includes(focusStep) ||
-        !escapePolicy.allowed_work_types.includes(
-            String(task.work_type || '')
-                .trim()
-                .toLowerCase()
-        ) ||
-        !escapePolicy.allowed_codex_instances.includes(
-            String(task.codex_instance || '')
-                .trim()
-                .toLowerCase()
-        )
-    ) {
-        return false;
-    }
-    if (
         Array.isArray(summary?.blocking_errors) &&
         summary.blocking_errors.length > 0
     ) {
@@ -442,18 +468,49 @@ function canUseExternalBlockerEscape(summary = {}, options = {}) {
     const externalBlockerTasks = Array.isArray(summary?.external_blocker_tasks)
         ? summary.external_blocker_tasks
         : [];
-    if (
-        !externalBlockerTasks.some((item) =>
-            escapePolicy.blocked_reasons.includes(
+    if (summary?.acknowledged_external_blocker !== true) {
+        return false;
+    }
+    const taskWorkType = String(task.work_type || '')
+        .trim()
+        .toLowerCase();
+    const taskCodexInstance = String(task.codex_instance || '')
+        .trim()
+        .toLowerCase();
+    const taskScope = String(task.scope || '')
+        .trim()
+        .toLowerCase();
+    const taskSubfrontId = String(task.subfront_id || '')
+        .trim()
+        .toLowerCase();
+    return escapePolicy.rules.some((rule) => {
+        if (
+            !rule.allowed_focus_steps.includes(focusStep) ||
+            !rule.allowed_work_types.includes(taskWorkType) ||
+            !rule.allowed_codex_instances.includes(taskCodexInstance)
+        ) {
+            return false;
+        }
+        if (
+            rule.allowed_scopes.length > 0 &&
+            !rule.allowed_scopes.includes(taskScope)
+        ) {
+            return false;
+        }
+        if (
+            rule.allowed_subfront_ids.length > 0 &&
+            !rule.allowed_subfront_ids.includes(taskSubfrontId)
+        ) {
+            return false;
+        }
+        return externalBlockerTasks.some((item) =>
+            rule.blocked_reasons.includes(
                 String(item?.blocked_reason || '')
                     .trim()
                     .toLowerCase()
             )
-        )
-    ) {
-        return false;
-    }
-    return summary?.acknowledged_external_blocker === true;
+        );
+    });
 }
 
 function assertReleaseRequiredChecks(summary = {}, actionLabel = 'release', options = {}) {

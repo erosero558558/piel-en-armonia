@@ -113,6 +113,20 @@ test('policy-config acepta sections agents y publishing sin marcarlas como unkno
                     allowed_focus_steps: ['feedback_trim'],
                     allowed_work_types: ['forward'],
                     allowed_codex_instances: ['codex_frontend'],
+                    rules: [
+                        {
+                            blocked_reasons: [
+                                'host_public_health_502_external_blocker',
+                            ],
+                            allowed_focus_steps: ['feedback_trim'],
+                            allowed_work_types: ['support'],
+                            allowed_codex_instances: ['codex_backend_ops'],
+                            allowed_scopes: ['gates'],
+                            allowed_subfront_ids: [
+                                'SF-backend-admin-operativo',
+                            ],
+                        },
+                    ],
                 },
             },
         },
@@ -140,6 +154,21 @@ test('policy-config acepta sections agents y publishing sin marcarlas como unkno
     assert.deepEqual(
         report.effective.publishing.external_blocker_escape.allowed_focus_steps,
         ['feedback_trim']
+    );
+    assert.deepEqual(
+        report.effective.publishing.external_blocker_escape.rules,
+        [
+            {
+                blocked_reasons: [
+                    'host_public_health_502_external_blocker',
+                ],
+                allowed_focus_steps: ['feedback_trim'],
+                allowed_work_types: ['support'],
+                allowed_codex_instances: ['codex_backend_ops'],
+                allowed_scopes: ['gates'],
+                allowed_subfront_ids: ['SF-backend-admin-operativo'],
+            },
+        ]
     );
 });
 

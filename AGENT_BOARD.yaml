@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 797
+  revision: 798
   updated_at: 2026-03-28
 
 strategy:
@@ -1363,6 +1363,65 @@ tasks:
     rework_reason: ""
     depends_on: ["AG-260"]
     prompt: "Portar solo el hunk funcional del rescate del kiosco: cola y asistente visibles por defecto fuera de #kioskSupportShell, sin tocar queue-kiosk.css ni tests."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-055
+    title: "Turnero Gates external blocker escape bootstrap"
+    owner: deck
+    executor: codex
+    status: done
+    status_since_at: "2026-03-28T05:01:30Z"
+    risk: medium
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["governance-policy.json", "tools/agent-orchestrator/commands/publish.js", "tools/agent-orchestrator/core/policy.js", "tests-node/close-command.test.js", "tests-node/publish-checkpoint-command.test.js", "tests-node/orchestrator/policy-config.test.js", "AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-055.md"]
+    source_signal: manual
+    source_ref: "turnero_gates_rescue_bootstrap"
+    priority_score: 64
+    sla_due_at: "2026-03-31T23:59:00Z"
+    last_attempt_at: "2026-03-28T05:01:30Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T05:01:30Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "La policy de publish/close acepta reglas multiples de external_blocker_escape y habilita solo el carve-out de support backend gates en feedback_trim, sin aflojar la ruta existente de frontend forward."
+    acceptance_ref: "verification/agent-runs/CDX-055.md"
+    evidence_ref: "verification/agent-runs/CDX-055.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-transversal-admin-operativo"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "feedback_trim"
+    integration_slice: "governance_evidence"
+    work_type: "support"
+    expected_outcome: "El rescue de Turnero Gates puede cerrar canonicamente como soporte backend_ops/gates bajo blocker externo reconocido, sin abrir el escape a otros scopes o lanes."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-009"]
+    prompt: "Agregar un bootstrap minimo de policy/publish para soportar reglas multiples de external_blocker_escape y habilitar solo el carve-out de support backend_ops/gates en feedback_trim."
     created_at: 2026-03-28
     updated_at: 2026-03-28
 
