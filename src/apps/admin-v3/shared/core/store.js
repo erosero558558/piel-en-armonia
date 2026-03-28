@@ -66,6 +66,8 @@ const initialState = {
         turneroClinicProfile: null,
         turneroClinicProfileMeta: null,
         turneroClinicProfileCatalogStatus: null,
+        turneroClinicProfiles: [],
+        turneroRegionalClinics: [],
         turneroOperatorAccessMeta: null,
         turneroV2Readiness: null,
         clinicalHistoryMeta: null,

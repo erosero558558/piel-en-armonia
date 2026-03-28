@@ -358,6 +358,8 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
         getTurneroClinicProfile,
         getTurneroClinicProfileMeta,
         getTurneroClinicProfileCatalogStatus,
+        getTurneroClinicProfiles,
+        getTurneroRegionalClinics,
         getTurneroOperatorAccessMeta,
         getTurneroV2Readiness,
         getTurneroClinicBrandName,
@@ -410,6 +412,8 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
     const profileMeta = getTurneroClinicProfileMeta?.() || null;
     const profileCatalogStatus =
         getTurneroClinicProfileCatalogStatus?.() || null;
+    const turneroClinicProfiles = getTurneroClinicProfiles?.() || [];
+    const turneroRegionalClinics = getTurneroRegionalClinics?.() || [];
     const profileSource = String(profileMeta?.source || '')
         .trim()
         .toLowerCase();
@@ -1361,6 +1365,10 @@ export function buildQueueOpsPilotModel(manifest, detectedPlatform, deps) {
     const sharedPilotPayload = {
         clinicProfile: profile,
         turneroClinicProfile: profile,
+        clinicProfiles: turneroClinicProfiles,
+        turneroClinicProfiles,
+        regionalClinics: turneroRegionalClinics,
+        turneroRegionalClinics,
         clinicId,
         profileFingerprint,
         progressPct,

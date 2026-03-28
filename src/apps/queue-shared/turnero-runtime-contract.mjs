@@ -426,6 +426,22 @@ export function getTurneroActiveClinicProfileCatalogStatus(source = {}) {
         : null;
 }
 
+export function getTurneroClinicProfiles(source = {}) {
+    const state = asObject(source);
+    const data = asObject(state.data);
+    return Array.isArray(data.turneroClinicProfiles)
+        ? data.turneroClinicProfiles.filter(Boolean)
+        : [];
+}
+
+export function getTurneroRegionalClinics(source = {}) {
+    const state = asObject(source);
+    const data = asObject(state.data);
+    return Array.isArray(data.turneroRegionalClinics)
+        ? data.turneroRegionalClinics.filter(Boolean)
+        : [];
+}
+
 export function getTurneroActiveClinicId(source = {}) {
     return getTurneroActiveClinicProfile(source)?.clinic_id || 'default-clinic';
 }

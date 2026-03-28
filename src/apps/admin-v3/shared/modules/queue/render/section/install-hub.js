@@ -121,6 +121,8 @@ import {
     getTurneroActiveClinicProfile as getTurneroClinicProfileFromState,
     getTurneroActiveClinicProfileCatalogStatus as getTurneroClinicProfileCatalogStatusFromState,
     getTurneroActiveClinicProfileMeta as getTurneroClinicProfileMetaFromState,
+    getTurneroClinicProfiles as getTurneroClinicProfilesFromState,
+    getTurneroRegionalClinics as getTurneroRegionalClinicsFromState,
     getTurneroClinicBrandName as getTurneroClinicBrandNameForProfile,
     getTurneroClinicShortName as getTurneroClinicShortNameForProfile,
     getTurneroConsultorioLabel as getTurneroConsultorioLabelForProfile,
@@ -333,6 +335,10 @@ function getTurneroReleaseCommandDeckParts() {
         clinicId: getTurneroClinicId(),
         profileFingerprint,
         releaseMode: String(clinicProfile?.release?.mode || '').trim(),
+        clinicProfiles: getTurneroClinicProfiles(),
+        turneroClinicProfiles: getTurneroClinicProfiles(),
+        regionalClinics: getTurneroRegionalClinics(),
+        turneroRegionalClinics: getTurneroRegionalClinics(),
         pilotReadiness,
         turneroPilotReadiness: pilotReadiness,
         turneroV2Readiness: pilotReadiness,
@@ -369,6 +375,14 @@ function getTurneroClinicProfileMeta(source = getState(), profile = null) {
 
 function getTurneroClinicProfileCatalogStatus(source = getState()) {
     return getTurneroClinicProfileCatalogStatusFromState(source);
+}
+
+function getTurneroClinicProfiles(source = getState()) {
+    return getTurneroClinicProfilesFromState(source);
+}
+
+function getTurneroRegionalClinics(source = getState()) {
+    return getTurneroRegionalClinicsFromState(source);
 }
 
 function getTurneroClinicId(source = getState()) {
@@ -2612,6 +2626,8 @@ function buildQueueOpsPilot(manifest, detectedPlatform) {
         getTurneroClinicProfile,
         getTurneroClinicProfileMeta,
         getTurneroClinicProfileCatalogStatus,
+        getTurneroClinicProfiles,
+        getTurneroRegionalClinics,
         getTurneroOperatorAccessMeta,
         getTurneroV2Readiness,
         getTurneroClinicBrandName,

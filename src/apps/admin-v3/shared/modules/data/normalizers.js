@@ -87,6 +87,12 @@ export function normalizeAdminDataPayload(data, healthPayload, fallbackState) {
             typeof data.turneroClinicProfileCatalogStatus === 'object'
                 ? data.turneroClinicProfileCatalogStatus
                 : fallbackState?.turneroClinicProfileCatalogStatus || null,
+        turneroClinicProfiles: Array.isArray(data.turneroClinicProfiles)
+            ? data.turneroClinicProfiles
+            : fallbackState?.turneroClinicProfiles || [],
+        turneroRegionalClinics: Array.isArray(data.turneroRegionalClinics)
+            ? data.turneroRegionalClinics
+            : fallbackState?.turneroRegionalClinics || [],
         turneroOperatorAccessMeta:
             data.turneroOperatorAccessMeta &&
             typeof data.turneroOperatorAccessMeta === 'object'
@@ -128,6 +134,8 @@ export function normalizeAdminStorePayload(payload, currentFunnelMetrics) {
         turneroClinicProfileMeta: payload.turneroClinicProfileMeta || null,
         turneroClinicProfileCatalogStatus:
             payload.turneroClinicProfileCatalogStatus || null,
+        turneroClinicProfiles: payload.turneroClinicProfiles || [],
+        turneroRegionalClinics: payload.turneroRegionalClinics || [],
         turneroOperatorAccessMeta: payload.turneroOperatorAccessMeta || null,
         turneroV2Readiness: payload.turneroV2Readiness || null,
         internalConsoleMeta: payload.internalConsoleMeta || null,

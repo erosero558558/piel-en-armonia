@@ -289,6 +289,30 @@ test('shared turnero runtime contract exposes the shared facade for surface stat
             turneroClinicProfileCatalogStatus: {
                 state: 'ready',
             },
+            turneroClinicProfiles: [
+                {
+                    clinic_id: 'clinic-123',
+                    release: {
+                        mode: 'web_pilot',
+                    },
+                },
+                {
+                    clinic_id: 'clinica-norte-demo',
+                    release: {
+                        mode: 'web_pilot',
+                    },
+                },
+            ],
+            turneroRegionalClinics: [
+                {
+                    clinicId: 'clinic-123',
+                    releaseMode: 'web_pilot',
+                },
+                {
+                    clinicId: 'clinica-norte-demo',
+                    releaseMode: 'web_pilot',
+                },
+            ],
             queueMeta: {
                 calledCount: 0,
             },
@@ -315,6 +339,8 @@ test('shared turnero runtime contract exposes the shared facade for surface stat
         contract.getTurneroActiveClinicProfileMeta(state).source,
         'remote'
     );
+    assert.equal(contract.getTurneroClinicProfiles(state).length, 2);
+    assert.equal(contract.getTurneroRegionalClinics(state).length, 2);
     assert.equal(runtimeStatus.uiState, 'ready');
     assert.match(runtimeStatus.text, /Perfil remoto verificado/);
     assert.match(runtimeStatus.text, /llamar, rellamar o cerrar turnos/);

@@ -40,13 +40,13 @@
         }
     },
     "release": {
-        "mode": "suite_v2",
+        "mode": "web_pilot",
         "admin_mode_default": "basic",
         "separate_deploy": true,
-        "native_apps_blocking": true,
+        "native_apps_blocking": false,
         "notes": [
-            "Perfil de demostracion para validar suite_v2 con deploy separado por clinica.",
-            "No usar este perfil como multi-tenant compartido."
+            "Perfil de demostracion para validar una segunda clinica web_pilot con deploy separado por clinica.",
+            "El profile activo versionado sigue siendo piel-armonia-quito; este catalogo solo habilita stage local por clinica."
         ]
     }
 }

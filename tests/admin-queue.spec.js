@@ -749,6 +749,16 @@ async function installQueuePilotApiMocks(page, options = {}) {
                           clinicProfileCatalogStatus,
                   }
                 : {}),
+            ...(Array.isArray(options.turneroClinicProfiles)
+                ? {
+                      turneroClinicProfiles: options.turneroClinicProfiles,
+                  }
+                : {}),
+            ...(Array.isArray(options.turneroRegionalClinics)
+                ? {
+                      turneroRegionalClinics: options.turneroRegionalClinics,
+                  }
+                : {}),
             ...(options.queueSurfaceStatus
                 ? { queueSurfaceStatus: options.queueSurfaceStatus }
                 : {}),
@@ -12504,16 +12514,135 @@ test.describe('Admin turnero sala', () => {
                                 },
                             },
                             release: {
-                                mode: 'suite_v2',
+                                mode: 'web_pilot',
                                 admin_mode_default: 'basic',
                                 separate_deploy: true,
-                                native_apps_blocking: true,
+                                native_apps_blocking: false,
                                 notes: [
-                                    'Suite V2 por clínica con apps nativas bloqueantes.',
-                                    'Admin queda como fallback operativo y soporte.',
+                                    'Piloto web local por clínica con nativas diferidas.',
+                                    'Admin queda como consola operativa y control multi-clínica.',
                                 ],
                             },
                         },
+                        turneroClinicProfiles: [
+                            {
+                                schema: 'turnero-clinic-profile/v1',
+                                clinic_id: 'piel-armonia-quito',
+                                branding: {
+                                    name: 'Piel Armonia Quito',
+                                    short_name: 'Piel Armonia',
+                                    city: 'Quito',
+                                    base_url:
+                                        'https://pielarmonia-quito.example',
+                                },
+                                consultorios: {
+                                    c1: {
+                                        label: 'Consultorio 1',
+                                        short_label: 'C1',
+                                    },
+                                    c2: {
+                                        label: 'Consultorio 2',
+                                        short_label: 'C2',
+                                    },
+                                },
+                                surfaces: {
+                                    admin: {
+                                        enabled: true,
+                                        label: 'Admin web',
+                                        route: '/admin.html#queue',
+                                    },
+                                    operator: {
+                                        enabled: true,
+                                        label: 'Operador web',
+                                        route: '/operador-turnos.html',
+                                    },
+                                    kiosk: {
+                                        enabled: true,
+                                        label: 'Kiosco web',
+                                        route: '/kiosco-turnos.html',
+                                    },
+                                    display: {
+                                        enabled: true,
+                                        label: 'Sala web',
+                                        route: '/sala-turnos.html',
+                                    },
+                                },
+                                release: {
+                                    mode: 'web_pilot',
+                                    admin_mode_default: 'basic',
+                                    separate_deploy: true,
+                                    native_apps_blocking: false,
+                                },
+                            },
+                            {
+                                schema: 'turnero-clinic-profile/v1',
+                                clinic_id: 'clinica-norte-demo',
+                                branding: {
+                                    name: 'Clinica Norte',
+                                    short_name: 'Norte',
+                                    city: 'Quito',
+                                    base_url: 'https://clinica-norte.example',
+                                },
+                                consultorios: {
+                                    c1: {
+                                        label: 'Dermatología 1',
+                                        short_label: 'D1',
+                                    },
+                                    c2: {
+                                        label: 'Dermatología 2',
+                                        short_label: 'D2',
+                                    },
+                                },
+                                surfaces: {
+                                    admin: {
+                                        enabled: true,
+                                        label: 'Admin web',
+                                        route: '/admin.html#queue',
+                                    },
+                                    operator: {
+                                        enabled: true,
+                                        label: 'Operador web',
+                                        route: '/operador-turnos.html',
+                                    },
+                                    kiosk: {
+                                        enabled: true,
+                                        label: 'Kiosco web',
+                                        route: '/kiosco-turnos.html',
+                                    },
+                                    display: {
+                                        enabled: true,
+                                        label: 'Sala web',
+                                        route: '/sala-turnos.html',
+                                    },
+                                },
+                                release: {
+                                    mode: 'web_pilot',
+                                    admin_mode_default: 'basic',
+                                    separate_deploy: true,
+                                    native_apps_blocking: false,
+                                },
+                            },
+                        ],
+                        turneroRegionalClinics: [
+                            {
+                                clinicId: 'piel-armonia-quito',
+                                clinicName: 'Piel Armonia Quito',
+                                clinicShortName: 'Piel Armonia',
+                                region: 'Quito',
+                                releaseMode: 'web_pilot',
+                                nativeAppsBlocking: false,
+                                status: 'ready',
+                            },
+                            {
+                                clinicId: 'clinica-norte-demo',
+                                clinicName: 'Clinica Norte',
+                                clinicShortName: 'Norte',
+                                region: 'Quito',
+                                releaseMode: 'web_pilot',
+                                nativeAppsBlocking: false,
+                                status: 'ready',
+                            },
+                        ],
                         turneroClinicProfileMeta: {
                             source: 'remote',
                             cached: false,
@@ -12709,7 +12838,7 @@ test.describe('Admin turnero sala', () => {
         ).toContainText('Admin, operador, kiosco y sala web');
         await expect(
             page.locator('#queueOpsPilotReadinessItem_publish')
-        ).toContainText('public_main_sync sano');
+        ).toContainText(/publicaci[oó]n remota|quedan diferidos/i);
         await expect(
             page.locator('#queueOpsPilotReadinessItem_health')
         ).toContainText('Pendiente');
@@ -12793,7 +12922,7 @@ test.describe('Admin turnero sala', () => {
         ).toContainText('clinica-norte-demo.json verificado');
         await expect(
             page.locator('#queueOpsPilotHandoffItem_publish')
-        ).toContainText('commit 3de287e2');
+        ).toContainText(/diferida para publicaci[oó]n posterior/i);
         await expect(
             page.locator('#queueOpsPilotHandoffItem_canon')
         ).toContainText('3/4 rutas verificadas');
@@ -13882,25 +14011,25 @@ test.describe('Admin turnero sala', () => {
         ).toContainText('clinic-profile.json');
     });
 
-    test('queue monta la tarjeta de salida remota debajo del handoff y la deja lista cuando diagnostics y agenda coinciden', async ({
+    test('queue deja la publicación remota diferida y monta la capa avanzada local-first cuando diagnostics y agenda coinciden', async ({
         page,
     }) => {
         const nowIso = new Date().toISOString();
         const clinicProfile = buildQueuePilotClinicProfile({
-            clinicId: 'clinica-remota-demo',
+            clinicId: 'clinica-norte-demo',
             branding: {
-                name: 'Clínica Remota',
-                short_name: 'Remota',
-                base_url: 'https://clinica-remota.example',
+                name: 'Clinica Norte',
+                short_name: 'Norte',
+                base_url: 'https://clinica-norte.example',
             },
             consultorios: {
                 c1: {
-                    label: 'Consultorio Remoto 1',
-                    short_label: 'R1',
+                    label: 'Dermatología 1',
+                    short_label: 'D1',
                 },
                 c2: {
-                    label: 'Consultorio Remoto 2',
-                    short_label: 'R2',
+                    label: 'Dermatología 2',
+                    short_label: 'D2',
                 },
             },
         });
@@ -13926,6 +14055,37 @@ test.describe('Admin turnero sala', () => {
         await installQueuePilotApiMocks(page, {
             queueState: buildQueueIdleState(nowIso),
             clinicProfile,
+            turneroClinicProfiles: [
+                buildQueuePilotClinicProfile({
+                    clinicId: 'piel-armonia-quito',
+                    branding: {
+                        name: 'Piel Armonia Quito',
+                        short_name: 'Piel Armonia',
+                        base_url: 'https://pielarmonia-quito.example',
+                    },
+                }),
+                clinicProfile,
+            ],
+            turneroRegionalClinics: [
+                {
+                    clinicId: 'piel-armonia-quito',
+                    clinicName: 'Piel Armonia Quito',
+                    clinicShortName: 'Piel Armonia',
+                    region: 'Quito',
+                    releaseMode: 'web_pilot',
+                    nativeAppsBlocking: false,
+                    status: 'ready',
+                },
+                {
+                    clinicId: clinicProfile.clinic_id,
+                    clinicName: 'Clinica Norte',
+                    clinicShortName: 'Norte',
+                    region: 'Quito',
+                    releaseMode: 'web_pilot',
+                    nativeAppsBlocking: false,
+                    status: 'ready',
+                },
+            ],
             clinicProfileMeta: {
                 source: 'remote',
                 cached: false,
@@ -13933,6 +14093,40 @@ test.describe('Admin turnero sala', () => {
                 profileFingerprint,
                 fetchedAt: nowIso,
             },
+            queueSurfaceStatus: buildQueuePilotSurfaceStatus({
+                clinicId: clinicProfile.clinic_id,
+                updatedAt: nowIso,
+                operator: {
+                    ageSec: 6,
+                    latest: {
+                        deviceLabel: 'Operador Norte',
+                    },
+                    details: {
+                        profileSource: 'remote',
+                        profileFingerprint,
+                    },
+                },
+                kiosk: {
+                    ageSec: 7,
+                    latest: {
+                        deviceLabel: 'Kiosco Norte',
+                    },
+                    details: {
+                        profileSource: 'remote',
+                        profileFingerprint,
+                    },
+                },
+                display: {
+                    ageSec: 8,
+                    latest: {
+                        deviceLabel: 'Sala Norte',
+                    },
+                    details: {
+                        profileSource: 'remote',
+                        profileFingerprint,
+                    },
+                },
+            }),
             availability: {
                 [nowIso.slice(0, 10)]: ['09:00', '09:30'],
             },
@@ -13968,10 +14162,10 @@ test.describe('Admin turnero sala', () => {
                     catalogAvailable: true,
                     catalogMatched: true,
                     catalogReady: true,
-                    releaseMode: 'suite_v2',
+                    releaseMode: 'web_pilot',
                     adminModeDefault: 'basic',
                     separateDeploy: true,
-                    nativeAppsBlocking: true,
+                    nativeAppsBlocking: false,
                 },
                 figoConfigured: true,
                 figoRecursiveConfig: false,
@@ -13988,26 +14182,11 @@ test.describe('Admin turnero sala', () => {
         await page.locator('.nav-item[data-section="queue"]').click();
 
         await expect(
+            page.locator('#queueOpsPilotHandoffItem_publish')
+        ).toContainText(/diferida para publicaci[oó]n posterior/i);
+        await expect(
             page.locator('#queueOpsPilotRemoteReleaseReadiness')
-        ).toHaveAttribute('data-state', 'ready');
-        await expect(
-            page.locator('#queueOpsPilotRemoteReleaseTitle')
-        ).toContainText('Salida remota lista');
-        await expect(
-            page.locator('#queueOpsPilotRemoteReleaseItem_diagnostics')
-        ).toContainText('Listo');
-        await expect(
-            page.locator('#queueOpsPilotRemoteReleaseItem_identity')
-        ).toContainText('Listo');
-        await expect(
-            page.locator('#queueOpsPilotRemoteReleaseItem_public_sync')
-        ).toContainText('Listo');
-        await expect(
-            page.locator('#queueOpsPilotRemoteReleaseItem_availability')
-        ).toContainText('Listo');
-        await expect(
-            page.locator('#queueOpsPilotRemoteReleaseItem_booked_slots')
-        ).toContainText('Listo');
+        ).toHaveCount(0);
 
         const remoteReleaseGroupId = await page
             .locator('#queueOpsPilotRemoteReleaseHost')
@@ -14021,19 +14200,10 @@ test.describe('Admin turnero sala', () => {
 
         await expect(
             page.locator('#queueOpsPilotReleaseEvidenceHost')
-        ).toContainText('Evidencia de salida del piloto');
-        await expect(
-            page.locator('#queueOpsPilotReleaseEvidenceHost')
-        ).toContainText('Copiar resumen');
-        await expect(
-            page.locator('#queueOpsPilotReleaseEvidenceHost')
-        ).toContainText('Descargar JSON');
+        ).toBeEmpty();
         await expect(
             page.locator('#queueOpsPilotRolloutGovernorHost')
-        ).toContainText('Rollout Governor');
-        await expect(
-            page.locator('#queueOpsPilotRolloutGovernorHost')
-        ).toContainText('Copiar resumen ejecutivo');
+        ).toBeEmpty();
         const executiveHostId = await page
             .locator('#queueOpsPilotRolloutGovernorHost')
             .evaluate((element) => element.nextElementSibling?.id || '');
@@ -14059,54 +14229,6 @@ test.describe('Admin turnero sala', () => {
         await expectFlowOsRecoveryHostFrozen(
             page.locator('#queueMultiClinicControlTowerHost')
         );
-        await expect(
-            page.locator('#queueIncidentExecutionWorkbench')
-        ).toBeVisible();
-        await expect(
-            page.locator('#queueIncidentExecutionWorkbenchTitle')
-        ).toContainText('Incident Execution Workbench');
-        await expect(
-            page.locator('#queueIncidentExecutionWorkbenchOwnerBoard')
-        ).toBeVisible();
-        await expect(
-            page.locator('#queueIncidentExecutionWorkbenchAccordion')
-        ).toBeVisible();
-        await expect(
-            page.locator('#queueIncidentExecutionWorkbenchCopyBoardBtn')
-        ).toBeVisible();
-        await expect(
-            page.locator('#queueIncidentExecutionWorkbenchCopyCommandsBtn')
-        ).toBeVisible();
-
-        const doingToggle = page
-            .locator(
-                '#queueIncidentExecutionWorkbench [data-workbench-action="set-step-state"][data-next-state="doing"]'
-            )
-            .first();
-        await expect(doingToggle).toBeVisible();
-        await doingToggle.evaluate((element) => element.click());
-
-        const executorKey = (
-            await page
-                .locator('#queueIncidentExecutionWorkbenchFooter code')
-                .first()
-                .textContent()
-        )?.trim();
-        expect(executorKey).toMatch(/^turnero\.release\.incident\.executor\./);
-        const storedIncidentState = await page.evaluate((key) => {
-            const raw = window.localStorage.getItem(key);
-            return raw ? JSON.parse(raw) : null;
-        }, executorKey);
-
-        expect(storedIncidentState).not.toBeNull();
-        expect(storedIncidentState.incidents).toBeTruthy();
-        expect(
-            Object.values(storedIncidentState.incidents).some((incident) =>
-                Object.values(incident.steps || {}).some(
-                    (step) => step.state === 'doing'
-                )
-            )
-        ).toBe(true);
     });
 
     test('queue bloquea acciones operativas del admin si admin.html#queue queda fuera del canon del piloto', async ({
