@@ -498,7 +498,10 @@ test('close codex CDX limpia CODEX_ACTIVE y commitea plan+board+evidence', async
 test('close falla si required checks del foco no estan verdes', async (t) => {
     const fixture = createGitFixture('CDX-001');
     t.after(() => cleanupFixture(fixture.root));
-    fixture.ctx.buildLiveFocusSummary = async () => ({
+    fixture.ctx.buildLiveFocusSummary = async (_board, options = {}) => {
+        assert.equal(options.taskId, 'CDX-001');
+        assert.equal(options.preferredTaskId, 'CDX-001');
+        return {
         summary: {
             required_checks: [
                 {
@@ -509,7 +512,8 @@ test('close falla si required checks del foco no estan verdes', async (t) => {
                 },
             ],
         },
-    });
+    };
+    };
 
     await assert.rejects(
         () => handleCloseCommand(fixture.ctx),
@@ -520,6 +524,43 @@ test('close falla si required checks del foco no estan verdes', async (t) => {
             return true;
         }
     );
+});
+
+test('close usa taskId para aceptar required checks scoped del task actual', async (t) => {
+    const fixture = createGitFixture('CDX-001');
+    t.after(() => cleanupFixture(fixture.root));
+
+    const originalRunPublishPreflight =
+        publishCommandHandlers.runPublishPreflight;
+    publishCommandHandlers.runPublishPreflight = () => ({
+        gateCommands: [{ id: 'board-doctor' }, { id: 'codex-check' }],
+        ignoredDirtyEntries: [],
+    });
+    t.after(() => {
+        publishCommandHandlers.runPublishPreflight =
+            originalRunPublishPreflight;
+    });
+
+    let capturedOptions = null;
+    fixture.ctx.buildLiveFocusSummary = async (_board, options = {}) => {
+        capturedOptions = options;
+        return {
+            summary: {
+                required_checks: [
+                    {
+                        id: 'content:public-v6:validate',
+                        state: 'green',
+                        ok: true,
+                    },
+                ],
+            },
+        };
+    };
+
+    const json = await captureConsoleJson(() => handleCloseCommand(fixture.ctx));
+    assert.equal(json.ok, true);
+    assert.equal(capturedOptions.taskId, 'CDX-001');
+    assert.equal(capturedOptions.preferredTaskId, 'CDX-001');
 });
 
 test('close reutiliza el escape acotado para feedback_trim frontend con blocker externo reconocido', () => {

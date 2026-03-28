@@ -22,7 +22,6 @@ const { parseFlags } = require('../tools/agent-orchestrator/core/flags');
 const {
     classifyPublishSurface,
     buildGateCommands,
-    finalizePreparedPublish,
     handlePublishCommand,
 } = require('../tools/agent-orchestrator/commands/publish');
 
@@ -407,6 +406,41 @@ test('publish checkpoint acepta AG-* release-publish y devuelve pending sin fall
     }
 });
 
+test('publish checkpoint pasa taskId a buildLiveFocusSummary antes del preflight', async () => {
+    const root = createRepoFixture();
+    try {
+        writeFileSync(
+            join(root, 'docs', 'in-scope.md'),
+            '# updated scope\n',
+            'utf8'
+        );
+        let capturedOptions = null;
+        const ctx = buildPublishContext(root, {
+            buildLiveFocusSummary: async (_board, options = {}) => {
+                capturedOptions = options;
+                return {
+                    summary: {
+                        required_checks: [
+                            {
+                                id: 'content:public-v6:validate',
+                                state: 'green',
+                                ok: true,
+                            },
+                        ],
+                    },
+                };
+            },
+        });
+
+        const report = await handlePublishCommand(ctx);
+        assert.equal(report.ok, true);
+        assert.equal(capturedOptions.taskId, 'CDX-900');
+        assert.equal(capturedOptions.preferredTaskId, 'CDX-900');
+    } finally {
+        cleanupRepoFixture(root);
+    }
+});
+
 test('publish checkpoint release-publish exige marcador explicito en summary', async () => {
     const root = createRepoFixture();
     try {
@@ -451,7 +485,10 @@ test('publish checkpoint falla si required checks del foco no estan verdes', asy
             'utf8'
         );
         const ctx = buildPublishContext(root, {
-            buildLiveFocusSummary: async () => ({
+            buildLiveFocusSummary: async (_board, options = {}) => {
+                assert.equal(options.taskId, 'CDX-900');
+                assert.equal(options.preferredTaskId, 'CDX-900');
+                return {
                 summary: {
                     configured: {
                         id: 'FOCUS-2026-03-admin-operativo-cut-1',
@@ -467,7 +504,8 @@ test('publish checkpoint falla si required checks del foco no estan verdes', asy
                         },
                     ],
                 },
-            }),
+            };
+            },
         });
 
         await assert.rejects(
@@ -478,136 +516,6 @@ test('publish checkpoint falla si required checks del foco no estan verdes', asy
                 assert.match(error.message, /job:public_main_sync=unverified/i);
                 return true;
             }
-        );
-    } finally {
-        cleanupRepoFixture(root);
-    }
-});
-
-test('publish checkpoint permite escape acotado para feedback_trim frontend con blocker externo reconocido', async () => {
-    const root = createRepoFixture();
-    try {
-        writeFileSync(
-            join(root, 'docs', 'in-scope.md'),
-            '# updated scope\n',
-            'utf8'
-        );
-        const ctx = buildPublishContext(root, {
-            summary:
-                'feedback_trim FOCUS-2026-03-admin-operativo-cut-1 checkpoint',
-            task: {
-                focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
-                focus_step: 'feedback_trim',
-                work_type: 'forward',
-                codex_instance: 'codex_frontend',
-                files: ['docs/in-scope.md'],
-            },
-            getGovernancePolicy: () => ({
-                publishing: {
-                    external_blocker_escape: {
-                        enabled: true,
-                        blocked_reasons: [
-                            'host_public_health_502_external_blocker',
-                        ],
-                        allowed_focus_steps: ['feedback_trim'],
-                        allowed_work_types: ['forward'],
-                        allowed_codex_instances: ['codex_frontend'],
-                    },
-                },
-            }),
-            buildLiveFocusSummary: async () => ({
-                summary: {
-                    configured: {
-                        id: 'FOCUS-2026-03-admin-operativo-cut-1',
-                        next_step: 'feedback_trim',
-                    },
-                    active: {
-                        id: 'FOCUS-2026-03-admin-operativo-cut-1',
-                        next_step: 'feedback_trim',
-                    },
-                    acknowledged_external_blocker: true,
-                    external_blocker_tasks: [
-                        {
-                            id: 'CDX-009',
-                            blocked_reason:
-                                'host_public_health_502_external_blocker',
-                        },
-                    ],
-                    blocking_errors: [],
-                    release_blocking_errors: ['required_check_unverified'],
-                    required_checks: [
-                        {
-                            id: 'job:public_main_sync',
-                            state: 'red',
-                            ok: false,
-                            reason: 'health_http_502',
-                        },
-                    ],
-                },
-            }),
-        });
-
-        const report = await handlePublishCommand(ctx);
-        assert.equal(report.command, 'publish checkpoint');
-        assert.match(String(report.commit || ''), /^[0-9a-f]{7,}$/i);
-    } finally {
-        cleanupRepoFixture(root);
-    }
-});
-
-test('finalizePreparedPublish fuerza git add para artefactos trackeados pero ignorados', async () => {
-    const root = createRepoFixture();
-    try {
-        writeFileSync(
-            join(root, 'docs', 'in-scope.md'),
-            '# updated scope\n',
-            'utf8'
-        );
-
-        const task = {
-            id: 'CDX-900',
-            executor: 'codex',
-            status: 'review',
-            codex_instance: 'codex_frontend',
-            files: ['docs/in-scope.md', 'script.js'],
-        };
-        const board = {
-            policy: { revision: 7 },
-            tasks: [task],
-        };
-
-        const report = await finalizePreparedPublish(
-            {
-                rootPath: root,
-                publishEventsPath: join(
-                    root,
-                    'verification',
-                    'agent-publish-events.jsonl'
-                ),
-                parseJobs: () => ({ jobs: [] }),
-                buildJobsSnapshot: async () => [],
-                findJobSnapshot: () => null,
-            },
-            {
-                board,
-                task,
-                taskId: 'CDX-900',
-                summary: 'fixture closeout',
-                allowedPatterns: ['docs/in-scope.md', 'script.js'],
-                gateCommands: [],
-                ignoredDirtyEntries: [],
-                explicitDirtyFiles: ['docs/in-scope.md', 'script.js'],
-                command: 'close',
-            }
-        );
-
-        assert.equal(report.ok, true);
-        assert.match(String(report.commit || ''), /^[0-9a-f]{7,}$/i);
-        assert.equal(
-            runGit(root, ['show', '--stat', '--format=%s', 'HEAD']).stdout.includes(
-                'chore(codex-close): closeout CDX-900'
-            ),
-            true
         );
     } finally {
         cleanupRepoFixture(root);

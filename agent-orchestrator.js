@@ -910,6 +910,21 @@ async function buildLiveFocusSummary(board, options = {}) {
         loadJobsSnapshot,
         verifyOpenClawRuntime,
         now: options.now,
+        taskId:
+            options.taskId ||
+            options.task_id ||
+            options.preferredTaskId ||
+            options.preferred_task_id ||
+            null,
+        preferredTaskId:
+            options.preferredTaskId ||
+            options.preferred_task_id ||
+            options.taskId ||
+            options.task_id ||
+            null,
+        cwd: options.cwd || ROOT,
+        rootPath: options.rootPath || ROOT,
+        governancePolicy: options.governancePolicy || getGovernancePolicy(),
     });
 }
 
@@ -2209,6 +2224,8 @@ async function cmdFocus(args) {
         applyBoardSync,
         writeBoardAndSync,
         parseExpectedBoardRevisionFlag,
+        getGovernancePolicy,
+        rootPath: ROOT,
         printJson: coreOutput.printJson,
     });
 }

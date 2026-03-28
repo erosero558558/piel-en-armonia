@@ -30,10 +30,6 @@ const POLICY = {
                 severity: 'warning',
             },
             too_many_active_slices: { enabled: true, severity: 'warning' },
-            external_blocker_acknowledged: {
-                enabled: true,
-                severity: 'warning',
-            },
             required_check_unverified: {
                 enabled: true,
                 severity: 'warning',
@@ -383,51 +379,6 @@ test('diagnostics agrega support_only_active como warning operacional', () => {
     assert.match(diag.message, /solo tiene trabajo support/i);
 });
 
-test('diagnostics expone blocker externo reconocido sin volver verde el release', () => {
-    const list = diagnostics.buildWarnFirstDiagnostics({
-        source: 'status',
-        policy: POLICY,
-        focusSummary: {
-            configured: {
-                id: 'FOCUS-2026-03-admin-operativo-cut-1',
-                required_checks: ['job:public_main_sync'],
-            },
-            acknowledged_external_blocker: true,
-            external_blocker_task_ids: ['CDX-009', 'CDX-045'],
-            carryover_external_blocker_task_ids: ['CDX-009', 'CDX-045'],
-            required_checks_ok: false,
-            required_checks: [
-                {
-                    id: 'job:public_main_sync',
-                    state: 'red',
-                    ok: false,
-                    reason: 'health_http_502',
-                },
-            ],
-            decisions: {
-                overdue: 0,
-                overdue_ids: [],
-            },
-            missing_focus_task_ids: [],
-            outside_next_step_task_ids: [],
-            invalid_slice_task_ids: [],
-            too_many_active_slices: false,
-            rework_without_reason_task_ids: [],
-        },
-    });
-
-    const blockerWarning = list.find(
-        (item) => item.code === 'warn.focus.external_blocker_acknowledged'
-    );
-    assert.ok(blockerWarning);
-    assert.match(blockerWarning.message, /CDX-009, CDX-045/);
-    assert.equal(blockerWarning.scope, 'operational');
-    assert.equal(
-        list.some((item) => item.code === 'warn.focus.required_check_unverified'),
-        true
-    );
-});
-
 test('diagnostics reutiliza focusSummary live cuando se provee explicitamente', () => {
     const list = diagnostics.buildWarnFirstDiagnostics({
         source: 'status',
@@ -471,6 +422,58 @@ test('diagnostics reutiliza focusSummary live cuando se provee explicitamente', 
                 healthy: true,
             },
         ],
+        activeStatuses: ACTIVE_STATUSES,
+    });
+
+    assert.equal(
+        list.some(
+            (item) => item.code === 'warn.focus.required_check_unverified'
+        ),
+        false
+    );
+});
+
+test('diagnostics no marca required_check_unverified cuando content audit y test ya estan verdes', () => {
+    const list = diagnostics.buildWarnFirstDiagnostics({
+        source: 'status',
+        policy: POLICY,
+        focusSummary: {
+            configured: {
+                id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                required_checks: [
+                    'content:public-v6:validate',
+                    'audit:public-v6:copy',
+                    'test:frontend:qa:v6',
+                ],
+            },
+            idle: false,
+            missing_focus_task_ids: [],
+            outside_next_step_task_ids: [],
+            invalid_slice_task_ids: [],
+            too_many_active_slices: false,
+            required_checks: [
+                {
+                    id: 'content:public-v6:validate',
+                    state: 'green',
+                    ok: true,
+                },
+                {
+                    id: 'audit:public-v6:copy',
+                    state: 'green',
+                    ok: true,
+                },
+                {
+                    id: 'test:frontend:qa:v6',
+                    state: 'green',
+                    ok: true,
+                },
+            ],
+            decisions: {
+                overdue: 0,
+                overdue_ids: [],
+            },
+            rework_without_reason_task_ids: [],
+        },
         activeStatuses: ACTIVE_STATUSES,
     });
 

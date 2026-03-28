@@ -968,7 +968,11 @@ async function handlePublishCommand(ctx) {
     let focusSummary = null;
     if (typeof buildLiveFocusSummary === 'function') {
         focusSummary = (
-            await buildLiveFocusSummary(board, { now: new Date() })
+            await buildLiveFocusSummary(board, {
+                now: new Date(),
+                taskId,
+                preferredTaskId: taskId,
+            })
         )?.summary;
     } else if (typeof buildFocusSummary === 'function') {
         const decisionsData =

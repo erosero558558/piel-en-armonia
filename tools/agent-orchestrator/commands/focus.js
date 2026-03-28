@@ -1,5 +1,15 @@
 'use strict';
 
+const { spawnSync } = require('child_process');
+const { existsSync, mkdirSync, writeFileSync } = require('fs');
+const { dirname, join } = require('path');
+
+const focusDomain = require('../domain/focus');
+
+const LOCAL_REQUIRED_CHECK_SCRIPT_OVERRIDES = {
+    'audit:public-v6:copy': 'audit:public:v6:copy',
+};
+
 function parseExpectedRevisionFromFlags(
     flags = {},
     parseExpectedBoardRevisionFlag,
@@ -95,9 +105,20 @@ function strategyDeclaresFocusContract(board) {
     );
 }
 
-async function resolveLiveFocusSummary(ctx, board) {
+async function resolveLiveFocusSummary(ctx, board, options = {}) {
+    const taskId = String(options.taskId || options.preferredTaskId || '').trim();
     if (typeof ctx.buildLiveFocusSummary === 'function') {
-        return ctx.buildLiveFocusSummary(board, { now: new Date() });
+        return ctx.buildLiveFocusSummary(board, {
+            now: new Date(),
+            taskId: taskId || undefined,
+            preferredTaskId: taskId || undefined,
+            governancePolicy:
+                typeof ctx.getGovernancePolicy === 'function'
+                    ? ctx.getGovernancePolicy()
+                    : null,
+            cwd: ctx.rootPath || process.cwd(),
+            rootPath: ctx.rootPath || process.cwd(),
+        });
     }
 
     const decisionsData =
@@ -114,6 +135,7 @@ async function resolveLiveFocusSummary(ctx, board) {
                   decisionsData,
                   jobsSnapshot: jobs,
                   now: new Date(),
+                  requiredChecksSnapshot: options.requiredChecksSnapshot,
               })
             : null;
 
@@ -258,6 +280,111 @@ function printFocusStatusText(summary = {}) {
     );
 }
 
+function collectLocalRequiredChecks(summary = {}) {
+    const tokens = Array.isArray(summary?.configured?.required_checks)
+        ? summary.configured.required_checks
+        : [];
+    return tokens
+        .map((token) => focusDomain.parseRequiredCheckToken(token))
+        .filter(
+            (item) => item && focusDomain.isLocalRequiredCheckType(item.type)
+        );
+}
+
+function resolveLocalRequiredCheckScriptId(checkId) {
+    const safeId = String(checkId || '')
+        .trim()
+        .toLowerCase();
+    return LOCAL_REQUIRED_CHECK_SCRIPT_OVERRIDES[safeId] || safeId;
+}
+
+function resolveNpmProgram() {
+    const nodeDir = dirname(process.execPath);
+    const candidate = join(
+        nodeDir,
+        process.platform === 'win32' ? 'npm.cmd' : 'npm'
+    );
+    if (existsSync(candidate)) {
+        return candidate;
+    }
+    return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+}
+
+function buildLocalCheckEnv() {
+    const nodeDir = dirname(process.execPath);
+    const currentPath = String(process.env.PATH || '').trim();
+    const segments = [nodeDir];
+    if (currentPath) {
+        segments.push(currentPath);
+    }
+    return {
+        ...process.env,
+        PATH: segments.join(process.platform === 'win32' ? ';' : ':'),
+    };
+}
+
+function runLocalRequiredCheck(check, options = {}) {
+    const npmProgram = options.npmProgram || resolveNpmProgram();
+    const scriptId = resolveLocalRequiredCheckScriptId(check.id);
+    const command = `npm run ${scriptId}`;
+    const checkedAt = new Date().toISOString();
+    const result = spawnSync(npmProgram, ['run', scriptId], {
+        cwd: String(options.rootPath || process.cwd()).trim() || process.cwd(),
+        env: options.env || buildLocalCheckEnv(),
+        encoding: 'utf8',
+        shell: false,
+    });
+    const exitCode =
+        typeof result.status === 'number'
+            ? result.status
+            : result.error
+              ? 127
+              : 1;
+    return {
+        id: check.id,
+        type: check.type,
+        command,
+        ok: exitCode === 0,
+        exit_code: exitCode,
+        checked_at: checkedAt,
+        stdout: String(result.stdout || '').trim(),
+        stderr: String(result.stderr || '').trim(),
+        spawn_error:
+            result.error instanceof Error ? result.error.message : '',
+    };
+}
+
+function writeLocalRequiredCheckSnapshot(summary = {}, checkResults, options = {}) {
+    const focusId = String(summary?.configured?.id || '').trim();
+    const snapshotPath = focusDomain.resolveFocusCheckSnapshotPath(focusId, {
+        rootPath: options.rootPath,
+    });
+    mkdirSync(dirname(snapshotPath), { recursive: true });
+    const payload = {
+        version: focusDomain.LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION,
+        focus_id: focusId,
+        checked_at: new Date().toISOString(),
+        focus_required_checks: Array.isArray(summary?.configured?.required_checks)
+            ? [...summary.configured.required_checks]
+            : [],
+        checks: Array.isArray(checkResults)
+            ? checkResults.map((item) => ({
+                  id: item.id,
+                  type: item.type,
+                  command: item.command,
+                  ok: item.ok,
+                  exit_code: item.exit_code,
+                  checked_at: item.checked_at,
+              }))
+            : [],
+    };
+    writeFileSync(`${snapshotPath}`, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+    return {
+        path: snapshotPath,
+        payload,
+    };
+}
+
 async function handleFocusCommand(ctx) {
     const {
         args = [],
@@ -276,6 +403,8 @@ async function handleFocusCommand(ctx) {
         applyBoardSync,
         writeBoardAndSync,
         parseExpectedBoardRevisionFlag,
+        getGovernancePolicy,
+        rootPath,
         printJson = (value) => console.log(JSON.stringify(value, null, 2)),
     } = ctx;
     const wantsJson = args.includes('--json');
@@ -285,12 +414,12 @@ async function handleFocusCommand(ctx) {
     const { flags } = parseFlags(args.slice(1));
 
     if (
-        !['status', 'set-active', 'advance', 'close', 'check'].includes(
+        !['status', 'set-active', 'advance', 'close', 'check', 'verify'].includes(
             subcommand
         )
     ) {
         throw new Error(
-            'Uso: node agent-orchestrator.js focus <status|set-active|advance|close|check> [--expect-rev N] [--enforce-required-checks] [--json]'
+            'Uso: node agent-orchestrator.js focus <status|set-active|advance|close|check|verify> [--expect-rev N] [--enforce-required-checks] [--json]'
         );
     }
 
@@ -302,6 +431,8 @@ async function handleFocusCommand(ctx) {
             parseDecisions,
             loadJobsSnapshot,
             verifyOpenClawRuntime,
+            getGovernancePolicy,
+            rootPath,
         },
         board
     );
@@ -327,7 +458,49 @@ async function handleFocusCommand(ctx) {
         const enforceRequiredChecks = Boolean(
             flags['enforce-required-checks'] || flags.enforce_required_checks
         );
-        const errors = getStructuralFocusErrors(board, summary, {
+        const refreshRequiredChecks = Boolean(
+            flags['refresh-required-checks'] ||
+                flags.refresh_required_checks
+        );
+        const requestedTaskId = readFlag(flags, 'task', 'task-id', 'task_id');
+        let refreshedSummary = summary;
+        let refreshResult = null;
+        if (refreshRequiredChecks) {
+            refreshResult = await focusDomain.refreshRequiredChecksSnapshot(
+                board,
+                {
+                    taskId: requestedTaskId || null,
+                    now: new Date(),
+                    cwd: rootPath || process.cwd(),
+                    rootPath: rootPath || process.cwd(),
+                    governancePolicy:
+                        typeof getGovernancePolicy === 'function'
+                            ? getGovernancePolicy()
+                            : null,
+                }
+            );
+            refreshedSummary = (
+                await resolveLiveFocusSummary(
+                    {
+                        buildLiveFocusSummary,
+                        buildFocusSummary,
+                        parseDecisions,
+                        loadJobsSnapshot,
+                        verifyOpenClawRuntime,
+                        getGovernancePolicy,
+                        rootPath,
+                    },
+                    board,
+                    {
+                        taskId:
+                            refreshResult?.task_id ||
+                            requestedTaskId ||
+                            null,
+                    }
+                )
+            ).summary;
+        }
+        const errors = getStructuralFocusErrors(board, refreshedSummary, {
             enforceRequiredChecks,
         });
         const payload = {
@@ -335,10 +508,14 @@ async function handleFocusCommand(ctx) {
             ok: errors.length === 0,
             command: 'focus',
             action: 'check',
-            focus: summary,
+            focus: refreshedSummary,
             enforce_required_checks: enforceRequiredChecks,
+            refresh_required_checks: refreshRequiredChecks,
+            required_checks_refresh: refreshResult,
             structural_errors: errors,
-            warnings: Array.isArray(summary?.warnings) ? summary.warnings : [],
+            warnings: Array.isArray(refreshedSummary?.warnings)
+                ? refreshedSummary.warnings
+                : [],
         };
         if (wantsJson) {
             printJson(payload);
@@ -350,6 +527,68 @@ async function handleFocusCommand(ctx) {
             throw new Error(
                 `focus check fallo: ${payload.structural_errors.join(', ')}`
             );
+        }
+        return payload;
+    }
+
+    if (subcommand === 'verify') {
+        if (!summary?.configured) {
+            throw new Error('focus verify requiere foco configurado');
+        }
+        const localChecks = collectLocalRequiredChecks(summary);
+        const checkResults = localChecks.map((check) =>
+            runLocalRequiredCheck(check, {
+                rootPath: rootPath || process.cwd(),
+            })
+        );
+        const snapshot = writeLocalRequiredCheckSnapshot(summary, checkResults, {
+            rootPath: rootPath || process.cwd(),
+        });
+        const refreshedSummary = (
+            await resolveLiveFocusSummary(
+                {
+                    buildLiveFocusSummary,
+                    buildFocusSummary,
+                    parseDecisions,
+                    loadJobsSnapshot,
+                    verifyOpenClawRuntime,
+                    getGovernancePolicy,
+                    rootPath,
+                },
+                board
+            )
+        ).summary;
+        const payload = {
+            version: 1,
+            ok:
+                checkResults.length > 0
+                    ? checkResults.every((item) => item.ok === true)
+                    : true,
+            command: 'focus',
+            action: 'verify',
+            focus: refreshedSummary,
+            snapshot_path: snapshot.path,
+            checks: checkResults.map((item) => ({
+                id: item.id,
+                type: item.type,
+                command: item.command,
+                ok: item.ok,
+                exit_code: item.exit_code,
+                checked_at: item.checked_at,
+            })),
+        };
+        if (wantsJson) {
+            printJson(payload);
+            if (!payload.ok) process.exitCode = 1;
+            return payload;
+        }
+        for (const item of checkResults) {
+            console.log(
+                `focus verify ${item.id}: ${item.ok ? 'green' : 'red'} (${item.command})`
+            );
+        }
+        if (!payload.ok) {
+            process.exitCode = 1;
         }
         return payload;
     }

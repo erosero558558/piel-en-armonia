@@ -2,8 +2,25 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { mkdtempSync, mkdirSync, rmSync, writeFileSync } = require('node:fs');
+const { tmpdir } = require('node:os');
+const { join } = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 const focusDomain = require('../../tools/agent-orchestrator/domain/focus');
+
+function runGit(cwd, args) {
+    const result = spawnSync('git', args, {
+        cwd,
+        encoding: 'utf8',
+    });
+    assert.equal(
+        result.status,
+        0,
+        `git ${args.join(' ')} failed\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`
+    );
+    return result;
+}
 
 test('focus evaluateRequiredChecks marca public_main_sync health_http_502 como red y accionable', () => {
     const checks = focusDomain.evaluateRequiredChecks(
@@ -67,86 +84,566 @@ test('focus evaluateRequiredChecks trata public_main_sync registry_only/unverifi
     assert.match(checks[0].next_action, /health_url/i);
 });
 
-test('focus permite carryover bloqueado externo desde el step previo al avanzar a feedback_trim', () => {
-    const summary = focusDomain.buildFocusSummary(
+test('focus evaluateRequiredChecks resuelve content/audit/test desde snapshot local valido', () => {
+    const checks = focusDomain.evaluateRequiredChecks(
         {
-            strategy: {
-                active: {
-                    id: 'STRAT-2026-03-admin-operativo',
-                    title: 'Admin operativo',
-                    status: 'active',
-                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
-                    focus_title: 'Admin operativo demostrable',
-                    focus_summary: 'Corte comun',
-                    focus_status: 'active',
-                    focus_proof: 'Demo comun',
-                    focus_steps: [
-                        'admin_queue_pilot_cut',
-                        'pilot_readiness_evidence',
-                        'feedback_trim',
-                    ],
-                    focus_next_step: 'feedback_trim',
-                    focus_required_checks: [
-                        'job:public_main_sync',
-                        'runtime:operator_auth',
-                    ],
-                    focus_owner: 'ernesto',
-                    focus_review_due_at: '2026-03-21',
-                    subfronts: [],
-                },
-            },
-            tasks: [
-                {
-                    id: 'CDX-009',
-                    status: 'blocked',
-                    codex_instance: 'codex_backend_ops',
-                    domain_lane: 'backend_ops',
-                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
-                    focus_step: 'admin_queue_pilot_cut',
-                    integration_slice: 'ops_deploy',
-                    work_type: 'support',
-                    blocked_reason: 'host_public_health_502_external_blocker',
-                },
-                {
-                    id: 'CDX-046',
-                    status: 'in_progress',
-                    codex_instance: 'codex_frontend',
-                    domain_lane: 'frontend_content',
-                    focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
-                    focus_step: 'feedback_trim',
-                    integration_slice: 'frontend_runtime',
-                    work_type: 'forward',
-                    blocked_reason: '',
-                },
+            required_checks: [
+                'content:public-v6:validate',
+                'audit:public-v6:copy',
+                'test:frontend:qa:v6',
             ],
         },
         {
-            decisionsData: { decisions: [] },
-            jobsSnapshot: [
-                {
-                    key: 'public_main_sync',
-                    configured: true,
-                    verified: false,
-                    healthy: false,
-                    state: 'failed',
-                    verification_source: 'health_url',
-                    failure_reason: 'health_http_502',
-                    last_error_message: 'health_http_502',
-                },
-            ],
-            runtimeVerification: {
-                operator_auth: {
-                    status: 'unhealthy',
-                    reason: 'auth_status_http_502',
+            localRequiredCheckSnapshot: {
+                valid: true,
+                snapshot: {
+                    checks: [
+                        {
+                            id: 'content:public-v6:validate',
+                            type: 'content',
+                            command: 'npm run content:public-v6:validate',
+                            ok: true,
+                            exit_code: 0,
+                            checked_at: '2026-03-27T12:00:00.000Z',
+                        },
+                        {
+                            id: 'audit:public-v6:copy',
+                            type: 'audit',
+                            command: 'npm run audit:public:v6:copy',
+                            ok: true,
+                            exit_code: 0,
+                            checked_at: '2026-03-27T12:00:01.000Z',
+                        },
+                        {
+                            id: 'test:frontend:qa:v6',
+                            type: 'test',
+                            command: 'npm run test:frontend:qa:v6',
+                            ok: false,
+                            exit_code: 1,
+                            checked_at: '2026-03-27T12:00:02.000Z',
+                        },
+                    ],
                 },
             },
-            now: new Date('2026-03-26T20:00:00.000Z'),
         }
     );
 
-    assert.deepEqual(summary.carryover_external_blocker_task_ids, ['CDX-009']);
-    assert.deepEqual(summary.outside_next_step_task_ids, []);
-    assert.equal(summary.acknowledged_external_blocker, true);
-    assert.equal(summary.aligned_tasks, 2);
-    assert.equal(summary.release_ready, false);
+    assert.equal(checks[0].state, 'green');
+    assert.equal(checks[0].command, 'npm run content:public-v6:validate');
+    assert.equal(checks[1].state, 'green');
+    assert.equal(checks[1].command, 'npm run audit:public:v6:copy');
+    assert.equal(checks[2].state, 'red');
+    assert.equal(checks[2].exit_code, 1);
+    assert.equal(checks[2].reason, 'command_failed');
+});
+
+test('focus loadLocalRequiredCheckSnapshot invalida snapshot si cambia focus_required_checks', (t) => {
+    const root = mkdtempSync(join(tmpdir(), 'focus-snapshot-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+
+    const snapshotPath = focusDomain.resolveFocusCheckSnapshotPath(
+        'FOCUS-2026-03-public-v6-es-voz-cut-1',
+        { rootPath: root }
+    );
+    mkdirSync(join(root, 'verification', 'focus-checks'), { recursive: true });
+    writeFileSync(
+        snapshotPath,
+        `${JSON.stringify(
+            {
+                version: 1,
+                focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                checked_at: '2026-03-27T12:00:00.000Z',
+                focus_required_checks: [
+                    'content:public-v6:validate',
+                    'audit:public-v6:copy',
+                ],
+                checks: [],
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
+
+    const snapshotState = focusDomain.loadLocalRequiredCheckSnapshot(
+        {
+            id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+            required_checks: [
+                'content:public-v6:validate',
+                'audit:public-v6:copy',
+                'test:frontend:qa:v6',
+            ],
+        },
+        { rootPath: root }
+    );
+
+    assert.equal(snapshotState.available, true);
+    assert.equal(snapshotState.valid, false);
+    assert.equal(snapshotState.reason, 'required_checks_mismatch');
+});
+
+test('focus loadLocalRequiredCheckSnapshot usa evidencia de slices en review como fuente canonica', (t) => {
+    const root = mkdtempSync(join(tmpdir(), 'focus-evidence-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+
+    mkdirSync(join(root, 'verification', 'agent-runs'), { recursive: true });
+    writeFileSync(
+        join(root, 'verification', 'agent-runs', 'CDX-045.md'),
+        [
+            '# CDX-045',
+            '- required_check: content:public-v6:validate | state: red | command: npm run content:public-v6:validate',
+            '- required_check: audit:public-v6:copy | state: red | command: npm run audit:public:v6:copy',
+            '- required_check: test:frontend:qa:v6 | state: red | command: TEST_LOCAL_SERVER=php npm run test:frontend:qa:v6',
+            '',
+        ].join('\n'),
+        'utf8'
+    );
+    writeFileSync(
+        join(root, 'verification', 'agent-runs', 'CDX-048.md'),
+        [
+            '# CDX-048',
+            '- required_check: content:public-v6:validate | state: green | command: npm run content:public-v6:validate',
+            '- required_check: audit:public-v6:copy | state: green | command: npm run audit:public:v6:copy',
+            '- required_check: test:frontend:qa:v6 | state: green | command: TEST_LOCAL_SERVER=php npm run test:frontend:qa:v6',
+            '',
+        ].join('\n'),
+        'utf8'
+    );
+
+    const snapshotState = focusDomain.loadLocalRequiredCheckSnapshot(
+        {
+            id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+            required_checks: [
+                'content:public-v6:validate',
+                'audit:public-v6:copy',
+                'test:frontend:qa:v6',
+            ],
+        },
+        {
+            rootPath: root,
+            board: {
+                strategy: {
+                    active: {
+                        id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                        started_at: '2026-03-26',
+                    },
+                },
+                tasks: [
+                    {
+                        id: 'CDX-045',
+                        status: 'review',
+                        strategy_id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                        subfront_id: 'SF-frontend-public-v6-es-copy',
+                        focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                        updated_at: '2026-03-27T10:00:00Z',
+                        acceptance_ref: 'verification/agent-runs/CDX-045.md',
+                        evidence_ref: 'verification/agent-runs/CDX-045.md',
+                    },
+                    {
+                        id: 'CDX-048',
+                        status: 'review',
+                        strategy_id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                        subfront_id: 'SF-frontend-public-v6-es-copy',
+                        focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                        updated_at: '2026-03-27T23:36:00Z',
+                        acceptance_ref: 'verification/agent-runs/CDX-048.md',
+                        evidence_ref: 'verification/agent-runs/CDX-048.md',
+                    },
+                ],
+            },
+        }
+    );
+
+    assert.equal(snapshotState.available, true);
+    assert.equal(snapshotState.valid, true);
+    assert.equal(snapshotState.reason, 'evidence');
+
+    const checks = focusDomain.evaluateRequiredChecks(
+        {
+            required_checks: [
+                'content:public-v6:validate',
+                'audit:public-v6:copy',
+                'test:frontend:qa:v6',
+            ],
+        },
+        {
+            localRequiredCheckSnapshot: snapshotState,
+        }
+    );
+
+    assert.deepEqual(
+        checks.map((item) => [item.id, item.state, item.checked_at]),
+        [
+            ['content:public-v6:validate', 'green', '2026-03-27T23:36:00Z'],
+            ['audit:public-v6:copy', 'green', '2026-03-27T23:36:00Z'],
+            ['test:frontend:qa:v6', 'green', '2026-03-27T23:36:00Z'],
+        ]
+    );
+});
+
+test('focus loadLocalRequiredCheckSnapshot prefiere snapshot JSON valido sobre evidencia legacy', (t) => {
+    const root = mkdtempSync(join(tmpdir(), 'focus-evidence-precedence-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+
+    mkdirSync(join(root, 'verification', 'agent-runs'), { recursive: true });
+    mkdirSync(join(root, 'verification', 'focus-checks'), { recursive: true });
+    writeFileSync(
+        join(root, 'verification', 'agent-runs', 'CDX-048.md'),
+        [
+            '# CDX-048',
+            '- required_check: content:public-v6:validate | state: green | command: npm run content:public-v6:validate',
+            '- required_check: audit:public-v6:copy | state: green | command: npm run audit:public:v6:copy',
+            '- required_check: test:frontend:qa:v6 | state: green | command: TEST_LOCAL_SERVER=php npm run test:frontend:qa:v6',
+            '',
+        ].join('\n'),
+        'utf8'
+    );
+    writeFileSync(
+        focusDomain.resolveFocusCheckSnapshotPath(
+            'FOCUS-2026-03-public-v6-es-voz-cut-1',
+            { rootPath: root }
+        ),
+        `${JSON.stringify(
+            {
+                version: 1,
+                focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                checked_at: '2026-03-28T01:00:00Z',
+                focus_required_checks: [
+                    'content:public-v6:validate',
+                    'audit:public-v6:copy',
+                    'test:frontend:qa:v6',
+                ],
+                checks: [
+                    {
+                        id: 'content:public-v6:validate',
+                        type: 'content',
+                        command: 'npm run content:public-v6:validate',
+                        ok: true,
+                        exit_code: 0,
+                        checked_at: '2026-03-28T01:00:00Z',
+                    },
+                    {
+                        id: 'audit:public-v6:copy',
+                        type: 'audit',
+                        command: 'npm run audit:public:v6:copy',
+                        ok: true,
+                        exit_code: 0,
+                        checked_at: '2026-03-28T01:00:01Z',
+                    },
+                    {
+                        id: 'test:frontend:qa:v6',
+                        type: 'test',
+                        command: 'npm run test:frontend:qa:v6',
+                        ok: true,
+                        exit_code: 0,
+                        checked_at: '2026-03-28T01:00:02Z',
+                    },
+                ],
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
+
+    const snapshotState = focusDomain.loadLocalRequiredCheckSnapshot(
+        {
+            id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+            required_checks: [
+                'content:public-v6:validate',
+                'audit:public-v6:copy',
+                'test:frontend:qa:v6',
+            ],
+        },
+        {
+            rootPath: root,
+            board: {
+                strategy: {
+                    active: {
+                        id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                        started_at: '2026-03-26',
+                    },
+                },
+                tasks: [
+                    {
+                        id: 'CDX-048',
+                        status: 'review',
+                        strategy_id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                        subfront_id: 'SF-frontend-public-v6-es-copy',
+                        focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                        updated_at: '2026-03-27T23:36:00Z',
+                        acceptance_ref: 'verification/agent-runs/CDX-048.md',
+                        evidence_ref: 'verification/agent-runs/CDX-048.md',
+                    },
+                ],
+            },
+        }
+    );
+
+    assert.equal(snapshotState.available, true);
+    assert.equal(snapshotState.valid, true);
+    assert.equal(snapshotState.reason, 'ok');
+
+    const checks = focusDomain.evaluateRequiredChecks(
+        {
+            required_checks: [
+                'content:public-v6:validate',
+                'audit:public-v6:copy',
+                'test:frontend:qa:v6',
+            ],
+        },
+        {
+            localRequiredCheckSnapshot: snapshotState,
+        }
+    );
+
+    assert.deepEqual(
+        checks.map((item) => [item.id, item.state, item.checked_at]),
+        [
+            ['content:public-v6:validate', 'green', '2026-03-28T01:00:00Z'],
+            ['audit:public-v6:copy', 'green', '2026-03-28T01:00:01Z'],
+            ['test:frontend:qa:v6', 'green', '2026-03-28T01:00:02Z'],
+        ]
+    );
+});
+
+test('focus evaluateRequiredChecks deja local required checks como unverified cuando la evidencia no aplica al foco activo', (t) => {
+    const root = mkdtempSync(join(tmpdir(), 'focus-unverified-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+
+    const checks = focusDomain.evaluateRequiredChecks(
+        {
+            id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+            required_checks: [
+                'content:public-v6:validate',
+                'audit:public-v6:copy',
+                'test:frontend:qa:v6',
+            ],
+        },
+        {
+            rootPath: root,
+            board: {
+                strategy: {
+                    active: {
+                        id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                        started_at: '2026-03-26',
+                    },
+                },
+                tasks: [
+                    {
+                        id: 'CDX-048',
+                        status: 'review',
+                        strategy_id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                        subfront_id: 'SF-backend-public-v6-es-support',
+                        focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                        updated_at: '2026-03-27T23:36:00Z',
+                        acceptance_ref: 'verification/agent-runs/CDX-048.md',
+                        evidence_ref: 'verification/agent-runs/CDX-048.md',
+                    },
+                ],
+            },
+        }
+    );
+
+    assert.deepEqual(
+        checks.map((item) => item.state),
+        ['unverified', 'unverified', 'unverified']
+    );
+});
+
+test('focus refreshRequiredChecksSnapshot persiste snapshot task-scoped y buildLiveFocusSummary lo usa por taskId', async (t) => {
+    const root = mkdtempSync(join(tmpdir(), 'focus-task-snapshot-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+
+    writeFileSync(join(root, '.gitignore'), '.codex-local/\n', 'utf8');
+    writeFileSync(
+        join(root, 'package.json'),
+        `${JSON.stringify(
+            {
+                name: 'focus-task-snapshot-fixture',
+                private: true,
+                scripts: {
+                    'content:public-v6:validate':
+                        'node -e "process.exit(0)"',
+                    'audit:public:v6:copy':
+                        'node -e "process.exit(0)"',
+                    'test:frontend:qa:v6': 'node -e "process.exit(0)"',
+                },
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
+    writeFileSync(join(root, 'README.md'), '# fixture\n', 'utf8');
+    runGit(root, ['init']);
+    runGit(root, ['config', 'user.email', 'fixture@example.com']);
+    runGit(root, ['config', 'user.name', 'Fixture']);
+    runGit(root, ['add', '.']);
+    runGit(root, ['commit', '-m', 'fixture init']);
+
+    const board = {
+        strategy: {
+            active: {
+                id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                status: 'active',
+                focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                focus_title: 'Public V6 ES claro y humano',
+                focus_summary: 'Corte comun',
+                focus_status: 'active',
+                focus_proof: 'Demo comun',
+                focus_steps: [
+                    'ecuadorian_copy_rewrite',
+                    'copy_contract_validation',
+                    'publish_readiness_review',
+                ],
+                focus_next_step: 'copy_contract_validation',
+                focus_required_checks: [
+                    'content:public-v6:validate',
+                    'audit:public-v6:copy',
+                    'test:frontend:qa:v6',
+                ],
+                focus_owner: 'Ernesto',
+                focus_review_due_at: '2026-03-30',
+                focus_evidence_ref: '',
+                focus_max_active_slices: 2,
+            },
+        },
+        tasks: [
+            {
+                id: 'CDX-045',
+                status: 'review',
+                strategy_id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                focus_step: 'copy_contract_validation',
+                integration_slice: 'frontend_runtime',
+                work_type: 'forward',
+            },
+        ],
+    };
+
+    const refresh = focusDomain.refreshRequiredChecksSnapshot(board, {
+        taskId: 'CDX-045',
+        cwd: root,
+        rootPath: root,
+        now: new Date('2026-03-28T01:00:00Z'),
+    });
+    assert.equal(refresh.ok, true);
+    assert.equal(refresh.context_task_id, 'CDX-045');
+
+    const live = await focusDomain.buildLiveFocusSummary(board, {
+        buildFocusSummary: (current, options = {}) =>
+            focusDomain.buildFocusSummary(current, options),
+        parseDecisions: () => ({ decisions: [] }),
+        loadJobsSnapshot: async () => [],
+        cwd: root,
+        rootPath: root,
+        taskId: 'CDX-045',
+        preferredTaskId: 'CDX-045',
+        now: new Date('2026-03-28T01:00:01Z'),
+    });
+
+    assert.equal(
+        live.summary.required_checks_snapshot.context_task_id,
+        'CDX-045'
+    );
+    assert.equal(live.summary.required_checks_snapshot.valid, true);
+    assert.deepEqual(
+        live.summary.required_checks.map((item) => item.state),
+        ['green', 'green', 'green']
+    );
+});
+
+test('focus loadRequiredChecksSnapshotContext invalida snapshot task-scoped si cambia worktree fingerprint', (t) => {
+    const root = mkdtempSync(join(tmpdir(), 'focus-task-stale-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+
+    writeFileSync(join(root, '.gitignore'), '.codex-local/\n', 'utf8');
+    writeFileSync(
+        join(root, 'package.json'),
+        `${JSON.stringify(
+            {
+                name: 'focus-task-stale-fixture',
+                private: true,
+                scripts: {
+                    'content:public-v6:validate':
+                        'node -e "process.exit(0)"',
+                    'audit:public:v6:copy':
+                        'node -e "process.exit(0)"',
+                    'test:frontend:qa:v6': 'node -e "process.exit(0)"',
+                },
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
+    writeFileSync(join(root, 'README.md'), '# fixture\n', 'utf8');
+    runGit(root, ['init']);
+    runGit(root, ['config', 'user.email', 'fixture@example.com']);
+    runGit(root, ['config', 'user.name', 'Fixture']);
+    runGit(root, ['add', '.']);
+    runGit(root, ['commit', '-m', 'fixture init']);
+
+    const board = {
+        strategy: {
+            active: {
+                id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                status: 'active',
+                focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                focus_title: 'Public V6 ES claro y humano',
+                focus_summary: 'Corte comun',
+                focus_status: 'active',
+                focus_proof: 'Demo comun',
+                focus_steps: ['copy_contract_validation'],
+                focus_next_step: 'copy_contract_validation',
+                focus_required_checks: [
+                    'content:public-v6:validate',
+                    'audit:public-v6:copy',
+                    'test:frontend:qa:v6',
+                ],
+                focus_owner: 'Ernesto',
+                focus_review_due_at: '2026-03-30',
+                focus_evidence_ref: '',
+                focus_max_active_slices: 1,
+            },
+        },
+        tasks: [
+            {
+                id: 'CDX-045',
+                status: 'review',
+                strategy_id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                focus_step: 'copy_contract_validation',
+                integration_slice: 'frontend_runtime',
+                work_type: 'forward',
+            },
+        ],
+    };
+
+    focusDomain.refreshRequiredChecksSnapshot(board, {
+        taskId: 'CDX-045',
+        cwd: root,
+        rootPath: root,
+        now: new Date('2026-03-28T01:00:00Z'),
+    });
+    writeFileSync(join(root, 'README.md'), '# fixture dirty\n', 'utf8');
+
+    const snapshotState = focusDomain.loadRequiredChecksSnapshotContext(board, {
+        taskId: 'CDX-045',
+        cwd: root,
+        rootPath: root,
+        now: new Date('2026-03-28T01:05:00Z'),
+    });
+
+    assert.equal(snapshotState.available, true);
+    assert.equal(snapshotState.valid, false);
+    assert.equal(
+        snapshotState.reason,
+        'worktree_status_fingerprint_mismatch'
+    );
+    assert.equal(
+        snapshotState.stale_reason,
+        'worktree_status_fingerprint_mismatch'
+    );
 });

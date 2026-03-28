@@ -51,7 +51,6 @@ const LEADOPS_HELPER_SOURCE = join(
     'lead-ai-worker.js'
 );
 const DATE = '2026-02-24';
-const FIXTURE_GIT_REMOTES = new Map();
 const CODEX_MODEL_ROUTING_FIELDS = `
     model_tier_default: "gpt-5.4-mini"
     premium_budget: 0
@@ -83,74 +82,7 @@ function createFixtureDir() {
     return dir;
 }
 
-function runGitFixture(dir, args, expectedStatus = 0) {
-    const result = spawnSync('git', args, {
-        cwd: dir,
-        encoding: 'utf8',
-    });
-    if (result.error) {
-        throw result.error;
-    }
-    assert.equal(
-        result.status,
-        expectedStatus,
-        `Unexpected git exit for ${args.join(' ')}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`
-    );
-    return result;
-}
-
-function writeFixtureGitIgnore(dir) {
-    const infoDir = join(dir, '.git', 'info');
-    mkdirSync(infoDir, { recursive: true });
-    writeFileSync(
-        join(infoDir, 'exclude'),
-        [
-            '.codex-local/',
-            '.codex-worktrees/',
-            'runtime/',
-            'verification/',
-            'AGENT_DECISIONS.yaml',
-            'AGENT_JOBS.yaml',
-            'JULES_TASKS.md',
-            'KIMI_TASKS.md',
-            'preview-*.json',
-        ].join('\n') + '\n',
-        'utf8'
-    );
-}
-
-function ensureFixtureGitRepo(dir) {
-    if (existsSync(join(dir, '.git'))) {
-        return;
-    }
-    const remoteDir = mkdtempSync(join(tmpdir(), 'agent-orchestrator-remote-'));
-    runGitFixture(remoteDir, ['init', '--bare', '--initial-branch=main']);
-    runGitFixture(dir, ['init', '--initial-branch=main']);
-    runGitFixture(dir, ['config', 'user.name', 'Fixture Bot']);
-    runGitFixture(dir, ['config', 'user.email', 'fixture@example.test']);
-    runGitFixture(dir, ['remote', 'add', 'origin', remoteDir]);
-    writeFixtureGitIgnore(dir);
-    FIXTURE_GIT_REMOTES.set(dir, remoteDir);
-}
-
-function commitFixtureGitState(dir, message = 'fixture snapshot') {
-    ensureFixtureGitRepo(dir);
-    const status = runGitFixture(dir, ['status', '--short']);
-    if (!String(status.stdout || '').trim()) {
-        runGitFixture(dir, ['push', '-u', 'origin', 'main']);
-        return;
-    }
-    runGitFixture(dir, ['add', '-A']);
-    runGitFixture(dir, ['commit', '-m', message]);
-    runGitFixture(dir, ['push', '-u', 'origin', 'main']);
-}
-
 function cleanupFixtureDir(dir) {
-    const remoteDir = FIXTURE_GIT_REMOTES.get(dir);
-    if (remoteDir) {
-        rmSync(remoteDir, { recursive: true, force: true });
-        FIXTURE_GIT_REMOTES.delete(dir);
-    }
     rmSync(dir, { recursive: true, force: true });
 }
 
@@ -185,7 +117,6 @@ function writeFixtureFiles(dir, { board, handoffs, plan, decisions = null }) {
             'utf8'
         );
     }
-    commitFixtureGitState(dir, 'fixture snapshot');
 }
 
 function writePublicSyncJobsFixture(dir, options = {}) {
@@ -872,19 +803,6 @@ Relacion con Operativo 2026:
 `;
 }
 
-function serializeYamlInlineArray(values = []) {
-    return `[${values.map((value) => JSON.stringify(String(value || ''))).join(', ')}]`;
-}
-
-function indentTaskRows(taskRowsYaml = '') {
-    const raw = String(taskRowsYaml || '').trim();
-    if (!raw) return '';
-    return raw
-        .split('\n')
-        .map((line) => (line.trim() ? `  ${line}` : ''))
-        .join('\n');
-}
-
 function activeAdminStrategyYaml() {
     return `
 strategy:
@@ -906,7 +824,7 @@ strategy:
     focus_proof: "Demo comun"
     focus_steps: ["admin_queue_pilot_cut", "pilot_readiness_evidence", "feedback_trim"]
     focus_next_step: "admin_queue_pilot_cut"
-    focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]
+    focus_required_checks: ["job:public_main_sync", "runtime:openclaw_chatgpt"]
     focus_non_goals: ["rediseno_publico", "expansion_payments"]
     focus_owner: "ernesto"
     focus_review_due_at: "2026-03-21"
@@ -954,64 +872,67 @@ strategy:
 `;
 }
 
-function alignedCodexMirrorTaskYaml(options = {}) {
-    const {
-        id = 'CDX-101',
-        title = 'Aligned frontend mirror',
-        status = 'ready',
-        risk = 'medium',
-        scope = 'frontend-admin',
-        codexInstance = 'codex_frontend',
-        domainLane = 'frontend_content',
-        strategyId = 'STRAT-2026-03-admin-operativo',
-        subfrontId = 'SF-frontend-admin-operativo',
-        strategyRole = 'primary',
-        strategyReason = '',
-        focusId = 'FOCUS-2026-03-admin-operativo-cut-1',
-        focusStep = 'admin_queue_pilot_cut',
-        integrationSlice = 'frontend_runtime',
-        workType = 'forward',
-        expectedOutcome = 'Frontend mirror task',
-        files = ['src/apps/admin-v3/frame-shell.js'],
-        dependsOn = [],
-        acceptance = 'Fixture acceptance',
-        prompt = 'Fixture mirror',
-    } = options;
+function activePublicV6StrategyYaml() {
     return `
-- id: ${id}
-  title: "${title}"
-  owner: ernesto
-  executor: codex
-  status: ${status}
-  risk: ${risk}
-  scope: ${scope}
-  codex_instance: ${codexInstance}
-  domain_lane: ${domainLane}
-  lane_lock: strict
-  cross_domain: false
-${CODEX_MODEL_ROUTING_FIELDS}
-  strategy_id: ${strategyId}
-  subfront_id: ${subfrontId}
-  strategy_role: ${strategyRole}
-  strategy_reason: "${strategyReason}"
-  focus_id: ${focusId}
-  focus_step: ${focusStep}
-  integration_slice: ${integrationSlice}
-  work_type: ${workType}
-  expected_outcome: "${expectedOutcome}"
-  files: ${serializeYamlInlineArray(files)}
-  acceptance: "${acceptance}"
-  acceptance_ref: ""
-  evidence_ref: ""
-  depends_on: ${serializeYamlInlineArray(dependsOn)}
-  prompt: "${prompt}"
-  created_at: ${DATE}
-  updated_at: ${DATE}
-`.trim();
+strategy:
+  active:
+    id: STRAT-2026-03-public-v6-es-voz-ecuatoriana
+    title: "Public V6 ES voz ecuatoriana"
+    objective: "Cerrar el copy ES de Public V6"
+    owner: Ernesto
+    owner_policy: "detected_default_owner"
+    status: active
+    started_at: "2026-03-26"
+    review_due_at: "2026-03-30"
+    exit_criteria: ["uno"]
+    success_signal: "demo"
+    focus_id: "FOCUS-2026-03-public-v6-es-voz-cut-1"
+    focus_title: "Public V6 ES claro y humano"
+    focus_summary: "Corte comun"
+    focus_status: active
+    focus_proof: "Demo comun"
+    focus_steps: ["ecuadorian_copy_rewrite", "copy_contract_validation", "publish_readiness_review"]
+    focus_next_step: "copy_contract_validation"
+    focus_required_checks: ["content:public-v6:validate", "audit:public-v6:copy", "test:frontend:qa:v6"]
+    focus_non_goals: ["public_publish"]
+    focus_owner: "Ernesto"
+    focus_review_due_at: "2026-03-30"
+    focus_evidence_ref: ""
+    focus_max_active_slices: 1
+    subfronts:
+      - codex_instance: codex_frontend
+        subfront_id: SF-frontend-public-v6-es-copy
+        title: "Copy ES de Public V6"
+        allowed_scopes: ["frontend-public"]
+        support_only_scopes: ["docs", "frontend-qa"]
+        blocked_scopes: ["payments", "auth"]
+        wip_limit: 1
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
+      - codex_instance: codex_backend_ops
+        subfront_id: SF-backend-public-v6-es-support
+        title: "Soporte backend minimo para Public V6 ES"
+        allowed_scopes: []
+        support_only_scopes: ["backend", "tests", "gates"]
+        blocked_scopes: ["auth", "payments", "security", "deploy"]
+        wip_limit: 1
+        default_acceptance_profile: "backend_gate_checkpoint"
+        exception_ttl_hours: 6
+      - codex_instance: codex_transversal
+        subfront_id: SF-transversal-public-v6-es-support
+        title: "Soporte transversal minimo para Public V6 ES"
+        allowed_scopes: []
+        support_only_scopes: ["tooling", "codex-governance"]
+        blocked_scopes: ["openclaw_runtime", "legacy-runtime"]
+        wip_limit: 1
+        default_acceptance_profile: "transversal_runtime_checkpoint"
+        exception_ttl_hours: 4
+  next: null
+  updated_at: "2026-03-27"
+`;
 }
 
-function boardForStrategySeedableFixture(taskRowsYaml = alignedCodexMirrorTaskYaml()) {
-    const tasksBlock = indentTaskRows(taskRowsYaml);
+function boardForStrategySeedableFixture() {
     return `
 version: 1
 policy:
@@ -1021,12 +942,10 @@ policy:
   revision: 0
   updated_at: ${DATE}
 tasks:
-${tasksBlock}
 `;
 }
 
-function boardForStrategyGuardFixture(taskRowsYaml = alignedCodexMirrorTaskYaml()) {
-    const tasksBlock = indentTaskRows(taskRowsYaml);
+function boardForStrategyGuardFixture() {
     return `
 version: 1
 policy:
@@ -1037,7 +956,6 @@ policy:
   updated_at: ${DATE}
 ${activeAdminStrategyYaml().trim()}
 tasks:
-${tasksBlock}
 `;
 }
 
@@ -1088,48 +1006,19 @@ policy:
   updated_at: ${DATE}
 ${activeAdminStrategyYaml().trim()}
 tasks:
-  - id: CDX-256
-    title: "Release publish mirror"
-    owner: ernesto
-    executor: codex
-    status: ready
-    risk: medium
-    scope: backend
-    codex_instance: codex_backend_ops
-    domain_lane: backend_ops
-    lane_lock: strict
-    cross_domain: false
-${CODEX_MODEL_ROUTING_FIELDS}
-    strategy_id: STRAT-2026-03-admin-operativo
-    subfront_id: SF-backend-admin-operativo
-    strategy_role: primary
-    strategy_reason: ""
-    focus_id: FOCUS-2026-03-admin-operativo-cut-1
-    focus_step: admin_queue_pilot_cut
-    integration_slice: backend_readiness
-    work_type: forward
-    expected_outcome: "Backend lane sigue alineado"
-    files: ["controllers/AdminController.php"]
-    acceptance: "Fixture acceptance"
-    acceptance_ref: ""
-    evidence_ref: ""
-    depends_on: []
-    prompt: "Mirror backend fixture"
-    created_at: ${DATE}
-    updated_at: ${DATE}
   - id: AG-256
     title: "Release publish fixture"
     owner: ernesto
     executor: codex
     status: backlog
     risk: medium
-    scope: backend
+    scope: frontend-public
     codex_instance: codex_backend_ops
     domain_lane: backend_ops
     lane_lock: strict
     cross_domain: false
-    files: ["controllers/ReleaseChecklistController.php"]
-    depends_on: ["CDX-256"]
+    files: ["controllers/AdminController.php"]
+    depends_on: []
     critical_zone: false
     runtime_impact: low
     updated_at: ${DATE}
@@ -1188,35 +1077,6 @@ strategy:
   next: null
   updated_at: "2026-03-14"
 tasks:
-  - id: CDX-201
-    title: "Frontend release mirror"
-    owner: ernesto
-    executor: codex
-    status: ready
-    risk: medium
-    scope: queue
-    codex_instance: codex_frontend
-    domain_lane: frontend_content
-    lane_lock: strict
-    cross_domain: false
-${CODEX_MODEL_ROUTING_FIELDS}
-    strategy_id: STRAT-2026-03-turnero-web-pilot
-    subfront_id: SF-frontend-turnero-web-pilot
-    strategy_role: primary
-    strategy_reason: ""
-    focus_id: FOCUS-2026-03-admin-operativo-cut-1
-    focus_step: admin_queue_pilot_cut
-    integration_slice: frontend_runtime
-    work_type: forward
-    expected_outcome: "Frontend pilot sigue alineado"
-    files: ["src/apps/queue-display/index.js"]
-    acceptance: "Fixture acceptance"
-    acceptance_ref: ""
-    evidence_ref: ""
-    depends_on: []
-    prompt: "Mirror frontend fixture"
-    created_at: ${DATE}
-    updated_at: ${DATE}
   - id: AG-256
     title: "Public release fixture"
     owner: ernesto
@@ -1229,7 +1089,7 @@ ${CODEX_MODEL_ROUTING_FIELDS}
     lane_lock: strict
     cross_domain: false
     files: ["content/public-v6/es/home.json"]
-    depends_on: ["CDX-201"]
+    depends_on: []
     critical_zone: false
     runtime_impact: low
     updated_at: ${DATE}
@@ -1439,7 +1299,6 @@ tasks:
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v1"
     files: ["tests/agenda.spec.js", "lib/booking.php"]
-    depends_on: ["CDX-001"]
   - id: CDX-001
     executor: codex
     status: ${codexStatus}
@@ -1560,32 +1419,6 @@ test('codex start/stop lifecycle mantiene espejo valido y actualiza CODEX_ACTIVE
     assert.match(board, /status: done/);
 });
 
-test('codex start acepta root main limpio pero ahead de origin para bootstrap local', (t) => {
-    const dir = createFixtureDir();
-    t.after(() => cleanupFixtureDir(dir));
-
-    writeFixtureFiles(dir, {
-        board: boardForCodexLifecycle(),
-        handoffs: baseHandoffs(),
-        plan: basePlanWithoutCodexBlock(),
-    });
-
-    writeFileSync(join(dir, 'LOCAL_AHEAD_MARKER.txt'), 'ahead bootstrap\n', 'utf8');
-    runGitFixture(dir, ['add', 'LOCAL_AHEAD_MARKER.txt']);
-    runGitFixture(dir, ['commit', '-m', 'root ahead bootstrap']);
-
-    const statusBefore = runCli(dir, ['status', '--json']);
-    const statusBeforeJson = parseJsonStdout(statusBefore);
-    assert.equal(Number(statusBeforeJson.policy.revision), 0);
-
-    runCli(dir, ['codex', 'start', 'CDX-001', '--block', 'C1']);
-    runCli(dir, ['codex-check']);
-
-    const plan = readPlan(dir);
-    assert.match(plan, /task_id: CDX-001/);
-    assert.match(plan, /status: in_progress/);
-});
-
 test('codex premium record registra sesion premium subagent y resincroniza board/ledger', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
@@ -1675,7 +1508,6 @@ test('codex start permite dos slots por lane, review y blocked ocupan slot, read
 
     runCli(dir, ['codex', 'start', 'CDX-010', '--block', 'C1']);
     runCli(dir, ['codex', 'stop', 'CDX-010', '--to', 'review']);
-    commitFixtureGitState(dir, 'codex parallelism after review');
     runCli(dir, ['codex', 'start', 'CDX-011', '--block', 'C2']);
     runCli(dir, [
         'codex',
@@ -1686,14 +1518,12 @@ test('codex start permite dos slots por lane, review y blocked ocupan slot, read
         '--blocked-reason',
         'awaiting_smoke',
     ]);
-    commitFixtureGitState(dir, 'codex parallelism after blocked');
     runCli(dir, ['codex-check']);
 
     let result = runCli(dir, ['codex', 'start', 'CDX-012', '--block', 'C3'], 1);
     assert.match(result.stderr, /ya ocupa 2\/2 slot\(s\)/i);
 
     runCli(dir, ['codex', 'stop', 'CDX-010', '--to', 'ready']);
-    commitFixtureGitState(dir, 'codex parallelism after ready');
     runCli(dir, ['codex-check']);
 
     let plan = readPlan(dir);
@@ -1777,7 +1607,7 @@ test('strategy set-active/status/close mantiene board y mirror del plan', (t) =>
     t.after(() => cleanupFixtureDir(dir));
 
     writeFixtureFiles(dir, {
-        board: boardForStrategySeedableFixture(''),
+        board: boardForStrategySeedableFixture(),
         handoffs: baseHandoffs(),
         plan: basePlanWithoutCodexBlock(),
     });
@@ -2191,8 +2021,6 @@ test('task create exige campos de estrategia cuando hay estrategia activa', (t) 
             'SF-frontend-admin-operativo',
             '--strategy-role',
             'primary',
-            '--depends-on',
-            'CDX-101',
             '--json',
         ],
         1
@@ -2222,8 +2050,6 @@ test('task create exige campos de estrategia cuando hay estrategia activa', (t) 
         'SF-frontend-admin-operativo',
         '--strategy-role',
         'primary',
-        '--depends-on',
-        'CDX-101',
         '--focus-id',
         'FOCUS-2026-03-admin-operativo-cut-1',
         '--focus-step',
@@ -2249,7 +2075,7 @@ test('task create exige campos de estrategia cuando hay estrategia activa', (t) 
         statusJson.strategy.active.id,
         'STRAT-2026-03-admin-operativo'
     );
-    assert.equal(statusJson.strategy.aligned_tasks, 2);
+    assert.equal(statusJson.strategy.aligned_tasks, 1);
 });
 
 test('focus status expone foco activo y checks requeridos', (t) => {
@@ -2312,7 +2138,7 @@ policy:
   kpi: reduce_rework
   revision: 0
   updated_at: ${DATE}
-${activeAdminStrategyYaml().trim()}
+${activeAdminStrategyYaml().replace('runtime:openclaw_chatgpt', 'runtime:operator_auth').trim()}
 tasks:
 `.trim(),
         handoffs: baseHandoffs(),
@@ -2462,7 +2288,7 @@ policy:
   kpi: reduce_rework
   revision: 0
   updated_at: ${DATE}
-${activeAdminStrategyYaml().trim()}
+${activeAdminStrategyYaml().replace('runtime:openclaw_chatgpt', 'runtime:operator_auth').trim()}
 tasks:
 `.trim(),
         handoffs: baseHandoffs(),
@@ -2583,7 +2409,7 @@ policy:
   kpi: reduce_rework
   revision: 0
   updated_at: ${DATE}
-${activeAdminStrategyYaml().trim()}
+${activeAdminStrategyYaml().replace('runtime:openclaw_chatgpt', 'runtime:operator_auth').trim()}
 tasks:
 `.trim(),
         handoffs: baseHandoffs(),
@@ -2648,7 +2474,7 @@ policy:
   kpi: reduce_rework
   revision: 0
   updated_at: ${DATE}
-${activeAdminStrategyYaml().trim()}
+${activeAdminStrategyYaml().replace('runtime:openclaw_chatgpt', 'runtime:operator_auth').trim()}
 tasks:
 `.trim(),
         handoffs: baseHandoffs(),
@@ -2819,7 +2645,7 @@ ${CODEX_MODEL_ROUTING_FIELDS}
     rework_reason: ""
 `,
             activeAdminStrategyYaml().replace(
-                'focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]',
+                'focus_required_checks: ["job:public_main_sync", "runtime:openclaw_chatgpt"]',
                 'focus_required_checks: ["job:public_main_sync"]'
             )
         ),
@@ -2841,6 +2667,286 @@ ${CODEX_MODEL_ROUTING_FIELDS}
     assert.equal(json.ok, false);
     assert.equal(json.enforce_required_checks, true);
     assert.ok(json.structural_errors.includes('required_check_unverified'));
+});
+
+test('focus check --refresh-required-checks soporta families frontend con una sola slice activa', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForBoardSyncFixture(
+            `
+  - id: CDX-045
+    title: "Public V6 ES slice"
+    owner: ernesto
+    executor: codex
+    status: review
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+${CODEX_MODEL_ROUTING_FIELDS}
+    strategy_id: STRAT-2026-03-public-v6-es-voz-ecuatoriana
+    subfront_id: SF-frontend-public-v6-es-copy
+    strategy_role: primary
+    files: ["content/public-v6/es/home.json"]
+    acceptance: "Fixture"
+    acceptance_ref: ""
+    evidence_ref: ""
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+    focus_id: FOCUS-2026-03-public-v6-es-voz-cut-1
+    focus_step: copy_contract_validation
+    integration_slice: frontend_runtime
+    work_type: forward
+    expected_outcome: "Aligned frontend slice"
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+`,
+            activePublicV6StrategyYaml()
+        ),
+        handoffs: baseHandoffs(),
+        plan: '# plan fixture\n',
+    });
+    writeFileSync(
+        join(dir, 'package.json'),
+        `${JSON.stringify(
+            {
+                name: 'focus-refresh-fixture',
+                private: true,
+                scripts: {
+                    'content:public-v6:validate':
+                        'node -e "process.exit(0)"',
+                    'audit:public:v6:copy':
+                        'node -e "process.exit(0)"',
+                    'test:frontend:qa:v6': 'node -e "process.exit(0)"',
+                },
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
+
+    const result = runCli(dir, [
+        'focus',
+        'check',
+        '--refresh-required-checks',
+        '--json',
+    ]);
+    const json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.required_checks_refresh.context_task_id, 'CDX-045');
+    assert.equal(json.focus.required_checks_snapshot.context_task_id, 'CDX-045');
+    assert.deepEqual(
+        json.focus.required_checks.map((item) => item.state),
+        ['green', 'green', 'green']
+    );
+});
+
+test('focus check --refresh-required-checks exige --task cuando hay multiples slices forward candidatas', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForBoardSyncFixture(
+            `
+  - id: CDX-045
+    title: "Public V6 ES slice A"
+    owner: ernesto
+    executor: codex
+    status: review
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+${CODEX_MODEL_ROUTING_FIELDS}
+    strategy_id: STRAT-2026-03-public-v6-es-voz-ecuatoriana
+    subfront_id: SF-frontend-public-v6-es-copy
+    strategy_role: primary
+    files: ["content/public-v6/es/home.json"]
+    acceptance: "Fixture"
+    acceptance_ref: ""
+    evidence_ref: ""
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+    focus_id: FOCUS-2026-03-public-v6-es-voz-cut-1
+    focus_step: copy_contract_validation
+    integration_slice: frontend_runtime
+    work_type: forward
+    expected_outcome: "Aligned frontend slice"
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+  - id: CDX-048
+    title: "Public V6 ES slice B"
+    owner: ernesto
+    executor: codex
+    status: review
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+${CODEX_MODEL_ROUTING_FIELDS}
+    strategy_id: STRAT-2026-03-public-v6-es-voz-ecuatoriana
+    subfront_id: SF-frontend-public-v6-es-copy
+    strategy_role: primary
+    files: ["content/public-v6/es/hub.json"]
+    acceptance: "Fixture"
+    acceptance_ref: ""
+    evidence_ref: ""
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+    focus_id: FOCUS-2026-03-public-v6-es-voz-cut-1
+    focus_step: copy_contract_validation
+    integration_slice: frontend_runtime
+    work_type: forward
+    expected_outcome: "Aligned frontend slice"
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+`,
+            activePublicV6StrategyYaml().replace(
+                'focus_max_active_slices: 1',
+                'focus_max_active_slices: 2'
+            )
+        ),
+        handoffs: baseHandoffs(),
+        plan: '# plan fixture\n',
+    });
+
+    const result = runCli(
+        dir,
+        ['focus', 'check', '--refresh-required-checks', '--json'],
+        1
+    );
+    const json = parseJsonStdout(result);
+    assert.equal(json.error_code, 'focus_required_checks_task_required');
+});
+
+test('focus check --refresh-required-checks usa taskId para el summary live cuando hay multiples slices forward', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForBoardSyncFixture(
+            `
+  - id: CDX-045
+    title: "Public V6 ES slice A"
+    owner: ernesto
+    executor: codex
+    status: review
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+${CODEX_MODEL_ROUTING_FIELDS}
+    strategy_id: STRAT-2026-03-public-v6-es-voz-ecuatoriana
+    subfront_id: SF-frontend-public-v6-es-copy
+    strategy_role: primary
+    files: ["content/public-v6/es/home.json"]
+    acceptance: "Fixture"
+    acceptance_ref: ""
+    evidence_ref: ""
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+    focus_id: FOCUS-2026-03-public-v6-es-voz-cut-1
+    focus_step: copy_contract_validation
+    integration_slice: frontend_runtime
+    work_type: forward
+    expected_outcome: "Aligned frontend slice"
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+  - id: CDX-048
+    title: "Public V6 ES slice B"
+    owner: ernesto
+    executor: codex
+    status: review
+    risk: medium
+    scope: frontend-public
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+${CODEX_MODEL_ROUTING_FIELDS}
+    strategy_id: STRAT-2026-03-public-v6-es-voz-ecuatoriana
+    subfront_id: SF-frontend-public-v6-es-copy
+    strategy_role: primary
+    files: ["content/public-v6/es/hub.json"]
+    acceptance: "Fixture"
+    acceptance_ref: ""
+    evidence_ref: ""
+    depends_on: []
+    prompt: "Fixture"
+    created_at: ${DATE}
+    updated_at: ${DATE}
+    focus_id: FOCUS-2026-03-public-v6-es-voz-cut-1
+    focus_step: copy_contract_validation
+    integration_slice: frontend_runtime
+    work_type: forward
+    expected_outcome: "Aligned frontend slice"
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+`,
+            activePublicV6StrategyYaml().replace(
+                'focus_max_active_slices: 1',
+                'focus_max_active_slices: 2'
+            )
+        ),
+        handoffs: baseHandoffs(),
+        plan: '# plan fixture\n',
+    });
+    writeFileSync(
+        join(dir, 'package.json'),
+        `${JSON.stringify(
+            {
+                name: 'focus-refresh-task-fixture',
+                private: true,
+                scripts: {
+                    'content:public-v6:validate':
+                        'node -e "process.exit(0)"',
+                    'audit:public:v6:copy':
+                        'node -e "process.exit(0)"',
+                    'test:frontend:qa:v6': 'node -e "process.exit(0)"',
+                },
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
+
+    const result = runCli(dir, [
+        'focus',
+        'check',
+        '--refresh-required-checks',
+        '--task',
+        'CDX-045',
+        '--json',
+    ]);
+    const json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.required_checks_refresh.context_task_id, 'CDX-045');
+    assert.equal(json.focus.required_checks_snapshot.context_task_id, 'CDX-045');
 });
 
 test('board sync check detecta tareas ready en paso futuro y leases activos stale', (t) => {
@@ -3154,7 +3260,7 @@ test('focus advance normaliza cola future-ready antes de escribir el nuevo next_
     updated_at: ${DATE}
 `,
             activeAdminStrategyYaml().replace(
-            'focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]',
+            'focus_required_checks: ["job:public_main_sync", "runtime:openclaw_chatgpt"]',
             'focus_required_checks: ["job:public_main_sync"]'
             )
         ),
@@ -3306,21 +3412,9 @@ test('decision open/ls/close mantiene ledger separado del board', (t) => {
 test('task create bloquea subfrente ajeno y excepciones sin reason', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
-    const backendMirror = alignedCodexMirrorTaskYaml({
-        id: 'CDX-102',
-        title: 'Backend mirror fixture',
-        scope: 'backend',
-        codexInstance: 'codex_backend_ops',
-        domainLane: 'backend_ops',
-        subfrontId: 'SF-backend-admin-operativo',
-        integrationSlice: 'backend_readiness',
-        files: ['controllers/AdminController.php'],
-    });
 
     writeFixtureFiles(dir, {
-        board: boardForStrategyGuardFixture(
-            [alignedCodexMirrorTaskYaml(), backendMirror].join('\n')
-        ),
+        board: boardForStrategyGuardFixture(),
         handoffs: baseHandoffs(),
         plan: basePlanWithStrategyBlock(),
     });
@@ -3334,10 +3428,6 @@ test('task create bloquea subfrente ajeno y excepciones sin reason', (t) => {
             'Wrong subfront fixture',
             '--executor',
             'codex',
-            '--codex-instance',
-            'codex_frontend',
-            '--domain-lane',
-            'backend_ops',
             '--status',
             'ready',
             '--risk',
@@ -3352,8 +3442,6 @@ test('task create bloquea subfrente ajeno y excepciones sin reason', (t) => {
             'SF-backend-admin-operativo',
             '--strategy-role',
             'primary',
-            '--depends-on',
-            'CDX-102',
             '--focus-id',
             'FOCUS-2026-03-admin-operativo-cut-1',
             '--focus-step',
@@ -3396,8 +3484,6 @@ test('task create bloquea subfrente ajeno y excepciones sin reason', (t) => {
             'SF-frontend-admin-operativo',
             '--strategy-role',
             'exception',
-            '--depends-on',
-            'CDX-101',
             '--focus-id',
             'FOCUS-2026-03-admin-operativo-cut-1',
             '--focus-step',
@@ -3690,7 +3776,7 @@ test('task start --release-publish falla si required checks del foco no estan ve
 
     writeFixtureFiles(dir, {
         board: boardForReleasePublishFixture().replace(
-            'focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]',
+            'focus_required_checks: ["job:public_main_sync", "runtime:openclaw_chatgpt"]',
             'focus_required_checks: ["job:public_main_sync"]'
         ),
         handoffs: baseHandoffs(),

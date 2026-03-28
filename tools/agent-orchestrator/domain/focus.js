@@ -1,5 +1,16 @@
 'use strict';
 
+const {
+    existsSync,
+    mkdirSync,
+    readFileSync,
+    writeFileSync,
+} = require('fs');
+const crypto = require('crypto');
+const path = require('path');
+const { spawnSync } = require('child_process');
+const { resolve } = path;
+
 const ACTIVE_TASK_STATUSES = new Set([
     'ready',
     'in_progress',
@@ -53,7 +64,42 @@ const ACKNOWLEDGED_EXTERNAL_BLOCKED_REASON_PATTERNS = [
     /publicsync.*no_host_access/i,
     /remote_verification_pending/i,
 ];
-const ALLOWED_EXTERNAL_BLOCKER_CARRYOVER_WORK_TYPES = new Set(['support']);
+const FRONTEND_REQUIRED_CHECK_TYPES = new Set(['content', 'audit', 'test']);
+const LOCAL_REQUIRED_CHECK_TYPES = FRONTEND_REQUIRED_CHECK_TYPES;
+const LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION = 1;
+const REQUIRED_CHECKS_SNAPSHOT_VERSION = 1;
+const REQUIRED_CHECKS_SNAPSHOT_DIRNAME =
+    '.codex-local/focus-required-checks';
+const LOCAL_REQUIRED_CHECK_ID_ALIASES = {
+    'audit:public:v6:copy': 'audit:public-v6:copy',
+};
+const FRONTEND_REQUIRED_CHECK_SCRIPT_OVERRIDES = {
+    'audit:public-v6:copy': 'audit:public:v6:copy',
+};
+const EVIDENCE_REQUIRED_CHECK_STATUSES = new Set(['review', 'done']);
+const EVIDENCE_REQUIRED_CHECK_SUBFRONT_ID =
+    'SF-frontend-public-v6-es-copy';
+const REQUIRED_CHECK_EVIDENCE_PATTERN =
+    /^\s*-\s*required_check:\s*([^|]+?)\s*\|\s*state:\s*(green|red)\s*\|\s*command:\s*(.+?)\s*$/gim;
+let cachedWorkspaceDomain = null;
+
+function getWorkspaceDomain() {
+    if (!cachedWorkspaceDomain) {
+        cachedWorkspaceDomain = require('./workspace');
+    }
+    return cachedWorkspaceDomain;
+}
+
+function resolveFocusCheckSnapshotPath(focusId, options = {}) {
+    const rootPath =
+        String(options.rootPath || process.cwd()).trim() || process.cwd();
+    return resolve(
+        rootPath,
+        'verification',
+        'focus-checks',
+        `${String(focusId || '').trim()}.json`
+    );
+}
 
 function normalizeOptionalToken(value) {
     return String(value || '')
@@ -70,41 +116,6 @@ function isAcknowledgedExternalBlockedTask(task = {}) {
     return ACKNOWLEDGED_EXTERNAL_BLOCKED_REASON_PATTERNS.some((pattern) =>
         pattern.test(blockedReason)
     );
-}
-
-function isAllowedExternalBlockerCarryoverTask(task = {}, focus = {}) {
-    if (!isAcknowledgedExternalBlockedTask(task)) {
-        return false;
-    }
-    if (
-        !ALLOWED_EXTERNAL_BLOCKER_CARRYOVER_WORK_TYPES.has(
-            normalizeOptionalToken(task?.work_type)
-        )
-    ) {
-        return false;
-    }
-    const focusId = String(focus?.id || '').trim();
-    const focusNextStep = String(focus?.next_step || '').trim();
-    const taskFocusId = String(task?.focus_id || '').trim();
-    const taskFocusStep = String(task?.focus_step || '').trim();
-    if (!focusId || !focusNextStep || !taskFocusId || !taskFocusStep) {
-        return false;
-    }
-    if (taskFocusId !== focusId || taskFocusStep === focusNextStep) {
-        return false;
-    }
-    const focusSteps = Array.isArray(focus?.steps)
-        ? focus.steps.map((value) => String(value || '').trim()).filter(Boolean)
-        : [];
-    if (focusSteps.length === 0) {
-        return false;
-    }
-    const nextStepIndex = focusSteps.indexOf(focusNextStep);
-    const taskStepIndex = focusSteps.indexOf(taskFocusStep);
-    if (nextStepIndex < 0 || taskStepIndex < 0) {
-        return false;
-    }
-    return taskStepIndex < nextStepIndex;
 }
 
 function normalizeArray(values, options = {}) {
@@ -350,11 +361,967 @@ function parseRequiredCheckToken(token) {
     const safe = String(token || '')
         .trim()
         .toLowerCase();
-    if (!safe) return null;
-    const [type, ...rest] = safe.split(':');
+    const canonical = LOCAL_REQUIRED_CHECK_ID_ALIASES[safe] || safe;
+    if (!canonical) return null;
+    const [type, ...rest] = canonical.split(':');
     const target = rest.join(':').trim();
     if (!type || !target) return null;
-    return { id: safe, type, target };
+    return { id: canonical, type, target };
+}
+
+function normalizeRequiredCheckId(token) {
+    return parseRequiredCheckToken(token)?.id || '';
+}
+
+function isFrontendRequiredCheckType(type) {
+    return FRONTEND_REQUIRED_CHECK_TYPES.has(normalizeOptionalToken(type));
+}
+
+function isLocalRequiredCheckType(type) {
+    return isFrontendRequiredCheckType(type);
+}
+
+function normalizeRequiredCheckList(value) {
+    return normalizeArray(value, { lowerCase: true })
+        .map((token) => parseRequiredCheckToken(token))
+        .filter(Boolean)
+        .map((item) => item.id);
+}
+
+function listsMatchExactly(left, right) {
+    if (!Array.isArray(left) || !Array.isArray(right)) return false;
+    if (left.length !== right.length) return false;
+    for (let index = 0; index < left.length; index += 1) {
+        if (left[index] !== right[index]) return false;
+    }
+    return true;
+}
+
+function normalizeExitCode(value) {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    return Number.isInteger(parsed) ? parsed : null;
+}
+
+function normalizeLocalRequiredCheckSnapshot(snapshot = {}) {
+    const checks = Array.isArray(snapshot.checks) ? snapshot.checks : [];
+    const checkedAt =
+        String(snapshot.checked_at || snapshot.generated_at || '').trim() || '';
+    return {
+        version:
+            Number.parseInt(
+                String(snapshot.version || LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION),
+                10
+            ) || LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION,
+        focus_id: String(snapshot.focus_id || '').trim(),
+        checked_at: checkedAt,
+        focus_required_checks: normalizeRequiredCheckList(
+            snapshot.focus_required_checks || snapshot.required_check_ids
+        ),
+        checks: checks
+            .map((item) => ({
+                id: String(item?.id || '')
+                    .trim()
+                    .toLowerCase(),
+                type: normalizeOptionalToken(item?.type),
+                command: String(item?.command || '').trim(),
+                ok: item?.ok === true,
+                exit_code: normalizeExitCode(item?.exit_code),
+                checked_at:
+                    String(item?.checked_at || checkedAt).trim() || checkedAt,
+            }))
+            .filter((item) => item.id && item.type),
+    };
+}
+
+function normalizeRepoRelativePath(value) {
+    return String(value || '')
+        .replace(/\\/g, '/')
+        .replace(/\/+/g, '/')
+        .replace(/^\.\//, '')
+        .replace(/\/$/, '')
+        .trim();
+}
+
+function parseDateMs(value) {
+    const parsed = Date.parse(String(value || '').trim());
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseRequiredCheckEvidenceMarkdown(raw = '') {
+    const checks = [];
+    const source = String(raw || '');
+    let match = REQUIRED_CHECK_EVIDENCE_PATTERN.exec(source);
+    while (match) {
+        const id = String(match[1] || '')
+            .trim()
+            .toLowerCase();
+        const normalizedId = normalizeRequiredCheckId(id);
+        const state = normalizeOptionalToken(match[2]);
+        const command = String(match[3] || '').trim();
+        if (normalizedId && (state === 'green' || state === 'red')) {
+            checks.push({
+                id: normalizedId,
+                type: parseRequiredCheckToken(normalizedId)?.type || '',
+                command,
+                ok: state === 'green',
+                exit_code: state === 'green' ? 0 : 1,
+            });
+        }
+        match = REQUIRED_CHECK_EVIDENCE_PATTERN.exec(source);
+    }
+    REQUIRED_CHECK_EVIDENCE_PATTERN.lastIndex = 0;
+    return checks;
+}
+
+function compareTasksByUpdatedAtDesc(left = {}, right = {}) {
+    const leftMs = parseDateMs(left.updated_at) || 0;
+    const rightMs = parseDateMs(right.updated_at) || 0;
+    if (leftMs !== rightMs) {
+        return rightMs - leftMs;
+    }
+    return String(left.id || '').localeCompare(String(right.id || ''), undefined, {
+        numeric: true,
+    });
+}
+
+function getTaskEvidenceRefs(task = {}) {
+    return Array.from(
+        new Set(
+            [task.acceptance_ref, task.evidence_ref]
+                .map((value) => normalizeRepoRelativePath(value))
+                .filter(Boolean)
+        )
+    );
+}
+
+function buildLocalRequiredCheckSnapshotFromEvidence(board, focus, options = {}) {
+    const resolvedFocus = focus?.configured ? focus.configured : focus;
+    const focusId = String(resolvedFocus?.id || '').trim();
+    const activeStrategy =
+        board?.strategy?.active && typeof board.strategy.active === 'object'
+            ? board.strategy.active
+            : null;
+    if (!focusId || !activeStrategy) {
+        return {
+            available: false,
+            valid: false,
+            reason: 'missing_evidence',
+            path: '',
+            snapshot: null,
+        };
+    }
+    const rootPath =
+        String(options.rootPath || process.cwd()).trim() || process.cwd();
+    const existsImpl =
+        typeof options.existsSync === 'function' ? options.existsSync : existsSync;
+    const readFileImpl =
+        typeof options.readFileSync === 'function'
+            ? options.readFileSync
+            : readFileSync;
+    const startedAtMs = parseDateMs(activeStrategy.started_at);
+    const requiredCheckIds = normalizeRequiredCheckList(
+        resolvedFocus?.required_checks
+    );
+    const tasks = Array.isArray(board?.tasks) ? board.tasks : [];
+    const candidates = tasks
+        .filter((task) => {
+            if (!EVIDENCE_REQUIRED_CHECK_STATUSES.has(normalizeOptionalToken(task?.status))) {
+                return false;
+            }
+            if (
+                String(task?.strategy_id || '').trim() !==
+                String(activeStrategy.id || '').trim()
+            ) {
+                return false;
+            }
+            if (
+                String(task?.subfront_id || '').trim() !==
+                EVIDENCE_REQUIRED_CHECK_SUBFRONT_ID
+            ) {
+                return false;
+            }
+            if (String(task?.focus_id || '').trim() !== focusId) {
+                return false;
+            }
+            const updatedAtMs = parseDateMs(task?.updated_at);
+            if (startedAtMs !== null && (updatedAtMs === null || updatedAtMs < startedAtMs)) {
+                return false;
+            }
+            return getTaskEvidenceRefs(task).length > 0;
+        })
+        .sort(compareTasksByUpdatedAtDesc);
+
+    if (candidates.length === 0) {
+        return {
+            available: false,
+            valid: false,
+            reason: 'missing_evidence',
+            path: '',
+            snapshot: null,
+        };
+    }
+
+    const cache = new Map();
+    const resolvedChecks = [];
+    requiredCheckIds.forEach((requiredCheckId) => {
+        for (const task of candidates) {
+            const refs = getTaskEvidenceRefs(task);
+            for (const evidenceRef of refs) {
+                const cacheKey = evidenceRef;
+                let parsedChecks = cache.get(cacheKey);
+                if (!parsedChecks) {
+                    const evidencePath = resolve(rootPath, evidenceRef);
+                    if (!existsImpl(evidencePath)) {
+                        parsedChecks = [];
+                    } else {
+                        try {
+                            parsedChecks = parseRequiredCheckEvidenceMarkdown(
+                                readFileImpl(evidencePath, 'utf8')
+                            );
+                        } catch {
+                            parsedChecks = [];
+                        }
+                    }
+                    cache.set(cacheKey, parsedChecks);
+                }
+                const matchedCheck =
+                    parsedChecks.find((item) => item.id === requiredCheckId) || null;
+                if (matchedCheck) {
+                    resolvedChecks.push({
+                        ...matchedCheck,
+                        checked_at:
+                            String(task.updated_at || '').trim() ||
+                            String(activeStrategy.started_at || '').trim(),
+                    });
+                    return;
+                }
+            }
+        }
+    });
+
+    return {
+        available: true,
+        valid: true,
+        reason: 'evidence',
+        path: 'verification/agent-runs',
+        snapshot: normalizeLocalRequiredCheckSnapshot({
+            version: LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION,
+            focus_id: focusId,
+            checked_at:
+                String(candidates[0]?.updated_at || '').trim() ||
+                String(activeStrategy.started_at || '').trim(),
+            focus_required_checks: requiredCheckIds,
+            checks: resolvedChecks,
+        }),
+    };
+}
+
+function loadLocalRequiredCheckSnapshot(focus, options = {}) {
+    const resolvedFocus = focus?.configured ? focus.configured : focus;
+    const focusId = String(resolvedFocus?.id || '').trim();
+    const focusRequiredChecks = normalizeRequiredCheckList(
+        resolvedFocus?.required_checks
+    );
+    const board =
+        options.board && typeof options.board === 'object' ? options.board : null;
+    const snapshotPath = resolveFocusCheckSnapshotPath(focusId, options);
+    if (!focusId) {
+        return {
+            available: false,
+            valid: false,
+            reason: 'focus_missing',
+            path: snapshotPath,
+            snapshot: null,
+        };
+    }
+    const existsImpl =
+        typeof options.existsSync === 'function' ? options.existsSync : existsSync;
+    const readFileImpl =
+        typeof options.readFileSync === 'function'
+            ? options.readFileSync
+            : readFileSync;
+    if (!existsImpl(snapshotPath)) {
+        const evidenceSnapshotState = board
+            ? buildLocalRequiredCheckSnapshotFromEvidence(
+                  board,
+                  resolvedFocus,
+                  options
+              )
+            : null;
+        if (evidenceSnapshotState?.valid) {
+            return evidenceSnapshotState;
+        }
+        return {
+            available: false,
+            valid: false,
+            reason: 'missing',
+            path: snapshotPath,
+            snapshot: null,
+        };
+    }
+
+    let parsed = null;
+    try {
+        parsed = JSON.parse(readFileImpl(snapshotPath, 'utf8'));
+    } catch {
+        return {
+            available: true,
+            valid: false,
+            reason: 'invalid_json',
+            path: snapshotPath,
+            snapshot: null,
+        };
+    }
+
+    const normalized = normalizeLocalRequiredCheckSnapshot(parsed);
+    if (normalized.focus_id !== focusId) {
+        return {
+            available: true,
+            valid: false,
+            reason: 'focus_mismatch',
+            path: snapshotPath,
+            snapshot: normalized,
+        };
+    }
+    if (
+        !listsMatchExactly(
+            focusRequiredChecks,
+            normalized.focus_required_checks
+        )
+    ) {
+        return {
+            available: true,
+            valid: false,
+            reason: 'required_checks_mismatch',
+            path: snapshotPath,
+            snapshot: normalized,
+        };
+    }
+    return {
+        available: true,
+        valid: true,
+        reason: 'ok',
+        path: snapshotPath,
+        snapshot: normalized,
+    };
+}
+
+function normalizeAbsolutePath(value) {
+    return String(value || '')
+        .trim()
+        .replace(/\\/g, '/');
+}
+
+function ensureDirectory(dirPath) {
+    mkdirSync(dirPath, { recursive: true });
+    return dirPath;
+}
+
+function hashText(value) {
+    return crypto
+        .createHash('sha256')
+        .update(String(value || ''), 'utf8')
+        .digest('hex');
+}
+
+function resolveNpmProgram() {
+    const nodeDir = path.dirname(process.execPath);
+    const candidate = path.join(
+        nodeDir,
+        process.platform === 'win32' ? 'npm.cmd' : 'npm'
+    );
+    if (existsSync(candidate)) {
+        return candidate;
+    }
+    return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+}
+
+function runCommand(program, args, options = {}) {
+    const result = spawnSync(program, args, {
+        cwd: options.cwd || process.cwd(),
+        env: options.env || process.env,
+        encoding: 'utf8',
+        shell: false,
+    });
+    return {
+        ok: result.status === 0,
+        status:
+            typeof result.status === 'number'
+                ? result.status
+                : result.error
+                  ? 127
+                  : 1,
+        stdout: String(result.stdout || ''),
+        stderr: String(result.stderr || ''),
+        error:
+            result.error instanceof Error ? result.error.message : '',
+    };
+}
+
+function runGitCommand(cwd, args, options = {}) {
+    return runCommand('git', args, { cwd, env: options.env || process.env });
+}
+
+function normalizeWorkspaceRoots(options = {}) {
+    const cwd = path.resolve(
+        String(options.cwd || options.rootPath || process.cwd()).trim() ||
+            process.cwd()
+    );
+    const fallbackRoot = path.resolve(
+        String(options.rootPath || cwd).trim() || cwd
+    );
+    const governancePolicy = options.governancePolicy || null;
+    try {
+        const workspaceDomain = getWorkspaceDomain();
+        if (
+            workspaceDomain &&
+            typeof workspaceDomain.normalizeWorkspaceSyncPolicy === 'function' &&
+            typeof workspaceDomain.resolveWorkspaceRoots === 'function'
+        ) {
+            const policy =
+                workspaceDomain.normalizeWorkspaceSyncPolicy(governancePolicy);
+            const roots = workspaceDomain.resolveWorkspaceRoots(cwd, policy);
+            return {
+                cwd,
+                root_path: path.resolve(roots.main_root || fallbackRoot),
+                local_dir: path.resolve(
+                    roots.local_dir || path.resolve(fallbackRoot, '.codex-local')
+                ),
+                worktrees_dir: path.resolve(
+                    roots.worktrees_dir ||
+                        path.resolve(fallbackRoot, '.codex-worktrees')
+                ),
+                policy,
+            };
+        }
+    } catch {
+        // Fallback para fixtures o workspaces sin soporte git.
+    }
+    return {
+        cwd,
+        root_path: fallbackRoot,
+        local_dir: path.resolve(fallbackRoot, '.codex-local'),
+        worktrees_dir: path.resolve(fallbackRoot, '.codex-worktrees'),
+        policy: null,
+    };
+}
+
+function buildTaskCommandEnv(rootPath) {
+    const currentPath = String(process.env.PATH || '').trim();
+    const pathSegments = [];
+    const nodeBin = path.resolve(
+        rootPath,
+        '.local',
+        'tooling',
+        'node',
+        'current',
+        'bin'
+    );
+    const shims = path.resolve(rootPath, '.local', 'tooling', 'shims');
+    if (existsSync(nodeBin)) {
+        pathSegments.push(nodeBin);
+    }
+    if (existsSync(shims)) {
+        pathSegments.push(shims);
+    }
+    if (currentPath) {
+        pathSegments.push(currentPath);
+    }
+    return {
+        ...process.env,
+        PATH: pathSegments.join(process.platform === 'win32' ? ';' : ':'),
+    };
+}
+
+function listAlignedFocusTasks(board, options = {}) {
+    const activeStatuses = options.activeStatuses || ACTIVE_TASK_STATUSES;
+    const activeStrategyId = String(board?.strategy?.active?.id || '').trim();
+    const focus = getActiveFocus(board) || getConfiguredFocus(board);
+    const focusId = String(focus?.id || '').trim();
+    const tasks = Array.isArray(board?.tasks) ? board.tasks : [];
+    return tasks.filter((task) => {
+        const status = String(task?.status || '').trim();
+        if (!activeStatuses.has(status)) {
+            return false;
+        }
+        if (
+            activeStrategyId &&
+            String(task?.strategy_id || '').trim() &&
+            String(task?.strategy_id || '').trim() !== activeStrategyId
+        ) {
+            return false;
+        }
+        if (focusId && String(task?.focus_id || '').trim() !== focusId) {
+            return false;
+        }
+        return true;
+    });
+}
+
+function resolveRequiredChecksTaskSelection(board, options = {}) {
+    const requestedTaskId = String(
+        options.taskId || options.preferredTaskId || ''
+    ).trim();
+    const tasks = Array.isArray(board?.tasks) ? board.tasks : [];
+    if (requestedTaskId) {
+        const task = tasks.find(
+            (item) => String(item?.id || '').trim() === requestedTaskId
+        );
+        if (!task) {
+            const error = new Error(
+                `required checks snapshot: no existe task_id ${requestedTaskId}`
+            );
+            error.code = 'focus_required_checks_task_missing';
+            error.error_code = 'focus_required_checks_task_missing';
+            throw error;
+        }
+        const status = String(task?.status || '').trim();
+        if (!ACTIVE_TASK_STATUSES.has(status)) {
+            const error = new Error(
+                `required checks snapshot: ${requestedTaskId} no esta activa (${status || 'sin status'})`
+            );
+            error.code = 'focus_required_checks_task_inactive';
+            error.error_code = 'focus_required_checks_task_inactive';
+            throw error;
+        }
+        return task;
+    }
+    const candidates = listAlignedFocusTasks(board, options);
+    if (candidates.length === 1) {
+        return candidates[0];
+    }
+    if (candidates.length === 0) {
+        const error = new Error(
+            'required checks snapshot: no existe una slice activa alineada para refrescar'
+        );
+        error.code = 'focus_required_checks_task_missing';
+        error.error_code = 'focus_required_checks_task_missing';
+        throw error;
+    }
+    const error = new Error(
+        'required checks snapshot: hay multiples slices activas alineadas; usa --task <id>'
+    );
+    error.code = 'focus_required_checks_task_required';
+    error.error_code = 'focus_required_checks_task_required';
+    error.candidate_task_ids = candidates.map((task) => String(task.id || ''));
+    throw error;
+}
+
+function resolveTaskExecutionContext(task, options = {}) {
+    const roots = normalizeWorkspaceRoots(options);
+    let worktreePath = roots.root_path;
+    try {
+        const workspaceDomain = getWorkspaceDomain();
+        if (workspaceDomain && typeof workspaceDomain.captureTaskWorkspace === 'function') {
+            const capture = workspaceDomain.captureTaskWorkspace(task.id, {
+                cwd: roots.cwd,
+                governancePolicy: options.governancePolicy || null,
+            });
+            const capturePath = String(capture?.task_row?.path || '').trim();
+            if (capturePath) {
+                worktreePath = path.resolve(capturePath);
+            }
+        }
+    } catch {
+        const candidate = path.resolve(roots.worktrees_dir, String(task?.id || ''));
+        if (existsSync(candidate)) {
+            worktreePath = candidate;
+        }
+    }
+    return {
+        root_path: roots.root_path,
+        local_dir: roots.local_dir,
+        worktrees_dir: roots.worktrees_dir,
+        worktree_path: path.resolve(worktreePath),
+    };
+}
+
+function sanitizeStatusOutputForFingerprint(raw = '') {
+    return String(raw || '')
+        .split(/\r?\n/)
+        .map((line) => String(line || '').trimEnd())
+        .filter(Boolean)
+        .filter((line) => {
+            const candidatePath = normalizeRepoRelativePath(
+                line.length > 3 ? line.slice(3) : line
+            );
+            if (!candidatePath) {
+                return false;
+            }
+            return (
+                !candidatePath.startsWith('.codex-local/') &&
+                !candidatePath.startsWith('.codex-worktrees/')
+            );
+        })
+        .join('\n');
+}
+
+function computeWorkspaceFingerprint(worktreePath) {
+    const gitStatus = runGitCommand(worktreePath, [
+        'status',
+        '--short',
+        '--untracked-files=all',
+    ]);
+    if (gitStatus.ok) {
+        return hashText(sanitizeStatusOutputForFingerprint(gitStatus.stdout));
+    }
+    return hashText(`nogit:${normalizeAbsolutePath(worktreePath)}`);
+}
+
+function getRequiredChecksSnapshotPath(taskId, options = {}) {
+    const roots = normalizeWorkspaceRoots(options);
+    return resolve(
+        roots.root_path,
+        REQUIRED_CHECKS_SNAPSHOT_DIRNAME,
+        `${String(taskId || '').trim()}.json`
+    );
+}
+
+function readRequiredChecksSnapshot(taskId, options = {}) {
+    const snapshotPath = getRequiredChecksSnapshotPath(taskId, options);
+    if (!existsSync(snapshotPath)) {
+        return {
+            path: snapshotPath,
+            snapshot: null,
+            error: 'missing',
+        };
+    }
+    try {
+        return {
+            path: snapshotPath,
+            snapshot: JSON.parse(readFileSync(snapshotPath, 'utf8')),
+            error: '',
+        };
+    } catch {
+        return {
+            path: snapshotPath,
+            snapshot: null,
+            error: 'invalid_json',
+        };
+    }
+}
+
+function buildSnapshotMetadata(task, executionContext, options = {}) {
+    const headResult = runGitCommand(executionContext.worktree_path, [
+        'rev-parse',
+        'HEAD',
+    ]);
+    const headSha = headResult.ok
+        ? String(headResult.stdout || '').trim()
+        : 'nogit';
+    return {
+        version: REQUIRED_CHECKS_SNAPSHOT_VERSION,
+        task_id: String(task?.id || '').trim(),
+        strategy_id:
+            String(options.strategyId || task?.strategy_id || '').trim() || '',
+        worktree_path: normalizeAbsolutePath(executionContext.worktree_path),
+        head_sha: headSha,
+        worktree_status_fingerprint: computeWorkspaceFingerprint(
+            executionContext.worktree_path
+        ),
+        generated_at:
+            String(options.generatedAt || '').trim() ||
+            new Date().toISOString(),
+    };
+}
+
+function validateRequiredChecksSnapshot(snapshot, metadata, options = {}) {
+    if (!snapshot || typeof snapshot !== 'object') {
+        return {
+            valid: false,
+            reason: String(options.reason || 'missing').trim() || 'missing',
+        };
+    }
+    if (
+        Number.parseInt(String(snapshot.version || ''), 10) !==
+        REQUIRED_CHECKS_SNAPSHOT_VERSION
+    ) {
+        return { valid: false, reason: 'version_mismatch' };
+    }
+    if (String(snapshot.task_id || '').trim() !== metadata.task_id) {
+        return { valid: false, reason: 'task_mismatch' };
+    }
+    if (String(snapshot.strategy_id || '').trim() !== metadata.strategy_id) {
+        return { valid: false, reason: 'strategy_mismatch' };
+    }
+    if (
+        normalizeAbsolutePath(snapshot.worktree_path) !== metadata.worktree_path
+    ) {
+        return { valid: false, reason: 'worktree_path_mismatch' };
+    }
+    if (String(snapshot.head_sha || '').trim() !== metadata.head_sha) {
+        return { valid: false, reason: 'head_mismatch' };
+    }
+    if (
+        String(snapshot.worktree_status_fingerprint || '').trim() !==
+        metadata.worktree_status_fingerprint
+    ) {
+        return {
+            valid: false,
+            reason: 'worktree_status_fingerprint_mismatch',
+        };
+    }
+    return { valid: true, reason: 'ok' };
+}
+
+function buildRequiredChecksSnapshotState(state = {}) {
+    const snapshot = state.snapshot && typeof state.snapshot === 'object'
+        ? state.snapshot
+        : null;
+    const generatedAt = String(
+        state.generated_at || snapshot?.generated_at || ''
+    ).trim();
+    const valid = state.valid === true;
+    const reason = String(state.reason || '').trim() || (valid ? 'ok' : 'missing');
+    return {
+        source: 'task_snapshot',
+        available: state.available === true,
+        valid,
+        reason,
+        stale_reason: valid ? '' : reason,
+        path: String(state.path || '').trim(),
+        context_task_id: String(
+            state.context_task_id || snapshot?.task_id || ''
+        ).trim(),
+        generated_at: generatedAt,
+        snapshot,
+        metadata: state.metadata || null,
+    };
+}
+
+function loadRequiredChecksSnapshotContext(board, options = {}) {
+    const task = resolveRequiredChecksTaskSelection(board, options);
+    const executionContext = resolveTaskExecutionContext(task, options);
+    const metadata = buildSnapshotMetadata(task, executionContext, {
+        strategyId:
+            String(board?.strategy?.active?.id || '').trim() ||
+            String(task?.strategy_id || '').trim(),
+        generatedAt:
+            options.now instanceof Date
+                ? options.now.toISOString()
+                : String(options.generatedAt || '').trim(),
+    });
+    const readResult = readRequiredChecksSnapshot(task.id, {
+        cwd: executionContext.worktree_path,
+        rootPath: executionContext.root_path,
+        governancePolicy: options.governancePolicy || null,
+    });
+    if (readResult.error === 'missing') {
+        return buildRequiredChecksSnapshotState({
+            available: false,
+            valid: false,
+            reason: 'missing',
+            path: readResult.path,
+            context_task_id: task.id,
+            metadata,
+        });
+    }
+    if (readResult.error === 'invalid_json') {
+        return buildRequiredChecksSnapshotState({
+            available: true,
+            valid: false,
+            reason: 'invalid_json',
+            path: readResult.path,
+            context_task_id: task.id,
+            metadata,
+        });
+    }
+    const validation = validateRequiredChecksSnapshot(
+        readResult.snapshot,
+        metadata
+    );
+    return buildRequiredChecksSnapshotState({
+        available: true,
+        valid: validation.valid,
+        reason: validation.reason,
+        path: readResult.path,
+        context_task_id: task.id,
+        generated_at: readResult.snapshot?.generated_at,
+        snapshot: readResult.snapshot,
+        metadata,
+    });
+}
+
+function evaluateFrontendRequiredCheck(check, snapshotState) {
+    if (!snapshotState?.valid) {
+        const reason = String(snapshotState?.reason || 'missing').trim();
+        return {
+            ...check,
+            state: 'unverified',
+            ok: false,
+            reason: `snapshot_${reason}`,
+            message: `required_check ${check.id} no verificado`,
+        };
+    }
+    const snapshotChecks = Array.isArray(snapshotState?.snapshot?.checks)
+        ? snapshotState.snapshot.checks
+        : [];
+    const snapshotCheck =
+        snapshotChecks.find(
+            (item) =>
+                normalizeRequiredCheckId(item?.id) === normalizeRequiredCheckId(check.id)
+        ) || null;
+    if (!snapshotCheck) {
+        return {
+            ...check,
+            state: 'unverified',
+            ok: false,
+            reason: 'snapshot_check_missing',
+            message: `required_check ${check.id} no verificado`,
+        };
+    }
+    const command = String(snapshotCheck.command || '').trim();
+    const checkedAt =
+        String(snapshotCheck.checked_at || snapshotState.generated_at || '').trim();
+    if (snapshotCheck.ok === true) {
+        return {
+            ...check,
+            command,
+            checked_at: checkedAt,
+            state: 'green',
+            ok: true,
+            exit_code: normalizeExitCode(snapshotCheck.exit_code) ?? 0,
+            duration_ms: normalizeExitCode(snapshotCheck.duration_ms),
+            message: `required_check ${check.id} green`,
+        };
+    }
+    return {
+        ...check,
+        command,
+        checked_at: checkedAt,
+        state: 'red',
+        ok: false,
+        exit_code: normalizeExitCode(snapshotCheck.exit_code) ?? 1,
+        duration_ms: normalizeExitCode(snapshotCheck.duration_ms),
+        reason: 'command_failed',
+        message: `required_check ${check.id} red`,
+    };
+}
+
+function refreshRequiredChecksSnapshot(board, options = {}) {
+    const focus = getConfiguredFocus(board);
+    if (!focus) {
+        const error = new Error('focus check requiere foco configurado');
+        error.code = 'focus_missing';
+        error.error_code = 'focus_missing';
+        throw error;
+    }
+    const task = resolveRequiredChecksTaskSelection(board, options);
+    const executionContext = resolveTaskExecutionContext(task, options);
+    const generatedAt =
+        options.now instanceof Date
+            ? options.now.toISOString()
+            : new Date().toISOString();
+    const metadata = buildSnapshotMetadata(task, executionContext, {
+        strategyId:
+            String(board?.strategy?.active?.id || '').trim() ||
+            String(task?.strategy_id || '').trim(),
+        generatedAt,
+    });
+    const checks = normalizeArray(focus.required_checks, { lowerCase: true })
+        .map((token) => parseRequiredCheckToken(token))
+        .filter(
+            (item) => item && isFrontendRequiredCheckType(item.type)
+        );
+    const npmProgram = resolveNpmProgram();
+    const env = buildTaskCommandEnv(executionContext.root_path);
+    const results = checks.map((check) => {
+        const scriptId =
+            FRONTEND_REQUIRED_CHECK_SCRIPT_OVERRIDES[check.id] || check.id;
+        const command = `npm run ${scriptId}`;
+        const startedAt = Date.now();
+        const result = runCommand(npmProgram, ['run', scriptId], {
+            cwd: executionContext.worktree_path,
+            env,
+        });
+        return {
+            id: check.id,
+            family: check.type,
+            command,
+            ok: result.ok,
+            state: result.ok ? 'green' : 'red',
+            exit_code: result.status,
+            duration_ms: Date.now() - startedAt,
+            checked_at: new Date().toISOString(),
+        };
+    });
+    const snapshotPath = getRequiredChecksSnapshotPath(task.id, {
+        cwd: executionContext.worktree_path,
+        rootPath: executionContext.root_path,
+        governancePolicy: options.governancePolicy || null,
+    });
+    ensureDirectory(path.dirname(snapshotPath));
+    const payload = {
+        ...metadata,
+        checks: results,
+    };
+    writeFileSync(`${snapshotPath}`, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+    return {
+        version: 1,
+        ok: true,
+        source: 'task_snapshot',
+        task_id: task.id,
+        context_task_id: task.id,
+        strategy_id: metadata.strategy_id,
+        path: snapshotPath,
+        generated_at: generatedAt,
+        worktree_path: normalizeAbsolutePath(executionContext.worktree_path),
+        checks_ok: results.every((item) => item.ok === true),
+        checks: results,
+    };
+}
+
+function evaluateLocalRequiredCheck(check, snapshotState) {
+    if (!snapshotState?.valid) {
+        const reason = String(snapshotState?.reason || 'missing').trim();
+        return {
+            ...check,
+            state: 'unverified',
+            ok: false,
+            reason: `snapshot_${reason}`,
+            message: `required_check ${check.id} no verificado`,
+        };
+    }
+
+    const snapshotChecks = Array.isArray(snapshotState?.snapshot?.checks)
+        ? snapshotState.snapshot.checks
+        : [];
+    const snapshotCheck =
+        snapshotChecks.find((item) => item.id === check.id) || null;
+    if (!snapshotCheck) {
+        return {
+            ...check,
+            state: 'unverified',
+            ok: false,
+            reason: 'snapshot_check_missing',
+            message: `required_check ${check.id} no verificado`,
+        };
+    }
+
+    const base = {
+        ...check,
+        command: snapshotCheck.command,
+        checked_at: snapshotCheck.checked_at,
+    };
+    if (snapshotCheck.ok) {
+        return {
+            ...base,
+            state: 'green',
+            ok: true,
+            exit_code:
+                snapshotCheck.exit_code === null ? 0 : snapshotCheck.exit_code,
+            message: `required_check ${check.id} green`,
+        };
+    }
+    return {
+        ...base,
+        state: 'red',
+        ok: false,
+        exit_code:
+            snapshotCheck.exit_code === null ? 1 : snapshotCheck.exit_code,
+        reason: 'command_failed',
+        message: `required_check ${check.id} red`,
+    };
 }
 
 function findRuntimeSurfaceVerification(runtimeVerification, target) {
@@ -536,7 +1503,33 @@ function evaluateRequiredChecks(focus, options = {}) {
         typeof options.runtimeVerification === 'object'
             ? options.runtimeVerification
             : null;
+    const localRequiredCheckSnapshot =
+        options.localRequiredCheckSnapshot &&
+        typeof options.localRequiredCheckSnapshot === 'object'
+            ? options.localRequiredCheckSnapshot
+            : hasLocalRequiredCheck(focus)
+              ? loadLocalRequiredCheckSnapshot(focus, {
+                    board: options.board,
+                    rootPath: options.rootPath,
+                    existsSync: options.existsSync,
+                    readFileSync: options.readFileSync,
+                })
+              : null;
+    const requiredChecksSnapshot =
+        options.requiredChecksSnapshot &&
+        typeof options.requiredChecksSnapshot === 'object'
+            ? options.requiredChecksSnapshot
+            : null;
     return checks.map((check) => {
+        if (isFrontendRequiredCheckType(check.type)) {
+            if (requiredChecksSnapshot) {
+                return evaluateFrontendRequiredCheck(
+                    check,
+                    requiredChecksSnapshot
+                );
+            }
+            return evaluateLocalRequiredCheck(check, localRequiredCheckSnapshot);
+        }
         if (check.type === 'job') {
             const job = jobsSnapshot.find(
                 (item) =>
@@ -591,6 +1584,18 @@ function hasRuntimeRequiredCheck(value = {}) {
     const focus = value?.configured ? value.configured : value;
     const checks = normalizeArray(focus?.required_checks, { lowerCase: true });
     return checks.some((item) => item.startsWith('runtime:'));
+}
+
+function hasFrontendRequiredCheck(value = {}) {
+    const focus = value?.configured ? value.configured : value;
+    const checks = normalizeArray(focus?.required_checks, { lowerCase: true })
+        .map((token) => parseRequiredCheckToken(token))
+        .filter(Boolean);
+    return checks.some((item) => isFrontendRequiredCheckType(item.type));
+}
+
+function hasLocalRequiredCheck(value = {}) {
+    return hasFrontendRequiredCheck(value);
 }
 
 function listPendingRequiredChecks(summary = {}) {
@@ -660,10 +1665,9 @@ function buildFocusSummary(board, options = {}) {
             overdue_ids: [],
         },
         required_checks: [],
+        required_checks_snapshot: null,
         required_checks_ok: false,
         release_ready: false,
-        carryover_external_blocker_task_ids: [],
-        external_blocker_tasks: [],
         blocking_errors: [],
         release_blocking_errors: [],
         warnings: [],
@@ -694,12 +1698,6 @@ function buildFocusSummary(board, options = {}) {
             summary.blocked_task_ids.push(taskId);
             if (isAcknowledgedExternalBlockedTask(task)) {
                 summary.external_blocker_task_ids.push(taskId);
-                summary.external_blocker_tasks.push({
-                    id: taskId,
-                    blocked_reason: String(task.blocked_reason || '').trim(),
-                    focus_step: String(task.focus_step || '').trim(),
-                    work_type: workType,
-                });
             }
         }
         if (!task.focus_id || !task.focus_step || !task.integration_slice) {
@@ -711,12 +1709,8 @@ function buildFocusSummary(board, options = {}) {
             continue;
         }
         if (task.focus_step !== focus.next_step) {
-            if (isAllowedExternalBlockerCarryoverTask(task, focus)) {
-                summary.carryover_external_blocker_task_ids.push(taskId);
-            } else {
-                summary.outside_next_step_task_ids.push(taskId);
-                continue;
-            }
+            summary.outside_next_step_task_ids.push(taskId);
+            continue;
         }
         const allowedSlices = getAllowedSlicesForLane(task);
         if (
@@ -784,7 +1778,41 @@ function buildFocusSummary(board, options = {}) {
     summary.required_checks = evaluateRequiredChecks(focus, {
         jobsSnapshot: options.jobsSnapshot,
         runtimeVerification: options.runtimeVerification,
+        localRequiredCheckSnapshot: options.localRequiredCheckSnapshot,
+        requiredChecksSnapshot: options.requiredChecksSnapshot,
+        board,
+        rootPath: options.rootPath,
     });
+    if (
+        options.requiredChecksSnapshot &&
+        typeof options.requiredChecksSnapshot === 'object'
+    ) {
+        summary.required_checks_snapshot = {
+            source:
+                String(options.requiredChecksSnapshot.source || '').trim() ||
+                'task_snapshot',
+            path: String(options.requiredChecksSnapshot.path || '').trim(),
+            generated_at: String(
+                options.requiredChecksSnapshot.generated_at ||
+                    options.requiredChecksSnapshot.snapshot?.generated_at ||
+                    ''
+            ).trim(),
+            context_task_id: String(
+                options.requiredChecksSnapshot.context_task_id ||
+                    options.requiredChecksSnapshot.snapshot?.task_id ||
+                    ''
+            ).trim(),
+            stale_reason:
+                options.requiredChecksSnapshot.valid === true
+                    ? ''
+                    : String(
+                          options.requiredChecksSnapshot.stale_reason ||
+                              options.requiredChecksSnapshot.reason ||
+                              ''
+                      ).trim(),
+            valid: options.requiredChecksSnapshot.valid === true,
+        };
+    }
     summary.required_checks_ok =
         summary.required_checks.length > 0 &&
         summary.required_checks.every((item) => item.ok === true);
@@ -824,9 +1852,6 @@ function buildFocusSummary(board, options = {}) {
     if (summary.decisions.overdue > 0) {
         summary.warnings.push('decision_overdue');
     }
-    if (summary.acknowledged_external_blocker) {
-        summary.warnings.push('external_blocker_acknowledged');
-    }
     summary.release_ready =
         summary.active_tasks_total > 0 &&
         summary.aligned_tasks === summary.active_tasks_total &&
@@ -856,9 +1881,51 @@ async function buildLiveFocusSummary(board, deps = {}) {
             ? await deps.loadJobsSnapshot()
             : [];
     const jobs = Array.isArray(jobsRaw) ? jobsRaw : [];
+    const configuredFocus = getConfiguredFocus(board);
+    const requestedTaskId = String(
+        deps.taskId || deps.preferredTaskId || ''
+    ).trim();
+    const localRequiredCheckSnapshot = hasLocalRequiredCheck(configuredFocus)
+        ? loadLocalRequiredCheckSnapshot(configuredFocus, {
+              board,
+              rootPath: deps.rootPath,
+              existsSync: deps.existsSync,
+              readFileSync: deps.readFileSync,
+          })
+        : null;
+    let requiredChecksSnapshot = null;
+    if (requestedTaskId && hasFrontendRequiredCheck(configuredFocus)) {
+        try {
+            requiredChecksSnapshot = loadRequiredChecksSnapshotContext(board, {
+                taskId: requestedTaskId,
+                preferredTaskId: requestedTaskId,
+                now,
+                cwd: deps.cwd || deps.rootPath || process.cwd(),
+                rootPath: deps.rootPath || deps.cwd || process.cwd(),
+                governancePolicy: deps.governancePolicy || null,
+            });
+        } catch (error) {
+            requiredChecksSnapshot = buildRequiredChecksSnapshotState({
+                available: false,
+                valid: false,
+                reason:
+                    String(error?.error_code || error?.code || 'missing').trim() ||
+                    'missing',
+                path: getRequiredChecksSnapshotPath(requestedTaskId, {
+                    cwd: deps.cwd || deps.rootPath || process.cwd(),
+                    rootPath: deps.rootPath || deps.cwd || process.cwd(),
+                    governancePolicy: deps.governancePolicy || null,
+                }),
+                context_task_id: requestedTaskId,
+            });
+        }
+    }
     const initialSummary = summaryBuilder(board, {
         decisionsData,
         jobsSnapshot: jobs,
+        localRequiredCheckSnapshot,
+        requiredChecksSnapshot,
+        rootPath: deps.rootPath,
         now,
     });
     const runtimeVerification =
@@ -870,6 +1937,9 @@ async function buildLiveFocusSummary(board, deps = {}) {
         decisionsData,
         jobsSnapshot: jobs,
         runtimeVerification,
+        localRequiredCheckSnapshot,
+        requiredChecksSnapshot,
+        rootPath: deps.rootPath,
         now,
     });
 
@@ -877,6 +1947,8 @@ async function buildLiveFocusSummary(board, deps = {}) {
         decisionsData,
         jobs,
         runtimeVerification,
+        localRequiredCheckSnapshot,
+        requiredChecksSnapshot,
         summary,
     };
 }
@@ -939,12 +2011,27 @@ module.exports = {
     validateFocusConfiguration,
     validateTaskFocusAlignment,
     evaluateRequiredChecks,
+    hasFrontendRequiredCheck,
+    hasLocalRequiredCheck,
     hasRuntimeRequiredCheck,
     listPendingRequiredChecks,
     hasPendingRequiredChecks,
     buildFocusSummary,
     buildLiveFocusSummary,
+    refreshRequiredChecksSnapshot,
     buildFocusSeed,
     isAcknowledgedExternalBlockedTask,
-    isAllowedExternalBlockerCarryoverTask,
+    isFrontendRequiredCheckType,
+    isLocalRequiredCheckType,
+    loadLocalRequiredCheckSnapshot,
+    loadRequiredChecksSnapshotContext,
+    LOCAL_REQUIRED_CHECK_TYPES,
+    LOCAL_REQUIRED_CHECK_SNAPSHOT_VERSION,
+    REQUIRED_CHECKS_SNAPSHOT_VERSION,
+    normalizeLocalRequiredCheckSnapshot,
+    normalizeRequiredCheckId,
+    parseRequiredCheckToken,
+    resolveFocusCheckSnapshotPath,
+    getRequiredChecksSnapshotPath,
+    buildLocalRequiredCheckSnapshotFromEvidence,
 };
