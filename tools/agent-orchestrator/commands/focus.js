@@ -504,12 +504,25 @@ async function handleFocusCommand(ctx) {
             throw new Error('focus verify requiere foco configurado');
         }
         const nowIso = new Date().toISOString();
+        const evidenceSnapshotState =
+            focusDomain.buildLocalRequiredCheckSnapshotFromEvidence(
+                board,
+                summary.configured,
+                {
+                    rootPath: rootPath || process.cwd(),
+                }
+            );
+        const verifySourceChecks = evidenceSnapshotState?.valid
+            ? focusDomain.evaluateRequiredChecks(summary.configured, {
+                  localRequiredCheckSnapshot: evidenceSnapshotState,
+              })
+            : Array.isArray(summary?.required_checks)
+              ? summary.required_checks
+              : [];
         const checkResults = buildLocalSnapshotChecks(
-            Array.isArray(summary?.required_checks)
-                ? summary.required_checks.filter((item) =>
-                      focusDomain.isLocalRequiredCheckType(item?.type)
-                  )
-                : [],
+            verifySourceChecks.filter((item) =>
+                focusDomain.isLocalRequiredCheckType(item?.type)
+            ),
             nowIso
         );
         const snapshot = writeLocalRequiredCheckSnapshot(summary, checkResults, {

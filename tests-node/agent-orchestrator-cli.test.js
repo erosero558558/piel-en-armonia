@@ -2770,6 +2770,56 @@ ${CODEX_MODEL_ROUTING_FIELDS}
         ].join('\n'),
         'utf8'
     );
+    mkdirSync(join(dir, 'verification', 'focus-checks'), { recursive: true });
+    writeFileSync(
+        join(
+            dir,
+            'verification',
+            'focus-checks',
+            'FOCUS-2026-03-public-v6-es-voz-cut-1.json'
+        ),
+        `${JSON.stringify(
+            {
+                version: 1,
+                focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                checked_at: '2026-03-28T02:00:00Z',
+                focus_required_checks: [
+                    'content:public-v6:validate',
+                    'audit:public-v6:copy',
+                    'test:frontend:qa:v6',
+                ],
+                checks: [
+                    {
+                        id: 'content:public-v6:validate',
+                        type: 'content',
+                        command: 'npm run content:public-v6:validate',
+                        ok: true,
+                        exit_code: 0,
+                        checked_at: '2026-03-28T02:00:00Z',
+                    },
+                    {
+                        id: 'audit:public-v6:copy',
+                        type: 'audit',
+                        command: 'npm run audit:public:v6:copy',
+                        ok: true,
+                        exit_code: 0,
+                        checked_at: '2026-03-28T02:00:00Z',
+                    },
+                    {
+                        id: 'test:frontend:qa:v6',
+                        type: 'test',
+                        command: 'npm run test:frontend:qa:v6',
+                        ok: false,
+                        exit_code: 1,
+                        checked_at: '2026-03-28T02:00:00Z',
+                    },
+                ],
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
 
     const verifyJson = parseJsonStdout(runCli(dir, ['focus', 'verify', '--json']));
     assert.equal(verifyJson.ok, true);
