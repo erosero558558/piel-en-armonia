@@ -214,8 +214,8 @@ tasks:
     scope: backend
     codex_instance: codex_backend_ops
     domain_lane: backend_ops
-    lane_lock: strict
-    cross_domain: false
+    lane_lock: handoff_allowed
+    cross_domain: true
     provider_mode: 
     runtime_surface: 
     runtime_transport: 
