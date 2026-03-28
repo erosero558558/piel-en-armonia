@@ -47,6 +47,8 @@ function with_admin_status_server(array $env, callable $callback): void
         $server = start_test_php_server([
             'docroot' => __DIR__ . '/..',
             'env' => [
+                // Prevent env.php from overwriting test-supplied env vars (e.g. OPERATOR_AUTH_MODE).
+                'AURORADERM_SKIP_ENV_FILE' => '1',
                 'PIELARMONIA_DATA_DIR' => $dataDir,
                 'PIELARMONIA_AVAILABILITY_SOURCE' => 'store',
                 'PIELARMONIA_OPERATOR_AUTH_MODE' => 'openclaw_chatgpt',

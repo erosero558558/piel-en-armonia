@@ -28,6 +28,8 @@ file_put_contents(
 $server = start_test_php_server([
     'docroot' => __DIR__ . '/..',
     'env' => [
+        // Prevent env.php from overwriting test-supplied vars (AVAILABILITY_SOURCE, etc.)
+        'AURORADERM_SKIP_ENV_FILE' => '1',
         'PIELARMONIA_DATA_DIR' => $dataDir,
         'PIELARMONIA_AVAILABILITY_SOURCE' => 'store',
     ],
