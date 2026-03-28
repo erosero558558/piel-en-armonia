@@ -17,7 +17,7 @@ Traducir la normativa MSP y las decisiones de producto de FlowOS a una matriz ac
 | Separacion/restriccion entre datos clinicos e identificativos | A.M. 5216-A | Controles de acceso y vistas diferenciadas | `AccessAudit` / seguridad | P0 | Adoptado |
 | Trazabilidad de uso de la informacion | A.M. 5216-A | Registrar lectura, edicion, exportacion, copia y entrega | `AccessAudit` / `DisclosureLog` | P0 | Adoptado |
 | Acceso archivado electronico con claves personales | A.M. 5216-A | Acceso autenticado, personal y auditable | auth + `AccessAudit` | P0 | Adoptado |
-| Archivo activa/pasiva con regla de 5 anos | A.M. 5216-A | `archiveState`, `lastAttentionAt`, politica de paso a pasiva | `recordMeta` | P0 | Adoptado |
+| Archivo activa/pasiva con conservacion por tipologia | A.M. 5216-A + Manual A.M. 0457 | `archiveState`, `lastAttentionAt`, politica de paso a pasiva y permanencia pasiva | `recordMeta` | P0 | Parcial |
 | Copia certificada en 48h | A.M. 5216-A | Solicitud, SLA y constancia de entrega | `copyRequests` / `DisclosureLog` | P0 | Adoptado |
 | Marcacion y manejo confidencial | A.M. 5216-A | Label `CONFIDENCIAL` en record/documentos | `recordMeta` / documentos | P0 | Adoptado |
 | Proteccion reforzada de identidad en casos sensibles | A.M. 5216-A | `identityProtectionMode` y acceso restringido | `recordMeta` / seguridad | P0 | Adoptado |
@@ -26,15 +26,18 @@ Traducir la normativa MSP y las decisiones de producto de FlowOS a una matriz ac
 | Quien informo, cuando, riesgos, alternativas y capacidad | A.M. 5316 | Campos explicitos y auditables | `ConsentRecord` | P0 | Adoptado |
 | Compartir con acompanante solo por autorizacion explicita | A.M. 5316 | Autorizacion de disclosure a tercero | `ConsentRecord` / `DisclosureLog` | P0 | Adoptado |
 | Comunicacion en entorno privado | A.M. 5316 | Campo expreso de confirmacion | `ConsentRecord` | P0 | Adoptado |
-| Formulario HCU de admision | Instructivo MSP octubre 2020 | Mantener identificacion y apertura del expediente/episodio sobre base HCU | `PatientRecord/HCU` / admision | P0 | Referencia oficial confirmada |
-| Formulario HCU de evolucion y prescripciones (`HCU-form.005/2008`) | Instructivo MSP octubre 2020 | La nota final y la receta viven en el mismo flujo clinico defendible | `FinalClinicalNote` / `Prescription` | P0 | Adoptado |
+| Formulario HCU de admision (`HCU-form.001/2008`) | Instructivo MSP octubre 2020 | Mantener identificacion y apertura del expediente/episodio sobre base HCU | `PatientRecord/HCU` / admision | P0 | Parcial |
+| Formulario HCU de evolucion y prescripciones (`HCU-form.005/2008`) | Instructivo MSP octubre 2020 | La nota final y la receta viven en el mismo flujo clinico defendible | `FinalClinicalNote` / `Prescription` | P0 | Parcial |
 | Formulario HCU de interconsulta (`HCU-form.007/2008`) | Instructivo MSP octubre 2020 | La interconsulta entra como documento/accion clinica separada del chat | `ClinicalEncounter` / futuro modulo de interconsulta | P1 | Pendiente |
-| Formulario HCU de consentimiento (`HCU-form.024`) | A.M. 5316 | Consentimiento estructurado, revocable y auditable | `ConsentRecord` | P0 | Adoptado |
+| Formulario HCU de solicitud de laboratorio (`HCU-form.010A/2008`) | Instructivo MSP octubre 2020 | Solicitud formal de examenes de laboratorio cuando aplique | modulo futuro de ordenes | P1 | Pendiente |
+| Formulario HCU de solicitud de imagenologia (`HCU-form.012A/2008`) | Instructivo MSP octubre 2020 | Solicitud formal de imagenologia cuando aplique | modulo futuro de ordenes | P1 | Pendiente |
+| Formulario HCU de consentimiento (`HCU-form.024`) | A.M. 5316 | Consentimiento estructurado, revocable y auditable | `ConsentRecord` | P0 | Parcial |
 | Receta y certificado dentro del mismo episodio | Decision de producto | No saltar de superficie para documentos de salida | `Prescription` / `MedicalCertificate` | P0 | Adoptado |
 | Aprobacion humana final defendible | Decision de producto + A.M. 5216-A | `approve_final_note` con aprobador, fecha, version y checklist | `ClinicalApproval` | P0 | Adoptado |
 | Bloqueos medico-legales minimos | Decision de producto + A.M. 5216-A/5316 | bloquear por faltantes, consentimiento, alerta critica, IA pendiente y posologia ambigua | `ClinicalHistoryLegalReadiness` | P0 | Adoptado |
-| Formularios basicos y de especialidad MSP | Catalogo oficial consolidado MSP pendiente | Catalogo normativo final de campos obligatorios | motor de formularios | OPEN_DEP | Abierto parcial |
-| Manual de Conservacion de Historias Clinicas A.M. 0457 | Referencia oficial confirmada por A.M. 5216-A; texto completo oficial pendiente | Reglas completas de archivo y conservacion | records governance | OPEN_DEP | Referencia confirmada |
+| Catalogo oficial de formularios aplicables al consultorio defendible V1 | Instructivo MSP octubre 2020 + A.M. 5316 | Catalogo normativo base para HCE ambulatoria V1 | matriz HCE + roadmap por formulario | P0 | Fuente oficial anexada |
+| Catalogo MSP hospitalario y de especialidades fuera del consultorio V1 | Catalogo MSP extendido no cerrado en esta slice | No declarar cobertura hospitalaria completa | roadmap posterior | OPEN_DEP | Fuera de alcance V1 |
+| Manual de Conservacion de Historias Clinicas A.M. 0457 | Manual oficial MSP + Registro Oficial del A.M. 0457 | Reglas de archivo, eliminacion y tarjetero indice automatizado | records governance | P0 | Fuente oficial anexada / implementacion parcial |
 
 ## Reglas de interpretacion
 
@@ -45,7 +48,7 @@ Ningun modulo conversacional reemplaza el documento clinico final persistido.
 Ninguna aprobacion final se permite solo por `reviewStatus`; debe existir constancia de aprobacion.
 
 ### Regla 3
-Mientras siga abierta la dependencia del texto completo de `A.M. 0457` y del catalogo oficial consolidado de formularios, no se declara cumplimiento completo por formulario MSP.
+Mientras una obligacion siga marcada como `Parcial`, `Pendiente` o `Fuera de alcance V1`, no se declara cumplimiento integral de formulario MSP.
 
 ### Regla 4
 `Media Flow` queda fuera de esta matriz porque ya no pertenece al producto HCE activo.

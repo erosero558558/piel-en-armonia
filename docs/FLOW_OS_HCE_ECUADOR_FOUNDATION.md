@@ -30,7 +30,7 @@ Esta re-fundacion asume como obligatorios, desde el dia 0, estos principios:
 - los datos clinicos deben manejarse con separacion o acceso restringido respecto de datos identificativos;
 - debe existir trazabilidad de uso de la informacion: lectura, edicion, exportacion, copia y entrega;
 - el archivo electronico debe operar con claves personales y acceso por personal autorizado;
-- debe existir archivo activo/pasivo con regla de 5 anos desde la ultima atencion;
+- debe existir archivo activo/pasivo con conservacion parametrizada por tipologia de unidad; para unidades de menor complejidad, el manual oficial trabaja sobre `5 anos activo + 5 anos pasivo`;
 - debe existir solicitud y entrega de copia certificada con SLA de 48 horas;
 - la documentacion y las salidas deben tratarse como `CONFIDENCIAL`;
 - deben existir mecanismos reforzados para proteger identidad en casos sensibles.
@@ -47,29 +47,36 @@ Esta re-fundacion asume como obligatorios, desde el dia 0, estos principios:
 - debe existir autorizacion explicita cuando se comparta informacion con acompanantes;
 - la comunicacion debe poder registrarse como realizada en entorno privado.
 
-## Dependencias normativas abiertas de Fase 0
-La dependencia normativa abierta ya no es “si existen o no” `A.M. 0457` y los formularios HCU, sino anexar el texto oficial completo y cerrar el catalogo final de campos obligatorios por formulario.
+## Cierre documental de Fase 0 para consultorio V1
+La dependencia de fuentes oficiales ya no esta abierta para el alcance `consultorio defendible V1`.
+Ya quedaron anexadas:
 
-Lo ya confirmado por fuente oficial MSP:
+- el manual oficial de archivo/custodia asociado al `A.M. 0457`;
+- el Registro Oficial que aprueba y difunde ese manual;
+- el instructivo MSP 2020 que enumera formularios HCU aplicables al consultorio base;
+- `A.M. 5316` para consentimiento informado.
 
-- `A.M. 5216-A` remite expresamente al `A.M. 0457`, `Manual de Normas de Conservacion de las Historias Clinicas`, como referencia de archivo y custodia;
-- el instructivo oficial MSP `INSTRUCTIVO DE APLICACION HISTORIA CLINICA` (octubre 2020) confirma, al menos, los formularios HCU de apoyo `001 admision`, `005 evolucion y prescripciones` y `007 interconsulta`;
-- `A.M. 5316` actualiza el manejo de consentimiento informado y aterriza el `HCU-form.024`.
+Fuentes base anexadas:
 
-Todavia falta anexar de forma completa la fuente oficial de:
+- `A.M. 0457` / Manual de Normas de Conservacion de las Historias Clinicas y aplicacion del Tarjetero Indice Automatizado;
+- instructivo oficial MSP de octubre 2020;
+- `A.M. 5316`.
 
-- el texto oficial completo de `A.M. 0457`;
-- el catalogo oficial consolidado de formularios basicos y de especialidad MSP.
+La dependencia que sigue abierta ya no es de **fuente**, sino de **implementacion**:
+
+- paridad total de formularios HCU en producto;
+- parametrizacion de conservacion por tipologia exacta de unidad;
+- catalogo hospitalario y de especialidades fuera del consultorio V1.
 
 Regla operativa:
 
-**no se inventan campos normativos obligatorios antes de cerrar esa matriz.**
+**no se inventan campos normativos obligatorios fuera de fuente oficial o decision de producto explicitamente marcada.**
 
-Mientras esa dependencia siga abierta:
+Mientras siga abierta la brecha de implementacion:
 
-- se permiten solo bloqueos medico-legales nucleares;
-- no se declara “compliance completo por formulario”;
-- cualquier checklist adicional debe marcarse como puente transitorio y no como verdad normativa final.
+- no se declara cumplimiento integral de toda la red hospitalaria MSP;
+- los formularios no cubiertos deben quedar marcados como `parcial` o `pendiente`;
+- cualquier checklist adicional debe marcarse como `decision de producto`, no como formulario MSP ya cerrado.
 
 ## Formularios HCU oficialmente confirmados para esta base
 
@@ -80,7 +87,8 @@ Por fuente oficial MSP ya podemos tomar como confirmados para la base de product
 - `SNS-MSP/HCU-form.007/2008`: interconsulta;
 - `SNS-MSP/HCU-form.024`: consentimiento informado.
 
-Esto no sustituye el catalogo completo pendiente, pero ya evita disenar “a ciegas” el nucleo documental minimo de V1.
+Para el alcance `consultorio defendible V1`, el catalogo base deja de estar “a ciegas”.
+Lo que sigue pendiente es llevar esos formularios a paridad documental completa donde aplique.
 
 ## Decisiones de producto
 
@@ -163,7 +171,7 @@ La aprobacion debe bloquearse, como minimo, cuando exista cualquiera de estos es
 - cerrar automaticamente sin aprobacion humana;
 - mezclar editorial/publicacion con la HCE;
 - borrar la trazabilidad de acceso, cambios o sugerencias IA;
-- tratar la HCE como si ya cubriera todos los formularios MSP mientras siga abierta la dependencia de A.M. 0457.
+- afirmar que la HCE ya cubre toda la red MSP hospitalaria o todos los formularios de especialidad.
 
 ### Obligatorio
 
@@ -177,6 +185,11 @@ La aprobacion debe bloquearse, como minimo, cuando exista cualquiera de estos es
 
 ### Fase 0
 Matriz normativa oficial trazable de Ecuador.
+
+Estado actual:
+
+- fuentes oficiales cerradas para `A.M. 0457`, formularios consultorio V1 y `A.M. 5316`;
+- brecha remanente: implementacion parcial/pending por formulario.
 
 ### Fase 1
 Dominio HCE nuevo + puente legacy desde `clinical-history-review`.
