@@ -147,6 +147,15 @@ updated_at: "2026-03-28"
   sin abrir el escape a `deploy`, `ops`, `monitoring`, `tests` genericos ni
   otros scopes/lane fuera del rescate de `Turnero Gates`.
 
+## Rescue Turnero Gates 2026-03-28
+
+- `CDX-056` queda abierta como slice `backend_ops/gates` de soporte dentro de
+  `feedback_trim`.
+- El write set del rescue queda acotado a wrappers/scripts locales,
+  `package.json`, runbook y contratos Node del carril `turnero/web-pilot`.
+- `kiosco`, `public-v6`, `auth` y runtime de producto quedan expresamente
+  fuera de esta iteracion y preservados en patchsets separados.
+
 ## Proposito
 
 - Pulir el shell clinico diario del admin sin reabrir surfaces fuera del RC1.

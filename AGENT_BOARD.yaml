@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 798
+  revision: 799
   updated_at: 2026-03-28
 
 strategy:
@@ -1422,6 +1422,65 @@ tasks:
     rework_reason: ""
     depends_on: ["CDX-009"]
     prompt: "Agregar un bootstrap minimo de policy/publish para soportar reglas multiples de external_blocker_escape y habilitar solo el carve-out de support backend_ops/gates en feedback_trim."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-056
+    title: "Turnero web pilot local gates and presentation wrapper cleanup"
+    owner: deck
+    executor: codex
+    status: ready
+    status_since_at: "2026-03-28T05:07:00Z"
+    risk: medium
+    scope: gates
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["bin/gate-turnero-presentation-local.js", "bin/run-turnero-web-pilot-ui.js", "package.json", "docs/RUNBOOK_TURNERO_APPS_RELEASE.md", "tests-node/run-playwright-local.test.js", "tests-node/turnero-presentation-local-gate-contract.test.js", "tests-node/turnero-web-pilot-gate-contract.test.js", "tests-node/run-turnero-web-pilot-ui-contract.test.js", "verification/agent-runs/CDX-056.md"]
+    source_signal: manual
+    source_ref: "AG-260"
+    priority_score: 70
+    sla_due_at: "2026-03-31T23:59:00Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El carril local de Turnero usa wrappers canonicos para presentation cut y web-pilot UI, mantiene evidencia persistida y no toca kiosco, public-v6, auth ni runtime de producto."
+    acceptance_ref: "verification/agent-runs/CDX-056.md"
+    evidence_ref: "verification/agent-runs/CDX-056.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-backend-admin-operativo"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "feedback_trim"
+    integration_slice: "tests_quality"
+    work_type: "support"
+    expected_outcome: "Turnero Gates queda rescatado en el canon actual con runner UI segmentado, wrapper local con streaming y cobertura contractual nueva, usando el carve-out acotado de blocker externo."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-055"]
+    prompt: "Portar solo el carril turnero/presentation + web-pilot desde el donor patch, sin mezclar kiosco, public-v6, auth ni runtime transversal."
     created_at: 2026-03-28
     updated_at: 2026-03-28
 
