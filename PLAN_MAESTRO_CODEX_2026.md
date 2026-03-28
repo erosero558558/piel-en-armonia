@@ -11,16 +11,6 @@ task_id: CDX-009
 subfront_id: SF-backend-admin-operativo
 status: blocked
 files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
-updated_at: "2026-03-28"
--->
-
-<!-- CODEX_ACTIVE
-codex_instance: codex_frontend
-block: C1
-task_id: CDX-054
-subfront_id: SF-frontend-queue-turnero-operativo
-status: review
-files: ["kiosco-turnos.html", "verification/agent-runs/CDX-054.md"]
 updated_at: 2026-03-28
 -->
 
