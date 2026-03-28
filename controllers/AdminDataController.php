@@ -125,6 +125,8 @@ class AdminDataController
         $store['turneroClinicProfile'] = read_turnero_clinic_profile();
         $store['turneroClinicProfileMeta'] = read_turnero_clinic_profile_runtime_meta();
         $store['turneroClinicProfileCatalogStatus'] = read_turnero_clinic_profile_catalog_status();
+        $store['turneroClinicProfiles'] = read_turnero_clinic_profiles_catalog_payload();
+        $store['turneroRegionalClinics'] = read_turnero_regional_clinics_payload();
         $store['turneroOperatorAccessMeta'] = turnero_operator_access_meta();
         $store = self::redactClinicalReadModelsIfBlocked($store);
 
@@ -361,6 +363,12 @@ class AdminDataController
             'turneroClinicProfileCatalogStatus' => isset($store['turneroClinicProfileCatalogStatus']) && is_array($store['turneroClinicProfileCatalogStatus'])
                 ? $store['turneroClinicProfileCatalogStatus']
                 : null,
+            'turneroClinicProfiles' => isset($store['turneroClinicProfiles']) && is_array($store['turneroClinicProfiles'])
+                ? $store['turneroClinicProfiles']
+                : [],
+            'turneroRegionalClinics' => isset($store['turneroRegionalClinics']) && is_array($store['turneroRegionalClinics'])
+                ? $store['turneroRegionalClinics']
+                : [],
             'turneroOperatorAccessMeta' => isset($store['turneroOperatorAccessMeta']) && is_array($store['turneroOperatorAccessMeta'])
                 ? $store['turneroOperatorAccessMeta']
                 : null,

@@ -39,6 +39,8 @@ test('AdminDataController expone turneroClinicProfile y readiness del piloto web
     const payload = JSON.parse(result.stdout);
     const profile = payload?.data?.turneroClinicProfile;
     const catalogStatus = payload?.data?.turneroClinicProfileCatalogStatus;
+    const clinicProfiles = payload?.data?.turneroClinicProfiles;
+    const regionalClinics = payload?.data?.turneroRegionalClinics;
     const operatorAccess = payload?.data?.turneroOperatorAccessMeta;
     const readiness = payload?.data?.turneroV2Readiness;
 
@@ -57,6 +59,27 @@ test('AdminDataController expone turneroClinicProfile y readiness del piloto web
     assert.equal(catalogStatus?.matchingProfileId, 'piel-armonia-quito');
     assert.equal(catalogStatus?.matchesCatalog, true);
     assert.equal(catalogStatus?.ready, true);
+    assert.ok(Array.isArray(clinicProfiles));
+    assert.equal(clinicProfiles.length >= 2, true);
+    assert.equal(
+        clinicProfiles.some(
+            (item) =>
+                item?.clinic_id === 'clinica-norte-demo' &&
+                item?.release?.mode === 'web_pilot' &&
+                item?.release?.native_apps_blocking === false
+        ),
+        true
+    );
+    assert.ok(Array.isArray(regionalClinics));
+    assert.equal(
+        regionalClinics.some(
+            (item) =>
+                item?.clinicId === 'clinica-norte-demo' &&
+                item?.releaseMode === 'web_pilot' &&
+                item?.nativeAppsBlocking === false
+        ),
+        true
+    );
     assert.equal(operatorAccess?.mode, 'operator_pin');
     assert.equal(operatorAccess?.clinicId, 'piel-armonia-quito');
     assert.equal(operatorAccess?.configured, false);

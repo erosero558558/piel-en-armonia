@@ -336,6 +336,108 @@ function read_turnero_clinic_profile_catalog_status(): array
     ];
 }
 
+function turnero_clinic_profile_catalog_relative_path(string $path): string
+{
+    return '/content/turnero/clinic-profiles/' . basename($path);
+}
+
+function turnero_clinic_profile_local_web_pilot_ready(array $profile): bool
+{
+    $release = isset($profile['release']) && is_array($profile['release'])
+        ? $profile['release']
+        : [];
+
+    return (string) ($release['mode'] ?? '') === 'web_pilot'
+        && (string) ($release['admin_mode_default'] ?? '') === 'basic'
+        && (bool) ($release['separate_deploy'] ?? false) === true
+        && (bool) ($release['native_apps_blocking'] ?? true) === false;
+}
+
+function read_turnero_clinic_profiles_catalog_payload(): array
+{
+    $activeProfile = read_turnero_clinic_profile();
+    $catalog = list_turnero_clinic_profile_catalog();
+    $items = [];
+
+    foreach ($catalog as $entry) {
+        $profile = isset($entry['profile']) && is_array($entry['profile'])
+            ? $entry['profile']
+            : null;
+        if (!$profile) {
+            continue;
+        }
+
+        $catalogId = (string) ($entry['id'] ?? '');
+        $catalogPath = turnero_clinic_profile_catalog_relative_path(
+            (string) ($entry['path'] ?? '')
+        );
+        $profileFingerprint = turnero_clinic_profile_fingerprint($profile);
+        $localReady = turnero_clinic_profile_local_web_pilot_ready($profile);
+
+        $items[] = array_merge($profile, [
+            'catalog_id' => $catalogId,
+            'catalog_path' => $catalogPath,
+            'catalog_matched_active' => $profile == $activeProfile,
+            'local_ready' => $localReady,
+            'runtime_meta' => [
+                'source' => 'catalog',
+                'cached' => false,
+                'clinicId' => (string) ($profile['clinic_id'] ?? ''),
+                'profileFingerprint' => $profileFingerprint,
+                'catalogId' => $catalogId,
+                'catalogPath' => $catalogPath,
+            ],
+        ]);
+    }
+
+    return $items;
+}
+
+function read_turnero_regional_clinics_payload(): array
+{
+    $profiles = read_turnero_clinic_profiles_catalog_payload();
+    $items = [];
+
+    foreach ($profiles as $index => $profile) {
+        $branding = isset($profile['branding']) && is_array($profile['branding'])
+            ? $profile['branding']
+            : [];
+        $release = isset($profile['release']) && is_array($profile['release'])
+            ? $profile['release']
+            : [];
+        $localReady = (bool) ($profile['local_ready'] ?? false);
+
+        $items[] = [
+            'clinicId' => (string) ($profile['clinic_id'] ?? ''),
+            'clinic_id' => (string) ($profile['clinic_id'] ?? ''),
+            'clinicLabel' => (string) ($branding['name'] ?? ''),
+            'clinicName' => (string) ($branding['name'] ?? ''),
+            'clinicShortName' => (string) ($branding['short_name'] ?? ''),
+            'label' => (string) ($branding['name'] ?? ''),
+            'region' => (string) (($profile['region'] ?? null) ?: ($branding['city'] ?? 'Quito')),
+            'city' => (string) ($branding['city'] ?? ''),
+            'catalogId' => (string) ($profile['catalog_id'] ?? ''),
+            'catalogPath' => (string) ($profile['catalog_path'] ?? ''),
+            'releaseMode' => (string) ($release['mode'] ?? ''),
+            'release' => $release,
+            'adminModeDefault' => (string) ($release['admin_mode_default'] ?? ''),
+            'separateDeploy' => (bool) ($release['separate_deploy'] ?? false),
+            'nativeAppsBlocking' => (bool) ($release['native_apps_blocking'] ?? false),
+            'profileFingerprint' => (string) ($profile['runtime_meta']['profileFingerprint'] ?? ''),
+            'priorityTier' => $index + 1,
+            'blockingCount' => $localReady ? 0 : 1,
+            'warningCount' => $localReady ? 0 : 1,
+            'readinessScore' => $localReady ? 88 : 62,
+            'riskScore' => $localReady ? 18 : 42,
+            'decision' => $localReady ? 'promote' : 'review',
+            'status' => $localReady ? 'ready' : 'watch',
+            'state' => $localReady ? 'ready' : 'warning',
+        ];
+    }
+
+    return $items;
+}
+
 function read_turnero_clinic_profile_health_snapshot(): array
 {
     $profile = read_turnero_clinic_profile();

@@ -93,6 +93,8 @@ test('CLI permite preview de stage sin escribir el perfil activo', () => {
     assert.equal(payload.id, 'clinica-norte-demo');
     assert.equal(payload.dryRun, true);
     assert.equal(payload.profile.clinic_id, 'clinica-norte-demo');
+    assert.equal(payload.profile.release.mode, 'web_pilot');
+    assert.equal(payload.profile.release.native_apps_blocking, false);
 });
 
 test('CLI verify-remote confirma cuando /health coincide con el perfil activo', async () => {

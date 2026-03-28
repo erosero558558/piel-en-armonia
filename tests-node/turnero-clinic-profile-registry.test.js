@@ -23,6 +23,15 @@ test('lista perfiles turnero catalogados para despliegues separados', () => {
     assert.ok(items.some((entry) => entry.id === 'piel-armonia-quito'));
     assert.ok(items.some((entry) => entry.id === 'clinica-norte-demo'));
     assert.equal(
+        items.some(
+            (entry) =>
+                entry.id === 'clinica-norte-demo' &&
+                entry.profile?.release?.mode === 'web_pilot' &&
+                entry.profile?.release?.native_apps_blocking === false
+        ),
+        true
+    );
+    assert.equal(
         items.every((entry) => entry.ok),
         true
     );
@@ -199,11 +208,15 @@ test('stagea un perfil catalogado al clinic-profile activo', () => {
 
     assert.equal(result.ok, true);
     assert.equal(result.profile.clinic_id, 'clinica-norte-demo');
+    assert.equal(result.profile.release.mode, 'web_pilot');
+    assert.equal(result.profile.release.native_apps_blocking, false);
     assert.equal(fs.existsSync(outputPath), true);
 
     const stagedRaw = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
     assert.equal(stagedRaw.clinic_id, 'clinica-norte-demo');
     assert.equal(stagedRaw.release.separate_deploy, true);
+    assert.equal(stagedRaw.release.mode, 'web_pilot');
+    assert.equal(stagedRaw.release.native_apps_blocking, false);
 });
 
 test('status detecta cuando el clinic-profile activo coincide con un catalogo', () => {
