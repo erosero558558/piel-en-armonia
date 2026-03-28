@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 775
+  revision: 778
   updated_at: 2026-03-28
 
 strategy:
@@ -808,8 +808,8 @@ tasks:
     scope: readiness
     codex_instance: codex_backend_ops
     domain_lane: backend_ops
-    lane_lock: handoff_allowed
-    cross_domain: true
+    lane_lock: strict
+    cross_domain: false
     provider_mode: 
     runtime_surface: 
     runtime_transport: 
@@ -820,7 +820,7 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1", "verification/agent-runs/CDX-009.md"]
+    files: ["bin/deploy-public-v3-cron-sync.sh", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1", "verification/agent-runs/CDX-009.md"]
     source_signal: manual
     source_ref: ""
     priority_score: 95
@@ -852,7 +852,7 @@ tasks:
     decision_ref: ""
     rework_parent: ""
     rework_reason: ""
-    depends_on: ["AG-258"]
+    depends_on: []
     prompt: "Recuperar public_main_sync stale en produccion verificando wrapper/cron host-side, corrida forzada del sync y revalidacion final de health sin tocar runtime auth salvo regresion."
     created_at: 2026-03-25
     updated_at: 2026-03-28
@@ -933,12 +933,12 @@ tasks:
     runtime_transport: 
     runtime_last_transport: 
     model_tier_default: "gpt-5.4-mini"
-    premium_budget: 0
+    premium_budget: 1
     premium_calls_used: 0
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "agent-orchestrator.js", "governance-policy.json", "verification/agent-runs/CDX-045.md", "tests-node/agent-orchestrator-cli.test.js", "tests-node/close-command.test.js", "tests-node/publish-checkpoint-command.test.js", "tests-node/orchestrator/board-sync-engine.test.js", "tests-node/orchestrator/diagnostics.test.js", "tests-node/orchestrator/focus.test.js", "tests-node/orchestrator/policy-config.test.js", "tests-node/orchestrator/task-guards.test.js", "tools/agent-orchestrator/commands/publish.js", "tools/agent-orchestrator/commands/close.js", "tools/agent-orchestrator/commands/task.js", "tools/agent-orchestrator/commands/runtime.js", "tools/agent-orchestrator/core/policy.js", "tools/agent-orchestrator/domain/board-sync.js", "tools/agent-orchestrator/domain/diagnostics.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/workspace-truth.js", "tools/agent-orchestrator/domain/task-guards.js", "tools/agent-orchestrator/domain/runtime.js", "tools/agent-orchestrator/domain/workspace.js", "bin/validate-agent-governance.php"]
+    files: ["AGENT_BOARD.yaml", "AGENT_HANDOFFS.yaml", "PLAN_MAESTRO_CODEX_2026.md", "agent-orchestrator.js", "governance-policy.json", "verification/agent-runs/CDX-009.md", "tests-node/agent-orchestrator-cli.test.js", "tests-node/close-command.test.js", "tests-node/publish-checkpoint-command.test.js", "tests-node/orchestrator/board-sync-engine.test.js", "tests-node/orchestrator/diagnostics.test.js", "tests-node/orchestrator/focus.test.js", "tests-node/orchestrator/policy-config.test.js", "tests-node/orchestrator/task-guards.test.js", "tools/agent-orchestrator/commands/publish.js", "tools/agent-orchestrator/commands/close.js", "tools/agent-orchestrator/commands/task.js", "tools/agent-orchestrator/commands/runtime.js", "tools/agent-orchestrator/core/policy.js", "tools/agent-orchestrator/domain/board-sync.js", "tools/agent-orchestrator/domain/diagnostics.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/workspace-truth.js", "tools/agent-orchestrator/domain/task-guards.js", "tools/agent-orchestrator/domain/runtime.js", "tools/agent-orchestrator/domain/workspace.js", "bin/validate-agent-governance.php"]
     source_signal: manual
     source_ref: ""
     priority_score: 90
