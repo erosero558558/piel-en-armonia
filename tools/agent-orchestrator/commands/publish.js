@@ -103,12 +103,47 @@ function classifyPublishSurface(files = []) {
     };
 }
 
-function buildGateCommands(surface = {}) {
+function detectFrontendGateProfile(task = {}, files = []) {
+    const normalizedScope = normalizePathToken(task?.scope || '');
+    if (normalizedScope === 'frontend-admin') {
+        return 'admin';
+    }
+    if (normalizedScope === 'frontend-public') {
+        return 'public';
+    }
+    const normalizedFiles = Array.isArray(files)
+        ? files.map((file) => normalizePathToken(file)).filter(Boolean)
+        : [];
+    const hasAdminSurface = normalizedFiles.some((file) => {
+        return (
+            file.startsWith('src/apps/admin-v3/') ||
+            file === 'admin.js' ||
+            file === 'js/queue-operator.js' ||
+            file.startsWith('js/admin-chunks/')
+        );
+    });
+    return hasAdminSurface ? 'admin' : 'public';
+}
+
+function collectLintableAdminFrontendFiles(files = []) {
+    return [...new Set(
+        (Array.isArray(files) ? files : [])
+            .map((file) => normalizePathToken(file))
+            .filter(
+                (file) =>
+                    file.startsWith('src/apps/') && file.endsWith('.js')
+            )
+    )];
+}
+
+function buildGateCommands(surface = {}, options = {}) {
     const commands = [];
     const add = (id, program, args) => {
         if (commands.some((item) => item.id === id)) return;
         commands.push({ id, program, args });
     };
+    const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 
     add('board-doctor', process.execPath, [
         'agent-orchestrator.js',
@@ -138,30 +173,41 @@ function buildGateCommands(surface = {}) {
         add('agent-validate', 'php', ['bin/validate-agent-governance.php']);
     }
     if (surface.backend) {
-        add('lint-php', process.platform === 'win32' ? 'npm.cmd' : 'npm', [
-            'run',
-            'lint:php',
-        ]);
-        add('test-php', process.platform === 'win32' ? 'npm.cmd' : 'npm', [
-            'run',
-            'test:php',
-        ]);
+        add('lint-php', npmCmd, ['run', 'lint:php']);
+        add('test-php', npmCmd, ['run', 'test:php']);
     }
     if (surface.frontend) {
-        add('lint-js', process.platform === 'win32' ? 'npm.cmd' : 'npm', [
-            'run',
-            'lint:js',
-        ]);
-        add(
-            'public-v6-artifacts-check',
-            process.platform === 'win32' ? 'npm.cmd' : 'npm',
-            ['run', 'check:public:v6:artifacts']
+        const frontendGateProfile = detectFrontendGateProfile(
+            options.task,
+            options.files
         );
-        add(
-            'smoke-public-routing',
-            process.platform === 'win32' ? 'npm.cmd' : 'npm',
-            ['run', 'smoke:public:routing']
-        );
+        if (frontendGateProfile === 'admin') {
+            const lintableAdminFiles = collectLintableAdminFrontendFiles(
+                options.files
+            );
+            if (lintableAdminFiles.length > 0) {
+                add('lint-js-targeted', npxCmd, [
+                    'eslint',
+                    '--no-warn-ignored',
+                    ...lintableAdminFiles,
+                ]);
+            }
+            add('chunks-admin-check', npmCmd, ['run', 'chunks:admin:check']);
+            add('check-turnero-runtime', npmCmd, [
+                'run',
+                'check:turnero:runtime',
+            ]);
+        } else {
+            add('lint-js', npmCmd, ['run', 'lint:js']);
+            add('public-v6-artifacts-check', npmCmd, [
+                'run',
+                'check:public:v6:artifacts',
+            ]);
+            add('smoke-public-routing', npmCmd, [
+                'run',
+                'smoke:public:routing',
+            ]);
+        }
     }
 
     return commands;
@@ -550,9 +596,12 @@ function diagnosePublishWorkspace(rootPath, board, task, allowedPatterns) {
     };
 }
 
-function runPublishGates(rootPath, files = []) {
+function runPublishGates(rootPath, files = [], options = {}) {
     const surface = classifyPublishSurface(files);
-    const gateCommands = buildGateCommands(surface);
+    const gateCommands = buildGateCommands(surface, {
+        files,
+        task: options.task,
+    });
     for (const gate of gateCommands) {
         const gateResult = runCommand(gate.program, gate.args, {
             cwd: rootPath,
@@ -606,7 +655,7 @@ function runPublishPreflight(options = {}) {
     ]
         .map((value) => normalizePathToken(value))
         .filter(Boolean);
-    const gates = runPublishGates(rootPath, combinedSurfaceFiles);
+    const gates = runPublishGates(rootPath, combinedSurfaceFiles, { task });
     if (!allowNoChanges && diagnosis.dirtyEntries.length === 0) {
         throw createNoChangesToPublishError();
     }

@@ -203,6 +203,54 @@ test('publish checkpoint no trata JS de gobernanza como frontend visible', () =>
     ]);
 });
 
+test('publish checkpoint usa gates acotados para frontend-admin runtime', () => {
+    const files = [
+        'src/apps/admin-v3/ui/frame/templates/shell/context-strip.js',
+        'src/apps/admin-v3/shared/core/store.js',
+        'admin.js',
+        'js/queue-operator.js',
+        'js/admin-chunks/index-fixture.js',
+    ];
+    const surface = classifyPublishSurface(files);
+    assert.deepEqual(surface, {
+        orchestrator: false,
+        backend: false,
+        frontend: true,
+    });
+
+    const gates = buildGateCommands(surface, {
+        files,
+        task: {
+            scope: 'frontend-admin',
+        },
+    });
+    assert.deepEqual(
+        gates.map((item) => item.id),
+        [
+            'board-doctor',
+            'conflicts',
+            'codex-check',
+            'lint-js-targeted',
+            'chunks-admin-check',
+            'check-turnero-runtime',
+        ]
+    );
+    const lintGate = gates.find((item) => item.id === 'lint-js-targeted');
+    assert.equal(Boolean(lintGate), true);
+    assert.deepEqual(lintGate.args.slice(0, 2), [
+        'eslint',
+        '--no-warn-ignored',
+    ]);
+    assert.equal(
+        lintGate.args.includes(
+            'src/apps/admin-v3/ui/frame/templates/shell/context-strip.js'
+        ),
+        true
+    );
+    assert.equal(lintGate.args.includes('admin.js'), false);
+    assert.equal(lintGate.args.includes('js/queue-operator.js'), false);
+});
+
 test('publish checkpoint falla si hay cambios fuera de scope', async () => {
     const root = createRepoFixture();
     try {
