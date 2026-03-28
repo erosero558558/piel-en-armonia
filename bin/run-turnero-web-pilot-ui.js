@@ -86,6 +86,40 @@ function runSuite(suite) {
     };
 }
 
+function writeLine(io, line) {
+    if (io && io.stdout && typeof io.stdout.write === 'function') {
+        io.stdout.write(`${line}\n`);
+    }
+}
+
+function collectSuiteResults(runSuiteFn = runSuite, io = process) {
+    const suites = [];
+    for (const suite of SUITES) {
+        writeLine(io, `[turnero-web-pilot-ui] Running ${suite.label}`);
+        const result = runSuiteFn(suite);
+        suites.push(result);
+        writeLine(
+            io,
+            `[turnero-web-pilot-ui] ${suite.label}: ${result.success ? 'PASS' : 'FAIL'} (${result.durationMs}ms)`
+        );
+    }
+    return suites;
+}
+
+function buildReport(suites, env = process.env) {
+    const failures = suites
+        .filter((suite) => !suite.success)
+        .map((suite) => `${suite.label} failed`);
+
+    return {
+        generatedAt: new Date().toISOString(),
+        ok: failures.length === 0,
+        testLocalServerPort: env.TEST_LOCAL_SERVER_PORT || 'auto',
+        suites,
+        failures,
+    };
+}
+
 function buildMarkdown(report) {
     const lines = [
         '# Turnero Web Pilot UI',
@@ -116,27 +150,8 @@ function buildMarkdown(report) {
 function main() {
     fs.mkdirSync(OUT_DIR, { recursive: true });
 
-    const suites = [];
-    for (const suite of SUITES) {
-        process.stdout.write(`[turnero-web-pilot-ui] Running ${suite.label}\n`);
-        const result = runSuite(suite);
-        suites.push(result);
-        process.stdout.write(
-            `[turnero-web-pilot-ui] ${suite.label}: ${result.success ? 'PASS' : 'FAIL'} (${result.durationMs}ms)\n`
-        );
-    }
-
-    const failures = suites
-        .filter((suite) => !suite.success)
-        .map((suite) => `${suite.label} failed`);
-
-    const report = {
-        generatedAt: new Date().toISOString(),
-        ok: failures.length === 0,
-        testLocalServerPort: process.env.TEST_LOCAL_SERVER_PORT || 'auto',
-        suites,
-        failures,
-    };
+    const suites = collectSuiteResults(runSuite, process);
+    const report = buildReport(suites, process.env);
 
     fs.writeFileSync(
         OUTPUT_JSON,
@@ -158,4 +173,16 @@ function main() {
     }
 }
 
-main();
+if (require.main === module) {
+    main();
+}
+
+module.exports = {
+    SUITES,
+    OUTPUT_JSON,
+    OUTPUT_MD,
+    buildReport,
+    buildMarkdown,
+    collectSuiteResults,
+    runSuite,
+};

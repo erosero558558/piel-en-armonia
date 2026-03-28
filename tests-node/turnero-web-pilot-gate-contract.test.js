@@ -130,6 +130,15 @@ test('gate:turnero:web-pilot limita los contratos al frente web por clinica', ()
         String(scripts['gate:turnero:web-pilot'] || ''),
         /test:turnero:web-pilot:ui/
     );
+
+    const uiCommand = String(scripts['test:turnero:web-pilot:ui'] || '');
+    assert.match(uiCommand, /build:turnero:runtime/);
+    assert.match(uiCommand, /check:turnero:runtime/);
+    assert.match(uiCommand, /node bin\/run-turnero-web-pilot-ui\.js/);
+    assert.doesNotMatch(
+        uiCommand,
+        /node bin\/run-playwright-local\.js tests\/admin-queue\.spec\.js/
+    );
 });
 
 test('runbooks promueven el carril web-pilot como gate canonico del piloto web', () => {

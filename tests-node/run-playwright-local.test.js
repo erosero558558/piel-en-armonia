@@ -110,7 +110,7 @@ test('run-playwright-local extrae pids desde la salida de ss sin duplicados', ()
     );
 });
 
-test('scripts de admin y turnero usan el wrapper local para aislar Playwright del webServer', () => {
+test('scripts de admin y turnero usan wrappers locales o runners canonicos para aislar Playwright del webServer', () => {
     const scripts = readPackageScripts();
 
     for (const scriptName of [
@@ -118,7 +118,6 @@ test('scripts de admin y turnero usan el wrapper local para aislar Playwright de
         'test:admin:queue',
         'test:turnero:presentation-cut',
         'test:turnero:sony-premium',
-        'test:turnero:web-pilot:ui',
         'test:turnero:ui',
     ]) {
         assert.equal(
@@ -129,4 +128,12 @@ test('scripts de admin y turnero usan el wrapper local para aislar Playwright de
             `${scriptName} debe usar bin/run-playwright-local.js`
         );
     }
+
+    assert.equal(
+        String(scripts['test:turnero:web-pilot:ui'] || '').includes(
+            'node bin/run-turnero-web-pilot-ui.js'
+        ),
+        true,
+        'test:turnero:web-pilot:ui debe usar bin/run-turnero-web-pilot-ui.js'
+    );
 });

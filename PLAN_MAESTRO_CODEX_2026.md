@@ -15,12 +15,12 @@ updated_at: 2026-03-28
 -->
 
 <!-- CODEX_ACTIVE
-codex_instance: codex_transversal
-block: C3
-task_id: CDX-055
-subfront_id: SF-transversal-admin-operativo
-status: review
-files: ["governance-policy.json", "tools/agent-orchestrator/commands/publish.js", "tools/agent-orchestrator/core/policy.js", "tests-node/close-command.test.js", "tests-node/publish-checkpoint-command.test.js", "tests-node/orchestrator/policy-config.test.js", "AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-055.md"]
+codex_instance: codex_backend_ops
+block: C1
+task_id: CDX-056
+subfront_id: SF-backend-admin-operativo
+status: in_progress
+files: ["bin/gate-turnero-presentation-local.js", "bin/run-turnero-web-pilot-ui.js", "package.json", "docs/RUNBOOK_TURNERO_APPS_RELEASE.md", "tests-node/run-playwright-local.test.js", "tests-node/turnero-presentation-local-gate-contract.test.js", "tests-node/turnero-web-pilot-gate-contract.test.js", "tests-node/run-turnero-web-pilot-ui-contract.test.js", "verification/agent-runs/CDX-056.md"]
 updated_at: 2026-03-28
 -->
 <!-- CODEX_STRATEGY_ACTIVE

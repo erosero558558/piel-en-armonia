@@ -4,7 +4,7 @@
 const fs = require('node:fs');
 const net = require('node:net');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const { spawn } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const OUT_DIR = path.join(ROOT, 'verification', 'turnero-presentation-local');
@@ -84,34 +84,121 @@ async function resolveLocalServerPort() {
     return DEFAULT_LOCAL_SERVER_PORT;
 }
 
-function runCommand(command, env) {
-    const startedAt = new Date();
-    const result = spawnSync(command, {
-        cwd: ROOT,
-        encoding: 'utf8',
-        shell: true,
-        env,
-        maxBuffer: 1024 * 1024 * 40,
-    });
-    const endedAt = new Date();
-    const exitCode =
-        typeof result.status === 'number'
-            ? result.status
-            : result.error
-              ? 1
-              : 0;
+function writeStream(target, chunk) {
+    if (!target || typeof target.write !== 'function') {
+        return;
+    }
+    target.write(chunk);
+}
 
-    return {
-        command,
-        startedAt: startedAt.toISOString(),
-        endedAt: endedAt.toISOString(),
-        durationMs: endedAt.getTime() - startedAt.getTime(),
-        exitCode,
-        success: exitCode === 0,
-        stdoutTail: tailLines(result.stdout),
-        stderrTail: tailLines(result.stderr),
-        error: result.error ? String(result.error.message || result.error) : '',
-    };
+function writeLine(io, line) {
+    writeStream(io && io.stdout, `${line}\n`);
+}
+
+function runCommand(command, env, io = process) {
+    return new Promise((resolve) => {
+        const startedAt = new Date();
+        let stdout = '';
+        let stderr = '';
+        let childError = null;
+        let settled = false;
+        const finish = (exitCode) => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            const endedAt = new Date();
+            resolve({
+                command,
+                startedAt: startedAt.toISOString(),
+                endedAt: endedAt.toISOString(),
+                durationMs: endedAt.getTime() - startedAt.getTime(),
+                exitCode,
+                success: exitCode === 0,
+                stdoutTail: tailLines(stdout),
+                stderrTail: tailLines(stderr),
+                error: childError
+                    ? String(childError.message || childError)
+                    : '',
+            });
+        };
+
+        const child = spawn(command, {
+            cwd: ROOT,
+            shell: true,
+            env,
+            stdio: ['ignore', 'pipe', 'pipe'],
+        });
+
+        if (child.stdout) {
+            child.stdout.on('data', (chunk) => {
+                const text = chunk.toString();
+                stdout += text;
+                writeStream(io.stdout, text);
+            });
+        }
+
+        if (child.stderr) {
+            child.stderr.on('data', (chunk) => {
+                const text = chunk.toString();
+                stderr += text;
+                writeStream(io.stderr, text);
+            });
+        }
+
+        child.once('error', (error) => {
+            childError = error;
+            finish(1);
+        });
+        child.once('close', (code, signal) => {
+            if (typeof code === 'number') {
+                finish(code);
+                return;
+            }
+            finish(signal ? 1 : 0);
+        });
+    });
+}
+
+async function runGateCommands(
+    commands,
+    env,
+    io = process,
+    runCommandFn = runCommand
+) {
+    const results = [];
+    let canContinue = true;
+
+    for (const command of commands) {
+        if (!canContinue) {
+            results.push({
+                command,
+                startedAt: '',
+                endedAt: '',
+                durationMs: 0,
+                exitCode: -1,
+                success: false,
+                skipped: true,
+                stdoutTail: '',
+                stderrTail: '',
+                error: '',
+            });
+            continue;
+        }
+
+        writeLine(io, `[turnero-presentation-local] Running ${command}`);
+        const result = await runCommandFn(command, env, io);
+        results.push({ ...result, skipped: false });
+        writeLine(
+            io,
+            `[turnero-presentation-local] ${result.success ? 'PASS' : 'FAIL'} ${command} (${result.durationMs}ms)`
+        );
+        if (!result.success) {
+            canContinue = false;
+        }
+    }
+
+    return results;
 }
 
 function buildMarkdown(report) {
@@ -151,32 +238,7 @@ async function main() {
         TEST_REUSE_EXISTING_SERVER:
             process.env.TEST_REUSE_EXISTING_SERVER || '0',
     };
-    const results = [];
-    let canContinue = true;
-
-    for (const command of COMMANDS) {
-        if (!canContinue) {
-            results.push({
-                command,
-                startedAt: '',
-                endedAt: '',
-                durationMs: 0,
-                exitCode: -1,
-                success: false,
-                skipped: true,
-                stdoutTail: '',
-                stderrTail: '',
-                error: '',
-            });
-            continue;
-        }
-
-        const result = runCommand(command, gateEnv);
-        results.push({ ...result, skipped: false });
-        if (!result.success) {
-            canContinue = false;
-        }
-    }
+    const results = await runGateCommands(COMMANDS, gateEnv, process);
 
     const failures = results
         .filter((entry) => !entry.success && !entry.skipped)
@@ -198,9 +260,20 @@ async function main() {
     }
 }
 
-main().catch((error) => {
-    process.stderr.write(
-        `[turnero-presentation-local] ${error.message || error}\n`
-    );
-    process.exitCode = 1;
-});
+if (require.main === module) {
+    main().catch((error) => {
+        process.stderr.write(
+            `[turnero-presentation-local] ${error.message || error}\n`
+        );
+        process.exitCode = 1;
+    });
+}
+
+module.exports = {
+    COMMANDS,
+    OUTPUT_JSON,
+    OUTPUT_MD,
+    buildMarkdown,
+    runCommand,
+    runGateCommands,
+};
