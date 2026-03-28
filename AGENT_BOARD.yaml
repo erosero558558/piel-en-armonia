@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 783
+  revision: 784
   updated_at: 2026-03-28
 
 strategy:
@@ -27,7 +27,7 @@ strategy:
     focus_id: "FOCUS-2026-03-public-v6-es-voz-cut-1"
     focus_title: "Public V6 ES claro y humano"
     focus_summary: "Reescribir el copy ES de Public V6 como ola copy-first, con voz natural para Ecuador y sin abrir trabajo cross-lane por defecto."
-    focus_status: active
+    focus_status: closed
     focus_proof: "Las siete fuentes ES de public-v6 mantienen schema y rutas, pero ya leen con una voz coherente, en usted, sin brochure ni drift de marca."
     focus_steps: ["ecuadorian_copy_rewrite", "copy_contract_validation", "publish_readiness_review"]
     focus_next_step: "publish_readiness_review"

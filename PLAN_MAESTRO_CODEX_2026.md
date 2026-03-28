@@ -16,7 +16,7 @@ review_due_at: "2026-03-30"
 success_signal: "La siguiente ola de frontend-public queda lista para activarse con copy ES humano y consistente para Ecuador, sin abrir trabajo cross-lane innecesario."
 focus_id: "FOCUS-2026-03-public-v6-es-voz-cut-1"
 focus_title: "Public V6 ES claro y humano"
-focus_status: active
+focus_status: closed
 focus_next_step: "publish_readiness_review"
 focus_required_checks: ["content:public-v6:validate", "audit:public-v6:copy", "test:frontend:qa:v6"]
 subfront_ids: ["SF-frontend-public-v6-es-copy", "SF-backend-public-v6-es-support", "SF-transversal-public-v6-es-support"]
