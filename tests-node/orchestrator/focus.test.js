@@ -520,6 +520,74 @@ test('focus buildFocusSummary expone snapshot local y release_ready cuando el fo
     );
 });
 
+test('focus buildFocusSummary expone external_blocker_tasks para blockers externos reconocidos', () => {
+    const board = {
+        strategy: {
+            active: {
+                id: 'STRAT-2026-03-admin-operativo',
+                status: 'active',
+                focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                focus_title: 'Admin operativo demostrable',
+                focus_summary: 'Corte comun',
+                focus_status: 'active',
+                focus_proof: 'Demo comun',
+                focus_steps: [
+                    'admin_queue_pilot_cut',
+                    'pilot_readiness_evidence',
+                    'feedback_trim',
+                ],
+                focus_next_step: 'feedback_trim',
+                focus_required_checks: [
+                    'job:public_main_sync',
+                    'runtime:operator_auth',
+                ],
+                focus_owner: 'deck',
+                focus_review_due_at: '2026-03-30',
+                focus_evidence_ref: '',
+                focus_max_active_slices: 3,
+            },
+        },
+        tasks: [
+            {
+                id: 'CDX-009',
+                status: 'blocked',
+                blocked_reason: 'host_public_health_502_external_blocker',
+                strategy_id: 'STRAT-2026-03-admin-operativo',
+                focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                focus_step: 'pilot_readiness_evidence',
+                integration_slice: 'ops_deploy',
+                work_type: 'support',
+            },
+            {
+                id: 'CDX-054',
+                status: 'review',
+                strategy_id: 'STRAT-2026-03-admin-operativo',
+                focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',
+                focus_step: 'feedback_trim',
+                integration_slice: 'frontend_runtime',
+                work_type: 'forward',
+            },
+        ],
+    };
+
+    const summary = focusDomain.buildFocusSummary(board, {
+        decisionsData: { decisions: [] },
+        jobsSnapshot: [],
+    });
+
+    assert.equal(summary.acknowledged_external_blocker, true);
+    assert.deepEqual(summary.external_blocker_task_ids, ['CDX-009']);
+    assert.deepEqual(summary.external_blocker_tasks, [
+        {
+            id: 'CDX-009',
+            blocked_reason: 'host_public_health_502_external_blocker',
+            status: 'blocked',
+            work_type: 'support',
+            focus_step: 'pilot_readiness_evidence',
+        },
+    ]);
+});
+
 test('focus evaluateRequiredChecks deja local required checks como unverified cuando la evidencia no aplica al foco activo', (t) => {
     const root = mkdtempSync(join(tmpdir(), 'focus-unverified-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));

@@ -1683,6 +1683,7 @@ function buildFocusSummary(board, options = {}) {
         blocked_task_ids: [],
         acknowledged_external_blocker: false,
         external_blocker_task_ids: [],
+        external_blocker_tasks: [],
         support_only: false,
         idle: Boolean(activeFocus) && activeTasks.length === 0,
         active_slices: [],
@@ -1736,6 +1737,13 @@ function buildFocusSummary(board, options = {}) {
             summary.blocked_task_ids.push(taskId);
             if (isAcknowledgedExternalBlockedTask(task)) {
                 summary.external_blocker_task_ids.push(taskId);
+                summary.external_blocker_tasks.push({
+                    id: taskId,
+                    blocked_reason: String(task.blocked_reason || ''),
+                    status: taskStatus,
+                    work_type: workType,
+                    focus_step: String(task.focus_step || ''),
+                });
             }
         }
         if (!task.focus_id || !task.focus_step || !task.integration_slice) {
