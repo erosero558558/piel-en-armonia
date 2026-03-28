@@ -433,7 +433,7 @@ final class ClinicalHistoryControllerTest extends TestCase
             (string) ($recordPatch['payload']['data']['legalReadiness']['hcu005Status']['status'] ?? '')
         );
         self::assertSame(
-            'consent_incomplete',
+            'hcu024_consent_incomplete',
             (string) ($recordPatch['payload']['data']['approvalBlockedReasons'][0]['code'] ?? '')
         );
 
@@ -1391,6 +1391,410 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertSame(2, count($sessionRecord['transcript'] ?? []));
         self::assertSame(['L71.9'], $draftRecord['clinicianDraft']['cie10Sugeridos'] ?? []);
         self::assertSame('Rosacea facial', (string) ($draftRecord['intake']['motivoConsulta'] ?? ''));
+    }
+
+    public function testClinicalHistoryConsentPacketsCanBeDeclaredAndSnapshotted(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Lucia Vega',
+                    'email' => 'lucia@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-consent-packets';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-consent-packets';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Procedimiento dermatologico ambulatorio',
+                        'enfermedadActual' => 'Lesion facial con indicacion de botox terapeutico',
+                        'antecedentes' => 'Sin antecedentes de alarma',
+                        'alergias' => 'Niega alergias medicamentosas',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 34,
+                            'pesoKg' => 58,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Caso listo para consentimiento escrito por procedimiento.',
+                        'preguntasFaltantes' => [],
+                        'cie10Sugeridos' => ['L71.9'],
+                        'tratamientoBorrador' => 'Aplicacion de toxina botulinica',
+                        'posologiaBorrador' => [
+                            'texto' => 'Aplicacion en puntos definidos',
+                            'baseCalculo' => 'standard',
+                            'pesoKg' => 58,
+                            'edadAnios' => 34,
+                            'units' => '',
+                            'ambiguous' => false,
+                        ],
+                        'hcu005' => [
+                            'evolutionNote' => 'Caso listo para consentimiento escrito por procedimiento.',
+                            'diagnosticImpression' => 'Rosacea inflamatoria con indicacion de botox.',
+                            'therapeuticPlan' => 'Procedimiento ambulatorio con seguimiento.',
+                            'careIndications' => 'Control posterior y vigilancia de signos de alarma.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Botox',
+                                'presentation' => 'Vial',
+                                'dose' => 'Segun plan clinico',
+                                'route' => 'Intradermica',
+                                'frequency' => 'Procedimiento unico',
+                                'duration' => 'Sesion ambulatoria',
+                                'quantity' => '1 vial',
+                                'instructions' => 'Aplicar en puntos definidos.',
+                            ]],
+                        ],
+                    ],
+                ],
+                'documents' => [
+                    'prescription' => [
+                        'medication' => 'Botox',
+                        'directions' => 'Aplicar en puntos definidos',
+                    ],
+                ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Vega',
+                        'primerNombre' => 'Lucia',
+                    ],
+                    'demographics' => [
+                        'ageYears' => 34,
+                        'sexAtBirth' => 'femenino',
+                        'birthDate' => '1991-04-18',
+                    ],
+                ]),
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+        self::assertSame('ready', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+
+        $packetCreated = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'create_consent_packet',
+                'templateKey' => 'botox',
+            ]
+        );
+
+        self::assertSame(200, $packetCreated['status']);
+        self::assertCount(1, $packetCreated['payload']['data']['consentPackets'] ?? []);
+        $packet = $packetCreated['payload']['data']['consentPackets'][0] ?? [];
+        $packetId = (string) ($packet['packetId'] ?? '');
+        self::assertNotSame('', $packetId);
+        self::assertSame('botox', (string) ($packet['templateKey'] ?? ''));
+
+        $packet['title'] = 'Consentimiento informado HCU-form.024/2008';
+        $packet['serviceLabel'] = 'Dermatologia ambulatoria';
+        $packet['establishmentLabel'] = 'Piel Armonia';
+        $packet['patientName'] = 'Lucia Vega';
+        $packet['patientDocumentNumber'] = '0912345678';
+        $packet['patientRecordId'] = 'hcu-' . (string) ($session['sessionId'] ?? '');
+        $packet['encounterDateTime'] = '2026-03-16T10:20:00-05:00';
+        $packet['diagnosisLabel'] = 'Rosacea inflamatoria con indicacion de botox.';
+        $packet['diagnosisCie10'] = 'L71.9';
+        $packet['procedureName'] = 'Aplicacion de toxina botulinica';
+        $packet['procedureWhatIsIt'] = 'Aplicacion intramuscular o intradermica de toxina botulinica.';
+        $packet['procedureHowItIsDone'] = 'Se realiza marcacion anatomica y aplicacion en puntos definidos.';
+        $packet['durationEstimate'] = '20 minutos';
+        $packet['benefits'] = 'Mejoria funcional y estetica segun indicacion clinica.';
+        $packet['frequentRisks'] = 'Dolor leve, hematoma y edema.';
+        $packet['rareSeriousRisks'] = 'Ptosis o reaccion alergica.';
+        $packet['patientSpecificRisks'] = 'Equimosis facil y edema transitorio.';
+        $packet['alternatives'] = 'Observacion clinica o manejo alternativo no infiltrativo.';
+        $packet['postProcedureCare'] = 'Control posterior y evitar masaje local.';
+        $packet['noProcedureConsequences'] = 'Persistencia del motivo de consulta.';
+        $packet['professionalAttestation']['name'] = 'Dra. Laura Mena';
+        $packet['professionalAttestation']['documentNumber'] = 'MED-024';
+        $packet['declaration']['capacityAssessment'] = 'Paciente capaz de decidir';
+        $packet['privateCommunicationConfirmed'] = true;
+
+        $packetPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'consentPackets' => [$packet],
+                'activeConsentPacketId' => $packetId,
+            ]
+        );
+
+        self::assertSame(200, $packetPatch['status']);
+        self::assertSame(
+            $packetId,
+            (string) ($packetPatch['payload']['data']['activeConsentPacketId'] ?? '')
+        );
+
+        $declared = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'declare_consent',
+                'packetId' => $packetId,
+            ]
+        );
+
+        self::assertSame(200, $declared['status']);
+        self::assertSame(
+            'accepted',
+            (string) ($declared['payload']['data']['consentPackets'][0]['status'] ?? '')
+        );
+        self::assertSame(
+            'accepted',
+            (string) ($declared['payload']['data']['consent']['status'] ?? '')
+        );
+        self::assertSame(
+            'accepted',
+            (string) ($declared['payload']['data']['legalReadiness']['hcu024Status']['status'] ?? '')
+        );
+        self::assertCount(1, $declared['payload']['data']['documents']['consentForms'] ?? []);
+        self::assertSame(
+            $packetId,
+            (string) ($declared['payload']['data']['activeConsentPacketId'] ?? '')
+        );
+    }
+
+    public function testClinicalHistoryConsentPacketsEnforceWitnessAndRevocationReceiverRules(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Marta Leon',
+                    'email' => 'marta@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-consent-rules';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-consent-rules';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Peeling quimico ambulatorio',
+                        'enfermedadActual' => 'Paciente candidata a procedimiento estetico',
+                        'antecedentes' => 'Sin antecedentes de alarma',
+                        'alergias' => 'Niega alergias',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 36,
+                            'pesoKg' => 60,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Peeling quimico programado con consentimiento escrito.',
+                        'preguntasFaltantes' => [],
+                        'cie10Sugeridos' => ['L70.0'],
+                        'tratamientoBorrador' => 'Peeling quimico controlado',
+                        'posologiaBorrador' => [
+                            'texto' => 'Procedimiento unico con control posterior',
+                            'baseCalculo' => 'standard',
+                            'pesoKg' => 60,
+                            'edadAnios' => 36,
+                            'units' => '',
+                            'ambiguous' => false,
+                        ],
+                        'hcu005' => [
+                            'evolutionNote' => 'Peeling quimico programado con consentimiento escrito.',
+                            'diagnosticImpression' => 'Paciente apta para procedimiento estetico controlado.',
+                            'therapeuticPlan' => 'Peeling quimico ambulatorio.',
+                            'careIndications' => 'Fotoproteccion y control posterior.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Peeling quimico',
+                                'presentation' => 'Sesion',
+                                'dose' => 'Aplicacion unica',
+                                'route' => 'Topica',
+                                'frequency' => 'Sesion unica',
+                                'duration' => '30 minutos',
+                                'quantity' => '1',
+                                'instructions' => 'Seguir protocolo de procedimiento.',
+                            ]],
+                        ],
+                    ],
+                ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Leon',
+                        'primerNombre' => 'Marta',
+                    ],
+                ]),
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+
+        $packetCreated = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'create_consent_packet',
+                'templateKey' => 'peeling-quimico',
+            ]
+        );
+
+        self::assertSame(200, $packetCreated['status']);
+        $packet = $packetCreated['payload']['data']['consentPackets'][0] ?? [];
+        $packetId = (string) ($packet['packetId'] ?? '');
+        $packet['diagnosisLabel'] = 'Paciente apta para peeling quimico controlado.';
+        $packet['diagnosisCie10'] = 'L70.0';
+        $packet['patientSpecificRisks'] = 'Discromia transitoria postprocedimiento.';
+        $packet['professionalAttestation']['name'] = 'Dra. Laura Mena';
+        $packet['professionalAttestation']['documentNumber'] = 'MED-024';
+        $packet['privateCommunicationConfirmed'] = true;
+        $packet['denial']['patientRefusedSignature'] = true;
+
+        $packetPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'consentPackets' => [$packet],
+                'activeConsentPacketId' => $packetId,
+            ]
+        );
+
+        self::assertSame(200, $packetPatch['status']);
+
+        $blockedDenial = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'deny_consent',
+                'packetId' => $packetId,
+            ]
+        );
+
+        self::assertSame(409, $blockedDenial['status']);
+        self::assertSame(
+            'clinical_consent_witness_required',
+            (string) ($blockedDenial['payload']['code'] ?? '')
+        );
+
+        $packet['witnessAttestation']['name'] = 'Testigo Clinico';
+        $packet['witnessAttestation']['documentNumber'] = '0911002200';
+
+        $packetPatchedWithWitness = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'consentPackets' => [$packet],
+                'activeConsentPacketId' => $packetId,
+            ]
+        );
+
+        self::assertSame(200, $packetPatchedWithWitness['status']);
+
+        $denied = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'deny_consent',
+                'packetId' => $packetId,
+            ]
+        );
+
+        self::assertSame(200, $denied['status']);
+        self::assertSame(
+            'declined',
+            (string) ($denied['payload']['data']['consentPackets'][0]['status'] ?? '')
+        );
+        self::assertCount(1, $denied['payload']['data']['documents']['consentForms'] ?? []);
+
+        $acceptedPacket = $denied['payload']['data']['consentPackets'][0] ?? [];
+        $acceptedPacket['status'] = 'accepted';
+        $acceptedPacket['denial']['declinedAt'] = '';
+        $acceptedPacket['patientAttestation']['signedAt'] = '2026-03-16T10:35:00-05:00';
+        $acceptedPacket['revocation']['receivedBy'] = '';
+
+        $acceptedPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'consentPackets' => [$acceptedPacket],
+                'activeConsentPacketId' => $packetId,
+            ]
+        );
+
+        self::assertSame(200, $acceptedPatch['status']);
+
+        $blockedRevocation = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'revoke_consent',
+                'packetId' => $packetId,
+            ]
+        );
+
+        self::assertSame(409, $blockedRevocation['status']);
+        self::assertSame(
+            'clinical_consent_revocation_receiver_required',
+            (string) ($blockedRevocation['payload']['code'] ?? '')
+        );
     }
 
     private function buildAdmission001Payload(array $overrides = []): array

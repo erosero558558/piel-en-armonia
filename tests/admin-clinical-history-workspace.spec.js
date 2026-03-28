@@ -115,6 +115,215 @@ function buildAdmission001Fixture(
     };
 }
 
+function buildHcu024StatusFixture(status) {
+    switch (status) {
+        case 'accepted':
+            return {
+                status: 'accepted',
+                label: 'HCU-024 aceptado',
+                summary:
+                    'El consentimiento escrito por procedimiento ya quedó aceptado.',
+            };
+        case 'ready_for_declaration':
+            return {
+                status: 'ready_for_declaration',
+                label: 'HCU-024 lista para declarar',
+                summary:
+                    'El formulario ya cubre los bloques obligatorios y está listo para declarar.',
+            };
+        case 'declined':
+            return {
+                status: 'declined',
+                label: 'HCU-024 negado',
+                summary:
+                    'Existe una negativa registrada para el procedimiento escrito.',
+            };
+        case 'revoked':
+            return {
+                status: 'revoked',
+                label: 'HCU-024 revocado',
+                summary:
+                    'El consentimiento escrito fue revocado y exige reconciliar la indicación.',
+            };
+        case 'incomplete':
+            return {
+                status: 'incomplete',
+                label: 'HCU-024 incompleto',
+                summary:
+                    'El consentimiento por procedimiento todavía no cubre todos los campos del formulario.',
+            };
+        case 'draft':
+            return {
+                status: 'draft',
+                label: 'HCU-024 borrador',
+                summary:
+                    'Existe un consentimiento por procedimiento aún en borrador.',
+            };
+        default:
+            return {
+                status: 'not_applicable',
+                label: 'HCU-024 no aplica',
+                summary:
+                    'No hay consentimiento escrito por procedimiento exigible para este episodio.',
+            };
+    }
+}
+
+function buildConsentPacketFixture(
+    patientName,
+    sessionId,
+    admission001,
+    consent = {},
+    overrides = {}
+) {
+    const status =
+        overrides.status ||
+        consent.status ||
+        (consent.required === true ? 'draft' : 'not_applicable');
+
+    return {
+        packetId: overrides.packetId || `consent-${sessionId}-001`,
+        templateKey: overrides.templateKey || 'laser-dermatologico',
+        procedureKey: overrides.procedureKey || 'laser-dermatologico',
+        procedureLabel: overrides.procedureLabel || 'Láser dermatológico',
+        title:
+            overrides.title || 'Consentimiento informado HCU-form.024/2008',
+        sourceMode: overrides.sourceMode || 'fixture',
+        status,
+        writtenRequired: overrides.writtenRequired ?? consent.required === true,
+        careMode: overrides.careMode || 'ambulatorio',
+        serviceLabel: overrides.serviceLabel || 'Dermatología ambulatoria',
+        establishmentLabel: overrides.establishmentLabel || 'Piel Armonía',
+        patientName,
+        patientDocumentNumber:
+            overrides.patientDocumentNumber ||
+            admission001.identity.documentNumber,
+        patientRecordId: overrides.patientRecordId || `hcu-${sessionId}`,
+        encounterDateTime:
+            overrides.encounterDateTime || '2026-03-15T09:05:00-05:00',
+        diagnosisLabel:
+            overrides.diagnosisLabel || 'Rosacea inflamatoria en control clinico.',
+        diagnosisCie10: overrides.diagnosisCie10 || 'L71.9',
+        procedureName:
+            overrides.procedureName || 'Aplicación de láser dermatológico',
+        procedureWhatIsIt:
+            overrides.procedureWhatIsIt ||
+            consent.explainedWhat ||
+            'Aplicación de energía lumínica controlada sobre la piel.',
+        procedureHowItIsDone:
+            overrides.procedureHowItIsDone ||
+            'Se delimita el área, se protege al paciente y se aplica el equipo según plan clínico.',
+        durationEstimate:
+            overrides.durationEstimate || '20 a 30 minutos según zonas tratadas',
+        graphicRef: overrides.graphicRef || '',
+        benefits:
+            overrides.benefits ||
+            'Mejoría clínica del motivo de consulta y apoyo al plan dermatológico.',
+        frequentRisks:
+            overrides.frequentRisks ||
+            consent.risksExplained ||
+            'Eritema, ardor transitorio y sensibilidad local.',
+        rareSeriousRisks:
+            overrides.rareSeriousRisks ||
+            'Quemadura, discromía persistente o cicatriz.',
+        patientSpecificRisks:
+            overrides.patientSpecificRisks ||
+            'Riesgo de hiperpigmentación postinflamatoria.',
+        alternatives:
+            overrides.alternatives ||
+            consent.alternativesExplained ||
+            'Observación clínica, tratamiento tópico o diferir el procedimiento.',
+        postProcedureCare:
+            overrides.postProcedureCare ||
+            'Fotoprotección, hidratación y control clínico posterior.',
+        noProcedureConsequences:
+            overrides.noProcedureConsequences ||
+            'Persistencia del problema cutáneo o necesidad de otras alternativas.',
+        privateCommunicationConfirmed:
+            overrides.privateCommunicationConfirmed ??
+            consent.privateCommunicationConfirmed === true,
+        companionShareAuthorized:
+            overrides.companionShareAuthorized ??
+            consent.companionShareAuthorized === true,
+        declaration: {
+            declaredAt:
+                overrides.declaration?.declaredAt ||
+                consent.informedAt ||
+                '2026-03-15T09:08:00-05:00',
+            patientCanConsent:
+                overrides.declaration?.patientCanConsent !== false,
+            capacityAssessment:
+                overrides.declaration?.capacityAssessment ||
+                consent.capacityAssessment ||
+                'Paciente capaz de decidir',
+            notes:
+                overrides.declaration?.notes || consent.notes || '',
+        },
+        denial: {
+            declinedAt: overrides.denial?.declinedAt || '',
+            reason: overrides.denial?.reason || '',
+            patientRefusedSignature:
+                overrides.denial?.patientRefusedSignature === true,
+            notes: overrides.denial?.notes || '',
+        },
+        revocation: {
+            revokedAt: overrides.revocation?.revokedAt || '',
+            receivedBy: overrides.revocation?.receivedBy || '',
+            reason: overrides.revocation?.reason || '',
+            notes: overrides.revocation?.notes || '',
+        },
+        patientAttestation: {
+            name: overrides.patientAttestation?.name || patientName,
+            documentNumber:
+                overrides.patientAttestation?.documentNumber ||
+                admission001.identity.documentNumber,
+            signedAt:
+                overrides.patientAttestation?.signedAt ||
+                consent.acceptedAt ||
+                '',
+            refusedSignature:
+                overrides.patientAttestation?.refusedSignature === true,
+        },
+        representativeAttestation: {
+            name: overrides.representativeAttestation?.name || '',
+            kinship: overrides.representativeAttestation?.kinship || '',
+            documentNumber:
+                overrides.representativeAttestation?.documentNumber || '',
+            phone: overrides.representativeAttestation?.phone || '',
+            signedAt: overrides.representativeAttestation?.signedAt || '',
+        },
+        professionalAttestation: {
+            name:
+                overrides.professionalAttestation?.name ||
+                consent.informedBy ||
+                'Dra. Laura Mena',
+            role: overrides.professionalAttestation?.role || 'medico_tratante',
+            documentNumber:
+                overrides.professionalAttestation?.documentNumber || 'MED-001',
+            signedAt: overrides.professionalAttestation?.signedAt || '',
+        },
+        anesthesiologistAttestation: {
+            applicable:
+                overrides.anesthesiologistAttestation?.applicable === true,
+            name: overrides.anesthesiologistAttestation?.name || '',
+            documentNumber:
+                overrides.anesthesiologistAttestation?.documentNumber || '',
+            signedAt: overrides.anesthesiologistAttestation?.signedAt || '',
+        },
+        witnessAttestation: {
+            name: overrides.witnessAttestation?.name || '',
+            documentNumber: overrides.witnessAttestation?.documentNumber || '',
+            phone: overrides.witnessAttestation?.phone || '',
+            signedAt: overrides.witnessAttestation?.signedAt || '',
+        },
+        history: Array.isArray(overrides.history)
+            ? overrides.history
+            : [],
+        createdAt: overrides.createdAt || '2026-03-15T09:00:00-05:00',
+        updatedAt: overrides.updatedAt || '2026-03-15T09:10:00-05:00',
+    };
+}
+
 function buildClinicalRecordPayload({
     sessionId,
     caseId,
@@ -125,6 +334,8 @@ function buildClinicalRecordPayload({
     documents = {},
     admission001 = {},
     consent = {},
+    consentPackets = [],
+    activeConsentPacketId = '',
     copyRequests = [],
     disclosureLog = [],
     accessAudit = [],
@@ -144,6 +355,38 @@ function buildClinicalRecordPayload({
         normalizedHcu001Status.status,
         admission001
     );
+    const normalizedConsentPackets =
+        Array.isArray(consentPackets) && consentPackets.length > 0
+            ? consentPackets
+            : consent.required === true
+              ? [
+                    buildConsentPacketFixture(
+                        patientName,
+                        sessionId,
+                        normalizedAdmission001,
+                        consent
+                    ),
+                ]
+              : [];
+    const normalizedActiveConsentPacketId =
+        activeConsentPacketId ||
+        normalizedConsentPackets[0]?.packetId ||
+        '';
+    const normalizedActiveConsentPacket =
+        normalizedConsentPackets.find(
+            (packet) => packet.packetId === normalizedActiveConsentPacketId
+        ) || null;
+    const normalizedConsentForms = Array.isArray(documents.consentForms)
+        ? documents.consentForms
+        : normalizedConsentPackets.filter((packet) =>
+              ['accepted', 'declined', 'revoked'].includes(packet.status)
+          );
+    const normalizedHcu024Status =
+        legalReadiness.hcu024Status ||
+        buildHcu024StatusFixture(
+            normalizedActiveConsentPacket?.status ||
+                (consent.required === true ? 'draft' : 'not_applicable')
+        );
     const normalizedHcu005 = {
         evolutionNote:
             documents.finalNote?.sections?.hcu005?.evolutionNote ||
@@ -451,23 +694,65 @@ function buildClinicalRecordPayload({
                     signedAt: approval?.approvedAt || '',
                     confidential: true,
                 },
+                consentForms: normalizedConsentForms,
             },
+            consentPackets: normalizedConsentPackets,
+            activeConsentPacketId: normalizedActiveConsentPacketId,
             consent: {
                 required: consent.required === true,
-                status: consent.status || 'not_required',
-                informedBy: consent.informedBy || '',
-                informedAt: consent.informedAt || '',
-                explainedWhat: consent.explainedWhat || '',
-                risksExplained: consent.risksExplained || '',
-                alternativesExplained: consent.alternativesExplained || '',
-                capacityAssessment: consent.capacityAssessment || '',
+                status:
+                    consent.status ||
+                    normalizedActiveConsentPacket?.status ||
+                    'not_required',
+                informedBy:
+                    consent.informedBy ||
+                    normalizedActiveConsentPacket?.professionalAttestation
+                        ?.name ||
+                    '',
+                informedAt:
+                    consent.informedAt ||
+                    normalizedActiveConsentPacket?.declaration?.declaredAt ||
+                    '',
+                explainedWhat:
+                    consent.explainedWhat ||
+                    normalizedActiveConsentPacket?.procedureWhatIsIt ||
+                    '',
+                risksExplained:
+                    consent.risksExplained ||
+                    normalizedActiveConsentPacket?.frequentRisks ||
+                    '',
+                alternativesExplained:
+                    consent.alternativesExplained ||
+                    normalizedActiveConsentPacket?.alternatives ||
+                    '',
+                capacityAssessment:
+                    consent.capacityAssessment ||
+                    normalizedActiveConsentPacket?.declaration
+                        ?.capacityAssessment ||
+                    '',
                 privateCommunicationConfirmed:
-                    consent.privateCommunicationConfirmed === true,
+                    consent.privateCommunicationConfirmed === true ||
+                    normalizedActiveConsentPacket?.privateCommunicationConfirmed ===
+                        true,
                 companionShareAuthorized:
-                    consent.companionShareAuthorized === true,
-                acceptedAt: consent.acceptedAt || '',
-                declinedAt: '',
-                revokedAt: '',
+                    consent.companionShareAuthorized === true ||
+                    normalizedActiveConsentPacket?.companionShareAuthorized ===
+                        true,
+                acceptedAt:
+                    consent.acceptedAt ||
+                    normalizedActiveConsentPacket?.patientAttestation
+                        ?.signedAt ||
+                    normalizedActiveConsentPacket?.representativeAttestation
+                        ?.signedAt ||
+                    '',
+                declinedAt:
+                    consent.declinedAt ||
+                    normalizedActiveConsentPacket?.denial?.declinedAt ||
+                    '',
+                revokedAt:
+                    consent.revokedAt ||
+                    normalizedActiveConsentPacket?.revocation?.revokedAt ||
+                    '',
                 notes: consent.notes || '',
             },
             approval: approval || {
@@ -566,6 +851,7 @@ function buildClinicalRecordPayload({
             hcu005Status:
                 legalReadiness.hcu005Status?.status ||
                 (legalReadiness.status === 'ready' ? 'complete' : 'partial'),
+            hcu024Status: normalizedHcu024Status.status,
         },
         documents: {
             finalNote: {
@@ -613,20 +899,63 @@ function buildClinicalRecordPayload({
                 signedAt: approval?.approvedAt || '',
                 confidential: true,
             },
+            consentForms: normalizedConsentForms,
         },
+        consentPackets: normalizedConsentPackets,
+        activeConsentPacketId: normalizedActiveConsentPacketId,
+        activeConsentPacket: normalizedActiveConsentPacket,
         consent: {
             required: consent.required === true,
-            status: consent.status || 'not_required',
-            informedBy: consent.informedBy || '',
-            informedAt: consent.informedAt || '',
-            explainedWhat: consent.explainedWhat || '',
-            risksExplained: consent.risksExplained || '',
-            alternativesExplained: consent.alternativesExplained || '',
-            capacityAssessment: consent.capacityAssessment || '',
+            status:
+                consent.status ||
+                normalizedActiveConsentPacket?.status ||
+                'not_required',
+            informedBy:
+                consent.informedBy ||
+                normalizedActiveConsentPacket?.professionalAttestation?.name ||
+                '',
+            informedAt:
+                consent.informedAt ||
+                normalizedActiveConsentPacket?.declaration?.declaredAt ||
+                '',
+            explainedWhat:
+                consent.explainedWhat ||
+                normalizedActiveConsentPacket?.procedureWhatIsIt ||
+                '',
+            risksExplained:
+                consent.risksExplained ||
+                normalizedActiveConsentPacket?.frequentRisks ||
+                '',
+            alternativesExplained:
+                consent.alternativesExplained ||
+                normalizedActiveConsentPacket?.alternatives ||
+                '',
+            capacityAssessment:
+                consent.capacityAssessment ||
+                normalizedActiveConsentPacket?.declaration?.capacityAssessment ||
+                '',
             privateCommunicationConfirmed:
-                consent.privateCommunicationConfirmed === true,
-            companionShareAuthorized: consent.companionShareAuthorized === true,
-            acceptedAt: consent.acceptedAt || '',
+                consent.privateCommunicationConfirmed === true ||
+                normalizedActiveConsentPacket?.privateCommunicationConfirmed ===
+                    true,
+            companionShareAuthorized:
+                consent.companionShareAuthorized === true ||
+                normalizedActiveConsentPacket?.companionShareAuthorized ===
+                    true,
+            acceptedAt:
+                consent.acceptedAt ||
+                normalizedActiveConsentPacket?.patientAttestation?.signedAt ||
+                normalizedActiveConsentPacket?.representativeAttestation
+                    ?.signedAt ||
+                '',
+            declinedAt:
+                consent.declinedAt ||
+                normalizedActiveConsentPacket?.denial?.declinedAt ||
+                '',
+            revokedAt:
+                consent.revokedAt ||
+                normalizedActiveConsentPacket?.revocation?.revokedAt ||
+                '',
             notes: consent.notes || '',
         },
         approval: approval || {
@@ -680,6 +1009,7 @@ function buildClinicalRecordPayload({
                         ? 'La evolucion, la impresion y la prescripcion trazable estan completas.'
                         : 'La evolucion o las prescripciones del HCU-005 aun tienen faltantes.',
             },
+            hcu024Status: normalizedHcu024Status,
         },
         closureChecklist: {
             ...legalReadiness,
@@ -696,6 +1026,7 @@ function buildClinicalRecordPayload({
                         ? 'La evolucion, la impresion y la prescripcion trazable estan completas.'
                         : 'La evolucion o las prescripciones del HCU-005 aun tienen faltantes.',
             },
+            hcu024Status: normalizedHcu024Status,
         },
         recordsGovernance: normalizedRecordsGovernance,
         accessAudit: normalizedAccessAudit,
@@ -938,6 +1269,10 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
                     hcu005Label: 'HCU-005 parcial',
                     hcu005Summary:
                         'Falta completar la evolucion clinica del episodio.',
+                    hcu024Status: 'draft',
+                    hcu024Label: 'HCU-024 borrador',
+                    hcu024Summary:
+                        'Existe un consentimiento por procedimiento aún en borrador.',
                     approvalBlockedReasons: [
                         {
                             code: 'missing_minimum_clinical_data',
@@ -970,6 +1305,10 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
                     hcu005Label: 'HCU-005 completo',
                     hcu005Summary:
                         'La evolucion, la impresion y la prescripcion trazable estan completas.',
+                    hcu024Status: 'accepted',
+                    hcu024Label: 'HCU-024 aceptado',
+                    hcu024Summary:
+                        'El consentimiento escrito por procedimiento ya quedó aceptado.',
                     approvalBlockedReasons: [],
                 },
             ],
@@ -1091,11 +1430,19 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     await expect(
         page.locator('#clinicalHistoryLegalReadinessPanel')
     ).toContainText('HCU-005 completo');
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-024 aceptado');
     await expect(page.locator('#clinicalHistoryApproveBtn')).toBeEnabled();
     await expect(page.locator('#clinicalHistoryHeaderMeta')).toContainText(
         'Primera admision'
     );
-    await expect(page.locator('#consent_status')).toHaveValue('accepted');
+    await expect(
+        page.locator('#clinicalHistoryDraftForm')
+    ).toContainText('Consentimiento HCU-form.024/2008');
+    await expect(page.locator('#consent_packet_procedure_name')).toHaveValue(
+        'Aplicación de láser dermatológico'
+    );
     await expect(page.locator('#admission_identity_document_number')).toHaveValue(
         '0912345678'
     );
@@ -1116,6 +1463,296 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     await expect(page.locator('#clinicalHistoryStatusChip')).toContainText(
         'Aprobada'
     );
+});
+
+test('consentimiento HCU-024 permite crear packets por procedimiento y declarar el activo', async ({
+    page,
+}) => {
+    const baseRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-consent-001',
+        caseId: 'case-consent-001',
+        patientName: 'Lucía Vega',
+        clinicianSummary:
+            'Láser dermatológico sugerido con consentimiento escrito pendiente.',
+        legalReadiness: {
+            status: 'blocked',
+            ready: false,
+            label: 'Bloqueada',
+            summary:
+                'El procedimiento requiere completar y declarar el HCU-024.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolución y el plan terapéutico ya están trazados.',
+            },
+            hcu024Status: buildHcu024StatusFixture('draft'),
+            checklist: [
+                {
+                    code: 'hcu024_consent',
+                    status: 'fail',
+                    label: 'HCU-024 consentimiento por procedimiento',
+                    message:
+                        'Aún falta declarar el consentimiento escrito del procedimiento.',
+                },
+            ],
+            blockingReasons: [
+                {
+                    code: 'hcu024_consent_incomplete',
+                    label: 'HCU-024 incompleto',
+                    message:
+                        'Completa y declara el consentimiento escrito antes de aprobar.',
+                },
+            ],
+        },
+    });
+
+    const declaredPacket = buildConsentPacketFixture(
+        'Lucía Vega',
+        'chs-consent-001',
+        baseRecord.patientRecord.admission001,
+        {
+            required: true,
+            status: 'accepted',
+            informedBy: 'Dra. Laura Mena',
+            informedAt: '2026-03-15T09:25:00-05:00',
+            explainedWhat:
+                'Aplicación de toxina botulínica en puntos definidos.',
+            risksExplained:
+                'Dolor leve, hematoma y asimetría transitoria.',
+            alternativesExplained:
+                'Observación clínica o manejo alternativo no infiltrativo.',
+            capacityAssessment: 'Paciente capaz de decidir',
+            acceptedAt: '2026-03-15T09:27:00-05:00',
+            privateCommunicationConfirmed: true,
+        },
+        {
+            templateKey: 'botox',
+            procedureKey: 'botox',
+            procedureLabel: 'Botox',
+            procedureName: 'Aplicación de toxina botulínica',
+            patientSpecificRisks:
+                'Antecedente de equimosis fácil y edema postprocedimiento.',
+            professionalAttestation: {
+                name: 'Dra. Laura Mena',
+                role: 'medico_tratante',
+                documentNumber: 'MED-024',
+                signedAt: '2026-03-15T09:27:00-05:00',
+            },
+            patientAttestation: {
+                name: 'Lucía Vega',
+                documentNumber: '0912345678',
+                signedAt: '2026-03-15T09:27:00-05:00',
+            },
+        }
+    );
+
+    const declaredRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-consent-001',
+        caseId: 'case-consent-001',
+        patientName: 'Lucía Vega',
+        clinicianSummary:
+            'Láser dermatológico sugerido con consentimiento escrito aceptado.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'El HCU-024 del procedimiento ya quedó aceptado.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolución y el plan terapéutico ya están trazados.',
+            },
+            hcu024Status: buildHcu024StatusFixture('accepted'),
+            checklist: [
+                {
+                    code: 'hcu024_consent',
+                    status: 'pass',
+                    label: 'HCU-024 consentimiento por procedimiento',
+                    message:
+                        'El consentimiento escrito del procedimiento ya quedó aceptado.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: {
+            required: true,
+            status: 'accepted',
+            informedBy: 'Dra. Laura Mena',
+            informedAt: '2026-03-15T09:25:00-05:00',
+            explainedWhat:
+                'Aplicación de toxina botulínica en puntos definidos.',
+            risksExplained:
+                'Dolor leve, hematoma y asimetría transitoria.',
+            alternativesExplained:
+                'Observación clínica o manejo alternativo no infiltrativo.',
+            capacityAssessment: 'Paciente capaz de decidir',
+            privateCommunicationConfirmed: true,
+            acceptedAt: '2026-03-15T09:27:00-05:00',
+        },
+        consentPackets: [declaredPacket],
+        activeConsentPacketId: declaredPacket.packetId,
+        documents: {
+            consentForms: [declaredPacket],
+        },
+    });
+
+    const actionPayloads = [];
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    diagnostics: {
+                        status: 'warning',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-consent-001',
+                        caseId: 'case-consent-001',
+                        patientName: 'Lucía Vega',
+                        summary:
+                            'Procedimiento con consentimiento escrito todavía sin declarar.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: true,
+                        reviewReasons: ['legal_blockers_present'],
+                        pendingAiStatus: '',
+                        attachmentCount: 0,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'blocked',
+                        legalReadinessLabel: 'Bloqueada',
+                        legalReadinessSummary:
+                            'El procedimiento requiere completar y declarar el HCU-024.',
+                        hcu001Status: 'complete',
+                        hcu001Label: 'HCU-001 completa',
+                        hcu001Summary:
+                            'La admisión longitudinal ya deja identidad y contacto base defendibles.',
+                        hcu005Status: 'complete',
+                        hcu005Label: 'HCU-005 completo',
+                        hcu005Summary:
+                            'La evolución y el plan terapéutico ya están trazados.',
+                        hcu024Status: 'draft',
+                        hcu024Label: 'HCU-024 borrador',
+                        hcu024Summary:
+                            'Existe un consentimiento por procedimiento aún en borrador.',
+                        approvalBlockedReasons: [
+                            {
+                                code: 'hcu024_consent_incomplete',
+                            },
+                        ],
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            payload,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: baseRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'clinical-episode-action' && method === 'POST') {
+                actionPayloads.push(payload);
+                if (payload.action === 'declare_consent') {
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: declaredRecord,
+                    });
+                    return true;
+                }
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.keyboard.press('Control+K');
+    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
+    await page.keyboard.press('Enter');
+
+    await expect(
+        page.locator('#clinicalHistoryDraftForm')
+    ).toContainText('Consentimiento HCU-form.024/2008');
+    await page
+        .locator('[data-clinical-draft-action="create-consent-packet-local"][data-template-key="botox"]')
+        .click();
+    await expect(
+        page.locator(
+            '[data-clinical-draft-action="select-consent-packet-local"]'
+        ).filter({ hasText: 'Botox' })
+    ).toHaveCount(1);
+
+    await page
+        .locator('#consent_packet_patient_specific_risks')
+        .fill('Antecedente de equimosis fácil y edema postprocedimiento.');
+    await page
+        .locator('#consent_packet_professional_name')
+        .fill('Dra. Laura Mena');
+    await page
+        .locator('#consent_packet_professional_document')
+        .fill('MED-024');
+    await page
+        .locator('#consent_packet_private_communication_confirmed')
+        .check();
+    await page.locator('[data-clinical-review-action="declare-current-consent"]').click();
+
+    expect(actionPayloads).toHaveLength(1);
+    expect(actionPayloads[0]).toMatchObject({
+        action: 'declare_consent',
+        sessionId: 'chs-consent-001',
+        activeConsentPacketId: expect.any(String),
+        consentPackets: [
+            expect.objectContaining({
+                procedureKey: 'botox',
+                procedureLabel: 'Botox',
+                professionalAttestation: expect.objectContaining({
+                    name: 'Dra. Laura Mena',
+                    documentNumber: 'MED-024',
+                }),
+                patientSpecificRisks:
+                    'Antecedente de equimosis fácil y edema postprocedimiento.',
+            }),
+        ],
+    });
+
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-024 aceptado');
+    await expect(
+        page.locator('#clinicalHistoryDraftForm')
+    ).toContainText('Snapshots documentales inmutables del episodio');
 });
 
 test('gobernanza documental muestra SLA, bloquea disclosure no autorizado y exige override para archivo pasivo', async ({

@@ -131,6 +131,8 @@ final class ClinicalHistoryRepository
                 $seed
             ),
             'documents' => self::normalizeClinicalDocuments(isset($seed['documents']) && is_array($seed['documents']) ? $seed['documents'] : []),
+            'consentPackets' => self::normalizeConsentPackets($seed['consentPackets'] ?? []),
+            'activeConsentPacketId' => self::trimString($seed['activeConsentPacketId'] ?? ''),
             'consent' => self::normalizeConsentRecord(isset($seed['consent']) && is_array($seed['consent']) ? $seed['consent'] : []),
             'approval' => self::normalizeApprovalRecord(isset($seed['approval']) && is_array($seed['approval']) ? $seed['approval'] : []),
             'disclosureLog' => self::normalizeDisclosureLog($seed['disclosureLog'] ?? []),
@@ -573,6 +575,7 @@ final class ClinicalHistoryRepository
         $certificate = isset($documents['certificate']) && is_array($documents['certificate'])
             ? $documents['certificate']
             : [];
+        $consentForms = self::normalizeConsentFormSnapshots($documents['consentForms'] ?? []);
         $finalSections = isset($finalNote['sections']) && is_array($finalNote['sections'])
             ? $finalNote['sections']
             : [];
@@ -659,7 +662,412 @@ final class ClinicalHistoryRepository
                     ? (bool) $certificate['confidential']
                     : true,
             ],
+            'consentForms' => $consentForms,
         ];
+    }
+
+    public static function consentPacketTemplate(string $templateKey): array
+    {
+        $normalizedTemplate = self::trimString($templateKey);
+        if ($normalizedTemplate === '') {
+            $normalizedTemplate = 'generic';
+        }
+
+        $base = [
+            'templateKey' => $normalizedTemplate,
+            'writtenRequired' => true,
+            'careMode' => 'ambulatorio',
+            'serviceLabel' => 'Dermatologia ambulatoria',
+            'establishmentLabel' => 'Consultorio privado',
+            'title' => 'Consentimiento informado HCU-form.024/2008',
+            'procedureKey' => 'generic',
+            'procedureLabel' => 'Consentimiento generico',
+            'procedureName' => 'Procedimiento ambulatorio',
+            'procedureWhatIsIt' => '',
+            'procedureHowItIsDone' => '',
+            'durationEstimate' => '',
+            'benefits' => '',
+            'frequentRisks' => '',
+            'rareSeriousRisks' => '',
+            'patientSpecificRisks' => '',
+            'alternatives' => '',
+            'postProcedureCare' => '',
+            'noProcedureConsequences' => '',
+            'anesthesiologistAttestation' => [
+                'applicable' => false,
+            ],
+        ];
+
+        if ($normalizedTemplate === 'laser-dermatologico') {
+            return array_replace_recursive($base, [
+                'procedureKey' => 'laser-dermatologico',
+                'procedureLabel' => 'Laser dermatologico',
+                'procedureName' => 'Procedimiento con laser dermatologico',
+                'procedureWhatIsIt' => 'Aplicacion dirigida de energia laser sobre la piel para manejo dermatologico ambulatorio.',
+                'procedureHowItIsDone' => 'Se delimita el area, se protege la zona y se aplica el laser por sesiones segun criterio clinico.',
+                'durationEstimate' => '20 a 45 minutos segun area tratada',
+                'benefits' => 'Mejoria del objetivo dermatologico indicado y manejo ambulatorio controlado.',
+                'frequentRisks' => 'Eritema, edema, ardor transitorio, costras leves o hiperpigmentacion postinflamatoria.',
+                'rareSeriousRisks' => 'Quemadura, cicatriz, infeccion secundaria o alteraciones pigmentarias persistentes.',
+                'postProcedureCare' => 'Fotoproteccion estricta, cuidado gentil de la zona y seguimiento clinico.',
+                'noProcedureConsequences' => 'Persistencia del problema dermatologico, respuesta mas lenta o necesidad de otras alternativas.',
+            ]);
+        }
+
+        if ($normalizedTemplate === 'peeling-quimico') {
+            return array_replace_recursive($base, [
+                'procedureKey' => 'peeling-quimico',
+                'procedureLabel' => 'Peeling quimico',
+                'procedureName' => 'Peeling quimico ambulatorio',
+                'procedureWhatIsIt' => 'Aplicacion controlada de agentes quimicos sobre la piel para renovacion superficial o media.',
+                'procedureHowItIsDone' => 'Se prepara la piel, se aplica el agente por tiempo definido y luego se neutraliza o retira segun tecnica.',
+                'durationEstimate' => '20 a 40 minutos segun protocolo',
+                'benefits' => 'Mejoria de textura, tono, lesiones superficiales y apoyo al plan dermatologico.',
+                'frequentRisks' => 'Ardor, eritema, descamacion, sensibilidad y cambios pigmentarios transitorios.',
+                'rareSeriousRisks' => 'Quemadura quimica, cicatriz, infeccion o discromias persistentes.',
+                'postProcedureCare' => 'Hidratacion, fotoproteccion, evitar manipulacion y cumplir indicaciones postratamiento.',
+                'noProcedureConsequences' => 'Persistencia del problema cutaneo o necesidad de otras alternativas terapeuticas.',
+            ]);
+        }
+
+        if ($normalizedTemplate === 'botox') {
+            return array_replace_recursive($base, [
+                'procedureKey' => 'botox',
+                'procedureLabel' => 'Botox',
+                'procedureName' => 'Aplicacion de toxina botulinica',
+                'procedureWhatIsIt' => 'Aplicacion intramuscular o intradermica de toxina botulinica en puntos definidos.',
+                'procedureHowItIsDone' => 'Se realiza marcacion anatomica y se aplica el medicamento en dosis distribuidas segun plan clinico.',
+                'durationEstimate' => '15 a 30 minutos segun zonas tratadas',
+                'benefits' => 'Mejoria funcional o estetica segun la indicacion establecida por el profesional tratante.',
+                'frequentRisks' => 'Dolor leve, hematoma, edema, asimetria transitoria o cefalea.',
+                'rareSeriousRisks' => 'Ptosis, debilidad muscular no deseada, reaccion alergica o difusion del efecto a zonas no objetivo.',
+                'postProcedureCare' => 'Evitar masaje local, seguir indicaciones medicas y asistir a control si se programa.',
+                'noProcedureConsequences' => 'Persistencia del motivo de consulta o necesidad de otras alternativas terapeuticas.',
+            ]);
+        }
+
+        if ($normalizedTemplate === 'legacy-bridge') {
+            return array_replace_recursive($base, [
+                'title' => 'Consentimiento informado legacy',
+                'procedureKey' => 'generic',
+                'procedureLabel' => 'Consentimiento legacy',
+                'procedureName' => 'Procedimiento ambulatorio documentado por bridge',
+            ]);
+        }
+
+        return $base;
+    }
+
+    public static function normalizeConsentPackets($items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $normalized[] = self::normalizeConsentPacket($item);
+        }
+
+        usort($normalized, static function (array $left, array $right): int {
+            return strcmp(
+                (string) (($right['updatedAt'] ?? '') ?: ($right['createdAt'] ?? '')),
+                (string) (($left['updatedAt'] ?? '') ?: ($left['createdAt'] ?? ''))
+            );
+        });
+
+        return array_values($normalized);
+    }
+
+    public static function normalizeConsentPacket(array $packet, array $fallback = []): array
+    {
+        $templateKey = self::trimString($packet['templateKey'] ?? $fallback['templateKey'] ?? 'generic');
+        if ($templateKey === '') {
+            $templateKey = 'generic';
+        }
+        $defaults = self::consentPacketTemplate($templateKey);
+        $source = array_replace_recursive($defaults, $fallback, $packet);
+        $packetId = self::trimString($source['packetId'] ?? '');
+        $now = local_date('c');
+
+        $history = [];
+        if (isset($source['history']) && is_array($source['history'])) {
+            foreach ($source['history'] as $entry) {
+                if (!is_array($entry)) {
+                    continue;
+                }
+                $history[] = [
+                    'eventId' => self::trimString($entry['eventId'] ?? $entry['id'] ?? '') !== ''
+                        ? self::trimString($entry['eventId'] ?? $entry['id'] ?? '')
+                        : self::newOpaqueId('consent-history'),
+                    'type' => self::trimString($entry['type'] ?? ''),
+                    'status' => self::trimString($entry['status'] ?? ''),
+                    'actor' => self::trimString($entry['actor'] ?? ''),
+                    'actorRole' => self::trimString($entry['actorRole'] ?? ''),
+                    'at' => self::trimString($entry['at'] ?? $entry['createdAt'] ?? ''),
+                    'notes' => self::trimString($entry['notes'] ?? ''),
+                ];
+            }
+        }
+
+        return [
+            'packetId' => $packetId !== ''
+                ? $packetId
+                : self::newOpaqueId('consent'),
+            'templateKey' => $templateKey,
+            'sourceMode' => self::trimString($source['sourceMode'] ?? ''),
+            'title' => self::trimString($source['title'] ?? $defaults['title'] ?? ''),
+            'procedureKey' => self::trimString($source['procedureKey'] ?? $defaults['procedureKey'] ?? ''),
+            'procedureLabel' => self::trimString($source['procedureLabel'] ?? $defaults['procedureLabel'] ?? ''),
+            'status' => self::trimString($source['status'] ?? 'draft') ?: 'draft',
+            'writtenRequired' => array_key_exists('writtenRequired', $source)
+                ? (bool) $source['writtenRequired']
+                : true,
+            'careMode' => self::trimString($source['careMode'] ?? $defaults['careMode'] ?? 'ambulatorio'),
+            'serviceLabel' => self::trimString($source['serviceLabel'] ?? $defaults['serviceLabel'] ?? ''),
+            'establishmentLabel' => self::trimString($source['establishmentLabel'] ?? $defaults['establishmentLabel'] ?? ''),
+            'patientName' => self::trimString($source['patientName'] ?? ''),
+            'patientDocumentNumber' => self::trimString($source['patientDocumentNumber'] ?? ''),
+            'patientRecordId' => self::trimString($source['patientRecordId'] ?? ''),
+            'encounterDateTime' => self::trimString($source['encounterDateTime'] ?? ''),
+            'diagnosisLabel' => self::trimString($source['diagnosisLabel'] ?? ''),
+            'diagnosisCie10' => self::trimString($source['diagnosisCie10'] ?? ''),
+            'procedureName' => self::trimString($source['procedureName'] ?? $defaults['procedureName'] ?? ''),
+            'procedureWhatIsIt' => self::trimString($source['procedureWhatIsIt'] ?? ''),
+            'procedureHowItIsDone' => self::trimString($source['procedureHowItIsDone'] ?? ''),
+            'durationEstimate' => self::trimString($source['durationEstimate'] ?? ''),
+            'graphicRef' => self::trimString($source['graphicRef'] ?? ''),
+            'benefits' => self::trimString($source['benefits'] ?? ''),
+            'frequentRisks' => self::trimString($source['frequentRisks'] ?? ''),
+            'rareSeriousRisks' => self::trimString($source['rareSeriousRisks'] ?? ''),
+            'patientSpecificRisks' => self::trimString($source['patientSpecificRisks'] ?? ''),
+            'alternatives' => self::trimString($source['alternatives'] ?? ''),
+            'postProcedureCare' => self::trimString($source['postProcedureCare'] ?? ''),
+            'noProcedureConsequences' => self::trimString($source['noProcedureConsequences'] ?? ''),
+            'privateCommunicationConfirmed' => array_key_exists('privateCommunicationConfirmed', $source)
+                ? (bool) $source['privateCommunicationConfirmed']
+                : false,
+            'companionShareAuthorized' => array_key_exists('companionShareAuthorized', $source)
+                ? (bool) $source['companionShareAuthorized']
+                : false,
+            'declaration' => [
+                'declaredAt' => self::trimString($source['declaration']['declaredAt'] ?? ''),
+                'patientCanConsent' => array_key_exists('patientCanConsent', $source['declaration'] ?? [])
+                    ? (bool) $source['declaration']['patientCanConsent']
+                    : true,
+                'capacityAssessment' => self::trimString($source['declaration']['capacityAssessment'] ?? ''),
+                'notes' => self::trimString($source['declaration']['notes'] ?? ''),
+            ],
+            'denial' => [
+                'declinedAt' => self::trimString($source['denial']['declinedAt'] ?? ''),
+                'reason' => self::trimString($source['denial']['reason'] ?? ''),
+                'patientRefusedSignature' => array_key_exists('patientRefusedSignature', $source['denial'] ?? [])
+                    ? (bool) $source['denial']['patientRefusedSignature']
+                    : false,
+                'notes' => self::trimString($source['denial']['notes'] ?? ''),
+            ],
+            'revocation' => [
+                'revokedAt' => self::trimString($source['revocation']['revokedAt'] ?? ''),
+                'receivedBy' => self::trimString($source['revocation']['receivedBy'] ?? ''),
+                'reason' => self::trimString($source['revocation']['reason'] ?? ''),
+                'notes' => self::trimString($source['revocation']['notes'] ?? ''),
+            ],
+            'patientAttestation' => [
+                'name' => self::trimString($source['patientAttestation']['name'] ?? ''),
+                'documentNumber' => self::trimString($source['patientAttestation']['documentNumber'] ?? ''),
+                'signedAt' => self::trimString($source['patientAttestation']['signedAt'] ?? ''),
+                'refusedSignature' => array_key_exists('refusedSignature', $source['patientAttestation'] ?? [])
+                    ? (bool) $source['patientAttestation']['refusedSignature']
+                    : false,
+            ],
+            'representativeAttestation' => [
+                'name' => self::trimString($source['representativeAttestation']['name'] ?? ''),
+                'kinship' => self::trimString($source['representativeAttestation']['kinship'] ?? ''),
+                'documentNumber' => self::trimString($source['representativeAttestation']['documentNumber'] ?? ''),
+                'phone' => self::trimString($source['representativeAttestation']['phone'] ?? ''),
+                'signedAt' => self::trimString($source['representativeAttestation']['signedAt'] ?? ''),
+            ],
+            'professionalAttestation' => [
+                'name' => self::trimString($source['professionalAttestation']['name'] ?? ''),
+                'role' => self::trimString($source['professionalAttestation']['role'] ?? 'medico_tratante'),
+                'documentNumber' => self::trimString($source['professionalAttestation']['documentNumber'] ?? ''),
+                'signedAt' => self::trimString($source['professionalAttestation']['signedAt'] ?? ''),
+            ],
+            'anesthesiologistAttestation' => [
+                'applicable' => array_key_exists('applicable', $source['anesthesiologistAttestation'] ?? [])
+                    ? (bool) $source['anesthesiologistAttestation']['applicable']
+                    : false,
+                'name' => self::trimString($source['anesthesiologistAttestation']['name'] ?? ''),
+                'documentNumber' => self::trimString($source['anesthesiologistAttestation']['documentNumber'] ?? ''),
+                'signedAt' => self::trimString($source['anesthesiologistAttestation']['signedAt'] ?? ''),
+            ],
+            'witnessAttestation' => [
+                'name' => self::trimString($source['witnessAttestation']['name'] ?? ''),
+                'documentNumber' => self::trimString($source['witnessAttestation']['documentNumber'] ?? ''),
+                'phone' => self::trimString($source['witnessAttestation']['phone'] ?? ''),
+                'signedAt' => self::trimString($source['witnessAttestation']['signedAt'] ?? ''),
+            ],
+            'history' => $history,
+            'createdAt' => self::trimString($source['createdAt'] ?? $now),
+            'updatedAt' => self::trimString($source['updatedAt'] ?? $source['createdAt'] ?? $now),
+        ];
+    }
+
+    public static function normalizeConsentFormSnapshots($items): array
+    {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $packet = self::normalizeConsentPacket($item);
+            $status = self::trimString($item['status'] ?? $packet['status'] ?? 'draft');
+            $finalizedAt = self::trimString(
+                $item['finalizedAt']
+                    ?? ($status === 'accepted'
+                        ? ($packet['patientAttestation']['signedAt'] ?? '')
+                        : ($status === 'declined'
+                            ? ($packet['denial']['declinedAt'] ?? '')
+                            : ($packet['revocation']['revokedAt'] ?? '')))
+            );
+            $normalized[] = array_merge($packet, [
+                'snapshotId' => self::trimString($item['snapshotId'] ?? '') !== ''
+                    ? self::trimString($item['snapshotId'] ?? '')
+                    : self::newOpaqueId('consent-form'),
+                'status' => $status !== '' ? $status : 'draft',
+                'finalizedAt' => $finalizedAt,
+                'snapshotAt' => self::trimString($item['snapshotAt'] ?? $finalizedAt ?? ''),
+            ]);
+        }
+
+        usort($normalized, static function (array $left, array $right): int {
+            return strcmp(
+                (string) (($right['finalizedAt'] ?? '') ?: ($right['snapshotAt'] ?? '')),
+                (string) (($left['finalizedAt'] ?? '') ?: ($left['snapshotAt'] ?? ''))
+            );
+        });
+
+        return array_values($normalized);
+    }
+
+    public static function syncConsentArtifacts(array $draft, array $session = []): array
+    {
+        $draft = self::defaultDraft($session, $draft);
+        $legacyConsent = self::normalizeConsentRecord(
+            isset($draft['consent']) && is_array($draft['consent']) ? $draft['consent'] : []
+        );
+        $packets = self::normalizeConsentPackets($draft['consentPackets'] ?? []);
+
+        if ($packets === [] && self::consentRecordHasSubstantiveContent($legacyConsent)) {
+            $packets[] = self::buildLegacyConsentPacketFromRecord($legacyConsent, $draft, $session);
+        }
+
+        $hydrated = [];
+        foreach ($packets as $packet) {
+            $hydrated[] = self::hydrateConsentPacketContext($packet, $draft, $session);
+        }
+        $packets = array_values($hydrated);
+
+        $activeConsentPacketId = self::trimString($draft['activeConsentPacketId'] ?? '');
+        if ($activeConsentPacketId === '' && $packets !== []) {
+            $activeConsentPacketId = self::trimString($packets[0]['packetId'] ?? '');
+        }
+        $activePacket = null;
+        foreach ($packets as $packet) {
+            if (self::trimString($packet['packetId'] ?? '') === $activeConsentPacketId) {
+                $activePacket = $packet;
+                break;
+            }
+        }
+        if ($activePacket === null && $packets !== []) {
+            $activePacket = $packets[0];
+            $activeConsentPacketId = self::trimString($activePacket['packetId'] ?? '');
+        }
+
+        $documents = self::normalizeClinicalDocuments(
+            isset($draft['documents']) && is_array($draft['documents']) ? $draft['documents'] : []
+        );
+        $documents['consentForms'] = self::ensureConsentFormSnapshots(
+            $documents['consentForms'] ?? [],
+            $packets
+        );
+
+        $draft['documents'] = $documents;
+        $draft['consentPackets'] = $packets;
+        $draft['activeConsentPacketId'] = $activeConsentPacketId;
+        $draft['consent'] = self::buildConsentRecordFromPacket($activePacket, $legacyConsent);
+
+        return $draft;
+    }
+
+    public static function applyConsentBridgePatch(array $draft, array $consentPatch, array $session = []): array
+    {
+        $draft = self::syncConsentArtifacts($draft, $session);
+        $draft['consent'] = self::normalizeConsentRecord(array_merge(
+            isset($draft['consent']) && is_array($draft['consent']) ? $draft['consent'] : [],
+            $consentPatch
+        ));
+
+        $packets = self::normalizeConsentPackets($draft['consentPackets'] ?? []);
+        $activeId = self::trimString($draft['activeConsentPacketId'] ?? '');
+        if ($packets === []) {
+            $packets[] = self::buildLegacyConsentPacketFromRecord($draft['consent'], $draft, $session);
+            $activeId = self::trimString($packets[0]['packetId'] ?? '');
+        }
+
+        foreach ($packets as $index => $packet) {
+            if (self::trimString($packet['packetId'] ?? '') !== $activeId) {
+                continue;
+            }
+
+            $patched = $packet;
+            $patched['writtenRequired'] = (bool) ($draft['consent']['required'] ?? false);
+            $patched['privateCommunicationConfirmed'] = (bool) ($draft['consent']['privateCommunicationConfirmed'] ?? false);
+            $patched['companionShareAuthorized'] = (bool) ($draft['consent']['companionShareAuthorized'] ?? false);
+            $patched['professionalAttestation']['name'] = self::trimString(
+                $draft['consent']['informedBy'] ?? $patched['professionalAttestation']['name'] ?? ''
+            );
+            $patched['declaration']['declaredAt'] = self::trimString(
+                $draft['consent']['informedAt'] ?? $patched['declaration']['declaredAt'] ?? ''
+            );
+            $patched['declaration']['capacityAssessment'] = self::trimString(
+                $draft['consent']['capacityAssessment'] ?? $patched['declaration']['capacityAssessment'] ?? ''
+            );
+            $patched['procedureWhatIsIt'] = self::trimString(
+                $draft['consent']['explainedWhat'] ?? $patched['procedureWhatIsIt'] ?? ''
+            );
+            $patched['frequentRisks'] = self::trimString(
+                $draft['consent']['risksExplained'] ?? $patched['frequentRisks'] ?? ''
+            );
+            $patched['alternatives'] = self::trimString(
+                $draft['consent']['alternativesExplained'] ?? $patched['alternatives'] ?? ''
+            );
+            $patched['status'] = self::trimString($draft['consent']['status'] ?? $patched['status'] ?? 'draft') ?: 'draft';
+            if (self::trimString($draft['consent']['acceptedAt'] ?? '') !== '') {
+                $patched['patientAttestation']['signedAt'] = self::trimString($draft['consent']['acceptedAt'] ?? '');
+            }
+            if (self::trimString($draft['consent']['declinedAt'] ?? '') !== '') {
+                $patched['denial']['declinedAt'] = self::trimString($draft['consent']['declinedAt'] ?? '');
+            }
+            if (self::trimString($draft['consent']['revokedAt'] ?? '') !== '') {
+                $patched['revocation']['revokedAt'] = self::trimString($draft['consent']['revokedAt'] ?? '');
+            }
+            $patched['updatedAt'] = local_date('c');
+            $packets[$index] = self::normalizeConsentPacket($patched);
+            break;
+        }
+
+        $draft['consentPackets'] = $packets;
+        $draft['activeConsentPacketId'] = $activeId;
+
+        return self::syncConsentArtifacts($draft, $session);
     }
 
     public static function normalizeHcu005Draft(array $draft): array
@@ -1256,6 +1664,179 @@ final class ClinicalHistoryRepository
         ];
     }
 
+    public static function buildConsentRecordFromPacket(?array $packet, array $fallback = []): array
+    {
+        $base = self::normalizeConsentRecord($fallback);
+        if ($packet === null) {
+            return $base;
+        }
+
+        $normalizedPacket = self::normalizeConsentPacket($packet);
+        $status = self::trimString($normalizedPacket['status'] ?? 'draft');
+        $required = (bool) ($normalizedPacket['writtenRequired'] ?? true);
+
+        return self::normalizeConsentRecord(array_merge($base, [
+            'required' => $required,
+            'status' => $required ? ($status !== '' ? $status : 'draft') : 'not_required',
+            'informedBy' => self::trimString($normalizedPacket['professionalAttestation']['name'] ?? ''),
+            'informedAt' => self::trimString($normalizedPacket['declaration']['declaredAt'] ?? ''),
+            'explainedWhat' => self::trimString($normalizedPacket['procedureWhatIsIt'] ?? ''),
+            'risksExplained' => self::trimString($normalizedPacket['frequentRisks'] ?? ''),
+            'alternativesExplained' => self::trimString($normalizedPacket['alternatives'] ?? ''),
+            'capacityAssessment' => self::trimString($normalizedPacket['declaration']['capacityAssessment'] ?? ''),
+            'privateCommunicationConfirmed' => (bool) ($normalizedPacket['privateCommunicationConfirmed'] ?? false),
+            'companionShareAuthorized' => (bool) ($normalizedPacket['companionShareAuthorized'] ?? false),
+            'acceptedAt' => self::trimString(
+                $normalizedPacket['patientAttestation']['signedAt']
+                    ?? $normalizedPacket['representativeAttestation']['signedAt']
+                    ?? ''
+            ),
+            'declinedAt' => self::trimString($normalizedPacket['denial']['declinedAt'] ?? ''),
+            'revokedAt' => self::trimString($normalizedPacket['revocation']['revokedAt'] ?? ''),
+            'notes' => self::trimString(
+                $normalizedPacket['declaration']['notes'] ?? $normalizedPacket['denial']['notes'] ?? $normalizedPacket['revocation']['notes'] ?? ''
+            ),
+        ]));
+    }
+
+    public static function evaluateConsentPacket(array $packet): array
+    {
+        $normalized = self::normalizeConsentPacket($packet);
+        $status = self::trimString($normalized['status'] ?? 'draft');
+        $patientCanConsent = (bool) ($normalized['declaration']['patientCanConsent'] ?? true);
+        $anesthesiologistApplicable = (bool) ($normalized['anesthesiologistAttestation']['applicable'] ?? false);
+        $legacyBridge = self::trimString($normalized['sourceMode'] ?? '') === 'legacy_bridge'
+            || self::trimString($normalized['templateKey'] ?? '') === 'legacy-bridge';
+
+        $missing = [];
+        if (self::trimString($normalized['title'] ?? '') === '') {
+            $missing[] = 'title';
+        }
+        if (self::trimString($normalized['establishmentLabel'] ?? '') === '') {
+            $missing[] = 'establishment';
+        }
+        if (self::trimString($normalized['serviceLabel'] ?? '') === '') {
+            $missing[] = 'service';
+        }
+        if (self::trimString($normalized['encounterDateTime'] ?? '') === '') {
+            $missing[] = 'encounter_datetime';
+        }
+        if (self::trimString($normalized['patientRecordId'] ?? '') === '') {
+            $missing[] = 'record_id';
+        }
+        if (self::trimString($normalized['patientName'] ?? '') === '') {
+            $missing[] = 'patient_name';
+        }
+        if (self::trimString($normalized['patientDocumentNumber'] ?? '') === '') {
+            $missing[] = 'patient_document';
+        }
+        if (self::trimString($normalized['diagnosisLabel'] ?? '') === '') {
+            $missing[] = 'diagnosis';
+        }
+        if (self::trimString($normalized['procedureName'] ?? '') === '') {
+            $missing[] = 'procedure_name';
+        }
+        if (self::trimString($normalized['procedureWhatIsIt'] ?? '') === '') {
+            $missing[] = 'procedure_what_is_it';
+        }
+        if (self::trimString($normalized['procedureHowItIsDone'] ?? '') === '') {
+            $missing[] = 'procedure_how';
+        }
+        if (self::trimString($normalized['durationEstimate'] ?? '') === '' && !$legacyBridge) {
+            $missing[] = 'duration';
+        }
+        if (self::trimString($normalized['benefits'] ?? '') === '' && !$legacyBridge) {
+            $missing[] = 'benefits';
+        }
+        if (self::trimString($normalized['frequentRisks'] ?? '') === '') {
+            $missing[] = 'frequent_risks';
+        }
+        if (self::trimString($normalized['rareSeriousRisks'] ?? '') === '' && !$legacyBridge) {
+            $missing[] = 'rare_serious_risks';
+        }
+        if (self::trimString($normalized['patientSpecificRisks'] ?? '') === '' && !$legacyBridge) {
+            $missing[] = 'patient_specific_risks';
+        }
+        if (self::trimString($normalized['alternatives'] ?? '') === '') {
+            $missing[] = 'alternatives';
+        }
+        if (self::trimString($normalized['postProcedureCare'] ?? '') === '' && !$legacyBridge) {
+            $missing[] = 'post_procedure_care';
+        }
+        if (self::trimString($normalized['noProcedureConsequences'] ?? '') === '' && !$legacyBridge) {
+            $missing[] = 'no_procedure_consequences';
+        }
+        if (self::trimString($normalized['professionalAttestation']['name'] ?? '') === '') {
+            $missing[] = 'professional_attestation';
+        }
+        if ($patientCanConsent !== true) {
+            if (self::trimString($normalized['representativeAttestation']['name'] ?? '') === '') {
+                $missing[] = 'representative_name';
+            }
+            if (self::trimString($normalized['representativeAttestation']['kinship'] ?? '') === '') {
+                $missing[] = 'representative_kinship';
+            }
+            if (self::trimString($normalized['representativeAttestation']['documentNumber'] ?? '') === '') {
+                $missing[] = 'representative_document';
+            }
+            if (self::trimString($normalized['representativeAttestation']['phone'] ?? '') === '') {
+                $missing[] = 'representative_phone';
+            }
+        }
+        if ($anesthesiologistApplicable) {
+            if (self::trimString($normalized['anesthesiologistAttestation']['name'] ?? '') === '') {
+                $missing[] = 'anesthesiologist_name';
+            }
+            if (self::trimString($normalized['anesthesiologistAttestation']['documentNumber'] ?? '') === '') {
+                $missing[] = 'anesthesiologist_document';
+            }
+        }
+
+        $readyForDeclaration = $missing === [];
+        $effectiveStatus = $readyForDeclaration ? 'ready_for_declaration' : 'incomplete';
+
+        if ($status === 'accepted') {
+            $signedAt = self::trimString($normalized['patientAttestation']['signedAt'] ?? '');
+            if ($signedAt === '') {
+                $signedAt = self::trimString($normalized['representativeAttestation']['signedAt'] ?? '');
+            }
+            $effectiveStatus = ($readyForDeclaration && $signedAt !== '')
+                ? 'accepted'
+                : 'incomplete';
+        } elseif ($status === 'declined') {
+            $witnessRequired = (bool) ($normalized['denial']['patientRefusedSignature'] ?? false);
+            $witnessReady = self::trimString($normalized['witnessAttestation']['name'] ?? '') !== ''
+                && self::trimString($normalized['witnessAttestation']['documentNumber'] ?? '') !== '';
+            $effectiveStatus = (
+                self::trimString($normalized['denial']['declinedAt'] ?? '') !== ''
+                && (!$witnessRequired || $witnessReady)
+            )
+                ? 'declined'
+                : 'incomplete';
+            if ($witnessRequired && !$witnessReady) {
+                $missing[] = 'witness_attestation';
+            }
+        } elseif ($status === 'revoked') {
+            $effectiveStatus = (
+                self::trimString($normalized['revocation']['revokedAt'] ?? '') !== ''
+                && self::trimString($normalized['revocation']['receivedBy'] ?? '') !== ''
+            )
+                ? 'revoked'
+                : 'incomplete';
+            if (self::trimString($normalized['revocation']['receivedBy'] ?? '') === '') {
+                $missing[] = 'revocation_received_by';
+            }
+        } elseif ($status === 'draft') {
+            $effectiveStatus = $readyForDeclaration ? 'ready_for_declaration' : 'draft';
+        }
+
+        return [
+            'status' => $effectiveStatus,
+            'readyForDeclaration' => $readyForDeclaration,
+            'missingFields' => array_values(array_unique($missing)),
+        ];
+    }
+
     public static function normalizeApprovalRecord(array $approval): array
     {
         $status = self::trimString($approval['status'] ?? 'pending');
@@ -1756,6 +2337,195 @@ final class ClinicalHistoryRepository
 
         $floatValue = (float) $value;
         return $floatValue > 0 ? round($floatValue, 2) : null;
+    }
+
+    private static function buildLegacyConsentPacketFromRecord(array $consent, array $draft, array $session): array
+    {
+        $sessionId = self::trimString($draft['sessionId'] ?? $session['sessionId'] ?? '');
+        $draftId = self::trimString($draft['draftId'] ?? '');
+        $base = self::consentPacketTemplate('legacy-bridge');
+        $now = local_date('c');
+        $status = self::trimString($consent['status'] ?? 'draft');
+        if ($status === 'not_required' && ((bool) ($consent['required'] ?? false))) {
+            $status = 'draft';
+        }
+
+        return self::normalizeConsentPacket([
+            'packetId' => self::stableDerivedId('consent', [$draftId, $sessionId, 'legacy_bridge']),
+            'templateKey' => 'legacy-bridge',
+            'sourceMode' => 'legacy_bridge',
+            'status' => $status !== '' ? $status : 'draft',
+            'writtenRequired' => (bool) ($consent['required'] ?? false),
+            'procedureWhatIsIt' => self::trimString($consent['explainedWhat'] ?? ''),
+            'procedureHowItIsDone' => self::trimString($consent['explainedWhat'] ?? ''),
+            'frequentRisks' => self::trimString($consent['risksExplained'] ?? ''),
+            'alternatives' => self::trimString($consent['alternativesExplained'] ?? ''),
+            'declaration' => [
+                'declaredAt' => self::trimString($consent['informedAt'] ?? ''),
+                'capacityAssessment' => self::trimString($consent['capacityAssessment'] ?? ''),
+                'notes' => self::trimString($consent['notes'] ?? ''),
+            ],
+            'professionalAttestation' => [
+                'name' => self::trimString($consent['informedBy'] ?? ''),
+                'role' => 'medico_tratante',
+                'signedAt' => self::trimString($consent['informedAt'] ?? ''),
+            ],
+            'patientAttestation' => [
+                'signedAt' => self::trimString($consent['acceptedAt'] ?? ''),
+            ],
+            'denial' => [
+                'declinedAt' => self::trimString($consent['declinedAt'] ?? ''),
+                'notes' => self::trimString($consent['notes'] ?? ''),
+            ],
+            'revocation' => [
+                'revokedAt' => self::trimString($consent['revokedAt'] ?? ''),
+                'notes' => self::trimString($consent['notes'] ?? ''),
+                'receivedBy' => self::trimString($consent['informedBy'] ?? ''),
+            ],
+            'privateCommunicationConfirmed' => (bool) ($consent['privateCommunicationConfirmed'] ?? false),
+            'companionShareAuthorized' => (bool) ($consent['companionShareAuthorized'] ?? false),
+            'history' => [[
+                'eventId' => self::stableDerivedId('consent-history', [$draftId, $sessionId, 'legacy_bridge_seed']),
+                'type' => 'legacy_bridge_seed',
+                'status' => $status,
+                'actor' => self::trimString($consent['informedBy'] ?? ''),
+                'actorRole' => 'legacy_bridge',
+                'at' => self::trimString($consent['informedAt'] ?? $consent['acceptedAt'] ?? $now),
+                'notes' => 'Consentimiento legacy sincronizado a HCU-024.',
+            ]],
+            'createdAt' => self::trimString($consent['informedAt'] ?? $consent['acceptedAt'] ?? $now),
+            'updatedAt' => $now,
+        ], $base);
+    }
+
+    private static function hydrateConsentPacketContext(array $packet, array $draft, array $session): array
+    {
+        $normalized = self::normalizeConsentPacket($packet);
+        $sessionPatient = isset($session['patient']) && is_array($session['patient']) ? $session['patient'] : [];
+        $draftIntake = isset($draft['intake']) && is_array($draft['intake']) ? $draft['intake'] : [];
+        $admission = self::normalizeAdmission001(
+            isset($draft['admission001']) && is_array($draft['admission001']) ? $draft['admission001'] : [],
+            $sessionPatient,
+            $draftIntake,
+            ['draft' => $draft]
+        );
+        $patient = self::buildPatientMirrorFromAdmission($sessionPatient, $admission, $draftIntake);
+        $clinicianDraft = self::normalizeClinicianDraft(
+            isset($draft['clinicianDraft']) && is_array($draft['clinicianDraft']) ? $draft['clinicianDraft'] : []
+        );
+        $hcu005 = self::normalizeHcu005Draft($clinicianDraft['hcu005'] ?? []);
+
+        $updated = $normalized;
+        if (self::trimString($updated['patientName'] ?? '') === '') {
+            $updated['patientName'] = self::buildAdmissionLegalName($admission, $patient);
+        }
+        if (self::trimString($updated['patientDocumentNumber'] ?? '') === '') {
+            $updated['patientDocumentNumber'] = self::trimString($admission['identity']['documentNumber'] ?? '');
+        }
+        if (self::trimString($updated['patientRecordId'] ?? '') === '') {
+            $updated['patientRecordId'] = self::trimString($draft['patientRecordId'] ?? '');
+        }
+        if (self::trimString($updated['encounterDateTime'] ?? '') === '') {
+            $updated['encounterDateTime'] = self::trimString(
+                $draft['updatedAt'] ?? $session['updatedAt'] ?? $session['createdAt'] ?? $draft['createdAt'] ?? ''
+            );
+        }
+        if (self::trimString($updated['diagnosisLabel'] ?? '') === '') {
+            $updated['diagnosisLabel'] = self::trimString($hcu005['diagnosticImpression'] ?? '');
+        }
+        if (self::trimString($updated['diagnosisCie10'] ?? '') === '') {
+            $updated['diagnosisCie10'] = implode(', ', self::normalizeStringList($clinicianDraft['cie10Sugeridos'] ?? []));
+        }
+        if (self::trimString($updated['procedureName'] ?? '') === '') {
+            $updated['procedureName'] = self::trimString($updated['procedureLabel'] ?? '');
+        }
+        if (self::trimString($updated['procedureHowItIsDone'] ?? '') === '') {
+            $updated['procedureHowItIsDone'] = self::trimString($hcu005['careIndications'] ?? '');
+        }
+        if (self::trimString($updated['benefits'] ?? '') === '') {
+            $updated['benefits'] = self::trimString($hcu005['therapeuticPlan'] ?? '');
+        }
+        if (self::trimString($updated['professionalAttestation']['name'] ?? '') === '') {
+            $updated['professionalAttestation']['name'] = self::trimString($updated['declaration']['notes'] ?? '');
+        }
+        if (self::trimString($updated['establishmentLabel'] ?? '') === '') {
+            $updated['establishmentLabel'] = 'Consultorio privado';
+        }
+        if (self::trimString($updated['serviceLabel'] ?? '') === '') {
+            $updated['serviceLabel'] = 'Dermatologia ambulatoria';
+        }
+        if (self::trimString($updated['title'] ?? '') === '') {
+            $updated['title'] = 'Consentimiento informado HCU-form.024/2008';
+        }
+        $updated['updatedAt'] = self::trimString($updated['updatedAt'] ?? local_date('c'));
+
+        return self::normalizeConsentPacket($updated);
+    }
+
+    private static function ensureConsentFormSnapshots(array $existingSnapshots, array $packets): array
+    {
+        $snapshots = self::normalizeConsentFormSnapshots($existingSnapshots);
+        $existingKeys = [];
+        foreach ($snapshots as $snapshot) {
+            $existingKeys[] = self::trimString($snapshot['packetId'] ?? '') . '|' . self::trimString($snapshot['status'] ?? '');
+        }
+
+        foreach ($packets as $packet) {
+            $normalizedPacket = self::normalizeConsentPacket($packet);
+            $status = self::trimString($normalizedPacket['status'] ?? '');
+            if (!in_array($status, ['accepted', 'declined', 'revoked'], true)) {
+                continue;
+            }
+
+            $key = self::trimString($normalizedPacket['packetId'] ?? '') . '|' . $status;
+            if (in_array($key, $existingKeys, true)) {
+                continue;
+            }
+
+            $finalizedAt = $status === 'accepted'
+                ? self::trimString($normalizedPacket['patientAttestation']['signedAt'] ?? '')
+                : ($status === 'declined'
+                    ? self::trimString($normalizedPacket['denial']['declinedAt'] ?? '')
+                    : self::trimString($normalizedPacket['revocation']['revokedAt'] ?? ''));
+            $snapshots[] = array_merge($normalizedPacket, [
+                'snapshotId' => self::newOpaqueId('consent-form'),
+                'finalizedAt' => $finalizedAt,
+                'snapshotAt' => $finalizedAt !== '' ? $finalizedAt : local_date('c'),
+            ]);
+            $existingKeys[] = $key;
+        }
+
+        return self::normalizeConsentFormSnapshots($snapshots);
+    }
+
+    private static function consentRecordHasSubstantiveContent(array $consent): bool
+    {
+        $normalized = self::normalizeConsentRecord($consent);
+        if (($normalized['required'] ?? false) === true) {
+            return true;
+        }
+        if (!in_array($normalized['status'] ?? 'not_required', ['not_required', ''], true)) {
+            return true;
+        }
+
+        foreach ([
+            'informedBy',
+            'informedAt',
+            'explainedWhat',
+            'risksExplained',
+            'alternativesExplained',
+            'capacityAssessment',
+            'acceptedAt',
+            'declinedAt',
+            'revokedAt',
+            'notes',
+        ] as $field) {
+            if (self::trimString($normalized[$field] ?? '') !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -51,7 +51,7 @@ Lo que queda abierto ya no es la fuente oficial, sino la implementacion o parame
 | HCU-form.010A solicitud de laboratorio | Instructivo MSP octubre 2020 | solicitud formal de examenes cuando aplique | backlog ordenes diagnosticas | Pendiente |
 | HCU-form.012A solicitud de imagenologia | Instructivo MSP octubre 2020 | solicitud formal de imagenologia cuando aplique | backlog ordenes diagnosticas | Pendiente |
 | Consentimiento como proceso | A.M. 5316 | campos estructurados, no checkbox aislado | `draft.consent`, `consent` | Cubierto |
-| HCU-form.024 consentimiento informado | A.M. 5316 | consentimiento aceptado, negado o revocado con trazabilidad | `consent.status`, `acceptedAt`, `declinedAt`, `revokedAt` | Parcial |
+| HCU-form.024 consentimiento informado | A.M. 5316 | consentimiento aceptado, negado o revocado con trazabilidad por procedimiento | `consentPackets[]`, `activeConsentPacket`, `documents.consentForms[]`, bridge `consent` | Parcial: sin firma avanzada/biometrica ni PDF literal MSP |
 | Aceptacion / negativa / revocacion | A.M. 5316 | estados explicitos del consentimiento | `consent.status`, `acceptedAt`, `declinedAt`, `revokedAt` | Cubierto |
 | Quien informo / que explico / riesgos / alternativas / capacidad | A.M. 5316 | checklist narrativo estructurado | `consent.informedBy`, `explainedWhat`, `risksExplained`, `alternativesExplained`, `capacityAssessment` | Cubierto |
 | Compartir con acompanante solo con autorizacion | A.M. 5316 | disclosure controlado | `consent.companionShareAuthorized` | Cubierto |

@@ -67,7 +67,7 @@ Cerrar la Fase 0 normativa de HCE para el alcance **consultorio defendible V1** 
 | `SNS-MSP/HCU-form.007/2008` Interconsulta | Instructivo MSP 2020, anexo 9 | Aplicable cuando el consultorio emite o recibe interconsulta | `ClinicalEncounter` / documento futuro de interconsulta | Pendiente |
 | `SNS-MSP/HCU-form.010A/2008` Solicitud de laboratorio clinico | Instructivo MSP 2020, anexo 10 | Aplicable cuando el caso requiere examenes de laboratorio | modulo futuro de ordenes/solicitudes | Pendiente |
 | `SNS-MSP/HCU-form.012A/2008` Solicitud de imagenologia | Instructivo MSP 2020, anexo 11 | Aplicable cuando el caso requiere imagenologia | modulo futuro de ordenes/solicitudes | Pendiente |
-| `SNS-MSP/HCU-form.024` Consentimiento informado | A.M. 5316 y su modelo de gestion | Obligatorio cuando el procedimiento lo requiere | `ConsentRecord`, `DisclosureLog`, `ClinicalApproval` | Parcial |
+| `SNS-MSP/HCU-form.024` Consentimiento informado | A.M. 5316 y su modelo de gestion | Obligatorio cuando el procedimiento lo requiere | `ConsentRecord`, `consentPackets`, `documents.consentForms`, `DisclosureLog`, `ClinicalApproval` | Parcial: atestacion estructurada V1, sin firma avanzada/biometrica |
 
 ## Lectura honesta del estado actual
 
@@ -82,7 +82,7 @@ Cerrar la Fase 0 normativa de HCE para el alcance **consultorio defendible V1** 
 ### Parcial
 - paridad completa de `HCU-form.001`;
 - paridad completa de `HCU-form.005`;
-- formulario oficial final de `HCU-form.024`;
+- formulario oficial final de `HCU-form.024`, aun sin firma avanzada/biometrica ni replica PDF literal del MSP;
 - politica de conservacion parametrizada por tipologia exacta;
 - eliminacion formal del archivo pasivo y actas del comite de historia clinica.
 

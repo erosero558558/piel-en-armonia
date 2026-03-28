@@ -193,6 +193,91 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
                     'transitionMode' => 'new_required',
                 ],
             ],
+            'consentPackets' => [[
+                'packetId' => 'consent-admin-001',
+                'templateKey' => 'laser-dermatologico',
+                'procedureKey' => 'laser-dermatologico',
+                'procedureLabel' => 'Laser dermatologico',
+                'title' => 'Consentimiento informado HCU-form.024/2008',
+                'status' => 'draft',
+                'writtenRequired' => true,
+                'careMode' => 'ambulatorio',
+                'serviceLabel' => 'Dermatologia ambulatoria',
+                'establishmentLabel' => 'Piel Armonia',
+                'patientName' => 'Paciente Clinico',
+                'patientDocumentNumber' => '0912345678',
+                'patientRecordId' => 'hcu-chs-admin-001',
+                'encounterDateTime' => '2026-03-11T10:14:00-05:00',
+                'diagnosisLabel' => 'Rosacea en control parcial.',
+                'diagnosisCie10' => 'L71.9',
+                'procedureName' => 'Aplicacion de laser dermatologico',
+                'procedureWhatIsIt' => 'Aplicacion de energia luminica controlada.',
+                'procedureHowItIsDone' => 'Aplicacion ambulatoria por protocolo.',
+                'durationEstimate' => '20 minutos',
+                'graphicRef' => '',
+                'benefits' => 'Mejoria del cuadro cutaneo.',
+                'frequentRisks' => 'Eritema y sensibilidad local.',
+                'rareSeriousRisks' => 'Discromia persistente.',
+                'patientSpecificRisks' => '',
+                'alternatives' => 'Observacion y topicos.',
+                'postProcedureCare' => 'Fotoproteccion y control posterior.',
+                'noProcedureConsequences' => 'Persistencia del cuadro clinico.',
+                'privateCommunicationConfirmed' => true,
+                'companionShareAuthorized' => false,
+                'declaration' => [
+                    'declaredAt' => '2026-03-11T10:14:00-05:00',
+                    'patientCanConsent' => true,
+                    'capacityAssessment' => 'Paciente capaz de decidir',
+                    'notes' => '',
+                ],
+                'denial' => [
+                    'declinedAt' => '',
+                    'reason' => '',
+                    'patientRefusedSignature' => false,
+                    'notes' => '',
+                ],
+                'revocation' => [
+                    'revokedAt' => '',
+                    'receivedBy' => '',
+                    'reason' => '',
+                    'notes' => '',
+                ],
+                'patientAttestation' => [
+                    'name' => 'Paciente Clinico',
+                    'documentNumber' => '0912345678',
+                    'signedAt' => '',
+                    'refusedSignature' => false,
+                ],
+                'representativeAttestation' => [
+                    'name' => '',
+                    'kinship' => '',
+                    'documentNumber' => '',
+                    'phone' => '',
+                    'signedAt' => '',
+                ],
+                'professionalAttestation' => [
+                    'name' => 'Dra. Laura Mena',
+                    'role' => 'medico_tratante',
+                    'documentNumber' => 'MED-024',
+                    'signedAt' => '',
+                ],
+                'anesthesiologistAttestation' => [
+                    'applicable' => false,
+                    'name' => '',
+                    'documentNumber' => '',
+                    'signedAt' => '',
+                ],
+                'witnessAttestation' => [
+                    'name' => '',
+                    'documentNumber' => '',
+                    'phone' => '',
+                    'signedAt' => '',
+                ],
+                'history' => [],
+                'createdAt' => '2026-03-11T10:12:00-05:00',
+                'updatedAt' => '2026-03-11T10:16:00-05:00',
+            ]],
+            'activeConsentPacketId' => 'consent-admin-001',
             'recordMeta' => [
                 'archiveState' => 'active',
                 'lastAttentionAt' => '2020-03-10T10:00:00-05:00',
@@ -320,6 +405,10 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu005']['complete'] ?? -1));
         self::assertSame(1, (int) ($meta['summary']['drafts']['hcu005']['partial'] ?? -1));
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu005']['missing'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu024']['accepted'] ?? -1));
+        self::assertSame(1, (int) ($meta['summary']['drafts']['hcu024']['draft'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu024']['declined'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu024']['revoked'] ?? -1));
         self::assertSame('critical', (string) ($meta['summary']['diagnostics']['status'] ?? ''));
         self::assertCount(1, $meta['reviewQueue'] ?? []);
         self::assertSame('Paciente Clinico', (string) ($meta['reviewQueue'][0]['patientName'] ?? ''));
@@ -333,6 +422,8 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame('HCU-001 completa', (string) ($meta['reviewQueue'][0]['hcu001Label'] ?? ''));
         self::assertSame('partial', (string) ($meta['reviewQueue'][0]['hcu005Status'] ?? ''));
         self::assertSame('HCU-005 parcial', (string) ($meta['reviewQueue'][0]['hcu005Label'] ?? ''));
+        self::assertSame('draft', (string) ($meta['reviewQueue'][0]['hcu024Status'] ?? ''));
+        self::assertSame('HCU-024 borrador', (string) ($meta['reviewQueue'][0]['hcu024Label'] ?? ''));
         self::assertSame(1, (int) ($meta['reviewQueue'][0]['pendingCopyRequests'] ?? -1));
         self::assertSame(1, (int) ($meta['reviewQueue'][0]['overdueCopyRequests'] ?? -1));
         self::assertSame(1, (int) ($meta['reviewQueue'][0]['disclosureCount'] ?? -1));

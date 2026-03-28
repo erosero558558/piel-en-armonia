@@ -173,6 +173,103 @@ function emptyHcu005() {
     };
 }
 
+function emptyConsentPacket() {
+    return {
+        packetId: '',
+        templateKey: 'generic',
+        sourceMode: '',
+        title: 'Consentimiento informado HCU-form.024/2008',
+        procedureKey: 'generic',
+        procedureLabel: 'Consentimiento genérico',
+        status: 'draft',
+        writtenRequired: true,
+        careMode: 'ambulatorio',
+        serviceLabel: '',
+        establishmentLabel: '',
+        patientName: '',
+        patientDocumentNumber: '',
+        patientRecordId: '',
+        encounterDateTime: '',
+        diagnosisLabel: '',
+        diagnosisCie10: '',
+        procedureName: '',
+        procedureWhatIsIt: '',
+        procedureHowItIsDone: '',
+        durationEstimate: '',
+        graphicRef: '',
+        benefits: '',
+        frequentRisks: '',
+        rareSeriousRisks: '',
+        patientSpecificRisks: '',
+        alternatives: '',
+        postProcedureCare: '',
+        noProcedureConsequences: '',
+        privateCommunicationConfirmed: false,
+        companionShareAuthorized: false,
+        declaration: {
+            declaredAt: '',
+            patientCanConsent: true,
+            capacityAssessment: '',
+            notes: '',
+        },
+        denial: {
+            declinedAt: '',
+            reason: '',
+            patientRefusedSignature: false,
+            notes: '',
+        },
+        revocation: {
+            revokedAt: '',
+            receivedBy: '',
+            reason: '',
+            notes: '',
+        },
+        patientAttestation: {
+            name: '',
+            documentNumber: '',
+            signedAt: '',
+            refusedSignature: false,
+        },
+        representativeAttestation: {
+            name: '',
+            kinship: '',
+            documentNumber: '',
+            phone: '',
+            signedAt: '',
+        },
+        professionalAttestation: {
+            name: '',
+            role: 'medico_tratante',
+            documentNumber: '',
+            signedAt: '',
+        },
+        anesthesiologistAttestation: {
+            applicable: false,
+            name: '',
+            documentNumber: '',
+            signedAt: '',
+        },
+        witnessAttestation: {
+            name: '',
+            documentNumber: '',
+            phone: '',
+            signedAt: '',
+        },
+        history: [],
+        createdAt: '',
+        updatedAt: '',
+    };
+}
+
+function emptyConsentFormSnapshot() {
+    return {
+        snapshotId: '',
+        finalizedAt: '',
+        snapshotAt: '',
+        ...emptyConsentPacket(),
+    };
+}
+
 function emptyAdmission001() {
     return {
         identity: {
@@ -315,7 +412,10 @@ function emptyDraft() {
                 signedAt: '',
                 confidential: true,
             },
+            consentForms: [],
         },
+        consentPackets: [],
+        activeConsentPacketId: '',
         consent: {
             required: false,
             status: 'not_required',
@@ -382,6 +482,9 @@ function emptyReview() {
         activeEpisode: {},
         encounter: {},
         documents: cloneValue(emptyDraft().documents),
+        consentPackets: [],
+        activeConsentPacketId: '',
+        activeConsentPacket: emptyConsentPacket(),
         consent: cloneValue(emptyDraft().consent),
         approval: cloneValue(emptyDraft().approval),
         approvalState: cloneValue(emptyDraft().approval),
@@ -394,6 +497,7 @@ function emptyReview() {
             blockingReasons: [],
             hcu001Status: hcu001StatusMeta('missing'),
             hcu005Status: hcu005StatusMeta('missing'),
+            hcu024Status: hcu024StatusMeta('not_applicable'),
         },
         recordsGovernance: {},
         accessAudit: [],
@@ -950,6 +1054,572 @@ function hcu005StatusMeta(status) {
     }
 }
 
+function consentPacketTemplate(templateKey) {
+    const normalizedTemplate = normalizeString(templateKey) || 'generic';
+    const base = {
+        templateKey: normalizedTemplate,
+        title: 'Consentimiento informado HCU-form.024/2008',
+        writtenRequired: true,
+        careMode: 'ambulatorio',
+        serviceLabel: 'Dermatología ambulatoria',
+        establishmentLabel: 'Consultorio privado',
+        procedureKey: 'generic',
+        procedureLabel: 'Consentimiento genérico',
+        procedureName: 'Procedimiento ambulatorio',
+        procedureWhatIsIt: '',
+        procedureHowItIsDone: '',
+        durationEstimate: '',
+        benefits: '',
+        frequentRisks: '',
+        rareSeriousRisks: '',
+        patientSpecificRisks: '',
+        alternatives: '',
+        postProcedureCare: '',
+        noProcedureConsequences: '',
+        anesthesiologistAttestation: {
+            applicable: false,
+        },
+    };
+
+    if (normalizedTemplate === 'laser-dermatologico') {
+        return {
+            ...base,
+            procedureKey: 'laser-dermatologico',
+            procedureLabel: 'Láser dermatológico',
+            procedureName: 'Procedimiento con láser dermatológico',
+            procedureWhatIsIt:
+                'Aplicación dirigida de energía láser sobre la piel para manejo dermatológico ambulatorio.',
+            procedureHowItIsDone:
+                'Se delimita el área, se protege la zona y se aplica el láser por sesiones según criterio clínico.',
+            durationEstimate: '20 a 45 minutos según área tratada',
+            benefits:
+                'Mejoría del objetivo dermatológico indicado y manejo ambulatorio controlado.',
+            frequentRisks:
+                'Eritema, edema, ardor transitorio, costras leves o hiperpigmentación postinflamatoria.',
+            rareSeriousRisks:
+                'Quemadura, cicatriz, infección secundaria o alteraciones pigmentarias persistentes.',
+            postProcedureCare:
+                'Fotoprotección estricta, cuidado gentil de la zona y seguimiento clínico.',
+            noProcedureConsequences:
+                'Persistencia del problema dermatológico o necesidad de otras alternativas.',
+        };
+    }
+
+    if (normalizedTemplate === 'peeling-quimico') {
+        return {
+            ...base,
+            procedureKey: 'peeling-quimico',
+            procedureLabel: 'Peeling químico',
+            procedureName: 'Peeling químico ambulatorio',
+            procedureWhatIsIt:
+                'Aplicación controlada de agentes químicos sobre la piel para renovación superficial o media.',
+            procedureHowItIsDone:
+                'Se prepara la piel, se aplica el agente por tiempo definido y luego se neutraliza o retira según técnica.',
+            durationEstimate: '20 a 40 minutos según protocolo',
+            benefits:
+                'Mejoría de textura, tono, lesiones superficiales y apoyo al plan dermatológico.',
+            frequentRisks:
+                'Ardor, eritema, descamación, sensibilidad y cambios pigmentarios transitorios.',
+            rareSeriousRisks:
+                'Quemadura química, cicatriz, infección o discromías persistentes.',
+            postProcedureCare:
+                'Hidratación, fotoprotección y seguimiento según indicaciones postratamiento.',
+            noProcedureConsequences:
+                'Persistencia del problema cutáneo o necesidad de otras alternativas terapéuticas.',
+        };
+    }
+
+    if (normalizedTemplate === 'botox') {
+        return {
+            ...base,
+            procedureKey: 'botox',
+            procedureLabel: 'Botox',
+            procedureName: 'Aplicación de toxina botulínica',
+            procedureWhatIsIt:
+                'Aplicación intramuscular o intradérmica de toxina botulínica en puntos definidos.',
+            procedureHowItIsDone:
+                'Se realiza marcación anatómica y se aplica el medicamento en dosis distribuidas según plan clínico.',
+            durationEstimate: '15 a 30 minutos según zonas tratadas',
+            benefits:
+                'Mejoría funcional o estética según la indicación clínica establecida.',
+            frequentRisks:
+                'Dolor leve, hematoma, edema, asimetría transitoria o cefalea.',
+            rareSeriousRisks:
+                'Ptosis, debilidad muscular no deseada, reacción alérgica o difusión del efecto.',
+            postProcedureCare:
+                'Evitar masaje local, seguir indicaciones médicas y asistir a control si se programa.',
+            noProcedureConsequences:
+                'Persistencia del motivo de consulta o necesidad de otras alternativas terapéuticas.',
+        };
+    }
+
+    return base;
+}
+
+function normalizeConsentPacket(packet, fallback = {}) {
+    const defaults = emptyConsentPacket();
+    const safeSource = packet && typeof packet === 'object' ? packet : {};
+    const safeFallback =
+        fallback && typeof fallback === 'object' ? fallback : {};
+    const template = consentPacketTemplate(
+        safeSource.templateKey || safeFallback.templateKey || defaults.templateKey
+    );
+    const source = {
+        ...defaults,
+        ...template,
+        ...safeFallback,
+        ...safeSource,
+    };
+    const declaration =
+        source.declaration && typeof source.declaration === 'object'
+            ? source.declaration
+            : {};
+    const denial =
+        source.denial && typeof source.denial === 'object' ? source.denial : {};
+    const revocation =
+        source.revocation && typeof source.revocation === 'object'
+            ? source.revocation
+            : {};
+    const patientAttestation =
+        source.patientAttestation &&
+        typeof source.patientAttestation === 'object'
+            ? source.patientAttestation
+            : {};
+    const representativeAttestation =
+        source.representativeAttestation &&
+        typeof source.representativeAttestation === 'object'
+            ? source.representativeAttestation
+            : {};
+    const professionalAttestation =
+        source.professionalAttestation &&
+        typeof source.professionalAttestation === 'object'
+            ? source.professionalAttestation
+            : {};
+    const anesthesiologistAttestation =
+        source.anesthesiologistAttestation &&
+        typeof source.anesthesiologistAttestation === 'object'
+            ? source.anesthesiologistAttestation
+            : {};
+    const witnessAttestation =
+        source.witnessAttestation &&
+        typeof source.witnessAttestation === 'object'
+            ? source.witnessAttestation
+            : {};
+
+    return {
+        ...source,
+        packetId: normalizeString(source.packetId),
+        templateKey: normalizeString(source.templateKey || template.templateKey),
+        sourceMode: normalizeString(source.sourceMode),
+        title: normalizeString(source.title),
+        procedureKey: normalizeString(source.procedureKey),
+        procedureLabel: normalizeString(source.procedureLabel),
+        status: normalizeString(source.status || 'draft'),
+        writtenRequired: source.writtenRequired !== false,
+        careMode: normalizeString(source.careMode || 'ambulatorio'),
+        serviceLabel: normalizeString(source.serviceLabel),
+        establishmentLabel: normalizeString(source.establishmentLabel),
+        patientName: normalizeString(source.patientName),
+        patientDocumentNumber: normalizeString(source.patientDocumentNumber),
+        patientRecordId: normalizeString(source.patientRecordId),
+        encounterDateTime: normalizeString(source.encounterDateTime),
+        diagnosisLabel: normalizeString(source.diagnosisLabel),
+        diagnosisCie10: normalizeString(source.diagnosisCie10),
+        procedureName: normalizeString(source.procedureName),
+        procedureWhatIsIt: normalizeString(source.procedureWhatIsIt),
+        procedureHowItIsDone: normalizeString(source.procedureHowItIsDone),
+        durationEstimate: normalizeString(source.durationEstimate),
+        graphicRef: normalizeString(source.graphicRef),
+        benefits: normalizeString(source.benefits),
+        frequentRisks: normalizeString(source.frequentRisks),
+        rareSeriousRisks: normalizeString(source.rareSeriousRisks),
+        patientSpecificRisks: normalizeString(source.patientSpecificRisks),
+        alternatives: normalizeString(source.alternatives),
+        postProcedureCare: normalizeString(source.postProcedureCare),
+        noProcedureConsequences: normalizeString(source.noProcedureConsequences),
+        privateCommunicationConfirmed:
+            source.privateCommunicationConfirmed === true,
+        companionShareAuthorized: source.companionShareAuthorized === true,
+        declaration: {
+            declaredAt: normalizeString(declaration.declaredAt),
+            patientCanConsent:
+                declaration.patientCanConsent === undefined
+                    ? true
+                    : declaration.patientCanConsent === true,
+            capacityAssessment: normalizeString(declaration.capacityAssessment),
+            notes: normalizeString(declaration.notes),
+        },
+        denial: {
+            declinedAt: normalizeString(denial.declinedAt),
+            reason: normalizeString(denial.reason),
+            patientRefusedSignature: denial.patientRefusedSignature === true,
+            notes: normalizeString(denial.notes),
+        },
+        revocation: {
+            revokedAt: normalizeString(revocation.revokedAt),
+            receivedBy: normalizeString(revocation.receivedBy),
+            reason: normalizeString(revocation.reason),
+            notes: normalizeString(revocation.notes),
+        },
+        patientAttestation: {
+            name: normalizeString(patientAttestation.name),
+            documentNumber: normalizeString(patientAttestation.documentNumber),
+            signedAt: normalizeString(patientAttestation.signedAt),
+            refusedSignature: patientAttestation.refusedSignature === true,
+        },
+        representativeAttestation: {
+            name: normalizeString(representativeAttestation.name),
+            kinship: normalizeString(representativeAttestation.kinship),
+            documentNumber: normalizeString(
+                representativeAttestation.documentNumber
+            ),
+            phone: normalizeString(representativeAttestation.phone),
+            signedAt: normalizeString(representativeAttestation.signedAt),
+        },
+        professionalAttestation: {
+            name: normalizeString(professionalAttestation.name),
+            role:
+                normalizeString(professionalAttestation.role) ||
+                'medico_tratante',
+            documentNumber: normalizeString(
+                professionalAttestation.documentNumber
+            ),
+            signedAt: normalizeString(professionalAttestation.signedAt),
+        },
+        anesthesiologistAttestation: {
+            applicable: anesthesiologistAttestation.applicable === true,
+            name: normalizeString(anesthesiologistAttestation.name),
+            documentNumber: normalizeString(
+                anesthesiologistAttestation.documentNumber
+            ),
+            signedAt: normalizeString(anesthesiologistAttestation.signedAt),
+        },
+        witnessAttestation: {
+            name: normalizeString(witnessAttestation.name),
+            documentNumber: normalizeString(witnessAttestation.documentNumber),
+            phone: normalizeString(witnessAttestation.phone),
+            signedAt: normalizeString(witnessAttestation.signedAt),
+        },
+        history: normalizeList(source.history),
+        createdAt: normalizeString(source.createdAt),
+        updatedAt: normalizeString(source.updatedAt),
+    };
+}
+
+function normalizeConsentPackets(items) {
+    return normalizeList(items).map((item) => normalizeConsentPacket(item));
+}
+
+function normalizeConsentFormSnapshot(snapshot) {
+    const source =
+        snapshot && typeof snapshot === 'object' ? snapshot : {};
+    return {
+        ...emptyConsentFormSnapshot(),
+        ...normalizeConsentPacket(source),
+        snapshotId: normalizeString(source.snapshotId),
+        finalizedAt: normalizeString(source.finalizedAt),
+        snapshotAt: normalizeString(source.snapshotAt),
+    };
+}
+
+function normalizeConsentFormSnapshots(items) {
+    return normalizeList(items).map(normalizeConsentFormSnapshot);
+}
+
+function buildLegacyConsentFromPacket(packet, fallback = {}) {
+    const normalized = normalizeConsentPacket(packet);
+    const acceptedAt =
+        normalizeString(normalized.patientAttestation.signedAt) ||
+        normalizeString(normalized.representativeAttestation.signedAt);
+    return normalizeConsent({
+        ...fallback,
+        required: normalized.writtenRequired === true,
+        status:
+            normalizeString(normalized.status) ||
+            (normalized.writtenRequired === true
+                ? 'draft'
+                : 'not_required'),
+        informedBy: normalized.professionalAttestation.name,
+        informedAt: normalized.declaration.declaredAt,
+        explainedWhat: normalized.procedureWhatIsIt,
+        risksExplained: normalized.frequentRisks,
+        alternativesExplained: normalized.alternatives,
+        capacityAssessment: normalized.declaration.capacityAssessment,
+        privateCommunicationConfirmed:
+            normalized.privateCommunicationConfirmed === true,
+        companionShareAuthorized:
+            normalized.companionShareAuthorized === true,
+        acceptedAt,
+        declinedAt: normalized.denial.declinedAt,
+        revokedAt: normalized.revocation.revokedAt,
+        notes:
+            normalized.declaration.notes ||
+            normalized.denial.notes ||
+            normalized.revocation.notes,
+    });
+}
+
+function consentPacketHasSubstantiveContent(packet) {
+    const normalized = normalizeConsentPacket(packet);
+    return [
+        normalized.procedureName,
+        normalized.diagnosisLabel,
+        normalized.procedureWhatIsIt,
+        normalized.benefits,
+        normalized.frequentRisks,
+        normalized.alternatives,
+        normalized.status,
+    ].some(
+        (value) =>
+            normalizeString(value) !== '' &&
+            normalizeString(value) !== 'draft'
+    );
+}
+
+function evaluateConsentPacket(packet) {
+    const normalized = normalizeConsentPacket(packet);
+    const legacyBridge =
+        normalizeString(normalized.sourceMode) === 'legacy_bridge' ||
+        normalizeString(normalized.templateKey) === 'legacy-bridge';
+    const missing = [];
+    [
+        ['title', normalized.title],
+        ['establishment', normalized.establishmentLabel],
+        ['service', normalized.serviceLabel],
+        ['encounter_datetime', normalized.encounterDateTime],
+        ['record_id', normalized.patientRecordId],
+        ['patient_name', normalized.patientName],
+        ['patient_document', normalized.patientDocumentNumber],
+        ['diagnosis', normalized.diagnosisLabel],
+        ['procedure_name', normalized.procedureName],
+        ['procedure_what_is_it', normalized.procedureWhatIsIt],
+        ['procedure_how', normalized.procedureHowItIsDone],
+        ['frequent_risks', normalized.frequentRisks],
+        ['alternatives', normalized.alternatives],
+        ['professional_attestation', normalized.professionalAttestation.name],
+    ].forEach(([key, value]) => {
+        if (!normalizeString(value)) {
+            missing.push(key);
+        }
+    });
+    if (!legacyBridge) {
+        [
+            ['duration', normalized.durationEstimate],
+            ['benefits', normalized.benefits],
+            ['rare_serious_risks', normalized.rareSeriousRisks],
+            ['patient_specific_risks', normalized.patientSpecificRisks],
+            ['post_procedure_care', normalized.postProcedureCare],
+            [
+                'no_procedure_consequences',
+                normalized.noProcedureConsequences,
+            ],
+        ].forEach(([key, value]) => {
+            if (!normalizeString(value)) {
+                missing.push(key);
+            }
+        });
+    }
+    if (normalized.declaration.patientCanConsent !== true) {
+        [
+            ['representative_name', normalized.representativeAttestation.name],
+            [
+                'representative_document',
+                normalized.representativeAttestation.documentNumber,
+            ],
+            [
+                'representative_phone',
+                normalized.representativeAttestation.phone,
+            ],
+            [
+                'representative_kinship',
+                normalized.representativeAttestation.kinship,
+            ],
+        ].forEach(([key, value]) => {
+            if (!normalizeString(value)) {
+                missing.push(key);
+            }
+        });
+    }
+    if (normalized.anesthesiologistAttestation.applicable === true) {
+        if (!normalizeString(normalized.anesthesiologistAttestation.name)) {
+            missing.push('anesthesiologist_name');
+        }
+        if (
+            !normalizeString(
+                normalized.anesthesiologistAttestation.documentNumber
+            )
+        ) {
+            missing.push('anesthesiologist_document');
+        }
+    }
+
+    const readyForDeclaration = missing.length === 0;
+    const signedAt =
+        normalizeString(normalized.patientAttestation.signedAt) ||
+        normalizeString(normalized.representativeAttestation.signedAt);
+    let status = readyForDeclaration ? 'ready_for_declaration' : 'incomplete';
+    if (normalizeString(normalized.status) === 'accepted') {
+        status =
+            readyForDeclaration && signedAt ? 'accepted' : 'incomplete';
+    } else if (normalizeString(normalized.status) === 'declined') {
+        const witnessReady =
+            normalizeString(normalized.witnessAttestation.name) &&
+            normalizeString(normalized.witnessAttestation.documentNumber);
+        if (
+            normalized.denial.patientRefusedSignature === true &&
+            !witnessReady
+        ) {
+            missing.push('witness_attestation');
+            status = 'incomplete';
+        } else {
+            status = normalizeString(normalized.denial.declinedAt)
+                ? 'declined'
+                : 'incomplete';
+        }
+    } else if (normalizeString(normalized.status) === 'revoked') {
+        status =
+            normalizeString(normalized.revocation.revokedAt) &&
+            normalizeString(normalized.revocation.receivedBy)
+                ? 'revoked'
+                : 'incomplete';
+    } else if (normalizeString(normalized.status) === 'draft') {
+        status = readyForDeclaration ? 'ready_for_declaration' : 'draft';
+    }
+
+    return {
+        status,
+        readyForDeclaration,
+        missingFields: Array.from(new Set(missing)),
+    };
+}
+
+function hcu024StatusMeta(status) {
+    switch (normalizeString(status)) {
+        case 'accepted':
+            return {
+                status: 'accepted',
+                label: 'HCU-024 aceptado',
+                summary:
+                    'El consentimiento escrito por procedimiento ya quedó aceptado.',
+            };
+        case 'ready_for_declaration':
+            return {
+                status: 'ready_for_declaration',
+                label: 'HCU-024 lista para declarar',
+                summary:
+                    'El formulario ya cubre los bloques obligatorios y está listo para declarar.',
+            };
+        case 'declined':
+            return {
+                status: 'declined',
+                label: 'HCU-024 negado',
+                summary:
+                    'Existe una negativa registrada para el procedimiento escrito.',
+            };
+        case 'revoked':
+            return {
+                status: 'revoked',
+                label: 'HCU-024 revocado',
+                summary:
+                    'El consentimiento escrito fue revocado y exige reconciliar la indicación.',
+            };
+        case 'draft':
+            return {
+                status: 'draft',
+                label: 'HCU-024 borrador',
+                summary:
+                    'Existe un consentimiento por procedimiento aún en borrador.',
+            };
+        case 'incomplete':
+            return {
+                status: 'incomplete',
+                label: 'HCU-024 incompleto',
+                summary:
+                    'El consentimiento por procedimiento todavía no cubre todos los campos del formulario.',
+            };
+        default:
+            return {
+                status: 'not_applicable',
+                label: 'HCU-024 no aplica',
+                summary:
+                    'No hay consentimiento escrito por procedimiento exigible para este episodio.',
+            };
+    }
+}
+
+function resolveClinicProfileDisplay() {
+    const profile =
+        getState()?.data?.turneroClinicProfile &&
+        typeof getState().data.turneroClinicProfile === 'object'
+            ? getState().data.turneroClinicProfile
+            : {};
+    return {
+        establishmentLabel: normalizeString(
+            profile?.branding?.name ||
+                profile?.branding?.short_name ||
+                profile?.clinic_name ||
+                profile?.clinicName ||
+                'Consultorio privado'
+        ),
+        serviceLabel: normalizeString(
+            profile?.services?.defaultLabel ||
+                profile?.serviceLabel ||
+                'Dermatología ambulatoria'
+        ),
+    };
+}
+
+function deriveConsentPacketContext(packet, draft, fallbackPatient = {}) {
+    const normalized = normalizeConsentPacket(packet);
+    const admission = normalizeAdmission001(
+        draft?.admission001,
+        fallbackPatient,
+        draft?.intake
+    );
+    const patient = normalizePatient(fallbackPatient);
+    const clinic = resolveClinicProfileDisplay();
+
+    return normalizeConsentPacket(
+        {
+            ...normalized,
+            title:
+                normalized.title ||
+                'Consentimiento informado HCU-form.024/2008',
+            establishmentLabel:
+                normalized.establishmentLabel || clinic.establishmentLabel,
+            serviceLabel: normalized.serviceLabel || clinic.serviceLabel,
+            patientName:
+                normalized.patientName ||
+                buildAdmissionLegalName(admission, patient),
+            patientDocumentNumber:
+                normalized.patientDocumentNumber ||
+                normalizeString(admission.identity.documentNumber),
+            patientRecordId:
+                normalized.patientRecordId || normalizeString(draft.patientRecordId),
+            encounterDateTime:
+                normalized.encounterDateTime ||
+                normalizeString(
+                    draft.updatedAt || draft.createdAt || admission?.admissionMeta?.admissionDate
+                ),
+            diagnosisLabel:
+                normalized.diagnosisLabel ||
+                normalizeString(draft?.clinicianDraft?.hcu005?.diagnosticImpression),
+            diagnosisCie10:
+                normalized.diagnosisCie10 ||
+                normalizeStringList(draft?.clinicianDraft?.cie10Sugeridos).join(
+                    ', '
+                ),
+            procedureHowItIsDone:
+                normalized.procedureHowItIsDone ||
+                normalizeString(draft?.clinicianDraft?.hcu005?.careIndications),
+            benefits:
+                normalized.benefits ||
+                normalizeString(draft?.clinicianDraft?.hcu005?.therapeuticPlan),
+        },
+        consentPacketTemplate(normalized.templateKey)
+    );
+}
+
 function normalizeDocuments(documents) {
     const defaults = emptyDraft().documents;
     const source = documents && typeof documents === 'object' ? documents : {};
@@ -983,6 +1653,7 @@ function normalizeDocuments(documents) {
     const content = renderHcu005Content(hcu005);
     const medication = renderPrescriptionMedicationMirror(prescriptionItems);
     const directions = renderPrescriptionDirectionsMirror(prescriptionItems);
+    const consentForms = normalizeConsentFormSnapshots(source?.consentForms);
 
     return {
         finalNote: {
@@ -1035,6 +1706,7 @@ function normalizeDocuments(documents) {
             signedAt: normalizeString(source?.certificate?.signedAt),
             confidential: source?.certificate?.confidential !== false,
         },
+        consentForms,
     };
 }
 
@@ -1273,6 +1945,7 @@ function normalizeLegalReadiness(readiness) {
         ),
         hcu001Status: hcu001StatusMeta(source?.hcu001Status?.status),
         hcu005Status: hcu005StatusMeta(source?.hcu005Status?.status),
+        hcu024Status: hcu024StatusMeta(source?.hcu024Status?.status),
     };
 }
 
@@ -1370,6 +2043,8 @@ function normalizeDraftSnapshot(draft) {
                   }
                 : cloneValue(defaults.recordMeta),
         documents: normalizedDocuments,
+        consentPackets: normalizeConsentPackets(source.consentPackets),
+        activeConsentPacketId: normalizeString(source.activeConsentPacketId),
         consent: normalizeConsent(source.consent),
         approval: normalizeApproval(source.approval),
         pendingAi:
@@ -1521,6 +2196,24 @@ function synchronizeDraftClinicalState(draft) {
             ),
         },
     });
+    const packets = normalizeConsentPackets(snapshot.consentPackets).map(
+        (packet) =>
+            deriveConsentPacketContext(packet, snapshot, normalizePatient({}))
+    );
+    let activeConsentPacketId = normalizeString(snapshot.activeConsentPacketId);
+    if (!activeConsentPacketId && packets.length > 0) {
+        activeConsentPacketId = normalizeString(packets[0].packetId);
+    }
+    let activePacket = packets.find(
+        (packet) => normalizeString(packet.packetId) === activeConsentPacketId
+    );
+    if (!activePacket && packets.length > 0) {
+        activePacket = packets[0];
+        activeConsentPacketId = normalizeString(activePacket.packetId);
+    }
+    const consent = activePacket
+        ? buildLegacyConsentFromPacket(activePacket, snapshot.consent)
+        : normalizeConsent(snapshot.consent);
 
     return {
         ...snapshot,
@@ -1531,6 +2224,9 @@ function synchronizeDraftClinicalState(draft) {
             datosPaciente: patientFacts,
         },
         documents,
+        consentPackets: packets,
+        activeConsentPacketId,
+        consent,
     };
 }
 
@@ -1587,6 +2283,9 @@ function normalizeReviewQueueItem(item) {
         hcu005Status: normalizeString(source.hcu005Status || 'missing'),
         hcu005Label: normalizeString(source.hcu005Label),
         hcu005Summary: normalizeString(source.hcu005Summary),
+        hcu024Status: normalizeString(source.hcu024Status || 'not_applicable'),
+        hcu024Label: normalizeString(source.hcu024Label),
+        hcu024Summary: normalizeString(source.hcu024Summary),
         approvalBlockedReasons: normalizeList(source.approvalBlockedReasons),
         summary: normalizeString(source.summary),
         createdAt: normalizeString(source.createdAt),
@@ -1660,6 +2359,21 @@ function normalizeReviewPayload(payload) {
             : {};
     review.documents = normalizeDocuments(
         source.documents || review.draft.documents
+    );
+    review.consentPackets = normalizeConsentPackets(
+        source.consentPackets || review.draft.consentPackets
+    );
+    review.activeConsentPacketId = normalizeString(
+        source.activeConsentPacketId || review.draft.activeConsentPacketId
+    );
+    review.activeConsentPacket = normalizeConsentPacket(
+        source.activeConsentPacket ||
+            review.consentPackets.find(
+                (packet) =>
+                    normalizeString(packet.packetId) ===
+                    review.activeConsentPacketId
+            ) ||
+            {}
     );
     review.consent = normalizeConsent(source.consent || review.draft.consent);
     review.approval = normalizeApproval(
@@ -2079,6 +2793,7 @@ function buildSummaryCards(review) {
         .join(' ');
     const hcu001Status = hcu001StatusMeta(readiness.hcu001Status?.status);
     const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
+    const hcu024Status = hcu024StatusMeta(readiness.hcu024Status?.status);
     const pendingAiStatus = formatPendingAiStatus(
         review.session.pendingAi?.status || draft.pendingAi?.status
     );
@@ -2133,6 +2848,19 @@ function buildSummaryCards(review) {
                 hcu005Status.status === 'complete'
                     ? 'success'
                     : hcu005Status.status === 'partial'
+                        ? 'warning'
+                      : 'neutral',
+        },
+        {
+            title: 'HCU-024',
+            value: hcu024Status.label,
+            meta: hcu024Status.summary,
+            tone:
+                hcu024Status.status === 'accepted'
+                    ? 'success'
+                    : ['declined', 'revoked', 'incomplete'].includes(
+                            hcu024Status.status
+                        )
                       ? 'warning'
                       : 'neutral',
         },
@@ -2170,19 +2898,6 @@ function buildSummaryCards(review) {
             meta:
                 formatPatientFacts(patient, draft.intake) ||
                 'Sin datos clinicos base',
-        },
-        {
-            title: 'Consentimiento',
-            value: normalizeString(review.consent?.status || 'not_required'),
-            meta:
-                review.consent?.required === true
-                    ? 'Consentimiento exigible para este episodio'
-                    : 'No exigible en este episodio',
-            tone:
-                review.consent?.required === true &&
-                normalizeString(review.consent?.status) !== 'accepted'
-                    ? 'warning'
-                    : 'success',
         },
         {
             title: 'Actividad',
@@ -2262,6 +2977,7 @@ function buildLegalReadinessPanel(review) {
     const readiness = normalizeLegalReadiness(review.legalReadiness);
     const hcu001Status = hcu001StatusMeta(readiness.hcu001Status?.status);
     const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
+    const hcu024Status = hcu024StatusMeta(readiness.hcu024Status?.status);
     const checklist = normalizeList(readiness.checklist);
 
     if (checklist.length === 0) {
@@ -2294,6 +3010,9 @@ function buildLegalReadinessPanel(review) {
                     </span>
                     <span class="clinical-history-mini-chip">
                         ${escapeHtml(hcu005Status.label)}
+                    </span>
+                    <span class="clinical-history-mini-chip">
+                        ${escapeHtml(hcu024Status.label)}
                     </span>
                 </div>
             </header>
@@ -2844,7 +3563,13 @@ function reviewQueueMatchesFilter(item, filter) {
             return normalizeString(item.legalReadinessStatus) === 'ready';
         case 'consent':
             return normalizeList(item.approvalBlockedReasons).some((reason) =>
-                ['consent_incomplete', 'consent_revoked'].includes(
+                [
+                    'consent_incomplete',
+                    'consent_revoked',
+                    'hcu024_consent_incomplete',
+                    'hcu024_consent_revoked',
+                    'hcu024_consent_declined',
+                ].includes(
                     normalizeString(reason?.code)
                 )
             );
@@ -2957,6 +3682,7 @@ function buildQueueItemChips(item, status) {
         item.legalReadinessStatus === 'ready' ? 'Lista para aprobar' : '',
         item.hcu001Label || '',
         item.hcu005Label || '',
+        item.hcu024Label || '',
         formatConfidence(item.confidence),
         queueAlertMeta(item),
         item.attachmentCount > 0 ? `${item.attachmentCount} adjunto(s)` : '',
@@ -3210,6 +3936,9 @@ function buildDraftMetaText(slice, review, draft) {
     const admissionKindLabel = formatAdmissionKindLabel(
         admission.admissionMeta.admissionKind
     );
+    const hcu024Status = hcu024StatusMeta(
+        normalizeLegalReadiness(review.legalReadiness).hcu024Status?.status
+    );
 
     if (slice.saving) {
         return 'Guardando borrador clinico...';
@@ -3229,6 +3958,7 @@ function buildDraftMetaText(slice, review, draft) {
             ? `Ultima actualizacion ${readableTimestamp(draft.updatedAt)}`
             : '',
         hcu001Status.label,
+        hcu024Status.label,
         admissionKindLabel,
     ].filter(Boolean);
 
@@ -3244,6 +3974,7 @@ function buildDraftSummaryText(review, draft) {
     );
     const hcu001Status = hcu001StatusMeta(readiness.hcu001Status?.status);
     const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
+    const hcu024Status = hcu024StatusMeta(readiness.hcu024Status?.status);
     const documentLabel = [
         normalizeString(admission.identity.documentType),
         normalizeString(admission.identity.documentNumber),
@@ -3257,6 +3988,7 @@ function buildDraftSummaryText(review, draft) {
               documentLabel,
               hcu001Status.label,
               hcu005Status.label,
+              hcu024Status.label,
               readiness.label || formatReviewStatus(draft.reviewStatus),
           ]
               .filter(Boolean)
@@ -3288,6 +4020,9 @@ function buildClinicalHeaderMetaText(review) {
     const hcu001Status = hcu001StatusMeta(
         normalizeLegalReadiness(review.legalReadiness).hcu001Status?.status
     );
+    const hcu024Status = hcu024StatusMeta(
+        normalizeLegalReadiness(review.legalReadiness).hcu024Status?.status
+    );
     const headerMeta = [
         review.session.caseId ? `Caso ${review.session.caseId}` : '',
         review.session.surface || '',
@@ -3299,6 +4034,7 @@ function buildClinicalHeaderMetaText(review) {
         admission.residence.phone ? `Tel. ${admission.residence.phone}` : '',
         formatAdmissionKindLabel(admission.admissionMeta.admissionKind),
         hcu001Status.label,
+        hcu024Status.label,
     ]
         .filter(Boolean)
         .join(' • ');
@@ -3319,10 +4055,15 @@ function buildClinicalStatusMetaText(draft, pendingAiStatus, meta) {
     const hcu005Status = hcu005StatusMeta(
         evaluateHcu005(draft.clinicianDraft.hcu005).status
     );
+    const hcu024Status = hcu024StatusMeta(
+        normalizeLegalReadiness(currentReviewSource().legalReadiness).hcu024Status
+            ?.status
+    );
     const statusMeta = [
         pendingAiStatus,
         hcu001Status.label,
         hcu005Status.label,
+        hcu024Status.label,
         draft.requiresHumanReview
             ? 'Firma humana requerida'
             : 'Pendiente de aprobacion final',
@@ -4137,102 +4878,554 @@ function buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons) {
     );
 }
 
-function buildClinicalHistoryConsentSection(draft, disabled) {
+function buildConsentPacketChip(packet, activePacketId, disabled) {
+    const normalized = normalizeConsentPacket(packet);
+    const status = hcu024StatusMeta(evaluateConsentPacket(normalized).status);
+    const isActive =
+        normalizeString(normalized.packetId) === normalizeString(activePacketId);
+
+    return `
+        <button
+            type="button"
+            class="clinical-history-workspace-tab${isActive ? ' is-active' : ''}"
+            data-clinical-draft-action="select-consent-packet-local"
+            data-packet-id="${escapeHtml(normalized.packetId)}"
+            ${disabled ? 'disabled' : ''}
+        >
+            <strong>${escapeHtml(
+                normalized.procedureLabel || 'Consentimiento'
+            )}</strong>
+            <small>${escapeHtml(status.label)}</small>
+        </button>
+    `;
+}
+
+function buildClinicalHistoryConsentSection(review, draft, disabled) {
+    const packets = normalizeConsentPackets(draft.consentPackets);
+    const activePacketId = normalizeString(draft.activeConsentPacketId);
+    const activePacket =
+        packets.find(
+            (packet) => normalizeString(packet.packetId) === activePacketId
+        ) || null;
+    const hydratedPacket = activePacket
+        ? deriveConsentPacketContext(activePacket, draft, review.session.patient)
+        : null;
+    const activeStatus = hcu024StatusMeta(
+        hydratedPacket ? evaluateConsentPacket(hydratedPacket).status : 'not_applicable'
+    );
+    const consentForms = normalizeConsentFormSnapshots(
+        draft.documents.consentForms
+    );
+
     return buildClinicalHistorySection(
-        'Consentimiento informado',
-        'Registro del proceso de comunicacion y deliberacion del episodio.',
+        'Consentimiento HCU-form.024/2008',
+        'Consentimientos escritos por procedimiento, con bridge legacy hacia el consentimiento activo.',
         `
-                ${checkboxField(
-                    'consent_required',
-                    'Este episodio exige consentimiento informado',
-                    draft.consent.required === true,
-                    {
-                        hint: 'Activa el bloqueo legal hasta que el consentimiento quede aceptado.',
-                        disabled,
-                    }
-                )}
-                ${selectField(
-                    'consent_status',
-                    'Estado del consentimiento',
-                    draft.consent.status,
-                    [
-                        { value: 'not_required', label: 'No requerido' },
-                        { value: 'pending', label: 'Pendiente' },
-                        { value: 'accepted', label: 'Aceptado' },
-                        { value: 'declined', label: 'Negado' },
-                        { value: 'revoked', label: 'Revocado' },
-                    ],
-                    { disabled }
-                )}
-                ${buildClinicalHistoryInlineGrid([
-                    inputField(
-                        'consent_informed_by',
-                        'Quien informo',
-                        draft.consent.informedBy,
-                        {
-                            placeholder: 'Profesional responsable',
-                            disabled,
-                        }
-                    ),
-                    inputField(
-                        'consent_informed_at',
-                        'Fecha/hora',
-                        draft.consent.informedAt,
-                        {
-                            placeholder: '2026-03-26T20:00:00-05:00',
-                            disabled,
-                        }
-                    ),
-                ])}
-                ${buildClinicalHistoryInlineGrid([
-                    textareaField(
-                        'consent_explained_what',
-                        'Que se explico',
-                        draft.consent.explainedWhat,
-                        { rows: 4, disabled }
-                    ),
-                    textareaField(
-                        'consent_risks_explained',
-                        'Riesgos explicados',
-                        draft.consent.risksExplained,
-                        { rows: 4, disabled }
-                    ),
-                ])}
-                ${buildClinicalHistoryInlineGrid([
-                    textareaField(
-                        'consent_alternatives_explained',
-                        'Alternativas explicadas',
-                        draft.consent.alternativesExplained,
-                        { rows: 4, disabled }
-                    ),
-                    textareaField(
-                        'consent_capacity_assessment',
-                        'Capacidad para decidir',
-                        draft.consent.capacityAssessment,
-                        { rows: 4, disabled }
-                    ),
-                ])}
-                ${checkboxField(
-                    'consent_private_communication_confirmed',
-                    'La comunicacion se realizo en entorno privado',
-                    draft.consent.privateCommunicationConfirmed === true,
-                    { disabled }
-                )}
-                ${checkboxField(
-                    'consent_companion_share_authorized',
-                    'Hay autorizacion para compartir con acompanante',
-                    draft.consent.companionShareAuthorized === true,
-                    { disabled }
-                )}
-                ${textareaField(
-                    'consent_notes',
-                    'Notas de consentimiento',
-                    draft.consent.notes,
-                    {
-                        rows: 3,
-                        disabled,
-                    }
-                )}
+                <input
+                    type="hidden"
+                    id="consent_active_packet_id"
+                    name="consent_active_packet_id"
+                    value="${escapeHtml(activePacketId)}"
+                />
+                <div class="clinical-history-summary-grid">
+                    ${summaryStatCard(
+                        'HCU-024',
+                        activeStatus.label,
+                        activeStatus.summary,
+                        activeStatus.status === 'accepted'
+                            ? 'success'
+                            : ['declined', 'revoked', 'incomplete'].includes(
+                                    activeStatus.status
+                                )
+                              ? 'warning'
+                              : 'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Paciente',
+                        hydratedPacket?.patientName ||
+                            buildAdmissionLegalName(
+                                draft.admission001,
+                                review.session.patient
+                            ) ||
+                            'Sin paciente',
+                        hydratedPacket?.patientDocumentNumber ||
+                            normalizeString(
+                                draft.admission001.identity.documentNumber
+                            ) ||
+                            'Sin documento',
+                        'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Establecimiento',
+                        hydratedPacket?.establishmentLabel ||
+                            resolveClinicProfileDisplay().establishmentLabel,
+                        hydratedPacket?.serviceLabel ||
+                            resolveClinicProfileDisplay().serviceLabel,
+                        'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Snapshots',
+                        String(consentForms.length),
+                        consentForms.length > 0
+                            ? 'Snapshots documentales inmutables del episodio'
+                            : 'Todavía no hay snapshots HCU-024 emitidos',
+                        consentForms.length > 0 ? 'success' : 'neutral'
+                    )}
+                </div>
+                <div class="toolbar-row clinical-history-actions-row">
+                    <button
+                        type="button"
+                        data-clinical-draft-action="create-consent-packet-local"
+                        data-template-key="laser-dermatologico"
+                        ${disabled ? 'disabled' : ''}
+                    >
+                        Láser dermatológico
+                    </button>
+                    <button
+                        type="button"
+                        data-clinical-draft-action="create-consent-packet-local"
+                        data-template-key="peeling-quimico"
+                        ${disabled ? 'disabled' : ''}
+                    >
+                        Peeling químico
+                    </button>
+                    <button
+                        type="button"
+                        data-clinical-draft-action="create-consent-packet-local"
+                        data-template-key="botox"
+                        ${disabled ? 'disabled' : ''}
+                    >
+                        Botox
+                    </button>
+                    <button
+                        type="button"
+                        data-clinical-draft-action="create-consent-packet-local"
+                        data-template-key="generic"
+                        ${disabled ? 'disabled' : ''}
+                    >
+                        Consentimiento genérico
+                    </button>
+                </div>
+                <div class="toolbar-row clinical-history-actions-row">
+                    ${packets
+                        .map((packet) =>
+                            buildConsentPacketChip(
+                                packet,
+                                activePacketId,
+                                disabled
+                            )
+                        )
+                        .join('')}
+                </div>
+                ${
+                    !hydratedPacket
+                        ? buildEmptyClinicalCard(
+                              'Sin consentimiento activo',
+                              'Crea un consentimiento por procedimiento para empezar el HCU-024 del episodio.'
+                          )
+                        : `
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'consent_packet_title',
+                                    'Título del formulario',
+                                    hydratedPacket.title,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_care_mode',
+                                    'Tipo de atención',
+                                    hydratedPacket.careMode,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'consent_packet_service_label',
+                                    'Servicio',
+                                    hydratedPacket.serviceLabel,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'consent_packet_establishment_label',
+                                    'Establecimiento',
+                                    hydratedPacket.establishmentLabel,
+                                    { disabled: true }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'consent_packet_patient_name',
+                                    'Paciente',
+                                    hydratedPacket.patientName,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'consent_packet_patient_document',
+                                    'Documento / HCU',
+                                    `${
+                                        hydratedPacket.patientDocumentNumber || ''
+                                    } ${
+                                        hydratedPacket.patientRecordId || ''
+                                    }`.trim(),
+                                    { disabled: true }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'consent_packet_encounter_datetime',
+                                    'Fecha/hora',
+                                    hydratedPacket.encounterDateTime,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'consent_packet_diagnosis_cie10',
+                                    'CIE-10',
+                                    hydratedPacket.diagnosisCie10,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'consent_packet_diagnosis_label',
+                                    'Diagnóstico principal',
+                                    hydratedPacket.diagnosisLabel,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_procedure_name',
+                                    'Procedimiento',
+                                    hydratedPacket.procedureName,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                textareaField(
+                                    'consent_packet_procedure_what_is_it',
+                                    'En qué consiste',
+                                    hydratedPacket.procedureWhatIsIt,
+                                    { rows: 4, disabled }
+                                ),
+                                textareaField(
+                                    'consent_packet_procedure_how',
+                                    'Cómo se realiza',
+                                    hydratedPacket.procedureHowItIsDone,
+                                    { rows: 4, disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'consent_packet_duration_estimate',
+                                    'Duración estimada',
+                                    hydratedPacket.durationEstimate,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_graphic_ref',
+                                    'Referencia gráfica',
+                                    hydratedPacket.graphicRef,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                textareaField(
+                                    'consent_packet_benefits',
+                                    'Beneficios',
+                                    hydratedPacket.benefits,
+                                    { rows: 4, disabled }
+                                ),
+                                textareaField(
+                                    'consent_packet_frequent_risks',
+                                    'Riesgos frecuentes',
+                                    hydratedPacket.frequentRisks,
+                                    { rows: 4, disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                textareaField(
+                                    'consent_packet_rare_serious_risks',
+                                    'Riesgos poco frecuentes graves',
+                                    hydratedPacket.rareSeriousRisks,
+                                    { rows: 4, disabled }
+                                ),
+                                textareaField(
+                                    'consent_packet_patient_specific_risks',
+                                    'Riesgos específicos del paciente',
+                                    hydratedPacket.patientSpecificRisks,
+                                    { rows: 4, disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                textareaField(
+                                    'consent_packet_alternatives',
+                                    'Alternativas',
+                                    hydratedPacket.alternatives,
+                                    { rows: 4, disabled }
+                                ),
+                                textareaField(
+                                    'consent_packet_post_procedure_care',
+                                    'Manejo posterior',
+                                    hydratedPacket.postProcedureCare,
+                                    { rows: 4, disabled }
+                                ),
+                            ])}
+                            ${textareaField(
+                                'consent_packet_no_procedure_consequences',
+                                'Consecuencias de no realizarlo',
+                                hydratedPacket.noProcedureConsequences,
+                                { rows: 3, disabled }
+                            )}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'consent_packet_declared_at',
+                                    'Fecha/hora de información',
+                                    hydratedPacket.declaration.declaredAt,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_professional_name',
+                                    'Profesional tratante',
+                                    hydratedPacket.professionalAttestation.name,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_professional_document',
+                                    'Documento profesional',
+                                    hydratedPacket.professionalAttestation
+                                        .documentNumber,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_professional_signed_at',
+                                    'Firma profesional',
+                                    hydratedPacket.professionalAttestation
+                                        .signedAt,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                textareaField(
+                                    'consent_packet_capacity_assessment',
+                                    'Capacidad para decidir',
+                                    hydratedPacket.declaration.capacityAssessment,
+                                    { rows: 3, disabled }
+                                ),
+                                textareaField(
+                                    'consent_packet_declaration_notes',
+                                    'Notas de declaración',
+                                    hydratedPacket.declaration.notes,
+                                    { rows: 3, disabled }
+                                ),
+                            ])}
+                            ${checkboxField(
+                                'consent_packet_patient_can_consent',
+                                'El paciente puede consentir por sí mismo',
+                                hydratedPacket.declaration.patientCanConsent !== false,
+                                { disabled }
+                            )}
+                            ${checkboxField(
+                                'consent_packet_private_communication_confirmed',
+                                'La comunicación ocurrió en entorno privado',
+                                hydratedPacket.privateCommunicationConfirmed ===
+                                    true,
+                                { disabled }
+                            )}
+                            ${checkboxField(
+                                'consent_packet_companion_share_authorized',
+                                'Hay autorización para compartir con acompañante',
+                                hydratedPacket.companionShareAuthorized === true,
+                                { disabled }
+                            )}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'consent_packet_patient_attestation_name',
+                                    'Paciente compareciente',
+                                    hydratedPacket.patientAttestation.name,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_patient_attestation_document',
+                                    'Documento del paciente',
+                                    hydratedPacket.patientAttestation
+                                        .documentNumber,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_patient_attestation_signed_at',
+                                    'Fecha de firma del paciente',
+                                    hydratedPacket.patientAttestation.signedAt,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'consent_packet_representative_name',
+                                    'Representante',
+                                    hydratedPacket.representativeAttestation.name,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_representative_kinship',
+                                    'Parentesco',
+                                    hydratedPacket.representativeAttestation.kinship,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_representative_document',
+                                    'Documento representante',
+                                    hydratedPacket.representativeAttestation.documentNumber,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_representative_phone',
+                                    'Teléfono representante',
+                                    hydratedPacket.representativeAttestation.phone,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_representative_signed_at',
+                                    'Firma representante',
+                                    hydratedPacket.representativeAttestation
+                                        .signedAt,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${checkboxField(
+                                'consent_packet_patient_attestation_refused_signature',
+                                'El paciente se negó a firmar la declaración',
+                                hydratedPacket.patientAttestation
+                                    .refusedSignature === true,
+                                { disabled }
+                            )}
+                            ${checkboxField(
+                                'consent_packet_denial_refused_signature',
+                                'Si hay negativa, el paciente se niega a firmarla',
+                                hydratedPacket.denial.patientRefusedSignature ===
+                                    true,
+                                { disabled }
+                            )}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'consent_packet_denial_declined_at',
+                                    'Fecha/hora de negativa',
+                                    hydratedPacket.denial.declinedAt,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_denial_reason',
+                                    'Razón de negativa',
+                                    hydratedPacket.denial.reason,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_witness_name',
+                                    'Testigo',
+                                    hydratedPacket.witnessAttestation.name,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_witness_document',
+                                    'Documento testigo',
+                                    hydratedPacket.witnessAttestation.documentNumber,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_witness_phone',
+                                    'Teléfono testigo',
+                                    hydratedPacket.witnessAttestation.phone,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_witness_signed_at',
+                                    'Firma testigo',
+                                    hydratedPacket.witnessAttestation.signedAt,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${textareaField(
+                                'consent_packet_denial_notes',
+                                'Notas de negativa',
+                                hydratedPacket.denial.notes,
+                                { rows: 3, disabled }
+                            )}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'consent_packet_revocation_revoked_at',
+                                    'Fecha/hora de revocatoria',
+                                    hydratedPacket.revocation.revokedAt,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_revocation_received_by',
+                                    'Profesional que recibe revocatoria',
+                                    hydratedPacket.revocation.receivedBy,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_revocation_reason',
+                                    'Razón de revocatoria',
+                                    hydratedPacket.revocation.reason,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${textareaField(
+                                'consent_packet_revocation_notes',
+                                'Notas de revocatoria',
+                                hydratedPacket.revocation.notes,
+                                { rows: 3, disabled }
+                            )}
+                            ${checkboxField(
+                                'consent_packet_anesthesiologist_applicable',
+                                'Requiere comparecencia de anestesiología',
+                                hydratedPacket.anesthesiologistAttestation
+                                    .applicable === true,
+                                { disabled }
+                            )}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'consent_packet_anesthesiologist_name',
+                                    'Anestesiólogo',
+                                    hydratedPacket.anesthesiologistAttestation.name,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_anesthesiologist_document',
+                                    'Documento anestesiólogo',
+                                    hydratedPacket.anesthesiologistAttestation.documentNumber,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'consent_packet_anesthesiologist_signed_at',
+                                    'Firma anestesiología',
+                                    hydratedPacket.anesthesiologistAttestation
+                                        .signedAt,
+                                    { disabled }
+                                ),
+                            ])}
+                            <div class="toolbar-row clinical-history-actions-row">
+                                <button
+                                    type="button"
+                                    data-clinical-review-action="declare-current-consent"
+                                    ${disabled ? 'disabled' : ''}
+                                >
+                                    Declarar consentimiento
+                                </button>
+                                <button
+                                    type="button"
+                                    data-clinical-review-action="deny-current-consent"
+                                    ${disabled ? 'disabled' : ''}
+                                >
+                                    Registrar negativa
+                                </button>
+                                <button
+                                    type="button"
+                                    data-clinical-review-action="revoke-current-consent"
+                                    ${disabled ? 'disabled' : ''}
+                                >
+                                    Registrar revocatoria
+                                </button>
+                            </div>
+                        `
+                }
             `
     );
 }
@@ -4296,7 +5489,7 @@ function buildDraftForm(review, draft, saving) {
             ${buildClinicalHistoryAdmissionSection(review, draft, disabled)}
             ${buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue)}
             ${buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons)}
-            ${buildClinicalHistoryConsentSection(draft, disabled)}
+            ${buildClinicalHistoryConsentSection(review, draft, disabled)}
             ${buildClinicalHistoryDocumentsSection(draft, disabled)}
         </div>
     `;
@@ -4526,23 +5719,150 @@ function serializeDraftForm(form, baseDraft) {
             .filter(prescriptionItemStarted),
     });
 
-    snapshot.consent = normalizeConsent({
-        required: readChecked('consent_required'),
-        status: readValue('consent_status'),
-        informedBy: readValue('consent_informed_by'),
-        informedAt: readValue('consent_informed_at'),
-        explainedWhat: readValue('consent_explained_what'),
-        risksExplained: readValue('consent_risks_explained'),
-        alternativesExplained: readValue('consent_alternatives_explained'),
-        capacityAssessment: readValue('consent_capacity_assessment'),
-        privateCommunicationConfirmed: readChecked(
-            'consent_private_communication_confirmed'
-        ),
-        companionShareAuthorized: readChecked(
-            'consent_companion_share_authorized'
-        ),
-        notes: readValue('consent_notes'),
-    });
+    const consentPackets = normalizeConsentPackets(snapshot.consentPackets);
+    let activeConsentPacketId =
+        normalizeString(readValue('consent_active_packet_id')) ||
+        normalizeString(snapshot.activeConsentPacketId);
+    if (!activeConsentPacketId && consentPackets.length > 0) {
+        activeConsentPacketId = normalizeString(consentPackets[0].packetId);
+    }
+    const activeConsentPacketIndex = consentPackets.findIndex(
+        (packet) => normalizeString(packet.packetId) === activeConsentPacketId
+    );
+    if (activeConsentPacketIndex >= 0) {
+        const basePacket = deriveConsentPacketContext(
+            consentPackets[activeConsentPacketIndex],
+            snapshot
+        );
+        consentPackets[activeConsentPacketIndex] = normalizeConsentPacket({
+            ...basePacket,
+            title: readValue('consent_packet_title'),
+            careMode: readValue('consent_packet_care_mode'),
+            serviceLabel:
+                readValue('consent_packet_service_label') ||
+                basePacket.serviceLabel,
+            establishmentLabel:
+                readValue('consent_packet_establishment_label') ||
+                basePacket.establishmentLabel,
+            patientName:
+                readValue('consent_packet_patient_name') ||
+                basePacket.patientName,
+            encounterDateTime:
+                readValue('consent_packet_encounter_datetime') ||
+                basePacket.encounterDateTime,
+            diagnosisCie10: readValue('consent_packet_diagnosis_cie10'),
+            diagnosisLabel: readValue('consent_packet_diagnosis_label'),
+            procedureName: readValue('consent_packet_procedure_name'),
+            procedureWhatIsIt: readValue('consent_packet_procedure_what_is_it'),
+            procedureHowItIsDone: readValue('consent_packet_procedure_how'),
+            durationEstimate: readValue('consent_packet_duration_estimate'),
+            graphicRef: readValue('consent_packet_graphic_ref'),
+            benefits: readValue('consent_packet_benefits'),
+            frequentRisks: readValue('consent_packet_frequent_risks'),
+            rareSeriousRisks: readValue('consent_packet_rare_serious_risks'),
+            patientSpecificRisks: readValue(
+                'consent_packet_patient_specific_risks'
+            ),
+            alternatives: readValue('consent_packet_alternatives'),
+            postProcedureCare: readValue('consent_packet_post_procedure_care'),
+            noProcedureConsequences: readValue(
+                'consent_packet_no_procedure_consequences'
+            ),
+            privateCommunicationConfirmed: readChecked(
+                'consent_packet_private_communication_confirmed'
+            ),
+            companionShareAuthorized: readChecked(
+                'consent_packet_companion_share_authorized'
+            ),
+            declaration: {
+                ...basePacket.declaration,
+                declaredAt: readValue('consent_packet_declared_at'),
+                patientCanConsent: readChecked(
+                    'consent_packet_patient_can_consent'
+                ),
+                capacityAssessment: readValue(
+                    'consent_packet_capacity_assessment'
+                ),
+                notes: readValue('consent_packet_declaration_notes'),
+            },
+            denial: {
+                ...basePacket.denial,
+                declinedAt: readValue('consent_packet_denial_declined_at'),
+                reason: readValue('consent_packet_denial_reason'),
+                patientRefusedSignature: readChecked(
+                    'consent_packet_denial_refused_signature'
+                ),
+                notes: readValue('consent_packet_denial_notes'),
+            },
+            revocation: {
+                ...basePacket.revocation,
+                revokedAt: readValue('consent_packet_revocation_revoked_at'),
+                receivedBy: readValue('consent_packet_revocation_received_by'),
+                reason: readValue('consent_packet_revocation_reason'),
+                notes: readValue('consent_packet_revocation_notes'),
+            },
+            patientAttestation: {
+                ...basePacket.patientAttestation,
+                name: readValue('consent_packet_patient_attestation_name'),
+                documentNumber: readValue(
+                    'consent_packet_patient_attestation_document'
+                ),
+                signedAt: readValue(
+                    'consent_packet_patient_attestation_signed_at'
+                ),
+                refusedSignature: readChecked(
+                    'consent_packet_patient_attestation_refused_signature'
+                ),
+            },
+            representativeAttestation: {
+                ...basePacket.representativeAttestation,
+                name: readValue('consent_packet_representative_name'),
+                kinship: readValue('consent_packet_representative_kinship'),
+                documentNumber: readValue(
+                    'consent_packet_representative_document'
+                ),
+                phone: readValue('consent_packet_representative_phone'),
+                signedAt: readValue('consent_packet_representative_signed_at'),
+            },
+            professionalAttestation: {
+                ...basePacket.professionalAttestation,
+                name: readValue('consent_packet_professional_name'),
+                documentNumber: readValue(
+                    'consent_packet_professional_document'
+                ),
+                signedAt: readValue('consent_packet_professional_signed_at'),
+            },
+            anesthesiologistAttestation: {
+                ...basePacket.anesthesiologistAttestation,
+                applicable: readChecked(
+                    'consent_packet_anesthesiologist_applicable'
+                ),
+                name: readValue('consent_packet_anesthesiologist_name'),
+                documentNumber: readValue(
+                    'consent_packet_anesthesiologist_document'
+                ),
+                signedAt: readValue(
+                    'consent_packet_anesthesiologist_signed_at'
+                ),
+            },
+            witnessAttestation: {
+                ...basePacket.witnessAttestation,
+                name: readValue('consent_packet_witness_name'),
+                documentNumber: readValue('consent_packet_witness_document'),
+                phone: readValue('consent_packet_witness_phone'),
+                signedAt: readValue('consent_packet_witness_signed_at'),
+            },
+        });
+    }
+    snapshot.consentPackets = consentPackets;
+    snapshot.activeConsentPacketId = activeConsentPacketId;
+    snapshot.consent =
+        activeConsentPacketIndex >= 0
+            ? buildLegacyConsentFromPacket(
+                  consentPackets[activeConsentPacketIndex],
+                  snapshot.consent
+              )
+            : normalizeConsent(snapshot.consent);
 
     snapshot.documents = normalizeDocuments({
         finalNote: {
@@ -4560,6 +5880,218 @@ function serializeDraftForm(form, baseDraft) {
 
     snapshot.requiresHumanReview = readChecked('requires_human_review');
     return synchronizeDraftClinicalState(snapshot);
+}
+
+function currentSerializedDraft() {
+    const rootForm = document.getElementById('clinicalHistoryDraftForm');
+    return rootForm instanceof HTMLFormElement
+        ? serializeDraftForm(rootForm, currentDraftSource())
+        : synchronizeDraftClinicalState(cloneValue(currentDraftSource()));
+}
+
+function createLocalOpaqueId(prefix) {
+    if (
+        typeof window !== 'undefined' &&
+        window.crypto &&
+        typeof window.crypto.randomUUID === 'function'
+    ) {
+        return `${prefix}-${window.crypto.randomUUID()}`;
+    }
+
+    return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+}
+
+function createLocalConsentPacket(templateKey) {
+    const template = consentPacketTemplate(templateKey);
+    return normalizeConsentPacket({
+        ...template,
+        packetId: createLocalOpaqueId('consent-packet'),
+        templateKey: template.templateKey,
+        sourceMode: 'workspace_local',
+        status: 'draft',
+        history: [{
+            eventId: createLocalOpaqueId('consent-history'),
+            type: 'created_local',
+            status: 'draft',
+            actor: 'workspace',
+            actorRole: 'clinician_admin',
+            at: new Date().toISOString(),
+            notes: 'Consentimiento creado localmente en la cabina HCU-024.',
+        }],
+    });
+}
+
+function mutateConsentPackets(mutator, nextActiveId = '') {
+    const baseDraft = currentSerializedDraft();
+    const nextDraft = synchronizeDraftClinicalState(cloneValue(baseDraft));
+    const packets = normalizeConsentPackets(nextDraft.consentPackets);
+    const mutatedPackets = normalizeConsentPackets(mutator(packets) || packets);
+    nextDraft.consentPackets = mutatedPackets;
+
+    const requestedActiveId = normalizeString(nextActiveId);
+    const currentActiveId = normalizeString(nextDraft.activeConsentPacketId);
+    const resolvedActiveId =
+        (requestedActiveId &&
+        mutatedPackets.some(
+            (packet) => normalizeString(packet.packetId) === requestedActiveId
+        )
+            ? requestedActiveId
+            : currentActiveId &&
+                mutatedPackets.some(
+                    (packet) =>
+                        normalizeString(packet.packetId) === currentActiveId
+                )
+              ? currentActiveId
+              : normalizeString(mutatedPackets[0]?.packetId)) || '';
+    nextDraft.activeConsentPacketId = resolvedActiveId;
+
+    const review = currentReviewSource();
+    const normalizedNext = synchronizeDraftClinicalState(nextDraft);
+    const dirty =
+        JSON.stringify(normalizedNext) !==
+        JSON.stringify(normalizeDraftSnapshot(review.draft));
+
+    setClinicalHistoryState({
+        draftForm: cloneValue(normalizedNext),
+        dirty,
+    });
+    renderClinicalHistorySection();
+}
+
+function buildConsentPacketActionPayload(action) {
+    const review = currentReviewSource();
+    const draft = currentSerializedDraft();
+    const sessionId = normalizeString(
+        review.session.sessionId || draft.sessionId
+    );
+    const packetId = normalizeString(
+        draft.activeConsentPacketId ||
+            draft.consentPackets?.[0]?.packetId ||
+            review.activeConsentPacketId
+    );
+    const payload = {
+        sessionId,
+        action,
+        packetId,
+        draft: {
+            intake: cloneValue(draft.intake),
+            clinicianDraft: cloneValue(draft.clinicianDraft),
+            admission001: cloneValue(draft.admission001),
+        },
+        documents: cloneValue(draft.documents),
+        consentPackets: cloneValue(draft.consentPackets),
+        activeConsentPacketId: packetId,
+        consent: cloneValue(draft.consent),
+        requiresHumanReview: draft.requiresHumanReview === true,
+    };
+
+    if (action === 'revoke_consent') {
+        payload.receivedBy = normalizeString(
+            draft.consentPackets.find(
+                (packet) => normalizeString(packet.packetId) === packetId
+            )?.revocation?.receivedBy
+        );
+    }
+
+    return payload;
+}
+
+async function submitConsentPacketAction(action) {
+    const sessionId = normalizeString(currentSessionId());
+    if (!sessionId) {
+        createToast(
+            'Selecciona un caso clinico antes de operar el consentimiento HCU-024.',
+            'warning'
+        );
+        return null;
+    }
+
+    const payload = buildConsentPacketActionPayload(action);
+    if (!normalizeString(payload.packetId)) {
+        createToast(
+            'Crea o selecciona un consentimiento por procedimiento antes de continuar.',
+            'warning'
+        );
+        return null;
+    }
+
+    setClinicalHistoryState({
+        saving: true,
+        error: '',
+        draftForm: cloneValue(
+            synchronizeDraftClinicalState({
+                ...currentDraftSource(),
+                ...payload.draft,
+                documents: payload.documents,
+                consentPackets: payload.consentPackets,
+                activeConsentPacketId: payload.activeConsentPacketId,
+                consent: payload.consent,
+                requiresHumanReview: payload.requiresHumanReview,
+            })
+        ),
+        dirty: true,
+    });
+    syncDraftStatusMeta();
+
+    try {
+        const response = await apiRequest('clinical-episode-action', {
+            method: 'POST',
+            body: payload,
+        });
+        const nextReview = normalizeReviewPayload(response.data);
+        setClinicalHistoryState({
+            saving: false,
+            error: '',
+            dirty: false,
+            current: nextReview,
+            draftForm: cloneValue(nextReview.draft),
+            selectedSessionId: nextReview.session.sessionId || sessionId,
+            lastLoadedAt: Date.now(),
+        });
+
+        try {
+            await refreshAdminData();
+        } catch (_error) {
+            // Keep the clinical workspace usable even if the admin snapshot refresh fails.
+        }
+
+        renderAdminChrome(getState());
+        renderDashboard(getState());
+        renderClinicalHistorySection();
+
+        const targetLabel = currentSelectionLabel(nextReview);
+        if (action === 'declare_consent') {
+            createToast(
+                `Consentimiento HCU-024 declarado para ${targetLabel}.`,
+                'success'
+            );
+        } else if (action === 'deny_consent') {
+            createToast(
+                `Negativa del consentimiento registrada para ${targetLabel}.`,
+                'success'
+            );
+        } else if (action === 'revoke_consent') {
+            createToast(
+                `Revocatoria del consentimiento registrada para ${targetLabel}.`,
+                'success'
+            );
+        }
+
+        return nextReview;
+    } catch (error) {
+        setClinicalHistoryState({
+            saving: false,
+            error:
+                error?.message ||
+                'No se pudo actualizar el consentimiento HCU-024.',
+        });
+        syncDraftStatusMeta();
+        createToast(
+            error?.message || 'No se pudo actualizar el consentimiento HCU-024.',
+            'error'
+        );
+        return null;
+    }
 }
 
 function readClinicalControlValue(id) {
@@ -4939,6 +6471,8 @@ function buildReviewPatch(mode, question) {
             admission001: cloneValue(draft.admission001),
         },
         documents: cloneValue(draft.documents),
+        consentPackets: cloneValue(draft.consentPackets),
+        activeConsentPacketId: draft.activeConsentPacketId,
         consent: cloneValue(draft.consent),
         requiresHumanReview: draft.requiresHumanReview === true,
     };
@@ -4948,6 +6482,8 @@ function buildReviewPatch(mode, question) {
         action: 'save_draft',
         draft: draftPatch.draft,
         documents: draftPatch.documents,
+        consentPackets: draftPatch.consentPackets,
+        activeConsentPacketId: draftPatch.activeConsentPacketId,
         consent: draftPatch.consent,
         requiresHumanReview: draftPatch.requiresHumanReview,
     };
@@ -5295,6 +6831,24 @@ function bindClinicalHistoryEvents() {
                     mutatePrescriptionItems((items) =>
                         items.filter((_, itemIndex) => itemIndex !== index)
                     );
+                    return;
+                }
+                if (draftAction === 'create-consent-packet-local') {
+                    const templateKey =
+                        draftActionTarget.dataset.templateKey || 'generic';
+                    const packet = createLocalConsentPacket(templateKey);
+                    mutateConsentPackets(
+                        (items) => [packet, ...items],
+                        packet.packetId
+                    );
+                    return;
+                }
+                if (draftAction === 'select-consent-packet-local') {
+                    mutateConsentPackets(
+                        (items) => items,
+                        draftActionTarget.dataset.packetId || ''
+                    );
+                    return;
                 }
             }
             return;
@@ -5331,6 +6885,21 @@ function bindClinicalHistoryEvents() {
 
         if (action === 'approve-current') {
             await saveClinicalHistoryReview('approve', '');
+            return;
+        }
+
+        if (action === 'declare-current-consent') {
+            await submitConsentPacketAction('declare_consent');
+            return;
+        }
+
+        if (action === 'deny-current-consent') {
+            await submitConsentPacketAction('deny_consent');
+            return;
+        }
+
+        if (action === 'revoke-current-consent') {
+            await submitConsentPacketAction('revoke_consent');
             return;
         }
 

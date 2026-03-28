@@ -31,7 +31,7 @@ Traducir la normativa MSP y las decisiones de producto de FlowOS a una matriz ac
 | Formulario HCU de interconsulta (`HCU-form.007/2008`) | Instructivo MSP octubre 2020 | La interconsulta entra como documento/accion clinica separada del chat | `ClinicalEncounter` / futuro modulo de interconsulta | P1 | Pendiente |
 | Formulario HCU de solicitud de laboratorio (`HCU-form.010A/2008`) | Instructivo MSP octubre 2020 | Solicitud formal de examenes de laboratorio cuando aplique | modulo futuro de ordenes | P1 | Pendiente |
 | Formulario HCU de solicitud de imagenologia (`HCU-form.012A/2008`) | Instructivo MSP octubre 2020 | Solicitud formal de imagenologia cuando aplique | modulo futuro de ordenes | P1 | Pendiente |
-| Formulario HCU de consentimiento (`HCU-form.024`) | A.M. 5316 | Consentimiento estructurado, revocable y auditable | `ConsentRecord` | P0 | Parcial |
+| Formulario HCU de consentimiento (`HCU-form.024`) | A.M. 5316 | Consentimiento estructurado por procedimiento, revocable y auditable | `ConsentRecord`, `consentPackets`, `documents.consentForms` | P0 | Parcial: sin firma avanzada/biometrica ni PDF literal MSP |
 | Receta y certificado dentro del mismo episodio | Decision de producto | No saltar de superficie para documentos de salida | `Prescription` / `MedicalCertificate` | P0 | Adoptado |
 | Aprobacion humana final defendible | Decision de producto + A.M. 5216-A | `approve_final_note` con aprobador, fecha, version y checklist | `ClinicalApproval` | P0 | Adoptado |
 | Bloqueos medico-legales minimos | Decision de producto + A.M. 5216-A/5316 | bloquear por faltantes, consentimiento, alerta critica, IA pendiente y posologia ambigua | `ClinicalHistoryLegalReadiness` | P0 | Adoptado |

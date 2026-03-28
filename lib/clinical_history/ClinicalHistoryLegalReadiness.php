@@ -14,8 +14,12 @@ final class ClinicalHistoryLegalReadiness
     {
         $session = ClinicalHistoryRepository::adminSession($session);
         $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $draft = ClinicalHistoryRepository::syncConsentArtifacts($draft, $session);
         $consent = ClinicalHistoryRepository::normalizeConsentRecord(
             is_array($draft['consent'] ?? null) ? $draft['consent'] : []
+        );
+        $consentPackets = ClinicalHistoryRepository::normalizeConsentPackets(
+            $draft['consentPackets'] ?? []
         );
         $documents = ClinicalHistoryRepository::normalizeClinicalDocuments(
             is_array($draft['documents'] ?? null) ? $draft['documents'] : []
@@ -38,6 +42,26 @@ final class ClinicalHistoryLegalReadiness
             $clinicianDraft['hcu005'] ?? []
         );
         $hcu005Evaluation = ClinicalHistoryRepository::evaluateHcu005($hcu005);
+        $writtenConsentPackets = [];
+        $writtenConsentEvaluations = [];
+        foreach ($consentPackets as $packet) {
+            if (($packet['writtenRequired'] ?? true) !== true) {
+                continue;
+            }
+            $writtenConsentPackets[] = $packet;
+            $writtenConsentEvaluations[] = ClinicalHistoryRepository::evaluateConsentPacket($packet);
+        }
+        $activeConsentPacketId = ClinicalHistoryRepository::trimString($draft['activeConsentPacketId'] ?? '');
+        $activeConsentEvaluation = null;
+        foreach ($writtenConsentPackets as $index => $packet) {
+            if (ClinicalHistoryRepository::trimString($packet['packetId'] ?? '') === $activeConsentPacketId) {
+                $activeConsentEvaluation = $writtenConsentEvaluations[$index] ?? null;
+                break;
+            }
+        }
+        if ($activeConsentEvaluation === null && $writtenConsentEvaluations !== []) {
+            $activeConsentEvaluation = $writtenConsentEvaluations[0];
+        }
 
         $pendingAi = ClinicalHistoryRepository::normalizePendingAi(
             is_array($session['pendingAi'] ?? null)
@@ -272,28 +296,65 @@ final class ClinicalHistoryLegalReadiness
             );
         }
 
-        $consentStatus = ClinicalHistoryRepository::trimString($consent['status'] ?? 'not_required');
-        $consentReady = !$consent['required']
-            || $consentStatus === 'accepted';
+        $hcu024Status = 'not_applicable';
+        if ($writtenConsentEvaluations !== []) {
+            $statuses = array_map(
+                static fn (array $evaluation): string => ClinicalHistoryRepository::trimString($evaluation['status'] ?? 'draft'),
+                $writtenConsentEvaluations
+            );
+            $allAccepted = count(array_filter($statuses, static fn (string $status): bool => $status === 'accepted')) === count($statuses);
+            if (in_array('revoked', $statuses, true)) {
+                $hcu024Status = 'revoked';
+            } elseif (in_array('declined', $statuses, true)) {
+                $hcu024Status = 'declined';
+            } elseif ($allAccepted) {
+                $hcu024Status = 'accepted';
+            } elseif (in_array('ready_for_declaration', $statuses, true)
+                && !array_intersect($statuses, ['draft', 'incomplete'])
+            ) {
+                $hcu024Status = 'ready_for_declaration';
+            } elseif (in_array('draft', $statuses, true)) {
+                $hcu024Status = 'draft';
+            } else {
+                $hcu024Status = 'incomplete';
+            }
+        } elseif (($consent['required'] ?? false) === true) {
+            $hcu024Status = ClinicalHistoryRepository::trimString($consent['status'] ?? 'incomplete');
+            if ($hcu024Status === '' || $hcu024Status === 'pending') {
+                $hcu024Status = 'incomplete';
+            }
+        }
+        $consentReady = $writtenConsentEvaluations === []
+            ? !($consent['required'] ?? false) || ClinicalHistoryRepository::trimString($consent['status'] ?? '') === 'accepted'
+            : $hcu024Status === 'accepted';
         self::appendChecklist(
             $checklist,
-            'consent',
+            'hcu024_consent',
             $consentReady,
-            'Consentimiento informado',
+            'HCU-024 consentimiento por procedimiento',
             $consentReady
                 ? 'El consentimiento exigible ya esta resuelto para este episodio.'
-                : 'El consentimiento requerido aun no esta aceptado.',
-            ['status' => $consentStatus]
+                : 'Todavia falta resolver el consentimiento HCU-024 del procedimiento indicado.',
+            [
+                'status' => $hcu024Status,
+                'activePacketStatus' => $activeConsentEvaluation['status'] ?? '',
+            ]
         );
         if (!$consentReady) {
-            $code = $consentStatus === 'revoked' ? 'consent_revoked' : 'consent_incomplete';
+            $code = match ($hcu024Status) {
+                'declined' => 'hcu024_consent_declined',
+                'revoked' => 'hcu024_consent_revoked',
+                default => 'hcu024_consent_incomplete',
+            };
             $blockingReasons[] = self::blockingReason(
                 $code,
-                $consentStatus === 'revoked'
-                    ? 'El consentimiento fue revocado'
-                    : 'Falta consentimiento informado',
-                'No se puede aprobar mientras el consentimiento exigible no este aceptado.',
-                ['status' => $consentStatus]
+                $hcu024Status === 'declined'
+                    ? 'El consentimiento del procedimiento fue negado'
+                    : ($hcu024Status === 'revoked'
+                        ? 'El consentimiento del procedimiento fue revocado'
+                        : 'Falta consentimiento HCU-024 por procedimiento'),
+                'No se puede aprobar mientras el consentimiento HCU-024 exigible no este aceptado.',
+                ['status' => $hcu024Status]
             );
         }
 
@@ -304,8 +365,8 @@ final class ClinicalHistoryLegalReadiness
             'ready' => $ready,
             'label' => $ready ? 'Lista para aprobar' : 'Bloqueada',
             'summary' => $ready
-                ? 'La historia clinica cubre HCU-001, HCU-005 y los bloqueos medico-legales minimos para aprobar.'
-                : 'La aprobacion esta bloqueada hasta completar la admision HCU-001, los faltantes medico-legales y el HCU-005 visible.',
+                ? 'La historia clinica cubre HCU-001, HCU-005, HCU-024 y los bloqueos medico-legales minimos para aprobar.'
+                : 'La aprobacion esta bloqueada hasta completar la admision HCU-001, HCU-005, HCU-024 y los faltantes medico-legales visibles.',
             'checklist' => $checklist,
             'blockingReasons' => $blockingReasons,
             'approvalBlockedReasons' => $blockingReasons,
@@ -337,6 +398,27 @@ final class ClinicalHistoryLegalReadiness
                     'complete' => 'La evolucion, la impresion diagnostica y el plan ya sostienen el HCU-005 del episodio.',
                     'partial' => 'El episodio ya tiene contenido HCU-005, pero todavia faltan bloques o prescripciones por cerrar.',
                     default => 'Todavia no hay cobertura suficiente del HCU-005 para este episodio.',
+                },
+            ],
+            'hcu024Status' => [
+                'status' => $hcu024Status,
+                'label' => match ($hcu024Status) {
+                    'accepted' => 'HCU-024 aceptado',
+                    'ready_for_declaration' => 'HCU-024 lista para declarar',
+                    'declined' => 'HCU-024 negado',
+                    'revoked' => 'HCU-024 revocado',
+                    'draft' => 'HCU-024 borrador',
+                    'incomplete' => 'HCU-024 incompleto',
+                    default => 'HCU-024 no aplica',
+                },
+                'summary' => match ($hcu024Status) {
+                    'accepted' => 'El consentimiento escrito por procedimiento ya quedo aceptado.',
+                    'ready_for_declaration' => 'El formulario ya cubre los bloques obligatorios y esta listo para declarar.',
+                    'declined' => 'Existe una negativa registrada para el procedimiento escrito del episodio.',
+                    'revoked' => 'El consentimiento escrito fue revocado y exige reconciliar la indicacion del procedimiento.',
+                    'draft' => 'Existe un consentimiento por procedimiento aun en borrador.',
+                    'incomplete' => 'El consentimiento por procedimiento todavia no cubre todos los campos del HCU-024.',
+                    default => 'No hay consentimiento escrito por procedimiento exigible para este episodio.',
                 },
             ],
             'normativeSources' => [

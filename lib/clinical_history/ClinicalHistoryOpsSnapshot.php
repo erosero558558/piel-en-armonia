@@ -74,6 +74,15 @@ final class ClinicalHistoryOpsSnapshot
             'partial' => 0,
             'missing' => 0,
         ];
+        $hcu024Coverage = [
+            'not_applicable' => 0,
+            'draft' => 0,
+            'ready_for_declaration' => 0,
+            'accepted' => 0,
+            'declined' => 0,
+            'revoked' => 0,
+            'incomplete' => 0,
+        ];
 
         foreach ($sessions as $sessionRecord) {
             $session = ClinicalHistoryRepository::adminSession($sessionRecord);
@@ -133,6 +142,13 @@ final class ClinicalHistoryOpsSnapshot
                 $hcu005Status = 'missing';
             }
             $hcu005Coverage[$hcu005Status]++;
+            $hcu024Status = ClinicalHistoryRepository::trimString(
+                $legalReadiness['hcu024Status']['status'] ?? 'not_applicable'
+            );
+            if (!array_key_exists($hcu024Status, $hcu024Coverage)) {
+                $hcu024Status = 'not_applicable';
+            }
+            $hcu024Coverage[$hcu024Status]++;
 
             if (self::needsReviewQueue($session, $draft, $pendingAi)) {
                 $reviewQueue[] = self::buildReviewQueueRow(
@@ -220,6 +236,7 @@ final class ClinicalHistoryOpsSnapshot
                 'reviewQueueCount' => count($reviewQueue),
                 'hcu001' => $hcu001Coverage,
                 'hcu005' => $hcu005Coverage,
+                'hcu024' => $hcu024Coverage,
             ],
             'events' => [
                 'total' => count($eventFeed),
@@ -334,6 +351,9 @@ final class ClinicalHistoryOpsSnapshot
             'hcu005Status' => (string) ($legalReadiness['hcu005Status']['status'] ?? 'missing'),
             'hcu005Label' => (string) ($legalReadiness['hcu005Status']['label'] ?? 'HCU-005 pendiente'),
             'hcu005Summary' => (string) ($legalReadiness['hcu005Status']['summary'] ?? ''),
+            'hcu024Status' => (string) ($legalReadiness['hcu024Status']['status'] ?? 'not_applicable'),
+            'hcu024Label' => (string) ($legalReadiness['hcu024Status']['label'] ?? 'HCU-024 no aplica'),
+            'hcu024Summary' => (string) ($legalReadiness['hcu024Status']['summary'] ?? ''),
             'approvalBlockedReasons' => isset($legalReadiness['blockingReasons']) && is_array($legalReadiness['blockingReasons'])
                 ? array_values($legalReadiness['blockingReasons'])
                 : [],

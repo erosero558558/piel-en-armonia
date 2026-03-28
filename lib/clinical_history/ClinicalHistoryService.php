@@ -328,18 +328,27 @@ final class ClinicalHistoryService
         }
 
         if ($action === 'record_consent') {
-            return $this->mutateClinicalRecord($store, $payload, 'consent');
+            return $this->mutateClinicalRecord($store, $payload, 'declare-consent');
         }
 
         if ($action === 'revoke_consent') {
-            $payload['consent'] = array_merge(
-                isset($payload['consent']) && is_array($payload['consent']) ? $payload['consent'] : [],
-                [
-                    'status' => 'revoked',
-                    'revokedAt' => local_date('c'),
-                ]
-            );
             return $this->mutateClinicalRecord($store, $payload, 'revoke-consent');
+        }
+
+        if ($action === 'create_consent_packet') {
+            return $this->mutateClinicalRecord($store, $payload, 'create-consent-packet');
+        }
+
+        if ($action === 'select_consent_packet') {
+            return $this->mutateClinicalRecord($store, $payload, 'select-consent-packet');
+        }
+
+        if ($action === 'declare_consent') {
+            return $this->mutateClinicalRecord($store, $payload, 'declare-consent');
+        }
+
+        if ($action === 'deny_consent') {
+            return $this->mutateClinicalRecord($store, $payload, 'deny-consent');
         }
 
         if ($action === 'issue_prescription') {
@@ -573,6 +582,9 @@ final class ClinicalHistoryService
             'encounter' => $payload['encounter'] ?? [],
             'liveNote' => $payload['liveNote'] ?? [],
             'documents' => $payload['documents'] ?? [],
+            'consentPackets' => $payload['consentPackets'] ?? [],
+            'activeConsentPacketId' => $payload['activeConsentPacketId'] ?? '',
+            'activeConsentPacket' => $payload['activeConsentPacket'] ?? [],
             'consent' => $payload['consent'] ?? [],
             'approval' => $payload['approval'] ?? [],
             'approvalState' => $payload['approvalState'] ?? [],
@@ -597,7 +609,8 @@ final class ClinicalHistoryService
     {
         $session = ClinicalHistoryRepository::adminSession($session);
         $draft = $this->synchronizeDraftClinicalState(
-            ClinicalHistoryRepository::adminDraft($draft)
+            ClinicalHistoryRepository::adminDraft($draft),
+            $session
         );
         $events = ClinicalHistoryRepository::findEventsBySessionId(
             $store,
@@ -607,6 +620,19 @@ final class ClinicalHistoryService
         $documents = ClinicalHistoryRepository::normalizeClinicalDocuments(
             is_array($draft['documents'] ?? null) ? $draft['documents'] : []
         );
+        $consentPackets = ClinicalHistoryRepository::normalizeConsentPackets(
+            $draft['consentPackets'] ?? []
+        );
+        $activeConsentPacketId = ClinicalHistoryRepository::trimString(
+            $draft['activeConsentPacketId'] ?? ''
+        );
+        $activeConsentPacket = [];
+        foreach ($consentPackets as $packet) {
+            if (ClinicalHistoryRepository::trimString($packet['packetId'] ?? '') === $activeConsentPacketId) {
+                $activeConsentPacket = $packet;
+                break;
+            }
+        }
         $consent = ClinicalHistoryRepository::normalizeConsentRecord(
             is_array($draft['consent'] ?? null) ? $draft['consent'] : []
         );
@@ -654,6 +680,9 @@ final class ClinicalHistoryService
         $hcu005Status = is_array($legalReadiness['hcu005Status'] ?? null)
             ? $legalReadiness['hcu005Status']
             : ['status' => 'missing', 'label' => 'HCU-005 pendiente', 'summary' => ''];
+        $hcu024Status = is_array($legalReadiness['hcu024Status'] ?? null)
+            ? $legalReadiness['hcu024Status']
+            : ['status' => 'not_applicable', 'label' => 'HCU-024 no aplica', 'summary' => ''];
         $admissionHistory = ClinicalHistoryRepository::normalizeAdmissionHistory(
             $admission001['history']['admissionHistory'] ?? []
         );
@@ -706,8 +735,12 @@ final class ClinicalHistoryService
                 'reviewStatus' => (string) ($draft['reviewStatus'] ?? ''),
                 'hcu001Status' => $hcu001Status,
                 'hcu005Status' => $hcu005Status,
+                'hcu024Status' => $hcu024Status,
             ],
             'documents' => $documents,
+            'consentPackets' => $consentPackets,
+            'activeConsentPacketId' => $activeConsentPacketId,
+            'activeConsentPacket' => $activeConsentPacket,
             'consent' => $consent,
             'approval' => $approval,
             'approvalState' => $approval,
@@ -872,6 +905,30 @@ final class ClinicalHistoryService
             $draft = $archiveResult['draft'];
             $modeAuditReason = 'archive_state_changed';
             $modeAuditMeta = $archiveResult['meta'] ?? [];
+        } elseif ($mode === 'create-consent-packet') {
+            $consentPacketResult = $this->applyCreateConsentPacketAction($session, $draft, $payload);
+            if (($consentPacketResult['ok'] ?? false) !== true) {
+                return $consentPacketResult;
+            }
+            $draft = $consentPacketResult['draft'];
+            $modeAuditReason = 'consent_packet_created';
+            $modeAuditMeta = $consentPacketResult['meta'] ?? [];
+        } elseif ($mode === 'select-consent-packet') {
+            $consentPacketResult = $this->applySelectConsentPacketAction($draft, $payload);
+            if (($consentPacketResult['ok'] ?? false) !== true) {
+                return $consentPacketResult;
+            }
+            $draft = $consentPacketResult['draft'];
+            $modeAuditReason = 'consent_packet_selected';
+            $modeAuditMeta = $consentPacketResult['meta'] ?? [];
+        } elseif (in_array($mode, ['declare-consent', 'deny-consent', 'revoke-consent'], true)) {
+            $consentDecisionResult = $this->applyConsentDecisionAction($session, $draft, $payload, $mode);
+            if (($consentDecisionResult['ok'] ?? false) !== true) {
+                return $consentDecisionResult;
+            }
+            $draft = $consentDecisionResult['draft'];
+            $modeAuditReason = $consentDecisionResult['reason'] ?? $mode;
+            $modeAuditMeta = $consentDecisionResult['meta'] ?? [];
         }
 
         if ($mode === 'review-required') {
@@ -917,7 +974,7 @@ final class ClinicalHistoryService
                 'finalDraftVersion' => (int) ($draft['approval']['finalDraftVersion'] ?? 0),
             ]);
         } else {
-            $resolveEvents = in_array($mode, ['save', 'consent', 'revoke-consent', 'prescription', 'certificate'], true)
+            $resolveEvents = in_array($mode, ['save', 'declare-consent', 'deny-consent', 'revoke-consent', 'prescription', 'certificate'], true)
                 && ((bool) ($draft['requiresHumanReview'] ?? true) === false);
             $store = $this->touchSessionEventsForReview($store, $session, $resolveEvents);
 
@@ -937,16 +994,37 @@ final class ClinicalHistoryService
                     'sessionId' => (string) ($session['sessionId'] ?? ''),
                     'caseId' => (string) ($session['caseId'] ?? ''),
                 ]);
-            } elseif ($mode === 'consent') {
-                audit_log_event('clinical_history.consent_recorded', [
+            } elseif ($mode === 'declare-consent') {
+                audit_log_event('clinical_history.consent_declared', [
                     'sessionId' => (string) ($session['sessionId'] ?? ''),
                     'caseId' => (string) ($session['caseId'] ?? ''),
                     'status' => (string) ($draft['consent']['status'] ?? ''),
+                    'packetId' => (string) ($modeAuditMeta['packetId'] ?? ''),
+                ]);
+            } elseif ($mode === 'deny-consent') {
+                audit_log_event('clinical_history.consent_denied', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'packetId' => (string) ($modeAuditMeta['packetId'] ?? ''),
                 ]);
             } elseif ($mode === 'revoke-consent') {
                 audit_log_event('clinical_history.consent_revoked', [
                     'sessionId' => (string) ($session['sessionId'] ?? ''),
                     'caseId' => (string) ($session['caseId'] ?? ''),
+                    'packetId' => (string) ($modeAuditMeta['packetId'] ?? ''),
+                ]);
+            } elseif ($mode === 'create-consent-packet') {
+                audit_log_event('clinical_history.consent_packet_created', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'packetId' => (string) ($modeAuditMeta['packetId'] ?? ''),
+                    'templateKey' => (string) ($modeAuditMeta['templateKey'] ?? ''),
+                ]);
+            } elseif ($mode === 'select-consent-packet') {
+                audit_log_event('clinical_history.consent_packet_selected', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'packetId' => (string) ($modeAuditMeta['packetId'] ?? ''),
                 ]);
             } elseif ($mode === 'prescription') {
                 audit_log_event('clinical_history.prescription_saved', [
@@ -1090,11 +1168,26 @@ final class ClinicalHistoryService
             ));
         }
 
+        if (isset($payload['consentPackets']) && is_array($payload['consentPackets'])) {
+            $draft['consentPackets'] = ClinicalHistoryRepository::normalizeConsentPackets(
+                $payload['consentPackets']
+            );
+        }
+
+        if (array_key_exists('activeConsentPacketId', $payload)) {
+            $draft['activeConsentPacketId'] = ClinicalHistoryRepository::trimString(
+                $payload['activeConsentPacketId'] ?? ''
+            );
+        }
+
         if (isset($payload['consent']) && is_array($payload['consent'])) {
-            $draft['consent'] = ClinicalHistoryRepository::normalizeConsentRecord(array_merge(
-                is_array($draft['consent'] ?? null) ? $draft['consent'] : [],
-                $payload['consent']
-            ));
+            $draft = ClinicalHistoryRepository::applyConsentBridgePatch(
+                $draft,
+                array_merge(
+                    is_array($draft['consent'] ?? null) ? $draft['consent'] : [],
+                    $payload['consent']
+                )
+            );
         }
 
         if (isset($payload['recordMeta']) && is_array($payload['recordMeta'])) {
@@ -1110,7 +1203,8 @@ final class ClinicalHistoryService
     private function applyClinicalApproval(array $session, array $draft, array $legalReadiness): array
     {
         $draft = $this->synchronizeDraftClinicalState(
-            ClinicalHistoryRepository::adminDraft($draft)
+            ClinicalHistoryRepository::adminDraft($draft),
+            $session
         );
         $documents = ClinicalHistoryRepository::normalizeClinicalDocuments(
             is_array($draft['documents'] ?? null) ? $draft['documents'] : []
@@ -1204,6 +1298,13 @@ final class ClinicalHistoryService
         $consent = ClinicalHistoryRepository::normalizeConsentRecord(
             is_array($draft['consent'] ?? null) ? $draft['consent'] : []
         );
+        $activeConsentPacket = [];
+        foreach (ClinicalHistoryRepository::normalizeConsentPackets($draft['consentPackets'] ?? []) as $packet) {
+            if (ClinicalHistoryRepository::trimString($packet['packetId'] ?? '') === ClinicalHistoryRepository::trimString($draft['activeConsentPacketId'] ?? '')) {
+                $activeConsentPacket = $packet;
+                break;
+            }
+        }
 
         $parts = [
             'Paciente: ' . (
@@ -1224,7 +1325,10 @@ final class ClinicalHistoryService
             'Impresion diagnostica: ' . ClinicalHistoryRepository::trimString($hcu005['diagnosticImpression'] ?? ''),
             'Plan terapeutico: ' . ClinicalHistoryRepository::trimString($hcu005['therapeuticPlan'] ?? ''),
             'Indicaciones / cuidados: ' . ClinicalHistoryRepository::trimString($hcu005['careIndications'] ?? ''),
-            'Consentimiento: ' . ClinicalHistoryRepository::trimString($consent['status'] ?? 'not_required'),
+            'Consentimiento HCU-024: ' . trim(implode(' • ', array_filter([
+                ClinicalHistoryRepository::trimString($activeConsentPacket['procedureLabel'] ?? ''),
+                ClinicalHistoryRepository::trimString($consent['status'] ?? 'not_required'),
+            ]))),
         ];
 
         return trim(implode("\n", array_filter($parts, static function ($item): bool {
@@ -1232,7 +1336,7 @@ final class ClinicalHistoryService
         })));
     }
 
-    private function synchronizeDraftClinicalState(array $draft): array
+    private function synchronizeDraftClinicalState(array $draft, array $session = []): array
     {
         $draft = ClinicalHistoryRepository::adminDraft($draft);
         $admission001 = ClinicalHistoryRepository::normalizeAdmission001(
@@ -1287,6 +1391,7 @@ final class ClinicalHistoryService
         );
         $draft['clinicianDraft'] = $clinicianDraft;
         $draft['documents'] = $documents;
+        $draft = ClinicalHistoryRepository::syncConsentArtifacts($draft, $session);
 
         return $draft;
     }
@@ -1915,6 +2020,268 @@ final class ClinicalHistoryService
         ];
     }
 
+    private function applyCreateConsentPacketAction(array $session, array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::syncConsentArtifacts($draft, $session);
+        $templateKey = ClinicalHistoryRepository::trimString($payload['templateKey'] ?? 'generic');
+        if ($templateKey === '') {
+            $templateKey = 'generic';
+        }
+
+        $packet = ClinicalHistoryRepository::normalizeConsentPacket([
+            'packetId' => ClinicalHistoryRepository::newOpaqueId('consent'),
+            'templateKey' => $templateKey,
+            'status' => 'draft',
+            'history' => [[
+                'eventId' => ClinicalHistoryRepository::newOpaqueId('consent-history'),
+                'type' => 'created',
+                'status' => 'draft',
+                'actor' => $this->currentClinicalActor(),
+                'actorRole' => 'clinician_admin',
+                'at' => local_date('c'),
+                'notes' => 'Consentimiento HCU-024 creado para el episodio.',
+            ]],
+        ], ClinicalHistoryRepository::consentPacketTemplate($templateKey));
+
+        $packets = ClinicalHistoryRepository::normalizeConsentPackets($draft['consentPackets'] ?? []);
+        array_unshift($packets, $packet);
+        $draft['consentPackets'] = $packets;
+        $draft['activeConsentPacketId'] = (string) ($packet['packetId'] ?? '');
+        $draft = ClinicalHistoryRepository::syncConsentArtifacts($draft, $session);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'packetId' => (string) ($packet['packetId'] ?? ''),
+                'templateKey' => $templateKey,
+            ],
+        ];
+    }
+
+    private function applySelectConsentPacketAction(array $draft, array $payload): array
+    {
+        $packetId = ClinicalHistoryRepository::trimString(
+            $payload['packetId'] ?? $payload['activeConsentPacketId'] ?? ''
+        );
+        if ($packetId === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 400,
+                'error' => 'packetId es obligatorio para seleccionar el consentimiento.',
+                'errorCode' => 'clinical_consent_packet_required',
+            ];
+        }
+
+        $exists = false;
+        foreach (ClinicalHistoryRepository::normalizeConsentPackets($draft['consentPackets'] ?? []) as $packet) {
+            if (ClinicalHistoryRepository::trimString($packet['packetId'] ?? '') === $packetId) {
+                $exists = true;
+                break;
+            }
+        }
+        if (!$exists) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe el consentimiento seleccionado para este episodio.',
+                'errorCode' => 'clinical_consent_packet_not_found',
+            ];
+        }
+
+        $draft['activeConsentPacketId'] = $packetId;
+        $draft = ClinicalHistoryRepository::syncConsentArtifacts($draft);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'packetId' => $packetId,
+            ],
+        ];
+    }
+
+    private function applyConsentDecisionAction(array $session, array $draft, array $payload, string $mode): array
+    {
+        $draft = ClinicalHistoryRepository::syncConsentArtifacts($draft, $session);
+        $packets = ClinicalHistoryRepository::normalizeConsentPackets($draft['consentPackets'] ?? []);
+        $packetId = ClinicalHistoryRepository::trimString(
+            $payload['packetId'] ?? $draft['activeConsentPacketId'] ?? ''
+        );
+        if ($packetId === '' && $packets === []) {
+            $draft = ClinicalHistoryRepository::applyConsentBridgePatch(
+                $draft,
+                [
+                    'required' => true,
+                    'status' => 'draft',
+                ],
+                $session
+            );
+            $packets = ClinicalHistoryRepository::normalizeConsentPackets($draft['consentPackets'] ?? []);
+            $packetId = ClinicalHistoryRepository::trimString($draft['activeConsentPacketId'] ?? '');
+        }
+
+        $targetIndex = null;
+        foreach ($packets as $index => $packet) {
+            if (ClinicalHistoryRepository::trimString($packet['packetId'] ?? '') === $packetId) {
+                $targetIndex = $index;
+                break;
+            }
+        }
+        if ($targetIndex === null) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe un consentimiento activo para este episodio.',
+                'errorCode' => 'clinical_consent_packet_not_found',
+            ];
+        }
+
+        $packet = ClinicalHistoryRepository::normalizeConsentPacket($packets[$targetIndex]);
+        $admission = ClinicalHistoryRepository::normalizeAdmission001(
+            is_array($draft['admission001'] ?? null) ? $draft['admission001'] : [],
+            is_array($session['patient'] ?? null) ? $session['patient'] : [],
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : [],
+            ['draft' => $draft]
+        );
+        $patient = ClinicalHistoryRepository::buildPatientMirrorFromAdmission(
+            is_array($session['patient'] ?? null) ? $session['patient'] : [],
+            $admission,
+            is_array($draft['intake'] ?? null) ? $draft['intake'] : []
+        );
+        $now = local_date('c');
+
+        if ($mode === 'declare-consent') {
+            if (ClinicalHistoryRepository::trimString($packet['declaration']['declaredAt'] ?? '') === '') {
+                $packet['declaration']['declaredAt'] = $now;
+            }
+            if (ClinicalHistoryRepository::trimString($packet['patientAttestation']['name'] ?? '') === '') {
+                $packet['patientAttestation']['name'] = ClinicalHistoryRepository::trimString(
+                    $packet['patientName'] ?? $patient['legalName'] ?? $patient['name'] ?? ''
+                );
+            }
+            if (ClinicalHistoryRepository::trimString($packet['patientAttestation']['documentNumber'] ?? '') === '') {
+                $packet['patientAttestation']['documentNumber'] = ClinicalHistoryRepository::trimString(
+                    $packet['patientDocumentNumber'] ?? $admission['identity']['documentNumber'] ?? ''
+                );
+            }
+            if (($packet['declaration']['patientCanConsent'] ?? true) === true
+                && ClinicalHistoryRepository::trimString($packet['patientAttestation']['signedAt'] ?? '') === ''
+            ) {
+                $packet['patientAttestation']['signedAt'] = $now;
+            }
+            if (($packet['declaration']['patientCanConsent'] ?? true) !== true
+                && ClinicalHistoryRepository::trimString($packet['representativeAttestation']['name'] ?? '') !== ''
+                && ClinicalHistoryRepository::trimString($packet['representativeAttestation']['signedAt'] ?? '') === ''
+            ) {
+                $packet['representativeAttestation']['signedAt'] = $now;
+            }
+            if (ClinicalHistoryRepository::trimString($packet['professionalAttestation']['signedAt'] ?? '') === '') {
+                $packet['professionalAttestation']['signedAt'] = $now;
+            }
+            $evaluation = ClinicalHistoryRepository::evaluateConsentPacket($packet);
+            if (($evaluation['readyForDeclaration'] ?? false) !== true) {
+                return [
+                    'ok' => false,
+                    'statusCode' => 409,
+                    'error' => 'El consentimiento HCU-024 aun no cubre los bloques obligatorios del formulario.',
+                    'errorCode' => 'clinical_consent_packet_incomplete',
+                ];
+            }
+            $packet['status'] = 'accepted';
+            $reason = 'consent_declared';
+            $historyType = 'accepted';
+            $historyNote = 'Consentimiento declarado y aceptado.';
+        } elseif ($mode === 'deny-consent') {
+            if (($packet['denial']['patientRefusedSignature'] ?? false) === true) {
+                $hasWitness = ClinicalHistoryRepository::trimString($packet['witnessAttestation']['name'] ?? '') !== ''
+                    && ClinicalHistoryRepository::trimString($packet['witnessAttestation']['documentNumber'] ?? '') !== '';
+                if (!$hasWitness) {
+                    return [
+                        'ok' => false,
+                        'statusCode' => 409,
+                        'error' => 'La negativa sin firma del paciente exige testigo identificado.',
+                        'errorCode' => 'clinical_consent_witness_required',
+                    ];
+                }
+                if (ClinicalHistoryRepository::trimString($packet['witnessAttestation']['signedAt'] ?? '') === '') {
+                    $packet['witnessAttestation']['signedAt'] = $now;
+                }
+            }
+            if (($packet['declaration']['patientCanConsent'] ?? true) !== true
+                && ClinicalHistoryRepository::trimString($packet['representativeAttestation']['name'] ?? '') === ''
+            ) {
+                return [
+                    'ok' => false,
+                    'statusCode' => 409,
+                    'error' => 'La negativa requiere representante cuando el paciente no puede consentir.',
+                    'errorCode' => 'clinical_consent_representative_required',
+                ];
+            }
+            if (($packet['declaration']['patientCanConsent'] ?? true) !== true
+                && ClinicalHistoryRepository::trimString($packet['representativeAttestation']['signedAt'] ?? '') === ''
+                && ClinicalHistoryRepository::trimString($packet['representativeAttestation']['name'] ?? '') !== ''
+            ) {
+                $packet['representativeAttestation']['signedAt'] = $now;
+            }
+            if (ClinicalHistoryRepository::trimString($packet['denial']['declinedAt'] ?? '') === '') {
+                $packet['denial']['declinedAt'] = $now;
+            }
+            $packet['status'] = 'declined';
+            $reason = 'consent_denied';
+            $historyType = 'declined';
+            $historyNote = 'Consentimiento negado.';
+        } else {
+            $receivedBy = ClinicalHistoryRepository::trimString(
+                $payload['receivedBy']
+                    ?? $packet['revocation']['receivedBy']
+                    ?? $packet['professionalAttestation']['name']
+                    ?? ''
+            );
+            if ($receivedBy === '') {
+                return [
+                    'ok' => false,
+                    'statusCode' => 409,
+                    'error' => 'La revocatoria exige identificar al profesional que la recibe.',
+                    'errorCode' => 'clinical_consent_revocation_receiver_required',
+                ];
+            }
+            $packet['revocation']['receivedBy'] = $receivedBy;
+            if (ClinicalHistoryRepository::trimString($packet['revocation']['revokedAt'] ?? '') === '') {
+                $packet['revocation']['revokedAt'] = $now;
+            }
+            $packet['status'] = 'revoked';
+            $reason = 'consent_revoked';
+            $historyType = 'revoked';
+            $historyNote = 'Consentimiento revocado.';
+        }
+
+        $packet['history'][] = [
+            'eventId' => ClinicalHistoryRepository::newOpaqueId('consent-history'),
+            'type' => $historyType,
+            'status' => (string) ($packet['status'] ?? ''),
+            'actor' => $this->currentClinicalActor(),
+            'actorRole' => 'clinician_admin',
+            'at' => $now,
+            'notes' => $historyNote,
+        ];
+        $packet['updatedAt'] = $now;
+        $packets[$targetIndex] = ClinicalHistoryRepository::normalizeConsentPacket($packet);
+        $draft['consentPackets'] = $packets;
+        $draft['activeConsentPacketId'] = $packetId;
+        $draft = ClinicalHistoryRepository::syncConsentArtifacts($draft, $session);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'reason' => $reason,
+            'meta' => [
+                'packetId' => $packetId,
+                'status' => (string) ($packet['status'] ?? ''),
+            ],
+        ];
+    }
+
     private function accessAuditActionForMode(string $mode): string
     {
         return match ($mode) {
@@ -1922,7 +2289,10 @@ final class ClinicalHistoryService
             'approve' => 'approve_final_note',
             'follow-up' => 'request_missing_data',
             'review-required' => 'mark_review_required',
-            'consent' => 'record_consent',
+            'create-consent-packet' => 'create_consent_packet',
+            'select-consent-packet' => 'select_consent_packet',
+            'declare-consent' => 'declare_consent',
+            'deny-consent' => 'deny_consent',
             'revoke-consent' => 'revoke_consent',
             'prescription' => 'issue_prescription',
             'certificate' => 'issue_certificate',
