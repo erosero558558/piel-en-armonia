@@ -20,7 +20,7 @@ const COMMANDS = [
     'npm run test:frontend:qa:v6',
     'npm run audit:public:v6:visual-contract',
     'npm run audit:public:v6:sony-evidence',
-    'npx playwright test tests/turnero-presentation-cut.spec.js --workers=1',
+    'npm run test:turnero:presentation-cut',
     'npm run test:turnero:sony-premium',
     'npm run test:turnero:web-pilot:ui',
 ];

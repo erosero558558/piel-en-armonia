@@ -26,11 +26,10 @@ function readPackageScripts() {
 test('run-playwright-local arma el comando canonico de playwright test', () => {
     assert.equal(DEFAULT_PHP_SERVER_WORKERS, '4');
     assert.equal(DEFAULT_SERVER_ENGINE, 'php');
-    assert.deepEqual(buildPlaywrightCommandArgs(['tests/admin-queue.spec.js']), [
-        'playwright',
-        'test',
-        'tests/admin-queue.spec.js',
-    ]);
+    assert.deepEqual(
+        buildPlaywrightCommandArgs(['tests/admin-queue.spec.js']),
+        ['playwright', 'test', 'tests/admin-queue.spec.js']
+    );
     assert.deepEqual(buildPlaywrightCommandArgs(['--workers=1']), [
         'playwright',
         'test',
@@ -66,6 +65,27 @@ test('run-playwright-local parsea puerto auto, host y base URL sin mezclar flags
     ]);
 });
 
+test('run-playwright-local parsea runtime-root para server engine node sin mezclar flags de playwright', () => {
+    const parsed = parseArgs(
+        [
+            '--server-engine',
+            'node',
+            '--runtime-root',
+            'src/apps/astro/dist',
+            'tests/turnero-presentation-cut.spec.js',
+            '--workers=1',
+        ],
+        {}
+    );
+
+    assert.equal(parsed.serverEngine, 'node');
+    assert.equal(parsed.runtimeRoot, 'src/apps/astro/dist');
+    assert.deepEqual(parsed.playwrightArgs, [
+        'tests/turnero-presentation-cut.spec.js',
+        '--workers=1',
+    ]);
+});
+
 test('run-playwright-local escanea el siguiente puerto libre cuando el preferido esta ocupado', async () => {
     const resolved = await resolveLocalServerPort(
         {
@@ -96,6 +116,8 @@ test('scripts de admin y turnero usan el wrapper local para aislar Playwright de
     for (const scriptName of [
         'test:admin:auth',
         'test:admin:queue',
+        'test:turnero:presentation-cut',
+        'test:turnero:sony-premium',
         'test:turnero:web-pilot:ui',
         'test:turnero:ui',
     ]) {

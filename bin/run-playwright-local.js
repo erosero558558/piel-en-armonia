@@ -37,11 +37,14 @@ function isFlag(token, expected) {
 function parseArgs(argv, env = process.env) {
     const explicitPortRaw = String(env.TEST_LOCAL_SERVER_PORT || '').trim();
     const parsed = {
-        host: String(env.TEST_LOCAL_SERVER_HOST || DEFAULT_HOST).trim() || DEFAULT_HOST,
+        host:
+            String(env.TEST_LOCAL_SERVER_HOST || DEFAULT_HOST).trim() ||
+            DEFAULT_HOST,
         serverEngine:
             String(env.TEST_LOCAL_SERVER_ENGINE || DEFAULT_SERVER_ENGINE)
                 .trim()
                 .toLowerCase() || DEFAULT_SERVER_ENGINE,
+        runtimeRoot: String(env.TEST_RUNTIME_ROOT || '').trim(),
         port: parsePortEnv(explicitPortRaw, DEFAULT_PORT),
         portSource: explicitPortRaw ? 'env' : 'default',
         portWindow: parseIntegerEnv(
@@ -66,15 +69,21 @@ function parseArgs(argv, env = process.env) {
             break;
         }
         if (isFlag(token, '--host')) {
-            parsed.host =
-                String(argv[index + 1] || '').trim() || parsed.host;
+            parsed.host = String(argv[index + 1] || '').trim() || parsed.host;
             index += 1;
             continue;
         }
         if (isFlag(token, '--server-engine')) {
             parsed.serverEngine =
-                String(argv[index + 1] || '').trim().toLowerCase() ||
-                parsed.serverEngine;
+                String(argv[index + 1] || '')
+                    .trim()
+                    .toLowerCase() || parsed.serverEngine;
+            index += 1;
+            continue;
+        }
+        if (isFlag(token, '--runtime-root')) {
+            parsed.runtimeRoot =
+                String(argv[index + 1] || '').trim() || parsed.runtimeRoot;
             index += 1;
             continue;
         }
@@ -211,23 +220,28 @@ async function waitForHttpReady(urlString, timeoutMs) {
 }
 
 function startLocalPhpServer(host, port) {
-    return spawn('php', ['-S', `${host}:${port}`, '-t', '.', 'bin/local-stage-router.php'], {
-        cwd: ROOT,
-        env: {
-            ...process.env,
-            PHP_CLI_SERVER_WORKERS:
-                String(process.env.PHP_CLI_SERVER_WORKERS || '').trim() ||
-                DEFAULT_PHP_SERVER_WORKERS,
-        },
-        stdio: ['ignore', 'pipe', 'pipe'],
-        shell: false,
-    });
+    return spawn(
+        'php',
+        ['-S', `${host}:${port}`, '-t', '.', 'bin/local-stage-router.php'],
+        {
+            cwd: ROOT,
+            env: {
+                ...process.env,
+                PHP_CLI_SERVER_WORKERS:
+                    String(process.env.PHP_CLI_SERVER_WORKERS || '').trim() ||
+                    DEFAULT_PHP_SERVER_WORKERS,
+            },
+            stdio: ['ignore', 'pipe', 'pipe'],
+            shell: false,
+        }
+    );
 }
 
-async function startLocalNodeServer(host, port) {
+async function startLocalNodeServer(host, port, runtimeRoot = '') {
     const serverHandle = await startLocalPublicServer(ROOT, {
         host,
         port,
+        runtimeRoot,
     });
     return {
         kind: 'node',
@@ -261,19 +275,16 @@ function extractListeningPids(raw) {
         new Set(
             String(raw || '')
                 .match(/pid=\d+/g)
-                ?.map((entry) =>
-                    Number.parseInt(entry.replace('pid=', ''), 10)
-                )
+                ?.map((entry) => Number.parseInt(entry.replace('pid=', ''), 10))
                 .filter((value) => Number.isInteger(value) && value > 0) || []
         )
     );
 }
 
 function killListeningPort(port, { preferHost = false } = {}) {
-    const inspect = runShellCommand(
-        `ss -ltnp "( sport = :${port} )" || true`,
-        { preferHost }
-    );
+    const inspect = runShellCommand(`ss -ltnp "( sport = :${port} )" || true`, {
+        preferHost,
+    });
     const pids = extractListeningPids(
         `${inspect.stdout || ''}\n${inspect.stderr || ''}`
     );
@@ -308,12 +319,16 @@ function killProcess(proc) {
 function runPlaywrightCommand(playwrightArgs, env) {
     return new Promise((resolve) => {
         const command = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-        const child = spawn(command, buildPlaywrightCommandArgs(playwrightArgs), {
-            cwd: ROOT,
-            env,
-            stdio: 'inherit',
-            shell: false,
-        });
+        const child = spawn(
+            command,
+            buildPlaywrightCommandArgs(playwrightArgs),
+            {
+                cwd: ROOT,
+                env,
+                stdio: 'inherit',
+                shell: false,
+            }
+        );
         child.once('exit', (code, signal) => {
             if (typeof code === 'number') {
                 resolve(code);
@@ -394,7 +409,8 @@ async function main() {
             if (options.serverEngine === 'node') {
                 serverProcess = await startLocalNodeServer(
                     options.host,
-                    resolvedLocalPort
+                    resolvedLocalPort,
+                    options.runtimeRoot
                 );
             } else {
                 serverProcess = startLocalPhpServer(
