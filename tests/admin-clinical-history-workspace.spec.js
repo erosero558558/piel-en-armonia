@@ -223,6 +223,130 @@ function buildHcu007StatusFixture(status) {
     }
 }
 
+function buildHcu010AStatusFixture(status) {
+    switch (status) {
+        case 'issued':
+            return {
+                status: 'issued',
+                label: 'HCU-010A emitida',
+                summary:
+                    'La solicitud de laboratorio ya fue emitida como soporte diagnostico del episodio.',
+            };
+        case 'ready_to_issue':
+            return {
+                status: 'ready_to_issue',
+                label: 'HCU-010A lista para emitir',
+                summary:
+                    'La solicitud de laboratorio ya cubre los campos minimos del MSP y esta lista para emitirse.',
+            };
+        case 'cancelled':
+            return {
+                status: 'cancelled',
+                label: 'HCU-010A cancelada',
+                summary:
+                    'La solicitud de laboratorio fue cancelada y ya no bloquea el plan actual.',
+            };
+        case 'incomplete':
+            return {
+                status: 'incomplete',
+                label: 'HCU-010A incompleta',
+                summary:
+                    'La solicitud de laboratorio sigue con campos clinicos o tecnicos incompletos.',
+            };
+        case 'draft':
+            return {
+                status: 'draft',
+                label: 'HCU-010A borrador',
+                summary:
+                    'Existe una solicitud de laboratorio en borrador aun sin emitir.',
+            };
+        default:
+            return {
+                status: 'not_applicable',
+                label: 'HCU-010A no aplica',
+                summary:
+                    'No hay solicitud de laboratorio formal exigible para este episodio.',
+            };
+    }
+}
+
+function buildLabOrderFixture(
+    patientName,
+    sessionId,
+    admission001,
+    hcu005,
+    overrides = {}
+) {
+    return {
+        labOrderId: overrides.labOrderId || `lab-order-${sessionId}-001`,
+        status: overrides.status || 'draft',
+        requiredForCurrentPlan: overrides.requiredForCurrentPlan === true,
+        priority: overrides.priority || 'routine',
+        requestedAt: overrides.requestedAt || '2026-03-15T09:18:00-05:00',
+        sampleDate: overrides.sampleDate || '',
+        requestingEstablishment:
+            overrides.requestingEstablishment || 'Piel Armonía',
+        requestingService:
+            overrides.requestingService || 'Dermatología ambulatoria',
+        careSite: overrides.careSite || 'Consulta externa',
+        bedLabel: overrides.bedLabel || '',
+        requestedBy: overrides.requestedBy || 'Dra. Laura Mena',
+        patientName,
+        patientDocumentNumber:
+            overrides.patientDocumentNumber ||
+            admission001.identity.documentNumber,
+        patientRecordId: overrides.patientRecordId || `hcu-${sessionId}`,
+        patientAgeYears:
+            overrides.patientAgeYears || admission001.demographics.ageYears,
+        patientSexAtBirth:
+            overrides.patientSexAtBirth || admission001.demographics.sexAtBirth,
+        diagnoses: Array.isArray(overrides.diagnoses)
+            ? overrides.diagnoses
+            : [
+                  {
+                      type: 'pre',
+                      label:
+                          overrides.diagnosisLabel ||
+                          hcu005.diagnosticImpression ||
+                          'Diagnóstico clínico en evaluación',
+                      cie10: overrides.diagnosisCie10 || 'L71.9',
+                  },
+              ],
+        studySelections: {
+            hematology: Array.isArray(overrides.studySelections?.hematology)
+                ? overrides.studySelections.hematology
+                : [],
+            urinalysis: Array.isArray(overrides.studySelections?.urinalysis)
+                ? overrides.studySelections.urinalysis
+                : [],
+            coprological: Array.isArray(overrides.studySelections?.coprological)
+                ? overrides.studySelections.coprological
+                : [],
+            bloodChemistry: Array.isArray(
+                overrides.studySelections?.bloodChemistry
+            )
+                ? overrides.studySelections.bloodChemistry
+                : [],
+            serology: Array.isArray(overrides.studySelections?.serology)
+                ? overrides.studySelections.serology
+                : [],
+            bacteriology: Array.isArray(overrides.studySelections?.bacteriology)
+                ? overrides.studySelections.bacteriology
+                : [],
+            others: overrides.studySelections?.others || '',
+        },
+        bacteriologySampleSource: overrides.bacteriologySampleSource || '',
+        physicianPresentAtExam: overrides.physicianPresentAtExam === true,
+        notes: overrides.notes || '',
+        issuedAt: overrides.issuedAt || '',
+        cancelledAt: overrides.cancelledAt || '',
+        cancelReason: overrides.cancelReason || '',
+        history: Array.isArray(overrides.history) ? overrides.history : [],
+        createdAt: overrides.createdAt || '2026-03-15T09:18:00-05:00',
+        updatedAt: overrides.updatedAt || '2026-03-15T09:18:00-05:00',
+    };
+}
+
 function buildInterconsultationFixture(
     patientName,
     sessionId,
@@ -234,8 +358,7 @@ function buildInterconsultationFixture(
         interconsultId:
             overrides.interconsultId || `interconsult-${sessionId}-001`,
         status: overrides.status || 'draft',
-        requiredForCurrentPlan:
-            overrides.requiredForCurrentPlan === true,
+        requiredForCurrentPlan: overrides.requiredForCurrentPlan === true,
         priority: overrides.priority || 'routine',
         requestedAt: overrides.requestedAt || '2026-03-15T09:12:00-05:00',
         requestingEstablishment:
@@ -244,8 +367,7 @@ function buildInterconsultationFixture(
             overrides.requestingService || 'Dermatología ambulatoria',
         destinationEstablishment: overrides.destinationEstablishment || '',
         destinationService: overrides.destinationService || '',
-        consultedProfessionalName:
-            overrides.consultedProfessionalName || '',
+        consultedProfessionalName: overrides.consultedProfessionalName || '',
         patientName,
         patientDocumentNumber:
             overrides.patientDocumentNumber ||
@@ -254,12 +376,12 @@ function buildInterconsultationFixture(
         patientAgeYears:
             overrides.patientAgeYears || admission001.demographics.ageYears,
         patientSexAtBirth:
-            overrides.patientSexAtBirth ||
-            admission001.demographics.sexAtBirth,
+            overrides.patientSexAtBirth || admission001.demographics.sexAtBirth,
         clinicalPicture:
             overrides.clinicalPicture || hcu005.evolutionNote || '',
         requestReason:
-            overrides.requestReason || 'Valoración complementaria especializada.',
+            overrides.requestReason ||
+            'Valoración complementaria especializada.',
         diagnoses: Array.isArray(overrides.diagnoses)
             ? overrides.diagnoses
             : [
@@ -311,8 +433,7 @@ function buildInterconsultationFixture(
             clinicalFindings: overrides.report?.clinicalFindings || '',
             diagnosticOpinion: overrides.report?.diagnosticOpinion || '',
             recommendations: overrides.report?.recommendations || '',
-            followUpIndications:
-                overrides.report?.followUpIndications || '',
+            followUpIndications: overrides.report?.followUpIndications || '',
             sourceDocumentType: overrides.report?.sourceDocumentType || '',
             sourceReference: overrides.report?.sourceReference || '',
             attachments: Array.isArray(overrides.report?.attachments)
@@ -347,8 +468,7 @@ function buildConsentPacketFixture(
         templateKey: overrides.templateKey || 'laser-dermatologico',
         procedureKey: overrides.procedureKey || 'laser-dermatologico',
         procedureLabel: overrides.procedureLabel || 'Láser dermatológico',
-        title:
-            overrides.title || 'Consentimiento informado HCU-form.024/2008',
+        title: overrides.title || 'Consentimiento informado HCU-form.024/2008',
         sourceMode: overrides.sourceMode || 'fixture',
         status,
         writtenRequired: overrides.writtenRequired ?? consent.required === true,
@@ -363,7 +483,8 @@ function buildConsentPacketFixture(
         encounterDateTime:
             overrides.encounterDateTime || '2026-03-15T09:05:00-05:00',
         diagnosisLabel:
-            overrides.diagnosisLabel || 'Rosacea inflamatoria en control clinico.',
+            overrides.diagnosisLabel ||
+            'Rosacea inflamatoria en control clinico.',
         diagnosisCie10: overrides.diagnosisCie10 || 'L71.9',
         procedureName:
             overrides.procedureName || 'Aplicación de láser dermatológico',
@@ -375,7 +496,8 @@ function buildConsentPacketFixture(
             overrides.procedureHowItIsDone ||
             'Se delimita el área, se protege al paciente y se aplica el equipo según plan clínico.',
         durationEstimate:
-            overrides.durationEstimate || '20 a 30 minutos según zonas tratadas',
+            overrides.durationEstimate ||
+            '20 a 30 minutos según zonas tratadas',
         graphicRef: overrides.graphicRef || '',
         benefits:
             overrides.benefits ||
@@ -417,8 +539,7 @@ function buildConsentPacketFixture(
                 overrides.declaration?.capacityAssessment ||
                 consent.capacityAssessment ||
                 'Paciente capaz de decidir',
-            notes:
-                overrides.declaration?.notes || consent.notes || '',
+            notes: overrides.declaration?.notes || consent.notes || '',
         },
         denial: {
             declinedAt: overrides.denial?.declinedAt || '',
@@ -477,9 +598,7 @@ function buildConsentPacketFixture(
             phone: overrides.witnessAttestation?.phone || '',
             signedAt: overrides.witnessAttestation?.signedAt || '',
         },
-        history: Array.isArray(overrides.history)
-            ? overrides.history
-            : [],
+        history: Array.isArray(overrides.history) ? overrides.history : [],
         createdAt: overrides.createdAt || '2026-03-15T09:00:00-05:00',
         updatedAt: overrides.updatedAt || '2026-03-15T09:10:00-05:00',
     };
@@ -499,6 +618,8 @@ function buildClinicalRecordPayload({
     activeConsentPacketId = '',
     interconsultations = [],
     activeInterconsultationId = '',
+    labOrders = [],
+    activeLabOrderId = '',
     copyRequests = [],
     disclosureLog = [],
     accessAudit = [],
@@ -532,9 +653,7 @@ function buildClinicalRecordPayload({
                 ]
               : [];
     const normalizedActiveConsentPacketId =
-        activeConsentPacketId ||
-        normalizedConsentPackets[0]?.packetId ||
-        '';
+        activeConsentPacketId || normalizedConsentPackets[0]?.packetId || '';
     const normalizedActiveConsentPacket =
         normalizedConsentPackets.find(
             (packet) => packet.packetId === normalizedActiveConsentPacketId
@@ -604,7 +723,9 @@ function buildClinicalRecordPayload({
             (item) =>
                 item.interconsultId === normalizedActiveInterconsultationId
         ) || null;
-    const normalizedInterconsultForms = Array.isArray(documents.interconsultForms)
+    const normalizedInterconsultForms = Array.isArray(
+        documents.interconsultForms
+    )
         ? documents.interconsultForms
         : normalizedInterconsultations.filter((item) =>
               ['issued', 'cancelled'].includes(item.status)
@@ -656,6 +777,40 @@ function buildClinicalRecordPayload({
                     ? 'Existe un borrador del informe del consultado aún sin recepción formal.'
                     : 'Todavía no se ha recibido informe del consultado.',
     };
+    const normalizedLabOrders = Array.isArray(labOrders) ? labOrders : [];
+    const normalizedActiveLabOrderId =
+        activeLabOrderId || normalizedLabOrders[0]?.labOrderId || '';
+    const normalizedActiveLabOrder =
+        normalizedLabOrders.find(
+            (item) => item.labOrderId === normalizedActiveLabOrderId
+        ) || null;
+    const normalizedLabOrderSnapshots = Array.isArray(documents.labOrders)
+        ? documents.labOrders
+        : normalizedLabOrders
+              .filter((item) => ['issued', 'cancelled'].includes(item.status))
+              .map((item) => ({
+                  labOrderId: item.labOrderId,
+                  status: item.status,
+                  finalizedAt:
+                      item.issuedAt || item.cancelledAt || item.updatedAt || '',
+                  snapshotAt:
+                      item.issuedAt || item.cancelledAt || item.updatedAt || '',
+                  patientName: item.patientName,
+                  patientDocumentNumber: item.patientDocumentNumber,
+                  patientRecordId: item.patientRecordId,
+                  sampleDate: item.sampleDate,
+                  priority: item.priority,
+                  requestedBy: item.requestedBy,
+                  diagnoses: item.diagnoses,
+                  studySelections: item.studySelections,
+                  notes: item.notes,
+              }));
+    const normalizedHcu010AStatus =
+        legalReadiness.hcu010AStatus ||
+        buildHcu010AStatusFixture(
+            normalizedActiveLabOrder?.status ||
+                (normalizedLabOrders.length > 0 ? 'draft' : 'not_applicable')
+        );
     const prescriptionMedication = normalizedHcu005.prescriptionItems
         .map((item) => item.medication)
         .filter(Boolean)
@@ -870,6 +1025,7 @@ function buildClinicalRecordPayload({
                     'SNS-MSP/HCU-form.001/2008',
                     'SNS-MSP/HCU-form.005/2008',
                     'SNS-MSP/HCU-form.007/2008',
+                    'SNS-MSP/HCU-form.010A/2008',
                     'SNS-MSP/HCU-form.024',
                 ],
                 normativeScope: 'ecuador_private_consultorio_v1',
@@ -924,7 +1080,10 @@ function buildClinicalRecordPayload({
                 consentForms: normalizedConsentForms,
                 interconsultForms: normalizedInterconsultForms,
                 interconsultReports: normalizedInterconsultReports,
+                labOrders: normalizedLabOrderSnapshots,
             },
+            labOrders: normalizedLabOrders,
+            activeLabOrderId: normalizedActiveLabOrderId,
             consentPackets: normalizedConsentPackets,
             activeConsentPacketId: normalizedActiveConsentPacketId,
             interconsultations: normalizedInterconsultations,
@@ -1049,6 +1208,7 @@ function buildClinicalRecordPayload({
                 'SNS-MSP/HCU-form.001/2008',
                 'SNS-MSP/HCU-form.005/2008',
                 'SNS-MSP/HCU-form.007/2008',
+                'SNS-MSP/HCU-form.010A/2008',
                 'SNS-MSP/HCU-form.024',
             ],
         },
@@ -1083,6 +1243,7 @@ function buildClinicalRecordPayload({
                 legalReadiness.hcu005Status?.status ||
                 (legalReadiness.status === 'ready' ? 'complete' : 'partial'),
             hcu007Status: normalizedHcu007Status.status,
+            hcu010AStatus: normalizedHcu010AStatus.status,
             hcu024Status: normalizedHcu024Status.status,
         },
         documents: {
@@ -1133,10 +1294,15 @@ function buildClinicalRecordPayload({
             },
             consentForms: normalizedConsentForms,
             interconsultForms: normalizedInterconsultForms,
+            interconsultReports: normalizedInterconsultReports,
+            labOrders: normalizedLabOrderSnapshots,
         },
         interconsultations: normalizedInterconsultations,
         activeInterconsultationId: normalizedActiveInterconsultationId,
         activeInterconsultation: normalizedActiveInterconsultation,
+        labOrders: normalizedLabOrders,
+        activeLabOrderId: normalizedActiveLabOrderId,
+        activeLabOrder: normalizedActiveLabOrder,
         consentPackets: normalizedConsentPackets,
         activeConsentPacketId: normalizedActiveConsentPacketId,
         activeConsentPacket: normalizedActiveConsentPacket,
@@ -1168,7 +1334,8 @@ function buildClinicalRecordPayload({
                 '',
             capacityAssessment:
                 consent.capacityAssessment ||
-                normalizedActiveConsentPacket?.declaration?.capacityAssessment ||
+                normalizedActiveConsentPacket?.declaration
+                    ?.capacityAssessment ||
                 '',
             privateCommunicationConfirmed:
                 consent.privateCommunicationConfirmed === true ||
@@ -1209,6 +1376,7 @@ function buildClinicalRecordPayload({
                 'MSP-HCU-FORM-001',
                 'MSP-HCU-FORM-005',
                 'MSP-HCU-FORM-007',
+                'MSP-HCU-FORM-010A',
                 'MSP-HCU-FORM-024',
             ],
         },
@@ -1227,6 +1395,7 @@ function buildClinicalRecordPayload({
                 'MSP-HCU-FORM-001',
                 'MSP-HCU-FORM-005',
                 'MSP-HCU-FORM-007',
+                'MSP-HCU-FORM-010A',
                 'MSP-HCU-FORM-024',
             ],
         },
@@ -1247,6 +1416,7 @@ function buildClinicalRecordPayload({
             },
             hcu007Status: normalizedHcu007Status,
             hcu007ReportStatus: normalizedHcu007ReportStatus,
+            hcu010AStatus: normalizedHcu010AStatus,
             hcu024Status: normalizedHcu024Status,
         },
         closureChecklist: {
@@ -1266,6 +1436,7 @@ function buildClinicalRecordPayload({
             },
             hcu007Status: normalizedHcu007Status,
             hcu007ReportStatus: normalizedHcu007ReportStatus,
+            hcu010AStatus: normalizedHcu010AStatus,
             hcu024Status: normalizedHcu024Status,
         },
         recordsGovernance: normalizedRecordsGovernance,
@@ -1686,15 +1857,15 @@ test('historia clinica opera como cabina medico-legal y deja media flow fuera de
     await expect(page.locator('#clinicalHistoryHeaderMeta')).toContainText(
         'Primera admision'
     );
-    await expect(
-        page.locator('#clinicalHistoryDraftForm')
-    ).toContainText('Consentimiento HCU-form.024/2008');
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Consentimiento HCU-form.024/2008'
+    );
     await expect(page.locator('#consent_packet_procedure_name')).toHaveValue(
         'Aplicación de láser dermatológico'
     );
-    await expect(page.locator('#admission_identity_document_number')).toHaveValue(
-        '0912345678'
-    );
+    await expect(
+        page.locator('#admission_identity_document_number')
+    ).toHaveValue('0912345678');
     await expect(page.locator('#hcu005_prescription_0_medication')).toHaveValue(
         'Metronidazol topico'
     );
@@ -1786,8 +1957,7 @@ test('interconsulta HCU-007 permite crear, emitir y cancelar documentos del epis
         sessionId: 'chs-hcu007-001',
         caseId: 'case-hcu007-001',
         patientName: 'Paula Vera',
-        clinicianSummary:
-            'Caso con interconsulta en borrador aún no emitida.',
+        clinicianSummary: 'Caso con interconsulta en borrador aún no emitida.',
         legalReadiness: {
             status: 'ready',
             ready: true,
@@ -1845,8 +2015,7 @@ test('interconsulta HCU-007 permite crear, emitir y cancelar documentos del epis
         sessionId: 'chs-hcu007-001',
         caseId: 'case-hcu007-001',
         patientName: 'Paula Vera',
-        clinicianSummary:
-            'Interconsulta emitida como parte del plan actual.',
+        clinicianSummary: 'Interconsulta emitida como parte del plan actual.',
         legalReadiness: {
             status: 'ready',
             ready: true,
@@ -1926,7 +2095,10 @@ test('interconsulta HCU-007 permite crear, emitir y cancelar documentos del epis
         interconsultations: [cancelledInterconsultation],
         activeInterconsultationId: cancelledInterconsultation.interconsultId,
         documents: {
-            interconsultForms: [issuedInterconsultation, cancelledInterconsultation],
+            interconsultForms: [
+                issuedInterconsultation,
+                cancelledInterconsultation,
+            ],
         },
     });
 
@@ -2062,9 +2234,9 @@ test('interconsulta HCU-007 permite crear, emitir y cancelar documentos del epis
     await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
     await page.keyboard.press('Enter');
 
-    await expect(
-        page.locator('#clinicalHistoryDraftForm')
-    ).toContainText('Interconsulta HCU-form.007/2008');
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Interconsulta HCU-form.007/2008'
+    );
     await expect(
         page.locator('#clinicalHistoryLegalReadinessPanel')
     ).toContainText('HCU-007 no aplica');
@@ -2097,22 +2269,18 @@ test('interconsulta HCU-007 permite crear, emitir y cancelar documentos del epis
         .fill('Solicito valoración complementaria para plan ambulatorio.');
     await page
         .locator('#interconsult_question_for_consultant')
-        .fill(
-            'Confirmar conducta y prioridad del seguimiento especializado.'
-        );
+        .fill('Confirmar conducta y prioridad del seguimiento especializado.');
     await page
         .locator('#interconsult_performed_diagnostics_summary')
         .fill('Evaluación clínica, dermatoscopia y fotografías de control.');
     await page
         .locator('#interconsult_therapeutic_measures_done')
-        .fill(
-            'Metronidazol tópico, fotoprotección y educación del paciente.'
-        );
+        .fill('Metronidazol tópico, fotoprotección y educación del paciente.');
+    await page.locator('#interconsult_required_for_current_plan').check();
     await page
-        .locator('#interconsult_required_for_current_plan')
-        .check();
-    await page
-        .locator('[data-clinical-review-action="issue-current-interconsultation"]')
+        .locator(
+            '[data-clinical-review-action="issue-current-interconsultation"]'
+        )
         .click();
 
     await expect.poll(() => actionPayloads.length).toBe(2);
@@ -2143,7 +2311,9 @@ test('interconsulta HCU-007 permite crear, emitir y cancelar documentos del epis
         .locator('#interconsult_cancel_reason')
         .fill('La paciente decidió diferir la valoración externa.');
     await page
-        .locator('[data-clinical-review-action="cancel-current-interconsultation"]')
+        .locator(
+            '[data-clinical-review-action="cancel-current-interconsultation"]'
+        )
         .click();
 
     await expect.poll(() => actionPayloads.length).toBe(3);
@@ -2169,7 +2339,8 @@ test('interconsulta HCU-007 permite recibir el informe del consultado y mostrar 
         sessionId: 'chs-hcu007-report-001',
         caseId: 'case-hcu007-report-001',
         patientName: 'Paula Vera',
-        clinicianSummary: 'Caso con interconsulta emitida y pendiente de informe.',
+        clinicianSummary:
+            'Caso con interconsulta emitida y pendiente de informe.',
         legalReadiness: {
             status: 'ready',
             ready: true,
@@ -2328,10 +2499,8 @@ test('interconsulta HCU-007 permite recibir el informe del consultado y mostrar 
                     consultedProfessionalName:
                         receivedInterconsultation.consultedProfessionalName,
                     reportStatus: 'received',
-                    finalizedAt:
-                        receivedInterconsultation.report.reportedAt,
-                    snapshotAt:
-                        receivedInterconsultation.report.reportedAt,
+                    finalizedAt: receivedInterconsultation.report.reportedAt,
+                    snapshotAt: receivedInterconsultation.report.reportedAt,
                     report: receivedInterconsultation.report,
                 },
             ],
@@ -2492,17 +2661,13 @@ test('interconsulta HCU-007 permite recibir el informe del consultado y mostrar 
         .fill('Criterio complementario recibido.');
     await page
         .locator('#interconsult_report_clinical_findings')
-        .fill(
-            'Rosacea inflamatoria en control parcial, sin signos de alarma.'
-        );
+        .fill('Rosacea inflamatoria en control parcial, sin signos de alarma.');
     await page
         .locator('#interconsult_report_diagnostic_opinion')
         .fill('Mantener manejo ambulatorio y control evolutivo.');
     await page
         .locator('#interconsult_report_recommendations')
-        .fill(
-            'Continuar metronidazol tópico y reevaluar en cuatro semanas.'
-        );
+        .fill('Continuar metronidazol tópico y reevaluar en cuatro semanas.');
     await page
         .locator('#interconsult_report_follow_up_indications')
         .fill('Control dermatológico si hay recrudecimiento.');
@@ -2559,6 +2724,353 @@ test('interconsulta HCU-007 permite recibir el informe del consultado y mostrar 
     );
 });
 
+test('laboratorio HCU-010A permite crear y emitir solicitudes del episodio', async ({
+    page,
+}) => {
+    const baseRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu010a-001',
+        caseId: 'case-hcu010a-001',
+        patientName: 'Lina Vela',
+        clinicianSummary:
+            'Caso con apoyo diagnostico de laboratorio aun no formalizado.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'Todavia no existe una solicitud formal de laboratorio exigible para este episodio.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y el plan terapeutico ya estan trazados.',
+            },
+            hcu010AStatus: buildHcu010AStatusFixture('not_applicable'),
+            checklist: [
+                {
+                    code: 'hcu010a_laboratory',
+                    status: 'pass',
+                    label: 'HCU-010A laboratorio',
+                    message:
+                        'No hay solicitud de laboratorio requerida para este episodio.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: {
+            required: false,
+            status: 'not_required',
+        },
+    });
+
+    const draftLabOrder = buildLabOrderFixture(
+        'Lina Vela',
+        'chs-hcu010a-001',
+        baseRecord.patientRecord.admission001,
+        baseRecord.draft.clinicianDraft.hcu005,
+        {
+            labOrderId: 'lab-order-hcu010a-001',
+            requiredForCurrentPlan: false,
+            sampleDate: '',
+            requestedBy: '',
+            studySelections: {
+                hematology: [],
+                urinalysis: [],
+                coprological: [],
+                bloodChemistry: [],
+                serology: [],
+                bacteriology: [],
+                others: '',
+            },
+        }
+    );
+
+    const createdRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu010a-001',
+        caseId: 'case-hcu010a-001',
+        patientName: 'Lina Vela',
+        clinicianSummary: 'Solicitud de laboratorio creada y aun en borrador.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La solicitud existe como borrador, pero todavia no forma parte obligatoria del plan.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y el plan terapeutico ya estan trazados.',
+            },
+            hcu010AStatus: buildHcu010AStatusFixture('draft'),
+            checklist: [
+                {
+                    code: 'hcu010a_laboratory',
+                    status: 'pass',
+                    label: 'HCU-010A laboratorio',
+                    message:
+                        'La solicitud existe como borrador y aun no congela el cierre.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: baseRecord.consent,
+        labOrders: [draftLabOrder],
+        activeLabOrderId: draftLabOrder.labOrderId,
+    });
+
+    const issuedLabOrder = buildLabOrderFixture(
+        'Lina Vela',
+        'chs-hcu010a-001',
+        baseRecord.patientRecord.admission001,
+        baseRecord.draft.clinicianDraft.hcu005,
+        {
+            ...draftLabOrder,
+            status: 'issued',
+            requiredForCurrentPlan: true,
+            sampleDate: '2026-03-15',
+            requestedBy: 'Dra. Laura Mena',
+            studySelections: {
+                hematology: ['Biometria hematica'],
+                urinalysis: [],
+                coprological: [],
+                bloodChemistry: [],
+                serology: [],
+                bacteriology: [],
+                others: '',
+            },
+            issuedAt: '2026-03-15T10:15:00-05:00',
+            notes: 'Solicitar biometria hematica de control.',
+        }
+    );
+
+    const issuedRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu010a-001',
+        caseId: 'case-hcu010a-001',
+        patientName: 'Lina Vela',
+        clinicianSummary: 'Solicitud de laboratorio emitida y documentada.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La solicitud de laboratorio requerida ya fue emitida y no bloquea el cierre actual.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y el plan terapeutico ya estan trazados.',
+            },
+            hcu010AStatus: buildHcu010AStatusFixture('issued'),
+            checklist: [
+                {
+                    code: 'hcu010a_laboratory',
+                    status: 'pass',
+                    label: 'HCU-010A laboratorio',
+                    message:
+                        'La solicitud de laboratorio requerida ya fue emitida.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: baseRecord.consent,
+        labOrders: [issuedLabOrder],
+        activeLabOrderId: issuedLabOrder.labOrderId,
+        documents: {
+            labOrders: [issuedLabOrder],
+        },
+    });
+
+    let currentRecord = baseRecord;
+    const actionPayloads = [];
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                        hcu010A: {
+                            not_applicable: 1,
+                            draft: 0,
+                            ready_to_issue: 0,
+                            issued: 0,
+                            cancelled: 0,
+                            incomplete: 0,
+                        },
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-hcu010a-001',
+                        caseId: 'case-hcu010a-001',
+                        patientName: 'Lina Vela',
+                        summary:
+                            'Caso ambulatorio con apoyo diagnostico potencial.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: true,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 0,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'Todavia no existe una solicitud formal de laboratorio exigible para este episodio.',
+                        hcu001Status: 'complete',
+                        hcu001Label: 'HCU-001 completa',
+                        hcu001Summary:
+                            'La admision longitudinal ya deja identidad y contacto base defendibles.',
+                        hcu005Status: 'complete',
+                        hcu005Label: 'HCU-005 completo',
+                        hcu005Summary:
+                            'La evolucion y el plan terapeutico ya estan trazados.',
+                        hcu010AStatus: 'not_applicable',
+                        hcu010ALabel: 'HCU-010A no aplica',
+                        hcu010ASummary:
+                            'No hay solicitud de laboratorio formal exigible para este episodio.',
+                        hcu024Status: 'not_applicable',
+                        hcu024Label: 'HCU-024 no aplica',
+                        hcu024Summary:
+                            'No hay consentimiento escrito por procedimiento exigible para este episodio.',
+                        approvalBlockedReasons: [],
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            payload,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: currentRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'clinical-episode-action' && method === 'POST') {
+                actionPayloads.push(payload);
+
+                if (payload.action === 'create_lab_order') {
+                    currentRecord = createdRecord;
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: createdRecord,
+                    });
+                    return true;
+                }
+
+                if (payload.action === 'issue_lab_order') {
+                    currentRecord = issuedRecord;
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: issuedRecord,
+                    });
+                    return true;
+                }
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.keyboard.press('Control+K');
+    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Laboratorio HCU-form.010A/2008'
+    );
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-010A no aplica');
+
+    await page
+        .locator('[data-clinical-review-action="create-lab-order"]')
+        .click();
+
+    await expect.poll(() => actionPayloads.length).toBe(1);
+    expect(actionPayloads[0]).toMatchObject({
+        action: 'create_lab_order',
+        sessionId: 'chs-hcu010a-001',
+    });
+
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-010A borrador');
+
+    await page.locator('#lab_order_sample_date').fill('2026-03-15');
+    await page.locator('#lab_order_requested_by').fill('Dra. Laura Mena');
+    await page.locator('#lab_order_required_for_current_plan').check();
+    await page
+        .locator(
+            'input[name="lab_order_study_hematology"][value="Biometria hematica"]'
+        )
+        .check();
+    await page
+        .locator('#lab_order_notes')
+        .fill('Solicitar biometria hematica de control.');
+
+    await page
+        .locator('[data-clinical-review-action="issue-current-lab-order"]')
+        .click();
+
+    await expect.poll(() => actionPayloads.length).toBe(2);
+    expect(actionPayloads[1]).toMatchObject({
+        action: 'issue_lab_order',
+        sessionId: 'chs-hcu010a-001',
+        labOrderId: 'lab-order-hcu010a-001',
+        activeLabOrderId: 'lab-order-hcu010a-001',
+        labOrders: [
+            expect.objectContaining({
+                labOrderId: 'lab-order-hcu010a-001',
+                requiredForCurrentPlan: true,
+                sampleDate: '2026-03-15',
+                requestedBy: 'Dra. Laura Mena',
+                studySelections: expect.objectContaining({
+                    hematology: ['Biometria hematica'],
+                }),
+            }),
+        ],
+    });
+
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-010A emitida');
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Snapshots documentales HCU-010A'
+    );
+    await expect(page.locator('#lab_order_issued_at')).toHaveValue(
+        /2026-03-15/
+    );
+});
+
 test('consentimiento HCU-024 permite crear packets por procedimiento y declarar el activo', async ({
     page,
 }) => {
@@ -2612,8 +3124,7 @@ test('consentimiento HCU-024 permite crear packets por procedimiento y declarar 
             informedAt: '2026-03-15T09:25:00-05:00',
             explainedWhat:
                 'Aplicación de toxina botulínica en puntos definidos.',
-            risksExplained:
-                'Dolor leve, hematoma y asimetría transitoria.',
+            risksExplained: 'Dolor leve, hematoma y asimetría transitoria.',
             alternativesExplained:
                 'Observación clínica o manejo alternativo no infiltrativo.',
             capacityAssessment: 'Paciente capaz de decidir',
@@ -2651,8 +3162,7 @@ test('consentimiento HCU-024 permite crear packets por procedimiento y declarar 
             status: 'ready',
             ready: true,
             label: 'Lista para aprobar',
-            summary:
-                'El HCU-024 del procedimiento ya quedó aceptado.',
+            summary: 'El HCU-024 del procedimiento ya quedó aceptado.',
             hcu005Status: {
                 status: 'complete',
                 label: 'HCU-005 completo',
@@ -2678,8 +3188,7 @@ test('consentimiento HCU-024 permite crear packets por procedimiento y declarar 
             informedAt: '2026-03-15T09:25:00-05:00',
             explainedWhat:
                 'Aplicación de toxina botulínica en puntos definidos.',
-            risksExplained:
-                'Dolor leve, hematoma y asimetría transitoria.',
+            risksExplained: 'Dolor leve, hematoma y asimetría transitoria.',
             alternativesExplained:
                 'Observación clínica o manejo alternativo no infiltrativo.',
             capacityAssessment: 'Paciente capaz de decidir',
@@ -2796,16 +3305,20 @@ test('consentimiento HCU-024 permite crear packets por procedimiento y declarar 
     await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
     await page.keyboard.press('Enter');
 
-    await expect(
-        page.locator('#clinicalHistoryDraftForm')
-    ).toContainText('Consentimiento HCU-form.024/2008');
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Consentimiento HCU-form.024/2008'
+    );
     await page
-        .locator('[data-clinical-draft-action="create-consent-packet-local"][data-template-key="botox"]')
+        .locator(
+            '[data-clinical-draft-action="create-consent-packet-local"][data-template-key="botox"]'
+        )
         .click();
     await expect(
-        page.locator(
-            '[data-clinical-draft-action="select-consent-packet-local"]'
-        ).filter({ hasText: 'Botox' })
+        page
+            .locator(
+                '[data-clinical-draft-action="select-consent-packet-local"]'
+            )
+            .filter({ hasText: 'Botox' })
     ).toHaveCount(1);
 
     await page
@@ -2814,13 +3327,13 @@ test('consentimiento HCU-024 permite crear packets por procedimiento y declarar 
     await page
         .locator('#consent_packet_professional_name')
         .fill('Dra. Laura Mena');
-    await page
-        .locator('#consent_packet_professional_document')
-        .fill('MED-024');
+    await page.locator('#consent_packet_professional_document').fill('MED-024');
     await page
         .locator('#consent_packet_private_communication_confirmed')
         .check();
-    await page.locator('[data-clinical-review-action="declare-current-consent"]').click();
+    await page
+        .locator('[data-clinical-review-action="declare-current-consent"]')
+        .click();
 
     expect(actionPayloads).toHaveLength(1);
     expect(actionPayloads[0]).toMatchObject({
@@ -2844,9 +3357,9 @@ test('consentimiento HCU-024 permite crear packets por procedimiento y declarar 
     await expect(
         page.locator('#clinicalHistoryLegalReadinessPanel')
     ).toContainText('HCU-024 aceptado');
-    await expect(
-        page.locator('#clinicalHistoryDraftForm')
-    ).toContainText('Snapshots documentales inmutables del episodio');
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Snapshots documentales inmutables del episodio'
+    );
 });
 
 test('gobernanza documental muestra SLA, bloquea disclosure no autorizado y exige override para archivo pasivo', async ({

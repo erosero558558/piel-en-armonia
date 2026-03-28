@@ -73,7 +73,7 @@ tasks:
     title: "Backup integrity verification and at-rest encryption"
     owner: ernesto
     executor: jules
-    status: done
+    status: review
     status_since_at: "2026-02-24"
     risk: high
     scope: platform
@@ -93,19 +93,30 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: ""
-    lease_owner: ""
-    lease_created_at: ""
-    heartbeat_at: ""
-    lease_expires_at: ""
-    lease_reason: ""
-    lease_cleared_at: "2026-02-25T06:46:19.170Z"
-    lease_cleared_reason: "terminal:done"
+    lease_id: "lease_AG-001_20260328210207063_03a32c"
+    lease_owner: "ernesto"
+    lease_created_at: "2026-03-28T21:02:07.063Z"
+    heartbeat_at: "2026-03-28T21:02:07.063Z"
+    lease_expires_at: "2026-03-29T01:02:07.063Z"
+    lease_reason: "board_write"
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
     runtime_impact: low
     critical_zone: false
     acceptance: "Validar checksum SHA-256, cifrado en reposo y limpieza por retencion."
     acceptance_ref: "verification/agent-runs/AG-001.md"
     evidence_ref: "verification/agent-runs/AG-001.md"
+    strategy_id: ""
+    subfront_id: ""
+    strategy_role: ""
+    focus_id: ""
+    focus_step: ""
+    integration_slice: ""
+    work_type: ""
+    expected_outcome: ""
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
     depends_on: []
     prompt: "Implementar checksum SHA-256 por header, cifrado AES-256-CBC y prueba de integridad con test."
     created_at: 2026-02-24
@@ -115,7 +126,7 @@ tasks:
     title: "PHP rate-limiter sliding window and per-user limits"
     owner: ernesto
     executor: jules
-    status: done
+    status: review
     status_since_at: "2026-02-24"
     risk: medium
     scope: backend
@@ -135,19 +146,30 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: ""
-    lease_owner: ""
-    lease_created_at: ""
-    heartbeat_at: ""
-    lease_expires_at: ""
-    lease_reason: ""
-    lease_cleared_at: "2026-02-25T06:46:19.170Z"
-    lease_cleared_reason: "terminal:done"
+    lease_id: "lease_AG-002_20260328210207063_db2f6b"
+    lease_owner: "ernesto"
+    lease_created_at: "2026-03-28T21:02:07.063Z"
+    heartbeat_at: "2026-03-28T21:02:07.063Z"
+    lease_expires_at: "2026-03-29T01:02:07.063Z"
+    lease_reason: "board_write"
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
     runtime_impact: low
     critical_zone: false
     acceptance: "Aplicar sliding window real, limites por usuario e instrumentacion de eventos."
     acceptance_ref: "verification/agent-runs/AG-002.md"
     evidence_ref: "verification/agent-runs/AG-002.md"
+    strategy_id: ""
+    subfront_id: ""
+    strategy_role: ""
+    focus_id: ""
+    focus_step: ""
+    integration_slice: ""
+    work_type: ""
+    expected_outcome: ""
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
     depends_on: []
     prompt: "Actualizar rate-limiter a sliding window, incluir limite por user token y pruebas de regresion."
     created_at: 2026-02-24

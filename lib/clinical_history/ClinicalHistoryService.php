@@ -371,6 +371,22 @@ final class ClinicalHistoryService
             return $this->mutateClinicalRecord($store, $payload, 'receive-interconsult-report');
         }
 
+        if ($action === 'create_lab_order') {
+            return $this->mutateClinicalRecord($store, $payload, 'create-lab-order');
+        }
+
+        if ($action === 'select_lab_order') {
+            return $this->mutateClinicalRecord($store, $payload, 'select-lab-order');
+        }
+
+        if ($action === 'issue_lab_order') {
+            return $this->mutateClinicalRecord($store, $payload, 'issue-lab-order');
+        }
+
+        if ($action === 'cancel_lab_order') {
+            return $this->mutateClinicalRecord($store, $payload, 'cancel-lab-order');
+        }
+
         if ($action === 'issue_prescription') {
             return $this->mutateClinicalRecord($store, $payload, 'prescription');
         }
@@ -605,6 +621,9 @@ final class ClinicalHistoryService
             'interconsultations' => $payload['interconsultations'] ?? [],
             'activeInterconsultationId' => $payload['activeInterconsultationId'] ?? '',
             'activeInterconsultation' => $payload['activeInterconsultation'] ?? [],
+            'labOrders' => $payload['labOrders'] ?? [],
+            'activeLabOrderId' => $payload['activeLabOrderId'] ?? '',
+            'activeLabOrder' => $payload['activeLabOrder'] ?? [],
             'consentPackets' => $payload['consentPackets'] ?? [],
             'activeConsentPacketId' => $payload['activeConsentPacketId'] ?? '',
             'activeConsentPacket' => $payload['activeConsentPacket'] ?? [],
@@ -653,6 +672,19 @@ final class ClinicalHistoryService
         foreach ($interconsultations as $interconsultation) {
             if (ClinicalHistoryRepository::trimString($interconsultation['interconsultId'] ?? '') === $activeInterconsultationId) {
                 $activeInterconsultation = $interconsultation;
+                break;
+            }
+        }
+        $labOrders = ClinicalHistoryRepository::normalizeLabOrders(
+            $draft['labOrders'] ?? []
+        );
+        $activeLabOrderId = ClinicalHistoryRepository::trimString(
+            $draft['activeLabOrderId'] ?? ''
+        );
+        $activeLabOrder = [];
+        foreach ($labOrders as $labOrder) {
+            if (ClinicalHistoryRepository::trimString($labOrder['labOrderId'] ?? '') === $activeLabOrderId) {
+                $activeLabOrder = $labOrder;
                 break;
             }
         }
@@ -719,6 +751,9 @@ final class ClinicalHistoryService
         $hcu007Status = is_array($legalReadiness['hcu007Status'] ?? null)
             ? $legalReadiness['hcu007Status']
             : ['status' => 'not_applicable', 'label' => 'HCU-007 no aplica', 'summary' => ''];
+        $hcu010AStatus = is_array($legalReadiness['hcu010AStatus'] ?? null)
+            ? $legalReadiness['hcu010AStatus']
+            : ['status' => 'not_applicable', 'label' => 'HCU-010A no aplica', 'summary' => ''];
         $hcu024Status = is_array($legalReadiness['hcu024Status'] ?? null)
             ? $legalReadiness['hcu024Status']
             : ['status' => 'not_applicable', 'label' => 'HCU-024 no aplica', 'summary' => ''];
@@ -775,12 +810,16 @@ final class ClinicalHistoryService
                 'hcu001Status' => $hcu001Status,
                 'hcu005Status' => $hcu005Status,
                 'hcu007Status' => $hcu007Status,
+                'hcu010AStatus' => $hcu010AStatus,
                 'hcu024Status' => $hcu024Status,
             ],
             'documents' => $documents,
             'interconsultations' => $interconsultations,
             'activeInterconsultationId' => $activeInterconsultationId,
             'activeInterconsultation' => $activeInterconsultation,
+            'labOrders' => $labOrders,
+            'activeLabOrderId' => $activeLabOrderId,
+            'activeLabOrder' => $activeLabOrder,
             'consentPackets' => $consentPackets,
             'activeConsentPacketId' => $activeConsentPacketId,
             'activeConsentPacket' => $activeConsentPacket,
@@ -1004,6 +1043,38 @@ final class ClinicalHistoryService
             $draft = $interconsultationResult['draft'];
             $modeAuditReason = 'interconsult_report_received';
             $modeAuditMeta = $interconsultationResult['meta'] ?? [];
+        } elseif ($mode === 'create-lab-order') {
+            $labOrderResult = $this->applyCreateLabOrderAction($session, $draft, $payload);
+            if (($labOrderResult['ok'] ?? false) !== true) {
+                return $labOrderResult;
+            }
+            $draft = $labOrderResult['draft'];
+            $modeAuditReason = 'lab_order_created';
+            $modeAuditMeta = $labOrderResult['meta'] ?? [];
+        } elseif ($mode === 'select-lab-order') {
+            $labOrderResult = $this->applySelectLabOrderAction($draft, $payload);
+            if (($labOrderResult['ok'] ?? false) !== true) {
+                return $labOrderResult;
+            }
+            $draft = $labOrderResult['draft'];
+            $modeAuditReason = 'lab_order_selected';
+            $modeAuditMeta = $labOrderResult['meta'] ?? [];
+        } elseif ($mode === 'issue-lab-order') {
+            $labOrderResult = $this->applyIssueLabOrderAction($session, $draft, $payload);
+            if (($labOrderResult['ok'] ?? false) !== true) {
+                return $labOrderResult;
+            }
+            $draft = $labOrderResult['draft'];
+            $modeAuditReason = 'lab_order_issued';
+            $modeAuditMeta = $labOrderResult['meta'] ?? [];
+        } elseif ($mode === 'cancel-lab-order') {
+            $labOrderResult = $this->applyCancelLabOrderAction($session, $draft, $payload);
+            if (($labOrderResult['ok'] ?? false) !== true) {
+                return $labOrderResult;
+            }
+            $draft = $labOrderResult['draft'];
+            $modeAuditReason = 'lab_order_cancelled';
+            $modeAuditMeta = $labOrderResult['meta'] ?? [];
         } elseif (in_array($mode, ['declare-consent', 'deny-consent', 'revoke-consent'], true)) {
             $consentDecisionResult = $this->applyConsentDecisionAction($session, $draft, $payload, $mode);
             if (($consentDecisionResult['ok'] ?? false) !== true) {
@@ -1057,7 +1128,7 @@ final class ClinicalHistoryService
                 'finalDraftVersion' => (int) ($draft['approval']['finalDraftVersion'] ?? 0),
             ]);
         } else {
-            $resolveEvents = in_array($mode, ['save', 'declare-consent', 'deny-consent', 'revoke-consent', 'create-interconsultation', 'issue-interconsultation', 'cancel-interconsultation', 'receive-interconsult-report', 'prescription', 'certificate'], true)
+            $resolveEvents = in_array($mode, ['save', 'declare-consent', 'deny-consent', 'revoke-consent', 'create-interconsultation', 'issue-interconsultation', 'cancel-interconsultation', 'receive-interconsult-report', 'create-lab-order', 'issue-lab-order', 'cancel-lab-order', 'prescription', 'certificate'], true)
                 && ((bool) ($draft['requiresHumanReview'] ?? true) === false);
             $store = $this->touchSessionEventsForReview($store, $session, $resolveEvents);
 
@@ -1141,6 +1212,32 @@ final class ClinicalHistoryService
                     'caseId' => (string) ($session['caseId'] ?? ''),
                     'interconsultId' => (string) ($modeAuditMeta['interconsultId'] ?? ''),
                     'consultantProfessionalName' => (string) ($modeAuditMeta['consultantProfessionalName'] ?? ''),
+                ]);
+            } elseif ($mode === 'create-lab-order') {
+                audit_log_event('clinical_history.lab_order_created', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'labOrderId' => (string) ($modeAuditMeta['labOrderId'] ?? ''),
+                ]);
+            } elseif ($mode === 'select-lab-order') {
+                audit_log_event('clinical_history.lab_order_selected', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'labOrderId' => (string) ($modeAuditMeta['labOrderId'] ?? ''),
+                ]);
+            } elseif ($mode === 'issue-lab-order') {
+                audit_log_event('clinical_history.lab_order_issued', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'labOrderId' => (string) ($modeAuditMeta['labOrderId'] ?? ''),
+                    'status' => (string) ($modeAuditMeta['status'] ?? ''),
+                ]);
+            } elseif ($mode === 'cancel-lab-order') {
+                audit_log_event('clinical_history.lab_order_cancelled', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'labOrderId' => (string) ($modeAuditMeta['labOrderId'] ?? ''),
+                    'cancelReason' => (string) ($modeAuditMeta['cancelReason'] ?? ''),
                 ]);
             } elseif ($mode === 'prescription') {
                 audit_log_event('clinical_history.prescription_saved', [
@@ -1296,6 +1393,18 @@ final class ClinicalHistoryService
             );
         }
 
+        if (isset($payload['labOrders']) && is_array($payload['labOrders'])) {
+            $draft['labOrders'] = ClinicalHistoryRepository::normalizeLabOrders(
+                $payload['labOrders']
+            );
+        }
+
+        if (array_key_exists('activeLabOrderId', $payload)) {
+            $draft['activeLabOrderId'] = ClinicalHistoryRepository::trimString(
+                $payload['activeLabOrderId'] ?? ''
+            );
+        }
+
         if (isset($payload['consentPackets']) && is_array($payload['consentPackets'])) {
             $draft['consentPackets'] = ClinicalHistoryRepository::normalizeConsentPackets(
                 $payload['consentPackets']
@@ -1440,6 +1549,13 @@ final class ClinicalHistoryService
                 break;
             }
         }
+        $activeLabOrder = [];
+        foreach (ClinicalHistoryRepository::normalizeLabOrders($draft['labOrders'] ?? []) as $labOrder) {
+            if (ClinicalHistoryRepository::trimString($labOrder['labOrderId'] ?? '') === ClinicalHistoryRepository::trimString($draft['activeLabOrderId'] ?? '')) {
+                $activeLabOrder = $labOrder;
+                break;
+            }
+        }
 
         $parts = [
             'Paciente: ' . (
@@ -1464,6 +1580,13 @@ final class ClinicalHistoryService
                 ClinicalHistoryRepository::trimString($activeInterconsultation['destinationService'] ?? ''),
                 ClinicalHistoryRepository::trimString($activeInterconsultation['destinationEstablishment'] ?? ''),
                 ClinicalHistoryRepository::trimString($activeInterconsultation['status'] ?? ''),
+            ]))),
+            'Laboratorio HCU-010A: ' . trim(implode(' • ', array_filter([
+                ClinicalHistoryRepository::trimString($activeLabOrder['status'] ?? ''),
+                ClinicalHistoryRepository::trimString($activeLabOrder['sampleDate'] ?? ''),
+                implode(', ', ClinicalHistoryRepository::flattenLabOrderStudySelections(
+                    is_array($activeLabOrder['studySelections'] ?? null) ? $activeLabOrder['studySelections'] : []
+                )),
             ]))),
             'Consentimiento HCU-024: ' . trim(implode(' • ', array_filter([
                 ClinicalHistoryRepository::trimString($activeConsentPacket['procedureLabel'] ?? ''),
@@ -1532,6 +1655,7 @@ final class ClinicalHistoryService
         $draft['clinicianDraft'] = $clinicianDraft;
         $draft['documents'] = $documents;
         $draft = ClinicalHistoryRepository::syncInterconsultationArtifacts($draft, $session);
+        $draft = ClinicalHistoryRepository::syncLabOrderArtifacts($draft, $session);
         $draft = ClinicalHistoryRepository::syncConsentArtifacts($draft, $session);
         $draft['documents'] = ClinicalHistoryRepository::normalizeClinicalDocuments(
             is_array($draft['documents'] ?? null) ? $draft['documents'] : []
@@ -2760,6 +2884,239 @@ final class ClinicalHistoryService
         ];
     }
 
+    private function applyCreateLabOrderAction(array $session, array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::syncLabOrderArtifacts($draft, $session);
+        $seed = is_array($payload['labOrder'] ?? null)
+            ? $payload['labOrder']
+            : [];
+        $now = local_date('c');
+
+        $labOrder = ClinicalHistoryRepository::normalizeLabOrder(array_merge(
+            $seed,
+            [
+                'labOrderId' => ClinicalHistoryRepository::newOpaqueId('lab-order'),
+                'status' => 'draft',
+                'priority' => ClinicalHistoryRepository::trimString($payload['priority'] ?? $seed['priority'] ?? 'routine') ?: 'routine',
+                'requiredForCurrentPlan' => array_key_exists('requiredForCurrentPlan', $payload)
+                    ? (bool) $payload['requiredForCurrentPlan']
+                    : (array_key_exists('requiredForCurrentPlan', $seed) ? (bool) $seed['requiredForCurrentPlan'] : false),
+                'requestedAt' => ClinicalHistoryRepository::trimString($seed['requestedAt'] ?? $now) ?: $now,
+                'requestedBy' => ClinicalHistoryRepository::trimString($seed['requestedBy'] ?? $this->currentClinicalActor()),
+                'history' => [[
+                    'eventId' => ClinicalHistoryRepository::newOpaqueId('lab-order-history'),
+                    'type' => 'created',
+                    'status' => 'draft',
+                    'actor' => $this->currentClinicalActor(),
+                    'actorRole' => 'clinician_admin',
+                    'at' => $now,
+                    'notes' => 'Solicitud HCU-010A creada para el episodio.',
+                ]],
+            ]
+        ));
+
+        $labOrders = ClinicalHistoryRepository::normalizeLabOrders($draft['labOrders'] ?? []);
+        array_unshift($labOrders, $labOrder);
+        $draft['labOrders'] = $labOrders;
+        $draft['activeLabOrderId'] = (string) ($labOrder['labOrderId'] ?? '');
+        $draft = ClinicalHistoryRepository::syncLabOrderArtifacts($draft, $session);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'labOrderId' => (string) ($labOrder['labOrderId'] ?? ''),
+                'priority' => (string) ($labOrder['priority'] ?? ''),
+            ],
+        ];
+    }
+
+    private function applySelectLabOrderAction(array $draft, array $payload): array
+    {
+        $labOrderId = ClinicalHistoryRepository::trimString(
+            $payload['labOrderId'] ?? $payload['activeLabOrderId'] ?? ''
+        );
+        if ($labOrderId === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 400,
+                'error' => 'labOrderId es obligatorio para seleccionar la solicitud de laboratorio.',
+                'errorCode' => 'clinical_lab_order_required',
+            ];
+        }
+
+        $exists = false;
+        foreach (ClinicalHistoryRepository::normalizeLabOrders($draft['labOrders'] ?? []) as $labOrder) {
+            if (ClinicalHistoryRepository::trimString($labOrder['labOrderId'] ?? '') === $labOrderId) {
+                $exists = true;
+                break;
+            }
+        }
+        if (!$exists) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe la solicitud de laboratorio seleccionada para este episodio.',
+                'errorCode' => 'clinical_lab_order_not_found',
+            ];
+        }
+
+        $draft['activeLabOrderId'] = $labOrderId;
+        $draft = ClinicalHistoryRepository::syncLabOrderArtifacts($draft);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'labOrderId' => $labOrderId,
+            ],
+        ];
+    }
+
+    private function applyIssueLabOrderAction(array $session, array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::syncLabOrderArtifacts($draft, $session);
+        $labOrders = ClinicalHistoryRepository::normalizeLabOrders($draft['labOrders'] ?? []);
+        $labOrderId = ClinicalHistoryRepository::trimString(
+            $payload['labOrderId'] ?? $draft['activeLabOrderId'] ?? ''
+        );
+        if ($labOrderId === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe una solicitud de laboratorio activa para emitir.',
+                'errorCode' => 'clinical_lab_order_not_found',
+            ];
+        }
+
+        $targetIndex = null;
+        foreach ($labOrders as $index => $labOrder) {
+            if (ClinicalHistoryRepository::trimString($labOrder['labOrderId'] ?? '') === $labOrderId) {
+                $targetIndex = $index;
+                break;
+            }
+        }
+        if ($targetIndex === null) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe la solicitud de laboratorio indicada para este episodio.',
+                'errorCode' => 'clinical_lab_order_not_found',
+            ];
+        }
+
+        $labOrder = ClinicalHistoryRepository::normalizeLabOrder($labOrders[$targetIndex]);
+        if (ClinicalHistoryRepository::trimString($labOrder['requestedBy'] ?? '') === '') {
+            $labOrder['requestedBy'] = $this->currentClinicalActor();
+        }
+        $evaluation = ClinicalHistoryRepository::evaluateLabOrder($labOrder);
+        if (($evaluation['readyToIssue'] ?? false) !== true) {
+            return [
+                'ok' => false,
+                'statusCode' => 409,
+                'error' => 'La solicitud HCU-010A aún no cubre los campos mínimos para emisión.',
+                'errorCode' => 'clinical_lab_order_incomplete',
+            ];
+        }
+
+        $now = local_date('c');
+        $labOrder['status'] = 'issued';
+        $labOrder['issuedAt'] = ClinicalHistoryRepository::trimString($labOrder['issuedAt'] ?? '') ?: $now;
+        $labOrder['updatedAt'] = $now;
+        $labOrder['history'][] = [
+            'eventId' => ClinicalHistoryRepository::newOpaqueId('lab-order-history'),
+            'type' => 'issued',
+            'status' => 'issued',
+            'actor' => $this->currentClinicalActor(),
+            'actorRole' => 'clinician_admin',
+            'at' => $now,
+            'notes' => 'Solicitud HCU-010A emitida.',
+        ];
+
+        $labOrders[$targetIndex] = ClinicalHistoryRepository::normalizeLabOrder($labOrder);
+        $draft['labOrders'] = $labOrders;
+        $draft['activeLabOrderId'] = $labOrderId;
+        $draft = ClinicalHistoryRepository::syncLabOrderArtifacts($draft, $session);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'labOrderId' => $labOrderId,
+                'status' => 'issued',
+            ],
+        ];
+    }
+
+    private function applyCancelLabOrderAction(array $session, array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::syncLabOrderArtifacts($draft, $session);
+        $labOrders = ClinicalHistoryRepository::normalizeLabOrders($draft['labOrders'] ?? []);
+        $labOrderId = ClinicalHistoryRepository::trimString(
+            $payload['labOrderId'] ?? $draft['activeLabOrderId'] ?? ''
+        );
+        if ($labOrderId === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe una solicitud de laboratorio activa para cancelar.',
+                'errorCode' => 'clinical_lab_order_not_found',
+            ];
+        }
+
+        $targetIndex = null;
+        foreach ($labOrders as $index => $labOrder) {
+            if (ClinicalHistoryRepository::trimString($labOrder['labOrderId'] ?? '') === $labOrderId) {
+                $targetIndex = $index;
+                break;
+            }
+        }
+        if ($targetIndex === null) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe la solicitud de laboratorio indicada para este episodio.',
+                'errorCode' => 'clinical_lab_order_not_found',
+            ];
+        }
+
+        $labOrder = ClinicalHistoryRepository::normalizeLabOrder($labOrders[$targetIndex]);
+        $now = local_date('c');
+        $cancelReason = ClinicalHistoryRepository::trimString(
+            $payload['cancelReason'] ?? $labOrder['cancelReason'] ?? ''
+        );
+        $labOrder['status'] = 'cancelled';
+        $labOrder['cancelledAt'] = ClinicalHistoryRepository::trimString($labOrder['cancelledAt'] ?? '') ?: $now;
+        $labOrder['cancelReason'] = $cancelReason;
+        $labOrder['updatedAt'] = $now;
+        $labOrder['history'][] = [
+            'eventId' => ClinicalHistoryRepository::newOpaqueId('lab-order-history'),
+            'type' => 'cancelled',
+            'status' => 'cancelled',
+            'actor' => $this->currentClinicalActor(),
+            'actorRole' => 'clinician_admin',
+            'at' => $now,
+            'notes' => $cancelReason !== ''
+                ? 'Solicitud HCU-010A cancelada: ' . $cancelReason
+                : 'Solicitud HCU-010A cancelada.',
+        ];
+
+        $labOrders[$targetIndex] = ClinicalHistoryRepository::normalizeLabOrder($labOrder);
+        $draft['labOrders'] = $labOrders;
+        $draft['activeLabOrderId'] = $labOrderId;
+        $draft = ClinicalHistoryRepository::syncLabOrderArtifacts($draft, $session);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'labOrderId' => $labOrderId,
+                'cancelReason' => $cancelReason,
+                'status' => 'cancelled',
+            ],
+        ];
+    }
+
     private function accessAuditActionForMode(string $mode): string
     {
         return match ($mode) {
@@ -2777,6 +3134,10 @@ final class ClinicalHistoryService
             'issue-interconsultation' => 'issue_interconsultation',
             'cancel-interconsultation' => 'cancel_interconsultation',
             'receive-interconsult-report' => 'receive_interconsult_report',
+            'create-lab-order' => 'create_lab_order',
+            'select-lab-order' => 'select_lab_order',
+            'issue-lab-order' => 'issue_lab_order',
+            'cancel-lab-order' => 'cancel_lab_order',
             'prescription' => 'issue_prescription',
             'certificate' => 'issue_certificate',
             'copy-request' => 'request_certified_copy',

@@ -65,6 +65,47 @@ const CLINICAL_HISTORY_PREGNANCY_CHOICES = Object.freeze([
     { value: 'no', label: 'No' },
     { value: 'yes', label: 'Si' },
 ]);
+const CLINICAL_HISTORY_LAB_ORDER_PRIORITY_CHOICES = Object.freeze([
+    { value: 'routine', label: 'Rutina' },
+    { value: 'urgent', label: 'Urgente' },
+    { value: 'control', label: 'Control' },
+]);
+const CLINICAL_HISTORY_LAB_STUDY_OPTIONS = Object.freeze({
+    hematology: [
+        'Biometria hematica',
+        'Plaquetas',
+        'Grupo sanguineo y RH',
+        'Indices hematicos',
+        'TP / TTP',
+        'Reticulocitos',
+    ],
+    urinalysis: [
+        'Elemental y microscopico',
+        'Gota fresca',
+        'Prueba de embarazo',
+    ],
+    coprological: [
+        'Coproparasitario',
+        'Copro seriado',
+        'Sangre oculta',
+        'Investigacion de polimorfos',
+        'Rotavirus',
+    ],
+    bloodChemistry: [
+        'Glucosa en ayunas',
+        'Urea',
+        'Creatinina',
+        'Colesterol total',
+        'Trigliceridos',
+        'ALT / TGP',
+        'AST / TGO',
+        'Acido urico',
+        'Proteina total',
+        'Albumina',
+    ],
+    serology: ['VDRL', 'Latex', 'ASTO', 'Aglutinaciones febriles'],
+    bacteriology: ['Gram', 'Ziehl', 'Cultivo con antibiograma', 'Hongos'],
+});
 
 let scheduledAutoSelection = '';
 
@@ -364,6 +405,58 @@ function emptyInterconsultReportSnapshot() {
     };
 }
 
+function emptyLabOrder() {
+    return {
+        labOrderId: '',
+        status: 'draft',
+        requiredForCurrentPlan: false,
+        priority: 'routine',
+        requestedAt: '',
+        sampleDate: '',
+        requestingEstablishment: '',
+        requestingService: '',
+        careSite: '',
+        bedLabel: '',
+        requestedBy: '',
+        patientName: '',
+        patientDocumentNumber: '',
+        patientRecordId: '',
+        patientAgeYears: null,
+        patientSexAtBirth: '',
+        diagnoses: [
+            emptyInterconsultationDiagnosis('pre'),
+            emptyInterconsultationDiagnosis('def'),
+        ],
+        studySelections: {
+            hematology: [],
+            urinalysis: [],
+            coprological: [],
+            bloodChemistry: [],
+            serology: [],
+            bacteriology: [],
+            others: '',
+        },
+        bacteriologySampleSource: '',
+        physicianPresentAtExam: false,
+        notes: '',
+        issuedAt: '',
+        cancelledAt: '',
+        cancelReason: '',
+        history: [],
+        createdAt: '',
+        updatedAt: '',
+    };
+}
+
+function emptyLabOrderSnapshot() {
+    return {
+        snapshotId: '',
+        finalizedAt: '',
+        snapshotAt: '',
+        ...emptyLabOrder(),
+    };
+}
+
 function emptyAdmission001() {
     return {
         identity: {
@@ -474,6 +567,7 @@ function emptyDraft() {
                 'SNS-MSP/HCU-form.001/2008',
                 'SNS-MSP/HCU-form.005/2008',
                 'SNS-MSP/HCU-form.007/2008',
+                'SNS-MSP/HCU-form.010A/2008',
                 'SNS-MSP/HCU-form.024',
             ],
             normativeScope: 'ecuador_private_consultorio_v1',
@@ -508,10 +602,13 @@ function emptyDraft() {
             },
             interconsultForms: [],
             interconsultReports: [],
+            labOrders: [],
             consentForms: [],
         },
         interconsultations: [],
         activeInterconsultationId: '',
+        labOrders: [],
+        activeLabOrderId: '',
         consentPackets: [],
         activeConsentPacketId: '',
         consent: {
@@ -583,6 +680,9 @@ function emptyReview() {
         interconsultations: [],
         activeInterconsultationId: '',
         activeInterconsultation: emptyInterconsultation(),
+        labOrders: [],
+        activeLabOrderId: '',
+        activeLabOrder: emptyLabOrder(),
         consentPackets: [],
         activeConsentPacketId: '',
         activeConsentPacket: emptyConsentPacket(),
@@ -600,6 +700,7 @@ function emptyReview() {
             hcu005Status: hcu005StatusMeta('missing'),
             hcu007Status: hcu007StatusMeta('not_applicable'),
             hcu007ReportStatus: hcu007ReportStatusMeta('not_received'),
+            hcu010AStatus: hcu010AStatusMeta('not_applicable'),
             hcu024Status: hcu024StatusMeta('not_applicable'),
         },
         recordsGovernance: {},
@@ -772,17 +873,23 @@ function buildAdmissionLegalName(admission, fallbackPatient = {}) {
     return legalName || normalizeString(fallbackPatient.name);
 }
 
-function normalizeAdmission001(source, fallbackPatient = {}, fallbackIntake = {}) {
+function normalizeAdmission001(
+    source,
+    fallbackPatient = {},
+    fallbackIntake = {}
+) {
     const defaults = emptyAdmission001();
     const safeSource = source && typeof source === 'object' ? source : {};
     const facts =
-        fallbackIntake?.datosPaciente && typeof fallbackIntake.datosPaciente === 'object'
+        fallbackIntake?.datosPaciente &&
+        typeof fallbackIntake.datosPaciente === 'object'
             ? fallbackIntake.datosPaciente
             : {};
     const patient = normalizePatient(fallbackPatient);
-    const identity = safeSource.identity && typeof safeSource.identity === 'object'
-        ? safeSource.identity
-        : {};
+    const identity =
+        safeSource.identity && typeof safeSource.identity === 'object'
+            ? safeSource.identity
+            : {};
     const demographics =
         safeSource.demographics && typeof safeSource.demographics === 'object'
             ? safeSource.demographics
@@ -813,7 +920,9 @@ function normalizeAdmission001(source, fallbackPatient = {}, fallbackIntake = {}
             ? safeSource.history
             : {};
     const documentType = normalizeString(
-        identity.documentType || patient.documentType || defaults.identity.documentType
+        identity.documentType ||
+            patient.documentType ||
+            defaults.identity.documentType
     );
 
     return {
@@ -833,19 +942,25 @@ function normalizeAdmission001(source, fallbackPatient = {}, fallbackIntake = {}
         demographics: {
             ...defaults.demographics,
             birthDate: normalizeString(
-                demographics.birthDate || facts.fechaNacimiento || patient.birthDate
+                demographics.birthDate ||
+                    facts.fechaNacimiento ||
+                    patient.birthDate
             ),
             ageYears: normalizeNullableInt(
                 demographics.ageYears || facts.edadAnios || patient.ageYears
             ),
             sexAtBirth: normalizeString(
-                demographics.sexAtBirth || facts.sexoBiologico || patient.sexAtBirth
+                demographics.sexAtBirth ||
+                    facts.sexoBiologico ||
+                    patient.sexAtBirth
             ),
             maritalStatus: normalizeString(demographics.maritalStatus),
             educationLevel: normalizeString(demographics.educationLevel),
             occupation: normalizeString(demographics.occupation),
             employer: normalizeString(demographics.employer),
-            nationalityCountry: normalizeString(demographics.nationalityCountry),
+            nationalityCountry: normalizeString(
+                demographics.nationalityCountry
+            ),
             culturalGroup: normalizeString(demographics.culturalGroup),
             birthPlace: normalizeString(demographics.birthPlace),
         },
@@ -857,7 +972,9 @@ function normalizeAdmission001(source, fallbackPatient = {}, fallbackIntake = {}
             parish: normalizeString(residence.parish),
             canton: normalizeString(residence.canton),
             province: normalizeString(residence.province),
-            phone: normalizeString(residence.phone || facts.telefono || patient.phone),
+            phone: normalizeString(
+                residence.phone || facts.telefono || patient.phone
+            ),
         },
         coverage: {
             ...defaults.coverage,
@@ -907,10 +1024,10 @@ function evaluateHcu001(admission, fallbackPatient = {}, fallbackIntake = {}) {
     const admissionMeta = normalized.admissionMeta;
     const hasResidence = Boolean(
         normalizeString(residence.addressLine) ||
-            normalizeString(residence.neighborhood) ||
-            normalizeString(residence.parish) ||
-            normalizeString(residence.canton) ||
-            normalizeString(residence.province)
+        normalizeString(residence.neighborhood) ||
+        normalizeString(residence.parish) ||
+        normalizeString(residence.canton) ||
+        normalizeString(residence.province)
     );
     const hasIdentity =
         normalizeString(identity.documentNumber) !== '' &&
@@ -922,8 +1039,7 @@ function evaluateHcu001(admission, fallbackPatient = {}, fallbackIntake = {}) {
     const hasSex = normalizeString(demographics.sexAtBirth) !== '';
     const hasResidenceContact =
         normalizeString(residence.phone) !== '' && hasResidence;
-    const hasInsurance =
-        normalizeString(coverage.healthInsuranceType) !== '';
+    const hasInsurance = normalizeString(coverage.healthInsuranceType) !== '';
     const hasEmergency =
         normalizeString(emergencyContact.name) !== '' &&
         normalizeString(emergencyContact.phone) !== '';
@@ -1173,10 +1289,7 @@ function normalizeInterconsultationDiagnosis(diagnosis, fallbackType = 'pre') {
 
 function normalizeInterconsultationDiagnoses(items) {
     const normalized = normalizeList(items).map((item, index) =>
-        normalizeInterconsultationDiagnosis(
-            item,
-            index === 1 ? 'def' : 'pre'
-        )
+        normalizeInterconsultationDiagnosis(item, index === 1 ? 'def' : 'pre')
     );
     if (normalized.length === 0) {
         return [
@@ -1243,8 +1356,7 @@ function normalizeInterconsultReport(report, fallback = {}) {
             safeSource.recommendations ?? safeFallback.recommendations
         ),
         followUpIndications: normalizeString(
-            safeSource.followUpIndications ??
-                safeFallback.followUpIndications
+            safeSource.followUpIndications ?? safeFallback.followUpIndications
         ),
         sourceDocumentType: normalizeString(
             safeSource.sourceDocumentType ?? safeFallback.sourceDocumentType
@@ -1291,6 +1403,140 @@ function normalizeInterconsultReportSnapshots(items) {
     return normalizeList(items).map(normalizeInterconsultReportSnapshot);
 }
 
+function normalizeLabOrderStudySelections(items) {
+    const source = items && typeof items === 'object' ? items : {};
+    return {
+        hematology: normalizeStringList(source.hematology),
+        urinalysis: normalizeStringList(source.urinalysis),
+        coprological: normalizeStringList(source.coprological),
+        bloodChemistry: normalizeStringList(source.bloodChemistry),
+        serology: normalizeStringList(source.serology),
+        bacteriology: normalizeStringList(source.bacteriology),
+        others: normalizeString(source.others),
+    };
+}
+
+function flattenLabOrderStudySelections(studySelections) {
+    const normalized = normalizeLabOrderStudySelections(studySelections);
+    return [
+        ...normalized.hematology,
+        ...normalized.urinalysis,
+        ...normalized.coprological,
+        ...normalized.bloodChemistry,
+        ...normalized.serology,
+        ...normalized.bacteriology,
+        normalized.others,
+    ].filter((value) => normalizeString(value));
+}
+
+function normalizeLabOrder(labOrder, fallback = {}) {
+    const defaults = emptyLabOrder();
+    const safeSource = labOrder && typeof labOrder === 'object' ? labOrder : {};
+    const safeFallback =
+        fallback && typeof fallback === 'object' ? fallback : {};
+
+    return {
+        ...defaults,
+        ...safeFallback,
+        ...safeSource,
+        labOrderId: normalizeString(
+            safeSource.labOrderId ?? safeFallback.labOrderId
+        ),
+        status:
+            normalizeString(safeSource.status ?? safeFallback.status) ||
+            defaults.status,
+        requiredForCurrentPlan:
+            safeSource.requiredForCurrentPlan === true ||
+            (safeSource.requiredForCurrentPlan === undefined &&
+                safeFallback.requiredForCurrentPlan === true),
+        priority:
+            normalizeString(safeSource.priority ?? safeFallback.priority) ||
+            defaults.priority,
+        requestedAt: normalizeString(
+            safeSource.requestedAt ?? safeFallback.requestedAt
+        ),
+        sampleDate: normalizeString(
+            safeSource.sampleDate ?? safeFallback.sampleDate
+        ),
+        requestingEstablishment: normalizeString(
+            safeSource.requestingEstablishment ??
+                safeFallback.requestingEstablishment
+        ),
+        requestingService: normalizeString(
+            safeSource.requestingService ?? safeFallback.requestingService
+        ),
+        careSite: normalizeString(safeSource.careSite ?? safeFallback.careSite),
+        bedLabel: normalizeString(safeSource.bedLabel ?? safeFallback.bedLabel),
+        requestedBy: normalizeString(
+            safeSource.requestedBy ?? safeFallback.requestedBy
+        ),
+        patientName: normalizeString(
+            safeSource.patientName ?? safeFallback.patientName
+        ),
+        patientDocumentNumber: normalizeString(
+            safeSource.patientDocumentNumber ??
+                safeFallback.patientDocumentNumber
+        ),
+        patientRecordId: normalizeString(
+            safeSource.patientRecordId ?? safeFallback.patientRecordId
+        ),
+        patientAgeYears: normalizeNullableInt(
+            safeSource.patientAgeYears ?? safeFallback.patientAgeYears
+        ),
+        patientSexAtBirth: normalizeString(
+            safeSource.patientSexAtBirth ?? safeFallback.patientSexAtBirth
+        ),
+        diagnoses: normalizeInterconsultationDiagnoses(
+            safeSource.diagnoses ?? safeFallback.diagnoses
+        ),
+        studySelections: normalizeLabOrderStudySelections(
+            safeSource.studySelections ?? safeFallback.studySelections
+        ),
+        bacteriologySampleSource: normalizeString(
+            safeSource.bacteriologySampleSource ??
+                safeFallback.bacteriologySampleSource
+        ),
+        physicianPresentAtExam:
+            safeSource.physicianPresentAtExam === true ||
+            (safeSource.physicianPresentAtExam === undefined &&
+                safeFallback.physicianPresentAtExam === true),
+        notes: normalizeString(safeSource.notes ?? safeFallback.notes),
+        issuedAt: normalizeString(safeSource.issuedAt ?? safeFallback.issuedAt),
+        cancelledAt: normalizeString(
+            safeSource.cancelledAt ?? safeFallback.cancelledAt
+        ),
+        cancelReason: normalizeString(
+            safeSource.cancelReason ?? safeFallback.cancelReason
+        ),
+        history: normalizeList(safeSource.history ?? safeFallback.history),
+        createdAt: normalizeString(
+            safeSource.createdAt ?? safeFallback.createdAt
+        ),
+        updatedAt: normalizeString(
+            safeSource.updatedAt ?? safeFallback.updatedAt
+        ),
+    };
+}
+
+function normalizeLabOrders(items) {
+    return normalizeList(items).map((item) => normalizeLabOrder(item));
+}
+
+function normalizeLabOrderSnapshot(snapshot) {
+    const source = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    return {
+        ...emptyLabOrderSnapshot(),
+        ...normalizeLabOrder(source),
+        snapshotId: normalizeString(source.snapshotId),
+        finalizedAt: normalizeString(source.finalizedAt),
+        snapshotAt: normalizeString(source.snapshotAt),
+    };
+}
+
+function normalizeLabOrderSnapshots(items) {
+    return normalizeList(items).map(normalizeLabOrderSnapshot);
+}
+
 function normalizeInterconsultation(interconsultation, fallback = {}) {
     const defaults = emptyInterconsultation();
     const safeSource =
@@ -1311,8 +1557,7 @@ function normalizeInterconsultation(interconsultation, fallback = {}) {
                     safeFallback.destinationEstablishment
             ),
             respondingService: normalizeString(
-                safeSource.destinationService ??
-                    safeFallback.destinationService
+                safeSource.destinationService ?? safeFallback.destinationService
             ),
         }
     );
@@ -1611,8 +1856,7 @@ function hcu007StatusMeta(status) {
             return {
                 status: 'draft',
                 label: 'HCU-007 borrador',
-                summary:
-                    'Existe una interconsulta en borrador aún no emitida.',
+                summary: 'Existe una interconsulta en borrador aún no emitida.',
             };
         default:
             return {
@@ -1653,6 +1897,124 @@ function hcu007ReportStatusMeta(status) {
                 label: 'Informe no recibido',
                 summary:
                     'Todavía no se ha recibido informe del consultado en este episodio.',
+            };
+    }
+}
+
+function evaluateLabOrder(labOrder) {
+    const normalized = normalizeLabOrder(labOrder);
+    const diagnoses = normalizeInterconsultationDiagnoses(normalized.diagnoses);
+    const selectedStudies = flattenLabOrderStudySelections(
+        normalized.studySelections
+    );
+    const missing = [];
+
+    if (!normalizeString(normalized.sampleDate)) {
+        missing.push('sample_date');
+    }
+    if (!normalizeString(normalized.priority)) {
+        missing.push('priority');
+    }
+    if (
+        !normalizeString(normalized.requestingEstablishment) &&
+        !normalizeString(normalized.requestingService)
+    ) {
+        missing.push('requesting_service');
+    }
+    if (!normalizeString(normalized.requestedBy)) {
+        missing.push('requested_by');
+    }
+    if (!diagnoses.some((item) => normalizeString(item.label))) {
+        missing.push('diagnosis');
+    }
+    if (selectedStudies.length === 0) {
+        missing.push('studies');
+    }
+    if (
+        normalizeLabOrderStudySelections(normalized.studySelections)
+            .bacteriology.length > 0 &&
+        !normalizeString(normalized.bacteriologySampleSource)
+    ) {
+        missing.push('bacteriology_sample_source');
+    }
+
+    const readyToIssue = missing.length === 0;
+    const hasAnyContent =
+        normalizeString(normalized.sampleDate) ||
+        normalizeString(normalized.requestedBy) ||
+        normalizeString(normalized.notes) ||
+        diagnoses.some(
+            (item) => normalizeString(item.label) || normalizeString(item.cie10)
+        ) ||
+        selectedStudies.length > 0;
+
+    let status = 'draft';
+    if (normalizeString(normalized.status) === 'issued') {
+        status =
+            readyToIssue && normalizeString(normalized.issuedAt)
+                ? 'issued'
+                : 'incomplete';
+    } else if (normalizeString(normalized.status) === 'cancelled') {
+        status = normalizeString(normalized.cancelledAt)
+            ? 'cancelled'
+            : 'incomplete';
+    } else if (readyToIssue) {
+        status = 'ready_to_issue';
+    } else if (hasAnyContent) {
+        status = 'incomplete';
+    }
+
+    return {
+        status,
+        readyToIssue,
+        selectedStudiesCount: selectedStudies.length,
+        missingFields: Array.from(new Set(missing)),
+    };
+}
+
+function hcu010AStatusMeta(status) {
+    switch (normalizeString(status)) {
+        case 'issued':
+            return {
+                status: 'issued',
+                label: 'HCU-010A emitida',
+                summary:
+                    'La solicitud de laboratorio requerida ya fue emitida dentro del episodio.',
+            };
+        case 'ready_to_issue':
+            return {
+                status: 'ready_to_issue',
+                label: 'HCU-010A lista para emitir',
+                summary:
+                    'La solicitud de laboratorio ya cubre los campos minimos del MSP y esta lista para emitirse.',
+            };
+        case 'cancelled':
+            return {
+                status: 'cancelled',
+                label: 'HCU-010A cancelada',
+                summary:
+                    'La solicitud de laboratorio del episodio fue cancelada y no bloquea el cierre actual.',
+            };
+        case 'incomplete':
+            return {
+                status: 'incomplete',
+                label: 'HCU-010A incompleta',
+                summary:
+                    'Existe una solicitud de laboratorio requerida con campos todavia incompletos.',
+            };
+        case 'draft':
+            return {
+                status: 'draft',
+                label: 'HCU-010A borrador',
+                summary:
+                    'Existe una solicitud de laboratorio en borrador aun no emitida.',
+            };
+        default:
+            return {
+                status: 'not_applicable',
+                label: 'HCU-010A no aplica',
+                summary:
+                    'No hay solicitud formal de laboratorio exigible para este episodio.',
             };
     }
 }
@@ -1765,7 +2127,9 @@ function normalizeConsentPacket(packet, fallback = {}) {
     const safeFallback =
         fallback && typeof fallback === 'object' ? fallback : {};
     const template = consentPacketTemplate(
-        safeSource.templateKey || safeFallback.templateKey || defaults.templateKey
+        safeSource.templateKey ||
+            safeFallback.templateKey ||
+            defaults.templateKey
     );
     const source = {
         ...defaults,
@@ -1812,7 +2176,9 @@ function normalizeConsentPacket(packet, fallback = {}) {
     return {
         ...source,
         packetId: normalizeString(source.packetId),
-        templateKey: normalizeString(source.templateKey || template.templateKey),
+        templateKey: normalizeString(
+            source.templateKey || template.templateKey
+        ),
         sourceMode: normalizeString(source.sourceMode),
         title: normalizeString(source.title),
         procedureKey: normalizeString(source.procedureKey),
@@ -1839,7 +2205,9 @@ function normalizeConsentPacket(packet, fallback = {}) {
         patientSpecificRisks: normalizeString(source.patientSpecificRisks),
         alternatives: normalizeString(source.alternatives),
         postProcedureCare: normalizeString(source.postProcedureCare),
-        noProcedureConsequences: normalizeString(source.noProcedureConsequences),
+        noProcedureConsequences: normalizeString(
+            source.noProcedureConsequences
+        ),
         privateCommunicationConfirmed:
             source.privateCommunicationConfirmed === true,
         companionShareAuthorized: source.companionShareAuthorized === true,
@@ -1914,8 +2282,7 @@ function normalizeConsentPackets(items) {
 }
 
 function normalizeConsentFormSnapshot(snapshot) {
-    const source =
-        snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const source = snapshot && typeof snapshot === 'object' ? snapshot : {};
     return {
         ...emptyConsentFormSnapshot(),
         ...normalizeConsentPacket(source),
@@ -1939,9 +2306,7 @@ function buildLegacyConsentFromPacket(packet, fallback = {}) {
         required: normalized.writtenRequired === true,
         status:
             normalizeString(normalized.status) ||
-            (normalized.writtenRequired === true
-                ? 'draft'
-                : 'not_required'),
+            (normalized.writtenRequired === true ? 'draft' : 'not_required'),
         informedBy: normalized.professionalAttestation.name,
         informedAt: normalized.declaration.declaredAt,
         explainedWhat: normalized.procedureWhatIsIt,
@@ -1950,8 +2315,7 @@ function buildLegacyConsentFromPacket(packet, fallback = {}) {
         capacityAssessment: normalized.declaration.capacityAssessment,
         privateCommunicationConfirmed:
             normalized.privateCommunicationConfirmed === true,
-        companionShareAuthorized:
-            normalized.companionShareAuthorized === true,
+        companionShareAuthorized: normalized.companionShareAuthorized === true,
         acceptedAt,
         declinedAt: normalized.denial.declinedAt,
         revokedAt: normalized.revocation.revokedAt,
@@ -1974,8 +2338,7 @@ function consentPacketHasSubstantiveContent(packet) {
         normalized.status,
     ].some(
         (value) =>
-            normalizeString(value) !== '' &&
-            normalizeString(value) !== 'draft'
+            normalizeString(value) !== '' && normalizeString(value) !== 'draft'
     );
 }
 
@@ -2012,10 +2375,7 @@ function evaluateConsentPacket(packet) {
             ['rare_serious_risks', normalized.rareSeriousRisks],
             ['patient_specific_risks', normalized.patientSpecificRisks],
             ['post_procedure_care', normalized.postProcedureCare],
-            [
-                'no_procedure_consequences',
-                normalized.noProcedureConsequences,
-            ],
+            ['no_procedure_consequences', normalized.noProcedureConsequences],
         ].forEach(([key, value]) => {
             if (!normalizeString(value)) {
                 missing.push(key);
@@ -2062,8 +2422,7 @@ function evaluateConsentPacket(packet) {
         normalizeString(normalized.representativeAttestation.signedAt);
     let status = readyForDeclaration ? 'ready_for_declaration' : 'incomplete';
     if (normalizeString(normalized.status) === 'accepted') {
-        status =
-            readyForDeclaration && signedAt ? 'accepted' : 'incomplete';
+        status = readyForDeclaration && signedAt ? 'accepted' : 'incomplete';
     } else if (normalizeString(normalized.status) === 'declined') {
         const witnessReady =
             normalizeString(normalized.witnessAttestation.name) &&
@@ -2186,7 +2545,9 @@ function deriveInterconsultationContext(
     const patient = normalizePatient(fallbackPatient);
     const clinic = resolveClinicProfileDisplay();
     const hcu005 = normalizeHcu005(draft?.clinicianDraft?.hcu005);
-    const cie10List = normalizeStringList(draft?.clinicianDraft?.cie10Sugeridos);
+    const cie10List = normalizeStringList(
+        draft?.clinicianDraft?.cie10Sugeridos
+    );
     const diagnoses = normalizeInterconsultationDiagnoses(
         normalized.diagnoses
     ).map((item, index) =>
@@ -2199,17 +2560,16 @@ function deriveInterconsultationContext(
                         ? normalizeString(hcu005.diagnosticImpression)
                         : ''),
                 cie10:
-                    item.cie10 || (index === 0 ? normalizeString(cie10List[0]) : ''),
+                    item.cie10 ||
+                    (index === 0 ? normalizeString(cie10List[0]) : ''),
             },
             index === 1 ? 'def' : 'pre'
         )
     );
 
     const report = normalizeInterconsultReport(normalized.report, {
-        consultantProfessionalName:
-            normalized.consultedProfessionalName || '',
-        respondingEstablishment:
-            normalized.destinationEstablishment || '',
+        consultantProfessionalName: normalized.consultedProfessionalName || '',
+        respondingEstablishment: normalized.destinationEstablishment || '',
         respondingService: normalized.destinationService || '',
     });
 
@@ -2222,7 +2582,8 @@ function deriveInterconsultationContext(
             normalized.patientDocumentNumber ||
             normalizeString(admission.identity.documentNumber),
         patientRecordId:
-            normalized.patientRecordId || normalizeString(draft.patientRecordId),
+            normalized.patientRecordId ||
+            normalizeString(draft.patientRecordId),
         patientAgeYears:
             normalized.patientAgeYears ?? admission.demographics.ageYears,
         patientSexAtBirth:
@@ -2237,11 +2598,12 @@ function deriveInterconsultationContext(
             ),
         requestingEstablishment:
             normalized.requestingEstablishment || clinic.establishmentLabel,
-        requestingService:
-            normalized.requestingService || clinic.serviceLabel,
+        requestingService: normalized.requestingService || clinic.serviceLabel,
         clinicalPicture:
             normalized.clinicalPicture ||
-            normalizeString(hcu005.evolutionNote || draft?.intake?.enfermedadActual),
+            normalizeString(
+                hcu005.evolutionNote || draft?.intake?.enfermedadActual
+            ),
         requestReason:
             normalized.requestReason ||
             normalizeString(draft?.intake?.motivoConsulta),
@@ -2252,6 +2614,69 @@ function deriveInterconsultationContext(
                 .filter(Boolean)
                 .join('\n'),
         report,
+    });
+}
+
+function deriveLabOrderContext(labOrder, draft, fallbackPatient = {}) {
+    const normalized = normalizeLabOrder(labOrder);
+    const admission = normalizeAdmission001(
+        draft?.admission001,
+        fallbackPatient,
+        draft?.intake
+    );
+    const patient = normalizePatient(fallbackPatient);
+    const clinic = resolveClinicProfileDisplay();
+    const hcu005 = normalizeHcu005(draft?.clinicianDraft?.hcu005);
+    const cie10List = normalizeStringList(
+        draft?.clinicianDraft?.cie10Sugeridos
+    );
+    const diagnoses = normalizeInterconsultationDiagnoses(
+        normalized.diagnoses
+    ).map((item, index) =>
+        normalizeInterconsultationDiagnosis(
+            {
+                ...item,
+                label:
+                    item.label ||
+                    (index === 0
+                        ? normalizeString(hcu005.diagnosticImpression)
+                        : ''),
+                cie10:
+                    item.cie10 ||
+                    (index === 0 ? normalizeString(cie10List[0]) : ''),
+            },
+            index === 1 ? 'def' : 'pre'
+        )
+    );
+
+    return normalizeLabOrder({
+        ...normalized,
+        patientName:
+            normalized.patientName ||
+            buildAdmissionLegalName(admission, patient),
+        patientDocumentNumber:
+            normalized.patientDocumentNumber ||
+            normalizeString(admission.identity.documentNumber),
+        patientRecordId:
+            normalized.patientRecordId ||
+            normalizeString(draft.patientRecordId),
+        patientAgeYears:
+            normalized.patientAgeYears ?? admission.demographics.ageYears,
+        patientSexAtBirth:
+            normalized.patientSexAtBirth ||
+            normalizeString(admission.demographics.sexAtBirth),
+        requestedAt:
+            normalized.requestedAt ||
+            normalizeString(
+                draft.updatedAt ||
+                    draft.createdAt ||
+                    admission?.admissionMeta?.admissionDate
+            ),
+        requestingEstablishment:
+            normalized.requestingEstablishment || clinic.establishmentLabel,
+        requestingService: normalized.requestingService || clinic.serviceLabel,
+        careSite: normalized.careSite || 'Consulta externa',
+        diagnoses,
     });
 }
 
@@ -2281,15 +2706,20 @@ function deriveConsentPacketContext(packet, draft, fallbackPatient = {}) {
                 normalized.patientDocumentNumber ||
                 normalizeString(admission.identity.documentNumber),
             patientRecordId:
-                normalized.patientRecordId || normalizeString(draft.patientRecordId),
+                normalized.patientRecordId ||
+                normalizeString(draft.patientRecordId),
             encounterDateTime:
                 normalized.encounterDateTime ||
                 normalizeString(
-                    draft.updatedAt || draft.createdAt || admission?.admissionMeta?.admissionDate
+                    draft.updatedAt ||
+                        draft.createdAt ||
+                        admission?.admissionMeta?.admissionDate
                 ),
             diagnosisLabel:
                 normalized.diagnosisLabel ||
-                normalizeString(draft?.clinicianDraft?.hcu005?.diagnosticImpression),
+                normalizeString(
+                    draft?.clinicianDraft?.hcu005?.diagnosticImpression
+                ),
             diagnosisCie10:
                 normalized.diagnosisCie10 ||
                 normalizeStringList(draft?.clinicianDraft?.cie10Sugeridos).join(
@@ -2345,6 +2775,7 @@ function normalizeDocuments(documents) {
     const interconsultReports = normalizeInterconsultReportSnapshots(
         source?.interconsultReports
     );
+    const labOrders = normalizeLabOrderSnapshots(source?.labOrders);
     const consentForms = normalizeConsentFormSnapshots(source?.consentForms);
 
     return {
@@ -2400,6 +2831,7 @@ function normalizeDocuments(documents) {
         },
         interconsultForms,
         interconsultReports,
+        labOrders,
         consentForms,
     };
 }
@@ -2643,6 +3075,7 @@ function normalizeLegalReadiness(readiness) {
         hcu007ReportStatus: hcu007ReportStatusMeta(
             source?.hcu007ReportStatus?.status
         ),
+        hcu010AStatus: hcu010AStatusMeta(source?.hcu010AStatus?.status),
         hcu024Status: hcu024StatusMeta(source?.hcu024Status?.status),
     };
 }
@@ -2747,6 +3180,8 @@ function normalizeDraftSnapshot(draft) {
         activeInterconsultationId: normalizeString(
             source.activeInterconsultationId
         ),
+        labOrders: normalizeLabOrders(source.labOrders),
+        activeLabOrderId: normalizeString(source.activeLabOrderId),
         consentPackets: normalizeConsentPackets(source.consentPackets),
         activeConsentPacketId: normalizeString(source.activeConsentPacketId),
         consent: normalizeConsent(source.consent),
@@ -2827,11 +3262,7 @@ function normalizeDraftSnapshot(draft) {
                 })
             ),
         },
-        admission001: normalizeAdmission001(
-            admissionSource,
-            {},
-            intakeSource
-        ),
+        admission001: normalizeAdmission001(admissionSource, {}, intakeSource),
         updatedAt: normalizeString(source.updatedAt),
         createdAt: normalizeString(source.createdAt),
     };
@@ -2922,6 +3353,22 @@ function synchronizeDraftClinicalState(draft) {
             interconsultations[0].interconsultId
         );
     }
+    const labOrders = normalizeLabOrders(snapshot.labOrders).map((labOrder) =>
+        deriveLabOrderContext(
+            labOrder,
+            {
+                ...snapshot,
+                admission001,
+                clinicianDraft,
+                documents,
+            },
+            normalizePatient({})
+        )
+    );
+    let activeLabOrderId = normalizeString(snapshot.activeLabOrderId);
+    if (!activeLabOrderId && labOrders.length > 0) {
+        activeLabOrderId = normalizeString(labOrders[0].labOrderId);
+    }
     const packets = normalizeConsentPackets(snapshot.consentPackets).map(
         (packet) =>
             deriveConsentPacketContext(packet, snapshot, normalizePatient({}))
@@ -2952,6 +3399,8 @@ function synchronizeDraftClinicalState(draft) {
         documents,
         interconsultations,
         activeInterconsultationId,
+        labOrders,
+        activeLabOrderId,
         consentPackets: packets,
         activeConsentPacketId,
         consent,
@@ -3011,11 +3460,14 @@ function normalizeReviewQueueItem(item) {
         hcu005Status: normalizeString(source.hcu005Status || 'missing'),
         hcu005Label: normalizeString(source.hcu005Label),
         hcu005Summary: normalizeString(source.hcu005Summary),
-        hcu007Status: normalizeString(
-            source.hcu007Status || 'not_applicable'
-        ),
+        hcu007Status: normalizeString(source.hcu007Status || 'not_applicable'),
         hcu007Label: normalizeString(source.hcu007Label),
         hcu007Summary: normalizeString(source.hcu007Summary),
+        hcu010AStatus: normalizeString(
+            source.hcu010AStatus || 'not_applicable'
+        ),
+        hcu010ALabel: normalizeString(source.hcu010ALabel),
+        hcu010ASummary: normalizeString(source.hcu010ASummary),
         hcu024Status: normalizeString(source.hcu024Status || 'not_applicable'),
         hcu024Label: normalizeString(source.hcu024Label),
         hcu024Summary: normalizeString(source.hcu024Summary),
@@ -3073,9 +3525,9 @@ function normalizeReviewPayload(payload) {
                   admissionHistory: normalizeList(
                       source.patientRecord.admissionHistory
                   ).map(normalizeAdmissionHistoryItem),
-                  changeLog: normalizeList(
-                      source.patientRecord.changeLog
-                  ).map(normalizeAdmissionChangeItem),
+                  changeLog: normalizeList(source.patientRecord.changeLog).map(
+                      normalizeAdmissionChangeItem
+                  ),
                   admission001Status: hcu001StatusMeta(
                       source?.patientRecord?.admission001Status?.status ||
                           source?.patientRecord?.admission001Status
@@ -3097,7 +3549,8 @@ function normalizeReviewPayload(payload) {
         source.interconsultations || review.draft.interconsultations
     );
     review.activeInterconsultationId = normalizeString(
-        source.activeInterconsultationId || review.draft.activeInterconsultationId
+        source.activeInterconsultationId ||
+            review.draft.activeInterconsultationId
     );
     review.activeInterconsultation = normalizeInterconsultation(
         source.activeInterconsultation ||
@@ -3105,6 +3558,21 @@ function normalizeReviewPayload(payload) {
                 (interconsultation) =>
                     normalizeString(interconsultation.interconsultId) ===
                     review.activeInterconsultationId
+            ) ||
+            {}
+    );
+    review.labOrders = normalizeLabOrders(
+        source.labOrders || review.draft.labOrders
+    );
+    review.activeLabOrderId = normalizeString(
+        source.activeLabOrderId || review.draft.activeLabOrderId
+    );
+    review.activeLabOrder = normalizeLabOrder(
+        source.activeLabOrder ||
+            review.labOrders.find(
+                (labOrder) =>
+                    normalizeString(labOrder.labOrderId) ===
+                    review.activeLabOrderId
             ) ||
             {}
     );
@@ -3542,6 +4010,7 @@ function buildSummaryCards(review) {
     const hcu001Status = hcu001StatusMeta(readiness.hcu001Status?.status);
     const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
     const hcu007Status = hcu007StatusMeta(readiness.hcu007Status?.status);
+    const hcu010AStatus = hcu010AStatusMeta(readiness.hcu010AStatus?.status);
     const hcu024Status = hcu024StatusMeta(readiness.hcu024Status?.status);
     const pendingAiStatus = formatPendingAiStatus(
         review.session.pendingAi?.status || draft.pendingAi?.status
@@ -3597,7 +4066,7 @@ function buildSummaryCards(review) {
                 hcu005Status.status === 'complete'
                     ? 'success'
                     : hcu005Status.status === 'partial'
-                        ? 'warning'
+                      ? 'warning'
                       : 'neutral',
         },
         {
@@ -3609,6 +4078,19 @@ function buildSummaryCards(review) {
                     ? 'success'
                     : ['ready_to_issue', 'incomplete', 'draft'].includes(
                             hcu007Status.status
+                        )
+                      ? 'warning'
+                      : 'neutral',
+        },
+        {
+            title: 'HCU-010A',
+            value: hcu010AStatus.label,
+            meta: hcu010AStatus.summary,
+            tone:
+                hcu010AStatus.status === 'issued'
+                    ? 'success'
+                    : ['ready_to_issue', 'incomplete', 'draft'].includes(
+                            hcu010AStatus.status
                         )
                       ? 'warning'
                       : 'neutral',
@@ -3740,6 +4222,7 @@ function buildLegalReadinessPanel(review) {
     const hcu001Status = hcu001StatusMeta(readiness.hcu001Status?.status);
     const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
     const hcu007Status = hcu007StatusMeta(readiness.hcu007Status?.status);
+    const hcu010AStatus = hcu010AStatusMeta(readiness.hcu010AStatus?.status);
     const hcu024Status = hcu024StatusMeta(readiness.hcu024Status?.status);
     const checklist = normalizeList(readiness.checklist);
 
@@ -3776,6 +4259,9 @@ function buildLegalReadinessPanel(review) {
                     </span>
                     <span class="clinical-history-mini-chip">
                         ${escapeHtml(hcu007Status.label)}
+                    </span>
+                    <span class="clinical-history-mini-chip">
+                        ${escapeHtml(hcu010AStatus.label)}
                     </span>
                     <span class="clinical-history-mini-chip">
                         ${escapeHtml(hcu024Status.label)}
@@ -4335,9 +4821,7 @@ function reviewQueueMatchesFilter(item, filter) {
                     'hcu024_consent_incomplete',
                     'hcu024_consent_revoked',
                     'hcu024_consent_declined',
-                ].includes(
-                    normalizeString(reason?.code)
-                )
+                ].includes(normalizeString(reason?.code))
             );
         case 'review_required':
             return (
@@ -4449,6 +4933,7 @@ function buildQueueItemChips(item, status) {
         item.hcu001Label || '',
         item.hcu005Label || '',
         item.hcu007Label || '',
+        item.hcu010ALabel || '',
         item.hcu024Label || '',
         formatConfidence(item.confidence),
         queueAlertMeta(item),
@@ -4487,6 +4972,7 @@ function buildQueueItemCard(item, selectedSessionId, loading) {
             item.hcu001Summary ||
             item.hcu005Summary ||
             item.hcu007Summary ||
+            item.hcu010ASummary ||
             item.summary ||
             queueReasons(item).join(' • ') ||
             'Caso listo para lectura clinica.',
@@ -4707,6 +5193,9 @@ function buildDraftMetaText(slice, review, draft) {
     const hcu024Status = hcu024StatusMeta(
         normalizeLegalReadiness(review.legalReadiness).hcu024Status?.status
     );
+    const hcu010AStatus = hcu010AStatusMeta(
+        normalizeLegalReadiness(review.legalReadiness).hcu010AStatus?.status
+    );
 
     if (slice.saving) {
         return 'Guardando borrador clinico...';
@@ -4729,6 +5218,7 @@ function buildDraftMetaText(slice, review, draft) {
         hcu007StatusMeta(
             normalizeLegalReadiness(review.legalReadiness).hcu007Status?.status
         ).label,
+        hcu010AStatus.label,
         hcu024Status.label,
         admissionKindLabel,
     ].filter(Boolean);
@@ -4746,6 +5236,7 @@ function buildDraftSummaryText(review, draft) {
     const hcu001Status = hcu001StatusMeta(readiness.hcu001Status?.status);
     const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
     const hcu007Status = hcu007StatusMeta(readiness.hcu007Status?.status);
+    const hcu010AStatus = hcu010AStatusMeta(readiness.hcu010AStatus?.status);
     const hcu024Status = hcu024StatusMeta(readiness.hcu024Status?.status);
     const documentLabel = [
         normalizeString(admission.identity.documentType),
@@ -4761,6 +5252,7 @@ function buildDraftSummaryText(review, draft) {
               hcu001Status.label,
               hcu005Status.label,
               hcu007Status.label,
+              hcu010AStatus.label,
               hcu024Status.label,
               readiness.label || formatReviewStatus(draft.reviewStatus),
           ]
@@ -4799,6 +5291,9 @@ function buildClinicalHeaderMetaText(review) {
     const hcu007Status = hcu007StatusMeta(
         normalizeLegalReadiness(review.legalReadiness).hcu007Status?.status
     );
+    const hcu010AStatus = hcu010AStatusMeta(
+        normalizeLegalReadiness(review.legalReadiness).hcu010AStatus?.status
+    );
     const headerMeta = [
         review.session.caseId ? `Caso ${review.session.caseId}` : '',
         review.session.surface || '',
@@ -4811,6 +5306,7 @@ function buildClinicalHeaderMetaText(review) {
         formatAdmissionKindLabel(admission.admissionMeta.admissionKind),
         hcu001Status.label,
         hcu007Status.label,
+        hcu010AStatus.label,
         hcu024Status.label,
     ]
         .filter(Boolean)
@@ -4823,7 +5319,11 @@ function buildClinicalHeaderMetaText(review) {
 }
 
 function buildClinicalStatusMetaText(draft, pendingAiStatus, meta) {
-    const admission = normalizeAdmission001(draft.admission001, {}, draft.intake);
+    const admission = normalizeAdmission001(
+        draft.admission001,
+        {},
+        draft.intake
+    );
     const hcu001Status = hcu001StatusMeta(
         evaluateHcu001(admission, {
             intake: draft.intake,
@@ -4833,18 +5333,23 @@ function buildClinicalStatusMetaText(draft, pendingAiStatus, meta) {
         evaluateHcu005(draft.clinicianDraft.hcu005).status
     );
     const hcu007Status = hcu007StatusMeta(
-        normalizeLegalReadiness(currentReviewSource().legalReadiness).hcu007Status
-            ?.status
+        normalizeLegalReadiness(currentReviewSource().legalReadiness)
+            .hcu007Status?.status
+    );
+    const hcu010AStatus = hcu010AStatusMeta(
+        normalizeLegalReadiness(currentReviewSource().legalReadiness)
+            .hcu010AStatus?.status
     );
     const hcu024Status = hcu024StatusMeta(
-        normalizeLegalReadiness(currentReviewSource().legalReadiness).hcu024Status
-            ?.status
+        normalizeLegalReadiness(currentReviewSource().legalReadiness)
+            .hcu024Status?.status
     );
     const statusMeta = [
         pendingAiStatus,
         hcu001Status.label,
         hcu005Status.label,
         hcu007Status.label,
+        hcu010AStatus.label,
         hcu024Status.label,
         draft.requiresHumanReview
             ? 'Firma humana requerida'
@@ -5666,7 +6171,9 @@ function buildInterconsultationChip(
     disabled
 ) {
     const normalized = normalizeInterconsultation(interconsultation);
-    const status = hcu007StatusMeta(evaluateInterconsultation(normalized).status);
+    const status = hcu007StatusMeta(
+        evaluateInterconsultation(normalized).status
+    );
     const isActive =
         normalizeString(normalized.interconsultId) ===
         normalizeString(activeInterconsultationId);
@@ -5690,14 +6197,17 @@ function buildInterconsultationChip(
 }
 
 function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
-    const interconsultations = normalizeInterconsultations(draft.interconsultations);
+    const interconsultations = normalizeInterconsultations(
+        draft.interconsultations
+    );
     const activeInterconsultationId = normalizeString(
         draft.activeInterconsultationId
     );
     const activeInterconsultation =
         interconsultations.find(
             (item) =>
-                normalizeString(item.interconsultId) === activeInterconsultationId
+                normalizeString(item.interconsultId) ===
+                activeInterconsultationId
         ) || null;
     const hydratedInterconsultation = activeInterconsultation
         ? deriveInterconsultationContext(
@@ -5717,8 +6227,7 @@ function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
                   hydratedInterconsultation.consultedProfessionalName,
               respondingEstablishment:
                   hydratedInterconsultation.destinationEstablishment,
-              respondingService:
-                  hydratedInterconsultation.destinationService,
+              respondingService: hydratedInterconsultation.destinationService,
           })
         : emptyInterconsultReport();
     const activeReportStatus = hcu007ReportStatusMeta(
@@ -5749,7 +6258,9 @@ function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
                       const meta = [
                           normalizeString(attachment.kind) || 'archivo',
                           normalizeString(attachment.mime),
-                          attachment.size > 0 ? formatBytes(attachment.size) : '',
+                          attachment.size > 0
+                              ? formatBytes(attachment.size)
+                              : '',
                       ]
                           .filter(Boolean)
                           .join(' • ');
@@ -5778,7 +6289,9 @@ function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
                   'Cuando el caso tenga adjuntos de clinical_uploads podrás seleccionarlos como respaldo del informe.'
               );
     const diagnoses = hydratedInterconsultation
-        ? normalizeInterconsultationDiagnoses(hydratedInterconsultation.diagnoses)
+        ? normalizeInterconsultationDiagnoses(
+              hydratedInterconsultation.diagnoses
+          )
         : normalizeInterconsultationDiagnoses([]);
     const preDiagnosis =
         diagnoses.find((item) => item.type === 'pre') ||
@@ -5804,9 +6317,11 @@ function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
                         activeStatus.summary,
                         ['issued', 'received'].includes(activeStatus.status)
                             ? 'success'
-                            : ['ready_to_issue', 'incomplete', 'draft'].includes(
-                                    activeStatus.status
-                                )
+                            : [
+                                    'ready_to_issue',
+                                    'incomplete',
+                                    'draft',
+                                ].includes(activeStatus.status)
                               ? 'warning'
                               : 'neutral'
                     )}
@@ -5848,13 +6363,17 @@ function buildClinicalHistoryInterconsultSection(review, draft, disabled) {
                     )}
                     ${summaryStatCard(
                         'Snapshots',
-                        String(interconsultForms.length + interconsultReports.length),
+                        String(
+                            interconsultForms.length +
+                                interconsultReports.length
+                        ),
                         interconsultReports.length > 0
                             ? 'Hay snapshots emitidos/cancelados y al menos un informe recibido.'
                             : interconsultForms.length > 0
                               ? 'Snapshots documentales HCU-007 emitidos o cancelados.'
                               : 'Todavía no hay snapshots HCU-007 emitidos.',
-                        interconsultForms.length + interconsultReports.length > 0
+                        interconsultForms.length + interconsultReports.length >
+                            0
                             ? 'success'
                             : 'neutral'
                     )}
@@ -6222,7 +6741,8 @@ function buildConsentPacketChip(packet, activePacketId, disabled) {
     const normalized = normalizeConsentPacket(packet);
     const status = hcu024StatusMeta(evaluateConsentPacket(normalized).status);
     const isActive =
-        normalizeString(normalized.packetId) === normalizeString(activePacketId);
+        normalizeString(normalized.packetId) ===
+        normalizeString(activePacketId);
 
     return `
         <button
@@ -6240,6 +6760,464 @@ function buildConsentPacketChip(packet, activePacketId, disabled) {
     `;
 }
 
+function buildLabOrderChip(labOrder, activeLabOrderId, disabled) {
+    const normalized = normalizeLabOrder(labOrder);
+    const status = hcu010AStatusMeta(evaluateLabOrder(normalized).status);
+    const isActive =
+        normalizeString(normalized.labOrderId) ===
+        normalizeString(activeLabOrderId);
+
+    return `
+        <button
+            type="button"
+            class="clinical-history-workspace-tab${isActive ? ' is-active' : ''}"
+            data-clinical-review-action="select-lab-order"
+            data-lab-order-id="${escapeHtml(normalized.labOrderId)}"
+            ${disabled ? 'disabled' : ''}
+        >
+            <strong>${escapeHtml(
+                normalized.sampleDate ||
+                    normalized.requestedAt ||
+                    'Orden laboratorio'
+            )}</strong>
+            <small>${escapeHtml(status.label)}</small>
+        </button>
+    `;
+}
+
+function buildLabOrderStudyChecklist(
+    groupKey,
+    label,
+    selectedValues,
+    disabled
+) {
+    const options = normalizeList(CLINICAL_HISTORY_LAB_STUDY_OPTIONS[groupKey]);
+    const selected = new Set(normalizeStringList(selectedValues));
+
+    return `
+        <div class="clinical-history-section-block">
+            <div class="clinical-history-event-head">
+                <strong>${escapeHtml(label)}</strong>
+                <span class="clinical-history-mini-chip">${escapeHtml(
+                    String(selected.size)
+                )}</span>
+            </div>
+            <div class="clinical-history-events">
+                ${options
+                    .map(
+                        (option, index) => `
+                            <label class="clinical-history-inline-checkbox">
+                                <input
+                                    type="checkbox"
+                                    id="lab_order_study_${escapeHtml(
+                                        groupKey
+                                    )}_${index}"
+                                    name="lab_order_study_${escapeHtml(
+                                        groupKey
+                                    )}"
+                                    value="${escapeHtml(option)}"
+                                    ${
+                                        selected.has(normalizeString(option))
+                                            ? 'checked'
+                                            : ''
+                                    }
+                                    ${disabled ? 'disabled' : ''}
+                                />
+                                <span>${escapeHtml(option)}</span>
+                            </label>
+                        `
+                    )
+                    .join('')}
+            </div>
+        </div>
+    `;
+}
+
+function buildClinicalHistoryLabOrderSection(review, draft, disabled) {
+    const labOrders = normalizeLabOrders(draft.labOrders);
+    const activeLabOrderId = normalizeString(draft.activeLabOrderId);
+    const activeLabOrder =
+        labOrders.find(
+            (item) => normalizeString(item.labOrderId) === activeLabOrderId
+        ) || null;
+    const hydratedLabOrder = activeLabOrder
+        ? deriveLabOrderContext(activeLabOrder, draft, review.session.patient)
+        : null;
+    const evaluation = hydratedLabOrder
+        ? evaluateLabOrder(hydratedLabOrder)
+        : { status: 'not_applicable', selectedStudiesCount: 0 };
+    const activeStatus = hcu010AStatusMeta(evaluation.status);
+    const labOrderSnapshots = normalizeLabOrderSnapshots(
+        draft.documents.labOrders
+    );
+    const diagnoses = hydratedLabOrder
+        ? normalizeInterconsultationDiagnoses(hydratedLabOrder.diagnoses)
+        : normalizeInterconsultationDiagnoses([]);
+    const preDiagnosis =
+        diagnoses.find((item) => item.type === 'pre') ||
+        emptyInterconsultationDiagnosis('pre');
+    const defDiagnosis =
+        diagnoses.find((item) => item.type === 'def') ||
+        emptyInterconsultationDiagnosis('def');
+    const studySelections = hydratedLabOrder
+        ? normalizeLabOrderStudySelections(hydratedLabOrder.studySelections)
+        : normalizeLabOrderStudySelections({});
+    const selectedStudies = flattenLabOrderStudySelections(studySelections);
+
+    return buildClinicalHistorySection(
+        'Laboratorio HCU-form.010A/2008',
+        'Solicitud formal de laboratorio clinico trazable al formulario MSP, con emision y cancelacion documentadas por episodio.',
+        `
+                <input
+                    type="hidden"
+                    id="lab_order_active_id"
+                    name="lab_order_active_id"
+                    value="${escapeHtml(activeLabOrderId)}"
+                />
+                <div class="clinical-history-summary-grid">
+                    ${summaryStatCard(
+                        'HCU-010A',
+                        activeStatus.label,
+                        activeStatus.summary,
+                        activeStatus.status === 'issued'
+                            ? 'success'
+                            : [
+                                    'ready_to_issue',
+                                    'incomplete',
+                                    'draft',
+                                ].includes(activeStatus.status)
+                              ? 'warning'
+                              : 'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Paciente / HCU',
+                        hydratedLabOrder?.patientName ||
+                            buildAdmissionLegalName(
+                                draft.admission001,
+                                review.session.patient
+                            ) ||
+                            'Sin paciente',
+                        [
+                            hydratedLabOrder?.patientDocumentNumber,
+                            hydratedLabOrder?.patientRecordId,
+                        ]
+                            .filter(Boolean)
+                            .join(' • ') || 'Sin documento',
+                        'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Solicitante',
+                        hydratedLabOrder?.requestingService ||
+                            resolveClinicProfileDisplay().serviceLabel,
+                        hydratedLabOrder?.requestingEstablishment ||
+                            resolveClinicProfileDisplay().establishmentLabel,
+                        'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Estudios',
+                        String(selectedStudies.length),
+                        selectedStudies.length > 0
+                            ? selectedStudies.slice(0, 3).join(' • ')
+                            : 'Sin estudios seleccionados',
+                        selectedStudies.length > 0 ? 'success' : 'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Snapshots',
+                        String(labOrderSnapshots.length),
+                        labOrderSnapshots.length > 0
+                            ? 'Snapshots emitidos o cancelados del HCU-010A.'
+                            : 'Todavia no hay snapshots HCU-010A emitidos.',
+                        labOrderSnapshots.length > 0 ? 'success' : 'neutral'
+                    )}
+                </div>
+                <div class="toolbar-row clinical-history-actions-row">
+                    <button
+                        type="button"
+                        data-clinical-review-action="create-lab-order"
+                        ${disabled ? 'disabled' : ''}
+                    >
+                        Nueva solicitud de laboratorio
+                    </button>
+                    <button
+                        type="button"
+                        data-clinical-review-action="issue-current-lab-order"
+                        ${disabled || !hydratedLabOrder ? 'disabled' : ''}
+                    >
+                        Emitir solicitud
+                    </button>
+                    <button
+                        type="button"
+                        data-clinical-review-action="cancel-current-lab-order"
+                        ${disabled || !hydratedLabOrder ? 'disabled' : ''}
+                    >
+                        Cancelar solicitud
+                    </button>
+                </div>
+                <div class="toolbar-row clinical-history-actions-row">
+                    ${labOrders
+                        .map((item) =>
+                            buildLabOrderChip(item, activeLabOrderId, disabled)
+                        )
+                        .join('')}
+                </div>
+                ${
+                    !hydratedLabOrder
+                        ? buildEmptyClinicalCard(
+                              'Sin solicitud activa',
+                              'Crea una solicitud de laboratorio del episodio para empezar el HCU-010A.'
+                          )
+                        : `
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'lab_order_requested_at',
+                                    'Fecha/hora de solicitud',
+                                    hydratedLabOrder.requestedAt,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'lab_order_sample_date',
+                                    'Fecha de toma',
+                                    hydratedLabOrder.sampleDate,
+                                    { disabled }
+                                ),
+                                selectField(
+                                    'lab_order_priority',
+                                    'Prioridad',
+                                    hydratedLabOrder.priority,
+                                    CLINICAL_HISTORY_LAB_ORDER_PRIORITY_CHOICES,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'lab_order_requested_by',
+                                    'Profesional solicitante',
+                                    hydratedLabOrder.requestedBy,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${checkboxField(
+                                'lab_order_required_for_current_plan',
+                                'La solicitud de laboratorio es parte del plan actual',
+                                hydratedLabOrder.requiredForCurrentPlan ===
+                                    true,
+                                {
+                                    hint: 'Si esta marcada, la aprobacion final exige emitirla o cancelarla.',
+                                    disabled,
+                                }
+                            )}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'lab_order_patient_name',
+                                    'Paciente',
+                                    hydratedLabOrder.patientName,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'lab_order_patient_record',
+                                    'Documento / HCU',
+                                    [
+                                        hydratedLabOrder.patientDocumentNumber,
+                                        hydratedLabOrder.patientRecordId,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' '),
+                                    { disabled: true }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'lab_order_requesting_establishment',
+                                    'Establecimiento solicitante',
+                                    hydratedLabOrder.requestingEstablishment,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'lab_order_requesting_service',
+                                    'Servicio solicitante',
+                                    hydratedLabOrder.requestingService,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'lab_order_care_site',
+                                    'Sala / sitio',
+                                    hydratedLabOrder.careSite,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'lab_order_bed_label',
+                                    'Cama / referencia',
+                                    hydratedLabOrder.bedLabel,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'lab_order_diagnosis_pre_label',
+                                    'Diagnostico PRE',
+                                    preDiagnosis.label,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'lab_order_diagnosis_pre_cie10',
+                                    'CIE-10 PRE',
+                                    preDiagnosis.cie10,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'lab_order_diagnosis_def_label',
+                                    'Diagnostico DEF',
+                                    defDiagnosis.label,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'lab_order_diagnosis_def_cie10',
+                                    'CIE-10 DEF',
+                                    defDiagnosis.cie10,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${buildLabOrderStudyChecklist(
+                                'hematology',
+                                'Hematologia',
+                                studySelections.hematology,
+                                disabled
+                            )}
+                            ${buildLabOrderStudyChecklist(
+                                'urinalysis',
+                                'Uroanalisis',
+                                studySelections.urinalysis,
+                                disabled
+                            )}
+                            ${buildLabOrderStudyChecklist(
+                                'coprological',
+                                'Coprologico',
+                                studySelections.coprological,
+                                disabled
+                            )}
+                            ${buildLabOrderStudyChecklist(
+                                'bloodChemistry',
+                                'Quimica sanguinea',
+                                studySelections.bloodChemistry,
+                                disabled
+                            )}
+                            ${buildLabOrderStudyChecklist(
+                                'serology',
+                                'Serologia',
+                                studySelections.serology,
+                                disabled
+                            )}
+                            ${buildLabOrderStudyChecklist(
+                                'bacteriology',
+                                'Bacteriologia',
+                                studySelections.bacteriology,
+                                disabled
+                            )}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'lab_order_bacteriology_sample_source',
+                                    'Muestra de',
+                                    hydratedLabOrder.bacteriologySampleSource,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'lab_order_study_others',
+                                    'Otros examenes',
+                                    studySelections.others,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${checkboxField(
+                                'lab_order_physician_present',
+                                'El medico estara presente en el examen',
+                                hydratedLabOrder.physicianPresentAtExam ===
+                                    true,
+                                {
+                                    hint: 'Campo opcional del formulario cuando aplica.',
+                                    disabled,
+                                }
+                            )}
+                            ${textareaField(
+                                'lab_order_notes',
+                                'Observaciones',
+                                hydratedLabOrder.notes,
+                                {
+                                    rows: 3,
+                                    placeholder:
+                                        'Condiciones de toma, observaciones o instrucciones clinicas complementarias.',
+                                    disabled,
+                                }
+                            )}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'lab_order_issued_at',
+                                    'Emitida el',
+                                    hydratedLabOrder.issuedAt,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'lab_order_cancelled_at',
+                                    'Cancelada el',
+                                    hydratedLabOrder.cancelledAt,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'lab_order_cancel_reason',
+                                    'Razon de cancelacion',
+                                    hydratedLabOrder.cancelReason,
+                                    { disabled }
+                                ),
+                            ])}
+                            <div class="clinical-history-section-block">
+                                <div class="clinical-history-event-head">
+                                    <strong>Snapshots documentales HCU-010A</strong>
+                                    <span class="clinical-history-mini-chip">${escapeHtml(
+                                        String(labOrderSnapshots.length)
+                                    )}</span>
+                                </div>
+                                <div class="clinical-history-events">
+                                    ${
+                                        labOrderSnapshots.length === 0
+                                            ? buildEmptyClinicalCard(
+                                                  'Sin snapshots emitidos',
+                                                  'Las solicitudes emitidas o canceladas quedaran congeladas aqui.'
+                                              )
+                                            : labOrderSnapshots
+                                                  .map(
+                                                      (snapshot) => `
+                                                            <article class="clinical-history-event-card" data-tone="neutral">
+                                                                <div class="clinical-history-event-head">
+                                                                    <span class="clinical-history-mini-chip">${escapeHtml(
+                                                                        hcu010AStatusMeta(
+                                                                            snapshot.status
+                                                                        ).label
+                                                                    )}</span>
+                                                                    <span class="clinical-history-mini-chip">${escapeHtml(
+                                                                        readableTimestamp(
+                                                                            snapshot.finalizedAt ||
+                                                                                snapshot.snapshotAt
+                                                                        )
+                                                                    )}</span>
+                                                                </div>
+                                                                <p>${escapeHtml(
+                                                                    flattenLabOrderStudySelections(
+                                                                        snapshot.studySelections
+                                                                    ).join(
+                                                                        ' • '
+                                                                    ) ||
+                                                                        'Sin estudios visibles'
+                                                                )}</p>
+                                                            </article>
+                                                        `
+                                                  )
+                                                  .join('')
+                                    }
+                                </div>
+                            </div>
+                        `
+                }
+            `
+    );
+}
+
 function buildClinicalHistoryConsentSection(review, draft, disabled) {
     const packets = normalizeConsentPackets(draft.consentPackets);
     const activePacketId = normalizeString(draft.activeConsentPacketId);
@@ -6248,10 +7226,16 @@ function buildClinicalHistoryConsentSection(review, draft, disabled) {
             (packet) => normalizeString(packet.packetId) === activePacketId
         ) || null;
     const hydratedPacket = activePacket
-        ? deriveConsentPacketContext(activePacket, draft, review.session.patient)
+        ? deriveConsentPacketContext(
+              activePacket,
+              draft,
+              review.session.patient
+          )
         : null;
     const activeStatus = hcu024StatusMeta(
-        hydratedPacket ? evaluateConsentPacket(hydratedPacket).status : 'not_applicable'
+        hydratedPacket
+            ? evaluateConsentPacket(hydratedPacket).status
+            : 'not_applicable'
     );
     const consentForms = normalizeConsentFormSnapshots(
         draft.documents.consentForms
@@ -6403,7 +7387,8 @@ function buildClinicalHistoryConsentSection(review, draft, disabled) {
                                     'consent_packet_patient_document',
                                     'Documento / HCU',
                                     `${
-                                        hydratedPacket.patientDocumentNumber || ''
+                                        hydratedPacket.patientDocumentNumber ||
+                                        ''
                                     } ${
                                         hydratedPacket.patientRecordId || ''
                                     }`.trim(),
@@ -6546,7 +7531,8 @@ function buildClinicalHistoryConsentSection(review, draft, disabled) {
                                 textareaField(
                                     'consent_packet_capacity_assessment',
                                     'Capacidad para decidir',
-                                    hydratedPacket.declaration.capacityAssessment,
+                                    hydratedPacket.declaration
+                                        .capacityAssessment,
                                     { rows: 3, disabled }
                                 ),
                                 textareaField(
@@ -6559,7 +7545,8 @@ function buildClinicalHistoryConsentSection(review, draft, disabled) {
                             ${checkboxField(
                                 'consent_packet_patient_can_consent',
                                 'El paciente puede consentir por sí mismo',
-                                hydratedPacket.declaration.patientCanConsent !== false,
+                                hydratedPacket.declaration.patientCanConsent !==
+                                    false,
                                 { disabled }
                             )}
                             ${checkboxField(
@@ -6572,7 +7559,8 @@ function buildClinicalHistoryConsentSection(review, draft, disabled) {
                             ${checkboxField(
                                 'consent_packet_companion_share_authorized',
                                 'Hay autorización para compartir con acompañante',
-                                hydratedPacket.companionShareAuthorized === true,
+                                hydratedPacket.companionShareAuthorized ===
+                                    true,
                                 { disabled }
                             )}
                             ${buildClinicalHistoryInlineGrid([
@@ -6600,25 +7588,29 @@ function buildClinicalHistoryConsentSection(review, draft, disabled) {
                                 inputField(
                                     'consent_packet_representative_name',
                                     'Representante',
-                                    hydratedPacket.representativeAttestation.name,
+                                    hydratedPacket.representativeAttestation
+                                        .name,
                                     { disabled }
                                 ),
                                 inputField(
                                     'consent_packet_representative_kinship',
                                     'Parentesco',
-                                    hydratedPacket.representativeAttestation.kinship,
+                                    hydratedPacket.representativeAttestation
+                                        .kinship,
                                     { disabled }
                                 ),
                                 inputField(
                                     'consent_packet_representative_document',
                                     'Documento representante',
-                                    hydratedPacket.representativeAttestation.documentNumber,
+                                    hydratedPacket.representativeAttestation
+                                        .documentNumber,
                                     { disabled }
                                 ),
                                 inputField(
                                     'consent_packet_representative_phone',
                                     'Teléfono representante',
-                                    hydratedPacket.representativeAttestation.phone,
+                                    hydratedPacket.representativeAttestation
+                                        .phone,
                                     { disabled }
                                 ),
                                 inputField(
@@ -6639,8 +7631,8 @@ function buildClinicalHistoryConsentSection(review, draft, disabled) {
                             ${checkboxField(
                                 'consent_packet_denial_refused_signature',
                                 'Si hay negativa, el paciente se niega a firmarla',
-                                hydratedPacket.denial.patientRefusedSignature ===
-                                    true,
+                                hydratedPacket.denial
+                                    .patientRefusedSignature === true,
                                 { disabled }
                             )}
                             ${buildClinicalHistoryInlineGrid([
@@ -6665,7 +7657,8 @@ function buildClinicalHistoryConsentSection(review, draft, disabled) {
                                 inputField(
                                     'consent_packet_witness_document',
                                     'Documento testigo',
-                                    hydratedPacket.witnessAttestation.documentNumber,
+                                    hydratedPacket.witnessAttestation
+                                        .documentNumber,
                                     { disabled }
                                 ),
                                 inputField(
@@ -6724,13 +7717,15 @@ function buildClinicalHistoryConsentSection(review, draft, disabled) {
                                 inputField(
                                     'consent_packet_anesthesiologist_name',
                                     'Anestesiólogo',
-                                    hydratedPacket.anesthesiologistAttestation.name,
+                                    hydratedPacket.anesthesiologistAttestation
+                                        .name,
                                     { disabled }
                                 ),
                                 inputField(
                                     'consent_packet_anesthesiologist_document',
                                     'Documento anestesiólogo',
-                                    hydratedPacket.anesthesiologistAttestation.documentNumber,
+                                    hydratedPacket.anesthesiologistAttestation
+                                        .documentNumber,
                                     { disabled }
                                 ),
                                 inputField(
@@ -6830,6 +7825,7 @@ function buildDraftForm(review, draft, saving) {
             ${buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue)}
             ${buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons)}
             ${buildClinicalHistoryInterconsultSection(review, draft, disabled)}
+            ${buildClinicalHistoryLabOrderSection(review, draft, disabled)}
             ${buildClinicalHistoryConsentSection(review, draft, disabled)}
             ${buildClinicalHistoryDocumentsSection(draft, disabled)}
         </div>
@@ -6843,7 +7839,10 @@ function syncDraftStatusMeta() {
     const draft = currentDraftSource(state);
     const readiness = normalizeLegalReadiness(review.legalReadiness);
 
-    setText('#clinicalHistoryDraftMeta', buildDraftMetaText(slice, review, draft));
+    setText(
+        '#clinicalHistoryDraftMeta',
+        buildDraftMetaText(slice, review, draft)
+    );
     setText(
         '#clinicalHistoryDraftSummary',
         buildDraftSummaryText(review, draft)
@@ -6901,6 +7900,14 @@ function serializeDraftForm(form, baseDraft) {
         return field instanceof HTMLInputElement ? field.checked : false;
     };
 
+    const readCheckedValues = (name) =>
+        Array.from(form.querySelectorAll(`input[name="${name}"]:checked`)).map(
+            (field) =>
+                field instanceof HTMLInputElement
+                    ? normalizeString(field.value)
+                    : ''
+        );
+
     snapshot.admission001 = normalizeAdmission001({
         ...snapshot.admission001,
         identity: {
@@ -6919,20 +7926,14 @@ function serializeDraftForm(form, baseDraft) {
                 readValue('admission_demographics_age_years')
             ),
             sexAtBirth: readValue('admission_demographics_sex_at_birth'),
-            maritalStatus: readValue(
-                'admission_demographics_marital_status'
-            ),
-            educationLevel: readValue(
-                'admission_demographics_education_level'
-            ),
+            maritalStatus: readValue('admission_demographics_marital_status'),
+            educationLevel: readValue('admission_demographics_education_level'),
             occupation: readValue('admission_demographics_occupation'),
             employer: readValue('admission_demographics_employer'),
             nationalityCountry: readValue(
                 'admission_demographics_nationality_country'
             ),
-            culturalGroup: readValue(
-                'admission_demographics_cultural_group'
-            ),
+            culturalGroup: readValue('admission_demographics_cultural_group'),
             birthPlace: readValue('admission_demographics_birth_place'),
         },
         residence: {
@@ -7151,8 +8152,7 @@ function serializeDraftForm(form, baseDraft) {
                         readValue('interconsult_report_reported_at') ||
                         baseInterconsultation.report.reportedAt,
                     reportedBy: readValue('interconsult_report_reported_by'),
-                    receivedBy:
-                        baseInterconsultation.report.receivedBy || '',
+                    receivedBy: baseInterconsultation.report.receivedBy || '',
                     respondingEstablishment: readValue(
                         'interconsult_report_responding_establishment'
                     ),
@@ -7194,6 +8194,72 @@ function serializeDraftForm(form, baseDraft) {
     }
     snapshot.interconsultations = interconsultations;
     snapshot.activeInterconsultationId = activeInterconsultationId;
+
+    const labOrders = normalizeLabOrders(snapshot.labOrders);
+    let activeLabOrderId =
+        normalizeString(readValue('lab_order_active_id')) ||
+        normalizeString(snapshot.activeLabOrderId);
+    if (!activeLabOrderId && labOrders.length > 0) {
+        activeLabOrderId = normalizeString(labOrders[0].labOrderId);
+    }
+    const activeLabOrderIndex = labOrders.findIndex(
+        (labOrder) => normalizeString(labOrder.labOrderId) === activeLabOrderId
+    );
+    if (activeLabOrderIndex >= 0) {
+        const baseLabOrder = deriveLabOrderContext(
+            labOrders[activeLabOrderIndex],
+            snapshot
+        );
+        labOrders[activeLabOrderIndex] = normalizeLabOrder({
+            ...baseLabOrder,
+            requestedAt:
+                readValue('lab_order_requested_at') || baseLabOrder.requestedAt,
+            sampleDate:
+                readValue('lab_order_sample_date') || baseLabOrder.sampleDate,
+            priority: readValue('lab_order_priority') || baseLabOrder.priority,
+            requestedBy:
+                readValue('lab_order_requested_by') || baseLabOrder.requestedBy,
+            requiredForCurrentPlan: readChecked(
+                'lab_order_required_for_current_plan'
+            ),
+            careSite: readValue('lab_order_care_site') || baseLabOrder.careSite,
+            bedLabel: readValue('lab_order_bed_label') || baseLabOrder.bedLabel,
+            diagnoses: [
+                normalizeInterconsultationDiagnosis({
+                    type: 'pre',
+                    label: readValue('lab_order_diagnosis_pre_label'),
+                    cie10: readValue('lab_order_diagnosis_pre_cie10'),
+                }),
+                normalizeInterconsultationDiagnosis({
+                    type: 'def',
+                    label: readValue('lab_order_diagnosis_def_label'),
+                    cie10: readValue('lab_order_diagnosis_def_cie10'),
+                }),
+            ],
+            studySelections: normalizeLabOrderStudySelections({
+                hematology: readCheckedValues('lab_order_study_hematology'),
+                urinalysis: readCheckedValues('lab_order_study_urinalysis'),
+                coprological: readCheckedValues('lab_order_study_coprological'),
+                bloodChemistry: readCheckedValues(
+                    'lab_order_study_bloodChemistry'
+                ),
+                serology: readCheckedValues('lab_order_study_serology'),
+                bacteriology: readCheckedValues('lab_order_study_bacteriology'),
+                others: readValue('lab_order_study_others'),
+            }),
+            bacteriologySampleSource: readValue(
+                'lab_order_bacteriology_sample_source'
+            ),
+            physicianPresentAtExam: readChecked('lab_order_physician_present'),
+            notes: readValue('lab_order_notes'),
+            issuedAt: readValue('lab_order_issued_at') || baseLabOrder.issuedAt,
+            cancelledAt:
+                readValue('lab_order_cancelled_at') || baseLabOrder.cancelledAt,
+            cancelReason: readValue('lab_order_cancel_reason'),
+        });
+    }
+    snapshot.labOrders = labOrders;
+    snapshot.activeLabOrderId = activeLabOrderId;
 
     const consentPackets = normalizeConsentPackets(snapshot.consentPackets);
     let activeConsentPacketId =
@@ -7385,15 +8451,17 @@ function createLocalConsentPacket(templateKey) {
         templateKey: template.templateKey,
         sourceMode: 'workspace_local',
         status: 'draft',
-        history: [{
-            eventId: createLocalOpaqueId('consent-history'),
-            type: 'created_local',
-            status: 'draft',
-            actor: 'workspace',
-            actorRole: 'clinician_admin',
-            at: new Date().toISOString(),
-            notes: 'Consentimiento creado localmente en la cabina HCU-024.',
-        }],
+        history: [
+            {
+                eventId: createLocalOpaqueId('consent-history'),
+                type: 'created_local',
+                status: 'draft',
+                actor: 'workspace',
+                actorRole: 'clinician_admin',
+                at: new Date().toISOString(),
+                notes: 'Consentimiento creado localmente en la cabina HCU-024.',
+            },
+        ],
     });
 }
 
@@ -7457,6 +8525,8 @@ function buildConsentPacketActionPayload(action) {
         documents: cloneValue(draft.documents),
         interconsultations: cloneValue(draft.interconsultations),
         activeInterconsultationId: draft.activeInterconsultationId,
+        labOrders: cloneValue(draft.labOrders),
+        activeLabOrderId: draft.activeLabOrderId,
         consentPackets: cloneValue(draft.consentPackets),
         activeConsentPacketId: packetId,
         consent: cloneValue(draft.consent),
@@ -7502,8 +8572,9 @@ async function submitConsentPacketAction(action) {
                 ...payload.draft,
                 documents: payload.documents,
                 interconsultations: payload.interconsultations,
-                activeInterconsultationId:
-                    payload.activeInterconsultationId,
+                activeInterconsultationId: payload.activeInterconsultationId,
+                labOrders: payload.labOrders,
+                activeLabOrderId: payload.activeLabOrderId,
                 consentPackets: payload.consentPackets,
                 activeConsentPacketId: payload.activeConsentPacketId,
                 consent: payload.consent,
@@ -7568,7 +8639,8 @@ async function submitConsentPacketAction(action) {
         });
         syncDraftStatusMeta();
         createToast(
-            error?.message || 'No se pudo actualizar el consentimiento HCU-024.',
+            error?.message ||
+                'No se pudo actualizar el consentimiento HCU-024.',
             'error'
         );
         return null;
@@ -7602,6 +8674,8 @@ function buildInterconsultationActionPayload(action, interconsultId = '') {
         interconsultations: cloneValue(draft.interconsultations),
         activeInterconsultationId:
             resolvedInterconsultId || draft.activeInterconsultationId,
+        labOrders: cloneValue(draft.labOrders),
+        activeLabOrderId: draft.activeLabOrderId,
         consentPackets: cloneValue(draft.consentPackets),
         activeConsentPacketId: draft.activeConsentPacketId,
         consent: cloneValue(draft.consent),
@@ -7656,8 +8730,9 @@ async function submitInterconsultationAction(action, interconsultId = '') {
                 ...payload.draft,
                 documents: payload.documents,
                 interconsultations: payload.interconsultations,
-                activeInterconsultationId:
-                    payload.activeInterconsultationId,
+                activeInterconsultationId: payload.activeInterconsultationId,
+                labOrders: payload.labOrders,
+                activeLabOrderId: payload.activeLabOrderId,
                 consentPackets: payload.consentPackets,
                 activeConsentPacketId: payload.activeConsentPacketId,
                 consent: payload.consent,
@@ -7727,8 +8802,159 @@ async function submitInterconsultationAction(action, interconsultId = '') {
         });
         syncDraftStatusMeta();
         createToast(
-            error?.message ||
-                'No se pudo actualizar la interconsulta HCU-007.',
+            error?.message || 'No se pudo actualizar la interconsulta HCU-007.',
+            'error'
+        );
+        return null;
+    }
+}
+
+function buildLabOrderActionPayload(action, labOrderId = '') {
+    const review = currentReviewSource();
+    const draft = currentSerializedDraft();
+    const sessionId = normalizeString(
+        review.session.sessionId || draft.sessionId
+    );
+    const resolvedLabOrderId =
+        normalizeString(labOrderId) ||
+        normalizeString(
+            draft.activeLabOrderId ||
+                draft.labOrders?.[0]?.labOrderId ||
+                review.activeLabOrderId
+        );
+
+    const payload = {
+        sessionId,
+        action,
+        labOrderId: resolvedLabOrderId,
+        draft: {
+            intake: cloneValue(draft.intake),
+            clinicianDraft: cloneValue(draft.clinicianDraft),
+            admission001: cloneValue(draft.admission001),
+        },
+        documents: cloneValue(draft.documents),
+        interconsultations: cloneValue(draft.interconsultations),
+        activeInterconsultationId: draft.activeInterconsultationId,
+        labOrders: cloneValue(draft.labOrders),
+        activeLabOrderId: resolvedLabOrderId || draft.activeLabOrderId,
+        consentPackets: cloneValue(draft.consentPackets),
+        activeConsentPacketId: draft.activeConsentPacketId,
+        consent: cloneValue(draft.consent),
+        requiresHumanReview: draft.requiresHumanReview === true,
+    };
+
+    if (action === 'cancel_lab_order') {
+        payload.cancelReason = normalizeString(
+            draft.labOrders.find(
+                (item) =>
+                    normalizeString(item.labOrderId) === resolvedLabOrderId
+            )?.cancelReason
+        );
+    }
+
+    if (action === 'create_lab_order') {
+        delete payload.labOrderId;
+    }
+
+    return payload;
+}
+
+async function submitLabOrderAction(action, labOrderId = '') {
+    const sessionId = normalizeString(currentSessionId());
+    if (!sessionId) {
+        createToast(
+            'Selecciona un caso clínico antes de operar la solicitud HCU-010A.',
+            'warning'
+        );
+        return null;
+    }
+
+    const payload = buildLabOrderActionPayload(action, labOrderId);
+    if (action !== 'create_lab_order' && !normalizeString(payload.labOrderId)) {
+        createToast(
+            'Crea o selecciona una solicitud de laboratorio antes de continuar.',
+            'warning'
+        );
+        return null;
+    }
+
+    setClinicalHistoryState({
+        saving: true,
+        error: '',
+        draftForm: cloneValue(
+            synchronizeDraftClinicalState({
+                ...currentDraftSource(),
+                ...payload.draft,
+                documents: payload.documents,
+                interconsultations: payload.interconsultations,
+                activeInterconsultationId: payload.activeInterconsultationId,
+                labOrders: payload.labOrders,
+                activeLabOrderId: payload.activeLabOrderId,
+                consentPackets: payload.consentPackets,
+                activeConsentPacketId: payload.activeConsentPacketId,
+                consent: payload.consent,
+                requiresHumanReview: payload.requiresHumanReview,
+            })
+        ),
+        dirty: true,
+    });
+    syncDraftStatusMeta();
+
+    try {
+        const response = await apiRequest('clinical-episode-action', {
+            method: 'POST',
+            body: payload,
+        });
+        const nextReview = normalizeReviewPayload(response.data);
+        setClinicalHistoryState({
+            saving: false,
+            error: '',
+            dirty: false,
+            current: nextReview,
+            draftForm: cloneValue(nextReview.draft),
+            selectedSessionId: nextReview.session.sessionId || sessionId,
+            lastLoadedAt: Date.now(),
+        });
+
+        try {
+            await refreshAdminData();
+        } catch (_error) {
+            // Keep the workspace usable even if the admin snapshot refresh fails.
+        }
+
+        renderAdminChrome(getState());
+        renderDashboard(getState());
+        renderClinicalHistorySection();
+
+        const targetLabel = currentSelectionLabel(nextReview);
+        if (action === 'create_lab_order') {
+            createToast(
+                `Solicitud HCU-010A creada para ${targetLabel}.`,
+                'success'
+            );
+        } else if (action === 'issue_lab_order') {
+            createToast(
+                `Solicitud HCU-010A emitida para ${targetLabel}.`,
+                'success'
+            );
+        } else if (action === 'cancel_lab_order') {
+            createToast(
+                `Solicitud HCU-010A cancelada para ${targetLabel}.`,
+                'success'
+            );
+        }
+
+        return nextReview;
+    } catch (error) {
+        setClinicalHistoryState({
+            saving: false,
+            error:
+                error?.message ||
+                'No se pudo actualizar la solicitud HCU-010A.',
+        });
+        syncDraftStatusMeta();
+        createToast(
+            error?.message || 'No se pudo actualizar la solicitud HCU-010A.',
             'error'
         );
         return null;
@@ -8114,6 +9340,8 @@ function buildReviewPatch(mode, question) {
         documents: cloneValue(draft.documents),
         interconsultations: cloneValue(draft.interconsultations),
         activeInterconsultationId: draft.activeInterconsultationId,
+        labOrders: cloneValue(draft.labOrders),
+        activeLabOrderId: draft.activeLabOrderId,
         consentPackets: cloneValue(draft.consentPackets),
         activeConsentPacketId: draft.activeConsentPacketId,
         consent: cloneValue(draft.consent),
@@ -8127,6 +9355,8 @@ function buildReviewPatch(mode, question) {
         documents: draftPatch.documents,
         interconsultations: draftPatch.interconsultations,
         activeInterconsultationId: draftPatch.activeInterconsultationId,
+        labOrders: draftPatch.labOrders,
+        activeLabOrderId: draftPatch.activeLabOrderId,
         consentPackets: draftPatch.consentPackets,
         activeConsentPacketId: draftPatch.activeConsentPacketId,
         consent: draftPatch.consent,
@@ -8538,10 +9768,23 @@ function bindClinicalHistoryEvents() {
             return;
         }
 
+        if (action === 'create-lab-order') {
+            await submitLabOrderAction('create_lab_order');
+            return;
+        }
+
         if (action === 'select-interconsultation') {
             await submitInterconsultationAction(
                 'select_interconsultation',
                 actionTarget.dataset.interconsultId || ''
+            );
+            return;
+        }
+
+        if (action === 'select-lab-order') {
+            await submitLabOrderAction(
+                'select_lab_order',
+                actionTarget.dataset.labOrderId || ''
             );
             return;
         }
@@ -8551,8 +9794,18 @@ function bindClinicalHistoryEvents() {
             return;
         }
 
+        if (action === 'issue-current-lab-order') {
+            await submitLabOrderAction('issue_lab_order');
+            return;
+        }
+
         if (action === 'cancel-current-interconsultation') {
             await submitInterconsultationAction('cancel_interconsultation');
+            return;
+        }
+
+        if (action === 'cancel-current-lab-order') {
+            await submitLabOrderAction('cancel_lab_order');
             return;
         }
 

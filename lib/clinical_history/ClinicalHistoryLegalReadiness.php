@@ -15,9 +15,13 @@ final class ClinicalHistoryLegalReadiness
         $session = ClinicalHistoryRepository::adminSession($session);
         $draft = ClinicalHistoryRepository::adminDraft($draft);
         $draft = ClinicalHistoryRepository::syncInterconsultationArtifacts($draft, $session);
+        $draft = ClinicalHistoryRepository::syncLabOrderArtifacts($draft, $session);
         $draft = ClinicalHistoryRepository::syncConsentArtifacts($draft, $session);
         $interconsultations = ClinicalHistoryRepository::normalizeInterconsultations(
             $draft['interconsultations'] ?? []
+        );
+        $labOrders = ClinicalHistoryRepository::normalizeLabOrders(
+            $draft['labOrders'] ?? []
         );
         $consent = ClinicalHistoryRepository::normalizeConsentRecord(
             is_array($draft['consent'] ?? null) ? $draft['consent'] : []
@@ -70,6 +74,16 @@ final class ClinicalHistoryLegalReadiness
                 isset($interconsultation['report']) && is_array($interconsultation['report']) ? $interconsultation['report'] : []
             ),
             $interconsultationScope
+        );
+        $requiredLabOrders = array_values(array_filter($labOrders, static function (array $labOrder): bool {
+            return ($labOrder['requiredForCurrentPlan'] ?? false) === true;
+        }));
+        $labOrderScope = $requiredLabOrders !== []
+            ? $requiredLabOrders
+            : $labOrders;
+        $labOrderEvaluations = array_map(
+            static fn (array $labOrder): array => ClinicalHistoryRepository::evaluateLabOrder($labOrder),
+            $labOrderScope
         );
         $activeConsentPacketId = ClinicalHistoryRepository::trimString($draft['activeConsentPacketId'] ?? '');
         $activeConsentEvaluation = null;
@@ -333,6 +347,66 @@ final class ClinicalHistoryLegalReadiness
             );
         }
 
+        $hcu010AStatus = 'not_applicable';
+        if ($labOrderEvaluations !== []) {
+            $statuses = array_map(
+                static fn (array $evaluation): string => ClinicalHistoryRepository::trimString($evaluation['status'] ?? 'draft'),
+                $labOrderEvaluations
+            );
+            $pendingStatuses = array_values(array_intersect($statuses, ['draft', 'ready_to_issue', 'incomplete']));
+            if ($pendingStatuses === []) {
+                $hasIssued = count(array_filter($statuses, static fn (string $status): bool => $status === 'issued')) > 0;
+                $hcu010AStatus = $hasIssued ? 'issued' : 'cancelled';
+            } elseif (in_array('incomplete', $statuses, true)) {
+                $hcu010AStatus = 'incomplete';
+            } elseif (in_array('draft', $statuses, true)) {
+                $hcu010AStatus = 'draft';
+            } else {
+                $hcu010AStatus = 'ready_to_issue';
+            }
+        }
+        $requiredLabOrderPending = count(array_filter(
+            array_map(
+                static fn (array $labOrder): array => ClinicalHistoryRepository::evaluateLabOrder($labOrder),
+                $requiredLabOrders
+            ),
+            static fn (array $evaluation): bool => !in_array(
+                ClinicalHistoryRepository::trimString($evaluation['status'] ?? ''),
+                ['issued', 'cancelled'],
+                true
+            )
+        ));
+        $hcu010AReady = $requiredLabOrderPending === 0;
+        self::appendChecklist(
+            $checklist,
+            'hcu010a_laboratory',
+            $hcu010AReady,
+            'HCU-010A laboratorio',
+            $requiredLabOrders === []
+                ? ($labOrders === []
+                    ? 'No hay solicitudes de laboratorio exigibles para este episodio.'
+                    : 'Las solicitudes de laboratorio del episodio no fueron marcadas como obligatorias para aprobar el plan actual.')
+                : ($hcu010AReady
+                    ? 'Las solicitudes de laboratorio marcadas como parte del plan actual ya fueron emitidas o canceladas.'
+                    : 'Todavia hay solicitudes de laboratorio requeridas que no se han emitido o cancelado.'),
+            [
+                'status' => $hcu010AStatus,
+                'requiredLabOrders' => count($requiredLabOrders),
+                'pendingRequiredLabOrders' => $requiredLabOrderPending,
+            ]
+        );
+        if (!$hcu010AReady) {
+            $blockingReasons[] = self::blockingReason(
+                'hcu010a_lab_order_pending_issue',
+                'Falta emitir o cancelar una solicitud de laboratorio requerida',
+                'Emite o cancela la solicitud HCU-010A marcada como parte del plan actual antes de aprobar la nota final.',
+                [
+                    'status' => $hcu010AStatus,
+                    'pendingRequiredLabOrders' => $requiredLabOrderPending,
+                ]
+            );
+        }
+
         $aiTerminal = $pendingAi === []
             || in_array($pendingAiStatus, ['completed', 'failed', 'superseded', 'closed'], true);
         self::appendChecklist(
@@ -462,8 +536,8 @@ final class ClinicalHistoryLegalReadiness
             'ready' => $ready,
             'label' => $ready ? 'Lista para aprobar' : 'Bloqueada',
             'summary' => $ready
-                ? 'La historia clinica cubre HCU-001, HCU-005, HCU-007, HCU-024 y los bloqueos medico-legales minimos para aprobar.'
-                : 'La aprobacion esta bloqueada hasta completar la admision HCU-001, HCU-005, HCU-007, HCU-024 y los faltantes medico-legales visibles.',
+                ? 'La historia clinica cubre HCU-001, HCU-005, HCU-007, HCU-010A, HCU-024 y los bloqueos medico-legales minimos para aprobar.'
+                : 'La aprobacion esta bloqueada hasta completar la admision HCU-001, HCU-005, HCU-007, HCU-010A, HCU-024 y los faltantes medico-legales visibles.',
             'checklist' => $checklist,
             'blockingReasons' => $blockingReasons,
             'approvalBlockedReasons' => $blockingReasons,
@@ -518,6 +592,25 @@ final class ClinicalHistoryLegalReadiness
                     default => 'No hay interconsulta formal exigible para este episodio.',
                 },
             ],
+            'hcu010AStatus' => [
+                'status' => $hcu010AStatus,
+                'label' => match ($hcu010AStatus) {
+                    'issued' => 'HCU-010A emitida',
+                    'ready_to_issue' => 'HCU-010A lista para emitir',
+                    'cancelled' => 'HCU-010A cancelada',
+                    'incomplete' => 'HCU-010A incompleta',
+                    'draft' => 'HCU-010A borrador',
+                    default => 'HCU-010A no aplica',
+                },
+                'summary' => match ($hcu010AStatus) {
+                    'issued' => 'La solicitud de laboratorio requerida ya fue emitida dentro del episodio.',
+                    'ready_to_issue' => 'La solicitud de laboratorio ya cubre los campos mínimos del MSP y está lista para emitirse.',
+                    'cancelled' => 'La solicitud de laboratorio del episodio fue cancelada y no bloquea el cierre actual.',
+                    'incomplete' => 'Existe una solicitud de laboratorio requerida con campos todavía incompletos.',
+                    'draft' => 'Existe una solicitud de laboratorio en borrador aún no emitida.',
+                    default => 'No hay solicitud formal de laboratorio exigible para este episodio.',
+                },
+            ],
             'hcu007ReportStatus' => [
                 'status' => $hcu007ReportStatus,
                 'label' => match ($hcu007ReportStatus) {
@@ -561,6 +654,7 @@ final class ClinicalHistoryLegalReadiness
                 'MSP-HCU-FORM-001',
                 'MSP-HCU-FORM-005',
                 'MSP-HCU-FORM-007',
+                'MSP-HCU-FORM-010A',
                 'MSP-HCU-FORM-024',
             ],
         ];

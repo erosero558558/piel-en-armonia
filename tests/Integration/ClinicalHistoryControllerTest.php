@@ -1115,6 +1115,254 @@ final class ClinicalHistoryControllerTest extends TestCase
         );
     }
 
+    public function testClinicalHistoryApprovalBlocksUntilRequiredLabOrderIsIssued(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Lina Vela',
+                    'email' => 'lina@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-hcu010a-issue';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-hcu010a-issue';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Rosacea facial',
+                        'enfermedadActual' => 'Brote recurrente con necesidad de apoyo diagnostico',
+                        'antecedentes' => 'Niega antecedentes relevantes',
+                        'alergias' => 'Niega alergias medicamentosas',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 35,
+                            'pesoKg' => 60,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Caso con necesidad de solicitud formal de laboratorio.',
+                        'preguntasFaltantes' => [],
+                        'cie10Sugeridos' => ['L71.9'],
+                        'tratamientoBorrador' => 'Metronidazol topico y control con examenes.',
+                        'posologiaBorrador' => [
+                            'texto' => 'Aplicacion nocturna por 8 semanas',
+                            'baseCalculo' => 'standard',
+                            'pesoKg' => 60,
+                            'edadAnios' => 35,
+                            'units' => '',
+                            'ambiguous' => false,
+                        ],
+                        'hcu005' => [
+                            'evolutionNote' => 'Rosacea facial con control parcial y necesidad de apoyo diagnostico.',
+                            'diagnosticImpression' => 'Rosacea inflamatoria en control parcial.',
+                            'therapeuticPlan' => 'Mantener manejo topico y solicitar laboratorio de apoyo.',
+                            'careIndications' => 'Control clinico y seguimiento de respuesta.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Metronidazol topico',
+                                'presentation' => 'Gel 0.75%',
+                                'dose' => 'Aplicacion fina',
+                                'route' => 'Topica',
+                                'frequency' => 'Nocturna',
+                                'duration' => '8 semanas',
+                                'quantity' => '1 tubo',
+                                'instructions' => 'Aplicar sobre piel limpia.',
+                            ]],
+                        ],
+                    ],
+                ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Vela',
+                        'primerNombre' => 'Lina',
+                    ],
+                ]),
+                'consent' => [
+                    'required' => false,
+                    'status' => 'not_required',
+                ],
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+        self::assertSame('ready', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+
+        $created = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'create_lab_order',
+            ]
+        );
+
+        self::assertSame(200, $created['status']);
+        self::assertSame(
+            'create_lab_order',
+            (string) ($created['payload']['data']['accessAudit'][0]['action'] ?? '')
+        );
+        self::assertCount(1, $created['payload']['data']['labOrders'] ?? []);
+
+        $labOrder = $created['payload']['data']['labOrders'][0] ?? [];
+        $labOrderId = (string) ($labOrder['labOrderId'] ?? '');
+        self::assertNotSame('', $labOrderId);
+        self::assertSame(
+            'Lina Vela Lopez',
+            (string) ($labOrder['patientName'] ?? '')
+        );
+        self::assertSame(
+            '0912345678',
+            (string) ($labOrder['patientDocumentNumber'] ?? '')
+        );
+
+        $blockedIssue = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'issue_lab_order',
+                'labOrderId' => $labOrderId,
+            ]
+        );
+
+        self::assertSame(409, $blockedIssue['status']);
+        self::assertSame(
+            'clinical_lab_order_incomplete',
+            (string) ($blockedIssue['payload']['code'] ?? '')
+        );
+
+        $labOrder['requiredForCurrentPlan'] = true;
+        $labOrder['sampleDate'] = '2026-03-16';
+        $labOrder['priority'] = 'routine';
+        $labOrder['requestedBy'] = 'Dra. Laura Mena';
+        $labOrder['diagnoses'] = [[
+            'type' => 'pre',
+            'label' => 'Rosacea inflamatoria en control parcial.',
+            'cie10' => 'L71.9',
+        ]];
+        $labOrder['studySelections'] = [
+            'hematology' => ['Biometria hematica'],
+            'urinalysis' => [],
+            'coprological' => [],
+            'bloodChemistry' => [],
+            'serology' => [],
+            'bacteriology' => [],
+            'others' => '',
+        ];
+
+        $labOrderPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'labOrders' => [$labOrder],
+                'activeLabOrderId' => $labOrderId,
+            ]
+        );
+
+        self::assertSame(200, $labOrderPatch['status']);
+        self::assertSame(
+            'blocked',
+            (string) ($labOrderPatch['payload']['data']['legalReadiness']['status'] ?? '')
+        );
+        self::assertSame(
+            'ready_to_issue',
+            (string) ($labOrderPatch['payload']['data']['legalReadiness']['hcu010AStatus']['status'] ?? '')
+        );
+        self::assertContains(
+            'hcu010a_lab_order_pending_issue',
+            array_values(array_map(
+                static fn (array $reason): string => (string) ($reason['code'] ?? ''),
+                $labOrderPatch['payload']['data']['approvalBlockedReasons'] ?? []
+            ))
+        );
+
+        $blockedApprove = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'approve_final_note',
+            ]
+        );
+
+        self::assertSame(409, $blockedApprove['status']);
+        self::assertSame(
+            'clinical_history_approval_blocked',
+            (string) ($blockedApprove['payload']['code'] ?? '')
+        );
+
+        $issued = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'issue_lab_order',
+                'labOrderId' => $labOrderId,
+            ]
+        );
+
+        self::assertSame(200, $issued['status']);
+        self::assertSame(
+            'issue_lab_order',
+            (string) ($issued['payload']['data']['accessAudit'][0]['action'] ?? '')
+        );
+        self::assertSame(
+            'issued',
+            (string) ($issued['payload']['data']['labOrders'][0]['status'] ?? '')
+        );
+        self::assertSame(
+            'issued',
+            (string) ($issued['payload']['data']['legalReadiness']['hcu010AStatus']['status'] ?? '')
+        );
+        self::assertCount(1, $issued['payload']['data']['documents']['labOrders'] ?? []);
+
+        $approved = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'approve_final_note',
+            ]
+        );
+
+        self::assertSame(200, $approved['status']);
+        self::assertSame('approved', (string) ($approved['payload']['data']['approval']['status'] ?? ''));
+        self::assertContains(
+            'MSP-HCU-FORM-010A',
+            $approved['payload']['data']['approval']['normativeSources'] ?? []
+        );
+    }
+
     public function testClinicalHistoryInterconsultationCanReceiveStructuredReport(): void
     {
         $sessionCreate = $this->captureResponse(
