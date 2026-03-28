@@ -4,6 +4,52 @@ const terminalEvidence = require('../domain/evidence');
 const domainStrategy = require('../domain/strategy');
 const publishCommandHandlers = require('./publish');
 
+async function resolveTaskStartFocusSummary(ctx, board, options = {}) {
+    const now = options.now instanceof Date ? options.now : new Date();
+    if (typeof ctx.buildLiveFocusSummary === 'function') {
+        return ctx.buildLiveFocusSummary(board, {
+            now,
+            cwd: process.cwd(),
+            rootPath: process.cwd(),
+            governancePolicy:
+                typeof ctx.getGovernancePolicy === 'function'
+                    ? ctx.getGovernancePolicy()
+                    : null,
+        });
+    }
+
+    const decisionsData =
+        typeof ctx.parseDecisions === 'function'
+            ? ctx.parseDecisions()
+            : { decisions: [] };
+    const jobs =
+        typeof ctx.loadJobsSnapshot === 'function'
+            ? await ctx.loadJobsSnapshot()
+            : [];
+    const runtimeVerification =
+        typeof ctx.verifyOpenClawRuntime === 'function'
+            ? await ctx.verifyOpenClawRuntime()
+            : null;
+    const summary =
+        typeof ctx.buildFocusSummary === 'function'
+            ? ctx.buildFocusSummary(board, {
+                  decisionsData,
+                  jobsSnapshot: jobs,
+                  runtimeVerification,
+                  now,
+                  cwd: process.cwd(),
+                  rootPath: process.cwd(),
+              })
+            : null;
+
+    return {
+        decisionsData,
+        jobs,
+        runtimeVerification,
+        summary,
+    };
+}
+
 async function handleTaskCommand(ctx) {
     const {
         args,
@@ -29,6 +75,7 @@ async function handleTaskCommand(ctx) {
         normalizeTaskForCreateApply,
         validateTaskGovernancePrechecks,
         parseDecisions,
+        loadJobsSnapshot,
         getBlockingConflictsForTask,
         nextAgentTaskId,
         summarizeBlockingConflictsForTask,
@@ -62,6 +109,8 @@ async function handleTaskCommand(ctx) {
         assertWorkspaceTruthOk,
         ensureTaskWorktree,
         applyWorkspaceTaskSnapshot,
+        verifyOpenClawRuntime,
+        getGovernancePolicy,
         printJson,
     } = ctx;
 
@@ -928,6 +977,7 @@ async function handleTaskStart(ctx) {
         parseCsvList,
         validateTaskGovernancePrechecks,
         parseDecisions,
+        loadJobsSnapshot,
         isFlagEnabled,
         inferDomainLaneFromFiles,
         ensureTaskDualCodexDefaults,
@@ -944,6 +994,8 @@ async function handleTaskStart(ctx) {
         assertWorkspaceTruthOk,
         ensureTaskWorktree,
         applyWorkspaceTaskSnapshot,
+        verifyOpenClawRuntime,
+        getGovernancePolicy,
         printJson,
     } = ctx;
 
@@ -1046,15 +1098,22 @@ async function handleTaskStart(ctx) {
     if (releasePublish) {
         applyReleasePublishPreset(task);
         applyReleasePublishStrategyDefaults(board, task);
-        if (typeof buildLiveFocusSummary === 'function') {
-            const focusData = await buildLiveFocusSummary(board, {
-                now: new Date(),
-            });
-            publishCommandHandlers.assertReleaseRequiredChecks(
-                focusData?.summary,
-                'task start --release-publish'
-            );
-        }
+        const focusData = await resolveTaskStartFocusSummary(
+            {
+                buildLiveFocusSummary,
+                buildFocusSummary: null,
+                parseDecisions,
+                loadJobsSnapshot,
+                verifyOpenClawRuntime,
+                getGovernancePolicy,
+            },
+            board,
+            { now: new Date() }
+        );
+        publishCommandHandlers.assertReleaseRequiredChecks(
+            focusData?.summary,
+            'task start --release-publish'
+        );
     }
     applyBlockedReasonOverride(task, flags, 'task start');
     if (isRetiredExecutor(task.executor, RETIRED_TASK_EXECUTORS)) {
@@ -1079,10 +1138,19 @@ async function handleTaskStart(ctx) {
             )}`
         );
     }
-    if (releasePublish && typeof buildLiveFocusSummary === 'function') {
-        const focusData = await buildLiveFocusSummary(board, {
-            now: new Date(),
-        });
+    if (releasePublish) {
+        const focusData = await resolveTaskStartFocusSummary(
+            {
+                buildLiveFocusSummary,
+                buildFocusSummary: null,
+                parseDecisions,
+                loadJobsSnapshot,
+                verifyOpenClawRuntime,
+                getGovernancePolicy,
+            },
+            board,
+            { now: new Date() }
+        );
         publishCommandHandlers.assertReleaseRequiredChecks(
             focusData?.summary,
             'task start --release-publish'

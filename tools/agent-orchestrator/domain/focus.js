@@ -118,6 +118,11 @@ function isAcknowledgedExternalBlockedTask(task = {}) {
     );
 }
 
+function isAllowedExternalBlockerCarryoverTask(task = {}, focus = null) {
+    void focus;
+    return isAcknowledgedExternalBlockedTask(task);
+}
+
 function normalizeArray(values, options = {}) {
     const { lowerCase = false } = options;
     const list = Array.isArray(values) ? values : values ? [values] : [];
@@ -1379,6 +1384,35 @@ function isOperatorAuthRecommendedModeHealthy(surface = {}) {
     return true;
 }
 
+function runtimeProviderMatchesRequiredCheckTarget(target, runtimeVerification) {
+    const safeTarget = normalizeOptionalToken(target);
+    if (!safeTarget) return false;
+    const provider = normalizeOptionalToken(runtimeVerification?.provider);
+    const requestedProvider = normalizeOptionalToken(
+        runtimeVerification?.requested_provider
+    );
+    const normalizedProvider = normalizeOptionalToken(
+        runtimeVerification?.normalized_provider
+    );
+    if (
+        safeTarget === provider ||
+        safeTarget === requestedProvider ||
+        safeTarget === normalizedProvider
+    ) {
+        return true;
+    }
+    return (
+        (safeTarget === 'openclaw_chatgpt' &&
+            (provider === 'pilot_runtime' ||
+                requestedProvider === 'pilot_runtime' ||
+                normalizedProvider === 'pilot_runtime')) ||
+        (safeTarget === 'pilot_runtime' &&
+            (provider === 'openclaw_chatgpt' ||
+                requestedProvider === 'openclaw_chatgpt' ||
+                normalizedProvider === 'openclaw_chatgpt'))
+    );
+}
+
 function evaluateRuntimeRequiredCheck(check, runtimeVerification) {
     if (!runtimeVerification) {
         return {
@@ -1389,8 +1423,12 @@ function evaluateRuntimeRequiredCheck(check, runtimeVerification) {
         };
     }
 
-    const provider = normalizeOptionalToken(runtimeVerification.provider);
-    if (check.target === provider) {
+    if (
+        runtimeProviderMatchesRequiredCheckTarget(
+            check.target,
+            runtimeVerification
+        )
+    ) {
         if (!runtimeVerification.ok) {
             return {
                 ...check,
@@ -1783,6 +1821,11 @@ function buildFocusSummary(board, options = {}) {
         board,
         rootPath: options.rootPath,
     });
+    const localRequiredCheckSnapshot =
+        options.localRequiredCheckSnapshot &&
+        typeof options.localRequiredCheckSnapshot === 'object'
+            ? options.localRequiredCheckSnapshot
+            : null;
     if (
         options.requiredChecksSnapshot &&
         typeof options.requiredChecksSnapshot === 'object'
@@ -1812,12 +1855,33 @@ function buildFocusSummary(board, options = {}) {
                       ).trim(),
             valid: options.requiredChecksSnapshot.valid === true,
         };
+    } else if (
+        localRequiredCheckSnapshot &&
+        (localRequiredCheckSnapshot.available === true ||
+            localRequiredCheckSnapshot.valid === true)
+    ) {
+        summary.required_checks_snapshot = {
+            source:
+                localRequiredCheckSnapshot.reason === 'evidence'
+                    ? 'focus_evidence'
+                    : 'local_snapshot',
+            path: String(localRequiredCheckSnapshot.path || '').trim(),
+            generated_at: String(
+                localRequiredCheckSnapshot.snapshot?.checked_at || ''
+            ).trim(),
+            context_task_id: '',
+            stale_reason:
+                localRequiredCheckSnapshot.valid === true
+                    ? ''
+                    : String(localRequiredCheckSnapshot.reason || '').trim(),
+            valid: localRequiredCheckSnapshot.valid === true,
+        };
     }
     summary.required_checks_ok =
         summary.required_checks.length > 0 &&
         summary.required_checks.every((item) => item.ok === true);
 
-    if (!activeFocus) {
+    if (!activeFocus && focus.status === 'active') {
         summary.warnings.push('strategy_has_no_active_focus');
     }
     if (summary.idle) {
@@ -1852,12 +1916,19 @@ function buildFocusSummary(board, options = {}) {
     if (summary.decisions.overdue > 0) {
         summary.warnings.push('decision_overdue');
     }
-    summary.release_ready =
-        summary.active_tasks_total > 0 &&
-        summary.aligned_tasks === summary.active_tasks_total &&
+    const closedFocusReady =
+        focus.status === 'closed' &&
         summary.required_checks_ok &&
         !summary.support_only &&
-        summary.blocking_errors.length === 0;
+        summary.blocking_errors.length === 0 &&
+        Boolean(String(focus.evidence_ref || '').trim());
+    summary.release_ready =
+        closedFocusReady ||
+        (summary.active_tasks_total > 0 &&
+            summary.aligned_tasks === summary.active_tasks_total &&
+            summary.required_checks_ok &&
+            !summary.support_only &&
+            summary.blocking_errors.length === 0);
 
     return summary;
 }
@@ -2021,6 +2092,7 @@ module.exports = {
     refreshRequiredChecksSnapshot,
     buildFocusSeed,
     isAcknowledgedExternalBlockedTask,
+    isAllowedExternalBlockerCarryoverTask,
     isFrontendRequiredCheckType,
     isLocalRequiredCheckType,
     loadLocalRequiredCheckSnapshot,

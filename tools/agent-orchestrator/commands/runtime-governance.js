@@ -114,7 +114,10 @@ function createRuntimeGovernanceCommands(ctx = {}) {
                     ctx.parseExpectedBoardRevisionFlag,
                 buildBoardWipLimitDiagnostics:
                     ctx.buildBoardWipLimitDiagnostics,
-                runCodexCheck: () => runner.codexCheck([]),
+                runCodexCheck: (extraArgs = []) =>
+                    runner.codexCheck(
+                        Array.isArray(extraArgs) ? extraArgs : []
+                    ),
                 getGovernancePolicy: ctx.getGovernancePolicy,
                 loadModelUsageLedger: ctx.loadModelUsageLedger,
                 appendModelUsageLedgerEntries:

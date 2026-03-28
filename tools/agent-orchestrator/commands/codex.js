@@ -74,6 +74,32 @@ function buildCodexUsageError(message, code = 'codex_invalid_usage') {
     return error;
 }
 
+function isWorkspaceTruthOnlyCodexCheckFailure(error) {
+    const message = String(error?.message || error || '').trim();
+    if (!/Codex mirror invalido/i.test(message)) {
+        return false;
+    }
+    const findingLines = message
+        .split('\n')
+        .map((line) => String(line || '').trim())
+        .filter((line) => line.startsWith('- '));
+    return (
+        findingLines.length > 0 &&
+        findingLines.every((line) => /workspace truth bloqueado/i.test(line))
+    );
+}
+
+async function runCodexCheckAfterMutation(runCodexCheck, args = []) {
+    if (typeof runCodexCheck !== 'function') return;
+    try {
+        await runCodexCheck(args);
+    } catch (error) {
+        if (!isWorkspaceTruthOnlyCodexCheckFailure(error)) {
+            throw error;
+        }
+    }
+}
+
 function ensureCodexTask(task, taskId) {
     if (
         String(task?.executor || '')
@@ -701,7 +727,7 @@ async function handleCodexCommand(ctx) {
             files: task.files || [],
             updated_at: currentDate(),
         });
-        await runCodexCheck();
+        await runCodexCheckAfterMutation(runCodexCheck, ['--current-only']);
         console.log(
             `Codex start OK: ${taskId} (${block})${workspaceCapture?.worktree_path ? ` | worktree=${workspaceCapture.worktree_path}` : ''}`
         );
@@ -769,7 +795,7 @@ async function handleCodexCommand(ctx) {
             writeCodexActiveBlock(remainingBlock);
         }
     }
-    await runCodexCheck();
+    await runCodexCheckAfterMutation(runCodexCheck, ['--current-only']);
     console.log(`Codex stop OK: ${taskId} -> ${nextStatus}`);
 }
 

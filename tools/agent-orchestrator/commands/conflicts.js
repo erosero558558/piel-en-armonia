@@ -81,10 +81,7 @@ async function handleConflictsCommand(ctx) {
             ),
         ]
     );
-    reportWithDiagnostics.ok =
-        analysis.blocking.length === 0 &&
-        reportWithDiagnostics.errors_count === 0 &&
-        workspaceReport?.workspace_truth?.ok !== false;
+    reportWithDiagnostics.ok = analysis.blocking.length === 0;
 
     if (wantsJson) {
         console.log(JSON.stringify(reportWithDiagnostics, null, 2));

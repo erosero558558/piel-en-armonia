@@ -407,6 +407,119 @@ test('focus loadLocalRequiredCheckSnapshot prefiere snapshot JSON valido sobre e
     );
 });
 
+test('focus buildFocusSummary expone snapshot local y release_ready cuando el foco cerrado conserva evidencia verde', (t) => {
+    const root = mkdtempSync(join(tmpdir(), 'focus-closed-ready-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+
+    mkdirSync(join(root, 'verification', 'focus-checks'), { recursive: true });
+    writeFileSync(
+        focusDomain.resolveFocusCheckSnapshotPath(
+            'FOCUS-2026-03-public-v6-es-voz-cut-1',
+            { rootPath: root }
+        ),
+        `${JSON.stringify(
+            {
+                version: 1,
+                focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                checked_at: '2026-03-28T02:13:27.882Z',
+                focus_required_checks: [
+                    'content:public-v6:validate',
+                    'audit:public-v6:copy',
+                    'test:frontend:qa:v6',
+                ],
+                checks: [
+                    {
+                        id: 'content:public-v6:validate',
+                        type: 'content',
+                        command: 'npm run content:public-v6:validate',
+                        ok: true,
+                        exit_code: 0,
+                        checked_at: '2026-03-28',
+                    },
+                    {
+                        id: 'audit:public-v6:copy',
+                        type: 'audit',
+                        command: 'npm run audit:public:v6:copy',
+                        ok: true,
+                        exit_code: 0,
+                        checked_at: '2026-03-28',
+                    },
+                    {
+                        id: 'test:frontend:qa:v6',
+                        type: 'test',
+                        command: 'TEST_LOCAL_SERVER=php npm run test:frontend:qa:v6',
+                        ok: true,
+                        exit_code: 0,
+                        checked_at: '2026-03-28',
+                    },
+                ],
+            },
+            null,
+            2
+        )}\n`,
+        'utf8'
+    );
+
+    const board = {
+        strategy: {
+            active: {
+                id: 'STRAT-2026-03-public-v6-es-voz-ecuatoriana',
+                status: 'closed',
+                started_at: '2026-03-26',
+                focus_id: 'FOCUS-2026-03-public-v6-es-voz-cut-1',
+                focus_title: 'Public V6 ES claro y humano',
+                focus_summary: 'Corte comun',
+                focus_status: 'closed',
+                focus_proof: 'Demo comun',
+                focus_steps: [
+                    'ecuadorian_copy_rewrite',
+                    'copy_contract_validation',
+                    'publish_readiness_review',
+                ],
+                focus_next_step: 'publish_readiness_review',
+                focus_required_checks: [
+                    'content:public-v6:validate',
+                    'audit:public-v6:copy',
+                    'test:frontend:qa:v6',
+                ],
+                focus_non_goals: ['public_publish'],
+                focus_owner: 'Ernesto',
+                focus_review_due_at: '2026-03-30',
+                focus_evidence_ref: 'verification/agent-runs/CDX-050.md',
+                focus_max_active_slices: 1,
+            },
+        },
+        tasks: [],
+    };
+    const configuredFocus = focusDomain.getConfiguredFocus(board);
+    const localSnapshot = focusDomain.loadLocalRequiredCheckSnapshot(
+        configuredFocus,
+        {
+            rootPath: root,
+            board,
+        }
+    );
+    const summary = focusDomain.buildFocusSummary(board, {
+        localRequiredCheckSnapshot: localSnapshot,
+        rootPath: root,
+    });
+
+    assert.equal(summary.required_checks_snapshot.source, 'local_snapshot');
+    assert.equal(summary.required_checks_snapshot.valid, true);
+    assert.equal(
+        summary.required_checks_snapshot.path,
+        focusDomain.resolveFocusCheckSnapshotPath(
+            'FOCUS-2026-03-public-v6-es-voz-cut-1',
+            { rootPath: root }
+        )
+    );
+    assert.equal(summary.release_ready, true);
+    assert.equal(
+        summary.warnings.includes('strategy_has_no_active_focus'),
+        false
+    );
+});
+
 test('focus evaluateRequiredChecks deja local required checks como unverified cuando la evidencia no aplica al foco activo', (t) => {
     const root = mkdtempSync(join(tmpdir(), 'focus-unverified-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));

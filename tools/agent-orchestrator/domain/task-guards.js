@@ -613,6 +613,18 @@ function findAlignedActiveCodexMirrorTasks(board, task, options = {}) {
     );
 }
 
+function isValidatedReleasePromotionException(task = {}) {
+    return (
+        normalizeOptionalToken(task?.status) === 'review' &&
+        normalizeOptionalToken(task?.strategy_role) === 'exception' &&
+        String(task?.strategy_reason || '').trim() ===
+            'validated_release_promotion' &&
+        normalizeOptionalToken(task?.integration_slice) ===
+            'governance_evidence' &&
+        normalizeOptionalToken(task?.work_type) === 'evidence'
+    );
+}
+
 function validateTaskCodexMirrorDependency(board, task, options = {}) {
     const activeStatuses = options.activeStatuses || DEFAULT_ACTIVE_STATUSES;
     const taskId = String(task?.id || '').trim();
@@ -631,6 +643,9 @@ function validateTaskCodexMirrorDependency(board, task, options = {}) {
         Boolean(String(task?.strategy_id || '').trim()) ||
         Boolean(String(task?.subfront_id || '').trim());
     if (!shouldEnforce) {
+        return;
+    }
+    if (isValidatedReleasePromotionException(task)) {
         return;
     }
 

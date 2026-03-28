@@ -57,12 +57,12 @@ updated_at: "2026-03-28"
   `false` mientras `job:public_main_sync` y `runtime:operator_auth` dependan
   de infraestructura remota caida.
 
-## Public V6 ES activo 2026-03-27
+## Public V6 ES cierre 2026-03-28
 
-- `STRAT-2026-03-public-v6-es-voz-ecuatoriana` es el frente activo canónico.
+- `STRAT-2026-03-public-v6-es-voz-ecuatoriana` queda cerrada como frente ya completado.
 - `CDX-045` queda en `done` como slice 1 validada
   (`navigation/home/hub/software`).
-- `CDX-048` queda en `review` como slice 2 validada
+- `CDX-048` queda en `done` como slice 2 validada
   (`service/telemedicine/legal`).
 - `CDX-047` cierra el adapter minimo de required checks usando evidencia
   canonica de `CDX-045` y `CDX-048`, sin tocar contenido ni runtime.
@@ -71,10 +71,28 @@ updated_at: "2026-03-28"
   operativo de `CDX-049`.
 - `CDX-049` queda absorbido historicamente por `CDX-047` y no se reabre
   como slice separada.
-- El foco avanza de `copy_contract_validation` a
-  `publish_readiness_review`.
+- El foco queda cerrado con `focus_next_step=publish_readiness_review`,
+  snapshot local canonico de required checks y evidencia durable en
+  `verification/agent-runs/CDX-050.md`.
 - `public_main_sync` sigue fuera de alcance de este frente y se tolera solo
   como warning externo.
+
+## Saneamiento transversal post Public V6 ES 2026-03-28
+
+- `CDX-051` absorbe el follow-up local del orquestador como slice standalone,
+  sin reabrir estrategia activa ni tocar `content/public-v6/**`.
+- El harness CLI ahora levanta fixtures git legibles con remote `origin`,
+  sincroniza worktrees de fixture despues de comandos mutantes y deja de
+  tropezar con drift artificial de control-plane.
+- `task start --release-publish` reusa el mismo `live focus summary` que
+  `focus`, incluyendo runtime/jobs/required checks, y el alias
+  `runtime:openclaw_chatgpt` deja de quedar `unverified` cuando el runtime
+  sano se verifica como `pilot_runtime`.
+- `conflicts --strict` vuelve a fallar por conflictos `blocking`, no por
+  diagnosticos laterales, y `codex start/stop` deja de autocaerse por
+  `workspace truth` transitorio dentro del propio fixture.
+- La suite `tests-node/agent-orchestrator-cli.test.js` vuelve a `98/98`
+  verde; `task-guards`, `focus` y `publish-checkpoint` se mantienen en verde.
 
 ## Proposito
 
@@ -129,7 +147,7 @@ updated_at: "2026-03-28"
 ## Tri-lane operativo vigente
 
 - `codex_frontend`: lidera el frente `Public V6 ES` y concentra las slices
-  editoriales `CDX-045` y `CDX-048`.
+  editoriales ya terminales `CDX-045` y `CDX-048`.
 - `codex_backend_ops`: queda en soporte potencial, no activado por defecto.
 - `codex_transversal`: ya cerro `CDX-047` y `CDX-050` como soporte de
   checks/gobernanza basado en evidencia; no toca contenido ni runtime

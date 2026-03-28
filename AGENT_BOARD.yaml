@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 784
+  revision: 785
   updated_at: 2026-03-28
 
 strategy:
@@ -1140,6 +1140,54 @@ tasks:
     rework_reason: ""
     depends_on: ["CDX-047", "CDX-048"]
     prompt: "Cerrar publish_readiness_review de Public V6 ES desde gobernanza: materializar focus verify, dejar snapshot local canonico, corregir drift narrativo y retirar el worktree forked de CDX-049 sin tocar copy ni runtime."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-051
+    title: "Post-Public V6 ES orchestrator CLI hygiene cleanup"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-28T03:40:00Z"
+    risk: medium
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["agent-orchestrator.js", "tests-node/agent-orchestrator-cli.test.js", "tests-node/orchestrator/focus.test.js", "tools/agent-orchestrator/commands/codex.js", "tools/agent-orchestrator/commands/conflicts.js", "tools/agent-orchestrator/commands/runtime-governance.js", "tools/agent-orchestrator/commands/task.js", "tools/agent-orchestrator/domain/codex-mirror.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/task-guards.js", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-051.md"]
+    source_signal: manual
+    source_ref: "post_public_v6_es_cleanup"
+    priority_score: 68
+    sla_due_at: "2026-03-29T23:59:00Z"
+    last_attempt_at: "2026-03-28T03:40:00Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T03:40:00Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "La suite CLI del orquestador vuelve a verde, release-publish usa el mismo live focus summary que focus, conflicts --strict falla solo por conflictos blocking y los fixtures Codex dejan de caer por git/worktree setup o drift transitorio del control-plane."
+    acceptance_ref: "verification/agent-runs/CDX-051.md"
+    evidence_ref: "verification/agent-runs/CDX-051.md"
+    depends_on: []
+    prompt: "Absorber el follow-up transversal del orquestador post-Public V6 ES: reparar harness CLI, alias runtime de required checks y regresiones de codex/conflicts/release-publish sin tocar contenido publico."
     created_at: 2026-03-28
     updated_at: 2026-03-28
 

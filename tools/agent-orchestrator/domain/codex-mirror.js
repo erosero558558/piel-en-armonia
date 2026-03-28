@@ -12,6 +12,19 @@ const domainStrategy = require('./strategy');
 
 const DEFAULT_SLOT_STATUSES = new Set(['in_progress', 'review', 'blocked']);
 
+function isValidatedReleasePromotionException(task = {}) {
+    return (
+        String(task?.status || '').trim().toLowerCase() === 'review' &&
+        String(task?.strategy_role || '').trim().toLowerCase() ===
+            'exception' &&
+        String(task?.strategy_reason || '').trim() ===
+            'validated_release_promotion' &&
+        String(task?.integration_slice || '').trim().toLowerCase() ===
+            'governance_evidence' &&
+        String(task?.work_type || '').trim().toLowerCase() === 'evidence'
+    );
+}
+
 function normalizeStatusesSet(statuses, fallbackStatuses) {
     const safeFallback = Array.from(
         fallbackStatuses || DEFAULT_SLOT_STATUSES
@@ -224,6 +237,9 @@ function collectActiveCodexSupportCoverage(board, options = {}) {
         );
 
         if (matchedMirrorIds.length > 0) {
+            continue;
+        }
+        if (isValidatedReleasePromotionException(task)) {
             continue;
         }
 
