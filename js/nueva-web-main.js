@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const hb = document.getElementById('navHamburger'),
         ov = document.getElementById('navOverlay');
-    window.closeMenu = () => {
+    const closeMenu = () => {
         hb?.classList.remove('open');
         ov?.classList.remove('open');
         document.body.style.overflow = '';
@@ -89,5 +89,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     ov?.addEventListener('click', (e) => {
         if (e.target === ov) closeMenu();
+    });
+    ov?.querySelectorAll('.nav-mobile-menu a').forEach((a) => {
+        a.addEventListener('click', closeMenu);
     });
 });
