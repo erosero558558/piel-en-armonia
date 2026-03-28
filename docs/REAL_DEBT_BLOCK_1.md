@@ -175,6 +175,13 @@ Primary likely touch points:
 
 ## Verification
 
+Local prerequisites before running this verification set:
+
+- Run `npm ci` in the same worktree so Node contracts can resolve repo-local dependencies such as `yaml`, `rollup`, and `@rollup/plugin-node-resolve`.
+- Run `composer install` if `vendor/**` is missing or stale for local PHP checks.
+- Ensure the host can start `node --test ...`; once the process is running, Block 1 contracts use `process.execPath` and repo-local CLIs instead of shelling out to global `node` or `npx`.
+- Ensure PHP is available either in `PATH` or through `PHP_BIN`; PHP-backed contracts now skip locally with an actionable message when PHP is unavailable, while CI keeps treating them as required.
+
 Run these after implementation:
 
 ```powershell
@@ -186,6 +193,7 @@ npm run chunks:admin:check
 npm run chunks:public:check
 npm run assets:versions:check
 node --test tests-node/deploy-hosting-workflow-contract.test.js
+node --test tests-node/runtime-contract-helpers.test.js
 node --test tests-node/prod-monitor-public-sync-contract.test.js
 node --test tests-node/prod-ops-public-sync-contract.test.js
 node --test tests-node/weekly-report-script-contract.test.js

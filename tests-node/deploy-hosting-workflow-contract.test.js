@@ -5,7 +5,14 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('fs');
 const { resolve } = require('path');
-const yaml = require('yaml');
+let yaml;
+
+try {
+    yaml = require('yaml');
+} catch (error) {
+    error.message = `${error.message}\nEjecuta \`npm ci\` en este worktree antes de correr deploy-hosting-workflow-contract.test.js.`;
+    throw error;
+}
 
 const WORKFLOW_PATH = resolve(
     __dirname,
@@ -109,7 +116,9 @@ test('deploy-hosting deja staging canary en modo opt-in para workflow_run automa
         prodEnv.ALLOW_PROD_WITHOUT_STAGING,
     ]) {
         assert.equal(
-            String(envValue || '').includes("github.event_name == 'workflow_run'"),
+            String(envValue || '').includes(
+                "github.event_name == 'workflow_run'"
+            ),
             true,
             'allow_prod_without_staging debe flexibilizar workflow_run cuando staging no esta configurado'
         );
