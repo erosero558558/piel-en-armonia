@@ -73,8 +73,8 @@ tasks:
     title: "Backup integrity verification and at-rest encryption"
     owner: ernesto
     executor: jules
-    status: review
-    status_since_at: "2026-02-24"
+    status: done
+    status_since_at: "2026-03-28T21:21:41.033Z"
     risk: high
     scope: platform
     codex_instance: codex_backend_ops
@@ -93,30 +93,19 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: "lease_AG-001_20260328210207063_03a32c"
-    lease_owner: "ernesto"
-    lease_created_at: "2026-03-28T21:02:07.063Z"
-    heartbeat_at: "2026-03-28T21:02:07.063Z"
-    lease_expires_at: "2026-03-29T01:02:07.063Z"
-    lease_reason: "board_write"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T21:21:41.033Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "Validar checksum SHA-256, cifrado en reposo y limpieza por retencion."
     acceptance_ref: "verification/agent-runs/AG-001.md"
     evidence_ref: "verification/agent-runs/AG-001.md"
-    strategy_id: ""
-    subfront_id: ""
-    strategy_role: ""
-    focus_id: ""
-    focus_step: ""
-    integration_slice: ""
-    work_type: ""
-    expected_outcome: ""
-    decision_ref: ""
-    rework_parent: ""
-    rework_reason: ""
     depends_on: []
     prompt: "Implementar checksum SHA-256 por header, cifrado AES-256-CBC y prueba de integridad con test."
     created_at: 2026-02-24
@@ -126,8 +115,8 @@ tasks:
     title: "PHP rate-limiter sliding window and per-user limits"
     owner: ernesto
     executor: jules
-    status: review
-    status_since_at: "2026-02-24"
+    status: done
+    status_since_at: "2026-03-28T21:21:49.509Z"
     risk: medium
     scope: backend
     codex_instance: codex_backend_ops
@@ -146,30 +135,19 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: "lease_AG-002_20260328210207063_db2f6b"
-    lease_owner: "ernesto"
-    lease_created_at: "2026-03-28T21:02:07.063Z"
-    heartbeat_at: "2026-03-28T21:02:07.063Z"
-    lease_expires_at: "2026-03-29T01:02:07.063Z"
-    lease_reason: "board_write"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T21:21:49.509Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "Aplicar sliding window real, limites por usuario e instrumentacion de eventos."
     acceptance_ref: "verification/agent-runs/AG-002.md"
     evidence_ref: "verification/agent-runs/AG-002.md"
-    strategy_id: ""
-    subfront_id: ""
-    strategy_role: ""
-    focus_id: ""
-    focus_step: ""
-    integration_slice: ""
-    work_type: ""
-    expected_outcome: ""
-    decision_ref: ""
-    rework_parent: ""
-    rework_reason: ""
     depends_on: []
     prompt: "Actualizar rate-limiter a sliding window, incluir limite por user token y pruebas de regresion."
     created_at: 2026-02-24
@@ -12677,3 +12655,351 @@ tasks:
     prompt: "Preservar el contrato OpenClaw auth (mode/recommendedMode) mientras CDX-009 sigue bloqueado por 502 host-side."
     created_at: 2026-03-26
     updated_at: 2026-03-27
+
+  - id: AG-262
+    title: "OpenClaw auth contract mode preservation during CDX-009 triage"
+    owner: Ernesto
+    executor: codex
+    status: done
+    status_since_at: "2026-03-26T16:55:00Z"
+    risk: medium
+    scope: openclaw_runtime
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: google_oauth
+    runtime_surface: operator_auth
+    runtime_transport: http_bridge
+    runtime_last_transport: 
+    files: ["lib/auth.php", "verification/agent-runs/AG-261.md"]
+    source_signal: manual
+    source_ref: "CDX-009"
+    priority_score: 72
+    sla_due_at: "2026-03-29T11:57:40.127Z"
+    last_attempt_at: "2026-03-26T16:55:00Z"
+    attempts: 1
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-26T16:55:00Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "La fachada/admin auth y readiness preservan mode=recommendedMode=openclaw_chatgpt sin romper el broker compartido ni el triage de CDX-009."
+    acceptance_ref: "verification/agent-runs/AG-261.md"
+    evidence_ref: "verification/agent-runs/AG-261.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-transversal-admin-operativo"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "pilot_readiness_evidence"
+    integration_slice: "runtime_contract"
+    work_type: "support"
+    expected_outcome: "El fix repo-side de OpenClaw auth queda trazado como soporte transversal sin reabrir un lane activo nuevo y sin mezclarlo con el bloqueo host-side de CDX-009."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-009"]
+    prompt: "Preservar el contrato OpenClaw auth (mode/recommendedMode) mientras CDX-009 sigue bloqueado por 502 host-side."
+    created_at: 2026-03-26
+    updated_at: 2026-03-28
+
+  - id: CDX-058
+    title: "Admin operativo local-check seed realignment"
+    owner: deck
+    executor: codex
+    status: done
+    status_since_at: "2026-03-28T21:32:50.716Z"
+    risk: medium
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "tools/agent-orchestrator/commands/strategy.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/strategy.js", "verification/agent-runs/CDX-058.md"]
+    source_signal: strategy_intake
+    source_ref: "STRAT-2026-03-admin-operativo"
+    priority_score: 70
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T21:32:50.716Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Validar runtime/orquestacion del subfrente SF-transversal-admin-operativo para \"Admin operativo local-check seed realignment\"."
+    acceptance_ref: "verification/agent-runs/CDX-058.md"
+    evidence_ref: "verification/agent-runs/CDX-058.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-transversal-admin-operativo"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "admin_queue_pilot_cut"
+    integration_slice: "runtime_support"
+    work_type: "forward"
+    expected_outcome: ""
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: []
+    prompt: "Admin operativo local-check seed realignment"
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-059
+    title: "Turnero gate runtime tooling: node runner and package gate"
+    owner: deck
+    executor: codex
+    status: ready
+    status_since_at: "2026-03-28T12:54:43.758Z"
+    risk: medium
+    scope: tests
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["bin/lib/workspace-hygiene.js", "bin/run-playwright-local.js", "package.json", "tests-node/agent-orchestrator-cli.test.js", "tests-node/orchestrator/diagnostics.test.js", "tests-node/orchestrator/focus.test.js", "tests-node/orchestrator/status-engine.test.js", "tests-node/run-playwright-local.test.js", "verification/agent-runs/CDX-059.md"]
+    source_signal: strategy_intake
+    source_ref: "STRAT-2026-03-admin-operativo"
+    priority_score: 70
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Validar tests/gates y contrato backend del subfrente SF-backend-admin-operativo para \"Turnero gate runtime tooling: node runner and package gate\"."
+    acceptance_ref: "verification/agent-runs/CDX-059.md"
+    evidence_ref: "verification/agent-runs/CDX-059.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-backend-admin-operativo"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "admin_queue_pilot_cut"
+    integration_slice: "backend_readiness"
+    work_type: "forward"
+    expected_outcome: ""
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: []
+    prompt: "Turnero gate runtime tooling: node runner and package gate"
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-060
+    title: "Admin queue pilot UI specs and fixtures"
+    owner: deck
+    executor: codex
+    status: done
+    status_since_at: "2026-03-28T21:02:07.063Z"
+    risk: medium
+    scope: gates
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["tests/admin-queue-controls-numpad.spec.js", "tests/admin-queue-guidance-live-ops.spec.js", "tests/admin-queue-ops-hub.spec.js", "tests/admin-queue-pilot-governance.spec.js", "tests/admin-queue-reception-escalation.spec.js", "tests/helpers/admin-queue-fixtures.js", "verification/agent-runs/CDX-060.md"]
+    source_signal: manual
+    source_ref: "AG-260"
+    priority_score: 70
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T21:02:07.063Z"
+    lease_cleared_reason: "terminal:done"
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El smoke suite de admin-queue abandona el spec monolitico y queda repartido en cinco specs focalizadas con fixtures compartidos, sin tocar package.json, kiosco, public-v6 ni turnero-gates."
+    acceptance_ref: "verification/agent-runs/CDX-060.md"
+    evidence_ref: "verification/agent-runs/CDX-060.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-backend-admin-operativo"
+    strategy_role: "primary"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "admin_queue_pilot_cut"
+    integration_slice: "tests_quality"
+    work_type: "support"
+    expected_outcome: "Admin-queue queda segmentado en specs de guidance, reception, numpad, governance y ops hub con helper compartido, listo para que el harness se rewiree en una slice posterior sin reabrir otros carriles."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: []
+    prompt: "Portar solo el split del smoke suite de admin-queue: cinco specs focalizadas + fixtures compartidos, eliminando tests/admin-queue.spec.js y sin tocar package.json ni runners Node."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-061
+    title: "Admin queue UI runner and smoke gate wiring"
+    owner: deck
+    executor: codex
+    status: backlog
+    status_since_at: "2026-03-28T17:05:00Z"
+    risk: medium
+    scope: gates
+    codex_instance: codex_backend_ops
+    domain_lane: backend_ops
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["bin/lib/admin-queue-ui-suites.js", "bin/run-admin-queue-ui.js", "package.json", "docs/RUNBOOK_TURNERO_SALA.md", "tests-node/run-admin-queue-ui-contract.test.js", "tests-node/admin-auth-mocks-helper.test.js", "verification/agent-runs/CDX-061.md"]
+    source_signal: manual
+    source_ref: "AG-260"
+    priority_score: 68
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "test:admin:queue pasa a un runner segmentado con evidencia persistida, package.json se rewirea sin tocar otros carriles y el smoke backend_ops/gates puede cerrar bajo el carve-out vigente."
+    acceptance_ref: "verification/agent-runs/CDX-061.md"
+    evidence_ref: "verification/agent-runs/CDX-061.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-backend-admin-operativo"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "admin_queue_pilot_cut"
+    integration_slice: "tests_quality"
+    work_type: "support"
+    expected_outcome: "Admin-queue gana un runner UI canonico, evidencia persistida y wiring de smoke sin reabrir turnero-gates, kiosco ni public-v6."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-060"]
+    prompt: "Portar solo el harness de admin-queue: runner UI, suite registry, hunk puntual de package.json, ajuste del runbook y contratos Node para el split fixtures/specs."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-057
+    title: "Queue turnero gate-first closeout: executive review hosts and admin queue pilot chain"
+    owner: deck
+    executor: codex
+    status: ready
+    status_since_at: "2026-03-28T12:55:07.984Z"
+    risk: medium
+    scope: queue
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["admin.js", "js/queue-display.js", "js/queue-kiosk.js", "js/queue-operator.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/render.js", "src/apps/queue-display/index.js", "src/apps/queue-kiosk/index.js", "src/apps/queue-operator/index.js", "verification/agent-runs/CDX-057.md"]
+    source_signal: strategy_intake
+    source_ref: "STRAT-2026-03-admin-operativo"
+    priority_score: 70
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Validar flujo UI y demo del subfrente SF-frontend-queue-turnero-operativo para \"Queue turnero gate-first closeout: executive review hosts and admin queue pilot chain\"."
+    acceptance_ref: "verification/agent-runs/CDX-057.md"
+    evidence_ref: "verification/agent-runs/CDX-057.md"
+    strategy_id: "STRAT-2026-03-admin-operativo"
+    subfront_id: "SF-frontend-queue-turnero-operativo"
+    strategy_role: "primary"
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_step: "admin_queue_pilot_cut"
+    integration_slice: "frontend_runtime"
+    work_type: "forward"
+    expected_outcome: ""
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: []
+    prompt: "Queue turnero gate-first closeout: executive review hosts and admin queue pilot chain"
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
