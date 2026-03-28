@@ -1722,6 +1722,10 @@ function buildFocusSummary(board, options = {}) {
         const workType = String(task.work_type || '')
             .trim()
             .toLowerCase();
+        const externalBlockedCarryover =
+            taskStatus === 'blocked' &&
+            workType === 'support' &&
+            isAcknowledgedExternalBlockedTask(task);
         if (workType) {
             summary.work_type_counts[workType] =
                 Number(summary.work_type_counts[workType] || 0) + 1;
@@ -1755,6 +1759,9 @@ function buildFocusSummary(board, options = {}) {
             continue;
         }
         if (task.focus_step !== focus.next_step) {
+            if (externalBlockedCarryover) {
+                continue;
+            }
             summary.outside_next_step_task_ids.push(taskId);
             continue;
         }

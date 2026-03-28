@@ -586,6 +586,11 @@ test('focus buildFocusSummary expone external_blocker_tasks para blockers extern
             focus_step: 'pilot_readiness_evidence',
         },
     ]);
+    assert.deepEqual(summary.outside_next_step_task_ids, []);
+    assert.equal(
+        summary.blocking_errors.includes('task_outside_next_step'),
+        false
+    );
 });
 
 test('focus evaluateRequiredChecks deja local required checks como unverified cuando la evidencia no aplica al foco activo', (t) => {
