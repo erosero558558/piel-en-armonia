@@ -10,7 +10,7 @@ block: C2
 task_id: CDX-009
 subfront_id: SF-backend-admin-operativo
 status: blocked
-files: ["bin/deploy-public-v3-cron-sync.sh", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
+files: ["bin/deploy-public-v3-cron-sync.sh", "scripts/ops/prod/CHECKLIST-HOST-PUBLIC-SYNC.ps1"]
 updated_at: 2026-03-28
 -->
 
