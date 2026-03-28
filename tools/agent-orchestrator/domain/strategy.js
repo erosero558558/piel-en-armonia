@@ -25,6 +25,61 @@ const DEFAULT_EXCEPTION_TTL_HOURS = 8;
 const DEFAULT_AGED_TASK_HOURS = 24;
 const STRATEGY_SEED_CATALOG_VERSION = '2026.03.28';
 const STRATEGY_SEED_CATALOG = Object.freeze({
+    'admin-shell-rc2-polish': Object.freeze({
+        id: 'STRAT-2026-03-admin-shell-rc2-polish',
+        title: 'Admin shell RC2 polish',
+        objective:
+            'Cerrar un frente dedicado al shell admin clinico diario, con navegacion mas limpia, cinco secciones visibles y sin reabrir queue/turnero, reviews ni readiness remota.',
+        owner_policy: 'detected_default_owner',
+        review_due_at: '2026-03-31',
+        exit_criteria: [
+            'El shell visible deja solo dashboard, appointments, callbacks, availability y clinical-history',
+            'Hash routing, quick commands y shortcuts dejan fuera queue/turnero y reviews',
+            'El required check unico del foco queda verde con test:frontend:qa:admin',
+        ],
+        success_signal:
+            'El admin diario vuelve a abrir como shell clinico legible y estable, sin ruido visible de surfaces de turnero ni dependencias de public_main_sync.',
+        subfronts: [
+            {
+                codex_instance: 'codex_frontend',
+                subfront_id: 'SF-frontend-admin-shell-rc2',
+                title: 'Admin shell clinico visible y navegacion diaria',
+                allowed_scopes: ['frontend-admin'],
+                support_only_scopes: ['docs', 'frontend-qa'],
+                blocked_scopes: [
+                    'queue',
+                    'turnero',
+                    'frontend-public',
+                    'payments',
+                ],
+                wip_limit: 1,
+                default_acceptance_profile: 'frontend_delivery_checkpoint',
+                exception_ttl_hours: 8,
+            },
+            {
+                codex_instance: 'codex_backend_ops',
+                subfront_id: 'SF-backend-admin-shell-rc2-support',
+                title: 'Soporte backend eventual del shell admin RC2',
+                allowed_scopes: [],
+                support_only_scopes: ['backend', 'auth', 'readiness', 'gates'],
+                blocked_scopes: ['queue', 'turnero', 'deploy', 'payments'],
+                wip_limit: 1,
+                default_acceptance_profile: 'backend_gate_checkpoint',
+                exception_ttl_hours: 6,
+            },
+            {
+                codex_instance: 'codex_transversal',
+                subfront_id: 'SF-transversal-admin-shell-rc2-support',
+                title: 'Bootstrap y closeout transversal del shell admin RC2',
+                allowed_scopes: [],
+                support_only_scopes: ['codex-governance', 'tooling', 'tests'],
+                blocked_scopes: ['openclaw_runtime', 'legacy-runtime'],
+                wip_limit: 1,
+                default_acceptance_profile: 'transversal_runtime_checkpoint',
+                exception_ttl_hours: 4,
+            },
+        ],
+    }),
     'admin-operativo': Object.freeze({
         id: 'STRAT-2026-03-admin-operativo',
         title: 'Admin operativo',

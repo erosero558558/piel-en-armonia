@@ -902,6 +902,20 @@ test('focus buildFocusSummary expone external_blocker_tasks para blockers extern
     );
 });
 
+test('focus buildFocusSeed soporta admin shell rc2 con QA admin como unico required check', () => {
+    const seed = focusDomain.buildFocusSeed({
+        id: 'STRAT-2026-03-admin-shell-rc2-polish',
+        owner: 'deck',
+        review_due_at: '2026-03-31',
+    });
+
+    assert.equal(seed.focus_id, 'FOCUS-2026-03-admin-shell-rc2-polish-cut-1');
+    assert.deepEqual(seed.focus_steps, ['shell_nav_ergonomics', 'qa_closeout']);
+    assert.deepEqual(seed.focus_required_checks, ['test:frontend:qa:admin']);
+    assert.equal(seed.focus_next_step, 'shell_nav_ergonomics');
+    assert.equal(seed.focus_max_active_slices, 1);
+});
+
 test('focus evaluateRequiredChecks deja local required checks como unverified cuando la evidencia no aplica al foco activo', (t) => {
     const root = mkdtempSync(join(tmpdir(), 'focus-unverified-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));

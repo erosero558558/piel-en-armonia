@@ -4,6 +4,25 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
+<!-- CODEX_STRATEGY_NEXT
+id: STRAT-2026-03-admin-shell-rc2-polish
+title: "Admin shell RC2 polish"
+status: draft
+owner: luciaguadalupecaizasanchez
+owner_policy: "detected_default_owner"
+objective: "Cerrar un frente dedicado al shell admin clinico diario, con navegacion mas limpia, cinco secciones visibles y sin reabrir queue/turnero, reviews ni readiness remota."
+started_at: "2026-03-28"
+review_due_at: "2026-03-31"
+success_signal: "El admin diario vuelve a abrir como shell clinico legible y estable, sin ruido visible de surfaces de turnero ni dependencias de public_main_sync."
+focus_id: "FOCUS-2026-03-admin-shell-rc2-polish-cut-1"
+focus_title: "Admin shell clinico diario sin ruido de turnero"
+focus_status: active
+focus_next_step: "shell_nav_ergonomics"
+focus_required_checks: ["test:frontend:qa:admin"]
+subfront_ids: ["SF-frontend-admin-shell-rc2", "SF-backend-admin-shell-rc2-support", "SF-transversal-admin-shell-rc2-support"]
+updated_at: "2026-03-28"
+-->
+
 <!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-turnero-web-pilot-multi-clinic-local
 title: "Turnero web pilot multi-clinic local"

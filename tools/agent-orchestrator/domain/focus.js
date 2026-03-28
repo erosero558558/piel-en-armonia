@@ -73,6 +73,9 @@ const FRONTEND_REQUIRED_CHECK_SCRIPT_OVERRIDES = {
 const EVIDENCE_REQUIRED_CHECK_STATUSES = new Set(['review', 'done']);
 const EVIDENCE_REQUIRED_CHECK_SUBFRONT_IDS_BY_FOCUS = Object.freeze({
     'FOCUS-2026-03-public-v6-es-voz-cut-1': ['SF-frontend-public-v6-es-copy'],
+    'FOCUS-2026-03-admin-shell-rc2-polish-cut-1': [
+        'SF-frontend-admin-shell-rc2',
+    ],
     'FOCUS-2026-03-turnero-web-pilot-cut-1': [
         'SF-frontend-turnero-web-pilot',
         'SF-backend-turnero-web-pilot',
@@ -2118,6 +2121,30 @@ function buildFocusSeed(strategy, options = {}) {
         String(strategy?.review_due_at || '').trim() || '2026-03-21';
     const owner =
         String(strategy?.owner || options.owner || '').trim() || 'ernesto';
+    if (strategyId === 'STRAT-2026-03-admin-shell-rc2-polish') {
+        return {
+            focus_id: 'FOCUS-2026-03-admin-shell-rc2-polish-cut-1',
+            focus_title: 'Admin shell clinico diario sin ruido de turnero',
+            focus_summary:
+                'Pulir el shell admin diario para dejar solo cinco secciones visibles, navegacion mas legible y cero ruido de queue/turnero o reviews en el carril principal.',
+            focus_status: 'active',
+            focus_proof:
+                'El operador entra al admin y ve inicio, agenda, pendientes, horarios e historia clinica como unico shell visible; queue/turnero y reviews quedan fuera de sidebar, hash routing y quick commands.',
+            focus_steps: ['shell_nav_ergonomics', 'qa_closeout'],
+            focus_next_step: 'shell_nav_ergonomics',
+            focus_required_checks: ['test:frontend:qa:admin'],
+            focus_non_goals: [
+                'reactivar_queue_turnero',
+                'reactivar_reviews',
+                'recover_public_main_sync',
+                'refactor_backend_runtime',
+            ],
+            focus_owner: owner,
+            focus_review_due_at: reviewDueAt,
+            focus_evidence_ref: '',
+            focus_max_active_slices: 1,
+        };
+    }
     if (strategyId === 'STRAT-2026-03-admin-operativo') {
         return {
             focus_id: 'FOCUS-2026-03-admin-operativo-cut-1',

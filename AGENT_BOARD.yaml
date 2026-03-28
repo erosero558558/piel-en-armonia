@@ -7,7 +7,7 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 832
+  revision: 833
   updated_at: 2026-03-28
 
 strategy:
@@ -65,7 +65,60 @@ strategy:
         wip_limit: 1
         default_acceptance_profile: "transversal_runtime_checkpoint"
         exception_ttl_hours: 4
-  next: null
+  next:
+    id: STRAT-2026-03-admin-shell-rc2-polish
+    title: "Admin shell RC2 polish"
+    objective: "Cerrar un frente dedicado al shell admin clinico diario, con navegacion mas limpia, cinco secciones visibles y sin reabrir queue/turnero, reviews ni readiness remota."
+    owner: luciaguadalupecaizasanchez
+    owner_policy: "detected_default_owner"
+    status: draft
+    started_at: "2026-03-28"
+    review_due_at: "2026-03-31"
+    closed_at: ""
+    close_reason: ""
+    exit_criteria: ["El shell visible deja solo dashboard, appointments, callbacks, availability y clinical-history", "Hash routing, quick commands y shortcuts dejan fuera queue/turnero y reviews", "El required check unico del foco queda verde con test:frontend:qa:admin"]
+    success_signal: "El admin diario vuelve a abrir como shell clinico legible y estable, sin ruido visible de surfaces de turnero ni dependencias de public_main_sync."
+    focus_id: "FOCUS-2026-03-admin-shell-rc2-polish-cut-1"
+    focus_title: "Admin shell clinico diario sin ruido de turnero"
+    focus_summary: "Pulir el shell admin diario para dejar solo cinco secciones visibles, navegacion mas legible y cero ruido de queue/turnero o reviews en el carril principal."
+    focus_status: active
+    focus_proof: "El operador entra al admin y ve inicio, agenda, pendientes, horarios e historia clinica como unico shell visible; queue/turnero y reviews quedan fuera de sidebar, hash routing y quick commands."
+    focus_steps: ["shell_nav_ergonomics", "qa_closeout"]
+    focus_next_step: "shell_nav_ergonomics"
+    focus_required_checks: ["test:frontend:qa:admin"]
+    focus_non_goals: ["reactivar_queue_turnero", "reactivar_reviews", "recover_public_main_sync", "refactor_backend_runtime"]
+    focus_owner: "luciaguadalupecaizasanchez"
+    focus_review_due_at: "2026-03-31"
+    focus_evidence_ref: ""
+    focus_max_active_slices: 1
+    subfronts:
+      - codex_instance: codex_frontend
+        subfront_id: SF-frontend-admin-shell-rc2
+        title: "Admin shell clinico visible y navegacion diaria"
+        allowed_scopes: ["frontend-admin"]
+        support_only_scopes: ["docs", "frontend-qa"]
+        blocked_scopes: ["queue", "turnero", "frontend-public", "payments"]
+        wip_limit: 1
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
+      - codex_instance: codex_backend_ops
+        subfront_id: SF-backend-admin-shell-rc2-support
+        title: "Soporte backend eventual del shell admin RC2"
+        allowed_scopes: []
+        support_only_scopes: ["backend", "auth", "readiness", "gates"]
+        blocked_scopes: ["queue", "turnero", "deploy", "payments"]
+        wip_limit: 1
+        default_acceptance_profile: "backend_gate_checkpoint"
+        exception_ttl_hours: 6
+      - codex_instance: codex_transversal
+        subfront_id: SF-transversal-admin-shell-rc2-support
+        title: "Bootstrap y closeout transversal del shell admin RC2"
+        allowed_scopes: []
+        support_only_scopes: ["codex-governance", "tooling", "tests"]
+        blocked_scopes: ["openclaw_runtime", "legacy-runtime"]
+        wip_limit: 1
+        default_acceptance_profile: "transversal_runtime_checkpoint"
+        exception_ttl_hours: 4
   updated_at: "2026-03-28"
 
 tasks:
@@ -1885,6 +1938,242 @@ tasks:
     rework_reason: ""
     depends_on: ["CDX-061", "CDX-062"]
     prompt: "Abrir la slice transversal mínima para soportar seed/focus multi-clinica, evidence-based required checks y alineación de gobernanza cuando el frente deja de caber en frontend/backend solamente."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-064
+    title: "Admin shell RC2 draft bootstrap under active multi-clinic governance"
+    owner: luciaguadalupecaizasanchez
+    executor: codex
+    status: backlog
+    status_since_at: "2026-03-28T17:18:00Z"
+    risk: low
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: ""
+    runtime_surface: ""
+    runtime_transport: ""
+    runtime_last_transport: ""
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/strategy.js", "tests-node/orchestrator/focus.test.js", "verification/agent-runs/CDX-064.md"]
+    source_signal: manual
+    source_ref: "strategy.next:admin-shell-rc2-polish"
+    priority_score: 61
+    sla_due_at: "2026-03-31T23:59:00Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: "waiting_for_cdx063_transversal_slot"
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El seed/foco admin-shell-rc2-polish queda disponible en strategy.next, con QA admin como required check único y con la cola RC2 trazada sin reemplazar la estrategia turnero activa."
+    acceptance_ref: "verification/agent-runs/CDX-064.md"
+    evidence_ref: "verification/agent-runs/CDX-064.md"
+    strategy_id: "STRAT-2026-03-turnero-web-pilot-multi-clinic-local"
+    subfront_id: "SF-transversal-turnero-web-pilot-multi-clinic"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1"
+    focus_step: "local_gate_validation"
+    integration_slice: "governance_evidence"
+    work_type: "support"
+    expected_outcome: "La estrategia siguiente Admin Shell RC2 queda sembrada en el canon sin tocar strategy.active, mientras CDX-063 sigue ocupando la slice transversal activa."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-063"]
+    prompt: "Preparar el draft de Admin Shell RC2 en strategy.next, registrar la cola futura CDX-065/066/067 y aparcar esta bootstrap transversal hasta que cierre la slice activa CDX-063."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-065
+    title: "Admin shell RC2 QA ownership and support guardrails"
+    owner: luciaguadalupecaizasanchez
+    executor: codex
+    status: backlog
+    status_since_at: "2026-03-28T17:18:00Z"
+    risk: low
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: ""
+    runtime_surface: ""
+    runtime_transport: ""
+    runtime_last_transport: ""
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["tools/agent-orchestrator/domain/task-guards.js", "tests-node/orchestrator/task-guards.test.js", "verification/agent-runs/CDX-065.md"]
+    source_signal: manual
+    source_ref: "strategy.next:admin-shell-rc2-polish"
+    priority_score: 58
+    sla_due_at: "2026-04-02T23:59:00Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Los contratos de ownership QA para Admin Shell RC2 quedan inferidos como frontend_content sin abrir cross-lane artificial cuando la estrategia RC2 se active."
+    acceptance_ref: "verification/agent-runs/CDX-065.md"
+    evidence_ref: "verification/agent-runs/CDX-065.md"
+    strategy_id: "STRAT-2026-03-admin-shell-rc2-polish"
+    subfront_id: "SF-transversal-admin-shell-rc2-support"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-admin-shell-rc2-polish-cut-1"
+    focus_step: "qa_closeout"
+    integration_slice: "governance_evidence"
+    work_type: "support"
+    expected_outcome: "El soporte QA de Admin Shell RC2 queda listo para activarse sin ambigüedad de ownership ni handoffs artificiales."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-064"]
+    prompt: "Portar el soporte transversal de task-guards para que los contratos QA admin de RC2 queden clasificados como frontend_content cuando la estrategia siguiente se active."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-066
+    title: "Admin shell RC2 primary frontend slice"
+    owner: luciaguadalupecaizasanchez
+    executor: codex
+    status: backlog
+    status_since_at: "2026-03-28T17:18:00Z"
+    risk: medium
+    scope: frontend-admin
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: ""
+    runtime_surface: ""
+    runtime_transport: ""
+    runtime_last_transport: ""
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["admin.html", "admin-v3.css", "admin.js", "js/queue-operator.js", "src/apps/admin-v3/**", "tests/admin-navigation-responsive.spec.js", "tests/admin-v3-shell.spec.js", "tests/admin-v3-visual.spec.js", "verification/agent-runs/CDX-066.md"]
+    source_signal: manual
+    source_ref: "strategy.next:admin-shell-rc2-polish"
+    priority_score: 72
+    sla_due_at: "2026-04-04T23:59:00Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El shell admin visible se reduce a dashboard, appointments, callbacks, availability y clinical-history, removiendo affordances visibles de queue/turnero y reviews."
+    acceptance_ref: "verification/agent-runs/CDX-066.md"
+    evidence_ref: "verification/agent-runs/CDX-066.md"
+    strategy_id: "STRAT-2026-03-admin-shell-rc2-polish"
+    subfront_id: "SF-frontend-admin-shell-rc2"
+    strategy_role: "primary"
+    focus_id: "FOCUS-2026-03-admin-shell-rc2-polish-cut-1"
+    focus_step: "shell_nav_ergonomics"
+    integration_slice: "frontend_runtime"
+    work_type: "forward"
+    expected_outcome: "Admin Shell RC2 queda listo como shell clínico diario, con navegación limpia y sin naming visible de queue/turnero ni reviews."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-065"]
+    prompt: "Ejecutar la slice frontend pura de Admin Shell RC2 sobre admin.html, admin-v3.css y src/apps/admin-v3, regenerando admin.js y js/queue-operator.js sin mezclar board/plan."
+    created_at: 2026-03-28
+    updated_at: 2026-03-28
+
+  - id: CDX-067
+    title: "Admin shell RC2 transversal closeout"
+    owner: luciaguadalupecaizasanchez
+    executor: codex
+    status: backlog
+    status_since_at: "2026-03-28T17:18:00Z"
+    risk: low
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: ""
+    runtime_surface: ""
+    runtime_transport: ""
+    runtime_last_transport: ""
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-066.md", "verification/agent-runs/CDX-067.md"]
+    source_signal: manual
+    source_ref: "strategy.next:admin-shell-rc2-polish"
+    priority_score: 57
+    sla_due_at: "2026-04-05T23:59:00Z"
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "El frente Admin Shell RC2 cierra con snapshot canónico de required checks, espejo histórico terminal de CDX-066 y strategy/focus en estado closed."
+    acceptance_ref: "verification/agent-runs/CDX-067.md"
+    evidence_ref: "verification/agent-runs/CDX-067.md"
+    strategy_id: "STRAT-2026-03-admin-shell-rc2-polish"
+    subfront_id: "SF-transversal-admin-shell-rc2-support"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-admin-shell-rc2-polish-cut-1"
+    focus_step: "qa_closeout"
+    integration_slice: "governance_evidence"
+    work_type: "support"
+    expected_outcome: "El cierre canónico de Admin Shell RC2 queda listo para ejecutar focus verify/close y strategy close una vez mergeen CDX-065 y CDX-066."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: ["CDX-066"]
+    prompt: "Cerrar el frente Admin Shell RC2 con snapshot de required checks, espejo histórico de CDX-066 y clausura canónica de focus/strategy cuando el trabajo frontend ya esté publicado."
     created_at: 2026-03-28
     updated_at: 2026-03-28
 
