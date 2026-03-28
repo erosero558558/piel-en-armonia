@@ -67,7 +67,7 @@ final class QueueSurfaceStatusStore
         try {
             QueueAssistantMetricsStore::recordHeartbeat($payload);
         } catch (\Throwable $th) {
-            // Keep live heartbeat resilient even if analytics persistence fails.
+            error_log('QueueSurfaceStatusStore: metrics persistence failed - ' . $th->getMessage());
         }
 
         $record = self::normalizeRecord($payload);
