@@ -7,8 +7,8 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 770
-  updated_at: 2026-03-27
+  revision: 773
+  updated_at: 2026-03-28
 
 strategy:
   active:
@@ -979,8 +979,8 @@ tasks:
     title: "Admin v3 feedback trim follow-up: quick-nav y hub piloto"
     owner: deck
     executor: codex
-    status: review
-    status_since_at: "2026-03-27T23:37:15.510Z"
+    status: done
+    status_since_at: "2026-03-28T00:00:21.518Z"
     risk: low
     scope: frontend-admin
     codex_instance: codex_frontend
@@ -997,7 +997,7 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["src/apps/admin-v3/ui/frame/shell.js", "src/apps/admin-v3/ui/frame/templates/shell/context-strip.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/render.js", "admin-v3.css", "queue-ops.css", "admin.js", "js/admin-chunks/index-B1DiKJfh.js", "js/admin-chunks/index-LGvlMxUB.js", "js/queue-operator.js", "tests/admin-v3-shell.spec.js", "tests/admin-v3-visual.spec.js", "verification/agent-runs/CDX-046.md"]
+    files: ["src/apps/admin-v3/ui/frame/shell.js", "src/apps/admin-v3/ui/frame/templates/shell/context-strip.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/render.js", "admin-v3.css", "queue-ops.css", "admin.js", "js/admin-chunks/index-B1DiKJfh.js", "js/queue-operator.js", "tests/admin-v3-shell.spec.js", "tests/admin-v3-visual.spec.js", "verification/agent-runs/CDX-046.md"]
     source_signal: manual
     source_ref: ""
     priority_score: 88
@@ -1005,14 +1005,14 @@ tasks:
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: "lease_CDX-046_20260327003528223_59566a"
-    lease_owner: "deck"
-    lease_created_at: "2026-03-27T00:35:28.223Z"
-    heartbeat_at: "2026-03-27T23:37:15.510Z"
-    lease_expires_at: "2026-03-28T03:37:15.510Z"
-    lease_reason: "board_write"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-28T00:00:21.518Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "El hub piloto y el quick-nav quedan mas compactos y legibles sin tocar runtime ni deploy."
