@@ -91,6 +91,14 @@ final class ClinicalHistoryOpsSnapshot
             'cancelled' => 0,
             'incomplete' => 0,
         ];
+        $hcu012ACoverage = [
+            'not_applicable' => 0,
+            'draft' => 0,
+            'ready_to_issue' => 0,
+            'issued' => 0,
+            'cancelled' => 0,
+            'incomplete' => 0,
+        ];
         $hcu024Coverage = [
             'not_applicable' => 0,
             'draft' => 0,
@@ -173,6 +181,13 @@ final class ClinicalHistoryOpsSnapshot
                 $hcu010AStatus = 'not_applicable';
             }
             $hcu010ACoverage[$hcu010AStatus]++;
+            $hcu012AStatus = ClinicalHistoryRepository::trimString(
+                $legalReadiness['hcu012AStatus']['status'] ?? 'not_applicable'
+            );
+            if (!array_key_exists($hcu012AStatus, $hcu012ACoverage)) {
+                $hcu012AStatus = 'not_applicable';
+            }
+            $hcu012ACoverage[$hcu012AStatus]++;
             $hcu024Status = ClinicalHistoryRepository::trimString(
                 $legalReadiness['hcu024Status']['status'] ?? 'not_applicable'
             );
@@ -269,6 +284,7 @@ final class ClinicalHistoryOpsSnapshot
                 'hcu005' => $hcu005Coverage,
                 'hcu007' => $hcu007Coverage,
                 'hcu010A' => $hcu010ACoverage,
+                'hcu012A' => $hcu012ACoverage,
                 'hcu024' => $hcu024Coverage,
             ],
             'events' => [
@@ -390,6 +406,9 @@ final class ClinicalHistoryOpsSnapshot
             'hcu010AStatus' => (string) ($legalReadiness['hcu010AStatus']['status'] ?? 'not_applicable'),
             'hcu010ALabel' => (string) ($legalReadiness['hcu010AStatus']['label'] ?? 'HCU-010A no aplica'),
             'hcu010ASummary' => (string) ($legalReadiness['hcu010AStatus']['summary'] ?? ''),
+            'hcu012AStatus' => (string) ($legalReadiness['hcu012AStatus']['status'] ?? 'not_applicable'),
+            'hcu012ALabel' => (string) ($legalReadiness['hcu012AStatus']['label'] ?? 'HCU-012A no aplica'),
+            'hcu012ASummary' => (string) ($legalReadiness['hcu012AStatus']['summary'] ?? ''),
             'hcu024Status' => (string) ($legalReadiness['hcu024Status']['status'] ?? 'not_applicable'),
             'hcu024Label' => (string) ($legalReadiness['hcu024Status']['label'] ?? 'HCU-024 no aplica'),
             'hcu024Summary' => (string) ($legalReadiness['hcu024Status']['summary'] ?? ''),

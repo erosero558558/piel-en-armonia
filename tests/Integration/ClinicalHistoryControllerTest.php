@@ -1363,6 +1363,413 @@ final class ClinicalHistoryControllerTest extends TestCase
         );
     }
 
+    public function testClinicalHistoryImagingOrderRequiresIssuanceBeforeApproval(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Elena Paredes',
+                    'email' => 'elena@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-hcu012a';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-hcu012a';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Rosacea facial con cefalea asociada',
+                        'enfermedadActual' => 'Brote facial recurrente con cefalea localizada',
+                        'antecedentes' => 'Niega antecedentes relevantes',
+                        'alergias' => 'Niega alergias medicamentosas',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 35,
+                            'pesoKg' => 61,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Caso apto para orden de imagenologia dentro del plan actual.',
+                        'preguntasFaltantes' => [],
+                        'cie10Sugeridos' => ['L71.9'],
+                        'tratamientoBorrador' => 'Metronidazol topico y apoyo diagnostico',
+                        'posologiaBorrador' => [
+                            'texto' => 'Aplicacion nocturna por 8 semanas',
+                            'baseCalculo' => 'standard',
+                            'pesoKg' => 61,
+                            'edadAnios' => 35,
+                            'units' => '',
+                            'ambiguous' => false,
+                        ],
+                        'hcu005' => [
+                            'evolutionNote' => 'Rosacea facial con sintomas persistentes y necesidad de imagenologia complementaria.',
+                            'diagnosticImpression' => 'Rosacea inflamatoria en control parcial.',
+                            'therapeuticPlan' => 'Metronidazol topico, fotoproteccion y radiografia complementaria.',
+                            'careIndications' => 'Control clinico y vigilancia de sintomas asociados.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Metronidazol topico',
+                                'presentation' => 'Gel 0.75%',
+                                'dose' => 'Aplicacion fina',
+                                'route' => 'Topica',
+                                'frequency' => 'Nocturna',
+                                'duration' => '8 semanas',
+                                'quantity' => '1 tubo',
+                                'instructions' => 'Aplicar sobre piel limpia.',
+                            ]],
+                        ],
+                    ],
+                ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Paredes',
+                        'primerNombre' => 'Elena',
+                    ],
+                ]),
+                'consent' => [
+                    'required' => false,
+                    'status' => 'not_required',
+                ],
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+        self::assertSame('ready', (string) ($recordPatch['payload']['data']['legalReadiness']['status'] ?? ''));
+
+        $created = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'create_imaging_order',
+            ]
+        );
+
+        self::assertSame(200, $created['status']);
+        self::assertSame(
+            'create_imaging_order',
+            (string) ($created['payload']['data']['accessAudit'][0]['action'] ?? '')
+        );
+        self::assertCount(1, $created['payload']['data']['imagingOrders'] ?? []);
+
+        $imagingOrder = $created['payload']['data']['imagingOrders'][0] ?? [];
+        $imagingOrderId = (string) ($imagingOrder['imagingOrderId'] ?? '');
+        self::assertNotSame('', $imagingOrderId);
+        self::assertSame(
+            'Elena Paredes Lopez',
+            (string) ($imagingOrder['patientName'] ?? '')
+        );
+        self::assertSame(
+            '0912345678',
+            (string) ($imagingOrder['patientDocumentNumber'] ?? '')
+        );
+
+        $blockedIssue = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'issue_imaging_order',
+                'imagingOrderId' => $imagingOrderId,
+            ]
+        );
+
+        self::assertSame(409, $blockedIssue['status']);
+        self::assertSame(
+            'clinical_imaging_order_incomplete',
+            (string) ($blockedIssue['payload']['code'] ?? '')
+        );
+
+        $imagingOrder['requiredForCurrentPlan'] = true;
+        $imagingOrder['studyDate'] = '2026-03-16';
+        $imagingOrder['priority'] = 'routine';
+        $imagingOrder['requestedBy'] = 'Dra. Laura Mena';
+        $imagingOrder['diagnoses'] = [[
+            'type' => 'pre',
+            'label' => 'Rosacea inflamatoria en control parcial.',
+            'cie10' => 'L71.9',
+        ]];
+        $imagingOrder['studySelections'] = [
+            'conventionalRadiography' => ['Rx de senos paranasales'],
+            'tomography' => [],
+            'magneticResonance' => [],
+            'ultrasound' => [],
+            'procedures' => [],
+            'others' => [],
+        ];
+        $imagingOrder['requestReason'] = 'Solicitar imagenologia complementaria por cefalea facial.';
+        $imagingOrder['clinicalSummary'] = 'Paciente con rosacea en seguimiento y cefalea facial persistente.';
+
+        $imagingOrderPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'imagingOrders' => [$imagingOrder],
+                'activeImagingOrderId' => $imagingOrderId,
+            ]
+        );
+
+        self::assertSame(200, $imagingOrderPatch['status']);
+        self::assertSame(
+            'blocked',
+            (string) ($imagingOrderPatch['payload']['data']['legalReadiness']['status'] ?? '')
+        );
+        self::assertSame(
+            'ready_to_issue',
+            (string) ($imagingOrderPatch['payload']['data']['legalReadiness']['hcu012AStatus']['status'] ?? '')
+        );
+        self::assertContains(
+            'hcu012a_imaging_order_pending_issue',
+            array_values(array_map(
+                static fn (array $reason): string => (string) ($reason['code'] ?? ''),
+                $imagingOrderPatch['payload']['data']['approvalBlockedReasons'] ?? []
+            ))
+        );
+
+        $blockedApprove = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'approve_final_note',
+            ]
+        );
+
+        self::assertSame(409, $blockedApprove['status']);
+        self::assertSame(
+            'clinical_history_approval_blocked',
+            (string) ($blockedApprove['payload']['code'] ?? '')
+        );
+
+        $issued = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'issue_imaging_order',
+                'imagingOrderId' => $imagingOrderId,
+            ]
+        );
+
+        self::assertSame(200, $issued['status']);
+        self::assertSame(
+            'issue_imaging_order',
+            (string) ($issued['payload']['data']['accessAudit'][0]['action'] ?? '')
+        );
+        self::assertSame(
+            'issued',
+            (string) ($issued['payload']['data']['imagingOrders'][0]['status'] ?? '')
+        );
+        self::assertSame(
+            'issued',
+            (string) ($issued['payload']['data']['legalReadiness']['hcu012AStatus']['status'] ?? '')
+        );
+        self::assertCount(1, $issued['payload']['data']['documents']['imagingOrders'] ?? []);
+
+        $approved = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'approve_final_note',
+            ]
+        );
+
+        self::assertSame(200, $approved['status']);
+        self::assertSame('approved', (string) ($approved['payload']['data']['approval']['status'] ?? ''));
+        self::assertContains(
+            'MSP-HCU-FORM-012A',
+            $approved['payload']['data']['approval']['normativeSources'] ?? []
+        );
+    }
+
+    public function testClinicalHistoryImagingOrderRejectsBedsideRadiographyWithoutConventionalSelection(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Marina Torres',
+                    'email' => 'marina@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-hcu012a-bedside';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-hcu012a-bedside';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Dolor facial',
+                        'enfermedadActual' => 'Dolor facial persistente',
+                        'antecedentes' => 'Niega antecedentes relevantes',
+                        'alergias' => 'Niega alergias medicamentosas',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 37,
+                            'pesoKg' => 62,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Caso apto para orden de imagenologia.',
+                        'preguntasFaltantes' => [],
+                        'cie10Sugeridos' => ['L71.9'],
+                        'tratamientoBorrador' => 'Analgesia y seguimiento',
+                        'posologiaBorrador' => [
+                            'texto' => 'Aplicacion nocturna por 8 semanas',
+                            'baseCalculo' => 'standard',
+                            'pesoKg' => 62,
+                            'edadAnios' => 37,
+                            'units' => '',
+                            'ambiguous' => false,
+                        ],
+                        'hcu005' => [
+                            'evolutionNote' => 'Dolor facial persistente con necesidad de imagenologia.',
+                            'diagnosticImpression' => 'Rosacea inflamatoria en seguimiento.',
+                            'therapeuticPlan' => 'Seguimiento clinico e imagenologia complementaria.',
+                            'careIndications' => 'Vigilancia de sintomas.',
+                            'prescriptionItems' => [[
+                                'medication' => 'Metronidazol topico',
+                                'presentation' => 'Gel 0.75%',
+                                'dose' => 'Aplicacion fina',
+                                'route' => 'Topica',
+                                'frequency' => 'Nocturna',
+                                'duration' => '8 semanas',
+                                'quantity' => '1 tubo',
+                                'instructions' => 'Aplicar sobre piel limpia.',
+                            ]],
+                        ],
+                    ],
+                ],
+                'admission001' => $this->buildAdmission001Payload([
+                    'identity' => [
+                        'apellidoPaterno' => 'Torres',
+                        'primerNombre' => 'Marina',
+                    ],
+                ]),
+                'consent' => [
+                    'required' => false,
+                    'status' => 'not_required',
+                ],
+                'requiresHumanReview' => false,
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+
+        $created = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'create_imaging_order',
+            ]
+        );
+
+        self::assertSame(200, $created['status']);
+        $imagingOrder = $created['payload']['data']['imagingOrders'][0] ?? [];
+        $imagingOrderId = (string) ($imagingOrder['imagingOrderId'] ?? '');
+        self::assertNotSame('', $imagingOrderId);
+
+        $imagingOrder['requiredForCurrentPlan'] = true;
+        $imagingOrder['studyDate'] = '2026-03-16';
+        $imagingOrder['priority'] = 'routine';
+        $imagingOrder['requestedBy'] = 'Dra. Laura Mena';
+        $imagingOrder['diagnoses'] = [[
+            'type' => 'pre',
+            'label' => 'Rosacea inflamatoria en seguimiento.',
+            'cie10' => 'L71.9',
+        ]];
+        $imagingOrder['studySelections'] = [
+            'conventionalRadiography' => [],
+            'tomography' => ['TAC de macizo facial'],
+            'magneticResonance' => [],
+            'ultrasound' => [],
+            'procedures' => [],
+            'others' => [],
+        ];
+        $imagingOrder['requestReason'] = 'Solicitar apoyo diagnostico de imagen.';
+        $imagingOrder['clinicalSummary'] = 'Paciente con dolor facial persistente y necesidad de imagenologia.';
+        $imagingOrder['bedsideRadiography'] = true;
+
+        $imagingOrderPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'imagingOrders' => [$imagingOrder],
+                'activeImagingOrderId' => $imagingOrderId,
+            ]
+        );
+
+        self::assertSame(200, $imagingOrderPatch['status']);
+
+        $blockedIssue = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'issue_imaging_order',
+                'imagingOrderId' => $imagingOrderId,
+            ]
+        );
+
+        self::assertSame(409, $blockedIssue['status']);
+        self::assertSame(
+            'clinical_imaging_order_incomplete',
+            (string) ($blockedIssue['payload']['code'] ?? '')
+        );
+    }
+
     public function testClinicalHistoryInterconsultationCanReceiveStructuredReport(): void
     {
         $sessionCreate = $this->captureResponse(

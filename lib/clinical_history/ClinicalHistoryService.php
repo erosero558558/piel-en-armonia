@@ -387,6 +387,22 @@ final class ClinicalHistoryService
             return $this->mutateClinicalRecord($store, $payload, 'cancel-lab-order');
         }
 
+        if ($action === 'create_imaging_order') {
+            return $this->mutateClinicalRecord($store, $payload, 'create-imaging-order');
+        }
+
+        if ($action === 'select_imaging_order') {
+            return $this->mutateClinicalRecord($store, $payload, 'select-imaging-order');
+        }
+
+        if ($action === 'issue_imaging_order') {
+            return $this->mutateClinicalRecord($store, $payload, 'issue-imaging-order');
+        }
+
+        if ($action === 'cancel_imaging_order') {
+            return $this->mutateClinicalRecord($store, $payload, 'cancel-imaging-order');
+        }
+
         if ($action === 'issue_prescription') {
             return $this->mutateClinicalRecord($store, $payload, 'prescription');
         }
@@ -624,6 +640,9 @@ final class ClinicalHistoryService
             'labOrders' => $payload['labOrders'] ?? [],
             'activeLabOrderId' => $payload['activeLabOrderId'] ?? '',
             'activeLabOrder' => $payload['activeLabOrder'] ?? [],
+            'imagingOrders' => $payload['imagingOrders'] ?? [],
+            'activeImagingOrderId' => $payload['activeImagingOrderId'] ?? '',
+            'activeImagingOrder' => $payload['activeImagingOrder'] ?? [],
             'consentPackets' => $payload['consentPackets'] ?? [],
             'activeConsentPacketId' => $payload['activeConsentPacketId'] ?? '',
             'activeConsentPacket' => $payload['activeConsentPacket'] ?? [],
@@ -685,6 +704,19 @@ final class ClinicalHistoryService
         foreach ($labOrders as $labOrder) {
             if (ClinicalHistoryRepository::trimString($labOrder['labOrderId'] ?? '') === $activeLabOrderId) {
                 $activeLabOrder = $labOrder;
+                break;
+            }
+        }
+        $imagingOrders = ClinicalHistoryRepository::normalizeImagingOrders(
+            $draft['imagingOrders'] ?? []
+        );
+        $activeImagingOrderId = ClinicalHistoryRepository::trimString(
+            $draft['activeImagingOrderId'] ?? ''
+        );
+        $activeImagingOrder = [];
+        foreach ($imagingOrders as $imagingOrder) {
+            if (ClinicalHistoryRepository::trimString($imagingOrder['imagingOrderId'] ?? '') === $activeImagingOrderId) {
+                $activeImagingOrder = $imagingOrder;
                 break;
             }
         }
@@ -754,6 +786,9 @@ final class ClinicalHistoryService
         $hcu010AStatus = is_array($legalReadiness['hcu010AStatus'] ?? null)
             ? $legalReadiness['hcu010AStatus']
             : ['status' => 'not_applicable', 'label' => 'HCU-010A no aplica', 'summary' => ''];
+        $hcu012AStatus = is_array($legalReadiness['hcu012AStatus'] ?? null)
+            ? $legalReadiness['hcu012AStatus']
+            : ['status' => 'not_applicable', 'label' => 'HCU-012A no aplica', 'summary' => ''];
         $hcu024Status = is_array($legalReadiness['hcu024Status'] ?? null)
             ? $legalReadiness['hcu024Status']
             : ['status' => 'not_applicable', 'label' => 'HCU-024 no aplica', 'summary' => ''];
@@ -811,6 +846,7 @@ final class ClinicalHistoryService
                 'hcu005Status' => $hcu005Status,
                 'hcu007Status' => $hcu007Status,
                 'hcu010AStatus' => $hcu010AStatus,
+                'hcu012AStatus' => $hcu012AStatus,
                 'hcu024Status' => $hcu024Status,
             ],
             'documents' => $documents,
@@ -820,6 +856,9 @@ final class ClinicalHistoryService
             'labOrders' => $labOrders,
             'activeLabOrderId' => $activeLabOrderId,
             'activeLabOrder' => $activeLabOrder,
+            'imagingOrders' => $imagingOrders,
+            'activeImagingOrderId' => $activeImagingOrderId,
+            'activeImagingOrder' => $activeImagingOrder,
             'consentPackets' => $consentPackets,
             'activeConsentPacketId' => $activeConsentPacketId,
             'activeConsentPacket' => $activeConsentPacket,
@@ -1075,6 +1114,38 @@ final class ClinicalHistoryService
             $draft = $labOrderResult['draft'];
             $modeAuditReason = 'lab_order_cancelled';
             $modeAuditMeta = $labOrderResult['meta'] ?? [];
+        } elseif ($mode === 'create-imaging-order') {
+            $imagingOrderResult = $this->applyCreateImagingOrderAction($session, $draft, $payload);
+            if (($imagingOrderResult['ok'] ?? false) !== true) {
+                return $imagingOrderResult;
+            }
+            $draft = $imagingOrderResult['draft'];
+            $modeAuditReason = 'imaging_order_created';
+            $modeAuditMeta = $imagingOrderResult['meta'] ?? [];
+        } elseif ($mode === 'select-imaging-order') {
+            $imagingOrderResult = $this->applySelectImagingOrderAction($draft, $payload);
+            if (($imagingOrderResult['ok'] ?? false) !== true) {
+                return $imagingOrderResult;
+            }
+            $draft = $imagingOrderResult['draft'];
+            $modeAuditReason = 'imaging_order_selected';
+            $modeAuditMeta = $imagingOrderResult['meta'] ?? [];
+        } elseif ($mode === 'issue-imaging-order') {
+            $imagingOrderResult = $this->applyIssueImagingOrderAction($session, $draft, $payload);
+            if (($imagingOrderResult['ok'] ?? false) !== true) {
+                return $imagingOrderResult;
+            }
+            $draft = $imagingOrderResult['draft'];
+            $modeAuditReason = 'imaging_order_issued';
+            $modeAuditMeta = $imagingOrderResult['meta'] ?? [];
+        } elseif ($mode === 'cancel-imaging-order') {
+            $imagingOrderResult = $this->applyCancelImagingOrderAction($session, $draft, $payload);
+            if (($imagingOrderResult['ok'] ?? false) !== true) {
+                return $imagingOrderResult;
+            }
+            $draft = $imagingOrderResult['draft'];
+            $modeAuditReason = 'imaging_order_cancelled';
+            $modeAuditMeta = $imagingOrderResult['meta'] ?? [];
         } elseif (in_array($mode, ['declare-consent', 'deny-consent', 'revoke-consent'], true)) {
             $consentDecisionResult = $this->applyConsentDecisionAction($session, $draft, $payload, $mode);
             if (($consentDecisionResult['ok'] ?? false) !== true) {
@@ -1405,6 +1476,18 @@ final class ClinicalHistoryService
             );
         }
 
+        if (isset($payload['imagingOrders']) && is_array($payload['imagingOrders'])) {
+            $draft['imagingOrders'] = ClinicalHistoryRepository::normalizeImagingOrders(
+                $payload['imagingOrders']
+            );
+        }
+
+        if (array_key_exists('activeImagingOrderId', $payload)) {
+            $draft['activeImagingOrderId'] = ClinicalHistoryRepository::trimString(
+                $payload['activeImagingOrderId'] ?? ''
+            );
+        }
+
         if (isset($payload['consentPackets']) && is_array($payload['consentPackets'])) {
             $draft['consentPackets'] = ClinicalHistoryRepository::normalizeConsentPackets(
                 $payload['consentPackets']
@@ -1556,6 +1639,13 @@ final class ClinicalHistoryService
                 break;
             }
         }
+        $activeImagingOrder = [];
+        foreach (ClinicalHistoryRepository::normalizeImagingOrders($draft['imagingOrders'] ?? []) as $imagingOrder) {
+            if (ClinicalHistoryRepository::trimString($imagingOrder['imagingOrderId'] ?? '') === ClinicalHistoryRepository::trimString($draft['activeImagingOrderId'] ?? '')) {
+                $activeImagingOrder = $imagingOrder;
+                break;
+            }
+        }
 
         $parts = [
             'Paciente: ' . (
@@ -1586,6 +1676,13 @@ final class ClinicalHistoryService
                 ClinicalHistoryRepository::trimString($activeLabOrder['sampleDate'] ?? ''),
                 implode(', ', ClinicalHistoryRepository::flattenLabOrderStudySelections(
                     is_array($activeLabOrder['studySelections'] ?? null) ? $activeLabOrder['studySelections'] : []
+                )),
+            ]))),
+            'Imagenologia HCU-012A: ' . trim(implode(' • ', array_filter([
+                ClinicalHistoryRepository::trimString($activeImagingOrder['status'] ?? ''),
+                ClinicalHistoryRepository::trimString($activeImagingOrder['studyDate'] ?? ''),
+                implode(', ', ClinicalHistoryRepository::flattenImagingStudySelections(
+                    is_array($activeImagingOrder['studySelections'] ?? null) ? $activeImagingOrder['studySelections'] : []
                 )),
             ]))),
             'Consentimiento HCU-024: ' . trim(implode(' • ', array_filter([
@@ -1656,6 +1753,7 @@ final class ClinicalHistoryService
         $draft['documents'] = $documents;
         $draft = ClinicalHistoryRepository::syncInterconsultationArtifacts($draft, $session);
         $draft = ClinicalHistoryRepository::syncLabOrderArtifacts($draft, $session);
+        $draft = ClinicalHistoryRepository::syncImagingOrderArtifacts($draft, $session);
         $draft = ClinicalHistoryRepository::syncConsentArtifacts($draft, $session);
         $draft['documents'] = ClinicalHistoryRepository::normalizeClinicalDocuments(
             is_array($draft['documents'] ?? null) ? $draft['documents'] : []
@@ -3117,6 +3215,239 @@ final class ClinicalHistoryService
         ];
     }
 
+    private function applyCreateImagingOrderAction(array $session, array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::syncImagingOrderArtifacts($draft, $session);
+        $seed = is_array($payload['imagingOrder'] ?? null)
+            ? $payload['imagingOrder']
+            : [];
+        $now = local_date('c');
+
+        $imagingOrder = ClinicalHistoryRepository::normalizeImagingOrder(array_merge(
+            $seed,
+            [
+                'imagingOrderId' => ClinicalHistoryRepository::newOpaqueId('imaging-order'),
+                'status' => 'draft',
+                'priority' => ClinicalHistoryRepository::trimString($payload['priority'] ?? $seed['priority'] ?? 'routine') ?: 'routine',
+                'requiredForCurrentPlan' => array_key_exists('requiredForCurrentPlan', $payload)
+                    ? (bool) $payload['requiredForCurrentPlan']
+                    : (array_key_exists('requiredForCurrentPlan', $seed) ? (bool) $seed['requiredForCurrentPlan'] : false),
+                'requestedAt' => ClinicalHistoryRepository::trimString($seed['requestedAt'] ?? $now) ?: $now,
+                'requestedBy' => ClinicalHistoryRepository::trimString($seed['requestedBy'] ?? $this->currentClinicalActor()),
+                'history' => [[
+                    'eventId' => ClinicalHistoryRepository::newOpaqueId('imaging-order-history'),
+                    'type' => 'created',
+                    'status' => 'draft',
+                    'actor' => $this->currentClinicalActor(),
+                    'actorRole' => 'clinician_admin',
+                    'at' => $now,
+                    'notes' => 'Solicitud HCU-012A creada para el episodio.',
+                ]],
+            ]
+        ));
+
+        $imagingOrders = ClinicalHistoryRepository::normalizeImagingOrders($draft['imagingOrders'] ?? []);
+        array_unshift($imagingOrders, $imagingOrder);
+        $draft['imagingOrders'] = $imagingOrders;
+        $draft['activeImagingOrderId'] = (string) ($imagingOrder['imagingOrderId'] ?? '');
+        $draft = ClinicalHistoryRepository::syncImagingOrderArtifacts($draft, $session);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'imagingOrderId' => (string) ($imagingOrder['imagingOrderId'] ?? ''),
+                'priority' => (string) ($imagingOrder['priority'] ?? ''),
+            ],
+        ];
+    }
+
+    private function applySelectImagingOrderAction(array $draft, array $payload): array
+    {
+        $imagingOrderId = ClinicalHistoryRepository::trimString(
+            $payload['imagingOrderId'] ?? $payload['activeImagingOrderId'] ?? ''
+        );
+        if ($imagingOrderId === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 400,
+                'error' => 'imagingOrderId es obligatorio para seleccionar la solicitud de imagenología.',
+                'errorCode' => 'clinical_imaging_order_required',
+            ];
+        }
+
+        $exists = false;
+        foreach (ClinicalHistoryRepository::normalizeImagingOrders($draft['imagingOrders'] ?? []) as $imagingOrder) {
+            if (ClinicalHistoryRepository::trimString($imagingOrder['imagingOrderId'] ?? '') === $imagingOrderId) {
+                $exists = true;
+                break;
+            }
+        }
+        if (!$exists) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe la solicitud de imagenología seleccionada para este episodio.',
+                'errorCode' => 'clinical_imaging_order_not_found',
+            ];
+        }
+
+        $draft['activeImagingOrderId'] = $imagingOrderId;
+        $draft = ClinicalHistoryRepository::syncImagingOrderArtifacts($draft);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'imagingOrderId' => $imagingOrderId,
+            ],
+        ];
+    }
+
+    private function applyIssueImagingOrderAction(array $session, array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::syncImagingOrderArtifacts($draft, $session);
+        $imagingOrders = ClinicalHistoryRepository::normalizeImagingOrders($draft['imagingOrders'] ?? []);
+        $imagingOrderId = ClinicalHistoryRepository::trimString(
+            $payload['imagingOrderId'] ?? $draft['activeImagingOrderId'] ?? ''
+        );
+        if ($imagingOrderId === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe una solicitud de imagenología activa para emitir.',
+                'errorCode' => 'clinical_imaging_order_not_found',
+            ];
+        }
+
+        $targetIndex = null;
+        foreach ($imagingOrders as $index => $imagingOrder) {
+            if (ClinicalHistoryRepository::trimString($imagingOrder['imagingOrderId'] ?? '') === $imagingOrderId) {
+                $targetIndex = $index;
+                break;
+            }
+        }
+        if ($targetIndex === null) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe la solicitud de imagenología indicada para este episodio.',
+                'errorCode' => 'clinical_imaging_order_not_found',
+            ];
+        }
+
+        $imagingOrder = ClinicalHistoryRepository::normalizeImagingOrder($imagingOrders[$targetIndex]);
+        if (ClinicalHistoryRepository::trimString($imagingOrder['requestedBy'] ?? '') === '') {
+            $imagingOrder['requestedBy'] = $this->currentClinicalActor();
+        }
+        $evaluation = ClinicalHistoryRepository::evaluateImagingOrder($imagingOrder);
+        if (($evaluation['readyToIssue'] ?? false) !== true) {
+            return [
+                'ok' => false,
+                'statusCode' => 409,
+                'error' => 'La solicitud HCU-012A aún no cubre los campos mínimos para emisión.',
+                'errorCode' => 'clinical_imaging_order_incomplete',
+            ];
+        }
+
+        $now = local_date('c');
+        $imagingOrder['status'] = 'issued';
+        $imagingOrder['issuedAt'] = ClinicalHistoryRepository::trimString($imagingOrder['issuedAt'] ?? '') ?: $now;
+        $imagingOrder['updatedAt'] = $now;
+        $imagingOrder['history'][] = [
+            'eventId' => ClinicalHistoryRepository::newOpaqueId('imaging-order-history'),
+            'type' => 'issued',
+            'status' => 'issued',
+            'actor' => $this->currentClinicalActor(),
+            'actorRole' => 'clinician_admin',
+            'at' => $now,
+            'notes' => 'Solicitud HCU-012A emitida.',
+        ];
+
+        $imagingOrders[$targetIndex] = ClinicalHistoryRepository::normalizeImagingOrder($imagingOrder);
+        $draft['imagingOrders'] = $imagingOrders;
+        $draft['activeImagingOrderId'] = $imagingOrderId;
+        $draft = ClinicalHistoryRepository::syncImagingOrderArtifacts($draft, $session);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'imagingOrderId' => $imagingOrderId,
+                'status' => 'issued',
+            ],
+        ];
+    }
+
+    private function applyCancelImagingOrderAction(array $session, array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::syncImagingOrderArtifacts($draft, $session);
+        $imagingOrders = ClinicalHistoryRepository::normalizeImagingOrders($draft['imagingOrders'] ?? []);
+        $imagingOrderId = ClinicalHistoryRepository::trimString(
+            $payload['imagingOrderId'] ?? $draft['activeImagingOrderId'] ?? ''
+        );
+        if ($imagingOrderId === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe una solicitud de imagenología activa para cancelar.',
+                'errorCode' => 'clinical_imaging_order_not_found',
+            ];
+        }
+
+        $targetIndex = null;
+        foreach ($imagingOrders as $index => $imagingOrder) {
+            if (ClinicalHistoryRepository::trimString($imagingOrder['imagingOrderId'] ?? '') === $imagingOrderId) {
+                $targetIndex = $index;
+                break;
+            }
+        }
+        if ($targetIndex === null) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe la solicitud de imagenología indicada para este episodio.',
+                'errorCode' => 'clinical_imaging_order_not_found',
+            ];
+        }
+
+        $imagingOrder = ClinicalHistoryRepository::normalizeImagingOrder($imagingOrders[$targetIndex]);
+        $now = local_date('c');
+        $cancelReason = ClinicalHistoryRepository::trimString(
+            $payload['cancelReason'] ?? $imagingOrder['cancelReason'] ?? ''
+        );
+        $imagingOrder['status'] = 'cancelled';
+        $imagingOrder['cancelledAt'] = ClinicalHistoryRepository::trimString($imagingOrder['cancelledAt'] ?? '') ?: $now;
+        $imagingOrder['cancelReason'] = $cancelReason;
+        $imagingOrder['updatedAt'] = $now;
+        $imagingOrder['history'][] = [
+            'eventId' => ClinicalHistoryRepository::newOpaqueId('imaging-order-history'),
+            'type' => 'cancelled',
+            'status' => 'cancelled',
+            'actor' => $this->currentClinicalActor(),
+            'actorRole' => 'clinician_admin',
+            'at' => $now,
+            'notes' => $cancelReason !== ''
+                ? 'Solicitud HCU-012A cancelada: ' . $cancelReason
+                : 'Solicitud HCU-012A cancelada.',
+        ];
+
+        $imagingOrders[$targetIndex] = ClinicalHistoryRepository::normalizeImagingOrder($imagingOrder);
+        $draft['imagingOrders'] = $imagingOrders;
+        $draft['activeImagingOrderId'] = $imagingOrderId;
+        $draft = ClinicalHistoryRepository::syncImagingOrderArtifacts($draft, $session);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'imagingOrderId' => $imagingOrderId,
+                'cancelReason' => $cancelReason,
+                'status' => 'cancelled',
+            ],
+        ];
+    }
+
     private function accessAuditActionForMode(string $mode): string
     {
         return match ($mode) {
@@ -3138,6 +3469,10 @@ final class ClinicalHistoryService
             'select-lab-order' => 'select_lab_order',
             'issue-lab-order' => 'issue_lab_order',
             'cancel-lab-order' => 'cancel_lab_order',
+            'create-imaging-order' => 'create_imaging_order',
+            'select-imaging-order' => 'select_imaging_order',
+            'issue-imaging-order' => 'issue_imaging_order',
+            'cancel-imaging-order' => 'cancel_imaging_order',
             'prescription' => 'issue_prescription',
             'certificate' => 'issue_certificate',
             'copy-request' => 'request_certified_copy',

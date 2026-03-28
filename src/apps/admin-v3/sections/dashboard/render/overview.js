@@ -170,7 +170,21 @@ function resolveClinicalSummary(snapshot) {
     const hcu010AIncomplete = Number(
         snapshot?.summary?.drafts?.hcu010A?.incomplete || 0
     );
-    const hcu010ADraft = Number(snapshot?.summary?.drafts?.hcu010A?.draft || 0);
+    const hcu010ADraft = Number(
+        snapshot?.summary?.drafts?.hcu010A?.draft || 0
+    );
+    const hcu012AIssued = Number(
+        snapshot?.summary?.drafts?.hcu012A?.issued || 0
+    );
+    const hcu012AReadyToIssue = Number(
+        snapshot?.summary?.drafts?.hcu012A?.ready_to_issue || 0
+    );
+    const hcu012AIncomplete = Number(
+        snapshot?.summary?.drafts?.hcu012A?.incomplete || 0
+    );
+    const hcu012ADraft = Number(
+        snapshot?.summary?.drafts?.hcu012A?.draft || 0
+    );
 
     if (criticalEvents > 0) {
         return `${criticalEvents} evento(s) critico(s) siguen abiertos y requieren validacion medica inmediata.`;
@@ -196,6 +210,12 @@ function resolveClinicalSummary(snapshot) {
     if (hcu010AReadyToIssue > 0) {
         return `${hcu010AReadyToIssue} solicitud(es) HCU-010A ya están listas para emisión y solo esperan validación final.`;
     }
+    if (hcu012AIncomplete > 0 || hcu012ADraft > 0) {
+        return `${hcu012AIncomplete} solicitud(es) HCU-012A siguen incompletas y ${hcu012ADraft} permanecen en borrador sin emitir.`;
+    }
+    if (hcu012AReadyToIssue > 0) {
+        return `${hcu012AReadyToIssue} solicitud(es) HCU-012A ya están listas para emisión y solo esperan validación final.`;
+    }
     if (overdueCopyRequests > 0) {
         return `${overdueCopyRequests} copia(s) certificada(s) ya vencieron su SLA y requieren entrega o regularizacion.`;
     }
@@ -213,6 +233,9 @@ function resolveClinicalSummary(snapshot) {
     }
     if (hcu010AIssued > 0) {
         return `${hcu010AIssued} solicitud(es) HCU-010A ya quedaron emitidas como soporte diagnóstico del episodio.`;
+    }
+    if (hcu012AIssued > 0) {
+        return `${hcu012AIssued} solicitud(es) HCU-012A ya quedaron emitidas como soporte de imagenologia del episodio.`;
     }
     if (pendingAiCount > 0) {
         return `${pendingAiCount} borrador(es) siguen esperando reconciliacion asincrona de OpenClaw.`;
@@ -275,7 +298,15 @@ function resolveClinicalQueueMeta(snapshot) {
     const hcu010AReadyToIssue = Number(
         snapshot?.summary?.drafts?.hcu010A?.ready_to_issue || 0
     );
-    const hcu010ADraft = Number(snapshot?.summary?.drafts?.hcu010A?.draft || 0);
+    const hcu010ADraft = Number(
+        snapshot?.summary?.drafts?.hcu010A?.draft || 0
+    );
+    const hcu012AReadyToIssue = Number(
+        snapshot?.summary?.drafts?.hcu012A?.ready_to_issue || 0
+    );
+    const hcu012ADraft = Number(
+        snapshot?.summary?.drafts?.hcu012A?.draft || 0
+    );
     const confidence = Number(first?.confidence || 0);
     const confidenceLabel =
         Number.isFinite(confidence) && confidence > 0
@@ -302,7 +333,15 @@ function resolveClinicalQueueMeta(snapshot) {
               hcu010AReadyToIssue > 0
                   ? `${hcu010AReadyToIssue} HCU-010A lista(s)`
                   : '',
-              hcu010ADraft > 0 ? `${hcu010ADraft} HCU-010A borrador(es)` : '',
+              hcu010ADraft > 0
+                  ? `${hcu010ADraft} HCU-010A borrador(es)`
+                  : '',
+              hcu012AReadyToIssue > 0
+                  ? `${hcu012AReadyToIssue} HCU-012A lista(s)`
+                  : '',
+              hcu012ADraft > 0
+                  ? `${hcu012ADraft} HCU-012A borrador(es)`
+                  : '',
               confidenceLabel,
           ]
               .filter(Boolean)
@@ -312,6 +351,7 @@ function resolveClinicalQueueMeta(snapshot) {
               String(first?.hcu005Label || '').trim(),
               String(first?.hcu007Label || '').trim(),
               String(first?.hcu010ALabel || '').trim(),
+              String(first?.hcu012ALabel || '').trim(),
               missingFields > 0 ? `${missingFields} dato(s) faltante(s)` : '',
               pendingCopyRequests > 0
                   ? `${pendingCopyRequests} copia(s) pendiente(s)`

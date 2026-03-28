@@ -270,6 +270,53 @@ function buildHcu010AStatusFixture(status) {
     }
 }
 
+function buildHcu012AStatusFixture(status) {
+    switch (status) {
+        case 'issued':
+            return {
+                status: 'issued',
+                label: 'HCU-012A emitida',
+                summary:
+                    'La solicitud de imagenologia ya fue emitida como soporte diagnostico del episodio.',
+            };
+        case 'ready_to_issue':
+            return {
+                status: 'ready_to_issue',
+                label: 'HCU-012A lista para emitir',
+                summary:
+                    'La solicitud de imagenologia ya cubre los campos minimos del MSP y esta lista para emitirse.',
+            };
+        case 'cancelled':
+            return {
+                status: 'cancelled',
+                label: 'HCU-012A cancelada',
+                summary:
+                    'La solicitud de imagenologia fue cancelada y ya no bloquea el plan actual.',
+            };
+        case 'incomplete':
+            return {
+                status: 'incomplete',
+                label: 'HCU-012A incompleta',
+                summary:
+                    'La solicitud de imagenologia sigue con campos clinicos o logisticos incompletos.',
+            };
+        case 'draft':
+            return {
+                status: 'draft',
+                label: 'HCU-012A borrador',
+                summary:
+                    'Existe una solicitud de imagenologia en borrador aun sin emitir.',
+            };
+        default:
+            return {
+                status: 'not_applicable',
+                label: 'HCU-012A no aplica',
+                summary:
+                    'No hay solicitud de imagenologia formal exigible para este episodio.',
+            };
+    }
+}
+
 function buildLabOrderFixture(
     patientName,
     sessionId,
@@ -344,6 +391,104 @@ function buildLabOrderFixture(
         history: Array.isArray(overrides.history) ? overrides.history : [],
         createdAt: overrides.createdAt || '2026-03-15T09:18:00-05:00',
         updatedAt: overrides.updatedAt || '2026-03-15T09:18:00-05:00',
+    };
+}
+
+function buildImagingOrderFixture(
+    patientName,
+    sessionId,
+    admission001,
+    hcu005,
+    overrides = {}
+) {
+    return {
+        imagingOrderId:
+            overrides.imagingOrderId || `img-order-${sessionId}-001`,
+        status: overrides.status || 'draft',
+        requiredForCurrentPlan: overrides.requiredForCurrentPlan === true,
+        priority: overrides.priority || 'routine',
+        requestedAt: overrides.requestedAt || '2026-03-15T09:24:00-05:00',
+        studyDate: overrides.studyDate || '',
+        requestingEstablishment:
+            overrides.requestingEstablishment || 'Piel Armonía',
+        requestingService:
+            overrides.requestingService || 'Dermatología ambulatoria',
+        careSite: overrides.careSite || 'Consulta externa',
+        bedLabel: overrides.bedLabel || '',
+        requestedBy: overrides.requestedBy || 'Dra. Laura Mena',
+        patientName,
+        patientDocumentNumber:
+            overrides.patientDocumentNumber ||
+            admission001.identity.documentNumber,
+        patientRecordId: overrides.patientRecordId || `hcu-${sessionId}`,
+        patientAgeYears:
+            overrides.patientAgeYears || admission001.demographics.ageYears,
+        patientSexAtBirth:
+            overrides.patientSexAtBirth ||
+            admission001.demographics.sexAtBirth,
+        diagnoses: Array.isArray(overrides.diagnoses)
+            ? overrides.diagnoses
+            : [
+                  {
+                      type: 'pre',
+                      label:
+                          overrides.diagnosisLabel ||
+                          hcu005.diagnosticImpression ||
+                          'Diagnóstico clínico en evaluación',
+                      cie10: overrides.diagnosisCie10 || 'L71.9',
+                  },
+              ],
+        studySelections: {
+            conventionalRadiography: Array.isArray(
+                overrides.studySelections?.conventionalRadiography
+            )
+                ? overrides.studySelections.conventionalRadiography
+                : [],
+            tomography: Array.isArray(overrides.studySelections?.tomography)
+                ? overrides.studySelections.tomography
+                : [],
+            magneticResonance: Array.isArray(
+                overrides.studySelections?.magneticResonance
+            )
+                ? overrides.studySelections.magneticResonance
+                : [],
+            ultrasound: Array.isArray(overrides.studySelections?.ultrasound)
+                ? overrides.studySelections.ultrasound
+                : [],
+            procedures: Array.isArray(overrides.studySelections?.procedures)
+                ? overrides.studySelections.procedures
+                : [],
+            others: Array.isArray(overrides.studySelections?.others)
+                ? overrides.studySelections.others
+                : [],
+        },
+        requestReason:
+            overrides.requestReason || 'Solicito imagenologia de apoyo clinico.',
+        clinicalSummary:
+            overrides.clinicalSummary ||
+            [
+                hcu005.evolutionNote,
+                hcu005.therapeuticPlan,
+                hcu005.careIndications,
+            ]
+                .filter(Boolean)
+                .join('\n'),
+        canMobilize:
+            overrides.canMobilize === undefined ? true : overrides.canMobilize,
+        canRemoveDressingsOrCasts:
+            overrides.canRemoveDressingsOrCasts === undefined
+                ? true
+                : overrides.canRemoveDressingsOrCasts,
+        physicianPresentAtExam:
+            overrides.physicianPresentAtExam === true,
+        bedsideRadiography: overrides.bedsideRadiography === true,
+        notes: overrides.notes || '',
+        issuedAt: overrides.issuedAt || '',
+        cancelledAt: overrides.cancelledAt || '',
+        cancelReason: overrides.cancelReason || '',
+        history: Array.isArray(overrides.history) ? overrides.history : [],
+        createdAt: overrides.createdAt || '2026-03-15T09:24:00-05:00',
+        updatedAt: overrides.updatedAt || '2026-03-15T09:24:00-05:00',
     };
 }
 
@@ -620,6 +765,8 @@ function buildClinicalRecordPayload({
     activeInterconsultationId = '',
     labOrders = [],
     activeLabOrderId = '',
+    imagingOrders = [],
+    activeImagingOrderId = '',
     copyRequests = [],
     disclosureLog = [],
     accessAudit = [],
@@ -810,6 +957,49 @@ function buildClinicalRecordPayload({
         buildHcu010AStatusFixture(
             normalizedActiveLabOrder?.status ||
                 (normalizedLabOrders.length > 0 ? 'draft' : 'not_applicable')
+        );
+    const normalizedImagingOrders = Array.isArray(imagingOrders)
+        ? imagingOrders
+        : [];
+    const normalizedActiveImagingOrderId =
+        activeImagingOrderId ||
+        normalizedImagingOrders[0]?.imagingOrderId ||
+        '';
+    const normalizedActiveImagingOrder =
+        normalizedImagingOrders.find(
+            (item) =>
+                item.imagingOrderId === normalizedActiveImagingOrderId
+        ) || null;
+    const normalizedImagingOrderSnapshots = Array.isArray(documents.imagingOrders)
+        ? documents.imagingOrders
+        : normalizedImagingOrders
+              .filter((item) => ['issued', 'cancelled'].includes(item.status))
+              .map((item) => ({
+                  imagingOrderId: item.imagingOrderId,
+                  status: item.status,
+                  finalizedAt:
+                      item.issuedAt || item.cancelledAt || item.updatedAt || '',
+                  snapshotAt:
+                      item.issuedAt || item.cancelledAt || item.updatedAt || '',
+                  patientName: item.patientName,
+                  patientDocumentNumber: item.patientDocumentNumber,
+                  patientRecordId: item.patientRecordId,
+                  studyDate: item.studyDate,
+                  priority: item.priority,
+                  requestedBy: item.requestedBy,
+                  diagnoses: item.diagnoses,
+                  studySelections: item.studySelections,
+                  requestReason: item.requestReason,
+                  clinicalSummary: item.clinicalSummary,
+                  notes: item.notes,
+              }));
+    const normalizedHcu012AStatus =
+        legalReadiness.hcu012AStatus ||
+        buildHcu012AStatusFixture(
+            normalizedActiveImagingOrder?.status ||
+                (normalizedImagingOrders.length > 0
+                    ? 'draft'
+                    : 'not_applicable')
         );
     const prescriptionMedication = normalizedHcu005.prescriptionItems
         .map((item) => item.medication)
@@ -1026,6 +1216,7 @@ function buildClinicalRecordPayload({
                     'SNS-MSP/HCU-form.005/2008',
                     'SNS-MSP/HCU-form.007/2008',
                     'SNS-MSP/HCU-form.010A/2008',
+                    'SNS-MSP/HCU-form.012A/2008',
                     'SNS-MSP/HCU-form.024',
                 ],
                 normativeScope: 'ecuador_private_consultorio_v1',
@@ -1081,9 +1272,12 @@ function buildClinicalRecordPayload({
                 interconsultForms: normalizedInterconsultForms,
                 interconsultReports: normalizedInterconsultReports,
                 labOrders: normalizedLabOrderSnapshots,
+                imagingOrders: normalizedImagingOrderSnapshots,
             },
             labOrders: normalizedLabOrders,
             activeLabOrderId: normalizedActiveLabOrderId,
+            imagingOrders: normalizedImagingOrders,
+            activeImagingOrderId: normalizedActiveImagingOrderId,
             consentPackets: normalizedConsentPackets,
             activeConsentPacketId: normalizedActiveConsentPacketId,
             interconsultations: normalizedInterconsultations,
@@ -1209,6 +1403,7 @@ function buildClinicalRecordPayload({
                 'SNS-MSP/HCU-form.005/2008',
                 'SNS-MSP/HCU-form.007/2008',
                 'SNS-MSP/HCU-form.010A/2008',
+                'SNS-MSP/HCU-form.012A/2008',
                 'SNS-MSP/HCU-form.024',
             ],
         },
@@ -1244,6 +1439,7 @@ function buildClinicalRecordPayload({
                 (legalReadiness.status === 'ready' ? 'complete' : 'partial'),
             hcu007Status: normalizedHcu007Status.status,
             hcu010AStatus: normalizedHcu010AStatus.status,
+            hcu012AStatus: normalizedHcu012AStatus.status,
             hcu024Status: normalizedHcu024Status.status,
         },
         documents: {
@@ -1296,6 +1492,7 @@ function buildClinicalRecordPayload({
             interconsultForms: normalizedInterconsultForms,
             interconsultReports: normalizedInterconsultReports,
             labOrders: normalizedLabOrderSnapshots,
+            imagingOrders: normalizedImagingOrderSnapshots,
         },
         interconsultations: normalizedInterconsultations,
         activeInterconsultationId: normalizedActiveInterconsultationId,
@@ -1303,6 +1500,9 @@ function buildClinicalRecordPayload({
         labOrders: normalizedLabOrders,
         activeLabOrderId: normalizedActiveLabOrderId,
         activeLabOrder: normalizedActiveLabOrder,
+        imagingOrders: normalizedImagingOrders,
+        activeImagingOrderId: normalizedActiveImagingOrderId,
+        activeImagingOrder: normalizedActiveImagingOrder,
         consentPackets: normalizedConsentPackets,
         activeConsentPacketId: normalizedActiveConsentPacketId,
         activeConsentPacket: normalizedActiveConsentPacket,
@@ -1377,6 +1577,7 @@ function buildClinicalRecordPayload({
                 'MSP-HCU-FORM-005',
                 'MSP-HCU-FORM-007',
                 'MSP-HCU-FORM-010A',
+                'MSP-HCU-FORM-012A',
                 'MSP-HCU-FORM-024',
             ],
         },
@@ -1396,6 +1597,7 @@ function buildClinicalRecordPayload({
                 'MSP-HCU-FORM-005',
                 'MSP-HCU-FORM-007',
                 'MSP-HCU-FORM-010A',
+                'MSP-HCU-FORM-012A',
                 'MSP-HCU-FORM-024',
             ],
         },
@@ -1417,6 +1619,7 @@ function buildClinicalRecordPayload({
             hcu007Status: normalizedHcu007Status,
             hcu007ReportStatus: normalizedHcu007ReportStatus,
             hcu010AStatus: normalizedHcu010AStatus,
+            hcu012AStatus: normalizedHcu012AStatus,
             hcu024Status: normalizedHcu024Status,
         },
         closureChecklist: {
@@ -1437,6 +1640,7 @@ function buildClinicalRecordPayload({
             hcu007Status: normalizedHcu007Status,
             hcu007ReportStatus: normalizedHcu007ReportStatus,
             hcu010AStatus: normalizedHcu010AStatus,
+            hcu012AStatus: normalizedHcu012AStatus,
             hcu024Status: normalizedHcu024Status,
         },
         recordsGovernance: normalizedRecordsGovernance,
@@ -3067,6 +3271,364 @@ test('laboratorio HCU-010A permite crear y emitir solicitudes del episodio', asy
         'Snapshots documentales HCU-010A'
     );
     await expect(page.locator('#lab_order_issued_at')).toHaveValue(
+        /2026-03-15/
+    );
+});
+
+test('imagenologia HCU-012A permite crear y emitir solicitudes del episodio', async ({
+    page,
+}) => {
+    const baseRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu012a-001',
+        caseId: 'case-hcu012a-001',
+        patientName: 'Elena Paredes',
+        clinicianSummary:
+            'Caso con apoyo diagnostico de imagenologia aun no formalizado.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'Todavia no existe una solicitud formal de imagenologia exigible para este episodio.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y el plan terapeutico ya estan trazados.',
+            },
+            hcu012AStatus: buildHcu012AStatusFixture('not_applicable'),
+            checklist: [
+                {
+                    code: 'hcu012a_imaging',
+                    status: 'pass',
+                    label: 'HCU-012A imagenologia',
+                    message:
+                        'No hay solicitud de imagenologia requerida para este episodio.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: {
+            required: false,
+            status: 'not_required',
+        },
+    });
+
+    const draftImagingOrder = buildImagingOrderFixture(
+        'Elena Paredes',
+        'chs-hcu012a-001',
+        baseRecord.patientRecord.admission001,
+        baseRecord.draft.clinicianDraft.hcu005,
+        {
+            imagingOrderId: 'img-order-hcu012a-001',
+            requiredForCurrentPlan: false,
+            studyDate: '',
+            requestedBy: '',
+            studySelections: {
+                conventionalRadiography: [],
+                tomography: [],
+                magneticResonance: [],
+                ultrasound: [],
+                procedures: [],
+                others: [],
+            },
+            requestReason: '',
+            clinicalSummary: '',
+        }
+    );
+
+    const createdRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu012a-001',
+        caseId: 'case-hcu012a-001',
+        patientName: 'Elena Paredes',
+        clinicianSummary:
+            'Solicitud de imagenologia creada y aun en borrador.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La solicitud existe como borrador, pero todavia no forma parte obligatoria del plan.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y el plan terapeutico ya estan trazados.',
+            },
+            hcu012AStatus: buildHcu012AStatusFixture('draft'),
+            checklist: [
+                {
+                    code: 'hcu012a_imaging',
+                    status: 'pass',
+                    label: 'HCU-012A imagenologia',
+                    message:
+                        'La solicitud existe como borrador y aun no congela el cierre.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: baseRecord.consent,
+        imagingOrders: [draftImagingOrder],
+        activeImagingOrderId: draftImagingOrder.imagingOrderId,
+    });
+
+    const issuedImagingOrder = buildImagingOrderFixture(
+        'Elena Paredes',
+        'chs-hcu012a-001',
+        baseRecord.patientRecord.admission001,
+        baseRecord.draft.clinicianDraft.hcu005,
+        {
+            ...draftImagingOrder,
+            status: 'issued',
+            requiredForCurrentPlan: true,
+            studyDate: '2026-03-15',
+            requestedBy: 'Dra. Laura Mena',
+            studySelections: {
+                conventionalRadiography: ['Rx de senos paranasales'],
+                tomography: [],
+                magneticResonance: [],
+                ultrasound: [],
+                procedures: [],
+                others: [],
+            },
+            requestReason: 'Documentar soporte de imagen para cefalea facial.',
+            clinicalSummary:
+                'Paciente con cefalea facial y rosacea en seguimiento; requiere imagenologia complementaria.',
+            issuedAt: '2026-03-15T10:25:00-05:00',
+            notes: 'Coordinar radiografia convencional en consulta externa.',
+        }
+    );
+
+    const issuedRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu012a-001',
+        caseId: 'case-hcu012a-001',
+        patientName: 'Elena Paredes',
+        clinicianSummary:
+            'Solicitud de imagenologia emitida y documentada.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La solicitud de imagenologia requerida ya fue emitida y no bloquea el cierre actual.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y el plan terapeutico ya estan trazados.',
+            },
+            hcu012AStatus: buildHcu012AStatusFixture('issued'),
+            checklist: [
+                {
+                    code: 'hcu012a_imaging',
+                    status: 'pass',
+                    label: 'HCU-012A imagenologia',
+                    message:
+                        'La solicitud de imagenologia requerida ya fue emitida.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: baseRecord.consent,
+        imagingOrders: [issuedImagingOrder],
+        activeImagingOrderId: issuedImagingOrder.imagingOrderId,
+        documents: {
+            imagingOrders: [issuedImagingOrder],
+        },
+    });
+
+    let currentRecord = baseRecord;
+    const actionPayloads = [];
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                        hcu012A: {
+                            not_applicable: 1,
+                            draft: 0,
+                            ready_to_issue: 0,
+                            issued: 0,
+                            cancelled: 0,
+                            incomplete: 0,
+                        },
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-hcu012a-001',
+                        caseId: 'case-hcu012a-001',
+                        patientName: 'Elena Paredes',
+                        summary:
+                            'Caso ambulatorio con apoyo diagnostico de imagenologia potencial.',
+                        sessionStatus: 'review_required',
+                        reviewStatus: 'review_required',
+                        requiresHumanReview: true,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 0,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'Todavia no existe una solicitud formal de imagenologia exigible para este episodio.',
+                        hcu001Status: 'complete',
+                        hcu001Label: 'HCU-001 completa',
+                        hcu001Summary:
+                            'La admision longitudinal ya deja identidad y contacto base defendibles.',
+                        hcu005Status: 'complete',
+                        hcu005Label: 'HCU-005 completo',
+                        hcu005Summary:
+                            'La evolucion y el plan terapeutico ya estan trazados.',
+                        hcu012AStatus: 'not_applicable',
+                        hcu012ALabel: 'HCU-012A no aplica',
+                        hcu012ASummary:
+                            'No hay solicitud de imagenologia formal exigible para este episodio.',
+                        hcu024Status: 'not_applicable',
+                        hcu024Label: 'HCU-024 no aplica',
+                        hcu024Summary:
+                            'No hay consentimiento escrito por procedimiento exigible para este episodio.',
+                        approvalBlockedReasons: [],
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            payload,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: currentRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'clinical-episode-action' && method === 'POST') {
+                actionPayloads.push(payload);
+
+                if (payload.action === 'create_imaging_order') {
+                    currentRecord = createdRecord;
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: createdRecord,
+                    });
+                    return true;
+                }
+
+                if (payload.action === 'issue_imaging_order') {
+                    currentRecord = issuedRecord;
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: issuedRecord,
+                    });
+                    return true;
+                }
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.keyboard.press('Control+K');
+    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Imagenologia HCU-form.012A/2008'
+    );
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-012A no aplica');
+
+    await page
+        .locator('[data-clinical-review-action="create-imaging-order"]')
+        .click();
+
+    await expect.poll(() => actionPayloads.length).toBe(1);
+    expect(actionPayloads[0]).toMatchObject({
+        action: 'create_imaging_order',
+        sessionId: 'chs-hcu012a-001',
+    });
+
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-012A borrador');
+
+    await page.locator('#imaging_order_study_date').fill('2026-03-15');
+    await page.locator('#imaging_order_requested_by').fill('Dra. Laura Mena');
+    await page.locator('#imaging_order_required_for_current_plan').check();
+    await page
+        .locator('#imaging_order_studies_conventionalRadiography')
+        .fill('Rx de senos paranasales');
+    await page
+        .locator('#imaging_order_request_reason')
+        .fill('Documentar soporte de imagen para cefalea facial.');
+    await page
+        .locator('#imaging_order_clinical_summary')
+        .fill(
+            'Paciente con cefalea facial y rosacea en seguimiento; requiere imagenologia complementaria.'
+        );
+    await page
+        .locator('#imaging_order_notes')
+        .fill('Coordinar radiografia convencional en consulta externa.');
+
+    await page
+        .locator('[data-clinical-review-action="issue-current-imaging-order"]')
+        .click();
+
+    await expect.poll(() => actionPayloads.length).toBe(2);
+    expect(actionPayloads[1]).toMatchObject({
+        action: 'issue_imaging_order',
+        sessionId: 'chs-hcu012a-001',
+        imagingOrderId: 'img-order-hcu012a-001',
+        activeImagingOrderId: 'img-order-hcu012a-001',
+        imagingOrders: [
+            expect.objectContaining({
+                imagingOrderId: 'img-order-hcu012a-001',
+                requiredForCurrentPlan: true,
+                studyDate: '2026-03-15',
+                requestedBy: 'Dra. Laura Mena',
+                studySelections: expect.objectContaining({
+                    conventionalRadiography: ['Rx de senos paranasales'],
+                }),
+            }),
+        ],
+    });
+
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-012A emitida');
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Snapshots documentales HCU-012A'
+    );
+    await expect(page.locator('#imaging_order_issued_at')).toHaveValue(
         /2026-03-15/
     );
 });

@@ -16,12 +16,16 @@ final class ClinicalHistoryLegalReadiness
         $draft = ClinicalHistoryRepository::adminDraft($draft);
         $draft = ClinicalHistoryRepository::syncInterconsultationArtifacts($draft, $session);
         $draft = ClinicalHistoryRepository::syncLabOrderArtifacts($draft, $session);
+        $draft = ClinicalHistoryRepository::syncImagingOrderArtifacts($draft, $session);
         $draft = ClinicalHistoryRepository::syncConsentArtifacts($draft, $session);
         $interconsultations = ClinicalHistoryRepository::normalizeInterconsultations(
             $draft['interconsultations'] ?? []
         );
         $labOrders = ClinicalHistoryRepository::normalizeLabOrders(
             $draft['labOrders'] ?? []
+        );
+        $imagingOrders = ClinicalHistoryRepository::normalizeImagingOrders(
+            $draft['imagingOrders'] ?? []
         );
         $consent = ClinicalHistoryRepository::normalizeConsentRecord(
             is_array($draft['consent'] ?? null) ? $draft['consent'] : []
@@ -84,6 +88,16 @@ final class ClinicalHistoryLegalReadiness
         $labOrderEvaluations = array_map(
             static fn (array $labOrder): array => ClinicalHistoryRepository::evaluateLabOrder($labOrder),
             $labOrderScope
+        );
+        $requiredImagingOrders = array_values(array_filter($imagingOrders, static function (array $imagingOrder): bool {
+            return ($imagingOrder['requiredForCurrentPlan'] ?? false) === true;
+        }));
+        $imagingOrderScope = $requiredImagingOrders !== []
+            ? $requiredImagingOrders
+            : $imagingOrders;
+        $imagingOrderEvaluations = array_map(
+            static fn (array $imagingOrder): array => ClinicalHistoryRepository::evaluateImagingOrder($imagingOrder),
+            $imagingOrderScope
         );
         $activeConsentPacketId = ClinicalHistoryRepository::trimString($draft['activeConsentPacketId'] ?? '');
         $activeConsentEvaluation = null;
@@ -407,6 +421,66 @@ final class ClinicalHistoryLegalReadiness
             );
         }
 
+        $hcu012AStatus = 'not_applicable';
+        if ($imagingOrderEvaluations !== []) {
+            $statuses = array_map(
+                static fn (array $evaluation): string => ClinicalHistoryRepository::trimString($evaluation['status'] ?? 'draft'),
+                $imagingOrderEvaluations
+            );
+            $pendingStatuses = array_values(array_intersect($statuses, ['draft', 'ready_to_issue', 'incomplete']));
+            if ($pendingStatuses === []) {
+                $hasIssued = count(array_filter($statuses, static fn (string $status): bool => $status === 'issued')) > 0;
+                $hcu012AStatus = $hasIssued ? 'issued' : 'cancelled';
+            } elseif (in_array('incomplete', $statuses, true)) {
+                $hcu012AStatus = 'incomplete';
+            } elseif (in_array('draft', $statuses, true)) {
+                $hcu012AStatus = 'draft';
+            } else {
+                $hcu012AStatus = 'ready_to_issue';
+            }
+        }
+        $requiredImagingOrderPending = count(array_filter(
+            array_map(
+                static fn (array $imagingOrder): array => ClinicalHistoryRepository::evaluateImagingOrder($imagingOrder),
+                $requiredImagingOrders
+            ),
+            static fn (array $evaluation): bool => !in_array(
+                ClinicalHistoryRepository::trimString($evaluation['status'] ?? ''),
+                ['issued', 'cancelled'],
+                true
+            )
+        ));
+        $hcu012AReady = $requiredImagingOrderPending === 0;
+        self::appendChecklist(
+            $checklist,
+            'hcu012a_imaging',
+            $hcu012AReady,
+            'HCU-012A imagenologia',
+            $requiredImagingOrders === []
+                ? ($imagingOrders === []
+                    ? 'No hay solicitudes de imagenología exigibles para este episodio.'
+                    : 'Las solicitudes de imagenología del episodio no fueron marcadas como obligatorias para aprobar el plan actual.')
+                : ($hcu012AReady
+                    ? 'Las solicitudes de imagenología marcadas como parte del plan actual ya fueron emitidas o canceladas.'
+                    : 'Todavía hay solicitudes de imagenología requeridas que no se han emitido o cancelado.'),
+            [
+                'status' => $hcu012AStatus,
+                'requiredImagingOrders' => count($requiredImagingOrders),
+                'pendingRequiredImagingOrders' => $requiredImagingOrderPending,
+            ]
+        );
+        if (!$hcu012AReady) {
+            $blockingReasons[] = self::blockingReason(
+                'hcu012a_imaging_order_pending_issue',
+                'Falta emitir o cancelar una solicitud de imagenología requerida',
+                'Emite o cancela la solicitud HCU-012A marcada como parte del plan actual antes de aprobar la nota final.',
+                [
+                    'status' => $hcu012AStatus,
+                    'pendingRequiredImagingOrders' => $requiredImagingOrderPending,
+                ]
+            );
+        }
+
         $aiTerminal = $pendingAi === []
             || in_array($pendingAiStatus, ['completed', 'failed', 'superseded', 'closed'], true);
         self::appendChecklist(
@@ -536,8 +610,8 @@ final class ClinicalHistoryLegalReadiness
             'ready' => $ready,
             'label' => $ready ? 'Lista para aprobar' : 'Bloqueada',
             'summary' => $ready
-                ? 'La historia clinica cubre HCU-001, HCU-005, HCU-007, HCU-010A, HCU-024 y los bloqueos medico-legales minimos para aprobar.'
-                : 'La aprobacion esta bloqueada hasta completar la admision HCU-001, HCU-005, HCU-007, HCU-010A, HCU-024 y los faltantes medico-legales visibles.',
+                ? 'La historia clinica cubre HCU-001, HCU-005, HCU-007, HCU-010A, HCU-012A, HCU-024 y los bloqueos medico-legales minimos para aprobar.'
+                : 'La aprobacion esta bloqueada hasta completar la admision HCU-001, HCU-005, HCU-007, HCU-010A, HCU-012A, HCU-024 y los faltantes medico-legales visibles.',
             'checklist' => $checklist,
             'blockingReasons' => $blockingReasons,
             'approvalBlockedReasons' => $blockingReasons,
@@ -611,6 +685,25 @@ final class ClinicalHistoryLegalReadiness
                     default => 'No hay solicitud formal de laboratorio exigible para este episodio.',
                 },
             ],
+            'hcu012AStatus' => [
+                'status' => $hcu012AStatus,
+                'label' => match ($hcu012AStatus) {
+                    'issued' => 'HCU-012A emitida',
+                    'ready_to_issue' => 'HCU-012A lista para emitir',
+                    'cancelled' => 'HCU-012A cancelada',
+                    'incomplete' => 'HCU-012A incompleta',
+                    'draft' => 'HCU-012A borrador',
+                    default => 'HCU-012A no aplica',
+                },
+                'summary' => match ($hcu012AStatus) {
+                    'issued' => 'La solicitud de imagenología requerida ya fue emitida dentro del episodio.',
+                    'ready_to_issue' => 'La solicitud de imagenología ya cubre los campos mínimos del MSP y está lista para emitirse.',
+                    'cancelled' => 'La solicitud de imagenología del episodio fue cancelada y no bloquea el cierre actual.',
+                    'incomplete' => 'Existe una solicitud de imagenología requerida con campos todavía incompletos.',
+                    'draft' => 'Existe una solicitud de imagenología en borrador aún no emitida.',
+                    default => 'No hay solicitud formal de imagenología exigible para este episodio.',
+                },
+            ],
             'hcu007ReportStatus' => [
                 'status' => $hcu007ReportStatus,
                 'label' => match ($hcu007ReportStatus) {
@@ -655,6 +748,7 @@ final class ClinicalHistoryLegalReadiness
                 'MSP-HCU-FORM-005',
                 'MSP-HCU-FORM-007',
                 'MSP-HCU-FORM-010A',
+                'MSP-HCU-FORM-012A',
                 'MSP-HCU-FORM-024',
             ],
         ];

@@ -70,6 +70,38 @@ const CLINICAL_HISTORY_LAB_ORDER_PRIORITY_CHOICES = Object.freeze([
     { value: 'urgent', label: 'Urgente' },
     { value: 'control', label: 'Control' },
 ]);
+const CLINICAL_HISTORY_IMAGING_STUDY_GROUPS = Object.freeze([
+    {
+        key: 'conventionalRadiography',
+        label: 'R-X convencional',
+        hint: 'Una linea por estudio solicitado.',
+    },
+    {
+        key: 'tomography',
+        label: 'Tomografia',
+        hint: 'Ej.: TAC macizo facial, TAC torax.',
+    },
+    {
+        key: 'magneticResonance',
+        label: 'Resonancia',
+        hint: 'Ej.: RM cerebral, RM partes blandas.',
+    },
+    {
+        key: 'ultrasound',
+        label: 'Ecografia',
+        hint: 'Incluye ecografia general u obstetrica si aplica.',
+    },
+    {
+        key: 'procedures',
+        label: 'Procedimiento',
+        hint: 'Procedimientos guiados o intervencionistas.',
+    },
+    {
+        key: 'others',
+        label: 'Otros',
+        hint: 'Modalidades no cubiertas por los grupos anteriores.',
+    },
+]);
 const CLINICAL_HISTORY_LAB_STUDY_OPTIONS = Object.freeze({
     hematology: [
         'Biometria hematica',
@@ -121,6 +153,21 @@ function normalizeStringList(value) {
     return normalizeList(value)
         .map((item) => normalizeString(item))
         .filter(Boolean);
+}
+
+function normalizeTextareaList(value) {
+    if (Array.isArray(value)) {
+        return normalizeStringList(value);
+    }
+
+    return normalizeString(value)
+        .split(/\r?\n|,/)
+        .map((item) => normalizeString(item))
+        .filter(Boolean);
+}
+
+function formatTextareaList(value) {
+    return normalizeStringList(value).join('\n');
 }
 
 export function normalizeClinicalHistoryWorkspace(value) {
@@ -457,6 +504,61 @@ function emptyLabOrderSnapshot() {
     };
 }
 
+function emptyImagingOrder() {
+    return {
+        imagingOrderId: '',
+        status: 'draft',
+        requiredForCurrentPlan: false,
+        priority: 'routine',
+        requestedAt: '',
+        studyDate: '',
+        requestingEstablishment: '',
+        requestingService: '',
+        careSite: '',
+        bedLabel: '',
+        requestedBy: '',
+        patientName: '',
+        patientDocumentNumber: '',
+        patientRecordId: '',
+        patientAgeYears: null,
+        patientSexAtBirth: '',
+        diagnoses: [
+            emptyInterconsultationDiagnosis('pre'),
+            emptyInterconsultationDiagnosis('def'),
+        ],
+        studySelections: {
+            conventionalRadiography: [],
+            tomography: [],
+            magneticResonance: [],
+            ultrasound: [],
+            procedures: [],
+            others: [],
+        },
+        requestReason: '',
+        clinicalSummary: '',
+        canMobilize: false,
+        canRemoveDressingsOrCasts: false,
+        physicianPresentAtExam: false,
+        bedsideRadiography: false,
+        notes: '',
+        issuedAt: '',
+        cancelledAt: '',
+        cancelReason: '',
+        history: [],
+        createdAt: '',
+        updatedAt: '',
+    };
+}
+
+function emptyImagingOrderSnapshot() {
+    return {
+        snapshotId: '',
+        finalizedAt: '',
+        snapshotAt: '',
+        ...emptyImagingOrder(),
+    };
+}
+
 function emptyAdmission001() {
     return {
         identity: {
@@ -568,6 +670,7 @@ function emptyDraft() {
                 'SNS-MSP/HCU-form.005/2008',
                 'SNS-MSP/HCU-form.007/2008',
                 'SNS-MSP/HCU-form.010A/2008',
+                'SNS-MSP/HCU-form.012A/2008',
                 'SNS-MSP/HCU-form.024',
             ],
             normativeScope: 'ecuador_private_consultorio_v1',
@@ -603,12 +706,15 @@ function emptyDraft() {
             interconsultForms: [],
             interconsultReports: [],
             labOrders: [],
+            imagingOrders: [],
             consentForms: [],
         },
         interconsultations: [],
         activeInterconsultationId: '',
         labOrders: [],
         activeLabOrderId: '',
+        imagingOrders: [],
+        activeImagingOrderId: '',
         consentPackets: [],
         activeConsentPacketId: '',
         consent: {
@@ -683,6 +789,9 @@ function emptyReview() {
         labOrders: [],
         activeLabOrderId: '',
         activeLabOrder: emptyLabOrder(),
+        imagingOrders: [],
+        activeImagingOrderId: '',
+        activeImagingOrder: emptyImagingOrder(),
         consentPackets: [],
         activeConsentPacketId: '',
         activeConsentPacket: emptyConsentPacket(),
@@ -701,6 +810,7 @@ function emptyReview() {
             hcu007Status: hcu007StatusMeta('not_applicable'),
             hcu007ReportStatus: hcu007ReportStatusMeta('not_received'),
             hcu010AStatus: hcu010AStatusMeta('not_applicable'),
+            hcu012AStatus: hcu012AStatusMeta('not_applicable'),
             hcu024Status: hcu024StatusMeta('not_applicable'),
         },
         recordsGovernance: {},
@@ -1429,6 +1539,32 @@ function flattenLabOrderStudySelections(studySelections) {
     ].filter((value) => normalizeString(value));
 }
 
+function normalizeImagingStudySelections(items) {
+    const source = items && typeof items === 'object' ? items : {};
+    return {
+        conventionalRadiography: normalizeStringList(
+            source.conventionalRadiography
+        ),
+        tomography: normalizeStringList(source.tomography),
+        magneticResonance: normalizeStringList(source.magneticResonance),
+        ultrasound: normalizeStringList(source.ultrasound),
+        procedures: normalizeStringList(source.procedures),
+        others: normalizeStringList(source.others),
+    };
+}
+
+function flattenImagingStudySelections(studySelections) {
+    const normalized = normalizeImagingStudySelections(studySelections);
+    return [
+        ...normalized.conventionalRadiography,
+        ...normalized.tomography,
+        ...normalized.magneticResonance,
+        ...normalized.ultrasound,
+        ...normalized.procedures,
+        ...normalized.others,
+    ].filter((value) => normalizeString(value));
+}
+
 function normalizeLabOrder(labOrder, fallback = {}) {
     const defaults = emptyLabOrder();
     const safeSource = labOrder && typeof labOrder === 'object' ? labOrder : {};
@@ -1535,6 +1671,133 @@ function normalizeLabOrderSnapshot(snapshot) {
 
 function normalizeLabOrderSnapshots(items) {
     return normalizeList(items).map(normalizeLabOrderSnapshot);
+}
+
+function normalizeImagingOrder(imagingOrder, fallback = {}) {
+    const defaults = emptyImagingOrder();
+    const safeSource =
+        imagingOrder && typeof imagingOrder === 'object' ? imagingOrder : {};
+    const safeFallback =
+        fallback && typeof fallback === 'object' ? fallback : {};
+
+    return {
+        ...defaults,
+        ...safeFallback,
+        ...safeSource,
+        imagingOrderId: normalizeString(
+            safeSource.imagingOrderId ?? safeFallback.imagingOrderId
+        ),
+        status:
+            normalizeString(safeSource.status ?? safeFallback.status) ||
+            defaults.status,
+        requiredForCurrentPlan:
+            safeSource.requiredForCurrentPlan === true ||
+            (safeSource.requiredForCurrentPlan === undefined &&
+                safeFallback.requiredForCurrentPlan === true),
+        priority:
+            normalizeString(safeSource.priority ?? safeFallback.priority) ||
+            defaults.priority,
+        requestedAt: normalizeString(
+            safeSource.requestedAt ?? safeFallback.requestedAt
+        ),
+        studyDate: normalizeString(
+            safeSource.studyDate ?? safeFallback.studyDate
+        ),
+        requestingEstablishment: normalizeString(
+            safeSource.requestingEstablishment ??
+                safeFallback.requestingEstablishment
+        ),
+        requestingService: normalizeString(
+            safeSource.requestingService ?? safeFallback.requestingService
+        ),
+        careSite: normalizeString(safeSource.careSite ?? safeFallback.careSite),
+        bedLabel: normalizeString(
+            safeSource.bedLabel ?? safeFallback.bedLabel
+        ),
+        requestedBy: normalizeString(
+            safeSource.requestedBy ?? safeFallback.requestedBy
+        ),
+        patientName: normalizeString(
+            safeSource.patientName ?? safeFallback.patientName
+        ),
+        patientDocumentNumber: normalizeString(
+            safeSource.patientDocumentNumber ??
+                safeFallback.patientDocumentNumber
+        ),
+        patientRecordId: normalizeString(
+            safeSource.patientRecordId ?? safeFallback.patientRecordId
+        ),
+        patientAgeYears: normalizeNullableInt(
+            safeSource.patientAgeYears ?? safeFallback.patientAgeYears
+        ),
+        patientSexAtBirth: normalizeString(
+            safeSource.patientSexAtBirth ?? safeFallback.patientSexAtBirth
+        ),
+        diagnoses: normalizeInterconsultationDiagnoses(
+            safeSource.diagnoses ?? safeFallback.diagnoses
+        ),
+        studySelections: normalizeImagingStudySelections(
+            safeSource.studySelections ?? safeFallback.studySelections
+        ),
+        requestReason: normalizeString(
+            safeSource.requestReason ?? safeFallback.requestReason
+        ),
+        clinicalSummary: normalizeString(
+            safeSource.clinicalSummary ?? safeFallback.clinicalSummary
+        ),
+        canMobilize:
+            safeSource.canMobilize === true ||
+            (safeSource.canMobilize === undefined &&
+                safeFallback.canMobilize === true),
+        canRemoveDressingsOrCasts:
+            safeSource.canRemoveDressingsOrCasts === true ||
+            (safeSource.canRemoveDressingsOrCasts === undefined &&
+                safeFallback.canRemoveDressingsOrCasts === true),
+        physicianPresentAtExam:
+            safeSource.physicianPresentAtExam === true ||
+            (safeSource.physicianPresentAtExam === undefined &&
+                safeFallback.physicianPresentAtExam === true),
+        bedsideRadiography:
+            safeSource.bedsideRadiography === true ||
+            (safeSource.bedsideRadiography === undefined &&
+                safeFallback.bedsideRadiography === true),
+        notes: normalizeString(safeSource.notes ?? safeFallback.notes),
+        issuedAt: normalizeString(
+            safeSource.issuedAt ?? safeFallback.issuedAt
+        ),
+        cancelledAt: normalizeString(
+            safeSource.cancelledAt ?? safeFallback.cancelledAt
+        ),
+        cancelReason: normalizeString(
+            safeSource.cancelReason ?? safeFallback.cancelReason
+        ),
+        history: normalizeList(safeSource.history ?? safeFallback.history),
+        createdAt: normalizeString(
+            safeSource.createdAt ?? safeFallback.createdAt
+        ),
+        updatedAt: normalizeString(
+            safeSource.updatedAt ?? safeFallback.updatedAt
+        ),
+    };
+}
+
+function normalizeImagingOrders(items) {
+    return normalizeList(items).map((item) => normalizeImagingOrder(item));
+}
+
+function normalizeImagingOrderSnapshot(snapshot) {
+    const source = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    return {
+        ...emptyImagingOrderSnapshot(),
+        ...normalizeImagingOrder(source),
+        snapshotId: normalizeString(source.snapshotId),
+        finalizedAt: normalizeString(source.finalizedAt),
+        snapshotAt: normalizeString(source.snapshotAt),
+    };
+}
+
+function normalizeImagingOrderSnapshots(items) {
+    return normalizeList(items).map(normalizeImagingOrderSnapshot);
 }
 
 function normalizeInterconsultation(interconsultation, fallback = {}) {
@@ -2015,6 +2278,126 @@ function hcu010AStatusMeta(status) {
                 label: 'HCU-010A no aplica',
                 summary:
                     'No hay solicitud formal de laboratorio exigible para este episodio.',
+            };
+    }
+}
+
+function evaluateImagingOrder(imagingOrder) {
+    const normalized = normalizeImagingOrder(imagingOrder);
+    const diagnoses = normalizeInterconsultationDiagnoses(normalized.diagnoses);
+    const selectedStudies = flattenImagingStudySelections(
+        normalized.studySelections
+    );
+    const missing = [];
+
+    if (!normalizeString(normalized.studyDate)) {
+        missing.push('study_date');
+    }
+    if (!normalizeString(normalized.priority)) {
+        missing.push('priority');
+    }
+    if (!normalizeString(normalized.requestedBy)) {
+        missing.push('requested_by');
+    }
+    if (!normalizeString(normalized.requestReason)) {
+        missing.push('request_reason');
+    }
+    if (!normalizeString(normalized.clinicalSummary)) {
+        missing.push('clinical_summary');
+    }
+    if (!diagnoses.some((item) => normalizeString(item.label))) {
+        missing.push('diagnosis');
+    }
+    if (selectedStudies.length === 0) {
+        missing.push('studies');
+    }
+    if (
+        normalized.bedsideRadiography === true &&
+        normalizeImagingStudySelections(normalized.studySelections)
+            .conventionalRadiography.length === 0
+    ) {
+        missing.push('bedside_radiography_requires_conventional');
+    }
+
+    const readyToIssue = missing.length === 0;
+    const hasAnyContent =
+        normalizeString(normalized.studyDate) ||
+        normalizeString(normalized.requestedBy) ||
+        normalizeString(normalized.requestReason) ||
+        normalizeString(normalized.clinicalSummary) ||
+        normalizeString(normalized.notes) ||
+        diagnoses.some(
+            (item) => normalizeString(item.label) || normalizeString(item.cie10)
+        ) ||
+        selectedStudies.length > 0;
+
+    let status = 'draft';
+    if (normalizeString(normalized.status) === 'issued') {
+        status =
+            readyToIssue && normalizeString(normalized.issuedAt)
+                ? 'issued'
+                : 'incomplete';
+    } else if (normalizeString(normalized.status) === 'cancelled') {
+        status = normalizeString(normalized.cancelledAt)
+            ? 'cancelled'
+            : 'incomplete';
+    } else if (readyToIssue) {
+        status = 'ready_to_issue';
+    } else if (hasAnyContent) {
+        status = 'incomplete';
+    }
+
+    return {
+        status,
+        readyToIssue,
+        selectedStudiesCount: selectedStudies.length,
+        missingFields: Array.from(new Set(missing)),
+    };
+}
+
+function hcu012AStatusMeta(status) {
+    switch (normalizeString(status)) {
+        case 'issued':
+            return {
+                status: 'issued',
+                label: 'HCU-012A emitida',
+                summary:
+                    'La solicitud de imagenologia requerida ya fue emitida dentro del episodio.',
+            };
+        case 'ready_to_issue':
+            return {
+                status: 'ready_to_issue',
+                label: 'HCU-012A lista para emitir',
+                summary:
+                    'La solicitud de imagenologia ya cubre los campos minimos del MSP y esta lista para emitirse.',
+            };
+        case 'cancelled':
+            return {
+                status: 'cancelled',
+                label: 'HCU-012A cancelada',
+                summary:
+                    'La solicitud de imagenologia del episodio fue cancelada y no bloquea el cierre actual.',
+            };
+        case 'incomplete':
+            return {
+                status: 'incomplete',
+                label: 'HCU-012A incompleta',
+                summary:
+                    'Existe una solicitud de imagenologia requerida con campos todavia incompletos.',
+            };
+        case 'draft':
+            return {
+                status: 'draft',
+                label: 'HCU-012A borrador',
+                summary:
+                    'Existe una solicitud de imagenologia en borrador aun no emitida.',
+            };
+        default:
+            return {
+                status: 'not_applicable',
+                label: 'HCU-012A no aplica',
+                summary:
+                    'No hay solicitud formal de imagenologia exigible para este episodio.',
             };
     }
 }
@@ -2680,6 +3063,74 @@ function deriveLabOrderContext(labOrder, draft, fallbackPatient = {}) {
     });
 }
 
+function deriveImagingOrderContext(imagingOrder, draft, fallbackPatient = {}) {
+    const normalized = normalizeImagingOrder(imagingOrder);
+    const admission = normalizeAdmission001(
+        draft?.admission001,
+        fallbackPatient,
+        draft?.intake
+    );
+    const patient = normalizePatient(fallbackPatient);
+    const clinic = resolveClinicProfileDisplay();
+    const hcu005 = normalizeHcu005(draft?.clinicianDraft?.hcu005);
+    const cie10List = normalizeStringList(draft?.clinicianDraft?.cie10Sugeridos);
+    const diagnoses = normalizeInterconsultationDiagnoses(
+        normalized.diagnoses
+    ).map((item, index) =>
+        normalizeInterconsultationDiagnosis(
+            {
+                ...item,
+                label:
+                    item.label ||
+                    (index === 0
+                        ? normalizeString(hcu005.diagnosticImpression)
+                        : ''),
+                cie10:
+                    item.cie10 || (index === 0 ? normalizeString(cie10List[0]) : ''),
+            },
+            index === 1 ? 'def' : 'pre'
+        )
+    );
+
+    return normalizeImagingOrder({
+        ...normalized,
+        patientName:
+            normalized.patientName ||
+            buildAdmissionLegalName(admission, patient),
+        patientDocumentNumber:
+            normalized.patientDocumentNumber ||
+            normalizeString(admission.identity.documentNumber),
+        patientRecordId:
+            normalized.patientRecordId || normalizeString(draft.patientRecordId),
+        patientAgeYears:
+            normalized.patientAgeYears ?? admission.demographics.ageYears,
+        patientSexAtBirth:
+            normalized.patientSexAtBirth ||
+            normalizeString(admission.demographics.sexAtBirth),
+        requestedAt:
+            normalized.requestedAt ||
+            normalizeString(
+                draft.updatedAt ||
+                    draft.createdAt ||
+                    admission?.admissionMeta?.admissionDate
+            ),
+        requestingEstablishment:
+            normalized.requestingEstablishment || clinic.establishmentLabel,
+        requestingService:
+            normalized.requestingService || clinic.serviceLabel,
+        careSite: normalized.careSite || 'Consulta externa',
+        requestReason:
+            normalized.requestReason ||
+            normalizeString(draft?.intake?.motivoConsulta),
+        clinicalSummary:
+            normalized.clinicalSummary ||
+            [hcu005.evolutionNote, hcu005.therapeuticPlan, hcu005.careIndications]
+                .filter(Boolean)
+                .join('\n'),
+        diagnoses,
+    });
+}
+
 function deriveConsentPacketContext(packet, draft, fallbackPatient = {}) {
     const normalized = normalizeConsentPacket(packet);
     const admission = normalizeAdmission001(
@@ -2776,6 +3227,7 @@ function normalizeDocuments(documents) {
         source?.interconsultReports
     );
     const labOrders = normalizeLabOrderSnapshots(source?.labOrders);
+    const imagingOrders = normalizeImagingOrderSnapshots(source?.imagingOrders);
     const consentForms = normalizeConsentFormSnapshots(source?.consentForms);
 
     return {
@@ -2832,6 +3284,7 @@ function normalizeDocuments(documents) {
         interconsultForms,
         interconsultReports,
         labOrders,
+        imagingOrders,
         consentForms,
     };
 }
@@ -3076,6 +3529,7 @@ function normalizeLegalReadiness(readiness) {
             source?.hcu007ReportStatus?.status
         ),
         hcu010AStatus: hcu010AStatusMeta(source?.hcu010AStatus?.status),
+        hcu012AStatus: hcu012AStatusMeta(source?.hcu012AStatus?.status),
         hcu024Status: hcu024StatusMeta(source?.hcu024Status?.status),
     };
 }
@@ -3182,6 +3636,8 @@ function normalizeDraftSnapshot(draft) {
         ),
         labOrders: normalizeLabOrders(source.labOrders),
         activeLabOrderId: normalizeString(source.activeLabOrderId),
+        imagingOrders: normalizeImagingOrders(source.imagingOrders),
+        activeImagingOrderId: normalizeString(source.activeImagingOrderId),
         consentPackets: normalizeConsentPackets(source.consentPackets),
         activeConsentPacketId: normalizeString(source.activeConsentPacketId),
         consent: normalizeConsent(source.consent),
@@ -3369,6 +3825,23 @@ function synchronizeDraftClinicalState(draft) {
     if (!activeLabOrderId && labOrders.length > 0) {
         activeLabOrderId = normalizeString(labOrders[0].labOrderId);
     }
+    const imagingOrders = normalizeImagingOrders(snapshot.imagingOrders).map(
+        (imagingOrder) =>
+            deriveImagingOrderContext(
+                imagingOrder,
+                {
+                    ...snapshot,
+                    admission001,
+                    clinicianDraft,
+                    documents,
+                },
+                normalizePatient({})
+            )
+    );
+    let activeImagingOrderId = normalizeString(snapshot.activeImagingOrderId);
+    if (!activeImagingOrderId && imagingOrders.length > 0) {
+        activeImagingOrderId = normalizeString(imagingOrders[0].imagingOrderId);
+    }
     const packets = normalizeConsentPackets(snapshot.consentPackets).map(
         (packet) =>
             deriveConsentPacketContext(packet, snapshot, normalizePatient({}))
@@ -3401,6 +3874,8 @@ function synchronizeDraftClinicalState(draft) {
         activeInterconsultationId,
         labOrders,
         activeLabOrderId,
+        imagingOrders,
+        activeImagingOrderId,
         consentPackets: packets,
         activeConsentPacketId,
         consent,
@@ -3468,6 +3943,11 @@ function normalizeReviewQueueItem(item) {
         ),
         hcu010ALabel: normalizeString(source.hcu010ALabel),
         hcu010ASummary: normalizeString(source.hcu010ASummary),
+        hcu012AStatus: normalizeString(
+            source.hcu012AStatus || 'not_applicable'
+        ),
+        hcu012ALabel: normalizeString(source.hcu012ALabel),
+        hcu012ASummary: normalizeString(source.hcu012ASummary),
         hcu024Status: normalizeString(source.hcu024Status || 'not_applicable'),
         hcu024Label: normalizeString(source.hcu024Label),
         hcu024Summary: normalizeString(source.hcu024Summary),
@@ -3573,6 +4053,21 @@ function normalizeReviewPayload(payload) {
                 (labOrder) =>
                     normalizeString(labOrder.labOrderId) ===
                     review.activeLabOrderId
+            ) ||
+            {}
+    );
+    review.imagingOrders = normalizeImagingOrders(
+        source.imagingOrders || review.draft.imagingOrders
+    );
+    review.activeImagingOrderId = normalizeString(
+        source.activeImagingOrderId || review.draft.activeImagingOrderId
+    );
+    review.activeImagingOrder = normalizeImagingOrder(
+        source.activeImagingOrder ||
+            review.imagingOrders.find(
+                (imagingOrder) =>
+                    normalizeString(imagingOrder.imagingOrderId) ===
+                    review.activeImagingOrderId
             ) ||
             {}
     );
@@ -4011,6 +4506,7 @@ function buildSummaryCards(review) {
     const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
     const hcu007Status = hcu007StatusMeta(readiness.hcu007Status?.status);
     const hcu010AStatus = hcu010AStatusMeta(readiness.hcu010AStatus?.status);
+    const hcu012AStatus = hcu012AStatusMeta(readiness.hcu012AStatus?.status);
     const hcu024Status = hcu024StatusMeta(readiness.hcu024Status?.status);
     const pendingAiStatus = formatPendingAiStatus(
         review.session.pendingAi?.status || draft.pendingAi?.status
@@ -4091,6 +4587,19 @@ function buildSummaryCards(review) {
                     ? 'success'
                     : ['ready_to_issue', 'incomplete', 'draft'].includes(
                             hcu010AStatus.status
+                        )
+                      ? 'warning'
+                      : 'neutral',
+        },
+        {
+            title: 'HCU-012A',
+            value: hcu012AStatus.label,
+            meta: hcu012AStatus.summary,
+            tone:
+                hcu012AStatus.status === 'issued'
+                    ? 'success'
+                    : ['ready_to_issue', 'incomplete', 'draft'].includes(
+                            hcu012AStatus.status
                         )
                       ? 'warning'
                       : 'neutral',
@@ -4223,6 +4732,7 @@ function buildLegalReadinessPanel(review) {
     const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
     const hcu007Status = hcu007StatusMeta(readiness.hcu007Status?.status);
     const hcu010AStatus = hcu010AStatusMeta(readiness.hcu010AStatus?.status);
+    const hcu012AStatus = hcu012AStatusMeta(readiness.hcu012AStatus?.status);
     const hcu024Status = hcu024StatusMeta(readiness.hcu024Status?.status);
     const checklist = normalizeList(readiness.checklist);
 
@@ -4262,6 +4772,9 @@ function buildLegalReadinessPanel(review) {
                     </span>
                     <span class="clinical-history-mini-chip">
                         ${escapeHtml(hcu010AStatus.label)}
+                    </span>
+                    <span class="clinical-history-mini-chip">
+                        ${escapeHtml(hcu012AStatus.label)}
                     </span>
                     <span class="clinical-history-mini-chip">
                         ${escapeHtml(hcu024Status.label)}
@@ -4934,6 +5447,7 @@ function buildQueueItemChips(item, status) {
         item.hcu005Label || '',
         item.hcu007Label || '',
         item.hcu010ALabel || '',
+        item.hcu012ALabel || '',
         item.hcu024Label || '',
         formatConfidence(item.confidence),
         queueAlertMeta(item),
@@ -4973,6 +5487,7 @@ function buildQueueItemCard(item, selectedSessionId, loading) {
             item.hcu005Summary ||
             item.hcu007Summary ||
             item.hcu010ASummary ||
+            item.hcu012ASummary ||
             item.summary ||
             queueReasons(item).join(' • ') ||
             'Caso listo para lectura clinica.',
@@ -5196,6 +5711,9 @@ function buildDraftMetaText(slice, review, draft) {
     const hcu010AStatus = hcu010AStatusMeta(
         normalizeLegalReadiness(review.legalReadiness).hcu010AStatus?.status
     );
+    const hcu012AStatus = hcu012AStatusMeta(
+        normalizeLegalReadiness(review.legalReadiness).hcu012AStatus?.status
+    );
 
     if (slice.saving) {
         return 'Guardando borrador clinico...';
@@ -5219,6 +5737,7 @@ function buildDraftMetaText(slice, review, draft) {
             normalizeLegalReadiness(review.legalReadiness).hcu007Status?.status
         ).label,
         hcu010AStatus.label,
+        hcu012AStatus.label,
         hcu024Status.label,
         admissionKindLabel,
     ].filter(Boolean);
@@ -5237,6 +5756,7 @@ function buildDraftSummaryText(review, draft) {
     const hcu005Status = hcu005StatusMeta(readiness.hcu005Status?.status);
     const hcu007Status = hcu007StatusMeta(readiness.hcu007Status?.status);
     const hcu010AStatus = hcu010AStatusMeta(readiness.hcu010AStatus?.status);
+    const hcu012AStatus = hcu012AStatusMeta(readiness.hcu012AStatus?.status);
     const hcu024Status = hcu024StatusMeta(readiness.hcu024Status?.status);
     const documentLabel = [
         normalizeString(admission.identity.documentType),
@@ -5253,6 +5773,7 @@ function buildDraftSummaryText(review, draft) {
               hcu005Status.label,
               hcu007Status.label,
               hcu010AStatus.label,
+              hcu012AStatus.label,
               hcu024Status.label,
               readiness.label || formatReviewStatus(draft.reviewStatus),
           ]
@@ -5294,6 +5815,9 @@ function buildClinicalHeaderMetaText(review) {
     const hcu010AStatus = hcu010AStatusMeta(
         normalizeLegalReadiness(review.legalReadiness).hcu010AStatus?.status
     );
+    const hcu012AStatus = hcu012AStatusMeta(
+        normalizeLegalReadiness(review.legalReadiness).hcu012AStatus?.status
+    );
     const headerMeta = [
         review.session.caseId ? `Caso ${review.session.caseId}` : '',
         review.session.surface || '',
@@ -5307,6 +5831,7 @@ function buildClinicalHeaderMetaText(review) {
         hcu001Status.label,
         hcu007Status.label,
         hcu010AStatus.label,
+        hcu012AStatus.label,
         hcu024Status.label,
     ]
         .filter(Boolean)
@@ -5340,6 +5865,10 @@ function buildClinicalStatusMetaText(draft, pendingAiStatus, meta) {
         normalizeLegalReadiness(currentReviewSource().legalReadiness)
             .hcu010AStatus?.status
     );
+    const hcu012AStatus = hcu012AStatusMeta(
+        normalizeLegalReadiness(currentReviewSource().legalReadiness)
+            .hcu012AStatus?.status
+    );
     const hcu024Status = hcu024StatusMeta(
         normalizeLegalReadiness(currentReviewSource().legalReadiness)
             .hcu024Status?.status
@@ -5350,6 +5879,7 @@ function buildClinicalStatusMetaText(draft, pendingAiStatus, meta) {
         hcu005Status.label,
         hcu007Status.label,
         hcu010AStatus.label,
+        hcu012AStatus.label,
         hcu024Status.label,
         draft.requiresHumanReview
             ? 'Firma humana requerida'
@@ -6785,12 +7315,34 @@ function buildLabOrderChip(labOrder, activeLabOrderId, disabled) {
     `;
 }
 
-function buildLabOrderStudyChecklist(
-    groupKey,
-    label,
-    selectedValues,
-    disabled
-) {
+function buildImagingOrderChip(imagingOrder, activeImagingOrderId, disabled) {
+    const normalized = normalizeImagingOrder(imagingOrder);
+    const status = hcu012AStatusMeta(
+        evaluateImagingOrder(normalized).status
+    );
+    const isActive =
+        normalizeString(normalized.imagingOrderId) ===
+        normalizeString(activeImagingOrderId);
+
+    return `
+        <button
+            type="button"
+            class="clinical-history-workspace-tab${isActive ? ' is-active' : ''}"
+            data-clinical-review-action="select-imaging-order"
+            data-imaging-order-id="${escapeHtml(normalized.imagingOrderId)}"
+            ${disabled ? 'disabled' : ''}
+        >
+            <strong>${escapeHtml(
+                normalized.studyDate ||
+                    normalized.requestedAt ||
+                    'Orden imagenologia'
+            )}</strong>
+            <small>${escapeHtml(status.label)}</small>
+        </button>
+    `;
+}
+
+function buildLabOrderStudyChecklist(groupKey, label, selectedValues, disabled) {
     const options = normalizeList(CLINICAL_HISTORY_LAB_STUDY_OPTIONS[groupKey]);
     const selected = new Set(normalizeStringList(selectedValues));
 
@@ -6831,6 +7383,20 @@ function buildLabOrderStudyChecklist(
             </div>
         </div>
     `;
+}
+
+function buildImagingStudyGroupField(groupKey, label, value, hint, disabled) {
+    return textareaField(
+        `imaging_order_studies_${groupKey}`,
+        label,
+        formatTextareaList(value),
+        {
+            rows: 3,
+            hint,
+            placeholder: 'Una linea por estudio',
+            disabled,
+        }
+    );
 }
 
 function buildClinicalHistoryLabOrderSection(review, draft, disabled) {
@@ -7199,6 +7765,402 @@ function buildClinicalHistoryLabOrderSection(review, draft, disabled) {
                                                                 </div>
                                                                 <p>${escapeHtml(
                                                                     flattenLabOrderStudySelections(
+                                                                        snapshot.studySelections
+                                                                    ).join(
+                                                                        ' • '
+                                                                    ) ||
+                                                                        'Sin estudios visibles'
+                                                                )}</p>
+                                                            </article>
+                                                        `
+                                                  )
+                                                  .join('')
+                                    }
+                                </div>
+                            </div>
+                        `
+                }
+            `
+    );
+}
+
+function buildClinicalHistoryImagingOrderSection(review, draft, disabled) {
+    const imagingOrders = normalizeImagingOrders(draft.imagingOrders);
+    const activeImagingOrderId = normalizeString(draft.activeImagingOrderId);
+    const activeImagingOrder =
+        imagingOrders.find(
+            (item) =>
+                normalizeString(item.imagingOrderId) === activeImagingOrderId
+        ) || null;
+    const hydratedImagingOrder = activeImagingOrder
+        ? deriveImagingOrderContext(
+              activeImagingOrder,
+              draft,
+              review.session.patient
+          )
+        : null;
+    const evaluation = hydratedImagingOrder
+        ? evaluateImagingOrder(hydratedImagingOrder)
+        : { status: 'not_applicable', selectedStudiesCount: 0 };
+    const activeStatus = hcu012AStatusMeta(evaluation.status);
+    const imagingSnapshots = normalizeImagingOrderSnapshots(
+        draft.documents.imagingOrders
+    );
+    const diagnoses = hydratedImagingOrder
+        ? normalizeInterconsultationDiagnoses(hydratedImagingOrder.diagnoses)
+        : normalizeInterconsultationDiagnoses([]);
+    const preDiagnosis =
+        diagnoses.find((item) => item.type === 'pre') ||
+        emptyInterconsultationDiagnosis('pre');
+    const defDiagnosis =
+        diagnoses.find((item) => item.type === 'def') ||
+        emptyInterconsultationDiagnosis('def');
+    const studySelections = hydratedImagingOrder
+        ? normalizeImagingStudySelections(hydratedImagingOrder.studySelections)
+        : normalizeImagingStudySelections({});
+    const selectedStudies = flattenImagingStudySelections(studySelections);
+
+    return buildClinicalHistorySection(
+        'Imagenologia HCU-form.012A/2008',
+        'Solicitud formal de imagenologia trazable al formulario MSP, con emision y cancelacion documentadas por episodio.',
+        `
+                <input
+                    type="hidden"
+                    id="imaging_order_active_id"
+                    name="imaging_order_active_id"
+                    value="${escapeHtml(activeImagingOrderId)}"
+                />
+                <div class="clinical-history-summary-grid">
+                    ${summaryStatCard(
+                        'HCU-012A',
+                        activeStatus.label,
+                        activeStatus.summary,
+                        activeStatus.status === 'issued'
+                            ? 'success'
+                            : ['ready_to_issue', 'incomplete', 'draft'].includes(
+                                    activeStatus.status
+                                )
+                              ? 'warning'
+                              : 'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Paciente / HCU',
+                        hydratedImagingOrder?.patientName ||
+                            buildAdmissionLegalName(
+                                draft.admission001,
+                                review.session.patient
+                            ) ||
+                            'Sin paciente',
+                        [
+                            hydratedImagingOrder?.patientDocumentNumber,
+                            hydratedImagingOrder?.patientRecordId,
+                        ]
+                            .filter(Boolean)
+                            .join(' • ') || 'Sin documento',
+                        'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Solicitante',
+                        hydratedImagingOrder?.requestingService ||
+                            resolveClinicProfileDisplay().serviceLabel,
+                        hydratedImagingOrder?.requestingEstablishment ||
+                            resolveClinicProfileDisplay().establishmentLabel,
+                        'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Estudios',
+                        String(selectedStudies.length),
+                        selectedStudies.length > 0
+                            ? selectedStudies.slice(0, 3).join(' • ')
+                            : 'Sin estudios seleccionados',
+                        selectedStudies.length > 0 ? 'success' : 'neutral'
+                    )}
+                    ${summaryStatCard(
+                        'Snapshots',
+                        String(imagingSnapshots.length),
+                        imagingSnapshots.length > 0
+                            ? 'Snapshots emitidos o cancelados del HCU-012A.'
+                            : 'Todavia no hay snapshots HCU-012A emitidos.',
+                        imagingSnapshots.length > 0 ? 'success' : 'neutral'
+                    )}
+                </div>
+                <div class="toolbar-row clinical-history-actions-row">
+                    <button
+                        type="button"
+                        data-clinical-review-action="create-imaging-order"
+                        ${disabled ? 'disabled' : ''}
+                    >
+                        Nueva solicitud de imagenologia
+                    </button>
+                    <button
+                        type="button"
+                        data-clinical-review-action="issue-current-imaging-order"
+                        ${disabled || !hydratedImagingOrder ? 'disabled' : ''}
+                    >
+                        Emitir solicitud
+                    </button>
+                    <button
+                        type="button"
+                        data-clinical-review-action="cancel-current-imaging-order"
+                        ${disabled || !hydratedImagingOrder ? 'disabled' : ''}
+                    >
+                        Cancelar solicitud
+                    </button>
+                </div>
+                <div class="toolbar-row clinical-history-actions-row">
+                    ${imagingOrders
+                        .map((item) =>
+                            buildImagingOrderChip(
+                                item,
+                                activeImagingOrderId,
+                                disabled
+                            )
+                        )
+                        .join('')}
+                </div>
+                ${
+                    !hydratedImagingOrder
+                        ? buildEmptyClinicalCard(
+                              'Sin solicitud activa',
+                              'Crea una solicitud de imagenologia del episodio para empezar el HCU-012A.'
+                          )
+                        : `
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'imaging_order_requested_at',
+                                    'Fecha/hora de solicitud',
+                                    hydratedImagingOrder.requestedAt,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'imaging_order_study_date',
+                                    'Fecha de toma',
+                                    hydratedImagingOrder.studyDate,
+                                    { disabled }
+                                ),
+                                selectField(
+                                    'imaging_order_priority',
+                                    'Prioridad',
+                                    hydratedImagingOrder.priority,
+                                    CLINICAL_HISTORY_LAB_ORDER_PRIORITY_CHOICES,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'imaging_order_requested_by',
+                                    'Profesional solicitante',
+                                    hydratedImagingOrder.requestedBy,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${checkboxField(
+                                'imaging_order_required_for_current_plan',
+                                'La solicitud de imagenologia es parte del plan actual',
+                                hydratedImagingOrder.requiredForCurrentPlan ===
+                                    true,
+                                {
+                                    hint: 'Si esta marcada, la aprobacion final exige emitirla o cancelarla.',
+                                    disabled,
+                                }
+                            )}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'imaging_order_patient_name',
+                                    'Paciente',
+                                    hydratedImagingOrder.patientName,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'imaging_order_patient_record',
+                                    'Documento / HCU',
+                                    [
+                                        hydratedImagingOrder.patientDocumentNumber,
+                                        hydratedImagingOrder.patientRecordId,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' '),
+                                    { disabled: true }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'imaging_order_requesting_establishment',
+                                    'Establecimiento solicitante',
+                                    hydratedImagingOrder.requestingEstablishment,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'imaging_order_requesting_service',
+                                    'Servicio solicitante',
+                                    hydratedImagingOrder.requestingService,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'imaging_order_care_site',
+                                    'Sala / sitio',
+                                    hydratedImagingOrder.careSite,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'imaging_order_bed_label',
+                                    'Cama / referencia',
+                                    hydratedImagingOrder.bedLabel,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'imaging_order_diagnosis_pre_label',
+                                    'Diagnostico PRE',
+                                    preDiagnosis.label,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'imaging_order_diagnosis_pre_cie10',
+                                    'CIE-10 PRE',
+                                    preDiagnosis.cie10,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'imaging_order_diagnosis_def_label',
+                                    'Diagnostico DEF',
+                                    defDiagnosis.label,
+                                    { disabled }
+                                ),
+                                inputField(
+                                    'imaging_order_diagnosis_def_cie10',
+                                    'CIE-10 DEF',
+                                    defDiagnosis.cie10,
+                                    { disabled }
+                                ),
+                            ])}
+                            ${CLINICAL_HISTORY_IMAGING_STUDY_GROUPS.map(
+                                ({ key, label, hint }) =>
+                                    buildImagingStudyGroupField(
+                                        key,
+                                        label,
+                                        studySelections[key],
+                                        hint,
+                                        disabled
+                                    )
+                            ).join('')}
+                            ${textareaField(
+                                'imaging_order_request_reason',
+                                'Motivo de la solicitud',
+                                hydratedImagingOrder.requestReason,
+                                {
+                                    rows: 3,
+                                    placeholder:
+                                        'Registra las razones para solicitar aclaracion diagnostica o apoyo por imagen.',
+                                    disabled,
+                                }
+                            )}
+                            ${textareaField(
+                                'imaging_order_clinical_summary',
+                                'Resumen clinico',
+                                hydratedImagingOrder.clinicalSummary,
+                                {
+                                    rows: 4,
+                                    placeholder:
+                                        'Sintesis clinica relevante para el estudio solicitado.',
+                                    disabled,
+                                }
+                            )}
+                            ${buildClinicalHistoryInlineGrid([
+                                checkboxField(
+                                    'imaging_order_can_mobilize',
+                                    'Puede movilizarse',
+                                    hydratedImagingOrder.canMobilize === true,
+                                    { disabled }
+                                ),
+                                checkboxField(
+                                    'imaging_order_can_remove_dressings',
+                                    'Puede retirarse vendas, apositos o yesos',
+                                    hydratedImagingOrder.canRemoveDressingsOrCasts ===
+                                        true,
+                                    { disabled }
+                                ),
+                                checkboxField(
+                                    'imaging_order_physician_present',
+                                    'El medico estara presente en el examen',
+                                    hydratedImagingOrder.physicianPresentAtExam ===
+                                        true,
+                                    { disabled }
+                                ),
+                                checkboxField(
+                                    'imaging_order_bedside_radiography',
+                                    'Toma de radiografia en la cama',
+                                    hydratedImagingOrder.bedsideRadiography ===
+                                        true,
+                                    {
+                                        hint: 'Si la marcas, debe existir al menos un estudio en R-X convencional.',
+                                        disabled,
+                                    }
+                                ),
+                            ])}
+                            ${textareaField(
+                                'imaging_order_notes',
+                                'Observaciones',
+                                hydratedImagingOrder.notes,
+                                {
+                                    rows: 3,
+                                    placeholder:
+                                        'Condiciones logisticas, observaciones o instrucciones complementarias.',
+                                    disabled,
+                                }
+                            )}
+                            ${buildClinicalHistoryInlineGrid([
+                                inputField(
+                                    'imaging_order_issued_at',
+                                    'Emitida el',
+                                    hydratedImagingOrder.issuedAt,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'imaging_order_cancelled_at',
+                                    'Cancelada el',
+                                    hydratedImagingOrder.cancelledAt,
+                                    { disabled: true }
+                                ),
+                                inputField(
+                                    'imaging_order_cancel_reason',
+                                    'Razon de cancelacion',
+                                    hydratedImagingOrder.cancelReason,
+                                    { disabled }
+                                ),
+                            ])}
+                            <div class="clinical-history-section-block">
+                                <div class="clinical-history-event-head">
+                                    <strong>Snapshots documentales HCU-012A</strong>
+                                    <span class="clinical-history-mini-chip">${escapeHtml(
+                                        String(imagingSnapshots.length)
+                                    )}</span>
+                                </div>
+                                <div class="clinical-history-events">
+                                    ${
+                                        imagingSnapshots.length === 0
+                                            ? buildEmptyClinicalCard(
+                                                  'Sin snapshots emitidos',
+                                                  'Las solicitudes emitidas o canceladas quedaran congeladas aqui.'
+                                              )
+                                            : imagingSnapshots
+                                                  .map(
+                                                      (snapshot) => `
+                                                            <article class="clinical-history-event-card" data-tone="neutral">
+                                                                <div class="clinical-history-event-head">
+                                                                    <span class="clinical-history-mini-chip">${escapeHtml(
+                                                                        hcu012AStatusMeta(
+                                                                            snapshot.status
+                                                                        ).label
+                                                                    )}</span>
+                                                                    <span class="clinical-history-mini-chip">${escapeHtml(
+                                                                        readableTimestamp(
+                                                                            snapshot.finalizedAt ||
+                                                                                snapshot.snapshotAt
+                                                                        )
+                                                                    )}</span>
+                                                                </div>
+                                                                <p>${escapeHtml(
+                                                                    flattenImagingStudySelections(
                                                                         snapshot.studySelections
                                                                     ).join(
                                                                         ' • '
@@ -7826,6 +8788,7 @@ function buildDraftForm(review, draft, saving) {
             ${buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons)}
             ${buildClinicalHistoryInterconsultSection(review, draft, disabled)}
             ${buildClinicalHistoryLabOrderSection(review, draft, disabled)}
+            ${buildClinicalHistoryImagingOrderSection(review, draft, disabled)}
             ${buildClinicalHistoryConsentSection(review, draft, disabled)}
             ${buildClinicalHistoryDocumentsSection(draft, disabled)}
         </div>
@@ -8261,6 +9224,107 @@ function serializeDraftForm(form, baseDraft) {
     snapshot.labOrders = labOrders;
     snapshot.activeLabOrderId = activeLabOrderId;
 
+    const imagingOrders = normalizeImagingOrders(snapshot.imagingOrders);
+    let activeImagingOrderId =
+        normalizeString(readValue('imaging_order_active_id')) ||
+        normalizeString(snapshot.activeImagingOrderId);
+    if (!activeImagingOrderId && imagingOrders.length > 0) {
+        activeImagingOrderId = normalizeString(
+            imagingOrders[0].imagingOrderId
+        );
+    }
+    const activeImagingOrderIndex = imagingOrders.findIndex(
+        (imagingOrder) =>
+            normalizeString(imagingOrder.imagingOrderId) ===
+            activeImagingOrderId
+    );
+    if (activeImagingOrderIndex >= 0) {
+        const baseImagingOrder = deriveImagingOrderContext(
+            imagingOrders[activeImagingOrderIndex],
+            snapshot
+        );
+        imagingOrders[activeImagingOrderIndex] = normalizeImagingOrder({
+            ...baseImagingOrder,
+            requestedAt:
+                readValue('imaging_order_requested_at') ||
+                baseImagingOrder.requestedAt,
+            studyDate:
+                readValue('imaging_order_study_date') ||
+                baseImagingOrder.studyDate,
+            priority:
+                readValue('imaging_order_priority') ||
+                baseImagingOrder.priority,
+            requestedBy:
+                readValue('imaging_order_requested_by') ||
+                baseImagingOrder.requestedBy,
+            requiredForCurrentPlan: readChecked(
+                'imaging_order_required_for_current_plan'
+            ),
+            careSite:
+                readValue('imaging_order_care_site') ||
+                baseImagingOrder.careSite,
+            bedLabel:
+                readValue('imaging_order_bed_label') ||
+                baseImagingOrder.bedLabel,
+            diagnoses: [
+                normalizeInterconsultationDiagnosis({
+                    type: 'pre',
+                    label: readValue('imaging_order_diagnosis_pre_label'),
+                    cie10: readValue('imaging_order_diagnosis_pre_cie10'),
+                }),
+                normalizeInterconsultationDiagnosis({
+                    type: 'def',
+                    label: readValue('imaging_order_diagnosis_def_label'),
+                    cie10: readValue('imaging_order_diagnosis_def_cie10'),
+                }),
+            ],
+            studySelections: normalizeImagingStudySelections({
+                conventionalRadiography: normalizeTextareaList(
+                    readValue(
+                        'imaging_order_studies_conventionalRadiography'
+                    )
+                ),
+                tomography: normalizeTextareaList(
+                    readValue('imaging_order_studies_tomography')
+                ),
+                magneticResonance: normalizeTextareaList(
+                    readValue('imaging_order_studies_magneticResonance')
+                ),
+                ultrasound: normalizeTextareaList(
+                    readValue('imaging_order_studies_ultrasound')
+                ),
+                procedures: normalizeTextareaList(
+                    readValue('imaging_order_studies_procedures')
+                ),
+                others: normalizeTextareaList(
+                    readValue('imaging_order_studies_others')
+                ),
+            }),
+            requestReason: readValue('imaging_order_request_reason'),
+            clinicalSummary: readValue('imaging_order_clinical_summary'),
+            canMobilize: readChecked('imaging_order_can_mobilize'),
+            canRemoveDressingsOrCasts: readChecked(
+                'imaging_order_can_remove_dressings'
+            ),
+            physicianPresentAtExam: readChecked(
+                'imaging_order_physician_present'
+            ),
+            bedsideRadiography: readChecked(
+                'imaging_order_bedside_radiography'
+            ),
+            notes: readValue('imaging_order_notes'),
+            issuedAt:
+                readValue('imaging_order_issued_at') ||
+                baseImagingOrder.issuedAt,
+            cancelledAt:
+                readValue('imaging_order_cancelled_at') ||
+                baseImagingOrder.cancelledAt,
+            cancelReason: readValue('imaging_order_cancel_reason'),
+        });
+    }
+    snapshot.imagingOrders = imagingOrders;
+    snapshot.activeImagingOrderId = activeImagingOrderId;
+
     const consentPackets = normalizeConsentPackets(snapshot.consentPackets);
     let activeConsentPacketId =
         normalizeString(readValue('consent_active_packet_id')) ||
@@ -8527,6 +9591,8 @@ function buildConsentPacketActionPayload(action) {
         activeInterconsultationId: draft.activeInterconsultationId,
         labOrders: cloneValue(draft.labOrders),
         activeLabOrderId: draft.activeLabOrderId,
+        imagingOrders: cloneValue(draft.imagingOrders),
+        activeImagingOrderId: draft.activeImagingOrderId,
         consentPackets: cloneValue(draft.consentPackets),
         activeConsentPacketId: packetId,
         consent: cloneValue(draft.consent),
@@ -8575,6 +9641,8 @@ async function submitConsentPacketAction(action) {
                 activeInterconsultationId: payload.activeInterconsultationId,
                 labOrders: payload.labOrders,
                 activeLabOrderId: payload.activeLabOrderId,
+                imagingOrders: payload.imagingOrders,
+                activeImagingOrderId: payload.activeImagingOrderId,
                 consentPackets: payload.consentPackets,
                 activeConsentPacketId: payload.activeConsentPacketId,
                 consent: payload.consent,
@@ -8676,6 +9744,8 @@ function buildInterconsultationActionPayload(action, interconsultId = '') {
             resolvedInterconsultId || draft.activeInterconsultationId,
         labOrders: cloneValue(draft.labOrders),
         activeLabOrderId: draft.activeLabOrderId,
+        imagingOrders: cloneValue(draft.imagingOrders),
+        activeImagingOrderId: draft.activeImagingOrderId,
         consentPackets: cloneValue(draft.consentPackets),
         activeConsentPacketId: draft.activeConsentPacketId,
         consent: cloneValue(draft.consent),
@@ -8733,6 +9803,8 @@ async function submitInterconsultationAction(action, interconsultId = '') {
                 activeInterconsultationId: payload.activeInterconsultationId,
                 labOrders: payload.labOrders,
                 activeLabOrderId: payload.activeLabOrderId,
+                imagingOrders: payload.imagingOrders,
+                activeImagingOrderId: payload.activeImagingOrderId,
                 consentPackets: payload.consentPackets,
                 activeConsentPacketId: payload.activeConsentPacketId,
                 consent: payload.consent,
@@ -8837,6 +9909,8 @@ function buildLabOrderActionPayload(action, labOrderId = '') {
         activeInterconsultationId: draft.activeInterconsultationId,
         labOrders: cloneValue(draft.labOrders),
         activeLabOrderId: resolvedLabOrderId || draft.activeLabOrderId,
+        imagingOrders: cloneValue(draft.imagingOrders),
+        activeImagingOrderId: draft.activeImagingOrderId,
         consentPackets: cloneValue(draft.consentPackets),
         activeConsentPacketId: draft.activeConsentPacketId,
         consent: cloneValue(draft.consent),
@@ -8854,6 +9928,60 @@ function buildLabOrderActionPayload(action, labOrderId = '') {
 
     if (action === 'create_lab_order') {
         delete payload.labOrderId;
+    }
+
+    return payload;
+}
+
+function buildImagingOrderActionPayload(action, imagingOrderId = '') {
+    const review = currentReviewSource();
+    const draft = currentSerializedDraft();
+    const sessionId = normalizeString(
+        review.session.sessionId || draft.sessionId
+    );
+    const resolvedImagingOrderId =
+        normalizeString(imagingOrderId) ||
+        normalizeString(
+            draft.activeImagingOrderId ||
+                draft.imagingOrders?.[0]?.imagingOrderId ||
+                review.activeImagingOrderId
+        );
+
+    const payload = {
+        sessionId,
+        action,
+        imagingOrderId: resolvedImagingOrderId,
+        draft: {
+            intake: cloneValue(draft.intake),
+            clinicianDraft: cloneValue(draft.clinicianDraft),
+            admission001: cloneValue(draft.admission001),
+        },
+        documents: cloneValue(draft.documents),
+        interconsultations: cloneValue(draft.interconsultations),
+        activeInterconsultationId: draft.activeInterconsultationId,
+        labOrders: cloneValue(draft.labOrders),
+        activeLabOrderId: draft.activeLabOrderId,
+        imagingOrders: cloneValue(draft.imagingOrders),
+        activeImagingOrderId:
+            resolvedImagingOrderId || draft.activeImagingOrderId,
+        consentPackets: cloneValue(draft.consentPackets),
+        activeConsentPacketId: draft.activeConsentPacketId,
+        consent: cloneValue(draft.consent),
+        requiresHumanReview: draft.requiresHumanReview === true,
+    };
+
+    if (action === 'cancel_imaging_order') {
+        payload.cancelReason = normalizeString(
+            draft.imagingOrders.find(
+                (item) =>
+                    normalizeString(item.imagingOrderId) ===
+                    resolvedImagingOrderId
+            )?.cancelReason
+        );
+    }
+
+    if (action === 'create_imaging_order') {
+        delete payload.imagingOrderId;
     }
 
     return payload;
@@ -8890,6 +10018,8 @@ async function submitLabOrderAction(action, labOrderId = '') {
                 activeInterconsultationId: payload.activeInterconsultationId,
                 labOrders: payload.labOrders,
                 activeLabOrderId: payload.activeLabOrderId,
+                imagingOrders: payload.imagingOrders,
+                activeImagingOrderId: payload.activeImagingOrderId,
                 consentPackets: payload.consentPackets,
                 activeConsentPacketId: payload.activeConsentPacketId,
                 consent: payload.consent,
@@ -8955,6 +10085,115 @@ async function submitLabOrderAction(action, labOrderId = '') {
         syncDraftStatusMeta();
         createToast(
             error?.message || 'No se pudo actualizar la solicitud HCU-010A.',
+            'error'
+        );
+        return null;
+    }
+}
+
+async function submitImagingOrderAction(action, imagingOrderId = '') {
+    const sessionId = normalizeString(currentSessionId());
+    if (!sessionId) {
+        createToast(
+            'Selecciona un caso clinico antes de operar la solicitud HCU-012A.',
+            'warning'
+        );
+        return null;
+    }
+
+    const payload = buildImagingOrderActionPayload(action, imagingOrderId);
+    if (
+        action !== 'create_imaging_order' &&
+        !normalizeString(payload.imagingOrderId)
+    ) {
+        createToast(
+            'Crea o selecciona una solicitud de imagenologia antes de continuar.',
+            'warning'
+        );
+        return null;
+    }
+
+    setClinicalHistoryState({
+        saving: true,
+        error: '',
+        draftForm: cloneValue(
+            synchronizeDraftClinicalState({
+                ...currentDraftSource(),
+                ...payload.draft,
+                documents: payload.documents,
+                interconsultations: payload.interconsultations,
+                activeInterconsultationId:
+                    payload.activeInterconsultationId,
+                labOrders: payload.labOrders,
+                activeLabOrderId: payload.activeLabOrderId,
+                imagingOrders: payload.imagingOrders,
+                activeImagingOrderId: payload.activeImagingOrderId,
+                consentPackets: payload.consentPackets,
+                activeConsentPacketId: payload.activeConsentPacketId,
+                consent: payload.consent,
+                requiresHumanReview: payload.requiresHumanReview,
+            })
+        ),
+        dirty: true,
+    });
+    syncDraftStatusMeta();
+
+    try {
+        const response = await apiRequest('clinical-episode-action', {
+            method: 'POST',
+            body: payload,
+        });
+        const nextReview = normalizeReviewPayload(response.data);
+        setClinicalHistoryState({
+            saving: false,
+            error: '',
+            dirty: false,
+            current: nextReview,
+            draftForm: cloneValue(nextReview.draft),
+            selectedSessionId: nextReview.session.sessionId || sessionId,
+            lastLoadedAt: Date.now(),
+        });
+
+        try {
+            await refreshAdminData();
+        } catch (_error) {
+            // Keep the workspace usable even if the admin snapshot refresh fails.
+        }
+
+        renderAdminChrome(getState());
+        renderDashboard(getState());
+        renderClinicalHistorySection();
+
+        const targetLabel = currentSelectionLabel(nextReview);
+        if (action === 'create_imaging_order') {
+            createToast(
+                `Solicitud HCU-012A creada para ${targetLabel}.`,
+                'success'
+            );
+        } else if (action === 'issue_imaging_order') {
+            createToast(
+                `Solicitud HCU-012A emitida para ${targetLabel}.`,
+                'success'
+            );
+        } else if (action === 'cancel_imaging_order') {
+            createToast(
+                `Solicitud HCU-012A cancelada para ${targetLabel}.`,
+                'success'
+            );
+        }
+
+        return nextReview;
+    } catch (error) {
+        setClinicalHistoryState({
+            saving: false,
+            error:
+                error?.message ||
+                'No se pudo actualizar la solicitud HCU-012A.',
+        });
+        syncDraftStatusMeta();
+        createToast(
+            error?.message ||
+                'No se pudo actualizar la solicitud HCU-012A.',
             'error'
         );
         return null;
@@ -9342,6 +10581,8 @@ function buildReviewPatch(mode, question) {
         activeInterconsultationId: draft.activeInterconsultationId,
         labOrders: cloneValue(draft.labOrders),
         activeLabOrderId: draft.activeLabOrderId,
+        imagingOrders: cloneValue(draft.imagingOrders),
+        activeImagingOrderId: draft.activeImagingOrderId,
         consentPackets: cloneValue(draft.consentPackets),
         activeConsentPacketId: draft.activeConsentPacketId,
         consent: cloneValue(draft.consent),
@@ -9357,6 +10598,8 @@ function buildReviewPatch(mode, question) {
         activeInterconsultationId: draftPatch.activeInterconsultationId,
         labOrders: draftPatch.labOrders,
         activeLabOrderId: draftPatch.activeLabOrderId,
+        imagingOrders: draftPatch.imagingOrders,
+        activeImagingOrderId: draftPatch.activeImagingOrderId,
         consentPackets: draftPatch.consentPackets,
         activeConsentPacketId: draftPatch.activeConsentPacketId,
         consent: draftPatch.consent,
@@ -9773,6 +11016,11 @@ function bindClinicalHistoryEvents() {
             return;
         }
 
+        if (action === 'create-imaging-order') {
+            await submitImagingOrderAction('create_imaging_order');
+            return;
+        }
+
         if (action === 'select-interconsultation') {
             await submitInterconsultationAction(
                 'select_interconsultation',
@@ -9789,6 +11037,14 @@ function bindClinicalHistoryEvents() {
             return;
         }
 
+        if (action === 'select-imaging-order') {
+            await submitImagingOrderAction(
+                'select_imaging_order',
+                actionTarget.dataset.imagingOrderId || ''
+            );
+            return;
+        }
+
         if (action === 'issue-current-interconsultation') {
             await submitInterconsultationAction('issue_interconsultation');
             return;
@@ -9799,6 +11055,11 @@ function bindClinicalHistoryEvents() {
             return;
         }
 
+        if (action === 'issue-current-imaging-order') {
+            await submitImagingOrderAction('issue_imaging_order');
+            return;
+        }
+
         if (action === 'cancel-current-interconsultation') {
             await submitInterconsultationAction('cancel_interconsultation');
             return;
@@ -9806,6 +11067,11 @@ function bindClinicalHistoryEvents() {
 
         if (action === 'cancel-current-lab-order') {
             await submitLabOrderAction('cancel_lab_order');
+            return;
+        }
+
+        if (action === 'cancel-current-imaging-order') {
+            await submitImagingOrderAction('cancel_imaging_order');
             return;
         }
 
