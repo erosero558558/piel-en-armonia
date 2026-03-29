@@ -7,66 +7,75 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 836
-  updated_at: 2026-03-28
+  revision: 838
+  updated_at: 2026-03-29
 
 strategy:
   active:
-    id: STRAT-2026-03-admin-shell-rc2-polish
-    title: "Admin shell RC2 polish"
-    objective: "Cerrar un frente dedicado al shell admin clinico diario, con navegacion mas limpia, cinco secciones visibles y sin reabrir queue/turnero, reviews ni readiness remota."
-    owner: luciaguadalupecaizasanchez
+    id: STRAT-2026-03-admin-operativo
+    title: "Admin operativo"
+    objective: "Convertir el frente admin clinico, queue/turnero y OpenClaw UX en una entrega operable y visible, con soporte backend y runtime estrictamente alineado."
+    owner: deck
     owner_policy: "detected_default_owner"
     status: active
-    started_at: "2026-03-28"
-    review_due_at: "2026-03-31"
+    started_at: "2026-03-29"
+    review_due_at: "2026-03-21"
     closed_at: ""
     close_reason: ""
-    exit_criteria: ["El shell visible deja solo dashboard, appointments, callbacks, availability y clinical-history", "Hash routing, quick commands y shortcuts dejan fuera queue/turnero y reviews", "El required check unico del foco queda verde con test:frontend:qa:admin"]
-    success_signal: "El admin diario vuelve a abrir como shell clinico legible y estable, sin ruido visible de surfaces de turnero ni dependencias de public_main_sync."
-    focus_id: "FOCUS-2026-03-admin-shell-rc2-polish-cut-1"
-    focus_title: "Admin shell clinico diario sin ruido de turnero"
-    focus_summary: "Pulir el shell admin diario para dejar solo cinco secciones visibles, navegacion mas legible y cero ruido de queue/turnero o reviews en el carril principal."
+    exit_criteria: ["Admin clinico y queue/turnero navegables sin flujos rotos", "Auth/readiness/gates en verde para el frente activo", "Runtime OpenClaw solo usado como desbloqueo directo del mismo objetivo"]
+    success_signal: "Un mismo corte operativo puede demostrarse de punta a punta sin abrir trabajo fuera del frente admin operativo."
+    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+    focus_title: "Admin operativo demostrable"
+    focus_summary: "Unificar admin clinico, quick-nav, queue/turnero piloto y readiness operacional en un solo corte legible."
     focus_status: active
-    focus_proof: "El operador entra al admin y ve inicio, agenda, pendientes, horarios e historia clinica como unico shell visible; queue/turnero y reviews quedan fuera de sidebar, hash routing y quick commands."
-    focus_steps: ["shell_nav_ergonomics", "qa_closeout"]
-    focus_next_step: "shell_nav_ergonomics"
-    focus_required_checks: ["test:frontend:qa:admin"]
-    focus_non_goals: ["reactivar_queue_turnero", "reactivar_reviews", "recover_public_main_sync", "refactor_backend_runtime"]
-    focus_owner: "luciaguadalupecaizasanchez"
-    focus_review_due_at: "2026-03-31"
+    focus_proof: "Operador inicia sesion, entra al admin, usa quick-nav, revisa queue/turnero piloto y el corte queda respaldado por runtime/deploy verificables"
+    focus_steps: ["admin_queue_pilot_cut", "pilot_readiness_evidence", "feedback_trim"]
+    focus_next_step: "admin_queue_pilot_cut"
+    focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]
+    focus_non_goals: ["rediseno_publico", "expansion_payments", "refactor_orchestrator_no_bloqueante", "modularizacion_fuera_del_corte"]
+    focus_owner: "deck"
+    focus_review_due_at: "2026-03-21"
     focus_evidence_ref: ""
-    focus_max_active_slices: 1
+    focus_max_active_slices: 3
     subfronts:
       - codex_instance: codex_frontend
-        subfront_id: SF-frontend-admin-shell-rc2
-        title: "Admin shell clinico visible y navegacion diaria"
+        subfront_id: SF-frontend-admin-operativo
+        title: "Admin clinico y shell principal"
         allowed_scopes: ["frontend-admin"]
         support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["queue", "turnero", "frontend-public", "payments"]
-        wip_limit: 1
+        blocked_scopes: ["payments"]
+        wip_limit: 2
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
+      - codex_instance: codex_frontend
+        subfront_id: SF-frontend-queue-turnero-operativo
+        title: "Queue, turnero y OpenClaw UX de soporte"
+        allowed_scopes: ["queue", "turnero"]
+        support_only_scopes: ["docs", "frontend-qa"]
+        blocked_scopes: ["calendar"]
+        wip_limit: 2
         default_acceptance_profile: "frontend_delivery_checkpoint"
         exception_ttl_hours: 8
       - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-admin-shell-rc2-support
-        title: "Soporte backend eventual del shell admin RC2"
-        allowed_scopes: []
-        support_only_scopes: ["backend", "auth", "readiness", "gates"]
-        blocked_scopes: ["queue", "turnero", "deploy", "payments"]
-        wip_limit: 1
+        subfront_id: SF-backend-admin-operativo
+        title: "Auth, readiness, gates y backend de soporte directo"
+        allowed_scopes: ["auth", "backend", "readiness", "gates"]
+        support_only_scopes: ["deploy", "ops", "monitoring", "tests"]
+        blocked_scopes: ["frontend-public", "security"]
+        wip_limit: 2
         default_acceptance_profile: "backend_gate_checkpoint"
         exception_ttl_hours: 6
       - codex_instance: codex_transversal
-        subfront_id: SF-transversal-admin-shell-rc2-support
-        title: "Bootstrap y closeout transversal del shell admin RC2"
+        subfront_id: SF-transversal-admin-operativo
+        title: "Runtime/orquestacion solo como desbloqueo del frente"
         allowed_scopes: []
-        support_only_scopes: ["codex-governance", "tooling", "tests"]
-        blocked_scopes: ["openclaw_runtime", "legacy-runtime"]
-        wip_limit: 1
+        support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
+        blocked_scopes: ["legacy-runtime"]
+        wip_limit: 2
         default_acceptance_profile: "transversal_runtime_checkpoint"
         exception_ttl_hours: 4
   next: null
-  updated_at: "2026-03-28"
+  updated_at: "2026-03-29"
 
 tasks:
   - id: AG-001
@@ -1900,10 +1909,10 @@ tasks:
     domain_lane: transversal_runtime
     lane_lock: strict
     cross_domain: false
-    provider_mode: ""
-    runtime_surface: ""
-    runtime_transport: ""
-    runtime_last_transport: ""
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
     model_tier_default: "gpt-5.4-mini"
     premium_budget: 0
     premium_calls_used: 0
@@ -1924,8 +1933,8 @@ tasks:
     heartbeat_at: ""
     lease_expires_at: ""
     lease_reason: ""
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_cleared_at: "2026-03-29T00:23:24.704Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
     acceptance: "board sync normaliza ready huerfanas fuera del frente activo, strategy activate-next puede degradarlas con --normalize-ready-orphans y codex-check/status separan blocker del frente vivo frente a deuda historica."
@@ -1959,10 +1968,10 @@ tasks:
     domain_lane: transversal_runtime
     lane_lock: strict
     cross_domain: false
-    provider_mode: ""
-    runtime_surface: ""
-    runtime_transport: ""
-    runtime_last_transport: ""
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
     model_tier_default: "gpt-5.4-mini"
     premium_budget: 0
     premium_calls_used: 0
@@ -2018,10 +2027,10 @@ tasks:
     domain_lane: frontend_content
     lane_lock: strict
     cross_domain: false
-    provider_mode: ""
-    runtime_surface: ""
-    runtime_transport: ""
-    runtime_last_transport: ""
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
     model_tier_default: "gpt-5.4-mini"
     premium_budget: 0
     premium_calls_used: 0
@@ -2077,10 +2086,10 @@ tasks:
     domain_lane: transversal_runtime
     lane_lock: strict
     cross_domain: false
-    provider_mode: ""
-    runtime_surface: ""
-    runtime_transport: ""
-    runtime_last_transport: ""
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
     model_tier_default: "gpt-5.4-mini"
     premium_budget: 0
     premium_calls_used: 0
@@ -12891,6 +12900,7 @@ tasks:
     prompt: "Preservar el contrato OpenClaw auth (mode/recommendedMode) mientras CDX-009 sigue bloqueado por 502 host-side."
     created_at: 2026-03-26
     updated_at: 2026-03-27
+
   - id: AG-262
     title: "OpenClaw auth contract mode preservation during CDX-009 triage"
     owner: Ernesto

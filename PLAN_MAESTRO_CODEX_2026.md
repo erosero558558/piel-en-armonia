@@ -5,22 +5,22 @@ Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
 <!-- CODEX_STRATEGY_ACTIVE
-id: STRAT-2026-03-admin-shell-rc2-polish
-title: "Admin shell RC2 polish"
+id: STRAT-2026-03-admin-operativo
+title: "Admin operativo"
 status: active
-owner: luciaguadalupecaizasanchez
+owner: deck
 owner_policy: "detected_default_owner"
-objective: "Cerrar un frente dedicado al shell admin clinico diario, con navegacion mas limpia, cinco secciones visibles y sin reabrir queue/turnero, reviews ni readiness remota."
-started_at: "2026-03-28"
-review_due_at: "2026-03-31"
-success_signal: "El admin diario vuelve a abrir como shell clinico legible y estable, sin ruido visible de surfaces de turnero ni dependencias de public_main_sync."
-focus_id: "FOCUS-2026-03-admin-shell-rc2-polish-cut-1"
-focus_title: "Admin shell clinico diario sin ruido de turnero"
+objective: "Convertir el frente admin clinico, queue/turnero y OpenClaw UX en una entrega operable y visible, con soporte backend y runtime estrictamente alineado."
+started_at: "2026-03-29"
+review_due_at: "2026-03-21"
+success_signal: "Un mismo corte operativo puede demostrarse de punta a punta sin abrir trabajo fuera del frente admin operativo."
+focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
+focus_title: "Admin operativo demostrable"
 focus_status: active
-focus_next_step: "shell_nav_ergonomics"
-focus_required_checks: ["test:frontend:qa:admin"]
-subfront_ids: ["SF-frontend-admin-shell-rc2", "SF-backend-admin-shell-rc2-support", "SF-transversal-admin-shell-rc2-support"]
-updated_at: "2026-03-28"
+focus_next_step: "admin_queue_pilot_cut"
+focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]
+subfront_ids: ["SF-frontend-admin-operativo", "SF-frontend-queue-turnero-operativo", "SF-backend-admin-operativo", "SF-transversal-admin-operativo"]
+updated_at: "2026-03-29"
 -->
 
 ## Fase 2 multi-clínica local 2026-03-28

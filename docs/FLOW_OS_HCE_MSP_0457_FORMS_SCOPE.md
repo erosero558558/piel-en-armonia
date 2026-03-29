@@ -74,7 +74,7 @@ Cerrar la Fase 0 normativa de HCE para el alcance **consultorio defendible V1** 
 | `SNS-MSP/HCU-form.005/2008` Evolucion y prescripciones | Instructivo MSP 2020, anexo 8 | Nucleo documental ambulatorio | `FinalClinicalNote`, `Prescription` | Parcial |
 | `SNS-MSP/HCU-form.007/2008` Interconsulta | Instructivo MSP 2020, anexo 9 | Aplicable cuando el consultorio emite o recibe interconsulta | `interconsultations[]`, `activeInterconsultation`, `documents.interconsultForms[]`, `documents.interconsultReports[]`, `legalReadiness.hcu007Status`, `legalReadiness.hcu007ReportStatus` | Parcial: emision/cancelacion e informe recibido implementados; siguen diferidos portal externo y firma avanzada |
 | `SNS-MSP/HCU-form.010A/2008` Solicitud de laboratorio clinico | Instructivo MSP 2020, anexo 10 | Aplicable cuando el caso requiere examenes de laboratorio | `labOrders[]`, `activeLabOrder`, `documents.labOrders`, `legalReadiness.hcu010AStatus` | Parcial: emision/cancelacion y bloqueo clinico cuando la orden requerida no ha sido emitida; siguen diferidos integracion externa, firma avanzada y PDF literal |
-| `SNS-MSP/HCU-form.012A/2008` Solicitud de imagenologia | Instructivo MSP 2020, anexo 11 | Aplicable cuando el caso requiere imagenologia | `imagingOrders[]`, `activeImagingOrder`, `documents.imagingOrders[]`, `legalReadiness.hcu012AStatus` | Parcial: emision/cancelacion y bloqueo clinico cuando la orden requerida no ha sido emitida; siguen diferidos resultado/informe, integracion externa, firma avanzada y PDF literal |
+| `SNS-MSP/HCU-form.012A/2008` Solicitud de imagenologia | Instructivo MSP 2020, anexo 11 | Aplicable cuando el caso requiere imagenologia | `imagingOrders[]`, `activeImagingOrder`, `documents.imagingOrders[]`, `documents.imagingReports[]`, `legalReadiness.hcu012AStatus`, `legalReadiness.hcu012AReportStatus` | Parcial: emision/cancelacion, resultado radiologico recibido y bloqueo clinico cuando la orden requerida no ha sido emitida; siguen diferidos integracion externa, firma avanzada y PDF literal |
 | `SNS-MSP/HCU-form.024` Consentimiento informado | A.M. 5316 y su modelo de gestion | Obligatorio cuando el procedimiento lo requiere | `ConsentRecord`, `consentPackets`, `documents.consentForms`, `DisclosureLog`, `ClinicalApproval` | Parcial: atestacion estructurada V1, sin firma avanzada/biometrica |
 
 ## Lectura honesta del estado actual
@@ -99,7 +99,7 @@ Cerrar la Fase 0 normativa de HCE para el alcance **consultorio defendible V1** 
 ### Pendiente
 
 - portal externo y circuito federado para respuesta del consultado sobre `HCU-form.007`;
-- resultado/informe de imagenologia y circuito externo posterior a `HCU-form.012A`;
+- integracion externa, viewer/circuito federado y soporte posterior a `HCU-form.012A`;
 - catalogo hospitalario y de especialidades fuera del consultorio V1.
 
 ## Regla de cierre de Fase 0

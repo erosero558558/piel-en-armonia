@@ -31,7 +31,7 @@ Lo que queda abierto ya no es la fuente oficial, sino la implementacion o parame
 
 - paridad documental completa de `HCU-form.001`, `HCU-form.005` y `HCU-form.024`;
 - `HCU-form.007` ya cubre de forma parcial la emision y la recepcion estructurada del informe del consultado; siguen pendientes el portal externo y la respuesta federada externa;
-- `HCU-form.012A` ya cubre de forma parcial la emision/cancelacion de solicitudes de imagenologia; siguen pendientes el resultado/informe radiologico y la integracion externa;
+- `HCU-form.012A` ya cubre de forma parcial la emision/cancelacion de solicitudes de imagenologia y la recepcion estructurada del resultado/informe radiologico; siguen pendientes la integracion externa y el circuito federado posterior;
 - parametrizacion exacta de conservacion/eliminacion por tipologia de unidad;
 - catalogo hospitalario y de especialidades fuera del consultorio V1.
 
@@ -52,7 +52,7 @@ Lo que queda abierto ya no es la fuente oficial, sino la implementacion o parame
 | HCU-form.005 evolucion y prescripciones | Instructivo MSP octubre 2020 | la nota final y la receta salen del mismo cockpit | `documents.finalNote`, `documents.prescription` | Parcial |
 | HCU-form.007 interconsulta | Instructivo MSP octubre 2020 | la interconsulta no se modela como chat; se emite como documento formal y puede recibir informe estructurado del consultado sin autoeditar el plan tratante | `interconsultations[]`, `activeInterconsultation`, `documents.interconsultForms[]`, `documents.interconsultReports[]`, `legalReadiness.hcu007Status`, `legalReadiness.hcu007ReportStatus` | Parcial: emision/cancelacion e informe recibido trazables; siguen diferidos portal externo y firma avanzada |
 | HCU-form.010A solicitud de laboratorio | Instructivo MSP octubre 2020 | solicitud formal de examenes cuando aplique | `labOrders[]`, `activeLabOrder`, `documents.labOrders`, `legalReadiness.hcu010AStatus` | Parcial: emision/cancelacion trazables; siguen diferidas integracion externa, firma avanzada y PDF literal |
-| HCU-form.012A solicitud de imagenologia | Instructivo MSP octubre 2020 | solicitud formal de imagenologia cuando aplique | `imagingOrders[]`, `activeImagingOrder`, `documents.imagingOrders[]`, `legalReadiness.hcu012AStatus` | Parcial: emision/cancelacion trazables; siguen diferidos resultado/informe, integracion externa, firma avanzada y PDF literal |
+| HCU-form.012A solicitud de imagenologia | Instructivo MSP octubre 2020 | solicitud formal de imagenologia cuando aplique | `imagingOrders[]`, `activeImagingOrder`, `documents.imagingOrders[]`, `documents.imagingReports[]`, `legalReadiness.hcu012AStatus`, `legalReadiness.hcu012AReportStatus` | Parcial: emision/cancelacion y resultado radiologico recibido trazables; siguen diferidos integracion externa, firma avanzada y PDF literal |
 | Consentimiento como proceso | A.M. 5316 | campos estructurados, no checkbox aislado | `draft.consent`, `consent` | Cubierto |
 | HCU-form.024 consentimiento informado | A.M. 5316 | consentimiento aceptado, negado o revocado con trazabilidad por procedimiento | `consentPackets[]`, `activeConsentPacket`, `documents.consentForms[]`, bridge `consent` | Parcial: sin firma avanzada/biometrica ni PDF literal MSP |
 | Aceptacion / negativa / revocacion | A.M. 5316 | estados explicitos del consentimiento | `consent.status`, `acceptedAt`, `declinedAt`, `revokedAt` | Cubierto |

@@ -808,6 +808,223 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame('HCU-007 informe recibido', (string) ($meta['reviewQueue'][0]['hcu007Label'] ?? ''));
     }
 
+    public function testAdminDataSummarizesReceivedImagingReport(): void
+    {
+        $store = \read_store();
+        $store['appointments'] = [];
+        $store['clinical_history_sessions'] = [[
+            'id' => 912,
+            'sessionId' => 'chs-admin-012a-report',
+            'caseId' => 'case-admin-012a-report',
+            'appointmentId' => 453,
+            'surface' => 'waiting_room',
+            'status' => 'review_required',
+            'patient' => [
+                'name' => 'Paciente Imagen',
+                'email' => 'imagen@example.com',
+                'phone' => '0990003333',
+            ],
+            'transcript' => [],
+            'questionHistory' => [],
+            'surfaces' => ['waiting_room'],
+            'lastTurn' => [],
+            'pendingAi' => [],
+            'metadata' => [],
+            'version' => 2,
+            'createdAt' => '2026-03-16T11:00:00-05:00',
+            'updatedAt' => '2026-03-16T12:15:00-05:00',
+            'lastMessageAt' => '2026-03-16T12:10:00-05:00',
+        ]];
+        $store['clinical_history_drafts'] = [[
+            'id' => 913,
+            'draftId' => 'chd-admin-012a-report',
+            'sessionId' => 'chs-admin-012a-report',
+            'caseId' => 'case-admin-012a-report',
+            'appointmentId' => 453,
+            'status' => 'review_required',
+            'reviewStatus' => 'review_required',
+            'requiresHumanReview' => true,
+            'confidence' => 0.84,
+            'reviewReasons' => [],
+            'intake' => [
+                'motivoConsulta' => 'Dolor facial persistente',
+                'enfermedadActual' => 'Dolor facial en estudio con apoyo de imagenologia.',
+                'antecedentes' => 'Niega antecedentes relevantes.',
+                'alergias' => 'Niega alergias medicamentosas.',
+                'preguntasFaltantes' => [],
+                'datosPaciente' => [
+                    'edadAnios' => 39,
+                    'pesoKg' => 64,
+                    'sexoBiologico' => 'femenino',
+                    'embarazo' => false,
+                ],
+            ],
+            'clinicianDraft' => [
+                'summary' => 'Se solicita imagenologia y ya se recibio el resultado radiologico.',
+                'followUpQuestion' => '',
+                'missingDataRequest' => '',
+                'hcu005' => [
+                    'evolutionNote' => 'Persisten sintomas faciales sin datos de alarma clinica.',
+                    'diagnosticImpression' => 'Rosacea en seguimiento con dolor facial asociado.',
+                    'therapeuticPlan' => 'Continuar seguimiento dermatologico y correlacionar con imagen.',
+                    'careIndications' => 'Mantener medidas de cuidado facial y controles ambulatorios.',
+                    'prescriptionItems' => [],
+                ],
+            ],
+            'documents' => [
+                'finalNote' => [
+                    'summary' => 'Control dermatologico con imagenologia recibida.',
+                    'content' => "Evolucion clinica: Persisten sintomas faciales sin datos de alarma clinica.\n\nImpresion diagnostica: Rosacea en seguimiento con dolor facial asociado.\n\nPlan terapeutico: Continuar seguimiento dermatologico y correlacionar con imagen.\n\nIndicaciones / cuidados: Mantener medidas de cuidado facial y controles ambulatorios.",
+                    'sections' => [
+                        'hcu005' => [
+                            'evolutionNote' => 'Persisten sintomas faciales sin datos de alarma clinica.',
+                            'diagnosticImpression' => 'Rosacea en seguimiento con dolor facial asociado.',
+                            'therapeuticPlan' => 'Continuar seguimiento dermatologico y correlacionar con imagen.',
+                            'careIndications' => 'Mantener medidas de cuidado facial y controles ambulatorios.',
+                        ],
+                    ],
+                ],
+            ],
+            'admission001' => [
+                'identity' => [
+                    'documentType' => 'cedula',
+                    'documentNumber' => '0912345680',
+                    'apellidoPaterno' => 'Imagen',
+                    'apellidoMaterno' => '',
+                    'primerNombre' => 'Paciente',
+                    'segundoNombre' => '',
+                ],
+                'demographics' => [
+                    'birthDate' => '1986-08-14',
+                    'ageYears' => 39,
+                    'sexAtBirth' => 'femenino',
+                ],
+                'residence' => [
+                    'phone' => '0990003333',
+                ],
+                'coverage' => [
+                    'healthInsuranceType' => 'private',
+                ],
+                'emergencyContact' => [
+                    'name' => 'Contacto Imagen',
+                    'kinship' => 'Hermano',
+                    'phone' => '0981112244',
+                ],
+                'admissionMeta' => [
+                    'admissionDate' => '2026-03-16T11:00:00-05:00',
+                    'admissionKind' => 'first',
+                    'admittedBy' => 'Recepcion FlowOS',
+                    'transitionMode' => 'new_required',
+                ],
+            ],
+            'interconsultations' => [],
+            'activeInterconsultationId' => '',
+            'labOrders' => [],
+            'activeLabOrderId' => '',
+            'imagingOrders' => [[
+                'imagingOrderId' => 'img-admin-012a-report',
+                'status' => 'issued',
+                'resultStatus' => 'received',
+                'requiredForCurrentPlan' => true,
+                'priority' => 'routine',
+                'requestedAt' => '2026-03-16T11:20:00-05:00',
+                'studyDate' => '2026-03-16',
+                'requestingEstablishment' => 'Piel Armonia',
+                'requestingService' => 'Dermatologia ambulatoria',
+                'careSite' => 'consulta_externa',
+                'bedLabel' => '',
+                'requestedBy' => 'Dra. Laura Mena',
+                'patientName' => 'Paciente Imagen',
+                'patientDocumentNumber' => '0912345680',
+                'patientRecordId' => 'hcu-admin-012a-report',
+                'patientAgeYears' => 39,
+                'patientSexAtBirth' => 'femenino',
+                'diagnoses' => [[
+                    'type' => 'pre',
+                    'label' => 'Rosacea con dolor facial en estudio.',
+                    'cie10' => 'L71.9',
+                ]],
+                'studySelections' => [
+                    'conventionalRadiography' => ['Rx de senos paranasales'],
+                    'tomography' => [],
+                    'magneticResonance' => [],
+                    'ultrasound' => [],
+                    'procedures' => [],
+                    'others' => [],
+                ],
+                'requestReason' => 'Apoyo diagnostico por imagen.',
+                'clinicalSummary' => 'Dolor facial persistente en seguimiento ambulatorio.',
+                'canMobilize' => true,
+                'canRemoveDressingsOrCasts' => true,
+                'physicianPresentAtExam' => false,
+                'bedsideRadiography' => false,
+                'notes' => '',
+                'cancelledAt' => '',
+                'cancelReason' => '',
+                'result' => [
+                    'status' => 'received',
+                    'reportedAt' => '2026-03-16T12:00:00-05:00',
+                    'reportedBy' => 'Lic. Andrea Paredes',
+                    'receivedBy' => 'Dra. Laura Mena',
+                    'reportingEstablishment' => 'Centro de imagen aliado',
+                    'reportingService' => 'Radiologia',
+                    'radiologistProfessionalName' => 'Dr. Rafael Suarez',
+                    'radiologistProfessionalRole' => 'Radiologo',
+                    'studyPerformedSummary' => 'Radiografia de senos paranasales AP y lateral.',
+                    'findings' => 'Sin opacidades agudas. Engrosamiento mucoso leve en seno maxilar derecho.',
+                    'diagnosticImpression' => 'Cambios inflamatorios leves sin hallazgos de alarma.',
+                    'recommendations' => 'Correlacion clinica y seguimiento ambulatorio.',
+                    'followUpIndications' => 'Repetir estudio si persiste dolor o aparecen signos de alarma.',
+                    'sourceDocumentType' => 'informe_radiologico',
+                    'sourceReference' => 'IMG-012A-2026',
+                    'attachments' => [],
+                    'history' => [],
+                ],
+                'history' => [],
+                'createdAt' => '2026-03-16T11:20:00-05:00',
+                'updatedAt' => '2026-03-16T12:00:00-05:00',
+            ]],
+            'activeImagingOrderId' => 'img-admin-012a-report',
+            'consentPackets' => [],
+            'activeConsentPacketId' => '',
+            'recordMeta' => [
+                'archiveState' => 'active',
+                'lastAttentionAt' => '2026-03-16T12:00:00-05:00',
+                'passiveAfterYears' => 5,
+                'confidentialityLabel' => 'CONFIDENCIAL',
+                'identityProtectionMode' => 'standard',
+                'copyDeliverySlaHours' => 48,
+                'formsCatalogStatus' => 'official_partial_traceability',
+            ],
+            'copyRequests' => [],
+            'disclosureLog' => [],
+            'lastAiEnvelope' => [],
+            'pendingAi' => [],
+            'version' => 2,
+            'createdAt' => '2026-03-16T11:00:00-05:00',
+            'updatedAt' => '2026-03-16T12:00:00-05:00',
+        ]];
+        $store['clinical_history_events'] = [];
+        \write_store($store, false);
+
+        try {
+            \AdminDataController::index([
+                'store' => \read_store(),
+                'isAdmin' => true,
+            ]);
+            self::fail('Se esperaba TestingExitException');
+        } catch (\TestingExitException $e) {
+            $payload = $e->payload;
+        }
+
+        self::assertTrue((bool) ($payload['ok'] ?? false));
+        $meta = $payload['data']['clinicalHistoryMeta'] ?? [];
+        self::assertSame(1, (int) ($meta['summary']['drafts']['hcu012A']['received'] ?? -1));
+        self::assertSame(0, (int) ($meta['summary']['drafts']['hcu012A']['issued'] ?? -1));
+        self::assertSame('received', (string) ($meta['reviewQueue'][0]['hcu012AStatus'] ?? ''));
+        self::assertSame('HCU-012A resultado recibido', (string) ($meta['reviewQueue'][0]['hcu012ALabel'] ?? ''));
+    }
+
     private function removeDirectory(string $dir): void
     {
         if (!is_dir($dir)) {
