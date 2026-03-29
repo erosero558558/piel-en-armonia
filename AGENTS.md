@@ -1054,7 +1054,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S3-19** `[M]` Receta digital — datos doctor (MSP), datos paciente, medicamentos (nombre, dosis, frecuencia, duración), indicaciones. PDF con membrete clínico.
 - [ ] **S3-20** `[M]` Evolución clínica — nota por visita: hallazgos, procedimientos, evolución, plan. Append-only. Integrada al timeline del journey.
 - [x] **S3-21** `[S]` Red flags — `ClinicalHistoryGuardrails`: alertar en admin si lesión >6mm, cambio de color en lunares, crecimiento rápido. Badge visual rojo en el caso.
-- [ ] **S3-22** `[M]` Exportar HCE completa — botón en admin: genera PDF con todo el historial del paciente. Legal compliance via `ClinicalHistoryLegalReadiness`.
+- [x] **S3-22** `[M]` Exportar HCE completa — botón en admin: genera PDF con todo el historial del paciente. Legal compliance via `ClinicalHistoryLegalReadiness`.
 - [ ] **S3-23** `[M]` `[HUMAN]` Compliance MSP Ecuador — verificar campos obligatorios del formulario 0457: identificación, anamnesis, examen físico, diagnóstico CIE-10, prescripción, evolución. **PREGUNTAR:** ¿cuáles son los campos exactos del formulario 0457 que el MSP exige?
 
 #### 3.4 Agendamiento

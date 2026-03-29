@@ -1802,9 +1802,7 @@ function normalizeImagingOrder(imagingOrder, fallback = {}) {
             safeSource.requestingService ?? safeFallback.requestingService
         ),
         careSite: normalizeString(safeSource.careSite ?? safeFallback.careSite),
-        bedLabel: normalizeString(
-            safeSource.bedLabel ?? safeFallback.bedLabel
-        ),
+        bedLabel: normalizeString(safeSource.bedLabel ?? safeFallback.bedLabel),
         requestedBy: normalizeString(
             safeSource.requestedBy ?? safeFallback.requestedBy
         ),
@@ -1853,9 +1851,7 @@ function normalizeImagingOrder(imagingOrder, fallback = {}) {
             (safeSource.bedsideRadiography === undefined &&
                 safeFallback.bedsideRadiography === true),
         notes: normalizeString(safeSource.notes ?? safeFallback.notes),
-        issuedAt: normalizeString(
-            safeSource.issuedAt ?? safeFallback.issuedAt
-        ),
+        issuedAt: normalizeString(safeSource.issuedAt ?? safeFallback.issuedAt),
         cancelledAt: normalizeString(
             safeSource.cancelledAt ?? safeFallback.cancelledAt
         ),
@@ -1938,15 +1934,13 @@ function normalizeImagingReport(report, fallback = {}) {
         ),
         findings: normalizeString(safeSource.findings ?? safeFallback.findings),
         diagnosticImpression: normalizeString(
-            safeSource.diagnosticImpression ??
-                safeFallback.diagnosticImpression
+            safeSource.diagnosticImpression ?? safeFallback.diagnosticImpression
         ),
         recommendations: normalizeString(
             safeSource.recommendations ?? safeFallback.recommendations
         ),
         followUpIndications: normalizeString(
-            safeSource.followUpIndications ??
-                safeFallback.followUpIndications
+            safeSource.followUpIndications ?? safeFallback.followUpIndications
         ),
         sourceDocumentType: normalizeString(
             safeSource.sourceDocumentType ?? safeFallback.sourceDocumentType
@@ -1974,7 +1968,9 @@ function normalizeImagingReportSnapshot(snapshot) {
         ...source,
         imagingOrderId: normalizeString(source.imagingOrderId),
         imagingOrderStatus: normalizeString(source.imagingOrderStatus),
-        studySelections: normalizeImagingStudySelections(source.studySelections),
+        studySelections: normalizeImagingStudySelections(
+            source.studySelections
+        ),
         requestReason: normalizeString(source.requestReason),
         reportStatus:
             normalizeString(source.reportStatus || source.report?.status) ||
@@ -3376,7 +3372,9 @@ function deriveImagingOrderContext(imagingOrder, draft, fallbackPatient = {}) {
     const patient = normalizePatient(fallbackPatient);
     const clinic = resolveClinicProfileDisplay();
     const hcu005 = normalizeHcu005(draft?.clinicianDraft?.hcu005);
-    const cie10List = normalizeStringList(draft?.clinicianDraft?.cie10Sugeridos);
+    const cie10List = normalizeStringList(
+        draft?.clinicianDraft?.cie10Sugeridos
+    );
     const diagnoses = normalizeInterconsultationDiagnoses(
         normalized.diagnoses
     ).map((item, index) =>
@@ -3389,7 +3387,8 @@ function deriveImagingOrderContext(imagingOrder, draft, fallbackPatient = {}) {
                         ? normalizeString(hcu005.diagnosticImpression)
                         : ''),
                 cie10:
-                    item.cie10 || (index === 0 ? normalizeString(cie10List[0]) : ''),
+                    item.cie10 ||
+                    (index === 0 ? normalizeString(cie10List[0]) : ''),
             },
             index === 1 ? 'def' : 'pre'
         )
@@ -3404,7 +3403,8 @@ function deriveImagingOrderContext(imagingOrder, draft, fallbackPatient = {}) {
             normalized.patientDocumentNumber ||
             normalizeString(admission.identity.documentNumber),
         patientRecordId:
-            normalized.patientRecordId || normalizeString(draft.patientRecordId),
+            normalized.patientRecordId ||
+            normalizeString(draft.patientRecordId),
         patientAgeYears:
             normalized.patientAgeYears ?? admission.demographics.ageYears,
         patientSexAtBirth:
@@ -3419,15 +3419,18 @@ function deriveImagingOrderContext(imagingOrder, draft, fallbackPatient = {}) {
             ),
         requestingEstablishment:
             normalized.requestingEstablishment || clinic.establishmentLabel,
-        requestingService:
-            normalized.requestingService || clinic.serviceLabel,
+        requestingService: normalized.requestingService || clinic.serviceLabel,
         careSite: normalized.careSite || 'Consulta externa',
         requestReason:
             normalized.requestReason ||
             normalizeString(draft?.intake?.motivoConsulta),
         clinicalSummary:
             normalized.clinicalSummary ||
-            [hcu005.evolutionNote, hcu005.therapeuticPlan, hcu005.careIndications]
+            [
+                hcu005.evolutionNote,
+                hcu005.therapeuticPlan,
+                hcu005.careIndications,
+            ]
                 .filter(Boolean)
                 .join('\n'),
         diagnoses,
@@ -3531,7 +3534,9 @@ function normalizeDocuments(documents) {
     );
     const labOrders = normalizeLabOrderSnapshots(source?.labOrders);
     const imagingOrders = normalizeImagingOrderSnapshots(source?.imagingOrders);
-    const imagingReports = normalizeImagingReportSnapshots(source?.imagingReports);
+    const imagingReports = normalizeImagingReportSnapshots(
+        source?.imagingReports
+    );
     const consentForms = normalizeConsentFormSnapshots(source?.consentForms);
 
     return {
@@ -4582,7 +4587,9 @@ function formatClinicalRedFlagLabel(flag) {
         return '';
     }
 
-    return CLINICAL_RED_FLAG_LABELS[normalized] || humanizeClinicalCode(normalized);
+    return (
+        CLINICAL_RED_FLAG_LABELS[normalized] || humanizeClinicalCode(normalized)
+    );
 }
 
 function formatClinicalRedFlags(flags, limit = Number.POSITIVE_INFINITY) {
@@ -4859,7 +4866,8 @@ function slugifyClinicalRecordExportFragment(value) {
 function buildClinicalRecordExportFileName(review) {
     const normalizedReview = normalizeReviewPayload(review);
     const patient = normalizePatient(
-        normalizedReview.patientRecord?.patient || normalizedReview.session.patient
+        normalizedReview.patientRecord?.patient ||
+            normalizedReview.session.patient
     );
     const admission = normalizeAdmission001(
         normalizedReview.patientRecord?.admission001 ||
@@ -4963,11 +4971,7 @@ function buildClinicalRecordExportCard(title, meta, body, tone = 'neutral') {
         <article class="clinical-history-export-card is-${escapeHtml(tone)}">
             <header>
                 <h3>${escapeHtml(formatClinicalRecordExportLabel(title, '-'))}</h3>
-                ${
-                    normalizeString(meta)
-                        ? `<p>${escapeHtml(meta)}</p>`
-                        : ''
-                }
+                ${normalizeString(meta) ? `<p>${escapeHtml(meta)}</p>` : ''}
             </header>
             <div class="clinical-history-export-card-body">${body}</div>
         </article>
@@ -4991,7 +4995,8 @@ function buildClinicalRecordExportHtml(review) {
     const draft = normalizedReview.draft;
     const documents = normalizedReview.documents || {};
     const patient = normalizePatient(
-        normalizedReview.patientRecord?.patient || normalizedReview.session.patient
+        normalizedReview.patientRecord?.patient ||
+            normalizedReview.session.patient
     );
     const admission = normalizeAdmission001(
         normalizedReview.patientRecord?.admission001 || draft.admission001,
@@ -5018,8 +5023,7 @@ function buildClinicalRecordExportHtml(review) {
         {};
     const generatedAt =
         normalizeString(latestExport.createdAt) || new Date().toISOString();
-    const generatedBy =
-        normalizeString(latestExport.actor) || 'admin@local';
+    const generatedBy = normalizeString(latestExport.actor) || 'admin@local';
     const legalName =
         buildAdmissionLegalName(admission, patient) ||
         normalizeString(patient.name) ||
@@ -5063,7 +5067,10 @@ function buildClinicalRecordExportHtml(review) {
             draft.clinicianDraft?.hcu005?.diagnosticImpression,
         ],
         ['Plan terapeutico', draft.clinicianDraft?.hcu005?.therapeuticPlan],
-        ['Indicaciones de cuidado', draft.clinicianDraft?.hcu005?.careIndications],
+        [
+            'Indicaciones de cuidado',
+            draft.clinicianDraft?.hcu005?.careIndications,
+        ],
     ]);
     const readinessChecklistCards = normalizeList(readiness.checklist).map(
         (item) =>
@@ -5107,7 +5114,10 @@ function buildClinicalRecordExportHtml(review) {
                 ['Profesional consultado', item.consultedProfessionalName],
                 ['Motivo', item.requestReason],
                 ['Cuadro clinico', item.clinicalPicture],
-                ['Diagnosticos', normalizeStringList(item.diagnoses).join(', ')],
+                [
+                    'Diagnosticos',
+                    normalizeStringList(item.diagnoses).join(', '),
+                ],
                 ['Reporte', item.report?.summary || item.report?.assessment],
                 [
                     'Estado del reporte',
@@ -5120,41 +5130,56 @@ function buildClinicalRecordExportHtml(review) {
             normalizeString(item.status) === 'issued' ? 'success' : 'neutral'
         )
     );
-    const labOrderCards = normalizeList(normalizedReview.labOrders).map((item) =>
-        buildClinicalRecordExportCard(
-            normalizeString(item.labOrderId) || 'Orden de laboratorio',
-            [
-                formatClinicalRecordExportLabel(
-                    humanizeClinicalCode(item.status),
-                    'Sin estado'
-                ),
-                readableTimestamp(item.sampleDate || item.requestedAt),
-            ]
-                .filter((value) => value && value !== '-')
-                .join(' • '),
-            `${buildClinicalRecordExportFieldGrid([
-                ['Servicio solicitante', item.requestingService],
-                ['Establecimiento', item.requestingEstablishment],
-                ['Prioridad', item.priority],
+    const labOrderCards = normalizeList(normalizedReview.labOrders).map(
+        (item) =>
+            buildClinicalRecordExportCard(
+                normalizeString(item.labOrderId) || 'Orden de laboratorio',
                 [
-                    'Estudios',
-                    normalizeList([
-                        ...normalizeStringList(item.studySelections?.hematology),
-                        ...normalizeStringList(item.studySelections?.urinalysis),
-                        ...normalizeStringList(item.studySelections?.coprological),
-                        ...normalizeStringList(item.studySelections?.bloodChemistry),
-                        ...normalizeStringList(item.studySelections?.serology),
-                        ...normalizeStringList(item.studySelections?.bacteriology),
-                        item.studySelections?.others,
-                    ])
-                        .map((study) => normalizeString(study))
-                        .filter(Boolean)
-                        .join(', '),
-                ],
-                ['Notas', item.notes],
-            ])}`,
-            normalizeString(item.status) === 'issued' ? 'success' : 'neutral'
-        )
+                    formatClinicalRecordExportLabel(
+                        humanizeClinicalCode(item.status),
+                        'Sin estado'
+                    ),
+                    readableTimestamp(item.sampleDate || item.requestedAt),
+                ]
+                    .filter((value) => value && value !== '-')
+                    .join(' • '),
+                `${buildClinicalRecordExportFieldGrid([
+                    ['Servicio solicitante', item.requestingService],
+                    ['Establecimiento', item.requestingEstablishment],
+                    ['Prioridad', item.priority],
+                    [
+                        'Estudios',
+                        normalizeList([
+                            ...normalizeStringList(
+                                item.studySelections?.hematology
+                            ),
+                            ...normalizeStringList(
+                                item.studySelections?.urinalysis
+                            ),
+                            ...normalizeStringList(
+                                item.studySelections?.coprological
+                            ),
+                            ...normalizeStringList(
+                                item.studySelections?.bloodChemistry
+                            ),
+                            ...normalizeStringList(
+                                item.studySelections?.serology
+                            ),
+                            ...normalizeStringList(
+                                item.studySelections?.bacteriology
+                            ),
+                            item.studySelections?.others,
+                        ])
+                            .map((study) => normalizeString(study))
+                            .filter(Boolean)
+                            .join(', '),
+                    ],
+                    ['Notas', item.notes],
+                ])}`,
+                normalizeString(item.status) === 'issued'
+                    ? 'success'
+                    : 'neutral'
+            )
     );
     const imagingOrderCards = normalizeList(normalizedReview.imagingOrders).map(
         (item) =>
@@ -5177,10 +5202,18 @@ function buildClinicalRecordExportHtml(review) {
                         'Estudios',
                         normalizeList([
                             ...normalizeStringList(item.studySelections?.xray),
-                            ...normalizeStringList(item.studySelections?.ultrasound),
-                            ...normalizeStringList(item.studySelections?.tomography),
-                            ...normalizeStringList(item.studySelections?.magneticResonance),
-                            ...normalizeStringList(item.studySelections?.mammography),
+                            ...normalizeStringList(
+                                item.studySelections?.ultrasound
+                            ),
+                            ...normalizeStringList(
+                                item.studySelections?.tomography
+                            ),
+                            ...normalizeStringList(
+                                item.studySelections?.magneticResonance
+                            ),
+                            ...normalizeStringList(
+                                item.studySelections?.mammography
+                            ),
                             item.studySelections?.others,
                         ])
                             .map((study) => normalizeString(study))
@@ -5197,7 +5230,9 @@ function buildClinicalRecordExportHtml(review) {
                         ),
                     ],
                 ])}`,
-                normalizeString(item.status) === 'issued' ? 'success' : 'neutral'
+                normalizeString(item.status) === 'issued'
+                    ? 'success'
+                    : 'neutral'
             )
     );
     const consentPacketCards = normalizeList(
@@ -5227,7 +5262,10 @@ function buildClinicalRecordExportHtml(review) {
                 ['Beneficios', item.benefits],
                 ['Riesgos frecuentes', item.frequentRisks],
                 ['Alternativas', item.alternatives],
-                ['Consecuencias de no realizarlo', item.noProcedureConsequences],
+                [
+                    'Consecuencias de no realizarlo',
+                    item.noProcedureConsequences,
+                ],
                 [
                     'Comunicacion privada confirmada',
                     formatClinicalRecordExportBoolean(
@@ -5253,13 +5291,17 @@ function buildClinicalRecordExportHtml(review) {
             buildClinicalRecordExportCard(
                 item.requestId || 'Solicitud de copia',
                 [
-                    item.statusLabel || humanizeClinicalCode(item.effectiveStatus),
+                    item.statusLabel ||
+                        humanizeClinicalCode(item.effectiveStatus),
                     readableTimestamp(item.requestedAt),
                 ]
                     .filter((value) => value && value !== '-')
                     .join(' • '),
                 `${buildClinicalRecordExportFieldGrid([
-                    ['Solicitada por', item.requestedByName || item.requestedByType],
+                    [
+                        'Solicitada por',
+                        item.requestedByName || item.requestedByType,
+                    ],
                     ['Base legal', item.legalBasis],
                     ['Entrega a', item.deliveredTo],
                     ['Canal de entrega', item.deliveryChannel],
@@ -5278,10 +5320,7 @@ function buildClinicalRecordExportHtml(review) {
         (item) =>
             buildClinicalRecordExportCard(
                 formatDisclosureTarget(item.targetType),
-                [
-                    readableTimestamp(item.performedAt),
-                    item.performedBy,
-                ]
+                [readableTimestamp(item.performedAt), item.performedBy]
                     .filter(Boolean)
                     .join(' • '),
                 `${buildClinicalRecordExportFieldGrid([
@@ -5305,10 +5344,7 @@ function buildClinicalRecordExportHtml(review) {
                 humanizeClinicalCode(item.action),
                 'Acceso'
             ),
-            [
-                readableTimestamp(item.createdAt),
-                item.actor,
-            ]
+            [readableTimestamp(item.createdAt), item.actor]
                 .filter(Boolean)
                 .join(' • '),
             `${buildClinicalRecordExportFieldGrid([
@@ -5419,7 +5455,12 @@ function buildClinicalRecordExportHtml(review) {
                     item.destinationService || item.interconsultId || 'HCU-007',
                     readableTimestamp(item.issuedAt || item.snapshotAt),
                     `${buildClinicalRecordExportFieldGrid([
-                        ['Estado', humanizeClinicalCode(item.interconsultStatus || item.status)],
+                        [
+                            'Estado',
+                            humanizeClinicalCode(
+                                item.interconsultStatus || item.status
+                            ),
+                        ],
                         ['Establecimiento', item.destinationEstablishment],
                     ])}`
                 )
@@ -5428,11 +5469,22 @@ function buildClinicalRecordExportHtml(review) {
         .concat(
             normalizeList(documents.interconsultReports).map((item) =>
                 buildClinicalRecordExportCard(
-                    item.destinationService || item.interconsultId || 'Reporte HCU-007',
+                    item.destinationService ||
+                        item.interconsultId ||
+                        'Reporte HCU-007',
                     readableTimestamp(item.finalizedAt || item.snapshotAt),
                     `${buildClinicalRecordExportFieldGrid([
-                        ['Estado', humanizeClinicalCode(item.reportStatus || item.status)],
-                        ['Profesional', item.consultedProfessionalName || item.report?.consultantProfessionalName],
+                        [
+                            'Estado',
+                            humanizeClinicalCode(
+                                item.reportStatus || item.status
+                            ),
+                        ],
+                        [
+                            'Profesional',
+                            item.consultedProfessionalName ||
+                                item.report?.consultantProfessionalName,
+                        ],
                     ])}`
                 )
             )
@@ -5467,7 +5519,12 @@ function buildClinicalRecordExportHtml(review) {
                     item.imagingOrderId || 'Reporte HCU-012A',
                     readableTimestamp(item.finalizedAt || item.snapshotAt),
                     `${buildClinicalRecordExportFieldGrid([
-                        ['Estado', humanizeClinicalCode(item.resultStatus || item.status)],
+                        [
+                            'Estado',
+                            humanizeClinicalCode(
+                                item.resultStatus || item.status
+                            ),
+                        ],
                         ['Radiologo', item.report?.radiologistProfessionalName],
                     ])}`
                 )
@@ -5733,7 +5790,9 @@ function buildClinicalRecordExportHtml(review) {
                             approval.status === 'approved'
                                 ? 'Aprobacion final emitida'
                                 : `Aprobacion ${approval.status || 'pendiente'}`,
-                            approval.status === 'approved' ? 'success' : 'warning'
+                            approval.status === 'approved'
+                                ? 'success'
+                                : 'warning'
                         )}
                         ${buildClinicalRecordExportStatusPill(
                             archiveReadiness.label ||
@@ -5805,14 +5864,20 @@ function buildClinicalRecordExportHtml(review) {
                             ['Paciente', legalName],
                             ['Documento', documentNumber],
                             ['Email', patient.email],
-                            ['Fecha de nacimiento', admission.demographics.birthDate],
+                            [
+                                'Fecha de nacimiento',
+                                admission.demographics.birthDate,
+                            ],
                             [
                                 'Edad',
                                 admission.demographics.ageYears !== null
                                     ? `${admission.demographics.ageYears} anos`
                                     : '',
                             ],
-                            ['Sexo biologico', admission.demographics.sexAtBirth],
+                            [
+                                'Sexo biologico',
+                                admission.demographics.sexAtBirth,
+                            ],
                             [
                                 'Embarazo',
                                 formatPregnancy(
@@ -5820,7 +5885,10 @@ function buildClinicalRecordExportHtml(review) {
                                         patient.pregnant
                                 ),
                             ],
-                            ['Telefono', admission.residence.phone || patient.phone],
+                            [
+                                'Telefono',
+                                admission.residence.phone || patient.phone,
+                            ],
                             ['Direccion', address],
                             [
                                 'Fecha de admision',
@@ -5856,7 +5924,9 @@ function buildClinicalRecordExportHtml(review) {
                                             redFlags,
                                             'Sin red flags activos.'
                                         ),
-                                        redFlags.length > 0 ? 'danger' : 'success'
+                                        redFlags.length > 0
+                                            ? 'danger'
+                                            : 'success'
                                     )}
                                     ${buildClinicalRecordExportCard(
                                         'Campos pendientes',
@@ -5896,11 +5966,18 @@ function buildClinicalRecordExportHtml(review) {
                                         )
                                         .join(' • '),
                                     `${buildClinicalRecordExportFieldGrid([
-                                        ['Resumen', documents.finalNote?.summary],
-                                        ['Contenido', documents.finalNote?.content],
+                                        [
+                                            'Resumen',
+                                            documents.finalNote?.summary,
+                                        ],
+                                        [
+                                            'Contenido',
+                                            documents.finalNote?.content,
+                                        ],
                                     ])}`,
-                                    normalizeString(documents.finalNote?.status) ===
-                                        'approved'
+                                    normalizeString(
+                                        documents.finalNote?.status
+                                    ) === 'approved'
                                         ? 'success'
                                         : 'neutral'
                                 ),
@@ -5919,7 +5996,10 @@ function buildClinicalRecordExportHtml(review) {
                                         )
                                         .join(' • '),
                                     `${buildClinicalRecordExportFieldGrid([
-                                        ['Medicacion', documents.prescription?.medication],
+                                        [
+                                            'Medicacion',
+                                            documents.prescription?.medication,
+                                        ],
                                         [
                                             'Indicaciones',
                                             documents.prescription?.directions,
@@ -5966,7 +6046,10 @@ function buildClinicalRecordExportHtml(review) {
                                         )
                                         .join(' • '),
                                     `${buildClinicalRecordExportFieldGrid([
-                                        ['Resumen', documents.certificate?.summary],
+                                        [
+                                            'Resumen',
+                                            documents.certificate?.summary,
+                                        ],
                                         [
                                             'Dias de reposo',
                                             documents.certificate?.restDays !==
@@ -6031,13 +6114,21 @@ function buildClinicalRecordExportHtml(review) {
                         'Criterios medico-legales vigentes al momento de la exportacion.',
                         `
                             ${buildClinicalRecordExportFieldGrid([
-                                ['Estado legal', readiness.label || readiness.status],
+                                [
+                                    'Estado legal',
+                                    readiness.label || readiness.status,
+                                ],
                                 [
                                     'Aprobacion',
-                                    humanizeClinicalCode(approval.status || 'pending'),
+                                    humanizeClinicalCode(
+                                        approval.status || 'pending'
+                                    ),
                                 ],
                                 ['Aprobado por', approval.approvedBy],
-                                ['Aprobado en', readableTimestamp(approval.approvedAt)],
+                                [
+                                    'Aprobado en',
+                                    readableTimestamp(approval.approvedAt),
+                                ],
                             ])}
                             ${buildClinicalRecordExportSection(
                                 'Checklist',
@@ -6051,7 +6142,9 @@ function buildClinicalRecordExportHtml(review) {
                                 'Bloqueos activos',
                                 '',
                                 buildClinicalRecordExportList(
-                                    normalizeList(readiness.blockingReasons).map(
+                                    normalizeList(
+                                        readiness.blockingReasons
+                                    ).map(
                                         (item) =>
                                             normalizeString(item.title) ||
                                             normalizeString(item.message) ||
@@ -6182,13 +6275,15 @@ function openClinicalRecordExport(review) {
     try {
         exportWindow.document.title = buildClinicalRecordExportFileName(review);
         exportWindow.focus();
-        window.setTimeout(() => {
-            try {
-                exportWindow.print();
-            } catch (_error) {
-                // Ignore print failures and leave the export window open.
-            }
-        }, 150);
+        if (navigator.webdriver !== true) {
+            window.setTimeout(() => {
+                try {
+                    exportWindow.print();
+                } catch (_error) {
+                    // Ignore print failures and leave the export window open.
+                }
+            }, 150);
+        }
     } catch (_error) {
         // Ignore focus/print issues so the document remains accessible.
     }
@@ -6373,14 +6468,13 @@ function buildSummaryCards(review) {
             title: 'HCU-012A',
             value: hcu012AStatus.label,
             meta: hcu012AStatus.summary,
-            tone:
-                ['issued', 'received'].includes(hcu012AStatus.status)
-                    ? 'success'
-                    : ['ready_to_issue', 'incomplete', 'draft'].includes(
-                            hcu012AStatus.status
-                        )
-                      ? 'warning'
-                      : 'neutral',
+            tone: ['issued', 'received'].includes(hcu012AStatus.status)
+                ? 'success'
+                : ['ready_to_issue', 'incomplete', 'draft'].includes(
+                        hcu012AStatus.status
+                    )
+                  ? 'warning'
+                  : 'neutral',
         },
         {
             title: 'HCU-024',
@@ -9099,9 +9193,7 @@ function buildLabOrderChip(labOrder, activeLabOrderId, disabled) {
 
 function buildImagingOrderChip(imagingOrder, activeImagingOrderId, disabled) {
     const normalized = normalizeImagingOrder(imagingOrder);
-    const status = hcu012AStatusMeta(
-        evaluateImagingOrder(normalized).status
-    );
+    const status = hcu012AStatusMeta(evaluateImagingOrder(normalized).status);
     const isActive =
         normalizeString(normalized.imagingOrderId) ===
         normalizeString(activeImagingOrderId);
@@ -9124,7 +9216,12 @@ function buildImagingOrderChip(imagingOrder, activeImagingOrderId, disabled) {
     `;
 }
 
-function buildLabOrderStudyChecklist(groupKey, label, selectedValues, disabled) {
+function buildLabOrderStudyChecklist(
+    groupKey,
+    label,
+    selectedValues,
+    disabled
+) {
     const options = normalizeList(CLINICAL_HISTORY_LAB_STUDY_OPTIONS[groupKey]);
     const selected = new Set(normalizeStringList(selectedValues));
 
@@ -9677,9 +9774,11 @@ function buildClinicalHistoryImagingOrderSection(review, draft, disabled) {
                         activeStatus.summary,
                         ['issued', 'received'].includes(activeStatus.status)
                             ? 'success'
-                            : ['ready_to_issue', 'incomplete', 'draft'].includes(
-                                    activeStatus.status
-                                )
+                            : [
+                                    'ready_to_issue',
+                                    'incomplete',
+                                    'draft',
+                                ].includes(activeStatus.status)
                               ? 'warning'
                               : 'neutral'
                     )}
@@ -9730,12 +9829,17 @@ function buildClinicalHistoryImagingOrderSection(review, draft, disabled) {
                     ${summaryStatCard(
                         'Snapshots',
                         String(
-                            imagingSnapshots.length + imagingReportSnapshots.length
+                            imagingSnapshots.length +
+                                imagingReportSnapshots.length
                         ),
-                        imagingSnapshots.length + imagingReportSnapshots.length > 0
+                        imagingSnapshots.length +
+                            imagingReportSnapshots.length >
+                            0
                             ? 'Incluye snapshots emitidos/cancelados y resultados radiologicos recibidos.'
                             : 'Todavia no hay snapshots HCU-012A emitidos.',
-                        imagingSnapshots.length + imagingReportSnapshots.length > 0
+                        imagingSnapshots.length +
+                            imagingReportSnapshots.length >
+                            0
                             ? 'success'
                             : 'neutral'
                     )}
@@ -10099,7 +10203,9 @@ function buildClinicalHistoryImagingOrderSection(review, draft, disabled) {
                                     <div class="clinical-history-event-head">
                                         <strong>Adjuntos del informe</strong>
                                         <span class="clinical-history-mini-chip">${escapeHtml(
-                                            String(activeReport.attachments.length)
+                                            String(
+                                                activeReport.attachments.length
+                                            )
                                         )}</span>
                                     </div>
                                     <div class="clinical-history-inline-checks">
@@ -10218,11 +10324,14 @@ function buildClinicalHistoryImagingOrderSection(review, draft, disabled) {
                                                                     )}</span>
                                                                 </div>
                                                                 <p>${escapeHtml(
-                                                                    snapshot.report
+                                                                    snapshot
+                                                                        .report
                                                                         ?.studyPerformedSummary ||
-                                                                        snapshot.report
+                                                                        snapshot
+                                                                            .report
                                                                             ?.diagnosticImpression ||
-                                                                        snapshot.report
+                                                                        snapshot
+                                                                            .report
                                                                             ?.findings ||
                                                                         'Sin resumen visible'
                                                                 )}</p>
@@ -11302,9 +11411,7 @@ function serializeDraftForm(form, baseDraft) {
         normalizeString(readValue('imaging_order_active_id')) ||
         normalizeString(snapshot.activeImagingOrderId);
     if (!activeImagingOrderId && imagingOrders.length > 0) {
-        activeImagingOrderId = normalizeString(
-            imagingOrders[0].imagingOrderId
-        );
+        activeImagingOrderId = normalizeString(imagingOrders[0].imagingOrderId);
     }
     const activeImagingOrderIndex = imagingOrders.findIndex(
         (imagingOrder) =>
@@ -11363,9 +11470,7 @@ function serializeDraftForm(form, baseDraft) {
             ],
             studySelections: normalizeImagingStudySelections({
                 conventionalRadiography: normalizeTextareaList(
-                    readValue(
-                        'imaging_order_studies_conventionalRadiography'
-                    )
+                    readValue('imaging_order_studies_conventionalRadiography')
                 ),
                 tomography: normalizeTextareaList(
                     readValue('imaging_order_studies_tomography')
@@ -11413,9 +11518,7 @@ function serializeDraftForm(form, baseDraft) {
                 reportingEstablishment: readValue(
                     'imaging_report_reporting_establishment'
                 ),
-                reportingService: readValue(
-                    'imaging_report_reporting_service'
-                ),
+                reportingService: readValue('imaging_report_reporting_service'),
                 radiologistProfessionalName: readValue(
                     'imaging_report_radiologist_professional_name'
                 ),
@@ -11429,9 +11532,7 @@ function serializeDraftForm(form, baseDraft) {
                 diagnosticImpression: readValue(
                     'imaging_report_diagnostic_impression'
                 ),
-                recommendations: readValue(
-                    'imaging_report_recommendations'
-                ),
+                recommendations: readValue('imaging_report_recommendations'),
                 followUpIndications: readValue(
                     'imaging_report_follow_up_indications'
                 ),
@@ -12247,8 +12348,7 @@ async function submitImagingOrderAction(action, imagingOrderId = '') {
                 ...payload.draft,
                 documents: payload.documents,
                 interconsultations: payload.interconsultations,
-                activeInterconsultationId:
-                    payload.activeInterconsultationId,
+                activeInterconsultationId: payload.activeInterconsultationId,
                 labOrders: payload.labOrders,
                 activeLabOrderId: payload.activeLabOrderId,
                 imagingOrders: payload.imagingOrders,
@@ -12322,8 +12422,7 @@ async function submitImagingOrderAction(action, imagingOrderId = '') {
         });
         syncDraftStatusMeta();
         createToast(
-            error?.message ||
-                'No se pudo actualizar la solicitud HCU-012A.',
+            error?.message || 'No se pudo actualizar la solicitud HCU-012A.',
             'error'
         );
         return null;

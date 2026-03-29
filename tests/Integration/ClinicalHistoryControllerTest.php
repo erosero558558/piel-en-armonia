@@ -630,6 +630,32 @@ final class ClinicalHistoryControllerTest extends TestCase
         self::assertSame(200, $recordView['status']);
         self::assertSame('view_record', (string) ($recordView['payload']['data']['accessAudit'][0]['action'] ?? ''));
 
+        $recordExport = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::episodeActionPost([
+                'isAdmin' => true,
+            ]),
+            'POST',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'action' => 'export_full_record',
+            ]
+        );
+
+        self::assertSame(200, $recordExport['status']);
+        self::assertSame('export_full_record', (string) ($recordExport['payload']['data']['accessAudit'][0]['action'] ?? ''));
+        self::assertSame(
+            'authorized_clinical_record_export',
+            (string) ($recordExport['payload']['data']['accessAudit'][0]['reason'] ?? '')
+        );
+        self::assertSame(
+            'ready',
+            (string) ($recordExport['payload']['data']['accessAudit'][0]['meta']['legalReadinessStatus'] ?? '')
+        );
+        self::assertSame(
+            'clinical-record-export',
+            (string) ($recordExport['payload']['data']['accessAudit'][0]['meta']['surface'] ?? '')
+        );
+
         $copyRequest = $this->captureResponse(
             static fn () => \ClinicalHistoryController::episodeActionPost([
                 'isAdmin' => true,
