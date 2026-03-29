@@ -569,6 +569,136 @@ Si falla la gobernanza, el pipeline debe bloquear merge.
 > **Tags:** `[S]` = small (1-2 archivos), `[M]` = medium (3-5 archivos), `[L]` = large (componente nuevo), `[XL]` = extra large (sistema)
 > `[HUMAN]` = requiere input del dueño (no ejecutar solo, preguntar y esperar respuesta)
 
+### Identidad del producto
+
+**Aurora Derm** — Clínica dermatológica con enfoque médico real en Quito, Ecuador.
+
+| Dato | Valor |
+|---|---|
+| Nombre comercial | Aurora Derm |
+| Dominio | pielarmonia.com |
+| WhatsApp | +593 98 245 3672 → `https://wa.me/593982453672` |
+| Ciudad | Quito, Ecuador (2800 msnm, exposición UV alta) |
+| Directora | Dra. Rosero — MSP-EC, S.E.D., Board Certified |
+| Especialista láser | Dr. Narváez — MSP-EC, LASER Board, Oncología Cutánea |
+| Servicios core | Diagnóstico integral, láser fraccionado, bioestimuladores, acné, tamizaje oncológico, teledermatología |
+| Plataforma | Flow OS — sistema operativo de la operación clínica |
+| Nombre técnico del turnero | Turnero Clínicas (nombre público del módulo SaaS) |
+
+### Design system — Tokens CSS
+
+Cualquier página nueva DEBE usar estas variables. Nunca hardcodear colores.
+
+```css
+/* Fondos */
+--bg-base: #07090C          /* fondo principal — casi negro */
+--bg-surface: rgba(255,255,255,0.03)  /* tarjetas sutiles */
+--bg-card: rgba(255,255,255,0.04)     /* cards elevadas */
+
+/* Bordes */
+--border: rgba(255,255,255,0.08)
+--border-hover: rgba(255,255,255,0.18)
+
+/* Textos */
+--text: #FFFFFF              /* texto principal — blanco */
+--text-muted: #71717A        /* texto terciario */
+--text-secondary: #A1A1AA    /* texto secundario */
+
+/* Acento */
+--accent-gold: #C9A96E       /* dorado — CTAs secundarios, highlights */
+
+/* Botones */
+--btn-bg: #FFFFFF            /* fondo botón primario */
+--btn-text: #000000          /* texto botón primario */
+
+/* Tipografía */
+--font: 'Inter', -apple-system, sans-serif   /* body */
+/* Fraunces — headings/display (woff2 en fonts/) */
+/* Plus Jakarta Sans — subtítulos (woff2 en fonts/) */
+
+/* Espaciado */
+--s-xs: 8px  --s-sm: 16px  --s-md: 24px  --s-lg: 48px  --s-xl: 80px
+
+/* Bordes redondeados */
+--r-sm: 8px  --r-md: 16px  --r-lg: 24px  --r-xl: 32px  --r-pill: 9999px
+
+/* Transiciones */
+--ease: cubic-bezier(0.16, 1, 0.3, 1)
+--t-fast: .2s var(--ease)
+--t-smooth: .6s var(--ease)
+```
+
+**Componentes CSS disponibles:** `.btn-primary`, `.btn-outline`, `.btn-large`, `.luxury-card`, `.team-card`, `.badge`, `.eyebrow`, `.section`, `.container`, `.reveal`, `.hero-fullscreen`, `.faq-accordion`, `.bento-grid-luxury`.
+
+### Voz y tono
+
+Todo contenido escrito para Aurora Derm DEBE seguir estas reglas:
+
+1. **Tono:** Profesional pero cálido. Médico pero humano. NUNCA comercial ni agresivo.
+2. **Tratamiento:** Siempre "usted" (no "tú"). Formal pero no distante.
+3. **Vocabulario prohibido:** "oferta", "descuento", "barato", "promo", "dale click", "no te pierdas".
+4. **Vocabulario preferido:** "evaluación", "diagnóstico", "tratamiento", "acompañamiento", "criterio clínico", "protocolo".
+5. **Promesa de marca:** "Primero entendemos su piel. Luego actuamos." — No vendemos. Guiamos.
+6. **Diferenciador:** "No somos vitrina. Somos su guía clínica dermatológica real."
+7. **Idioma:** Español ecuatoriano. No usar modismos argentinos, mexicanos ni españoles. Ejemplo: "celular" (no "móvil"), "agendar" (no "pedir hora"), "consultorio" (no "consulta").
+
+### Reglas de precisión médica
+
+1. NUNCA garantizar resultados. Siempre usar "cada caso es individual".
+2. NUNCA diagnosticar en contenido público. Solo describir condiciones y tratamientos.
+3. Mencionar siempre que la evaluación del especialista es necesaria.
+4. No recomendar automedicación ni tratamientos caseros.
+5. Citar nomenclatura dermatológica correcta (ej: "hiperpigmentación post-inflamatoria" no "manchas de granos").
+6. Para procedimientos, incluir: qué es, para quién, qué esperar, tiempo de recuperación, riesgos posibles.
+
+### Template para páginas de servicio
+
+Al crear una nueva `es/servicios/*/index.html`, usar la estructura de `es/servicios/diagnostico-integral/index.html` o `es/servicios/acne-rosacea/index.html` como base.
+
+Estructura obligatoria:
+1. `<meta>` tags (title, description, OG, canonical)
+2. Hero con imagen del procedimiento
+3. Sección "¿Qué es?" — descripción médica accesible
+4. Sección "¿Para quién?" — indicaciones
+5. Sección "El proceso" — paso a paso del tratamiento
+6. Sección "Qué esperar" — resultados y recuperación
+7. CTA WhatsApp con `?text=Hola, me interesa [servicio]`
+8. Footer estándar (copiar de `index.html`)
+9. Importar `styles/main-aurora.css`
+
+### Template para blog posts
+
+Al crear `es/blog/*/index.html`:
+
+1. `<meta>` tags con keyword focus en title y description
+2. Hero con H1 que incluya keyword principal
+3. Contenido: mínimo 1500 palabras, H2 cada 300 palabras, internal links a servicios relevantes
+4. Sección "¿Cuándo consultar?" al final → CTA WhatsApp
+5. Autor: "Equipo médico Aurora Derm"
+6. Fecha de publicación visible
+7. Importar `styles/main-aurora.css` + `legal.css` (para layout de artículo)
+
+### Verificación de trabajo
+
+Después de completar cualquier tarea, el agente DEBE:
+
+1. **Para frontend:** abrir en browser (`php -S localhost:8000`) y verificar visualmente. Si el deploy no funciona, verificar con `cat` que el HTML es válido.
+2. **Para backend:** correr el endpoint con `curl` y verificar respuesta JSON válida.
+3. **Para contenido:** releer el texto completo buscando: errores ortográficos, vocabulario prohibido (ver "Voz y tono"), promesas de resultados, falta de CTA.
+4. **Para CSS:** verificar que usa variables CSS, no colores hardcodeados.
+5. **Lighthouse check** (si el agente puede): `npx lhci autorun --config lighthouserc.premium.json` para ver si el score empeoró.
+
+### Git workflow
+
+1. Trabajar en `main` directamente (single-trunk).
+2. Commits pequeños: un fix o feature por commit.
+3. Mensaje: `feat(S1-01): fix bioestimuladores link` o `feat(S2-11): create blog acne adulto`.
+4. Correr `npm run agent:gate` antes de push cuando se modifique backend o orquestador.
+5. Para cambios solo de frontend/contenido: commit + push directo.
+6. `HUSKY=0 git commit --no-verify` si husky/lint-staged causa problemas con archivos no relacionados.
+
+
+
 ### ✅ Sprint 0 — Completado
 
 - [x] P0-01 Reemplazar imagen láser
