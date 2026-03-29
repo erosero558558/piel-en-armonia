@@ -1808,6 +1808,7 @@ final class ClinicalHistoryService
             is_array($draft['documents'] ?? null) ? $draft['documents'] : []
         );
         $draft['documents']['finalNote']['content'] = $this->buildFinalNoteContent($session, $draft);
+        $draft = ClinicalHistoryGuardrails::synchronizeDerivedReviewSignals($draft);
 
         return $draft;
     }

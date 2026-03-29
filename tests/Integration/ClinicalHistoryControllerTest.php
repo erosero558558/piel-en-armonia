@@ -3662,6 +3662,81 @@ final class ClinicalHistoryControllerTest extends TestCase
         );
     }
 
+    public function testClinicalHistoryRecordPatchDerivesDermatologyRedFlags(): void
+    {
+        $sessionCreate = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::sessionPost([]),
+            'POST',
+            [
+                'surface' => 'waiting_room',
+                'patient' => [
+                    'name' => 'Paciente Alerta',
+                    'email' => 'alerta@example.com',
+                ],
+            ]
+        );
+
+        self::assertSame(201, $sessionCreate['status']);
+        $session = $sessionCreate['payload']['data']['session'] ?? [];
+
+        $_SESSION['csrf_token'] = 'csrf-test';
+        $_SERVER['HTTP_X_CSRF_TOKEN'] = 'csrf-test';
+
+        $recordPatch = $this->captureResponse(
+            static fn () => \ClinicalHistoryController::recordPatch([
+                'isAdmin' => true,
+            ]),
+            'PATCH',
+            [
+                'sessionId' => (string) ($session['sessionId'] ?? ''),
+                'requiresHumanReview' => false,
+                'draft' => [
+                    'intake' => [
+                        'motivoConsulta' => 'Revision de lunar',
+                        'enfermedadActual' => 'Lunar de 8 mm que cambio de color y ha crecido rapido en pocas semanas.',
+                        'antecedentes' => 'Sin antecedentes dermatologicos relevantes.',
+                        'alergias' => 'Niega alergias.',
+                        'medicacionActual' => 'Sin tratamiento actual.',
+                        'preguntasFaltantes' => [],
+                        'datosPaciente' => [
+                            'edadAnios' => 42,
+                            'pesoKg' => 68,
+                            'sexoBiologico' => 'femenino',
+                            'embarazo' => false,
+                        ],
+                    ],
+                    'clinicianDraft' => [
+                        'resumen' => 'Lunar pigmentado con criterios de alarma.',
+                        'preguntasFaltantes' => [],
+                        'hcu005' => [
+                            'evolutionNote' => 'Lesion pigmentada de 8 mm con cambio de color y crecimiento rapido.',
+                            'diagnosticImpression' => 'Lesion pigmentada en evaluacion prioritaria.',
+                            'therapeuticPlan' => '',
+                            'careIndications' => '',
+                            'prescriptionItems' => [],
+                        ],
+                    ],
+                ],
+            ]
+        );
+
+        self::assertSame(200, $recordPatch['status']);
+        self::assertTrue((bool) ($recordPatch['payload']['ok'] ?? false));
+        self::assertTrue((bool) ($recordPatch['payload']['data']['draft']['requiresHumanReview'] ?? false));
+        self::assertSame(
+            'review_required',
+            (string) ($recordPatch['payload']['data']['draft']['reviewStatus'] ?? '')
+        );
+        self::assertSame(
+            ['lesion_over_6mm', 'mole_color_change', 'rapid_growth'],
+            $recordPatch['payload']['data']['draft']['lastAiEnvelope']['redFlags'] ?? []
+        );
+        self::assertContains(
+            'red_flags_present',
+            $recordPatch['payload']['data']['draft']['reviewReasons'] ?? []
+        );
+    }
+
     private function buildAdmission001Payload(array $overrides = []): array
     {
         return array_replace_recursive([

@@ -138,6 +138,20 @@ const CLINICAL_HISTORY_LAB_STUDY_OPTIONS = Object.freeze({
     serology: ['VDRL', 'Latex', 'ASTO', 'Aglutinaciones febriles'],
     bacteriology: ['Gram', 'Ziehl', 'Cultivo con antibiograma', 'Hongos'],
 });
+const CLINICAL_RED_FLAG_LABELS = Object.freeze({
+    lesion_over_6mm: 'Lesion mayor a 6 mm',
+    mole_color_change: 'Cambio de color en lunar',
+    rapid_growth: 'Crecimiento rapido',
+    rosacea_flare: 'Brote de rosacea',
+    telemedicine_follow_up: 'Seguimiento clinico requerido',
+    pediatric_case: 'Caso pediatrico',
+    dolor_pecho: 'Dolor toracico',
+    disnea: 'Disnea',
+    sangrado: 'Sangrado activo',
+    fiebre_alta: 'Fiebre alta',
+    anafilaxia: 'Anafilaxia',
+    embarazo: 'Embarazo',
+});
 
 let scheduledAutoSelection = '';
 
@@ -693,6 +707,7 @@ function emptyDraft() {
         requiresHumanReview: true,
         confidence: 0,
         reviewReasons: [],
+        redFlags: [],
         intake: {
             motivoConsulta: '',
             enfermedadActual: '',
@@ -3872,6 +3887,9 @@ function normalizeDraftSnapshot(draft) {
         requiresHumanReview,
         confidence: normalizeNumber(source.confidence),
         reviewReasons: normalizeStringList(source.reviewReasons),
+        redFlags: normalizeStringList(
+            source.redFlags || source.lastAiEnvelope?.redFlags
+        ),
         recordMeta:
             source.recordMeta && typeof source.recordMeta === 'object'
                 ? {
@@ -4538,6 +4556,86 @@ function formatConfidence(confidence) {
     return `${Math.round(safeConfidence * 100)}% confianza`;
 }
 
+function humanizeClinicalCode(code) {
+    return normalizeString(code)
+        .split('_')
+        .filter(Boolean)
+        .map((fragment, index) => {
+            const lower = fragment.toLowerCase();
+            if (lower === '') {
+                return '';
+            }
+
+            if (index === 0) {
+                return `${lower.charAt(0).toUpperCase()}${lower.slice(1)}`;
+            }
+
+            return lower;
+        })
+        .filter(Boolean)
+        .join(' ');
+}
+
+function formatClinicalRedFlagLabel(flag) {
+    const normalized = normalizeString(flag).toLowerCase();
+    if (!normalized) {
+        return '';
+    }
+
+    return CLINICAL_RED_FLAG_LABELS[normalized] || humanizeClinicalCode(normalized);
+}
+
+function formatClinicalRedFlags(flags, limit = Number.POSITIVE_INFINITY) {
+    const labels = normalizeStringList(flags)
+        .map((flag) => formatClinicalRedFlagLabel(flag))
+        .filter(Boolean);
+
+    return Number.isFinite(limit) ? labels.slice(0, limit) : labels;
+}
+
+function buildClinicalRedFlagChipRow(flags, limit = 3) {
+    const labels = formatClinicalRedFlags(flags, limit);
+    if (labels.length === 0) {
+        return '';
+    }
+
+    return `
+        <div class="clinical-history-mini-chip-row">
+            ${labels
+                .map(
+                    (label) => `
+                        <span class="clinical-history-mini-chip" data-tone="danger">${escapeHtml(
+                            label
+                        )}</span>
+                    `
+                )
+                .join('')}
+        </div>
+    `;
+}
+
+function buildClinicalRedFlagNotice(flags) {
+    const labels = formatClinicalRedFlags(flags);
+    if (labels.length === 0) {
+        return '';
+    }
+
+    return `
+        <div class="clinical-history-section-block">
+            <div class="clinical-history-event-head">
+                <strong>Alertas clinicas del caso</strong>
+                <span class="clinical-history-mini-chip" data-tone="danger">
+                    Revision prioritaria
+                </span>
+            </div>
+            ${buildClinicalRedFlagChipRow(labels)}
+            <small>
+                El badge rojo se mantiene mientras existan criterios de alarma dermatologica activos.
+            </small>
+        </div>
+    `;
+}
+
 function formatTone(
     status,
     requiresHumanReview,
@@ -4813,6 +4911,7 @@ function buildSummaryCards(review) {
     const checklistFailures = normalizeList(readiness.checklist).filter(
         (item) => normalizeString(item?.status) !== 'pass'
     );
+    const redFlags = formatClinicalRedFlags(draft.redFlags);
 
     const cards = [
         {
@@ -4846,6 +4945,18 @@ function buildSummaryCards(review) {
             value: readiness.label || 'Bloqueada',
             meta: pendingAiStatus || readiness.summary || 'Sin resumen legal',
             tone: statusTone,
+        },
+        {
+            title: 'Red flags',
+            value:
+                redFlags.length > 0
+                    ? `${redFlags.length} alerta(s)`
+                    : 'Sin alerta',
+            meta:
+                redFlags.length > 0
+                    ? redFlags.join(' • ')
+                    : 'Sin criterios de alarma dermatologica activos.',
+            tone: redFlags.length > 0 ? 'danger' : 'success',
         },
         {
             title: 'HCU-005',
@@ -5601,7 +5712,7 @@ function queueReasons(item) {
     return [
         ...normalizeStringList(item.missingFields),
         ...normalizeStringList(item.reviewReasons),
-        ...normalizeStringList(item.redFlags),
+        ...formatClinicalRedFlags(item.redFlags),
     ];
 }
 
@@ -5774,6 +5885,7 @@ function buildClinicalHistoryMiniChipRow(chips) {
 
 function buildQueueItemCard(item, selectedSessionId, loading) {
     const sessionId = normalizeString(item.sessionId);
+    const redFlagLabels = formatClinicalRedFlags(item.redFlags);
     const summary = truncateText(
         item.legalReadinessSummary ||
             item.hcu001Summary ||
@@ -5819,6 +5931,7 @@ function buildQueueItemCard(item, selectedSessionId, loading) {
                 </span>
             </div>
             <p>${escapeHtml(summary)}</p>
+            ${buildClinicalRedFlagChipRow(redFlagLabels, 2)}
             ${buildClinicalHistoryMiniChipRow(chips)}
             <small>${escapeHtml(queueMeta || 'Sin timestamp')}</small>
         </button>
@@ -6638,6 +6751,7 @@ function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
         'Intake estructurado',
         'Motivo de consulta, evolucion y datos del paciente.',
         `
+                ${buildClinicalRedFlagNotice(draft.redFlags)}
                 ${inputField(
                     'intake_motivo_consulta',
                     'Motivo de consulta',

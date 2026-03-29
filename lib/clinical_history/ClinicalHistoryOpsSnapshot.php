@@ -44,7 +44,9 @@ final class ClinicalHistoryOpsSnapshot
 
         $draftsBySessionId = [];
         foreach ($drafts as $draftRecord) {
-            $draft = ClinicalHistoryRepository::adminDraft($draftRecord);
+            $draft = ClinicalHistoryGuardrails::synchronizeDerivedReviewSignals(
+                ClinicalHistoryRepository::adminDraft($draftRecord)
+            );
             $sessionId = ClinicalHistoryRepository::trimString($draft['sessionId'] ?? '');
             if ($sessionId !== '') {
                 $draftsBySessionId[$sessionId] = $draft;
