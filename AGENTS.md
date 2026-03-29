@@ -572,14 +572,14 @@ Si falla la gobernanza, el pipeline debe bloquear merge.
 ### P1 — Frontend / Sitio Público
 
 - [x] **FE-01** Crear `es/servicios/teledermatologia/index.html` — **el footer ya la enlaza y da 404**. Copiar estructura de `es/servicios/diagnostico-integral/index.html`. Contenido: consulta remota, proceso paso a paso, integración WhatsApp.
-- [ ] **FE-02** Crear `es/servicios/tamizaje-oncologico/index.html` — dermatoscopia digital, mapeo de lunares, seguimiento periódico.
-- [ ] **FE-03** Crear `es/servicios/manchas/index.html` — melasma, manchas solares, peelings, láser, fototipos Fitzpatrick.
-- [ ] **FE-04** Crear `es/servicios/depilacion-laser/index.html` — tecnología Alexandrita/diodo, tipos de piel, sesiones, cuidados post.
-- [ ] **FE-05** Crear `es/servicios/rellenos-hialuronico/index.html` — ácido hialurónico, zonas, diferencias con botox, resultados naturales.
-- [ ] **FE-06** Crear `es/servicios/microdermoabrasion/index.html` — rejuvenecimiento no invasivo, textura, poros.
-- [ ] **FE-07** Auditoría `en/index.html` — verificar que refleje la versión ES actual. Si desactualizado, sincronizar hero/servicios/equipo/CTA.
-- [ ] **FE-08** Mobile responsiveness — viewport 375px y 768px. Hero, cards, slider, footer. Arreglar breakpoints rotos.
-- [ ] **FE-09** Accessibility audit — Lighthouse accesibility. Alt text, contraste WCAG AA, ARIA labels, focus states.
+- [x] **FE-02** Crear `es/servicios/tamizaje-oncologico/index.html` — dermatoscopia digital, mapeo de lunares, seguimiento periódico.
+- [x] **FE-03** Crear `es/servicios/manchas/index.html` — melasma, manchas solares, peelings, láser, fototipos Fitzpatrick.
+- [x] **FE-04** Crear `es/servicios/depilacion-laser/index.html` — tecnología Alexandrita/diodo, tipos de piel, sesiones, cuidados post.
+- [x] **FE-05** Crear `es/servicios/rellenos-hialuronico/index.html` — ácido hialurónico, zonas, diferencias con botox, resultados naturales.
+- [x] **FE-06** Crear `es/servicios/microdermoabrasion/index.html` — rejuvenecimiento no invasivo, textura, poros.
+- [x] **FE-07** Auditoría `en/index.html` — verificar que refleje la versión ES actual. Si desactualizado, sincronizar hero/servicios/equipo/CTA.
+- [x] **FE-08** Mobile responsiveness — viewport 375px y 768px. Hero, cards, slider, footer. Arreglar breakpoints rotos.
+- [x] **FE-09** Accessibility audit — Lighthouse accesibility. Alt text, contraste WCAG AA, ARIA labels, focus states.
 - [ ] **FE-10** Dark mode consistency — verificar NO hay fondos blancos accidentales, textos invisibles, bordes rotos.
 
 ### P1 — SEO y Conversión
@@ -717,3 +717,108 @@ Si falla la gobernanza, el pipeline debe bloquear merge.
 - [ ] **LEG-02** Política de datos personales — actualizar `es/legal/privacidad/index.html` con: qué datos se recolectan (formularios, analytics), cómo se usan, cómo solicitar eliminación.
 - [ ] **LEG-03** Consentimiento informado digital — crear template de consentimiento para procedimientos (`es/consentimiento/`) que el paciente pueda revisar antes de la cita.
 - [ ] **LEG-04** Disclaimer médico visible — agregar disclaimer claro en cada página de servicio: "Los resultados varían según cada paciente. Consulte con nuestro especialista."
+
+---
+
+## Flow OS — Backlog del Sistema Operativo de Pacientes
+
+> Flow OS es el producto core de Aurora Derm: un sistema operativo que orquesta toda la experiencia del paciente desde el primer contacto hasta la resolución del caso.
+>
+> Journey: `lead_captured → intake_completed → scheduled → care_plan_ready → follow_up_active → resolved`
+>
+> Las siguientes tareas desarrollan cada etapa del journey y los subsistemas que lo soportan.
+
+### FLOW-JOURNEY — Etapas del Patient Journey
+
+- [ ] **JRN-01** Vista de journey del paciente — crear frontend en `admin.html` o nueva vista que muestre el journey timeline visual de cada paciente: en qué stage está, cuánto lleva, quién es el owner actual. Usar datos de `FlowOsController::journeyPreview`.
+- [ ] **JRN-02** Transiciones automáticas — implementar lógica en `FlowOsJourney.php` para que cuando un turno cambie a `completed`, el case avance automáticamente al siguiente stage (ej: `scheduled` → `care_plan_ready`).
+- [ ] **JRN-03** Notificaciones por stage — cuando un paciente cambia de stage, enviar notificación al owner del nuevo stage. Ej: `intake_completed` → notificar a `appointment-worker` que agende.
+- [ ] **JRN-04** Dashboard de stages — en `admin.html`, agregar panel que muestre cuántos pacientes hay en cada stage del journey. Tipo kanban o barras. Datos de `api.php?resource=flow-os-manifest`.
+- [ ] **JRN-05** SLA por stage — definir tiempo máximo por stage (ej: `lead_captured` máx 2h, `intake_completed` máx 24h). Alertar en admin cuando un paciente exceda el SLA.
+- [ ] **JRN-06** Historial del journey — guardar log de todas las transiciones de stage de un paciente con timestamps. Mostrar timeline en la vista del caso.
+- [ ] **JRN-07** Actions automáticas por stage — implementar las `defaultActions` del manifest: cuando un paciente entra a `lead_captured`, ofrecer automáticamente `request_identity_completion` y `offer_preconsultation_form`.
+- [ ] **JRN-08** Intake digital — crear formulario en `es/pre-consulta/index.html` que al enviar, cree un caso en Flow OS con stage `lead_captured` y dispare el journey.
+
+### FLOW-TURNERO — Sistema de Turnos
+
+- [ ] **TURN-01** Kiosco: flujo de check-in con QR — paciente llega, escanea QR de su cita, kiosco lo reconoce y cambia status a `arrived`. Si no tiene cita, ofrece turno walk-in.
+- [ ] **TURN-02** Kiosco: selección de motivo — en `kiosco-turnos.html`, antes de generar turno, mostrar opciones: "Consulta general", "Control de tratamiento", "Procedimiento agendado", "Urgencia dermatológica". Esto alimenta la cola con prioridad (`TicketPriorityPolicy`).
+- [ ] **TURN-03** Operador: vista de paciente expandida — en `operador-turnos.html`, al llamar un turno mostrar: nombre, motivo, historial de visitas previas, stage del journey, alertas (ej: "faltó al follow-up anterior").
+- [ ] **TURN-04** Operador: acciones rápidas — botones de acción post-consulta: "Agendar siguiente cita", "Enviar guía post-tratamiento", "Generar receta", "Derivar a procedimiento".
+- [ ] **TURN-05** Sala: información útil — en `sala-turnos.html`, entre turnos, mostrar: tips de cuidado de piel, videos educativos, info del tratamiento que el paciente va a recibir (personalizado si es posible por tipo de turno).
+- [ ] **TURN-06** Ticket impreso con QR — al generar turno en kiosco, el ticket (via `TicketPrinter`) debe incluir QR con link a `es/software/turnero-clinicas/estado-turno/?ticket=XXX` para que el paciente vea su posición en la cola desde el teléfono.
+- [ ] **TURN-07** Estimación de tiempo de espera — calcular y mostrar tiempo estimado de espera basado en: posición en cola, duración promedio de consulta por tipo, cantidad de consultorios activos. Mostrar en kiosco y sala.
+- [ ] **TURN-08** Notificación WhatsApp de turno — cuando el operador llama el turno, enviar WhatsApp automático: "Su turno [A-007] está siendo llamado. Pase a consultorio 2."
+- [ ] **TURN-09** Métricas de espera — registrar: tiempo de espera real, tiempo en consultorio, throughput por hora. Mostrar en `admin.html` como gráfico de barras. Alimentar `QueueAssistantMetricsStore`.
+- [ ] **TURN-10** Encuesta post-turno — al completar turno, enviar SMS/WhatsApp con link a encuesta rápida de 1 pregunta (NPS): "¿Qué tan probable es que nos recomiende? 1-10".
+
+### FLOW-HCE — Historia Clínica Electrónica
+
+- [ ] **HCE-01** Formulario de anamnesis — crear vista en admin para registrar: motivo consulta, antecedentes personales/familiares, alergias, medicación actual, fototipo Fitzpatrick. Usar `ClinicalHistoryService`.
+- [ ] **HCE-02** Fotografía clínica — integrar captura fotográfica desde cámara/teléfono. Subir a `CaseMediaFlowService`. Metadata: fecha, zona corporal, iluminación, distancia. Almacenar en `uploads/`.
+- [ ] **HCE-03** Comparación before/after — vista en admin que muestre 2 fotos side-by-side del mismo paciente/zona en diferentes fechas. Slider de comparación. Datos de `CaseMediaFlowService`.
+- [ ] **HCE-04** Plan de tratamiento digital — template en admin: diagnóstico, tratamientos propuestos (con sesiones y costos), frecuencia de seguimiento, metas clínicas. Exportable como PDF.
+- [ ] **HCE-05** Receta digital — generar receta con: datos del doctor (MSP), datos del paciente, medicamentos (nombre, dosis, frecuencia, duración), indicaciones. PDF descargable.
+- [ ] **HCE-06** Evolución clínica — formulario para registrar notas de cada visita: hallazgos, procedimientos realizados, evolución, plan para siguiente visita. Append-only al historial.
+- [ ] **HCE-07** Red flags automáticas — `ClinicalHistoryGuardrails` debe alertar: lesiones sospechosas > 6mm, cambio de color en lunares, crecimiento rápido, sangrado. Flag visual en admin.
+- [ ] **HCE-08** Exportar historia clínica — botón en admin que genera PDF con historial completo del paciente: anamnesis, evoluciones, fotos, tratamientos, recetas. Cumplir con `ClinicalHistoryLegalReadiness`.
+- [ ] **HCE-09** Compliance MSP Ecuador — verificar que la HCE cumple con los campos obligatorios del MSP (0457): identificación, anamnesis, examen físico, diagnóstico CIE-10, prescripción, evolución.
+
+### FLOW-TELEMED — Telemedicina
+
+- [ ] **TELE-01** Flujo de teleconsulta — implementar flujo completo: paciente solicita → intake digital (`TelemedicineIntakeService`) → evaluación de suitability (`TelemedicineSuitabilityEvaluator`) → consent → cita virtual → seguimiento.
+- [ ] **TELE-02** Vista de teleconsulta para paciente — crear `es/telemedicina/consulta/index.html`: sala de espera virtual, video call embed (Jitsi/Daily.co), chat, compartir fotos al doctor.
+- [ ] **TELE-03** Evaluación de viabilidad — antes de aprobar teleconsulta, evaluar si la condición requiere examen presencial. `TelemedicineSuitabilityEvaluator` debe usar reglas: dermatoscopia requerida → rechazar, lesión nueva → presencial.
+- [ ] **TELE-04** Consent digital — `TelemedicineConsentSnapshot`: consentimiento informado firmado digitalmente antes de la teleconsulta. Almacenar con timestamp y hash.
+- [ ] **TELE-05** Triaje por fotos — paciente sube 3 fotos (zona afectada, primer plano, contexto). `TelemedicineIntakeService` las pre-clasifica y las adjunta al caso para revisión del especialista.
+
+### FLOW-PAGOS — Pagos y Facturación
+
+- [ ] **PAY-01** Checkout integrado — vista de pago en `es/pago/index.html`: monto, concepto (tratamiento), métodos (Stripe card, transferencia bancaria, efectivo). Generar recibo.
+- [ ] **PAY-02** Comprobante de transferencia — el paciente sube foto del comprobante via `payment-lib.php`. Admin lo verifica y aprueba manualmente. Status: pendiente → verificado → aplicado.
+- [ ] **PAY-03** Factura electrónica SRI — integrar con facturación electrónica del SRI Ecuador. Generar factura con: RUC clínica, datos paciente (cédula/RUC), concepto, IVA 15%. Enviar por email.
+- [ ] **PAY-04** Estado de cuenta del paciente — vista en admin y portal paciente: historial de pagos, saldos pendientes, pagos parciales, próximos vencimientos.
+- [ ] **PAY-05** Planes de pago — permitir dividir un tratamiento en cuotas mensuales. Registrar plan en backend, enviar recordatorio de cuota por WhatsApp.
+
+### FLOW-CALENDAR — Agendamiento y Disponibilidad
+
+- [ ] **CAL-01** Booking público — crear `es/agendar/index.html` con calendario visual que consulte `CalendarAvailabilityService`. Paciente selecciona: servicio → doctor → fecha → hora → confirmar.
+- [ ] **CAL-02** Confirmación doble — después de reservar, enviar WhatsApp + email de confirmación con: fecha, hora, doctor, dirección, instrucciones de preparación.
+- [ ] **CAL-03** Reagendamiento self-service — `src/apps/reschedule/engine.js` + vista pública donde paciente puede mover su cita (máx 2 cambios, mínimo 24h antes).
+- [ ] **CAL-04** Lista de espera — si no hay disponibilidad, ofrecer "unirse a lista de espera". Notificar por WhatsApp cuando se abra un slot.
+- [ ] **CAL-05** Bloqueo de agenda — admin puede bloquear horarios: vacaciones, cirugías, reuniones. `CalendarBookingService` respeta estos bloqueos.
+- [ ] **CAL-06** Vista de agenda diaria — en `admin.html`, mostrar agenda del día: pacientes confirmados, hora, tipo de consulta, status (confirmado/pending/no-show). Con alertas de overbooking.
+
+### FLOW-ADMIN — Portal Administrativo
+
+- [ ] **ADM-01** Dashboard principal — mejorar vista inicial de `admin.html`: pacientes del día, turnos activos, ingresos del mes, tasa de no-show, NPS promedio. Cards con sparklines.
+- [ ] **ADM-02** Gestión de pacientes — CRUD de pacientes: buscar, ver perfil, historial, citas, pagos, journey. Usar `PatientCaseService`.
+- [ ] **ADM-03** Reportes mensuales — generar reporte: pacientes atendidos, procedimientos por tipo, ingresos por servicio, tasa de retorno, top 5 condiciones diagnosticadas. PDF exportable.
+- [ ] **ADM-04** Gestión de inventario — tracking de consumibles: jeringas botox, viales ácido hialurónico, cremas, gasas. Alertar cuando stock < umbral mínimo.
+- [ ] **ADM-05** Gestión de equipo — CRUD de doctores/staff: horarios, especialidades, certificaciones, performance (pacientes/día, NPS). Asignación automática de agenda.
+- [ ] **ADM-06** Audit log — registro inmutable de todas las acciones en admin: quién hizo qué, cuándo, desde qué IP. Usar `lib/audit.php`. Vista de búsqueda en admin.
+
+### FLOW-MULTI — Multi-clínica SaaS
+
+- [ ] **SAAS-01** Tenant isolation — verificar que `lib/tenants.php` aísla correctamente datos entre clínicas. Cada clínica debe tener su propio namespace de pacientes, agenda, turnero, pagos.
+- [ ] **SAAS-02** Onboarding de nueva clínica — crear flujo: registrar clínica → configurar perfil (`TurneroClinicProfile`) → cargar staff → activar servicios → generar subdomain o path.
+- [ ] **SAAS-03** Pricing page — crear `es/software/turnero-clinicas/precios/index.html`: Free (1 doctor, 10 turnos/día), Pro ($49/mes, 5 doctores, ilimitado), Enterprise (contactar).
+- [ ] **SAAS-04** Demo interactiva — mejorar `es/software/turnero-clinicas/demo/index.html`: demo funcional del turnero con datos de ejemplo. Paciente prueba kiosco → ve turno → operador lo llama.
+- [ ] **SAAS-05** Dashboard multi-clínica — vista en admin que muestra stats de todas las clínicas del tenant: turnos/día, ingresos, pacientes activos. Comparativa entre sucursales.
+- [ ] **SAAS-06** Whitelabel — permitir personalizar: logo, colores, nombre de la clínica, dominio. Mantener engine Flow OS, cambiar branding.
+- [ ] **SAAS-07** API pública documentación — crear `es/software/turnero-clinicas/api-docs/index.html` con documentación de la API para integraciones: queue-state, appointments, patients. Formato OpenAPI/Swagger.
+
+### FLOW-AI — Inteligencia Artificial
+
+- [ ] **AI-01** Triage inteligente — `ClinicalHistoryAIService`: analizar fotos + descripción del paciente para sugerir: urgencia (1-5), posible diagnóstico diferencial, derivación automática.
+- [ ] **AI-02** Asistente de consulta — durante la consulta, sugerir al doctor: tratamientos basados en el diagnóstico + historial + evidencia. Interfaz discreta en admin, no invasiva.
+- [ ] **AI-03** Predicción de no-show — modelo basado en: historial de asistencia, hora de cita, día de la semana, tiempo desde booking. Alertar admin para overbooking inteligente.
+- [ ] **AI-04** Generación de resúmenes — `LeadAiController` / `LeadOpsService`: generar resumen automático post-consulta para el paciente: "Hoy le diagnosticamos X, le recetamos Y, siguiente cita en Z semanas."
+- [ ] **AI-05** Chatbot WhatsApp — `WhatsappOpenclawController`: responder preguntas frecuentes por WhatsApp con IA: horarios, precios, preparación, dirección. Escalar a humano si es clínico.
+- [ ] **AI-06** Scoring de leads — clasificar leads por probabilidad de conversión: engagement con sitio web, tipo de consulta, urgencia. Priorizar follow-up.
+
+### FLOW-CLEAN — Limpieza de Surfaces (Deuda Técnica)
+
+- [ ] **SURF-01** Auditoría de surfaces — hay ~130 archivos `turnero-surface-*.js` en `src/apps/queue-shared/`. Muchos parecen generados automáticamente (commercial-banner, executive-review-pack, fleet-snapshot, etc.). Auditar cuáles se importan realmente desde los HTML del turnero.
+- [ ] **SURF-02** Eliminar surfaces huérfanas — de los 130 archivos, los que no se importan desde ningún HTML ni JS deben moverse a `_archive/turnero-surfaces/`. Probablemente 80%+ son dead code.
+- [ ] **SURF-03** Consolidar surfaces — los surfaces que SÍ se usan probablemente pueden consolidarse de 50 archivos a 10-15 módulos con responsabilidades claras.
