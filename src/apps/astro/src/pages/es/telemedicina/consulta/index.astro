@@ -1,0 +1,219 @@
+---
+import TeleconsultationRoomPageV6 from '../../../../components/public-v6/TeleconsultationRoomPageV6.astro';
+import PublicShellV6 from '../../../../layouts/PublicShellV6.astro';
+import { getV6NavigationModel } from '../../../../lib/public-v6.js';
+
+const locale = 'es';
+const pathname = '/es/telemedicina/consulta/';
+const baseNavModel = getV6NavigationModel(locale, pathname);
+const navModel = {
+    ...baseNavModel,
+    header: {
+        ...(baseNavModel?.header || {}),
+        switchLabel: '',
+        switchHref: '',
+    },
+};
+
+const page = {
+    title: 'Sala de teleconsulta dermatologica | Aurora Derm',
+    description:
+        'Sala virtual de Aurora Derm para entrar a la teleconsulta, activar video, compartir fotos clinicas seguras y continuar por WhatsApp si hace falta.',
+    heading: 'Sala de teleconsulta dermatologica',
+    breadcrumb: [
+        { label: 'Inicio', href: '/es/' },
+        { label: 'Telemedicina', href: '/es/telemedicina/' },
+        { label: 'Sala de teleconsulta', href: pathname },
+    ],
+    hero: {
+        eyebrow: 'Sala de espera virtual',
+        title: 'Entre a su teleconsulta con video, fotos y chat listos antes de que empiece la llamada.',
+        deck:
+            'Esta sala existe para bajar friccion el dia de la teleconsulta. Aqui puede cargar la videollamada, compartir fotos recientes y abrir WhatsApp clinico sin improvisar mientras el medico ya le espera.',
+        image: '/images/optimized/v6-clinic-telemedicine-review.webp',
+        alt: 'Teleconsulta dermatologica con apoyo visual y seguimiento remoto',
+        primaryCtaLabel: 'Preparar la sala',
+        secondaryCtaLabel: 'Abrir WhatsApp clinico',
+    },
+    statement: {
+        eyebrow: 'Antes de la llamada',
+        title: 'La teleconsulta funciona mejor cuando video, contexto y fotos ya estan alineados.',
+        body:
+            'No se trata de entrar a ciegas a una videollamada. Se trata de llegar con buena luz, una pregunta concreta y una via clara para compartir lo que cambia la lectura clinica.',
+        signature: 'Teleconsulta guiada, Quito',
+        image: '/images/optimized/v6-clinic-telemedicine-intake.webp',
+        alt: 'Preparacion de teleconsulta dermatologica con historia clinica ordenada',
+    },
+    kpis: [
+        { label: 'Video', value: 'Jitsi' },
+        { label: 'Fotos', value: 'Hasta 3' },
+        { label: 'Chat', value: 'WhatsApp' },
+    ],
+    roomStage: {
+        eyebrow: 'Entrar a la llamada',
+        title: 'Cargue la sala cuando ya tenga camara, microfono y contexto a mano.',
+        deck:
+            'Usamos una sala segura de Jitsi para que pueda entrar desde navegador. Si algo falla, tiene salida inmediata a WhatsApp sin perder el hilo de la teleconsulta.',
+        placeholderPill: 'Video bajo demanda',
+        placeholderTitle: 'Active la videollamada cuando ya este listo para entrar.',
+        placeholderBody:
+            'Asi puede revisar iluminacion, audio y sus fotos primero. Cuando pulse el boton, la sala se abre aqui mismo y tambien queda un enlace directo por si prefiere una pestaña aparte.',
+        launchLabel: 'Cargar video aqui',
+        openLabel: 'Abrir en nueva pestaña',
+        frameTitle: 'Sala de teleconsulta Aurora Derm',
+        statusIdle:
+            'La sala todavia no se ha cargado. Revise camara, microfono y fotos antes de entrar.',
+        checklistEyebrow: 'Checklist rapido',
+        checklistTitle: 'Lo minimo para entrar con calma',
+        checklist: [
+            'Luz frente a la cara o a la lesion, no detras suyo.',
+            'Microfono probado y otros audios del navegador cerrados.',
+            'Fotos recientes abiertas o ya subidas en esta misma pagina.',
+            'Si algo no carga, siga por WhatsApp y reubicamos la llamada.',
+        ],
+        jitsiBase: 'https://meet.jit.si',
+    },
+    roomSummary: {
+        eyebrow: 'Datos de la sala',
+        title: 'Estos campos se pueden personalizar desde el enlace que le enviemos.',
+        fields: [
+            { key: 'room', label: 'Sala', fallback: 'AuroraDerm-Consulta' },
+            { key: 'doctor', label: 'Doctor/a', fallback: 'Aurora Derm' },
+            { key: 'patient', label: 'Paciente', fallback: 'Paciente' },
+        ],
+    },
+    prep: {
+        eyebrow: 'Antes de empezar',
+        title: 'Tres preparaciones que hacen que la teleconsulta sirva de verdad.',
+        deck:
+            'No buscamos una experiencia teatral. Buscamos que la imagen, la historia y el siguiente paso salgan claros sin perder tiempo en friccion tecnica.',
+        cards: [
+            {
+                title: 'Revise la luz y el encuadre',
+                deck:
+                    'La lectura cambia mucho si vemos bien textura, borde y color.',
+                items: [
+                    'Use luz natural o blanca, no filtros ni modo belleza.',
+                    'Empiece con una toma de contexto y luego acerquese.',
+                    'Si la lesion esta en cuero cabelludo, pida apoyo para separar mejor el area.',
+                ],
+            },
+            {
+                title: 'Ordene que cambio',
+                deck:
+                    'La teleconsulta es mejor cuando la pregunta ya llega enfocada.',
+                items: [
+                    'Desde cuando aparece o empeora.',
+                    'Si arde, pica, sangra, supura o cambia rapido.',
+                    'Que crema, shampoo, antibiotico o procedimiento ya probo.',
+                ],
+            },
+            {
+                title: 'Tenga la salida clara',
+                deck:
+                    'Si remoto no alcanza, la llamada debe moverle rapido al siguiente paso.',
+                items: [
+                    'Tenga a mano su WhatsApp para continuar sin cortar comunicacion.',
+                    'Si necesita examen directo, se lo diremos sin alargar la espera.',
+                    'Si solo hace falta una foto mejor, puede subirla aqui mismo.',
+                ],
+            },
+        ],
+    },
+    photos: {
+        eyebrow: 'Compartir fotos',
+        title: 'Suba fotos clinicas seguras para enviarlas durante la teleconsulta.',
+        deck:
+            'Esta bandeja sirve para lesiones, seguimiento de brotes o comparativas rapidas antes de entrar a video. Cuando las suba, el enlace de WhatsApp se actualiza con esos archivos.',
+        inputLabel: 'Fotos clinicas',
+        inputTitle: 'Elija hasta 3 fotos JPG, PNG o WEBP.',
+        inputHint: 'Maximo 5 MB por foto. Una toma general y una de cerca suelen ser suficientes.',
+        submitLabel: 'Subir fotos seguras',
+        idleStatus: 'Todavia no hay fotos cargadas en esta sala.',
+        tipsEyebrow: 'Que imagen ayuda mas',
+        tipsTitle: 'Fotos utiles para teledermatologia',
+        tips: [
+            'Una foto de contexto para ubicar la zona y otra mas cercana para leer mejor borde, textura o costra.',
+            'Evite capturas de pantalla, collages o zoom digital excesivo.',
+            'Si hoy la lesion no se ve igual que ayer, suba tambien la foto comparativa mas reciente.',
+        ],
+        emptyUploadsLabel: 'No hay fotos cargadas todavia.',
+    },
+    chat: {
+        eyebrow: 'Chat clinico',
+        title: 'Abra WhatsApp con un resumen listo para que no se pierda el contexto.',
+        deck:
+            'El enlace se arma con la sala, el nombre del paciente, el doctor y cualquier nota corta que quiera dejar antes de entrar. Si ya subio fotos, tambien se incluyen.',
+        inputLabel: 'Nota breve opcional',
+        placeholder:
+            'Ejemplo: la lesion empeoro desde anoche, arde mas al lavar la zona o necesito mover la llamada 10 minutos.',
+        ctaLabel: 'Escribir por WhatsApp clinico',
+        whatsappHref: 'https://wa.me/593982453672',
+        statusNote: 'El resumen se prepara automaticamente para esta sala.',
+        notesEyebrow: 'Cuando usar este chat',
+        notesTitle: 'WhatsApp sirve para destrabar sin perder la cita',
+        notes: [
+            'Si el navegador no abre camara o microfono a tiempo.',
+            'Si necesita mandar una foto nueva durante la llamada.',
+            'Si el medico le pide pasar de video a seguimiento escrito o a cita presencial.',
+        ],
+    },
+    support: {
+        eyebrow: 'Plan B de conexion',
+        title: 'La teleconsulta no deberia caerse por una friccion tecnica simple.',
+        deck:
+            'Dejamos tres salidas concretas para que el caso no se quede en pausa si el navegador, la red o las fotos no ayudan a la primera.',
+        cards: [
+            {
+                title: 'Si la camara no abre',
+                body:
+                    'Abra la sala en una pestaña nueva. Jitsi suele pedir permisos otra vez y eso resuelve la mayoria de bloqueos del navegador.',
+            },
+            {
+                title: 'Si las fotos pesan demasiado',
+                body:
+                    'Tome una version mas limpia, con menos acercamiento y buena luz. La idea es claridad clinica, no archivos gigantes.',
+            },
+            {
+                title: 'Si remoto ya no alcanza',
+                body:
+                    'No se fuerza la teleconsulta. Se usa para decidir rapido si ya conviene examen presencial, dermatoscopia o procedimiento.',
+            },
+        ],
+        statusEyebrow: 'Siguiente paso',
+        statusTitle: 'Si la sala no abre, continuamos la teleconsulta por WhatsApp',
+        statusDescription:
+            'No pierda la cita por el navegador. Escríbanos y movemos la llamada o el seguimiento al canal mas estable para su caso.',
+        statusCtaLabel: 'Continuar por WhatsApp',
+        statusCtaHref:
+            'https://wa.me/593982453672?text=Hola%2C%20necesito%20apoyo%20con%20la%20sala%20de%20teleconsulta%20de%20Aurora%20Derm',
+    },
+    ui: {
+        railTitle: 'Secciones',
+        railAria: 'Secciones de sala de teleconsulta',
+        menu: {
+            room: 'Sala',
+            prep: 'Checklist',
+            photos: 'Fotos',
+            chat: 'Chat',
+            support: 'Plan B',
+        },
+    },
+};
+---
+
+<PublicShellV6
+    title={page.title}
+    description={page.description}
+    locale={locale}
+    canonicalPath={pathname}
+    alternatePath=""
+    pathname={pathname}
+    navModel={navModel}
+    templateId="teleconsultation_room_v6"
+    ogImageSrc={page.hero.image}
+    preloadImageSrc={page.hero.image}
+    preloadImageSizes="(max-width: 1100px) 100vw, 56vw"
+>
+    <TeleconsultationRoomPageV6 page={page} locale={locale} navModel={navModel} />
+</PublicShellV6>

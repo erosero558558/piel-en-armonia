@@ -165,6 +165,12 @@
                 "href": "/es/telemedicina/",
                 "eyebrow": "Teledermatologia",
                 "deck": "Orientacion a distancia para decidir con claridad si remoto basta o si ya conviene venir a consulta."
+            },
+            {
+                "label": "Sala de teleconsulta",
+                "href": "/es/telemedicina/consulta/",
+                "eyebrow": "Teleconsulta",
+                "deck": "Sala virtual para entrar a la llamada, abrir WhatsApp clinico y compartir fotos antes o durante la teleconsulta."
             }
         ]
     },

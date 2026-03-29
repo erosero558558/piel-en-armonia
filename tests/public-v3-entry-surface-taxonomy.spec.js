@@ -51,6 +51,17 @@ const ROUTES = [
         ],
     },
     {
+        route: '/es/telemedicina/consulta/',
+        templateId: 'teleconsultation_room_v6',
+        selectors: [
+            '[data-v6-page-head]',
+            '[data-v6-tele-room-hero]',
+            '[data-v6-tele-room-stage]',
+            '[data-v6-tele-room-photos]',
+            '#v6-tele-room-support-status',
+        ],
+    },
+    {
         route: '/es/legal/terminos/',
         templateId: 'legal_v6',
         selectors: [
