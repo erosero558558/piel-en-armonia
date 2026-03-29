@@ -258,6 +258,16 @@ function validateFocusConfiguration(board) {
     if (!focus) {
         return [];
     }
+    const subfronts = Array.isArray(board?.strategy?.active?.subfronts)
+        ? board.strategy.active.subfronts
+        : [];
+    const governanceOnlyStrategy =
+        subfronts.length > 0 &&
+        subfronts.every(
+            (subfront) =>
+                normalizeOptionalToken(subfront?.codex_instance) ===
+                'codex_transversal'
+        );
     const errors = [];
     if (!focus.id) errors.push('strategy.active requiere focus_id');
     if (!focus.title) errors.push('strategy.active requiere focus_title');
@@ -282,7 +292,7 @@ function validateFocusConfiguration(board) {
             `strategy.active.focus_next_step fuera de focus_steps (${focus.next_step})`
         );
     }
-    if (focus.required_checks.length === 0) {
+    if (!governanceOnlyStrategy && focus.required_checks.length === 0) {
         errors.push('strategy.active requiere focus_required_checks no vacio');
     }
     if (!focus.owner) errors.push('strategy.active requiere focus_owner');
@@ -2121,6 +2131,33 @@ function buildFocusSeed(strategy, options = {}) {
         String(strategy?.review_due_at || '').trim() || '2026-03-21';
     const owner =
         String(strategy?.owner || options.owner || '').trim() || 'ernesto';
+    if (strategyId === 'STRAT-2026-03-codex-governance-v2-adoption') {
+        return {
+            focus_id: 'FOCUS-2026-03-codex-governance-v2-adoption-cut-1',
+            focus_title: 'Canon v2 y cuarentena del donor',
+            focus_summary:
+                'Adoptar el canon v2, aislar el root donor no canonico y preparar el rescate posterior por lanes sin heredar checks de producto.',
+            focus_status: 'active',
+            focus_proof:
+                'La gobernanza corre sobre un frente transversal corto, el root donor queda inventariado como fuente de diff y el siguiente rescate se abre por slices separadas y canonicas.',
+            focus_steps: [
+                'canon_adoption',
+                'root_donor_quarantine',
+                'rescue_slice_preparation',
+            ],
+            focus_next_step: 'canon_adoption',
+            focus_required_checks: [],
+            focus_non_goals: [
+                'product_runtime_changes',
+                'root_donor_execution',
+                'mass_merge_from_donor',
+            ],
+            focus_owner: owner,
+            focus_review_due_at: reviewDueAt,
+            focus_evidence_ref: '',
+            focus_max_active_slices: 1,
+        };
+    }
     if (strategyId === 'STRAT-2026-03-admin-shell-rc2-polish') {
         return {
             focus_id: 'FOCUS-2026-03-admin-shell-rc2-polish-cut-1',

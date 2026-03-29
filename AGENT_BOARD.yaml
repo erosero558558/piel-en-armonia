@@ -7,71 +7,44 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 838
+  revision: 841
   updated_at: 2026-03-29
 
 strategy:
   active:
-    id: STRAT-2026-03-admin-operativo
-    title: "Admin operativo"
-    objective: "Convertir el frente admin clinico, queue/turnero y OpenClaw UX en una entrega operable y visible, con soporte backend y runtime estrictamente alineado."
-    owner: deck
+    id: STRAT-2026-03-codex-governance-v2-adoption
+    title: "Codex governance v2 adoption"
+    objective: "Consolidar el canon del modelo conceptual v2, cuarentenar el root donor no canonico y preparar el rescate posterior por lanes sin mezclar producto ni runtime."
+    owner: luciaguadalupecaizasanchez
     owner_policy: "detected_default_owner"
     status: active
     started_at: "2026-03-29"
-    review_due_at: "2026-03-21"
+    review_due_at: "2026-04-02"
     closed_at: ""
     close_reason: ""
-    exit_criteria: ["Admin clinico y queue/turnero navegables sin flujos rotos", "Auth/readiness/gates en verde para el frente activo", "Runtime OpenClaw solo usado como desbloqueo directo del mismo objetivo"]
-    success_signal: "Un mismo corte operativo puede demostrarse de punta a punta sin abrir trabajo fuera del frente admin operativo."
-    focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
-    focus_title: "Admin operativo demostrable"
-    focus_summary: "Unificar admin clinico, quick-nav, queue/turnero piloto y readiness operacional en un solo corte legible."
+    exit_criteria: ["AGENT_BOARD.yaml y el plan narrativo quedan alineados al canon v2 sin frente activo vacio", "El root donor queda inventariado y explicitamente fuera de la operacion de gobernanza", "Existe al menos una slice transversal abierta para convergencia de canon y preparacion del rescate por lanes"]
+    success_signal: "La operacion de gobernanza vuelve a correr sobre una estrategia transversal corta, con el root sucio tratado solo como donor y el siguiente rescate listo para abrirse por lanes."
+    focus_id: "FOCUS-2026-03-codex-governance-v2-adoption-cut-1"
+    focus_title: "Canon v2 y cuarentena del donor"
+    focus_summary: "Adoptar el canon v2, aislar el root donor no canonico y preparar el rescate posterior por lanes sin heredar checks de producto."
     focus_status: active
-    focus_proof: "Operador inicia sesion, entra al admin, usa quick-nav, revisa queue/turnero piloto y el corte queda respaldado por runtime/deploy verificables"
-    focus_steps: ["admin_queue_pilot_cut", "pilot_readiness_evidence", "feedback_trim"]
-    focus_next_step: "admin_queue_pilot_cut"
-    focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]
-    focus_non_goals: ["rediseno_publico", "expansion_payments", "refactor_orchestrator_no_bloqueante", "modularizacion_fuera_del_corte"]
-    focus_owner: "deck"
-    focus_review_due_at: "2026-03-21"
+    focus_proof: "La gobernanza corre sobre un frente transversal corto, el root donor queda inventariado como fuente de diff y el siguiente rescate se abre por slices separadas y canonicas."
+    focus_steps: ["canon_adoption", "root_donor_quarantine", "rescue_slice_preparation"]
+    focus_next_step: "canon_adoption"
+    focus_required_checks: []
+    focus_non_goals: ["product_runtime_changes", "root_donor_execution", "mass_merge_from_donor"]
+    focus_owner: "luciaguadalupecaizasanchez"
+    focus_review_due_at: "2026-04-02"
     focus_evidence_ref: ""
-    focus_max_active_slices: 3
+    focus_max_active_slices: 1
     subfronts:
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-admin-operativo
-        title: "Admin clinico y shell principal"
-        allowed_scopes: ["frontend-admin"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["payments"]
-        wip_limit: 2
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_frontend
-        subfront_id: SF-frontend-queue-turnero-operativo
-        title: "Queue, turnero y OpenClaw UX de soporte"
-        allowed_scopes: ["queue", "turnero"]
-        support_only_scopes: ["docs", "frontend-qa"]
-        blocked_scopes: ["calendar"]
-        wip_limit: 2
-        default_acceptance_profile: "frontend_delivery_checkpoint"
-        exception_ttl_hours: 8
-      - codex_instance: codex_backend_ops
-        subfront_id: SF-backend-admin-operativo
-        title: "Auth, readiness, gates y backend de soporte directo"
-        allowed_scopes: ["auth", "backend", "readiness", "gates"]
-        support_only_scopes: ["deploy", "ops", "monitoring", "tests"]
-        blocked_scopes: ["frontend-public", "security"]
-        wip_limit: 2
-        default_acceptance_profile: "backend_gate_checkpoint"
-        exception_ttl_hours: 6
       - codex_instance: codex_transversal
-        subfront_id: SF-transversal-admin-operativo
-        title: "Runtime/orquestacion solo como desbloqueo del frente"
+        subfront_id: SF-transversal-codex-governance-v2
+        title: "Adopcion canonica y cuarentena del donor"
         allowed_scopes: []
-        support_only_scopes: ["openclaw_runtime", "codex-governance", "tooling"]
-        blocked_scopes: ["legacy-runtime"]
-        wip_limit: 2
+        support_only_scopes: ["codex-governance", "tooling", "tests"]
+        blocked_scopes: ["frontend-admin", "queue", "turnero", "backend", "auth", "readiness", "gates", "deploy", "payments", "openclaw_runtime", "legacy-runtime"]
+        wip_limit: 1
         default_acceptance_profile: "transversal_runtime_checkpoint"
         exception_ttl_hours: 4
   next: null
@@ -13248,3 +13221,62 @@ tasks:
     prompt: "Queue turnero gate-first closeout: executive review hosts and admin queue pilot chain"
     created_at: 2026-03-28
     updated_at: 2026-03-28
+
+  - id: CDX-105
+    title: "Canon v2 adoption and donor quarantine"
+    owner: luciaguadalupecaizasanchez
+    executor: codex
+    status: ready
+    status_since_at: "2026-03-29T01:23:44.616Z"
+    risk: medium
+    scope: codex-governance
+    codex_instance: codex_transversal
+    domain_lane: transversal_runtime
+    lane_lock: strict
+    cross_domain: false
+    provider_mode: 
+    runtime_surface: 
+    runtime_transport: 
+    runtime_last_transport: 
+    model_tier_default: "gpt-5.4-mini"
+    premium_budget: 0
+    premium_calls_used: 0
+    premium_gate_state: "closed"
+    decision_packet_ref: ""
+    model_policy_version: "2026-03-17-codex-model-routing-v2"
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "tools/agent-orchestrator/commands/strategy.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/strategy.js", "tests-node/agent-orchestrator-cli.test.js", "tests-node/orchestrator/focus.test.js", "verification/agent-runs/CDX-105.md"]
+    source_signal: strategy_intake
+    source_ref: "STRAT-2026-03-codex-governance-v2-adoption"
+    priority_score: 70
+    sla_due_at: ""
+    last_attempt_at: ""
+    attempts: 0
+    blocked_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: ""
+    lease_cleared_reason: ""
+    runtime_impact: low
+    critical_zone: false
+    acceptance: "Validar adopcion canonica del modelo v2, cuarentena del root donor y preparacion del rescate por lanes sin reabrir runtime o producto."
+    acceptance_ref: "verification/agent-runs/CDX-105.md"
+    evidence_ref: "verification/agent-runs/CDX-105.md"
+    strategy_id: "STRAT-2026-03-codex-governance-v2-adoption"
+    subfront_id: "SF-transversal-codex-governance-v2"
+    strategy_role: "support"
+    focus_id: "FOCUS-2026-03-codex-governance-v2-adoption-cut-1"
+    focus_step: "canon_adoption"
+    integration_slice: "governance_evidence"
+    work_type: "support"
+    expected_outcome: "Canon v2 adoptado con estrategia transversal activa, donor root cuarentenado e inventario listo para rescate por lanes."
+    decision_ref: ""
+    rework_parent: ""
+    rework_reason: ""
+    depends_on: []
+    prompt: "Adoptar el canon operativo v2, reemplazar el frente vacio heredado por una estrategia transversal corta y documentar la cuarentena del root donor para rescate posterior por lanes."
+    created_at: 2026-03-29
+    updated_at: 2026-03-29

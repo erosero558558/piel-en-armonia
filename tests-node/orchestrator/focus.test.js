@@ -916,6 +916,27 @@ test('focus buildFocusSeed soporta admin shell rc2 con QA admin como unico requi
     assert.equal(seed.focus_max_active_slices, 1);
 });
 
+test('focus buildFocusSeed soporta codex governance v2 adoption sin required checks de producto', () => {
+    const seed = focusDomain.buildFocusSeed({
+        id: 'STRAT-2026-03-codex-governance-v2-adoption',
+        owner: 'deck',
+        review_due_at: '2026-04-02',
+    });
+
+    assert.equal(
+        seed.focus_id,
+        'FOCUS-2026-03-codex-governance-v2-adoption-cut-1'
+    );
+    assert.deepEqual(seed.focus_steps, [
+        'canon_adoption',
+        'root_donor_quarantine',
+        'rescue_slice_preparation',
+    ]);
+    assert.deepEqual(seed.focus_required_checks, []);
+    assert.equal(seed.focus_next_step, 'canon_adoption');
+    assert.equal(seed.focus_max_active_slices, 1);
+});
+
 test('focus evaluateRequiredChecks deja local required checks como unverified cuando la evidencia no aplica al foco activo', (t) => {
     const root = mkdtempSync(join(tmpdir(), 'focus-unverified-'));
     t.after(() => rmSync(root, { recursive: true, force: true }));

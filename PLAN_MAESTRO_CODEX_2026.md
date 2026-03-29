@@ -4,28 +4,41 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
+<!-- CODEX_STRATEGY_ACTIVE
+id: STRAT-2026-03-codex-governance-v2-adoption
+title: "Codex governance v2 adoption"
+status: active
+owner: luciaguadalupecaizasanchez
+owner_policy: "detected_default_owner"
+objective: "Consolidar el canon del modelo conceptual v2, cuarentenar el root donor no canonico y preparar el rescate posterior por lanes sin mezclar producto ni runtime."
+started_at: "2026-03-29"
+review_due_at: "2026-04-02"
+success_signal: "La operacion de gobernanza vuelve a correr sobre una estrategia transversal corta, con el root sucio tratado solo como donor y el siguiente rescate listo para abrirse por lanes."
+focus_id: "FOCUS-2026-03-codex-governance-v2-adoption-cut-1"
+focus_title: "Canon v2 y cuarentena del donor"
+focus_status: active
+focus_next_step: "canon_adoption"
+focus_required_checks: []
+subfront_ids: ["SF-transversal-codex-governance-v2"]
+updated_at: "2026-03-29"
+-->
+
 Nota operativa: `AGENT_BOARD.yaml` gobierna la ejecucion, los estados y la
 estrategia viva. Este plan queda como espejo narrativo derivado para lectura
 humana y evidencia complementaria.
 
-<!-- CODEX_STRATEGY_ACTIVE
-id: STRAT-2026-03-admin-operativo
-title: "Admin operativo"
-status: active
-owner: deck
-owner_policy: "detected_default_owner"
-objective: "Convertir el frente admin clinico, queue/turnero y OpenClaw UX en una entrega operable y visible, con soporte backend y runtime estrictamente alineado."
-started_at: "2026-03-29"
-review_due_at: "2026-03-21"
-success_signal: "Un mismo corte operativo puede demostrarse de punta a punta sin abrir trabajo fuera del frente admin operativo."
-focus_id: "FOCUS-2026-03-admin-operativo-cut-1"
-focus_title: "Admin operativo demostrable"
-focus_status: active
-focus_next_step: "admin_queue_pilot_cut"
-focus_required_checks: ["job:public_main_sync", "runtime:operator_auth"]
-subfront_ids: ["SF-frontend-admin-operativo", "SF-frontend-queue-turnero-operativo", "SF-backend-admin-operativo", "SF-transversal-admin-operativo"]
-updated_at: "2026-03-29"
--->
+## Adopcion canonica v2 y cuarentena del donor 2026-03-29
+
+- `STRAT-2026-03-codex-governance-v2-adoption` reemplaza el frente heredado
+  que habia quedado vivo pero sin slices activas ni checks pertinentes para
+  esta fase.
+- `CDX-105` abre la convergencia transversal del canon v2: estrategia activa,
+  foco corto, slice unica y cuarentena explicita del root donor.
+- El root [`/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm`](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm)
+  deja de ser workspace operativo de gobernanza y pasa a ser solo fuente de
+  diff para rescates posteriores por lane.
+- Ningun rescate futuro desde el donor se hace por merge masivo: cada bucket
+  debe reentrar por slice `CDX-*`, lane unico y evidencia propia.
 
 ## Fase 2 multi-clínica local 2026-03-28
 

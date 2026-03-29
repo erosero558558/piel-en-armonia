@@ -1982,7 +1982,7 @@ test('strategy preview/set-next/activate-next/intake mantienen draft, mirror y d
     t.after(() => cleanupFixtureDir(dir));
 
     writeFixtureFiles(dir, {
-        board: boardForStrategySeedableFixture(alignedAdminCodexMirrorsYaml()),
+        board: boardForStrategySeedableFixture(),
         handoffs: baseHandoffs(),
         plan: basePlanWithoutCodexBlock(),
     });
@@ -2055,6 +2055,8 @@ test('strategy preview/set-next/activate-next/intake mantienen draft, mirror y d
     result = runCli(dir, [
         'strategy',
         'intake',
+        '--id',
+        'CDX-001',
         '--title',
         'Admin shell polish',
         '--scope',
@@ -2085,7 +2087,7 @@ test('strategy preview/set-next/activate-next/intake mantienen draft, mirror y d
     assert.match(json.task_full.acceptance, /SF-frontend-admin-operativo/);
     assert.match(
         json.task_full.acceptance_ref,
-        /verification\/agent-runs\/AG-001\.md/
+        /verification\/agent-runs\/CDX-001\.md/
     );
 
     const strategyEvents = parseJsonLines(readStrategyEvents(dir));
@@ -2093,6 +2095,103 @@ test('strategy preview/set-next/activate-next/intake mantienen draft, mirror y d
         strategyEvents.map((event) => event.event_type),
         ['strategy.set-next', 'strategy.activate-next']
     );
+});
+
+test('strategy preview/set-next/activate-next/intake soportan adopcion transversal del canon v2', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForStrategySeedableFixture(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    let result = runCli(dir, [
+        'strategy',
+        'preview',
+        '--seed',
+        'codex-governance-v2-adoption',
+        '--json',
+    ]);
+    let json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.preview.activation_ready, true);
+    assert.equal(
+        json.preview.candidate.focus_id,
+        'FOCUS-2026-03-codex-governance-v2-adoption-cut-1'
+    );
+    assert.deepEqual(json.preview.candidate.focus_required_checks, []);
+
+    result = runCli(dir, [
+        'strategy',
+        'set-next',
+        '--seed',
+        'codex-governance-v2-adoption',
+        '--owner',
+        'ernesto',
+        '--expect-rev',
+        '0',
+        '--json',
+    ]);
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.strategy.status, 'draft');
+
+    result = runCli(dir, [
+        'strategy',
+        'activate-next',
+        '--reason',
+        'v2_canon_adoption',
+        '--expect-rev',
+        '1',
+        '--json',
+    ]);
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(
+        json.strategy.id,
+        'STRAT-2026-03-codex-governance-v2-adoption'
+    );
+
+    result = runCli(dir, [
+        'strategy',
+        'intake',
+        '--id',
+        'CDX-105',
+        '--title',
+        'Canon v2 adoption and donor quarantine',
+        '--scope',
+        'codex-governance',
+        '--subfront-id',
+        'SF-transversal-codex-governance-v2',
+        '--files',
+        'AGENT_BOARD.yaml,PLAN_MAESTRO_CODEX_2026.md,verification/agent-runs/CDX-105.md',
+        '--expect-rev',
+        '2',
+        '--json',
+    ]);
+    json = parseJsonStdout(result);
+    assert.equal(json.ok, true);
+    assert.equal(json.task.id, 'CDX-105');
+    assert.equal(
+        json.task.strategy_id,
+        'STRAT-2026-03-codex-governance-v2-adoption'
+    );
+    assert.equal(
+        json.task.subfront_id,
+        'SF-transversal-codex-governance-v2'
+    );
+    assert.equal(json.task.codex_instance, 'codex_transversal');
+    assert.equal(json.task.domain_lane, 'transversal_runtime');
+    assert.equal(json.task.strategy_role, 'support');
+    assert.equal(
+        json.task.focus_id,
+        'FOCUS-2026-03-codex-governance-v2-adoption-cut-1'
+    );
+    assert.equal(json.task.focus_step, 'canon_adoption');
+    assert.equal(json.task.integration_slice, 'governance_evidence');
+    assert.equal(json.task.work_type, 'support');
 });
 
 test('strategy intake exige --subfront-id cuando el scope same-lane es ambiguo', (t) => {

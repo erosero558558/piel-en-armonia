@@ -25,6 +25,46 @@ const DEFAULT_EXCEPTION_TTL_HOURS = 8;
 const DEFAULT_AGED_TASK_HOURS = 24;
 const STRATEGY_SEED_CATALOG_VERSION = '2026.03.28';
 const STRATEGY_SEED_CATALOG = Object.freeze({
+    'codex-governance-v2-adoption': Object.freeze({
+        id: 'STRAT-2026-03-codex-governance-v2-adoption',
+        title: 'Codex governance v2 adoption',
+        objective:
+            'Consolidar el canon del modelo conceptual v2, cuarentenar el root donor no canonico y preparar el rescate posterior por lanes sin mezclar producto ni runtime.',
+        owner_policy: 'detected_default_owner',
+        review_due_at: '2026-04-02',
+        exit_criteria: [
+            'AGENT_BOARD.yaml y el plan narrativo quedan alineados al canon v2 sin frente activo vacio',
+            'El root donor queda inventariado y explicitamente fuera de la operacion de gobernanza',
+            'Existe al menos una slice transversal abierta para convergencia de canon y preparacion del rescate por lanes',
+        ],
+        success_signal:
+            'La operacion de gobernanza vuelve a correr sobre una estrategia transversal corta, con el root sucio tratado solo como donor y el siguiente rescate listo para abrirse por lanes.',
+        subfronts: [
+            {
+                codex_instance: 'codex_transversal',
+                subfront_id: 'SF-transversal-codex-governance-v2',
+                title: 'Adopcion canonica y cuarentena del donor',
+                allowed_scopes: [],
+                support_only_scopes: ['codex-governance', 'tooling', 'tests'],
+                blocked_scopes: [
+                    'frontend-admin',
+                    'queue',
+                    'turnero',
+                    'backend',
+                    'auth',
+                    'readiness',
+                    'gates',
+                    'deploy',
+                    'payments',
+                    'openclaw_runtime',
+                    'legacy-runtime',
+                ],
+                wip_limit: 1,
+                default_acceptance_profile: 'transversal_runtime_checkpoint',
+                exception_ttl_hours: 4,
+            },
+        ],
+    }),
     'admin-shell-rc2-polish': Object.freeze({
         id: 'STRAT-2026-03-admin-shell-rc2-polish',
         title: 'Admin shell RC2 polish',
@@ -785,6 +825,11 @@ function validateStrategyRecord(strategy, options = {}) {
 
     const seenSubfrontIds = new Set();
     const instanceCounts = {};
+    const governanceOnlyStrategy =
+        safeStrategy.subfronts.length > 0 &&
+        safeStrategy.subfronts.every(
+            (subfront) => subfront.codex_instance === 'codex_transversal'
+        );
     for (const subfront of safeStrategy.subfronts) {
         if (!subfront.subfront_id) {
             errors.push(`${label}.subfronts requiere subfront_id`);
@@ -832,7 +877,7 @@ function validateStrategyRecord(strategy, options = {}) {
         }
     }
 
-    if (requireExactCodexInstances) {
+    if (requireExactCodexInstances && !governanceOnlyStrategy) {
         for (const codexInstance of allowedCodexInstances) {
             const count = Number(instanceCounts[codexInstance] || 0);
             if (count < 1) {
@@ -1655,6 +1700,13 @@ function buildStrategyIntakeTask(board, input = {}, options = {}) {
         exception_opened_at: '',
         exception_expires_at: '',
         exception_state: '',
+        integration_slice: normalizeOptionalToken(
+            input.integration_slice ||
+                (scope === 'codex-governance' ? 'governance_evidence' : '')
+        ),
+        work_type: normalizeOptionalToken(
+            input.work_type || (role === 'support' ? 'support' : '')
+        ),
         created_at: today,
         updated_at: today,
         status_since_at: today,

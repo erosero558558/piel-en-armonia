@@ -561,6 +561,7 @@ async function handleStrategyCommand(ctx) {
     const { task, subfront, intake_defaults } = buildStrategyIntakeTask(
         board,
         {
+            id: flags.id,
             title: flags.title,
             scope: flags.scope,
             files,
@@ -570,6 +571,9 @@ async function handleStrategyCommand(ctx) {
             status: flags.status,
             risk: flags.risk,
             prompt: flags.prompt,
+            integration_slice:
+                flags['integration-slice'] || flags.integration_slice,
+            work_type: flags['work-type'] || flags.work_type,
         },
         {
             currentDate,
