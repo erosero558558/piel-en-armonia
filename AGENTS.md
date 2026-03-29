@@ -697,7 +697,136 @@ Después de completar cualquier tarea, el agente DEBE:
 5. Para cambios solo de frontend/contenido: commit + push directo.
 6. `HUSKY=0 git commit --no-verify` si husky/lint-staged causa problemas con archivos no relacionados.
 
+### Mapa de arquitectura
 
+```
+Aurora-Derm/
+├── index.html                    # Landing page principal (ES)
+├── admin.html                    # Portal administrativo (login requerido)
+├── kiosco-turnos.html            # Kiosco de auto check-in para pacientes
+├── operador-turnos.html          # Vista del operador de turnos
+├── sala-turnos.html              # Display de sala de espera
+├── api.php → lib/routes.php      # Entry point de la API REST
+│
+├── controllers/                  # 28 controllers PHP (lógica de negocio)
+│   ├── FlowOsController.php      # Journey manifest y preview
+│   ├── QueueController.php       # Cola de turnos
+│   ├── AppointmentController.php # Citas y agendamiento
+│   ├── ClinicalHistoryController.php  # Historia clínica
+│   ├── PaymentController.php     # Pagos Stripe + transferencias
+│   ├── WhatsappOpenclawController.php # WhatsApp bot/messaging
+│   ├── TelemedicineAdminController.php # Telemedicina admin
+│   └── HealthController.php      # Health check + diagnostics
+│
+├── lib/                          # Servicios y lógica compartida
+│   ├── FlowOsJourney.php         # Patient journey engine (6 stages)
+│   ├── QueueService.php          # Turnero engine
+│   ├── PatientCaseService.php    # Caso clínico unificado
+│   ├── BookingService.php        # Reservas
+│   ├── calendar/                 # Google Calendar integration
+│   ├── clinical_history/         # HCE (AI, guardrails, legal)
+│   ├── telemedicine/             # Teleconsulta (intake, consent, channel)
+│   ├── queue/                    # Ticket factory, priority, summary
+│   └── routes.php                # 120+ API routes registradas
+│
+├── styles/
+│   └── main-aurora.css           # Design system principal (tokens CSS)
+│
+├── es/servicios/                 # 20 specialty pages (ES) ✅ COMPLETO
+├── en/services/                  # 13 specialty pages (EN) — faltan 7
+├── es/legal/                     # Aviso médico, privacidad, cookies, términos
+├── es/software/turnero-clinicas/ # Landing SaaS del turnero
+│
+├── src/apps/                     # Módulos frontend JS
+│   ├── queue-shared/             # 398 archivos (mayoría dead code turnero-surface-*)
+│   ├── admin-v3/                 # 396 archivos (admin panel v3)
+│   ├── booking/                  # Motor de reservas
+│   ├── reschedule/               # Motor de reagendamiento
+│   ├── payment/                  # Motor de pagos
+│   ├── patient-flow-os/          # ⚠️ VACÍO — Flow OS patient app NO EXISTE AÚN
+│   └── chat/                     # Chat UI
+│
+├── js/                           # JS compilados/públicos
+├── images/optimized/             # 262 imágenes webp optimizadas
+├── fonts/                        # Fraunces, Inter, Plus Jakarta Sans (woff2)
+├── templates/partials/           # Fragmentos HTML reutilizables (head, footer, hero)
+├── data/                         # Runtime data (metrics, locks, ratelimit)
+└── _archive/                     # Código archivado (gobernanza legacy)
+```
+
+### API endpoints existentes (referencia rápida)
+
+Todas las rutas son `GET /api.php?resource=<nombre>` o `POST /api.php?resource=<nombre>`.
+
+| Subsistema | Endpoints | Status |
+|---|---|---|
+| **Health** | `health`, `health-diagnostics` | ✅ Funcional |
+| **Queue** | `queue-state`, `queue-checkin`, `queue-ticket`, `queue-call-next`, `queue-reprint` | ✅ Funcional |
+| **Appointments** | `appointments`, `booked-slots`, `reschedule` | ✅ Funcional |
+| **Flow OS** | `flow-os-manifest`, `flow-os-journey-preview` | ✅ Backend listo, frontend falta |
+| **Clinical History** | `clinical-history-session`, `clinical-history-message`, `clinical-record` | ✅ Backend listo |
+| **Payments** | `payment-config`, `payment-intent`, `payment-verify`, `transfer-proof`, `stripe-webhook` | ✅ Funcional |
+| **Telemedicine** | `telemedicine-intakes`, `telemedicine-ops-diagnostics`, `telemedicine-rollout-readiness` | ✅ Backend listo |
+| **Analytics** | `funnel-event`, `funnel-metrics`, `retention-report` | ✅ Funcional |
+| **WhatsApp** | `whatsapp-openclaw-inbound`, `whatsapp-openclaw-outbox` | ✅ Backend listo |
+| **Push** | `push-config`, `push-subscribe`, `push-test` | ✅ Backend listo |
+| **Auth** | `operator-auth-start/complete/logout`, `operator-pin-login/logout` | ✅ Funcional |
+
+### Páginas de servicio existentes (inventario)
+
+**ES — 20 páginas ✅ completas:**
+acne-rosacea, bioestimuladores-colageno, botox, cancer-piel, cicatrices, depilacion-laser, dermatologia-pediatrica, diagnostico-integral, granitos-brazos-piernas, laser-dermatologico, manchas, mesoterapia, microdermoabrasion, peeling-quimico, piel-cabello-unas, rellenos-hialuronico, tamizaje-oncologico, teledermatologia, verrugas
+
+**EN — 13 páginas, faltan 7:**
+❌ depilacion-laser, ❌ manchas, ❌ microdermoabrasion, ❌ rellenos-hialuronico, ❌ tamizaje-oncologico, ❌ teledermatologia, ❌ bioestimuladores (el path en EN es bioestimuladores-colageno)
+
+**Páginas que NO existen todavía (por crear):**
+- `es/blog/` — blog completo
+- `es/primera-consulta/` — guía de primera visita
+- `es/agendar/` — booking público
+- `es/pago/` — checkout
+- `es/paquetes/` — combos de tratamiento
+- `es/referidos/` — programa de referidos
+- `es/telemedicina/consulta/` — sala de teleconsulta
+
+### Issues conocidas
+
+| Issue | Detalle | Impacto |
+|---|---|---|
+| 502 intermitente | pielarmonia.com responde 502 ocasionalmente | Server Windows, fuera de alcance del repo |
+| `patient-flow-os/` vacío | `src/apps/patient-flow-os/` tiene 0 archivos JS | El frontend del journey del paciente no existe |
+| 398 surface files | `src/apps/queue-shared/` tiene 398 archivos, ~80% dead code | Confunde a agentes, infla el repo |
+| EN desactualizado | `en/index.html` puede no reflejar la versión ES actual | Experiencia inconsistente para pacientes angloparlantes |
+| `bioestimuladores/` redirect | Footer enlaza `/es/servicios/bioestimuladores/` pero existe como `/es/servicios/bioestimuladores-colageno/` | 404 para algunos visitors |
+
+### Acceptance criteria por sprint
+
+**Sprint 1 está DONE cuando:**
+- [ ] Cero links rotos en `index.html` y footer
+- [ ] `manifest.json` dice "Aurora Derm" (no "Flow OS")
+- [ ] Site usable en iPhone (375px) sin nada cortado
+- [ ] Lighthouse Accessibility ≥ 85
+- [ ] Lighthouse Performance ≥ 70
+
+**Sprint 2 está DONE cuando:**
+- [ ] Structured data `MedicalClinic` validada en Rich Results Test
+- [ ] ≥ 4 blog posts publicados en `es/blog/`
+- [ ] Todos los CTAs WhatsApp tienen `?text=` contextualizado
+- [ ] `sitemap.xml` incluye todas las páginas ES y EN
+- [ ] Página de primera consulta live
+
+**Sprint 3 está DONE cuando:**
+- [ ] Patient journey visible en admin (kanban de stages)
+- [ ] Paciente puede hacer intake digital desde `es/pre-consulta/`
+- [ ] Kiosco con check-in QR funcional
+- [ ] Booking público `es/agendar/` conectado a `CalendarAvailabilityService`
+- [ ] HCE: se puede crear anamnesis y registrar evolución desde admin
+
+**Sprint 4 está DONE cuando:**
+- [ ] Triage IA funcional en staging
+- [ ] Demo interactiva del turnero usable por visitantes
+- [ ] Pricing page live en `es/software/turnero-clinicas/precios/`
+- [ ] ≤ 50 archivos en `src/apps/queue-shared/` (de 398 actuales)
 
 ### ✅ Sprint 0 — Completado
 
@@ -719,7 +848,7 @@ Después de completar cualquier tarea, el agente DEBE:
 
 #### 1.1 Links y navegación rotas
 
-- [ ] **S1-01** `[S]` Fix bioestimuladores link — footer enlaza `/es/servicios/bioestimuladores/` pero la página es `/es/servicios/bioestimuladores-colageno/`. Arreglar el `href` en `index.html`.
+- [x] **S1-01** `[S]` Fix bioestimuladores link — footer enlaza `/es/servicios/bioestimuladores/` pero la página es `/es/servicios/bioestimuladores-colageno/`. Arreglar el `href` en `index.html`.
 - [ ] **S1-02** `[S]` Verificar TODOS los links del footer y nav en `index.html` — que cada href lleve a una página que existe. Reportar cualquier 404.
 - [ ] **S1-03** `[S]` Verificar links en cada `es/servicios/*/index.html` — CTAs, nav, breadcrumbs, que nada apunte a páginas inexistentes.
 
