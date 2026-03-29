@@ -573,17 +573,17 @@ Si falla la gobernanza, el pipeline debe bloquear merge.
 
 **Aurora Derm** — Clínica dermatológica con enfoque médico real en Quito, Ecuador.
 
-| Dato | Valor |
-|---|---|
-| Nombre comercial | Aurora Derm |
-| Dominio | pielarmonia.com |
-| WhatsApp | +593 98 245 3672 → `https://wa.me/593982453672` |
-| Ciudad | Quito, Ecuador (2800 msnm, exposición UV alta) |
-| Directora | Dra. Rosero — MSP-EC, S.E.D., Board Certified |
-| Especialista láser | Dr. Narváez — MSP-EC, LASER Board, Oncología Cutánea |
-| Servicios core | Diagnóstico integral, láser fraccionado, bioestimuladores, acné, tamizaje oncológico, teledermatología |
-| Plataforma | Flow OS — sistema operativo de la operación clínica |
-| Nombre técnico del turnero | Turnero Clínicas (nombre público del módulo SaaS) |
+| Dato                       | Valor                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Nombre comercial           | Aurora Derm                                                                                            |
+| Dominio                    | pielarmonia.com                                                                                        |
+| WhatsApp                   | +593 98 245 3672 → `https://wa.me/593982453672`                                                        |
+| Ciudad                     | Quito, Ecuador (2800 msnm, exposición UV alta)                                                         |
+| Directora                  | Dra. Rosero — MSP-EC, S.E.D., Board Certified                                                          |
+| Especialista láser         | Dr. Narváez — MSP-EC, LASER Board, Oncología Cutánea                                                   |
+| Servicios core             | Diagnóstico integral, láser fraccionado, bioestimuladores, acné, tamizaje oncológico, teledermatología |
+| Plataforma                 | Flow OS — sistema operativo de la operación clínica                                                    |
+| Nombre técnico del turnero | Turnero Clínicas (nombre público del módulo SaaS)                                                      |
 
 ### Design system — Tokens CSS
 
@@ -591,41 +591,26 @@ Cualquier página nueva DEBE usar estas variables. Nunca hardcodear colores.
 
 ```css
 /* Fondos */
---bg-base: #07090C          /* fondo principal — casi negro */
---bg-surface: rgba(255,255,255,0.03)  /* tarjetas sutiles */
---bg-card: rgba(255,255,255,0.04)     /* cards elevadas */
-
-/* Bordes */
---border: rgba(255,255,255,0.08)
---border-hover: rgba(255,255,255,0.18)
-
-/* Textos */
---text: #FFFFFF              /* texto principal — blanco */
---text-muted: #71717A        /* texto terciario */
---text-secondary: #A1A1AA    /* texto secundario */
-
-/* Acento */
---accent-gold: #C9A96E       /* dorado — CTAs secundarios, highlights */
-
-/* Botones */
---btn-bg: #FFFFFF            /* fondo botón primario */
---btn-text: #000000          /* texto botón primario */
-
-/* Tipografía */
---font: 'Inter', -apple-system, sans-serif   /* body */
-/* Fraunces — headings/display (woff2 en fonts/) */
-/* Plus Jakarta Sans — subtítulos (woff2 en fonts/) */
-
-/* Espaciado */
---s-xs: 8px  --s-sm: 16px  --s-md: 24px  --s-lg: 48px  --s-xl: 80px
-
-/* Bordes redondeados */
---r-sm: 8px  --r-md: 16px  --r-lg: 24px  --r-xl: 32px  --r-pill: 9999px
-
-/* Transiciones */
---ease: cubic-bezier(0.16, 1, 0.3, 1)
---t-fast: .2s var(--ease)
---t-smooth: .6s var(--ease)
+--bg-base:
+    #07090c /* fondo principal — casi negro */
+        --bg-surface: rgba(255, 255, 255, 0.03) /* tarjetas sutiles */
+        --bg-card: rgba(255, 255, 255, 0.04) /* cards elevadas */ /* Bordes */
+        --border: rgba(255, 255, 255, 0.08)
+        --border-hover: rgba(255, 255, 255, 0.18) /* Textos */ --text: #ffffff
+        /* texto principal — blanco */ --text-muted: #71717a
+        /* texto terciario */ --text-secondary: #a1a1aa /* texto secundario */
+        /* Acento */ --accent-gold: #c9a96e
+        /* dorado — CTAs secundarios, highlights */ /* Botones */
+        --btn-bg: #ffffff /* fondo botón primario */ --btn-text: #000000
+        /* texto botón primario */ /* Tipografía */ --font: 'Inter',
+    -apple-system,
+    sans-serif /* body */ /* Fraunces — headings/display (woff2 en fonts/) */
+        /* Plus Jakarta Sans — subtítulos (woff2 en fonts/) */ /* Espaciado */
+        --s-xs: 8px --s-sm: 16px --s-md: 24px --s-lg: 48px --s-xl: 80px
+        /* Bordes redondeados */ --r-sm: 8px --r-md: 16px --r-lg: 24px
+        --r-xl: 32px --r-pill: 9999px /* Transiciones */
+        --ease: cubic-bezier(0.16, 1, 0.3, 1) --t-fast: 0.2s var(--ease)
+        --t-smooth: 0.6s var(--ease);
 ```
 
 **Componentes CSS disponibles:** `.btn-primary`, `.btn-outline`, `.btn-large`, `.luxury-card`, `.team-card`, `.badge`, `.eyebrow`, `.section`, `.container`, `.reveal`, `.hero-fullscreen`, `.faq-accordion`, `.bento-grid-luxury`.
@@ -656,6 +641,7 @@ Todo contenido escrito para Aurora Derm DEBE seguir estas reglas:
 Al crear una nueva `es/servicios/*/index.html`, usar la estructura de `es/servicios/diagnostico-integral/index.html` o `es/servicios/acne-rosacea/index.html` como base.
 
 Estructura obligatoria:
+
 1. `<meta>` tags (title, description, OG, canonical)
 2. Hero con imagen del procedimiento
 3. Sección "¿Qué es?" — descripción médica accesible
@@ -758,19 +744,19 @@ Aurora-Derm/
 
 Todas las rutas son `GET /api.php?resource=<nombre>` o `POST /api.php?resource=<nombre>`.
 
-| Subsistema | Endpoints | Status |
-|---|---|---|
-| **Health** | `health`, `health-diagnostics` | ✅ Funcional |
-| **Queue** | `queue-state`, `queue-checkin`, `queue-ticket`, `queue-call-next`, `queue-reprint` | ✅ Funcional |
-| **Appointments** | `appointments`, `booked-slots`, `reschedule` | ✅ Funcional |
-| **Flow OS** | `flow-os-manifest`, `flow-os-journey-preview` | ✅ Backend listo, frontend falta |
-| **Clinical History** | `clinical-history-session`, `clinical-history-message`, `clinical-record` | ✅ Backend listo |
-| **Payments** | `payment-config`, `payment-intent`, `payment-verify`, `transfer-proof`, `stripe-webhook` | ✅ Funcional |
-| **Telemedicine** | `telemedicine-intakes`, `telemedicine-ops-diagnostics`, `telemedicine-rollout-readiness` | ✅ Backend listo |
-| **Analytics** | `funnel-event`, `funnel-metrics`, `retention-report` | ✅ Funcional |
-| **WhatsApp** | `whatsapp-openclaw-inbound`, `whatsapp-openclaw-outbox` | ✅ Backend listo |
-| **Push** | `push-config`, `push-subscribe`, `push-test` | ✅ Backend listo |
-| **Auth** | `operator-auth-start/complete/logout`, `operator-pin-login/logout` | ✅ Funcional |
+| Subsistema           | Endpoints                                                                                | Status                           |
+| -------------------- | ---------------------------------------------------------------------------------------- | -------------------------------- |
+| **Health**           | `health`, `health-diagnostics`                                                           | ✅ Funcional                     |
+| **Queue**            | `queue-state`, `queue-checkin`, `queue-ticket`, `queue-call-next`, `queue-reprint`       | ✅ Funcional                     |
+| **Appointments**     | `appointments`, `booked-slots`, `reschedule`                                             | ✅ Funcional                     |
+| **Flow OS**          | `flow-os-manifest`, `flow-os-journey-preview`                                            | ✅ Backend listo, frontend falta |
+| **Clinical History** | `clinical-history-session`, `clinical-history-message`, `clinical-record`                | ✅ Backend listo                 |
+| **Payments**         | `payment-config`, `payment-intent`, `payment-verify`, `transfer-proof`, `stripe-webhook` | ✅ Funcional                     |
+| **Telemedicine**     | `telemedicine-intakes`, `telemedicine-ops-diagnostics`, `telemedicine-rollout-readiness` | ✅ Backend listo                 |
+| **Analytics**        | `funnel-event`, `funnel-metrics`, `retention-report`                                     | ✅ Funcional                     |
+| **WhatsApp**         | `whatsapp-openclaw-inbound`, `whatsapp-openclaw-outbox`                                  | ✅ Backend listo                 |
+| **Push**             | `push-config`, `push-subscribe`, `push-test`                                             | ✅ Backend listo                 |
+| **Auth**             | `operator-auth-start/complete/logout`, `operator-pin-login/logout`                       | ✅ Funcional                     |
 
 ### Páginas de servicio existentes (inventario)
 
@@ -781,6 +767,7 @@ acne-rosacea, bioestimuladores-colageno, botox, cancer-piel, cicatrices, depilac
 ❌ depilacion-laser, ❌ manchas, ❌ microdermoabrasion, ❌ rellenos-hialuronico, ❌ tamizaje-oncologico, ❌ teledermatologia, ❌ bioestimuladores (el path en EN es bioestimuladores-colageno)
 
 **Páginas que NO existen todavía (por crear):**
+
 - `es/blog/` — blog completo
 - `es/primera-consulta/` — guía de primera visita
 - `es/agendar/` — booking público
@@ -791,17 +778,18 @@ acne-rosacea, bioestimuladores-colageno, botox, cancer-piel, cicatrices, depilac
 
 ### Issues conocidas
 
-| Issue | Detalle | Impacto |
-|---|---|---|
-| 502 intermitente | pielarmonia.com responde 502 ocasionalmente | Server Windows, fuera de alcance del repo |
-| `patient-flow-os/` vacío | `src/apps/patient-flow-os/` tiene 0 archivos JS | El frontend del journey del paciente no existe |
-| 398 surface files | `src/apps/queue-shared/` tiene 398 archivos, ~80% dead code | Confunde a agentes, infla el repo |
-| EN desactualizado | `en/index.html` puede no reflejar la versión ES actual | Experiencia inconsistente para pacientes angloparlantes |
-| `bioestimuladores/` redirect | Footer enlaza `/es/servicios/bioestimuladores/` pero existe como `/es/servicios/bioestimuladores-colageno/` | 404 para algunos visitors |
+| Issue                        | Detalle                                                                                                     | Impacto                                                 |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| 502 intermitente             | pielarmonia.com responde 502 ocasionalmente                                                                 | Server Windows, fuera de alcance del repo               |
+| `patient-flow-os/` vacío     | `src/apps/patient-flow-os/` tiene 0 archivos JS                                                             | El frontend del journey del paciente no existe          |
+| 398 surface files            | `src/apps/queue-shared/` tiene 398 archivos, ~80% dead code                                                 | Confunde a agentes, infla el repo                       |
+| EN desactualizado            | `en/index.html` puede no reflejar la versión ES actual                                                      | Experiencia inconsistente para pacientes angloparlantes |
+| `bioestimuladores/` redirect | Footer enlaza `/es/servicios/bioestimuladores/` pero existe como `/es/servicios/bioestimuladores-colageno/` | 404 para algunos visitors                               |
 
 ### Acceptance criteria por sprint
 
 **Sprint 1 está DONE cuando:**
+
 - [ ] Cero links rotos en `index.html` y footer
 - [ ] `manifest.json` dice "Aurora Derm" (no "Flow OS")
 - [ ] Site usable en iPhone (375px) sin nada cortado
@@ -809,6 +797,7 @@ acne-rosacea, bioestimuladores-colageno, botox, cancer-piel, cicatrices, depilac
 - [ ] Lighthouse Performance ≥ 70
 
 **Sprint 2 está DONE cuando:**
+
 - [ ] Structured data `MedicalClinic` validada en Rich Results Test
 - [ ] ≥ 4 blog posts publicados en `es/blog/`
 - [ ] Todos los CTAs WhatsApp tienen `?text=` contextualizado
@@ -816,6 +805,7 @@ acne-rosacea, bioestimuladores-colageno, botox, cancer-piel, cicatrices, depilac
 - [ ] Página de primera consulta live
 
 **Sprint 3 está DONE cuando:**
+
 - [ ] Patient journey visible en admin (kanban de stages)
 - [ ] Paciente puede hacer intake digital desde `es/pre-consulta/`
 - [ ] Kiosco con check-in QR funcional
@@ -823,6 +813,7 @@ acne-rosacea, bioestimuladores-colageno, botox, cancer-piel, cicatrices, depilac
 - [ ] HCE: se puede crear anamnesis y registrar evolución desde admin
 
 **Sprint 4 está DONE cuando:**
+
 - [ ] Triage IA funcional en staging
 - [ ] Demo interactiva del turnero usable por visitantes
 - [ ] Pricing page live en `es/software/turnero-clinicas/precios/`
@@ -832,35 +823,35 @@ acne-rosacea, bioestimuladores-colageno, botox, cancer-piel, cicatrices, depilac
 
 Métricas que los agentes deben optimizar con cada tarea:
 
-| KPI | Actual | Target Sprint 1 | Target Sprint 2 |
-|---|---|---|---|
-| Lighthouse Performance | ? | ≥ 70 | ≥ 80 |
-| Lighthouse Accessibility | ? | ≥ 85 | ≥ 90 |
-| Lighthouse SEO | ? | ≥ 90 | ≥ 95 |
-| Links rotos (index.html) | ~2 | 0 | 0 |
-| Páginas ES con structured data | 0/20 | 1 (index) | 20/20 |
-| Blog posts publicados | 0 | 0 | ≥ 4 |
-| WhatsApp CTAs con `?text=` | ~0 | n/a | 100% |
-| Archivos surface muertos | ~320 | n/a | n/a |
+| KPI                            | Actual | Target Sprint 1 | Target Sprint 2 |
+| ------------------------------ | ------ | --------------- | --------------- |
+| Lighthouse Performance         | ?      | ≥ 70            | ≥ 80            |
+| Lighthouse Accessibility       | ?      | ≥ 85            | ≥ 90            |
+| Lighthouse SEO                 | ?      | ≥ 90            | ≥ 95            |
+| Links rotos (index.html)       | ~2     | 0               | 0               |
+| Páginas ES con structured data | 0/20   | 1 (index)       | 20/20           |
+| Blog posts publicados          | 0      | 0               | ≥ 4             |
+| WhatsApp CTAs con `?text=`     | ~0     | n/a             | 100%            |
+| Archivos surface muertos       | ~320   | n/a             | n/a             |
 
 ### SEO keywords target (Quito, Ecuador)
 
 Estos son los keywords que los blog posts y páginas de servicio deben atacar. El contenido debe incluir estos términos de forma natural en títulos, H2s y texto.
 
-| Keyword | Volumen estimado | Página target |
-|---|---|---|
-| dermatólogo quito | Alto | `index.html` + blog |
-| tratamiento acné quito | Medio | `es/servicios/acne-rosacea/` |
-| láser dermatológico quito | Medio | `es/servicios/laser-dermatologico/` |
-| quitar manchas cara quito | Medio | `es/servicios/manchas/` |
-| bioestimuladores quito | Medio | `es/servicios/bioestimuladores-colageno/` |
-| dermatología pediátrica quito | Bajo-Medio | `es/servicios/dermatologia-pediatrica/` |
-| teledermatología ecuador | Bajo | `es/servicios/teledermatologia/` |
-| depilación láser quito | Alto | `es/servicios/depilacion-laser/` |
-| cómo elegir dermatólogo | Medio | `es/blog/como-elegir-dermatologo-quito/` |
-| señales alarma lunares | Bajo | `es/blog/senales-alarma-lunares/` |
-| protección solar ecuador | Bajo | `es/blog/proteccion-solar-ecuador/` |
-| acné adulto causas | Medio | `es/blog/acne-adulto/` |
+| Keyword                       | Volumen estimado | Página target                             |
+| ----------------------------- | ---------------- | ----------------------------------------- |
+| dermatólogo quito             | Alto             | `index.html` + blog                       |
+| tratamiento acné quito        | Medio            | `es/servicios/acne-rosacea/`              |
+| láser dermatológico quito     | Medio            | `es/servicios/laser-dermatologico/`       |
+| quitar manchas cara quito     | Medio            | `es/servicios/manchas/`                   |
+| bioestimuladores quito        | Medio            | `es/servicios/bioestimuladores-colageno/` |
+| dermatología pediátrica quito | Bajo-Medio       | `es/servicios/dermatologia-pediatrica/`   |
+| teledermatología ecuador      | Bajo             | `es/servicios/teledermatologia/`          |
+| depilación láser quito        | Alto             | `es/servicios/depilacion-laser/`          |
+| cómo elegir dermatólogo       | Medio            | `es/blog/como-elegir-dermatologo-quito/`  |
+| señales alarma lunares        | Bajo             | `es/blog/senales-alarma-lunares/`         |
+| protección solar ecuador      | Bajo             | `es/blog/proteccion-solar-ecuador/`       |
+| acné adulto causas            | Medio            | `es/blog/acne-adulto/`                    |
 
 ### Coordinación multi-agente — Protocolo de Claims
 
@@ -895,14 +886,14 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### Comandos de claim
 
-| Comando | Qué hace |
-|---|---|
-| `node bin/claim.js next` | Qué tarea tomar (respetando sprints y tamaño) |
-| `node bin/claim.js claim S2-01 "nombre"` | Bloquear tarea para trabajarla |
-| `node bin/claim.js release S2-01` | Liberar al terminar o abandonar |
-| `node bin/claim.js status` | Ver todos los claims activos |
-| `node bin/claim.js list-pending` | Lista tareas disponibles vs bloqueadas |
-| `node bin/claim.js purge-expired` | Limpiar claims expirados (agentes caídos) |
+| Comando                                  | Qué hace                                      |
+| ---------------------------------------- | --------------------------------------------- |
+| `node bin/claim.js next`                 | Qué tarea tomar (respetando sprints y tamaño) |
+| `node bin/claim.js claim S2-01 "nombre"` | Bloquear tarea para trabajarla                |
+| `node bin/claim.js release S2-01`        | Liberar al terminar o abandonar               |
+| `node bin/claim.js status`               | Ver todos los claims activos                  |
+| `node bin/claim.js list-pending`         | Lista tareas disponibles vs bloqueadas        |
+| `node bin/claim.js purge-expired`        | Limpiar claims expirados (agentes caídos)     |
 
 #### Reglas anti-colisión
 
@@ -915,14 +906,12 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### Archivos por sprint (para evitar solapamiento adicional)
 
-| Sprint | Archivos scope |
-|---|---|
-| Sprint 1 | `index.html`, `manifest.json`, `sw.js`, `styles/` |
-| Sprint 2 | `es/blog/`, `es/primera-consulta/`, `sitemap.xml`, `es/servicios/*/` |
+| Sprint   | Archivos scope                                                                                        |
+| -------- | ----------------------------------------------------------------------------------------------------- |
+| Sprint 1 | `index.html`, `manifest.json`, `sw.js`, `styles/`                                                     |
+| Sprint 2 | `es/blog/`, `es/primera-consulta/`, `sitemap.xml`, `es/servicios/*/`                                  |
 | Sprint 3 | `controllers/`, `lib/`, `admin.html`, `kiosco-*.html`, `operador-*.html`, `src/apps/patient-flow-os/` |
-| Sprint 4 | `src/apps/queue-shared/`, `es/software/`, `package.json`, `.github/` |
-
-
+| Sprint 4 | `src/apps/queue-shared/`, `es/software/`, `package.json`, `.github/`                                  |
 
 1. **Lock por archivo:** antes de modificar un archivo, verificar con `git status` que no hay cambios no commiteados. Si hay conflictos, hacer `git pull --rebase` antes de push.
 2. **No duplicar trabajo:** si ves una tarea marcada `[x]`, NO la repitas. Pasa a la siguiente `[ ]`.
@@ -930,13 +919,12 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 4. **Tareas `[HUMAN]`:** si una tarea tiene tag `[HUMAN]`, preguntar al usuario y esperar respuesta. No inventar datos.
 5. **Conflicto de merge:** si al hacer push hay conflicto, hacer `git pull --rebase origin main` y resolver. Si es en AGENTS.md (checkboxes), preferir la versión que tiene MÁS `[x]`.
 6. **Archivos exclusivos por sprint:**
-   - Sprint 1: `index.html`, `manifest.json`, `sw.js`, `styles/`
-   - Sprint 2: `es/blog/`, `es/primera-consulta/`, `sitemap.xml`, `es/servicios/*/`
-   - Sprint 3: `controllers/`, `lib/`, `admin.html`, `kiosco-turnos.html`, `operador-turnos.html`, `src/apps/patient-flow-os/`
-   - Sprint 4: `src/apps/queue-shared/`, `es/software/`, `package.json`, `.github/`
+    - Sprint 1: `index.html`, `manifest.json`, `sw.js`, `styles/`
+    - Sprint 2: `es/blog/`, `es/primera-consulta/`, `sitemap.xml`, `es/servicios/*/`
+    - Sprint 3: `controllers/`, `lib/`, `admin.html`, `kiosco-turnos.html`, `operador-turnos.html`, `src/apps/patient-flow-os/`
+    - Sprint 4: `src/apps/queue-shared/`, `es/software/`, `package.json`, `.github/`
 
 ### ✅ Sprint 0 — Completado
-
 
 - [x] P0-01 Reemplazar imagen láser
 - [x] P0-02 Reparar slider Before/After
@@ -963,10 +951,10 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 1.2 Identidad del producto
 
 - [x] **S1-04** `[S]` Corregir `manifest.json` — dice "Flow OS" en name, short_name, description. Debe decir:
-  - `name`: "Aurora Derm — Dermatología Clínica Quito"
-  - `short_name`: "Aurora Derm"
-  - `description`: "Clínica dermatológica con enfoque médico real. Quito, Ecuador."
-  - `label` en shortcuts: quitar "Flow OS", poner "Aurora Derm".
+    - `name`: "Aurora Derm — Dermatología Clínica Quito"
+    - `short_name`: "Aurora Derm"
+    - `description`: "Clínica dermatológica con enfoque médico real. Quito, Ecuador."
+    - `label` en shortcuts: quitar "Flow OS", poner "Aurora Derm".
 - [x] **S1-05** `[S]` Service worker cache — verificar que `sw.js` cachea los archivos correctos (no assets viejos que ya no existen). Actualizar la lista de cache.
 
 #### 1.3 Mobile y accessibility
@@ -1000,10 +988,10 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 #### 2.2 Conversión por WhatsApp
 
 - [x] **S2-07** `[M]` WhatsApp links contextualizados — CADA botón CTA en el sitio debe llevar `?text=` pre-llenado por servicio:
-  - Hero: `?text=Hola, me gustaría agendar una evaluación dermatológica`
-  - Acné page: `?text=Hola, me interesa una consulta sobre acné`
-  - Láser page: `?text=Hola, quiero información sobre tratamiento láser`
-  - (repetir para cada servicio)
+    - Hero: `?text=Hola, me gustaría agendar una evaluación dermatológica`
+    - Acné page: `?text=Hola, me interesa una consulta sobre acné`
+    - Láser page: `?text=Hola, quiero información sobre tratamiento láser`
+    - (repetir para cada servicio)
 - [x] **S2-08** `[M]` WhatsApp click tracking — agregar `onclick` handler a TODOS los botones WhatsApp que dispare `gtag('event', 'whatsapp_click', {service: 'nombre-servicio', page: location.pathname})`. Requiere S2-09 primero.
 - [x] **S2-09** `[S]` `[HUMAN]` Google Analytics GA4 — insertar tag `gtag.js` en `index.html` y todas las páginas. **PREGUNTAR AL USUARIO:** ¿tiene ya una propiedad GA4? Si sí, dar el ID. Si no, indicar que debe crear una en analytics.google.com.
 
@@ -1028,7 +1016,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 2.5 Inglés
 
-- [ ] **S2-23** `[L]` Sincronizar `en/index.html` — verificar que refleja la versión ES actual. Hero, servicios, equipo, CTA, footer. Traducción profesional, culturalmente adaptada (no literal).
+- [x] **S2-23** `[L]` Sincronizar `en/index.html` — verificar que refleja la versión ES actual. Hero, servicios, equipo, CTA, footer. Traducción profesional, culturalmente adaptada (no literal).
 - [ ] **S2-24** `[XL]` Crear specialty pages EN — replicar las 18 páginas de `es/servicios/` en `en/services/`. Traducción adaptada.
 
 ---
@@ -1130,7 +1118,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 4.5 Limpieza técnica
 
-- [ ] **S4-21** `[L]` Surface audit — `src/apps/queue-shared/` tiene **398 archivos** JS. La mayoría son turnero-surface-*.js generados. Auditar cuáles se importan realmente desde HTML/JS del turnero. Listar dead code.
+- [ ] **S4-21** `[L]` Surface audit — `src/apps/queue-shared/` tiene **398 archivos** JS. La mayoría son turnero-surface-\*.js generados. Auditar cuáles se importan realmente desde HTML/JS del turnero. Listar dead code.
 - [ ] **S4-22** `[XL]` Eliminar surfaces huérfanas — mover a `_archive/turnero-surfaces/` los archivos no importados. Probablemente ~80% son dead code. **Esto puede reducir el repo en miles de líneas.**
 - [ ] **S4-23** `[M]` Package.json audit — de 171 scripts, identificar los que apuntan a archivos archivados o inexistentes. Listar para limpieza.
 - [ ] **S4-24** `[M]` CSS dead code — 8+ archivos CSS en raíz. Verificar cuáles se importan desde HTML. Listar huérfanos.
