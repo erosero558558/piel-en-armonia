@@ -120,8 +120,15 @@ const checks = {
   },
 
   'S2-19': () => {
-    const idx = read(resolve(ROOT, 'index.html'));
-    return idx.includes('MSP Certificado') || idx.includes('hero-badges') || idx.includes('badge-trust');
+    const legacy = normalizeHtmlEntities(read(resolve(ROOT, 'index.html')));
+    const localized = normalizeHtmlEntities(read(resolve(ROOT, 'es/index.html')));
+    return (
+      legacy.includes('MSP Certificado') &&
+      legacy.includes('hero-trust-badges') &&
+      localized.includes('MSP Certificado') &&
+      localized.includes('10+ años') &&
+      localized.includes('2000+ pacientes')
+    );
   },
 
   'S2-21': () => fileExists('es/primera-consulta/index.html'),

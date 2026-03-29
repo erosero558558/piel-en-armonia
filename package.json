@@ -216,6 +216,9 @@
         "report": "node bin/report.js",
         "report:md": "node bin/report.js --write",
         "gate": "node bin/gate.js",
+        "backlog": "node bin/sync-backlog.js",
+        "backlog:check": "node bin/sync-backlog.js --check",
+
 
 
 

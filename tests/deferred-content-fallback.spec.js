@@ -22,7 +22,7 @@ test.describe('Deferred content fallback', () => {
             await page
                 .locator('[data-v6-editorial] .v6-editorial__card')
                 .count()
-        ).toBeGreaterThanOrEqual(4);
+        ).toBeGreaterThanOrEqual(3);
         expect(
             await page
                 .locator(

@@ -806,6 +806,22 @@ function sanitizeHomeHero(hero) {
     const source = isObject(hero) ? hero : {};
     const rawAutoplay = Number(source.autoplayMs || 7000);
     const labels = isObject(source.labels) ? source.labels : {};
+    const badges = Array.isArray(source.badges)
+        ? source.badges
+              .map((badge, index) => {
+                  const text = normalizeText(badge?.text);
+                  if (!text) {
+                      return null;
+                  }
+                  return {
+                      id:
+                          normalizeText(badge?.id) ||
+                          `v6-hero-badge-${index + 1}`,
+                      text,
+                  };
+              })
+              .filter(Boolean)
+        : [];
     const slides = Array.isArray(source.slides)
         ? source.slides
               .map((slide, index) => {
@@ -846,6 +862,7 @@ function sanitizeHomeHero(hero) {
             indicators: normalizeText(labels.indicators),
             indicatorItemPrefix: normalizeText(labels.indicatorItemPrefix),
         },
+        badges,
         slides,
     };
 }

@@ -1853,6 +1853,53 @@
         });
     }
 
+    function bootRevealElements() {
+        var items = Array.from(document.querySelectorAll('[data-v6-reveal]'));
+        if (!items.length) return;
+
+        function reveal(element) {
+            if (!(element instanceof HTMLElement)) return;
+            element.setAttribute('data-v6-reveal-state', 'visible');
+        }
+
+        var prefersReducedMotion =
+            Boolean(window.matchMedia) &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (
+            prefersReducedMotion ||
+            typeof window.IntersectionObserver !== 'function'
+        ) {
+            items.forEach(reveal);
+            return;
+        }
+
+        var observer = new IntersectionObserver(
+            function (entries, obs) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) return;
+                    reveal(entry.target);
+                    obs.unobserve(entry.target);
+                });
+            },
+            {
+                threshold: 0.16,
+                rootMargin: '0px 0px -24px 0px',
+            }
+        );
+
+        items.forEach(function (item) {
+            if (!(item instanceof HTMLElement)) return;
+            if (item.dataset.v6RevealReady === 'true') return;
+            item.dataset.v6RevealReady = 'true';
+            item.setAttribute(
+                'data-v6-reveal-state',
+                item.getAttribute('data-v6-reveal-state') || 'hidden'
+            );
+            observer.observe(item);
+        });
+    }
+
     function bootBackTop() {
         var button = document.querySelector('[data-v6-back-top]');
         if (!button || button.dataset.v6TopReady === 'true') return;
@@ -2040,6 +2087,7 @@
         bootPageMenus();
         bootDrawer();
         bootHero();
+        bootRevealElements();
 
         function runDeferredBoot() {
             bootSectionNavigation();

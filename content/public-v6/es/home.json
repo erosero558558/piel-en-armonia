@@ -12,6 +12,17 @@
             "indicators": "Indicadores del carrusel",
             "indicatorItemPrefix": "Ir al panel"
         },
+        "badges": [
+            {
+                "text": "MSP Certificado"
+            },
+            {
+                "text": "10+ años"
+            },
+            {
+                "text": "2000+ pacientes"
+            }
+        ],
         "slides": [
             {
                 "id": "s1",

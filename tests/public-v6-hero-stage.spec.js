@@ -49,6 +49,16 @@ test.describe('Public V6 hero stage', () => {
         await expect(hero.locator('[data-v6-prev]')).toBeVisible();
         await expect(hero.locator('[data-v6-next]')).toBeVisible();
         await expect(hero.locator('[data-v6-toggle]')).toBeVisible();
+        await expect(hero.locator('[data-v6-hero-badge]')).toHaveCount(3);
+        await expect(hero.locator('[data-v6-hero-badge]')).toHaveText([
+            'MSP Certificado',
+            '10+ años',
+            '2000+ pacientes',
+        ]);
+        await expect(hero.locator('[data-v6-hero-badges]')).toHaveAttribute(
+            'data-v6-reveal-state',
+            'visible'
+        );
     });
 
     test('next prev and pause update active state', async ({ page }) => {

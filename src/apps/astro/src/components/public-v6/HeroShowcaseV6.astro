@@ -23,6 +23,12 @@ const autoplayMs = Number(hero.autoplayMs || 7000);
 const safeAutoplay = Number.isFinite(autoplayMs) && autoplayMs > 1000 ? autoplayMs : 7000;
 const first = slides[0] || null;
 const labels = hero.labels && typeof hero.labels === 'object' ? hero.labels : {};
+const badges = (Array.isArray(hero.badges) ? hero.badges : [])
+    .map((badge, index) => ({
+        id: normalizeText(badge?.id) || `v6-hero-badge-${index + 1}`,
+        text: normalizeText(badge?.text),
+    }))
+    .filter((badge) => badge.text);
 const safeLabels = {
     prev: normalizeText(labels.prev),
     next: normalizeText(labels.next),
@@ -110,6 +116,29 @@ const buildIndicatorLabel = (slide, index) => {
                             <h1 data-v6-band-title>{first.title}</h1>
                             <p data-v6-band-description>{first.description}</p>
                         </div>
+                        {
+                            badges.length ? (
+                                <div
+                                    class="v6-hero__trust"
+                                    data-v6-hero-badges
+                                    data-v6-reveal
+                                    data-v6-reveal-state="hidden"
+                                >
+                                    {
+                                        badges.map((badge, index) => (
+                                            <div
+                                                class="v6-hero__trust-badge"
+                                                data-v6-hero-badge
+                                                data-v6-hero-badge-id={badge.id}
+                                                style={`--v6-hero-badge-delay: ${index * 90}ms;`}
+                                            >
+                                                <span>{badge.text}</span>
+                                            </div>
+                                        ))
+                                    }
+                                </div>
+                            ) : null
+                        }
                         <div class="v6-hero__meta">
                             <div class="v6-hero__indicators" role="tablist" aria-label={safeLabels.indicators}>
                                 {
