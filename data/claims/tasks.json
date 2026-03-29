@@ -5,5 +5,12 @@
     "expiresAt": "2026-03-29T22:18:59.273Z",
     "sprint": "🟡 Sprint 2 — Convertir visitantes en pacientes",
     "size": "L"
+  },
+  "S3-06": {
+    "agent": "Codex-erosero558558",
+    "claimedAt": "2026-03-29T22:38:03.236Z",
+    "expiresAt": "2026-03-30T02:38:03.240Z",
+    "sprint": "🟢 Sprint 3 — Construir Flow OS como plataforma",
+    "size": "M"
   }
 }
