@@ -4,51 +4,24 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
-<!-- CODEX_ACTIVE
-codex_instance: codex_transversal
-block: C1
-task_id: CDX-105
-subfront_id: SF-transversal-codex-governance-v2
-status: in_progress
-files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "agent-orchestrator.js", "tools/agent-orchestrator/commands/strategy.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/strategy.js", "tools/agent-orchestrator/domain/workspace.js", "tests-node/agent-orchestrator-cli.test.js", "tests-node/orchestrator/focus.test.js", "verification/agent-runs/CDX-105.md"]
-updated_at: 2026-03-29
--->
-
 <!-- CODEX_STRATEGY_ACTIVE
-id: STRAT-2026-03-codex-governance-v2-adoption
-title: "Codex governance v2 adoption"
+id: STRAT-2026-03-turnero-web-pilot-multi-clinic-local
+title: "Turnero web pilot multi-clinic local"
 status: active
-owner: luciaguadalupecaizasanchez
+owner: deck
 owner_policy: "detected_default_owner"
-objective: "Consolidar el canon del modelo conceptual v2, cuarentenar el root donor no canonico y preparar el rescate posterior por lanes sin mezclar producto ni runtime."
+objective: "Habilitar una segunda clinica web_pilot catalogada dentro del carril local-first de turnero, manteniendo un perfil activo versionado unico y sin reabrir verify-remote ni blockers nativos."
 started_at: "2026-03-29"
-review_due_at: "2026-04-02"
-success_signal: "La operacion de gobernanza vuelve a correr sobre una estrategia transversal corta, con el root sucio tratado solo como donor y el siguiente rescate listo para abrirse por lanes."
-focus_id: "FOCUS-2026-03-codex-governance-v2-adoption-cut-1"
-focus_title: "Canon v2 y cuarentena del donor"
+review_due_at: "2026-04-04"
+success_signal: "Piel Armonia Quito sigue como perfil activo versionado y Clinica Norte Demo queda visible, stageable y local-ready como segunda clinica web_pilot."
+focus_id: "FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1"
+focus_title: "Turnero web pilot multi-clinic local-first"
 focus_status: active
-focus_next_step: "canon_adoption"
-focus_required_checks: []
-subfront_ids: ["SF-transversal-codex-governance-v2"]
+focus_next_step: "multi_clinic_local_readiness"
+focus_required_checks: ["test:turnero:web-pilot:contracts", "test:turnero:web-pilot:php-contract", "test:turnero:web-pilot:ui"]
+subfront_ids: ["SF-frontend-turnero-web-pilot-multi-clinic", "SF-backend-turnero-web-pilot-multi-clinic", "SF-transversal-turnero-web-pilot-multi-clinic"]
 updated_at: "2026-03-29"
 -->
-
-Nota operativa: `AGENT_BOARD.yaml` gobierna la ejecucion, los estados y la
-estrategia viva. Este plan queda como espejo narrativo derivado para lectura
-humana y evidencia complementaria.
-
-## Adopcion canonica v2 y cuarentena del donor 2026-03-29
-
-- `STRAT-2026-03-codex-governance-v2-adoption` reemplaza el frente heredado
-  que habia quedado vivo pero sin slices activas ni checks pertinentes para
-  esta fase.
-- `CDX-105` abre la convergencia transversal del canon v2: estrategia activa,
-  foco corto, slice unica y cuarentena explicita del root donor.
-- El root [`/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm`](/Users/luciaguadalupecaizasanchez/Documents/GitHub/Aurora-Derm)
-  deja de ser workspace operativo de gobernanza y pasa a ser solo fuente de
-  diff para rescates posteriores por lane.
-- Ningun rescate futuro desde el donor se hace por merge masivo: cada bucket
-  debe reentrar por slice `CDX-*`, lane unico y evidencia propia.
 
 ## Fase 2 multi-clínica local 2026-03-28
 
@@ -230,7 +203,7 @@ humana y evidencia complementaria.
   `piel-armonia-quito` como perfil activo versionado.
 - El foco vigente es
   `FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1`, hoy en
-  `active` sobre `local_gate_validation`.
+  `active` sobre `multi_clinic_local_readiness`.
 - Required checks del foco:
   `test:turnero:web-pilot:contracts`,
   `test:turnero:web-pilot:php-contract` y

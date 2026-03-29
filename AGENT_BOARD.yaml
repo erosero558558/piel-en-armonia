@@ -7,43 +7,61 @@ policy:
   codex_backend_instance: codex_backend_ops
   codex_frontend_instance: codex_frontend
   codex_transversal_instance: codex_transversal
-  revision: 842
+  revision: 844
   updated_at: 2026-03-29
 
 strategy:
   active:
-    id: STRAT-2026-03-codex-governance-v2-adoption
-    title: "Codex governance v2 adoption"
-    objective: "Consolidar el canon del modelo conceptual v2, cuarentenar el root donor no canonico y preparar el rescate posterior por lanes sin mezclar producto ni runtime."
-    owner: luciaguadalupecaizasanchez
+    id: STRAT-2026-03-turnero-web-pilot-multi-clinic-local
+    title: "Turnero web pilot multi-clinic local"
+    objective: "Habilitar una segunda clinica web_pilot catalogada dentro del carril local-first de turnero, manteniendo un perfil activo versionado unico y sin reabrir verify-remote ni blockers nativos."
+    owner: deck
     owner_policy: "detected_default_owner"
     status: active
     started_at: "2026-03-29"
-    review_due_at: "2026-04-02"
+    review_due_at: "2026-04-04"
     closed_at: ""
     close_reason: ""
-    exit_criteria: ["AGENT_BOARD.yaml y el plan narrativo quedan alineados al canon v2 sin frente activo vacio", "El root donor queda inventariado y explicitamente fuera de la operacion de gobernanza", "Existe al menos una slice transversal abierta para convergencia de canon y preparacion del rescate por lanes"]
-    success_signal: "La operacion de gobernanza vuelve a correr sobre una estrategia transversal corta, con el root sucio tratado solo como donor y el siguiente rescate listo para abrirse por lanes."
-    focus_id: "FOCUS-2026-03-codex-governance-v2-adoption-cut-1"
-    focus_title: "Canon v2 y cuarentena del donor"
-    focus_summary: "Adoptar el canon v2, aislar el root donor no canonico y preparar el rescate posterior por lanes sin heredar checks de producto."
+    exit_criteria: ["clinica-norte-demo valida y stagea como web_pilot sin cambiar el schema v1 ni reemplazar clinic-profile.json", "Admin e install hub muestran catalogo multi-clinica y readiness local para la segunda clinica sin blockers nativos o remotos", "Los gates locales de turnero permanecen en verde reutilizando los mismos required checks del frente web_pilot"]
+    success_signal: "Piel Armonia Quito sigue como perfil activo versionado y Clinica Norte Demo queda visible, stageable y local-ready como segunda clinica web_pilot."
+    focus_id: "FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1"
+    focus_title: "Turnero web pilot multi-clinic local-first"
+    focus_summary: "Habilitar una segunda clinica web_pilot dentro del catalogo local-first de turnero, mostrando readiness multi-clinica sin depender de verify-remote ni de carriles nativos."
     focus_status: active
-    focus_proof: "La gobernanza corre sobre un frente transversal corto, el root donor queda inventariado como fuente de diff y el siguiente rescate se abre por slices separadas y canonicas."
-    focus_steps: ["canon_adoption", "root_donor_quarantine", "rescue_slice_preparation"]
-    focus_next_step: "canon_adoption"
-    focus_required_checks: []
-    focus_non_goals: ["product_runtime_changes", "root_donor_execution", "mass_merge_from_donor"]
-    focus_owner: "luciaguadalupecaizasanchez"
-    focus_review_due_at: "2026-04-02"
+    focus_proof: "clinica-norte-demo valida y stagea como web_pilot, el admin expone el catalogo multi-clinica con readiness local y los tres checks del frente vuelven a verde."
+    focus_steps: ["second_clinic_web_pilot_contract", "multi_clinic_local_readiness", "local_gate_validation"]
+    focus_next_step: "multi_clinic_local_readiness"
+    focus_required_checks: ["test:turnero:web-pilot:contracts", "test:turnero:web-pilot:php-contract", "test:turnero:web-pilot:ui"]
+    focus_non_goals: ["public_main_sync_recovery", "verify_remote_turnero", "prod_smoke_turnero", "desktop_android_blocking", "new_clinic_from_scratch"]
+    focus_owner: "deck"
+    focus_review_due_at: "2026-04-04"
     focus_evidence_ref: ""
-    focus_max_active_slices: 1
+    focus_max_active_slices: 2
     subfronts:
+      - codex_instance: codex_frontend
+        subfront_id: SF-frontend-turnero-web-pilot-multi-clinic
+        title: "Surfaces web y control tower multi-clinica local"
+        allowed_scopes: ["queue", "turnero"]
+        support_only_scopes: ["docs", "frontend-qa"]
+        blocked_scopes: ["frontend-public", "payments", "calendar"]
+        wip_limit: 1
+        default_acceptance_profile: "frontend_delivery_checkpoint"
+        exception_ttl_hours: 8
+      - codex_instance: codex_backend_ops
+        subfront_id: SF-backend-turnero-web-pilot-multi-clinic
+        title: "Contrato, CLI y catalogo multi-clinica local-first"
+        allowed_scopes: ["backend", "readiness", "gates"]
+        support_only_scopes: ["tests", "ops"]
+        blocked_scopes: ["deploy", "security", "payments"]
+        wip_limit: 1
+        default_acceptance_profile: "backend_gate_checkpoint"
+        exception_ttl_hours: 6
       - codex_instance: codex_transversal
-        subfront_id: SF-transversal-codex-governance-v2
-        title: "Adopcion canonica y cuarentena del donor"
+        subfront_id: SF-transversal-turnero-web-pilot-multi-clinic
+        title: "Soporte transversal eventual para la ola multi-clinica"
         allowed_scopes: []
-        support_only_scopes: ["codex-governance", "tooling", "tests"]
-        blocked_scopes: ["frontend-admin", "queue", "turnero", "backend", "auth", "readiness", "gates", "deploy", "payments", "openclaw_runtime", "legacy-runtime"]
+        support_only_scopes: ["codex-governance", "tooling"]
+        blocked_scopes: ["openclaw_runtime", "legacy-runtime"]
         wip_limit: 1
         default_acceptance_profile: "transversal_runtime_checkpoint"
         exception_ttl_hours: 4
@@ -1731,7 +1749,7 @@ tasks:
     lease_reason: ""
     lease_cleared_at: "2026-03-28T22:26:01.506Z"
     lease_cleared_reason: "terminal:done"
-    runtime_impact: medium
+    runtime_impact: low
     critical_zone: false
     acceptance: "Install hub, control tower multi-clinica, registry regional y readiness local exponen a clinica-norte-demo como segunda clinica web_pilot local-ready sin tocar el perfil activo versionado."
     acceptance_ref: "verification/agent-runs/CDX-061.md"
@@ -1790,7 +1808,7 @@ tasks:
     lease_reason: ""
     lease_cleared_at: "2026-03-28T22:27:12.215Z"
     lease_cleared_reason: "terminal:done"
-    runtime_impact: medium
+    runtime_impact: low
     critical_zone: false
     acceptance: "clinica-norte-demo valida y stagea como web_pilot, el catalogo PHP/admin-data expone la segunda clinica local-ready y clinic-profile.json sigue apuntando a piel-armonia-quito."
     acceptance_ref: "verification/agent-runs/CDX-062.md"
@@ -1906,7 +1924,7 @@ tasks:
     heartbeat_at: ""
     lease_expires_at: ""
     lease_reason: ""
-    lease_cleared_at: "2026-03-29T00:23:24.704Z"
+    lease_cleared_at: "2026-03-29T00:12:53.015Z"
     lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
@@ -2010,7 +2028,7 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["admin.html", "admin-v3.css", "admin.js", "js/queue-operator.js", "src/apps/admin-v3/**", "tests/admin-navigation-responsive.spec.js", "tests/admin-v3-shell.spec.js", "tests/admin-v3-visual.spec.js", "verification/agent-runs/CDX-066.md"]
+    files: ["admin.html", "admin-v3.css", "admin.js", "js/queue-operator.js", "src/apps/admin-v3/**", "tests/admin-v3-shell.spec.js", "tests/admin-v3-visual.spec.js", "verification/agent-runs/CDX-066.md"]
     source_signal: manual
     source_ref: "strategy.next:admin-shell-rc2-polish"
     priority_score: 72
@@ -2069,7 +2087,7 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-066.md", "verification/agent-runs/CDX-067.md"]
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "verification/agent-runs/CDX-067.md"]
     source_signal: manual
     source_ref: "strategy.next:admin-shell-rc2-polish"
     priority_score: 57
@@ -13222,16 +13240,16 @@ tasks:
     created_at: 2026-03-28
     updated_at: 2026-03-28
 
-  - id: CDX-105
-    title: "Canon v2 adoption and donor quarantine"
-    owner: luciaguadalupecaizasanchez
+  - id: CDX-106
+    title: "Turnero multi-clinic admin: compact control tower in basic mode"
+    owner: deck
     executor: codex
-    status: in_progress
-    status_since_at: "2026-03-29T02:03:30.073Z"
+    status: done
+    status_since_at: "2026-03-29T01:59:57.663Z"
     risk: medium
-    scope: codex-governance
-    codex_instance: codex_transversal
-    domain_lane: transversal_runtime
+    scope: queue
+    codex_instance: codex_frontend
+    domain_lane: frontend_content
     lane_lock: strict
     cross_domain: false
     provider_mode: 
@@ -13244,39 +13262,39 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "agent-orchestrator.js", "tools/agent-orchestrator/commands/strategy.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/strategy.js", "tools/agent-orchestrator/domain/workspace.js", "tests-node/agent-orchestrator-cli.test.js", "tests-node/orchestrator/focus.test.js", "verification/agent-runs/CDX-105.md"]
-    source_signal: strategy_intake
-    source_ref: "STRAT-2026-03-codex-governance-v2-adoption"
+    files: ["admin.js", "js/queue-operator.js", "src/apps/admin-v3/shared/modules/queue/render/section/install-hub/pilot/render.js", "src/apps/queue-shared/turnero-release-control-tower.js", "verification/agent-runs/CDX-106.md"]
+    source_signal: manual
+    source_ref: "STRAT-2026-03-turnero-web-pilot-multi-clinic-local"
     priority_score: 70
     sla_due_at: ""
     last_attempt_at: ""
     attempts: 0
     blocked_reason: ""
-    lease_id: "lease_CDX-105_20260329020330073_891311"
-    lease_owner: "luciaguadalupecaizasanchez"
-    lease_created_at: "2026-03-29T02:03:30.073Z"
-    heartbeat_at: "2026-03-29T02:03:30.073Z"
-    lease_expires_at: "2026-03-29T06:03:30.073Z"
-    lease_reason: "board_write"
-    lease_cleared_at: ""
-    lease_cleared_reason: ""
+    lease_id: ""
+    lease_owner: ""
+    lease_created_at: ""
+    heartbeat_at: ""
+    lease_expires_at: ""
+    lease_reason: ""
+    lease_cleared_at: "2026-03-29T01:59:57.663Z"
+    lease_cleared_reason: "terminal:done"
     runtime_impact: low
     critical_zone: false
-    acceptance: "Validar adopcion canonica del modelo v2, cuarentena del root donor y allocator operable: codex start debe resolver un control_root canonico sin depender del donor sucio ni del worktree main."
-    acceptance_ref: "verification/agent-runs/CDX-105.md"
-    evidence_ref: "verification/agent-runs/CDX-105.md"
-    strategy_id: "STRAT-2026-03-codex-governance-v2-adoption"
-    subfront_id: "SF-transversal-codex-governance-v2"
-    strategy_role: "support"
-    focus_id: "FOCUS-2026-03-codex-governance-v2-adoption-cut-1"
-    focus_step: "canon_adoption"
-    integration_slice: "governance_evidence"
-    work_type: "support"
-    expected_outcome: "Canon v2 adoptado con estrategia transversal activa, donor root cuarentenado y workspace allocator desbloqueado para que codex start funcione desde un worktree limpio no-main."
+    acceptance: "El modo basic del admin expone un control tower compacto multi-clinica sin mover la vista avanzada existente ni cambiar contratos de backend."
+    acceptance_ref: "verification/agent-runs/CDX-106.md"
+    evidence_ref: "verification/agent-runs/CDX-106.md"
+    strategy_id: "STRAT-2026-03-turnero-web-pilot-multi-clinic-local"
+    subfront_id: "SF-frontend-turnero-web-pilot-multi-clinic"
+    strategy_role: "primary"
+    focus_id: "FOCUS-2026-03-turnero-web-pilot-multi-clinic-cut-1"
+    focus_step: "multi_clinic_local_readiness"
+    integration_slice: "frontend_runtime"
+    work_type: "forward"
+    expected_outcome: "El modo basic del admin expone un control tower compacto multi-clinica sin mover la vista avanzada existente."
     decision_ref: ""
     rework_parent: ""
     rework_reason: ""
     depends_on: []
-    prompt: "Adoptar el canon operativo v2, mantener el donor root en cuarentena y desacoplar el allocator de workspace para que codex start use un control_root canonico sin depender del worktree main ni del donor sucio."
+    prompt: "Agregar un host compacto del control tower multi-clinica en basic, manteniendo intacta la vista avanzada de queueOpsPilot."
     created_at: 2026-03-29
     updated_at: 2026-03-29
