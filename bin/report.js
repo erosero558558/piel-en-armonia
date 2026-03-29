@@ -72,6 +72,21 @@ const activeClaims = Object.entries(claims).filter(([, c]) => {
   return c?.expiresAt && new Date(c.expiresAt) > new Date();
 });
 
+// Expired claims (potential stuck agents)
+const expiredClaims = Object.entries(claims).filter(([, c]) => {
+  return c?.expiresAt && new Date(c.expiresAt) < new Date();
+});
+
+// Explicitly stuck tasks
+function loadStuck() {
+  const f = resolve(ROOT, 'data/claims/stuck.json');
+  try { return JSON.parse(read(f)); } catch { return {}; }
+}
+const stuckData = loadStuck();
+const stuckTasks = Object.entries(stuckData).filter(([, s]) => !s.resolved);
+
+
+
 // Sprint velocity
 const sprintSections = {
   'Sprint 1': { done: 0, total: 0 },
@@ -231,5 +246,29 @@ if (asMarkdown) {
       console.log(`   ${id} → ${c.agent} (${mins}m restantes)`);
     });
   }
+
+  if (stuckTasks.length > 0) {
+    console.log(`\n🚧 AGENTES BLOQUEADOS — requieren tu atención (${stuckTasks.length}):`);
+    stuckTasks.forEach(([id, s]) => {
+      const age = Math.round((Date.now() - new Date(s.stuckAt).getTime()) / 60000);
+      const ageStr = age < 60 ? `${age}min` : `${Math.round(age/60)}h`;
+      console.log(`   ${id} (${ageStr}) → ${s.agent}`);
+      console.log(`   Razón: ${s.reason}`);
+    });
+    console.log(`   → Responde en BLOCKERS.md o edita la tarea en AGENTS.md para simplificarla`);
+    console.log(`   → Cuando esté resuelto: node bin/stuck.js clear <ID>`);
+  }
+
+  if (expiredClaims.length > 0) {
+    console.log(`\n⚠️  Claims expirados (trabajo posiblemente incompleto):`);
+    expiredClaims.forEach(([id, c]) => {
+      const ago = Math.round((Date.now() - new Date(c.expiresAt).getTime()) / 60000);
+      const agoStr = ago < 60 ? `${ago}min` : `${Math.round(ago/60)}h`;
+      console.log(`   ${id} → ${c.agent} (expiró hace ${agoStr})`);
+    });
+    console.log(`   → Verifica si el trabajo fue pusheado. Si no: tarea disponible para retomar.`);
+    console.log(`   → Para limpiar: node bin/claim.js purge-expired`);
+  }
+
   console.log();
 }

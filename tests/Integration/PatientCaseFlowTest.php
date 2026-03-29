@@ -173,7 +173,7 @@ final class PatientCaseFlowTest extends TestCase
             array_column(array_slice($journeyHistory, 0, 3), 'stage')
         );
         $this->assertSame(
-            'Turno completado',
+            'Paciente llamado a consultorio',
             (string) (($journeyHistory[2]['sourceLabel'] ?? ''))
         );
         $this->assertTrue((bool) ($journeyHistory[2]['isCurrentStage'] ?? false));
