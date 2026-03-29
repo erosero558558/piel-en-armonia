@@ -58,6 +58,20 @@ export function renderDashboardSignalPanel() {
                         Click en una etapa para abrir la lista filtrada y revisar alertas SLA.
                     </small>
                 </div>
+                <section class="dashboard-journey-activity" aria-labelledby="dashboardJourneyFeedMeta">
+                    <header class="dashboard-journey-activity__header">
+                        <strong>Actividad reciente</strong>
+                        <small id="dashboardJourneyFeedMeta">
+                            Las ultimas transiciones del journey apareceran aqui.
+                        </small>
+                    </header>
+                    <div id="dashboardJourneyFeed" class="dashboard-journey-feed">
+                        <article class="dashboard-journey-feed__empty">
+                            <strong>Sin transiciones recientes</strong>
+                            <small>Cuando entren nuevos eventos del patient flow, el feed quedara visible aqui.</small>
+                        </article>
+                    </div>
+                </section>
                 <div id="dashboardJourneyTimeline" class="dashboard-journey-list">
                     <article class="dashboard-journey-empty">
                         <strong>Sin pacientes trazados</strong>

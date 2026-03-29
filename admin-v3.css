@@ -1119,6 +1119,79 @@ body.admin-v3-mode .dashboard-journey-toolbar {
     gap: 4px;
 }
 
+body.admin-v3-mode .dashboard-journey-activity,
+body.admin-v3-mode .dashboard-journey-activity__header,
+body.admin-v3-mode .dashboard-journey-feed,
+body.admin-v3-mode .dashboard-journey-feed__copy,
+body.admin-v3-mode .dashboard-journey-history,
+body.admin-v3-mode .dashboard-journey-history__list {
+    display: grid;
+    gap: 8px;
+}
+
+body.admin-v3-mode .dashboard-journey-activity__header strong,
+body.admin-v3-mode .dashboard-journey-history__label {
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+body.admin-v3-mode .dashboard-journey-activity__header small,
+body.admin-v3-mode .dashboard-journey-feed__copy small,
+body.admin-v3-mode .dashboard-journey-feed__empty small,
+body.admin-v3-mode .dashboard-journey-history__item small {
+    color: rgba(255, 255, 255, 0.68);
+}
+
+body.admin-v3-mode .dashboard-journey-feed__item,
+body.admin-v3-mode .dashboard-journey-feed__empty,
+body.admin-v3-mode .dashboard-journey-history {
+    padding: 14px 16px;
+    border-radius: 18px;
+    border: 1px solid var(--admin3-line);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+body.admin-v3-mode .dashboard-journey-feed__item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+body.admin-v3-mode .dashboard-journey-feed__empty.is-protected {
+    border-color: rgba(157, 106, 16, 0.24);
+    background: rgba(157, 106, 16, 0.08);
+}
+
+body.admin-v3-mode .dashboard-journey-feed__copy strong,
+body.admin-v3-mode .dashboard-journey-feed__empty strong,
+body.admin-v3-mode .dashboard-journey-history__item strong {
+    color: #fff;
+}
+
+body.admin-v3-mode .dashboard-journey-history {
+    margin-top: 4px;
+}
+
+body.admin-v3-mode .dashboard-journey-history__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+body.admin-v3-mode .dashboard-journey-history__item {
+    display: grid;
+    gap: 4px;
+    padding-left: 12px;
+    border-left: 2px solid rgba(255, 255, 255, 0.14);
+}
+
+body.admin-v3-mode .dashboard-journey-history__item.is-current {
+    border-left-color: rgba(110, 168, 255, 0.42);
+}
+
 body.admin-v3-mode .dashboard-journey-list {
     display: grid;
     gap: 12px;
@@ -1221,6 +1294,10 @@ body.admin-v3-mode .dashboard-journey-node.is-complete {
 @media (max-width: 920px) {
     body.admin-v3-mode .dashboard-journey-board {
         grid-template-columns: repeat(7, minmax(160px, 1fr));
+    }
+
+    body.admin-v3-mode .dashboard-journey-feed__item {
+        display: grid;
     }
 }
 

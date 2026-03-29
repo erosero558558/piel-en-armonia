@@ -58,6 +58,16 @@ function normalizeJourneyCases(journeyPreview) {
     return Array.isArray(journeyPreview?.cases) ? journeyPreview.cases : [];
 }
 
+function normalizeJourneyFeed(journeyPreview) {
+    return Array.isArray(journeyPreview?.activityFeed)
+        ? journeyPreview.activityFeed
+        : [];
+}
+
+function normalizeJourneyHistory(item) {
+    return Array.isArray(item?.journeyHistory) ? item.journeyHistory : [];
+}
+
 function normalizeJourneyStages(journeyPreview) {
     return Array.isArray(journeyPreview?.timelineStages) &&
         journeyPreview.timelineStages.length > 0
@@ -157,6 +167,43 @@ function formatDurationMs(value) {
     return `${Math.round(hours / 24)} d`;
 }
 
+function formatJourneyRelativeTimestamp(value) {
+    const stamp = Date.parse(String(value || '').trim());
+    if (Number.isNaN(stamp)) {
+        return 'Sin fecha';
+    }
+
+    const diffMinutes = Math.round((Date.now() - stamp) / 60000);
+    const absoluteMinutes = Math.abs(diffMinutes);
+    if (absoluteMinutes < 60) {
+        return diffMinutes >= 0
+            ? `Hace ${Math.max(absoluteMinutes, 1)} min`
+            : `En ${absoluteMinutes} min`;
+    }
+
+    if (absoluteMinutes < 24 * 60) {
+        const hours = Math.max(1, Math.round(absoluteMinutes / 60));
+        return diffMinutes >= 0 ? `Hace ${hours} h` : `En ${hours} h`;
+    }
+
+    const days = Math.max(1, Math.round(absoluteMinutes / (24 * 60)));
+    return diffMinutes >= 0 ? `Hace ${days} d` : `En ${days} d`;
+}
+
+function formatJourneyTimestampLabel(value) {
+    const stamp = Date.parse(String(value || '').trim());
+    if (Number.isNaN(stamp)) {
+        return '';
+    }
+
+    return new Intl.DateTimeFormat('es-EC', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(new Date(stamp));
+}
+
 function stageSlaAlerts(item) {
     const stageId = String(item?.displayStage || item?.stage || '').trim();
     const timeInStageMs = resolveTimeInStageMs(item);
@@ -248,6 +295,16 @@ function journeyStageTone(item) {
 
     return stageId === 'lead_captured' || stageId === 'intake'
         ? 'warning'
+        : 'neutral';
+}
+
+function journeyEntryTone(entry) {
+    if (entry?.isCurrentStage === true) {
+        return journeyStageTone(entry);
+    }
+
+    return String(entry?.displayStage || entry?.stage || '').trim() === 'resolved'
+        ? 'success'
         : 'neutral';
 }
 
@@ -367,6 +424,115 @@ function buildJourneyAlerts(item) {
                 .join('')}
         </div>
     `;
+}
+
+function buildJourneyHistory(item) {
+    const history = normalizeJourneyHistory(item);
+    if (history.length === 0) {
+        return '';
+    }
+
+    return `
+        <div class="dashboard-journey-history" aria-label="Historial del journey">
+            <span class="dashboard-journey-history__label">Historial</span>
+            <ol class="dashboard-journey-history__list">
+                ${history
+                    .map((entry) => {
+                        const stageLabel = String(
+                            entry?.displayStageLabel ||
+                                entry?.stageLabel ||
+                                entry?.displayStage ||
+                                entry?.stage ||
+                                'Journey'
+                        ).trim();
+                        const meta = [
+                            formatJourneyRelativeTimestamp(entry?.timestamp),
+                            String(entry?.actorLabel || '').trim()
+                                ? `por ${String(entry.actorLabel).trim()}`
+                                : '',
+                            String(entry?.sourceLabel || '').trim(),
+                        ].filter(Boolean);
+
+                        return `
+                            <li
+                                class="dashboard-journey-history__item${
+                                    entry?.isCurrentStage === true ? ' is-current' : ''
+                                }"
+                                data-state="${escapeHtml(journeyEntryTone(entry))}"
+                                title="${escapeHtml(
+                                    formatJourneyTimestampLabel(entry?.timestamp)
+                                )}"
+                            >
+                                <strong>${escapeHtml(stageLabel)}</strong>
+                                <small>${escapeHtml(meta.join(' | '))}</small>
+                            </li>
+                        `;
+                    })
+                    .join('')}
+            </ol>
+        </div>
+    `;
+}
+
+function buildJourneyFeed(journeyPreview) {
+    if (journeyPreview?.redacted === true) {
+        return `
+            <article class="dashboard-journey-feed__empty is-protected">
+                <strong>Feed protegido por gate clinico</strong>
+                <small>Las transiciones vuelven cuando el almacenamiento clinico ya esta habilitado.</small>
+            </article>
+        `;
+    }
+
+    const feed = normalizeJourneyFeed(journeyPreview);
+    if (feed.length === 0) {
+        return `
+            <article class="dashboard-journey-feed__empty">
+                <strong>Sin transiciones recientes</strong>
+                <small>Cuando cambie una etapa, el feed se actualizara aqui.</small>
+            </article>
+        `;
+    }
+
+    return feed
+        .map((entry) => {
+            const patientLabel = String(
+                entry?.patientLabel || entry?.patientId || 'Paciente sin etiqueta'
+            ).trim();
+            const stageLabel = String(
+                entry?.displayStageLabel ||
+                    entry?.stageLabel ||
+                    entry?.displayStage ||
+                    entry?.stage ||
+                    'Journey'
+            ).trim();
+            const meta = [
+                formatJourneyRelativeTimestamp(entry?.timestamp),
+                String(entry?.actorLabel || '').trim()
+                    ? `por ${String(entry.actorLabel).trim()}`
+                    : '',
+                String(entry?.sourceLabel || '').trim(),
+            ].filter(Boolean);
+
+            return `
+                <article
+                    class="dashboard-journey-feed__item"
+                    data-state="${escapeHtml(journeyEntryTone(entry))}"
+                    title="${escapeHtml(formatJourneyTimestampLabel(entry?.timestamp))}"
+                >
+                    <div class="dashboard-journey-feed__copy">
+                        <strong>${escapeHtml(`${patientLabel} -> ${stageLabel}`)}</strong>
+                        <small>${escapeHtml(meta.join(' | '))}</small>
+                    </div>
+                    <span class="dashboard-signal-chip" data-state="${escapeHtml(
+                        journeyEntryTone(entry)
+                    )}">
+                        ${escapeHtml(stageLabel)}
+                    </span>
+                </article>
+            `;
+        })
+        .join('');
 }
 
 function buildJourneyBoard(journeyPreview) {
@@ -522,6 +688,7 @@ function buildJourneyList(journeyPreview) {
                                 : ''
                         }
                     </div>
+                    ${buildJourneyHistory(item)}
                     ${buildJourneyTrack(item, stages)}
                     ${buildJourneyAlerts(item)}
                     ${buildJourneyActions(item)}
@@ -561,6 +728,7 @@ function setJourneyPanel(journeyPreview) {
     lastJourneyPreview = journeyPreview;
     const chip = qs('#dashboardJourneyStatusChip');
     const journeyCases = normalizeJourneyCases(journeyPreview);
+    const activityFeed = normalizeJourneyFeed(journeyPreview);
     const visibleJourneyCases = filteredJourneyCases(journeyPreview);
     const hasAlerts = journeyCases.some(
         (item) => journeyAlerts(item).length > 0
@@ -580,6 +748,7 @@ function setJourneyPanel(journeyPreview) {
     let filterLabel = 'Mostrando el journey completo';
     let slaSummary =
         'Click en una etapa para abrir la lista filtrada y revisar alertas SLA.';
+    let feedMeta = 'Las ultimas transiciones del journey apareceran aqui.';
 
     if (journeyPreview?.redacted === true) {
         activeJourneyStageFilter = 'all';
@@ -591,6 +760,8 @@ function setJourneyPanel(journeyPreview) {
         filterLabel = 'Kanban protegido por gate clinico';
         slaSummary =
             'El tablero de etapas se activa cuando el almacenamiento clinico ya esta listo.';
+        feedMeta =
+            'El feed de actividad vuelve cuando el almacenamiento clinico ya esta listo.';
     } else if (journeyCases.length > 0) {
         headline = `${journeyCases.length} paciente(s) en journey`;
         const countsSummary = stageCountsSummary(journeyPreview);
@@ -619,6 +790,10 @@ function setJourneyPanel(journeyPreview) {
             visibleAlerts > 0
                 ? `${visibleAlerts} caso(s) con alerta SLA o seguimiento vencido en la vista actual.`
                 : 'Sin alertas SLA en la vista actual.';
+        feedMeta =
+            activityFeed.length > 0
+                ? `${activityFeed.length} transicion(es) recientes con actor y timestamp.`
+                : 'Sin transiciones nuevas en el journey por ahora.';
     }
 
     setText('#dashboardJourneyHeadline', headline);
@@ -626,6 +801,8 @@ function setJourneyPanel(journeyPreview) {
     setHtml('#dashboardJourneyBoard', buildJourneyBoard(journeyPreview));
     setText('#dashboardJourneyFilterLabel', filterLabel);
     setText('#dashboardJourneySlaSummary', slaSummary);
+    setText('#dashboardJourneyFeedMeta', feedMeta);
+    setHtml('#dashboardJourneyFeed', buildJourneyFeed(journeyPreview));
     setHtml('#dashboardJourneyTimeline', buildJourneyList(journeyPreview));
     if (chip) {
         chip.textContent = chipText;

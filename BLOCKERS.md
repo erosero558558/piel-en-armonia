@@ -2,68 +2,52 @@
 
 > Los agentes NO pueden avanzar en estas tareas sin tu respuesta.
 > **Instrucciones:** responde debajo de cada pregunta → commit → push.
-> Los agentes leen este archivo automáticamente en cada sesión.
 
 ---
 
-## S2-20 — Google Reviews embed
-
-**Tarea:** Agregar widget de reseñas de Google en `index.html`.
-
-**Pregunta:**
-¿Tiene Aurora Derm ficha verificada en Google Maps?
-Si sí: ¿cuál es el **Place ID** de la clínica? (formato: `ChIJ...`)
-
-Puedes encontrarlo en: https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder
+## ✅ S2-20 — Google Reviews embed — RESPONDIDO
 
 **Respuesta del dueño:**
 ```
-[PENDIENTE — escribe aquí tu respuesta]
+Aún no tiene ficha verificada en Google Maps. Saltar esta tarea por ahora.
+Implementar cuando la clínica esté operativa y tenga reseñas reales.
 ```
+→ **Agentes:** omitir S2-20 hasta nuevo aviso.
 
 ---
 
-## S3-23 — Compliance MSP Ecuador (formulario 0457)
-
-**Tarea:** Verificar campos obligatorios del formulario 0457 del Ministerio de Salud Pública de Ecuador para la Historia Clínica Electrónica (HCE).
-
-**Pregunta:**
-Del formulario oficial MSP-0457, ¿cuáles son los campos que ya llevas en consulta?
-Los campos estándar son: identificación, anamnesis, examen físico, diagnóstico CIE-10, prescripción, evolución. ¿Algún campo adicional que el MSP les exige específicamente a Uds.?
-
-¿Están ya habilitados en el SIS (Sistema de Información en Salud) o en un sistema propio?
+## ✅ S3-23 — Compliance MSP Ecuador — APLAZADO
 
 **Respuesta del dueño:**
 ```
-[PENDIENTE — escribe aquí tu respuesta]
+El proyecto está en fase de idea/MVP. Aún no tiene registro MSP formal.
+Construir el formulario con los campos estándar de anamnesis clínica:
+motivo, antecedentes, medicamentos, alergias, examen físico, diagnóstico, plan.
+El compliance formal con MSP-0457 se hará cuando la clínica esté operativa.
 ```
+→ **Agentes:** implementar S3-23 con campos clínicos estándar, sin esperar validación MSP.
 
 ---
 
-## S3-35 — Facturación electrónica SRI Ecuador
-
-**Tarea:** Integrar facturación electrónica con el Servicio de Rentas Internas de Ecuador.
-
-**Preguntas:**
-1. ¿Tienen certificado de firma electrónica (token USB / archivo .p12) vigente?
-2. ¿Están en ambiente de pruebas del SRI o en producción?
-3. ¿Cuál es el RUC de la clínica para emisión de comprobantes?
-4. ¿Qué tipos de comprobante necesitan? (factura, nota de venta, liquidación de compra)
+## ✅ S3-35 — Factura SRI — APLAZADO (MVP)
 
 **Respuesta del dueño:**
 ```
-[PENDIENTE — escribe aquí tu respuesta]
+El proyecto aún no tiene RUC ni certificado SRI. Es una idea en desarrollo.
+Para el MVP: generar comprobantes de pago internos (PDF con logo, datos del
+paciente, monto, concepto, número de recibo). Sin integración SRI por ahora.
+La integración SRI formal es Sprint futuro cuando el negocio esté constituido.
 ```
+→ **Agentes:** S3-35 convertido a "recibo digital PDF" sin integración SRI.
+  Implementar usando `lib/pdf.php` o equivalente. Archivo: `es/recibo/index.html`.
 
 ---
 
-## Instrucciones para los agentes
+## Sin blockers activos
 
-Si eres un agente IA y llegas a una tarea `[HUMAN]`:
-1. Lee este archivo
-2. Si la respuesta está en "Respuesta del dueño" y **no dice** `[PENDIENTE]`, procede con esa información
-3. Si dice `[PENDIENTE]`, **no inventes datos** — salta a la siguiente tarea disponible con `node bin/dispatch.js --role <tu-rol>`
+No hay preguntas pendientes. Todos los blockers tienen respuesta.
+Los agentes pueden tomar cualquier tarea disponible en `BACKLOG.md`.
 
 ---
 
-_Actualizado automáticamente por `bin/report.js`_
+_Actualizado por el dueño del producto: 2026-03-29_

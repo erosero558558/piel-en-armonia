@@ -41,17 +41,48 @@ let inHuman = false;
 
 // Dependency map: task → must-be-done-before starting
 const DEPENDS_ON = {
+  // Sprint 2
   'S2-24': ['S2-23'],            // EN pages need ES page audit first
+  // Sprint 3
   'S3-09': ['S3-08'],            // payment ledger needs payment capture
   'S3-25': ['S3-24'],            // confirm booking → booking must exist
   'S3-26': ['S3-24'],            // reschedule → booking must exist
   'S3-27': ['S3-24'],            // waitlist → booking must exist
   'S3-31': ['S3-29', 'S3-30'],   // photo triage → tele flow must exist
+  // Sprint 4
   'S4-22': ['S4-21'],            // delete orphans → must audit first
   'S4-23': ['S4-21'],            // package.json audit → after surface audit
   'S4-10': ['S4-06'],            // multi-clinic dashboard → tenant isolation first
   'S4-11': ['S4-06'],            // whitelabel → tenant isolation first
+  // Sprint 5 — Patient portal
+  'S5-03': ['S5-02'],            // patient dashboard → login must exist
+  'S5-04': ['S5-02'],            // historial → login must exist
+  'S5-05': ['S5-02'],            // fotos → login must exist
+  'S5-06': ['S5-02'],            // receta → login must exist
+  'S5-07': ['S5-02'],            // plan → login must exist
+  'S5-08': ['S5-01'],            // push notifications → PWA manifest first
+  'S5-15': ['S5-16'],            // video room → pre-consult first
+  'S5-19': ['S5-05'],            // before/after → patient photos first
+  'S5-21': ['S5-04'],            // red flags patient → historial must exist
+  // Sprint 6 — SaaS platform
+  'S6-03': ['S6-02'],            // invite staff → clinic profile must exist
+  'S6-04': ['S6-02'],            // activate modules → clinic profile must exist
+  'S6-05': ['S6-01'],            // demo data → onboarding wizard must exist
+  'S6-06': ['S6-02'],            // theme engine → clinic profile must exist
+  'S6-07': ['S6-02'],            // custom domain → clinic profile must exist
+  'S6-08': ['S6-06'],            // email branding → theme engine first
+  'S6-09': ['S6-01'],            // app name → onboarding first
+  'S6-11': ['S6-10'],            // Stripe billing → pricing defined first
+  'S6-12': ['S6-11'],            // 14-day trial → billing must exist
+  'S6-13': ['S6-11'],            // revenue dashboard → billing data must exist
+  'S6-15': ['S6-14'],            // demo interactiva → landing must exist
+  'S6-16': ['S6-14'],            // referral program → landing must exist
+  'S6-17': ['S6-14'],            // case study → landing must exist
+  'S6-19': ['S6-18'],            // API docs → API must exist
+  'S6-20': ['S6-18'],            // webhooks → API must exist
+  'S6-24': ['S6-23'],            // knowledge base → support tickets first
 };
+
 
 lines.forEach(line => {
   // Match ALL sprint headers: "### {emoji} Sprint N — description"

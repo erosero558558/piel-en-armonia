@@ -585,6 +585,19 @@ test.describe('Panel de administracion', () => {
     test('dashboard muestra timeline visual por paciente cuando Flow OS expone journey cases', async ({
         page,
     }) => {
+        const sixHoursAgo = new Date(
+            Date.now() - 6 * 60 * 60 * 1000
+        ).toISOString();
+        const fourHoursAgo = new Date(
+            Date.now() - 4 * 60 * 60 * 1000
+        ).toISOString();
+        const threeHoursAgo = new Date(
+            Date.now() - 3 * 60 * 60 * 1000
+        ).toISOString();
+        const twoHoursAgo = new Date(
+            Date.now() - 2 * 60 * 60 * 1000
+        ).toISOString();
+
         await setupAuthenticatedAdminMocks(page, {
             patientFlowMeta: {
                 casesTotal: 4,
@@ -631,6 +644,34 @@ test.describe('Panel de administracion', () => {
                         care_plan: 1,
                         follow_up: 1,
                     },
+                    activityFeed: [
+                        {
+                            id: 'history-ana-scheduled',
+                            caseId: 'pc-001',
+                            patientLabel: 'Ana Ruiz',
+                            stage: 'scheduled',
+                            displayStage: 'scheduled',
+                            displayStageLabel: 'Agendada',
+                            stageIndex: 2,
+                            timestamp: twoHoursAgo,
+                            sourceLabel: 'Reserva confirmada',
+                            actorLabel: 'Agenda',
+                            isCurrentStage: true,
+                        },
+                        {
+                            id: 'history-luis-care-plan',
+                            caseId: 'pc-002',
+                            patientLabel: 'Luis Perez',
+                            stage: 'care_plan_ready',
+                            displayStage: 'care_plan',
+                            displayStageLabel: 'Plan',
+                            stageIndex: 3,
+                            timestamp: threeHoursAgo,
+                            sourceLabel: 'Paciente llamado a consultorio',
+                            actorLabel: 'Consultorio',
+                            isCurrentStage: true,
+                        },
+                    ],
                     cases: [
                         {
                             caseId: 'pc-000',
@@ -654,6 +695,20 @@ test.describe('Panel de administracion', () => {
                                 },
                             ],
                             alerts: [],
+                            journeyHistory: [
+                                {
+                                    id: 'pc-000-lead',
+                                    caseId: 'pc-000',
+                                    stage: 'lead_captured',
+                                    displayStage: 'lead_captured',
+                                    displayStageLabel: 'Lead',
+                                    stageIndex: 0,
+                                    timestamp: fourHoursAgo,
+                                    sourceLabel: 'Caso abierto',
+                                    actorLabel: 'Recepcion',
+                                    isCurrentStage: true,
+                                },
+                            ],
                         },
                         {
                             caseId: 'pc-001',
@@ -677,6 +732,31 @@ test.describe('Panel de administracion', () => {
                                 },
                             ],
                             alerts: [],
+                            journeyHistory: [
+                                {
+                                    id: 'pc-001-lead',
+                                    caseId: 'pc-001',
+                                    stage: 'lead_captured',
+                                    displayStage: 'lead_captured',
+                                    displayStageLabel: 'Lead',
+                                    stageIndex: 0,
+                                    timestamp: sixHoursAgo,
+                                    sourceLabel: 'Caso abierto',
+                                    actorLabel: 'Recepcion',
+                                },
+                                {
+                                    id: 'pc-001-scheduled',
+                                    caseId: 'pc-001',
+                                    stage: 'scheduled',
+                                    displayStage: 'scheduled',
+                                    displayStageLabel: 'Agendada',
+                                    stageIndex: 2,
+                                    timestamp: twoHoursAgo,
+                                    sourceLabel: 'Reserva confirmada',
+                                    actorLabel: 'Agenda',
+                                    isCurrentStage: true,
+                                },
+                            ],
                         },
                         {
                             caseId: 'pc-002',
@@ -700,6 +780,31 @@ test.describe('Panel de administracion', () => {
                                 },
                             ],
                             alerts: ['1 aprobacion(es) pendiente(s)'],
+                            journeyHistory: [
+                                {
+                                    id: 'pc-002-scheduled',
+                                    caseId: 'pc-002',
+                                    stage: 'scheduled',
+                                    displayStage: 'scheduled',
+                                    displayStageLabel: 'Agendada',
+                                    stageIndex: 2,
+                                    timestamp: sixHoursAgo,
+                                    sourceLabel: 'Reserva confirmada',
+                                    actorLabel: 'Agenda',
+                                },
+                                {
+                                    id: 'pc-002-care-plan',
+                                    caseId: 'pc-002',
+                                    stage: 'care_plan_ready',
+                                    displayStage: 'care_plan',
+                                    displayStageLabel: 'Plan',
+                                    stageIndex: 3,
+                                    timestamp: threeHoursAgo,
+                                    sourceLabel: 'Paciente llamado a consultorio',
+                                    actorLabel: 'Consultorio',
+                                    isCurrentStage: true,
+                                },
+                            ],
                         },
                         {
                             caseId: 'pc-003',
@@ -719,6 +824,20 @@ test.describe('Panel de administracion', () => {
                                 },
                             ],
                             alerts: [],
+                            journeyHistory: [
+                                {
+                                    id: 'pc-003-follow-up',
+                                    caseId: 'pc-003',
+                                    stage: 'follow_up_active',
+                                    displayStage: 'follow_up',
+                                    displayStageLabel: 'Seguimiento',
+                                    stageIndex: 4,
+                                    timestamp: fourHoursAgo,
+                                    sourceLabel: 'Seguimiento activado',
+                                    actorLabel: 'Seguimiento',
+                                    isCurrentStage: true,
+                                },
+                            ],
                         },
                     ],
                 },
@@ -754,14 +873,26 @@ test.describe('Panel de administracion', () => {
         await expect(anaJourneyCard).toContainText('Agenda');
         await expect(anaJourneyCard).toContainText('Lleva 2 h');
         await expect(anaJourneyCard).toContainText('Confirmar cita');
+        await expect(anaJourneyCard.locator('.dashboard-journey-history'))
+            .toContainText('Lead');
+        await expect(anaJourneyCard.locator('.dashboard-journey-history'))
+            .toContainText('Reserva confirmada');
         await expect(anaJourneyCard.locator('.dashboard-journey-node.is-active'))
             .toContainText('Agendada');
+        await expect(page.locator('#dashboardJourneyFeed')).toContainText(
+            'Ana Ruiz -> Agendada'
+        );
+        await expect(page.locator('#dashboardJourneyFeed')).toContainText(
+            'Reserva confirmada'
+        );
 
         const luisJourneyCard = page
             .locator('#dashboardJourneyTimeline .dashboard-journey-item')
             .filter({ hasText: 'Luis Perez' });
         await expect(luisJourneyCard).toContainText('Clinico');
         await expect(luisJourneyCard).toContainText(/aprobacion\(es\) pendiente/i);
+        await expect(luisJourneyCard.locator('.dashboard-journey-history'))
+            .toContainText('Paciente llamado a consultorio');
         await expect(
             page.locator('#dashboardJourneyStatusChip')
         ).toContainText('Con alertas');

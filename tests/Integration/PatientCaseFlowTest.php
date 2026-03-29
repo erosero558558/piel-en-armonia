@@ -164,7 +164,25 @@ final class PatientCaseFlowTest extends TestCase
         $this->assertNotNull($journeyCase);
         $this->assertSame('care_plan_ready', (string) ($journeyCase['stage'] ?? ''));
         $this->assertSame('care_plan', (string) ($journeyCase['displayStage'] ?? ''));
+        $journeyHistory = is_array($journeyCase['journeyHistory'] ?? null)
+            ? $journeyCase['journeyHistory']
+            : [];
+        $this->assertGreaterThanOrEqual(3, count($journeyHistory));
+        $this->assertSame(
+            ['lead_captured', 'scheduled', 'care_plan_ready'],
+            array_column(array_slice($journeyHistory, 0, 3), 'stage')
+        );
+        $this->assertSame(
+            'Turno completado',
+            (string) (($journeyHistory[2]['sourceLabel'] ?? ''))
+        );
+        $this->assertTrue((bool) ($journeyHistory[2]['isCurrentStage'] ?? false));
         $this->assertSame('care_plan_ready', (string) ($journey['stage'] ?? ''));
+        $this->assertNotEmpty($journey['activityFeed'] ?? []);
+        $this->assertSame(
+            'care_plan_ready',
+            (string) (($journey['activityFeed'][0]['stage'] ?? ''))
+        );
     }
 
     public function testAdminAndHealthExposePatientFlowReadModels(): void
@@ -215,6 +233,11 @@ final class PatientCaseFlowTest extends TestCase
         $this->assertNotNull($journeyCase);
         $this->assertSame('scheduled', (string) ($journeyCase['displayStage'] ?? ''));
         $this->assertSame('Agenda', (string) ($journeyCase['ownerLabel'] ?? ''));
+        $this->assertNotEmpty($journeyCase['journeyHistory'] ?? []);
+        $this->assertContains(
+            'scheduled',
+            array_column($journeyCase['journeyHistory'] ?? [], 'displayStage')
+        );
 
         $_GET['caseId'] = (string) ($queueCase['id'] ?? '');
         $patientCaseResponse = $this->captureJsonResponse(static function (): void {
@@ -258,6 +281,7 @@ final class PatientCaseFlowTest extends TestCase
             'scheduled',
             (string) ($journeyResponse['payload']['data']['journey']['cases'][0]['displayStage'] ?? '')
         );
+        $this->assertNotEmpty($journeyResponse['payload']['data']['journey']['activityFeed'] ?? []);
     }
 
     public function testExplicitIntakeCaseMovesToScheduledWhenAppointmentExists(): void
@@ -310,6 +334,65 @@ final class PatientCaseFlowTest extends TestCase
         $this->assertSame('scheduled', (string) ($journeyCase['stage'] ?? ''));
         $this->assertSame('scheduled', (string) ($journeyCase['displayStage'] ?? ''));
         $this->assertSame('Confirmar cita', (string) ($journeyCase['nextActionLabel'] ?? ''));
+        $this->assertSame('scheduled', (string) ($journey['stage'] ?? ''));
+    }
+
+    public function testStandalonePreconsultationCaseKeepsContinuityWhenAppointmentArrivesLater(): void
+    {
+        $store = \read_store();
+        $futureDate = date('Y-m-d', strtotime('+4 day'));
+        $caseId = 'pc-pre-001';
+        $patientId = 'pt-pre-001';
+
+        $store['patient_cases'] = [[
+            'id' => $caseId,
+            'tenantId' => 'pielarmonia',
+            'patientId' => $patientId,
+            'status' => 'lead_captured',
+            'journeyStage' => 'lead_captured',
+            'journeyEnteredAt' => date('c', strtotime('-2 hour')),
+            'journeyAdvancedAt' => date('c', strtotime('-2 hour')),
+            'journeyAdvancedReason' => 'public_preconsultation_created',
+            'openedAt' => date('c', strtotime('-2 hour')),
+            'latestActivityAt' => date('c', strtotime('-2 hour')),
+            'summary' => [
+                'patientLabel' => 'Paciente Preconsulta',
+                'contactPhone' => '0991234567',
+                'contactEmail' => '',
+                'source' => 'public_preconsultation',
+                'milestones' => [],
+            ],
+        ]];
+        $store['appointments'] = [[
+            'id' => 3401,
+            'tenantId' => 'pielarmonia',
+            'patientCaseId' => '',
+            'patientId' => '',
+            'name' => 'Paciente Preconsulta',
+            'email' => '',
+            'phone' => '0991234567',
+            'service' => 'consulta',
+            'doctor' => 'rosero',
+            'date' => $futureDate,
+            'time' => '11:30',
+            'dateBooked' => date('c'),
+            'status' => 'confirmed',
+        ]];
+        \write_store($store, false);
+
+        $patientCaseService = new \PatientCaseService();
+        $hydrated = $patientCaseService->hydrateStore(\read_store());
+
+        $this->assertSame($caseId, (string) ($hydrated['appointments'][0]['patientCaseId'] ?? ''));
+        $this->assertSame($patientId, (string) ($hydrated['appointments'][0]['patientId'] ?? ''));
+        $this->assertSame($caseId, (string) ($hydrated['patient_cases'][0]['id'] ?? ''));
+
+        $journey = \flow_os_build_store_journey_preview($hydrated);
+        $journeyCase = $this->findJourneyCaseByCaseId($journey['cases'] ?? [], $caseId);
+
+        $this->assertNotNull($journeyCase);
+        $this->assertSame('scheduled', (string) ($journeyCase['stage'] ?? ''));
+        $this->assertSame('scheduled', (string) ($journeyCase['displayStage'] ?? ''));
         $this->assertSame('scheduled', (string) ($journey['stage'] ?? ''));
     }
 

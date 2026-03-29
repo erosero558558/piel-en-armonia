@@ -152,6 +152,15 @@ const SEO_CASES = [
         xDefaultPath: '/es/primera-consulta/',
     },
     {
+        path: '/es/pre-consulta/',
+        canonicalPath: '/es/pre-consulta/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/pre-consulta/',
+        otherLocale: 'en',
+        otherLocalePath: null,
+        xDefaultPath: '/es/pre-consulta/',
+    },
+    {
         path: '/es/blog/como-elegir-dermatologo-quito/',
         canonicalPath: '/es/blog/como-elegir-dermatologo-quito/',
         currentLocale: 'es',

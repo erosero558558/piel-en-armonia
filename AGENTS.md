@@ -1124,3 +1124,93 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S4-24** `[M]` CSS dead code — 8+ archivos CSS en raíz. Verificar cuáles se importan desde HTML. Listar huérfanos.
 - [ ] **S4-25** `[M]` Images audit — 262 webp en `images/optimized/`. Verificar cuáles se referencian desde HTML/CSS. Listar huérfanas (no eliminar, solo listar).
 - [ ] **S4-26** `[L]` CI pipeline audit — `.github/workflows/*.yml` — verificar que todos los jobs referencian archivos que existen. Eliminar jobs que apuntan a archivos archivados.
+
+---
+
+### 🟣 Sprint 5 — Portal del Paciente (PWA)
+
+> **Meta:** El paciente tiene su propio espacio digital. Puede ver su historia, su próxima cita, sus fotos, su plan de tratamiento. Todo desde el celular, sin instalar nada. Esto fideliza y reduce llamadas de seguimiento.
+
+#### 5.1 PWA y acceso del paciente
+
+- [ ] **S5-01** `[M]` Manifest PWA — `manifest.json` ya existe. Verificar que `es/portal/` tiene una versión instalable: icon 512x512, `start_url`, `display: standalone`. Probar "Agregar a pantalla de inicio" en Android.
+- [ ] **S5-02** `[L]` Login paciente — `es/portal/login/index.html`: identificación por WhatsApp (número + código OTP). Sin contraseñas. Sesión en `localStorage` con JWT firmado. Backend: `controllers/PatientPortalController.php`.
+- [ ] **S5-03** `[L]` Dashboard del paciente — `es/portal/index.html`: próxima cita, última consulta, resumen del plan actual. Diseño mobile-first. CTA: "¿Tiene preguntas? WhatsApp".
+- [ ] **S5-04** `[M]` Historial propio — `es/portal/historial/index.html`: lista de consultas (fecha, doctor, motivo). Tap para ver detalle. Solo lectura. Datos desde `ClinicalHistoryService`.
+- [ ] **S5-05** `[M]` Mis fotos — `es/portal/fotos/index.html`: galería de fotos clínicas organizadas por zona y fecha. El paciente ve su propia evolución. Solo las fotos marcadas como "visible al paciente".
+- [ ] **S5-06** `[L]` Mi receta activa — `es/portal/receta/index.html`: receta digital actual (medicamentos, dosis, frecuencia). PDF descargable. Incluye QR de verificación.
+- [ ] **S5-07** `[M]` Mi plan de tratamiento — `es/portal/plan/index.html`: sesiones programadas, progreso (3/6 sesiones), próximos pasos. Visual con timeline.
+- [ ] **S5-08** `[M]` Notificaciones push — `sw.js` actualizado: notificar al paciente 24h antes de su cita. Usar Web Push API. Backend: `controllers/NotificationController.php`.
+- [ ] **S5-09** `[S]` Consentimiento digital — `es/portal/consentimiento/index.html`: formulario de consentimiento informado. Firma táctil en móvil. Guardar PDF firmado en `ClinicalHistoryService`.
+
+#### 5.2 Comunicación automática
+
+- [ ] **S5-10** `[M]` Recordatorio 24h — `LeadOpsService`: enviar mensaje WhatsApp automático 24h antes de cada cita: "Mañana tiene consulta con Dra. Rosero a las 10:00. Confirme o reagende: [link]".
+- [ ] **S5-11** `[M]` Follow-up post-consulta — 48h después de la cita: "¿Cómo se ha sentido después de su consulta? Si tiene dudas, escríbanos." Con link al portal.
+- [ ] **S5-12** `[M]` Recordatorio de medicación — si la receta tiene duración, enviar recordatorio a mitad del tratamiento: "Recuerde continuar con [medicamento] hasta [fecha]."
+- [ ] **S5-13** `[S]` Cumpleaños — mensaje automático el día del cumpleaños del paciente. Tono clínico-cálido. No marketing.
+- [ ] **S5-14** `[M]` WhatsApp bot IA — `WhatsappOpenclawController` mejorado: responder preguntas del paciente fuera de horario: "¿Cuáles son sus horarios?", "¿Cómo llego?", "¿Qué debo llevar?". Escalar a humano si es pregunta clínica.
+
+#### 5.3 Telemedicina real
+
+- [ ] **S5-15** `[XL]` Sala de videoconsulta — integrar Jitsi Meet embebido en `es/telemedicina/sala/index.html`. Link único por cita. Paciente entra desde el portal, doctor desde el admin. Sin instalación.
+- [ ] **S5-16** `[M]` Pre-consulta digital — `es/telemedicina/pre-consulta/index.html`: 10 min antes de la teleconsulta, el paciente completa: "¿Qué le preocupa hoy?", sube foto si tiene lesión nueva. El doctor la ve antes de entrar.
+- [ ] **S5-17** `[M]` Grabación de consenso — opción de grabar la teleconsulta con consentimiento explícito de ambas partes. Guardar en el caso con metadatos.
+- [ ] **S5-18** `[L]` Triaje por fotos IA — `TelemedicineIntakeService`: el paciente sube 3 fotos (zona, primer plano, luz natural). IA pre-clasifica urgencia (1-5) y sugiere tipo de consulta. El doctor valida.
+
+#### 5.4 Experiencia clínica premium
+
+- [ ] **S5-19** `[M]` Before/after real — en el portal del paciente, slider de comparación con sus propias fotos (Día 1 vs Semana 12). Reutilizar componente BA de `index.html`.
+- [ ] **S5-20** `[L]` Encuesta de satisfacción — 72h después de la cita: NPS de 1-5 + comentario libre. Guardar en admin. Usar para mejorar servicio.
+- [ ] **S5-21** `[M]` Red flags para el paciente — si en los últimos 30 días hay una nota de "cambio sospechoso" en su caso, notificar al paciente: "Su seguimiento recomienda una consulta pronto."
+- [ ] **S5-22** `[S]` Exportar mi historia — botón en el portal: descargar PDF completo de la historia clínica propia. Legal compliance: el paciente tiene derecho a su información.
+
+---
+
+### 🔴 Sprint 6 — Plataforma SaaS para Clínicas
+
+> **Meta:** Flow OS deja de ser solo Aurora Derm y se convierte en una plataforma que cualquier clínica puede usar. El modelo de negocio es SaaS. La clínica paga mensual y tiene su propio Flow OS branded.
+
+#### 6.1 Onboarding de nuevas clínicas
+
+- [ ] **S6-01** `[XL]` Wizard de onboarding — `es/software/turnero-clinicas/empezar/index.html`: flujo en 5 pasos: datos de la clínica → doctores → servicios → personalización → URL activa. Completable en <10 minutos.
+- [ ] **S6-02** `[L]` Perfil de clínica — `TurneroClinicProfile` completo: nombre, logo, colores, dirección, horarios, WhatsApp, especialidades. Cada clínica tiene su propio subdomain `{slug}.flowos.ec`.
+- [ ] **S6-03** `[M]` Invitar staff — desde el admin: enviar WhatsApp/email para que un médico cree su perfil. Rol: admin, doctor, recepcionista. Permisos por rol.
+- [ ] **S6-04** `[M]` Activación de servicios — checklist: qué módulos activa la clínica (turnero, HCE, telemedicina, portal paciente, analytics). Modular y cobrable por módulo.
+- [ ] **S6-05** `[L]` Datos de demo — al crear una clínica nueva, opcionar "cargar datos de ejemplo": 3 pacientes ficticios, agenda de prueba, citas simuladas. Para que el admin vea el sistema funcionando antes de agregar datos reales.
+
+#### 6.2 Whitelabel y personalización
+
+- [ ] **S6-06** `[L]` Theme engine — en admin: subir logo, elegir color primario (con previsualización en tiempo real). El CSS cambia dinámicamente usando variables. Sin tocar código.
+- [ ] **S6-07** `[M]` Dominio propio — guía paso a paso para que la clínica apunte su dominio a Flow OS. DNS + SSL automático via Let's Encrypt.
+- [ ] **S6-08** `[M]` Email branding — emails del sistema (confirmación de cita, receta, follow-up) salen con la marca de la clínica: su logo, su nombre, sus colores.
+- [ ] **S6-09** `[S]` App name — el paciente que agrega el portal a la pantalla de inicio ve el nombre de la clínica, no "Flow OS".
+
+#### 6.3 Modelo de negocio y pagos
+
+- [ ] **S6-10** `[L]` Pricing SaaS — definir y publicar: Free (1 doctor, 50 citas/mes), Starter ($29/mes, 3 doctores), Pro ($79/mes, 10 doctores + IA), Enterprise (contactar). Comparativa en `es/software/turnero-clinicas/precios/index.html`.
+- [ ] **S6-11** `[L]` Suscripción Stripe — integrar Stripe para cobros mensuales recurrentes. Admin puede ver su plan activo, fecha de renovación, facturas.
+- [ ] **S6-12** `[M]` Trial 14 días — toda clínica nueva empieza con 14 días de Pro gratis. Al día 12: recordatorio de renovación. Al día 14 si no renueva: downgrade a Free.
+- [ ] **S6-13** `[M]` Revenue dashboard (owner) — vista interna para el dueño de Flow OS: MRR, churn, clínicas activas, conversión trial→pago. Solo visible con rol `superadmin`.
+
+#### 6.4 Crecimiento y distribución
+
+- [ ] **S6-14** `[L]` Landing para clínicas — `es/software/turnero-clinicas/index.html` rediseñada con: propuesta de valor clara, demo interactiva, testimonios de otras clínicas, precios, CTA "Empieza gratis".
+- [ ] **S6-15** `[M]` Demo interactiva — `es/software/turnero-clinicas/demo/index.html`: experiencia guiada de 3 minutos. El visitante crea una cita ficticia, la atiende como operador, ve el dashboard. Sin datos reales.
+- [ ] **S6-16** `[M]` Programa de referidos para clínicas — una clínica refiere a otra: 1 mes gratis para ambas. Link único rastreable.
+- [ ] **S6-17** `[M]` Case study Aurora Derm — `es/software/turnero-clinicas/caso-aurora-derm/index.html`: historia de cómo Aurora Derm usó Flow OS. Métricas reales: tiempos de espera, NPS, citas/día. El mejor argumento de venta.
+
+#### 6.5 API y ecosistema
+
+- [ ] **S6-18** `[L]` API pública v1 — endpoints documentados para: crear paciente, crear cita, consultar disponibilidad, recibir webhook de cita confirmada. Auth con API key.
+- [ ] **S6-19** `[L]` API docs interactiva — `es/software/turnero-clinicas/api-docs/index.html`: Swagger UI con los endpoints de la API v1. Probar en vivo con datos de sandbox.
+- [ ] **S6-20** `[M]` Webhooks — cuando cambia el status de una cita, Flow OS puede notificar a sistemas externos (sistema contable, CRM, etc.) via webhook configurable desde el admin.
+- [ ] **S6-21** `[M]` Integración Google Calendar — doctor puede sincronizar su agenda de Flow OS con Google Calendar. Bidireccional: cita en Flow OS → aparece en GCal.
+- [ ] **S6-22** `[S]` Status page — `status.flowos.ec`: página pública con uptime de los servicios. Verde/amarillo/rojo por componente. Notificación automática si hay incidente.
+
+#### 6.6 Soporte y operaciones
+
+- [ ] **S6-23** `[M]` Ticket de soporte — desde el admin de la clínica: "Crear ticket" → descripción + screenshot. Sistema interno. El equipo Flow OS lo ve en un dashboard de soporte.
+- [ ] **S6-24** `[M]` Base de conocimiento — `es/software/turnero-clinicas/ayuda/index.html`: artículos con capturas de pantalla. Búsqueda. "Cómo agregar un doctor", "Cómo configurar el turnero", etc.
+- [ ] **S6-25** `[L]` Monitoreo multi-tenant — alertas automáticas si una clínica tiene: 0 citas en 3 días, error 500 frecuente, tasa de no-show >50%. Dashboard interno de salud del ecosystem.
+
