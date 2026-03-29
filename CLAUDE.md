@@ -1,63 +1,72 @@
-# CLAUDE.md — Guia de Rol para Claude Code (No Canonica)
+# CLAUDE.md — Onboarding para cualquier agente IA
 
-CLAUDE_ROLE_VERSION: 2026-orchestration-v1
-SOURCE_OF_TRUTH: AGENTS.md
+> **Este archivo es tu punto de entrada.** Léelo primero, luego ve a `AGENTS.md`.
 
-Este archivo describe como debe operar Claude dentro del sistema multiagente.
-Si existe cualquier contradiccion con `AGENTS.md`, prevalece `AGENTS.md`.
+## Quick Start (30 segundos)
 
-## Reglas de precedencia
+1. Lee `AGENTS.md` sección "Backlog de Producto" → busca el primer `[ ]` sin completar.
+2. Antes de trabajar, lee las secciones de contexto: "Identidad", "Design system", "Voz y tono".
+3. Ejecuta la tarea. Verifica tu trabajo (ver "Verificación").
+4. Commit: `feat(S1-XX): descripción corta` → push a `main`.
+5. Marca `[x]` en AGENTS.md. Commit eso también.
 
-1. Fuente de verdad operativa: `AGENTS.md`.
-2. `CLAUDE.md` no redefine politicas globales, solo comportamiento de rol.
-3. Backlog canonico: `AGENT_BOARD.yaml`.
-4. `JULES_TASKS.md` y `KIMI_TASKS.md` quedan solo como tombstones historicos.
+## Fuente de verdad
 
-## Rol principal de Claude
+| Documento | Propósito |
+|---|---|
+| `AGENTS.md` | **TODO está aquí.** Backlog, arquitectura, design system, reglas, acceptance criteria. |
+| `CLAUDE.md` | Solo este quick-start de onboarding. |
 
-- Arquitectura y decisiones de alto impacto.
-- Debugging interactivo en tiempo real.
-- Revision de cambios de agentes.
-- Coordinacion de handoffs y criterios de aceptacion.
+## Qué NO hacer
 
-Claude no debe actuar como backlog paralelo ni crear reglas separadas del
-orquestador canonico.
+- ❌ NO crear archivos de gobernanza (YAML boards, PLAN_MAESTRO, verification/).
+- ❌ NO inventar scripts de orquestación ni comandos nuevos.
+- ❌ NO saltar sprints (Sprint 1 antes que Sprint 2).
+- ❌ NO usar vocabulario informal: "tú", "oferta", "descuento", "promo".
+- ❌ NO hardcodear colores. Usar variables CSS de `styles/main-aurora.css`.
+- ❌ NO garantizar resultados médicos en contenido público.
+- ❌ NO modificar `AGENTS.md` excepto para marcar `[x]` tareas completadas.
 
-## Decision tree operativo (referencia)
+## Qué SÍ hacer
 
-Claude debe seguir el arbol oficial definido en `AGENTS.md`. Resumen:
+- ✅ Leer la identidad del producto en AGENTS.md (WhatsApp: `wa.me/593982453672`).
+- ✅ Usar los tokens CSS documentados en AGENTS.md.
+- ✅ Seguir los templates de servicio/blog documentados en AGENTS.md.
+- ✅ Verificar tu trabajo antes de commit (browser, curl, Lighthouse).
+- ✅ Commits pequeños: un fix o feature por commit.
+- ✅ Tratar al paciente de "usted". Tono médico, cálido, ecuatoriano.
 
-```text
-Zona critica -> codex_backend_ops lidera con plan + checklist + gate.
-No critica frontend -> codex_frontend.
-No critica backend/docs -> codex_backend_ops.
-Runtime/OpenClaw y gobernanza transversal -> codex_transversal.
-Solape de archivos -> bloquear y replanificar.
-Cambio runtime -> tests + smoke + gate.
-```
-
-## Guardrails para Claude
-
-1. No aprobar dispatch paralelo con interseccion de archivos activos.
-2. No cerrar tarea sin evidencia en `verification/agent-runs/<task_id>.md`.
-3. No operar cambios criticos sin plan aprobado.
-4. No promover excepciones fuera de politica sin documentarlas en board.
-
-## Comandos utiles
+## Comandos útiles
 
 ```bash
-node agent-orchestrator.js status
-node agent-orchestrator.js conflicts
-node agent-orchestrator.js jobs status --json
-php bin/validate-agent-governance.php
+# Server local
+php -S localhost:8000
+
+# Health check
+curl -s "http://localhost:8000/api.php?resource=health" | jq .
+
+# Test suite
+npm run agent:test
+
+# Gate de calidad
+npm run agent:gate
+
+# Commit sin husky
+HUSKY=0 git commit --no-verify -m "feat(S1-XX): descripción"
 ```
 
-## Handoff obligatorio
+## Estructura del repo
 
-Para tareas con impacto runtime, usar plantilla:
+Ver "Mapa de arquitectura" en `AGENTS.md` para el árbol completo.
 
-- `templates/agent-handoff.md`
+Archivos clave:
+- `index.html` — landing page principal
+- `styles/main-aurora.css` — design system (tokens CSS)
+- `api.php` + `lib/routes.php` — API REST (120+ endpoints)
+- `controllers/` — lógica de negocio (28 controllers PHP)
+- `lib/FlowOsJourney.php` — engine del patient journey
+- `es/servicios/*/index.html` — 20 specialty pages
+- `admin.html` — portal administrativo
+- `kiosco-turnos.html` / `operador-turnos.html` / `sala-turnos.html` — turnero
 
-y registrar evidencia en:
-
-- `verification/agent-runs/<task_id>.md`
+## Ahora ve a AGENTS.md y ejecuta la primera tarea pendiente.

@@ -828,7 +828,57 @@ acne-rosacea, bioestimuladores-colageno, botox, cancer-piel, cicatrices, depilac
 - [ ] Pricing page live en `es/software/turnero-clinicas/precios/`
 - [ ] ≤ 50 archivos en `src/apps/queue-shared/` (de 398 actuales)
 
+### KPIs del proyecto
+
+Métricas que los agentes deben optimizar con cada tarea:
+
+| KPI | Actual | Target Sprint 1 | Target Sprint 2 |
+|---|---|---|---|
+| Lighthouse Performance | ? | ≥ 70 | ≥ 80 |
+| Lighthouse Accessibility | ? | ≥ 85 | ≥ 90 |
+| Lighthouse SEO | ? | ≥ 90 | ≥ 95 |
+| Links rotos (index.html) | ~2 | 0 | 0 |
+| Páginas ES con structured data | 0/20 | 1 (index) | 20/20 |
+| Blog posts publicados | 0 | 0 | ≥ 4 |
+| WhatsApp CTAs con `?text=` | ~0 | n/a | 100% |
+| Archivos surface muertos | ~320 | n/a | n/a |
+
+### SEO keywords target (Quito, Ecuador)
+
+Estos son los keywords que los blog posts y páginas de servicio deben atacar. El contenido debe incluir estos términos de forma natural en títulos, H2s y texto.
+
+| Keyword | Volumen estimado | Página target |
+|---|---|---|
+| dermatólogo quito | Alto | `index.html` + blog |
+| tratamiento acné quito | Medio | `es/servicios/acne-rosacea/` |
+| láser dermatológico quito | Medio | `es/servicios/laser-dermatologico/` |
+| quitar manchas cara quito | Medio | `es/servicios/manchas/` |
+| bioestimuladores quito | Medio | `es/servicios/bioestimuladores-colageno/` |
+| dermatología pediátrica quito | Bajo-Medio | `es/servicios/dermatologia-pediatrica/` |
+| teledermatología ecuador | Bajo | `es/servicios/teledermatologia/` |
+| depilación láser quito | Alto | `es/servicios/depilacion-laser/` |
+| cómo elegir dermatólogo | Medio | `es/blog/como-elegir-dermatologo-quito/` |
+| señales alarma lunares | Bajo | `es/blog/senales-alarma-lunares/` |
+| protección solar ecuador | Bajo | `es/blog/proteccion-solar-ecuador/` |
+| acné adulto causas | Medio | `es/blog/acne-adulto/` |
+
+### Coordinación multi-agente
+
+Cuando múltiples agentes trabajan simultáneamente:
+
+1. **Lock por archivo:** antes de modificar un archivo, verificar con `git status` que no hay cambios no commiteados. Si hay conflictos, hacer `git pull --rebase` antes de push.
+2. **No duplicar trabajo:** si ves una tarea marcada `[x]`, NO la repitas. Pasa a la siguiente `[ ]`.
+3. **Sprints son secuenciales:** si Sprint 1 tiene tareas `[ ]`, NO trabajar en Sprint 2.
+4. **Tareas `[HUMAN]`:** si una tarea tiene tag `[HUMAN]`, preguntar al usuario y esperar respuesta. No inventar datos.
+5. **Conflicto de merge:** si al hacer push hay conflicto, hacer `git pull --rebase origin main` y resolver. Si es en AGENTS.md (checkboxes), preferir la versión que tiene MÁS `[x]`.
+6. **Archivos exclusivos por sprint:**
+   - Sprint 1: `index.html`, `manifest.json`, `sw.js`, `styles/`
+   - Sprint 2: `es/blog/`, `es/primera-consulta/`, `sitemap.xml`, `es/servicios/*/`
+   - Sprint 3: `controllers/`, `lib/`, `admin.html`, `kiosco-turnos.html`, `operador-turnos.html`, `src/apps/patient-flow-os/`
+   - Sprint 4: `src/apps/queue-shared/`, `es/software/`, `package.json`, `.github/`
+
 ### ✅ Sprint 0 — Completado
+
 
 - [x] P0-01 Reemplazar imagen láser
 - [x] P0-02 Reparar slider Before/After
@@ -849,12 +899,12 @@ acne-rosacea, bioestimuladores-colageno, botox, cancer-piel, cicatrices, depilac
 #### 1.1 Links y navegación rotas
 
 - [x] **S1-01** `[S]` Fix bioestimuladores link — footer enlaza `/es/servicios/bioestimuladores/` pero la página es `/es/servicios/bioestimuladores-colageno/`. Arreglar el `href` en `index.html`.
-- [ ] **S1-02** `[S]` Verificar TODOS los links del footer y nav en `index.html` — que cada href lleve a una página que existe. Reportar cualquier 404.
-- [ ] **S1-03** `[S]` Verificar links en cada `es/servicios/*/index.html` — CTAs, nav, breadcrumbs, que nada apunte a páginas inexistentes.
+- [x] **S1-02** `[S]` Verificar TODOS los links del footer y nav en `index.html` — que cada href lleve a una página que existe. Reportar cualquier 404.
+- [x] **S1-03** `[S]` Verificar links en cada `es/servicios/*/index.html` — CTAs, nav, breadcrumbs, que nada apunte a páginas inexistentes.
 
 #### 1.2 Identidad del producto
 
-- [ ] **S1-04** `[S]` Corregir `manifest.json` — dice "Flow OS" en name, short_name, description. Debe decir:
+- [x] **S1-04** `[S]` Corregir `manifest.json` — dice "Flow OS" en name, short_name, description. Debe decir:
   - `name`: "Aurora Derm — Dermatología Clínica Quito"
   - `short_name`: "Aurora Derm"
   - `description`: "Clínica dermatológica con enfoque médico real. Quito, Ecuador."
