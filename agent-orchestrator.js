@@ -3379,7 +3379,12 @@ main().catch((error) => {
                 payload[key] = error[key];
             }
         }
-        for (const key of ['branch_alignment', 'workspace_truth', 'workspace_hygiene']) {
+        for (const key of [
+            'branch_alignment',
+            'workspace_truth',
+            'workspace_hygiene',
+            'workspace_snapshot',
+        ]) {
             if (Object.prototype.hasOwnProperty.call(error || {}, key)) {
                 payload[key] = error[key];
             }

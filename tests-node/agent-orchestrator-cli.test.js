@@ -11,6 +11,7 @@ const {
     copyFileSync,
     cpSync,
     existsSync,
+    realpathSync,
     rmSync,
 } = require('fs');
 const { tmpdir } = require('os');
@@ -1673,6 +1674,129 @@ test('codex start/stop lifecycle mantiene espejo valido y actualiza CODEX_ACTIVE
     const board = readBoard(dir);
     assert.match(board, /- id: CDX-001/);
     assert.match(board, /status: done/);
+});
+
+test('codex start usa el worktree canonico actual como control_root aunque main este sucio', (t) => {
+    const dir = createFixtureDir();
+    const controlRoot = `${dir}-control-root`;
+    t.after(() => {
+        try {
+            runFixtureGit(dir, ['worktree', 'remove', '--force', controlRoot]);
+        } catch {
+            rmSync(controlRoot, { recursive: true, force: true });
+        }
+        cleanupFixtureDir(dir);
+    });
+
+    writeFixtureFiles(dir, {
+        board: boardForCodexLifecycle(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+    runFixtureGit(dir, [
+        'worktree',
+        'add',
+        '-b',
+        'codex/control-root',
+        controlRoot,
+        'origin/main',
+    ]);
+
+    writeFileSync(
+        join(dir, 'AGENT_BOARD.yaml'),
+        `${readFileSync(join(dir, 'AGENT_BOARD.yaml'), 'utf8')}# donor dirty\n`,
+        'utf8'
+    );
+
+    const args = withExpectedRevisionArgIfNeeded(controlRoot, [
+        'codex',
+        'start',
+        'CDX-001',
+        '--block',
+        'C1',
+        '--current-only',
+    ]);
+    const result = spawnSync(
+        process.execPath,
+        [join(controlRoot, 'agent-orchestrator.js'), ...args],
+        {
+            cwd: controlRoot,
+            encoding: 'utf8',
+        }
+    );
+
+    assert.equal(
+        result.status,
+        0,
+        `Unexpected exit for ${args.join(' ')}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`
+    );
+    assert.match(result.stdout, /Codex start OK: CDX-001 \(C1\)/);
+
+    const snapshot = JSON.parse(
+        readFileSync(
+            join(controlRoot, '.codex-local', 'workspace-sync.json'),
+            'utf8'
+        )
+    );
+    assert.equal(snapshot.control_root, realpathSync(controlRoot));
+    assert.equal(snapshot.root.path, realpathSync(controlRoot));
+    assert.equal(snapshot.root.sync_state, 'ready');
+    assert.equal(snapshot.control_root_selection.source, 'current_worktree');
+    assert.notEqual(snapshot.control_root, realpathSync(dir));
+
+    const board = readBoard(controlRoot);
+    assert.match(board, /status:\s+in_progress/);
+});
+
+test('codex start falla con workspace_root_not_ready cuando no existe control_root elegible', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForCodexLifecycle(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    writeFileSync(
+        join(dir, 'AGENT_BOARD.yaml'),
+        `${readFileSync(join(dir, 'AGENT_BOARD.yaml'), 'utf8')}# root dirty\n`,
+        'utf8'
+    );
+
+    const args = withExpectedRevisionArgIfNeeded(dir, [
+        'codex',
+        'start',
+        'CDX-001',
+        '--block',
+        'C1',
+        '--current-only',
+        '--json',
+    ]);
+    const result = spawnSync(
+        process.execPath,
+        [join(dir, 'agent-orchestrator.js'), ...args],
+        {
+            cwd: dir,
+            encoding: 'utf8',
+        }
+    );
+
+    assert.equal(
+        result.status,
+        1,
+        `Unexpected exit for ${args.join(' ')}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`
+    );
+    const payload = parseJsonStdout(result);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.error_code, 'workspace_root_not_ready');
+    assert.match(
+        String(payload.error || payload.message || ''),
+        /workspace root operativo no esta listo/i
+    );
+    assert.ok(payload.workspace_snapshot);
+    assert.equal(payload.workspace_snapshot.control_root, realpathSync(dir));
+    assert.equal(payload.workspace_snapshot.root.sync_state, 'root_dirty');
 });
 
 test('codex premium record registra sesion premium subagent y resincroniza board/ledger', (t) => {

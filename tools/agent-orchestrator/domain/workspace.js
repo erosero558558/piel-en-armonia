@@ -132,6 +132,17 @@ function resolveGitTopLevel(cwd) {
     return topLevel ? path.resolve(topLevel) : null;
 }
 
+function resolveGitCommonDir(cwd) {
+    const result = runGit(cwd, ['rev-parse', '--git-common-dir'], {
+        allowFailure: true,
+    });
+    if (!result.ok) {
+        return null;
+    }
+    const commonDir = String(result.stdout || '').trim();
+    return commonDir ? path.resolve(cwd, commonDir) : null;
+}
+
 function readCurrentBranch(cwd) {
     const result = runGit(cwd, ['rev-parse', '--abbrev-ref', 'HEAD'], {
         allowFailure: true,
@@ -165,6 +176,61 @@ function isPathWithin(parentPath, candidatePath) {
     return candidate === parent || candidate.startsWith(`${parent}/`);
 }
 
+function isManagedTaskWorktreePath(worktreePath, policy) {
+    const normalized = normalizePathValue(path.resolve(worktreePath));
+    const marker = `/${String(policy?.worktrees_dir || '.codex-worktrees')
+        .trim()
+        .replace(/\\/g, '/')
+        .replace(/^\.?\//, '')}/`;
+    return Boolean(marker && normalized.includes(marker));
+}
+
+function worktreeHasGovernanceControlPlane(worktreePath, policy) {
+    const candidate = path.resolve(worktreePath);
+    if (isManagedTaskWorktreePath(candidate, policy)) {
+        return false;
+    }
+    return (
+        fs.existsSync(path.resolve(candidate, 'agent-orchestrator.js')) &&
+        fs.existsSync(path.resolve(candidate, 'AGENT_BOARD.yaml'))
+    );
+}
+
+function chooseControlRoot(currentWorktreeRoot, listedRows, fallbackRoot, policy) {
+    const currentRoot = path.resolve(currentWorktreeRoot || fallbackRoot);
+    if (worktreeHasGovernanceControlPlane(currentRoot, policy)) {
+        return {
+            path: currentRoot,
+            source: 'current_worktree',
+            reason: 'current worktree contiene control plane de gobernanza',
+        };
+    }
+
+    const eligibleOther = (Array.isArray(listedRows) ? listedRows : [])
+        .filter((row) => !row?.prunable)
+        .map((row) => path.resolve(String(row?.path || '').trim()))
+        .filter(Boolean)
+        .filter(
+            (candidate) =>
+                normalizePathValue(candidate) !== normalizePathValue(currentRoot)
+        )
+        .find((candidate) => worktreeHasGovernanceControlPlane(candidate, policy));
+    if (eligibleOther) {
+        return {
+            path: eligibleOther,
+            source: 'eligible_worktree',
+            reason: 'otro worktree elegible aporta el control plane canonico',
+        };
+    }
+
+    const fallback = path.resolve(fallbackRoot || currentRoot);
+    return {
+        path: fallback,
+        source: 'root_branch_fallback',
+        reason: 'no existe worktree elegible; se usa fallback del root branch',
+    };
+}
+
 function resolveWorkspaceRoots(cwd, policy) {
     const topLevel = resolveGitTopLevel(cwd);
     if (!topLevel) {
@@ -181,13 +247,21 @@ function resolveWorkspaceRoots(cwd, policy) {
                 !row.prunable &&
                 String(row.branch || '').trim() === String(rootBranch || '').trim()
         ) || { path: topLevel, branch: rootBranch, detached: false };
-    const mainRoot = path.resolve(mainWorktree.path || topLevel);
+    const repoRoot = path.resolve(mainWorktree.path || topLevel);
+    const controlRootSelection = chooseControlRoot(topLevel, listed, repoRoot, policy);
+    const controlRoot = path.resolve(controlRootSelection.path || repoRoot);
     return {
         top_level: topLevel,
-        main_root: mainRoot,
+        git_common_dir: resolveGitCommonDir(topLevel),
+        repo_root: repoRoot,
+        root_branch_root: repoRoot,
+        control_root: controlRoot,
+        control_root_selection: controlRootSelection,
+        main_root: controlRoot,
         current_root: path.resolve(cwd),
-        local_dir: path.resolve(mainRoot, policy.local_dir),
-        worktrees_dir: path.resolve(mainRoot, policy.worktrees_dir),
+        current_worktree_root: topLevel,
+        local_dir: path.resolve(controlRoot, policy.local_dir),
+        worktrees_dir: path.resolve(controlRoot, policy.worktrees_dir),
         worktree_rows: listed,
     };
 }
@@ -273,42 +347,42 @@ function cleanupWorktreeIfFixable(worktreePath, diagnosis, taskId) {
     });
 }
 
-function alignMainRoot(mainRoot, policy) {
+function alignControlRoot(controlRoot, policy) {
     const remoteRef = `${policy.remote}/${policy.root_branch}`;
-    let diagnosis = diagnoseWorktree(mainRoot);
-    diagnosis = cleanupWorktreeIfFixable(mainRoot, diagnosis, '');
-    const branch = readCurrentBranch(mainRoot);
-    const originHead = readHeadSha(mainRoot, `refs/remotes/${remoteRef}`);
+    let diagnosis = diagnoseWorktree(controlRoot);
+    diagnosis = cleanupWorktreeIfFixable(controlRoot, diagnosis, '');
+    const branch = readCurrentBranch(controlRoot);
+    const originHead = readHeadSha(controlRoot, `refs/remotes/${remoteRef}`);
     const authoredCount = countAuthoredEntries(diagnosis?.dirtyEntries);
     const dirtyTotal = Number(diagnosis?.dirty_total || 0);
-    const aheadBehind = getAheadBehind(mainRoot, remoteRef);
+    const aheadBehind = getAheadBehind(controlRoot, remoteRef);
+    const mixedLane = hasMixedLaneDiagnosis(diagnosis);
+    const controlPlaneReady = worktreeHasGovernanceControlPlane(controlRoot, policy);
     let state = 'ready';
-    let resetApplied = false;
-
-    if (branch !== policy.root_branch) {
+    if (!controlPlaneReady) {
+        state = 'root_dirty';
+    } else if (mixedLane) {
         state = 'root_dirty';
     } else if (authoredCount > 0) {
         state = 'root_dirty';
-    } else if (Number(aheadBehind.behind || 0) > 0) {
+    } else if (dirtyTotal > 0) {
         state = 'root_dirty';
-    } else if (dirtyTotal === 0 && Number(aheadBehind.ahead || 0) === 0) {
-        runGit(mainRoot, ['reset', '--hard', remoteRef]);
-        resetApplied = true;
     }
 
     return {
         kind: 'root',
         task_id: null,
-        path: normalizePathValue(mainRoot),
+        path: normalizePathValue(controlRoot),
         branch,
-        head: readHeadSha(mainRoot),
+        head: readHeadSha(controlRoot),
         origin_main_head: originHead,
         sync_state: state,
         dirty_total: Number(diagnosis?.dirty_total || 0),
         authored_total: authoredCount,
         ahead: aheadBehind.ahead,
         behind: aheadBehind.behind,
-        reset_applied: resetApplied,
+        mixed_lane: mixedLane,
+        control_plane_ready: controlPlaneReady,
         diagnosis: summarizeDiagnosis(diagnosis),
     };
 }
@@ -392,8 +466,13 @@ function buildWorkspaceSnapshot(rootInfo, mainRow, taskRows, policy, machineId) 
         version: 1,
         checked_at: checkedAt,
         machine_id: machineId,
-        repo_root: normalizePathValue(rootInfo.main_root),
+        repo_root: normalizePathValue(rootInfo.repo_root || rootInfo.main_root),
+        control_root: normalizePathValue(rootInfo.control_root || rootInfo.main_root),
         current_root: normalizePathValue(rootInfo.current_root),
+        root_branch_root: normalizePathValue(
+            rootInfo.root_branch_root || rootInfo.repo_root || rootInfo.main_root
+        ),
+        git_common_dir: normalizePathValue(rootInfo.git_common_dir),
         policy: {
             ttl_minutes: policy.ttl_minutes,
             watcher_interval_seconds: policy.watcher_interval_seconds,
@@ -401,6 +480,7 @@ function buildWorkspaceSnapshot(rootInfo, mainRow, taskRows, policy, machineId) 
             root_branch: policy.root_branch,
             task_branch_prefix: policy.task_branch_prefix,
         },
+        control_root_selection: rootInfo.control_root_selection || null,
         root: mainRow,
         tasks: taskRows,
         summary: {
@@ -425,10 +505,10 @@ function runWorkspaceSync(options = {}) {
     ensureDirectory(rootInfo.worktrees_dir);
     const machineId = ensureMachineId(rootInfo.local_dir, policy);
 
-    runGit(rootInfo.main_root, ['fetch', policy.remote, '--prune']);
-    runGit(rootInfo.main_root, ['worktree', 'prune'], { allowFailure: true });
+    runGit(rootInfo.control_root, ['fetch', policy.remote, '--prune']);
+    runGit(rootInfo.control_root, ['worktree', 'prune'], { allowFailure: true });
 
-    const mainRow = alignMainRoot(rootInfo.main_root, policy);
+    const mainRow = alignControlRoot(rootInfo.control_root, policy);
     // Root cleanup can remove local control-plane artifacts; recreate them
     // before persisting the fresh workspace snapshot.
     ensureDirectory(rootInfo.local_dir);
@@ -439,10 +519,14 @@ function runWorkspaceSync(options = {}) {
     if (!fs.existsSync(machineIdPath)) {
         fs.writeFileSync(machineIdPath, `${machineId}\n`, 'utf8');
     }
-    const listedWorktrees = listWorktrees(rootInfo.main_root);
+    const listedWorktrees = listWorktrees(rootInfo.control_root);
     const managedTaskRows = listedWorktrees
         .filter((row) => !row.prunable)
-        .filter((row) => normalizePathValue(row.path) !== normalizePathValue(rootInfo.main_root))
+        .filter(
+            (row) =>
+                normalizePathValue(row.path) !==
+                normalizePathValue(rootInfo.control_root)
+        )
         .filter(
             (row) =>
                 isPathWithin(rootInfo.worktrees_dir, row.path) ||
@@ -487,7 +571,7 @@ function ensureTaskWorktree(taskId, options = {}) {
     });
     if (String(snapshotBefore?.root?.sync_state || '').trim() !== 'ready') {
         const error = new Error(
-            `workspace root no esta listo (${snapshotBefore?.root?.sync_state || 'unknown'})`
+            `workspace root operativo no esta listo (${snapshotBefore?.root?.sync_state || 'unknown'} @ ${snapshotBefore?.control_root || snapshotBefore?.root?.path || 'unknown'})`
         );
         error.code = 'workspace_root_not_ready';
         error.error_code = 'workspace_root_not_ready';
@@ -505,7 +589,7 @@ function ensureTaskWorktree(taskId, options = {}) {
 
     if (!existingRow) {
         const branchExists = runGit(
-            rootInfo.main_root,
+            rootInfo.control_root,
             ['show-ref', '--verify', '--quiet', `refs/heads/${expectedBranch}`],
             { allowFailure: true }
         ).ok;
@@ -527,7 +611,7 @@ function ensureTaskWorktree(taskId, options = {}) {
                   worktreePath,
                   `${policy.remote}/${policy.root_branch}`,
               ];
-        runGit(rootInfo.main_root, addArgs);
+        runGit(rootInfo.control_root, addArgs);
     }
 
     const snapshotAfter = runWorkspaceSync({
@@ -830,7 +914,8 @@ function buildBootstrapReport(options = {}) {
         ok: Boolean(snapshot?.ok),
         command: 'workspace bootstrap',
         machine_id: machineId,
-        repo_root: normalizePathValue(roots.main_root),
+        repo_root: normalizePathValue(roots.repo_root || roots.main_root),
+        control_root: normalizePathValue(roots.control_root || roots.main_root),
         local_dir: normalizePathValue(roots.local_dir),
         worktrees_dir: normalizePathValue(roots.worktrees_dir),
         snapshot,

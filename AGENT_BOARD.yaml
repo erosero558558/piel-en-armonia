@@ -13244,7 +13244,7 @@ tasks:
     premium_gate_state: "closed"
     decision_packet_ref: ""
     model_policy_version: "2026-03-17-codex-model-routing-v2"
-    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "tools/agent-orchestrator/commands/strategy.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/strategy.js", "tests-node/agent-orchestrator-cli.test.js", "tests-node/orchestrator/focus.test.js", "verification/agent-runs/CDX-105.md"]
+    files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "agent-orchestrator.js", "tools/agent-orchestrator/commands/strategy.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/strategy.js", "tools/agent-orchestrator/domain/workspace.js", "tests-node/agent-orchestrator-cli.test.js", "tests-node/orchestrator/focus.test.js", "verification/agent-runs/CDX-105.md"]
     source_signal: strategy_intake
     source_ref: "STRAT-2026-03-codex-governance-v2-adoption"
     priority_score: 70
@@ -13262,7 +13262,7 @@ tasks:
     lease_cleared_reason: ""
     runtime_impact: low
     critical_zone: false
-    acceptance: "Validar adopcion canonica del modelo v2, cuarentena del root donor y preparacion del rescate por lanes sin reabrir runtime o producto."
+    acceptance: "Validar adopcion canonica del modelo v2, cuarentena del root donor y allocator operable: codex start debe resolver un control_root canonico sin depender del donor sucio ni del worktree main."
     acceptance_ref: "verification/agent-runs/CDX-105.md"
     evidence_ref: "verification/agent-runs/CDX-105.md"
     strategy_id: "STRAT-2026-03-codex-governance-v2-adoption"
@@ -13272,11 +13272,11 @@ tasks:
     focus_step: "canon_adoption"
     integration_slice: "governance_evidence"
     work_type: "support"
-    expected_outcome: "Canon v2 adoptado con estrategia transversal activa, donor root cuarentenado e inventario listo para rescate por lanes."
+    expected_outcome: "Canon v2 adoptado con estrategia transversal activa, donor root cuarentenado y workspace allocator desbloqueado para que codex start funcione desde un worktree limpio no-main."
     decision_ref: ""
     rework_parent: ""
     rework_reason: ""
     depends_on: []
-    prompt: "Adoptar el canon operativo v2, reemplazar el frente vacio heredado por una estrategia transversal corta y documentar la cuarentena del root donor para rescate posterior por lanes."
+    prompt: "Adoptar el canon operativo v2, mantener el donor root en cuarentena y desacoplar el allocator de workspace para que codex start use un control_root canonico sin depender del worktree main ni del donor sucio."
     created_at: 2026-03-29
     updated_at: 2026-03-29
