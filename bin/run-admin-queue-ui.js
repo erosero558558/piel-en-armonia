@@ -12,39 +12,12 @@ const {
 } = require('./lib/admin-queue-ui-suites.js');
 
 const ROOT = path.resolve(__dirname, '..');
-const OUT_DIR = path.join(ROOT, 'verification', 'turnero-web-pilot');
+const OUT_DIR = path.join(ROOT, 'verification', 'admin-queue');
 const OUTPUT_JSON = path.join(OUT_DIR, 'ui-report.json');
 const OUTPUT_MD = path.join(OUT_DIR, 'ui-report.md');
 const LOCAL_PLAYWRIGHT_RUNNER = path.join(__dirname, 'run-playwright-local.js');
-const DEFAULT_TEST_LOCAL_SERVER_ENGINE = 'php';
-
-const SUITES = [
-    ...ADMIN_QUEUE_UI_SUITES,
-    {
-        id: 'queue_kiosk',
-        label: 'Queue kiosk',
-        spec: 'tests/queue-kiosk.spec.js',
-        serverEngine: DEFAULT_TEST_LOCAL_SERVER_ENGINE,
-    },
-    {
-        id: 'queue_operator',
-        label: 'Queue operator',
-        spec: 'tests/queue-operator.spec.js',
-        serverEngine: DEFAULT_TEST_LOCAL_SERVER_ENGINE,
-    },
-    {
-        id: 'queue_display',
-        label: 'Queue display',
-        spec: 'tests/queue-display.spec.js',
-        serverEngine: DEFAULT_TEST_LOCAL_SERVER_ENGINE,
-    },
-    {
-        id: 'queue_integrated_flow',
-        label: 'Queue integrated flow',
-        spec: 'tests/queue-integrated-flow.spec.js',
-        serverEngine: DEFAULT_TEST_LOCAL_SERVER_ENGINE,
-    },
-];
+const DEFAULT_TEST_LOCAL_SERVER_ENGINE = 'node';
+const SUITES = ADMIN_QUEUE_UI_SUITES;
 
 function tailLines(text, maxLines = 20) {
     return String(text || '')
@@ -64,33 +37,23 @@ function resolveSuiteServerEngine(suite, env = process.env) {
 }
 
 function buildSuiteArgs(suite) {
-    if (suite.spec && suite.serverEngine === 'node') {
-        return buildAdminQueueSuiteArgs(suite);
-    }
-    if (suite.spec) {
-        return [suite.spec, '--workers=1'];
-    }
-    return Array.isArray(suite.args) ? suite.args : [];
+    return buildAdminQueueSuiteArgs(suite);
 }
 
 function runSuite(suite) {
     const startedAt = new Date();
     const args = buildSuiteArgs(suite);
     const serverEngine = resolveSuiteServerEngine(suite, process.env);
-    const result = spawnSync(
-        process.execPath,
-        [LOCAL_PLAYWRIGHT_RUNNER, ...args],
-        {
-            cwd: ROOT,
-            encoding: 'utf8',
-            env: {
-                ...process.env,
-                TEST_LOCAL_SERVER_ENGINE: serverEngine,
-            },
-            shell: false,
-            maxBuffer: 1024 * 1024 * 40,
-        }
-    );
+    const result = spawnSync(process.execPath, [LOCAL_PLAYWRIGHT_RUNNER, ...args], {
+        cwd: ROOT,
+        encoding: 'utf8',
+        env: {
+            ...process.env,
+            TEST_LOCAL_SERVER_ENGINE: serverEngine,
+        },
+        shell: false,
+        maxBuffer: 1024 * 1024 * 40,
+    });
     const endedAt = new Date();
     const exitCode =
         typeof result.status === 'number'
@@ -125,12 +88,12 @@ function writeLine(io, line) {
 function collectSuiteResults(runSuiteFn = runSuite, io = process) {
     const suites = [];
     for (const suite of SUITES) {
-        writeLine(io, `[turnero-web-pilot-ui] Running ${suite.label}`);
+        writeLine(io, `[admin-queue-ui] Running ${suite.label}`);
         const result = runSuiteFn(suite);
         suites.push(result);
         writeLine(
             io,
-            `[turnero-web-pilot-ui] ${suite.label}: ${result.success ? 'PASS' : 'FAIL'} (${result.durationMs}ms)`
+            `[admin-queue-ui] ${suite.label}: ${result.success ? 'PASS' : 'FAIL'} (${result.durationMs}ms)`
         );
     }
     return suites;
@@ -155,13 +118,13 @@ function buildReport(suites, env = process.env) {
 
 function buildMarkdown(report) {
     const lines = [
-        '# Turnero Web Pilot UI',
+        '# Admin Queue UI',
         '',
         `- Generated At: ${report.generatedAt}`,
         `- Status: ${report.ok ? 'PASS' : 'FAIL'}`,
         `- TEST_LOCAL_SERVER_PORT: ${report.testLocalServerPort}`,
         `- Default server engine: ${report.defaultServerEngine}`,
-        `- Default TEST_LOCAL_SERVER_ENGINE: ${report.defaultTestLocalServerEngine}`,
+        `- Admin queue server engine: ${report.defaultTestLocalServerEngine}`,
         '',
         '| Suite | Spec | Engine | Status | Exit | Duration (ms) |',
         '| --- | --- | --- | --- | --- | --- |',
@@ -188,17 +151,13 @@ function main() {
     const suites = collectSuiteResults(runSuite, process);
     const report = buildReport(suites, process.env);
 
-    fs.writeFileSync(
-        OUTPUT_JSON,
-        `${JSON.stringify(report, null, 2)}\n`,
-        'utf8'
-    );
+    fs.writeFileSync(OUTPUT_JSON, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
     fs.writeFileSync(OUTPUT_MD, buildMarkdown(report), 'utf8');
 
     process.stdout.write(
         [
-            `[turnero-web-pilot-ui] Report JSON: ${path.relative(ROOT, OUTPUT_JSON).replace(/\\/g, '/')}`,
-            `[turnero-web-pilot-ui] Report MD: ${path.relative(ROOT, OUTPUT_MD).replace(/\\/g, '/')}`,
+            `[admin-queue-ui] Report JSON: ${path.relative(ROOT, OUTPUT_JSON).replace(/\\/g, '/')}`,
+            `[admin-queue-ui] Report MD: ${path.relative(ROOT, OUTPUT_MD).replace(/\\/g, '/')}`,
             '',
         ].join('\n')
     );

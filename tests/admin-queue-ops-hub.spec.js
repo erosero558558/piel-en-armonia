@@ -7,7 +7,6 @@ const {
     buildShellDrift,
 } = require('../tests-node/turnero-release-test-fixtures.js');
 const {
-    adminUrl,
     buildQueueMetaFromState,
     buildQueueDesktopOperatorInstance,
     buildQueueDesktopOperatorSurfaceStatus,
@@ -123,10 +122,7 @@ test.describe('Admin turnero sala', () => {
             },
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueAppsHub')).toBeVisible();
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
             'data-queue-admin-mode',
@@ -875,8 +871,7 @@ test.describe('Admin turnero sala', () => {
             queueSurfaceStatus: buildQueueOperationalAppsSurfaceStatus(),
         });
 
-        await page.goto(adminUrl());
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await openAdminQueue(page, '');
         await openQueuePilotDetailGroup(page, 'queueOpsPilotAdvancedGroup');
 
         await expect(
@@ -1129,10 +1124,7 @@ test.describe('Admin turnero sala', () => {
             },
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await openAdminQueue(page, '');
         await page.locator('#queueDomainOperations').dispatchEvent('click');
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
             'data-queue-domain',
@@ -1286,10 +1278,7 @@ test.describe('Admin turnero sala', () => {
             }),
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await openAdminQueue(page, '');
         await page.locator('#queueDomainOperations').dispatchEvent('click');
         await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
             'Configuración local'
@@ -1369,10 +1358,7 @@ test.describe('Admin turnero sala', () => {
             }),
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await openAdminQueue(page, '');
         await page.locator('#queueDomainOperations').click();
         await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
             'Pendiente de validar'
@@ -1451,10 +1437,7 @@ test.describe('Admin turnero sala', () => {
             }),
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await openAdminQueue(page, '');
         await page.locator('#queueDomainOperations').click();
         await expect(page.locator('#queueConsultorioCard_c2')).toContainText(
             'Ventana'
@@ -1531,10 +1514,7 @@ test.describe('Admin turnero sala', () => {
             }),
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await openAdminQueue(page, '');
         await page.locator('#queueDomainOperations').click();
         await expect(page.locator('#queueConsultorioCard_c1')).toContainText(
             'Update 42%'
@@ -1709,10 +1689,7 @@ test.describe('Admin turnero sala', () => {
             },
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await openAdminQueue(page, '');
         await page.locator('#queueDomainDeployment').dispatchEvent('click');
 
         await expect(page.locator('#queueReleaseCommandDeck')).toBeVisible();
@@ -2072,7 +2049,7 @@ test.describe('Admin turnero sala', () => {
             },
         });
 
-        await page.goto(adminUrl('section=queue'));
+        await openAdminQueue(page, 'section=queue');
         await page.locator('#queueAdminViewModeExpert').click();
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
             'data-queue-admin-mode',
@@ -2103,7 +2080,9 @@ test.describe('Admin turnero sala', () => {
         await expect(serviceHandoverConsoleHost).toContainText('Add playbook');
         await expect(serviceHandoverConsoleHost).toContainText('Add owner');
         await expect(serviceHandoverConsoleHost).toContainText('Recompute');
-        await expect(serviceHandoverConsoleHost).toContainText('Operador web');
+        await expect(serviceHandoverConsoleHost).toContainText(
+            'Operador web'
+        );
         await expect(
             serviceHandoverConsoleHost.locator(
                 '.turnero-admin-queue-surface-service-handover-console__surface'
@@ -2276,14 +2255,10 @@ test.describe('Admin turnero sala', () => {
             .click();
 
         await expect(
-            page.locator(
-                '#queueSurfaceFleetConsoleHost [data-role="wave-count"]'
-            )
+            page.locator('#queueSurfaceFleetConsoleHost [data-role="wave-count"]')
         ).toHaveText('1');
         await expect(
-            page.locator(
-                '#queueSurfaceFleetConsoleHost [data-role="wave-list"]'
-            )
+            page.locator('#queueSurfaceFleetConsoleHost [data-role="wave-list"]')
         ).toContainText('Wave 9');
 
         await page.selectOption(
@@ -2301,14 +2276,10 @@ test.describe('Admin turnero sala', () => {
             .click();
 
         await expect(
-            page.locator(
-                '#queueSurfaceFleetConsoleHost [data-role="owner-count"]'
-            )
+            page.locator('#queueSurfaceFleetConsoleHost [data-role="owner-count"]')
         ).toHaveText('1');
         await expect(
-            page.locator(
-                '#queueSurfaceFleetConsoleHost [data-role="owner-list"]'
-            )
+            page.locator('#queueSurfaceFleetConsoleHost [data-role="owner-list"]')
         ).toContainText('ops-lead');
     });
 });

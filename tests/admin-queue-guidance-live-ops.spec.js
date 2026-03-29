@@ -4,7 +4,6 @@ const { buildAdminDataPayload } = require('./helpers/admin-api-mocks');
 const { installLegacyAdminAuthMock } = require('./helpers/admin-auth-mocks');
 const {
     ADMIN_UI_VARIANT,
-    adminUrl,
     buildQueueMetaFromState,
     buildTurneroClinicProfileCatalogStatus,
     buildQueueIdleState,
@@ -112,9 +111,7 @@ test.describe('Admin turnero sala', () => {
             queueState,
         });
 
-        await page.goto(adminUrl());
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '');
         await expect(
             page.locator('#queueReceptionGuidancePanel')
         ).toBeVisible();
@@ -465,9 +462,7 @@ test.describe('Admin turnero sala', () => {
             },
         });
 
-        await page.goto(adminUrl());
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueReceptionGuidanceList')).toContainText(
             'Problema de impresion'
         );
@@ -769,8 +764,7 @@ test.describe('Admin turnero sala', () => {
             },
         });
 
-        await page.goto(adminUrl());
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await openAdminQueue(page, '');
         await page
             .locator(
                 '[data-action="queue-open-appointments"][data-queue-help-request-id="971"]'
@@ -1001,13 +995,7 @@ test.describe('Admin turnero sala', () => {
             },
         });
 
-        await page.goto(adminUrl(), { waitUntil: 'domcontentloaded' });
-        await expect(page.locator('#adminDashboard')).toBeVisible({
-            timeout: 15000,
-        });
-
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '', { gotoOptions: { waitUntil: 'domcontentloaded' } });
         await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('2');
         await expect(page.locator('#queueSyncStatus')).toContainText('vivo');
 
@@ -1151,11 +1139,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueTriageToolbar')).toBeVisible();
         await expect(page.locator('#queueTriageSummary')).toContainText(
             'riesgo'
@@ -1280,10 +1264,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueActivityPanel')).toBeVisible();
         await expect
             .poll(async () => {
@@ -1437,11 +1418,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '');
 
         await page.keyboard.press('Alt+Shift+W');
         await expect(page.locator('#queueTableBody tr')).toHaveCount(2);
@@ -1553,10 +1530,7 @@ test.describe('Admin turnero sala', () => {
             },
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueTableBody')).toContainText('A-1501');
         await expect(page.locator('#queueTableBody')).toContainText('A-1510');
         await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('14');
@@ -1648,10 +1622,7 @@ test.describe('Admin turnero sala', () => {
             },
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('6');
         await expect(page.locator('#queueTableBody')).toContainText('A-2602');
         await expect(page.locator('#queueTableBody')).toContainText('A-2603');
@@ -1744,10 +1715,7 @@ test.describe('Admin turnero sala', () => {
             },
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('4');
         await expect(page.locator('#queueTableBody')).toContainText('A-3602');
         await expect(page.locator('#queueTableBody')).toContainText('A-3603');
@@ -1848,10 +1816,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('1');
 
         await page
@@ -1970,10 +1935,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '');
 
         const callC1Button = page.locator(
             '#queue .queue-admin-header-actions [data-action="queue-call-next"][data-queue-consultorio="1"]'
@@ -2115,10 +2077,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('3');
 
         const callC1Button = page
@@ -2354,10 +2313,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '');
 
         await expect(page.locator('#queueC1Now')).toContainText('A-981');
         await expect(page.locator('#queueC2Now')).toContainText('Sin llamado');
@@ -2576,9 +2532,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await openAdminQueue(page, '');
         await page.locator('#queueDomainOperations').dispatchEvent('click');
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
             'data-queue-domain',
@@ -2829,10 +2783,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueAttentionDeck')).toBeVisible();
         await expect(page.locator('#queueAttentionDeckTitle')).toContainText(
             'Seguimiento de atención'
@@ -3086,10 +3037,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueResolutionDeck')).toBeVisible();
         await expect(page.locator('#queueResolutionDeckTitle')).toContainText(
             'Resolución rápida'
@@ -3306,8 +3254,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await openAdminQueue(page);
         await expect(page.locator('#queueAppsHub')).toBeVisible();
 
         await expect(page.locator('#queueTicketLookup')).toBeVisible();
@@ -3492,8 +3439,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await openAdminQueue(page);
 
         await page.fill('#queueTicketLookupInput', 'A-1232');
         await page.locator('#queueTicketLookupSearchBtn').click();
@@ -3653,8 +3599,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await openAdminQueue(page);
 
         await page.fill('#queueTicketLookupInput', 'A-1241');
         await page.locator('#queueTicketLookupSearchBtn').click();
@@ -3833,8 +3778,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await openAdminQueue(page);
 
         await expect(page.locator('#queueNextTurns')).toBeVisible();
         await expect(page.locator('#queueNextTurnsTitle')).toContainText(
@@ -3997,8 +3941,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await openAdminQueue(page);
 
         await expect(page.locator('#queueMasterSequence')).toBeVisible();
         await expect(page.locator('#queueMasterSequenceTitle')).toContainText(
@@ -4161,8 +4104,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await openAdminQueue(page);
 
         await expect(page.locator('#queueBlockers')).toBeVisible();
         await expect(page.locator('#queueBlockersTitle')).toContainText(
@@ -4321,8 +4263,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await openAdminQueue(page);
 
         await expect(page.locator('#queueSlaDeck')).toBeVisible();
         await expect(page.locator('#queueSlaDeckTitle')).toContainText(
@@ -4486,8 +4427,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await openAdminQueue(page);
 
         await expect(page.locator('#queueCoverageDeck')).toBeVisible();
         await expect(page.locator('#queueCoverageDeckTitle')).toContainText(
@@ -4677,8 +4617,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await openAdminQueue(page);
 
         await expect(page.locator('#queueReserveDeck')).toBeVisible();
         await expect(page.locator('#queueReserveDeckTitle')).toContainText(
@@ -4861,8 +4800,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await openAdminQueue(page);
 
         await expect(page.locator('#queueGeneralGuidance')).toBeVisible();
         await expect(page.locator('#queueGeneralGuidanceTitle')).toContainText(
@@ -5045,8 +4983,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await openAdminQueue(page);
 
         await expect(page.locator('#queueProjectedDeck')).toBeVisible();
         await expect(page.locator('#queueProjectedDeckTitle')).toContainText(
@@ -5218,8 +5155,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto('/admin.html#queue');
-        await page.locator('a[href="#queue"]').last().click();
+        await openAdminQueue(page);
 
         await expect(page.locator('#queueIncomingDeck')).toBeVisible();
         await expect(page.locator('#queueIncomingDeckTitle')).toContainText(
@@ -5245,4 +5181,5 @@ test.describe('Admin turnero sala', () => {
             /operador-turnos\.html\?station=c2&lock=1/
         );
     });
+
 });

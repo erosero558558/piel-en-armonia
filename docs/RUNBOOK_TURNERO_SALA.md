@@ -197,11 +197,13 @@ Reglas operativas de estación:
 
 ## Smoke QA recomendado
 
-1. `npx playwright test tests/admin-queue.spec.js`
+1. `npm run test:admin:queue`
 2. `npx playwright test tests/queue-operator.spec.js`
 3. `npx playwright test tests/queue-kiosk.spec.js`
 4. `npx playwright test tests/queue-display.spec.js`
 5. `npx playwright test tests/queue-integrated-flow.spec.js`
+
+`npm run test:admin:queue` deja evidencia por capacidad en `verification/admin-queue/ui-report.json` y `verification/admin-queue/ui-report.md`.
 
 ## Señales de observabilidad funcional (frontend)
 

@@ -10,7 +10,6 @@ const {
     DEFAULT_SERVER_ENGINE,
     DEFAULT_PHP_SERVER_WORKERS,
     buildPlaywrightCommandArgs,
-    buildChildEnv,
     extractListeningPids,
     parseArgs,
     resolveLocalServerPort,
@@ -25,11 +24,11 @@ function readPackageScripts() {
 }
 
 test('run-playwright-local arma el comando canonico de playwright test', () => {
-    assert.equal(DEFAULT_PHP_SERVER_WORKERS, '1');
+    assert.equal(DEFAULT_PHP_SERVER_WORKERS, '4');
     assert.equal(DEFAULT_SERVER_ENGINE, 'php');
     assert.deepEqual(
-        buildPlaywrightCommandArgs(['tests/admin-queue.spec.js']),
-        ['playwright', 'test', 'tests/admin-queue.spec.js']
+        buildPlaywrightCommandArgs(['tests/queue-kiosk.spec.js']),
+        ['playwright', 'test', 'tests/queue-kiosk.spec.js']
     );
     assert.deepEqual(buildPlaywrightCommandArgs(['--workers=1']), [
         'playwright',
@@ -111,50 +110,13 @@ test('run-playwright-local extrae pids desde la salida de ss sin duplicados', ()
     );
 });
 
-test('run-playwright-local fuerza TEST_BASE_URL y desactiva reuseExistingServer cuando levanta servidor propio', () => {
-    const env = buildChildEnv(
-        {
-            TEST_REUSE_EXISTING_SERVER: '1',
-            TEST_LOCAL_SERVER_PORT: '8011',
-        },
-        {
-            host: '127.0.0.1',
-            baseUrl: '',
-        },
-        9124
-    );
-
-    assert.equal(env.TEST_BASE_URL, 'http://127.0.0.1:9124');
-    assert.equal(env.TEST_LOCAL_SERVER_PORT, '9124');
-    assert.equal(env.TEST_REUSE_EXISTING_SERVER, '0');
-});
-
-test('run-playwright-local conserva un base URL explicito y limpia el puerto local heredado', () => {
-    const env = buildChildEnv(
-        {
-            TEST_LOCAL_SERVER_PORT: '8011',
-        },
-        {
-            host: '127.0.0.1',
-            baseUrl: 'https://pielarmonia.com',
-        },
-        0
-    );
-
-    assert.equal(env.TEST_BASE_URL, 'https://pielarmonia.com');
-    assert.equal('TEST_LOCAL_SERVER_PORT' in env, false);
-    assert.equal(env.TEST_REUSE_EXISTING_SERVER, '0');
-});
-
 test('scripts de admin y turnero usan wrappers locales o runners canonicos para aislar Playwright del webServer', () => {
     const scripts = readPackageScripts();
 
     for (const scriptName of [
         'test:admin:auth',
-        'test:admin:queue',
         'test:turnero:presentation-cut',
         'test:turnero:sony-premium',
-        'test:turnero:ui',
     ]) {
         assert.equal(
             String(scripts[scriptName] || '').includes(
@@ -165,11 +127,33 @@ test('scripts de admin y turnero usan wrappers locales o runners canonicos para 
         );
     }
 
+    assert.match(
+        String(scripts['test:admin:queue'] || ''),
+        /node bin\/run-admin-queue-ui\.js/
+    );
+    assert.match(
+        String(scripts['test:admin:queue'] || ''),
+        /TEST_LOCAL_SERVER_ENGINE=node node bin\/run-playwright-local\.js tests\/queue-integrated-flow\.spec\.js --workers=1/
+    );
+
     assert.equal(
         String(scripts['test:turnero:web-pilot:ui'] || '').includes(
             'node bin/run-turnero-web-pilot-ui.js'
         ),
         true,
         'test:turnero:web-pilot:ui debe usar bin/run-turnero-web-pilot-ui.js'
+    );
+
+    assert.match(
+        String(scripts['test:turnero:ui'] || ''),
+        /npm run test:turnero:web-pilot:ui/
+    );
+    assert.doesNotMatch(
+        String(scripts['test:turnero:web-pilot:ui'] || ''),
+        /tests\/admin-queue\.spec\.js/
+    );
+    assert.doesNotMatch(
+        String(scripts['test:turnero:ui'] || ''),
+        /tests\/admin-queue\.spec\.js/
     );
 });

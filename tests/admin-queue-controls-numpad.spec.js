@@ -3,7 +3,6 @@ const { test, expect } = require('@playwright/test');
 const { installLegacyAdminAuthMock } = require('./helpers/admin-auth-mocks');
 const {
     ADMIN_UI_VARIANT,
-    adminUrl,
     buildQueueMetaFromState,
     buildTurneroClinicProfileCatalogStatus,
     buildQueueIdleState,
@@ -188,10 +187,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueLoadBalance')).toBeVisible();
         await expect(page.locator('#queueLoadBalanceStatus')).toContainText(
             'Gap 3'
@@ -373,10 +369,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(page.locator('#queuePriorityLane')).toBeVisible();
         await expect(page.locator('#queuePriorityLaneTitle')).toContainText(
             'Fila priorizada'
@@ -546,10 +539,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueQuickTrays')).toBeVisible();
         await expect(
             page.locator('#queueQuickTrayCount_waiting_unassigned')
@@ -717,10 +707,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await page.locator('#queueQuickTrayAction_waiting_unassigned').click();
 
         await expect(page.locator('#queueActiveTray')).toBeVisible();
@@ -931,10 +918,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await page.locator('#queueQuickTrayAction_waiting_unassigned').click();
 
         await expect(page.locator('#queueTrayBurst')).toBeVisible();
@@ -1083,10 +1067,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl('station=c2&lock=1'));
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, 'station=c2&lock=1');
         await expect(page.locator('#queueStationBadge')).toContainText(
             'Puesto actual: C2'
         );
@@ -1101,10 +1082,7 @@ test.describe('Admin turnero sala', () => {
         await expect.poll(() => queueCallNextRequests.length).toBe(1);
         await expect.poll(() => queueCallNextRequests[0]).toBe(2);
 
-        await page.reload();
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, 'station=c2&lock=1');
         await expect(page.locator('#queueStationBadge')).toContainText(
             'Puesto actual: C2'
         );
@@ -1203,10 +1181,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl('station=c1&lock=1'));
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, 'station=c1&lock=1');
         await expect(page.locator('#queueStationBadge')).toContainText(
             'Puesto actual: C1'
         );
@@ -1389,10 +1364,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl('station=c2&lock=1&one_tap=1'));
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, 'station=c2&lock=1&one_tap=1');
         await expect(page.locator('#queueStationBadge')).toContainText(
             'Puesto actual: C2'
         );
@@ -1415,10 +1387,7 @@ test.describe('Admin turnero sala', () => {
         await page.waitForTimeout(50);
         await expect(page.locator('#queueC2Now')).toContainText('A-1502');
 
-        await page.reload();
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, 'station=c2&lock=1&one_tap=1');
         await expect(
             page.locator('[data-action="queue-toggle-one-tap"]')
         ).toContainText('Un toque activo');
@@ -1535,10 +1504,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl('station=c1&lock=1&one_tap=1'));
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, 'station=c1&lock=1&one_tap=1');
         await expect(
             page.locator('[data-action="queue-toggle-one-tap"]')
         ).toContainText('Un toque activo');
@@ -1636,10 +1602,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl('station=c2&lock=1'));
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, 'station=c2&lock=1');
         await expect(page.locator('#queueStationBadge')).toContainText(
             'Puesto actual: C2'
         );
@@ -1779,10 +1742,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl('station=c1&lock=1'));
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, 'station=c1&lock=1');
         await expect(page.locator('#queueShortcutPanel')).toBeHidden();
         await page.locator('[data-action="queue-toggle-shortcuts"]').click();
         await expect(page.locator('#queueShortcutPanel')).toBeVisible();
@@ -1934,10 +1894,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl('station=c1&lock=1'));
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, 'station=c1&lock=1');
 
         await page.keyboard.press('NumpadDecimal');
         await expect.poll(() => queueTicketActions.length).toBe(0);
@@ -2115,10 +2072,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl('station=c1&lock=1'));
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, 'station=c1&lock=1');
         await page.locator('#queue').click({ position: { x: 18, y: 16 } });
 
         await page.evaluate(() => {
@@ -2332,10 +2286,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl('station=c1&lock=1'));
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, 'station=c1&lock=1');
 
         await page.evaluate(() => {
             document.dispatchEvent(
@@ -2384,10 +2335,7 @@ test.describe('Admin turnero sala', () => {
         await expect.poll(() => queueCallNextRequests.length).toBe(1);
         await expect.poll(() => queueCallNextRequests[0]).toBe(1);
 
-        await page.reload();
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, 'station=c1&lock=1');
         await expect(
             page.locator('[data-action="queue-clear-call-key"]')
         ).toBeVisible();
@@ -2537,10 +2485,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl('station=c1&lock=1'));
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, 'station=c1&lock=1');
 
         await page.locator('[data-action="queue-start-practice"]').click();
         await expect(page.locator('#queuePracticeModeBadge')).toBeVisible();
@@ -2629,10 +2574,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '');
         await expect(
             page.locator('#queueTableBody tr').filter({ hasText: 'A-1192' })
         ).toHaveCount(1);
@@ -2771,10 +2713,7 @@ test.describe('Admin turnero sala', () => {
 
         page.on('dialog', (dialog) => dialog.accept());
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-        await expect(page.locator('#queue')).toHaveClass(/active/);
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueTableBody tr')).toHaveCount(3);
 
         await page.locator('[data-action="queue-bulk-reprint"]').click();
@@ -2784,4 +2723,5 @@ test.describe('Admin turnero sala', () => {
             'Bulk reimpresion'
         );
     });
+
 });

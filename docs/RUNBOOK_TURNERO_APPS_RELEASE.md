@@ -94,6 +94,7 @@ Mínimo recomendado:
 - `npm run gate:turnero:web-pilot`
 - `npm run gate:turnero`
 - `npm run turnero:release:plan`
+- `npm run test:admin:queue`
 - `npm run test:turnero:php-contract`
 - `npm run test:turnero:web-pilot:ui`
 - `node --test tests-node/turnero-surface-registry.test.js tests-node/resolve-turnero-release-plan.test.js tests-node/stage-turnero-app-release-script.test.js tests-node/release-turnero-apps-workflow-contract.test.js`
@@ -105,6 +106,7 @@ Notas:
 - `npm run gate:turnero` es el gate rápido canónico del frente; si falla, no avanzar al workflow.
 - Para la ola actual del piloto web, leer `npm run gate:turnero` como gate ampliado del release nativo, no como sustituto del carril web-pilot.
 - La ruta PHP oficial del contrato `/data` + `appDownloads` es `npm run test:turnero:php-contract`.
+- `npm run test:admin:queue` deja evidencia por capacidad en `verification/admin-queue/ui-report.json` y `verification/admin-queue/ui-report.md`.
 - `npm run test:turnero:web-pilot:ui` segmenta el carril UI en cinco suites secuenciales, mantiene `--workers=1` y deja evidencia detallada en `verification/turnero-web-pilot/ui-report.json` y `verification/turnero-web-pilot/ui-report.md`.
 
 ## Checklist minimo antes de publicar

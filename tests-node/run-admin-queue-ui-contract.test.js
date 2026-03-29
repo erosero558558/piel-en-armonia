@@ -14,10 +14,12 @@ const {
     buildReport,
     buildSuiteArgs,
     collectSuiteResults,
-} = require('../bin/run-turnero-web-pilot-ui.js');
+    resolveSuiteServerEngine,
+} = require('../bin/run-admin-queue-ui.js');
 
-test('turnero web-pilot ui mantiene el orden canonico de suites con workers=1', () => {
-    assert.equal(DEFAULT_TEST_LOCAL_SERVER_ENGINE, 'php');
+test('admin queue ui runner mantiene el orden canonico de las cinco suites admin', () => {
+    assert.equal(DEFAULT_TEST_LOCAL_SERVER_ENGINE, 'node');
+    assert.deepEqual(SUITES, ADMIN_QUEUE_UI_SUITES);
     assert.deepEqual(
         SUITES.map((suite) => ({
             id: suite.id,
@@ -71,42 +73,13 @@ test('turnero web-pilot ui mantiene el orden canonico de suites con workers=1', 
                 serverEngine: 'node',
                 args: ['tests/admin-queue-ops-hub.spec.js', '--workers=1'],
             },
-            {
-                id: 'queue_kiosk',
-                label: 'Queue kiosk',
-                spec: 'tests/queue-kiosk.spec.js',
-                serverEngine: 'php',
-                args: ['tests/queue-kiosk.spec.js', '--workers=1'],
-            },
-            {
-                id: 'queue_operator',
-                label: 'Queue operator',
-                spec: 'tests/queue-operator.spec.js',
-                serverEngine: 'php',
-                args: ['tests/queue-operator.spec.js', '--workers=1'],
-            },
-            {
-                id: 'queue_display',
-                label: 'Queue display',
-                spec: 'tests/queue-display.spec.js',
-                serverEngine: 'php',
-                args: ['tests/queue-display.spec.js', '--workers=1'],
-            },
-            {
-                id: 'queue_integrated_flow',
-                label: 'Queue integrated flow',
-                spec: 'tests/queue-integrated-flow.spec.js',
-                serverEngine: 'php',
-                args: ['tests/queue-integrated-flow.spec.js', '--workers=1'],
-            },
         ]
     );
-    assert.deepEqual(SUITES.slice(0, 5), ADMIN_QUEUE_UI_SUITES);
-    assert.match(OUTPUT_JSON, /verification\/turnero-web-pilot\/ui-report\.json$/);
-    assert.match(OUTPUT_MD, /verification\/turnero-web-pilot\/ui-report\.md$/);
+    assert.match(OUTPUT_JSON, /verification\/admin-queue\/ui-report\.json$/);
+    assert.match(OUTPUT_MD, /verification\/admin-queue\/ui-report\.md$/);
 });
 
-test('turnero web-pilot ui sigue corriendo suites despues de un fallo y reporta la suite roja', () => {
+test('admin queue ui runner preserva server_engine=node y continua tras un fallo', () => {
     const executed = [];
     let stdout = '';
     const io = {
@@ -125,13 +98,13 @@ test('turnero web-pilot ui sigue corriendo suites despues de un fallo y reporta 
                 id: suite.id,
                 label: suite.label,
                 spec: suite.spec,
-                serverEngine: suite.serverEngine,
+                serverEngine: resolveSuiteServerEngine(suite, {}),
                 command: buildSuiteArgs(suite).join(' '),
-                startedAt: '2026-03-27T00:00:00.000Z',
-                endedAt: '2026-03-27T00:00:01.000Z',
+                startedAt: '2026-03-28T00:00:00.000Z',
+                endedAt: '2026-03-28T00:00:01.000Z',
                 durationMs: 1000,
-                exitCode: suite.id === 'queue_operator' ? 1 : 0,
-                success: suite.id !== 'queue_operator',
+                exitCode: suite.id === 'admin_queue_ops_hub' ? 1 : 0,
+                success: suite.id !== 'admin_queue_ops_hub',
                 stdoutTail: '',
                 stderrTail: '',
                 error: '',
@@ -144,16 +117,13 @@ test('turnero web-pilot ui sigue corriendo suites despues de un fallo y reporta 
         executed,
         SUITES.map((suite) => suite.id)
     );
-    assert.match(
-        stdout,
-        /\[turnero-web-pilot-ui\] Running Admin queue guidance live ops/
-    );
-    assert.match(stdout, /\[turnero-web-pilot-ui\] Queue operator: FAIL \(1000ms\)/);
+    assert.match(stdout, /\[admin-queue-ui\] Running Admin queue guidance live ops/);
+    assert.match(stdout, /\[admin-queue-ui\] Admin queue ops hub: FAIL \(1000ms\)/);
 
-    const report = buildReport(suites, { TEST_LOCAL_SERVER_PORT: '8019' });
+    const report = buildReport(suites, { TEST_LOCAL_SERVER_PORT: 'auto' });
     assert.equal(report.ok, false);
-    assert.equal(report.testLocalServerPort, '8019');
-    assert.deepEqual(report.failures, ['Queue operator failed']);
+    assert.equal(report.defaultTestLocalServerEngine, 'node');
+    assert.deepEqual(report.failures, ['Admin queue ops hub failed']);
     assert.equal(report.suites[0].serverEngine, 'node');
-    assert.equal(report.suites[5].serverEngine, 'php');
+    assert.equal(report.suites.at(-1).serverEngine, 'node');
 });

@@ -146,7 +146,7 @@ Bad mixed branch:
 - operator shell tweaks in `src/apps/queue-operator/**`
 - desktop packaging in `src/apps/turnero-desktop/**`
 - production workflow edits in `.github/workflows/**`
-- Playwright cleanup in `tests/admin-queue.spec.js`
+- Playwright cleanup in `tests/admin-queue-guidance-live-ops.spec.js`
 - governance evidence refresh in `verification/**`
 
 Better split:

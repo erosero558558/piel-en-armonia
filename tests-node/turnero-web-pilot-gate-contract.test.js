@@ -95,6 +95,7 @@ test('gate:turnero:web-pilot limita los contratos al frente web por clinica', ()
         'turnero-release-diagnostic-launch-console.test.js',
         'turnero-release-repo-diagnosis-verdict-dossier.test.js',
         'turnero-release-terminal-diagnostic-runway.test.js',
+        'run-admin-queue-ui-contract.test.js',
     ]) {
         assert.equal(
             command.includes(snippet),
@@ -137,7 +138,7 @@ test('gate:turnero:web-pilot limita los contratos al frente web por clinica', ()
     assert.match(uiCommand, /node bin\/run-turnero-web-pilot-ui\.js/);
     assert.doesNotMatch(
         uiCommand,
-        /node bin\/run-playwright-local\.js tests\/admin-queue\.spec\.js/
+        /tests\/admin-queue\.spec\.js/
     );
 });
 

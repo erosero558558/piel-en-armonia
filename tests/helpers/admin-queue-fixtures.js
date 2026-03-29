@@ -28,11 +28,55 @@ function adminUrl(query = '') {
     return `/admin.html${search ? `?${search}` : ''}`;
 }
 
+async function openAdminQueue(page, query = '', options = {}) {
+    const { gotoOptions = {}, skipNavClick = false } = options;
+    await page.goto(`${adminUrl(query)}#queue`, gotoOptions);
+    await expect(page.locator('#adminDashboard')).toBeVisible({
+        timeout: 15000,
+    });
+    const queueSection = page.locator('#queue');
+
+    const queueIsActive = async () =>
+        /active/.test(String((await queueSection.getAttribute('class')) || ''));
+
+    if (!skipNavClick) {
+        for (const selector of [
+            'a[data-section="queue"]',
+            '.nav-item[data-section="queue"]',
+            '[data-admin-nav-target="queue"]',
+            '[aria-controls="queue"]',
+        ]) {
+            const locator = page.locator(selector).first();
+            if ((await locator.count()) === 0) {
+                continue;
+            }
+            await locator.click();
+            if (await queueIsActive()) {
+                break;
+            }
+        }
+    }
+
+    await expect(queueSection).toHaveClass(/active/);
+    await queueSection.focus();
+    await page.evaluate(() => {
+        const active = document.activeElement;
+        if (!(active instanceof HTMLElement)) {
+            return;
+        }
+        if (
+            active.closest(
+                'input, textarea, select, [contenteditable="true"], [role="textbox"]'
+            )
+        ) {
+            active.blur();
+        }
+    });
+    await queueSection.focus();
+}
+
 async function expectFlowOsRecoveryHostFrozen(locator) {
-    await expect(locator).toHaveAttribute(
-        'data-flow-os-recovery-frozen',
-        'true'
-    );
+    await expect(locator).toHaveAttribute('data-flow-os-recovery-frozen', 'true');
     await expect(locator).toHaveAttribute(
         'data-flow-os-recovery-note',
         /Recovery cycle 2026-03-21 -> 2026-04-20/i
@@ -840,6 +884,7 @@ module.exports = {
     ADMIN_UI_VARIANT,
     json,
     adminUrl,
+    openAdminQueue,
     expectFlowOsRecoveryHostFrozen,
     installQueueAdminAuthMock,
     buildQueueMetaFromState,

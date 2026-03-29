@@ -1838,9 +1838,21 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
         return;
     }
 
+    const htmlDetailsCtor =
+        typeof globalThis.HTMLDetailsElement === 'function'
+            ? globalThis.HTMLDetailsElement
+            : null;
+    const getDetailGroupElements = () =>
+        typeof root.querySelectorAll === 'function'
+            ? Array.from(root.querySelectorAll('.queue-ops-pilot__detail-group'))
+            : [];
+    const isDetailGroupElement = (element) =>
+        Boolean(element && element.id) &&
+        (htmlDetailsCtor ? element instanceof htmlDetailsCtor : true);
+
     const openDetailGroups = new Set(
-        queryPilotDetailGroups(root)
-            .filter((element) => isDetailsElement(element) && element.open)
+        getDetailGroupElements()
+            .filter((element) => isDetailGroupElement(element) && element.open)
             .map((element) => element.id)
     );
     const detailGroupShouldStayOpen = (id, defaultOpen = false) =>
@@ -2417,8 +2429,8 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
         }
     }
 
-    queryPilotDetailGroups(root).forEach((element) => {
-        if (!isDetailsElement(element)) {
+    getDetailGroupElements().forEach((element) => {
+        if (!isDetailGroupElement(element)) {
             return;
         }
 

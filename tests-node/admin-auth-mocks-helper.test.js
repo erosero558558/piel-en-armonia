@@ -21,11 +21,42 @@ const QUEUE_OPERATOR_SPEC_PATH = resolve(
     'tests',
     'queue-operator.spec.js'
 );
-const ADMIN_QUEUE_SPEC_PATH = resolve(
+const ADMIN_QUEUE_FIXTURES_PATH = resolve(
     __dirname,
     '..',
     'tests',
-    'admin-queue.spec.js'
+    'helpers',
+    'admin-queue-fixtures.js'
+);
+const ADMIN_QUEUE_GUIDANCE_SPEC_PATH = resolve(
+    __dirname,
+    '..',
+    'tests',
+    'admin-queue-guidance-live-ops.spec.js'
+);
+const ADMIN_QUEUE_RECEPTION_SPEC_PATH = resolve(
+    __dirname,
+    '..',
+    'tests',
+    'admin-queue-reception-escalation.spec.js'
+);
+const ADMIN_QUEUE_CONTROLS_SPEC_PATH = resolve(
+    __dirname,
+    '..',
+    'tests',
+    'admin-queue-controls-numpad.spec.js'
+);
+const ADMIN_QUEUE_PILOT_SPEC_PATH = resolve(
+    __dirname,
+    '..',
+    'tests',
+    'admin-queue-pilot-governance.spec.js'
+);
+const ADMIN_QUEUE_OPS_HUB_SPEC_PATH = resolve(
+    __dirname,
+    '..',
+    'tests',
+    'admin-queue-ops-hub.spec.js'
 );
 const SHARED_SESSION_SPEC_PATH = resolve(
     __dirname,
@@ -232,8 +263,15 @@ test('installOperatorOpenClawAuthMock modela start/status/logout reutilizable', 
     assert.equal(session.getLastIssuedChallenge(), null);
 });
 
-test('admin queue, queue-integrated-flow, queue-operator y shared-session consumen el helper compartido sin duplicar utilidades', () => {
-    const adminQueueSpec = readFileSync(ADMIN_QUEUE_SPEC_PATH, 'utf8');
+test('admin queue split, queue-integrated-flow, queue-operator y shared-session consumen helpers compartidos sin duplicar utilidades', () => {
+    const adminQueueFixtures = readFileSync(ADMIN_QUEUE_FIXTURES_PATH, 'utf8');
+    const adminQueueSpecs = [
+        readFileSync(ADMIN_QUEUE_GUIDANCE_SPEC_PATH, 'utf8'),
+        readFileSync(ADMIN_QUEUE_RECEPTION_SPEC_PATH, 'utf8'),
+        readFileSync(ADMIN_QUEUE_CONTROLS_SPEC_PATH, 'utf8'),
+        readFileSync(ADMIN_QUEUE_PILOT_SPEC_PATH, 'utf8'),
+        readFileSync(ADMIN_QUEUE_OPS_HUB_SPEC_PATH, 'utf8'),
+    ];
     const queueIntegratedFlowSpec = readFileSync(
         QUEUE_INTEGRATED_FLOW_SPEC_PATH,
         'utf8'
@@ -242,18 +280,24 @@ test('admin queue, queue-integrated-flow, queue-operator y shared-session consum
     const sharedSessionSpec = readFileSync(SHARED_SESSION_SPEC_PATH, 'utf8');
 
     assert.match(
-        adminQueueSpec,
-        /const \{ installLegacyAdminAuthMock \} = require\('\.\/helpers\/admin-auth-mocks'\);/
-    );
-    assert.match(
-        adminQueueSpec,
+        adminQueueFixtures,
         /function installQueueAdminAuthMock\(page, csrfToken\)[\s\S]*?installLegacyAdminAuthMock\(page, \{ csrfToken \}\);/m
     );
     assert.match(
-        adminQueueSpec,
-        /await installQueueAdminAuthMock\(page, 'csrf_queue_desk_recheck'\);/
+        adminQueueFixtures,
+        /async function openAdminQueue\(page, query = '', options = \{\}\)/
     );
-    assert.doesNotMatch(adminQueueSpec, /page\.route\(\/\\\/admin-auth\\\.php/);
+    for (const adminQueueSpec of adminQueueSpecs) {
+        assert.match(
+            adminQueueSpec,
+            /require\('\.\/helpers\/admin-queue-fixtures'\);/
+        );
+        assert.doesNotMatch(
+            adminQueueSpec,
+            /function installQueueAdminAuthMock\(page, csrfToken\)/
+        );
+        assert.doesNotMatch(adminQueueSpec, /page\.route\(\/\\\/admin-auth\\\.php/);
+    }
 
     assert.match(
         queueIntegratedFlowSpec,
@@ -270,7 +314,7 @@ test('admin queue, queue-integrated-flow, queue-operator y shared-session consum
 
     assert.match(
         queueOperatorSpec,
-        /buildOperatorAuthChallenge,\s+buildOperatorQueueState,\s+buildOperatorQueueTicket,\s+installLegacyAdminAuthMock,\s+installOperatorOpenClawAuthMock,\s+installWindowOpenRecorder/
+        /buildOperatorAuthChallenge,[\s\S]*?buildOperatorQueueState,[\s\S]*?buildOperatorQueueTicket,[\s\S]*?installLegacyAdminAuthMock,[\s\S]*?installOperatorOpenClawAuthMock,[\s\S]*?installWindowOpenRecorder/
     );
     assert.doesNotMatch(
         queueOperatorSpec,
@@ -291,7 +335,7 @@ test('admin queue, queue-integrated-flow, queue-operator y shared-session consum
 
     assert.match(
         sharedSessionSpec,
-        /buildOperatorAuthChallenge,\s+buildOperatorQueueState,\s+buildOperatorQueueTicket,\s+installOperatorOpenClawAuthMock,\s+installWindowOpenRecorder/
+        /buildOperatorAuthChallenge,[\s\S]*?buildOperatorQueueState,[\s\S]*?buildOperatorQueueTicket,[\s\S]*?installOperatorOpenClawAuthMock,[\s\S]*?installWindowOpenRecorder/
     );
     assert.match(
         sharedSessionSpec,

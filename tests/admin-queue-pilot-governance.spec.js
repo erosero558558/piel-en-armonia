@@ -2,7 +2,6 @@
 const { test, expect } = require('@playwright/test');
 const {
     ADMIN_UI_VARIANT,
-    adminUrl,
     buildQueueIdleState,
     buildQueueMetaFromState,
     buildQueuePilotBookedSlotsPayload,
@@ -257,10 +256,7 @@ test.describe('Admin turnero sala', () => {
             return json(route, { ok: true, data: {} });
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueOpsConsoleSummary')).toBeVisible();
         await expect(page.locator('#queueOpsConsoleSummary')).toContainText(
             'Qué sigue en recepción'
@@ -725,10 +721,7 @@ test.describe('Admin turnero sala', () => {
             }),
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(page.locator('#queueAppsHub')).toHaveAttribute(
             'data-queue-admin-mode',
             'basic'
@@ -942,10 +935,7 @@ test.describe('Admin turnero sala', () => {
             }),
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
         ).toContainText(/Turnero V2 bloqueado|Piloto web bloqueado/i);
@@ -1079,10 +1069,7 @@ test.describe('Admin turnero sala', () => {
             }),
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
         ).toContainText(/Turnero V2 bloqueado|Piloto web bloqueado/i);
@@ -1166,10 +1153,7 @@ test.describe('Admin turnero sala', () => {
             }),
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
         ).toContainText(/Turnero V2 bloqueado|Piloto web bloqueado/i);
@@ -1259,10 +1243,7 @@ test.describe('Admin turnero sala', () => {
             }),
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
         ).toContainText(/Turnero V2 bloqueado|Piloto web bloqueado/i);
@@ -1368,10 +1349,7 @@ test.describe('Admin turnero sala', () => {
             }),
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
         ).toContainText(/Turnero V2|Piloto web/i);
@@ -1466,10 +1444,7 @@ test.describe('Admin turnero sala', () => {
             }),
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
         ).toContainText(/Turnero V2 bloqueado|Piloto web bloqueado/i);
@@ -1588,9 +1563,7 @@ test.describe('Admin turnero sala', () => {
             }),
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
+        await openAdminQueue(page, '');
         await openQueuePilotDetailGroup(page, 'queueOpsPilotValidationGroup');
         await openQueuePilotDetailGroup(page, 'queueOpsPilotAdvancedGroup');
 
@@ -1822,10 +1795,7 @@ test.describe('Admin turnero sala', () => {
             },
         });
 
-        await page.goto(adminUrl());
-        await expect(page.locator('#adminDashboard')).toBeVisible();
-        await page.locator('.nav-item[data-section="queue"]').click();
-
+        await openAdminQueue(page, '');
         await expect(
             page.locator('#queueOpsPilotReadinessTitle')
         ).toContainText(/Turnero V2 bloqueado|Piloto web bloqueado/i);
@@ -1856,4 +1826,5 @@ test.describe('Admin turnero sala', () => {
         );
         await expect.poll(() => queueCallNextRequests.length).toBe(0);
     });
+
 });
