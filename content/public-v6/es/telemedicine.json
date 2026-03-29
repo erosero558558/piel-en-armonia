@@ -104,10 +104,10 @@
             "href": "#v6-tele-block-3"
         },
         {
-            "title": "Escribanos por WhatsApp",
-            "copy": "Si no tiene claro el siguiente paso, por WhatsApp le ayudamos a decidir si remoto sirve o si ya conviene consulta presencial.",
+            "title": "Entre a la sala de teleconsulta",
+            "copy": "Si ya tiene una teleconsulta coordinada, abra la sala virtual con video, fotos y WhatsApp clinico en el mismo flujo.",
             "image": "/images/optimized/v6-clinic-team-roundtable.webp",
-            "href": "#v6-booking-status"
+            "href": "/es/telemedicina/consulta/"
         }
     ],
     "bookingStatus": {

@@ -1,0 +1,693 @@
+---
+import '../../styles/public-v6/internal.css';
+import '../../styles/public-v6/teleconsultation-room.css';
+
+import BookingStatusV6 from './BookingStatusV6.astro';
+import InternalStatementBandV6 from './InternalStatementBandV6.astro';
+import PageHeadV6 from './PageHeadV6.astro';
+
+const { page = {}, locale = 'es', navModel = {} } = Astro.props;
+
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const normalizeText = (value) => (hasText(value) ? value.trim() : '');
+const normalizeHref = (value) => {
+    const raw = normalizeText(value);
+    return raw && raw !== '#' ? raw : '';
+};
+const normalizeLink = (item) => {
+    const label = normalizeText(item?.label);
+    const href = normalizeHref(item?.href);
+    return label && href ? { label, href } : null;
+};
+const makeMenuItem = (label, href) =>
+    hasText(label) && hasText(href) ? { label: label.trim(), href: href.trim() } : null;
+const normalizeList = (items) =>
+    Array.isArray(items) ? items.map(normalizeText).filter(Boolean) : [];
+
+const pageHeadUi =
+    navModel?.ui?.pageHead && typeof navModel.ui.pageHead === 'object'
+        ? navModel.ui.pageHead
+        : {};
+const switchLabel = normalizeText(navModel?.header?.switchLabel);
+const switchHref = normalizeHref(navModel?.header?.switchHref);
+const menuLabel = normalizeText(navModel?.header?.menuLabel);
+
+const breadcrumb = Array.isArray(page.breadcrumb)
+    ? page.breadcrumb.map(normalizeLink).filter(Boolean)
+    : [];
+const hero = page?.hero && typeof page.hero === 'object' ? page.hero : {};
+const statement = page?.statement && typeof page.statement === 'object' ? page.statement : {};
+const roomStage = page?.roomStage && typeof page.roomStage === 'object' ? page.roomStage : {};
+const roomSummary = page?.roomSummary && typeof page.roomSummary === 'object' ? page.roomSummary : {};
+const prep = page?.prep && typeof page.prep === 'object' ? page.prep : {};
+const photos = page?.photos && typeof page.photos === 'object' ? page.photos : {};
+const chat = page?.chat && typeof page.chat === 'object' ? page.chat : {};
+const support = page?.support && typeof page.support === 'object' ? page.support : {};
+const ui = page?.ui && typeof page.ui === 'object' ? page.ui : {};
+const menuUi = ui?.menu && typeof ui.menu === 'object' ? ui.menu : {};
+
+const kpis = Array.isArray(page.kpis)
+    ? page.kpis
+          .map((item) => {
+              const label = normalizeText(item?.label);
+              const value = normalizeText(item?.value);
+              return label && value ? { label, value } : null;
+          })
+          .filter(Boolean)
+    : [];
+const prepCards = Array.isArray(prep.cards)
+    ? prep.cards
+          .map((card) => {
+              const title = normalizeText(card?.title);
+              const deck = normalizeText(card?.deck);
+              const items = normalizeList(card?.items);
+              return title && items.length ? { title, deck, items } : null;
+          })
+          .filter(Boolean)
+    : [];
+const supportCards = Array.isArray(support.cards)
+    ? support.cards
+          .map((card) => {
+              const title = normalizeText(card?.title);
+              const body = normalizeText(card?.body);
+              return title && body ? { title, body } : null;
+          })
+          .filter(Boolean)
+    : [];
+const roomFields = Array.isArray(roomSummary.fields)
+    ? roomSummary.fields
+          .map((field) => {
+              const label = normalizeText(field?.label);
+              const key = normalizeText(field?.key);
+              const fallback = normalizeText(field?.fallback);
+              return label && key && fallback ? { label, key, fallback } : null;
+          })
+          .filter(Boolean)
+    : [];
+const chatNotes = normalizeList(chat.notes);
+const photoTips = normalizeList(photos.tips);
+const roomChecklist = normalizeList(roomStage.checklist);
+
+const pageMenuItems = [
+    makeMenuItem(normalizeText(menuUi.room), '#v6-tele-room-stage'),
+    makeMenuItem(normalizeText(menuUi.prep), '#v6-tele-room-prep'),
+    makeMenuItem(normalizeText(menuUi.photos), '#v6-tele-room-photos'),
+    makeMenuItem(normalizeText(menuUi.chat), '#v6-tele-room-chat'),
+    makeMenuItem(normalizeText(menuUi.support), '#v6-tele-room-support'),
+].filter(Boolean);
+
+const supportStatus = {
+    eyebrow: normalizeText(support.statusEyebrow),
+    title: normalizeText(support.statusTitle),
+    description: normalizeText(support.statusDescription),
+    ctaLabel: normalizeText(support.statusCtaLabel),
+    ctaHref: normalizeHref(support.statusCtaHref),
+};
+---
+
+<PageHeadV6
+    breadcrumb={breadcrumb}
+    heading={page.heading}
+    locale={locale}
+    switchLabel={switchLabel}
+    switchHref={switchHref}
+    menuLabel={menuLabel}
+    menuItems={pageMenuItems}
+    copy={pageHeadUi}
+/>
+
+<section class="v6-page-hero-media is-internal v6-tele-room-hero" data-v6-tele-room-hero>
+    <div class="v6-tele-room-hero__shell">
+        <figure class="v6-tele-room-hero__media">
+            <img
+                src={normalizeText(hero.image)}
+                alt={normalizeText(hero.alt) || normalizeText(page.heading)}
+                sizes="(max-width: 1100px) 100vw, 56vw"
+                loading="eager"
+                decoding="sync"
+                fetchpriority="high"
+            />
+        </figure>
+        <aside class="v6-tele-room-hero__panel">
+            {hero.eyebrow ? <p class="v6-tele-room-hero__eyebrow">{hero.eyebrow}</p> : null}
+            {hero.title ? <h2>{hero.title}</h2> : null}
+            {hero.deck ? <p class="v6-tele-room-hero__deck">{hero.deck}</p> : null}
+            {
+                kpis.length ? (
+                    <div class="v6-tele-room-hero__stats" aria-hidden="true">
+                        {
+                            kpis.map((item) => (
+                                <article>
+                                    <span>{item.label}</span>
+                                    <strong>{item.value}</strong>
+                                </article>
+                            ))
+                        }
+                    </div>
+                ) : null
+            }
+            <div class="v6-tele-room-hero__quick" data-v6-tele-room-summary>
+                {
+                    roomFields.map((field) => (
+                        <article>
+                            <span>{field.label}</span>
+                            <strong data-tele-room-field={field.key}>{field.fallback}</strong>
+                        </article>
+                    ))
+                }
+            </div>
+            <div class="v6-tele-room-hero__actions">
+                <a class="v6-tele-room-hero__primary" href="#v6-tele-room-stage">
+                    {normalizeText(hero.primaryCtaLabel)}
+                    <span aria-hidden="true">></span>
+                </a>
+                <a
+                    class="v6-tele-room-hero__secondary"
+                    data-tele-room-chat-cta
+                    href={normalizeHref(chat.whatsappHref)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    {normalizeText(hero.secondaryCtaLabel)}
+                </a>
+            </div>
+        </aside>
+    </div>
+</section>
+
+<InternalStatementBandV6 statement={statement} variant="tele" />
+
+<div class="v6-internal-shell v6-tele-room-shell" data-v6-tele-room-root data-jitsi-base={normalizeText(roomStage.jitsiBase)} data-whatsapp-base={normalizeHref(chat.whatsappHref)}>
+    {
+        pageMenuItems.length || ui.railTitle ? (
+            <aside class="v6-internal-rail" data-v6-internal-rail>
+                {ui.railTitle ? <p>{ui.railTitle}</p> : null}
+                {
+                    pageMenuItems.length ? (
+                        <nav data-v6-section-nav="internal" aria-label={normalizeText(ui.railAria) || undefined}>
+                            {
+                                pageMenuItems.map((item) => (
+                                    <a data-v6-section-link href={item.href}>{item.label}</a>
+                                ))
+                            }
+                        </nav>
+                    ) : null
+                }
+            </aside>
+        ) : null
+    }
+
+    <div class="v6-internal-shell__body">
+        <section id="v6-tele-room-stage" class="v6-tele-room-stage" data-v6-tele-room-stage>
+            <div class="v6-tele-room-stage__main">
+                <header class="v6-tele-room-section-head">
+                    {roomStage.eyebrow ? <p>{roomStage.eyebrow}</p> : null}
+                    {roomStage.title ? <h2>{roomStage.title}</h2> : null}
+                    {roomStage.deck ? <p>{roomStage.deck}</p> : null}
+                </header>
+
+                <div class="v6-tele-room-embed" data-tele-room-embed data-room-loaded="false">
+                    <div class="v6-tele-room-embed__placeholder" data-tele-room-placeholder>
+                        <span class="v6-tele-room-embed__pill">{normalizeText(roomStage.placeholderPill)}</span>
+                        <h3>{normalizeText(roomStage.placeholderTitle)}</h3>
+                        <p>{normalizeText(roomStage.placeholderBody)}</p>
+                        <div class="v6-tele-room-embed__actions">
+                            <button type="button" class="v6-tele-room-btn v6-tele-room-btn--primary" data-tele-room-launch>
+                                {normalizeText(roomStage.launchLabel)}
+                            </button>
+                            <a
+                                class="v6-tele-room-btn v6-tele-room-btn--ghost"
+                                data-tele-room-open
+                                href={normalizeText(roomStage.jitsiBase)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                {normalizeText(roomStage.openLabel)}
+                            </a>
+                        </div>
+                    </div>
+                    <iframe
+                        title={normalizeText(roomStage.frameTitle) || 'Sala de teleconsulta Aurora Derm'}
+                        data-tele-room-iframe
+                        src="about:blank"
+                        loading="lazy"
+                        allow="camera; microphone; fullscreen; display-capture; autoplay"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                    ></iframe>
+                </div>
+
+                <p class="v6-tele-room-stage__status" data-tele-room-launch-status>
+                    {normalizeText(roomStage.statusIdle)}
+                </p>
+            </div>
+
+            <aside class="v6-tele-room-stage__side">
+                <article class="v6-tele-room-card v6-tele-room-card--summary">
+                    <p class="v6-tele-room-card__eyebrow">{normalizeText(roomSummary.eyebrow)}</p>
+                    <h3>{normalizeText(roomSummary.title)}</h3>
+                    <dl class="v6-tele-room-card__facts">
+                        {
+                            roomFields.map((field) => (
+                                <Fragment>
+                                    <dt>{field.label}</dt>
+                                    <dd data-tele-room-field={field.key}>{field.fallback}</dd>
+                                </Fragment>
+                            ))
+                        }
+                    </dl>
+                </article>
+
+                <article class="v6-tele-room-card v6-tele-room-card--checklist">
+                    <p class="v6-tele-room-card__eyebrow">{normalizeText(roomStage.checklistEyebrow)}</p>
+                    <h3>{normalizeText(roomStage.checklistTitle)}</h3>
+                    <ul>
+                        {roomChecklist.map((item) => <li>{item}</li>)}
+                    </ul>
+                </article>
+            </aside>
+        </section>
+
+        <section id="v6-tele-room-prep" class="v6-tele-room-prep" data-v6-tele-room-prep>
+            <header class="v6-tele-room-section-head">
+                {prep.eyebrow ? <p>{prep.eyebrow}</p> : null}
+                {prep.title ? <h2>{prep.title}</h2> : null}
+                {prep.deck ? <p>{prep.deck}</p> : null}
+            </header>
+
+            <div class="v6-tele-room-prep__grid">
+                {
+                    prepCards.map((card, index) => (
+                        <article class="v6-tele-room-card" data-v6-tele-room-card>
+                            <p class="v6-tele-room-card__index">
+                                {String(index + 1).padStart(2, '0')}
+                            </p>
+                            <h3>{card.title}</h3>
+                            {card.deck ? <p class="v6-tele-room-card__deck">{card.deck}</p> : null}
+                            <ul>
+                                {card.items.map((item) => <li>{item}</li>)}
+                            </ul>
+                        </article>
+                    ))
+                }
+            </div>
+        </section>
+
+        <section id="v6-tele-room-photos" class="v6-tele-room-flow" data-v6-tele-room-photos>
+            <header class="v6-tele-room-section-head">
+                {photos.eyebrow ? <p>{photos.eyebrow}</p> : null}
+                {photos.title ? <h2>{photos.title}</h2> : null}
+                {photos.deck ? <p>{photos.deck}</p> : null}
+            </header>
+
+            <div class="v6-tele-room-flow__grid">
+                <article class="v6-tele-room-flow__panel">
+                    <label class="v6-tele-room-upload" for="tele-room-photo-input">
+                        <span>{normalizeText(photos.inputLabel)}</span>
+                        <strong>{normalizeText(photos.inputTitle)}</strong>
+                        <small>{normalizeText(photos.inputHint)}</small>
+                    </label>
+                    <input
+                        id="tele-room-photo-input"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        data-tele-room-photo-input
+                    />
+                    <div class="v6-tele-room-preview" data-tele-room-photo-preview></div>
+                    <div class="v6-tele-room-flow__actions">
+                        <button type="button" class="v6-tele-room-btn v6-tele-room-btn--primary" data-tele-room-photo-submit>
+                            {normalizeText(photos.submitLabel)}
+                        </button>
+                        <p class="v6-tele-room-flow__status" data-tele-room-photo-status role="status">
+                            {normalizeText(photos.idleStatus)}
+                        </p>
+                    </div>
+                </article>
+
+                <article class="v6-tele-room-flow__panel">
+                    <p class="v6-tele-room-flow__eyebrow">{normalizeText(photos.tipsEyebrow)}</p>
+                    <h3>{normalizeText(photos.tipsTitle)}</h3>
+                    <ul class="v6-tele-room-flow__list">
+                        {photoTips.map((item) => <li>{item}</li>)}
+                    </ul>
+                    <div class="v6-tele-room-flow__uploads" data-tele-room-upload-results>
+                        <p>{normalizeText(photos.emptyUploadsLabel)}</p>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="v6-tele-room-chat" class="v6-tele-room-flow" data-v6-tele-room-chat>
+            <header class="v6-tele-room-section-head">
+                {chat.eyebrow ? <p>{chat.eyebrow}</p> : null}
+                {chat.title ? <h2>{chat.title}</h2> : null}
+                {chat.deck ? <p>{chat.deck}</p> : null}
+            </header>
+
+            <div class="v6-tele-room-flow__grid">
+                <article class="v6-tele-room-flow__panel">
+                    <label class="v6-tele-room-message" for="tele-room-note-input">
+                        <span>{normalizeText(chat.inputLabel)}</span>
+                        <textarea
+                            id="tele-room-note-input"
+                            rows="5"
+                            placeholder={normalizeText(chat.placeholder)}
+                            data-tele-room-message
+                        ></textarea>
+                    </label>
+                    <div class="v6-tele-room-flow__actions">
+                        <a
+                            class="v6-tele-room-btn v6-tele-room-btn--primary"
+                            data-tele-room-chat-cta
+                            href={normalizeHref(chat.whatsappHref)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            {normalizeText(chat.ctaLabel)}
+                        </a>
+                        <p class="v6-tele-room-flow__status" data-tele-room-chat-status role="status">
+                            {normalizeText(chat.statusNote)}
+                        </p>
+                    </div>
+                </article>
+
+                <article class="v6-tele-room-flow__panel">
+                    <p class="v6-tele-room-flow__eyebrow">{normalizeText(chat.notesEyebrow)}</p>
+                    <h3>{normalizeText(chat.notesTitle)}</h3>
+                    <ul class="v6-tele-room-flow__list">
+                        {chatNotes.map((item) => <li>{item}</li>)}
+                    </ul>
+                </article>
+            </div>
+        </section>
+
+        <section id="v6-tele-room-support" class="v6-tele-room-support" data-v6-tele-room-support>
+            <header class="v6-tele-room-section-head">
+                {support.eyebrow ? <p>{support.eyebrow}</p> : null}
+                {support.title ? <h2>{support.title}</h2> : null}
+                {support.deck ? <p>{support.deck}</p> : null}
+            </header>
+
+            <div class="v6-tele-room-support__grid">
+                {
+                    supportCards.map((card) => (
+                        <article class="v6-tele-room-card">
+                            <h3>{card.title}</h3>
+                            <p class="v6-tele-room-card__deck">{card.body}</p>
+                        </article>
+                    ))
+                }
+            </div>
+        </section>
+    </div>
+</div>
+
+<BookingStatusV6 status={supportStatus} sectionId="v6-tele-room-support-status" />
+
+<script is:inline>
+    (() => {
+        const root = document.querySelector('[data-v6-tele-room-root]');
+        if (!(root instanceof HTMLElement)) {
+            return;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const rawRoom = String(params.get('room') || '').trim();
+        const rawDoctor = String(params.get('doctor') || '').trim();
+        const rawPatient = String(params.get('patient') || '').trim();
+        const defaultRoom =
+            root.querySelector('[data-tele-room-field="room"]')?.textContent?.trim() ||
+            'AuroraDerm-Consulta';
+        const defaultDoctor =
+            root.querySelector('[data-tele-room-field="doctor"]')?.textContent?.trim() ||
+            'Aurora Derm';
+        const defaultPatient =
+            root.querySelector('[data-tele-room-field="patient"]')?.textContent?.trim() ||
+            'Paciente';
+        const sanitizeRoom = (value, fallback) => {
+            const cleaned = String(value || '')
+                .trim()
+                .replace(/[^a-zA-Z0-9 _-]+/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-')
+                .slice(0, 72);
+            return cleaned || fallback;
+        };
+        const sanitizeText = (value, fallback) => {
+            const cleaned = String(value || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+            return cleaned || fallback;
+        };
+
+        const room = sanitizeRoom(rawRoom, defaultRoom);
+        const doctor = sanitizeText(rawDoctor, defaultDoctor);
+        const patient = sanitizeText(rawPatient, defaultPatient);
+        const jitsiBase = root.dataset.jitsiBase || 'https://meet.jit.si';
+        const whatsappBase = root.dataset.whatsappBase || 'https://wa.me/593982453672';
+        const launchButton = root.querySelector('[data-tele-room-launch]');
+        const openLink = root.querySelector('[data-tele-room-open]');
+        const iframe = root.querySelector('[data-tele-room-iframe]');
+        const embed = root.querySelector('[data-tele-room-embed]');
+        const launchStatus = root.querySelector('[data-tele-room-launch-status]');
+        const messageInput = root.querySelector('[data-tele-room-message]');
+        const photoInput = root.querySelector('[data-tele-room-photo-input]');
+        const photoSubmit = root.querySelector('[data-tele-room-photo-submit]');
+        const photoStatus = root.querySelector('[data-tele-room-photo-status]');
+        const photoPreview = root.querySelector('[data-tele-room-photo-preview]');
+        const uploadResults = root.querySelector('[data-tele-room-upload-results]');
+        const chatStatus = root.querySelector('[data-tele-room-chat-status]');
+        const chatLinks = Array.from(document.querySelectorAll('[data-tele-room-chat-cta]'));
+        const fieldTargets = document.querySelectorAll('[data-tele-room-field]');
+        const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+        const uploadedFiles = [];
+        let previewUrls = [];
+
+        const setFieldValue = (key, value) => {
+            fieldTargets.forEach((node) => {
+                if (node instanceof HTMLElement && node.dataset.teleRoomField === key) {
+                    node.textContent = value;
+                }
+            });
+        };
+
+        const buildMeetingUrl = () =>
+            `${jitsiBase.replace(/\/$/, '')}/${encodeURIComponent(room)}#config.prejoinPageEnabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=true`;
+
+        const buildChatMessage = () => {
+            const note =
+                messageInput instanceof HTMLTextAreaElement
+                    ? messageInput.value.trim().replace(/\s+/g, ' ')
+                    : '';
+            const lines = [
+                'Hola, estoy entrando a mi teleconsulta de Aurora Derm.',
+                `Sala: ${room}`,
+                `Paciente: ${patient}`,
+                `Doctor/a: ${doctor}`,
+            ];
+
+            if (note) {
+                lines.push(`Nota breve: ${note}`);
+            }
+
+            if (uploadedFiles.length) {
+                lines.push('Fotos cargadas:');
+                uploadedFiles.forEach((file, index) => {
+                    lines.push(`${index + 1}. ${file.url}`);
+                });
+            }
+
+            lines.push('Necesito apoyo para continuar la teleconsulta.');
+            return lines.join('\n');
+        };
+
+        const updateChatLinks = () => {
+            const href = `${whatsappBase}?text=${encodeURIComponent(buildChatMessage())}`;
+            chatLinks.forEach((link) => {
+                if (link instanceof HTMLAnchorElement) {
+                    link.href = href;
+                }
+            });
+            if (chatStatus instanceof HTMLElement) {
+                chatStatus.textContent = uploadedFiles.length
+                    ? `${uploadedFiles.length} foto(s) listas para compartir por WhatsApp.`
+                    : 'El enlace de WhatsApp se actualiza con la sala y sus notas.';
+            }
+        };
+
+        const renderUploads = () => {
+            if (!(uploadResults instanceof HTMLElement)) {
+                return;
+            }
+            if (!uploadedFiles.length) {
+                uploadResults.innerHTML = '<p>No hay fotos cargadas todavia.</p>';
+                return;
+            }
+            uploadResults.innerHTML = uploadedFiles
+                .map(
+                    (file, index) =>
+                        `<article><span>${String(index + 1).padStart(2, '0')}</span><div><strong>${file.name}</strong><a href="${file.url}" target="_blank" rel="noopener noreferrer">Abrir enlace seguro</a></div></article>`
+                )
+                .join('');
+        };
+
+        const clearPreviewUrls = () => {
+            previewUrls.forEach((url) => URL.revokeObjectURL(url));
+            previewUrls = [];
+        };
+
+        const renderPreview = (files) => {
+            if (!(photoPreview instanceof HTMLElement)) {
+                return;
+            }
+            clearPreviewUrls();
+            if (!files.length) {
+                photoPreview.innerHTML = '<p class="v6-tele-room-preview__empty">Todavia no ha elegido fotos.</p>';
+                return;
+            }
+            photoPreview.innerHTML = files
+                .map((file) => {
+                    const url = URL.createObjectURL(file);
+                    previewUrls.push(url);
+                    return `<article><img src="${url}" alt="${file.name}" /><div><strong>${file.name}</strong><span>${Math.max(1, Math.round(file.size / 1024))} KB</span></div></article>`;
+                })
+                .join('');
+        };
+
+        const getValidatedFiles = () => {
+            const files =
+                photoInput instanceof HTMLInputElement && photoInput.files
+                    ? Array.from(photoInput.files)
+                    : [];
+            if (!files.length) {
+                throw new Error('Elija al menos una foto antes de subir.');
+            }
+            if (files.length > 3) {
+                throw new Error('Puede compartir hasta 3 fotos por teleconsulta.');
+            }
+            files.forEach((file) => {
+                if (!allowedTypes.has(file.type)) {
+                    throw new Error('Solo se aceptan fotos JPG, PNG o WEBP.');
+                }
+                if (file.size > 5 * 1024 * 1024) {
+                    throw new Error('Cada foto debe pesar 5 MB o menos.');
+                }
+            });
+            return files;
+        };
+
+        const uploadPhotos = async () => {
+            const files = getValidatedFiles();
+            if (photoSubmit instanceof HTMLButtonElement) {
+                photoSubmit.disabled = true;
+            }
+            if (photoStatus instanceof HTMLElement) {
+                photoStatus.textContent = 'Subiendo fotos a la sala segura...';
+            }
+            const responses = [];
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('proof', file);
+                const response = await fetch('/api.php?resource=transfer-proof', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok || payload?.ok !== true) {
+                    throw new Error(
+                        payload?.error ||
+                            'No se pudieron registrar las fotos en este momento.'
+                    );
+                }
+                responses.push({
+                    name:
+                        payload?.data?.transferProofName ||
+                        file.name,
+                    url:
+                        payload?.data?.transferProofUrl ||
+                        payload?.data?.transferProofPath ||
+                        '',
+                });
+            }
+
+            uploadedFiles.splice(0, uploadedFiles.length, ...responses.filter((file) => file.url));
+            renderUploads();
+            updateChatLinks();
+            if (photoStatus instanceof HTMLElement) {
+                photoStatus.textContent = `${uploadedFiles.length} foto(s) listas para compartir en la teleconsulta.`;
+            }
+            if (photoInput instanceof HTMLInputElement) {
+                photoInput.value = '';
+            }
+            renderPreview([]);
+        };
+
+        const loadRoom = () => {
+            if (!(iframe instanceof HTMLIFrameElement) || !(embed instanceof HTMLElement)) {
+                return;
+            }
+            iframe.src = buildMeetingUrl();
+            embed.dataset.roomLoaded = 'true';
+            if (launchStatus instanceof HTMLElement) {
+                launchStatus.textContent =
+                    'La sala ya esta lista. Si el navegador bloquea camara o microfono, abra la llamada en una pestaña nueva.';
+            }
+        };
+
+        setFieldValue('room', room);
+        setFieldValue('doctor', doctor);
+        setFieldValue('patient', patient);
+
+        if (openLink instanceof HTMLAnchorElement) {
+            openLink.href = buildMeetingUrl();
+        }
+
+        updateChatLinks();
+        renderUploads();
+        renderPreview([]);
+
+        if (launchButton instanceof HTMLButtonElement) {
+            launchButton.addEventListener('click', loadRoom);
+        }
+
+        if (photoInput instanceof HTMLInputElement) {
+            photoInput.addEventListener('change', () => {
+                try {
+                    const files = getValidatedFiles();
+                    renderPreview(files);
+                    if (photoStatus instanceof HTMLElement) {
+                        photoStatus.textContent =
+                            'Fotos listas. Cuando quiera, subalas para compartirlas durante la consulta.';
+                    }
+                } catch (error) {
+                    renderPreview([]);
+                    if (photoStatus instanceof HTMLElement) {
+                        photoStatus.textContent =
+                            error instanceof Error ? error.message : 'No pudimos leer esas fotos.';
+                    }
+                }
+            });
+        }
+
+        if (photoSubmit instanceof HTMLButtonElement) {
+            photoSubmit.addEventListener('click', async () => {
+                try {
+                    await uploadPhotos();
+                } catch (error) {
+                    if (photoStatus instanceof HTMLElement) {
+                        photoStatus.textContent =
+                            error instanceof Error
+                                ? error.message
+                                : 'No se pudieron subir las fotos.';
+                    }
+                } finally {
+                    if (photoSubmit instanceof HTMLButtonElement) {
+                        photoSubmit.disabled = false;
+                    }
+                }
+            });
+        }
+
+        if (messageInput instanceof HTMLTextAreaElement) {
+            messageInput.addEventListener('input', updateChatLinks);
+        }
+    })();
+</script>
