@@ -2,6 +2,7 @@
 const { test, expect } = require('@playwright/test');
 
 const GA4_MEASUREMENT_ID = 'G-2DWZ5PJ4MC';
+const CLARITY_PROJECT_ID = 'aurora-test-clarity';
 
 async function getConsentModeCalls(page) {
     return page.evaluate(() => {
@@ -66,6 +67,49 @@ async function getGa4State(page) {
     }, GA4_MEASUREMENT_ID);
 }
 
+async function augmentRuntimeConfigWithClarity(page) {
+    await page.route(
+        '**/api.php?resource=public-runtime-config',
+        async (route) => {
+            const response = await route.fetch();
+            const payload = await response.json();
+            const data =
+                payload && payload.data && typeof payload.data === 'object'
+                    ? payload.data
+                    : {};
+
+            await route.fulfill({
+                response,
+                json: {
+                    ...payload,
+                    data: {
+                        ...data,
+                        analytics: {
+                            ...(data.analytics || {}),
+                            clarityProjectId: CLARITY_PROJECT_ID,
+                        },
+                    },
+                },
+            });
+        }
+    );
+}
+
+async function getClarityState(page) {
+    return page.evaluate((projectId) => {
+        const hasScript = Array.from(document.scripts).some((script) =>
+            String(script.src || '').includes(
+                `https://www.clarity.ms/tag/${projectId}`
+            )
+        );
+
+        return {
+            hasScript,
+            clarityLoaded: window.__clarityLoaded === true,
+        };
+    }, CLARITY_PROJECT_ID);
+}
+
 test.describe('Consentimiento de cookies', () => {
     test.beforeEach(async ({ page }) => {
         // Limpiar localStorage para que aparezca el banner
@@ -83,11 +127,13 @@ test.describe('Consentimiento de cookies', () => {
     });
 
     test('GA4 no se carga antes del consentimiento', async ({ page }) => {
-        await expect.poll(async () => getGa4State(page)).toMatchObject({
-            hasScript: false,
-            hasConfig: false,
-            ga4Loaded: false,
-        });
+        await expect
+            .poll(async () => getGa4State(page))
+            .toMatchObject({
+                hasScript: false,
+                hasConfig: false,
+                ga4Loaded: false,
+            });
     });
 
     test('aceptar cookies oculta el banner', async ({ page }) => {
@@ -195,5 +241,30 @@ test.describe('Consentimiento de cookies', () => {
                 ).length;
             })
             .toBeGreaterThan(0);
+    });
+
+    test('Clarity solo se carga despues de aceptar cookies', async ({
+        page,
+    }) => {
+        await augmentRuntimeConfigWithClarity(page);
+
+        const banner = page.locator('#cookieBanner');
+        await expect(banner).toBeVisible({ timeout: 10000 });
+
+        await expect
+            .poll(async () => getClarityState(page))
+            .toMatchObject({
+                hasScript: false,
+                clarityLoaded: false,
+            });
+
+        await page.locator('#cookieAcceptBtn').click();
+
+        await expect
+            .poll(async () => getClarityState(page))
+            .toMatchObject({
+                hasScript: true,
+                clarityLoaded: true,
+            });
     });
 });

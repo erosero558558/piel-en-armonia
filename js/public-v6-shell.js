@@ -25,6 +25,7 @@
     var GA4_MEASUREMENT_ID = 'G-2DWZ5PJ4MC';
     var COOKIE_CONSENT_STORAGE_KEY = 'pa_cookie_consent_v1';
     var COOKIE_BANNER_STYLE_ID = 'aurora-cookie-banner-styles';
+    var PUBLIC_RUNTIME_CONFIG_URL = '/api.php?resource=public-runtime-config';
     var WHATSAPP_MESSAGE_MAP = {
         es: {
             home: 'Hola, me gustaria agendar una evaluacion dermatologica',
@@ -108,16 +109,14 @@
     var COOKIE_BANNER_COPY = {
         es: {
             title: 'Preferencias de cookies',
-            body:
-                'Usamos cookies esenciales para seguridad y funcionamiento. Puede aceptar o rechazar cookies opcionales.',
+            body: 'Usamos cookies esenciales para seguridad y funcionamiento. Puede aceptar o rechazar cookies opcionales.',
             reject: 'Rechazar',
             accept: 'Aceptar',
             more: 'Politica de cookies',
         },
         en: {
             title: 'Cookie preferences',
-            body:
-                'We use essential cookies for security and site operation. You can accept or reject optional cookies.',
+            body: 'We use essential cookies for security and site operation. You can accept or reject optional cookies.',
             reject: 'Reject',
             accept: 'Accept',
             more: 'Cookie policy',
@@ -130,15 +129,135 @@
         return raw.endsWith('/') ? raw : raw + '/';
     }
 
+    function getPublicRuntimeConfigPromise() {
+        if (window.__auroraPublicRuntimeConfigPromise) {
+            return window.__auroraPublicRuntimeConfigPromise;
+        }
+
+        window.__auroraPublicRuntimeConfigPromise = window
+            .fetch(PUBLIC_RUNTIME_CONFIG_URL, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                },
+            })
+            .then(function (response) {
+                if (!response || !response.ok) {
+                    return null;
+                }
+                return response.json().catch(function () {
+                    return null;
+                });
+            })
+            .then(function (payload) {
+                if (!payload || typeof payload !== 'object') {
+                    return null;
+                }
+
+                if (
+                    payload.data &&
+                    typeof payload.data === 'object' &&
+                    !Array.isArray(payload.data)
+                ) {
+                    return payload.data;
+                }
+
+                return payload;
+            })
+            .catch(function () {
+                return null;
+            });
+
+        return window.__auroraPublicRuntimeConfigPromise;
+    }
+
+    function resolveClarityProjectId(runtimeConfig) {
+        var source =
+            runtimeConfig && typeof runtimeConfig === 'object'
+                ? runtimeConfig
+                : null;
+        var analytics =
+            source &&
+            source.analytics &&
+            typeof source.analytics === 'object' &&
+            !Array.isArray(source.analytics)
+                ? source.analytics
+                : null;
+        return String(
+            analytics && typeof analytics.clarityProjectId === 'string'
+                ? analytics.clarityProjectId
+                : ''
+        ).trim();
+    }
+
+    function ensureClarityQueue() {
+        if (typeof window.clarity === 'function') {
+            return;
+        }
+
+        var clarity = function () {
+            clarity.q = clarity.q || [];
+            clarity.q.push(arguments);
+        };
+        window.clarity = clarity;
+    }
+
+    function applyClarityConsentStatus(status) {
+        if (typeof window.clarity !== 'function') {
+            return;
+        }
+
+        try {
+            if (status === 'accepted') {
+                window.clarity('consent');
+                return;
+            }
+            window.clarity('consent', false);
+        } catch (_error) {
+            // Ignore vendor-side failures to keep the public shell resilient.
+        }
+    }
+
+    function loadClarity() {
+        if (getCookieConsent() !== 'accepted') {
+            return Promise.resolve(false);
+        }
+
+        return getPublicRuntimeConfigPromise().then(function (runtimeConfig) {
+            var projectId = resolveClarityProjectId(runtimeConfig);
+            if (!projectId) {
+                return false;
+            }
+
+            ensureClarityQueue();
+            if (
+                !document.querySelector(
+                    'script[data-public-clarity-project-id="' + projectId + '"]'
+                )
+            ) {
+                var script = document.createElement('script');
+                script.async = true;
+                script.src =
+                    'https://www.clarity.ms/tag/' +
+                    encodeURIComponent(projectId);
+                script.dataset.publicClarityProjectId = projectId;
+                document.head.appendChild(script);
+            }
+
+            window.__clarityLoaded = true;
+            applyClarityConsentStatus('accepted');
+            return true;
+        });
+    }
+
     function getPageLocale() {
         return document.documentElement.lang === 'en' ? 'en' : 'es';
     }
 
     function getCookieConsent() {
         try {
-            var raw = window.localStorage.getItem(
-                COOKIE_CONSENT_STORAGE_KEY
-            );
+            var raw = window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY);
             if (!raw) return '';
             var payload = JSON.parse(raw);
             return typeof payload.status === 'string' ? payload.status : '';
@@ -177,8 +296,7 @@
     }
 
     function ensureGa4ScriptTag() {
-        var selector =
-            'script[data-aurora-ga4="' + GA4_MEASUREMENT_ID + '"]';
+        var selector = 'script[data-aurora-ga4="' + GA4_MEASUREMENT_ID + '"]';
         if (document.querySelector(selector)) {
             return;
         }
@@ -186,8 +304,7 @@
         var script = document.createElement('script');
         script.async = true;
         script.src =
-            'https://www.googletagmanager.com/gtag/js?id=' +
-            GA4_MEASUREMENT_ID;
+            'https://www.googletagmanager.com/gtag/js?id=' + GA4_MEASUREMENT_ID;
         script.dataset.auroraGa4 = GA4_MEASUREMENT_ID;
         document.head.appendChild(script);
     }
@@ -325,6 +442,7 @@
             syncCookieBannerVisibility();
             if (getCookieConsent() === 'accepted') {
                 loadGa4();
+                loadClarity();
             }
             return;
         }
@@ -333,6 +451,7 @@
         syncCookieBannerVisibility();
         if (getCookieConsent() === 'accepted') {
             loadGa4();
+            loadClarity();
         }
 
         document.addEventListener('click', function (event) {
@@ -344,6 +463,7 @@
                 setCookieConsent('accepted');
                 updateAnalyticsConsent('accepted');
                 loadGa4();
+                loadClarity();
                 syncCookieBannerVisibility();
                 return;
             }
@@ -352,6 +472,7 @@
                 event.preventDefault();
                 setCookieConsent('rejected');
                 updateAnalyticsConsent('rejected');
+                applyClarityConsentStatus('rejected');
                 syncCookieBannerVisibility();
             }
         });
@@ -508,14 +629,14 @@
 
         var serviceSlug = resolveServiceSlug(safePath, safeLocale);
         if (serviceSlug) {
-            return normalizeWhatsAppTrackingValue(serviceSlug, 'service-detail');
+            return normalizeWhatsAppTrackingValue(
+                serviceSlug,
+                'service-detail'
+            );
         }
 
         var segments = safePath.split('/').filter(Boolean);
-        return normalizeWhatsAppTrackingValue(
-            segments.pop() || '',
-            'general'
-        );
+        return normalizeWhatsAppTrackingValue(segments.pop() || '', 'general');
     }
 
     function pushAnalyticsEvent(eventName, payload) {
@@ -919,7 +1040,7 @@
                 searchIndex = JSON.parse(
                     panel.getAttribute('data-v6-search-index') || '[]'
                 );
-            } catch (error) {
+            } catch (_error) {
                 searchIndex = [];
             }
 

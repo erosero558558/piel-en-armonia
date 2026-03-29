@@ -74,6 +74,13 @@ class SystemController
         $deployVersion = function_exists('app_runtime_version')
             ? app_runtime_version()
             : gmdate('YmdHis');
+        $clarityProjectIdRaw = getenv('PIELARMONIA_CLARITY_PROJECT_ID');
+        if ($clarityProjectIdRaw === false || trim((string) $clarityProjectIdRaw) === '') {
+            $clarityProjectIdRaw = getenv('MICROSOFT_CLARITY_PROJECT_ID');
+        }
+        $clarityProjectId = is_string($clarityProjectIdRaw)
+            ? trim($clarityProjectIdRaw)
+            : '';
 
         json_response([
             'ok' => true,
@@ -82,6 +89,10 @@ class SystemController
                     'provider' => is_string($captchaProvider) ? $captchaProvider : null,
                     'siteKey' => is_string($captchaSiteKey) ? $captchaSiteKey : null,
                     'scriptUrl' => is_string($captchaScriptUrl) ? $captchaScriptUrl : null,
+                ],
+                'analytics' => [
+                    'gaMeasurementId' => 'G-2DWZ5PJ4MC',
+                    'clarityProjectId' => $clarityProjectId !== '' ? $clarityProjectId : null,
                 ],
                 'features' => $features,
                 'deployVersion' => (string) $deployVersion,
