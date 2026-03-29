@@ -50,6 +50,51 @@ async function resolveTaskStartFocusSummary(ctx, board, options = {}) {
     };
 }
 
+function isValidatedReleasePromotionException(task = {}) {
+    return (
+        String(task?.status || '')
+            .trim()
+            .toLowerCase() === 'review' &&
+        String(task?.strategy_role || '')
+            .trim()
+            .toLowerCase() === 'exception' &&
+        String(task?.strategy_reason || '')
+            .trim()
+            .toLowerCase() === 'validated_release_promotion' &&
+        String(task?.integration_slice || '')
+            .trim()
+            .toLowerCase() === 'governance_evidence' &&
+        String(task?.work_type || '')
+            .trim()
+            .toLowerCase() === 'evidence'
+    );
+}
+
+function assertCanonicalCodexTaskIdentity(task, commandLabel) {
+    const taskId = String(task?.id || '').trim();
+    const executor = String(task?.executor || '')
+        .trim()
+        .toLowerCase();
+    const status = String(task?.status || '')
+        .trim()
+        .toLowerCase();
+    if (!/^AG-\d+$/i.test(taskId)) {
+        return;
+    }
+    if (executor !== 'codex') {
+        return;
+    }
+    if (!['ready', 'in_progress', 'review', 'blocked'].includes(status)) {
+        return;
+    }
+    if (isValidatedReleasePromotionException(task)) {
+        return;
+    }
+    throw new Error(
+        `${commandLabel}: ${taskId} no puede quedar activa con executor=codex; el trabajo activo de Codex debe vivir en CDX-*`
+    );
+}
+
 async function handleTaskCommand(ctx) {
     const {
         args,
@@ -212,7 +257,9 @@ async function handleTaskCommand(ctx) {
         throw new Error('Task command requiere task_id');
     }
 
-    assertNonCodexTaskForTaskCommand(taskId);
+    if (normalizedSubcommand !== 'finish') {
+        assertNonCodexTaskForTaskCommand(taskId);
+    }
 
     if (normalizedSubcommand === 'claim') {
         handleTaskClaim({
@@ -883,6 +930,7 @@ function handleTaskClaim(ctx) {
     if (isRetiredExecutor(task.executor, RETIRED_TASK_EXECUTORS)) {
         throw createRetiredExecutorError(task.executor, 'task claim');
     }
+    assertCanonicalCodexTaskIdentity(task, 'task claim');
     const handoffData = parseHandoffs();
     validateTaskGovernancePrechecks(board, task, {
         allowSelf: true,
@@ -1119,6 +1167,7 @@ async function handleTaskStart(ctx) {
     if (isRetiredExecutor(task.executor, RETIRED_TASK_EXECUTORS)) {
         throw createRetiredExecutorError(task.executor, 'task start');
     }
+    assertCanonicalCodexTaskIdentity(task, 'task start');
     validateTaskGovernancePrechecks(board, task, {
         allowSelf: true,
         handoffs: handoffData.handoffs,
@@ -1251,6 +1300,15 @@ function handleTaskFinish(ctx) {
 
     const board = parseBoard();
     const task = ensureTask(board, taskId);
+    if (
+        String(task?.executor || '')
+            .trim()
+            .toLowerCase() === 'codex'
+    ) {
+        throw new Error(
+            'task finish no permite cerrar trabajo Codex; usa codex stop o close'
+        );
+    }
 
     const nextStatus = String(flags.to || flags.status || 'done').trim();
     if (!['done', 'failed'].includes(nextStatus)) {

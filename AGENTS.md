@@ -88,6 +88,11 @@ no solo de la linea Codex.
 Reglas:
 
 - Solo se permite una `strategy.active` a la vez.
+- `AGENT_BOARD.yaml` es la unica fuente operativa de verdad para estrategia,
+  foco, estados, capacidad y bloqueo del frente vivo.
+- `PLAN_MAESTRO_CODEX_2026.md` queda como narrativa derivada para humanos; su
+  drift documental no debe bloquear `status`, `codex-check`, `start`, `close`
+  ni `sync`.
 - `strategy.next` es opcional y solo funciona como draft/preparacion; no
   gobierna tareas hasta promocion con `strategy activate-next`.
 - La estrategia activa define `1..n` subfrentes por
@@ -95,6 +100,9 @@ Reglas:
   `codex_transversal`); `subfront_id` sigue siendo el identificador canonico.
 - Toda tarea activa del board (`ready`, `in_progress`, `review`, `blocked`)
   debe alinearse a `strategy.active`, aun si no es `CDX-*`.
+- Toda tarea activa de Codex debe vivir en `CDX-*`; una `AG-*` con
+  `executor=codex` solo se tolera como excepcion auditada
+  `validated_release_promotion`.
 - `ready` se trata como cola alineada: no consume slot de ejecucion ni exige
   bloque `CODEX_ACTIVE`; los slots del lane se consumen solo en
   `in_progress`, `review` y `blocked`.
@@ -412,7 +420,7 @@ Flujo recomendado:
 7. Ejecutar validaciones del cambio (`npm run lint`, tests aplicables).
 8. Confirmar evidencia y cerrar con `node agent-orchestrator.js close <AG-ID|CDX-ID> --evidence verification/agent-runs/<task_id>.md --expect-rev <rev> --json` cuando la tarea tenga `executor=codex`; ese closeout debe publicar a `origin/main`, refrescar `origin/main` local y dejar la rama actual `0 ahead / 0 behind`.
 9. Usar `node agent-orchestrator.js publish checkpoint <AG-ID|CDX-ID> --summary "..." --expect-rev <rev> --json` solo como ruta manual/de excepción. Para promocion formal de release sobre una tarea existente, usar antes `node agent-orchestrator.js task start <AG-ID|CDX-ID> --release-publish --expect-rev <rev> --json`.
-10. Usar `task finish` y `codex stop` como transiciones de estado o cierres no publicables; no reemplazan el closeout publicado de Codex.
+10. `task finish` queda solo para tareas no-Codex o cierres internos no publicables; no es una ruta valida para cerrar trabajo activo `CDX-*`.
 11. Ejecutar `node agent-orchestrator.js sync` cuando haga falta refrescar tombstones/estado derivado.
 
 Candado de concurrencia:
@@ -499,15 +507,17 @@ Nota:
 ## Convivencia de lineas (Orquestador + Codex)
 
 - `AGENT_BOARD.yaml` sigue siendo el tablero canonico de locks/ejecucion para todos los agentes, incluida la linea Codex.
-- `PLAN_MAESTRO_CODEX_2026.md` sigue siendo la fuente de estrategia/evidencia de la linea Codex.
-- El bloque `CODEX_STRATEGY_ACTIVE` del plan debe espejar exactamente la
-  `strategy.active` vigente del board.
-- El bloque `CODEX_STRATEGY_NEXT` del plan debe espejar exactamente
-  `strategy.next` cuando exista draft.
+- `PLAN_MAESTRO_CODEX_2026.md` pasa a ser un espejo humano/derivado de la linea Codex; no gobierna la ejecucion.
+- El bloque `CODEX_STRATEGY_ACTIVE` del plan debe intentar espejar la
+  `strategy.active` vigente del board, pero su drift se trata como deuda documental y no como bloqueo del frente vivo.
+- El bloque `CODEX_STRATEGY_NEXT` del plan debe intentar espejar
+  `strategy.next` cuando exista draft, bajo la misma regla documental.
 - Toda ejecucion activa de Codex debe tener tarea espejo `CDX-*` en `AGENT_BOARD.yaml` con `executor: codex`.
 - Toda estrategia nueva o nueva ola debe arrancar activando primero sus tareas
   espejo `CDX-*` por lane; las `AG-*` de apoyo no abren trabajo antes de que
   exista al menos una `CDX-*` activa alineada al frente.
+- Una `AG-*` con `executor=codex` no puede ocupar flujo activo normal; solo se
+  permite como excepcion `validated_release_promotion`.
 - Maximo dos tareas `CDX-*` consumiendo slot por `codex_instance`
   (`in_progress`, `review`, `blocked`).
 - Maximo seis tareas `CDX-*` consumiendo slot en total, dos por lane.
@@ -518,11 +528,11 @@ Nota:
 - `CODEX_ACTIVE` se espeja por `task_id`, puede incluir `subfront_id` y puede
   coexistir varias veces para el mismo `codex_instance` hasta el cap del lane.
 - Si hay drift entre los bloques `CODEX_ACTIVE` del plan Codex y los task
-  `CDX-*` espejo, CI debe fallar.
+  `CDX-*` espejo, CI debe reportarlo como drift documental; la verdad operativa sigue siendo el board.
 - Si hay drift entre `CODEX_STRATEGY_ACTIVE` y `AGENT_BOARD.yaml.strategy.active`,
-  CI debe fallar.
+  CI debe reportarlo como drift documental; la verdad operativa sigue siendo el board.
 - Si hay drift entre `CODEX_STRATEGY_NEXT` y `AGENT_BOARD.yaml.strategy.next`,
-  CI debe fallar.
+  CI debe reportarlo como drift documental; la verdad operativa sigue siendo el board.
 - `codex-check` debe bloquear si una tarea activa en `codex_transversal`
   depende de una `runtime_surface` no saludable.
 

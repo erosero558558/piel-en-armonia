@@ -1517,7 +1517,11 @@ ${CODEX_MODEL_ROUTING_FIELDS}
 `;
 }
 
-function boardForConflictFixture({ codexStatus = 'in_progress' } = {}) {
+function boardForConflictFixture({
+    codexStatus = 'in_progress',
+    agExecutor = 'codex',
+    modelPolicyVersion = '2026-03-17-codex-model-routing-v1',
+} = {}) {
     return `
 version: 1
 policy:
@@ -1527,14 +1531,14 @@ policy:
   updated_at: ${DATE}
 tasks:
   - id: AG-001
-    executor: codex
+    executor: ${agExecutor}
     status: in_progress
     model_tier_default: "gpt-5.4-mini"
     premium_budget: 0
     premium_calls_used: 0
     premium_gate_state: "closed"
     decision_packet_ref: ""
-    model_policy_version: "2026-03-17-codex-model-routing-v1"
+    model_policy_version: "${modelPolicyVersion}"
     files: ["tests/agenda.spec.js", "lib/booking.php"]
     depends_on: ["CDX-001"]
   - id: CDX-001
@@ -1545,7 +1549,7 @@ tasks:
     premium_calls_used: 0
     premium_gate_state: "closed"
     decision_packet_ref: ""
-    model_policy_version: "2026-03-17-codex-model-routing-v1"
+    model_policy_version: "${modelPolicyVersion}"
     files: ["tests/agenda.spec.js", "docs/notes.md"]
 `;
 }
@@ -1562,7 +1566,7 @@ tasks:
   - id: AG-010
     title: Task fixture
     owner: unassigned
-    executor: codex
+    executor: ci
     status: ready
     risk: low
     scope: docs
@@ -1589,7 +1593,7 @@ tasks:
   - id: AG-020
     title: Active task
     owner: ernesto
-    executor: codex
+    executor: ci
     status: in_progress
     risk: medium
     scope: backend
@@ -1609,7 +1613,7 @@ tasks:
   - id: AG-021
     title: Candidate task
     owner: unassigned
-    executor: codex
+    executor: ci
     status: done
     risk: low
     scope: audit
@@ -1879,19 +1883,28 @@ test('conflicts --strict se exime por handoff valido y vuelve a bloquear tras cl
     assert.match(result.stdout, /Blocking:\s+1/);
 });
 
-test('codex-check falla si hay drift entre CODEX_ACTIVE y el board', (t) => {
+test('codex-check trata drift entre CODEX_ACTIVE y el board como deuda documental', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
 
     writeFixtureFiles(dir, {
-        board: boardForConflictFixture({ codexStatus: 'in_progress' }),
+        board: boardForCodexLifecycle().replace('status: ready', 'status: in_progress'),
         handoffs: baseHandoffs(),
         plan: basePlanWithCodexBlock({ status: 'review' }),
     });
 
-    const result = runCli(dir, ['codex-check'], 1);
-    assert.match(result.stderr, /ERROR: Codex mirror invalido/);
-    assert.match(result.stderr, /status desalineado/i);
+    const result = runCli(dir, ['codex-check', '--json']);
+    const json = parseJsonStdout(result);
+    const warningText = json.warnings
+        .map((item) => item.message || item)
+        .join(' | ');
+    assert.equal(json.ok, true);
+    assert.ok(json.warning_count >= 1);
+    assert.match(warningText, /status desalineado/i);
+    assert.equal(Array.isArray(json.plan_blocks), true);
+    assert.equal(json.plan_blocks[0].task_id, 'CDX-001');
+    assert.equal(Array.isArray(json.active_front_blockers), true);
+    assert.equal(Array.isArray(json.historical_debt), true);
 });
 
 test('strategy set-active/status/close mantiene board y mirror del plan', (t) => {
@@ -4263,7 +4276,7 @@ test('task create bloquea subfrente ajeno y excepciones sin reason', (t) => {
     );
 });
 
-test('codex-check falla si CODEX_STRATEGY_ACTIVE deriva del board', (t) => {
+test('codex-check trata CODEX_STRATEGY_ACTIVE stale como drift documental', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
 
@@ -4276,11 +4289,17 @@ test('codex-check falla si CODEX_STRATEGY_ACTIVE deriva del board', (t) => {
         }),
     });
 
-    const result = runCli(dir, ['codex-check', '--json'], 1);
+    const result = runCli(dir, ['codex-check', '--json']);
     const json = parseJsonStdout(result);
-    assert.equal(json.ok, false);
-    assert.ok(json.error_count >= 1);
-    assert.match(json.errors.join(' | '), /CODEX_STRATEGY_ACTIVE/i);
+    assert.equal(json.ok, true);
+    assert.equal(Array.isArray(json.warnings), true);
+    assert.equal(Array.isArray(json.active_front_blockers), true);
+    assert.equal(Array.isArray(json.historical_debt), true);
+    assert.equal(Array.isArray(json.workspace_visibility_warnings), true);
+    assert.match(
+        json.warnings.map((item) => item.message).join(' | '),
+        /CODEX_STRATEGY_ACTIVE/i
+    );
 });
 
 test('handoffs create rechaza files fuera del solape real (incluye wildcard amplio)', (t) => {
@@ -4334,8 +4353,6 @@ test('task claim/start/finish actualiza board y evidencia sin editar YAML manual
         'AG-010',
         '--owner',
         'ernesto',
-        '--executor',
-        'codex',
     ]);
     assert.match(result.stdout, /Task claim OK: AG-010/);
 
@@ -4373,6 +4390,28 @@ test('task claim/start/finish actualiza board y evidencia sin editar YAML manual
     assert.match(
         readFileSync(join(dir, 'KIMI_TASKS.md'), 'utf8'),
         /Retired Derived Queue/
+    );
+});
+
+test('task start bloquea AG activa con executor=codex fuera de excepcion formal', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForTaskOpsFixture().replace('executor: ci', 'executor: codex'),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const result = runCli(
+        dir,
+        ['task', 'start', 'AG-010', '--status', 'in_progress'],
+        1
+    );
+
+    assert.match(
+        result.stderr || result.stdout,
+        /AG-010 no puede quedar activa con executor=codex/i
     );
 });
 
@@ -4655,6 +4694,27 @@ test('task soporta --json en claim/start/finish con payload estable', (t) => {
     assert.equal(json.evidence_path, 'verification/agent-runs/AG-010.md');
 });
 
+test('task finish rechaza tareas Codex y redirige al flujo canonico', (t) => {
+    const dir = createFixtureDir();
+    t.after(() => cleanupFixtureDir(dir));
+
+    writeFixtureFiles(dir, {
+        board: boardForCodexLifecycle(),
+        handoffs: baseHandoffs(),
+        plan: basePlanWithoutCodexBlock(),
+    });
+
+    const evidenceDir = join(dir, 'verification', 'agent-runs');
+    require('fs').mkdirSync(evidenceDir, { recursive: true });
+    writeFileSync(join(evidenceDir, 'CDX-001.md'), '# evidence\n', 'utf8');
+
+    const result = runCli(dir, ['task', 'finish', 'CDX-001'], 1);
+    assert.match(
+        result.stderr || result.stdout,
+        /task finish no permite cerrar trabajo Codex; usa codex stop o close/i
+    );
+});
+
 test('task ls soporta filtros y --json con summary estable', (t) => {
     const dir = createFixtureDir();
     t.after(() => cleanupFixtureDir(dir));
@@ -4681,11 +4741,11 @@ test('task ls soporta filtros y --json con summary estable', (t) => {
         '--json',
         '--active',
         '--executor',
-        'codex',
+        'ci',
     ]);
     json = parseJsonStdout(result);
     assert.equal(json.filters.active, true);
-    assert.equal(json.filters.executor, 'codex');
+    assert.equal(json.filters.executor, 'ci');
     assert.equal(json.summary.matched, 1);
     assert.equal(json.summary.returned, 1);
     assert.equal(json.summary.matched_active, 1);
@@ -4699,18 +4759,18 @@ test('task ls soporta filtros y --json con summary estable', (t) => {
         '--status',
         'done',
         '--executor',
-        'codex',
+        'ci',
         '--limit',
         '1',
     ]);
     json = parseJsonStdout(result);
     assert.deepEqual(json.filters.status, ['done']);
-    assert.equal(json.filters.executor, 'codex');
+    assert.equal(json.filters.executor, 'ci');
     assert.equal(json.filters.limit, 1);
     assert.equal(json.summary.matched, 1);
     assert.equal(json.summary.returned, 1);
     assert.equal(json.tasks[0].id, 'AG-021');
-    assert.equal(json.tasks[0].executor, 'codex');
+    assert.equal(json.tasks[0].executor, 'ci');
 });
 
 test('task ls texto imprime matched y filtros', (t) => {
@@ -6523,14 +6583,14 @@ test('status texto muestra leaderboard con semaforo y delta vs baseline cuando h
                 baseline_contribution: {
                     executors: [
                         {
-                            executor: 'codex',
+                            executor: 'ci',
                             weighted_done_points_pct: 0,
                             done_tasks_pct: 0,
                         },
                         {
-                            executor: 'ci',
-                            weighted_done_points_pct: 100,
-                            done_tasks_pct: 100,
+                            executor: 'codex',
+                            weighted_done_points_pct: 0,
+                            done_tasks_pct: 0,
                         },
                     ],
                 },
@@ -6547,7 +6607,7 @@ test('status texto muestra leaderboard con semaforo y delta vs baseline cuando h
     assert.match(result.stdout, /\[GREEN\]\s+payments:/);
     assert.match(result.stdout, /Aporte \(ranking por completado ponderado\)/);
     assert.match(result.stdout, /Baseline de comparacion:\s+metrics/);
-    assert.match(result.stdout, /\[GREEN\]\s+#1 codex/);
+    assert.match(result.stdout, /\[GREEN\]\s+#1 ci/);
     assert.match(result.stdout, /delta \+100pp vs baseline/);
 });
 
@@ -6650,7 +6710,11 @@ test('conflicts, handoffs y codex-check soportan --json con salida estable', (t)
     t.after(() => cleanupFixtureDir(dir));
 
     writeFixtureFiles(dir, {
-        board: boardForConflictFixture({ codexStatus: 'in_progress' }),
+        board: boardForConflictFixture({
+            codexStatus: 'in_progress',
+            agExecutor: 'ci',
+            modelPolicyVersion: '2026-03-17-codex-model-routing-v2',
+        }),
         handoffs: baseHandoffs(),
         plan: basePlanWithCodexBlock({ status: 'review' }), // drift para codex-check
     });
@@ -6675,14 +6739,18 @@ test('conflicts, handoffs y codex-check soportan --json con salida estable', (t)
     assert.equal(json.ok, true);
     assert.equal(json.error_count, 0);
 
-    result = runCli(dir, ['codex-check', '--json'], 1);
+    result = runCli(dir, ['codex-check', '--json']);
     json = parseJsonStdout(result);
-    assert.equal(json.ok, false);
-    assert.ok(json.error_count >= 1);
-    assert.match(json.errors.join(' | '), /status desalineado/i);
+    const warningText = json.warnings
+        .map((item) => item.message || item)
+        .join(' | ');
+    assert.equal(json.ok, true);
+    assert.ok(json.warning_count >= 1);
+    assert.match(warningText, /status desalineado/i);
     assert.equal(Array.isArray(json.plan_blocks), true);
     assert.equal(json.plan_blocks[0].task_id, 'CDX-001');
     assert.equal(json.codex_active_ids.includes('CDX-001'), true);
+    assert.equal(Array.isArray(json.active_front_blockers), true);
 });
 
 test('conflicts y codex-check reportan public_main_sync failed sin degradar a unconfigured', (t) => {
@@ -7025,7 +7093,7 @@ tasks:
   - id: AG-001
     title: "Task 1"
     owner: ernesto
-    executor: codex
+    executor: ci
     status: in_progress
     risk: low
     scope: docs
@@ -7038,7 +7106,7 @@ tasks:
   - id: AG-002
     title: "Task 2"
     owner: ernesto
-    executor: codex
+    executor: ci
     status: ready
     risk: low
     scope: docs
@@ -7051,7 +7119,7 @@ tasks:
   - id: AG-003
     title: "Task 3"
     owner: ernesto
-    executor: codex
+    executor: ci
     status: ready
     risk: low
     scope: docs
@@ -7110,7 +7178,7 @@ tasks:
                 enabled: true,
                 mode: 'warn',
                 count_statuses: ['in_progress', 'review', 'blocked'],
-                by_executor: { codex: 1, ci: 2 },
+                by_executor: { codex: 1, ci: 1 },
                 by_scope: { docs: 1, default: 4 },
             },
         },
@@ -7128,7 +7196,7 @@ tasks:
     );
 
     const dispatchJson = parseJsonStdout(
-        runCli(dir, ['dispatch', '--agent', 'codex', '--json'])
+        runCli(dir, ['dispatch', '--agent', 'ci', '--json'])
     );
     assert.equal(Array.isArray(dispatchJson.diagnostics), true);
     assert.equal(

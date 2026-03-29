@@ -4,6 +4,10 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
+Nota operativa: `AGENT_BOARD.yaml` gobierna la ejecucion, los estados y la
+estrategia viva. Este plan queda como espejo narrativo derivado para lectura
+humana y evidencia complementaria.
+
 <!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-admin-operativo
 title: "Admin operativo"

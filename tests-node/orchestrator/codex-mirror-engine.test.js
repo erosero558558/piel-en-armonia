@@ -222,7 +222,7 @@ test('codex-mirror engine valida espejo alineado', () => {
     assert.equal(report.summary.codex_in_progress, 1);
 });
 
-test('codex-mirror engine detecta drift de status y file no reservado', () => {
+test('codex-mirror engine trata drift de plan activo como warning documental', () => {
     const report = buildCodexCheckReport(
         {
             board: {
@@ -252,14 +252,19 @@ test('codex-mirror engine detecta drift de status y file no reservado', () => {
         }
     );
 
-    assert.equal(report.ok, false);
-    assert.equal(report.error_count >= 2, true);
+    assert.equal(report.ok, true);
+    assert.equal(report.error_count, 0);
+    assert.equal(report.warning_count >= 2, true);
     assert.equal(
-        report.errors.some((e) => /status desalineado/i.test(String(e))),
+        report.warnings.some((w) =>
+            /status desalineado/i.test(String(w?.message || ''))
+        ),
         true
     );
     assert.equal(
-        report.errors.some((e) => /no reservado en board/i.test(String(e))),
+        report.warnings.some((w) =>
+            /no reservado en board/i.test(String(w?.message || ''))
+        ),
         true
     );
 });
@@ -485,7 +490,7 @@ test('codex-mirror engine valida espejo de strategy active y next alineados', ()
     assert.equal(report.plan_strategy_blocks.next.length, 1);
 });
 
-test('codex-mirror engine detecta drift en CODEX_STRATEGY_NEXT', () => {
+test('codex-mirror engine trata drift en CODEX_STRATEGY_NEXT como warning documental', () => {
     const strategy = buildValidStrategyState();
     const report = buildCodexCheckReport(
         {
@@ -529,10 +534,49 @@ test('codex-mirror engine detecta drift en CODEX_STRATEGY_NEXT', () => {
         }
     );
 
+    assert.equal(report.ok, true);
+    assert.equal(report.error_count, 0);
+    assert.equal(
+        report.warnings.some((warning) =>
+            /CODEX_STRATEGY_NEXT\.owner desalineado/i.test(
+                String(warning?.message || '')
+            )
+        ),
+        true
+    );
+});
+
+test('codex-mirror engine falla si existe AG activa con executor codex fuera de excepcion formal', () => {
+    const report = buildCodexCheckReport(
+        {
+            board: {
+                tasks: [
+                    {
+                        id: 'AG-010',
+                        executor: 'codex',
+                        status: 'review',
+                        strategy_role: 'primary',
+                        files: ['docs/example.md'],
+                    },
+                ],
+            },
+            blocks: [],
+            strategyBlocks: {},
+            codexPlanPath: 'PLAN_MAESTRO_CODEX_2026.md',
+        },
+        {
+            normalizePathToken,
+            activeStatuses: ACTIVE_STATUSES,
+            isExpired: () => false,
+        }
+    );
+
     assert.equal(report.ok, false);
     assert.equal(
         report.errors.some((error) =>
-            /CODEX_STRATEGY_NEXT\.owner desalineado/i.test(String(error))
+            /AG activa con executor=codex ya no es canonica/i.test(
+                String(error)
+            )
         ),
         true
     );

@@ -1,5 +1,7 @@
 'use strict';
 
+const terminalEvidence = require('../domain/evidence');
+
 function parseExpectedRevisionFromFlags(
     flags = {},
     parseExpectedBoardRevisionFlag,
@@ -442,6 +444,9 @@ async function handleCodexCheckCommand(ctx) {
         typeof getGovernancePolicy === 'function'
             ? getGovernancePolicy()
             : null;
+    const evidenceReport = terminalEvidence.buildTerminalEvidenceReport(
+        Array.isArray(board?.tasks) ? board.tasks : []
+    );
     const modelUsageLedger =
         typeof loadModelUsageLedger === 'function'
             ? loadModelUsageLedger()
@@ -498,7 +503,70 @@ async function handleCodexCheckCommand(ctx) {
             : null;
     report.workspace_hygiene = workspaceReport?.workspace_hygiene || null;
     report.workspace_truth = workspaceReport?.workspace_truth || null;
+    report.orphan_ready_tasks = Number(report.strategy?.orphan_ready_tasks || 0);
+    report.orphan_slot_tasks = Number(report.strategy?.orphan_slot_tasks || 0);
+    report.evidence_summary = evidenceReport.summary;
+    report.active_front_blockers = [];
+    if (report.orphan_slot_tasks > 0) {
+        report.active_front_blockers.push({
+            code: 'orphan_slot_tasks',
+            count: report.orphan_slot_tasks,
+            task_ids: Array.isArray(report.strategy?.orphan_slot_task_ids)
+                ? report.strategy.orphan_slot_task_ids.slice(0, 10)
+                : [],
+        });
+    }
+    if (workspaceReport?.workspace_truth?.ok === false) {
+        report.active_front_blockers.push({
+            code: 'workspace_truth',
+            count: Number(
+                workspaceReport.workspace_truth?.blocking_rows_total || 0
+            ),
+            reasons: Array.isArray(
+                workspaceReport.workspace_truth?.blocking_reasons
+            )
+                ? workspaceReport.workspace_truth.blocking_reasons
+                : [],
+        });
+    }
+    if (report.error_count > 0) {
+        report.active_front_blockers.push({
+            code: 'codex_check_errors',
+            count: Number(report.error_count || 0),
+        });
+    }
+    report.historical_debt =
+        Number(evidenceReport.summary?.debt_count || 0) > 0
+            ? [
+                  {
+                      code: 'done_without_evidence',
+                      count: Number(evidenceReport.summary.debt_count || 0),
+                      task_ids: Array.isArray(
+                          evidenceReport.summary?.sample_task_ids
+                      )
+                          ? evidenceReport.summary.sample_task_ids.slice(0, 10)
+                          : [],
+                  },
+              ]
+            : [];
+    report.workspace_visibility_warnings =
+        workspaceReport?.workspace_truth?.fallback_applied === true &&
+        String(workspaceReport.workspace_truth?.scope_requested || '').trim() !==
+            String(workspaceReport.workspace_truth?.scope_effective || '').trim()
+            ? [
+                  {
+                      code: 'workspace_scope_fallback',
+                      scope_requested: String(
+                          workspaceReport.workspace_truth?.scope_requested || ''
+                      ),
+                      scope_effective: String(
+                          workspaceReport.workspace_truth?.scope_effective || ''
+                      ),
+                  },
+              ]
+            : [];
     const reportWithDiagnostics = attachDiagnostics(report, [
+        ...(Array.isArray(report.warnings) ? report.warnings : []),
         ...buildWarnFirstDiagnostics({
             source: 'codex-check',
             board,
