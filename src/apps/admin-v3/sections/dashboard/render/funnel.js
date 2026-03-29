@@ -40,6 +40,27 @@ function normalizeBreakdown(list) {
         .sort((left, right) => right.count - left.count);
 }
 
+function normalizeCountMap(value) {
+    if (Array.isArray(value)) {
+        return value
+            .map((entry) => ({
+                label: String(entry?.label || entry?.hour || '')
+                    .trim()
+                    .toLowerCase(),
+                count: readCount(entry, ['count', 'value']),
+            }))
+            .filter((entry) => entry.label && entry.count > 0);
+    }
+
+    const source = asObject(value);
+    return Object.entries(source)
+        .map(([label, count]) => ({
+            label: String(label || '').trim().toLowerCase(),
+            count: readCount({ count }, ['count']),
+        }))
+        .filter((entry) => entry.label && entry.count > 0);
+}
+
 function normalizeAssistantWindow(raw) {
     const source = asObject(raw);
     return {
@@ -73,6 +94,13 @@ function normalizeAssistantWindow(raw) {
             'useful_sessions',
         ]),
         avgLatencyMs: readCount(source, ['avgLatencyMs', 'avg_latency_ms']),
+        avgQueueWaitMs: readCount(source, [
+            'avgQueueWaitMs',
+            'avg_queue_wait_ms',
+        ]),
+        hourlyThroughput: normalizeCountMap(
+            firstValue(source, ['hourlyThroughput', 'hourly_throughput'], {})
+        ).sort((left, right) => left.label.localeCompare(right.label)),
     };
 }
 
@@ -192,8 +220,7 @@ function buildAssistantSummary(metrics) {
     return `${fragments.join(' | ')}.`;
 }
 
-function setAssistantUtilityMetrics(raw) {
-    const metrics = normalizeQueueAssistant(raw);
+function setAssistantUtilityMetrics(metrics) {
     const { today, last7d, topIntent, topHelpReason, topReviewOutcome } =
         metrics;
     const status = resolveAssistantStatus(metrics);
@@ -214,7 +241,7 @@ function setAssistantUtilityMetrics(raw) {
     setText('#dashboardAssistantSummary', buildAssistantSummary(metrics));
     setText(
         '#dashboardAssistantWindowMeta',
-        `7d: ${formatNumber(last7d.usefulSessions)} sesiones utiles | ${formatNumber(last7d.avgLatencyMs)} ms promedio | ${formatNumber(last7d.assistedResolutions)} cierre(s) asistidos`
+        `7d: ${formatNumber(last7d.usefulSessions)} sesiones utiles | ${formatNumber(last7d.avgLatencyMs)} ms promedio | ${formatNumber(last7d.assistedResolutions)} cierre(s) asistidos | espera hoy ${formatNumber(today.avgQueueWaitMs)} ms`
     );
     setText(
         '#dashboardAssistantTopIntent',
@@ -285,7 +312,9 @@ export function setFunnelMetrics(funnel) {
         '#funnelErrorCodeList',
         breakdownList(funnel.errorCodeBreakdown, 'code', 'count')
     );
-    setAssistantUtilityMetrics(
+    const queueAssistant = normalizeQueueAssistant(
         funnel.queueAssistant || funnel.queue_assistant || {}
     );
+    setAssistantUtilityMetrics(queueAssistant);
+    return queueAssistant;
 }

@@ -658,15 +658,16 @@ final class QueueAssistantMetricsStore
     }
 
     /**
-     * @param array<string, int> $base
-     * @param array<string, int> $delta
+     * @param array<array-key, int> $base
+     * @param array<array-key, int> $delta
      * @return array<string, int>
      */
     private static function mergeCounts(array $base, array $delta): array
     {
-        $merged = $base;
-        foreach ($delta as $key => $value) {
-            if (!is_string($key) || $key === '') {
+        $merged = self::normalizeCountMap($base);
+        foreach ($delta as $rawKey => $value) {
+            $key = strtolower(trim((string) $rawKey));
+            if ($key === '') {
                 continue;
             }
             $merged[$key] = (int) ($merged[$key] ?? 0) + (int) $value;
@@ -676,18 +677,23 @@ final class QueueAssistantMetricsStore
     }
 
     /**
-     * @param array<string, int> $current
-     * @param array<string, int> $previous
+     * @param array<array-key, int> $current
+     * @param array<array-key, int> $previous
      * @return array<string, int>
      */
     private static function diffCounts(array $current, array $previous): array
     {
         $delta = [];
-        foreach ($current as $key => $value) {
-            if (!is_string($key) || $key === '') {
+        $normalizedPrevious = self::normalizeCountMap($previous);
+        foreach ($current as $rawKey => $value) {
+            $key = strtolower(trim((string) $rawKey));
+            if ($key === '') {
                 continue;
             }
-            $nextValue = max(0, (int) $value - (int) ($previous[$key] ?? 0));
+            $nextValue = max(
+                0,
+                (int) $value - (int) ($normalizedPrevious[$key] ?? 0)
+            );
             if ($nextValue <= 0) {
                 continue;
             }

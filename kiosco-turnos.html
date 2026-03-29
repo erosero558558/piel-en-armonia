@@ -264,6 +264,15 @@
                 <div class="kiosk-form-grid">
                     <form id="checkinForm" class="kiosk-form">
                         <h2>Tengo cita</h2>
+                        <label for="checkinQrCode">QR de cita (opcional)</label>
+                        <input
+                            id="checkinQrCode"
+                            type="text"
+                            inputmode="text"
+                            autocomplete="off"
+                            placeholder="Escanea o pega tu codigo"
+                        />
+
                         <label for="checkinPhone">Telefono</label>
                         <input
                             id="checkinPhone"
@@ -271,14 +280,13 @@
                             inputmode="numeric"
                             autocomplete="tel"
                             placeholder="0982453672"
-                            required
                         />
 
                         <label for="checkinDate">Fecha</label>
-                        <input id="checkinDate" type="date" required />
+                        <input id="checkinDate" type="date" />
 
                         <label for="checkinTime">Hora</label>
-                        <input id="checkinTime" type="time" required />
+                        <input id="checkinTime" type="time" />
 
                         <label for="checkinInitials">Iniciales (opcional)</label>
                         <input

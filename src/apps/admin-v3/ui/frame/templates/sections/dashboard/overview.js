@@ -36,6 +36,20 @@ export function renderDashboardOperationsGrid() {
                     <p id="dashboardAssistantTopReason">Motivo de apoyo: sin datos</p>
                     <p id="dashboardAssistantTopOutcome">Cierre asistido: sin datos</p>
                 </div>
+                <div class="dashboard-assistant-chart-grid">
+                    <article class="dashboard-signal-card dashboard-assistant-chart-card">
+                        <span>Espera real</span>
+                        <strong>Promedio de hoy</strong>
+                        <small>Tiempo real de espera por turno cerrado en clínica.</small>
+                        <canvas id="waitTimeChart" width="320" height="180"></canvas>
+                    </article>
+                    <article class="dashboard-signal-card dashboard-assistant-chart-card">
+                        <span>Throughput</span>
+                        <strong>Cierres por hora</strong>
+                        <small>Turnos completados por bloque horario durante el día.</small>
+                        <canvas id="throughputChart" width="320" height="180"></canvas>
+                    </article>
+                </div>
             </article>
 
             <article class="sony-panel dashboard-card-clinical">

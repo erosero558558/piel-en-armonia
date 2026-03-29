@@ -56,7 +56,12 @@ final class TicketFactory
             'queueType' => 'appointment',
             'appointmentId' => (int) ($appointment['id'] ?? 0),
             'patientInitials' => $initials,
-            'phoneLast4' => $this->extractPhoneLast4((string) ($payload['phone'] ?? ($payload['telefono'] ?? ''))),
+            'phoneLast4' => $this->extractPhoneLast4(
+                (string) (
+                    $payload['phone']
+                    ?? ($payload['telefono'] ?? ($appointment['phone'] ?? ''))
+                )
+            ),
             'priorityClass' => $priorityClass,
             'status' => 'waiting',
             'assignedConsultorio' => null,

@@ -81,45 +81,67 @@ class QueueService
     public function checkInAppointment(array $store, array $payload, string $createdSource = 'kiosk'): array
     {
         $store = $this->normalizeStore($store);
-        $phoneRaw = (string) ($payload['phone'] ?? ($payload['telefono'] ?? ''));
-        $phoneLast4 = $this->ticketFactory->extractPhoneLast4($phoneRaw);
-        if (strlen($phoneLast4) !== 4) {
-            return [
-                'ok' => false,
-                'error' => 'Telefono invalido para check-in',
-                'status' => 400,
-                'errorCode' => 'queue_bad_request',
-            ];
-        }
+        $appointment = null;
+        $checkinToken = $this->resolveCheckinTokenFromPayload($payload);
+        if ($checkinToken !== '') {
+            $appointment = $this->findAppointmentByCheckinToken(
+                $store['appointments'] ?? [],
+                $checkinToken
+            );
+            if ($appointment === null) {
+                return [
+                    'ok' => false,
+                    'error' => 'No se encontro una cita valida para ese QR',
+                    'status' => 404,
+                    'errorCode' => 'queue_appointment_not_found',
+                ];
+            }
+        } else {
+            $phoneRaw = (string) ($payload['phone'] ?? ($payload['telefono'] ?? ''));
+            $phoneLast4 = $this->ticketFactory->extractPhoneLast4($phoneRaw);
+            if (strlen($phoneLast4) !== 4) {
+                return [
+                    'ok' => false,
+                    'error' => 'Telefono invalido para check-in',
+                    'status' => 400,
+                    'errorCode' => 'queue_bad_request',
+                ];
+            }
 
-        $time = $this->normalizeHour((string) ($payload['time'] ?? ($payload['hora'] ?? '')));
-        if ($time === '') {
-            return [
-                'ok' => false,
-                'error' => 'Hora invalida. Usa formato HH:MM',
-                'status' => 400,
-                'errorCode' => 'queue_bad_request',
-            ];
-        }
+            $time = $this->normalizeHour((string) ($payload['time'] ?? ($payload['hora'] ?? '')));
+            if ($time === '') {
+                return [
+                    'ok' => false,
+                    'error' => 'Hora invalida. Usa formato HH:MM',
+                    'status' => 400,
+                    'errorCode' => 'queue_bad_request',
+                ];
+            }
 
-        $date = trim((string) ($payload['date'] ?? ($payload['fecha'] ?? local_date('Y-m-d'))));
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-            return [
-                'ok' => false,
-                'error' => 'Fecha invalida. Usa formato YYYY-MM-DD',
-                'status' => 400,
-                'errorCode' => 'queue_bad_request',
-            ];
-        }
+            $date = trim((string) ($payload['date'] ?? ($payload['fecha'] ?? local_date('Y-m-d'))));
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                return [
+                    'ok' => false,
+                    'error' => 'Fecha invalida. Usa formato YYYY-MM-DD',
+                    'status' => 400,
+                    'errorCode' => 'queue_bad_request',
+                ];
+            }
 
-        $appointment = $this->findAppointment($store['appointments'] ?? [], $phoneLast4, $date, $time);
-        if ($appointment === null) {
-            return [
-                'ok' => false,
-                'error' => 'No se encontro una cita valida para ese telefono y hora',
-                'status' => 404,
-                'errorCode' => 'queue_appointment_not_found',
-            ];
+            $appointment = $this->findAppointment(
+                $store['appointments'] ?? [],
+                $phoneLast4,
+                $date,
+                $time
+            );
+            if ($appointment === null) {
+                return [
+                    'ok' => false,
+                    'error' => 'No se encontro una cita valida para ese telefono y hora',
+                    'status' => 404,
+                    'errorCode' => 'queue_appointment_not_found',
+                ];
+            }
         }
 
         $appointmentId = (int) ($appointment['id'] ?? 0);
@@ -956,6 +978,18 @@ class QueueService
         return '';
     }
 
+    private function resolveCheckinTokenFromPayload(array $payload): string
+    {
+        foreach (['checkinToken', 'checkin_token', 'qrToken', 'qr_token', 'qrData', 'qr_data'] as $key) {
+            $candidate = trim((string) ($payload[$key] ?? ''));
+            if ($candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        return '';
+    }
+
     private function findAppointment(array $appointments, string $phoneLast4, string $date, string $time): ?array
     {
         foreach ($appointments as $appointment) {
@@ -975,6 +1009,34 @@ class QueueService
 
             $apptLast4 = $this->ticketFactory->extractPhoneLast4((string) ($appointment['phone'] ?? ''));
             if ($apptLast4 === '' || $apptLast4 !== $phoneLast4) {
+                continue;
+            }
+
+            return $appointment;
+        }
+
+        return null;
+    }
+
+    private function findAppointmentByCheckinToken(array $appointments, string $checkinToken): ?array
+    {
+        $expectedToken = strtoupper(trim($checkinToken));
+        if ($expectedToken === '') {
+            return null;
+        }
+
+        foreach ($appointments as $appointment) {
+            if (!is_array($appointment)) {
+                continue;
+            }
+
+            $status = map_appointment_status((string) ($appointment['status'] ?? 'confirmed'));
+            if (!in_array($status, self::ACTIVE_APPOINTMENT_STATUSES, true)) {
+                continue;
+            }
+
+            $appointmentToken = strtoupper(trim((string) ($appointment['checkinToken'] ?? '')));
+            if ($appointmentToken === '' || !hash_equals($appointmentToken, $expectedToken)) {
                 continue;
             }
 

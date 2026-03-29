@@ -1839,6 +1839,38 @@ body.admin-v3-mode .dashboard-assistant-meta {
     gap: 8px;
 }
 
+body.admin-v3-mode .dashboard-assistant-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+body.admin-v3-mode .dashboard-assistant-chart-card {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+}
+
+body.admin-v3-mode .dashboard-assistant-chart-card strong {
+    margin-top: 0;
+}
+
+body.admin-v3-mode .dashboard-assistant-chart-card small {
+    margin: 0;
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .dashboard-assistant-chart-card canvas {
+    width: 100%;
+    min-height: 180px;
+}
+
+@media (max-width: 900px) {
+    body.admin-v3-mode .dashboard-assistant-chart-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 body.admin-v3-mode .dashboard-secondary-links {
     display: flex;
     flex-wrap: wrap;

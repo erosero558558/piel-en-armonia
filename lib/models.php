@@ -142,6 +142,11 @@ function normalize_appointment(array $appointment): array
         $casePhotoCount = 3;
     }
 
+    $checkinToken = trim((string) ($appointment['checkinToken'] ?? ''));
+    if ($checkinToken === '') {
+        $checkinToken = 'CHK-' . strtoupper(bin2hex(random_bytes(12)));
+    }
+
     return [
         'id' => isset($appointment['id']) ? (int) $appointment['id'] : (int) round(microtime(true) * 1000),
         'tenantId' => isset($appointment['tenantId']) && is_string($appointment['tenantId']) && trim($appointment['tenantId']) !== ''
@@ -200,6 +205,7 @@ function normalize_appointment(array $appointment): array
         'dateBooked' => isset($appointment['dateBooked']) ? (string) $appointment['dateBooked'] : local_date('c'),
         'patientCaseId' => truncate_field(trim((string) ($appointment['patientCaseId'] ?? '')), 80),
         'patientId' => truncate_field(trim((string) ($appointment['patientId'] ?? '')), 80),
+        'checkinToken' => truncate_field($checkinToken, 40),
         'rescheduleToken' => isset($appointment['rescheduleToken']) && $appointment['rescheduleToken'] !== ''
             ? (string) $appointment['rescheduleToken']
             : bin2hex(random_bytes(16)),

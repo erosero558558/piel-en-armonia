@@ -1,6 +1,32 @@
 let waitTimeChartInstance = null;
 let throughputChartInstance = null;
 
+function normalizeThroughputRows(value) {
+    if (Array.isArray(value)) {
+        return value
+            .map((item) => ({
+                label: String(item?.label || item?.hour || '').trim(),
+                count: Number(item?.count || item?.value || 0),
+            }))
+            .filter(
+                (item) => item.label && Number.isFinite(item.count) && item.count > 0
+            );
+    }
+
+    if (value && typeof value === 'object') {
+        return Object.entries(value)
+            .map(([label, count]) => ({
+                label: String(label || '').trim(),
+                count: Number(count || 0),
+            }))
+            .filter(
+                (item) => item.label && Number.isFinite(item.count) && item.count > 0
+            );
+    }
+
+    return [];
+}
+
 export function renderDashboardCharts(queueAssistant) {
     if (!window.Chart) {
         return;
@@ -15,8 +41,7 @@ export function renderDashboardCharts(queueAssistant) {
 
     const today = queueAssistant?.today || {};
     const avgQueueWaitMs = Number(today.avgQueueWaitMs || 0);
-
-    const hourlyThroughput = today.hourlyThroughput || [];
+    const hourlyThroughput = normalizeThroughputRows(today.hourlyThroughput);
     const sortedThroughput = [...hourlyThroughput].sort((a, b) => {
         const hA = parseInt(a.label, 10) || 0;
         const hB = parseInt(b.label, 10) || 0;
@@ -33,7 +58,7 @@ export function renderDashboardCharts(queueAssistant) {
         waitTimeChartInstance.destroy();
     }
 
-    const avgWaitMin = (avgQueueWaitMs / 60000).toFixed(1);
+    const avgWaitMin = Number((avgQueueWaitMs / 60000).toFixed(1));
 
     waitTimeChartInstance = new window.Chart(waitTimeCtx, {
         type: 'bar',

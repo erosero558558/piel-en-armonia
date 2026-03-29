@@ -384,7 +384,7 @@ export function renderDashboard(state) {
         buildClinicalHistoryEventItems(dashboardState.clinicalHistoryMeta)
     );
     setHtml('#dashboardAttentionList', buildAttentionItems(dashboardState));
-    setFunnelMetrics(dashboardState.funnel);
-    renderDashboardCharts(dashboardState.funnel?.queueAssistant);
+    const queueAssistant = setFunnelMetrics(dashboardState.funnel);
+    renderDashboardCharts(queueAssistant);
     bindWhatsappOpsActions();
 }

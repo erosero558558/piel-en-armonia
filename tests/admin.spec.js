@@ -339,6 +339,11 @@ test.describe('Panel de administracion', () => {
                         assistedResolutions: 2,
                         escalated: 1,
                         clinicalBlocked: 1,
+                        avgQueueWaitMs: 180000,
+                        hourlyThroughput: {
+                            '09': 2,
+                            '11': 1,
+                        },
                     },
                     last7d: {
                         actioned: 21,
@@ -414,6 +419,9 @@ test.describe('Panel de administracion', () => {
             page.locator('#dashboardAssistantWindowMeta')
         ).toContainText('6 cierre(s) asistidos');
         await expect(
+            page.locator('#dashboardAssistantWindowMeta')
+        ).toContainText('espera hoy 180,000 ms');
+        await expect(
             page.locator('#dashboardAssistantTopIntent')
         ).toContainText('wait time');
         await expect(
@@ -422,6 +430,8 @@ test.describe('Panel de administracion', () => {
         await expect(
             page.locator('#dashboardAssistantTopOutcome')
         ).toContainText('appointment confirmed');
+        await expect(page.locator('#waitTimeChart')).toBeVisible();
+        await expect(page.locator('#throughputChart')).toBeVisible();
     });
 
     test('inicio operativo simplifica accesos y resuelve tareas en un clic', async ({

@@ -137,6 +137,21 @@ class QueueAssistantMetricsAnalyticsTest extends TestCase
                 'resolutionOutcomeLabel' => 'Cita vigente confirmada',
             ],
         ]);
+        \QueueAssistantMetricsStore::recordClinicQueueEvent(
+            substr($now, 0, 10),
+            '09',
+            120000
+        );
+        \QueueAssistantMetricsStore::recordClinicQueueEvent(
+            substr($now, 0, 10),
+            '09',
+            240000
+        );
+        \QueueAssistantMetricsStore::recordClinicQueueEvent(
+            substr($now, 0, 10),
+            '11',
+            180000
+        );
 
         $payload = \AnalyticsController::buildFunnelMetricsData([
             'store' => [
@@ -162,10 +177,19 @@ class QueueAssistantMetricsAnalyticsTest extends TestCase
         $this->assertSame(2, (int) ($today['sessions'] ?? -1));
         $this->assertSame(2, (int) ($today['usefulSessions'] ?? -1));
         $this->assertSame(280, (int) ($today['avgLatencyMs'] ?? -1));
+        $this->assertSame(180000, (int) ($today['avgQueueWaitMs'] ?? -1));
+        $this->assertSame(
+            [
+                '09' => 2,
+                '11' => 1,
+            ],
+            $today['hourlyThroughput'] ?? []
+        );
 
         $this->assertSame(4, (int) ($last7d['actioned'] ?? -1));
         $this->assertSame(2, (int) ($last7d['assistedResolutions'] ?? -1));
         $this->assertSame(2, (int) ($last7d['sessions'] ?? -1));
+        $this->assertSame(180000, (int) ($last7d['avgQueueWaitMs'] ?? -1));
         $this->assertSame('human_help', (string) ($topIntent['label'] ?? ''));
         $this->assertSame(2, (int) ($topIntent['count'] ?? -1));
         $this->assertSame('human_help', (string) ($topHelpReason['label'] ?? ''));

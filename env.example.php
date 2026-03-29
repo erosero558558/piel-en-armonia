@@ -120,6 +120,36 @@
 // En produccion, recomendado desactivar fallback local silencioso
 // putenv('FIGO_ALLOW_LOCAL_FALLBACK=false');
 
+// -- OpenClaw AI Router (multi-proveedor, anti vendor lock-in) ---------------
+// Estrategia: Tier 1 (Codex OAuth) → Tier 2 (OpenRouter libre) → Tier 3 (local)
+// El médico nunca se queda sin respuesta aunque ChatGPT suba el precio o limite.
+//
+// Modo del router:
+//   auto           = intenta Tier 1 → Tier 2 → Tier 3 (recomendado)
+//   codex_only     = solo Codex/ChatGPT OAuth
+//   openrouter_only = solo OpenRouter (cuando el Codex se agotó para la sesión)
+//   local_only     = solo heurístico local (para debug/emergencia)
+// putenv('OPENCLAW_ROUTER_MODE=auto');
+//
+// Tier 1 — Codex/ChatGPT OAuth (costo $0 para la clínica, el médico paga su Plus)
+// Se recarga cada 5h. Cuando se agota → el router baja automáticamente a Tier 2.
+// putenv('OPENCLAW_CODEX_ENDPOINT=http://127.0.0.1:4141/v1/responses');
+// putenv('OPENCLAW_CODEX_API_KEY=REEMPLAZAR_TOKEN_OAUTH');
+//
+// Tier 2 — OpenRouter (fallback económico: modelos chinos/libres)
+// Modelos free disponibles: DeepSeek-V3, Qwen-235B, Llama-70B, Mistral-7B
+// Registrarse en https://openrouter.ai (gratis para modelos :free)
+// putenv('OPENCLAW_OPENROUTER_KEY=sk-or-v1-REEMPLAZAR');
+// putenv('OPENCLAW_OPENROUTER_MODEL=deepseek/deepseek-chat-v3-0324:free');
+// Modelos alternativos en cadena si el preferido falla:
+// putenv('OPENCLAW_OPENROUTER_FALLBACK_MODELS=qwen/qwen3-235b-a22b:free,meta-llama/llama-3.3-70b-instruct:free');
+//
+// Tier 3 — local_heuristic (siempre activo, $0, calidad reducida)
+// No requiere configuración. Se activa automáticamente cuando Tier 1 y Tier 2 fallan.
+// El médico ve aviso: "⚠️ IA en modo offline temporal"
+
+
+
 // -- WhatsApp OpenClaw backend -----------------------------------------------
 // Habilita la orquestacion backend para inbound/outbox/ack del bridge WhatsApp.
 // putenv('AURORADERM_WHATSAPP_OPENCLAW_ENABLED=true');
