@@ -4,6 +4,16 @@ Inicio: 2026-02-24
 Cadencia: por commit (cada commit deja evidencia verificable)
 Relacion con Operativo 2026: complementario estricto (no reemplaza ni compite por control)
 
+<!-- CODEX_ACTIVE
+codex_instance: codex_transversal
+block: C1
+task_id: CDX-105
+subfront_id: SF-transversal-codex-governance-v2
+status: in_progress
+files: ["AGENT_BOARD.yaml", "PLAN_MAESTRO_CODEX_2026.md", "agent-orchestrator.js", "tools/agent-orchestrator/commands/strategy.js", "tools/agent-orchestrator/domain/focus.js", "tools/agent-orchestrator/domain/strategy.js", "tools/agent-orchestrator/domain/workspace.js", "tests-node/agent-orchestrator-cli.test.js", "tests-node/orchestrator/focus.test.js", "verification/agent-runs/CDX-105.md"]
+updated_at: 2026-03-29
+-->
+
 <!-- CODEX_STRATEGY_ACTIVE
 id: STRAT-2026-03-codex-governance-v2-adoption
 title: "Codex governance v2 adoption"
