@@ -525,6 +525,14 @@ test.describe('Panel de administracion', () => {
                 casesOpen: 2,
                 pendingApprovals: 1,
                 activeHelpRequests: 1,
+                journeyPreview: {
+                    redacted: true,
+                    cases: [],
+                    stageCounts: {
+                        scheduled: 2,
+                        care_plan: 1,
+                    },
+                },
             },
             telemedicineMeta: {
                 summary: {
@@ -565,6 +573,189 @@ test.describe('Panel de administracion', () => {
         );
         await expect(page.locator('#dashboardFlowStatus')).toContainText(
             '2 caso(s) activos'
+        );
+        await expect(page.locator('#dashboardJourneyHeadline')).toContainText(
+            'Journey protegido'
+        );
+        await expect(page.locator('#dashboardJourneyTimeline')).toContainText(
+            'almacenamiento cifrado'
+        );
+    });
+
+    test('dashboard muestra timeline visual por paciente cuando Flow OS expone journey cases', async ({
+        page,
+    }) => {
+        await setupAuthenticatedAdminMocks(page, {
+            patientFlowMeta: {
+                casesTotal: 4,
+                casesOpen: 4,
+                journeyPreview: {
+                    stage: 'scheduled',
+                    label: 'Cita programada',
+                    ownerLabel: 'Agenda',
+                    timelineStages: [
+                        {
+                            id: 'lead_captured',
+                            displayId: 'lead_captured',
+                            displayLabel: 'Lead',
+                        },
+                        {
+                            id: 'intake_completed',
+                            displayId: 'intake',
+                            displayLabel: 'Intake',
+                        },
+                        {
+                            id: 'scheduled',
+                            displayId: 'scheduled',
+                            displayLabel: 'Agendada',
+                        },
+                        {
+                            id: 'care_plan_ready',
+                            displayId: 'care_plan',
+                            displayLabel: 'Plan',
+                        },
+                        {
+                            id: 'follow_up_active',
+                            displayId: 'follow_up',
+                            displayLabel: 'Seguimiento',
+                        },
+                        {
+                            id: 'resolved',
+                            displayId: 'resolved',
+                            displayLabel: 'Resuelto',
+                        },
+                    ],
+                    stageCounts: {
+                        lead_captured: 1,
+                        scheduled: 1,
+                        care_plan: 1,
+                        follow_up: 1,
+                    },
+                    cases: [
+                        {
+                            caseId: 'pc-000',
+                            patientLabel: 'Marta Salazar',
+                            serviceLine: 'Primera consulta',
+                            providerName: 'Recepcion',
+                            stage: 'lead_captured',
+                            displayStage: 'lead_captured',
+                            stageLabel: 'Lead captado',
+                            ownerLabel: 'Recepcion',
+                            timeInStageMs: 3 * 60 * 60 * 1000,
+                            nextActionLabel: 'Enviar formulario de preconsulta',
+                            alerts: [],
+                        },
+                        {
+                            caseId: 'pc-001',
+                            patientLabel: 'Ana Ruiz',
+                            serviceLine: 'Consulta dermatologica',
+                            providerName: 'Dra. Rosero',
+                            stage: 'scheduled',
+                            displayStage: 'scheduled',
+                            stageLabel: 'Cita programada',
+                            ownerLabel: 'Agenda',
+                            timeInStageMs: 2 * 60 * 60 * 1000,
+                            nextActionLabel: 'Confirmar cita',
+                            alerts: [],
+                        },
+                        {
+                            caseId: 'pc-002',
+                            patientLabel: 'Luis Perez',
+                            serviceLine: 'Control de acne',
+                            providerName: 'Dra. Narvaez',
+                            stage: 'care_plan_ready',
+                            displayStage: 'care_plan',
+                            stageLabel: 'Plan de cuidado listo',
+                            ownerLabel: 'Clinico',
+                            timeInStageMs: 3 * 60 * 60 * 1000,
+                            nextActionLabel: 'Entregar plan de cuidado',
+                            alerts: ['1 aprobacion(es) pendiente(s)'],
+                        },
+                        {
+                            caseId: 'pc-003',
+                            patientLabel: 'Diego Mora',
+                            serviceLine: 'Seguimiento de melasma',
+                            providerName: 'Dra. Rosero',
+                            stage: 'follow_up_active',
+                            displayStage: 'follow_up',
+                            stageLabel: 'Seguimiento activo',
+                            ownerLabel: 'Seguimiento',
+                            timeInStageMs: 80 * 60 * 60 * 1000,
+                            nextActionLabel: 'Solicitar actualizacion de evolucion',
+                            alerts: [],
+                        },
+                    ],
+                },
+            },
+        });
+
+        await page.goto('/admin.html');
+        await waitForAdminReady(page);
+        await openDashboardSection(page);
+
+        await expect(page.locator('#dashboardJourneyHeadline')).toContainText(
+            '4 paciente(s)'
+        );
+        await expect(page.locator('#dashboardJourneySummary')).toContainText(
+            '1 agendada'
+        );
+        await expect(page.locator('#dashboardJourneySummary')).toContainText(
+            '1 plan'
+        );
+        await expect(page.locator('#dashboardJourneyBoard')).toContainText(
+            'Todo el journey'
+        );
+        await expect(
+            page.locator('[data-journey-stage-filter="lead_captured"]')
+        ).toContainText('1 alerta(s) SLA');
+        await expect(
+            page.locator('[data-journey-stage-filter="follow_up"]')
+        ).toContainText('1 alerta(s) SLA');
+
+        const anaJourneyCard = page
+            .locator('#dashboardJourneyTimeline .dashboard-journey-item')
+            .filter({ hasText: 'Ana Ruiz' });
+        await expect(anaJourneyCard).toContainText('Agenda');
+        await expect(anaJourneyCard).toContainText('Lleva 2 h');
+        await expect(anaJourneyCard).toContainText('Confirmar cita');
+        await expect(anaJourneyCard.locator('.dashboard-journey-node.is-active'))
+            .toContainText('Agendada');
+
+        const luisJourneyCard = page
+            .locator('#dashboardJourneyTimeline .dashboard-journey-item')
+            .filter({ hasText: 'Luis Perez' });
+        await expect(luisJourneyCard).toContainText('Clinico');
+        await expect(luisJourneyCard).toContainText(/aprobacion\(es\) pendiente/i);
+        await expect(
+            page.locator('#dashboardJourneyStatusChip')
+        ).toContainText('Con alertas');
+
+        await page.locator('[data-journey-stage-filter="lead_captured"]').click();
+        await expect(page.locator('#dashboardJourneyFilterLabel')).toContainText(
+            'Lead'
+        );
+        await expect(page.locator('#dashboardJourneyTimeline')).toContainText(
+            'Marta Salazar'
+        );
+        await expect(page.locator('#dashboardJourneyTimeline')).toContainText(
+            'Lead sin respuesta > 2 h'
+        );
+        await expect(page.locator('#dashboardJourneyTimeline')).not.toContainText(
+            'Ana Ruiz'
+        );
+
+        await page.locator('[data-journey-stage-filter="follow_up"]').click();
+        await expect(page.locator('#dashboardJourneyFilterLabel')).toContainText(
+            'Seguimiento'
+        );
+        await expect(page.locator('#dashboardJourneyTimeline')).toContainText(
+            'Diego Mora'
+        );
+        await expect(page.locator('#dashboardJourneyTimeline')).toContainText(
+            'Follow-up vencido'
+        );
+        await expect(page.locator('#dashboardJourneySlaSummary')).toContainText(
+            '1 caso(s) con alerta SLA'
         );
     });
 

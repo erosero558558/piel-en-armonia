@@ -28,6 +28,7 @@
         />
         <script src="js/admin-preboot-shortcuts.js?v=admin-20260314-rc1-preboot1"></script>
         <script src="js/monitoring-loader.js" async></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </head>
     <body
         class="admin-body"
@@ -160,6 +161,30 @@
                                 Install hub e instaladores visibles para
                                 confirmar el cierre operativo del turnero.
                             </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section
+                    id="dashboard"
+                    class="admin-section"
+                    data-admin-raw-section="dashboard"
+                >
+                    <header data-turnero-control-room="raw">
+                        <p>Analíticas</p>
+                        <h3>Métricas de Espera</h3>
+                        <p>
+                            Throughput por hora y tiempo de espera real en clínica.
+                        </p>
+                    </header>
+                    <div id="dashboardMetricsUI" style="display: grid; gap: 1rem; padding: 1rem; max-width: 800px;">
+                        <article class="ops-card" style="padding: 1rem; border: 1px solid var(--ops-border, #ccc); border-radius: 8px;">
+                            <strong>Tiempo de Espera Promedio (ms)</strong>
+                            <canvas id="waitTimeChart" width="400" height="200"></canvas>
+                        </article>
+                        <article class="ops-card" style="padding: 1rem; border: 1px solid var(--ops-border, #ccc); border-radius: 8px;">
+                            <strong>Throughput / Hora (Turnos Completados)</strong>
+                            <canvas id="throughputChart" width="400" height="200"></canvas>
                         </article>
                     </div>
                 </section>

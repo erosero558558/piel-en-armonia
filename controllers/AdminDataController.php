@@ -185,6 +185,20 @@ class AdminDataController
             ]);
         }
 
+        if (
+            isset($store['patientFlowMeta']['journeyPreview']) &&
+            is_array($store['patientFlowMeta']['journeyPreview'])
+        ) {
+            $store['patientFlowMeta']['journeyPreview'] = array_merge(
+                $store['patientFlowMeta']['journeyPreview'],
+                [
+                    'cases' => [],
+                    'redacted' => true,
+                    'redactionReason' => 'clinical_storage_not_ready',
+                ]
+            );
+        }
+
         return $store;
     }
 

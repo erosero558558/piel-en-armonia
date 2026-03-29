@@ -412,7 +412,7 @@ YAML
 
         $this->assertSame(200, $response['status']);
         $this->assertTrue((bool) ($response['payload']['ok'] ?? false));
-        $this->assertSame('openclaw_chatgpt', (string) ($response['payload']['authMode'] ?? ''));
+        $this->assertSame('google_oauth', (string) ($response['payload']['authMode'] ?? ''));
         $this->assertTrue((bool) ($response['payload']['authConfigured'] ?? false));
         $this->assertSame(1, (int) ($response['payload']['checks']['auth']['operatorAuthAllowedEmailCount'] ?? 0));
         $this->assertTrue((bool) ($response['payload']['checks']['auth']['brokerTrustConfigured'] ?? false));

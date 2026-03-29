@@ -4640,8 +4640,12 @@ function formatTone(
     status,
     requiresHumanReview,
     pendingAiStatus,
-    highestOpenSeverity = ''
+    highestOpenSeverity = '',
+    redFlagsCount = 0
 ) {
+    if (redFlagsCount > 0) {
+        return 'danger';
+    }
     if (normalizeString(highestOpenSeverity) === 'critical') {
         return 'danger';
     }
@@ -4823,6 +4827,1375 @@ function formatHtmlMultiline(value) {
     return safe ? safe.replace(/\n/g, '<br>') : '';
 }
 
+function formatClinicalRecordExportLabel(value, fallback = 'No documentado') {
+    const text = normalizeString(value);
+    return text || fallback;
+}
+
+function formatClinicalRecordExportBoolean(
+    value,
+    yesLabel = 'Si',
+    noLabel = 'No',
+    emptyLabel = 'No documentado'
+) {
+    if (value === true) {
+        return yesLabel;
+    }
+    if (value === false) {
+        return noLabel;
+    }
+    return emptyLabel;
+}
+
+function slugifyClinicalRecordExportFragment(value) {
+    return normalizeString(value)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+function buildClinicalRecordExportFileName(review) {
+    const normalizedReview = normalizeReviewPayload(review);
+    const patient = normalizePatient(
+        normalizedReview.patientRecord?.patient || normalizedReview.session.patient
+    );
+    const admission = normalizeAdmission001(
+        normalizedReview.patientRecord?.admission001 ||
+            normalizedReview.draft.admission001,
+        patient,
+        normalizedReview.draft.intake
+    );
+    const patientLabel =
+        buildAdmissionLegalName(admission, patient) ||
+        normalizeString(patient.name) ||
+        normalizeString(normalizedReview.session.caseId) ||
+        'historia-clinica';
+    const recordLabel =
+        normalizeString(normalizedReview.patientRecord?.recordId) ||
+        normalizeString(normalizedReview.draft.patientRecordId) ||
+        normalizeString(normalizedReview.session.sessionId);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const base = slugifyClinicalRecordExportFragment(
+        `${patientLabel}-${recordLabel}`
+    );
+
+    return `${base || 'historia-clinica'}-${stamp}`;
+}
+
+function buildClinicalRecordExportStatusPill(label, tone = 'neutral') {
+    return `
+        <span class="clinical-history-export-pill is-${escapeHtml(tone)}">
+            ${escapeHtml(formatClinicalRecordExportLabel(label, '-'))}
+        </span>
+    `;
+}
+
+function buildClinicalRecordExportSection(title, description, content) {
+    return `
+        <section class="clinical-history-export-section">
+            <div class="clinical-history-export-section-head">
+                <h2>${escapeHtml(title)}</h2>
+                ${
+                    normalizeString(description)
+                        ? `<p>${escapeHtml(description)}</p>`
+                        : ''
+                }
+            </div>
+            ${content}
+        </section>
+    `;
+}
+
+function buildClinicalRecordExportFieldGrid(
+    fields,
+    emptyMessage = 'Sin informacion registrada.'
+) {
+    const rows = normalizeList(fields)
+        .map((field) => {
+            if (!Array.isArray(field) || field.length < 2) {
+                return '';
+            }
+            const label = normalizeString(field[0]);
+            const value = normalizeString(field[1]);
+            if (!label || !value) {
+                return '';
+            }
+
+            return `
+                <div class="clinical-history-export-field">
+                    <dt>${escapeHtml(label)}</dt>
+                    <dd>${formatHtmlMultiline(value)}</dd>
+                </div>
+            `;
+        })
+        .filter(Boolean)
+        .join('');
+
+    return rows
+        ? `<dl class="clinical-history-export-fields">${rows}</dl>`
+        : `<p class="clinical-history-export-empty">${escapeHtml(
+              emptyMessage
+          )}</p>`;
+}
+
+function buildClinicalRecordExportList(items, emptyMessage = 'Sin registros.') {
+    const rows = normalizeList(items)
+        .map((item) => normalizeString(item))
+        .filter(Boolean)
+        .map(
+            (item) => `
+                <li>${formatHtmlMultiline(item)}</li>
+            `
+        )
+        .join('');
+
+    return rows
+        ? `<ul class="clinical-history-export-list">${rows}</ul>`
+        : `<p class="clinical-history-export-empty">${escapeHtml(
+              emptyMessage
+          )}</p>`;
+}
+
+function buildClinicalRecordExportCard(title, meta, body, tone = 'neutral') {
+    return `
+        <article class="clinical-history-export-card is-${escapeHtml(tone)}">
+            <header>
+                <h3>${escapeHtml(formatClinicalRecordExportLabel(title, '-'))}</h3>
+                ${
+                    normalizeString(meta)
+                        ? `<p>${escapeHtml(meta)}</p>`
+                        : ''
+                }
+            </header>
+            <div class="clinical-history-export-card-body">${body}</div>
+        </article>
+    `;
+}
+
+function buildClinicalRecordExportCards(
+    cards,
+    emptyMessage = 'Sin registros.'
+) {
+    const content = normalizeList(cards).filter(Boolean).join('');
+    return content
+        ? `<div class="clinical-history-export-cards">${content}</div>`
+        : `<p class="clinical-history-export-empty">${escapeHtml(
+              emptyMessage
+          )}</p>`;
+}
+
+function buildClinicalRecordExportHtml(review) {
+    const normalizedReview = normalizeReviewPayload(review);
+    const draft = normalizedReview.draft;
+    const documents = normalizedReview.documents || {};
+    const patient = normalizePatient(
+        normalizedReview.patientRecord?.patient || normalizedReview.session.patient
+    );
+    const admission = normalizeAdmission001(
+        normalizedReview.patientRecord?.admission001 || draft.admission001,
+        patient,
+        draft.intake
+    );
+    const readiness = normalizeLegalReadiness(normalizedReview.legalReadiness);
+    const approval = normalizeApproval(
+        normalizedReview.approvalState || normalizedReview.approval
+    );
+    const archiveReadiness = normalizeArchiveReadiness(
+        normalizedReview.archiveReadiness ||
+            normalizedReview.recordsGovernance?.archiveReadiness ||
+            normalizedReview.patientRecord?.archiveReadiness
+    );
+    const accessAudit = normalizeList(normalizedReview.accessAudit).map(
+        normalizeAccessAuditEntry
+    );
+    const latestExport =
+        accessAudit.find(
+            (entry) => normalizeString(entry.action) === 'export_full_record'
+        ) ||
+        accessAudit[0] ||
+        {};
+    const generatedAt =
+        normalizeString(latestExport.createdAt) || new Date().toISOString();
+    const generatedBy =
+        normalizeString(latestExport.actor) || 'admin@local';
+    const legalName =
+        buildAdmissionLegalName(admission, patient) ||
+        normalizeString(patient.name) ||
+        'Paciente sin identificar';
+    const documentNumber = [
+        normalizeString(admission.identity.documentType),
+        normalizeString(admission.identity.documentNumber),
+    ]
+        .filter(Boolean)
+        .join(' ');
+    const address = [
+        admission.residence.addressLine,
+        admission.residence.neighborhood,
+        admission.residence.parish,
+        admission.residence.canton,
+        admission.residence.province,
+    ]
+        .map((item) => normalizeString(item))
+        .filter(Boolean)
+        .join(', ');
+    const redFlags = formatClinicalRedFlags(
+        draft.redFlags || draft.intake.rosRedFlags
+    );
+    const missingFields = normalizeStringList(draft.intake.preguntasFaltantes);
+    const prescriptionItems = normalizePrescriptionItems(
+        draft?.clinicianDraft?.hcu005?.prescriptionItems ||
+            documents?.prescription?.items
+    );
+    const intakeSection = buildClinicalRecordExportFieldGrid([
+        ['Motivo de consulta', draft.intake.motivoConsulta],
+        ['Enfermedad actual', draft.intake.enfermedadActual],
+        ['Antecedentes', draft.intake.antecedentes],
+        ['Alergias', draft.intake.alergias],
+        ['Medicacion actual', draft.intake.medicacionActual],
+        ['Resumen clinico', draft.intake.resumenClinico],
+    ]);
+    const hcu005Section = buildClinicalRecordExportFieldGrid([
+        ['Evolucion clinica', draft.clinicianDraft?.hcu005?.evolutionNote],
+        [
+            'Impresion diagnostica',
+            draft.clinicianDraft?.hcu005?.diagnosticImpression,
+        ],
+        ['Plan terapeutico', draft.clinicianDraft?.hcu005?.therapeuticPlan],
+        ['Indicaciones de cuidado', draft.clinicianDraft?.hcu005?.careIndications],
+    ]);
+    const readinessChecklistCards = normalizeList(readiness.checklist).map(
+        (item) =>
+            buildClinicalRecordExportCard(
+                normalizeString(item.label) ||
+                    humanizeClinicalCode(item.code || 'check'),
+                formatClinicalRecordExportLabel(
+                    normalizeString(item.status)
+                        ? humanizeClinicalCode(item.status)
+                        : '',
+                    'Sin estado'
+                ),
+                normalizeString(item.message)
+                    ? `<p>${formatHtmlMultiline(item.message)}</p>`
+                    : '<p class="clinical-history-export-empty">Sin detalle adicional.</p>',
+                normalizeString(item.status) === 'pass'
+                    ? 'success'
+                    : normalizeString(item.status) === 'warn'
+                      ? 'warning'
+                      : 'danger'
+            )
+    );
+    const interconsultCards = normalizeList(
+        normalizedReview.interconsultations
+    ).map((item) =>
+        buildClinicalRecordExportCard(
+            normalizeString(item.destinationService) ||
+                normalizeString(item.interconsultId) ||
+                'Interconsulta',
+            [
+                formatClinicalRecordExportLabel(
+                    humanizeClinicalCode(item.status),
+                    'Sin estado'
+                ),
+                readableTimestamp(item.requestedAt || item.createdAt),
+            ]
+                .filter((value) => value && value !== '-')
+                .join(' • '),
+            `${buildClinicalRecordExportFieldGrid([
+                ['Establecimiento', item.destinationEstablishment],
+                ['Profesional consultado', item.consultedProfessionalName],
+                ['Motivo', item.requestReason],
+                ['Cuadro clinico', item.clinicalPicture],
+                ['Diagnosticos', normalizeStringList(item.diagnoses).join(', ')],
+                ['Reporte', item.report?.summary || item.report?.assessment],
+                [
+                    'Estado del reporte',
+                    formatClinicalRecordExportLabel(
+                        humanizeClinicalCode(item.reportStatus),
+                        'Sin reporte'
+                    ),
+                ],
+            ])}`,
+            normalizeString(item.status) === 'issued' ? 'success' : 'neutral'
+        )
+    );
+    const labOrderCards = normalizeList(normalizedReview.labOrders).map((item) =>
+        buildClinicalRecordExportCard(
+            normalizeString(item.labOrderId) || 'Orden de laboratorio',
+            [
+                formatClinicalRecordExportLabel(
+                    humanizeClinicalCode(item.status),
+                    'Sin estado'
+                ),
+                readableTimestamp(item.sampleDate || item.requestedAt),
+            ]
+                .filter((value) => value && value !== '-')
+                .join(' • '),
+            `${buildClinicalRecordExportFieldGrid([
+                ['Servicio solicitante', item.requestingService],
+                ['Establecimiento', item.requestingEstablishment],
+                ['Prioridad', item.priority],
+                [
+                    'Estudios',
+                    normalizeList([
+                        ...normalizeStringList(item.studySelections?.hematology),
+                        ...normalizeStringList(item.studySelections?.urinalysis),
+                        ...normalizeStringList(item.studySelections?.coprological),
+                        ...normalizeStringList(item.studySelections?.bloodChemistry),
+                        ...normalizeStringList(item.studySelections?.serology),
+                        ...normalizeStringList(item.studySelections?.bacteriology),
+                        item.studySelections?.others,
+                    ])
+                        .map((study) => normalizeString(study))
+                        .filter(Boolean)
+                        .join(', '),
+                ],
+                ['Notas', item.notes],
+            ])}`,
+            normalizeString(item.status) === 'issued' ? 'success' : 'neutral'
+        )
+    );
+    const imagingOrderCards = normalizeList(normalizedReview.imagingOrders).map(
+        (item) =>
+            buildClinicalRecordExportCard(
+                normalizeString(item.imagingOrderId) || 'Orden de imagenologia',
+                [
+                    formatClinicalRecordExportLabel(
+                        humanizeClinicalCode(item.status),
+                        'Sin estado'
+                    ),
+                    readableTimestamp(item.studyDate || item.requestedAt),
+                ]
+                    .filter((value) => value && value !== '-')
+                    .join(' • '),
+                `${buildClinicalRecordExportFieldGrid([
+                    ['Servicio solicitante', item.requestingService],
+                    ['Establecimiento', item.requestingEstablishment],
+                    ['Prioridad', item.priority],
+                    [
+                        'Estudios',
+                        normalizeList([
+                            ...normalizeStringList(item.studySelections?.xray),
+                            ...normalizeStringList(item.studySelections?.ultrasound),
+                            ...normalizeStringList(item.studySelections?.tomography),
+                            ...normalizeStringList(item.studySelections?.magneticResonance),
+                            ...normalizeStringList(item.studySelections?.mammography),
+                            item.studySelections?.others,
+                        ])
+                            .map((study) => normalizeString(study))
+                            .filter(Boolean)
+                            .join(', '),
+                    ],
+                    ['Resumen clinico', item.clinicalSummary],
+                    ['Motivo', item.requestReason],
+                    [
+                        'Estado del resultado',
+                        formatClinicalRecordExportLabel(
+                            humanizeClinicalCode(item.resultStatus),
+                            'Sin resultado'
+                        ),
+                    ],
+                ])}`,
+                normalizeString(item.status) === 'issued' ? 'success' : 'neutral'
+            )
+    );
+    const consentPacketCards = normalizeList(
+        normalizedReview.consentPackets
+    ).map((item) =>
+        buildClinicalRecordExportCard(
+            item.procedureLabel || item.title || 'Consentimiento informado',
+            [
+                formatClinicalRecordExportLabel(
+                    humanizeClinicalCode(item.status),
+                    'Sin estado'
+                ),
+                readableTimestamp(
+                    item.declaration?.declaredAt ||
+                        item.patientAttestation?.signedAt ||
+                        item.representativeAttestation?.signedAt
+                ),
+            ]
+                .filter((value) => value && value !== '-')
+                .join(' • '),
+            `${buildClinicalRecordExportFieldGrid([
+                ['Formulario', item.title],
+                ['Procedimiento', item.procedureName],
+                ['Diagnostico', item.diagnosisLabel || item.diagnosisCie10],
+                ['En que consiste', item.procedureWhatIsIt],
+                ['Como se realiza', item.procedureHowItIsDone],
+                ['Beneficios', item.benefits],
+                ['Riesgos frecuentes', item.frequentRisks],
+                ['Alternativas', item.alternatives],
+                ['Consecuencias de no realizarlo', item.noProcedureConsequences],
+                [
+                    'Comunicacion privada confirmada',
+                    formatClinicalRecordExportBoolean(
+                        item.privateCommunicationConfirmed
+                    ),
+                ],
+                [
+                    'Autorizacion para acompanante',
+                    formatClinicalRecordExportBoolean(
+                        item.companionShareAuthorized
+                    ),
+                ],
+            ])}`,
+            ['accepted', 'declined', 'revoked'].includes(
+                normalizeString(item.status)
+            )
+                ? 'success'
+                : 'neutral'
+        )
+    );
+    const copyRequestCards = normalizeList(normalizedReview.copyRequests).map(
+        (item) =>
+            buildClinicalRecordExportCard(
+                item.requestId || 'Solicitud de copia',
+                [
+                    item.statusLabel || humanizeClinicalCode(item.effectiveStatus),
+                    readableTimestamp(item.requestedAt),
+                ]
+                    .filter((value) => value && value !== '-')
+                    .join(' • '),
+                `${buildClinicalRecordExportFieldGrid([
+                    ['Solicitada por', item.requestedByName || item.requestedByType],
+                    ['Base legal', item.legalBasis],
+                    ['Entrega a', item.deliveredTo],
+                    ['Canal de entrega', item.deliveryChannel],
+                    ['Vence', readableTimestamp(item.dueAt)],
+                    ['Entregada', readableTimestamp(item.deliveredAt)],
+                    ['Notas', item.notes],
+                ])}`,
+                normalizeString(item.effectiveStatus) === 'overdue'
+                    ? 'danger'
+                    : normalizeString(item.effectiveStatus) === 'delivered'
+                      ? 'success'
+                      : 'warning'
+            )
+    );
+    const disclosureCards = normalizeList(normalizedReview.disclosureLog).map(
+        (item) =>
+            buildClinicalRecordExportCard(
+                formatDisclosureTarget(item.targetType),
+                [
+                    readableTimestamp(item.performedAt),
+                    item.performedBy,
+                ]
+                    .filter(Boolean)
+                    .join(' • '),
+                `${buildClinicalRecordExportFieldGrid([
+                    ['Destinatario', item.targetName],
+                    ['Proposito', item.purpose],
+                    ['Canal', item.channel],
+                    ['Base legal', item.legalBasis],
+                    [
+                        'Autorizado por consentimiento',
+                        formatClinicalRecordExportBoolean(
+                            item.authorizedByConsent
+                        ),
+                    ],
+                    ['Notas', item.notes],
+                ])}`
+            )
+    );
+    const auditCards = accessAudit.map((item) =>
+        buildClinicalRecordExportCard(
+            formatClinicalRecordExportLabel(
+                humanizeClinicalCode(item.action),
+                'Acceso'
+            ),
+            [
+                readableTimestamp(item.createdAt),
+                item.actor,
+            ]
+                .filter(Boolean)
+                .join(' • '),
+            `${buildClinicalRecordExportFieldGrid([
+                ['Razon', humanizeClinicalCode(item.reason)],
+                ['Recurso', humanizeClinicalCode(item.resource)],
+                [
+                    'Meta',
+                    normalizeList(
+                        Object.entries(item.meta || {}).map(([key, value]) => {
+                            if (
+                                value === null ||
+                                value === undefined ||
+                                value === ''
+                            ) {
+                                return '';
+                            }
+                            if (typeof value === 'boolean') {
+                                return `${humanizeClinicalCode(key)}: ${
+                                    value ? 'Si' : 'No'
+                                }`;
+                            }
+                            return `${humanizeClinicalCode(key)}: ${String(
+                                value
+                            )}`;
+                        })
+                    )
+                        .map((entry) => normalizeString(entry))
+                        .filter(Boolean)
+                        .join(' • '),
+                ],
+            ])}`
+        )
+    );
+    const transcriptCards = normalizeList(
+        normalizedReview.session.transcript
+    ).map((item) =>
+        buildClinicalRecordExportCard(
+            normalizeString(item.actor) || humanizeClinicalCode(item.role),
+            [
+                humanizeClinicalCode(item.role || 'mensaje'),
+                readableTimestamp(item.createdAt),
+            ]
+                .filter((value) => value && value !== '-')
+                .join(' • '),
+            normalizeString(item.content)
+                ? `<p>${formatHtmlMultiline(item.content)}</p>`
+                : '<p class="clinical-history-export-empty">Sin contenido.</p>',
+            normalizeString(item.role) === 'assistant' ? 'neutral' : 'success'
+        )
+    );
+    const eventCards = normalizeList(normalizedReview.events).map((item) =>
+        buildClinicalRecordExportCard(
+            item.title || humanizeClinicalCode(item.type),
+            [
+                formatClinicalRecordExportLabel(
+                    humanizeClinicalCode(item.severity),
+                    'Sin severidad'
+                ),
+                formatClinicalRecordExportLabel(
+                    humanizeClinicalCode(item.status),
+                    'Sin estado'
+                ),
+                readableTimestamp(item.occurredAt),
+            ]
+                .filter((value) => value && value !== '-')
+                .join(' • '),
+            normalizeString(item.message)
+                ? `<p>${formatHtmlMultiline(item.message)}</p>`
+                : '<p class="clinical-history-export-empty">Sin mensaje adicional.</p>',
+            normalizeString(item.severity) === 'critical'
+                ? 'danger'
+                : normalizeString(item.severity) === 'warning'
+                  ? 'warning'
+                  : 'neutral'
+        )
+    );
+    const historyCards = normalizeList(
+        normalizedReview.patientRecord?.admissionHistory
+    ).map((item) =>
+        buildClinicalRecordExportCard(
+            humanizeClinicalCode(item.type || 'admission_history'),
+            readableTimestamp(item.recordedAt || item.createdAt),
+            `${buildClinicalRecordExportFieldGrid([
+                ['Resumen', item.summary],
+                ['Responsable', item.recordedBy || item.actor],
+                ['Observaciones', item.notes],
+            ])}`
+        )
+    );
+    const changeLogCards = normalizeList(
+        normalizedReview.patientRecord?.changeLog
+    ).map((item) =>
+        buildClinicalRecordExportCard(
+            humanizeClinicalCode(item.fieldKey || 'change'),
+            readableTimestamp(item.changedAt || item.createdAt),
+            `${buildClinicalRecordExportFieldGrid([
+                ['Valor previo', item.previousValue],
+                ['Valor nuevo', item.nextValue],
+                ['Actualizado por', item.changedBy || item.actor],
+                ['Motivo', item.reason],
+            ])}`
+        )
+    );
+    const snapshotCards = []
+        .concat(
+            normalizeList(documents.interconsultForms).map((item) =>
+                buildClinicalRecordExportCard(
+                    item.destinationService || item.interconsultId || 'HCU-007',
+                    readableTimestamp(item.issuedAt || item.snapshotAt),
+                    `${buildClinicalRecordExportFieldGrid([
+                        ['Estado', humanizeClinicalCode(item.interconsultStatus || item.status)],
+                        ['Establecimiento', item.destinationEstablishment],
+                    ])}`
+                )
+            )
+        )
+        .concat(
+            normalizeList(documents.interconsultReports).map((item) =>
+                buildClinicalRecordExportCard(
+                    item.destinationService || item.interconsultId || 'Reporte HCU-007',
+                    readableTimestamp(item.finalizedAt || item.snapshotAt),
+                    `${buildClinicalRecordExportFieldGrid([
+                        ['Estado', humanizeClinicalCode(item.reportStatus || item.status)],
+                        ['Profesional', item.consultedProfessionalName || item.report?.consultantProfessionalName],
+                    ])}`
+                )
+            )
+        )
+        .concat(
+            normalizeList(documents.labOrders).map((item) =>
+                buildClinicalRecordExportCard(
+                    item.labOrderId || 'HCU-010A',
+                    readableTimestamp(item.issuedAt || item.snapshotAt),
+                    `${buildClinicalRecordExportFieldGrid([
+                        ['Estado', humanizeClinicalCode(item.status)],
+                        ['Servicio', item.requestingService],
+                    ])}`
+                )
+            )
+        )
+        .concat(
+            normalizeList(documents.imagingOrders).map((item) =>
+                buildClinicalRecordExportCard(
+                    item.imagingOrderId || 'HCU-012A',
+                    readableTimestamp(item.issuedAt || item.snapshotAt),
+                    `${buildClinicalRecordExportFieldGrid([
+                        ['Estado', humanizeClinicalCode(item.status)],
+                        ['Servicio', item.requestingService],
+                    ])}`
+                )
+            )
+        )
+        .concat(
+            normalizeList(documents.imagingReports).map((item) =>
+                buildClinicalRecordExportCard(
+                    item.imagingOrderId || 'Reporte HCU-012A',
+                    readableTimestamp(item.finalizedAt || item.snapshotAt),
+                    `${buildClinicalRecordExportFieldGrid([
+                        ['Estado', humanizeClinicalCode(item.resultStatus || item.status)],
+                        ['Radiologo', item.report?.radiologistProfessionalName],
+                    ])}`
+                )
+            )
+        )
+        .concat(
+            normalizeList(documents.consentForms).map((item) =>
+                buildClinicalRecordExportCard(
+                    item.procedureLabel || item.packetId || 'HCU-024',
+                    readableTimestamp(
+                        item.patientAttestation?.signedAt ||
+                            item.representativeAttestation?.signedAt
+                    ),
+                    `${buildClinicalRecordExportFieldGrid([
+                        ['Estado', humanizeClinicalCode(item.status)],
+                        ['Formulario', item.title],
+                    ])}`
+                )
+            )
+        );
+
+    return `<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <title>${escapeHtml(buildClinicalRecordExportFileName(normalizedReview))}</title>
+        <style>
+            :root {
+                color-scheme: light;
+                --ink: #1f2937;
+                --muted: #5b6474;
+                --line: #d7dee7;
+                --panel: #f5f7fb;
+                --success: #146c43;
+                --warning: #9a4d00;
+                --danger: #a61b1b;
+                --neutral: #385170;
+            }
+            * { box-sizing: border-box; }
+            body {
+                margin: 0;
+                font-family: "Georgia", "Times New Roman", serif;
+                color: var(--ink);
+                background: #eef2f7;
+            }
+            main {
+                max-width: 1120px;
+                margin: 0 auto;
+                padding: 32px 24px 48px;
+            }
+            .clinical-history-export-shell {
+                background: #fff;
+                border: 1px solid var(--line);
+                border-radius: 24px;
+                overflow: hidden;
+                box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+            }
+            .clinical-history-export-header {
+                padding: 32px;
+                background:
+                    linear-gradient(135deg, rgba(14, 116, 144, 0.08), rgba(148, 163, 184, 0.08)),
+                    #fff;
+                border-bottom: 1px solid var(--line);
+            }
+            .clinical-history-export-header h1 {
+                margin: 0 0 8px;
+                font-size: 2rem;
+            }
+            .clinical-history-export-header p {
+                margin: 0;
+                color: var(--muted);
+            }
+            .clinical-history-export-toolbar {
+                display: flex;
+                justify-content: space-between;
+                gap: 16px;
+                align-items: center;
+                margin-top: 20px;
+                flex-wrap: wrap;
+            }
+            .clinical-history-export-toolbar button {
+                border: none;
+                border-radius: 999px;
+                background: #0f172a;
+                color: #fff;
+                padding: 12px 18px;
+                font: inherit;
+                cursor: pointer;
+            }
+            .clinical-history-export-meta {
+                display: grid;
+                gap: 14px;
+                grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+                padding: 24px 32px 0;
+            }
+            .clinical-history-export-meta article {
+                border: 1px solid var(--line);
+                border-radius: 18px;
+                padding: 16px;
+                background: var(--panel);
+            }
+            .clinical-history-export-meta span {
+                display: block;
+                font-size: 0.78rem;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: var(--muted);
+            }
+            .clinical-history-export-meta strong {
+                display: block;
+                margin-top: 6px;
+                font-size: 1.04rem;
+            }
+            .clinical-history-export-pills {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 20px;
+            }
+            .clinical-history-export-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                border-radius: 999px;
+                padding: 8px 14px;
+                font-size: 0.86rem;
+                font-weight: 600;
+                border: 1px solid currentColor;
+            }
+            .clinical-history-export-pill.is-success { color: var(--success); }
+            .clinical-history-export-pill.is-warning { color: var(--warning); }
+            .clinical-history-export-pill.is-danger { color: var(--danger); }
+            .clinical-history-export-pill.is-neutral { color: var(--neutral); }
+            .clinical-history-export-content {
+                padding: 24px 32px 40px;
+            }
+            .clinical-history-export-section + .clinical-history-export-section {
+                margin-top: 28px;
+                padding-top: 28px;
+                border-top: 1px solid var(--line);
+            }
+            .clinical-history-export-section-head h2 {
+                margin: 0 0 6px;
+                font-size: 1.35rem;
+            }
+            .clinical-history-export-section-head p {
+                margin: 0 0 18px;
+                color: var(--muted);
+            }
+            .clinical-history-export-fields {
+                display: grid;
+                gap: 12px;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                margin: 0;
+            }
+            .clinical-history-export-field {
+                margin: 0;
+                padding: 14px;
+                border: 1px solid var(--line);
+                border-radius: 16px;
+                background: #fff;
+            }
+            .clinical-history-export-field dt {
+                margin: 0 0 6px;
+                font-size: 0.76rem;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: var(--muted);
+            }
+            .clinical-history-export-field dd {
+                margin: 0;
+                line-height: 1.55;
+            }
+            .clinical-history-export-list {
+                margin: 0;
+                padding-left: 20px;
+                display: grid;
+                gap: 8px;
+            }
+            .clinical-history-export-empty {
+                margin: 0;
+                color: var(--muted);
+                font-style: italic;
+            }
+            .clinical-history-export-cards {
+                display: grid;
+                gap: 14px;
+            }
+            .clinical-history-export-card {
+                border: 1px solid var(--line);
+                border-left-width: 6px;
+                border-radius: 18px;
+                padding: 18px;
+                background: #fff;
+            }
+            .clinical-history-export-card.is-success { border-left-color: rgba(20, 108, 67, 0.85); }
+            .clinical-history-export-card.is-warning { border-left-color: rgba(154, 77, 0, 0.85); }
+            .clinical-history-export-card.is-danger { border-left-color: rgba(166, 27, 27, 0.85); }
+            .clinical-history-export-card.is-neutral { border-left-color: rgba(56, 81, 112, 0.85); }
+            .clinical-history-export-card header {
+                display: flex;
+                justify-content: space-between;
+                gap: 16px;
+                align-items: baseline;
+                flex-wrap: wrap;
+                margin-bottom: 12px;
+            }
+            .clinical-history-export-card h3 {
+                margin: 0;
+                font-size: 1rem;
+            }
+            .clinical-history-export-card p {
+                margin: 0;
+                color: var(--muted);
+            }
+            .clinical-history-export-card-body {
+                display: grid;
+                gap: 12px;
+            }
+            @media print {
+                body {
+                    background: #fff;
+                }
+                main {
+                    max-width: none;
+                    padding: 0;
+                }
+                .clinical-history-export-shell {
+                    border: none;
+                    border-radius: 0;
+                    box-shadow: none;
+                }
+                .clinical-history-export-toolbar {
+                    display: none;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <div class="clinical-history-export-shell">
+                <header class="clinical-history-export-header">
+                    <h1>Historia clinica electronica completa</h1>
+                    <p>
+                        Export de HCE listo para imprimir o guardar como PDF con
+                        base en el estado actual del expediente y la trazabilidad
+                        medico-legal disponible.
+                    </p>
+                    <div class="clinical-history-export-toolbar">
+                        <button type="button" onclick="window.print()">
+                            Imprimir / Guardar PDF
+                        </button>
+                        <span>${escapeHtml(
+                            `Generado ${readableTimestamp(generatedAt)} por ${generatedBy}`
+                        )}</span>
+                    </div>
+                    <div class="clinical-history-export-pills">
+                        ${buildClinicalRecordExportStatusPill(
+                            readiness.label || readiness.status,
+                            readiness.ready ? 'success' : 'danger'
+                        )}
+                        ${buildClinicalRecordExportStatusPill(
+                            approval.status === 'approved'
+                                ? 'Aprobacion final emitida'
+                                : `Aprobacion ${approval.status || 'pendiente'}`,
+                            approval.status === 'approved' ? 'success' : 'warning'
+                        )}
+                        ${buildClinicalRecordExportStatusPill(
+                            archiveReadiness.label ||
+                                humanizeClinicalCode(
+                                    archiveReadiness.archiveState
+                                ),
+                            archiveReadiness.archiveState === 'passive'
+                                ? 'neutral'
+                                : 'warning'
+                        )}
+                    </div>
+                </header>
+                <div class="clinical-history-export-meta">
+                    <article>
+                        <span>Paciente</span>
+                        <strong>${escapeHtml(legalName)}</strong>
+                        <p>${escapeHtml(
+                            formatPatientFacts(patient, draft.intake) ||
+                                'Sin datos demograficos completos.'
+                        )}</p>
+                    </article>
+                    <article>
+                        <span>Record / caso</span>
+                        <strong>${escapeHtml(
+                            formatClinicalRecordExportLabel(
+                                normalizedReview.patientRecord?.recordId ||
+                                    draft.patientRecordId,
+                                'Sin recordId'
+                            )
+                        )}</strong>
+                        <p>${escapeHtml(
+                            `Caso ${formatClinicalRecordExportLabel(
+                                normalizedReview.session.caseId,
+                                'Sin caseId'
+                            )} • Sesion ${formatClinicalRecordExportLabel(
+                                normalizedReview.session.sessionId,
+                                'Sin sessionId'
+                            )}`
+                        )}</p>
+                    </article>
+                    <article>
+                        <span>Documento</span>
+                        <strong>${escapeHtml(
+                            formatClinicalRecordExportLabel(
+                                documentNumber,
+                                'Sin documento'
+                            )
+                        )}</strong>
+                        <p>${escapeHtml(
+                            address || 'Direccion no registrada.'
+                        )}</p>
+                    </article>
+                    <article>
+                        <span>Resumen legal</span>
+                        <strong>${escapeHtml(
+                            readiness.label || 'Sin readiness'
+                        )}</strong>
+                        <p>${escapeHtml(
+                            readiness.summary ||
+                                'Sin comentario medico-legal adicional.'
+                        )}</p>
+                    </article>
+                </div>
+                <div class="clinical-history-export-content">
+                    ${buildClinicalRecordExportSection(
+                        'Identificacion y admision',
+                        'Datos base del paciente y apertura del episodio.',
+                        buildClinicalRecordExportFieldGrid([
+                            ['Paciente', legalName],
+                            ['Documento', documentNumber],
+                            ['Email', patient.email],
+                            ['Fecha de nacimiento', admission.demographics.birthDate],
+                            [
+                                'Edad',
+                                admission.demographics.ageYears !== null
+                                    ? `${admission.demographics.ageYears} anos`
+                                    : '',
+                            ],
+                            ['Sexo biologico', admission.demographics.sexAtBirth],
+                            [
+                                'Embarazo',
+                                formatPregnancy(
+                                    draft.intake?.datosPaciente?.embarazo ??
+                                        patient.pregnant
+                                ),
+                            ],
+                            ['Telefono', admission.residence.phone || patient.phone],
+                            ['Direccion', address],
+                            [
+                                'Fecha de admision',
+                                admission.admissionMeta.admissionDate,
+                            ],
+                            [
+                                'Tipo de admision',
+                                admission.admissionMeta.admissionKind,
+                            ],
+                            [
+                                'Modo de transicion',
+                                humanizeClinicalCode(
+                                    admission.admissionMeta.transitionMode
+                                ),
+                            ],
+                        ])
+                    )}
+                    ${buildClinicalRecordExportSection(
+                        'Motivo e historia actual',
+                        'Resumen del intake y alertas activas del episodio.',
+                        `${intakeSection}
+                        ${buildClinicalRecordExportSection(
+                            'Red flags y preguntas pendientes',
+                            '',
+                            `
+                                <div class="clinical-history-export-cards">
+                                    ${buildClinicalRecordExportCard(
+                                        'Red flags clinicos',
+                                        redFlags.length > 0
+                                            ? `${redFlags.length} alerta(s)`
+                                            : 'Sin alertas',
+                                        buildClinicalRecordExportList(
+                                            redFlags,
+                                            'Sin red flags activos.'
+                                        ),
+                                        redFlags.length > 0 ? 'danger' : 'success'
+                                    )}
+                                    ${buildClinicalRecordExportCard(
+                                        'Campos pendientes',
+                                        missingFields.length > 0
+                                            ? `${missingFields.length} pendiente(s)`
+                                            : 'Completo',
+                                        buildClinicalRecordExportList(
+                                            missingFields,
+                                            'No hay preguntas faltantes.'
+                                        ),
+                                        missingFields.length > 0
+                                            ? 'warning'
+                                            : 'success'
+                                    )}
+                                </div>
+                            `
+                        )}`
+                    )}
+                    ${buildClinicalRecordExportSection(
+                        'Evolucion clinica y documentos de salida',
+                        'Contenido clinico consolidado en HCU-005, nota final, receta y certificado.',
+                        `${hcu005Section}
+                        ${buildClinicalRecordExportCards(
+                            [
+                                buildClinicalRecordExportCard(
+                                    'Nota final',
+                                    [
+                                        humanizeClinicalCode(
+                                            documents.finalNote?.status
+                                        ),
+                                        readableTimestamp(
+                                            documents.finalNote?.generatedAt
+                                        ),
+                                    ]
+                                        .filter(
+                                            (value) => value && value !== '-'
+                                        )
+                                        .join(' • '),
+                                    `${buildClinicalRecordExportFieldGrid([
+                                        ['Resumen', documents.finalNote?.summary],
+                                        ['Contenido', documents.finalNote?.content],
+                                    ])}`,
+                                    normalizeString(documents.finalNote?.status) ===
+                                        'approved'
+                                        ? 'success'
+                                        : 'neutral'
+                                ),
+                                buildClinicalRecordExportCard(
+                                    'Receta',
+                                    [
+                                        humanizeClinicalCode(
+                                            documents.prescription?.status
+                                        ),
+                                        readableTimestamp(
+                                            documents.prescription?.signedAt
+                                        ),
+                                    ]
+                                        .filter(
+                                            (value) => value && value !== '-'
+                                        )
+                                        .join(' • '),
+                                    `${buildClinicalRecordExportFieldGrid([
+                                        ['Medicacion', documents.prescription?.medication],
+                                        [
+                                            'Indicaciones',
+                                            documents.prescription?.directions,
+                                        ],
+                                    ])}
+                                    ${buildClinicalRecordExportList(
+                                        prescriptionItems.map((item) =>
+                                            [
+                                                item.medication,
+                                                item.presentation,
+                                                item.dose,
+                                                item.route,
+                                                item.frequency,
+                                                item.duration,
+                                                item.quantity,
+                                                item.instructions,
+                                            ]
+                                                .map((value) =>
+                                                    normalizeString(value)
+                                                )
+                                                .filter(Boolean)
+                                                .join(' • ')
+                                        ),
+                                        'Sin items prescritos.'
+                                    )}`,
+                                    normalizeString(
+                                        documents.prescription?.status
+                                    ) === 'issued'
+                                        ? 'success'
+                                        : 'neutral'
+                                ),
+                                buildClinicalRecordExportCard(
+                                    'Certificado medico',
+                                    [
+                                        humanizeClinicalCode(
+                                            documents.certificate?.status
+                                        ),
+                                        readableTimestamp(
+                                            documents.certificate?.signedAt
+                                        ),
+                                    ]
+                                        .filter(
+                                            (value) => value && value !== '-'
+                                        )
+                                        .join(' • '),
+                                    `${buildClinicalRecordExportFieldGrid([
+                                        ['Resumen', documents.certificate?.summary],
+                                        [
+                                            'Dias de reposo',
+                                            documents.certificate?.restDays !==
+                                            null
+                                                ? String(
+                                                      documents.certificate
+                                                          .restDays
+                                                  )
+                                                : '',
+                                        ],
+                                    ])}`,
+                                    normalizeString(
+                                        documents.certificate?.status
+                                    ) === 'issued'
+                                        ? 'success'
+                                        : 'neutral'
+                                ),
+                            ],
+                            'Sin documentos de salida.'
+                        )}`
+                    )}
+                    ${buildClinicalRecordExportSection(
+                        'Interconsultas, laboratorio, imagenologia y consentimiento',
+                        'Ordenes, formularios y consentimientos asociados al mismo episodio.',
+                        `
+                            ${buildClinicalRecordExportSection(
+                                'Interconsultas',
+                                '',
+                                buildClinicalRecordExportCards(
+                                    interconsultCards,
+                                    'Sin interconsultas registradas.'
+                                )
+                            )}
+                            ${buildClinicalRecordExportSection(
+                                'Laboratorio',
+                                '',
+                                buildClinicalRecordExportCards(
+                                    labOrderCards,
+                                    'Sin ordenes de laboratorio.'
+                                )
+                            )}
+                            ${buildClinicalRecordExportSection(
+                                'Imagenologia',
+                                '',
+                                buildClinicalRecordExportCards(
+                                    imagingOrderCards,
+                                    'Sin ordenes de imagenologia.'
+                                )
+                            )}
+                            ${buildClinicalRecordExportSection(
+                                'Consentimientos HCU-024',
+                                '',
+                                buildClinicalRecordExportCards(
+                                    consentPacketCards,
+                                    'Sin consentimientos documentados.'
+                                )
+                            )}
+                        `
+                    )}
+                    ${buildClinicalRecordExportSection(
+                        'Checklist legal y readiness',
+                        'Criterios medico-legales vigentes al momento de la exportacion.',
+                        `
+                            ${buildClinicalRecordExportFieldGrid([
+                                ['Estado legal', readiness.label || readiness.status],
+                                [
+                                    'Aprobacion',
+                                    humanizeClinicalCode(approval.status || 'pending'),
+                                ],
+                                ['Aprobado por', approval.approvedBy],
+                                ['Aprobado en', readableTimestamp(approval.approvedAt)],
+                            ])}
+                            ${buildClinicalRecordExportSection(
+                                'Checklist',
+                                '',
+                                buildClinicalRecordExportCards(
+                                    readinessChecklistCards,
+                                    'Sin checklist legal.'
+                                )
+                            )}
+                            ${buildClinicalRecordExportSection(
+                                'Bloqueos activos',
+                                '',
+                                buildClinicalRecordExportList(
+                                    normalizeList(readiness.blockingReasons).map(
+                                        (item) =>
+                                            normalizeString(item.title) ||
+                                            normalizeString(item.message) ||
+                                            humanizeClinicalCode(item.code)
+                                    ),
+                                    'No hay bloqueos medico-legales abiertos.'
+                                )
+                            )}
+                        `
+                    )}
+                    ${buildClinicalRecordExportSection(
+                        'Gobernanza documental y trazabilidad',
+                        'Copias certificadas, disclosures, archivo y auditoria de accesos.',
+                        `
+                            ${buildClinicalRecordExportFieldGrid([
+                                [
+                                    'Estado de archivo',
+                                    archiveReadiness.label ||
+                                        archiveReadiness.archiveState,
+                                ],
+                                [
+                                    'Ultima atencion',
+                                    readableTimestamp(
+                                        archiveReadiness.lastAttentionAt
+                                    ),
+                                ],
+                                [
+                                    'Elegible para archivo pasivo',
+                                    formatClinicalRecordExportBoolean(
+                                        archiveReadiness.eligibleForPassive
+                                    ),
+                                ],
+                                [
+                                    'Fecha elegible',
+                                    readableTimestamp(
+                                        archiveReadiness.eligibleAt
+                                    ),
+                                ],
+                            ])}
+                            ${buildClinicalRecordExportSection(
+                                'Solicitudes de copia',
+                                '',
+                                buildClinicalRecordExportCards(
+                                    copyRequestCards,
+                                    'Sin solicitudes de copia certificada.'
+                                )
+                            )}
+                            ${buildClinicalRecordExportSection(
+                                'Disclosure',
+                                '',
+                                buildClinicalRecordExportCards(
+                                    disclosureCards,
+                                    'Sin disclosures registrados.'
+                                )
+                            )}
+                            ${buildClinicalRecordExportSection(
+                                'Auditoria de accesos',
+                                '',
+                                buildClinicalRecordExportCards(
+                                    auditCards,
+                                    'Sin auditoria registrada.'
+                                )
+                            )}
+                        `
+                    )}
+                    ${buildClinicalRecordExportSection(
+                        'Historial longitudinal y transcript',
+                        'Trazabilidad narrativa del caso y modificaciones del expediente.',
+                        `
+                            ${buildClinicalRecordExportSection(
+                                'Historial de admision',
+                                '',
+                                buildClinicalRecordExportCards(
+                                    historyCards,
+                                    'Sin historial longitudinal adicional.'
+                                )
+                            )}
+                            ${buildClinicalRecordExportSection(
+                                'Change log',
+                                '',
+                                buildClinicalRecordExportCards(
+                                    changeLogCards,
+                                    'Sin cambios longitudinales registrados.'
+                                )
+                            )}
+                            ${buildClinicalRecordExportSection(
+                                'Transcript',
+                                '',
+                                buildClinicalRecordExportCards(
+                                    transcriptCards,
+                                    'Sin transcript disponible.'
+                                )
+                            )}
+                            ${buildClinicalRecordExportSection(
+                                'Eventos clinicos',
+                                '',
+                                buildClinicalRecordExportCards(
+                                    eventCards,
+                                    'Sin eventos asociados.'
+                                )
+                            )}
+                        `
+                    )}
+                    ${buildClinicalRecordExportSection(
+                        'Snapshots documentales',
+                        'Formularios y snapshots que quedaron congelados en el episodio.',
+                        buildClinicalRecordExportCards(
+                            snapshotCards,
+                            'Sin snapshots documentales emitidos.'
+                        )
+                    )}
+                </div>
+            </div>
+        </main>
+    </body>
+</html>`;
+}
+
+function openClinicalRecordExport(review) {
+    const exportWindow = window.open('', '_blank');
+    if (!exportWindow || !exportWindow.document) {
+        return false;
+    }
+
+    exportWindow.document.open();
+    exportWindow.document.write(buildClinicalRecordExportHtml(review));
+    exportWindow.document.close();
+    try {
+        exportWindow.document.title = buildClinicalRecordExportFileName(review);
+        exportWindow.focus();
+        window.setTimeout(() => {
+            try {
+                exportWindow.print();
+            } catch (_error) {
+                // Ignore print failures and leave the export window open.
+            }
+        }, 150);
+    } catch (_error) {
+        // Ignore focus/print issues so the document remains accessible.
+    }
+
+    return true;
+}
+
 function buildClinicalHistoryFieldHint(hint) {
     return hint
         ? `<small>${escapeHtml(hint)}</small>`
@@ -4906,7 +6279,8 @@ function buildSummaryCards(review) {
         draft.reviewStatus,
         draft.requiresHumanReview,
         pendingAiStatus,
-        highestReviewEventSeverity(review)
+        highestReviewEventSeverity(review),
+        draft.redFlags?.length || 0
     );
     const checklistFailures = normalizeList(readiness.checklist).filter(
         (item) => normalizeString(item?.status) !== 'pass'
@@ -5906,7 +7280,8 @@ function buildQueueItemCard(item, selectedSessionId, loading) {
         item.reviewStatus || item.sessionStatus,
         item.requiresHumanReview,
         item.pendingAiStatus,
-        item.highestOpenSeverity
+        item.highestOpenSeverity,
+        item.redFlags?.length || 0
     );
     const chips = buildQueueItemChips(item, status);
     const queueMeta = buildQueueItemMeta(item);
@@ -9454,6 +10829,20 @@ function buildClinicalHistoryDocumentsSection(draft, disabled) {
                         }
                     ),
                 ])}
+                <div class="toolbar-row clinical-history-actions-row">
+                    <button
+                        type="button"
+                        id="clinicalHistoryExportFullRecordBtn"
+                        data-clinical-review-action="export-full-record"
+                        ${disabled ? 'disabled' : ''}
+                    >
+                        Exportar HCE completa (PDF)
+                    </button>
+                </div>
+                <small>
+                    Genera una version imprimible con todo el historial, el
+                    estado legal y la trazabilidad documental del episodio.
+                </small>
             `
     );
 }
@@ -10992,6 +12381,13 @@ function buildGovernanceActionPayload(action) {
         };
     }
 
+    if (action === 'export-full-record') {
+        return {
+            sessionId,
+            action: 'export_full_record',
+        };
+    }
+
     if (action === 'deliver-certified-copy') {
         return {
             sessionId,
@@ -11112,6 +12508,10 @@ async function submitGovernanceAction(action) {
             body: payload,
         });
         const nextReview = normalizeReviewPayload(response.data);
+        const exportOpened =
+            action === 'export-full-record'
+                ? openClinicalRecordExport(nextReview)
+                : true;
         setClinicalHistoryState({
             saving: false,
             error: '',
@@ -11133,7 +12533,14 @@ async function submitGovernanceAction(action) {
         renderClinicalHistorySection();
 
         const targetLabel = currentSelectionLabel(nextReview);
-        if (action === 'request-certified-copy') {
+        if (action === 'export-full-record') {
+            createToast(
+                exportOpened
+                    ? `Export listo para ${targetLabel}. Usa imprimir o Guardar como PDF en la nueva ventana.`
+                    : `La exportacion se preparo para ${targetLabel}, pero el navegador bloqueo la ventana emergente.`,
+                exportOpened ? 'success' : 'warning'
+            );
+        } else if (action === 'request-certified-copy') {
             createToast(
                 `Solicitud de copia certificada registrada para ${targetLabel}.`,
                 'success'
@@ -11843,6 +13250,11 @@ function bindClinicalHistoryEvents() {
 
         if (action === 'request-certified-copy') {
             await submitGovernanceAction('request-certified-copy');
+            return;
+        }
+
+        if (action === 'export-full-record') {
+            await submitGovernanceAction('export-full-record');
             return;
         }
 

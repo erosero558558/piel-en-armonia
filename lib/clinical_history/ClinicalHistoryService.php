@@ -302,6 +302,78 @@ final class ClinicalHistoryService
         ];
     }
 
+    public function exportClinicalRecord(array $store, array $payload): array
+    {
+        [$session, $draft] = $this->findContext($store, $payload);
+        if ($session === null || $draft === null) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'Registro clinico no encontrado',
+                'errorCode' => 'clinical_record_not_found',
+            ];
+        }
+
+        $reconciled = $this->reconcilePendingAi($store, $session, $draft);
+        $store = $reconciled['store'];
+        $session = $reconciled['session'];
+        $draft = $reconciled['draft'];
+
+        if (($reconciled['mutated'] ?? false) === true) {
+            $sessionSave = ClinicalHistoryRepository::upsertSession($store, $session);
+            $store = $sessionSave['store'];
+            $session = $sessionSave['session'];
+
+            $draftSave = ClinicalHistoryRepository::upsertDraft($store, $draft);
+            $store = $draftSave['store'];
+            $draft = $draftSave['draft'];
+        }
+
+        $events = ClinicalHistoryRepository::findEventsBySessionId(
+            $store,
+            (string) ($session['sessionId'] ?? '')
+        );
+        $legalReadiness = ClinicalHistoryLegalReadiness::build($session, $draft, $events);
+        $approval = ClinicalHistoryRepository::normalizeApprovalRecord(
+            is_array($draft['approval'] ?? null) ? $draft['approval'] : []
+        );
+        $blockingReasons = isset($legalReadiness['blockingReasons']) && is_array($legalReadiness['blockingReasons'])
+            ? array_values($legalReadiness['blockingReasons'])
+            : [];
+
+        $store = $this->recordAccessAudit(
+            $store,
+            $session,
+            $draft,
+            'export_full_record',
+            'authorized_clinical_record_export',
+            [
+                'surface' => 'clinical-record-export',
+                'approvalStatus' => (string) ($approval['status'] ?? 'pending'),
+                'legalReadinessStatus' => (string) ($legalReadiness['status'] ?? 'blocked'),
+                'legalReadinessReady' => ($legalReadiness['ready'] ?? false) === true,
+                'blockingReasonsCount' => count($blockingReasons),
+            ]
+        );
+
+        audit_log_event('clinical_history.record_exported', [
+            'sessionId' => (string) ($session['sessionId'] ?? ''),
+            'caseId' => (string) ($session['caseId'] ?? ''),
+            'recordId' => (string) ($draft['patientRecordId'] ?? ''),
+            'approvalStatus' => (string) ($approval['status'] ?? 'pending'),
+            'legalReadinessStatus' => (string) ($legalReadiness['status'] ?? 'blocked'),
+        ]);
+
+        return [
+            'ok' => true,
+            'statusCode' => 200,
+            'store' => $store,
+            'session' => $session,
+            'draft' => $draft,
+            'data' => $this->buildClinicalRecordPayload($store, $session, $draft),
+        ];
+    }
+
     public function patchRecord(array $store, array $payload): array
     {
         return $this->mutateClinicalRecord($store, $payload, 'save');
@@ -325,6 +397,10 @@ final class ClinicalHistoryService
 
         if ($action === 'resume_episode') {
             return $this->getRecord($store, $payload);
+        }
+
+        if ($action === 'export_full_record') {
+            return $this->exportClinicalRecord($store, $payload);
         }
 
         if ($action === 'record_consent') {

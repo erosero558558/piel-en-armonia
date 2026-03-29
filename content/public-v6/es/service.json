@@ -524,6 +524,222 @@
             "cardAlt": "Consulta dermatologica pediatrica con acompanamiento familiar",
             "statementAssetId": "v6-clinic-statement-family-support",
             "statementAlt": "Acompanamiento dermatologico familiar y seguimiento compartido"
+        },
+        {
+            "slug": "depilacion-laser",
+            "category": "Laser",
+            "title": "Depilacion laser medica",
+            "summary": "Depilacion laser con tecnologia Alexandrita y Diodo adaptada a su tipo de piel.",
+            "heroImage": "/images/optimized/v6-clinic-laser-dermatologico.webp",
+            "heroAlt": "Depilacion laser medica",
+            "lead": "La depilacion laser funciona mejor cuando revisamos fototipo, densidad del vello y ciclo de crecimiento antes de la primera sesion.",
+            "bullets": [
+                "Analisis de densidad folicular",
+                "Clasificacion de fototipo",
+                "Parametrizacion termica de laser",
+                "Protocolo pre y post cuidado"
+            ],
+            "process": [
+                "Evaluacion medica del fototipo",
+                "Disparo de laser Alexandrita o Diodo",
+                "Proteccion termica de la epidermis",
+                "Programacion de ciclos de crecimiento"
+            ],
+            "faq": [
+                "Cuantas sesiones se necesitan?",
+                "Es compatible con todos los colores de piel?",
+                "Que cuidados requiero post-sesion?"
+            ],
+            "related": ["acne-rosacea", "piel-cabello-unas"],
+            "faqAnswers": [
+                "Dependiendo de la zona, genetica y variables hormonales, suele requerir entre 6 y 10 sesiones separadas por 4 a 8 semanas.",
+                "Si. Combinamos tecnologias segun fototipo para mantener seguridad en pieles claras y oscuras.",
+                "Conviene usar fotoproteccion estricta, evitar piscinas o saunas las primeras 48 horas e hidratar bien la zona tratada."
+            ],
+            "cardAssetId": "v6-clinic-laser-dermatologico",
+            "cardAlt": "Depilacion laser medica con criterio dermatologico",
+            "statementAssetId": "v6-clinic-statement-procedure-guidance",
+            "statementAlt": "Guia dermatologica para procedimientos indicados"
+        },
+        {
+            "slug": "manchas",
+            "category": "Pigmento",
+            "title": "Manchas y melasma",
+            "summary": "Abordaje medico para melasma y manchas solares guiado por laser, peelings y su fototipo Fitzpatrick.",
+            "heroImage": "/images/optimized/v6-clinic-peeling-quimico.webp",
+            "heroAlt": "Abordaje dermatologico de pigmento y melasma",
+            "lead": "El manejo del pigmento empieza separando melasma, marcas postinflamatorias y dano solar para no sobreestimular la piel.",
+            "bullets": [
+                "Determinacion de fototipo Fitzpatrick",
+                "Evaluacion con Luz de Wood",
+                "Analisis de profundidad del pigmento",
+                "Preparacion de barrera cutanea"
+            ],
+            "process": [
+                "Diagnostico del tipo de hiperpigmentacion",
+                "Control de la inflamacion base",
+                "Ciclado de peelings o laser selectivo",
+                "Esquema de mantenimiento despigmentante"
+            ],
+            "faq": [
+                "Las manchas se curan definitivamente?",
+                "El laser puede empeorar mi melasma?",
+                "En que tiempo vere resultados?"
+            ],
+            "related": ["laser-dermatologico", "peeling-quimico"],
+            "faqAnswers": [
+                "El melasma es una condicion cronica que se controla. Las manchas solares pueden aclararse, pero requieren fotoproteccion estricta para no reaparecer.",
+                "Si, cuando se usan parametros incorrectos. Ajustamos energia, fototipo y tolerancia termica para reducir ese riesgo.",
+                "Un protocolo seguro de despigmentacion suele necesitar entre 12 y 16 semanas para verse estable sin danar la piel."
+            ],
+            "cardAssetId": "v6-clinic-peeling-quimico",
+            "cardAlt": "Preparacion dermatologica para renovacion cutanea controlada",
+            "statementAssetId": "v6-clinic-statement-clinical-direction",
+            "statementAlt": "Direccion clinica dermatologica con lectura estructurada"
+        },
+        {
+            "slug": "microdermoabrasion",
+            "category": "Textura",
+            "title": "Microdermoabrasion",
+            "summary": "Renovacion no invasiva para refinar poros, textura y luminosidad cutanea.",
+            "heroImage": "/images/optimized/v6-clinic-mesoterapia.webp",
+            "heroAlt": "Microdermoabrasion para renovacion superficial",
+            "lead": "La microdermoabrasion ayuda cuando lo que se busca es refinar la superficie, exfoliar de forma controlada y dejar una base mas limpia para el mantenimiento.",
+            "bullets": [
+                "Evaluacion de sensibilidad",
+                "Ajuste de vacio y abrasion",
+                "Pulido epidermico unificado",
+                "Infusion de hidratacion"
+            ],
+            "process": [
+                "Limpieza profunda y desengrasado",
+                "Exfoliacion con puntas de diamante",
+                "Mascarilla calmante activa",
+                "Sellado de barrera protectora"
+            ],
+            "faq": [
+                "Puedo trabajar al dia siguiente?",
+                "Sirve para el acne?",
+                "Cada cuanto debo hacerla?"
+            ],
+            "related": ["peeling-quimico", "acne-rosacea"],
+            "faqAnswers": [
+                "Si. Suele ser un procedimiento rapido, sin tiempo de inactividad visible cuando la piel esta bien seleccionada.",
+                "Ayuda con puntos negros y comedones, pero si hay acne inflamatorio activo suele convenir otra ruta como peeling quimico o control medico del brote.",
+                "Para mantenimiento y luminosidad, muchas personas la hacen una vez al mes, ajustando segun sensibilidad y el resto del plan."
+            ],
+            "cardAssetId": "v6-clinic-mesoterapia",
+            "cardAlt": "Protocolo dermoestetico de soporte e hidratacion profunda",
+            "statementAssetId": "v6-clinic-statement-procedure-guidance",
+            "statementAlt": "Guia dermatologica para procedimientos indicados"
+        },
+        {
+            "slug": "rellenos-hialuronico",
+            "category": "Inyectables",
+            "title": "Acido hialuronico",
+            "summary": "Reposicion de volumen facial con resultados naturales y tecnica medica segura.",
+            "heroImage": "/images/optimized/v6-clinic-botox.webp",
+            "heroAlt": "Tratamiento con acido hialuronico",
+            "lead": "Los rellenos deben devolver soporte y proporcion sin borrar la identidad del rostro ni sobrecargar la expresion.",
+            "bullets": [
+                "Analisis de proporciones faciales",
+                "Mapeo de zonas de soporte",
+                "Seleccion de densidad del acido",
+                "Tecnica de inyeccion atraumatica"
+            ],
+            "process": [
+                "Evaluacion dinamica del rostro",
+                "Aplicacion en planos profundos",
+                "Reposicion volumetrica natural",
+                "Revision y ajustes a 15 dias"
+            ],
+            "faq": [
+                "Hay diferencia con el botox?",
+                "Me vere artificial?",
+                "Cuanto dura el efecto?"
+            ],
+            "related": ["botox", "bioestimuladores-colageno"],
+            "faqAnswers": [
+                "Si. El botox relaja musculos para atenuar arrugas dinamicas. El acido hialuronico rellena y da soporte a surcos, labios y pomulos.",
+                "Nuestro enfoque es la reposicion anatomica natural. No buscamos distorsionar sus rasgos ni sobrecargar volumen.",
+                "Segun la densidad del producto y la reticulacion, suele durar entre 12 y 18 meses y se reabsorbe de forma gradual."
+            ],
+            "cardAssetId": "v6-clinic-botox",
+            "cardAlt": "Evaluacion de armonia facial con criterio dermatologico",
+            "statementAssetId": "v6-clinic-statement-procedure-guidance",
+            "statementAlt": "Guia dermatologica para procedimientos indicados"
+        },
+        {
+            "slug": "tamizaje-oncologico",
+            "category": "Tamizaje",
+            "title": "Tamizaje oncologico",
+            "summary": "Dermatoscopia digital, mapeo de lunares y seguimiento periodico preventivo.",
+            "heroImage": "/images/optimized/v6-clinic-diagnostico-integral.webp",
+            "heroAlt": "Tamizaje oncologico con dermatoscopia",
+            "lead": "El tamizaje sirve para detectar cambios a tiempo y decidir si una lesion conviene vigilarse, mapearse o retirarse.",
+            "bullets": [
+                "Mapeo corporal de lunares",
+                "Dermatoscopia de alta resolucion",
+                "Evaluacion de asimetria y bordes",
+                "Registro fotografico evolutivo"
+            ],
+            "process": [
+                "Revision completa de la piel",
+                "Analisis de patrones dermatoscopicos",
+                "Identificacion de lesiones de riesgo",
+                "Plan de seguimiento preventivo o biopsia"
+            ],
+            "faq": [
+                "Duele el examen de tamizaje?",
+                "Con que frecuencia debo realizar el mapeo?",
+                "Que pasa si un lunar es sospechoso?"
+            ],
+            "related": ["cancer-piel", "diagnostico-integral"],
+            "faqAnswers": [
+                "No. El examen es no invasivo, indoloro y no requiere preparacion ni tiempo de recuperacion.",
+                "Suele recomendarse una revision anual, o cada 6 meses cuando hay antecedentes personales o familiares de cancer de piel.",
+                "Si la dermatoscopia sugiere riesgo, se planifica retiro o biopsia para revisarlo con histopatologia."
+            ],
+            "cardAssetId": "v6-clinic-diagnostico-integral",
+            "cardAlt": "Lectura inicial dermatologica con foco preventivo",
+            "statementAssetId": "v6-clinic-statement-clinical-direction",
+            "statementAlt": "Direccion clinica dermatologica con lectura estructurada"
+        },
+        {
+            "slug": "teledermatologia",
+            "category": "Teledermatologia",
+            "title": "Teledermatologia",
+            "summary": "Consulta remota con proceso paso a paso e integracion directa por WhatsApp para orientar adecuadamente la atencion.",
+            "heroImage": "/images/optimized/v6-clinic-telemedicine-intake.webp",
+            "heroAlt": "Teledermatologia con revision clinica de imagenes",
+            "lead": "La teledermatologia funciona mejor cuando el caso puede ordenarse con fotos, tiempos de evolucion y una decision clara sobre el siguiente paso.",
+            "bullets": [
+                "Revision paso a paso por WhatsApp",
+                "Evaluacion de fotografias clinicas",
+                "Seguimiento de evolucion a distancia",
+                "Prescripcion y orientacion remota"
+            ],
+            "process": [
+                "Integracion inicial por WhatsApp",
+                "Envio agil de historia y fotos",
+                "Evaluacion clinica a distancia",
+                "Prescripcion electronica o cita"
+            ],
+            "faq": [
+                "Que conviene preparar antes de enviar fotos?",
+                "Cuando basta el manejo remoto y cuando conviene ir a consulta?",
+                "Cuando suele revisarse la evolucion inicial?"
+            ],
+            "related": ["diagnostico-integral", "acne-rosacea"],
+            "faqAnswers": [
+                "Ayuda contar con buena luz, fotos cercanas y una foto mas abierta, ademas de un resumen corto de sintomas, tiempo de evolucion y medicamentos actuales.",
+                "Sirve bien para acne, dermatitis, pigmento y varios controles. Pasamos a consulta cuando hace falta examinar de cerca, tocar la lesion o usar dermatoscopia.",
+                "Muchos casos se revisan de nuevo entre 3 y 6 semanas, o antes si hay dolor, sangrado o empeoramiento rapido."
+            ],
+            "cardAssetId": "v6-clinic-telemedicine-intake",
+            "cardAlt": "Inicio de teledermatologia con contexto clinico e imagenes",
+            "statementAssetId": "v6-clinic-statement-clinical-direction",
+            "statementAlt": "Direccion clinica dermatologica con lectura estructurada"
         }
     ]
 }
