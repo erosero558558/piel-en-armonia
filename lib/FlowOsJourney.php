@@ -719,6 +719,7 @@ function flow_os_build_case_journey_snapshot(array $case, array $approvals = [],
         'activeHelpRequestId' => $summary['activeHelpRequestId'] ?? null,
         'next' => isset($stage['next']) && is_array($stage['next']) ? array_values($stage['next']) : [],
         'nextActionLabel' => is_array($nextAction) ? trim((string) ($nextAction['label'] ?? '')) : '',
+        'nextActions' => $actions,
         'alerts' => flow_os_case_alerts($case),
     ];
 }
@@ -861,7 +862,7 @@ function flow_os_resolve_next_actions(string $stageId, array $context = []): arr
     if (($context['missingIdentity'] ?? false) === true) {
         return [[
             'id' => 'request_identity_completion',
-            'label' => 'Completar identidad del paciente',
+            'label' => 'Solicitar datos de identidad',
             'actor' => 'frontdesk',
             'priority' => 'high',
         ]];
@@ -873,13 +874,13 @@ function flow_os_resolve_next_actions(string $stageId, array $context = []): arr
     );
     $defaultActions = $defaultActionsMap[$stageId] ?? [];
     $labels = [
-        'request_identity_completion' => 'Completar identidad del paciente',
+        'request_identity_completion' => 'Solicitar datos de identidad',
         'offer_preconsultation_form' => 'Enviar formulario de preconsulta',
         'review_intake_summary' => 'Revisar resumen de preconsulta',
         'offer_best_slot' => 'Ofrecer mejor horario disponible',
         'confirm_appointment' => 'Confirmar cita',
         'prepare_chart' => 'Preparar resumen clínico',
-        'deliver_care_plan' => 'Entregar plan de cuidado',
+        'deliver_care_plan' => 'Enviar plan al paciente',
         'schedule_follow_up' => 'Agendar seguimiento',
         'request_progress_update' => 'Solicitar actualización de evolución',
         'review_follow_up_signals' => 'Revisar señales de seguimiento',

@@ -1,4 +1,5 @@
 import {
+    createToast,
     escapeHtml,
     qs,
     setHtml,
@@ -250,6 +251,65 @@ function journeyStageTone(item) {
         : 'neutral';
 }
 
+function normalizeJourneyActions(item) {
+    const listedActions = Array.isArray(item?.nextActions)
+        ? item.nextActions
+              .filter((action) => action && String(action.label || '').trim())
+              .map((action, index) => ({
+                  id: String(action.id || `journey-action-${index + 1}`).trim(),
+                  label: String(action.label || '').trim(),
+              }))
+        : [];
+
+    if (listedActions.length > 0) {
+        return listedActions;
+    }
+
+    const fallbackLabel = String(item?.nextActionLabel || '').trim();
+    return fallbackLabel
+        ? [
+              {
+                  id: 'journey-action-fallback',
+                  label: fallbackLabel,
+              },
+          ]
+        : [];
+}
+
+function journeyActionTone(actionId, index) {
+    const normalizedActionId = String(actionId || '').trim();
+    if (
+        normalizedActionId === 'deliver_care_plan' ||
+        normalizedActionId === 'request_identity_completion'
+    ) {
+        return 'primary';
+    }
+
+    if (index === 0) {
+        return 'primary';
+    }
+
+    return normalizedActionId === 'offer_preconsultation_form'
+        ? 'accent'
+        : 'secondary';
+}
+
+function journeyActionFeedback(actionId, patientLabel, actionLabel) {
+    const label = patientLabel ? `${patientLabel}: ` : '';
+    switch (String(actionId || '').trim()) {
+        case 'request_identity_completion':
+            return `${label}checklist de identidad listo para recepción.`;
+        case 'offer_preconsultation_form':
+            return `${label}formulario de preconsulta listo para compartir.`;
+        case 'deliver_care_plan':
+            return `${label}plan listo para enviar al paciente.`;
+        case 'schedule_follow_up':
+            return `${label}seguimiento listo para coordinar.`;
+        default:
+            return `${label}acción preparada: ${actionLabel}.`;
+    }
+}
+
 function buildJourneyTrack(item, stages) {
     const currentStageId = String(item?.displayStage || item?.stage || '').trim();
     const currentIndex = stages.findIndex((stage) => {
@@ -464,6 +524,7 @@ function buildJourneyList(journeyPreview) {
                     </div>
                     ${buildJourneyTrack(item, stages)}
                     ${buildJourneyAlerts(item)}
+                    ${buildJourneyActions(item)}
                 </article>
             `;
         })
@@ -603,8 +664,81 @@ function bindJourneyBoard() {
     });
 }
 
+function buildJourneyActions(item) {
+    const actions = normalizeJourneyActions(item);
+    if (actions.length === 0) {
+        return '';
+    }
+
+    return `
+        <div class="dashboard-journey-item__actions" aria-label="Acciones sugeridas de Flow OS">
+            ${actions
+                .map(
+                    (action, index) => `
+                <button
+                    type="button"
+                    class="dashboard-journey-action"
+                    data-state="${escapeHtml(
+                        journeyActionTone(action.id, index)
+                    )}"
+                    data-journey-action="${escapeHtml(action.id)}"
+                    data-patient="${escapeHtml(String(item.patientId || ''))}"
+                    data-patient-label="${escapeHtml(
+                        String(item.patientLabel || '').trim()
+                    )}"
+                >
+                    ${escapeHtml(action.label)}
+                </button>
+            `
+                )
+                .join('')}
+        </div>
+    `;
+}
+
+function bindJourneyTimeline() {
+    const timeline = qs('#dashboardJourneyTimeline');
+    if (!(timeline instanceof HTMLElement) || timeline.dataset.bound === 'true') {
+        return;
+    }
+
+    timeline.dataset.bound = 'true';
+    timeline.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+
+        const btn = target.closest('[data-journey-action]');
+        if (!(btn instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        const actionId = String(btn.dataset.journeyAction || '').trim();
+        if (!actionId) {
+            return;
+        }
+
+        const actionLabel = btn.textContent.trim();
+        const patientLabel = String(btn.dataset.patientLabel || '').trim();
+        createToast(
+            journeyActionFeedback(actionId, patientLabel, actionLabel),
+            'success'
+        );
+
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Listo';
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }, 1200);
+    });
+}
+
 export function setFlowMetrics(state) {
     bindJourneyBoard();
+    bindJourneyTimeline();
     const {
         availabilityDays,
         calledTickets,

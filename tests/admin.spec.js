@@ -642,7 +642,17 @@ test.describe('Panel de administracion', () => {
                             stageLabel: 'Lead captado',
                             ownerLabel: 'Recepcion',
                             timeInStageMs: 3 * 60 * 60 * 1000,
-                            nextActionLabel: 'Enviar formulario de preconsulta',
+                            nextActionLabel: 'Solicitar datos de identidad',
+                            nextActions: [
+                                {
+                                    id: 'request_identity_completion',
+                                    label: 'Solicitar datos de identidad',
+                                },
+                                {
+                                    id: 'offer_preconsultation_form',
+                                    label: 'Enviar formulario de preconsulta',
+                                },
+                            ],
                             alerts: [],
                         },
                         {
@@ -656,6 +666,16 @@ test.describe('Panel de administracion', () => {
                             ownerLabel: 'Agenda',
                             timeInStageMs: 2 * 60 * 60 * 1000,
                             nextActionLabel: 'Confirmar cita',
+                            nextActions: [
+                                {
+                                    id: 'confirm_appointment',
+                                    label: 'Confirmar cita',
+                                },
+                                {
+                                    id: 'prepare_chart',
+                                    label: 'Preparar resumen clinico',
+                                },
+                            ],
                             alerts: [],
                         },
                         {
@@ -668,7 +688,17 @@ test.describe('Panel de administracion', () => {
                             stageLabel: 'Plan de cuidado listo',
                             ownerLabel: 'Clinico',
                             timeInStageMs: 3 * 60 * 60 * 1000,
-                            nextActionLabel: 'Entregar plan de cuidado',
+                            nextActionLabel: 'Enviar plan al paciente',
+                            nextActions: [
+                                {
+                                    id: 'deliver_care_plan',
+                                    label: 'Enviar plan al paciente',
+                                },
+                                {
+                                    id: 'schedule_follow_up',
+                                    label: 'Agendar seguimiento',
+                                },
+                            ],
                             alerts: ['1 aprobacion(es) pendiente(s)'],
                         },
                         {
@@ -682,6 +712,12 @@ test.describe('Panel de administracion', () => {
                             ownerLabel: 'Seguimiento',
                             timeInStageMs: 80 * 60 * 60 * 1000,
                             nextActionLabel: 'Solicitar actualizacion de evolucion',
+                            nextActions: [
+                                {
+                                    id: 'request_progress_update',
+                                    label: 'Solicitar actualizacion de evolucion',
+                                },
+                            ],
                             alerts: [],
                         },
                     ],
@@ -743,6 +779,16 @@ test.describe('Panel de administracion', () => {
         await expect(page.locator('#dashboardJourneyTimeline')).not.toContainText(
             'Ana Ruiz'
         );
+        await expect(
+            page.locator(
+                '#dashboardJourneyTimeline [data-journey-action="request_identity_completion"]'
+            )
+        ).toContainText('Solicitar datos de identidad');
+        await expect(
+            page.locator(
+                '#dashboardJourneyTimeline [data-journey-action="offer_preconsultation_form"]'
+            )
+        ).toContainText('Enviar formulario de preconsulta');
 
         await page.locator('[data-journey-stage-filter="follow_up"]').click();
         await expect(page.locator('#dashboardJourneyFilterLabel')).toContainText(
@@ -756,6 +802,21 @@ test.describe('Panel de administracion', () => {
         );
         await expect(page.locator('#dashboardJourneySlaSummary')).toContainText(
             '1 caso(s) con alerta SLA'
+        );
+
+        await page.locator('[data-journey-stage-filter="care_plan"]').click();
+        await expect(page.locator('#dashboardJourneyTimeline')).toContainText(
+            'Luis Perez'
+        );
+        const deliverCarePlanButton = page.locator(
+            '#dashboardJourneyTimeline [data-journey-action="deliver_care_plan"]'
+        );
+        await expect(deliverCarePlanButton).toContainText(
+            'Enviar plan al paciente'
+        );
+        await deliverCarePlanButton.click();
+        await expect(page.locator('#toastContainer')).toContainText(
+            'Luis Perez: plan listo para enviar al paciente.'
         );
     });
 

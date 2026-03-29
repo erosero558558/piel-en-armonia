@@ -1154,6 +1154,38 @@ body.admin-v3-mode .dashboard-journey-alerts {
     gap: 10px;
 }
 
+body.admin-v3-mode .dashboard-journey-item__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+body.admin-v3-mode .dashboard-journey-action {
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--admin3-line);
+    background: rgba(255, 255, 255, 0.04);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+body.admin-v3-mode .dashboard-journey-action[data-state='primary'] {
+    border-color: rgba(110, 168, 255, 0.34);
+    background: rgba(110, 168, 255, 0.16);
+}
+
+body.admin-v3-mode .dashboard-journey-action[data-state='accent'] {
+    border-color: rgba(58, 167, 109, 0.3);
+    background: rgba(58, 167, 109, 0.14);
+}
+
+body.admin-v3-mode .dashboard-journey-action[data-state='secondary'] {
+    color: rgba(255, 255, 255, 0.86);
+}
+
 body.admin-v3-mode .dashboard-journey-track {
     display: grid;
     grid-template-columns: repeat(6, minmax(92px, 1fr));
