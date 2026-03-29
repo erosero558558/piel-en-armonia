@@ -565,13 +565,13 @@ Si falla la gobernanza, el pipeline debe bloquear merge.
 
 ### P0 — Bloqueantes
 
-- [ ] **P0-01** Reemplazar imagen de Plataforma Láser — `images/optimized/service-laser.webp` muestra un CEREBRO. La imagen correcta (procedimiento láser) ya fue generada. Convertir a webp y reemplazar. Verificar en browser.
-- [ ] **P0-02** Reparar slider Before/After — sección "Transformación Documentada" en `index.html` muestra cajas grises. Diagnosticar rutas de imágenes del slider y arreglar.
-- [ ] **P0-03** Smoke test producción — `curl -sS -o /dev/null -w "%{http_code}" https://pielarmonia.com/` y `/api.php?resource=queue-state` y `/admin.html`. Si 200→GREEN. Si 502→reportar.
+- [x] **P0-01** Reemplazar imagen de Plataforma Láser — `images/optimized/service-laser.webp` muestra un CEREBRO. La imagen correcta (procedimiento láser) ya fue generada. Convertir a webp y reemplazar. Verificar en browser.
+- [x] **P0-02** Reparar slider Before/After — sección "Transformación Documentada" en `index.html` muestra cajas grises. Diagnosticar rutas de imágenes del slider y arreglar.
+- [x] **P0-03** Smoke test producción — `curl -sS -o /dev/null -w "%{http_code}" https://pielarmonia.com/` y `/api.php?resource=queue-state` y `/admin.html`. Si 200→GREEN. Si 502→reportar.
 
 ### P1 — Frontend / Sitio Público
 
-- [ ] **FE-01** Crear `es/servicios/teledermatologia/index.html` — **el footer ya la enlaza y da 404**. Copiar estructura de `es/servicios/diagnostico-integral/index.html`. Contenido: consulta remota, proceso paso a paso, integración WhatsApp.
+- [x] **FE-01** Crear `es/servicios/teledermatologia/index.html` — **el footer ya la enlaza y da 404**. Copiar estructura de `es/servicios/diagnostico-integral/index.html`. Contenido: consulta remota, proceso paso a paso, integración WhatsApp.
 - [ ] **FE-02** Crear `es/servicios/tamizaje-oncologico/index.html` — dermatoscopia digital, mapeo de lunares, seguimiento periódico.
 - [ ] **FE-03** Crear `es/servicios/manchas/index.html` — melasma, manchas solares, peelings, láser, fototipos Fitzpatrick.
 - [ ] **FE-04** Crear `es/servicios/depilacion-laser/index.html` — tecnología Alexandrita/diodo, tipos de piel, sesiones, cuidados post.
@@ -629,3 +629,91 @@ Si falla la gobernanza, el pipeline debe bloquear merge.
 - [ ] **CLEAN-04** Fix bioestimuladores link — footer enlaza a `/es/servicios/bioestimuladores/` pero la página real es `/es/servicios/bioestimuladores-colageno/`. Arreglar href o crear redirect.
 - [ ] **CLEAN-05** Eliminar markdown muerto de raíz — `CALENDAR-CUTOVER.md`, `CHECKLIST-PRUEBAS-PRODUCCION.md`, `DESPLIEGUE-PIELARMONIA.md`, `GITHUB-ACTIONS-DEPLOY.md`, `SECURITY_AUDIT.md`, `SERVIDOR-LOCAL.md` — mover a `docs/` si útil o a `_archive/` si obsoleto.
 - [ ] **CLEAN-06** Service worker audit — `sw.js` puede estar cacheando assets viejos. Verificar que la lista de cache refleja los archivos actuales.
+
+### P1 — Adquisición de Pacientes
+
+- [ ] **ACQ-01** Google My Business — crear/optimizar ficha: nombre "Aurora Derm — Clínica Dermatológica", categoría "Dermatólogo", fotos del consultorio, horarios reales, teléfono, enlace WhatsApp, enlace al sitio. Pedir reseñas a pacientes actuales.
+- [ ] **ACQ-02** Landing page para Google Ads — crear `es/landing/consulta-dermatologica/index.html` optimizada para conversión: sin navegación, solo headline + beneficios + CTA WhatsApp + formulario. Tracking de conversión incluido.
+- [ ] **ACQ-03** Landing page acné — crear `es/landing/tratamiento-acne-quito/index.html` enfocada en keyword "tratamiento acné Quito". Hero con antes/después, 3 beneficios, precio desde, CTA WhatsApp.
+- [ ] **ACQ-04** Landing page láser — crear `es/landing/laser-dermatologico-quito/index.html` enfocada en "láser dermatológico Quito". Mismo formato.
+- [ ] **ACQ-05** Landing page manchas — crear `es/landing/eliminar-manchas-quito/index.html` enfocada en "quitar manchas cara Quito". Mismo formato.
+- [ ] **ACQ-06** Página de primera consulta — crear `es/primera-consulta/index.html`: qué esperar, qué traer, duración, costo, preparación. Reduce la ansiedad del paciente nuevo.
+- [ ] **ACQ-07** Programa de referidos — crear `es/referidos/index.html`: explicar beneficio por cada paciente referido (descuento en siguiente procedimiento). CTA: "Comparte tu link de referido".
+- [ ] **ACQ-08** Schema LocalBusiness + Review — agregar structured data `LocalBusiness` con aggregateRating en `index.html`. Las estrellas aparecen en Google Search.
+
+### P1 — Confianza y Credenciales
+
+- [ ] **TRUST-01** Página de certificaciones — crear `es/certificaciones/index.html` con logos y links verificables: MSP Ecuador, S.E.D., Board Internacional, certificaciones láser.
+- [ ] **TRUST-02** Badges visuales en hero — agregar badges "MSP Certificado", "10+ años experiencia", "2000+ pacientes" en la sección hero de `index.html` con micro-animación.
+- [ ] **TRUST-03** Página de instalaciones — crear `es/instalaciones/index.html` con galería fotográfica del consultorio: recepción, salas de procedimiento, equipos, sala de espera. Transmite profesionalismo.
+- [ ] **TRUST-04** Video tour embed — grabar o generar video de 60s del consultorio. Embed en `es/instalaciones/` y en `index.html` sección "Conozca nuestra clínica".
+- [ ] **TRUST-05** Publicaciones científicas — crear `es/publicaciones/index.html` listando papers, conferencias, apariciones en medios de los doctores.
+- [ ] **TRUST-06** Convenios de seguros — crear `es/seguros/index.html` listando aseguradoras aceptadas, proceso de reembolso, documentación necesaria.
+
+### P1 — Experiencia del Paciente Digital
+
+- [ ] **PAT-01** Formulario de pre-consulta — crear `es/pre-consulta/index.html` con formulario: nombre, email, teléfono, tipo de piel, condición principal, fotos (upload). Envío a WhatsApp del coordinador.
+- [ ] **PAT-02** Guías post-tratamiento — crear `es/guias/` con páginas por procedimiento: `post-laser.html`, `post-peeling.html`, `post-bioestimuladores.html`, `post-botox.html`. Cuidados paso a paso, qué esperar, cuándo llamar.
+- [ ] **PAT-03** Calculadora de tratamiento — componente interactivo en JS: el paciente selecciona condición → zona → severidad → ve estimado de sesiones y rango de precio. Embed en páginas de servicio.
+- [ ] **PAT-04** Sistema de citas online — crear `es/agendar/index.html` con calendario visual de disponibilidad. Integración con Google Calendar API del backend.
+- [ ] **PAT-05** Recordatorio de cita por WhatsApp — backend endpoint que envía mensaje 24h antes de la cita. Template: "Hola [nombre], le recordamos su cita mañana a las [hora] en Aurora Derm."
+- [ ] **PAT-06** Encuesta de satisfacción —crear `es/encuesta/index.html` post-consulta: 5 preguntas (1-5 estrellas), campo de comentario, opción de publicar como testimonial.
+- [ ] **PAT-07** Portal de resultados del paciente — extender `admin.html` con vista paciente: historial de tratamientos, fotos de progreso, próximas citas, guías asignadas.
+
+### P2 — PWA y Performance
+
+- [ ] **PWA-01** Manifest fix — actualizar `manifest.json`: name="Aurora Derm", icons correctos, theme_color acorde al dark mode (#0a0a0f), screenshots del sitio.
+- [ ] **PWA-02** Offline fallback — actualizar `sw.js` para cachear: index.html, CSS principal, fonts, hero image. Mostrar página offline branded si no hay red.
+- [ ] **PWA-03** Push notifications — implementar subscripción a notificaciones push. Casos: recordatorio de cita, promociones, contenido educativo.
+- [ ] **PWA-04** App install prompt — agregar banner "Instalar Aurora Derm" en mobile cuando el usuario ha visitado 2+ veces. Custom prompt, no el default del browser.
+- [ ] **PWA-05** Image lazy loading — agregar `loading="lazy"` a todas las `<img>` debajo del fold en `index.html` y páginas de servicio. Medir impacto en LCP.
+- [ ] **PWA-06** CSS critical path — extraer CSS above-the-fold e inlinear en `<head>`. Cargar `styles-deferred.css` con `media="print" onload="this.media='all'"`.
+- [ ] **PWA-07** Font optimization — verificar que `fraunces.woff2` y `plus-jakarta-sans.woff2` usan `font-display: swap` y preload en `<head>`.
+
+### P2 — Analytics e Inteligencia
+
+- [ ] **ANA-01** Conversion funnel — definir y trackear embudo: visita → scroll servicios → click WhatsApp → mensaje enviado. Eventos GA4 en cada paso.
+- [ ] **ANA-02** Heatmap integration — agregar Microsoft Clarity (gratis) o Hotjar: `<script>` tag en `index.html`. Analizar dónde hacen click, hasta dónde scrollean, dónde abandonan.
+- [ ] **ANA-03** UTM builder — crear `es/utm/index.html` interna (no public) para generar links con UTM parameters para campañas de Instagram, Google, referidos.
+- [ ] **ANA-04** WhatsApp click tracking — cada `href="https://wa.me/..."` debe disparar `gtag('event', 'whatsapp_click', {service: 'acne'})`. Agregar `onclick` handler a todos los CTAs.
+- [ ] **ANA-05** Dashboard de conversiones — crear vista en `admin.html` que muestre: visitas/día, clicks WhatsApp/día, fuente de tráfico, top servicios visitados. Datos desde GA4 API o server-side logs.
+
+### P2 — Contenido Educativo y SEO Long-tail
+
+- [ ] **EDU-01** Blog: "Cómo elegir dermatólogo en Quito" — `es/blog/como-elegir-dermatologo-quito/index.html`. SEO keyword focus. 1500+ palabras, H2s con keywords, internal links a servicios.
+- [ ] **EDU-02** Blog: "5 señales de alarma en lunares" — `es/blog/senales-alarma-lunares/index.html`. Link a tamizaje oncológico.
+- [ ] **EDU-03** Blog: "Guía de protección solar en Ecuador" — `es/blog/proteccion-solar-ecuador/index.html`. Fototipos, SPF, altitud de Quito, recomendaciones.
+- [ ] **EDU-04** Blog: "Acné adulto: causas y tratamiento" — `es/blog/acne-adulto-causas-tratamiento/index.html`. Link a página de acné.
+- [ ] **EDU-05** Blog: "Melasma y embarazo: qué hacer" — `es/blog/melasma-embarazo/index.html`. Link a página de manchas.
+- [ ] **EDU-06** Blog: "Bioestimuladores vs rellenos: diferencias" — `es/blog/bioestimuladores-vs-rellenos/index.html`. Link a ambos servicios.
+- [ ] **EDU-07** Blog index page — crear `es/blog/index.html` con grid de artículos, categorías, buscador. Estilo consistente con el sitio principal.
+- [ ] **EDU-08** Blog RSS feed — crear `es/blog/feed.xml` para que Google News y lectores RSS indexen el contenido.
+
+### P2 — Revenue y Paquetes
+
+- [ ] **REV-01** Página de paquetes — crear `es/paquetes/index.html`: combos de tratamiento con descuento. Ej: "Plan Piel Perfecta" (3 sesiones laser + peeling + consulta follow-up). Precio visible.
+- [ ] **REV-02** Página de financiamiento — crear `es/financiamiento/index.html`: opciones de pago en cuotas, tarjetas aceptadas, alianzas con bancos ecuatorianos.
+- [ ] **REV-03** Gift cards — crear `es/gift-cards/index.html`: tarjetas de regalo para tratamientos. Montos predefinidos ($50, $100, $200) o personalizado. Generación de código + PDF descargable.
+- [ ] **REV-04** Promociones estacionales — crear `es/promociones/index.html`: template para ofertas rotativas. Mes de la piel, Día de la Madre, Black Friday médico, etc.
+- [ ] **REV-05** Programa de membresía — crear `es/membresia/index.html`: plan mensual con beneficios (consultas priority, descuentos en procedimientos, acceso a contenido exclusivo).
+
+### P3 — Internacionalización y Multi-plataforma
+
+- [ ] **i18n-01** Sincronizar `en/index.html` con versión ES actual — hero, servicios, equipo, CTA, footer. Traducción profesional, no literal.
+- [ ] **i18n-02** Crear páginas de servicio EN — replicar las 13 specialty pages en `en/services/`.
+- [ ] **i18n-03** Hreflang tags — agregar `<link rel="alternate" hreflang="es"...>` y `<link rel="alternate" hreflang="en"...>` en todas las páginas con equivalente.
+- [ ] **i18n-04** Sitemap multilingual — actualizar `sitemap.xml` con `xhtml:link` alternates para ES/EN.
+
+### P3 — Integración con Redes Sociales
+
+- [ ] **SOC-01** Instagram feed embed — agregar sección en `index.html` con últimas 6 publicaciones de Instagram. Usar API oficial o widget embed.
+- [ ] **SOC-02** WhatsApp Business widget — reemplazar el botón flotante actual por el widget oficial de WhatsApp Business con mensaje pre-llenado y horario de atención.
+- [ ] **SOC-03** Open Graph images por servicio — crear imagen OG (1200x630) para cada página de servicio. Cuando alguien comparte el link, se ve la imagen con título y logo.
+- [ ] **SOC-04** Facebook Pixel — agregar pixel de Facebook/Meta en `index.html` para retargeting de ads. Events: PageView, Lead (click WhatsApp), ViewContent (página servicio).
+
+### P3 — Compliance y Legal
+
+- [ ] **LEG-01** Cookies banner — implementar banner de consentimiento de cookies GDPR-like (buenas prácticas aunque Ecuador no lo exige aún). Controlar carga de GA4 y pixels hasta aceptación.
+- [ ] **LEG-02** Política de datos personales — actualizar `es/legal/privacidad/index.html` con: qué datos se recolectan (formularios, analytics), cómo se usan, cómo solicitar eliminación.
+- [ ] **LEG-03** Consentimiento informado digital — crear template de consentimiento para procedimientos (`es/consentimiento/`) que el paciente pueda revisar antes de la cita.
+- [ ] **LEG-04** Disclaimer médico visible — agregar disclaimer claro en cada página de servicio: "Los resultados varían según cada paciente. Consulte con nuestro especialista."
