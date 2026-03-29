@@ -169,6 +169,24 @@ const SEO_CASES = [
         otherLocalePath: null,
         xDefaultPath: '/es/blog/acne-adulto/',
     },
+    {
+        path: '/es/blog/melasma-embarazo/',
+        canonicalPath: '/es/blog/melasma-embarazo/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/blog/melasma-embarazo/',
+        otherLocale: 'en',
+        otherLocalePath: null,
+        xDefaultPath: '/es/blog/melasma-embarazo/',
+    },
+    {
+        path: '/es/blog/bioestimuladores-vs-rellenos/',
+        canonicalPath: '/es/blog/bioestimuladores-vs-rellenos/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/blog/bioestimuladores-vs-rellenos/',
+        otherLocale: 'en',
+        otherLocalePath: null,
+        xDefaultPath: '/es/blog/bioestimuladores-vs-rellenos/',
+    },
 ];
 
 function absolute(pathname) {

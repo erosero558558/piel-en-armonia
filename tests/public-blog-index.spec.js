@@ -16,9 +16,9 @@ test.describe('Public blog index', () => {
         await expect(page.locator('[data-v6-page-head] h1')).toHaveText(
             'Blog dermatologico para decidir mejor'
         );
-        await expect(page.locator('[data-v6-blog-chip]')).toHaveCount(4);
+        await expect(page.locator('[data-v6-blog-chip]')).toHaveCount(5);
         await expect(page.locator('[data-v6-blog-card]')).toHaveCount(6);
-        await expect(page.locator('[data-v6-blog-track]')).toHaveCount(4);
+        await expect(page.locator('[data-v6-blog-track]')).toHaveCount(5);
         await expect(
             page.locator('[data-v6-page-head] .v6-corp-head__lang-option[href]')
         ).toHaveCount(0);
@@ -50,6 +50,20 @@ test.describe('Public blog index', () => {
         await expect(
             page.locator('[data-v6-blog-card]').nth(3).locator('strong')
         ).toContainText('Leer articulo');
+        await expect(page.locator('[data-v6-blog-card]').nth(4).locator('a')).toHaveAttribute(
+            'href',
+            '/es/blog/melasma-embarazo/'
+        );
+        await expect(
+            page.locator('[data-v6-blog-card]').nth(4).locator('strong')
+        ).toContainText('Leer articulo');
+        await expect(page.locator('[data-v6-blog-card]').nth(5).locator('a')).toHaveAttribute(
+            'href',
+            '/es/blog/bioestimuladores-vs-rellenos/'
+        );
+        await expect(
+            page.locator('[data-v6-blog-card]').nth(5).locator('strong')
+        ).toContainText('Leer articulo');
 
         const whatsappHref = await page
             .locator('[data-v6-booking-status] a')
@@ -59,7 +73,7 @@ test.describe('Public blog index', () => {
 
         await waitForBookingStatus(
             page,
-            'Mientras publicamos las siguientes guias, podemos orientarle hoy'
+            'Si una de estas guias ya le ayudo a ubicar su caso, le orientamos hoy'
         );
     });
 });

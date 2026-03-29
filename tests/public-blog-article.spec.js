@@ -198,4 +198,102 @@ test.describe('Public blog article', () => {
             'Si su acne adulto sigue activo o ya le esta dejando marcas, le ayudamos a ordenar la ruta'
         );
     });
+
+    test('renders the pregnancy melasma guide with manchas routing and WhatsApp CTA', async ({
+        page,
+    }) => {
+        await gotoPublicRoute(page, '/es/blog/melasma-embarazo/');
+        await waitForShellV6Runtime(page);
+        await expectNoLegacyPublicShell(page);
+
+        await expect(page.locator('[data-v6-page-head] h1')).toHaveText(
+            'Melasma y embarazo: que hacer con las manchas'
+        );
+
+        const sectionCount = await page.locator('[data-v6-blog-article-section]').count();
+        expect(sectionCount).toBeGreaterThanOrEqual(7);
+        await expect(
+            page.locator('[data-v6-page-head] .v6-corp-head__lang-option[href]')
+        ).toHaveCount(0);
+
+        const wordCount = await page.locator('[data-v6-blog-article-body]').evaluate((node) => {
+            const text = node.textContent || '';
+            return text
+                .split(/\s+/)
+                .map((word) => word.trim())
+                .filter(Boolean).length;
+        });
+        expect(wordCount).toBeGreaterThan(1500);
+
+        const serviceLinks = await page
+            .locator('[data-v6-blog-article-body] a')
+            .evaluateAll((links) =>
+                Array.from(new Set(links.map((link) => link.getAttribute('href') || ''))).filter(
+                    Boolean
+                )
+            );
+        expect(serviceLinks).toContain('/es/servicios/manchas/');
+        expect(serviceLinks).toContain('/es/servicios/diagnostico-integral/');
+        expect(serviceLinks).toContain('/es/telemedicina/');
+
+        const whatsappHref = await page
+            .locator('[data-v6-booking-status] a')
+            .getAttribute('href');
+        expect(whatsappHref || '').toContain('wa.me/593982453672');
+        expect(whatsappHref || '').toContain('text=');
+
+        await waitForBookingStatus(
+            page,
+            'Si el melasma en embarazo ya le esta preocupando, le ayudamos a ordenar la ruta'
+        );
+    });
+
+    test('renders the injectables comparison guide with both service routes and WhatsApp CTA', async ({
+        page,
+    }) => {
+        await gotoPublicRoute(page, '/es/blog/bioestimuladores-vs-rellenos/');
+        await waitForShellV6Runtime(page);
+        await expectNoLegacyPublicShell(page);
+
+        await expect(page.locator('[data-v6-page-head] h1')).toHaveText(
+            'Bioestimuladores vs rellenos: diferencias'
+        );
+
+        const sectionCount = await page.locator('[data-v6-blog-article-section]').count();
+        expect(sectionCount).toBeGreaterThanOrEqual(7);
+        await expect(
+            page.locator('[data-v6-page-head] .v6-corp-head__lang-option[href]')
+        ).toHaveCount(0);
+
+        const wordCount = await page.locator('[data-v6-blog-article-body]').evaluate((node) => {
+            const text = node.textContent || '';
+            return text
+                .split(/\s+/)
+                .map((word) => word.trim())
+                .filter(Boolean).length;
+        });
+        expect(wordCount).toBeGreaterThan(1500);
+
+        const serviceLinks = await page
+            .locator('[data-v6-blog-article-body] a')
+            .evaluateAll((links) =>
+                Array.from(new Set(links.map((link) => link.getAttribute('href') || ''))).filter(
+                    Boolean
+                )
+            );
+        expect(serviceLinks).toContain('/es/servicios/bioestimuladores-colageno/');
+        expect(serviceLinks).toContain('/es/servicios/rellenos-hialuronico/');
+        expect(serviceLinks).toContain('/es/servicios/diagnostico-integral/');
+
+        const whatsappHref = await page
+            .locator('[data-v6-booking-status] a')
+            .getAttribute('href');
+        expect(whatsappHref || '').toContain('wa.me/593982453672');
+        expect(whatsappHref || '').toContain('text=');
+
+        await waitForBookingStatus(
+            page,
+            'Si quiere decidir entre bioestimuladores y rellenos con mas criterio, le ayudamos a elegir la ruta'
+        );
+    });
 });
