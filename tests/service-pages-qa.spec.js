@@ -41,4 +41,22 @@ test.describe('Service detail conversion QA V6', () => {
             await waitForBookingStatus(page, item.bookingText);
         }
     });
+
+    test('Spanish service detail routes expose the standard results disclaimer in Astro and legacy surfaces', async ({
+        page,
+    }) => {
+        const routes = [
+            '/es/servicios/acne-rosacea/',
+            '/es/servicios/manchas/',
+        ];
+
+        for (const route of routes) {
+            await gotoPublicRoute(page, route);
+            await expect(
+                page.locator('[data-v6-service-results-disclaimer]')
+            ).toHaveText(
+                'Los resultados varían. Consulte a nuestro especialista.'
+            );
+        }
+    });
 });

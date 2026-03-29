@@ -332,6 +332,15 @@ function localizedIndexPages() {
     );
 }
 
+function spanishServiceDetailPages() {
+    return walkIndexPages(path.join(REPO_ROOT, 'es', 'servicios'))
+        .map((filePath) => ({
+            filePath,
+            relativePath: path.relative(REPO_ROOT, filePath).replace(/\\/g, '/'),
+        }))
+        .filter(({ relativePath }) => relativePath !== 'es/servicios/index.html');
+}
+
 function publicAnalyticsPages() {
     return [
         {
@@ -340,6 +349,12 @@ function publicAnalyticsPages() {
         },
         ...localizedIndexPages(),
     ];
+}
+
+function normalizeHtmlEntities(value) {
+    return String(value || '')
+        .replace(/&iacute;/gi, 'í')
+        .replace(/&#237;/g, 'í');
 }
 
 test.describe('Public SEO routing metadata', () => {
@@ -459,6 +474,18 @@ test.describe('Public SEO files', () => {
 
         for (const url of expectedUrls) {
             expect(feed).toContain(url);
+        }
+    });
+
+    test('all Spanish service detail pages publish the standard medical results disclaimer', async () => {
+        const disclaimer = 'Los resultados varían. Consulte a nuestro especialista.';
+
+        for (const { filePath, relativePath } of spanishServiceDetailPages()) {
+            const html = normalizeHtmlEntities(fs.readFileSync(filePath, 'utf8'));
+            expect(
+                html.includes(disclaimer),
+                `${relativePath} should include the standard results disclaimer`
+            ).toBeTruthy();
         }
     });
 

@@ -21,6 +21,11 @@ const FIX = process.argv.includes('--fix');
 
 function read(f) { return existsSync(f) ? readFileSync(f, 'utf8') : ''; }
 function fileExists(p) { return existsSync(resolve(ROOT, p)); }
+function normalizeHtmlEntities(value) {
+  return String(value || '')
+    .replace(/&iacute;/gi, 'í')
+    .replace(/&#237;/g, 'í');
+}
 function grep(pattern, file) {
   try {
     return execSync(`grep -c "${pattern}" "${resolve(ROOT, file)}" 2>/dev/null`, { encoding: 'utf8' }).trim() !== '0';
@@ -95,6 +100,24 @@ const checks = {
   'S2-15': () => fileExists('es/blog/melasma-embarazo/index.html'),
   'S2-16': () => fileExists('es/blog/bioestimuladores-vs-rellenos/index.html'),
   'S2-17': () => fileExists('es/blog/feed.xml'),
+  'S2-18': () => {
+    try {
+      const files = execSync(
+        `find "${resolve(ROOT, 'es/servicios')}" -mindepth 2 -maxdepth 2 -name "index.html"`,
+        { encoding: 'utf8' }
+      )
+        .split('\n')
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+      return files.length > 0 && files.every((file) =>
+        normalizeHtmlEntities(read(file)).includes(
+          'Los resultados varían. Consulte a nuestro especialista.'
+        )
+      );
+    } catch {
+      return false;
+    }
+  },
 
   'S2-19': () => {
     const idx = read(resolve(ROOT, 'index.html'));
