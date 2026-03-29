@@ -950,6 +950,7 @@ body.admin-v3-mode .appointments-focus-panel,
 body.admin-v3-mode .callbacks-next-panel,
 body.admin-v3-mode .reviews-spotlight-panel,
 body.admin-v3-mode .dashboard-card-operations,
+body.admin-v3-mode .dashboard-card-journey,
 body.admin-v3-mode #funnelSummary,
 body.admin-v3-mode .appointments-workbench,
 body.admin-v3-mode .callbacks-workbench,
@@ -995,11 +996,18 @@ body.admin-v3-mode .appointments-focus-panel,
 body.admin-v3-mode .callbacks-next-panel,
 body.admin-v3-mode .reviews-spotlight-panel,
 body.admin-v3-mode .dashboard-card-operations,
+body.admin-v3-mode .dashboard-card-journey,
 body.admin-v3-mode #funnelSummary,
 body.admin-v3-mode .appointments-workbench,
 body.admin-v3-mode .callbacks-workbench,
 body.admin-v3-mode .availability-container {
     box-shadow: var(--admin3-shadow);
+}
+
+body.admin-v3-mode .dashboard-card-journey {
+    display: grid;
+    gap: 16px;
+    grid-column: span 2;
 }
 
 body.admin-v3-mode .dashboard-signal-stack {
@@ -1383,6 +1391,37 @@ body.admin-v3-mode .operations-action-item {
 
 body.admin-v3-mode .dashboard-home-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+body.admin-v3-mode .dashboard-journey-list {
+    gap: 12px;
+}
+
+body.admin-v3-mode .dashboard-journey-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+}
+
+body.admin-v3-mode .dashboard-journey-item-copy {
+    min-width: 0;
+    display: grid;
+    gap: 6px;
+}
+
+body.admin-v3-mode .dashboard-journey-item-copy span {
+    font-weight: 600;
+}
+
+body.admin-v3-mode .dashboard-journey-item-copy small,
+body.admin-v3-mode .dashboard-journey-item-stamp {
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .dashboard-journey-item-stamp {
+    font-size: 0.85rem;
+    text-align: right;
 }
 
 body.admin-v3-mode .dashboard-home-card {
@@ -3200,6 +3239,10 @@ body.admin-v3-mode .clinical-media-flow-form-grid {
     }
 
     body.admin-v3-mode .callbacks-ops-card.wide {
+        grid-column: auto;
+    }
+
+    body.admin-v3-mode .dashboard-card-journey {
         grid-column: auto;
     }
 

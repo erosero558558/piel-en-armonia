@@ -15,6 +15,45 @@ export function renderDashboardOperationsGrid() {
                 <div id="operationActionList" class="operations-action-list"></div>
             </article>
 
+            <article class="sony-panel dashboard-card-journey">
+                <header>
+                    <div>
+                        <h3>Timeline Flow OS</h3>
+                        <small id="dashboardJourneyHistoryMeta">Transiciones recientes del patient journey.</small>
+                    </div>
+                    <span
+                        class="dashboard-signal-chip"
+                        id="dashboardJourneyHistoryChip"
+                        data-state="neutral"
+                    >
+                        Sin actividad
+                    </span>
+                </header>
+                <p id="dashboardJourneyHistorySummary">
+                    Cuando existan cambios de stage, Flow OS resumira aqui el historial reciente por paciente.
+                </p>
+                <div class="dashboard-signal-stack">
+                    <article class="dashboard-signal-card">
+                        <span>Caso foco</span>
+                        <strong id="dashboardJourneyFocusHeadline">Sin casos activos</strong>
+                        <small id="dashboardJourneyFocusMeta">
+                            El caso con actividad mas reciente aparecera aqui.
+                        </small>
+                    </article>
+                    <article class="dashboard-signal-card">
+                        <span>Etapa actual</span>
+                        <strong id="dashboardJourneyStageHeadline">Sin etapa</strong>
+                        <small id="dashboardJourneyStageMeta">
+                            El owner y la ultima transicion del caso foco se veran aqui.
+                        </small>
+                    </article>
+                </div>
+                <ul
+                    id="dashboardJourneyTimeline"
+                    class="sony-list dashboard-attention-list dashboard-journey-list"
+                ></ul>
+            </article>
+
             <article class="sony-panel dashboard-card-assistant" id="dashboardAssistantUtility">
                 <header>
                     <div>

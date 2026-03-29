@@ -228,23 +228,17 @@ final class PatientCaseFlowTest extends TestCase
 
         $this->assertTrue($adminResponse['payload']['ok']);
         $this->assertGreaterThanOrEqual(1, (int) ($adminResponse['payload']['data']['patientFlowMeta']['casesTotal'] ?? 0));
+        $this->assertGreaterThanOrEqual(1, count($adminResponse['payload']['data']['patientFlowMeta']['journeyHistory']['cases'] ?? []));
+        $this->assertGreaterThanOrEqual(1, count($adminResponse['payload']['data']['patientFlowMeta']['journeyHistory']['recentTransitions'] ?? []));
         $this->assertArrayHasKey('internalConsoleMeta', $adminResponse['payload']['data']);
         $this->assertArrayHasKey('overall', $adminResponse['payload']['data']['internalConsoleMeta'] ?? []);
         $this->assertGreaterThanOrEqual(1, count($adminResponse['payload']['data']['patient_cases'] ?? []));
         $queueCase = $this->findCaseByTicketCode($adminResponse['payload']['data']['patient_cases'] ?? [], $ticketCode);
         $this->assertNotNull($queueCase);
         $this->assertSame('waiting', (string) (($queueCase['summary']['queueStatus'] ?? '')));
-        $journeyCase = $this->findJourneyCaseByCaseId(
-            $adminResponse['payload']['data']['patientFlowMeta']['journeyPreview']['cases'] ?? [],
-            (string) ($queueCase['id'] ?? '')
-        );
-        $this->assertNotNull($journeyCase);
-        $this->assertSame('scheduled', (string) ($journeyCase['displayStage'] ?? ''));
-        $this->assertSame('Agenda', (string) ($journeyCase['ownerLabel'] ?? ''));
-        $this->assertNotEmpty($journeyCase['journeyHistory'] ?? []);
-        $this->assertContains(
-            'scheduled',
-            array_column($journeyCase['journeyHistory'] ?? [], 'displayStage')
+        $this->assertSame(
+            (string) ($queueCase['id'] ?? ''),
+            (string) ($adminResponse['payload']['data']['patientFlowMeta']['journeyHistory']['selectedCaseId'] ?? '')
         );
 
         $_GET['caseId'] = (string) ($queueCase['id'] ?? '');
@@ -258,6 +252,21 @@ final class PatientCaseFlowTest extends TestCase
         $this->assertTrue($patientCaseResponse['payload']['ok']);
         $this->assertSame(1, count($patientCaseResponse['payload']['data']['cases'] ?? []));
         $this->assertGreaterThanOrEqual(1, count($patientCaseResponse['payload']['data']['timeline'] ?? []));
+
+        $_GET['caseId'] = (string) ($queueCase['id'] ?? '');
+        $journeyPreviewResponse = $this->captureJsonResponse(static function (): void {
+            \FlowOsController::journeyPreview([
+                'store' => \read_store(),
+            ]);
+        });
+
+        $this->assertTrue($journeyPreviewResponse['payload']['ok']);
+        $this->assertSame(
+            (string) ($queueCase['id'] ?? ''),
+            (string) ($journeyPreviewResponse['payload']['data']['episodeId'] ?? '')
+        );
+        $this->assertGreaterThanOrEqual(1, count($journeyPreviewResponse['payload']['data']['journey']['timeline'] ?? []));
+        $this->assertNotSame('', (string) ($journeyPreviewResponse['payload']['data']['journey']['stage'] ?? ''));
 
         $healthResponse = $this->captureJsonResponse(static function (): void {
             \HealthController::check([

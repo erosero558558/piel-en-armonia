@@ -112,6 +112,7 @@ class AdminDataController
 
         $store['patientFlowMeta'] = $patientCaseService->buildSummary($store);
         $store['patientFlowMeta']['journeyPreview'] = flow_os_build_store_journey_preview($store);
+        $store['patientFlowMeta']['journeyHistory'] = flow_os_build_store_journey_history($store);
         $store['clinicalHistoryMeta'] = ClinicalHistoryOpsSnapshot::forAdmin(
             ClinicalHistoryOpsSnapshot::build($store)
         );
