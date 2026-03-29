@@ -181,7 +181,42 @@ const checks = {
         );
     },
 
-    'S2-21': () => fileExists('es/primera-consulta/index.html'),
+    'S2-21': () => {
+        const guide = normalizeHtmlEntities(
+            read(resolve(ROOT, 'es/primera-consulta/index.html'))
+        );
+        return (
+            guide.includes('Primera consulta en Aurora Derm') &&
+            guide.includes('45 min') &&
+            guide.includes('Que traer para aprovechar mejor la visita') &&
+            guide.includes(
+                'Llegue con tiempo y sin adivinar el ultimo tramo'
+            ) &&
+            guide.includes('Estacionamiento')
+        );
+    },
+    'S2-24': () => {
+        try {
+            const readSlugs = (localePath) =>
+                execSync(
+                    `find "${resolve(ROOT, localePath)}" -mindepth 2 -maxdepth 2 -name "index.html"`,
+                    { encoding: 'utf8' }
+                )
+                    .split('\n')
+                    .map((entry) => entry.trim())
+                    .filter(Boolean)
+                    .map((file) => file.split('/').slice(-2, -1)[0])
+                    .sort();
+            const esSlugs = readSlugs('es/servicios');
+            const enSlugs = readSlugs('en/services');
+            return (
+                JSON.stringify(esSlugs) === JSON.stringify(enSlugs) &&
+                !enSlugs.includes('bioestimuladores')
+            );
+        } catch {
+            return false;
+        }
+    },
 
     // ── Sprint 3 ─────────────────────────────────────────────────────────────
     'S3-05': () => fileExists('es/pre-consulta/index.html'),

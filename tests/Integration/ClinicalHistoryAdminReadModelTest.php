@@ -544,7 +544,10 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame('critical', (string) ($meta['summary']['diagnostics']['status'] ?? ''));
         self::assertCount(1, $meta['reviewQueue'] ?? []);
         self::assertSame('Paciente Clinico', (string) ($meta['reviewQueue'][0]['patientName'] ?? ''));
-        self::assertSame(['dose_ambiguous', 'low_confidence'], $meta['reviewQueue'][0]['reviewReasons'] ?? []);
+        self::assertSame(
+            ['dose_ambiguous', 'low_confidence', 'red_flags_present'],
+            $meta['reviewQueue'][0]['reviewReasons'] ?? []
+        );
         self::assertSame(2, (int) ($meta['reviewQueue'][0]['openEventCount'] ?? -1));
         self::assertSame('critical', (string) ($meta['reviewQueue'][0]['highestOpenSeverity'] ?? ''));
         self::assertSame('Alerta clinica abierta', (string) ($meta['reviewQueue'][0]['latestOpenEventTitle'] ?? ''));
@@ -1023,6 +1026,127 @@ final class ClinicalHistoryAdminReadModelTest extends TestCase
         self::assertSame(0, (int) ($meta['summary']['drafts']['hcu012A']['issued'] ?? -1));
         self::assertSame('received', (string) ($meta['reviewQueue'][0]['hcu012AStatus'] ?? ''));
         self::assertSame('HCU-012A resultado recibido', (string) ($meta['reviewQueue'][0]['hcu012ALabel'] ?? ''));
+    }
+
+    public function testAdminDataDerivesDermatologyRedFlagsFromDraftText(): void
+    {
+        $store = \read_store();
+        $store['appointments'] = [];
+        $store['clinical_history_sessions'] = [[
+            'id' => 1001,
+            'sessionId' => 'chs-red-001',
+            'caseId' => 'case-red-001',
+            'appointmentId' => null,
+            'surface' => 'waiting_room',
+            'status' => 'active',
+            'patient' => [
+                'name' => 'Paciente Alerta',
+                'email' => 'alerta@example.com',
+                'phone' => '0999999999',
+            ],
+            'transcript' => [],
+            'questionHistory' => [],
+            'surfaces' => ['waiting_room'],
+            'lastTurn' => [],
+            'pendingAi' => [],
+            'metadata' => [],
+            'version' => 1,
+            'createdAt' => '2026-03-29T10:00:00-05:00',
+            'updatedAt' => '2026-03-29T10:05:00-05:00',
+            'lastMessageAt' => '2026-03-29T10:05:00-05:00',
+        ]];
+        $store['clinical_history_drafts'] = [[
+            'id' => 1002,
+            'draftId' => 'chd-red-001',
+            'sessionId' => 'chs-red-001',
+            'caseId' => 'case-red-001',
+            'appointmentId' => null,
+            'status' => 'draft_ready',
+            'reviewStatus' => 'ready_for_review',
+            'requiresHumanReview' => false,
+            'confidence' => 0.91,
+            'reviewReasons' => [],
+            'intake' => [
+                'motivoConsulta' => 'Revision de lunar',
+                'enfermedadActual' => 'Lunar de 8 mm que cambio de color y ha crecido rapido en pocas semanas.',
+                'antecedentes' => 'Sin antecedentes relevantes.',
+                'alergias' => 'Niega alergias.',
+                'medicacionActual' => 'Sin tratamiento actual.',
+                'rosRedFlags' => [],
+                'adjuntos' => [],
+                'resumenClinico' => 'Lesion pigmentada sospechosa.',
+                'cie10Sugeridos' => [],
+                'tratamientoBorrador' => '',
+                'posologiaBorrador' => [
+                    'texto' => '',
+                    'baseCalculo' => '',
+                    'pesoKg' => null,
+                    'edadAnios' => null,
+                    'units' => '',
+                    'ambiguous' => true,
+                ],
+                'preguntasFaltantes' => [],
+                'datosPaciente' => [
+                    'edadAnios' => 42,
+                    'pesoKg' => 68,
+                    'sexoBiologico' => 'femenino',
+                    'embarazo' => false,
+                ],
+            ],
+            'clinicianDraft' => [
+                'resumen' => 'Lunar pigmentado con criterios de alarma.',
+                'preguntasFaltantes' => [],
+                'cie10Sugeridos' => [],
+                'tratamientoBorrador' => '',
+                'posologiaBorrador' => [
+                    'texto' => '',
+                    'baseCalculo' => '',
+                    'pesoKg' => null,
+                    'edadAnios' => null,
+                    'units' => '',
+                    'ambiguous' => true,
+                ],
+                'hcu005' => [
+                    'evolutionNote' => 'Lesion pigmentada de 8 mm con cambio de color y crecimiento rapido.',
+                    'diagnosticImpression' => 'Lesion pigmentada en evaluacion prioritaria.',
+                    'therapeuticPlan' => '',
+                    'careIndications' => '',
+                    'prescriptionItems' => [],
+                ],
+            ],
+            'lastAiEnvelope' => [],
+            'pendingAi' => [],
+            'version' => 1,
+            'createdAt' => '2026-03-29T10:00:00-05:00',
+            'updatedAt' => '2026-03-29T10:06:00-05:00',
+        ]];
+        $store['clinical_history_events'] = [];
+        \write_store($store, false);
+
+        try {
+            \AdminDataController::index([
+                'store' => \read_store(),
+                'isAdmin' => true,
+            ]);
+            self::fail('Se esperaba TestingExitException');
+        } catch (\TestingExitException $e) {
+            $payload = $e->payload;
+        }
+
+        self::assertTrue((bool) ($payload['ok'] ?? false));
+        $meta = $payload['data']['clinicalHistoryMeta'] ?? [];
+        self::assertSame(1, (int) ($meta['summary']['drafts']['reviewQueueCount'] ?? -1));
+        self::assertSame(1, (int) ($meta['summary']['drafts']['byReviewStatus']['review_required'] ?? -1));
+        self::assertSame(
+            ['lesion_over_6mm', 'mole_color_change', 'rapid_growth'],
+            $meta['reviewQueue'][0]['redFlags'] ?? []
+        );
+        self::assertContains(
+            'red_flags_present',
+            $meta['reviewQueue'][0]['reviewReasons'] ?? []
+        );
+        self::assertTrue((bool) ($meta['reviewQueue'][0]['requiresHumanReview'] ?? false));
+        self::assertSame('review_required', (string) ($meta['reviewQueue'][0]['reviewStatus'] ?? ''));
     }
 
     private function removeDirectory(string $dir): void

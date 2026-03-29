@@ -19,6 +19,8 @@ final class QueueAssistantMetricsStore
         'errors',
         'latencyTotalMs',
         'latencySamples',
+        'queueWaitMsTotal',
+        'queueWaitSamples',
     ];
 
     public static function recordHeartbeat(array $payload): void
@@ -159,6 +161,36 @@ final class QueueAssistantMetricsStore
             ]
         );
         $data['days'][$dayKey] = $dayBucket;
+        $data['updatedAt'] = local_date('c');
+
+        self::writeRawData($data);
+    }
+
+    public static function recordClinicQueueEvent(string $day, string $hour, ?int $waitMs): void
+    {
+        $data = self::prune(self::readRawData());
+        $dayBucket = is_array($data['days'][$day] ?? null)
+            ? $data['days'][$day]
+            : self::buildEmptyDay($day);
+
+        $summary = is_array($dayBucket['summary'] ?? null)
+            ? $dayBucket['summary']
+            : self::emptySummary();
+
+        if ($waitMs !== null) {
+            $summary['queueWaitMsTotal'] = (int) ($summary['queueWaitMsTotal'] ?? 0) + max(0, $waitMs);
+            $summary['queueWaitSamples'] = (int) ($summary['queueWaitSamples'] ?? 0) + 1;
+        }
+        $dayBucket['summary'] = $summary;
+
+        if ($hour !== '') {
+            $dayBucket['hourlyThroughput'] = self::mergeCounts(
+                is_array($dayBucket['hourlyThroughput'] ?? null) ? $dayBucket['hourlyThroughput'] : [],
+                [$hour => 1]
+            );
+        }
+
+        $data['days'][$day] = $dayBucket;
         $data['updatedAt'] = local_date('c');
 
         self::writeRawData($data);
@@ -380,9 +412,11 @@ final class QueueAssistantMetricsStore
             'sessions' => 0,
             'usefulSessions' => 0,
             'avgLatencyMs' => 0,
+            'avgQueueWaitMs' => 0,
             'intentCounts' => [],
             'helpReasonCounts' => [],
             'reviewOutcomeCounts' => [],
+            'hourlyThroughput' => [],
         ]);
         $sessionStates = [];
 
@@ -420,6 +454,14 @@ final class QueueAssistantMetricsStore
                     ? $bucket['reviewOutcomes']
                     : []
             );
+            $summary['hourlyThroughput'] = self::mergeCounts(
+                is_array($summary['hourlyThroughput'] ?? null)
+                    ? $summary['hourlyThroughput']
+                    : [],
+                is_array($bucket['hourlyThroughput'] ?? null)
+                    ? $bucket['hourlyThroughput']
+                    : []
+            );
 
             $sessions = is_array($bucket['sessions'] ?? null)
                 ? $bucket['sessions']
@@ -454,6 +496,12 @@ final class QueueAssistantMetricsStore
             ? (int) round(
                 ((int) ($summary['latencyTotalMs'] ?? 0)) /
                     ((int) ($summary['latencySamples'] ?? 1))
+            )
+            : 0;
+        $summary['avgQueueWaitMs'] = ((int) ($summary['queueWaitSamples'] ?? 0)) > 0
+            ? (int) round(
+                ((int) ($summary['queueWaitMsTotal'] ?? 0)) /
+                    ((int) ($summary['queueWaitSamples'] ?? 1))
             )
             : 0;
 
@@ -792,6 +840,8 @@ final class QueueAssistantMetricsStore
             'errors' => 0,
             'latencyTotalMs' => 0,
             'latencySamples' => 0,
+            'queueWaitMsTotal' => 0,
+            'queueWaitSamples' => 0,
         ];
     }
 
@@ -806,6 +856,7 @@ final class QueueAssistantMetricsStore
             'intents' => [],
             'helpReasons' => [],
             'reviewOutcomes' => [],
+            'hourlyThroughput' => [],
             'sessions' => [],
         ];
     }

@@ -465,8 +465,7 @@ function buildImagingOrderFixture(
         patientAgeYears:
             overrides.patientAgeYears || admission001.demographics.ageYears,
         patientSexAtBirth:
-            overrides.patientSexAtBirth ||
-            admission001.demographics.sexAtBirth,
+            overrides.patientSexAtBirth || admission001.demographics.sexAtBirth,
         diagnoses: Array.isArray(overrides.diagnoses)
             ? overrides.diagnoses
             : [
@@ -504,7 +503,8 @@ function buildImagingOrderFixture(
                 : [],
         },
         requestReason:
-            overrides.requestReason || 'Solicito imagenologia de apoyo clinico.',
+            overrides.requestReason ||
+            'Solicito imagenologia de apoyo clinico.',
         clinicalSummary:
             overrides.clinicalSummary ||
             [
@@ -520,8 +520,7 @@ function buildImagingOrderFixture(
             overrides.canRemoveDressingsOrCasts === undefined
                 ? true
                 : overrides.canRemoveDressingsOrCasts,
-        physicianPresentAtExam:
-            overrides.physicianPresentAtExam === true,
+        physicianPresentAtExam: overrides.physicianPresentAtExam === true,
         bedsideRadiography: overrides.bedsideRadiography === true,
         notes: overrides.notes || '',
         issuedAt: overrides.issuedAt || '',
@@ -542,13 +541,10 @@ function buildImagingOrderFixture(
             studyPerformedSummary:
                 overrides.result?.studyPerformedSummary || '',
             findings: overrides.result?.findings || '',
-            diagnosticImpression:
-                overrides.result?.diagnosticImpression || '',
+            diagnosticImpression: overrides.result?.diagnosticImpression || '',
             recommendations: overrides.result?.recommendations || '',
-            followUpIndications:
-                overrides.result?.followUpIndications || '',
-            sourceDocumentType:
-                overrides.result?.sourceDocumentType || '',
+            followUpIndications: overrides.result?.followUpIndications || '',
+            sourceDocumentType: overrides.result?.sourceDocumentType || '',
             sourceReference: overrides.result?.sourceReference || '',
             attachments: Array.isArray(overrides.result?.attachments)
                 ? overrides.result.attachments
@@ -1040,10 +1036,11 @@ function buildClinicalRecordPayload({
         '';
     const normalizedActiveImagingOrder =
         normalizedImagingOrders.find(
-            (item) =>
-                item.imagingOrderId === normalizedActiveImagingOrderId
+            (item) => item.imagingOrderId === normalizedActiveImagingOrderId
         ) || null;
-    const normalizedImagingOrderSnapshots = Array.isArray(documents.imagingOrders)
+    const normalizedImagingOrderSnapshots = Array.isArray(
+        documents.imagingOrders
+    )
         ? documents.imagingOrders
         : normalizedImagingOrders
               .filter((item) => ['issued', 'cancelled'].includes(item.status))
@@ -1066,7 +1063,9 @@ function buildClinicalRecordPayload({
                   clinicalSummary: item.clinicalSummary,
                   notes: item.notes,
               }));
-    const normalizedImagingReportSnapshots = Array.isArray(documents.imagingReports)
+    const normalizedImagingReportSnapshots = Array.isArray(
+        documents.imagingReports
+    )
         ? documents.imagingReports
         : normalizedImagingOrders
               .filter((item) => item.resultStatus === 'received')
@@ -1086,9 +1085,9 @@ function buildClinicalRecordPayload({
             normalizedActiveImagingOrder?.resultStatus === 'received'
                 ? 'received'
                 : normalizedActiveImagingOrder?.status ||
-                (normalizedImagingOrders.length > 0
-                    ? 'draft'
-                    : 'not_applicable')
+                      (normalizedImagingOrders.length > 0
+                          ? 'draft'
+                          : 'not_applicable')
         );
     const normalizedHcu012AReportStatus =
         legalReadiness.hcu012AReportStatus ||
@@ -3440,8 +3439,7 @@ test('imagenologia HCU-012A permite crear y emitir solicitudes del episodio', as
         sessionId: 'chs-hcu012a-001',
         caseId: 'case-hcu012a-001',
         patientName: 'Elena Paredes',
-        clinicianSummary:
-            'Solicitud de imagenologia creada y aun en borrador.',
+        clinicianSummary: 'Solicitud de imagenologia creada y aun en borrador.',
         legalReadiness: {
             status: 'ready',
             ready: true,
@@ -3502,8 +3500,7 @@ test('imagenologia HCU-012A permite crear y emitir solicitudes del episodio', as
         sessionId: 'chs-hcu012a-001',
         caseId: 'case-hcu012a-001',
         patientName: 'Elena Paredes',
-        clinicianSummary:
-            'Solicitud de imagenologia emitida y documentada.',
+        clinicianSummary: 'Solicitud de imagenologia emitida y documentada.',
         legalReadiness: {
             status: 'ready',
             ready: true,
@@ -3553,7 +3550,8 @@ test('imagenologia HCU-012A permite crear y emitir solicitudes del episodio', as
                 reportingService: 'Radiologia',
                 radiologistProfessionalName: 'Dr. Rafael Suarez',
                 radiologistProfessionalRole: 'Radiologo',
-                studyPerformedSummary: 'Radiografia de senos paranasales AP y lateral.',
+                studyPerformedSummary:
+                    'Radiografia de senos paranasales AP y lateral.',
                 findings:
                     'Sin opacidades agudas. Engrosamiento mucoso leve en seno maxilar derecho.',
                 diagnosticImpression:
@@ -3621,10 +3619,8 @@ test('imagenologia HCU-012A permite crear y emitir solicitudes del episodio', as
                     studySelections: receivedImagingOrder.studySelections,
                     requestReason: receivedImagingOrder.requestReason,
                     reportStatus: 'received',
-                    finalizedAt:
-                        receivedImagingOrder.result.reportedAt,
-                    snapshotAt:
-                        receivedImagingOrder.result.reportedAt,
+                    finalizedAt: receivedImagingOrder.result.reportedAt,
+                    snapshotAt: receivedImagingOrder.result.reportedAt,
                     report: receivedImagingOrder.result,
                 },
             ],
@@ -3844,9 +3840,7 @@ test('imagenologia HCU-012A permite crear y emitir solicitudes del episodio', as
     await page
         .locator('#imaging_report_reporting_establishment')
         .fill('Centro de imagen aliado');
-    await page
-        .locator('#imaging_report_reporting_service')
-        .fill('Radiologia');
+    await page.locator('#imaging_report_reporting_service').fill('Radiologia');
     await page
         .locator('#imaging_report_radiologist_professional_name')
         .fill('Dr. Rafael Suarez');
@@ -4495,4 +4489,221 @@ test('gobernanza documental muestra SLA, bloquea disclosure no autorizado y exig
     await expect(
         page.locator('#clinicalHistoryRecordsGovernancePanel')
     ).toContainText('Pasiva');
+});
+
+test('exporta la HCE completa desde admin en una vista imprimible con readiness legal', async ({
+    page,
+}) => {
+    const baseRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-export-001',
+        caseId: 'case-export-001',
+        patientName: 'Marta Leon',
+        clinicianSummary:
+            'Dermatitis facial cronica en control con evolucion estable.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La historia clinica cumple los minimos medico-legales para exportacion y aprobacion.',
+            checklist: [
+                {
+                    code: 'hcu001_admission',
+                    status: 'pass',
+                    label: 'HCU-001 admision',
+                    message:
+                        'La admision longitudinal ya sostiene identidad y contacto base.',
+                },
+                {
+                    code: 'hcu005_evolution_note',
+                    status: 'pass',
+                    label: 'HCU-005 evolucion clinica',
+                    message:
+                        'La evolucion clinica, la impresion diagnostica y el plan terapeutico estan completos.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        approval: {
+            status: 'approved',
+            approvedBy: 'Dra. Sofia Paredes',
+            approvedAt: '2026-03-16T11:40:00-05:00',
+        },
+        documents: {
+            finalNote: {
+                status: 'approved',
+                generatedAt: '2026-03-16T11:40:00-05:00',
+                summary:
+                    'Dermatitis facial cronica estable y plan de mantenimiento.',
+                content:
+                    'Paciente: Marta Leon\nEvolucion clinica: Dermatitis facial cronica en control con evolucion estable.\nPlan terapeutico: Mantener fotoproteccion y tratamiento topico.',
+            },
+            certificate: {
+                status: 'issued',
+                summary:
+                    'Reposo dermatologico de 2 dias por procedimiento local.',
+                restDays: 2,
+                signedAt: '2026-03-16T11:42:00-05:00',
+            },
+        },
+        accessAudit: [
+            {
+                auditId: 'audit-export-prev',
+                recordId: 'hcu-chs-export-001',
+                sessionId: 'chs-export-001',
+                episodeId: 'ep-chs-export-001',
+                actor: 'Dra. Sofia Paredes',
+                actorRole: 'clinician_admin',
+                action: 'view_record',
+                resource: 'clinical_record',
+                reason: 'authorized_clinical_record_read',
+                createdAt: '2026-03-16T11:20:00-05:00',
+                meta: {},
+            },
+        ],
+    });
+
+    const exportedRecord = {
+        ...baseRecord,
+        accessAudit: [
+            {
+                auditId: 'audit-export-001',
+                recordId: 'hcu-chs-export-001',
+                sessionId: 'chs-export-001',
+                episodeId: 'ep-chs-export-001',
+                actor: 'Dra. Sofia Paredes',
+                actorRole: 'clinician_admin',
+                action: 'export_full_record',
+                resource: 'clinical_record',
+                reason: 'authorized_clinical_record_export',
+                createdAt: '2026-03-16T11:45:00-05:00',
+                meta: {
+                    surface: 'clinical-record-export',
+                    approvalStatus: 'approved',
+                    legalReadinessStatus: 'ready',
+                    legalReadinessReady: true,
+                },
+            },
+            ...baseRecord.accessAudit,
+        ],
+    };
+
+    const actionPayloads = [];
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    recordsGovernance: {
+                        pendingCopyRequests: 0,
+                        overdueCopyRequests: 0,
+                        disclosures: 0,
+                        archiveEligible: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-export-001',
+                        caseId: 'case-export-001',
+                        patientName: 'Marta Leon',
+                        summary:
+                            'Dermatitis facial estable con expediente listo para exportar.',
+                        sessionStatus: 'approved',
+                        reviewStatus: 'approved',
+                        requiresHumanReview: false,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 0,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'La historia clinica ya esta lista para exportacion medico-legal.',
+                        approvalBlockedReasons: [],
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            payload,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: baseRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'clinical-episode-action' && method === 'POST') {
+                actionPayloads.push(payload);
+                await fulfillJson(route, {
+                    ok: true,
+                    data:
+                        payload.action === 'export_full_record'
+                            ? exportedRecord
+                            : baseRecord,
+                });
+                return true;
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.keyboard.press('Control+K');
+    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
+    await page.keyboard.press('Enter');
+
+    await expect(
+        page.locator('#clinicalHistoryExportFullRecordBtn')
+    ).toBeVisible();
+
+    const popupPromise = page.waitForEvent('popup');
+    await page.locator('#clinicalHistoryExportFullRecordBtn').click();
+    const popup = await popupPromise;
+
+    expect(actionPayloads).toHaveLength(1);
+    expect(actionPayloads[0]).toMatchObject({
+        action: 'export_full_record',
+        sessionId: 'chs-export-001',
+    });
+
+    await popup.waitForLoadState('domcontentloaded');
+    await expect(popup.locator('body')).toContainText(
+        'Historia clinica electronica completa'
+    );
+    await expect(popup.locator('body')).toContainText('Marta Leon');
+    await expect(popup.locator('body')).toContainText('Lista para aprobar');
+    await expect(popup.locator('body')).toContainText(
+        'Dermatitis facial cronica en control con evolucion estable.'
+    );
+    await expect(popup.locator('body')).toContainText('Imprimir / Guardar PDF');
 });

@@ -3,6 +3,12 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const {
+    GENERATED_PUBLIC_ENTRIES,
+    GENERATED_RUNTIME_DIRECTORIES,
+    GENERATED_RUNTIME_FILES,
+    normalizeRelativePath,
+} = require('./generated-site-root.js');
 
 const MIME_TYPES = new Map([
     ['.avif', 'image/avif'],
@@ -104,6 +110,30 @@ function safeResolveFile(repoRoot, pathname) {
     return '';
 }
 
+function isGeneratedStagePath(pathname) {
+    const normalized = normalizeRelativePath(pathname);
+    if (!normalized) {
+        return false;
+    }
+
+    for (const entry of [
+        ...GENERATED_PUBLIC_ENTRIES,
+        ...GENERATED_RUNTIME_DIRECTORIES,
+    ]) {
+        const safeEntry = normalizeRelativePath(entry);
+        if (
+            normalized === safeEntry ||
+            normalized.startsWith(`${safeEntry}/`)
+        ) {
+            return true;
+        }
+    }
+
+    return GENERATED_RUNTIME_FILES.some(
+        (entry) => normalizeRelativePath(entry) === normalized
+    );
+}
+
 function contentTypeFor(filePath) {
     return (
         MIME_TYPES.get(path.extname(filePath).toLowerCase()) ||
@@ -152,9 +182,13 @@ function createPublicRequestHandler(repoRoot, options = {}) {
             return;
         }
 
+        const runtimeFilePath = safeResolveFile(runtimeRoot, requestUrl.pathname);
+        const repoFallbackAllowed = !isGeneratedStagePath(requestUrl.pathname);
         const filePath =
-            safeResolveFile(runtimeRoot, requestUrl.pathname) ||
-            safeResolveFile(repoRoot, requestUrl.pathname);
+            runtimeFilePath ||
+            (repoFallbackAllowed
+                ? safeResolveFile(repoRoot, requestUrl.pathname)
+                : '');
         if (!filePath) {
             response.writeHead(404, {
                 'Content-Type': 'text/plain; charset=UTF-8',

@@ -328,7 +328,7 @@ final class ClinicalHistoryGuardrails
 
     public static function detectRedFlags(string $messageText): array
     {
-        $text = strtolower(trim($messageText));
+        $text = self::normalizeSignalText($messageText);
         if ($text === '') {
             return [];
         }
@@ -352,7 +352,63 @@ final class ClinicalHistoryGuardrails
             }
         }
 
+        if (self::matchesLesionOverSixMillimeters($text)) {
+            $detected[] = 'lesion_over_6mm';
+        }
+        if (self::matchesMoleColorChange($text)) {
+            $detected[] = 'mole_color_change';
+        }
+        if (self::matchesRapidGrowth($text)) {
+            $detected[] = 'rapid_growth';
+        }
+
         return ClinicalHistoryRepository::normalizeStringList($detected);
+    }
+
+    public static function detectDraftRedFlags(array $draft): array
+    {
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $detected = [];
+        foreach (self::draftSignalFragments($draft) as $fragment) {
+            $detected = array_merge($detected, self::detectRedFlags($fragment));
+        }
+
+        return ClinicalHistoryRepository::normalizeStringList($detected);
+    }
+
+    public static function synchronizeDerivedReviewSignals(array $draft): array
+    {
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $lastAiEnvelope = isset($draft['lastAiEnvelope']) && is_array($draft['lastAiEnvelope'])
+            ? $draft['lastAiEnvelope']
+            : [];
+        $redFlags = ClinicalHistoryRepository::normalizeStringList(array_merge(
+            is_array($lastAiEnvelope['redFlags'] ?? null) ? $lastAiEnvelope['redFlags'] : [],
+            self::detectDraftRedFlags($draft)
+        ));
+        $lastAiEnvelope['redFlags'] = $redFlags;
+        $draft['lastAiEnvelope'] = $lastAiEnvelope;
+
+        $reviewReasons = array_values(array_filter(
+            ClinicalHistoryRepository::normalizeStringList($draft['reviewReasons'] ?? []),
+            static fn (string $reason): bool => $reason !== 'red_flags_present'
+        ));
+        if ($redFlags !== []) {
+            $reviewReasons[] = 'red_flags_present';
+        }
+        $draft['reviewReasons'] = ClinicalHistoryRepository::normalizeStringList($reviewReasons);
+
+        $reviewStatus = ClinicalHistoryRepository::trimString($draft['reviewStatus'] ?? '');
+        $status = ClinicalHistoryRepository::trimString($draft['status'] ?? '');
+        if ($redFlags !== [] && $reviewStatus !== 'approved' && $status !== 'approved') {
+            $draft['requiresHumanReview'] = true;
+            $draft['reviewStatus'] = 'review_required';
+            if ($status !== 'approved') {
+                $draft['status'] = 'review_required';
+            }
+        }
+
+        return $draft;
     }
 
     public static function extractHeuristicPatch(string $messageText): array
@@ -499,5 +555,135 @@ final class ClinicalHistoryGuardrails
         ));
 
         return $current;
+    }
+
+    private static function draftSignalFragments(array $draft): array
+    {
+        $draft = ClinicalHistoryRepository::adminDraft($draft);
+        $intake = isset($draft['intake']) && is_array($draft['intake']) ? $draft['intake'] : [];
+        $clinicianDraft = ClinicalHistoryRepository::normalizeClinicianDraft(
+            is_array($draft['clinicianDraft'] ?? null) ? $draft['clinicianDraft'] : []
+        );
+        $hcu005 = ClinicalHistoryRepository::normalizeHcu005Draft(
+            $clinicianDraft['hcu005'] ?? []
+        );
+
+        return array_values(array_filter([
+            ClinicalHistoryRepository::trimString($intake['motivoConsulta'] ?? ''),
+            ClinicalHistoryRepository::trimString($intake['enfermedadActual'] ?? ''),
+            ClinicalHistoryRepository::trimString($intake['antecedentes'] ?? ''),
+            ClinicalHistoryRepository::trimString($intake['alergias'] ?? ''),
+            ClinicalHistoryRepository::trimString($intake['medicacionActual'] ?? ''),
+            ClinicalHistoryRepository::trimString($intake['resumenClinico'] ?? ''),
+            ...ClinicalHistoryRepository::normalizeStringList($intake['rosRedFlags'] ?? []),
+            ClinicalHistoryRepository::trimString($clinicianDraft['resumen'] ?? ''),
+            ClinicalHistoryRepository::trimString($clinicianDraft['tratamientoBorrador'] ?? ''),
+            ClinicalHistoryRepository::trimString($hcu005['evolutionNote'] ?? ''),
+            ClinicalHistoryRepository::trimString($hcu005['diagnosticImpression'] ?? ''),
+            ClinicalHistoryRepository::trimString($hcu005['therapeuticPlan'] ?? ''),
+            ClinicalHistoryRepository::trimString($hcu005['careIndications'] ?? ''),
+        ], static fn ($fragment): bool => is_string($fragment) && trim($fragment) !== ''));
+    }
+
+    private static function normalizeSignalText(string $text): string
+    {
+        $normalized = trim($text);
+        if ($normalized === '') {
+            return '';
+        }
+
+        if (function_exists('mb_strtolower')) {
+            $normalized = mb_strtolower($normalized, 'UTF-8');
+        } else {
+            $normalized = strtolower($normalized);
+        }
+
+        if (function_exists('iconv')) {
+            $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $normalized);
+            if (is_string($ascii) && $ascii !== '') {
+                $normalized = $ascii;
+            }
+        }
+
+        $normalized = preg_replace('/\s+/', ' ', $normalized) ?? $normalized;
+        return trim($normalized);
+    }
+
+    private static function matchesLesionOverSixMillimeters(string $text): bool
+    {
+        if (!self::hasLesionContext($text)) {
+            return false;
+        }
+
+        $matches = [];
+        preg_match_all('/(\d+(?:[.,]\d+)?)\s*(mm|milimetros?|cm|centimetros?)\b/', $text, $matches, PREG_SET_ORDER);
+
+        foreach ($matches as $match) {
+            $value = (float) str_replace(',', '.', (string) ($match[1] ?? '0'));
+            $unit = (string) ($match[2] ?? '');
+            $millimeters = str_starts_with($unit, 'cm') || str_starts_with($unit, 'centimetro')
+                ? $value * 10
+                : $value;
+            if ($millimeters > 6.0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function matchesMoleColorChange(string $text): bool
+    {
+        if (!self::hasLesionContext($text)) {
+            return false;
+        }
+
+        return self::textContainsAny($text, [
+            'cambio de color',
+            'cambio el color',
+            'cambio de tono',
+            'cambio de pigmentacion',
+            'oscurecio',
+            'se puso oscuro',
+            'se puso negra',
+            'se puso negro',
+            'darkened',
+            'changed color',
+        ]);
+    }
+
+    private static function matchesRapidGrowth(string $text): bool
+    {
+        if (!self::hasLesionContext($text)) {
+            return false;
+        }
+
+        return self::textContainsAny($text, [
+            'crecio rapido',
+            'crecimiento rapido',
+            'ha crecido rapido',
+            'aumento rapido',
+            'ha aumentado rapido',
+            'agrandamiento rapido',
+            'en pocas semanas',
+            'rapid growth',
+            'grew quickly',
+        ]);
+    }
+
+    private static function hasLesionContext(string $text): bool
+    {
+        return preg_match('/\b(?:lesion(?:es)?|lunar(?:es)?|mancha(?:s)?|nevo(?:s)?|nevus|mole(?:s)?)\b/', $text) === 1;
+    }
+
+    private static function textContainsAny(string $text, array $patterns): bool
+    {
+        foreach ($patterns as $pattern) {
+            if ($pattern !== '' && strpos($text, $pattern) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

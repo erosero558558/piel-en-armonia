@@ -283,7 +283,10 @@ function formatClinicalSeverity(severity) {
     }
 }
 
-function resolveClinicalTone(reviewStatus, pendingAiStatus, severity) {
+function resolveClinicalTone(reviewStatus, pendingAiStatus, severity, redFlagsCount = 0) {
+    if (redFlagsCount > 0) {
+        return 'danger';
+    }
     if (
         String(severity || '')
             .trim()
@@ -585,7 +588,12 @@ export function buildClinicalHistoryQueueItems(snapshot) {
                     : legalReadinessLabel || formatClinicalReviewStatus(reviewStatus),
                 describeClinicalQueueItem(item) ||
                     'Sin detalles clinicos adicionales.',
-                resolveClinicalTone(reviewStatus, pendingAiStatus, '')
+                resolveClinicalTone(
+                    reviewStatus,
+                    pendingAiStatus,
+                    '',
+                    normalizeStringList(item?.redFlags).length
+                )
             );
         })
         .join('');

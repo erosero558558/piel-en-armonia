@@ -153,3 +153,63 @@ test('public V6 local server falls back to the repo root for shared assets missi
         'fallback assets should be served from the repo root'
     );
 });
+
+test('public V6 local server does not revive missing generated pages from legacy repo-root artifacts', async () => {
+    const tempRoot = fs.mkdtempSync(
+        path.join(os.tmpdir(), 'public-v6-local-server-no-ghost-pages-')
+    );
+    const stagedRuntimeRoot = path.join(tempRoot, '.generated', 'site-root');
+    const legacyPageRoot = path.join(tempRoot, 'es', 'servicios', 'manchas');
+
+    fs.mkdirSync(path.join(stagedRuntimeRoot, 'es'), { recursive: true });
+    fs.mkdirSync(legacyPageRoot, { recursive: true });
+    fs.writeFileSync(
+        path.join(stagedRuntimeRoot, 'es', 'index.html'),
+        '<!doctype html><title>staged</title>',
+        'utf8'
+    );
+    fs.writeFileSync(
+        path.join(legacyPageRoot, 'index.html'),
+        '<!doctype html><title>legacy ghost</title>',
+        'utf8'
+    );
+
+    const handler = createPublicRequestHandler(tempRoot, {
+        host: '127.0.0.1',
+        port: 0,
+    });
+
+    const pageResponse = await new Promise((resolve) => {
+        const response = {
+            statusCode: 0,
+            headers: null,
+            body: '',
+            writeHead(statusCode, headers) {
+                this.statusCode = statusCode;
+                this.headers = headers;
+            },
+            end(body) {
+                this.body = String(body || '');
+                resolve(this);
+            },
+        };
+        handler(
+            {
+                url: '/es/servicios/manchas/',
+                headers: { host: '127.0.0.1' },
+            },
+            response
+        );
+    });
+
+    assert.equal(
+        pageResponse.statusCode,
+        404,
+        'missing generated routes must not fall back to legacy repo-root HTML'
+    );
+    assert.doesNotMatch(
+        pageResponse.body,
+        /legacy ghost/u,
+        'legacy repo-root HTML should stay hidden from the local V6 server'
+    );
+});

@@ -380,6 +380,10 @@ class QueueService
             if (!is_array($ticket) || (int) ($ticket['id'] ?? 0) !== $selectedId) {
                 continue;
             }
+            if (($ticket['status'] ?? '') === self::STATUS_WAITING) {
+                $waitMs = max(0, (strtotime($nowIso) - strtotime($ticket['createdAt'] ?? '')) * 1000);
+                QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), '', $waitMs);
+            }
             $ticket['status'] = self::STATUS_CALLED;
             $ticket['assignedConsultorio'] = $consultorio;
             $ticket['calledAt'] = $nowIso;
@@ -472,6 +476,10 @@ class QueueService
                                 'errorCode' => 'queue_transition_invalid',
                             ];
                         }
+                        if ($currentStatus === self::STATUS_WAITING) {
+                            $waitMs = max(0, (strtotime($nowIso) - strtotime($ticket['createdAt'] ?? '')) * 1000);
+                            QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), '', $waitMs);
+                        }
                         $targetConsultorio = $consultorio ?? $this->normalizeConsultorio($ticket['assignedConsultorio'] ?? null);
                         if ($targetConsultorio !== null) {
                             $busyTicket = $this->findActiveCalledByConsultorio($store['queue_tickets'], $targetConsultorio, $ticketId);
@@ -493,6 +501,13 @@ class QueueService
                     case 'completar':
                     case 'complete':
                     case 'completed':
+                        if ($currentStatus === self::STATUS_WAITING) {
+                            $waitMs = max(0, (strtotime($nowIso) - strtotime($ticket['createdAt'] ?? '')) * 1000);
+                            QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), '', $waitMs);
+                        }
+                        if ($currentStatus !== self::STATUS_COMPLETED) {
+                            QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), substr($nowIso, 11, 2), null);
+                        }
                         $ticket['status'] = self::STATUS_COMPLETED;
                         $ticket['completedAt'] = $nowIso;
                         break;
@@ -562,6 +577,10 @@ class QueueService
 
                 $ticket['status'] = $status;
                 if ($status === self::STATUS_CALLED) {
+                    if ($currentStatus === self::STATUS_WAITING) {
+                        $waitMs = max(0, (strtotime($nowIso) - strtotime($ticket['createdAt'] ?? '')) * 1000);
+                        QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), '', $waitMs);
+                    }
                     $targetConsultorio = $consultorio ?? $this->normalizeConsultorio($ticket['assignedConsultorio'] ?? null);
                     if ($targetConsultorio !== null) {
                         $busyTicket = $this->findActiveCalledByConsultorio($store['queue_tickets'], $targetConsultorio, $ticketId);
@@ -584,6 +603,13 @@ class QueueService
                     $ticket['completedAt'] = '';
                 }
                 if (in_array($status, [self::STATUS_COMPLETED, self::STATUS_NO_SHOW, self::STATUS_CANCELLED], true)) {
+                    if ($status === self::STATUS_COMPLETED && $currentStatus !== self::STATUS_COMPLETED) {
+                        QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), substr($nowIso, 11, 2), null);
+                    }
+                    if ($status === self::STATUS_COMPLETED && $currentStatus === self::STATUS_WAITING) {
+                        $waitMs = max(0, (strtotime($nowIso) - strtotime($ticket['createdAt'] ?? '')) * 1000);
+                        QueueAssistantMetricsStore::recordClinicQueueEvent(substr($nowIso, 0, 10), '', $waitMs);
+                    }
                     $ticket['completedAt'] = $nowIso;
                 }
             } else {

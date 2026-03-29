@@ -565,6 +565,25 @@ function build_callback_notification_rows(array $callback): array
 }
 
 /**
+ * Builds the standard pre-consultation notification rows.
+ *
+ * @param array<string,mixed> $payload
+ * @return array<int,array{label:string,value:mixed}>
+ */
+function build_preconsultation_notification_rows(array $payload): array
+{
+    return [
+        ['label' => 'Nombre', 'value' => $payload['patientLabel'] ?? '-'],
+        ['label' => 'WhatsApp', 'value' => $payload['contactPhone'] ?? '-'],
+        ['label' => 'Tipo de piel', 'value' => $payload['skinType'] ?? 'No especificado'],
+        ['label' => 'Condición', 'value' => $payload['condition'] ?? '-'],
+        ['label' => 'Fotos adjuntas', 'value' => (int) ($payload['photoCount'] ?? 0)],
+        ['label' => 'Case ID', 'value' => $payload['caseId'] ?? '-'],
+        ['label' => 'Fecha de solicitud', 'value' => local_date('d/m/Y H:i')],
+    ];
+}
+
+/**
  * Builds the responsive HTML confirmation email for patient appointments.
  *
  * @param array<string,mixed> $appointment
@@ -787,6 +806,28 @@ function maybe_send_callback_admin_notification(array $callback): bool
         "Un paciente solicita que le llamen:\n\n",
         build_callback_notification_rows($callback),
         "\nPor favor contactar lo antes posible."
+    );
+
+    return send_mail_to_recipient($adminEmail, $subject, $body);
+}
+
+/**
+ * Sends pre-consultation notification to frontdesk/admin email.
+ *
+ * @param array<string,mixed> $payload
+ */
+function maybe_send_preconsultation_admin_notification(array $payload): bool
+{
+    $adminEmail = AppConfig::getAdminEmail();
+    if (email_recipient_or_empty($adminEmail) === '') {
+        return false;
+    }
+
+    $subject = build_email_subject('Nueva preconsulta digital');
+    $body = build_notification_body(
+        "Se recibio una preconsulta digital desde el sitio web:\n\n",
+        build_preconsultation_notification_rows($payload),
+        "\nFrontdesk debe revisar el caso y responder por WhatsApp."
     );
 
     return send_mail_to_recipient($adminEmail, $subject, $body);

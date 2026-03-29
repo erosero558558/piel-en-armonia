@@ -15,6 +15,7 @@ import { setFlowMetrics } from './flow.js';
 import { setFunnelMetrics } from './funnel.js';
 import { setLiveStatus } from './live.js';
 import { setOverviewMetrics } from './overview.js';
+import { renderDashboardCharts } from './charts.js';
 
 let whatsappOpsActionBusy = false;
 
@@ -384,5 +385,6 @@ export function renderDashboard(state) {
     );
     setHtml('#dashboardAttentionList', buildAttentionItems(dashboardState));
     setFunnelMetrics(dashboardState.funnel);
+    renderDashboardCharts(dashboardState.funnel?.queueAssistant);
     bindWhatsappOpsActions();
 }

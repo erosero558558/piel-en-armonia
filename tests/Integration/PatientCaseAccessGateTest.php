@@ -32,6 +32,8 @@ final class PatientCaseAccessGateTest extends TestCase
         );
 
         putenv('PIELARMONIA_DATA_DIR=' . $this->tempDir);
+        putenv('AURORADERM_SKIP_ENV_FILE=1');
+        putenv('PIELARMONIA_SKIP_ENV_FILE=1');
         putenv('PIELARMONIA_AVAILABILITY_SOURCE=store');
         putenv('PIELARMONIA_REQUIRE_DATA_ENCRYPTION=1');
         putenv('PIELARMONIA_FORCE_SQLITE_UNAVAILABLE=1');
@@ -48,6 +50,10 @@ final class PatientCaseAccessGateTest extends TestCase
         require_once __DIR__ . '/../../controllers/PatientCaseController.php';
         require_once __DIR__ . '/../../controllers/TelemedicineAdminController.php';
 
+        if (\function_exists('get_db_connection')) {
+            \get_db_connection(null, true);
+        }
+
         \ensure_data_file();
     }
 
@@ -55,6 +61,8 @@ final class PatientCaseAccessGateTest extends TestCase
     {
         foreach ([
             'PIELARMONIA_DATA_DIR',
+            'AURORADERM_SKIP_ENV_FILE',
+            'PIELARMONIA_SKIP_ENV_FILE',
             'PIELARMONIA_AVAILABILITY_SOURCE',
             'PIELARMONIA_REQUIRE_DATA_ENCRYPTION',
             'PIELARMONIA_FORCE_SQLITE_UNAVAILABLE',
@@ -277,6 +285,13 @@ final class PatientCaseAccessGateTest extends TestCase
         $this->assertGreaterThanOrEqual(
             1,
             (int) ($response['payload']['data']['patientFlowMeta']['casesTotal'] ?? 0)
+        );
+        $this->assertTrue(
+            (bool) ($response['payload']['data']['patientFlowMeta']['journeyPreview']['redacted'] ?? false)
+        );
+        $this->assertSame(
+            [],
+            $response['payload']['data']['patientFlowMeta']['journeyPreview']['cases'] ?? null
         );
         $this->assertSame([], $response['payload']['data']['patient_cases'] ?? null);
         $this->assertSame([], $response['payload']['data']['patient_case_timeline_events'] ?? null);

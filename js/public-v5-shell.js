@@ -369,6 +369,7 @@
 
         var measurementId = 'G-2DWZ5PJ4MC';
         var storageKey = 'pa_cookie_consent_v1';
+        var runtimeConfigUrl = '/api.php?resource=public-runtime-config';
 
         function readConsent() {
             try {
@@ -403,6 +404,129 @@
                 };
             }
             window.gtag.apply(null, arguments);
+        }
+
+        function getRuntimeConfig() {
+            if (window.__auroraPublicRuntimeConfigPromise) {
+                return window.__auroraPublicRuntimeConfigPromise;
+            }
+
+            window.__auroraPublicRuntimeConfigPromise = window
+                .fetch(runtimeConfigUrl, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                    },
+                })
+                .then(function (response) {
+                    if (!response || !response.ok) {
+                        return null;
+                    }
+                    return response.json().catch(function () {
+                        return null;
+                    });
+                })
+                .then(function (payload) {
+                    if (!payload || typeof payload !== 'object') {
+                        return null;
+                    }
+
+                    if (
+                        payload.data &&
+                        typeof payload.data === 'object' &&
+                        !Array.isArray(payload.data)
+                    ) {
+                        return payload.data;
+                    }
+
+                    return payload;
+                })
+                .catch(function () {
+                    return null;
+                });
+
+            return window.__auroraPublicRuntimeConfigPromise;
+        }
+
+        function resolveClarityProjectId(runtimeConfig) {
+            var source =
+                runtimeConfig && typeof runtimeConfig === 'object'
+                    ? runtimeConfig
+                    : null;
+            var analytics =
+                source &&
+                source.analytics &&
+                typeof source.analytics === 'object' &&
+                !Array.isArray(source.analytics)
+                    ? source.analytics
+                    : null;
+            return String(
+                analytics && typeof analytics.clarityProjectId === 'string'
+                    ? analytics.clarityProjectId
+                    : ''
+            ).trim();
+        }
+
+        function ensureClarityQueue() {
+            if (typeof window.clarity === 'function') {
+                return;
+            }
+
+            var clarity = function () {
+                clarity.q = clarity.q || [];
+                clarity.q.push(arguments);
+            };
+            window.clarity = clarity;
+        }
+
+        function applyClarityConsent(status) {
+            if (typeof window.clarity !== 'function') {
+                return;
+            }
+
+            try {
+                if (status === 'accepted') {
+                    window.clarity('consent');
+                    return;
+                }
+                window.clarity('consent', false);
+            } catch (_error) {
+                // no-op
+            }
+        }
+
+        function loadClarity() {
+            if (readConsent() !== 'accepted') {
+                return;
+            }
+
+            getRuntimeConfig().then(function (runtimeConfig) {
+                var projectId = resolveClarityProjectId(runtimeConfig);
+                if (!projectId) {
+                    return;
+                }
+
+                ensureClarityQueue();
+                if (
+                    !document.querySelector(
+                        'script[data-public-clarity-project-id="' +
+                            projectId +
+                            '"]'
+                    )
+                ) {
+                    var script = document.createElement('script');
+                    script.async = true;
+                    script.src =
+                        'https://www.clarity.ms/tag/' +
+                        encodeURIComponent(projectId);
+                    script.dataset.publicClarityProjectId = projectId;
+                    document.head.appendChild(script);
+                }
+
+                window.__clarityLoaded = true;
+                applyClarityConsent('accepted');
+            });
         }
 
         function updateVisibility() {
@@ -472,6 +596,7 @@
         updateVisibility();
         if (readConsent() === 'accepted') {
             loadGa4();
+            loadClarity();
         }
 
         banner.addEventListener('click', function (event) {
@@ -480,11 +605,13 @@
             if (target.closest('#cookieAcceptBtn')) {
                 event.preventDefault();
                 applyConsent('accepted');
+                loadClarity();
                 return;
             }
             if (target.closest('#cookieRejectBtn')) {
                 event.preventDefault();
                 applyConsent('rejected');
+                applyClarityConsent('rejected');
             }
         });
     }

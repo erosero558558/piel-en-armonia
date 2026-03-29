@@ -564,9 +564,9 @@ class OperatorAuthControllerTest extends TestCase
 
         parse_str((string) ($parsed['query'] ?? ''), $query);
         self::assertSame(
-            'https://pielarmonia.com/admin-auth.php?action=oauth-callback',
+            operator_auth_server_base_url() . '/admin-auth.php?action=oauth-callback',
             (string) ($query['redirect_uri'] ?? ''),
-            'web broker should reuse the Google callback already allowed in production'
+            'web broker should reuse the Google callback dynamically matching the deployed server'
         );
     }
 

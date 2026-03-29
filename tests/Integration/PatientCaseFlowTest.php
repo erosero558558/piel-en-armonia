@@ -27,6 +27,8 @@ final class PatientCaseFlowTest extends TestCase
         mkdir($this->tempDir, 0777, true);
 
         putenv('PIELARMONIA_DATA_DIR=' . $this->tempDir);
+        putenv('AURORADERM_SKIP_ENV_FILE=1');
+        putenv('PIELARMONIA_SKIP_ENV_FILE=1');
         putenv('PIELARMONIA_AVAILABILITY_SOURCE=store');
         ini_set('log_errors', '1');
         ini_set('error_log', $this->tempDir . DIRECTORY_SEPARATOR . 'php-error.log');
@@ -39,8 +41,13 @@ final class PatientCaseFlowTest extends TestCase
         require_once __DIR__ . '/../../lib/BookingService.php';
         require_once __DIR__ . '/../../lib/QueueService.php';
         require_once __DIR__ . '/../../controllers/AdminDataController.php';
+        require_once __DIR__ . '/../../controllers/FlowOsController.php';
         require_once __DIR__ . '/../../controllers/HealthController.php';
         require_once __DIR__ . '/../../controllers/PatientCaseController.php';
+
+        if (\function_exists('get_db_connection')) {
+            \get_db_connection(null, true);
+        }
 
         \ensure_data_file();
     }
@@ -49,6 +56,8 @@ final class PatientCaseFlowTest extends TestCase
     {
         foreach ([
             'PIELARMONIA_DATA_DIR',
+            'AURORADERM_SKIP_ENV_FILE',
+            'PIELARMONIA_SKIP_ENV_FILE',
             'PIELARMONIA_AVAILABILITY_SOURCE',
         ] as $key) {
             putenv($key);
@@ -84,7 +93,12 @@ final class PatientCaseFlowTest extends TestCase
             'paymentMethod' => 'cash',
         ]);
 
-        $this->assertTrue($create['ok']);
+        $this->assertTrue(
+            $create['ok'],
+            is_string($create['error'] ?? null)
+                ? (string) $create['error']
+                : json_encode($create, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+        );
         $appointment = $create['data'];
         $this->assertNotSame('', (string) ($appointment['patientCaseId'] ?? ''));
         \write_store($create['store'], false);
@@ -141,6 +155,16 @@ final class PatientCaseFlowTest extends TestCase
         $this->assertGreaterThanOrEqual(4, count($timeline));
         $this->assertContains('queue_called', array_column($timeline, 'type'));
         $this->assertContains('visit_completed', array_column($timeline, 'type'));
+
+        $journey = \flow_os_build_store_journey_preview($store);
+        $journeyCase = $this->findJourneyCaseByCaseId(
+            $journey['cases'] ?? [],
+            (string) ($appointment['patientCaseId'] ?? '')
+        );
+        $this->assertNotNull($journeyCase);
+        $this->assertSame('care_plan_ready', (string) ($journeyCase['stage'] ?? ''));
+        $this->assertSame('care_plan', (string) ($journeyCase['displayStage'] ?? ''));
+        $this->assertSame('care_plan_ready', (string) ($journey['stage'] ?? ''));
     }
 
     public function testAdminAndHealthExposePatientFlowReadModels(): void
@@ -184,6 +208,13 @@ final class PatientCaseFlowTest extends TestCase
         $queueCase = $this->findCaseByTicketCode($adminResponse['payload']['data']['patient_cases'] ?? [], $ticketCode);
         $this->assertNotNull($queueCase);
         $this->assertSame('waiting', (string) (($queueCase['summary']['queueStatus'] ?? '')));
+        $journeyCase = $this->findJourneyCaseByCaseId(
+            $adminResponse['payload']['data']['patientFlowMeta']['journeyPreview']['cases'] ?? [],
+            (string) ($queueCase['id'] ?? '')
+        );
+        $this->assertNotNull($journeyCase);
+        $this->assertSame('scheduled', (string) ($journeyCase['displayStage'] ?? ''));
+        $this->assertSame('Agenda', (string) ($journeyCase['ownerLabel'] ?? ''));
 
         $_GET['caseId'] = (string) ($queueCase['id'] ?? '');
         $patientCaseResponse = $this->captureJsonResponse(static function (): void {
@@ -210,6 +241,76 @@ final class PatientCaseFlowTest extends TestCase
         $this->assertGreaterThanOrEqual(1, (int) ($healthResponse['payload']['checks']['patientFlow']['casesTotal'] ?? 0));
         $this->assertSame(1, (int) ($healthResponse['payload']['checks']['patientFlow']['activeHelpRequests'] ?? 0));
         $this->assertGreaterThanOrEqual(1, (int) ($healthResponse['payload']['checks']['storeCounts']['patientCases'] ?? 0));
+
+        $_GET = [];
+        $journeyResponse = $this->captureJsonResponse(static function (): void {
+            \FlowOsController::journeyPreview([
+                'store' => \read_store(),
+            ]);
+        });
+
+        $this->assertTrue($journeyResponse['payload']['ok']);
+        $this->assertGreaterThanOrEqual(
+            1,
+            count($journeyResponse['payload']['data']['journey']['cases'] ?? [])
+        );
+        $this->assertSame(
+            'scheduled',
+            (string) ($journeyResponse['payload']['data']['journey']['cases'][0]['displayStage'] ?? '')
+        );
+    }
+
+    public function testExplicitIntakeCaseMovesToScheduledWhenAppointmentExists(): void
+    {
+        $store = \read_store();
+        $futureDate = date('Y-m-d', strtotime('+3 day'));
+        $caseId = 'pc-intake-001';
+        $patientId = 'pt-intake-001';
+
+        $store['patient_cases'] = [[
+            'id' => $caseId,
+            'tenantId' => 'pielarmonia',
+            'patientId' => $patientId,
+            'status' => 'booked',
+            'journeyStage' => 'intake_completed',
+            'journeyEnteredAt' => date('c', strtotime('-1 day')),
+            'openedAt' => date('c', strtotime('-2 day')),
+            'latestActivityAt' => date('c', strtotime('-1 day')),
+            'lastInboundAt' => date('c', strtotime('-1 day')),
+            'summary' => [
+                'patientLabel' => 'Paciente Intake',
+                'latestCallbackId' => 'cb-001',
+                'milestones' => [
+                    'bookedAt' => date('c'),
+                ],
+            ],
+        ]];
+        $store['patient_case_approvals'] = [];
+        $store['appointments'] = [[
+            'id' => 3301,
+            'tenantId' => 'pielarmonia',
+            'patientCaseId' => $caseId,
+            'patientId' => $patientId,
+            'name' => 'Paciente Intake',
+            'email' => 'intake@example.com',
+            'phone' => '0997654321',
+            'service' => 'consulta',
+            'doctor' => 'rosero',
+            'date' => $futureDate,
+            'time' => '10:30',
+            'dateBooked' => date('c'),
+            'status' => 'confirmed',
+        ]];
+        \write_store($store, false);
+
+        $journey = \flow_os_build_store_journey_preview(\read_store());
+        $journeyCase = $this->findJourneyCaseByCaseId($journey['cases'] ?? [], $caseId);
+
+        $this->assertNotNull($journeyCase);
+        $this->assertSame('scheduled', (string) ($journeyCase['stage'] ?? ''));
+        $this->assertSame('scheduled', (string) ($journeyCase['displayStage'] ?? ''));
+        $this->assertSame('Confirmar cita', (string) ($journeyCase['nextActionLabel'] ?? ''));
+        $this->assertSame('scheduled', (string) ($journey['stage'] ?? ''));
     }
 
     private function captureJsonResponse(callable $callable): array
@@ -234,6 +335,20 @@ final class PatientCaseFlowTest extends TestCase
                 continue;
             }
             if ((string) ($case['summary']['latestTicketCode'] ?? '') === $ticketCode) {
+                return $case;
+            }
+        }
+
+        return null;
+    }
+
+    private function findJourneyCaseByCaseId(array $cases, string $caseId): ?array
+    {
+        foreach ($cases as $case) {
+            if (!is_array($case)) {
+                continue;
+            }
+            if ((string) ($case['caseId'] ?? '') === $caseId) {
                 return $case;
             }
         }

@@ -1,0 +1,758 @@
+---
+import '../../styles/public-v6/internal.css';
+import PageHeadV6 from './PageHeadV6.astro';
+
+const { page = {}, locale = 'es', navModel = {} } = Astro.props;
+
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const normalizeText = (value) => (hasText(value) ? value.trim() : '');
+const normalizeHref = (value) => {
+    const raw = normalizeText(value);
+    return raw && raw !== '#' ? raw : '';
+};
+const normalizeLink = (item) => {
+    const label = normalizeText(item?.label);
+    const href = normalizeHref(item?.href);
+    return label && href ? { label, href } : null;
+};
+const makeMenuItem = (label, href) =>
+    hasText(label) && hasText(href) ? { label: label.trim(), href: href.trim() } : null;
+
+const pageHeadUi =
+    navModel?.ui?.pageHead && typeof navModel.ui.pageHead === 'object'
+        ? navModel.ui.pageHead
+        : {};
+const switchLabel = normalizeText(navModel?.header?.switchLabel);
+const switchHref = normalizeHref(navModel?.header?.switchHref);
+const menuLabel = normalizeText(navModel?.header?.menuLabel);
+
+const breadcrumb = Array.isArray(page.breadcrumb)
+    ? page.breadcrumb.map(normalizeLink).filter(Boolean)
+    : [];
+const hero = page?.hero && typeof page.hero === 'object' ? page.hero : {};
+const support = page?.support && typeof page.support === 'object' ? page.support : {};
+const ui = page?.ui && typeof page.ui === 'object' ? page.ui : {};
+const menuUi = ui?.menu && typeof ui.menu === 'object' ? ui.menu : {};
+
+const cards = Array.isArray(page.cards)
+    ? page.cards
+          .map((card) => {
+              const title = normalizeText(card?.title);
+              const body = normalizeText(card?.body);
+              return title && body ? { title, body } : null;
+          })
+          .filter(Boolean)
+    : [];
+
+const steps = Array.isArray(page.steps)
+    ? page.steps
+          .map((step) => {
+              const title = normalizeText(step?.title);
+              const body = normalizeText(step?.body);
+              return title && body ? { title, body } : null;
+          })
+          .filter(Boolean)
+    : [];
+
+const heroStats = Array.isArray(page.heroStats)
+    ? page.heroStats
+          .map((item) => {
+              const label = normalizeText(item?.label);
+              const value = normalizeText(item?.value);
+              return label && value ? { label, value } : null;
+          })
+          .filter(Boolean)
+    : [];
+
+const pageMenuItems = [
+    makeMenuItem(normalizeText(menuUi.form), '#v6-preconsulta-form'),
+    makeMenuItem(normalizeText(menuUi.whatToSend), '#v6-preconsulta-what-to-send'),
+    makeMenuItem(normalizeText(menuUi.next), '#v6-preconsulta-next'),
+].filter(Boolean);
+---
+
+<PageHeadV6
+    breadcrumb={breadcrumb}
+    heading={page.heading}
+    locale={locale}
+    switchLabel={switchLabel}
+    switchHref={switchHref}
+    menuLabel={menuLabel}
+    menuItems={pageMenuItems}
+    copy={pageHeadUi}
+/>
+
+<section
+    class="v6-page-hero-media is-internal v6-page-hero-media--preconsultation"
+    data-v6-preconsultation-hero
+>
+    <div class="v6-preconsulta-hero">
+        <figure class="v6-preconsulta-hero__media">
+            <img
+                src={normalizeText(hero.image)}
+                alt={normalizeText(hero.alt) || normalizeText(page.heading)}
+                sizes="(max-width: 1100px) 100vw, 58vw"
+                loading="eager"
+                decoding="sync"
+                fetchpriority="high"
+            />
+        </figure>
+        <aside class="v6-preconsulta-hero__panel">
+            {hero.eyebrow ? <p class="v6-preconsulta-hero__eyebrow">{hero.eyebrow}</p> : null}
+            {hero.title ? <h2>{hero.title}</h2> : null}
+            {hero.deck ? <p class="v6-preconsulta-hero__deck">{hero.deck}</p> : null}
+            {
+                heroStats.length ? (
+                    <div class="v6-preconsulta-hero__stats" aria-hidden="true">
+                        {
+                            heroStats.map((item) => (
+                                <article>
+                                    <span>{item.label}</span>
+                                    <strong>{item.value}</strong>
+                                </article>
+                            ))
+                        }
+                    </div>
+                ) : null
+            }
+        </aside>
+    </div>
+</section>
+
+<div class="v6-internal-shell v6-preconsulta-shell" data-v6-preconsultation>
+    {
+        pageMenuItems.length || ui.railTitle ? (
+            <aside class="v6-internal-rail" data-v6-internal-rail>
+                {ui.railTitle ? <p>{ui.railTitle}</p> : null}
+                {
+                    pageMenuItems.length ? (
+                        <nav data-v6-section-nav="internal" aria-label={normalizeText(ui.railAria) || undefined}>
+                            {
+                                pageMenuItems.map((item) => (
+                                    <a data-v6-section-link href={item.href}>{item.label}</a>
+                                ))
+                            }
+                        </nav>
+                    ) : null
+                }
+            </aside>
+        ) : null
+    }
+
+    <div class="v6-internal-shell__body">
+        <section
+            id="v6-preconsulta-form"
+            class="v6-preconsulta-panel"
+            data-v6-preconsultation-form-section
+        >
+            <header class="v6-preconsulta-panel__head">
+                {page.formEyebrow ? <p>{page.formEyebrow}</p> : null}
+                {page.formTitle ? <h2>{page.formTitle}</h2> : null}
+                {page.formDeck ? <p>{page.formDeck}</p> : null}
+            </header>
+
+            <div class="v6-preconsulta-grid">
+                <article class="v6-preconsulta-card v6-preconsulta-card--form">
+                    <form
+                        class="v6-preconsulta-form"
+                        data-preconsultation-form
+                        enctype="multipart/form-data"
+                        novalidate
+                    >
+                        <label>
+                            <span>Nombre</span>
+                            <input
+                                type="text"
+                                name="nombre"
+                                autocomplete="name"
+                                placeholder="Como quiere que le llamemos"
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            <span>WhatsApp</span>
+                            <input
+                                type="tel"
+                                name="whatsapp"
+                                autocomplete="tel"
+                                placeholder="0991234567"
+                                inputmode="tel"
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            <span>Tipo de piel</span>
+                            <select name="tipo_piel">
+                                <option value="">No lo se todavia</option>
+                                <option value="seca">Seca</option>
+                                <option value="mixta">Mixta</option>
+                                <option value="grasa">Grasa</option>
+                                <option value="sensible">Sensible</option>
+                            </select>
+                        </label>
+
+                        <label class="v6-preconsulta-form__full">
+                            <span>Condicion o motivo de consulta</span>
+                            <textarea
+                                name="condicion"
+                                rows="5"
+                                maxlength="900"
+                                placeholder="Cuentenos que quiere revisar, desde cuando y que cambio recientemente."
+                                required
+                            ></textarea>
+                        </label>
+
+                        <label class="v6-preconsulta-form__full">
+                            <span>Fotos</span>
+                            <input
+                                type="file"
+                                name="fotos[]"
+                                accept="image/jpeg,image/png,image/webp"
+                                multiple
+                            />
+                            <small data-preconsultation-files>
+                                Puede adjuntar hasta 3 fotos JPG, PNG o WEBP. No es obligatorio.
+                            </small>
+                        </label>
+
+                        <div class="v6-preconsulta-form__actions">
+                            <button type="submit">Enviar preconsulta</button>
+                            <p data-preconsultation-status role="status" aria-live="polite"></p>
+                        </div>
+                    </form>
+                </article>
+
+                <article class="v6-preconsulta-card v6-preconsulta-card--support">
+                    <h3>{support.title}</h3>
+                    <p>{support.body}</p>
+                    <ul>
+                        <li>Frontdesk abre el caso en Flow OS apenas entra la preconsulta.</li>
+                        <li>Si faltan datos, le escribimos por WhatsApp para completar lo minimo necesario.</li>
+                        <li>No necesita clasificar perfecto la piel para empezar; nos basta con un contexto honesto.</li>
+                    </ul>
+                    {
+                        support.ctaLabel && support.ctaHref ? (
+                            <a href={support.ctaHref}>{support.ctaLabel}</a>
+                        ) : null
+                    }
+                    <div class="v6-preconsulta-success" data-preconsultation-success hidden>
+                        <strong>Preconsulta recibida.</strong>
+                        <p>
+                            El caso quedo registrado y frontdesk seguira por WhatsApp.
+                            <span data-preconsultation-case-id></span>
+                        </p>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section
+            id="v6-preconsulta-what-to-send"
+            class="v6-preconsulta-panel"
+            data-v6-preconsultation-cards
+        >
+            <header class="v6-preconsulta-panel__head">
+                {page.cardsEyebrow ? <p>{page.cardsEyebrow}</p> : null}
+                {page.cardsTitle ? <h2>{page.cardsTitle}</h2> : null}
+                {page.cardsDeck ? <p>{page.cardsDeck}</p> : null}
+            </header>
+
+            <div class="v6-preconsulta-cards">
+                {
+                    cards.map((card) => (
+                        <article data-v6-preconsultation-card>
+                            <h3>{card.title}</h3>
+                            <p>{card.body}</p>
+                        </article>
+                    ))
+                }
+            </div>
+        </section>
+
+        <section
+            id="v6-preconsulta-next"
+            class="v6-preconsulta-panel"
+            data-v6-preconsultation-steps
+        >
+            <header class="v6-preconsulta-panel__head">
+                {page.stepsEyebrow ? <p>{page.stepsEyebrow}</p> : null}
+                {page.stepsTitle ? <h2>{page.stepsTitle}</h2> : null}
+                {page.stepsDeck ? <p>{page.stepsDeck}</p> : null}
+            </header>
+
+            <div class="v6-preconsulta-steps">
+                {
+                    steps.map((step, index) => (
+                        <article data-v6-preconsultation-step>
+                            <span>{String(index + 1).padStart(2, '0')}</span>
+                            <div>
+                                <h3>{step.title}</h3>
+                                <p>{step.body}</p>
+                            </div>
+                        </article>
+                    ))
+                }
+            </div>
+        </section>
+    </div>
+</div>
+
+<style>
+    .v6-preconsulta-hero {
+        display: grid;
+        gap: clamp(1.2rem, 2vw, 2rem);
+        grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+        align-items: stretch;
+    }
+
+    .v6-preconsulta-hero__media,
+    .v6-preconsulta-hero__panel {
+        min-height: clamp(320px, 52vw, 520px);
+        border-radius: 1.9rem;
+    }
+
+    .v6-preconsulta-hero__media {
+        overflow: hidden;
+        box-shadow: 0 28px 70px rgba(10, 26, 43, 0.16);
+    }
+
+    .v6-preconsulta-hero__media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .v6-preconsulta-hero__panel {
+        padding: clamp(1.6rem, 2.4vw, 2.4rem);
+        background:
+            linear-gradient(180deg, rgba(255, 253, 247, 0.96), rgba(250, 244, 232, 0.95)),
+            #f6efe3;
+        border: 1px solid rgba(168, 121, 63, 0.16);
+        box-shadow: 0 24px 60px rgba(10, 26, 43, 0.1);
+        display: grid;
+        gap: 1rem;
+        align-content: start;
+    }
+
+    .v6-preconsulta-hero__eyebrow,
+    .v6-preconsulta-panel__head p:first-child,
+    .v6-preconsulta-steps span {
+        margin: 0;
+        font-size: 0.72rem;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: #9a6433;
+        font-weight: 700;
+    }
+
+    .v6-preconsulta-hero__panel h2,
+    .v6-preconsulta-panel__head h2 {
+        margin: 0;
+        color: #10263f;
+        font-size: clamp(2rem, 3.4vw, 3.35rem);
+        line-height: 0.94;
+        max-width: 12ch;
+    }
+
+    .v6-preconsulta-hero__deck,
+    .v6-preconsulta-panel__head > p:last-child,
+    .v6-preconsulta-card p,
+    .v6-preconsulta-card li,
+    .v6-preconsulta-steps p {
+        margin: 0;
+        color: rgba(16, 38, 63, 0.78);
+        font-size: 0.98rem;
+        line-height: 1.72;
+    }
+
+    .v6-preconsulta-hero__stats {
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .v6-preconsulta-hero__stats article,
+    .v6-preconsulta-card,
+    .v6-preconsulta-cards article,
+    .v6-preconsulta-steps article {
+        border-radius: 1.4rem;
+        border: 1px solid rgba(16, 38, 63, 0.08);
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: 0 20px 45px rgba(16, 38, 63, 0.08);
+    }
+
+    .v6-preconsulta-hero__stats article {
+        padding: 0.95rem 1rem;
+        display: grid;
+        gap: 0.25rem;
+    }
+
+    .v6-preconsulta-hero__stats span {
+        color: rgba(16, 38, 63, 0.65);
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .v6-preconsulta-hero__stats strong {
+        color: #10263f;
+        font-size: 1.25rem;
+        line-height: 1.1;
+    }
+
+    .v6-preconsulta-shell {
+        padding-top: clamp(2rem, 4vw, 3rem);
+    }
+
+    .v6-preconsulta-panel {
+        display: grid;
+        gap: 1.4rem;
+    }
+
+    .v6-preconsulta-grid,
+    .v6-preconsulta-cards,
+    .v6-preconsulta-steps {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .v6-preconsulta-grid {
+        grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+    }
+
+    .v6-preconsulta-cards {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .v6-preconsulta-card,
+    .v6-preconsulta-cards article,
+    .v6-preconsulta-steps article {
+        padding: 1.35rem;
+    }
+
+    .v6-preconsulta-card h3,
+    .v6-preconsulta-cards h3,
+    .v6-preconsulta-steps h3 {
+        margin: 0;
+        color: #10263f;
+        font-size: 1.15rem;
+        line-height: 1.15;
+    }
+
+    .v6-preconsulta-form {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .v6-preconsulta-form label {
+        display: grid;
+        gap: 0.4rem;
+        color: #10263f;
+        font-weight: 600;
+        font-size: 0.94rem;
+    }
+
+    .v6-preconsulta-form input,
+    .v6-preconsulta-form select,
+    .v6-preconsulta-form textarea {
+        width: 100%;
+        border-radius: 0.95rem;
+        border: 1px solid rgba(16, 38, 63, 0.14);
+        background: rgba(255, 255, 255, 0.96);
+        padding: 0.92rem 1rem;
+        color: #10263f;
+        font: inherit;
+    }
+
+    .v6-preconsulta-form input:focus-visible,
+    .v6-preconsulta-form select:focus-visible,
+    .v6-preconsulta-form textarea:focus-visible {
+        outline: 2px solid rgba(160, 102, 39, 0.34);
+        outline-offset: 2px;
+        border-color: rgba(160, 102, 39, 0.44);
+    }
+
+    .v6-preconsulta-form__full,
+    .v6-preconsulta-form__actions {
+        grid-column: 1 / -1;
+    }
+
+    .v6-preconsulta-form small,
+    .v6-preconsulta-form__actions p {
+        color: rgba(16, 38, 63, 0.68);
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    .v6-preconsulta-form__actions {
+        display: grid;
+        gap: 0.7rem;
+    }
+
+    .v6-preconsulta-form__actions button,
+    .v6-preconsulta-card--support a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: fit-content;
+        min-width: 220px;
+        border: 0;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #9d5f2f, #7b431d);
+        color: #fffdf8;
+        padding: 0.95rem 1.35rem;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 18px 35px rgba(123, 67, 29, 0.24);
+        transition:
+            transform 180ms ease,
+            box-shadow 180ms ease,
+            opacity 180ms ease;
+    }
+
+    .v6-preconsulta-form__actions button:hover,
+    .v6-preconsulta-form__actions button:focus-visible,
+    .v6-preconsulta-card--support a:hover,
+    .v6-preconsulta-card--support a:focus-visible {
+        transform: translateY(-2px);
+        box-shadow: 0 24px 42px rgba(123, 67, 29, 0.28);
+    }
+
+    .v6-preconsulta-form__actions button[disabled] {
+        opacity: 0.72;
+        cursor: wait;
+        transform: none;
+    }
+
+    .v6-preconsulta-form__actions p[data-tone='error'] {
+        color: #9b2c2c;
+    }
+
+    .v6-preconsulta-form__actions p[data-tone='success'] {
+        color: #266247;
+    }
+
+    .v6-preconsulta-card ul {
+        margin: 0;
+        padding-left: 1rem;
+        display: grid;
+        gap: 0.55rem;
+    }
+
+    .v6-preconsulta-card--support {
+        display: grid;
+        gap: 1rem;
+        align-content: start;
+    }
+
+    .v6-preconsulta-success {
+        display: grid;
+        gap: 0.4rem;
+        padding: 1rem;
+        border-radius: 1rem;
+        background: rgba(236, 248, 241, 0.95);
+        border: 1px solid rgba(38, 98, 71, 0.15);
+    }
+
+    .v6-preconsulta-success strong {
+        color: #1f5b40;
+        font-size: 1rem;
+    }
+
+    .v6-preconsulta-steps article {
+        display: grid;
+        gap: 0.9rem;
+        grid-template-columns: auto 1fr;
+        align-items: start;
+    }
+
+    .v6-preconsulta-steps span {
+        display: inline-flex;
+        min-width: 3rem;
+        justify-content: center;
+        padding-top: 0.2rem;
+    }
+
+    @media (max-width: 1100px) {
+        .v6-preconsulta-hero,
+        .v6-preconsulta-grid,
+        .v6-preconsulta-cards {
+            grid-template-columns: 1fr;
+        }
+
+        .v6-preconsulta-hero__panel h2,
+        .v6-preconsulta-panel__head h2 {
+            max-width: none;
+        }
+    }
+
+    @media (max-width: 720px) {
+        .v6-preconsulta-hero__panel,
+        .v6-preconsulta-card,
+        .v6-preconsulta-cards article,
+        .v6-preconsulta-steps article {
+            padding: 1.1rem;
+        }
+
+        .v6-preconsulta-form,
+        .v6-preconsulta-hero__stats {
+            grid-template-columns: 1fr;
+        }
+
+        .v6-preconsulta-form__actions button,
+        .v6-preconsulta-card--support a {
+            width: 100%;
+        }
+    }
+</style>
+
+<script>
+    (() => {
+        const form = document.querySelector('[data-preconsultation-form]');
+        if (!(form instanceof HTMLFormElement)) {
+            return;
+        }
+        if (form.dataset.bound === 'true') {
+            return;
+        }
+        form.dataset.bound = 'true';
+
+        const fileInput = form.querySelector('input[name="fotos[]"]');
+        const fileSummary = form.querySelector('[data-preconsultation-files]');
+        const status = form.querySelector('[data-preconsultation-status]');
+        const submitButton = form.querySelector('button[type="submit"]');
+        const success = document.querySelector('[data-preconsultation-success]');
+        const successCaseId = success
+            ? success.querySelector('[data-preconsultation-case-id]')
+            : null;
+        const maxPhotos = 3;
+
+        const setStatus = (message, tone = '') => {
+            if (!(status instanceof HTMLElement)) {
+                return;
+            }
+
+            status.textContent = String(message || '').trim();
+            if (tone) {
+                status.dataset.tone = tone;
+            } else {
+                delete status.dataset.tone;
+            }
+        };
+
+        const updateFileSummary = () => {
+            if (!(fileInput instanceof HTMLInputElement) || !(fileSummary instanceof HTMLElement)) {
+                return;
+            }
+
+            const files = Array.from(fileInput.files || []);
+            if (!files.length) {
+                fileSummary.textContent =
+                    'Puede adjuntar hasta 3 fotos JPG, PNG o WEBP. No es obligatorio.';
+                return;
+            }
+
+            if (files.length > maxPhotos) {
+                fileSummary.textContent =
+                    'Selecciono demasiadas fotos. Se permiten maximo 3 archivos.';
+                return;
+            }
+
+            fileSummary.textContent =
+                files.length === 1
+                    ? `1 foto lista para enviar: ${files[0].name}`
+                    : `${files.length} fotos listas para enviar.`;
+        };
+
+        if (fileInput instanceof HTMLInputElement) {
+            fileInput.addEventListener('change', updateFileSummary);
+        }
+        updateFileSummary();
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            if (!form.reportValidity()) {
+                return;
+            }
+
+            const files =
+                fileInput instanceof HTMLInputElement
+                    ? Array.from(fileInput.files || [])
+                    : [];
+
+            if (files.length > maxPhotos) {
+                setStatus('Adjunte maximo 3 fotos por preconsulta.', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('nombre', String(form.elements.namedItem('nombre')?.value || '').trim());
+            formData.append('whatsapp', String(form.elements.namedItem('whatsapp')?.value || '').trim());
+            formData.append('tipo_piel', String(form.elements.namedItem('tipo_piel')?.value || '').trim());
+            formData.append('condicion', String(form.elements.namedItem('condicion')?.value || '').trim());
+            files.slice(0, maxPhotos).forEach((file) => {
+                formData.append('fotos[]', file);
+            });
+
+            const originalLabel =
+                submitButton instanceof HTMLButtonElement
+                    ? submitButton.textContent || 'Enviar preconsulta'
+                    : 'Enviar preconsulta';
+
+            form.setAttribute('aria-busy', 'true');
+            setStatus('Enviando preconsulta...', '');
+            if (submitButton instanceof HTMLButtonElement) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Enviando...';
+            }
+
+            try {
+                const response = await fetch('/api.php?resource=flow-os-intake', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin',
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok || payload.ok === false) {
+                    throw new Error(
+                        String(payload.error || 'No se pudo enviar la preconsulta')
+                    );
+                }
+
+                form.reset();
+                updateFileSummary();
+                if (success instanceof HTMLElement) {
+                    success.hidden = false;
+                }
+                if (successCaseId instanceof HTMLElement) {
+                    const caseId = String(payload.data?.caseId || '').trim();
+                    successCaseId.textContent = caseId ? ` Case ID: ${caseId}.` : '';
+                }
+                setStatus(
+                    'Preconsulta recibida. Frontdesk le escribira por WhatsApp.',
+                    'success'
+                );
+                success?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } catch (error) {
+                setStatus(
+                    error instanceof Error && error.message
+                        ? error.message
+                        : 'No se pudo enviar la preconsulta. Intente otra vez.',
+                    'error'
+                );
+            } finally {
+                form.removeAttribute('aria-busy');
+                if (submitButton instanceof HTMLButtonElement) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalLabel;
+                }
+            }
+        });
+    })();
+</script>

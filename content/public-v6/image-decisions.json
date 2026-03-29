@@ -555,6 +555,90 @@
             "revision": 1,
             "approvedAt": "2026-03-12T00:00:00.000Z",
             "approvedBy": "seed_migration"
+        },
+        {
+            "slotId": "service.depilacion-laser.hero",
+            "assetId": "v6-clinic-laser-dermatologico",
+            "revision": 1,
+            "approvedAt": "2026-03-29T00:00:00.000Z",
+            "approvedBy": "codex"
+        },
+        {
+            "slotId": "service.depilacion-laser.statement",
+            "assetId": "v6-clinic-statement-procedure-guidance",
+            "revision": 1,
+            "approvedAt": "2026-03-29T00:00:00.000Z",
+            "approvedBy": "codex"
+        },
+        {
+            "slotId": "service.manchas.hero",
+            "assetId": "v6-clinic-peeling-quimico",
+            "revision": 1,
+            "approvedAt": "2026-03-29T00:00:00.000Z",
+            "approvedBy": "codex"
+        },
+        {
+            "slotId": "service.manchas.statement",
+            "assetId": "v6-clinic-statement-clinical-direction",
+            "revision": 1,
+            "approvedAt": "2026-03-29T00:00:00.000Z",
+            "approvedBy": "codex"
+        },
+        {
+            "slotId": "service.microdermoabrasion.hero",
+            "assetId": "v6-clinic-mesoterapia",
+            "revision": 1,
+            "approvedAt": "2026-03-29T00:00:00.000Z",
+            "approvedBy": "codex"
+        },
+        {
+            "slotId": "service.microdermoabrasion.statement",
+            "assetId": "v6-clinic-statement-procedure-guidance",
+            "revision": 1,
+            "approvedAt": "2026-03-29T00:00:00.000Z",
+            "approvedBy": "codex"
+        },
+        {
+            "slotId": "service.rellenos-hialuronico.hero",
+            "assetId": "v6-clinic-botox",
+            "revision": 1,
+            "approvedAt": "2026-03-29T00:00:00.000Z",
+            "approvedBy": "codex"
+        },
+        {
+            "slotId": "service.rellenos-hialuronico.statement",
+            "assetId": "v6-clinic-statement-procedure-guidance",
+            "revision": 1,
+            "approvedAt": "2026-03-29T00:00:00.000Z",
+            "approvedBy": "codex"
+        },
+        {
+            "slotId": "service.tamizaje-oncologico.hero",
+            "assetId": "v6-clinic-diagnostico-integral",
+            "revision": 1,
+            "approvedAt": "2026-03-29T00:00:00.000Z",
+            "approvedBy": "codex"
+        },
+        {
+            "slotId": "service.tamizaje-oncologico.statement",
+            "assetId": "v6-clinic-statement-clinical-direction",
+            "revision": 1,
+            "approvedAt": "2026-03-29T00:00:00.000Z",
+            "approvedBy": "codex"
+        },
+        {
+            "slotId": "service.teledermatologia.hero",
+            "assetId": "v6-clinic-telemedicine-intake",
+            "revision": 1,
+            "approvedAt": "2026-03-29T00:00:00.000Z",
+            "approvedBy": "codex"
+        },
+        {
+            "slotId": "service.teledermatologia.statement",
+            "assetId": "v6-clinic-statement-clinical-direction",
+            "revision": 1,
+            "approvedAt": "2026-03-29T00:00:00.000Z",
+            "approvedBy": "codex"
         }
     ]
 }
