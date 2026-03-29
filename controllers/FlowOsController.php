@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/FlowOsJourney.php';
+require_once __DIR__ . '/../lib/PatientCaseService.php';
 
 class FlowOsController
 {
@@ -16,21 +17,24 @@ class FlowOsController
 
     public static function journeyPreview(array $context): void
     {
+        $store = is_array($context['store'] ?? null) ? $context['store'] : [];
+        $store = (new PatientCaseService())->hydrateStore($store);
         $queryStage = trim((string) ($_GET['stage'] ?? ''));
-        $preview = flow_os_build_store_journey_preview(
-            is_array($context['store'] ?? null) ? $context['store'] : [],
-            [
-                'stage' => $queryStage,
-                'redFlagDetected' => self::toBool($_GET['redFlagDetected'] ?? null),
-                'missingIdentity' => self::toBool($_GET['missingIdentity'] ?? null),
-                'missedFollowup' => self::toBool($_GET['missedFollowup'] ?? null),
-            ]
-        );
+        $caseId = trim((string) ($_GET['caseId'] ?? ''));
+        $previewContext = [
+            'stage' => $queryStage,
+            'redFlagDetected' => self::toBool($_GET['redFlagDetected'] ?? null),
+            'missingIdentity' => self::toBool($_GET['missingIdentity'] ?? null),
+            'missedFollowup' => self::toBool($_GET['missedFollowup'] ?? null),
+        ];
+        $preview = $caseId !== ''
+            ? flow_os_build_case_journey_preview($store, $caseId, $previewContext)
+            : flow_os_build_store_journey_preview($store, $previewContext);
 
         json_response([
             'ok' => true,
             'data' => [
-                'episodeId' => trim((string) ($_GET['episodeId'] ?? 'demo-001')),
+                'episodeId' => $caseId !== '' ? $caseId : trim((string) ($_GET['episodeId'] ?? 'demo-001')),
                 'journey' => $preview,
             ],
         ]);

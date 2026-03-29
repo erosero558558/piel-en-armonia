@@ -568,6 +568,99 @@ test.describe('Panel de administracion', () => {
         );
     });
 
+    test('dashboard muestra el timeline reciente de Flow OS por paciente', async ({
+        page,
+    }) => {
+        const now = Date.now();
+        const oneHourAgo = new Date(now - 60 * 60 * 1000).toISOString();
+        const threeHoursAgo = new Date(now - 3 * 60 * 60 * 1000).toISOString();
+
+        await setupAuthenticatedAdminMocks(page, {
+            patientFlowMeta: {
+                casesTotal: 2,
+                casesOpen: 1,
+                pendingApprovals: 0,
+                activeHelpRequests: 0,
+                journeyHistory: {
+                    selectedCaseId: 'pc_demo_001',
+                    generatedAt: new Date(now).toISOString(),
+                    cases: [
+                        {
+                            caseId: 'pc_demo_001',
+                            patientId: 'pt_demo_001',
+                            patientLabel: 'Juan Perez',
+                            caseStatus: 'booked',
+                            currentStage: 'scheduled',
+                            currentStageLabel: 'Cita programada',
+                            owner: 'appointment-worker',
+                            ownerLabel: 'Agenda',
+                            latestActivityAt: oneHourAgo,
+                            openedAt: threeHoursAgo,
+                            timelineCount: 2,
+                            currentTransitionTitle: 'Reserva confirmada',
+                        },
+                    ],
+                    recentTransitions: [
+                        {
+                            caseId: 'pc_demo_001',
+                            patientId: 'pt_demo_001',
+                            patientLabel: 'Juan Perez',
+                            caseStatus: 'booked',
+                            stage: 'scheduled',
+                            stageLabel: 'Cita programada',
+                            title: 'Reserva confirmada',
+                            actor: 'appointment-worker',
+                            actorLabel: 'Agenda',
+                            occurredAt: oneHourAgo,
+                            sourceType: 'appointment_created',
+                            sourceTitle: 'Reserva confirmada',
+                            meta: 'Agenda confirmada',
+                        },
+                        {
+                            caseId: 'pc_demo_001',
+                            patientId: 'pt_demo_001',
+                            patientLabel: 'Juan Perez',
+                            caseStatus: 'booked',
+                            stage: 'lead_captured',
+                            stageLabel: 'Lead captado',
+                            title: 'Lead captado',
+                            actor: 'frontdesk',
+                            actorLabel: 'Recepcion',
+                            occurredAt: threeHoursAgo,
+                            sourceType: 'callback_created',
+                            sourceTitle: 'Callback registrado',
+                            meta: 'Callback pendiente',
+                        },
+                    ],
+                },
+            },
+        });
+
+        await page.goto('/admin.html');
+        await waitForAdminReady(page);
+        await expect(page.locator('#adminDashboard')).toBeVisible();
+        await openDashboardSection(page);
+
+        await expect(page.locator('#dashboardJourneyHistoryChip')).toContainText(
+            '2 cambio(s)'
+        );
+        await expect(
+            page.locator('#dashboardJourneyFocusHeadline')
+        ).toContainText('Juan Perez');
+        await expect(
+            page.locator('#dashboardJourneyStageHeadline')
+        ).toContainText('Cita programada');
+        await expect(
+            page.locator('#dashboardJourneyTimeline .dashboard-journey-item')
+        ).toHaveCount(2);
+        await expect(page.locator('#dashboardJourneyTimeline')).toContainText(
+            'Juan Perez -> Cita programada'
+        );
+        await expect(page.locator('#dashboardJourneyTimeline')).toContainText(
+            'Agenda'
+        );
+    });
+
     test('dashboard mantiene una accion clinica util cuando solo hay telemedicina o patient flow pendientes', async ({
         page,
     }) => {
