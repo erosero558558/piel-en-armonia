@@ -17,6 +17,7 @@ const {
     preloadImageSrcSet = '',
     preloadImageSizes = '',
     preloadImageType = 'image/webp',
+    rssFeedPath = '',
 } = Astro.props;
 
 const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
@@ -27,6 +28,12 @@ const normalizePath = (value, fallback) => {
     if (/^https?:\/\//i.test(raw)) return raw;
     const withLeading = raw.startsWith('/') ? raw : `/${raw}`;
     return withLeading.endsWith('/') ? withLeading : `${withLeading}/`;
+};
+const normalizeResourcePath = (value) => {
+    const raw = normalizeText(value);
+    if (!raw) return '';
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return raw.startsWith('/') ? raw : `/${raw}`;
 };
 const safeLocale = locale === 'en' ? 'en' : 'es';
 const safeTitle = normalizeText(title) || 'Aurora Derm';
@@ -106,6 +113,9 @@ const preloadSrcSet = normalizeText(preloadImageSrcSet);
 const preloadSizes = normalizeText(preloadImageSizes);
 const preloadType = normalizeText(preloadImageType);
 const ogImage = toOgImageUrl(ogImageSrc);
+const rssFeed = normalizeResourcePath(rssFeedPath)
+    ? new URL(normalizeResourcePath(rssFeedPath), origin).toString()
+    : '';
 const shellUi = navModel?.ui?.shell && typeof navModel.ui.shell === 'object' ? navModel.ui.shell : {};
 const skipToContent = normalizeText(shellUi.skipToContent);
 const backToTop = normalizeText(shellUi.backToTop);
@@ -145,6 +155,16 @@ const flagsJson = JSON.stringify(flags);
         <meta property="og:description" content={safeDescription} />
         <meta property="og:url" content={canonical} />
         <meta property="og:image" content={ogImage} />
+        {
+            rssFeed ? (
+                <link
+                    rel="alternate"
+                    type="application/rss+xml"
+                    title="Aurora Derm Blog RSS"
+                    href={rssFeed}
+                />
+            ) : null
+        }
         <meta name="theme-color" content="#090d13" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         {

@@ -437,6 +437,31 @@ test.describe('Public SEO files', () => {
         }
     });
 
+    test('blog feed publishes RSS with every live article', async () => {
+        const feedPath = path.join(REPO_ROOT, 'es', 'blog', 'feed.xml');
+        const feed = fs.readFileSync(feedPath, 'utf8');
+        const expectedUrls = [
+            '/es/blog/bioestimuladores-vs-rellenos/',
+            '/es/blog/melasma-embarazo/',
+            '/es/blog/acne-adulto/',
+            '/es/blog/proteccion-solar-ecuador/',
+            '/es/blog/senales-alarma-lunares/',
+            '/es/blog/como-elegir-dermatologo-quito/',
+        ].map(absolute);
+
+        expect(feed).toContain('<rss version="2.0"');
+        expect(feed).toContain('<title>Aurora Derm Blog</title>');
+        expect(feed).toContain('<link>https://pielarmonia.com/es/blog/</link>');
+        expect(feed).toContain(
+            '<atom:link href="https://pielarmonia.com/es/blog/feed.xml" rel="self" type="application/rss+xml" />'
+        );
+        expect(feed.match(/<item>/g) || []).toHaveLength(expectedUrls.length);
+
+        for (const url of expectedUrls) {
+            expect(feed).toContain(url);
+        }
+    });
+
     test('public home and localized pages delegate GA4 bootstrap to the consent shell', async () => {
         for (const { filePath, relativePath } of publicAnalyticsPages()) {
             const html = fs.readFileSync(filePath, 'utf8');

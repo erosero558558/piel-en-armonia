@@ -22,6 +22,9 @@ test.describe('Public blog index', () => {
         await expect(
             page.locator('[data-v6-page-head] .v6-corp-head__lang-option[href]')
         ).toHaveCount(0);
+        await expect(
+            page.locator('link[rel="alternate"][type="application/rss+xml"]')
+        ).toHaveAttribute('href', 'https://pielarmonia.com/es/blog/feed.xml');
         await expect(page.locator('[data-v6-blog-card]').first().locator('a')).toHaveAttribute(
             'href',
             '/es/blog/como-elegir-dermatologo-quito/'
