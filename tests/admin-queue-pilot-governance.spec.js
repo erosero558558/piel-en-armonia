@@ -1619,7 +1619,11 @@ test.describe('Admin turnero sala', () => {
         const nextGroupId = await page
             .locator('#queueOpsPilotValidationGroup')
             .evaluate((element) => element.nextElementSibling?.id || '');
-        expect(nextGroupId).toBe('queueOpsPilotAdvancedGroup');
+        expect(nextGroupId).toBe('queueMultiClinicControlTowerBasicHost');
+        const nextAfterBasicGroupId = await page
+            .locator('#queueMultiClinicControlTowerBasicHost')
+            .evaluate((element) => element.nextElementSibling?.id || '');
+        expect(nextAfterBasicGroupId).toBe('queueOpsPilotAdvancedGroup');
 
         await expect(
             page.locator('#queueOpsPilotReleaseEvidenceHost')
