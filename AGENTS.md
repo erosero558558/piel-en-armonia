@@ -555,3 +555,77 @@ CI valida automaticamente:
 - Drift legacy de dual-lane/tri-lane en `AGENT_BOARD.yaml` (detector/normalizador en gobernanza).
 
 Si falla la gobernanza, el pipeline debe bloquear merge.
+
+---
+
+## Backlog de Producto — Dirección Opus 4.6
+
+> Cada agente al recibir "continua" debe tomar la **primera tarea no completada** de su zona.
+> P0 se hace ANTES que P1. P1 antes que P2. Marcar `[x]` al completar.
+
+### P0 — Bloqueantes
+
+- [ ] **P0-01** Reemplazar imagen de Plataforma Láser — `images/optimized/service-laser.webp` muestra un CEREBRO. La imagen correcta (procedimiento láser) ya fue generada. Convertir a webp y reemplazar. Verificar en browser.
+- [ ] **P0-02** Reparar slider Before/After — sección "Transformación Documentada" en `index.html` muestra cajas grises. Diagnosticar rutas de imágenes del slider y arreglar.
+- [ ] **P0-03** Smoke test producción — `curl -sS -o /dev/null -w "%{http_code}" https://pielarmonia.com/` y `/api.php?resource=queue-state` y `/admin.html`. Si 200→GREEN. Si 502→reportar.
+
+### P1 — Frontend / Sitio Público
+
+- [ ] **FE-01** Crear `es/servicios/teledermatologia/index.html` — **el footer ya la enlaza y da 404**. Copiar estructura de `es/servicios/diagnostico-integral/index.html`. Contenido: consulta remota, proceso paso a paso, integración WhatsApp.
+- [ ] **FE-02** Crear `es/servicios/tamizaje-oncologico/index.html` — dermatoscopia digital, mapeo de lunares, seguimiento periódico.
+- [ ] **FE-03** Crear `es/servicios/manchas/index.html` — melasma, manchas solares, peelings, láser, fototipos Fitzpatrick.
+- [ ] **FE-04** Crear `es/servicios/depilacion-laser/index.html` — tecnología Alexandrita/diodo, tipos de piel, sesiones, cuidados post.
+- [ ] **FE-05** Crear `es/servicios/rellenos-hialuronico/index.html` — ácido hialurónico, zonas, diferencias con botox, resultados naturales.
+- [ ] **FE-06** Crear `es/servicios/microdermoabrasion/index.html` — rejuvenecimiento no invasivo, textura, poros.
+- [ ] **FE-07** Auditoría `en/index.html` — verificar que refleje la versión ES actual. Si desactualizado, sincronizar hero/servicios/equipo/CTA.
+- [ ] **FE-08** Mobile responsiveness — viewport 375px y 768px. Hero, cards, slider, footer. Arreglar breakpoints rotos.
+- [ ] **FE-09** Accessibility audit — Lighthouse accesibility. Alt text, contraste WCAG AA, ARIA labels, focus states.
+- [ ] **FE-10** Dark mode consistency — verificar NO hay fondos blancos accidentales, textos invisibles, bordes rotos.
+
+### P1 — SEO y Conversión
+
+- [ ] **SEO-01** Corregir `manifest.json` — dice "Flow OS" en name/short_name/description. **Debe ser "Aurora Derm — Clínica Dermatológica Quito"**.
+- [ ] **SEO-02** Google Analytics GA4 — insertar `gtag.js` en `index.html` y todas las páginas `es/servicios/`. Consultar ID al usuario.
+- [ ] **SEO-03** Structured data JSON-LD en `index.html` — tipo `MedicalClinic`: name, address Quito, teléfono, horarios, geo.
+- [ ] **SEO-04** Structured data por servicio — tipo `MedicalProcedure` en cada `es/servicios/*/index.html`.
+- [ ] **SEO-05** Actualizar `sitemap.xml` — verificar incluye TODAS las páginas `es/` y `en/`. Agregar nuevas al crearlas.
+- [ ] **SEO-06** Open Graph completar — og:title, og:description, og:image (hero derm, no Flow OS), og:url, og:type, og:locale.
+- [ ] **SEO-07** WhatsApp links con `?text=` — cada botón de servicio debe llevar texto pre-llenado. Ej: `?text=Hola, me interesa acné`.
+
+### P1 — Backend / API
+
+- [ ] **BE-01** Health endpoint — verificar `api.php?resource=health` responde 200 `{status:"ok"}`. Si no existe, crear en `controllers/`.
+- [ ] **BE-02** Error handling audit — controllers con try/catch, respuestas JSON consistentes, nunca HTML de error PHP en producción.
+- [ ] **BE-03** Rate limiting básico — 60 req/min por IP en endpoints públicos si no existe.
+- [ ] **BE-04** CORS headers audit — verificar que `api.php` tiene headers CORS correctos para el frontend.
+
+### P1 — Turnero
+
+- [ ] **TU-01** Kiosco UX — flujo end-to-end de tomar turno con backend local. Reportar bugs.
+- [ ] **TU-02** Operador UX — llamar siguiente, historial, transiciones. Reportar bugs.
+- [ ] **TU-03** Sala display — turnos en tiempo real, auto-refresh, tipografía legible a 3 metros.
+
+### P1 — Contenido y Conversión
+
+- [ ] **CON-01** Galería de resultados reales — crear sección en `index.html` con antes/después de tratamientos reales (acné, láser, bioestimuladores). Mínimo 6 pares.
+- [ ] **CON-02** Testimonios con nombre — reemplazar testimonios genéricos por 5 con nombre, tratamiento específico, y resultado.
+- [ ] **CON-03** Página de preguntas frecuentes — crear `es/faq/index.html` con 15+ preguntas organizadas por categoría (primera consulta, costos, tratamientos, seguimiento).
+- [ ] **CON-04** Blog/educación — crear estructura `es/blog/index.html` + 3 artículos iniciales: "Cómo elegir dermatólogo en Quito", "5 señales de alarma en lunares", "Guía de protección solar Ecuador".
+- [ ] **CON-05** Página "Sobre nosotros" — crear `es/nosotros/index.html` con historia de la clínica, filosofía, instalaciones, certificaciones.
+- [ ] **CON-06** Mapa e indicaciones — agregar Google Maps embed en footer o sección de contacto con ubicación exacta de la clínica en Quito.
+
+### P2 — Infraestructura y DevOps
+
+- [ ] **OPS-01** CI pipeline audit — `.github/workflows/ci.yml` jobs referencian archivos existentes, no archivados.
+- [ ] **OPS-02** Deploy workflow — verificar que `deploy-hosting` está funcional. Documentar proceso.
+- [ ] **OPS-03** Lighthouse CI — `npx lhci autorun --config lighthouserc.premium.json`. Target: Perf 80+, A11y 90+, SEO 90+.
+- [ ] **OPS-04** SSL/HTTPS audit — verificar que pielarmonia.com tiene certificado válido, no mixed content, HSTS activo.
+
+### P2 — Limpieza técnica
+
+- [ ] **CLEAN-01** Package.json audit — de 171 scripts, listar los que referencian archivos inexistentes.
+- [ ] **CLEAN-02** CSS dead code — 8+ archivos CSS en raíz. Verificar cuáles se usan.
+- [ ] **CLEAN-03** Images audit — 262 webp en `images/optimized/`. Listar huérfanas (no referenciadas desde HTML/CSS).
+- [ ] **CLEAN-04** Fix bioestimuladores link — footer enlaza a `/es/servicios/bioestimuladores/` pero la página real es `/es/servicios/bioestimuladores-colageno/`. Arreglar href o crear redirect.
+- [ ] **CLEAN-05** Eliminar markdown muerto de raíz — `CALENDAR-CUTOVER.md`, `CHECKLIST-PRUEBAS-PRODUCCION.md`, `DESPLIEGUE-PIELARMONIA.md`, `GITHUB-ACTIONS-DEPLOY.md`, `SECURITY_AUDIT.md`, `SERVIDOR-LOCAL.md` — mover a `docs/` si útil o a `_archive/` si obsoleto.
+- [ ] **CLEAN-06** Service worker audit — `sw.js` puede estar cacheando assets viejos. Verificar que la lista de cache refleja los archivos actuales.
