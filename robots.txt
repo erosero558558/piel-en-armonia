@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /_archive/
 Disallow: /api.php
 Disallow: /admin.html
 Disallow: /admin-auth.php
@@ -7,6 +8,7 @@ Disallow: /figo-chat.php
 Disallow: /cron.php
 Disallow: /legacy.php
 Disallow: /data/
+Disallow: /tools/
 Disallow: /uploads/
 
 Sitemap: https://pielarmonia.com/sitemap.xml

@@ -57,9 +57,9 @@ function syncLegacyHtmlFiles(versions, checkOnly) {
         const original = readUtf8(filePath);
         const synced = replaceOrThrow(
             original,
-            /(src\s*=\s*"\.\.\/script\.js\?v=)([^"]+)(")/i,
+            /(src\s*=\s*"\.\.\/js\/nueva-web-main\.js\?v=)([^"]+)(")/i,
             `$1${versions.script}$3`,
-            `${path.basename(filePath)} script.js`
+            `${path.basename(filePath)} js/nueva-web-main.js`
         );
 
         if (synced !== original) {
@@ -85,9 +85,9 @@ function syncServiceWorker(versions, checkOnly) {
     );
     synced = replaceOrThrow(
         synced,
-        /('\/styles-deferred\.css\?v=)([^']+)(',)/i,
+        /('\/styles\/main-aurora\.css\?v=)([^']+)(')/i,
         `$1${versions.deferredStyles}$3`,
-        'sw.js styles-deferred'
+        'sw.js styles/main-aurora.css'
     );
     synced = replaceOrThrow(
         synced,
@@ -97,9 +97,9 @@ function syncServiceWorker(versions, checkOnly) {
     );
     synced = replaceOrThrow(
         synced,
-        /('\/script\.js\?v=)([^']+)(',)/i,
+        /('\/js\/nueva-web-main\.js\?v=)([^']+)(')/i,
         `$1${versions.script}$3`,
-        'sw.js script.js'
+        'sw.js js/nueva-web-main.js'
     );
 
     if (synced !== original) {
@@ -121,17 +121,17 @@ function parseArgs() {
 function extractCompatibilityVersionsFromFile(filePath, label) {
     const content = readUtf8(filePath);
     const versions = {
-        script: extractVersion(content, 'script\\.js'),
+        script: extractVersion(content, 'js/nueva-web-main\\.js'),
         bootstrap: extractVersion(content, 'js/bootstrap-inline-engine\\.js'),
-        deferredStyles: extractVersion(content, 'styles-deferred\\.css'),
+        deferredStyles: extractVersion(content, 'styles/main-aurora\\.css'),
     };
 
-    ensureExtracted(`script.js en ${label}`, versions.script);
+    ensureExtracted(`js/nueva-web-main.js en ${label}`, versions.script);
     ensureExtracted(
         `bootstrap-inline-engine.js en ${label}`,
         versions.bootstrap
     );
-    ensureExtracted(`styles-deferred.css en ${label}`, versions.deferredStyles);
+    ensureExtracted(`styles/main-aurora.css en ${label}`, versions.deferredStyles);
 
     return versions;
 }
@@ -202,6 +202,15 @@ function collectVersionSource() {
     const legacyPresent = [LEGACY_INDEX_FILE, ...LEGACY_HTML_SYNC_FILES].filter(
         (filePath) => fs.existsSync(filePath)
     );
+
+    if (legacyPresent.length === 0) {
+        return {
+            mode: 'staged_only',
+            versions: null,
+            sourceFiles: stagedShell ? stagedShell.sourceFiles : [],
+            stagedShell,
+        };
+    }
 
     if (fs.existsSync(SERVICE_WORKER_FILE)) {
         return {

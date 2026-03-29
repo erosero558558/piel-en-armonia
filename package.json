@@ -199,6 +199,13 @@
         "agent:board:doctor": "node agent-orchestrator.js board doctor --json",
         "agent:board:legacy:check": "node bin/board-legacy-drift-guard.js --check --json",
         "agent:board:legacy:normalize": "node bin/board-legacy-drift-guard.js --write --json",
+        "claim:next": "node bin/claim.js next",
+        "claim:status": "node bin/claim.js status",
+        "claim:list": "node bin/claim.js list-pending",
+        "claim:take": "node bin/claim.js claim",
+        "claim:done": "node bin/claim.js release",
+        "claim:purge": "node bin/claim.js purge-expired",
+
         "agent:board:resolve-revision": "node bin/resolve-board-revision-conflict.js --file AGENT_BOARD.yaml --json",
         "agent:board:archive:preview": "node bin/archive-agent-board.js --json",
         "agent:board:archive:apply": "node bin/archive-agent-board.js --apply --json",

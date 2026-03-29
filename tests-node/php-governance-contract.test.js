@@ -32,6 +32,7 @@ function createPhpGovernanceFixtureDir() {
         join(dir, 'bin', 'validate-agent-governance.php')
     );
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
+    copyFileSync(join(REPO_ROOT, 'AGENTS.md'), join(dir, 'AGENTS.md'));
     writeFileSync(
         join(dir, 'AGENTS.md'),
         'AGENT_POLICY_VERSION: test\nCANONICAL_AGENT_POLICY: AGENTS.md\n',

@@ -16,7 +16,7 @@ const { join, resolve } = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const REPO_ROOT = resolve(__dirname, '..');
-const ORCHESTRATOR_SOURCE = join(REPO_ROOT, 'agent-orchestrator.js');
+const ORCHESTRATOR_SOURCE = join(REPO_ROOT, '_archive', 'agent-governance', 'agent-orchestrator.js');
 const ORCHESTRATOR_TOOLS_DIR = join(REPO_ROOT, 'tools', 'agent-orchestrator');
 const GOVERNANCE_POLICY_SOURCE = join(REPO_ROOT, 'governance-policy.json');
 const WORKSPACE_HYGIENE_SOURCE = join(
@@ -44,6 +44,7 @@ function createFixtureDir() {
         recursive: true,
     });
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
+    copyFileSync(join(REPO_ROOT, 'AGENTS.md'), join(dir, 'AGENTS.md'));
     mkdirSync(join(dir, 'bin', 'lib'), { recursive: true });
     copyFileSync(
         WORKSPACE_HYGIENE_SOURCE,

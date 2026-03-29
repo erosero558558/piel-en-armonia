@@ -1,4 +1,5 @@
 # CLAUDE.md — Onboarding para cualquier agente IA
+SOURCE_OF_TRUTH: AGENTS.md
 
 > **Este archivo es tu punto de entrada.** Léelo primero, luego ve a `AGENTS.md`.
 

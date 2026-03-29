@@ -19,7 +19,7 @@ const { spawn, spawnSync } = require('child_process');
 const http = require('http');
 
 const REPO_ROOT = resolve(__dirname, '..');
-const ORCHESTRATOR_SOURCE = join(REPO_ROOT, 'agent-orchestrator.js');
+const ORCHESTRATOR_SOURCE = join(REPO_ROOT, '_archive', 'agent-governance', 'agent-orchestrator.js');
 const ORCHESTRATOR_TOOLS_DIR = join(REPO_ROOT, 'tools', 'agent-orchestrator');
 const GOVERNANCE_POLICY_SOURCE = join(REPO_ROOT, 'governance-policy.json');
 const OPENCLAW_RUNTIME_HELPER_SOURCE = join(
@@ -68,6 +68,7 @@ function createFixtureDir() {
         recursive: true,
     });
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
+    copyFileSync(join(REPO_ROOT, 'AGENTS.md'), join(dir, 'AGENTS.md'));
     mkdirSync(join(dir, 'bin', 'lib'), { recursive: true });
     copyFileSync(
         WORKSPACE_HYGIENE_SOURCE,
@@ -921,7 +922,7 @@ tasks:
   - id: AG-001
     title: "Done without evidence"
     owner: ernesto
-    executor: codex
+    executor: ci
     status: done
     risk: low
     scope: docs
@@ -944,10 +945,11 @@ signals: []
             'utf8'
         );
 
-        const reconcile = runJsonExpectStatus(
+        const reconcile = runJsonExpectStatusWithOptions(
             dir,
             ['reconcile', '--strict'],
-            1
+            1,
+            { env: { GITHUB_TOKEN: '', GH_TOKEN: '', PATH: '' } }
         );
         assertVersionLike(reconcile.version);
         assert.equal(reconcile.command, 'reconcile');
@@ -2049,7 +2051,7 @@ test('JSON contract minimo estable para task ls/create/claim/start/finish', () =
             '--title',
             'Task contrato JSON',
             '--executor',
-            'codex',
+            'ci',
             '--files',
             'docs/contract-json.md',
             '--scope',

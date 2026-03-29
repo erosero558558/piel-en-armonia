@@ -5,15 +5,11 @@
             "startServerCommand": "php -S 127.0.0.1:8011 -t . bin/local-stage-router.php",
             "startServerReadyPattern": "Development Server",
             "url": [
-                "http://127.0.0.1:8011/es/",
+                "http://127.0.0.1:8011/",
                 "http://127.0.0.1:8011/en/",
-                "http://127.0.0.1:8011/es/servicios/",
-                "http://127.0.0.1:8011/en/services/",
-                "http://127.0.0.1:8011/es/telemedicina/",
-                "http://127.0.0.1:8011/en/telemedicine/",
-                "http://127.0.0.1:8011/es/servicios/diagnostico-integral/",
                 "http://127.0.0.1:8011/es/servicios/acne-rosacea/",
-                "http://127.0.0.1:8011/en/services/acne-rosacea/"
+                "http://127.0.0.1:8011/es/telemedicina/",
+                "http://127.0.0.1:8011/es/software/turnero-clinicas/dashboard/"
             ],
             "settings": {
                 "chromeFlags": "--no-sandbox --disable-dev-shm-usage",

@@ -93,6 +93,7 @@ Los `.html` que siguen en raiz deben ser shells servidos directamente por el
 hosting:
 
 - `admin.html`: shell admin canonico.
+- `index.html`: shell principal del portal publico.
 - `operador-turnos.html`: shell web del operador de turnero.
 - `kiosco-turnos.html`: shell web del kiosco de turnero.
 - `sala-turnos.html`: shell web de la pantalla de sala.
@@ -263,6 +264,7 @@ tooling del repo.
 Lista aprobada actual:
 
 - `_astro`
+- `.agents`
 - `.claude`
 - `.github`
 - `.husky`

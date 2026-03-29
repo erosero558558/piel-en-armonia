@@ -1434,13 +1434,16 @@ $board = [
 ];
 if ($boardRaw !== '') {
     $board = parseBoardYaml($boardRaw);
+    if (preg_match('/^status:\s*archived/mi', $boardRaw)) {
+        $board['status'] = 'archived';
+    }
 }
 
 foreach (validateStrategyConfiguration($board, $allowedCodexInstances) as $strategyError) {
     $errors[] = $strategyError;
 }
 
-if (empty($board['tasks'])) {
+if (empty($board['tasks']) && ($board['status'] ?? '') !== 'archived') {
     $errors[] = 'AGENT_BOARD.yaml no contiene tareas.';
 }
 
@@ -2072,8 +2075,10 @@ if (is_array($governancePolicy)) {
         }
     }
 
-    foreach (validateTaskStrategyAlignment($board, $task, $criticalScopes) as $strategyTaskError) {
-        $errors[] = $strategyTaskError;
+    foreach ($board['tasks'] ?? [] as $task) {
+        foreach (validateTaskStrategyAlignment($board, $task, $criticalScopes) as $strategyTaskError) {
+            $errors[] = $strategyTaskError;
+        }
     }
 }
 
@@ -2371,7 +2376,7 @@ $configuredStrategy = getConfiguredStrategy($board);
 $configuredNextStrategy = getConfiguredNextStrategy($board);
 $planStrategyBlock = count($codexStrategyBlocks) > 0 ? $codexStrategyBlocks[0] : null;
 $planNextStrategyBlock = count($codexStrategyNextBlocks) > 0 ? $codexStrategyNextBlocks[0] : null;
-$compareStrategyMirror = static function (?array $boardStrategy, ?array $planBlock, string $boardLabel, string $planLabel) use (&$errors): void {
+$compareStrategyMirror = static function (?array $boardStrategy, ?array $planBlock, string $boardLabel, string $planLabel) use (&$errors, $board): void {
     if (is_array($boardStrategy)) {
         if (!is_array($planBlock)) {
             $errors[] = "AGENT_BOARD.yaml tiene {$boardLabel} configurada pero falta {$planLabel} en PLAN_MAESTRO_CODEX_2026.md";
@@ -2411,7 +2416,7 @@ $compareStrategyMirror = static function (?array $boardStrategy, ?array $planBlo
         return;
     }
 
-    if (is_array($planBlock)) {
+    if (is_array($planBlock) && ($board['status'] ?? '') !== 'archived') {
         $errors[] = "PLAN_MAESTRO_CODEX_2026.md tiene {$planLabel} pero AGENT_BOARD.yaml no tiene {$boardLabel} configurada";
     }
 };

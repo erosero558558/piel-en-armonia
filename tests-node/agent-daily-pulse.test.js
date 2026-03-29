@@ -18,7 +18,7 @@ const { join, resolve } = require('path');
 const { spawnSync } = require('child_process');
 
 const REPO_ROOT = resolve(__dirname, '..');
-const ORCHESTRATOR_SOURCE = join(REPO_ROOT, 'agent-orchestrator.js');
+const ORCHESTRATOR_SOURCE = join(REPO_ROOT, '_archive', 'agent-governance', 'agent-orchestrator.js');
 const ORCHESTRATOR_TOOLS_DIR = join(REPO_ROOT, 'tools', 'agent-orchestrator');
 const GOVERNANCE_POLICY_SOURCE = join(REPO_ROOT, 'governance-policy.json');
 const GITIGNORE_SOURCE = join(REPO_ROOT, '.gitignore');
@@ -77,6 +77,7 @@ function createFixtureDir() {
         recursive: true,
     });
     copyFileSync(GOVERNANCE_POLICY_SOURCE, join(dir, 'governance-policy.json'));
+    copyFileSync(join(REPO_ROOT, 'AGENTS.md'), join(dir, 'AGENTS.md'));
     copyFileSync(GITIGNORE_SOURCE, join(dir, '.gitignore'));
     copyFileSync(JULES_TOMBSTONE_SOURCE, join(dir, 'JULES_TASKS.md'));
     copyFileSync(KIMI_TOMBSTONE_SOURCE, join(dir, 'KIMI_TASKS.md'));
@@ -280,7 +281,7 @@ tasks:
   - id: AG-900
     title: "Dependency closed"
     owner: deck
-    executor: codex
+    executor: ci
     status: done
     risk: low
     scope: tests
@@ -305,7 +306,7 @@ tasks:
   - id: AG-101
     title: "Stale in progress"
     owner: deck
-    executor: codex
+    executor: ci
     status: in_progress
     risk: medium
     scope: backend
@@ -358,10 +359,10 @@ tasks:
   - id: AG-103
     title: "Public sync support task"
     owner: deck
-    executor: codex
+    executor: ci
     status: blocked
     risk: medium
-    scope: deploy
+    scope: ops
     files: ["controllers/HealthController.php", "docs/PUBLIC_MAIN_UPDATE_RUNBOOK.md"]
     codex_instance: codex_backend_ops
     domain_lane: backend_ops
@@ -383,7 +384,7 @@ tasks:
   - id: AG-104
     title: "Blocked with expired lease"
     owner: deck
-    executor: codex
+    executor: ci
     status: blocked
     risk: low
     scope: docs

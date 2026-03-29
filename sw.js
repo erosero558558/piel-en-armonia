@@ -1,12 +1,15 @@
-const CACHE_NAME = 'pielarmonia-v18-admin-20260320-mainpublish1';
+const CACHE_NAME = 'aurora-derm-v19-production-20260329';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
-    '/telemedicina.html',
+    '/en/index.html',
     '/admin.html',
     '/operador-turnos.html',
     '/kiosco-turnos.html',
     '/sala-turnos.html',
+    '/styles/main-aurora.css?v=6.0.2',
+    '/js/nueva-web-main.js?v=6.0.2',
+    '/js/public-v6-shell.js',
     '/admin-v3.css?v=admin-v3-20260314-sony150',
     '/admin.js?v=admin-20260320-mainpublish1',
     '/queue-ops.css?v=queue-ops-20260314-sony150',
@@ -16,9 +19,7 @@ const STATIC_ASSETS = [
     '/js/queue-kiosk.js?v=queue-20260227-fix1',
     '/queue-display.css?v=queue-20260227-fix1',
     '/js/queue-display.js?v=queue-20260227-fix1',
-    '/styles-deferred.css?v=ui-20260227-deferredfix1',
     '/js/bootstrap-inline-engine.js?v=figo-20260221-phase10-realagenda1',
-    '/script.js?v=figo-20260226-themefix2',
     // Fonts preloaded on every page
     '/fonts/plus-jakarta-sans.woff2',
     '/fonts/fraunces.woff2',
@@ -26,10 +27,9 @@ const STATIC_ASSETS = [
     '/content/index.json',
     '/content/es.json',
     '/content/en.json',
-    // Hero image responsive set (WebP — what the HTML actually preloads)
-    '/images/optimized/hero-woman-640.webp',
-    '/images/optimized/hero-woman-1024.webp',
-    '/images/optimized/hero-woman-1344.webp',
+    // Public Assets
+    '/images/optimized/v6-clinic-brand-hero-wide-800.webp',
+    '/images/optimized/v6-clinic-brand-hero-wide-1200.webp',
     '/favicon.ico',
     '/manifest.json',
     '/images/icon-192.png',

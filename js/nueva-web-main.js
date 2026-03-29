@@ -1,4 +1,44 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const contextualizeWhatsAppLinks = () => {
+        const phone = '593982453672';
+        const locale = document.documentElement.lang === 'en' ? 'en' : 'es';
+        const message =
+            locale === 'en'
+                ? "Hello, I'd like to book a dermatology evaluation"
+                : 'Hola, me gustaria agendar una evaluacion dermatologica';
+
+        document
+            .querySelectorAll('a[href*="wa.me/"], a[href*="whatsapp.com/"]')
+            .forEach((link) => {
+                if (!(link instanceof HTMLAnchorElement)) return;
+                try {
+                    const url = new URL(link.href, window.location.href);
+                    const host = String(url.hostname || '')
+                        .replace(/^www\./, '')
+                        .toLowerCase();
+                    const isClinicLink =
+                        (host === 'wa.me' &&
+                            url.pathname.replace(/\//g, '') === phone) ||
+                        ((host === 'api.whatsapp.com' ||
+                            host === 'web.whatsapp.com') &&
+                            String(url.searchParams.get('phone') || '').replace(
+                                /\D/g,
+                                ''
+                            ) === phone);
+                    if (!isClinicLink) return;
+                    if (String(url.searchParams.get('text') || '').trim()) {
+                        return;
+                    }
+                    url.searchParams.set('text', message);
+                    link.setAttribute('href', url.toString());
+                } catch (_error) {
+                    // Keep authored hrefs untouched when parsing fails.
+                }
+            });
+    };
+
+    contextualizeWhatsAppLinks();
+
     const obs = new IntersectionObserver(
         (es, o) => {
             es.forEach((e) => {

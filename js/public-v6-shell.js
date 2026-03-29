@@ -21,6 +21,203 @@
         return index;
     }
 
+    var WHATSAPP_PHONE = '593982453672';
+    var WHATSAPP_MESSAGE_MAP = {
+        es: {
+            home: 'Hola, me gustaria agendar una evaluacion dermatologica',
+            hub: 'Hola, necesito ayuda para elegir la especialidad dermatologica adecuada',
+            telemedicine:
+                'Hola, me interesa una orientacion por teledermatologia',
+            software:
+                'Hola, quiero evaluar Flow OS para una clinica dermatologica',
+            legal: 'Hola, tengo una consulta sobre Aurora Derm',
+            service: {
+                'diagnostico-integral':
+                    'Hola, me gustaria agendar una evaluacion dermatologica',
+                'acne-rosacea': 'Hola, me interesa una consulta sobre acne',
+                verrugas: 'Hola, quiero una consulta por verrugas',
+                'granitos-brazos-piernas':
+                    'Hola, quiero una consulta por granitos en brazos y piernas',
+                cicatrices:
+                    'Hola, quiero informacion sobre tratamiento para cicatrices',
+                'cancer-piel':
+                    'Hola, quiero agendar una revision de lesiones o lunares',
+                'peeling-quimico':
+                    'Hola, quiero informacion sobre peeling quimico',
+                mesoterapia: 'Hola, quiero informacion sobre mesoterapia',
+                'laser-dermatologico':
+                    'Hola, quiero informacion sobre tratamiento laser',
+                botox: 'Hola, quiero informacion sobre botox medico',
+                'bioestimuladores-colageno':
+                    'Hola, quiero informacion sobre bioestimuladores de colageno',
+                'piel-cabello-unas':
+                    'Hola, quiero una consulta por piel, cabello y unas',
+                'dermatologia-pediatrica':
+                    'Hola, quiero una consulta de dermatologia pediatrica',
+                'depilacion-laser':
+                    'Hola, quiero informacion sobre depilacion laser',
+                manchas: 'Hola, quiero una consulta por manchas en la piel',
+                microdermoabrasion:
+                    'Hola, quiero informacion sobre microdermoabrasion',
+                'rellenos-hialuronico':
+                    'Hola, quiero informacion sobre rellenos de acido hialuronico',
+                'tamizaje-oncologico':
+                    'Hola, quiero agendar un tamizaje oncologico de piel',
+                teledermatologia:
+                    'Hola, me interesa una orientacion por teledermatologia',
+            },
+        },
+        en: {
+            home: "Hello, I'd like to book a dermatology evaluation",
+            hub: 'Hello, I need help choosing the right dermatology specialty',
+            telemedicine:
+                "Hello, I'm interested in a teledermatology consultation",
+            software:
+                'Hello, I want to evaluate Flow OS for a dermatology clinic',
+            legal: 'Hello, I have a question about Aurora Derm',
+            service: {
+                'diagnostico-integral':
+                    "Hello, I'd like to book a dermatology evaluation",
+                'acne-rosacea': "Hello, I'm interested in an acne consultation",
+                verrugas: "Hello, I'd like a consultation about warts",
+                'granitos-brazos-piernas':
+                    "Hello, I'd like a consultation about bumps on my arms and legs",
+                cicatrices: "Hello, I'd like information about scar treatment",
+                'cancer-piel':
+                    "Hello, I'd like to schedule a skin lesion review",
+                'peeling-quimico':
+                    "Hello, I'd like information about a chemical peel",
+                mesoterapia: "Hello, I'd like information about mesotherapy",
+                'laser-dermatologico':
+                    "Hello, I'd like information about laser treatment",
+                botox: "Hello, I'd like information about medical botox",
+                'bioestimuladores-colageno':
+                    "Hello, I'd like information about collagen biostimulators",
+                'piel-cabello-unas':
+                    "Hello, I'd like a consultation for skin, hair, and nails",
+                'dermatologia-pediatrica':
+                    "Hello, I'd like a pediatric dermatology consultation",
+                teledermatologia:
+                    "Hello, I'm interested in a teledermatology consultation",
+            },
+        },
+    };
+
+    function normalizePublicPath(value) {
+        var raw = String(value || '/').trim();
+        if (!raw) return '/';
+        return raw.endsWith('/') ? raw : raw + '/';
+    }
+
+    function getPageLocale() {
+        return document.documentElement.lang === 'en' ? 'en' : 'es';
+    }
+
+    function resolveServiceSlug(pathname, locale) {
+        if (locale === 'en') {
+            if (!pathname.startsWith('/en/services/')) return '';
+            return pathname.slice('/en/services/'.length).replace(/\/$/, '');
+        }
+        if (!pathname.startsWith('/es/servicios/')) return '';
+        return pathname.slice('/es/servicios/'.length).replace(/\/$/, '');
+    }
+
+    function resolveWhatsAppMessage(pathname, locale) {
+        var safeLocale = locale === 'en' ? 'en' : 'es';
+        var messages = WHATSAPP_MESSAGE_MAP[safeLocale];
+        var safePath = normalizePublicPath(pathname);
+
+        if (safePath === '/es/' || safePath === '/en/' || safePath === '/') {
+            return messages.home;
+        }
+
+        if (safePath === '/es/servicios/' || safePath === '/en/services/') {
+            return messages.hub;
+        }
+
+        if (
+            safePath === '/es/telemedicina/' ||
+            safePath === '/en/telemedicine/' ||
+            safePath === '/es/servicios/teledermatologia/'
+        ) {
+            return messages.telemedicine;
+        }
+
+        if (
+            safePath.indexOf('/es/software/turnero-clinicas/') === 0 ||
+            safePath.indexOf('/en/software/clinic-flow-suite/') === 0
+        ) {
+            return messages.software;
+        }
+
+        if (
+            safePath.indexOf('/es/legal/') === 0 ||
+            safePath.indexOf('/en/legal/') === 0
+        ) {
+            return messages.legal;
+        }
+
+        var serviceSlug = resolveServiceSlug(safePath, safeLocale);
+        if (serviceSlug && messages.service[serviceSlug]) {
+            return messages.service[serviceSlug];
+        }
+
+        return messages.home;
+    }
+
+    function isClinicWhatsAppUrl(url) {
+        if (!(url instanceof URL)) return false;
+        var hostname = String(url.hostname || '')
+            .replace(/^www\./, '')
+            .toLowerCase();
+        if (hostname === 'wa.me') {
+            return url.pathname.replace(/\//g, '') === WHATSAPP_PHONE;
+        }
+        if (
+            hostname === 'api.whatsapp.com' ||
+            hostname === 'web.whatsapp.com'
+        ) {
+            return (
+                String(url.searchParams.get('phone') || '').replace(
+                    /\D/g,
+                    ''
+                ) === WHATSAPP_PHONE
+            );
+        }
+        return false;
+    }
+
+    function contextualizeWhatsAppLinks() {
+        var links = Array.from(
+            document.querySelectorAll(
+                'a[href*="wa.me/"], a[href*="whatsapp.com/"]'
+            )
+        );
+        if (!links.length) return;
+
+        var message = resolveWhatsAppMessage(
+            window.location.pathname,
+            getPageLocale()
+        );
+        if (!message) return;
+
+        links.forEach(function (link) {
+            if (!(link instanceof HTMLAnchorElement)) return;
+            var rawHref = String(link.getAttribute('href') || '').trim();
+            if (!rawHref) return;
+
+            try {
+                var url = new URL(rawHref, window.location.origin);
+                if (!isClinicWhatsAppUrl(url)) return;
+                if (String(url.searchParams.get('text') || '').trim()) return;
+                url.searchParams.set('text', message);
+                link.setAttribute('href', url.toString());
+            } catch (_error) {
+                // Ignore malformed links and leave authored hrefs untouched.
+            }
+        });
+    }
+
     function bootMegaMenu() {
         var header = document.querySelector('[data-v6-header]');
         if (!header || header.dataset.v6MegaReady === 'true') return;
@@ -1477,6 +1674,7 @@
     }
 
     function bootstrap() {
+        contextualizeWhatsAppLinks();
         bootMegaMenu();
         bootHeaderSearch();
         bootNewsStrip();

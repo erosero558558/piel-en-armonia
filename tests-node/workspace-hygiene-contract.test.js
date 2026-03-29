@@ -549,6 +549,7 @@ test('frontera de html css php y ps1 en raiz queda explicita y limitada', () => 
         .sort();
     const expectedRootHtml = [
         'admin.html',
+        'index.html',
         'kiosco-turnos.html',
         'operador-turnos.html',
         'sala-turnos.html',
@@ -848,6 +849,7 @@ test('frontera de directorios en raiz queda explicita y limitada', () => {
     const gitignore = readRepoFile('.gitignore');
     const trackedRootDirectories = listTrackedRootDirectories();
     const expectedTrackedRootDirectories = [
+        '.agents',
         '.claude',
         '.github',
         '.husky',

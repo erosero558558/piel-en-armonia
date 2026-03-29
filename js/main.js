@@ -844,3 +844,4 @@ window.subscribeToPushNotifications = async function () {
         debugLog('Push subscription error:', error);
     }
 };
+

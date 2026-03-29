@@ -83,6 +83,44 @@ function absolute(pathname) {
     return new URL(pathname, CANONICAL_ORIGIN).toString();
 }
 
+function walkIndexPages(dir) {
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const fullPath = path.join(dir, entry.name);
+
+        if (entry.isDirectory()) {
+            return walkIndexPages(fullPath);
+        }
+
+        return entry.isFile() && entry.name === 'index.html' ? [fullPath] : [];
+    });
+}
+
+function localizedIndexUrls() {
+    return ['es', 'en'].flatMap((locale) =>
+        walkIndexPages(path.join(REPO_ROOT, locale)).map((filePath) => {
+            const routePath = `/${path
+                .relative(REPO_ROOT, filePath)
+                .replace(/\\/g, '/')
+                .replace(/index\.html$/, '')}`;
+
+            return absolute(
+                routePath.endsWith('/') ? routePath : `${routePath}/`
+            );
+        })
+    );
+}
+
+function localizedIndexPages() {
+    return ['es', 'en'].flatMap((locale) =>
+        walkIndexPages(path.join(REPO_ROOT, locale)).map((filePath) => ({
+            filePath,
+            relativePath: path
+                .relative(REPO_ROOT, filePath)
+                .replace(/\\/g, '/'),
+        }))
+    );
+}
+
 test.describe('Public SEO routing metadata', () => {
     for (const route of SEO_CASES) {
         test(`route ${route.path} publishes canonical + hreflang`, async ({
@@ -123,14 +161,52 @@ test.describe('Public SEO files', () => {
         expect(sitemap).not.toContain('/servicios/acne-rosacea.html');
     });
 
-    test('robots.txt keeps sitemap pointer and blocks API crawling', async () => {
+    test('sitemap includes every localized public index route', async () => {
+        const sitemapPath = path.join(REPO_ROOT, 'sitemap.xml');
+        const sitemap = fs.readFileSync(sitemapPath, 'utf8');
+
+        for (const url of localizedIndexUrls()) {
+            expect(sitemap).toContain(url);
+        }
+    });
+
+    test('localized public html files expose canonical and hreflang metadata', async () => {
+        for (const { filePath, relativePath } of localizedIndexPages()) {
+            const html = fs.readFileSync(filePath, 'utf8');
+
+            expect(
+                /rel=["']canonical["']/i.test(html),
+                `${relativePath} should publish canonical metadata`
+            ).toBeTruthy();
+            expect(
+                /hreflang=["']en["']/i.test(html),
+                `${relativePath} should publish hreflang=en`
+            ).toBeTruthy();
+            expect(
+                /hreflang=["']es["']/i.test(html),
+                `${relativePath} should publish hreflang=es`
+            ).toBeTruthy();
+            expect(
+                /hreflang=["']x-default["']/i.test(html),
+                `${relativePath} should publish hreflang=x-default`
+            ).toBeTruthy();
+        }
+    });
+
+    test('robots.txt keeps sitemap pointer and protects non-public surfaces', async () => {
         const robotsPath = path.join(REPO_ROOT, 'robots.txt');
         const robots = fs.readFileSync(robotsPath, 'utf8');
 
         expect(robots).toContain(
             'Sitemap: https://pielarmonia.com/sitemap.xml'
         );
+        expect(robots).toContain('Allow: /');
+        expect(robots).toContain('Disallow: /_archive/');
         expect(robots).toContain('Disallow: /api.php');
         expect(robots).toContain('Disallow: /admin.html');
+        expect(robots).toContain('Disallow: /data/');
+        expect(robots).toContain('Disallow: /tools/');
+        expect(robots).not.toContain('Disallow: /es/');
+        expect(robots).not.toContain('Disallow: /en/');
     });
 });

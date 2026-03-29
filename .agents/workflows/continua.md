@@ -1,26 +1,42 @@
 ---
-description: Execute the next pending task from the Aurora Derm backlog
+description: Execute the next available unclaimed task from the Aurora Derm backlog
 ---
 
-# /continua — Ejecutar siguiente tarea pendiente
+# /continua — Ejecutar siguiente tarea (con claim anti-colisión)
 
 ## Steps
 
-1. Read `AGENTS.md` to understand the product context and current sprint
 // turbo
-2. Search AGENTS.md for the first unchecked task `- [ ]` in the current sprint (Sprint 1 first, then Sprint 2, etc.)
+1. Pull latest: `git pull origin main`
+
 // turbo
-3. Read the relevant source files identified in the task description
-4. Execute the task (create/modify files as specified)
-5. Verify the work:
-   - For HTML pages: validate the HTML is well-formed and uses the correct CSS variables from `styles/main-aurora.css`
-   - For backend: test with `curl http://localhost:8000/api.php?resource=<endpoint>`
-   - For content: check for prohibited vocabulary ("oferta", "descuento", "tú") and ensure medical disclaimers are present
+2. Find the next available unclaimed task: `node bin/claim.js next`
+
+3. Read the task details carefully from AGENTS.md. If tagged `[HUMAN]`, ask the owner before proceeding and STOP.
+
+4. Claim the task before starting work:
+   ```
+   node bin/claim.js claim <TASK-ID> "<your-agent-description>"
+   ```
+   Example: `node bin/claim.js claim S2-01 "Gemini-Antigravity"`
+
 // turbo
-6. Commit with task ID: `HUSKY=0 git commit --no-verify -m "feat(S1-XX): description"`
+5. Commit the claim immediately so other agents see it:
+   `git add data/claims/ && HUSKY=0 git commit --no-verify -m "claim: <TASK-ID>" && git push origin main`
+
+6. Read the relevant context from AGENTS.md (Identity, Design system, Voice, Architecture map). Then execute the task.
+
+7. Verify the work:
+   - HTML: check for broken links, CSS variables used (not hardcoded colors), `usted` not `tú`
+   - Backend: `curl http://localhost:8000/api.php?resource=<endpoint>`
+   - Content: no prohibited words (oferta/descuento/promo), medical disclaimer present, no guaranteed results
+
 // turbo
-7. Mark the task as `[x]` in AGENTS.md
+8. Release the claim and commit the work:
+   ```
+   node bin/claim.js release <TASK-ID>
+   ```
+
 // turbo
-8. Commit the AGENTS.md update: `HUSKY=0 git commit --no-verify -m "docs: mark S1-XX as done"`
-// turbo
-9. Push to main: `git push origin main`
+9. Mark the task `[x]` in AGENTS.md and commit everything:
+   `git add . && HUSKY=0 git commit --no-verify -m "feat(<TASK-ID>): <short description>" && git push origin main`

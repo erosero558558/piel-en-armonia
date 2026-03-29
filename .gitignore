@@ -74,3 +74,5 @@ styles-deferred.min.css
 Thumbs.db
 php_server.log
 %TEMP%/
+!data/claims/
+!data/claims/tasks.json

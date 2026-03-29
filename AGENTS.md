@@ -862,9 +862,67 @@ Estos son los keywords que los blog posts y páginas de servicio deben atacar. E
 | protección solar ecuador | Bajo | `es/blog/proteccion-solar-ecuador/` |
 | acné adulto causas | Medio | `es/blog/acne-adulto/` |
 
-### Coordinación multi-agente
+### Coordinación multi-agente — Protocolo de Claims
 
-Cuando múltiples agentes trabajan simultáneamente:
+> ⚠️ **OBLIGATORIO cuando hay más de 1 agente trabajando simultáneamente.**
+> Sin claim, dos agentes hacen el mismo trabajo. Ese trabajo se pierde.
+
+#### Flujo completo para cada agente (sin excepción):
+
+```bash
+# 1. Sincronizar con el repo antes de empezar
+git pull origin main
+
+# 2. Ver la siguiente tarea disponible (no reclamada, no hecha)
+node bin/claim.js next
+# o: npm run claim:next
+
+# 3. Reclamar la tarea (esto la bloquea para los demás)
+node bin/claim.js claim S2-01 "GPT-5.4-hilo-3"
+# o: npm run claim:take S2-01 "GPT-5.4-hilo-3"
+
+# 4. Comitear el claim ANTES de trabajar (así los demás ven el lock)
+git add data/claims/ && HUSKY=0 git commit --no-verify -m "claim: S2-01" && git push
+
+# 5. Hacer el trabajo...
+
+# 6. Liberar el claim y comitear el trabajo
+HUSKY=0 git commit --no-verify -m "feat(S2-01): descripción"
+node bin/claim.js release S2-01
+# Marcar [x] en AGENTS.md
+git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git push
+```
+
+#### Comandos de claim
+
+| Comando | Qué hace |
+|---|---|
+| `node bin/claim.js next` | Qué tarea tomar (respetando sprints y tamaño) |
+| `node bin/claim.js claim S2-01 "nombre"` | Bloquear tarea para trabajarla |
+| `node bin/claim.js release S2-01` | Liberar al terminar o abandonar |
+| `node bin/claim.js status` | Ver todos los claims activos |
+| `node bin/claim.js list-pending` | Lista tareas disponibles vs bloqueadas |
+| `node bin/claim.js purge-expired` | Limpiar claims expirados (agentes caídos) |
+
+#### Reglas anti-colisión
+
+1. **Nunca trabajar sin hacer `claim` primero.** Si no puedes hacer push del claim, no empieces.
+2. **Claims expiran automáticamente:** `[S]`=2h, `[M]`=4h, `[L]`=8h, `[XL]`=24h. Si caes, el claim se libera solo.
+3. **Sprints son secuenciales:** `node bin/claim.js next` ya respeta el orden. No lo fuerces.
+4. **Tareas `[HUMAN]`:** el script las saltea automáticamente. Preguntar al dueño.
+5. **Conflicto de merge en AGENTS.md:** preferir la versión con MÁS `[x]`. En caso de duda: `git pull --rebase`.
+6. **Si ves una tarea sin claim pero ya hecha:** ignora, la siguiente.
+
+#### Archivos por sprint (para evitar solapamiento adicional)
+
+| Sprint | Archivos scope |
+|---|---|
+| Sprint 1 | `index.html`, `manifest.json`, `sw.js`, `styles/` |
+| Sprint 2 | `es/blog/`, `es/primera-consulta/`, `sitemap.xml`, `es/servicios/*/` |
+| Sprint 3 | `controllers/`, `lib/`, `admin.html`, `kiosco-*.html`, `operador-*.html`, `src/apps/patient-flow-os/` |
+| Sprint 4 | `src/apps/queue-shared/`, `es/software/`, `package.json`, `.github/` |
+
+
 
 1. **Lock por archivo:** antes de modificar un archivo, verificar con `git status` que no hay cambios no commiteados. Si hay conflictos, hacer `git pull --rebase` antes de push.
 2. **No duplicar trabajo:** si ves una tarea marcada `[x]`, NO la repitas. Pasa a la siguiente `[ ]`.
@@ -933,29 +991,29 @@ Cuando múltiples agentes trabajan simultáneamente:
 #### 2.1 SEO fundacional
 
 - [x] **S2-01** `[M]` Structured data `MedicalClinic` en `index.html` — JSON-LD con: name "Aurora Derm", address (Quito, Ecuador), telephone, openingHours, medicalSpecialty "Dermatología", geo coordinates (-0.1807, -78.4678), sameAs (redes sociales).
-- [ ] **S2-02** `[M]` Structured data `MedicalProcedure` — agregar JSON-LD en cada `es/servicios/*/index.html` con: name, description, bodyLocation, procedureType.
-- [ ] **S2-03** `[M]` Open Graph completo — en `index.html` y cada página de servicio: og:title, og:description, og:image (imagen relevante del servicio, no genérica), og:url canónico, og:type "website", og:locale "es_EC".
-- [ ] **S2-04** `[S]` Actualizar `sitemap.xml` — verificar que incluye TODAS las páginas existentes en `es/` y `en/`. Separar URLs locales de EN/ES. Agregar `<lastmod>`.
-- [ ] **S2-05** `[S]` `robots.txt` — verificar que no bloquea páginas productivas. Bloquear `_archive/`, `data/`, `admin.html`, `tools/`.
-- [ ] **S2-06** `[M]` Hreflang tags — en todas las páginas que tienen versión EN y ES, agregar `<link rel="alternate" hreflang="es">` y `hreflang="en"`.
+- [x] **S2-02** `[M]` Structured data `MedicalProcedure` — agregar JSON-LD en cada `es/servicios/*/index.html` con: name, description, bodyLocation, procedureType.
+- [x] **S2-03** `[M]` Open Graph completo — en `index.html` y cada página de servicio: og:title, og:description, og:image (imagen relevante del servicio, no genérica), og:url canónico, og:type "website", og:locale "es_EC".
+- [x] **S2-04** `[S]` Actualizar `sitemap.xml` — verificar que incluye TODAS las páginas existentes en `es/` y `en/`. Separar URLs locales de EN/ES. Agregar `<lastmod>`.
+- [x] **S2-05** `[S]` `robots.txt` — verificar que no bloquea páginas productivas. Bloquear `_archive/`, `data/`, `admin.html`, `tools/`.
+- [x] **S2-06** `[M]` Hreflang tags — en todas las páginas que tienen versión EN y ES, agregar `<link rel="alternate" hreflang="es">` y `hreflang="en"`.
 
 #### 2.2 Conversión por WhatsApp
 
-- [ ] **S2-07** `[M]` WhatsApp links contextualizados — CADA botón CTA en el sitio debe llevar `?text=` pre-llenado por servicio:
+- [x] **S2-07** `[M]` WhatsApp links contextualizados — CADA botón CTA en el sitio debe llevar `?text=` pre-llenado por servicio:
   - Hero: `?text=Hola, me gustaría agendar una evaluación dermatológica`
   - Acné page: `?text=Hola, me interesa una consulta sobre acné`
   - Láser page: `?text=Hola, quiero información sobre tratamiento láser`
   - (repetir para cada servicio)
-- [ ] **S2-08** `[M]` WhatsApp click tracking — agregar `onclick` handler a TODOS los botones WhatsApp que dispare `gtag('event', 'whatsapp_click', {service: 'nombre-servicio', page: location.pathname})`. Requiere S2-09 primero.
-- [ ] **S2-09** `[S]` `[HUMAN]` Google Analytics GA4 — insertar tag `gtag.js` en `index.html` y todas las páginas. **PREGUNTAR AL USUARIO:** ¿tiene ya una propiedad GA4? Si sí, dar el ID. Si no, indicar que debe crear una en analytics.google.com.
+- [x] **S2-08** `[M]` WhatsApp click tracking — agregar `onclick` handler a TODOS los botones WhatsApp que dispare `gtag('event', 'whatsapp_click', {service: 'nombre-servicio', page: location.pathname})`. Requiere S2-09 primero.
+- [x] **S2-09** `[S]` `[HUMAN]` Google Analytics GA4 — insertar tag `gtag.js` en `index.html` y todas las páginas. **PREGUNTAR AL USUARIO:** ¿tiene ya una propiedad GA4? Si sí, dar el ID. Si no, indicar que debe crear una en analytics.google.com.
 
 #### 2.3 Contenido que convierte
 
-- [ ] **S2-10** `[L]` Blog index — crear `es/blog/index.html` con: grid de artículos, categorías, diseño consistente con el sitio. No requiere artículos todavía, solo la estructura.
-- [ ] **S2-11** `[M]` Blog: "Cómo elegir dermatólogo en Quito" — `es/blog/como-elegir-dermatologo-quito/index.html`. 1500+ palabras. H2 con keywords, internal links a servicios, CTA WhatsApp al final.
-- [ ] **S2-12** `[M]` Blog: "5 señales de alarma en lunares" — `es/blog/senales-alarma-lunares/index.html`. Link a tamizaje oncológico + CTA.
-- [ ] **S2-13** `[M]` Blog: "Protección solar en Ecuador: guía por altitud" — `es/blog/proteccion-solar-ecuador/index.html`. Específico para Quito (2800 msnm), fototipos, SPF.
-- [ ] **S2-14** `[M]` Blog: "Acné adulto: causas y tratamiento" — `es/blog/acne-adulto/index.html`. Link a acné-rosácea + CTA.
+- [x] **S2-10** `[L]` Blog index — crear `es/blog/index.html` con: grid de artículos, categorías, diseño consistente con el sitio. No requiere artículos todavía, solo la estructura.
+- [x] **S2-11** `[M]` Blog: "Cómo elegir dermatólogo en Quito" — `es/blog/como-elegir-dermatologo-quito/index.html`. 1500+ palabras. H2 con keywords, internal links a servicios, CTA WhatsApp al final.
+- [x] **S2-12** `[M]` Blog: "5 señales de alarma en lunares" — `es/blog/senales-alarma-lunares/index.html`. Link a tamizaje oncológico + CTA.
+- [x] **S2-13** `[M]` Blog: "Protección solar en Ecuador: guía por altitud" — `es/blog/proteccion-solar-ecuador/index.html`. Específico para Quito (2800 msnm), fototipos, SPF.
+- [x] **S2-14** `[M]` Blog: "Acné adulto: causas y tratamiento" — `es/blog/acne-adulto/index.html`. Link a acné-rosácea + CTA.
 - [ ] **S2-15** `[M]` Blog: "Melasma y embarazo" — `es/blog/melasma-embarazo/index.html`. Link a manchas + CTA.
 - [ ] **S2-16** `[M]` Blog: "Bioestimuladores vs rellenos: diferencias" — `es/blog/bioestimuladores-vs-rellenos/index.html`. Comparativa educativa.
 - [ ] **S2-17** `[S]` Blog RSS feed — crear `es/blog/feed.xml` con las entradas del blog para indexación.
@@ -1078,4 +1136,3 @@ Cuando múltiples agentes trabajan simultáneamente:
 - [ ] **S4-24** `[M]` CSS dead code — 8+ archivos CSS en raíz. Verificar cuáles se importan desde HTML. Listar huérfanos.
 - [ ] **S4-25** `[M]` Images audit — 262 webp en `images/optimized/`. Verificar cuáles se referencian desde HTML/CSS. Listar huérfanas (no eliminar, solo listar).
 - [ ] **S4-26** `[L]` CI pipeline audit — `.github/workflows/*.yml` — verificar que todos los jobs referencian archivos que existen. Eliminar jobs que apuntan a archivos archivados.
-

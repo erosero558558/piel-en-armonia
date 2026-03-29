@@ -1,8 +1,8 @@
 {
     "id": "/",
-    "name": "Flow OS | Operacion clara para clinicas y pacientes",
-    "short_name": "Flow OS",
-    "description": "Flow OS ordena llegada, recepcion, sala y seguimiento en una sola historia operativa, con Aurora Derm como piloto demostrable.",
+    "name": "Aurora Derm — Dermatología Clínica Quito",
+    "short_name": "Aurora Derm",
+    "description": "Clínica dermatológica con enfoque médico real. Quito, Ecuador.",
     "lang": "es",
     "start_url": "/",
     "scope": "/",
@@ -39,14 +39,14 @@
             "sizes": "640x365",
             "type": "image/webp",
             "form_factor": "narrow",
-            "label": "Pagina principal de Flow OS"
+            "label": "Pagina principal de Aurora Derm"
         },
         {
             "src": "/images/optimized/hero-woman-1344.webp",
             "sizes": "1344x768",
             "type": "image/webp",
             "form_factor": "wide",
-            "label": "Pagina principal de Flow OS"
+            "label": "Pagina principal de Aurora Derm"
         }
     ]
 }
