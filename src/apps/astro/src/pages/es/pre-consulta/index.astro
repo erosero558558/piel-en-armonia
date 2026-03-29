@@ -1,0 +1,156 @@
+---
+import PublicShellV6 from '../../../layouts/PublicShellV6.astro';
+import PreConsultationPageV6 from '../../../components/public-v6/PreConsultationPageV6.astro';
+import { getV6NavigationModel } from '../../../lib/public-v6.js';
+
+const locale = 'es';
+const pathname = '/es/pre-consulta/';
+const page = {
+    title: 'Preconsulta dermatologica digital | Aurora Derm',
+    description:
+        'Comparta fotos, tipo de piel y motivo para que frontdesk capture su caso en Flow OS y le responda por WhatsApp con el siguiente paso.',
+    heading: 'Preconsulta dermatologica digital para ordenar el caso antes de escribir o venir',
+    breadcrumb: [
+        { label: 'Inicio', href: '/es/' },
+        { label: 'Preconsulta digital', href: pathname },
+    ],
+    menuLabel: 'Secciones',
+    hero: {
+        eyebrow: 'Entrada clinica guiada',
+        title: 'Suba fotos, cuente el motivo y dejamos el caso listo para revision humana',
+        body:
+            'Esta entrada sirve cuando todavia no sabe si basta WhatsApp, teledermatologia o consulta presencial. Frontdesk recibe el caso en Flow OS como lead_captured y responde con el siguiente paso.',
+        highlights: [
+            { label: 'Revision humana', value: 'Frontdesk' },
+            { label: 'Fotos clinicas', value: 'Hasta 3' },
+            { label: 'Etapa inicial', value: 'lead_captured' },
+        ],
+        panelEyebrow: 'Antes de enviar',
+        panelTitle: 'Lo que mas ayuda para responder sin rebotes',
+        panelItems: [
+            'Una foto general y una de cerca con buena luz.',
+            'Su tipo de piel o como suele reaccionar al sol.',
+            'Desde cuando empezo y si arde, pica, sangra o cambia.',
+        ],
+        panelCtaLabel: 'Ir al formulario',
+    },
+    sections: [
+        { label: 'Cuando usarla', href: '#v6-pre-why' },
+        { label: 'Checklist', href: '#v6-pre-checklist' },
+        { label: 'Formulario', href: '#v6-pre-form' },
+        { label: 'Respuesta', href: '#v6-pre-response' },
+    ],
+    reasons: [
+        {
+            eyebrow: 'Sirve cuando',
+            title: 'Necesita una primera lectura antes de reservar',
+            copy:
+                'Ayuda si no sabe todavia si conviene teledermatologia, consulta presencial o un simple intercambio por WhatsApp.',
+        },
+        {
+            eyebrow: 'Acelera triage',
+            title: 'Frontdesk recibe un caso ya estructurado',
+            copy:
+                'El formulario crea un lead clinico con motivo, fototipo y fotos para que la respuesta humana no arranque desde cero.',
+        },
+        {
+            eyebrow: 'Evita retrabajo',
+            title: 'La misma informacion sigue viva si luego agenda',
+            copy:
+                'Lo que mande aqui queda atado al caso para que no tenga que repetir contexto cuando el equipo le proponga el siguiente paso.',
+        },
+    ],
+    checklists: [
+        {
+            title: 'Conviene usarla si...',
+            items: [
+                'La lesion cambio y quiere saber por donde empezar.',
+                'Tiene brote, irritacion o mancha nueva y todavia no sabe si basta remoto.',
+                'Quiere mandar fotos clinicas sin mezclarlas con varios chats.',
+            ],
+        },
+        {
+            title: 'Fotos que ayudan',
+            items: [
+                'Luz natural o blanca, sin filtros ni maquillaje encima.',
+                'Una toma general para ubicar la zona y otra de cerca.',
+                'Si es posible, una referencia de tamano con regla o dedo.',
+            ],
+        },
+        {
+            title: 'No envie...',
+            items: [
+                'Videos, capturas de pantalla o collages.',
+                'Mas de tres fotos del mismo angulo.',
+                'Archivos clinicos sensibles ajenos al motivo actual.',
+            ],
+        },
+    ],
+    form: {
+        eyebrow: 'Formulario seguro',
+        title: 'Deje su caso listo para contacto humano',
+        description:
+            'Pedimos solo lo necesario para abrir el caso, validar si las fotos alcanzan y responder por WhatsApp sin otro ida y vuelta.',
+        photoHint: 'Hasta 3 fotos JPG, PNG o WEBP de maximo 5 MB cada una.',
+        submitLabel: 'Enviar preconsulta',
+        secondaryCtaLabel: 'Prefiero WhatsApp',
+        disclaimer:
+            'Las fotos se usan solo para orientar el siguiente paso clinico y quedan bajo almacenamiento clinico privado cuando aplica.',
+    },
+    response: {
+        eyebrow: 'Despues de enviar',
+        title: 'Que pasa en los proximos pasos',
+        steps: [
+            {
+                title: '1. Lead capturado',
+                copy:
+                    'Flow OS abre el caso en lead_captured con su motivo, fototipo, consentimiento y fotos adjuntas.',
+            },
+            {
+                title: '2. Revision de frontdesk',
+                copy:
+                    'El equipo revisa si basta resolver por WhatsApp, si conviene teledermatologia o si ya toca cita presencial.',
+            },
+            {
+                title: '3. Siguiente paso claro',
+                copy:
+                    'Le escribimos al mismo numero para pedir una foto adicional, orientar o proponer agenda.',
+            },
+        ],
+        noteLabel: 'Canal de respuesta',
+        noteValue: 'WhatsApp humano',
+    },
+    support: {
+        eyebrow: 'WhatsApp directo',
+        title: 'Si prefiere escribir primero, frontdesk sigue la misma ruta clinica',
+        description:
+            'Puede mandar el mismo contexto por WhatsApp. El equipo igual lo convierte en caso y decide si basta orientacion, teledermatologia o cita presencial.',
+        ctaLabel: 'Escribir por WhatsApp',
+        ctaHref:
+            'https://wa.me/593982453672?text=Hola%2C%20quiero%20enviar%20una%20preconsulta%20digital%20de%20Aurora%20Derm',
+    },
+};
+
+const baseNavModel = getV6NavigationModel(locale, pathname);
+const navModel = {
+    ...baseNavModel,
+    header: {
+        ...(baseNavModel?.header || {}),
+        switchLabel: '',
+        switchHref: '',
+    },
+};
+---
+
+<PublicShellV6
+    title={page.title}
+    description={page.description}
+    locale={locale}
+    canonicalPath={pathname}
+    alternatePath=""
+    pathname={pathname}
+    navModel={navModel}
+    templateId="preconsultation_v6"
+>
+    <PreConsultationPageV6 page={page} locale={locale} navModel={navModel} />
+</PublicShellV6>

@@ -143,15 +143,6 @@ const SEO_CASES = [
         xDefaultPath: '/es/blog/',
     },
     {
-        path: '/es/primera-consulta/',
-        canonicalPath: '/es/primera-consulta/',
-        currentLocale: 'es',
-        currentLocalePath: '/es/primera-consulta/',
-        otherLocale: 'en',
-        otherLocalePath: null,
-        xDefaultPath: '/es/primera-consulta/',
-    },
-    {
         path: '/es/pre-consulta/',
         canonicalPath: '/es/pre-consulta/',
         currentLocale: 'es',

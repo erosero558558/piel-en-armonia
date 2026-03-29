@@ -11,14 +11,16 @@ final class PatientCaseService
     private const OPEN_STATUSES = [
         'lead_captured',
         'intake_completed',
+        'scheduled',
+        'care_plan_ready',
+        'follow_up_active',
         'booked',
         'arrived',
         'checked_in',
         'called',
         'in_consultorio',
-        'care_plan_ready',
-        'follow_up_active',
     ];
+    private const TERMINAL_STATUSES = ['completed', 'no_show', 'cancelled', 'resolved', 'closed', 'archived'];
     private const STATUS_RANK = [
         'lead_captured' => 5,
         'intake_completed' => 8,
@@ -62,22 +64,62 @@ final class PatientCaseService
         $caseIdsByTicketId = [];
         $caseIdsByIdentity = [];
 
-        foreach ($cases as $existingCase) {
-            if (!is_array($existingCase)) {
+        foreach ((array) ($store['patient_cases'] ?? []) as $persistedCase) {
+            $this->seedPersistedCase($cases, $persistedCase, $tenantId);
+        }
+
+        foreach ((array) ($store['patient_case_links'] ?? []) as $persistedLink) {
+            if (!is_array($persistedLink)) {
                 continue;
             }
 
-            $caseId = trim((string) ($existingCase['id'] ?? ''));
-            if ($caseId === '') {
+            $linkId = trim((string) ($persistedLink['id'] ?? ''));
+            $caseId = trim((string) ($persistedLink['patientCaseId'] ?? ''));
+            if ($linkId === '' || $caseId === '') {
                 continue;
             }
 
-            $this->registerIdentityKeys(
-                $caseIdsByIdentity,
-                $this->resolveRecordTenantId($existingCase, $tenantId),
-                $caseId,
-                $this->buildCaseIdentityKeys($existingCase)
+            $createdAt = $this->normalizeTimestampValue(
+                (string) ($persistedLink['createdAt'] ?? local_date('c')),
+                local_date('c')
             );
+            $links[$linkId] = [
+                'id' => $linkId,
+                'tenantId' => $this->resolveRecordTenantId($persistedLink, $tenantId),
+                'patientCaseId' => $caseId,
+                'entityType' => trim((string) ($persistedLink['entityType'] ?? 'callback')) ?: 'callback',
+                'entityId' => trim((string) ($persistedLink['entityId'] ?? '')),
+                'relationship' => trim((string) ($persistedLink['relationship'] ?? 'secondary')) ?: 'secondary',
+                'createdAt' => $createdAt,
+            ];
+        }
+
+        foreach ((array) ($store['patient_case_timeline_events'] ?? []) as $persistedEvent) {
+            if (!is_array($persistedEvent)) {
+                continue;
+            }
+
+            $eventId = trim((string) ($persistedEvent['id'] ?? ''));
+            $caseId = trim((string) ($persistedEvent['patientCaseId'] ?? ''));
+            if ($eventId === '' || $caseId === '') {
+                continue;
+            }
+
+            $createdAt = $this->normalizeTimestampValue(
+                (string) ($persistedEvent['createdAt'] ?? local_date('c')),
+                local_date('c')
+            );
+            $timeline[$eventId] = [
+                'id' => $eventId,
+                'tenantId' => $this->resolveRecordTenantId($persistedEvent, $tenantId),
+                'patientCaseId' => $caseId,
+                'type' => trim((string) ($persistedEvent['type'] ?? 'status_changed')) ?: 'status_changed',
+                'title' => trim((string) ($persistedEvent['title'] ?? 'Actualizacion de caso')) ?: 'Actualizacion de caso',
+                'payload' => isset($persistedEvent['payload']) && is_array($persistedEvent['payload'])
+                    ? $persistedEvent['payload']
+                    : [],
+                'createdAt' => $createdAt,
+            ];
         }
 
         foreach ($appointments as $index => $appointment) {
@@ -539,10 +581,10 @@ final class PatientCaseService
             }
             $status = (string) ($case['status'] ?? 'booked');
             $statusCounts[$status] = (int) ($statusCounts[$status] ?? 0) + 1;
-            if (in_array($status, self::OPEN_STATUSES, true)) {
-                $openCases++;
-            } else {
+            if (in_array($status, self::TERMINAL_STATUSES, true)) {
                 $closedCases++;
+            } else {
+                $openCases++;
             }
         }
 
@@ -788,6 +830,57 @@ final class PatientCaseService
         }
         if (strcmp((string) ($cases[$caseId]['openedAt'] ?? $openedAt), $openedAt) > 0) {
             $cases[$caseId]['openedAt'] = $openedAt;
+        }
+    }
+
+    private function seedPersistedCase(array &$cases, $persistedCase, string $tenantId): void
+    {
+        if (!is_array($persistedCase)) {
+            return;
+        }
+
+        $caseId = trim((string) ($persistedCase['id'] ?? ''));
+        if ($caseId === '') {
+            return;
+        }
+
+        $caseTenantId = $this->resolveRecordTenantId($persistedCase, $tenantId);
+        $patientId = trim((string) ($persistedCase['patientId'] ?? ''));
+        $openedAt = $this->normalizeTimestampValue(
+            (string) ($persistedCase['openedAt'] ?? local_date('c')),
+            local_date('c')
+        );
+
+        $this->ensureCase($cases, $caseId, $caseTenantId, $patientId, $openedAt);
+
+        $status = trim((string) ($persistedCase['status'] ?? ''));
+        if ($status !== '') {
+            $cases[$caseId]['status'] = $status;
+        }
+
+        $statusSource = trim((string) ($persistedCase['statusSource'] ?? ''));
+        if ($statusSource !== '') {
+            $cases[$caseId]['statusSource'] = $statusSource;
+        }
+
+        foreach (['latestActivityAt', 'lastInboundAt', 'lastOutboundAt'] as $field) {
+            $candidate = trim((string) ($persistedCase[$field] ?? ''));
+            if ($candidate === '') {
+                continue;
+            }
+            $cases[$caseId][$field] = $this->normalizeTimestampValue($candidate, $openedAt);
+        }
+
+        $closedAt = trim((string) ($persistedCase['closedAt'] ?? ''));
+        $cases[$caseId]['closedAt'] = $closedAt !== ''
+            ? $this->normalizeTimestampValue($closedAt, $openedAt)
+            : ($cases[$caseId]['closedAt'] ?? null);
+
+        if (isset($persistedCase['summary']) && is_array($persistedCase['summary'])) {
+            $cases[$caseId]['summary'] = array_merge(
+                is_array($cases[$caseId]['summary'] ?? null) ? $cases[$caseId]['summary'] : [],
+                $persistedCase['summary']
+            );
         }
     }
 
