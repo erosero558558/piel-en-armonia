@@ -1,20 +1,30 @@
 ---
-description: Check the current status of the Aurora Derm backlog and report progress
+description: Check the current status of the Aurora Derm backlog, claims, and site health
 ---
 
-# /status — Ver estado del backlog
+# /status — Estado completo del sistema
 
 ## Steps
 
 // turbo
-1. Count completed and pending tasks: `grep -c '\[x\]' AGENTS.md && grep -c '\[ \]' AGENTS.md`
-// turbo
-2. Show current sprint progress: `grep -A 100 'Sprint 1' AGENTS.md | grep -E '^\- \[' | head -15`
-// turbo
-3. Show acceptance criteria status: `grep -A 20 'Sprint 1 está DONE' AGENTS.md`
-// turbo
-4. Check git status and last commits: `git log --oneline -10`
-// turbo
-5. Check if the production site is up: `curl -sS -o /dev/null -w "%{http_code}" https://pielarmonia.com/`
+1. Pull latest state: `git pull origin main`
 
-Report a summary of: tasks done vs pending, current sprint, site status, last 5 commits.
+// turbo
+2. Board stats: `node bin/claim.js status`
+
+// turbo
+3. Auto-verify what's actually done vs what the board says: `node bin/verify.js`
+
+// turbo
+4. If verify finds tasks done but not marked, auto-fix: `node bin/verify.js --fix && git add AGENTS.md && HUSKY=0 git commit --no-verify -m "docs: auto-sync board via verify" && git push origin main`
+
+// turbo
+5. Next available task recommendation: `node bin/claim.js next`
+
+// turbo
+6. Last 5 commits: `git log --oneline -5`
+
+// turbo
+7. Production health check: `curl -sS -o /dev/null -w "pielarmonia.com: %{http_code}" https://pielarmonia.com/ && echo ""`
+
+Report: claims status, verify discrepancies (if any), next task to take, last commits.

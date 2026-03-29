@@ -205,6 +205,9 @@
         "claim:take": "node bin/claim.js claim",
         "claim:done": "node bin/claim.js release",
         "claim:purge": "node bin/claim.js purge-expired",
+        "verify": "node bin/verify.js",
+        "verify:fix": "node bin/verify.js --fix",
+
 
         "agent:board:resolve-revision": "node bin/resolve-board-revision-conflict.js --file AGENT_BOARD.yaml --json",
         "agent:board:archive:preview": "node bin/archive-agent-board.js --json",
