@@ -560,265 +560,213 @@ Si falla la gobernanza, el pipeline debe bloquear merge.
 
 ## Backlog de Producto — Dirección Opus 4.6
 
-> Cada agente al recibir "continua" debe tomar la **primera tarea no completada** de su zona.
-> P0 se hace ANTES que P1. P1 antes que P2. Marcar `[x]` al completar.
+> **Arquitectura del producto:**
+> Aurora Derm tiene dos caras: (1) la clínica dermatológica que necesita pacientes, y (2) Flow OS, el sistema operativo que gestiona toda la operación clínica.
+>
+> **Regla de ejecución:** cada agente al recibir "continua" toma la primera tarea `[ ]` del sprint actual.
+> No saltar sprints. Marcar `[x]` al completar. Commit con ID de tarea.
+>
+> **Tags:** `[S]` = small (1-2 archivos), `[M]` = medium (3-5 archivos), `[L]` = large (componente nuevo), `[XL]` = extra large (sistema)
+> `[HUMAN]` = requiere input del dueño (no ejecutar solo, preguntar y esperar respuesta)
 
-### P0 — Bloqueantes
+### ✅ Sprint 0 — Completado
 
-- [x] **P0-01** Reemplazar imagen de Plataforma Láser — `images/optimized/service-laser.webp` muestra un CEREBRO. La imagen correcta (procedimiento láser) ya fue generada. Convertir a webp y reemplazar. Verificar en browser.
-- [x] **P0-02** Reparar slider Before/After — sección "Transformación Documentada" en `index.html` muestra cajas grises. Diagnosticar rutas de imágenes del slider y arreglar.
-- [x] **P0-03** Smoke test producción — `curl -sS -o /dev/null -w "%{http_code}" https://pielarmonia.com/` y `/api.php?resource=queue-state` y `/admin.html`. Si 200→GREEN. Si 502→reportar.
-
-### P1 — Frontend / Sitio Público
-
-- [x] **FE-01** Crear `es/servicios/teledermatologia/index.html` — **el footer ya la enlaza y da 404**. Copiar estructura de `es/servicios/diagnostico-integral/index.html`. Contenido: consulta remota, proceso paso a paso, integración WhatsApp.
-- [x] **FE-02** Crear `es/servicios/tamizaje-oncologico/index.html` — dermatoscopia digital, mapeo de lunares, seguimiento periódico.
-- [x] **FE-03** Crear `es/servicios/manchas/index.html` — melasma, manchas solares, peelings, láser, fototipos Fitzpatrick.
-- [x] **FE-04** Crear `es/servicios/depilacion-laser/index.html` — tecnología Alexandrita/diodo, tipos de piel, sesiones, cuidados post.
-- [x] **FE-05** Crear `es/servicios/rellenos-hialuronico/index.html` — ácido hialurónico, zonas, diferencias con botox, resultados naturales.
-- [x] **FE-06** Crear `es/servicios/microdermoabrasion/index.html` — rejuvenecimiento no invasivo, textura, poros.
-- [x] **FE-07** Auditoría `en/index.html` — verificar que refleje la versión ES actual. Si desactualizado, sincronizar hero/servicios/equipo/CTA.
-- [x] **FE-08** Mobile responsiveness — viewport 375px y 768px. Hero, cards, slider, footer. Arreglar breakpoints rotos.
-- [x] **FE-09** Accessibility audit — Lighthouse accesibility. Alt text, contraste WCAG AA, ARIA labels, focus states.
-- [ ] **FE-10** Dark mode consistency — verificar NO hay fondos blancos accidentales, textos invisibles, bordes rotos.
-
-### P1 — SEO y Conversión
-
-- [ ] **SEO-01** Corregir `manifest.json` — dice "Flow OS" en name/short_name/description. **Debe ser "Aurora Derm — Clínica Dermatológica Quito"**.
-- [ ] **SEO-02** Google Analytics GA4 — insertar `gtag.js` en `index.html` y todas las páginas `es/servicios/`. Consultar ID al usuario.
-- [ ] **SEO-03** Structured data JSON-LD en `index.html` — tipo `MedicalClinic`: name, address Quito, teléfono, horarios, geo.
-- [ ] **SEO-04** Structured data por servicio — tipo `MedicalProcedure` en cada `es/servicios/*/index.html`.
-- [ ] **SEO-05** Actualizar `sitemap.xml` — verificar incluye TODAS las páginas `es/` y `en/`. Agregar nuevas al crearlas.
-- [ ] **SEO-06** Open Graph completar — og:title, og:description, og:image (hero derm, no Flow OS), og:url, og:type, og:locale.
-- [ ] **SEO-07** WhatsApp links con `?text=` — cada botón de servicio debe llevar texto pre-llenado. Ej: `?text=Hola, me interesa acné`.
-
-### P1 — Backend / API
-
-- [ ] **BE-01** Health endpoint — verificar `api.php?resource=health` responde 200 `{status:"ok"}`. Si no existe, crear en `controllers/`.
-- [ ] **BE-02** Error handling audit — controllers con try/catch, respuestas JSON consistentes, nunca HTML de error PHP en producción.
-- [ ] **BE-03** Rate limiting básico — 60 req/min por IP en endpoints públicos si no existe.
-- [ ] **BE-04** CORS headers audit — verificar que `api.php` tiene headers CORS correctos para el frontend.
-
-### P1 — Turnero
-
-- [ ] **TU-01** Kiosco UX — flujo end-to-end de tomar turno con backend local. Reportar bugs.
-- [ ] **TU-02** Operador UX — llamar siguiente, historial, transiciones. Reportar bugs.
-- [ ] **TU-03** Sala display — turnos en tiempo real, auto-refresh, tipografía legible a 3 metros.
-
-### P1 — Contenido y Conversión
-
-- [ ] **CON-01** Galería de resultados reales — crear sección en `index.html` con antes/después de tratamientos reales (acné, láser, bioestimuladores). Mínimo 6 pares.
-- [ ] **CON-02** Testimonios con nombre — reemplazar testimonios genéricos por 5 con nombre, tratamiento específico, y resultado.
-- [ ] **CON-03** Página de preguntas frecuentes — crear `es/faq/index.html` con 15+ preguntas organizadas por categoría (primera consulta, costos, tratamientos, seguimiento).
-- [ ] **CON-04** Blog/educación — crear estructura `es/blog/index.html` + 3 artículos iniciales: "Cómo elegir dermatólogo en Quito", "5 señales de alarma en lunares", "Guía de protección solar Ecuador".
-- [ ] **CON-05** Página "Sobre nosotros" — crear `es/nosotros/index.html` con historia de la clínica, filosofía, instalaciones, certificaciones.
-- [ ] **CON-06** Mapa e indicaciones — agregar Google Maps embed en footer o sección de contacto con ubicación exacta de la clínica en Quito.
-
-### P2 — Infraestructura y DevOps
-
-- [ ] **OPS-01** CI pipeline audit — `.github/workflows/ci.yml` jobs referencian archivos existentes, no archivados.
-- [ ] **OPS-02** Deploy workflow — verificar que `deploy-hosting` está funcional. Documentar proceso.
-- [ ] **OPS-03** Lighthouse CI — `npx lhci autorun --config lighthouserc.premium.json`. Target: Perf 80+, A11y 90+, SEO 90+.
-- [ ] **OPS-04** SSL/HTTPS audit — verificar que pielarmonia.com tiene certificado válido, no mixed content, HSTS activo.
-
-### P2 — Limpieza técnica
-
-- [ ] **CLEAN-01** Package.json audit — de 171 scripts, listar los que referencian archivos inexistentes.
-- [ ] **CLEAN-02** CSS dead code — 8+ archivos CSS en raíz. Verificar cuáles se usan.
-- [ ] **CLEAN-03** Images audit — 262 webp en `images/optimized/`. Listar huérfanas (no referenciadas desde HTML/CSS).
-- [ ] **CLEAN-04** Fix bioestimuladores link — footer enlaza a `/es/servicios/bioestimuladores/` pero la página real es `/es/servicios/bioestimuladores-colageno/`. Arreglar href o crear redirect.
-- [ ] **CLEAN-05** Eliminar markdown muerto de raíz — `CALENDAR-CUTOVER.md`, `CHECKLIST-PRUEBAS-PRODUCCION.md`, `DESPLIEGUE-PIELARMONIA.md`, `GITHUB-ACTIONS-DEPLOY.md`, `SECURITY_AUDIT.md`, `SERVIDOR-LOCAL.md` — mover a `docs/` si útil o a `_archive/` si obsoleto.
-- [ ] **CLEAN-06** Service worker audit — `sw.js` puede estar cacheando assets viejos. Verificar que la lista de cache refleja los archivos actuales.
-
-### P1 — Adquisición de Pacientes
-
-- [ ] **ACQ-01** Google My Business — crear/optimizar ficha: nombre "Aurora Derm — Clínica Dermatológica", categoría "Dermatólogo", fotos del consultorio, horarios reales, teléfono, enlace WhatsApp, enlace al sitio. Pedir reseñas a pacientes actuales.
-- [ ] **ACQ-02** Landing page para Google Ads — crear `es/landing/consulta-dermatologica/index.html` optimizada para conversión: sin navegación, solo headline + beneficios + CTA WhatsApp + formulario. Tracking de conversión incluido.
-- [ ] **ACQ-03** Landing page acné — crear `es/landing/tratamiento-acne-quito/index.html` enfocada en keyword "tratamiento acné Quito". Hero con antes/después, 3 beneficios, precio desde, CTA WhatsApp.
-- [ ] **ACQ-04** Landing page láser — crear `es/landing/laser-dermatologico-quito/index.html` enfocada en "láser dermatológico Quito". Mismo formato.
-- [ ] **ACQ-05** Landing page manchas — crear `es/landing/eliminar-manchas-quito/index.html` enfocada en "quitar manchas cara Quito". Mismo formato.
-- [ ] **ACQ-06** Página de primera consulta — crear `es/primera-consulta/index.html`: qué esperar, qué traer, duración, costo, preparación. Reduce la ansiedad del paciente nuevo.
-- [ ] **ACQ-07** Programa de referidos — crear `es/referidos/index.html`: explicar beneficio por cada paciente referido (descuento en siguiente procedimiento). CTA: "Comparte tu link de referido".
-- [ ] **ACQ-08** Schema LocalBusiness + Review — agregar structured data `LocalBusiness` con aggregateRating en `index.html`. Las estrellas aparecen en Google Search.
-
-### P1 — Confianza y Credenciales
-
-- [ ] **TRUST-01** Página de certificaciones — crear `es/certificaciones/index.html` con logos y links verificables: MSP Ecuador, S.E.D., Board Internacional, certificaciones láser.
-- [ ] **TRUST-02** Badges visuales en hero — agregar badges "MSP Certificado", "10+ años experiencia", "2000+ pacientes" en la sección hero de `index.html` con micro-animación.
-- [ ] **TRUST-03** Página de instalaciones — crear `es/instalaciones/index.html` con galería fotográfica del consultorio: recepción, salas de procedimiento, equipos, sala de espera. Transmite profesionalismo.
-- [ ] **TRUST-04** Video tour embed — grabar o generar video de 60s del consultorio. Embed en `es/instalaciones/` y en `index.html` sección "Conozca nuestra clínica".
-- [ ] **TRUST-05** Publicaciones científicas — crear `es/publicaciones/index.html` listando papers, conferencias, apariciones en medios de los doctores.
-- [ ] **TRUST-06** Convenios de seguros — crear `es/seguros/index.html` listando aseguradoras aceptadas, proceso de reembolso, documentación necesaria.
-
-### P1 — Experiencia del Paciente Digital
-
-- [ ] **PAT-01** Formulario de pre-consulta — crear `es/pre-consulta/index.html` con formulario: nombre, email, teléfono, tipo de piel, condición principal, fotos (upload). Envío a WhatsApp del coordinador.
-- [ ] **PAT-02** Guías post-tratamiento — crear `es/guias/` con páginas por procedimiento: `post-laser.html`, `post-peeling.html`, `post-bioestimuladores.html`, `post-botox.html`. Cuidados paso a paso, qué esperar, cuándo llamar.
-- [ ] **PAT-03** Calculadora de tratamiento — componente interactivo en JS: el paciente selecciona condición → zona → severidad → ve estimado de sesiones y rango de precio. Embed en páginas de servicio.
-- [ ] **PAT-04** Sistema de citas online — crear `es/agendar/index.html` con calendario visual de disponibilidad. Integración con Google Calendar API del backend.
-- [ ] **PAT-05** Recordatorio de cita por WhatsApp — backend endpoint que envía mensaje 24h antes de la cita. Template: "Hola [nombre], le recordamos su cita mañana a las [hora] en Aurora Derm."
-- [ ] **PAT-06** Encuesta de satisfacción —crear `es/encuesta/index.html` post-consulta: 5 preguntas (1-5 estrellas), campo de comentario, opción de publicar como testimonial.
-- [ ] **PAT-07** Portal de resultados del paciente — extender `admin.html` con vista paciente: historial de tratamientos, fotos de progreso, próximas citas, guías asignadas.
-
-### P2 — PWA y Performance
-
-- [ ] **PWA-01** Manifest fix — actualizar `manifest.json`: name="Aurora Derm", icons correctos, theme_color acorde al dark mode (#0a0a0f), screenshots del sitio.
-- [ ] **PWA-02** Offline fallback — actualizar `sw.js` para cachear: index.html, CSS principal, fonts, hero image. Mostrar página offline branded si no hay red.
-- [ ] **PWA-03** Push notifications — implementar subscripción a notificaciones push. Casos: recordatorio de cita, promociones, contenido educativo.
-- [ ] **PWA-04** App install prompt — agregar banner "Instalar Aurora Derm" en mobile cuando el usuario ha visitado 2+ veces. Custom prompt, no el default del browser.
-- [ ] **PWA-05** Image lazy loading — agregar `loading="lazy"` a todas las `<img>` debajo del fold en `index.html` y páginas de servicio. Medir impacto en LCP.
-- [ ] **PWA-06** CSS critical path — extraer CSS above-the-fold e inlinear en `<head>`. Cargar `styles-deferred.css` con `media="print" onload="this.media='all'"`.
-- [ ] **PWA-07** Font optimization — verificar que `fraunces.woff2` y `plus-jakarta-sans.woff2` usan `font-display: swap` y preload en `<head>`.
-
-### P2 — Analytics e Inteligencia
-
-- [ ] **ANA-01** Conversion funnel — definir y trackear embudo: visita → scroll servicios → click WhatsApp → mensaje enviado. Eventos GA4 en cada paso.
-- [ ] **ANA-02** Heatmap integration — agregar Microsoft Clarity (gratis) o Hotjar: `<script>` tag en `index.html`. Analizar dónde hacen click, hasta dónde scrollean, dónde abandonan.
-- [ ] **ANA-03** UTM builder — crear `es/utm/index.html` interna (no public) para generar links con UTM parameters para campañas de Instagram, Google, referidos.
-- [ ] **ANA-04** WhatsApp click tracking — cada `href="https://wa.me/..."` debe disparar `gtag('event', 'whatsapp_click', {service: 'acne'})`. Agregar `onclick` handler a todos los CTAs.
-- [ ] **ANA-05** Dashboard de conversiones — crear vista en `admin.html` que muestre: visitas/día, clicks WhatsApp/día, fuente de tráfico, top servicios visitados. Datos desde GA4 API o server-side logs.
-
-### P2 — Contenido Educativo y SEO Long-tail
-
-- [ ] **EDU-01** Blog: "Cómo elegir dermatólogo en Quito" — `es/blog/como-elegir-dermatologo-quito/index.html`. SEO keyword focus. 1500+ palabras, H2s con keywords, internal links a servicios.
-- [ ] **EDU-02** Blog: "5 señales de alarma en lunares" — `es/blog/senales-alarma-lunares/index.html`. Link a tamizaje oncológico.
-- [ ] **EDU-03** Blog: "Guía de protección solar en Ecuador" — `es/blog/proteccion-solar-ecuador/index.html`. Fototipos, SPF, altitud de Quito, recomendaciones.
-- [ ] **EDU-04** Blog: "Acné adulto: causas y tratamiento" — `es/blog/acne-adulto-causas-tratamiento/index.html`. Link a página de acné.
-- [ ] **EDU-05** Blog: "Melasma y embarazo: qué hacer" — `es/blog/melasma-embarazo/index.html`. Link a página de manchas.
-- [ ] **EDU-06** Blog: "Bioestimuladores vs rellenos: diferencias" — `es/blog/bioestimuladores-vs-rellenos/index.html`. Link a ambos servicios.
-- [ ] **EDU-07** Blog index page — crear `es/blog/index.html` con grid de artículos, categorías, buscador. Estilo consistente con el sitio principal.
-- [ ] **EDU-08** Blog RSS feed — crear `es/blog/feed.xml` para que Google News y lectores RSS indexen el contenido.
-
-### P2 — Revenue y Paquetes
-
-- [ ] **REV-01** Página de paquetes — crear `es/paquetes/index.html`: combos de tratamiento con descuento. Ej: "Plan Piel Perfecta" (3 sesiones laser + peeling + consulta follow-up). Precio visible.
-- [ ] **REV-02** Página de financiamiento — crear `es/financiamiento/index.html`: opciones de pago en cuotas, tarjetas aceptadas, alianzas con bancos ecuatorianos.
-- [ ] **REV-03** Gift cards — crear `es/gift-cards/index.html`: tarjetas de regalo para tratamientos. Montos predefinidos ($50, $100, $200) o personalizado. Generación de código + PDF descargable.
-- [ ] **REV-04** Promociones estacionales — crear `es/promociones/index.html`: template para ofertas rotativas. Mes de la piel, Día de la Madre, Black Friday médico, etc.
-- [ ] **REV-05** Programa de membresía — crear `es/membresia/index.html`: plan mensual con beneficios (consultas priority, descuentos en procedimientos, acceso a contenido exclusivo).
-
-### P3 — Internacionalización y Multi-plataforma
-
-- [ ] **i18n-01** Sincronizar `en/index.html` con versión ES actual — hero, servicios, equipo, CTA, footer. Traducción profesional, no literal.
-- [ ] **i18n-02** Crear páginas de servicio EN — replicar las 13 specialty pages en `en/services/`.
-- [ ] **i18n-03** Hreflang tags — agregar `<link rel="alternate" hreflang="es"...>` y `<link rel="alternate" hreflang="en"...>` en todas las páginas con equivalente.
-- [ ] **i18n-04** Sitemap multilingual — actualizar `sitemap.xml` con `xhtml:link` alternates para ES/EN.
-
-### P3 — Integración con Redes Sociales
-
-- [ ] **SOC-01** Instagram feed embed — agregar sección en `index.html` con últimas 6 publicaciones de Instagram. Usar API oficial o widget embed.
-- [ ] **SOC-02** WhatsApp Business widget — reemplazar el botón flotante actual por el widget oficial de WhatsApp Business con mensaje pre-llenado y horario de atención.
-- [ ] **SOC-03** Open Graph images por servicio — crear imagen OG (1200x630) para cada página de servicio. Cuando alguien comparte el link, se ve la imagen con título y logo.
-- [ ] **SOC-04** Facebook Pixel — agregar pixel de Facebook/Meta en `index.html` para retargeting de ads. Events: PageView, Lead (click WhatsApp), ViewContent (página servicio).
-
-### P3 — Compliance y Legal
-
-- [ ] **LEG-01** Cookies banner — implementar banner de consentimiento de cookies GDPR-like (buenas prácticas aunque Ecuador no lo exige aún). Controlar carga de GA4 y pixels hasta aceptación.
-- [ ] **LEG-02** Política de datos personales — actualizar `es/legal/privacidad/index.html` con: qué datos se recolectan (formularios, analytics), cómo se usan, cómo solicitar eliminación.
-- [ ] **LEG-03** Consentimiento informado digital — crear template de consentimiento para procedimientos (`es/consentimiento/`) que el paciente pueda revisar antes de la cita.
-- [ ] **LEG-04** Disclaimer médico visible — agregar disclaimer claro en cada página de servicio: "Los resultados varían según cada paciente. Consulte con nuestro especialista."
+- [x] P0-01 Reemplazar imagen láser
+- [x] P0-02 Reparar slider Before/After
+- [x] P0-03 Smoke test producción
+- [x] FE-01 Teledermatología page
+- [x] FE-02 Tamizaje oncológico page
+- [x] FE-03 Manchas page
+- [x] FE-04 Depilación láser page
+- [x] FE-05 Rellenos hialurónico page
+- [x] FE-06 Microdermoabrasión page
 
 ---
 
-## Flow OS — Backlog del Sistema Operativo de Pacientes
+### 🔴 Sprint 1 — Arreglar lo roto antes de vender
 
-> Flow OS es el producto core de Aurora Derm: un sistema operativo que orquesta toda la experiencia del paciente desde el primer contacto hasta la resolución del caso.
->
-> Journey: `lead_captured → intake_completed → scheduled → care_plan_ready → follow_up_active → resolved`
->
-> Las siguientes tareas desarrollan cada etapa del journey y los subsistemas que lo soportan.
+> **Meta:** que un paciente real pueda entrar a pielarmonia.com y tener una experiencia impecable sin nada roto.
 
-### FLOW-JOURNEY — Etapas del Patient Journey
+#### 1.1 Links y navegación rotas
 
-- [ ] **JRN-01** Vista de journey del paciente — crear frontend en `admin.html` o nueva vista que muestre el journey timeline visual de cada paciente: en qué stage está, cuánto lleva, quién es el owner actual. Usar datos de `FlowOsController::journeyPreview`.
-- [ ] **JRN-02** Transiciones automáticas — implementar lógica en `FlowOsJourney.php` para que cuando un turno cambie a `completed`, el case avance automáticamente al siguiente stage (ej: `scheduled` → `care_plan_ready`).
-- [ ] **JRN-03** Notificaciones por stage — cuando un paciente cambia de stage, enviar notificación al owner del nuevo stage. Ej: `intake_completed` → notificar a `appointment-worker` que agende.
-- [ ] **JRN-04** Dashboard de stages — en `admin.html`, agregar panel que muestre cuántos pacientes hay en cada stage del journey. Tipo kanban o barras. Datos de `api.php?resource=flow-os-manifest`.
-- [ ] **JRN-05** SLA por stage — definir tiempo máximo por stage (ej: `lead_captured` máx 2h, `intake_completed` máx 24h). Alertar en admin cuando un paciente exceda el SLA.
-- [ ] **JRN-06** Historial del journey — guardar log de todas las transiciones de stage de un paciente con timestamps. Mostrar timeline en la vista del caso.
-- [ ] **JRN-07** Actions automáticas por stage — implementar las `defaultActions` del manifest: cuando un paciente entra a `lead_captured`, ofrecer automáticamente `request_identity_completion` y `offer_preconsultation_form`.
-- [ ] **JRN-08** Intake digital — crear formulario en `es/pre-consulta/index.html` que al enviar, cree un caso en Flow OS con stage `lead_captured` y dispare el journey.
+- [ ] **S1-01** `[S]` Fix bioestimuladores link — footer enlaza `/es/servicios/bioestimuladores/` pero la página es `/es/servicios/bioestimuladores-colageno/`. Arreglar el `href` en `index.html`.
+- [ ] **S1-02** `[S]` Verificar TODOS los links del footer y nav en `index.html` — que cada href lleve a una página que existe. Reportar cualquier 404.
+- [ ] **S1-03** `[S]` Verificar links en cada `es/servicios/*/index.html` — CTAs, nav, breadcrumbs, que nada apunte a páginas inexistentes.
 
-### FLOW-TURNERO — Sistema de Turnos
+#### 1.2 Identidad del producto
 
-- [ ] **TURN-01** Kiosco: flujo de check-in con QR — paciente llega, escanea QR de su cita, kiosco lo reconoce y cambia status a `arrived`. Si no tiene cita, ofrece turno walk-in.
-- [ ] **TURN-02** Kiosco: selección de motivo — en `kiosco-turnos.html`, antes de generar turno, mostrar opciones: "Consulta general", "Control de tratamiento", "Procedimiento agendado", "Urgencia dermatológica". Esto alimenta la cola con prioridad (`TicketPriorityPolicy`).
-- [ ] **TURN-03** Operador: vista de paciente expandida — en `operador-turnos.html`, al llamar un turno mostrar: nombre, motivo, historial de visitas previas, stage del journey, alertas (ej: "faltó al follow-up anterior").
-- [ ] **TURN-04** Operador: acciones rápidas — botones de acción post-consulta: "Agendar siguiente cita", "Enviar guía post-tratamiento", "Generar receta", "Derivar a procedimiento".
-- [ ] **TURN-05** Sala: información útil — en `sala-turnos.html`, entre turnos, mostrar: tips de cuidado de piel, videos educativos, info del tratamiento que el paciente va a recibir (personalizado si es posible por tipo de turno).
-- [ ] **TURN-06** Ticket impreso con QR — al generar turno en kiosco, el ticket (via `TicketPrinter`) debe incluir QR con link a `es/software/turnero-clinicas/estado-turno/?ticket=XXX` para que el paciente vea su posición en la cola desde el teléfono.
-- [ ] **TURN-07** Estimación de tiempo de espera — calcular y mostrar tiempo estimado de espera basado en: posición en cola, duración promedio de consulta por tipo, cantidad de consultorios activos. Mostrar en kiosco y sala.
-- [ ] **TURN-08** Notificación WhatsApp de turno — cuando el operador llama el turno, enviar WhatsApp automático: "Su turno [A-007] está siendo llamado. Pase a consultorio 2."
-- [ ] **TURN-09** Métricas de espera — registrar: tiempo de espera real, tiempo en consultorio, throughput por hora. Mostrar en `admin.html` como gráfico de barras. Alimentar `QueueAssistantMetricsStore`.
-- [ ] **TURN-10** Encuesta post-turno — al completar turno, enviar SMS/WhatsApp con link a encuesta rápida de 1 pregunta (NPS): "¿Qué tan probable es que nos recomiende? 1-10".
+- [ ] **S1-04** `[S]` Corregir `manifest.json` — dice "Flow OS" en name, short_name, description. Debe decir:
+  - `name`: "Aurora Derm — Dermatología Clínica Quito"
+  - `short_name`: "Aurora Derm"
+  - `description`: "Clínica dermatológica con enfoque médico real. Quito, Ecuador."
+  - `label` en shortcuts: quitar "Flow OS", poner "Aurora Derm".
+- [ ] **S1-05** `[S]` Service worker cache — verificar que `sw.js` cachea los archivos correctos (no assets viejos que ya no existen). Actualizar la lista de cache.
 
-### FLOW-HCE — Historia Clínica Electrónica
+#### 1.3 Mobile y accessibility
 
-- [ ] **HCE-01** Formulario de anamnesis — crear vista en admin para registrar: motivo consulta, antecedentes personales/familiares, alergias, medicación actual, fototipo Fitzpatrick. Usar `ClinicalHistoryService`.
-- [ ] **HCE-02** Fotografía clínica — integrar captura fotográfica desde cámara/teléfono. Subir a `CaseMediaFlowService`. Metadata: fecha, zona corporal, iluminación, distancia. Almacenar en `uploads/`.
-- [ ] **HCE-03** Comparación before/after — vista en admin que muestre 2 fotos side-by-side del mismo paciente/zona en diferentes fechas. Slider de comparación. Datos de `CaseMediaFlowService`.
-- [ ] **HCE-04** Plan de tratamiento digital — template en admin: diagnóstico, tratamientos propuestos (con sesiones y costos), frecuencia de seguimiento, metas clínicas. Exportable como PDF.
-- [ ] **HCE-05** Receta digital — generar receta con: datos del doctor (MSP), datos del paciente, medicamentos (nombre, dosis, frecuencia, duración), indicaciones. PDF descargable.
-- [ ] **HCE-06** Evolución clínica — formulario para registrar notas de cada visita: hallazgos, procedimientos realizados, evolución, plan para siguiente visita. Append-only al historial.
-- [ ] **HCE-07** Red flags automáticas — `ClinicalHistoryGuardrails` debe alertar: lesiones sospechosas > 6mm, cambio de color en lunares, crecimiento rápido, sangrado. Flag visual en admin.
-- [ ] **HCE-08** Exportar historia clínica — botón en admin que genera PDF con historial completo del paciente: anamnesis, evoluciones, fotos, tratamientos, recetas. Cumplir con `ClinicalHistoryLegalReadiness`.
-- [ ] **HCE-09** Compliance MSP Ecuador — verificar que la HCE cumple con los campos obligatorios del MSP (0457): identificación, anamnesis, examen físico, diagnóstico CIE-10, prescripción, evolución.
+- [ ] **S1-06** `[M]` Mobile responsiveness — abrir `index.html` en 375px (iPhone) y 768px (iPad). Verificar: hero legible, cards no cortadas, slider funcional, footer navegable, FAQ abre/cierra. Arreglar breakpoints rotos en `styles-deferred.css`.
+- [ ] **S1-07** `[M]` Accessibility mínima — recorrer `index.html`: alt text en TODAS las imágenes, contraste WCAG AA en textos sobre fondos oscuros, focus states visibles en botones y links, ARIA labels en nav. Correr Lighthouse accessibility, target 85+.
+- [ ] **S1-08** `[S]` Dark mode consistency — recorrer cada sección de `index.html` buscando: fondos blancos accidentales, textos invisibles sobre fondo oscuro, bordes que rompen la estética.
 
-### FLOW-TELEMED — Telemedicina
+#### 1.4 Performance baseline
 
-- [ ] **TELE-01** Flujo de teleconsulta — implementar flujo completo: paciente solicita → intake digital (`TelemedicineIntakeService`) → evaluación de suitability (`TelemedicineSuitabilityEvaluator`) → consent → cita virtual → seguimiento.
-- [ ] **TELE-02** Vista de teleconsulta para paciente — crear `es/telemedicina/consulta/index.html`: sala de espera virtual, video call embed (Jitsi/Daily.co), chat, compartir fotos al doctor.
-- [ ] **TELE-03** Evaluación de viabilidad — antes de aprobar teleconsulta, evaluar si la condición requiere examen presencial. `TelemedicineSuitabilityEvaluator` debe usar reglas: dermatoscopia requerida → rechazar, lesión nueva → presencial.
-- [ ] **TELE-04** Consent digital — `TelemedicineConsentSnapshot`: consentimiento informado firmado digitalmente antes de la teleconsulta. Almacenar con timestamp y hash.
-- [ ] **TELE-05** Triaje por fotos — paciente sube 3 fotos (zona afectada, primer plano, contexto). `TelemedicineIntakeService` las pre-clasifica y las adjunta al caso para revisión del especialista.
+- [ ] **S1-09** `[M]` Image lazy loading — agregar `loading="lazy"` a todas las `<img>` debajo del fold en `index.html` y en cada `es/servicios/*/index.html`.
+- [ ] **S1-10** `[M]` Font optimization — verificar que `fraunces.woff2` y `plus-jakarta-sans.woff2` usan `font-display: swap` y tienen `<link rel="preload">` en el `<head>`.
+- [ ] **S1-11** `[M]` CSS critical path — extraer CSS above-the-fold (hero + nav) e inlinear en `<head>` de `index.html`. Deferred CSS con `media="print" onload`.
+- [ ] **S1-12** `[S]` Lighthouse CI baseline — correr `npx lhci autorun --config lighthouserc.premium.json`. Documentar scores iniciales: Performance, Accessibility, SEO, Best Practices. Guardar en `docs/lighthouse-baseline.md`.
 
-### FLOW-PAGOS — Pagos y Facturación
+---
 
-- [ ] **PAY-01** Checkout integrado — vista de pago en `es/pago/index.html`: monto, concepto (tratamiento), métodos (Stripe card, transferencia bancaria, efectivo). Generar recibo.
-- [ ] **PAY-02** Comprobante de transferencia — el paciente sube foto del comprobante via `payment-lib.php`. Admin lo verifica y aprueba manualmente. Status: pendiente → verificado → aplicado.
-- [ ] **PAY-03** Factura electrónica SRI — integrar con facturación electrónica del SRI Ecuador. Generar factura con: RUC clínica, datos paciente (cédula/RUC), concepto, IVA 15%. Enviar por email.
-- [ ] **PAY-04** Estado de cuenta del paciente — vista en admin y portal paciente: historial de pagos, saldos pendientes, pagos parciales, próximos vencimientos.
-- [ ] **PAY-05** Planes de pago — permitir dividir un tratamiento en cuotas mensuales. Registrar plan en backend, enviar recordatorio de cuota por WhatsApp.
+### 🟡 Sprint 2 — Convertir visitantes en pacientes
 
-### FLOW-CALENDAR — Agendamiento y Disponibilidad
+> **Meta:** que cada persona que llegue al sitio tenga razones claras para contactar por WhatsApp. SEO para atraer tráfico orgánico.
 
-- [ ] **CAL-01** Booking público — crear `es/agendar/index.html` con calendario visual que consulte `CalendarAvailabilityService`. Paciente selecciona: servicio → doctor → fecha → hora → confirmar.
-- [ ] **CAL-02** Confirmación doble — después de reservar, enviar WhatsApp + email de confirmación con: fecha, hora, doctor, dirección, instrucciones de preparación.
-- [ ] **CAL-03** Reagendamiento self-service — `src/apps/reschedule/engine.js` + vista pública donde paciente puede mover su cita (máx 2 cambios, mínimo 24h antes).
-- [ ] **CAL-04** Lista de espera — si no hay disponibilidad, ofrecer "unirse a lista de espera". Notificar por WhatsApp cuando se abra un slot.
-- [ ] **CAL-05** Bloqueo de agenda — admin puede bloquear horarios: vacaciones, cirugías, reuniones. `CalendarBookingService` respeta estos bloqueos.
-- [ ] **CAL-06** Vista de agenda diaria — en `admin.html`, mostrar agenda del día: pacientes confirmados, hora, tipo de consulta, status (confirmado/pending/no-show). Con alertas de overbooking.
+#### 2.1 SEO fundacional
 
-### FLOW-ADMIN — Portal Administrativo
+- [ ] **S2-01** `[M]` Structured data `MedicalClinic` en `index.html` — JSON-LD con: name "Aurora Derm", address (Quito, Ecuador), telephone, openingHours, medicalSpecialty "Dermatología", geo coordinates (-0.1807, -78.4678), sameAs (redes sociales).
+- [ ] **S2-02** `[M]` Structured data `MedicalProcedure` — agregar JSON-LD en cada `es/servicios/*/index.html` con: name, description, bodyLocation, procedureType.
+- [ ] **S2-03** `[M]` Open Graph completo — en `index.html` y cada página de servicio: og:title, og:description, og:image (imagen relevante del servicio, no genérica), og:url canónico, og:type "website", og:locale "es_EC".
+- [ ] **S2-04** `[S]` Actualizar `sitemap.xml` — verificar que incluye TODAS las páginas existentes en `es/` y `en/`. Separar URLs locales de EN/ES. Agregar `<lastmod>`.
+- [ ] **S2-05** `[S]` `robots.txt` — verificar que no bloquea páginas productivas. Bloquear `_archive/`, `data/`, `admin.html`, `tools/`.
+- [ ] **S2-06** `[M]` Hreflang tags — en todas las páginas que tienen versión EN y ES, agregar `<link rel="alternate" hreflang="es">` y `hreflang="en"`.
 
-- [ ] **ADM-01** Dashboard principal — mejorar vista inicial de `admin.html`: pacientes del día, turnos activos, ingresos del mes, tasa de no-show, NPS promedio. Cards con sparklines.
-- [ ] **ADM-02** Gestión de pacientes — CRUD de pacientes: buscar, ver perfil, historial, citas, pagos, journey. Usar `PatientCaseService`.
-- [ ] **ADM-03** Reportes mensuales — generar reporte: pacientes atendidos, procedimientos por tipo, ingresos por servicio, tasa de retorno, top 5 condiciones diagnosticadas. PDF exportable.
-- [ ] **ADM-04** Gestión de inventario — tracking de consumibles: jeringas botox, viales ácido hialurónico, cremas, gasas. Alertar cuando stock < umbral mínimo.
-- [ ] **ADM-05** Gestión de equipo — CRUD de doctores/staff: horarios, especialidades, certificaciones, performance (pacientes/día, NPS). Asignación automática de agenda.
-- [ ] **ADM-06** Audit log — registro inmutable de todas las acciones en admin: quién hizo qué, cuándo, desde qué IP. Usar `lib/audit.php`. Vista de búsqueda en admin.
+#### 2.2 Conversión por WhatsApp
 
-### FLOW-MULTI — Multi-clínica SaaS
+- [ ] **S2-07** `[M]` WhatsApp links contextualizados — CADA botón CTA en el sitio debe llevar `?text=` pre-llenado por servicio:
+  - Hero: `?text=Hola, me gustaría agendar una evaluación dermatológica`
+  - Acné page: `?text=Hola, me interesa una consulta sobre acné`
+  - Láser page: `?text=Hola, quiero información sobre tratamiento láser`
+  - (repetir para cada servicio)
+- [ ] **S2-08** `[M]` WhatsApp click tracking — agregar `onclick` handler a TODOS los botones WhatsApp que dispare `gtag('event', 'whatsapp_click', {service: 'nombre-servicio', page: location.pathname})`. Requiere S2-09 primero.
+- [ ] **S2-09** `[S]` `[HUMAN]` Google Analytics GA4 — insertar tag `gtag.js` en `index.html` y todas las páginas. **PREGUNTAR AL USUARIO:** ¿tiene ya una propiedad GA4? Si sí, dar el ID. Si no, indicar que debe crear una en analytics.google.com.
 
-- [ ] **SAAS-01** Tenant isolation — verificar que `lib/tenants.php` aísla correctamente datos entre clínicas. Cada clínica debe tener su propio namespace de pacientes, agenda, turnero, pagos.
-- [ ] **SAAS-02** Onboarding de nueva clínica — crear flujo: registrar clínica → configurar perfil (`TurneroClinicProfile`) → cargar staff → activar servicios → generar subdomain o path.
-- [ ] **SAAS-03** Pricing page — crear `es/software/turnero-clinicas/precios/index.html`: Free (1 doctor, 10 turnos/día), Pro ($49/mes, 5 doctores, ilimitado), Enterprise (contactar).
-- [ ] **SAAS-04** Demo interactiva — mejorar `es/software/turnero-clinicas/demo/index.html`: demo funcional del turnero con datos de ejemplo. Paciente prueba kiosco → ve turno → operador lo llama.
-- [ ] **SAAS-05** Dashboard multi-clínica — vista en admin que muestra stats de todas las clínicas del tenant: turnos/día, ingresos, pacientes activos. Comparativa entre sucursales.
-- [ ] **SAAS-06** Whitelabel — permitir personalizar: logo, colores, nombre de la clínica, dominio. Mantener engine Flow OS, cambiar branding.
-- [ ] **SAAS-07** API pública documentación — crear `es/software/turnero-clinicas/api-docs/index.html` con documentación de la API para integraciones: queue-state, appointments, patients. Formato OpenAPI/Swagger.
+#### 2.3 Contenido que convierte
 
-### FLOW-AI — Inteligencia Artificial
+- [ ] **S2-10** `[L]` Blog index — crear `es/blog/index.html` con: grid de artículos, categorías, diseño consistente con el sitio. No requiere artículos todavía, solo la estructura.
+- [ ] **S2-11** `[M]` Blog: "Cómo elegir dermatólogo en Quito" — `es/blog/como-elegir-dermatologo-quito/index.html`. 1500+ palabras. H2 con keywords, internal links a servicios, CTA WhatsApp al final.
+- [ ] **S2-12** `[M]` Blog: "5 señales de alarma en lunares" — `es/blog/senales-alarma-lunares/index.html`. Link a tamizaje oncológico + CTA.
+- [ ] **S2-13** `[M]` Blog: "Protección solar en Ecuador: guía por altitud" — `es/blog/proteccion-solar-ecuador/index.html`. Específico para Quito (2800 msnm), fototipos, SPF.
+- [ ] **S2-14** `[M]` Blog: "Acné adulto: causas y tratamiento" — `es/blog/acne-adulto/index.html`. Link a acné-rosácea + CTA.
+- [ ] **S2-15** `[M]` Blog: "Melasma y embarazo" — `es/blog/melasma-embarazo/index.html`. Link a manchas + CTA.
+- [ ] **S2-16** `[M]` Blog: "Bioestimuladores vs rellenos: diferencias" — `es/blog/bioestimuladores-vs-rellenos/index.html`. Comparativa educativa.
+- [ ] **S2-17** `[S]` Blog RSS feed — crear `es/blog/feed.xml` con las entradas del blog para indexación.
+- [ ] **S2-18** `[S]` Disclaimer médico — agregar texto estándar al pie de cada `es/servicios/*/index.html`: "Los resultados varían. Consulte a nuestro especialista."
 
-- [ ] **AI-01** Triage inteligente — `ClinicalHistoryAIService`: analizar fotos + descripción del paciente para sugerir: urgencia (1-5), posible diagnóstico diferencial, derivación automática.
-- [ ] **AI-02** Asistente de consulta — durante la consulta, sugerir al doctor: tratamientos basados en el diagnóstico + historial + evidencia. Interfaz discreta en admin, no invasiva.
-- [ ] **AI-03** Predicción de no-show — modelo basado en: historial de asistencia, hora de cita, día de la semana, tiempo desde booking. Alertar admin para overbooking inteligente.
-- [ ] **AI-04** Generación de resúmenes — `LeadAiController` / `LeadOpsService`: generar resumen automático post-consulta para el paciente: "Hoy le diagnosticamos X, le recetamos Y, siguiente cita en Z semanas."
-- [ ] **AI-05** Chatbot WhatsApp — `WhatsappOpenclawController`: responder preguntas frecuentes por WhatsApp con IA: horarios, precios, preparación, dirección. Escalar a humano si es clínico.
-- [ ] **AI-06** Scoring de leads — clasificar leads por probabilidad de conversión: engagement con sitio web, tipo de consulta, urgencia. Priorizar follow-up.
+#### 2.4 Confianza y credenciales
 
-### FLOW-CLEAN — Limpieza de Surfaces (Deuda Técnica)
+- [ ] **S2-19** `[M]` Badges en hero — agregar badges visuales en la sección hero de `index.html`: "MSP Certificado", "10+ años", "2000+ pacientes". Con micro-animación de fade-in al scroll.
+- [ ] **S2-20** `[S]` `[HUMAN]` Google reviews embed — agregar widget de reseñas de Google en `index.html`. **PREGUNTAR:** ¿tiene la clínica ficha en Google Maps? Si sí, dar el Place ID.
+- [ ] **S2-21** `[L]` Página primera consulta — crear `es/primera-consulta/index.html`: qué esperar, qué traer, duración (~45 min), cómo llegar, estacionamiento. Reduce ansiedad del paciente nuevo.
+- [ ] **S2-22** `[S]` Mapa Google Maps — agregar embed de Google Maps en el footer de `index.html` o en sección de contacto con ubicación exacta de la clínica.
 
-- [ ] **SURF-01** Auditoría de surfaces — hay ~130 archivos `turnero-surface-*.js` en `src/apps/queue-shared/`. Muchos parecen generados automáticamente (commercial-banner, executive-review-pack, fleet-snapshot, etc.). Auditar cuáles se importan realmente desde los HTML del turnero.
-- [ ] **SURF-02** Eliminar surfaces huérfanas — de los 130 archivos, los que no se importan desde ningún HTML ni JS deben moverse a `_archive/turnero-surfaces/`. Probablemente 80%+ son dead code.
-- [ ] **SURF-03** Consolidar surfaces — los surfaces que SÍ se usan probablemente pueden consolidarse de 50 archivos a 10-15 módulos con responsabilidades claras.
+#### 2.5 Inglés
+
+- [ ] **S2-23** `[L]` Sincronizar `en/index.html` — verificar que refleja la versión ES actual. Hero, servicios, equipo, CTA, footer. Traducción profesional, culturalmente adaptada (no literal).
+- [ ] **S2-24** `[XL]` Crear specialty pages EN — replicar las 18 páginas de `es/servicios/` en `en/services/`. Traducción adaptada.
+
+---
+
+### 🟢 Sprint 3 — Construir Flow OS como plataforma
+
+> **Meta:** que Flow OS sea un producto utilizable end-to-end, no solo un backend con APIs sueltas.
+
+#### 3.1 Patient Journey (el core de Flow OS)
+
+- [ ] **S3-01** `[L]` Vista journey en admin — crear componente en `admin.html` que muestre el timeline visual de cada paciente: stage actual del journey (`lead_captured → intake → scheduled → care_plan → follow_up → resolved`), cuánto lleva en cada stage, quién es el owner. Datos de `FlowOsController::journeyPreview`.
+- [ ] **S3-02** `[L]` Dashboard de stages — panel kanban en `admin.html`: cuántos pacientes hay en cada stage del journey. Click en un stage muestra la lista de pacientes. Alertas de SLA (lead captado hace > 2h sin respuesta, follow-up vencido).
+- [ ] **S3-03** `[M]` Transiciones automáticas — en `FlowOsJourney.php`, cuando un turno cambia a `completed`, avanzar el case al siguiente stage. Cuando un appointment se crea, mover de `intake_completed` a `scheduled`.
+- [ ] **S3-04** `[M]` Actions por stage — implementar las `defaultActions` del manifest: al entrar a `lead_captured`, ofrecer formulario de preconsulta y solicitar datos de identidad. Al entrar a `care_plan_ready`, mostrar botón "Enviar plan al paciente".
+- [ ] **S3-05** `[L]` Intake digital público — crear `es/pre-consulta/index.html` con formulario: nombre, WhatsApp, tipo de piel, condición, fotos. Al enviar: crea caso en Flow OS stage `lead_captured`, notifica al frontdesk. **Esta es la puerta de entrada del patient journey.**
+- [ ] **S3-06** `[M]` Historial de journey — log de transiciones con timestamps para cada paciente. Vista timeline en admin. Feed de actividad: "Juan → scheduled (hace 2h por operador María)".
+
+#### 3.2 Turnero avanzado
+
+- [ ] **S3-07** `[L]` Check-in QR — paciente llega al kiosco, escanea QR de su cita (generado al agendar), kiosco lo reconoce, status → `arrived`, asocia al caso. Sin cita → flujo walk-in normal.
+- [ ] **S3-08** `[M]` Selección de motivo en kiosco — en `kiosco-turnos.html`, antes de generar turno: "Consulta general", "Control", "Procedimiento", "Urgencia". Alimenta `TicketPriorityPolicy`.
+- [ ] **S3-09** `[M]` Vista expandida del operador — en `operador-turnos.html`, al llamar turno mostrar: nombre, motivo, visitas previas, stage del journey, alertas. Datos de `PatientCaseService::hydrateStore`.
+- [ ] **S3-10** `[M]` Acciones post-consulta — botones en operador: "Agendar siguiente", "Enviar guía", "Generar receta", "Derivar a procedimiento". Cada uno dispara el action correspondiente.
+- [ ] **S3-11** `[M]` Ticket con QR — `TicketPrinter` genera ticket con QR que lleva a `es/software/turnero-clinicas/estado-turno/?ticket=XXX`. Paciente ve su posición desde el teléfono.
+- [ ] **S3-12** `[L]` Estimación de espera — calcular tiempo estimado basado en: posición en cola, duración promedio por tipo, consultorios activos. Mostrar en kiosco y sala. Actualizar en tiempo real.
+- [ ] **S3-13** `[M]` Sala inteligente — en `sala-turnos.html`, entre llamadas mostrar: tips de cuidado de piel, info del próximo tratamiento (si el turno es de tipo conocido), video educativo rotativo.
+- [ ] **S3-14** `[S]` Métricas de espera — registrar tiempo real de espera por turno. Registrar throughput/hora. Alimentar `QueueAssistantMetricsStore`. Vista de gráficos en admin.
+
+#### 3.3 Historia Clínica Electrónica
+
+- [ ] **S3-15** `[L]` Formulario de anamnesis — vista en admin: motivo, antecedentes personales/familiares, alergias, medicación, fototipo Fitzpatrick, hábitos (sol, tabaco). `ClinicalHistoryService`.
+- [ ] **S3-16** `[L]` Fotografía clínica — captura desde cámara, upload a `CaseMediaFlowService`. Metadata: fecha, zona corporal. Almacenar organizado por paciente/fecha.
+- [ ] **S3-17** `[L]` Comparación before/after — en admin: dos fotos side-by-side de misma zona en diferentes fechas. Slider de comparación. Seleccionar fotos del historial del paciente.
+- [ ] **S3-18** `[M]` Plan de tratamiento — template: diagnóstico, tratamientos (con sesiones y costos estimados), frecuencia de seguimiento, metas. Exportar PDF para el paciente.
+- [ ] **S3-19** `[M]` Receta digital — datos doctor (MSP), datos paciente, medicamentos (nombre, dosis, frecuencia, duración), indicaciones. PDF con membrete clínico.
+- [ ] **S3-20** `[M]` Evolución clínica — nota por visita: hallazgos, procedimientos, evolución, plan. Append-only. Integrada al timeline del journey.
+- [ ] **S3-21** `[S]` Red flags — `ClinicalHistoryGuardrails`: alertar en admin si lesión >6mm, cambio de color en lunares, crecimiento rápido. Badge visual rojo en el caso.
+- [ ] **S3-22** `[M]` Exportar HCE completa — botón en admin: genera PDF con todo el historial del paciente. Legal compliance via `ClinicalHistoryLegalReadiness`.
+- [ ] **S3-23** `[M]` `[HUMAN]` Compliance MSP Ecuador — verificar campos obligatorios del formulario 0457: identificación, anamnesis, examen físico, diagnóstico CIE-10, prescripción, evolución. **PREGUNTAR:** ¿cuáles son los campos exactos del formulario 0457 que el MSP exige?
+
+#### 3.4 Agendamiento
+
+- [ ] **S3-24** `[XL]` Booking público — crear `es/agendar/index.html`: selección de servicio → doctor → fecha → hora → datos del paciente → confirmar. Consultar `CalendarAvailabilityService`. Crear appointment en backend.
+- [ ] **S3-25** `[M]` Confirmación doble — al agendar: enviar WhatsApp + email con fecha, hora, doctor, dirección, instrucciones de preparación según el tipo de cita.
+- [ ] **S3-26** `[M]` Reagendamiento self-service — vista pública donde paciente puede mover su cita. Máx 2 cambios, mínimo 24h antes. `src/apps/reschedule/engine.js`.
+- [ ] **S3-27** `[M]` Lista de espera — si no hay slots, ofrecer "unirse a lista de espera". Notificar por WhatsApp cuando se libere un espacio.
+- [ ] **S3-28** `[M]` Vista de agenda diaria — en admin: agenda del día con pacientes confirmados, hora, tipo, status. Alertas de overbooking. Botón "marcar llegó" → avanza el journey.
+
+#### 3.5 Telemedicina
+
+- [ ] **S3-29** `[XL]` Flujo completo de teleconsulta — paciente solicita → `TelemedicineIntakeService` evalúa → `TelemedicineSuitabilityEvaluator` decide si es viable → consent digital → cita virtual → seguimiento.
+- [ ] **S3-30** `[L]` Vista de teleconsulta — `es/telemedicina/consulta/index.html`: sala de espera virtual, video embed (Jitsi/Daily.co), chat, compartir fotos. Diseño premium.
+- [ ] **S3-31** `[M]` Triaje por fotos — paciente sube 3 fotos (zona, primer plano, contexto). `TelemedicineIntakeService` las pre-clasifica y adjunta al caso.
+
+#### 3.6 Pagos
+
+- [ ] **S3-32** `[L]` Checkout integrado — `es/pago/index.html`: monto, concepto, métodos (Stripe, transferencia, efectivo). Generar recibo digital.
+- [ ] **S3-33** `[M]` Verificación de transferencia — paciente sube foto del comprobante. Admin verifica y aprueba. Status: pendiente → verificado → aplicado.
+- [ ] **S3-34** `[M]` Estado de cuenta — vista en admin: historial de pagos por paciente, saldos pendientes, próximos vencimientos.
+- [ ] **S3-35** `[L]` `[HUMAN]` Factura SRI — integrar con facturación electrónica del SRI Ecuador. **PREGUNTAR:** ¿tienen certificado de firma electrónica y ambiente de producción del SRI?
+
+---
+
+### 🔵 Sprint 4 — Escalar el negocio
+
+> **Meta:** Aurora Derm como plataforma SaaS, inteligencia artificial, crecimiento comercial.
+
+#### 4.1 Inteligencia Artificial
+
+- [ ] **S4-01** `[L]` Triage IA — `ClinicalHistoryAIService`: analizar fotos + descripción del paciente → sugerir urgencia (1-5), diagnóstico diferencial probable, derivación automática a tipo de consulta.
+- [ ] **S4-02** `[L]` Chatbot WhatsApp — `WhatsappOpenclawController`: responder preguntas frecuentes por WhatsApp con IA: horarios, precios, preparación, dirección. Escalar a humano si la pregunta es clínica.
+- [ ] **S4-03** `[M]` Predicción de no-show — modelo basado en: historial de asistencia, hora, día, tiempo desde booking. Dashboard en admin con probabilidad de no-show por cita.
+- [ ] **S4-04** `[M]` Resúmenes automáticos — `LeadOpsService`: generar resumen post-consulta para el paciente: "Hoy diagnosticamos X, recetamos Y, próxima cita en Z semanas." Enviar por WhatsApp.
+- [ ] **S4-05** `[M]` Scoring de leads — clasificar leads por probabilidad de conversión basado en: engagement web, tipo de consulta, urgencia. Priorizar follow-up en admin.
+
+#### 4.2 Multi-clínica SaaS
+
+- [ ] **S4-06** `[L]` Tenant isolation audit — verificar que `lib/tenants.php` aísla datos entre clínicas: pacientes, agenda, turnero, pagos. Cada clínica tiene namespace propio.
+- [ ] **S4-07** `[XL]` Onboarding de clínica — flujo: registrar clínica → `TurneroClinicProfile` → cargar staff → activar servicios → generar URL.
+- [ ] **S4-08** `[L]` Pricing page — `es/software/turnero-clinicas/precios/index.html`: Free (1 doctor), Pro ($49/mes, 5 doctores), Enterprise (contactar). Design premium con comparativa.
+- [ ] **S4-09** `[L]` Demo interactiva mejorada — `es/software/turnero-clinicas/demo/index.html`: demo funcional del turnero con datos de ejemplo. El visitante experimenta: kiosco → turno → operador lo llama.
+- [ ] **S4-10** `[L]` Dashboard multi-clínica — vista admin: stats de todas las clínicas del tenant. Turnos/día, ingresos, pacientes. Comparativa entre sucursales.
+- [ ] **S4-11** `[L]` Whitelabel — personalizar: logo, colores, nombre, dominio por clínica. Engine Flow OS intacto, branding customizable.
+- [ ] **S4-12** `[L]` API docs — `es/software/turnero-clinicas/api-docs/index.html`: documentación OpenAPI de la API para integraciones externas.
+
+#### 4.3 Revenue
+
+- [ ] **S4-13** `[L]` Página de paquetes — `es/paquetes/index.html`: combos de tratamiento. "Plan Piel Perfecta" (3 laser + peeling + follow-up). Precio visible. CTA WhatsApp.
+- [ ] **S4-14** `[M]` Programa de referidos — `es/referidos/index.html`: beneficio por paciente referido. CTA: "Comparte tu link".
+- [ ] **S4-15** `[M]` Promociones — `es/promociones/index.html`: template para ofertas rotativas. Mes de la piel, Día de la Madre.
+- [ ] **S4-16** `[L]` Membresía — `es/membresia/index.html`: plan mensual con beneficios (consultas priority, descuentos, contenido exclusivo).
+- [ ] **S4-17** `[M]` Gift cards — `es/gift-cards/index.html`: montos predefinidos, generación de código, PDF descargable.
+
+#### 4.4 Analytics
+
+- [ ] **S4-18** `[M]` Conversion funnel — trackear embudo: visita → scroll → click WhatsApp → mensaje. Eventos GA4.
+- [ ] **S4-19** `[S]` Microsoft Clarity — agregar script gratis de heatmaps. Analizar scroll depth, clicks, abandono.
+- [ ] **S4-20** `[M]` Dashboard de conversión en admin — vista: visitas/día, clicks WhatsApp/día, top servicios. Datos desde server logs o GA4 API.
+
+#### 4.5 Limpieza técnica
+
+- [ ] **S4-21** `[L]` Surface audit — `src/apps/queue-shared/` tiene **398 archivos** JS. La mayoría son turnero-surface-*.js generados. Auditar cuáles se importan realmente desde HTML/JS del turnero. Listar dead code.
+- [ ] **S4-22** `[XL]` Eliminar surfaces huérfanas — mover a `_archive/turnero-surfaces/` los archivos no importados. Probablemente ~80% son dead code. **Esto puede reducir el repo en miles de líneas.**
+- [ ] **S4-23** `[M]` Package.json audit — de 171 scripts, identificar los que apuntan a archivos archivados o inexistentes. Listar para limpieza.
+- [ ] **S4-24** `[M]` CSS dead code — 8+ archivos CSS en raíz. Verificar cuáles se importan desde HTML. Listar huérfanos.
+- [ ] **S4-25** `[M]` Images audit — 262 webp en `images/optimized/`. Verificar cuáles se referencian desde HTML/CSS. Listar huérfanas (no eliminar, solo listar).
+- [ ] **S4-26** `[L]` CI pipeline audit — `.github/workflows/*.yml` — verificar que todos los jobs referencian archivos que existen. Eliminar jobs que apuntan a archivos archivados.
+
