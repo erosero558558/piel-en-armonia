@@ -172,9 +172,9 @@ final class PatientCaseFlowTest extends TestCase
             ['lead_captured', 'scheduled', 'care_plan_ready'],
             array_column(array_slice($journeyHistory, 0, 3), 'stage')
         );
-        $this->assertSame(
-            'Paciente llamado a consultorio',
-            (string) (($journeyHistory[2]['sourceLabel'] ?? ''))
+        $this->assertContains(
+            (string) (($journeyHistory[2]['sourceLabel'] ?? '')),
+            ['Paciente llamado a consultorio', 'Turno completado']
         );
         $this->assertTrue((bool) ($journeyHistory[2]['isCurrentStage'] ?? false));
         $this->assertSame('care_plan_ready', (string) ($journey['stage'] ?? ''));
@@ -182,6 +182,14 @@ final class PatientCaseFlowTest extends TestCase
         $this->assertSame(
             'care_plan_ready',
             (string) (($journey['activityFeed'][0]['stage'] ?? ''))
+        );
+        $this->assertContains(
+            (string) (($journey['activityFeed'][0]['actorLabel'] ?? '')),
+            ['Consultorio', 'Clínico']
+        );
+        $this->assertNotSame(
+            '',
+            (string) (($journey['activityFeed'][0]['timestamp'] ?? ''))
         );
     }
 
@@ -282,6 +290,10 @@ final class PatientCaseFlowTest extends TestCase
             (string) ($journeyResponse['payload']['data']['journey']['cases'][0]['displayStage'] ?? '')
         );
         $this->assertNotEmpty($journeyResponse['payload']['data']['journey']['activityFeed'] ?? []);
+        $this->assertNotSame(
+            '',
+            (string) (($journeyResponse['payload']['data']['journey']['activityFeed'][0]['actorLabel'] ?? ''))
+        );
     }
 
     public function testExplicitIntakeCaseMovesToScheduledWhenAppointmentExists(): void

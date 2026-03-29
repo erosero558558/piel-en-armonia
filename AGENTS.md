@@ -1032,7 +1032,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [x] **S3-03** `[M]` Transiciones automáticas — en `FlowOsJourney.php`, cuando un turno cambia a `completed`, avanzar el case al siguiente stage. Cuando un appointment se crea, mover de `intake_completed` a `scheduled`.
 - [x] **S3-04** `[M]` Actions por stage — implementar las `defaultActions` del manifest: al entrar a `lead_captured`, ofrecer formulario de preconsulta y solicitar datos de identidad. Al entrar a `care_plan_ready`, mostrar botón "Enviar plan al paciente".
 - [x] **S3-05** `[L]` Intake digital público — crear `es/pre-consulta/index.html` con formulario: nombre, WhatsApp, tipo de piel, condición, fotos. Al enviar: crea caso en Flow OS stage `lead_captured`, notifica al frontdesk. **Esta es la puerta de entrada del patient journey.**
-- [ ] **S3-06** `[M]` Historial de journey — log de transiciones con timestamps para cada paciente. Vista timeline en admin. Feed de actividad: "Juan → scheduled (hace 2h por operador María)".
+- [x] **S3-06** `[M]` Historial de journey — log de transiciones con timestamps para cada paciente. Vista timeline en admin. Feed de actividad: "Juan → scheduled (hace 2h por operador María)".
 
 #### 3.1b OpenClaw — Copiloto de Inteligencia Clínica
 
@@ -1042,8 +1042,6 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 - [ ] **S3-OC2** `[M]` Protocolo de tratamiento — cuando el médico confirma un diagnóstico CIE-10, mostrar un panel lateral colapsable con: protocolo estándar de tratamiento, medicamentos de primera línea, duración sugerida, seguimiento recomendado. El médico puede aceptar todo, aceptar partes, o ignorar. `lib/openclaw/TreatmentProtocol.php`. Protocolos en `data/protocols/`.
 - [ ] **S3-OC3** `[L]` Generador de certificado médico — botón "Emitir certificado" en la vista del caso. Tipos: reposo laboral, aptitud médica, constancia de tratamiento, control de salud. Campos: paciente, diagnóstico (CIE-10 autocompletado), días, restricciones, observaciones. Genera PDF con: membrete oficial, datos del médico (registro MSP, nombre, especialidad), folio secuencial por clínica, firma digital (imagen cargada una vez en el perfil del médico). `controllers/CertificateController.php`. **Es el documento más pedido en consulta diaria.**
 - [ ] **S3-OC4** `[S]` Alerta de interacciones — al agregar un medicamento a la receta, verificar contra los medicamentos activos del paciente (última receta). Si hay interacción conocida: banner amarillo de advertencia (no bloquea). Lista de interacciones críticas en `data/drug-interactions.json`. Actualizable sin deploy.
-
-
 
 #### 3.2 Turnero avanzado
 

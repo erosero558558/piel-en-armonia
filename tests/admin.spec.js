@@ -800,7 +800,8 @@ test.describe('Panel de administracion', () => {
                                     displayStageLabel: 'Plan',
                                     stageIndex: 3,
                                     timestamp: threeHoursAgo,
-                                    sourceLabel: 'Paciente llamado a consultorio',
+                                    sourceLabel:
+                                        'Paciente llamado a consultorio',
                                     actorLabel: 'Consultorio',
                                     isCurrentStage: true,
                                 },
@@ -816,7 +817,8 @@ test.describe('Panel de administracion', () => {
                             stageLabel: 'Seguimiento activo',
                             ownerLabel: 'Seguimiento',
                             timeInStageMs: 80 * 60 * 60 * 1000,
-                            nextActionLabel: 'Solicitar actualizacion de evolucion',
+                            nextActionLabel:
+                                'Solicitar actualizacion de evolucion',
                             nextActions: [
                                 {
                                     id: 'request_progress_update',
@@ -873,43 +875,60 @@ test.describe('Panel de administracion', () => {
         await expect(anaJourneyCard).toContainText('Agenda');
         await expect(anaJourneyCard).toContainText('Lleva 2 h');
         await expect(anaJourneyCard).toContainText('Confirmar cita');
-        await expect(anaJourneyCard.locator('.dashboard-journey-history'))
-            .toContainText('Lead');
-        await expect(anaJourneyCard.locator('.dashboard-journey-history'))
-            .toContainText('Reserva confirmada');
-        await expect(anaJourneyCard.locator('.dashboard-journey-node.is-active'))
-            .toContainText('Agendada');
+        await expect(
+            anaJourneyCard.locator('.dashboard-journey-history')
+        ).toContainText('Lead');
+        await expect(
+            anaJourneyCard.locator('.dashboard-journey-history')
+        ).toContainText('Reserva confirmada');
+        await expect(
+            anaJourneyCard.locator('.dashboard-journey-node.is-active')
+        ).toContainText('Agendada');
         await expect(page.locator('#dashboardJourneyFeed')).toContainText(
             'Ana Ruiz -> Agendada'
         );
         await expect(page.locator('#dashboardJourneyFeed')).toContainText(
             'Reserva confirmada'
         );
+        await expect(page.locator('#dashboardJourneyFeed')).toContainText(
+            'por Agenda'
+        );
+        await expect(page.locator('#dashboardJourneyFeed')).toContainText(
+            /Hace [23] h/
+        );
 
         const luisJourneyCard = page
             .locator('#dashboardJourneyTimeline .dashboard-journey-item')
             .filter({ hasText: 'Luis Perez' });
         await expect(luisJourneyCard).toContainText('Clinico');
-        await expect(luisJourneyCard).toContainText(/aprobacion\(es\) pendiente/i);
-        await expect(luisJourneyCard.locator('.dashboard-journey-history'))
-            .toContainText('Paciente llamado a consultorio');
-        await expect(
-            page.locator('#dashboardJourneyStatusChip')
-        ).toContainText('Con alertas');
-
-        await page.locator('[data-journey-stage-filter="lead_captured"]').click();
-        await expect(page.locator('#dashboardJourneyFilterLabel')).toContainText(
-            'Lead'
+        await expect(luisJourneyCard).toContainText(
+            /aprobacion\(es\) pendiente/i
         );
+        await expect(
+            luisJourneyCard.locator('.dashboard-journey-history')
+        ).toContainText('Paciente llamado a consultorio');
+        await expect(
+            luisJourneyCard.locator('.dashboard-journey-history')
+        ).toContainText('por Consultorio');
+        await expect(page.locator('#dashboardJourneyStatusChip')).toContainText(
+            'Con alertas'
+        );
+
+        await page
+            .locator('[data-journey-stage-filter="lead_captured"]')
+            .click();
+        await expect(
+            page.locator('#dashboardJourneyFilterLabel')
+        ).toContainText('Lead');
         await expect(page.locator('#dashboardJourneyTimeline')).toContainText(
             'Marta Salazar'
         );
         await expect(page.locator('#dashboardJourneyTimeline')).toContainText(
             'Lead sin respuesta > 2 h'
         );
-        await expect(page.locator('#dashboardJourneyTimeline')).not.toContainText(
-            'Ana Ruiz'
-        );
+        await expect(
+            page.locator('#dashboardJourneyTimeline')
+        ).not.toContainText('Ana Ruiz');
         await expect(
             page.locator(
                 '#dashboardJourneyTimeline [data-journey-action="request_identity_completion"]'
@@ -922,9 +941,9 @@ test.describe('Panel de administracion', () => {
         ).toContainText('Enviar formulario de preconsulta');
 
         await page.locator('[data-journey-stage-filter="follow_up"]').click();
-        await expect(page.locator('#dashboardJourneyFilterLabel')).toContainText(
-            'Seguimiento'
-        );
+        await expect(
+            page.locator('#dashboardJourneyFilterLabel')
+        ).toContainText('Seguimiento');
         await expect(page.locator('#dashboardJourneyTimeline')).toContainText(
             'Diego Mora'
         );
