@@ -420,7 +420,7 @@ test.describe('Panel de administracion', () => {
         ).toContainText('6 cierre(s) asistidos');
         await expect(
             page.locator('#dashboardAssistantWindowMeta')
-        ).toContainText('espera hoy 180,000 ms');
+        ).toContainText('espera hoy 180.000 ms');
         await expect(
             page.locator('#dashboardAssistantTopIntent')
         ).toContainText('wait time');
