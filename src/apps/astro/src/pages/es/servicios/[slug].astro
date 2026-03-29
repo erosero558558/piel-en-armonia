@@ -10,7 +10,7 @@ import {
 } from '../../../lib/public-v6.js';
 
 export async function getStaticPaths() {
-    return getV6ServiceSlugs().map((slug) => ({ params: { slug } }));
+    return getV6ServiceSlugs('es').map((slug) => ({ params: { slug } }));
 }
 
 const locale = 'es';

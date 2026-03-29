@@ -1,0 +1,489 @@
+---
+import '../../styles/public-v6/internal.css';
+
+import BookingStatusV6 from './BookingStatusV6.astro';
+import InternalStatementBandV6 from './InternalStatementBandV6.astro';
+import PageHeadV6 from './PageHeadV6.astro';
+
+const { page = {}, locale = 'es', navModel = {} } = Astro.props;
+
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const normalizeText = (value) => (hasText(value) ? value.trim() : '');
+const normalizeHref = (value) => {
+    const raw = normalizeText(value);
+    return raw && raw !== '#' ? raw : '';
+};
+const normalizeLink = (item) => {
+    const label = normalizeText(item?.label);
+    const href = normalizeHref(item?.href);
+    return label && href ? { label, href } : null;
+};
+const makeMenuItem = (label, href) =>
+    hasText(label) && hasText(href) ? { label: label.trim(), href: href.trim() } : null;
+
+const pageHeadUi =
+    navModel?.ui?.pageHead && typeof navModel.ui.pageHead === 'object'
+        ? navModel.ui.pageHead
+        : {};
+const switchLabel = normalizeText(navModel?.header?.switchLabel);
+const switchHref = normalizeHref(navModel?.header?.switchHref);
+const menuLabel = normalizeText(navModel?.header?.menuLabel);
+
+const breadcrumb = Array.isArray(page.breadcrumb)
+    ? page.breadcrumb.map(normalizeLink).filter(Boolean)
+    : [];
+const hero = page?.hero && typeof page.hero === 'object' ? page.hero : {};
+const reassurance =
+    page?.reassurance && typeof page.reassurance === 'object'
+        ? page.reassurance
+        : {};
+const statement = page?.statement && typeof page.statement === 'object' ? page.statement : {};
+const bookingStatus =
+    page?.bookingStatus && typeof page.bookingStatus === 'object'
+        ? page.bookingStatus
+        : {};
+const ui = page?.ui && typeof page.ui === 'object' ? page.ui : {};
+const menuUi = ui?.menu && typeof ui.menu === 'object' ? ui.menu : {};
+const logistics = page?.logistics && typeof page.logistics === 'object' ? page.logistics : {};
+const kpis = Array.isArray(page.kpis)
+    ? page.kpis
+          .map((item) => {
+              const label = normalizeText(item?.label);
+              const value = normalizeText(item?.value);
+              return label && value ? { label, value } : null;
+          })
+          .filter(Boolean)
+    : [];
+const sections = Array.isArray(page.sections)
+    ? page.sections
+          .map((section, index) => {
+              const id = normalizeText(section?.id) || `v6-first-section-${index + 1}`;
+              const title = normalizeText(section?.title);
+              const deck = normalizeText(section?.deck);
+              const items = Array.isArray(section?.items)
+                  ? section.items.map(normalizeText).filter(Boolean)
+                  : [];
+              return title && items.length ? { id, title, deck, items } : null;
+          })
+          .filter(Boolean)
+    : [];
+const logisticsCards = Array.isArray(logistics.cards)
+    ? logistics.cards
+          .map((card) => {
+              const title = normalizeText(card?.title);
+              const body = normalizeText(card?.body);
+              const ctaLabel = normalizeText(card?.ctaLabel);
+              const ctaHref = normalizeHref(card?.ctaHref);
+              return title && body
+                  ? { title, body, ctaLabel, ctaHref }
+                  : null;
+          })
+          .filter(Boolean)
+    : [];
+
+const pageMenuItems = [
+    makeMenuItem(normalizeText(menuUi.overview), '#v6-first-glance'),
+    ...sections.map((section) => makeMenuItem(section.title, `#${section.id}`)),
+    makeMenuItem(normalizeText(menuUi.logistics), '#v6-first-logistics'),
+    makeMenuItem(normalizeText(menuUi.bookingStatus), '#v6-booking-status'),
+].filter(Boolean);
+---
+
+<PageHeadV6
+    breadcrumb={breadcrumb}
+    heading={page.heading}
+    locale={locale}
+    switchLabel={switchLabel}
+    switchHref={switchHref}
+    menuLabel={menuLabel}
+    menuItems={pageMenuItems}
+    copy={pageHeadUi}
+/>
+
+<section class="v6-page-hero-media is-internal v6-page-hero-media--first" data-v6-first-hero>
+    <div class="v6-first-hero">
+        <figure class="v6-first-hero__media">
+            <img
+                src={normalizeText(hero.image)}
+                alt={normalizeText(hero.alt) || normalizeText(page.heading)}
+                sizes="(max-width: 1100px) 100vw, 60vw"
+                loading="eager"
+                decoding="sync"
+                fetchpriority="high"
+            />
+        </figure>
+        <aside class="v6-first-hero__panel">
+            {hero.eyebrow ? <p class="v6-first-hero__eyebrow">{hero.eyebrow}</p> : null}
+            {hero.title ? <h2>{hero.title}</h2> : null}
+            {hero.deck ? <p class="v6-first-hero__deck">{hero.deck}</p> : null}
+            {
+                kpis.length ? (
+                    <div class="v6-first-hero__stats" aria-hidden="true">
+                        {
+                            kpis.map((item) => (
+                                <article>
+                                    <span>{item.label}</span>
+                                    <strong>{item.value}</strong>
+                                </article>
+                            ))
+                        }
+                    </div>
+                ) : null
+            }
+            {
+                bookingStatus.ctaLabel && bookingStatus.ctaHref ? (
+                    <a class="v6-first-hero__cta" href={bookingStatus.ctaHref}>
+                        {bookingStatus.ctaLabel}
+                        <span aria-hidden="true">></span>
+                    </a>
+                ) : null
+            }
+        </aside>
+    </div>
+</section>
+
+{
+    reassurance.title || reassurance.body ? (
+        <section class="v6-internal-message v6-first-reassurance" data-v6-first-reassurance>
+            {reassurance.title ? <h2>{reassurance.title}</h2> : null}
+            {reassurance.body ? <p>{reassurance.body}</p> : null}
+        </section>
+    ) : null
+}
+
+<InternalStatementBandV6 statement={statement} variant="tele" />
+
+<div class="v6-internal-shell v6-first-shell" data-v6-first-consultation>
+    {
+        pageMenuItems.length || ui.railTitle ? (
+            <aside class="v6-internal-rail" data-v6-internal-rail>
+                {ui.railTitle ? <p>{ui.railTitle}</p> : null}
+                {
+                    pageMenuItems.length ? (
+                        <nav data-v6-section-nav="internal" aria-label={normalizeText(ui.railAria) || undefined}>
+                            {
+                                pageMenuItems.map((item) => (
+                                    <a data-v6-section-link href={item.href}>{item.label}</a>
+                                ))
+                            }
+                        </nav>
+                    ) : null
+                }
+            </aside>
+        ) : null
+    }
+
+    <div class="v6-internal-shell__body">
+        {
+            kpis.length ? (
+                <section
+                    id="v6-first-glance"
+                    class="v6-tele-kpis v6-tele-kpis--shell"
+                    aria-label={normalizeText(ui.kpiAria) || undefined}
+                >
+                    {
+                        kpis.map((item) => (
+                            <article>
+                                <p>{item.label}</p>
+                                <h3>{item.value}</h3>
+                            </article>
+                        ))
+                    }
+                </section>
+            ) : null
+        }
+
+        {
+            sections.length ? (
+                <section class="v6-first-checklist" data-v6-first-checklist>
+                    <header class="v6-first-checklist__head">
+                        {ui.sectionsEyebrow ? <p>{ui.sectionsEyebrow}</p> : null}
+                        {ui.sectionsTitle ? <h2>{ui.sectionsTitle}</h2> : null}
+                        {ui.sectionsDeck ? <p>{ui.sectionsDeck}</p> : null}
+                    </header>
+                    <div class="v6-first-checklist__grid">
+                        {
+                            sections.map((section, index) => (
+                                <article
+                                    id={section.id}
+                                    data-v6-first-consultation-card
+                                >
+                                    <p class="v6-first-checklist__index">
+                                        {String(index + 1).padStart(2, '0')}
+                                    </p>
+                                    <h3>{section.title}</h3>
+                                    {section.deck ? <p>{section.deck}</p> : null}
+                                    <ul>
+                                        {section.items.map((item) => <li>{item}</li>)}
+                                    </ul>
+                                </article>
+                            ))
+                        }
+                    </div>
+                </section>
+            ) : null
+        }
+
+        {
+            logisticsCards.length ? (
+                <section
+                    id="v6-first-logistics"
+                    class="v6-first-logistics"
+                    data-v6-first-logistics
+                >
+                    <header class="v6-first-logistics__head">
+                        {logistics.eyebrow ? <p>{logistics.eyebrow}</p> : null}
+                        {logistics.title ? <h2>{logistics.title}</h2> : null}
+                        {logistics.deck ? <p>{logistics.deck}</p> : null}
+                    </header>
+                    <div class="v6-first-logistics__grid">
+                        {
+                            logisticsCards.map((card) => (
+                                <article data-v6-first-logistics-card>
+                                    <h3>{card.title}</h3>
+                                    <p>{card.body}</p>
+                                    {
+                                        card.ctaLabel && card.ctaHref ? (
+                                            <a href={card.ctaHref}>
+                                                {card.ctaLabel}
+                                                <span aria-hidden="true">></span>
+                                            </a>
+                                        ) : null
+                                    }
+                                </article>
+                            ))
+                        }
+                    </div>
+                </section>
+            ) : null
+        }
+    </div>
+</div>
+
+<BookingStatusV6 status={bookingStatus} sectionId="v6-booking-status" />
+
+<style>
+    .v6-first-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+        gap: 22px;
+        max-width: min(1360px, 96vw);
+        margin: 0 auto;
+        align-items: stretch;
+    }
+
+    .v6-first-hero__media,
+    .v6-first-hero__panel {
+        min-width: 0;
+    }
+
+    .v6-first-hero__media {
+        border-radius: 30px;
+        overflow: hidden;
+        min-height: 420px;
+        background: rgba(10, 16, 24, 0.86);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .v6-first-hero__media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .v6-first-hero__panel {
+        display: grid;
+        gap: 16px;
+        align-content: start;
+        padding: 30px;
+        border-radius: 30px;
+        background:
+            radial-gradient(circle at top, rgba(199, 163, 109, 0.18), transparent 36%),
+            linear-gradient(180deg, rgba(15, 24, 38, 0.96) 0%, rgba(10, 15, 22, 0.98) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .v6-first-hero__eyebrow,
+    .v6-first-hero__panel h2,
+    .v6-first-hero__deck,
+    .v6-first-hero__stats span,
+    .v6-first-hero__stats strong {
+        margin: 0;
+    }
+
+    .v6-first-hero__eyebrow,
+    .v6-first-logistics__head p,
+    .v6-first-checklist__head p,
+    .v6-first-checklist__index {
+        color: rgba(199, 163, 109, 0.92);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .v6-first-hero__panel h2,
+    .v6-first-logistics__head h2,
+    .v6-first-checklist__head h2 {
+        color: #f4f7fb;
+        font-family: var(--v6-font-display);
+        font-size: clamp(30px, 2.6vw, 44px);
+        line-height: 1.06;
+        letter-spacing: -0.03em;
+    }
+
+    .v6-first-hero__deck,
+    .v6-first-logistics__head > p:last-child,
+    .v6-first-checklist__head > p:last-child,
+    .v6-first-checklist article > p,
+    .v6-first-logistics__grid article > p {
+        color: rgba(226, 233, 240, 0.78);
+        font-size: 16px;
+        line-height: 1.68;
+    }
+
+    .v6-first-hero__stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .v6-first-hero__stats article {
+        padding: 14px 16px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: grid;
+        gap: 6px;
+    }
+
+    .v6-first-hero__stats strong {
+        color: #f7f9fb;
+        font-size: clamp(22px, 2vw, 30px);
+        line-height: 1.05;
+    }
+
+    .v6-first-hero__cta,
+    .v6-first-logistics__grid a {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        width: fit-content;
+        padding: 13px 18px;
+        border-radius: 999px;
+        background: rgba(199, 163, 109, 0.16);
+        border: 1px solid rgba(199, 163, 109, 0.32);
+        color: #f4f7fb;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .v6-first-hero__cta:hover,
+    .v6-first-hero__cta:focus-visible,
+    .v6-first-logistics__grid a:hover,
+    .v6-first-logistics__grid a:focus-visible {
+        background: rgba(199, 163, 109, 0.22);
+        border-color: rgba(199, 163, 109, 0.56);
+    }
+
+    .v6-first-reassurance {
+        max-width: min(1140px, 92vw);
+    }
+
+    .v6-first-shell {
+        margin-top: 28px;
+    }
+
+    .v6-first-checklist,
+    .v6-first-logistics {
+        display: grid;
+        gap: 22px;
+    }
+
+    .v6-first-checklist__head,
+    .v6-first-logistics__head {
+        display: grid;
+        gap: 10px;
+    }
+
+    .v6-first-checklist__head h2,
+    .v6-first-logistics__head h2,
+    .v6-first-checklist__head p,
+    .v6-first-logistics__head p,
+    .v6-first-checklist article h3,
+    .v6-first-logistics__grid article h3,
+    .v6-first-checklist article p,
+    .v6-first-logistics__grid article p {
+        margin: 0;
+    }
+
+    .v6-first-checklist__grid,
+    .v6-first-logistics__grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .v6-first-checklist article,
+    .v6-first-logistics__grid article {
+        display: grid;
+        gap: 14px;
+        padding: 24px;
+        border-radius: 26px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .v6-first-checklist article h3,
+    .v6-first-logistics__grid article h3 {
+        color: #f5f7fb;
+        font-size: 22px;
+        line-height: 1.12;
+        letter-spacing: -0.02em;
+    }
+
+    .v6-first-checklist article ul {
+        margin: 0;
+        padding-left: 18px;
+        display: grid;
+        gap: 10px;
+        color: rgba(233, 239, 246, 0.82);
+        font-size: 15px;
+        line-height: 1.62;
+    }
+
+    @media (max-width: 1100px) {
+        .v6-first-hero,
+        .v6-first-checklist__grid,
+        .v6-first-logistics__grid {
+            grid-template-columns: 1fr;
+        }
+
+        .v6-first-hero__media {
+            min-height: 320px;
+        }
+    }
+
+    @media (max-width: 900px) {
+        .v6-first-hero__panel {
+            padding: 24px 20px;
+            border-radius: 24px;
+        }
+
+        .v6-first-hero__media {
+            border-radius: 24px;
+        }
+
+        .v6-first-hero__stats {
+            grid-template-columns: 1fr;
+        }
+
+        .v6-first-checklist article,
+        .v6-first-logistics__grid article {
+            padding: 20px;
+        }
+    }
+</style>

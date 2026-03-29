@@ -522,6 +522,198 @@
             "cardAlt": "Pediatric dermatology consultation with family support",
             "statementAssetId": "v6-clinic-statement-family-support",
             "statementAlt": "Family dermatology support and shared follow-up"
+        },
+        {
+            "slug": "depilacion-laser",
+            "category": "Laser",
+            "title": "Medical laser hair removal",
+            "summary": "Laser hair reduction planned around skin type, follicle density, and safe treatment intervals.",
+            "heroImage": "/images/optimized/v6-clinic-laser-dermatologico.webp",
+            "heroAlt": "Medical laser hair removal session",
+            "lead": "Laser hair removal works best when phototype, hair density, and growth cycle are reviewed before the first session.",
+            "bullets": [
+                "Follicle density mapping",
+                "Phototype classification",
+                "Laser parameter planning",
+                "Pre and post care protocol"
+            ],
+            "process": [
+                "Medical phototype assessment",
+                "Alexandrite or diode session",
+                "Epidermal cooling control",
+                "Growth-cycle scheduling"
+            ],
+            "faq": [
+                "How many sessions are usually needed?",
+                "Is it suitable for every skin tone?",
+                "What care matters after each session?"
+            ],
+            "related": ["acne-rosacea", "piel-cabello-unas"],
+            "faqAnswers": [
+                "Depending on the area, genetics, and hormonal factors, most plans use 6 to 10 sessions spaced 4 to 8 weeks apart.",
+                "Yes. Alexandrite works well for lighter skin, while diode or Nd:YAG settings are chosen for darker phototypes to keep treatment safe.",
+                "Use strict sunscreen, avoid pools or saunas for the first 48 hours, and keep the treated area well hydrated."
+            ]
+        },
+        {
+            "slug": "manchas",
+            "category": "Pigment",
+            "title": "Spots and melasma",
+            "summary": "Medical care for melasma and sun spots guided by pigment depth, inflammation control, and Fitzpatrick phototype.",
+            "heroImage": "/images/optimized/v6-clinic-peeling-quimico.webp",
+            "heroAlt": "Pigment and melasma dermatology care",
+            "lead": "Pigment treatment starts by separating melasma, post-inflammatory marks, and sun damage so the skin is not overstimulated.",
+            "bullets": [
+                "Fitzpatrick phototype assessment",
+                "Wood's lamp evaluation",
+                "Pigment depth analysis",
+                "Skin barrier preparation"
+            ],
+            "process": [
+                "Pigment pattern diagnosis",
+                "Baseline inflammation control",
+                "Peel or selective laser cycling",
+                "Maintenance brightening plan"
+            ],
+            "faq": [
+                "Do spots disappear permanently?",
+                "Can laser make melasma worse?",
+                "When do results usually become visible?"
+            ],
+            "related": ["laser-dermatologico", "peeling-quimico"],
+            "faqAnswers": [
+                "Melasma behaves like a chronic condition and needs control. Sun spots can often be cleared, but strict photoprotection is still required to prevent return.",
+                "Yes, if the wrong settings are used. The plan has to match phototype, heat tolerance, and the kind of pigment being treated.",
+                "A safe depigmenting protocol often needs 12 to 16 weeks before results look clinically stable without injuring the skin."
+            ]
+        },
+        {
+            "slug": "microdermoabrasion",
+            "category": "Texture",
+            "title": "Microdermabrasion",
+            "summary": "Non-invasive resurfacing to refine pores, texture, and surface brightness when the skin can tolerate mechanical renewal.",
+            "heroImage": "/images/optimized/v6-clinic-mesoterapia.webp",
+            "heroAlt": "Microdermabrasion skin resurfacing",
+            "lead": "Microdermabrasion helps when the goal is surface refinement, controlled exfoliation, and a cleaner canvas for maintenance care.",
+            "bullets": [
+                "Sensitivity review",
+                "Vacuum and abrasion adjustment",
+                "Unified epidermal polishing",
+                "Hydration infusion"
+            ],
+            "process": [
+                "Deep cleanse and degreasing",
+                "Diamond-tip exfoliation",
+                "Active soothing mask",
+                "Barrier seal and hydration"
+            ],
+            "faq": [
+                "Can I go back to work the next day?",
+                "Does it help with acne?",
+                "How often is it usually repeated?"
+            ],
+            "related": ["peeling-quimico", "acne-rosacea"],
+            "faqAnswers": [
+                "Yes. It is usually a lunch-break procedure with no visible downtime when the skin is well selected beforehand.",
+                "It can help with blackheads and comedones, but active inflammatory acne often needs a different route such as a chemical peel or medical acne control.",
+                "For maintenance and glow, many patients use a monthly rhythm, adjusted to sensitivity and the rest of the plan."
+            ]
+        },
+        {
+            "slug": "rellenos-hialuronico",
+            "category": "Injectables",
+            "title": "Hyaluronic acid fillers",
+            "summary": "Volume restoration and contour support with medically planned placement and a natural facial result.",
+            "heroImage": "/images/optimized/v6-clinic-botox.webp",
+            "heroAlt": "Hyaluronic acid filler treatment",
+            "lead": "Fillers should restore support and proportion without blurring facial identity or overloading expression.",
+            "bullets": [
+                "Facial proportion analysis",
+                "Support-point mapping",
+                "Product density selection",
+                "Atraumatic injection technique"
+            ],
+            "process": [
+                "Dynamic facial assessment",
+                "Deep-plane placement",
+                "Natural volume restoration",
+                "15-day review"
+            ],
+            "faq": [
+                "How is this different from botox?",
+                "Will I look overdone?",
+                "How long does it usually last?"
+            ],
+            "related": ["botox", "bioestimuladores-colageno"],
+            "faqAnswers": [
+                "Botox softens dynamic muscle activity. Hyaluronic acid fills, supports, and restores contour in areas such as folds, lips, or cheeks.",
+                "The goal is anatomical restoration, not exaggeration. Product choice and placement are planned to respect your natural proportions.",
+                "Depending on product density and cross-linking, results often last 12 to 18 months and fade gradually."
+            ]
+        },
+        {
+            "slug": "tamizaje-oncologico",
+            "category": "Screening",
+            "title": "Skin cancer screening",
+            "summary": "Digital dermoscopy, mole mapping, and interval follow-up for patients who need preventive skin surveillance.",
+            "heroImage": "/images/optimized/v6-clinic-diagnostico-integral.webp",
+            "heroAlt": "Skin cancer screening with dermoscopy",
+            "lead": "Screening is about catching change early and deciding whether a lesion should be watched, mapped, or removed.",
+            "bullets": [
+                "Full-body mole mapping",
+                "High-resolution dermoscopy",
+                "Asymmetry and border review",
+                "Serial photo registry"
+            ],
+            "process": [
+                "Full-skin review",
+                "Dermoscopic pattern reading",
+                "Risk lesion identification",
+                "Preventive follow-up or biopsy plan"
+            ],
+            "faq": [
+                "Does the screening exam hurt?",
+                "How often should mole mapping be repeated?",
+                "What happens if a lesion looks suspicious?"
+            ],
+            "related": ["cancer-piel", "diagnostico-integral"],
+            "faqAnswers": [
+                "No. It is non-invasive, painless, and does not require preparation or recovery time.",
+                "Yearly review is common, or every 6 months when there is personal or family history of skin cancer.",
+                "If dermoscopic criteria suggest malignancy, removal or biopsy is planned so the tissue can be reviewed histopathologically."
+            ]
+        },
+        {
+            "slug": "teledermatologia",
+            "category": "Teledermatology",
+            "title": "Teledermatology",
+            "summary": "Remote dermatology guidance through structured photos, history, and WhatsApp follow-through when an online first step makes sense.",
+            "heroImage": "/images/optimized/v6-clinic-telemedicine-intake.webp",
+            "heroAlt": "Teledermatology consultation with clinical image review",
+            "lead": "Teledermatology works best when the case can be organized through images, symptom timing, and a clear decision about what should happen next.",
+            "bullets": [
+                "Step-by-step WhatsApp intake",
+                "Clinical photo review",
+                "Remote progress follow-up",
+                "Prescription or in-clinic escalation"
+            ],
+            "process": [
+                "WhatsApp intake",
+                "Photos and history upload",
+                "Remote clinical review",
+                "E-prescription or visit booking"
+            ],
+            "faq": [
+                "What should I prepare before sending photos?",
+                "When is online care enough and when should I come in?",
+                "How soon is the first follow-up usually reviewed?"
+            ],
+            "related": ["diagnostico-integral", "acne-rosacea"],
+            "faqAnswers": [
+                "Good light, close photos, one wider context photo, your current medications, and a short timeline of symptoms help the first review move faster.",
+                "It works well for many acne, dermatitis, pigment, and follow-up questions. We move you in-clinic when touch, dermoscopy, or a closer physical exam becomes necessary.",
+                "Many cases are reviewed again in 3 to 6 weeks, or sooner if pain, bleeding, or rapid worsening appear."
+            ]
         }
     ]
 }

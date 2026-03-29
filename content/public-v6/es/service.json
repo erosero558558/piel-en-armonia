@@ -77,14 +77,16 @@
             ],
             "faq": [
                 "Que conviene llevar a la primera cita?",
-                "Hace falta llegar con examenes?",
-                "Cuando suele revisarse la evolucion inicial?"
+                "Hace falta llegar con examenes o rutina anotada?",
+                "Cuanto dura la consulta y que incluye?",
+                "Como llegar y donde estacionar?"
             ],
             "related": ["acne-rosacea", "piel-cabello-unas"],
             "faqAnswers": [
-                "Conviene llevar medicamentos, alergias, tratamientos previos y fotos recientes. Esa base ayuda a entender mejor lo que ha venido pasando.",
+                "Conviene llevar medicamentos, tratamientos previos y la rutina que usa actualmente. Esto ayuda a entender mejor lo que ha venido pasando.",
                 "Solo si ya tiene examenes utiles. Si hace falta pedir otros, se decide despues de la revision clinica inicial.",
-                "El primer control suele ubicarse entre 3 y 6 semanas, o antes si hay dolor, sangrado o empeoramiento rapido."
+                "La evaluacion dura aproximadamente 45 minutos. Incluye revision integral sistemica y trazado de una ruta.",
+                "Estamos en Av. Republica de El Salvador y Moscu. El edificio cuenta con estacionamiento privado con acceso seguro para el paciente."
             ],
             "cardAssetId": "v6-clinic-diagnostico-integral",
             "cardAlt": "Consulta dermatologica integral con lectura inicial estructurada",

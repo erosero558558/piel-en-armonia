@@ -2606,8 +2606,8 @@ export function getV6ServiceBySlug(locale, slug) {
     );
 }
 
-export function getV6ServiceSlugs() {
-    return getV6Services('es').map((service) => service.slug);
+export function getV6ServiceSlugs(locale = 'es') {
+    return getV6Services(locale).map((service) => service.slug);
 }
 
 export function v6ServicePath(locale, slug) {

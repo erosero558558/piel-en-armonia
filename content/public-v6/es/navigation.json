@@ -89,6 +89,12 @@
         ],
         "searchEntries": [
             {
+                "label": "Primera consulta",
+                "href": "/es/primera-consulta/",
+                "eyebrow": "Guia de primera visita",
+                "deck": "Que esperar, que traer, cuanto dura y como llegar antes de venir a la consulta."
+            },
+            {
                 "label": "Diagnostico integral",
                 "href": "/es/servicios/diagnostico-integral/",
                 "eyebrow": "Primera consulta",

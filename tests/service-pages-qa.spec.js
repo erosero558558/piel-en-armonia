@@ -12,6 +12,10 @@ const CASES = [
         bookingText: 'Reserva online en mantenimiento',
     },
     {
+        route: '/en/services/depilacion-laser/',
+        bookingText: 'Online booking under maintenance',
+    },
+    {
         route: '/en/services/laser-dermatologico/',
         bookingText: 'Online booking under maintenance',
     },

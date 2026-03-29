@@ -107,6 +107,15 @@ const SEO_CASES = [
         xDefaultPath: '/es/servicios/botox/',
     },
     {
+        path: '/en/services/depilacion-laser/',
+        canonicalPath: '/en/services/depilacion-laser/',
+        currentLocale: 'en',
+        currentLocalePath: '/en/services/depilacion-laser/',
+        otherLocale: 'es',
+        otherLocalePath: '/es/servicios/depilacion-laser/',
+        xDefaultPath: '/es/servicios/depilacion-laser/',
+    },
+    {
         path: '/es/legal/privacidad/',
         canonicalPath: '/es/legal/privacidad/',
         currentLocale: 'es',
@@ -132,6 +141,15 @@ const SEO_CASES = [
         otherLocale: 'en',
         otherLocalePath: null,
         xDefaultPath: '/es/blog/',
+    },
+    {
+        path: '/es/primera-consulta/',
+        canonicalPath: '/es/primera-consulta/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/primera-consulta/',
+        otherLocale: 'en',
+        otherLocalePath: null,
+        xDefaultPath: '/es/primera-consulta/',
     },
     {
         path: '/es/blog/como-elegir-dermatologo-quito/',
@@ -264,7 +282,9 @@ function mapSoftwareSwitch(pathname, locale) {
     const safePath = normalizeRoute(pathname);
     const sourceMap = SOFTWARE_ROUTE_MAP[locale];
     const targetMap = SOFTWARE_ROUTE_MAP[locale === 'es' ? 'en' : 'es'];
-    const match = Object.entries(sourceMap).find(([, route]) => route === safePath);
+    const match = Object.entries(sourceMap).find(
+        ([, route]) => route === safePath
+    );
     return match ? targetMap[match[0]] || null : null;
 }
 
@@ -288,7 +308,9 @@ function counterpartRoutePath(pathname) {
     }
 
     if (locale === 'es') {
-        return safePath.startsWith('/es/') ? `/en/${safePath.slice(4)}` : '/en/';
+        return safePath.startsWith('/es/')
+            ? `/en/${safePath.slice(4)}`
+            : '/en/';
     }
 
     return safePath.startsWith('/en/') ? `/es/${safePath.slice(4)}` : '/es/';
@@ -336,9 +358,13 @@ function spanishServiceDetailPages() {
     return walkIndexPages(path.join(REPO_ROOT, 'es', 'servicios'))
         .map((filePath) => ({
             filePath,
-            relativePath: path.relative(REPO_ROOT, filePath).replace(/\\/g, '/'),
+            relativePath: path
+                .relative(REPO_ROOT, filePath)
+                .replace(/\\/g, '/'),
         }))
-        .filter(({ relativePath }) => relativePath !== 'es/servicios/index.html');
+        .filter(
+            ({ relativePath }) => relativePath !== 'es/servicios/index.html'
+        );
 }
 
 function publicAnalyticsPages() {
@@ -452,6 +478,24 @@ test.describe('Public SEO files', () => {
         }
     });
 
+    test('English service detail pages mirror the Spanish service set except non-page aliases', async () => {
+        const toSlug = (relativePath) =>
+            relativePath.split('/').slice(-2, -1).join('');
+        const esSlugs = spanishServiceDetailPages()
+            .map(({ relativePath }) => toSlug(relativePath))
+            .sort();
+        const enSlugs = walkIndexPages(path.join(REPO_ROOT, 'en', 'services'))
+            .map((filePath) =>
+                path.relative(REPO_ROOT, filePath).replace(/\\/g, '/')
+            )
+            .filter((relativePath) => relativePath !== 'en/services/index.html')
+            .map((relativePath) => toSlug(relativePath))
+            .sort();
+
+        expect(enSlugs).toEqual(esSlugs);
+        expect(enSlugs).not.toContain('bioestimuladores');
+    });
+
     test('blog feed publishes RSS with every live article', async () => {
         const feedPath = path.join(REPO_ROOT, 'es', 'blog', 'feed.xml');
         const feed = fs.readFileSync(feedPath, 'utf8');
@@ -478,10 +522,13 @@ test.describe('Public SEO files', () => {
     });
 
     test('all Spanish service detail pages publish the standard medical results disclaimer', async () => {
-        const disclaimer = 'Los resultados varían. Consulte a nuestro especialista.';
+        const disclaimer =
+            'Los resultados varían. Consulte a nuestro especialista.';
 
         for (const { filePath, relativePath } of spanishServiceDetailPages()) {
-            const html = normalizeHtmlEntities(fs.readFileSync(filePath, 'utf8'));
+            const html = normalizeHtmlEntities(
+                fs.readFileSync(filePath, 'utf8')
+            );
             expect(
                 html.includes(disclaimer),
                 `${relativePath} should include the standard results disclaimer`
