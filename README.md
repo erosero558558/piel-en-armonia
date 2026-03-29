@@ -35,7 +35,8 @@ git add data/claims/ && HUSKY=0 git commit --no-verify -m "claim: <TASK-ID>" && 
 node bin/gate.js <TASK-ID>   # debe PASS antes de marcar done
 ```
 
-**Backlog completo:** `AGENTS.md`  
+**Backlog completo (contexto):** `AGENTS.md`
+**Tareas pendientes (lean):** `BACKLOG.md` ← agentes empiezan aqui
 **Preguntas bloqueadas:** `BLOCKERS.md`  
 **Reporte de progreso:** `npm run report`
 

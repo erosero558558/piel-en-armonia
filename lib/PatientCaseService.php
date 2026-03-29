@@ -8,16 +8,31 @@ require_once __DIR__ . '/tenants.php';
 
 final class PatientCaseService
 {
-    private const OPEN_STATUSES = ['booked', 'arrived', 'checked_in', 'called', 'in_consultorio'];
+    private const OPEN_STATUSES = [
+        'lead_captured',
+        'intake_completed',
+        'booked',
+        'arrived',
+        'checked_in',
+        'called',
+        'in_consultorio',
+        'care_plan_ready',
+        'follow_up_active',
+    ];
     private const STATUS_RANK = [
+        'lead_captured' => 5,
+        'intake_completed' => 8,
         'booked' => 10,
         'arrived' => 20,
         'checked_in' => 30,
         'called' => 40,
         'in_consultorio' => 50,
+        'care_plan_ready' => 55,
+        'follow_up_active' => 58,
         'completed' => 60,
         'no_show' => 60,
         'cancelled' => 60,
+        'resolved' => 60,
     ];
 
     public function hydrateStore(array $store): array
@@ -30,13 +45,40 @@ final class PatientCaseService
             ? array_values($store['queue_help_requests'])
             : [];
         $approvals = $this->normalizeApprovals($store['patient_case_approvals'] ?? [], $tenantId);
+        $existingCases = isset($store['patient_cases']) && is_array($store['patient_cases'])
+            ? array_values($store['patient_cases'])
+            : [];
+        $existingLinks = isset($store['patient_case_links']) && is_array($store['patient_case_links'])
+            ? array_values($store['patient_case_links'])
+            : [];
+        $existingTimeline = isset($store['patient_case_timeline_events']) && is_array($store['patient_case_timeline_events'])
+            ? array_values($store['patient_case_timeline_events'])
+            : [];
 
-        $cases = [];
-        $links = [];
-        $timeline = [];
+        $cases = $this->seedExistingCases($existingCases, $tenantId);
+        $links = $this->indexExistingLinks($existingLinks, $tenantId);
+        $timeline = $this->indexExistingTimeline($existingTimeline, $tenantId);
         $caseIdsByAppointmentId = [];
         $caseIdsByTicketId = [];
         $caseIdsByIdentity = [];
+
+        foreach ($cases as $existingCase) {
+            if (!is_array($existingCase)) {
+                continue;
+            }
+
+            $caseId = trim((string) ($existingCase['id'] ?? ''));
+            if ($caseId === '') {
+                continue;
+            }
+
+            $this->registerIdentityKeys(
+                $caseIdsByIdentity,
+                $this->resolveRecordTenantId($existingCase, $tenantId),
+                $caseId,
+                $this->buildCaseIdentityKeys($existingCase)
+            );
+        }
 
         foreach ($appointments as $index => $appointment) {
             if (!is_array($appointment)) {
@@ -45,15 +87,24 @@ final class PatientCaseService
 
             $appointmentTenantId = $this->resolveRecordTenantId($appointment, $tenantId);
             $appointment['tenantId'] = $appointmentTenantId;
-            $patientId = $this->resolveAppointmentPatientId($appointment, $appointmentTenantId);
-            $appointment['patientId'] = $patientId;
-
             $appointmentId = (int) ($appointment['id'] ?? 0);
+            $appointmentIdentityKeys = $this->buildAppointmentIdentityKeys($appointment);
             $caseId = $this->resolveCaseId(
                 (string) ($appointment['patientCaseId'] ?? ''),
                 $appointmentTenantId,
-                'appointment:' . $appointmentId
+                'appointment:' . $appointmentId,
+                $appointmentIdentityKeys,
+                $caseIdsByIdentity,
+                $cases
             );
+            $patientId = trim((string) ($appointment['patientId'] ?? ''));
+            if ($patientId === '' && $caseId !== '' && isset($cases[$caseId])) {
+                $patientId = trim((string) ($cases[$caseId]['patientId'] ?? ''));
+            }
+            if ($patientId === '') {
+                $patientId = $this->resolveAppointmentPatientId($appointment, $appointmentTenantId);
+            }
+            $appointment['patientId'] = $patientId;
             $appointment['patientCaseId'] = $caseId;
             $appointments[$index] = $appointment;
 
@@ -65,7 +116,7 @@ final class PatientCaseService
                 $caseIdsByIdentity,
                 $appointmentTenantId,
                 $caseId,
-                $this->buildAppointmentIdentityKeys($appointment)
+                $appointmentIdentityKeys
             );
 
             $openedAt = $this->resolveOpenedAt($appointment);
@@ -591,6 +642,104 @@ final class PatientCaseService
         return get_current_tenant_id();
     }
 
+    private function seedExistingCases(array $cases, string $fallbackTenantId): array
+    {
+        $seeded = [];
+
+        foreach ($cases as $case) {
+            if (!is_array($case)) {
+                continue;
+            }
+
+            $normalized = $this->normalizeExistingCase($case, $fallbackTenantId);
+            if ($normalized === null) {
+                continue;
+            }
+
+            $seeded[(string) $normalized['id']] = $normalized;
+        }
+
+        return $seeded;
+    }
+
+    private function normalizeExistingCase(array $case, string $fallbackTenantId): ?array
+    {
+        $caseId = trim((string) ($case['id'] ?? ''));
+        if ($caseId === '') {
+            return null;
+        }
+
+        $tenantId = $this->resolveRecordTenantId($case, $fallbackTenantId);
+        $openedAt = $this->firstNonEmptyString([
+            $case['openedAt'] ?? '',
+            $case['latestActivityAt'] ?? '',
+            $case['journeyEnteredAt'] ?? '',
+            local_date('c'),
+        ]) ?? local_date('c');
+        $latestActivityAt = $this->firstNonEmptyString([
+            $case['latestActivityAt'] ?? '',
+            $openedAt,
+        ]) ?? $openedAt;
+        $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
+
+        return array_merge($case, [
+            'id' => $caseId,
+            'tenantId' => $tenantId,
+            'patientId' => trim((string) ($case['patientId'] ?? '')),
+            'status' => trim((string) ($case['status'] ?? '')) !== ''
+                ? trim((string) ($case['status'] ?? ''))
+                : 'lead_captured',
+            'openedAt' => $openedAt,
+            'latestActivityAt' => $latestActivityAt,
+            'closedAt' => trim((string) ($case['closedAt'] ?? '')) ?: null,
+            'lastInboundAt' => trim((string) ($case['lastInboundAt'] ?? '')) ?: null,
+            'lastOutboundAt' => trim((string) ($case['lastOutboundAt'] ?? '')) ?: null,
+            'summary' => $summary,
+        ]);
+    }
+
+    private function indexExistingLinks(array $links, string $fallbackTenantId): array
+    {
+        $indexed = [];
+
+        foreach ($links as $link) {
+            if (!is_array($link)) {
+                continue;
+            }
+
+            $linkId = trim((string) ($link['id'] ?? ''));
+            if ($linkId === '') {
+                continue;
+            }
+
+            $link['tenantId'] = $this->resolveRecordTenantId($link, $fallbackTenantId);
+            $indexed[$linkId] = $link;
+        }
+
+        return $indexed;
+    }
+
+    private function indexExistingTimeline(array $timeline, string $fallbackTenantId): array
+    {
+        $indexed = [];
+
+        foreach ($timeline as $event) {
+            if (!is_array($event)) {
+                continue;
+            }
+
+            $eventId = trim((string) ($event['id'] ?? ''));
+            if ($eventId === '') {
+                continue;
+            }
+
+            $event['tenantId'] = $this->resolveRecordTenantId($event, $fallbackTenantId);
+            $indexed[$eventId] = $event;
+        }
+
+        return $indexed;
+    }
+
     private function resolveRecordTenantId(array $record, string $fallbackTenantId): string
     {
         $tenantId = trim((string) ($record['tenantId'] ?? ''));
@@ -833,6 +982,32 @@ final class PatientCaseService
         return array_values(array_unique($keys));
     }
 
+    private function buildCaseIdentityKeys(array $case): array
+    {
+        $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
+        $keys = [];
+        $digits = preg_replace(
+            '/\D+/',
+            '',
+            (string) ($summary['contactPhone'] ?? $case['contactPhone'] ?? '')
+        );
+        if (is_string($digits) && strlen($digits) >= 7) {
+            $keys[] = 'phone:' . $digits;
+        }
+
+        $email = strtolower(trim((string) ($summary['contactEmail'] ?? $case['contactEmail'] ?? '')));
+        if ($email !== '') {
+            $keys[] = 'email:' . $email;
+        }
+
+        $name = strtolower(trim((string) ($summary['patientLabel'] ?? $case['patientLabel'] ?? '')));
+        if ($name !== '' && is_string($digits) && strlen($digits) >= 4) {
+            $keys[] = 'name_phone:' . $name . ':' . substr($digits, -4);
+        }
+
+        return array_values(array_unique($keys));
+    }
+
     private function resolveCallbackCaseId(
         array $callback,
         string $tenantId,
@@ -988,11 +1163,30 @@ final class PatientCaseService
         return $prefix . '_' . substr(hash('sha1', $seed), 0, 16);
     }
 
-    private function resolveCaseId(string $existingCaseId, string $tenantId, string $seed): string
+    private function resolveCaseId(
+        string $existingCaseId,
+        string $tenantId,
+        string $seed,
+        array $identityKeys = [],
+        array $caseIdsByIdentity = [],
+        array $cases = []
+    ): string
     {
         $existingCaseId = trim($existingCaseId);
         if ($existingCaseId !== '') {
             return $existingCaseId;
+        }
+
+        foreach ($identityKeys as $identityKey) {
+            $lookup = $tenantId . '|' . trim((string) $identityKey);
+            if ($lookup === $tenantId . '|' || !isset($caseIdsByIdentity[$lookup])) {
+                continue;
+            }
+
+            $matchedCaseId = trim((string) $caseIdsByIdentity[$lookup]);
+            if ($matchedCaseId !== '' && isset($cases[$matchedCaseId])) {
+                return $matchedCaseId;
+            }
         }
 
         [$type, $entityId] = array_pad(explode(':', $seed, 2), 2, '');

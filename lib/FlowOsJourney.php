@@ -407,6 +407,23 @@ function flow_os_latest_timestamp(array $values): string
     return $latest;
 }
 
+function flow_os_earliest_timestamp(array $values): string
+{
+    $earliest = '';
+    foreach ($values as $value) {
+        $normalized = trim((string) $value);
+        if ($normalized === '') {
+            continue;
+        }
+
+        if ($earliest === '' || strcmp($earliest, $normalized) > 0) {
+            $earliest = $normalized;
+        }
+    }
+
+    return $earliest;
+}
+
 function flow_os_case_has_follow_up_signal(array $case, array $approvals = []): bool
 {
     $status = strtolower(trim((string) ($case['status'] ?? '')));
@@ -678,7 +695,471 @@ function flow_os_case_alerts(array $case): array
     return $alerts;
 }
 
-function flow_os_build_case_journey_snapshot(array $case, array $approvals = [], array $appointments = []): array
+function flow_os_case_patient_label(array $case): string
+{
+    $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
+    $label = trim((string) ($summary['patientLabel'] ?? ''));
+    return $label !== '' ? $label : 'Paciente sin etiqueta';
+}
+
+function flow_os_case_timeline_events_by_case_id(array $store): array
+{
+    $events = isset($store['patient_case_timeline_events']) && is_array($store['patient_case_timeline_events'])
+        ? $store['patient_case_timeline_events']
+        : [];
+    $indexed = [];
+
+    foreach ($events as $event) {
+        if (!is_array($event)) {
+            continue;
+        }
+
+        $caseId = trim((string) ($event['patientCaseId'] ?? ''));
+        if ($caseId === '') {
+            continue;
+        }
+
+        if (!isset($indexed[$caseId])) {
+            $indexed[$caseId] = [];
+        }
+
+        $indexed[$caseId][] = $event;
+    }
+
+    foreach ($indexed as $caseId => $caseEvents) {
+        usort($caseEvents, static function (array $left, array $right): int {
+            $leftCreatedAt = trim((string) ($left['createdAt'] ?? ''));
+            $rightCreatedAt = trim((string) ($right['createdAt'] ?? ''));
+            if ($leftCreatedAt !== $rightCreatedAt) {
+                return strcmp($leftCreatedAt, $rightCreatedAt);
+            }
+
+            return strcmp((string) ($left['id'] ?? ''), (string) ($right['id'] ?? ''));
+        });
+
+        $indexed[$caseId] = $caseEvents;
+    }
+
+    return $indexed;
+}
+
+function flow_os_find_first_case_event(array $events, callable $predicate): ?array
+{
+    foreach ($events as $event) {
+        if (!is_array($event)) {
+            continue;
+        }
+
+        if ($predicate($event)) {
+            return $event;
+        }
+    }
+
+    return null;
+}
+
+function flow_os_transition_default_source_label(string $stageId): string
+{
+    switch (trim($stageId)) {
+        case 'lead_captured':
+            return 'Caso abierto';
+        case 'intake_completed':
+            return 'Contacto registrado';
+        case 'scheduled':
+            return 'Cita programada';
+        case 'care_plan_ready':
+            return 'Consulta avanzada';
+        case 'follow_up_active':
+            return 'Seguimiento activado';
+        case 'resolved':
+            return 'Caso resuelto';
+        default:
+            return flow_os_display_stage_label($stageId);
+    }
+}
+
+function flow_os_transition_default_actor_label(string $stageId, string $sourceType = ''): string
+{
+    switch (trim($sourceType)) {
+        case 'case_opened':
+        case 'check_in_completed':
+        case 'status_arrived':
+            return 'Recepción';
+        case 'appointment_created':
+        case 'status_cancelled':
+            return 'Agenda';
+        case 'callback_created':
+            return 'Triage';
+        case 'queue_called':
+            return 'Consultorio';
+        case 'visit_completed':
+            return 'Clínico';
+        case 'follow_up_activated':
+            return 'Seguimiento';
+        case 'resolved':
+            return 'Operaciones';
+        default:
+            $stage = flow_os_journey_stage_definition($stageId);
+            return flow_os_owner_label((string) ($stage['owner'] ?? 'frontdesk'));
+    }
+}
+
+function flow_os_transition_actor_label(array $event, string $stageId, string $sourceType = ''): string
+{
+    $payload = isset($event['payload']) && is_array($event['payload']) ? $event['payload'] : [];
+    foreach ([
+        'actorLabel',
+        'operatorLabel',
+        'reviewedBy',
+        'operatorName',
+        'createdBy',
+        'updatedBy',
+        'actor',
+        'operator',
+    ] as $field) {
+        $candidate = trim((string) ($payload[$field] ?? ($event[$field] ?? '')));
+        if ($candidate !== '') {
+            return $candidate;
+        }
+    }
+
+    return flow_os_transition_default_actor_label($stageId, $sourceType);
+}
+
+function flow_os_build_journey_history_entry(
+    array $case,
+    string $stageId,
+    string $timestamp,
+    string $sourceType,
+    string $sourceLabel,
+    string $actorLabel,
+    bool $synthetic = false,
+    bool $isCurrentStage = false
+): ?array {
+    $caseId = trim((string) ($case['id'] ?? ''));
+    $timestamp = trim($timestamp);
+    if ($caseId === '' || $timestamp === '') {
+        return null;
+    }
+
+    $stage = flow_os_journey_stage_definition($stageId) ?? [
+        'id' => $stageId,
+        'label' => $stageId,
+        'owner' => 'frontdesk',
+    ];
+    $summary = trim($sourceLabel) !== ''
+        ? trim($sourceLabel)
+        : flow_os_transition_default_source_label($stageId);
+    $actor = trim($actorLabel) !== ''
+        ? trim($actorLabel)
+        : flow_os_transition_default_actor_label($stageId, $sourceType);
+
+    return [
+        'id' => $caseId . ':' . $stageId . ':' . substr(sha1($timestamp . '|' . $sourceType . '|' . $summary), 0, 10),
+        'caseId' => $caseId,
+        'patientId' => trim((string) ($case['patientId'] ?? '')),
+        'patientLabel' => flow_os_case_patient_label($case),
+        'stage' => $stageId,
+        'displayStage' => flow_os_display_stage_id($stageId),
+        'stageLabel' => (string) ($stage['label'] ?? $stageId),
+        'displayStageLabel' => flow_os_display_stage_label($stageId),
+        'stageIndex' => flow_os_stage_index($stageId),
+        'timestamp' => $timestamp,
+        'sourceType' => $sourceType,
+        'sourceLabel' => $summary,
+        'actorLabel' => $actor,
+        'synthetic' => $synthetic,
+        'isCurrentStage' => $isCurrentStage,
+    ];
+}
+
+function flow_os_build_case_journey_history(array $case, array $snapshot, array $timelineEvents = [], array $approvals = []): array
+{
+    $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
+    $milestones = isset($summary['milestones']) && is_array($summary['milestones']) ? $summary['milestones'] : [];
+    $historyByStage = [];
+    $currentStageId = trim((string) ($snapshot['stage'] ?? ''));
+    $currentEnteredAt = trim((string) ($snapshot['enteredAt'] ?? ''));
+    $latestApprovalAt = flow_os_latest_timestamp(array_map(static function ($approval): string {
+        if (!is_array($approval)) {
+            return '';
+        }
+
+        return (string) ($approval['updatedAt'] ?? ($approval['createdAt'] ?? ''));
+    }, $approvals));
+
+    $leadEvent = flow_os_find_first_case_event($timelineEvents, static function (array $event): bool {
+        return trim((string) ($event['type'] ?? '')) === 'case_opened';
+    });
+    if ($leadEvent !== null) {
+        $historyByStage['lead_captured'] = flow_os_build_journey_history_entry(
+            $case,
+            'lead_captured',
+            (string) ($leadEvent['createdAt'] ?? ''),
+            'case_opened',
+            trim((string) ($leadEvent['title'] ?? '')),
+            flow_os_transition_actor_label($leadEvent, 'lead_captured', 'case_opened')
+        );
+    } elseif (trim((string) ($case['openedAt'] ?? '')) !== '') {
+        $historyByStage['lead_captured'] = flow_os_build_journey_history_entry(
+            $case,
+            'lead_captured',
+            (string) ($case['openedAt'] ?? ''),
+            'case_opened',
+            flow_os_transition_default_source_label('lead_captured'),
+            flow_os_transition_default_actor_label('lead_captured', 'case_opened'),
+            true
+        );
+    }
+
+    $intakeEvent = flow_os_find_first_case_event($timelineEvents, static function (array $event): bool {
+        return trim((string) ($event['type'] ?? '')) === 'callback_created';
+    });
+    if ($intakeEvent !== null) {
+        $historyByStage['intake_completed'] = flow_os_build_journey_history_entry(
+            $case,
+            'intake_completed',
+            (string) ($intakeEvent['createdAt'] ?? ''),
+            'callback_created',
+            trim((string) ($intakeEvent['title'] ?? '')),
+            flow_os_transition_actor_label($intakeEvent, 'intake_completed', 'callback_created')
+        );
+    } else {
+        $intakeAt = flow_os_earliest_timestamp([
+            $case['lastInboundAt'] ?? '',
+            $case['lastOutboundAt'] ?? '',
+        ]);
+        if ($intakeAt !== '') {
+            $historyByStage['intake_completed'] = flow_os_build_journey_history_entry(
+                $case,
+                'intake_completed',
+                $intakeAt,
+                'callback_created',
+                flow_os_transition_default_source_label('intake_completed'),
+                flow_os_transition_default_actor_label('intake_completed', 'callback_created'),
+                true
+            );
+        }
+    }
+
+    $scheduledEvent = flow_os_find_first_case_event($timelineEvents, static function (array $event): bool {
+        $type = trim((string) ($event['type'] ?? ''));
+        $payload = isset($event['payload']) && is_array($event['payload']) ? $event['payload'] : [];
+        $status = strtolower(trim((string) ($payload['status'] ?? '')));
+
+        return $type === 'appointment_created' ||
+            $type === 'check_in_completed' ||
+            ($type === 'status_changed' && in_array($status, ['arrived', 'checked_in', 'booked', 'confirmed'], true));
+    });
+    if ($scheduledEvent !== null) {
+        $scheduledSourceType = trim((string) ($scheduledEvent['type'] ?? '')) === 'status_changed'
+            ? 'status_arrived'
+            : trim((string) ($scheduledEvent['type'] ?? ''));
+        $historyByStage['scheduled'] = flow_os_build_journey_history_entry(
+            $case,
+            'scheduled',
+            (string) ($scheduledEvent['createdAt'] ?? ''),
+            $scheduledSourceType,
+            trim((string) ($scheduledEvent['title'] ?? '')),
+            flow_os_transition_actor_label($scheduledEvent, 'scheduled', $scheduledSourceType)
+        );
+    } else {
+        $scheduledAt = flow_os_earliest_timestamp([
+            $milestones['bookedAt'] ?? '',
+            $summary['scheduledStart'] ?? '',
+            $currentStageId === 'scheduled' ? $currentEnteredAt : '',
+        ]);
+        if ($scheduledAt !== '') {
+            $historyByStage['scheduled'] = flow_os_build_journey_history_entry(
+                $case,
+                'scheduled',
+                $scheduledAt,
+                'appointment_created',
+                flow_os_transition_default_source_label('scheduled'),
+                flow_os_transition_default_actor_label('scheduled', 'appointment_created'),
+                true
+            );
+        }
+    }
+
+    $carePlanEvent = flow_os_find_first_case_event($timelineEvents, static function (array $event): bool {
+        return in_array(trim((string) ($event['type'] ?? '')), ['queue_called', 'visit_completed'], true);
+    });
+    if ($carePlanEvent !== null) {
+        $carePlanSourceType = trim((string) ($carePlanEvent['type'] ?? ''));
+        $historyByStage['care_plan_ready'] = flow_os_build_journey_history_entry(
+            $case,
+            'care_plan_ready',
+            (string) ($carePlanEvent['createdAt'] ?? ''),
+            $carePlanSourceType,
+            trim((string) ($carePlanEvent['title'] ?? '')),
+            flow_os_transition_actor_label($carePlanEvent, 'care_plan_ready', $carePlanSourceType)
+        );
+    } else {
+        $carePlanAt = flow_os_earliest_timestamp([
+            $milestones['calledAt'] ?? '',
+            $milestones['completedAt'] ?? '',
+            $latestApprovalAt,
+            $currentStageId === 'care_plan_ready' ? $currentEnteredAt : '',
+        ]);
+        if ($carePlanAt !== '') {
+            $historyByStage['care_plan_ready'] = flow_os_build_journey_history_entry(
+                $case,
+                'care_plan_ready',
+                $carePlanAt,
+                'visit_completed',
+                flow_os_transition_default_source_label('care_plan_ready'),
+                flow_os_transition_default_actor_label('care_plan_ready', 'visit_completed'),
+                true
+            );
+        }
+    }
+
+    $followUpAt = flow_os_earliest_timestamp([
+        $summary['followUpStartedAt'] ?? '',
+        $summary['followUpScheduledAt'] ?? '',
+        $summary['followUpDueAt'] ?? '',
+        $currentStageId === 'follow_up_active' ? $currentEnteredAt : '',
+    ]);
+    if ($followUpAt !== '') {
+        $historyByStage['follow_up_active'] = flow_os_build_journey_history_entry(
+            $case,
+            'follow_up_active',
+            $followUpAt,
+            'follow_up_activated',
+            flow_os_transition_default_source_label('follow_up_active'),
+            flow_os_transition_default_actor_label('follow_up_active', 'follow_up_activated'),
+            true,
+            $currentStageId === 'follow_up_active'
+        );
+    }
+
+    $resolvedEvent = flow_os_find_first_case_event($timelineEvents, static function (array $event): bool {
+        $type = trim((string) ($event['type'] ?? ''));
+        $payload = isset($event['payload']) && is_array($event['payload']) ? $event['payload'] : [];
+        $status = strtolower(trim((string) ($payload['status'] ?? '')));
+
+        return $type === 'no_show' ||
+            ($type === 'status_changed' && in_array($status, ['cancelled', 'closed', 'resolved'], true));
+    });
+    if ($resolvedEvent !== null) {
+        $resolvedSourceType = trim((string) ($resolvedEvent['type'] ?? '')) === 'status_changed'
+            ? 'status_cancelled'
+            : trim((string) ($resolvedEvent['type'] ?? ''));
+        $historyByStage['resolved'] = flow_os_build_journey_history_entry(
+            $case,
+            'resolved',
+            (string) ($resolvedEvent['createdAt'] ?? ''),
+            $resolvedSourceType,
+            trim((string) ($resolvedEvent['title'] ?? '')),
+            flow_os_transition_actor_label($resolvedEvent, 'resolved', $resolvedSourceType)
+        );
+    } else {
+        $resolvedAt = flow_os_earliest_timestamp([
+            $case['closedAt'] ?? '',
+            $currentStageId === 'resolved' ? $currentEnteredAt : '',
+        ]);
+        if ($resolvedAt !== '') {
+            $historyByStage['resolved'] = flow_os_build_journey_history_entry(
+                $case,
+                'resolved',
+                $resolvedAt,
+                'resolved',
+                flow_os_transition_default_source_label('resolved'),
+                flow_os_transition_default_actor_label('resolved', 'resolved'),
+                true,
+                $currentStageId === 'resolved'
+            );
+        }
+    }
+
+    if ($currentStageId !== '') {
+        if (isset($historyByStage[$currentStageId]) && is_array($historyByStage[$currentStageId])) {
+            $historyByStage[$currentStageId]['isCurrentStage'] = true;
+            if ($currentEnteredAt !== '') {
+                $historyByStage[$currentStageId]['timestamp'] = $currentEnteredAt;
+            }
+        } elseif ($currentEnteredAt !== '') {
+            $historyByStage[$currentStageId] = flow_os_build_journey_history_entry(
+                $case,
+                $currentStageId,
+                $currentEnteredAt,
+                'current_stage',
+                flow_os_transition_default_source_label($currentStageId),
+                flow_os_transition_default_actor_label($currentStageId),
+                true,
+                true
+            );
+        }
+    }
+
+    $history = array_values(array_filter($historyByStage, static function ($entry): bool {
+        return is_array($entry) && trim((string) ($entry['timestamp'] ?? '')) !== '';
+    }));
+
+    usort($history, static function (array $left, array $right): int {
+        $leftTimestamp = trim((string) ($left['timestamp'] ?? ''));
+        $rightTimestamp = trim((string) ($right['timestamp'] ?? ''));
+        if ($leftTimestamp !== $rightTimestamp) {
+            return strcmp($leftTimestamp, $rightTimestamp);
+        }
+
+        $leftIndex = (int) ($left['stageIndex'] ?? 0);
+        $rightIndex = (int) ($right['stageIndex'] ?? 0);
+        if ($leftIndex !== $rightIndex) {
+            return $leftIndex <=> $rightIndex;
+        }
+
+        return strcmp((string) ($left['id'] ?? ''), (string) ($right['id'] ?? ''));
+    });
+
+    return array_values($history);
+}
+
+function flow_os_build_journey_activity_feed(array $cases, int $limit = 8): array
+{
+    $feed = [];
+    foreach ($cases as $case) {
+        if (!is_array($case)) {
+            continue;
+        }
+
+        $history = isset($case['journeyHistory']) && is_array($case['journeyHistory'])
+            ? $case['journeyHistory']
+            : [];
+        foreach ($history as $entry) {
+            if (is_array($entry)) {
+                $feed[] = $entry;
+            }
+        }
+    }
+
+    usort($feed, static function (array $left, array $right): int {
+        $leftTimestamp = trim((string) ($left['timestamp'] ?? ''));
+        $rightTimestamp = trim((string) ($right['timestamp'] ?? ''));
+        if ($leftTimestamp !== $rightTimestamp) {
+            return strcmp($rightTimestamp, $leftTimestamp);
+        }
+
+        $leftCurrent = ($left['isCurrentStage'] ?? false) === true;
+        $rightCurrent = ($right['isCurrentStage'] ?? false) === true;
+        if ($leftCurrent !== $rightCurrent) {
+            return $leftCurrent ? -1 : 1;
+        }
+
+        $leftIndex = (int) ($left['stageIndex'] ?? 0);
+        $rightIndex = (int) ($right['stageIndex'] ?? 0);
+        if ($leftIndex !== $rightIndex) {
+            return $rightIndex <=> $leftIndex;
+        }
+
+        return strcmp((string) ($left['patientLabel'] ?? ''), (string) ($right['patientLabel'] ?? ''));
+    });
+
+    return array_slice($feed, 0, max(0, $limit));
+}
+
+function flow_os_build_case_journey_snapshot(array $case, array $approvals = [], array $appointments = [], array $timelineEvents = []): array
 {
     $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
     $stageId = flow_os_resolve_case_stage($case, $approvals, $appointments);
@@ -691,13 +1172,10 @@ function flow_os_build_case_journey_snapshot(array $case, array $approvals = [],
     $enteredAt = flow_os_resolve_case_stage_entered_at($case, $stageId, $approvals);
     $actions = flow_os_resolve_next_actions($stageId);
     $nextAction = $actions[0] ?? null;
-
-    return [
+    $snapshot = [
         'caseId' => trim((string) ($case['id'] ?? '')),
         'patientId' => trim((string) ($case['patientId'] ?? '')),
-        'patientLabel' => trim((string) ($summary['patientLabel'] ?? '')) !== ''
-            ? trim((string) ($summary['patientLabel'] ?? ''))
-            : 'Paciente sin etiqueta',
+        'patientLabel' => flow_os_case_patient_label($case),
         'serviceLine' => trim((string) ($summary['serviceLine'] ?? '')),
         'providerName' => trim((string) ($summary['providerName'] ?? '')),
         'status' => trim((string) ($case['status'] ?? '')),
@@ -722,6 +1200,15 @@ function flow_os_build_case_journey_snapshot(array $case, array $approvals = [],
         'nextActions' => $actions,
         'alerts' => flow_os_case_alerts($case),
     ];
+
+    $snapshot['journeyHistory'] = flow_os_build_case_journey_history(
+        $case,
+        $snapshot,
+        $timelineEvents,
+        $approvals
+    );
+
+    return $snapshot;
 }
 
 function flow_os_build_case_journey_preview_list(array $store): array
@@ -729,6 +1216,7 @@ function flow_os_build_case_journey_preview_list(array $store): array
     $cases = isset($store['patient_cases']) && is_array($store['patient_cases']) ? $store['patient_cases'] : [];
     $appointments = isset($store['appointments']) && is_array($store['appointments']) ? $store['appointments'] : [];
     $approvalsByCaseId = flow_os_case_approvals_by_case_id($store);
+    $timelineEventsByCaseId = flow_os_case_timeline_events_by_case_id($store);
     $snapshots = [];
 
     foreach ($cases as $case) {
@@ -742,7 +1230,8 @@ function flow_os_build_case_journey_preview_list(array $store): array
         $snapshots[] = flow_os_build_case_journey_snapshot(
             $case,
             $caseId !== '' ? ($approvalsByCaseId[$caseId] ?? []) : [],
-            $caseAppointments
+            $caseAppointments,
+            $caseId !== '' ? ($timelineEventsByCaseId[$caseId] ?? []) : []
         );
     }
 
@@ -982,6 +1471,7 @@ function flow_os_build_store_journey_preview(array $store, array $context = []):
         'alerts' => $alerts,
         'timelineStages' => flow_os_timeline_stage_catalog(),
         'stageCounts' => flow_os_build_case_stage_counts($cases),
+        'activityFeed' => flow_os_build_journey_activity_feed($cases),
         'cases' => $cases,
         'redacted' => false,
         'generatedAt' => function_exists('local_date') ? local_date('c') : gmdate('c'),

@@ -16,6 +16,17 @@ Antes de tocar nada, define qué tipo de agente eres:
 
 Si no sabes cuál eres → usa `fullstack`.
 
+## Paso 1.5: Lee BACKLOG.md antes que nada
+
+```bash
+cat BACKLOG.md   # ~100 líneas — solo tareas pendientes por sprint
+```
+
+`BACKLOG.md` muestra: qué está disponible, qué está bloqueado, qué necesita aprobación del dueño.
+`AGENTS.md` (1100+ líneas) tiene el contexto completo — léelo para saber cómo ejecutar.
+
+
+
 ## Paso 2: Protocolo de trabajo (sin excepción)
 
 ```bash

@@ -89,6 +89,12 @@
         ],
         "searchEntries": [
             {
+                "label": "Preconsulta digital",
+                "href": "/es/pre-consulta/",
+                "eyebrow": "Patient journey",
+                "deck": "Comparta nombre, WhatsApp, condicion y fotos para abrir el caso antes de la llamada."
+            },
+            {
                 "label": "Primera consulta",
                 "href": "/es/primera-consulta/",
                 "eyebrow": "Guia de primera visita",

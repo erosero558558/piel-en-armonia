@@ -54,15 +54,20 @@ const DEPENDS_ON = {
 };
 
 lines.forEach(line => {
-  // Match ALL sprint headers including Sprint 0 (✅) and active sprints (🔴🟡🟢🔵)
-  const sprintMatch = line.match(/^### [✅🔴🟡🟢🔵] (Sprint \d+.*?)$/);
-  if (sprintMatch) {
-    currentSprint = sprintMatch[1].trim();
-    if (!sprints[currentSprint]) {
-      sprints[currentSprint] = { tasks: [], done: 0, total: 0 };
-      sprintOrder.push(currentSprint);
+  // Match ALL sprint headers: "### {emoji} Sprint N — description"
+  // Use string approach to avoid emoji regex encoding issues
+  const trimmed = line.trim();
+  if (trimmed.startsWith('### ') && trimmed.includes(' Sprint ')) {
+    // Extract "Sprint N — description" from "### {emoji} Sprint N — description"
+    const after = trimmed.replace(/^###\s+\S+\s+/, '');  // remove "### {emoji} "
+    if (after.startsWith('Sprint ')) {
+      currentSprint = after.trim();
+      if (!sprints[currentSprint]) {
+        sprints[currentSprint] = { tasks: [], done: 0, total: 0 };
+        sprintOrder.push(currentSprint);
+      }
+      return;
     }
-    return;
   }
 
 

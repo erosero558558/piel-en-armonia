@@ -192,6 +192,7 @@ class AdminDataController
             $store['patientFlowMeta']['journeyPreview'] = array_merge(
                 $store['patientFlowMeta']['journeyPreview'],
                 [
+                    'activityFeed' => [],
                     'cases' => [],
                     'redacted' => true,
                     'redactionReason' => 'clinical_storage_not_ready',
