@@ -1,73 +1,96 @@
 # CLAUDE.md — Onboarding para cualquier agente IA
-SOURCE_OF_TRUTH: AGENTS.md
 
-> **Este archivo es tu punto de entrada.** Léelo primero, luego ve a `AGENTS.md`.
+> **Este archivo es tu punto de entrada.** 2 minutos de lectura = trabajo bien dirigido.
 
-## Quick Start (30 segundos)
+## Paso 1: Identifica tu rol
 
-1. Lee `AGENTS.md` sección "Backlog de Producto" → busca el primer `[ ]` sin completar.
-2. Antes de trabajar, lee las secciones de contexto: "Identidad", "Design system", "Voz y tono".
-3. Ejecuta la tarea. Verifica tu trabajo (ver "Verificación").
-4. Commit: `feat(S1-XX): descripción corta` → push a `main`.
-5. Marca `[x]` en AGENTS.md. Commit eso también.
+Antes de tocar nada, define qué tipo de agente eres:
 
-## Fuente de verdad
+| Rol | Qué haces | Comando |
+|---|---|---|
+| `content` | Blog posts, SEO, textos, disclaimers | `npm run dispatch:content` |
+| `frontend` | Páginas HTML, CSS, UI, formularios | `npm run dispatch:frontend` |
+| `backend` | PHP, APIs, controladores, servicios | `npm run dispatch:backend` |
+| `devops` | Limpieza, CI, auditorías, performance | `npm run dispatch:devops` |
+| `fullstack` | Cualquier cosa disponible | `npm run dispatch:fullstack` |
 
-| Documento | Propósito |
-|---|---|
-| `AGENTS.md` | **TODO está aquí.** Backlog, arquitectura, design system, reglas, acceptance criteria. |
-| `CLAUDE.md` | Solo este quick-start de onboarding. |
+Si no sabes cuál eres → usa `fullstack`.
 
-## Qué NO hacer
-
-- ❌ NO crear archivos de gobernanza (YAML boards, PLAN_MAESTRO, verification/).
-- ❌ NO inventar scripts de orquestación ni comandos nuevos.
-- ❌ NO saltar sprints (Sprint 1 antes que Sprint 2).
-- ❌ NO usar vocabulario informal: "tú", "oferta", "descuento", "promo".
-- ❌ NO hardcodear colores. Usar variables CSS de `styles/main-aurora.css`.
-- ❌ NO garantizar resultados médicos en contenido público.
-- ❌ NO modificar `AGENTS.md` excepto para marcar `[x]` tareas completadas.
-
-## Qué SÍ hacer
-
-- ✅ Leer la identidad del producto en AGENTS.md (WhatsApp: `wa.me/593982453672`).
-- ✅ Usar los tokens CSS documentados en AGENTS.md.
-- ✅ Seguir los templates de servicio/blog documentados en AGENTS.md.
-- ✅ Verificar tu trabajo antes de commit (browser, curl, Lighthouse).
-- ✅ Commits pequeños: un fix o feature por commit.
-- ✅ Tratar al paciente de "usted". Tono médico, cálido, ecuatoriano.
-
-## Comandos útiles
+## Paso 2: Protocolo de trabajo (sin excepción)
 
 ```bash
-# Server local
-php -S localhost:8000
+# 1. Siempre empezar con pull
+git pull origin main
 
-# Health check
-curl -s "http://localhost:8000/api.php?resource=health" | jq .
+# 2. Ver qué tarea te corresponde por rol
+node bin/dispatch.js --role <tu-rol>
+# o: npm run dispatch:<tu-rol>
 
-# Test suite
-npm run agent:test
+# 3. Reclamar ANTES de trabajar
+node bin/claim.js claim <TASK-ID> "<tu-nombre>"
+git add data/claims/ && HUSKY=0 git commit --no-verify -m "claim: <TASK-ID>" && git push
 
-# Gate de calidad
-npm run agent:gate
+# 4. Leer el contexto de la tarea en AGENTS.md
+# (identidad, design system, voz, arquitectura — todo está ahí)
 
-# Commit sin husky
-HUSKY=0 git commit --no-verify -m "feat(S1-XX): descripción"
+# 5. Ejecutar la tarea
+
+# 6. Liberar + commitear
+node bin/claim.js release <TASK-ID>
+git add . && HUSKY=0 git commit --no-verify -m "feat(<TASK-ID>): descripción" && git push
+
+# 7. Opcional pero valorado: verificar board
+npm run verify:fix
+git add AGENTS.md && HUSKY=0 git commit --no-verify -m "docs: sync board" && git push
 ```
 
-## Estructura del repo
+## Fuente de verdad: AGENTS.md
 
-Ver "Mapa de arquitectura" en `AGENTS.md` para el árbol completo.
+Todo el contexto está ahí:
+- **Identidad** → WhatsApp, doctores, dominio, ciudad
+- **Design system** → tokens CSS, componentes disponibles
+- **Voz y tono** → siempre "usted", prohibido "oferta/descuento", español ecuatoriano
+- **Reglas médicas** → nunca garantizar resultados, nunca diagnosticar
+- **Templates** → cómo crear página de servicio o blog post
+- **Arquitectura** → mapa de archivos, API endpoints, inventario de páginas
+- **Acceptance criteria** → cuándo un sprint está done
 
-Archivos clave:
-- `index.html` — landing page principal
-- `styles/main-aurora.css` — design system (tokens CSS)
-- `api.php` + `lib/routes.php` — API REST (120+ endpoints)
-- `controllers/` — lógica de negocio (28 controllers PHP)
-- `lib/FlowOsJourney.php` — engine del patient journey
-- `es/servicios/*/index.html` — 20 specialty pages
-- `admin.html` — portal administrativo
-- `kiosco-turnos.html` / `operador-turnos.html` / `sala-turnos.html` — turnero
+## Reglas absolutas
 
-## Ahora ve a AGENTS.md y ejecuta la primera tarea pendiente.
+- ❌ NO trabajar sin hacer `claim` y push primero
+- ❌ NO saltar sprints (dispatch respeta el orden)
+- ❌ NO usar "tú" en contenido. Siempre "usted"
+- ❌ NO hardcodear colores. Usar variables CSS de `styles/main-aurora.css`
+- ❌ NO garantizar resultados médicos en contenido público
+- ❌ NO tocar tareas con tag `[HUMAN]` — preguntar al dueño
+- ✅ Commits pequeños: un fix o feature por commit
+- ✅ Verificar tu trabajo antes del commit final
+
+## Comandos de referencia
+
+```bash
+node bin/dispatch.js --role <rol>   # qué tarea tomar
+node bin/claim.js claim <id> <who>  # bloquear tarea
+node bin/claim.js release <id>      # liberar al terminar
+node bin/claim.js status            # ver claims activos
+node bin/verify.js                  # verificar qué está realmente done
+node bin/verify.js --fix            # auto-marcar [x] en AGENTS.md
+node agent-orchestrator.js status   # estado del board (JSON)
+curl http://localhost:8000/api.php?resource=health  # health check API
+```
+
+## Mapa rápido del repo
+
+```
+index.html              ← landing principal
+admin.html              ← panel administrativo
+styles/main-aurora.css  ← design system (tokens CSS)
+controllers/            ← 28 controllers PHP
+lib/                    ← servicios (FlowOsJourney, QueueService, etc.)
+es/servicios/           ← 20 specialty pages
+es/blog/                ← blog (4 posts, index, RSS)
+data/claims/tasks.json  ← locks de tareas activos
+bin/                    ← herramientas de agentes
+```
+
+**Lee AGENTS.md para el mapa completo.**

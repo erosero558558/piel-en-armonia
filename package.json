@@ -207,6 +207,12 @@
         "claim:purge": "node bin/claim.js purge-expired",
         "verify": "node bin/verify.js",
         "verify:fix": "node bin/verify.js --fix",
+        "dispatch": "node bin/dispatch.js --role",
+        "dispatch:content": "node bin/dispatch.js --role content",
+        "dispatch:frontend": "node bin/dispatch.js --role frontend",
+        "dispatch:backend": "node bin/dispatch.js --role backend",
+        "dispatch:devops": "node bin/dispatch.js --role devops",
+        "dispatch:fullstack": "node bin/dispatch.js --role fullstack",
 
 
         "agent:board:resolve-revision": "node bin/resolve-board-revision-conflict.js --file AGENT_BOARD.yaml --json",

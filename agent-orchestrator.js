@@ -21,36 +21,48 @@ const messages = {
     const pending = (agents.match(/- \[ \]/g) || []).length;
     const total = done + pending;
 
-    // Find current sprint
-    let currentSprint = 'Unknown';
-    const lines = agents.split('\n');
-    for (const line of lines) {
-      if (line.includes('Sprint') && line.includes('🔴')) currentSprint = 'Sprint 1 — Arreglar lo roto';
-      if (line.includes('Sprint') && line.includes('🟡')) {
-        // Check if Sprint 1 is done
-        const s1Start = agents.indexOf('🔴 Sprint 1');
-        const s1End = agents.indexOf('🟡 Sprint 2');
-        const s1Section = agents.slice(s1Start, s1End);
-        if (!s1Section.includes('- [ ]')) currentSprint = 'Sprint 2 — Convertir visitantes';
-      }
+    // Detect current sprint (first one with pending tasks)
+    let currentSprint = 'Sprint 1';
+    for (const sprint of ['Sprint 1', 'Sprint 2', 'Sprint 3', 'Sprint 4']) {
+      const num = sprint.split(' ')[1];
+      const marker = `Sprint ${num} —`;
+      const start = agents.indexOf(marker);
+      if (start === -1) continue;
+      const end = agents.indexOf('### 🔵 Sprint 4') > start
+        ? agents.indexOf('\n### ', start + 10) : agents.length;
+      const section = agents.slice(start, end);
+      if (section.includes('- [ ]')) { currentSprint = sprint; break; }
     }
 
     console.log(JSON.stringify({
       source: 'AGENTS.md',
-      orchestrator: 'redirect-stub',
-      message: 'El orquestador legacy fue archivado. Lee AGENTS.md para el backlog.',
-      backlog: { done, pending, total, percentDone: Math.round((done / total) * 100) },
-      currentSprint,
-      instruction: 'Lee AGENTS.md, busca la primera tarea [ ] del sprint actual, y ejecútala.',
-      quickStart: [
-        '1. Lee AGENTS.md sección "Backlog de Producto"',
-        '2. Busca el primer [ ] sin completar en el sprint actual',
-        '3. Ejecuta la tarea',
-        '4. Marca [x] en AGENTS.md',
-        '5. Commit con feat(S1-XX): descripción'
-      ]
+      orchestrator: 'redirect-stub-v2',
+      message: 'Lee AGENTS.md + usa dispatch por rol para tomar tu tarea.',
+      backlog: {
+        done,
+        pending,
+        total,
+        percentDone: Math.round((done / total) * 100),
+        currentSprint,
+      },
+      roles: {
+        content:   'npm run dispatch:content   → blog, SEO, textos',
+        frontend:  'npm run dispatch:frontend  → HTML, CSS, páginas',
+        backend:   'npm run dispatch:backend   → PHP, API, controladores',
+        devops:    'npm run dispatch:devops    → CI, limpieza, auditorías',
+        fullstack: 'npm run dispatch:fullstack → cualquier tarea disponible',
+      },
+      workflow: [
+        '1. git pull origin main',
+        '2. npm run dispatch:<tu-rol>',
+        '3. node bin/claim.js claim <ID> "<tu-nombre>"',
+        '4. git add data/claims/ && HUSKY=0 git commit --no-verify -m "claim: <ID>" && git push',
+        '5. [hacer el trabajo — lee AGENTS.md para contexto]',
+        '6. git add . && HUSKY=0 git commit --no-verify -m "feat(<ID>): ..." && git push',
+      ],
     }, null, 2));
   },
+
 
   help: () => {
     console.log(`
