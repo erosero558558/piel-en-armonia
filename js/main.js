@@ -397,6 +397,66 @@ function resolveWhatsappSource(waLink) {
     return 'unknown';
 }
 
+function normalizeWhatsappTrackingValue(value, fallback = 'general') {
+    const normalized = String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    return normalized || fallback;
+}
+
+function resolveWhatsappService(waLink) {
+    if (waLink && waLink instanceof Element) {
+        const explicit =
+            waLink.getAttribute('data-service-slug') ||
+            waLink.getAttribute('data-service') ||
+            waLink
+                .closest('[data-service-slug], [data-service]')
+                ?.getAttribute('data-service-slug') ||
+            waLink
+                .closest('[data-service-slug], [data-service]')
+                ?.getAttribute('data-service') ||
+            '';
+        if (explicit) {
+            return normalizeWhatsappTrackingValue(explicit, 'general');
+        }
+    }
+
+    const pathname = String(window.location.pathname || '/')
+        .trim()
+        .toLowerCase();
+    if (!pathname || pathname === '/' || pathname === '/index.html') {
+        return 'home';
+    }
+    if (pathname === '/es/servicios/' || pathname === '/en/services/') {
+        return 'service-hub';
+    }
+    if (
+        pathname.includes('/telemedicina') ||
+        pathname.includes('/telemedicine')
+    ) {
+        return 'teledermatologia';
+    }
+    if (pathname.includes('/software/')) {
+        return 'flow-os';
+    }
+    if (pathname.includes('/legal/')) {
+        return 'legal';
+    }
+
+    const segments = pathname.split('/').filter(Boolean);
+    const lastSegment = String(segments[segments.length - 1] || '').replace(
+        /\.html?$/i,
+        ''
+    );
+    if (lastSegment && lastSegment !== 'index') {
+        return normalizeWhatsappTrackingValue(lastSegment, 'general');
+    }
+
+    return 'general';
+}
+
 /**
  * Initializes lazy loading for the booking calendar engine when booking buttons are clicked.
  */
@@ -775,7 +835,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!waLink) return;
 
         const source = resolveWhatsappSource(waLink);
-        trackEvent('whatsapp_click', { source });
+        const service = resolveWhatsappService(waLink);
+        const page = window.location.pathname || '/';
+        trackEvent('whatsapp_click', { source, service, page });
 
         const inChatContext =
             !!waLink.closest('#chatbotContainer') ||
@@ -784,6 +846,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         trackEvent('chat_handoff_whatsapp', {
             source,
+            service,
+            page,
         });
     });
 });
@@ -844,4 +908,3 @@ window.subscribeToPushNotifications = async function () {
         debugLog('Push subscription error:', error);
     }
 };
-

@@ -1,6 +1,8 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
+const GA4_MEASUREMENT_ID = 'G-2DWZ5PJ4MC';
+
 async function getConsentModeCalls(page) {
     return page.evaluate(() => {
         const dl = Array.isArray(window.dataLayer) ? window.dataLayer : [];
@@ -33,6 +35,37 @@ async function getConsentModeCalls(page) {
     });
 }
 
+async function getGa4State(page) {
+    return page.evaluate((measurementId) => {
+        const hasScript = Array.from(document.scripts).some((script) =>
+            String(script.src || '').includes(
+                `googletagmanager.com/gtag/js?id=${measurementId}`
+            )
+        );
+        const hasConfig = (window.dataLayer || []).some((item) => {
+            const tuple =
+                Array.isArray(item) ||
+                (item &&
+                    typeof item === 'object' &&
+                    typeof item.length === 'number')
+                    ? Array.from(item)
+                    : null;
+
+            return (
+                Array.isArray(tuple) &&
+                tuple[0] === 'config' &&
+                tuple[1] === measurementId
+            );
+        });
+
+        return {
+            hasScript,
+            hasConfig,
+            ga4Loaded: window._ga4Loaded === true,
+        };
+    }, GA4_MEASUREMENT_ID);
+}
+
 test.describe('Consentimiento de cookies', () => {
     test.beforeEach(async ({ page }) => {
         // Limpiar localStorage para que aparezca el banner
@@ -47,6 +80,14 @@ test.describe('Consentimiento de cookies', () => {
         const banner = page.locator('#cookieBanner');
         // El banner puede tardar en aparecer si la inicializacion es diferida
         await expect(banner).toBeVisible({ timeout: 10000 });
+    });
+
+    test('GA4 no se carga antes del consentimiento', async ({ page }) => {
+        await expect.poll(async () => getGa4State(page)).toMatchObject({
+            hasScript: false,
+            hasConfig: false,
+            ga4Loaded: false,
+        });
     });
 
     test('aceptar cookies oculta el banner', async ({ page }) => {

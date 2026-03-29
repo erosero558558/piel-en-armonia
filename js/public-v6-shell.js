@@ -22,6 +22,9 @@
     }
 
     var WHATSAPP_PHONE = '593982453672';
+    var GA4_MEASUREMENT_ID = 'G-2DWZ5PJ4MC';
+    var COOKIE_CONSENT_STORAGE_KEY = 'pa_cookie_consent_v1';
+    var COOKIE_BANNER_STYLE_ID = 'aurora-cookie-banner-styles';
     var WHATSAPP_MESSAGE_MAP = {
         es: {
             home: 'Hola, me gustaria agendar una evaluacion dermatologica',
@@ -102,6 +105,24 @@
             },
         },
     };
+    var COOKIE_BANNER_COPY = {
+        es: {
+            title: 'Preferencias de cookies',
+            body:
+                'Usamos cookies esenciales para seguridad y funcionamiento. Puede aceptar o rechazar cookies opcionales.',
+            reject: 'Rechazar',
+            accept: 'Aceptar',
+            more: 'Politica de cookies',
+        },
+        en: {
+            title: 'Cookie preferences',
+            body:
+                'We use essential cookies for security and site operation. You can accept or reject optional cookies.',
+            reject: 'Reject',
+            accept: 'Accept',
+            more: 'Cookie policy',
+        },
+    };
 
     function normalizePublicPath(value) {
         var raw = String(value || '/').trim();
@@ -111,6 +132,229 @@
 
     function getPageLocale() {
         return document.documentElement.lang === 'en' ? 'en' : 'es';
+    }
+
+    function getCookieConsent() {
+        try {
+            var raw = window.localStorage.getItem(
+                COOKIE_CONSENT_STORAGE_KEY
+            );
+            if (!raw) return '';
+            var payload = JSON.parse(raw);
+            return typeof payload.status === 'string' ? payload.status : '';
+        } catch (_error) {
+            return '';
+        }
+    }
+
+    function setCookieConsent(status) {
+        var normalized = status === 'accepted' ? 'accepted' : 'rejected';
+        try {
+            window.localStorage.setItem(
+                COOKIE_CONSENT_STORAGE_KEY,
+                JSON.stringify({
+                    status: normalized,
+                    at: new Date().toISOString(),
+                })
+            );
+        } catch (_error) {
+            // Ignore storage failures and keep the page usable.
+        }
+    }
+
+    function ensureAnalyticsBridge() {
+        window.dataLayer = window.dataLayer || [];
+        if (typeof window.gtag !== 'function') {
+            window.gtag = function () {
+                window.dataLayer.push(arguments);
+            };
+        }
+    }
+
+    function gtagCall() {
+        ensureAnalyticsBridge();
+        window.gtag.apply(null, arguments);
+    }
+
+    function ensureGa4ScriptTag() {
+        var selector =
+            'script[data-aurora-ga4="' + GA4_MEASUREMENT_ID + '"]';
+        if (document.querySelector(selector)) {
+            return;
+        }
+
+        var script = document.createElement('script');
+        script.async = true;
+        script.src =
+            'https://www.googletagmanager.com/gtag/js?id=' +
+            GA4_MEASUREMENT_ID;
+        script.dataset.auroraGa4 = GA4_MEASUREMENT_ID;
+        document.head.appendChild(script);
+    }
+
+    function ensureConsentDefaults() {
+        if (window.__auroraConsentDefaultReady === true) return;
+        window.__auroraConsentDefaultReady = true;
+        gtagCall('consent', 'default', {
+            analytics_storage: 'denied',
+            ad_storage: 'denied',
+            ad_user_data: 'denied',
+            ad_personalization: 'denied',
+        });
+    }
+
+    function updateAnalyticsConsent(status) {
+        gtagCall('consent', 'update', {
+            analytics_storage: status === 'accepted' ? 'granted' : 'denied',
+            ad_storage: 'denied',
+            ad_user_data: 'denied',
+            ad_personalization: 'denied',
+        });
+    }
+
+    function loadGa4() {
+        if (getCookieConsent() !== 'accepted') return;
+
+        ensureAnalyticsBridge();
+        ensureGa4ScriptTag();
+        if (window._ga4Loaded) {
+            updateAnalyticsConsent('accepted');
+            return;
+        }
+
+        window._ga4Loaded = true;
+
+        gtagCall('js', new Date());
+        updateAnalyticsConsent('accepted');
+        gtagCall('config', GA4_MEASUREMENT_ID);
+    }
+
+    function getCookieBannerCopy(locale) {
+        return locale === 'en' ? COOKIE_BANNER_COPY.en : COOKIE_BANNER_COPY.es;
+    }
+
+    function getCookiesHref(locale) {
+        return locale === 'en' ? '/en/legal/cookies/' : '/es/legal/cookies/';
+    }
+
+    function ensureCookieBannerStyles() {
+        if (document.getElementById(COOKIE_BANNER_STYLE_ID)) return;
+
+        var style = document.createElement('style');
+        style.id = COOKIE_BANNER_STYLE_ID;
+        style.textContent =
+            '.cookie-banner{' +
+            'position:fixed;left:20px;right:20px;bottom:20px;z-index:1200;' +
+            'display:flex;align-items:flex-end;justify-content:space-between;gap:16px;' +
+            'padding:18px 20px;border:1px solid rgba(255,255,255,.14);border-radius:18px;' +
+            'background:rgba(9,13,19,.94);color:#f5f0e6;box-shadow:0 20px 50px rgba(0,0,0,.35);' +
+            'backdrop-filter:blur(18px);visibility:hidden;transform:translateY(18px);opacity:0;pointer-events:none;' +
+            'transition:opacity .25s ease,transform .25s ease;' +
+            '}' +
+            '.cookie-banner.active{visibility:visible;opacity:1;transform:translateY(0);pointer-events:auto;}' +
+            '.cookie-text{margin:0;max-width:700px;font-size:.95rem;line-height:1.6;color:rgba(245,240,230,.9);}' +
+            '.cookie-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}' +
+            '.cookie-btn{appearance:none;border:1px solid rgba(255,255,255,.18);border-radius:999px;' +
+            'padding:10px 16px;font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;' +
+            'transition:transform .2s ease,background .2s ease,border-color .2s ease,color .2s ease;}' +
+            '.cookie-btn:hover{transform:translateY(-1px);}' +
+            '.cookie-btn.btn-primary{background:#d3b072;color:#090d13;border-color:#d3b072;}' +
+            '.cookie-btn.btn-secondary{background:transparent;color:#f5f0e6;}' +
+            '.cookie-link{color:#d3b072;font-weight:600;text-decoration:none;}' +
+            '.cookie-link:hover{text-decoration:underline;}' +
+            '.cookie-btn:focus-visible,.cookie-link:focus-visible{outline:2px solid #d3b072;outline-offset:3px;}' +
+            '@media (max-width: 768px){' +
+            '.cookie-banner{left:12px;right:12px;bottom:12px;align-items:flex-start;flex-direction:column;}' +
+            '.cookie-actions{justify-content:flex-start;}' +
+            '.cookie-btn{width:100%;}' +
+            '}';
+        document.head.appendChild(style);
+    }
+
+    function ensureCookieBanner() {
+        ensureCookieBannerStyles();
+
+        var existingBanner = document.getElementById('cookieBanner');
+        if (existingBanner instanceof HTMLElement) {
+            return existingBanner;
+        }
+
+        var locale = getPageLocale();
+        var copy = getCookieBannerCopy(locale);
+        var banner = document.createElement('div');
+        banner.id = 'cookieBanner';
+        banner.className = 'cookie-banner';
+        banner.setAttribute('role', 'dialog');
+        banner.setAttribute('aria-modal', 'true');
+        banner.setAttribute('aria-live', 'polite');
+        banner.setAttribute('aria-label', copy.title);
+        banner.innerHTML =
+            '<p class="cookie-text">' +
+            escapeHtml(copy.body) +
+            '</p>' +
+            '<div class="cookie-actions">' +
+            '<button type="button" class="btn btn-secondary cookie-btn" id="cookieRejectBtn">' +
+            escapeHtml(copy.reject) +
+            '</button>' +
+            '<button type="button" class="btn btn-primary cookie-btn" id="cookieAcceptBtn">' +
+            escapeHtml(copy.accept) +
+            '</button>' +
+            '<a href="' +
+            escapeHtml(getCookiesHref(locale)) +
+            '" class="cookie-link">' +
+            escapeHtml(copy.more) +
+            '</a>' +
+            '</div>';
+        document.body.appendChild(banner);
+        return banner;
+    }
+
+    function syncCookieBannerVisibility() {
+        var banner = ensureCookieBanner();
+        var consent = getCookieConsent();
+        var isActive = consent !== 'accepted' && consent !== 'rejected';
+        banner.classList.toggle('active', isActive);
+        banner.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+    }
+
+    function bootCookieConsent() {
+        ensureCookieBanner();
+        ensureConsentDefaults();
+
+        if (document.documentElement.dataset.v6CookieConsentReady === 'true') {
+            syncCookieBannerVisibility();
+            if (getCookieConsent() === 'accepted') {
+                loadGa4();
+            }
+            return;
+        }
+
+        document.documentElement.dataset.v6CookieConsentReady = 'true';
+        syncCookieBannerVisibility();
+        if (getCookieConsent() === 'accepted') {
+            loadGa4();
+        }
+
+        document.addEventListener('click', function (event) {
+            var target = event.target instanceof Element ? event.target : null;
+            if (!target) return;
+
+            if (target.closest('#cookieAcceptBtn')) {
+                event.preventDefault();
+                setCookieConsent('accepted');
+                updateAnalyticsConsent('accepted');
+                loadGa4();
+                syncCookieBannerVisibility();
+                return;
+            }
+
+            if (target.closest('#cookieRejectBtn')) {
+                event.preventDefault();
+                setCookieConsent('rejected');
+                updateAnalyticsConsent('rejected');
+                syncCookieBannerVisibility();
+            }
+        });
     }
 
     function resolveServiceSlug(pathname, locale) {
@@ -216,6 +460,119 @@
                 // Ignore malformed links and leave authored hrefs untouched.
             }
         });
+    }
+
+    function normalizeWhatsAppTrackingValue(value, fallback) {
+        var normalized = String(value || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        return normalized || fallback;
+    }
+
+    function resolveWhatsAppTrackingService(pathname, locale) {
+        var safeLocale = locale === 'en' ? 'en' : 'es';
+        var safePath = normalizePublicPath(pathname);
+
+        if (safePath === '/es/' || safePath === '/en/' || safePath === '/') {
+            return 'home';
+        }
+
+        if (safePath === '/es/servicios/' || safePath === '/en/services/') {
+            return 'service-hub';
+        }
+
+        if (
+            safePath === '/es/telemedicina/' ||
+            safePath === '/en/telemedicine/' ||
+            safePath === '/es/servicios/teledermatologia/' ||
+            safePath === '/en/services/teledermatologia/'
+        ) {
+            return 'teledermatologia';
+        }
+
+        if (
+            safePath.indexOf('/es/software/turnero-clinicas/') === 0 ||
+            safePath.indexOf('/en/software/clinic-flow-suite/') === 0
+        ) {
+            return 'flow-os';
+        }
+
+        if (
+            safePath.indexOf('/es/legal/') === 0 ||
+            safePath.indexOf('/en/legal/') === 0
+        ) {
+            return 'legal';
+        }
+
+        var serviceSlug = resolveServiceSlug(safePath, safeLocale);
+        if (serviceSlug) {
+            return normalizeWhatsAppTrackingValue(serviceSlug, 'service-detail');
+        }
+
+        var segments = safePath.split('/').filter(Boolean);
+        return normalizeWhatsAppTrackingValue(
+            segments.pop() || '',
+            'general'
+        );
+    }
+
+    function pushAnalyticsEvent(eventName, payload) {
+        var safePayload = payload && typeof payload === 'object' ? payload : {};
+        if (typeof window.gtag === 'function') {
+            window.gtag('event', eventName, safePayload);
+            return;
+        }
+
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push(
+            Object.assign(
+                {
+                    event: eventName,
+                },
+                safePayload
+            )
+        );
+    }
+
+    function bindWhatsAppTracking() {
+        var root = document.documentElement;
+        if (!root || root.dataset.v6WhatsappTrackingReady === 'true') return;
+        root.dataset.v6WhatsappTrackingReady = 'true';
+
+        document.addEventListener(
+            'click',
+            function (event) {
+                var target =
+                    event.target instanceof Element ? event.target : null;
+                if (!target) return;
+
+                var link = target.closest(
+                    'a[href*="wa.me/"], a[href*="whatsapp.com/"]'
+                );
+                if (!(link instanceof HTMLAnchorElement)) return;
+
+                var rawHref = String(link.getAttribute('href') || '').trim();
+                if (!rawHref) return;
+
+                try {
+                    var url = new URL(rawHref, window.location.origin);
+                    if (!isClinicWhatsAppUrl(url)) return;
+
+                    pushAnalyticsEvent('whatsapp_click', {
+                        service: resolveWhatsAppTrackingService(
+                            window.location.pathname,
+                            getPageLocale()
+                        ),
+                        page: window.location.pathname || '/',
+                    });
+                } catch (_error) {
+                    // Ignore malformed links and keep navigation untouched.
+                }
+            },
+            true
+        );
     }
 
     function bootMegaMenu() {
@@ -1674,7 +2031,9 @@
     }
 
     function bootstrap() {
+        bootCookieConsent();
         contextualizeWhatsAppLinks();
+        bindWhatsAppTracking();
         bootMegaMenu();
         bootHeaderSearch();
         bootNewsStrip();

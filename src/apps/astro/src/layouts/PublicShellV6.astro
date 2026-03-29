@@ -34,9 +34,22 @@ const safeDescription = normalizeText(description);
 const safeTemplateId = normalizeText(templateId) || 'public_v6';
 const origin = 'https://pielarmonia.com';
 const canonical = new URL(normalizePath(canonicalPath, safeLocale === 'en' ? '/en/' : '/es/'), origin).toString();
-const alternate = new URL(normalizePath(alternatePath, safeLocale === 'en' ? '/es/' : '/en/'), origin).toString();
+const hasAlternate = hasText(alternatePath);
+const alternate = hasAlternate
+    ? new URL(
+          normalizePath(
+              alternatePath,
+              safeLocale === 'en' ? '/es/' : '/en/'
+          ),
+          origin
+      ).toString()
+    : '';
 const safePathname = normalizePath(pathname, safeLocale === 'en' ? '/en/' : '/es/');
-const xDefault = safeLocale === 'en' ? alternate : canonical;
+const xDefault = hasAlternate
+    ? safeLocale === 'en'
+        ? alternate
+        : canonical
+    : canonical;
 const fontsHref =
     'https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap';
 const parseSrcSetCandidates = (value) =>
@@ -115,7 +128,15 @@ const flagsJson = JSON.stringify(flags);
         <meta name="description" content={safeDescription} />
         <meta name="robots" content="index,follow,max-image-preview:large" />
         <link rel="canonical" href={canonical} />
-        <link rel="alternate" href={alternate} hreflang={safeLocale === 'es' ? 'en' : 'es'} />
+        {
+            hasAlternate ? (
+                <link
+                    rel="alternate"
+                    href={alternate}
+                    hreflang={safeLocale === 'es' ? 'en' : 'es'}
+                />
+            ) : null
+        }
         <link rel="alternate" href={canonical} hreflang={safeLocale} />
         <link rel="alternate" href={xDefault} hreflang="x-default" />
         <meta property="og:type" content="website" />

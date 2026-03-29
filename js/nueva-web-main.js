@@ -1,7 +1,47 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const phone = '593982453672';
+    const locale = document.documentElement.lang === 'en' ? 'en' : 'es';
+
+    const isClinicWhatsAppUrl = (value) => {
+        try {
+            const url =
+                value instanceof URL
+                    ? value
+                    : new URL(String(value || ''), window.location.href);
+            const host = String(url.hostname || '')
+                .replace(/^www\./, '')
+                .toLowerCase();
+            return (
+                (host === 'wa.me' &&
+                    url.pathname.replace(/\//g, '') === phone) ||
+                ((host === 'api.whatsapp.com' ||
+                    host === 'web.whatsapp.com') &&
+                    String(url.searchParams.get('phone') || '').replace(
+                        /\D/g,
+                        ''
+                    ) === phone)
+            );
+        } catch (_error) {
+            return false;
+        }
+    };
+
+    const pushAnalyticsEvent = (eventName, payload) => {
+        const safePayload =
+            payload && typeof payload === 'object' ? payload : {};
+        if (typeof window.gtag === 'function') {
+            window.gtag('event', eventName, safePayload);
+            return;
+        }
+
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({
+            event: eventName,
+            ...safePayload,
+        });
+    };
+
     const contextualizeWhatsAppLinks = () => {
-        const phone = '593982453672';
-        const locale = document.documentElement.lang === 'en' ? 'en' : 'es';
         const message =
             locale === 'en'
                 ? "Hello, I'd like to book a dermatology evaluation"
@@ -13,19 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!(link instanceof HTMLAnchorElement)) return;
                 try {
                     const url = new URL(link.href, window.location.href);
-                    const host = String(url.hostname || '')
-                        .replace(/^www\./, '')
-                        .toLowerCase();
-                    const isClinicLink =
-                        (host === 'wa.me' &&
-                            url.pathname.replace(/\//g, '') === phone) ||
-                        ((host === 'api.whatsapp.com' ||
-                            host === 'web.whatsapp.com') &&
-                            String(url.searchParams.get('phone') || '').replace(
-                                /\D/g,
-                                ''
-                            ) === phone);
-                    if (!isClinicLink) return;
+                    if (!isClinicWhatsAppUrl(url)) return;
                     if (String(url.searchParams.get('text') || '').trim()) {
                         return;
                     }
@@ -37,7 +65,32 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     };
 
+    const bindWhatsAppTracking = () => {
+        document.addEventListener(
+            'click',
+            (event) => {
+                const target = event.target instanceof Element ? event.target : null;
+                if (!target) return;
+
+                const link = target.closest(
+                    'a[href*="wa.me/"], a[href*="whatsapp.com/"]'
+                );
+                if (!(link instanceof HTMLAnchorElement)) return;
+
+                const rawHref = String(link.getAttribute('href') || '').trim();
+                if (!rawHref || !isClinicWhatsAppUrl(rawHref)) return;
+
+                pushAnalyticsEvent('whatsapp_click', {
+                    service: 'home',
+                    page: window.location.pathname || '/',
+                });
+            },
+            true
+        );
+    };
+
     contextualizeWhatsAppLinks();
+    bindWhatsAppTracking();
 
     const obs = new IntersectionObserver(
         (es, o) => {

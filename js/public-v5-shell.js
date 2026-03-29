@@ -367,7 +367,7 @@
         if (!banner || banner.dataset.publicV5CookieReady === 'true') return;
         banner.dataset.publicV5CookieReady = 'true';
 
-        var measurementId = 'G-GYY8PE5M8W';
+        var measurementId = 'G-2DWZ5PJ4MC';
         var storageKey = 'pa_cookie_consent_v1';
 
         function readConsent() {

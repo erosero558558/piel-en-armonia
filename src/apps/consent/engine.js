@@ -32,7 +32,7 @@ function getMeasurementId() {
     if (deps && typeof deps.gaMeasurementId === 'string' && deps.gaMeasurementId) {
         return deps.gaMeasurementId;
     }
-    return 'G-GYY8PE5M8W';
+    return 'G-2DWZ5PJ4MC';
 }
 
 function getCookieConsent() {

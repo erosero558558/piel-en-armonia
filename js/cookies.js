@@ -14,7 +14,7 @@ function getConsentEngineDeps() {
         showToast,
         trackEvent,
         cookieConsentKey: COOKIE_CONSENT_KEY,
-        gaMeasurementId: 'G-GYY8PE5M8W',
+        gaMeasurementId: 'G-2DWZ5PJ4MC',
     };
 }
 

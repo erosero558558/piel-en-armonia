@@ -5,82 +5,275 @@ const path = require('node:path');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const CANONICAL_ORIGIN = 'https://pielarmonia.com';
+const GA4_MEASUREMENT_ID = 'G-2DWZ5PJ4MC';
+const LEGAL_SLUG_MAP_ES_TO_EN = {
+    terminos: 'terms',
+    privacidad: 'privacy',
+    cookies: 'cookies',
+    'aviso-medico': 'medical-disclaimer',
+};
+const LEGAL_SLUG_MAP_EN_TO_ES = {
+    terms: 'terminos',
+    privacy: 'privacidad',
+    cookies: 'cookies',
+    'medical-disclaimer': 'aviso-medico',
+};
+const SOFTWARE_ROUTE_MAP = {
+    es: {
+        landing: '/es/software/turnero-clinicas/',
+        demo: '/es/software/turnero-clinicas/demo/',
+        status: '/es/software/turnero-clinicas/estado-turno/',
+        dashboard: '/es/software/turnero-clinicas/dashboard/',
+    },
+    en: {
+        landing: '/en/software/clinic-flow-suite/',
+        demo: '/en/software/clinic-flow-suite/demo/',
+        status: '/en/software/clinic-flow-suite/queue-status/',
+        dashboard: '/en/software/clinic-flow-suite/dashboard/',
+    },
+};
 
 const SEO_CASES = [
     {
         path: '/es/',
         canonicalPath: '/es/',
-        enPath: '/en/',
-        esPath: '/es/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/',
+        otherLocale: 'en',
+        otherLocalePath: '/en/',
         xDefaultPath: '/es/',
     },
     {
         path: '/en/',
         canonicalPath: '/en/',
-        enPath: '/en/',
-        esPath: '/es/',
+        currentLocale: 'en',
+        currentLocalePath: '/en/',
+        otherLocale: 'es',
+        otherLocalePath: '/es/',
         xDefaultPath: '/es/',
     },
     {
         path: '/es/servicios/',
         canonicalPath: '/es/servicios/',
-        enPath: '/en/services/',
-        esPath: '/es/servicios/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/servicios/',
+        otherLocale: 'en',
+        otherLocalePath: '/en/services/',
         xDefaultPath: '/es/servicios/',
     },
     {
         path: '/en/services/',
         canonicalPath: '/en/services/',
-        enPath: '/en/services/',
-        esPath: '/es/servicios/',
+        currentLocale: 'en',
+        currentLocalePath: '/en/services/',
+        otherLocale: 'es',
+        otherLocalePath: '/es/servicios/',
         xDefaultPath: '/es/servicios/',
     },
     {
         path: '/es/telemedicina/',
         canonicalPath: '/es/telemedicina/',
-        enPath: '/en/telemedicine/',
-        esPath: '/es/telemedicina/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/telemedicina/',
+        otherLocale: 'en',
+        otherLocalePath: '/en/telemedicine/',
         xDefaultPath: '/es/telemedicina/',
     },
     {
         path: '/en/telemedicine/',
         canonicalPath: '/en/telemedicine/',
-        enPath: '/en/telemedicine/',
-        esPath: '/es/telemedicina/',
+        currentLocale: 'en',
+        currentLocalePath: '/en/telemedicine/',
+        otherLocale: 'es',
+        otherLocalePath: '/es/telemedicina/',
         xDefaultPath: '/es/telemedicina/',
     },
     {
         path: '/es/servicios/acne-rosacea/',
         canonicalPath: '/es/servicios/acne-rosacea/',
-        enPath: '/en/services/acne-rosacea/',
-        esPath: '/es/servicios/acne-rosacea/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/servicios/acne-rosacea/',
+        otherLocale: 'en',
+        otherLocalePath: '/en/services/acne-rosacea/',
         xDefaultPath: '/es/servicios/acne-rosacea/',
     },
     {
         path: '/en/services/botox/',
         canonicalPath: '/en/services/botox/',
-        enPath: '/en/services/botox/',
-        esPath: '/es/servicios/botox/',
+        currentLocale: 'en',
+        currentLocalePath: '/en/services/botox/',
+        otherLocale: 'es',
+        otherLocalePath: '/es/servicios/botox/',
         xDefaultPath: '/es/servicios/botox/',
     },
     {
         path: '/es/legal/privacidad/',
         canonicalPath: '/es/legal/privacidad/',
-        enPath: '/en/legal/privacy/',
-        esPath: '/es/legal/privacidad/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/legal/privacidad/',
+        otherLocale: 'en',
+        otherLocalePath: '/en/legal/privacy/',
         xDefaultPath: '/es/legal/privacidad/',
     },
     {
         path: '/en/legal/terms/',
         canonicalPath: '/en/legal/terms/',
-        enPath: '/en/legal/terms/',
-        esPath: '/es/legal/terminos/',
+        currentLocale: 'en',
+        currentLocalePath: '/en/legal/terms/',
+        otherLocale: 'es',
+        otherLocalePath: '/es/legal/terminos/',
         xDefaultPath: '/es/legal/terminos/',
+    },
+    {
+        path: '/es/blog/',
+        canonicalPath: '/es/blog/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/blog/',
+        otherLocale: 'en',
+        otherLocalePath: null,
+        xDefaultPath: '/es/blog/',
+    },
+    {
+        path: '/es/blog/como-elegir-dermatologo-quito/',
+        canonicalPath: '/es/blog/como-elegir-dermatologo-quito/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/blog/como-elegir-dermatologo-quito/',
+        otherLocale: 'en',
+        otherLocalePath: null,
+        xDefaultPath: '/es/blog/como-elegir-dermatologo-quito/',
+    },
+    {
+        path: '/es/blog/senales-alarma-lunares/',
+        canonicalPath: '/es/blog/senales-alarma-lunares/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/blog/senales-alarma-lunares/',
+        otherLocale: 'en',
+        otherLocalePath: null,
+        xDefaultPath: '/es/blog/senales-alarma-lunares/',
+    },
+    {
+        path: '/es/blog/proteccion-solar-ecuador/',
+        canonicalPath: '/es/blog/proteccion-solar-ecuador/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/blog/proteccion-solar-ecuador/',
+        otherLocale: 'en',
+        otherLocalePath: null,
+        xDefaultPath: '/es/blog/proteccion-solar-ecuador/',
+    },
+    {
+        path: '/es/blog/acne-adulto/',
+        canonicalPath: '/es/blog/acne-adulto/',
+        currentLocale: 'es',
+        currentLocalePath: '/es/blog/acne-adulto/',
+        otherLocale: 'en',
+        otherLocalePath: null,
+        xDefaultPath: '/es/blog/acne-adulto/',
     },
 ];
 
 function absolute(pathname) {
     return new URL(pathname, CANONICAL_ORIGIN).toString();
+}
+
+function normalizeRoute(pathname) {
+    const raw = String(pathname || '').trim() || '/';
+    const withLeading = raw.startsWith('/') ? raw : `/${raw}`;
+    return withLeading.endsWith('/') ? withLeading : `${withLeading}/`;
+}
+
+function routeToRelativeIndexFile(pathname) {
+    return `${normalizeRoute(pathname).replace(/^\//, '')}index.html`;
+}
+
+function relativeIndexFileToRoute(relativePath) {
+    const routePath = `/${String(relativePath)
+        .replace(/\\/g, '/')
+        .replace(/index\.html$/, '')}`;
+    return normalizeRoute(routePath);
+}
+
+function mapLegalSwitch(pathname, locale) {
+    const parts = normalizeRoute(pathname).split('/').filter(Boolean);
+    if (parts.length < 3 || parts[1] !== 'legal') {
+        return null;
+    }
+
+    const slug = parts[2];
+    if (locale === 'es') {
+        const mapped = LEGAL_SLUG_MAP_ES_TO_EN[slug];
+        return mapped ? `/en/legal/${mapped}/` : null;
+    }
+
+    const mapped = LEGAL_SLUG_MAP_EN_TO_ES[slug];
+    return mapped ? `/es/legal/${mapped}/` : null;
+}
+
+function mapPublicSectionSwitch(pathname, locale) {
+    const safePath = normalizeRoute(pathname);
+
+    if (locale === 'es') {
+        if (safePath === '/es/servicios/') {
+            return '/en/services/';
+        }
+        if (safePath.startsWith('/es/servicios/')) {
+            return `/en/services/${safePath.slice('/es/servicios/'.length)}`;
+        }
+        if (safePath === '/es/telemedicina/') {
+            return '/en/telemedicine/';
+        }
+        if (safePath.startsWith('/es/telemedicina/')) {
+            return `/en/telemedicine/${safePath.slice('/es/telemedicina/'.length)}`;
+        }
+        return null;
+    }
+
+    if (safePath === '/en/services/') {
+        return '/es/servicios/';
+    }
+    if (safePath.startsWith('/en/services/')) {
+        return `/es/servicios/${safePath.slice('/en/services/'.length)}`;
+    }
+    if (safePath === '/en/telemedicine/') {
+        return '/es/telemedicina/';
+    }
+    if (safePath.startsWith('/en/telemedicine/')) {
+        return `/es/telemedicina/${safePath.slice('/en/telemedicine/'.length)}`;
+    }
+    return null;
+}
+
+function mapSoftwareSwitch(pathname, locale) {
+    const safePath = normalizeRoute(pathname);
+    const sourceMap = SOFTWARE_ROUTE_MAP[locale];
+    const targetMap = SOFTWARE_ROUTE_MAP[locale === 'es' ? 'en' : 'es'];
+    const match = Object.entries(sourceMap).find(([, route]) => route === safePath);
+    return match ? targetMap[match[0]] || null : null;
+}
+
+function counterpartRoutePath(pathname) {
+    const safePath = normalizeRoute(pathname);
+    const locale = safePath.startsWith('/en/') ? 'en' : 'es';
+
+    const legalSwitch = mapLegalSwitch(safePath, locale);
+    if (legalSwitch) {
+        return legalSwitch;
+    }
+
+    const sectionSwitch = mapPublicSectionSwitch(safePath, locale);
+    if (sectionSwitch) {
+        return sectionSwitch;
+    }
+
+    const softwareSwitch = mapSoftwareSwitch(safePath, locale);
+    if (softwareSwitch) {
+        return softwareSwitch;
+    }
+
+    if (locale === 'es') {
+        return safePath.startsWith('/es/') ? `/en/${safePath.slice(4)}` : '/en/';
+    }
+
+    return safePath.startsWith('/en/') ? `/es/${safePath.slice(4)}` : '/es/';
 }
 
 function walkIndexPages(dir) {
@@ -121,6 +314,16 @@ function localizedIndexPages() {
     );
 }
 
+function publicAnalyticsPages() {
+    return [
+        {
+            filePath: path.join(REPO_ROOT, 'index.html'),
+            relativePath: 'index.html',
+        },
+        ...localizedIndexPages(),
+    ];
+}
+
 test.describe('Public SEO routing metadata', () => {
     for (const route of SEO_CASES) {
         test(`route ${route.path} publishes canonical + hreflang`, async ({
@@ -133,11 +336,23 @@ test.describe('Public SEO routing metadata', () => {
                 absolute(route.canonicalPath)
             );
             await expect(
-                page.locator('link[rel="alternate"][hreflang="en"]')
-            ).toHaveAttribute('href', absolute(route.enPath));
-            await expect(
-                page.locator('link[rel="alternate"][hreflang="es"]')
-            ).toHaveAttribute('href', absolute(route.esPath));
+                page.locator(
+                    `link[rel="alternate"][hreflang="${route.currentLocale}"]`
+                )
+            ).toHaveAttribute('href', absolute(route.currentLocalePath));
+            if (route.otherLocalePath) {
+                await expect(
+                    page.locator(
+                        `link[rel="alternate"][hreflang="${route.otherLocale}"]`
+                    )
+                ).toHaveAttribute('href', absolute(route.otherLocalePath));
+            } else {
+                await expect(
+                    page.locator(
+                        `link[rel="alternate"][hreflang="${route.otherLocale}"]`
+                    )
+                ).toHaveCount(0);
+            }
             await expect(
                 page.locator('link[rel="alternate"][hreflang="x-default"]')
             ).toHaveAttribute('href', absolute(route.xDefaultPath));
@@ -173,23 +388,60 @@ test.describe('Public SEO files', () => {
     test('localized public html files expose canonical and hreflang metadata', async () => {
         for (const { filePath, relativePath } of localizedIndexPages()) {
             const html = fs.readFileSync(filePath, 'utf8');
+            const routePath = relativeIndexFileToRoute(relativePath);
+            const currentLocale = routePath.startsWith('/en/') ? 'en' : 'es';
+            const otherLocale = currentLocale === 'es' ? 'en' : 'es';
+            const counterpartPath = counterpartRoutePath(routePath);
+            const counterpartExists = fs.existsSync(
+                path.join(REPO_ROOT, routeToRelativeIndexFile(counterpartPath))
+            );
 
             expect(
                 /rel=["']canonical["']/i.test(html),
                 `${relativePath} should publish canonical metadata`
             ).toBeTruthy();
             expect(
-                /hreflang=["']en["']/i.test(html),
-                `${relativePath} should publish hreflang=en`
-            ).toBeTruthy();
-            expect(
-                /hreflang=["']es["']/i.test(html),
-                `${relativePath} should publish hreflang=es`
+                new RegExp(`hreflang=["']${currentLocale}["']`, 'i').test(html),
+                `${relativePath} should publish hreflang=${currentLocale}`
             ).toBeTruthy();
             expect(
                 /hreflang=["']x-default["']/i.test(html),
                 `${relativePath} should publish hreflang=x-default`
             ).toBeTruthy();
+            if (counterpartExists) {
+                expect(
+                    new RegExp(`hreflang=["']${otherLocale}["']`, 'i').test(
+                        html
+                    ),
+                    `${relativePath} should publish hreflang=${otherLocale}`
+                ).toBeTruthy();
+            }
+        }
+    });
+
+    test('public home and localized pages delegate GA4 bootstrap to the consent shell', async () => {
+        for (const { filePath, relativePath } of publicAnalyticsPages()) {
+            const html = fs.readFileSync(filePath, 'utf8');
+
+            expect(
+                /\/js\/public-v6-shell\.js\?v=public-v6-shell-20260315-r3/.test(
+                    html
+                ),
+                `${relativePath} should load the consent-managed public shell`
+            ).toBeTruthy();
+            expect(
+                new RegExp(
+                    `googletagmanager\\.com/gtag/js\\?id=${GA4_MEASUREMENT_ID}`
+                ).test(html),
+                `${relativePath} should not load the GA4 gtag.js bootstrap inline`
+            ).toBeFalsy();
+            expect(
+                /window\.dataLayer\s*=\s*window\.dataLayer\s*\|\|\s*\[\]/.test(
+                    html
+                ),
+                `${relativePath} should not initialize dataLayer inline`
+            ).toBeFalsy();
+            expect(/gtag\(['"]config['"]/.test(html)).toBeFalsy();
         }
     });
 
