@@ -96,6 +96,7 @@ final class ClinicalHistoryOpsSnapshot
             'draft' => 0,
             'ready_to_issue' => 0,
             'issued' => 0,
+            'received' => 0,
             'cancelled' => 0,
             'incomplete' => 0,
         ];

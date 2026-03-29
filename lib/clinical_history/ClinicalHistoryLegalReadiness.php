@@ -92,6 +92,14 @@ final class ClinicalHistoryLegalReadiness
         $requiredImagingOrders = array_values(array_filter($imagingOrders, static function (array $imagingOrder): bool {
             return ($imagingOrder['requiredForCurrentPlan'] ?? false) === true;
         }));
+        $imagingOrderReportEvaluations = array_map(
+            static function (array $imagingOrder): array {
+                return ClinicalHistoryRepository::evaluateImagingReport(
+                    is_array($imagingOrder['result'] ?? null) ? $imagingOrder['result'] : []
+                );
+            },
+            $imagingOrders
+        );
         $imagingOrderScope = $requiredImagingOrders !== []
             ? $requiredImagingOrders
             : $imagingOrders;
@@ -429,14 +437,32 @@ final class ClinicalHistoryLegalReadiness
             );
             $pendingStatuses = array_values(array_intersect($statuses, ['draft', 'ready_to_issue', 'incomplete']));
             if ($pendingStatuses === []) {
+                $hasReceived = count(array_filter($statuses, static fn (string $status): bool => $status === 'received')) > 0;
                 $hasIssued = count(array_filter($statuses, static fn (string $status): bool => $status === 'issued')) > 0;
-                $hcu012AStatus = $hasIssued ? 'issued' : 'cancelled';
+                $hcu012AStatus = $hasReceived
+                    ? 'received'
+                    : ($hasIssued ? 'issued' : 'cancelled');
             } elseif (in_array('incomplete', $statuses, true)) {
                 $hcu012AStatus = 'incomplete';
             } elseif (in_array('draft', $statuses, true)) {
                 $hcu012AStatus = 'draft';
             } else {
                 $hcu012AStatus = 'ready_to_issue';
+            }
+        }
+        $hcu012AReportStatus = 'not_applicable';
+        if ($imagingOrderReportEvaluations !== []) {
+            $hcu012AReportStatus = 'not_received';
+            $reportStatuses = array_map(
+                static fn (array $evaluation): string => ClinicalHistoryRepository::trimString($evaluation['status'] ?? 'not_received'),
+                $imagingOrderReportEvaluations
+            );
+            if (in_array('received', $reportStatuses, true)) {
+                $hcu012AReportStatus = 'received';
+            } elseif (in_array('ready_to_receive', $reportStatuses, true)) {
+                $hcu012AReportStatus = 'ready_to_receive';
+            } elseif (in_array('draft', $reportStatuses, true)) {
+                $hcu012AReportStatus = 'draft';
             }
         }
         $requiredImagingOrderPending = count(array_filter(
@@ -688,6 +714,7 @@ final class ClinicalHistoryLegalReadiness
             'hcu012AStatus' => [
                 'status' => $hcu012AStatus,
                 'label' => match ($hcu012AStatus) {
+                    'received' => 'HCU-012A resultado recibido',
                     'issued' => 'HCU-012A emitida',
                     'ready_to_issue' => 'HCU-012A lista para emitir',
                     'cancelled' => 'HCU-012A cancelada',
@@ -696,6 +723,7 @@ final class ClinicalHistoryLegalReadiness
                     default => 'HCU-012A no aplica',
                 },
                 'summary' => match ($hcu012AStatus) {
+                    'received' => 'La solicitud de imagenología ya fue emitida y su resultado radiológico quedó recibido como respaldo documental.',
                     'issued' => 'La solicitud de imagenología requerida ya fue emitida dentro del episodio.',
                     'ready_to_issue' => 'La solicitud de imagenología ya cubre los campos mínimos del MSP y está lista para emitirse.',
                     'cancelled' => 'La solicitud de imagenología del episodio fue cancelada y no bloquea el cierre actual.',
@@ -717,6 +745,23 @@ final class ClinicalHistoryLegalReadiness
                     'ready_to_receive' => 'El informe del consultado ya cubre los campos mínimos para recepción formal.',
                     'draft' => 'Existe un borrador del informe del consultado aún sin recepción formal.',
                     default => 'Todavía no se ha recibido informe del consultado.',
+                },
+            ],
+            'hcu012AReportStatus' => [
+                'status' => $hcu012AReportStatus,
+                'label' => match ($hcu012AReportStatus) {
+                    'received' => 'Resultado radiológico recibido',
+                    'ready_to_receive' => 'Resultado listo para recibir',
+                    'draft' => 'Resultado radiológico en borrador',
+                    'not_received' => 'Resultado radiológico no recibido',
+                    default => 'Resultado radiológico no aplica',
+                },
+                'summary' => match ($hcu012AReportStatus) {
+                    'received' => 'El resultado radiológico ya quedó capturado y anexado al episodio.',
+                    'ready_to_receive' => 'El resultado radiológico ya cubre los campos mínimos para recepción formal.',
+                    'draft' => 'Existe un borrador del resultado radiológico aún sin recepción formal.',
+                    'not_received' => 'Todavía no se ha recibido resultado radiológico para las órdenes emitidas.',
+                    default => 'No hay resultado radiológico aplicable para este episodio.',
                 },
             ],
             'hcu024Status' => [

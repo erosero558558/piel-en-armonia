@@ -403,6 +403,10 @@ final class ClinicalHistoryService
             return $this->mutateClinicalRecord($store, $payload, 'cancel-imaging-order');
         }
 
+        if ($action === 'receive_imaging_report') {
+            return $this->mutateClinicalRecord($store, $payload, 'receive-imaging-report');
+        }
+
         if ($action === 'issue_prescription') {
             return $this->mutateClinicalRecord($store, $payload, 'prescription');
         }
@@ -789,6 +793,9 @@ final class ClinicalHistoryService
         $hcu012AStatus = is_array($legalReadiness['hcu012AStatus'] ?? null)
             ? $legalReadiness['hcu012AStatus']
             : ['status' => 'not_applicable', 'label' => 'HCU-012A no aplica', 'summary' => ''];
+        $hcu012AReportStatus = is_array($legalReadiness['hcu012AReportStatus'] ?? null)
+            ? $legalReadiness['hcu012AReportStatus']
+            : ['status' => 'not_received', 'label' => 'Resultado radiologico no recibido', 'summary' => ''];
         $hcu024Status = is_array($legalReadiness['hcu024Status'] ?? null)
             ? $legalReadiness['hcu024Status']
             : ['status' => 'not_applicable', 'label' => 'HCU-024 no aplica', 'summary' => ''];
@@ -847,6 +854,7 @@ final class ClinicalHistoryService
                 'hcu007Status' => $hcu007Status,
                 'hcu010AStatus' => $hcu010AStatus,
                 'hcu012AStatus' => $hcu012AStatus,
+                'hcu012AReportStatus' => $hcu012AReportStatus,
                 'hcu024Status' => $hcu024Status,
             ],
             'documents' => $documents,
@@ -1146,6 +1154,14 @@ final class ClinicalHistoryService
             $draft = $imagingOrderResult['draft'];
             $modeAuditReason = 'imaging_order_cancelled';
             $modeAuditMeta = $imagingOrderResult['meta'] ?? [];
+        } elseif ($mode === 'receive-imaging-report') {
+            $imagingOrderResult = $this->applyReceiveImagingReportAction($session, $draft, $payload);
+            if (($imagingOrderResult['ok'] ?? false) !== true) {
+                return $imagingOrderResult;
+            }
+            $draft = $imagingOrderResult['draft'];
+            $modeAuditReason = 'imaging_report_received';
+            $modeAuditMeta = $imagingOrderResult['meta'] ?? [];
         } elseif (in_array($mode, ['declare-consent', 'deny-consent', 'revoke-consent'], true)) {
             $consentDecisionResult = $this->applyConsentDecisionAction($session, $draft, $payload, $mode);
             if (($consentDecisionResult['ok'] ?? false) !== true) {
@@ -1199,7 +1215,7 @@ final class ClinicalHistoryService
                 'finalDraftVersion' => (int) ($draft['approval']['finalDraftVersion'] ?? 0),
             ]);
         } else {
-            $resolveEvents = in_array($mode, ['save', 'declare-consent', 'deny-consent', 'revoke-consent', 'create-interconsultation', 'issue-interconsultation', 'cancel-interconsultation', 'receive-interconsult-report', 'create-lab-order', 'issue-lab-order', 'cancel-lab-order', 'prescription', 'certificate'], true)
+            $resolveEvents = in_array($mode, ['save', 'declare-consent', 'deny-consent', 'revoke-consent', 'create-interconsultation', 'issue-interconsultation', 'cancel-interconsultation', 'receive-interconsult-report', 'create-lab-order', 'issue-lab-order', 'cancel-lab-order', 'create-imaging-order', 'issue-imaging-order', 'cancel-imaging-order', 'receive-imaging-report', 'prescription', 'certificate'], true)
                 && ((bool) ($draft['requiresHumanReview'] ?? true) === false);
             $store = $this->touchSessionEventsForReview($store, $session, $resolveEvents);
 
@@ -1309,6 +1325,39 @@ final class ClinicalHistoryService
                     'caseId' => (string) ($session['caseId'] ?? ''),
                     'labOrderId' => (string) ($modeAuditMeta['labOrderId'] ?? ''),
                     'cancelReason' => (string) ($modeAuditMeta['cancelReason'] ?? ''),
+                ]);
+            } elseif ($mode === 'create-imaging-order') {
+                audit_log_event('clinical_history.imaging_order_created', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'imagingOrderId' => (string) ($modeAuditMeta['imagingOrderId'] ?? ''),
+                ]);
+            } elseif ($mode === 'select-imaging-order') {
+                audit_log_event('clinical_history.imaging_order_selected', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'imagingOrderId' => (string) ($modeAuditMeta['imagingOrderId'] ?? ''),
+                ]);
+            } elseif ($mode === 'issue-imaging-order') {
+                audit_log_event('clinical_history.imaging_order_issued', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'imagingOrderId' => (string) ($modeAuditMeta['imagingOrderId'] ?? ''),
+                    'status' => (string) ($modeAuditMeta['status'] ?? ''),
+                ]);
+            } elseif ($mode === 'cancel-imaging-order') {
+                audit_log_event('clinical_history.imaging_order_cancelled', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'imagingOrderId' => (string) ($modeAuditMeta['imagingOrderId'] ?? ''),
+                    'cancelReason' => (string) ($modeAuditMeta['cancelReason'] ?? ''),
+                ]);
+            } elseif ($mode === 'receive-imaging-report') {
+                audit_log_event('clinical_history.imaging_report_received', [
+                    'sessionId' => (string) ($session['sessionId'] ?? ''),
+                    'caseId' => (string) ($session['caseId'] ?? ''),
+                    'imagingOrderId' => (string) ($modeAuditMeta['imagingOrderId'] ?? ''),
+                    'radiologistProfessionalName' => (string) ($modeAuditMeta['radiologistProfessionalName'] ?? ''),
                 ]);
             } elseif ($mode === 'prescription') {
                 audit_log_event('clinical_history.prescription_saved', [
@@ -3448,6 +3497,104 @@ final class ClinicalHistoryService
         ];
     }
 
+    private function applyReceiveImagingReportAction(array $session, array $draft, array $payload): array
+    {
+        $draft = ClinicalHistoryRepository::syncImagingOrderArtifacts($draft, $session);
+        $imagingOrders = ClinicalHistoryRepository::normalizeImagingOrders($draft['imagingOrders'] ?? []);
+        $imagingOrderId = ClinicalHistoryRepository::trimString(
+            $payload['imagingOrderId'] ?? $draft['activeImagingOrderId'] ?? ''
+        );
+        if ($imagingOrderId === '') {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe una solicitud de imagenología activa para recibir resultado.',
+                'errorCode' => 'clinical_imaging_order_not_found',
+            ];
+        }
+
+        $targetIndex = null;
+        foreach ($imagingOrders as $index => $imagingOrder) {
+            if (ClinicalHistoryRepository::trimString($imagingOrder['imagingOrderId'] ?? '') === $imagingOrderId) {
+                $targetIndex = $index;
+                break;
+            }
+        }
+        if ($targetIndex === null) {
+            return [
+                'ok' => false,
+                'statusCode' => 404,
+                'error' => 'No existe la solicitud de imagenología indicada para este episodio.',
+                'errorCode' => 'clinical_imaging_order_not_found',
+            ];
+        }
+
+        $imagingOrder = ClinicalHistoryRepository::normalizeImagingOrder($imagingOrders[$targetIndex]);
+        if (ClinicalHistoryRepository::trimString($imagingOrder['status'] ?? '') !== 'issued') {
+            return [
+                'ok' => false,
+                'statusCode' => 409,
+                'error' => 'Solo se puede recibir resultado sobre una solicitud HCU-012A ya emitida.',
+                'errorCode' => 'clinical_imaging_report_requires_issued',
+            ];
+        }
+
+        $report = ClinicalHistoryRepository::normalizeImagingReport(
+            isset($imagingOrder['result']) && is_array($imagingOrder['result']) ? $imagingOrder['result'] : []
+        );
+        $evaluation = ClinicalHistoryRepository::evaluateImagingReport($report);
+        if (($evaluation['readyToReceive'] ?? false) !== true) {
+            return [
+                'ok' => false,
+                'statusCode' => 409,
+                'error' => 'El resultado radiológico todavía no cubre los campos mínimos para recepción.',
+                'errorCode' => 'clinical_imaging_report_incomplete',
+            ];
+        }
+
+        $now = local_date('c');
+        $report['status'] = 'received';
+        $report['receivedBy'] = $this->currentClinicalActor();
+        $report['updatedAt'] = $now;
+        $report['history'][] = [
+            'eventId' => ClinicalHistoryRepository::newOpaqueId('imaging-report-history'),
+            'type' => 'received',
+            'status' => 'received',
+            'actor' => $this->currentClinicalActor(),
+            'actorRole' => 'clinician_admin',
+            'at' => $now,
+            'notes' => 'Resultado radiológico recibido y anexado al HCU-012A.',
+        ];
+
+        $imagingOrder['result'] = ClinicalHistoryRepository::normalizeImagingReport($report);
+        $imagingOrder['resultStatus'] = 'received';
+        $imagingOrder['updatedAt'] = $now;
+        $imagingOrder['history'][] = [
+            'eventId' => ClinicalHistoryRepository::newOpaqueId('imaging-order-history'),
+            'type' => 'report_received',
+            'status' => 'received',
+            'actor' => $this->currentClinicalActor(),
+            'actorRole' => 'clinician_admin',
+            'at' => $now,
+            'notes' => 'Resultado radiológico recibido sobre la solicitud emitida.',
+        ];
+
+        $imagingOrders[$targetIndex] = ClinicalHistoryRepository::normalizeImagingOrder($imagingOrder);
+        $draft['imagingOrders'] = $imagingOrders;
+        $draft['activeImagingOrderId'] = $imagingOrderId;
+        $draft = ClinicalHistoryRepository::syncImagingOrderArtifacts($draft, $session);
+
+        return [
+            'ok' => true,
+            'draft' => $draft,
+            'meta' => [
+                'imagingOrderId' => $imagingOrderId,
+                'radiologistProfessionalName' => (string) ($imagingOrder['result']['radiologistProfessionalName'] ?? ''),
+                'status' => 'received',
+            ],
+        ];
+    }
+
     private function accessAuditActionForMode(string $mode): string
     {
         return match ($mode) {
@@ -3473,6 +3620,7 @@ final class ClinicalHistoryService
             'select-imaging-order' => 'select_imaging_order',
             'issue-imaging-order' => 'issue_imaging_order',
             'cancel-imaging-order' => 'cancel_imaging_order',
+            'receive-imaging-report' => 'receive_imaging_report',
             'prescription' => 'issue_prescription',
             'certificate' => 'issue_certificate',
             'copy-request' => 'request_certified_copy',

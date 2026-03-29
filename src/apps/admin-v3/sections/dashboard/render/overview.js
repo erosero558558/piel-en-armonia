@@ -176,6 +176,9 @@ function resolveClinicalSummary(snapshot) {
     const hcu012AIssued = Number(
         snapshot?.summary?.drafts?.hcu012A?.issued || 0
     );
+    const hcu012AReceived = Number(
+        snapshot?.summary?.drafts?.hcu012A?.received || 0
+    );
     const hcu012AReadyToIssue = Number(
         snapshot?.summary?.drafts?.hcu012A?.ready_to_issue || 0
     );
@@ -215,6 +218,9 @@ function resolveClinicalSummary(snapshot) {
     }
     if (hcu012AReadyToIssue > 0) {
         return `${hcu012AReadyToIssue} solicitud(es) HCU-012A ya están listas para emisión y solo esperan validación final.`;
+    }
+    if (hcu012AReceived > 0) {
+        return `${hcu012AReceived} solicitud(es) HCU-012A ya tienen resultado radiológico recibido como respaldo documental del episodio.`;
     }
     if (overdueCopyRequests > 0) {
         return `${overdueCopyRequests} copia(s) certificada(s) ya vencieron su SLA y requieren entrega o regularizacion.`;

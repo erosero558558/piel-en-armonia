@@ -272,6 +272,13 @@ function buildHcu010AStatusFixture(status) {
 
 function buildHcu012AStatusFixture(status) {
     switch (status) {
+        case 'received':
+            return {
+                status: 'received',
+                label: 'HCU-012A resultado recibido',
+                summary:
+                    'La solicitud de imagenologia ya fue emitida y su resultado radiologico quedó recibido como respaldo documental.',
+            };
         case 'issued':
             return {
                 status: 'issued',
@@ -313,6 +320,39 @@ function buildHcu012AStatusFixture(status) {
                 label: 'HCU-012A no aplica',
                 summary:
                     'No hay solicitud de imagenologia formal exigible para este episodio.',
+            };
+    }
+}
+
+function buildHcu012AReportStatusFixture(status) {
+    switch (status) {
+        case 'received':
+            return {
+                status: 'received',
+                label: 'Resultado radiologico recibido',
+                summary:
+                    'El resultado radiologico ya quedó capturado y anexado al episodio.',
+            };
+        case 'ready_to_receive':
+            return {
+                status: 'ready_to_receive',
+                label: 'Resultado listo para recibir',
+                summary:
+                    'El resultado radiologico ya cubre los campos mínimos para recepción formal.',
+            };
+        case 'draft':
+            return {
+                status: 'draft',
+                label: 'Resultado radiologico en borrador',
+                summary:
+                    'Existe un borrador del resultado radiologico aún sin recepción formal.',
+            };
+        default:
+            return {
+                status: 'not_received',
+                label: 'Resultado radiologico no recibido',
+                summary:
+                    'Todavía no se ha recibido resultado radiologico para la solicitud emitida.',
             };
     }
 }
@@ -405,6 +445,7 @@ function buildImagingOrderFixture(
         imagingOrderId:
             overrides.imagingOrderId || `img-order-${sessionId}-001`,
         status: overrides.status || 'draft',
+        resultStatus: overrides.resultStatus || 'not_received',
         requiredForCurrentPlan: overrides.requiredForCurrentPlan === true,
         priority: overrides.priority || 'routine',
         requestedAt: overrides.requestedAt || '2026-03-15T09:24:00-05:00',
@@ -486,6 +527,38 @@ function buildImagingOrderFixture(
         issuedAt: overrides.issuedAt || '',
         cancelledAt: overrides.cancelledAt || '',
         cancelReason: overrides.cancelReason || '',
+        result: {
+            status: overrides.result?.status || 'not_received',
+            reportedAt: overrides.result?.reportedAt || '',
+            reportedBy: overrides.result?.reportedBy || '',
+            receivedBy: overrides.result?.receivedBy || '',
+            reportingEstablishment:
+                overrides.result?.reportingEstablishment || '',
+            reportingService: overrides.result?.reportingService || '',
+            radiologistProfessionalName:
+                overrides.result?.radiologistProfessionalName || '',
+            radiologistProfessionalRole:
+                overrides.result?.radiologistProfessionalRole || '',
+            studyPerformedSummary:
+                overrides.result?.studyPerformedSummary || '',
+            findings: overrides.result?.findings || '',
+            diagnosticImpression:
+                overrides.result?.diagnosticImpression || '',
+            recommendations: overrides.result?.recommendations || '',
+            followUpIndications:
+                overrides.result?.followUpIndications || '',
+            sourceDocumentType:
+                overrides.result?.sourceDocumentType || '',
+            sourceReference: overrides.result?.sourceReference || '',
+            attachments: Array.isArray(overrides.result?.attachments)
+                ? overrides.result.attachments
+                : [],
+            history: Array.isArray(overrides.result?.history)
+                ? overrides.result.history
+                : [],
+            createdAt: overrides.result?.createdAt || '',
+            updatedAt: overrides.result?.updatedAt || '',
+        },
         history: Array.isArray(overrides.history) ? overrides.history : [],
         createdAt: overrides.createdAt || '2026-03-15T09:24:00-05:00',
         updatedAt: overrides.updatedAt || '2026-03-15T09:24:00-05:00',
@@ -993,13 +1066,34 @@ function buildClinicalRecordPayload({
                   clinicalSummary: item.clinicalSummary,
                   notes: item.notes,
               }));
+    const normalizedImagingReportSnapshots = Array.isArray(documents.imagingReports)
+        ? documents.imagingReports
+        : normalizedImagingOrders
+              .filter((item) => item.resultStatus === 'received')
+              .map((item) => ({
+                  imagingOrderId: item.imagingOrderId,
+                  imagingOrderStatus: item.status,
+                  studySelections: item.studySelections,
+                  requestReason: item.requestReason,
+                  reportStatus: 'received',
+                  finalizedAt: item.result?.reportedAt || '',
+                  snapshotAt: item.result?.reportedAt || '',
+                  report: item.result,
+              }));
     const normalizedHcu012AStatus =
         legalReadiness.hcu012AStatus ||
         buildHcu012AStatusFixture(
-            normalizedActiveImagingOrder?.status ||
+            normalizedActiveImagingOrder?.resultStatus === 'received'
+                ? 'received'
+                : normalizedActiveImagingOrder?.status ||
                 (normalizedImagingOrders.length > 0
                     ? 'draft'
                     : 'not_applicable')
+        );
+    const normalizedHcu012AReportStatus =
+        legalReadiness.hcu012AReportStatus ||
+        buildHcu012AReportStatusFixture(
+            normalizedActiveImagingOrder?.resultStatus || 'not_received'
         );
     const prescriptionMedication = normalizedHcu005.prescriptionItems
         .map((item) => item.medication)
@@ -1273,6 +1367,7 @@ function buildClinicalRecordPayload({
                 interconsultReports: normalizedInterconsultReports,
                 labOrders: normalizedLabOrderSnapshots,
                 imagingOrders: normalizedImagingOrderSnapshots,
+                imagingReports: normalizedImagingReportSnapshots,
             },
             labOrders: normalizedLabOrders,
             activeLabOrderId: normalizedActiveLabOrderId,
@@ -1440,6 +1535,7 @@ function buildClinicalRecordPayload({
             hcu007Status: normalizedHcu007Status.status,
             hcu010AStatus: normalizedHcu010AStatus.status,
             hcu012AStatus: normalizedHcu012AStatus.status,
+            hcu012AReportStatus: normalizedHcu012AReportStatus.status,
             hcu024Status: normalizedHcu024Status.status,
         },
         documents: {
@@ -1493,6 +1589,7 @@ function buildClinicalRecordPayload({
             interconsultReports: normalizedInterconsultReports,
             labOrders: normalizedLabOrderSnapshots,
             imagingOrders: normalizedImagingOrderSnapshots,
+            imagingReports: normalizedImagingReportSnapshots,
         },
         interconsultations: normalizedInterconsultations,
         activeInterconsultationId: normalizedActiveInterconsultationId,
@@ -1620,6 +1717,7 @@ function buildClinicalRecordPayload({
             hcu007ReportStatus: normalizedHcu007ReportStatus,
             hcu010AStatus: normalizedHcu010AStatus,
             hcu012AStatus: normalizedHcu012AStatus,
+            hcu012AReportStatus: normalizedHcu012AReportStatus,
             hcu024Status: normalizedHcu024Status,
         },
         closureChecklist: {
@@ -1641,6 +1739,7 @@ function buildClinicalRecordPayload({
             hcu007ReportStatus: normalizedHcu007ReportStatus,
             hcu010AStatus: normalizedHcu010AStatus,
             hcu012AStatus: normalizedHcu012AStatus,
+            hcu012AReportStatus: normalizedHcu012AReportStatus,
             hcu024Status: normalizedHcu024Status,
         },
         recordsGovernance: normalizedRecordsGovernance,
@@ -3437,6 +3536,101 @@ test('imagenologia HCU-012A permite crear y emitir solicitudes del episodio', as
         },
     });
 
+    const receivedImagingOrder = buildImagingOrderFixture(
+        'Elena Paredes',
+        'chs-hcu012a-001',
+        baseRecord.patientRecord.admission001,
+        baseRecord.draft.clinicianDraft.hcu005,
+        {
+            ...issuedImagingOrder,
+            resultStatus: 'received',
+            result: {
+                status: 'received',
+                reportedAt: '2026-03-16T11:20:00-05:00',
+                reportedBy: 'Lic. Andrea Paredes',
+                receivedBy: 'Dra. Laura Mena',
+                reportingEstablishment: 'Centro de imagen aliado',
+                reportingService: 'Radiologia',
+                radiologistProfessionalName: 'Dr. Rafael Suarez',
+                radiologistProfessionalRole: 'Radiologo',
+                studyPerformedSummary: 'Radiografia de senos paranasales AP y lateral.',
+                findings:
+                    'Sin opacidades agudas. Engrosamiento mucoso leve en seno maxilar derecho.',
+                diagnosticImpression:
+                    'Cambios inflamatorios leves sin hallazgos de alarma.',
+                recommendations:
+                    'Correlacion clinica y seguimiento ambulatorio.',
+                followUpIndications:
+                    'Repetir estudio solo si persiste dolor o aparecen signos de alarma.',
+                sourceDocumentType: 'informe_radiologico',
+                sourceReference: 'IMG-012A-2026',
+                attachments: [
+                    {
+                        id: 1,
+                        kind: 'imaging_report',
+                        originalName: 'ana-ruiz-1.jpg',
+                        mime: 'image/jpeg',
+                        size: 1024,
+                        privatePath: '/private/case-001/a1.jpg',
+                    },
+                ],
+            },
+        }
+    );
+
+    const receivedRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-hcu012a-001',
+        caseId: 'case-hcu012a-001',
+        patientName: 'Elena Paredes',
+        clinicianSummary:
+            'Solicitud de imagenologia emitida y con resultado radiologico recibido.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La solicitud requerida ya fue emitida; el resultado radiologico queda como respaldo documental no bloqueante.',
+            hcu005Status: {
+                status: 'complete',
+                label: 'HCU-005 completo',
+                summary:
+                    'La evolucion, la impresion y el plan terapeutico ya estan trazados.',
+            },
+            hcu012AStatus: buildHcu012AStatusFixture('received'),
+            hcu012AReportStatus: buildHcu012AReportStatusFixture('received'),
+            checklist: [
+                {
+                    code: 'hcu012a_imaging',
+                    status: 'pass',
+                    label: 'HCU-012A imagenologia',
+                    message:
+                        'La solicitud de imagenologia requerida ya fue emitida.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        consent: baseRecord.consent,
+        imagingOrders: [receivedImagingOrder],
+        activeImagingOrderId: receivedImagingOrder.imagingOrderId,
+        documents: {
+            imagingOrders: [issuedImagingOrder],
+            imagingReports: [
+                {
+                    imagingOrderId: receivedImagingOrder.imagingOrderId,
+                    imagingOrderStatus: receivedImagingOrder.status,
+                    studySelections: receivedImagingOrder.studySelections,
+                    requestReason: receivedImagingOrder.requestReason,
+                    reportStatus: 'received',
+                    finalizedAt:
+                        receivedImagingOrder.result.reportedAt,
+                    snapshotAt:
+                        receivedImagingOrder.result.reportedAt,
+                    report: receivedImagingOrder.result,
+                },
+            ],
+        },
+    });
+
     let currentRecord = baseRecord;
     const actionPayloads = [];
 
@@ -3547,6 +3741,15 @@ test('imagenologia HCU-012A permite crear y emitir solicitudes del episodio', as
                     });
                     return true;
                 }
+
+                if (payload.action === 'receive_imaging_report') {
+                    currentRecord = receivedRecord;
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: receivedRecord,
+                    });
+                    return true;
+                }
             }
 
             return false;
@@ -3630,6 +3833,95 @@ test('imagenologia HCU-012A permite crear y emitir solicitudes del episodio', as
     );
     await expect(page.locator('#imaging_order_issued_at')).toHaveValue(
         /2026-03-15/
+    );
+
+    await page
+        .locator('#imaging_report_reported_at')
+        .fill('2026-03-16T11:20:00-05:00');
+    await page
+        .locator('#imaging_report_reported_by')
+        .fill('Lic. Andrea Paredes');
+    await page
+        .locator('#imaging_report_reporting_establishment')
+        .fill('Centro de imagen aliado');
+    await page
+        .locator('#imaging_report_reporting_service')
+        .fill('Radiologia');
+    await page
+        .locator('#imaging_report_radiologist_professional_name')
+        .fill('Dr. Rafael Suarez');
+    await page
+        .locator('#imaging_report_radiologist_professional_role')
+        .fill('Radiologo');
+    await page
+        .locator('#imaging_report_study_performed_summary')
+        .fill('Radiografia de senos paranasales AP y lateral.');
+    await page
+        .locator('#imaging_report_findings')
+        .fill(
+            'Sin opacidades agudas. Engrosamiento mucoso leve en seno maxilar derecho.'
+        );
+    await page
+        .locator('#imaging_report_diagnostic_impression')
+        .fill('Cambios inflamatorios leves sin hallazgos de alarma.');
+    await page
+        .locator('#imaging_report_recommendations')
+        .fill('Correlacion clinica y seguimiento ambulatorio.');
+    await page
+        .locator('#imaging_report_follow_up_indications')
+        .fill(
+            'Repetir estudio solo si persiste dolor o aparecen signos de alarma.'
+        );
+    await page
+        .locator('#imaging_report_source_document_type')
+        .fill('informe_radiologico');
+    await page
+        .locator('#imaging_report_source_reference')
+        .fill('IMG-012A-2026');
+    await page
+        .locator('input[name="imaging_report_attachment_ids"][value="1"]')
+        .check();
+
+    await page
+        .locator(
+            '[data-clinical-review-action="receive-current-imaging-report"]'
+        )
+        .click();
+
+    await expect.poll(() => actionPayloads.length).toBe(3);
+    expect(actionPayloads[2]).toMatchObject({
+        action: 'receive_imaging_report',
+        sessionId: 'chs-hcu012a-001',
+        imagingOrderId: 'img-order-hcu012a-001',
+        imagingOrders: [
+            expect.objectContaining({
+                imagingOrderId: 'img-order-hcu012a-001',
+                result: expect.objectContaining({
+                    reportingEstablishment: 'Centro de imagen aliado',
+                    reportingService: 'Radiologia',
+                    radiologistProfessionalName: 'Dr. Rafael Suarez',
+                    sourceDocumentType: 'informe_radiologico',
+                    attachments: [
+                        expect.objectContaining({
+                            id: 1,
+                        }),
+                    ],
+                }),
+            }),
+        ],
+    });
+
+    await expect(
+        page.locator('#clinicalHistoryLegalReadinessPanel')
+    ).toContainText('HCU-012A resultado recibido');
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Resultado / informe radiologico'
+    );
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Reconciliacion manual requerida'
+    );
+    await expect(page.locator('#clinicalHistoryDraftForm')).toContainText(
+        'Snapshots de resultados radiologicos'
     );
 });
 

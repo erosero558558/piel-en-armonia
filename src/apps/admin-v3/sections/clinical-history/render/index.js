@@ -508,6 +508,7 @@ function emptyImagingOrder() {
     return {
         imagingOrderId: '',
         status: 'draft',
+        resultStatus: 'not_received',
         requiredForCurrentPlan: false,
         priority: 'routine',
         requestedAt: '',
@@ -544,6 +545,27 @@ function emptyImagingOrder() {
         issuedAt: '',
         cancelledAt: '',
         cancelReason: '',
+        result: {
+            status: 'not_received',
+            reportedAt: '',
+            reportedBy: '',
+            receivedBy: '',
+            reportingEstablishment: '',
+            reportingService: '',
+            radiologistProfessionalName: '',
+            radiologistProfessionalRole: '',
+            studyPerformedSummary: '',
+            findings: '',
+            diagnosticImpression: '',
+            recommendations: '',
+            followUpIndications: '',
+            sourceDocumentType: '',
+            sourceReference: '',
+            attachments: [],
+            history: [],
+            createdAt: '',
+            updatedAt: '',
+        },
         history: [],
         createdAt: '',
         updatedAt: '',
@@ -556,6 +578,51 @@ function emptyImagingOrderSnapshot() {
         finalizedAt: '',
         snapshotAt: '',
         ...emptyImagingOrder(),
+    };
+}
+
+function emptyImagingReport() {
+    return {
+        status: 'not_received',
+        reportedAt: '',
+        reportedBy: '',
+        receivedBy: '',
+        reportingEstablishment: '',
+        reportingService: '',
+        radiologistProfessionalName: '',
+        radiologistProfessionalRole: '',
+        studyPerformedSummary: '',
+        findings: '',
+        diagnosticImpression: '',
+        recommendations: '',
+        followUpIndications: '',
+        sourceDocumentType: '',
+        sourceReference: '',
+        attachments: [],
+        history: [],
+        createdAt: '',
+        updatedAt: '',
+    };
+}
+
+function emptyImagingReportSnapshot() {
+    return {
+        snapshotId: '',
+        imagingOrderId: '',
+        imagingOrderStatus: '',
+        studySelections: {
+            conventionalRadiography: [],
+            tomography: [],
+            magneticResonance: [],
+            ultrasound: [],
+            procedures: [],
+            others: [],
+        },
+        requestReason: '',
+        reportStatus: 'draft',
+        finalizedAt: '',
+        snapshotAt: '',
+        report: emptyImagingReport(),
     };
 }
 
@@ -707,6 +774,7 @@ function emptyDraft() {
             interconsultReports: [],
             labOrders: [],
             imagingOrders: [],
+            imagingReports: [],
             consentForms: [],
         },
         interconsultations: [],
@@ -811,6 +879,7 @@ function emptyReview() {
             hcu007ReportStatus: hcu007ReportStatusMeta('not_received'),
             hcu010AStatus: hcu010AStatusMeta('not_applicable'),
             hcu012AStatus: hcu012AStatusMeta('not_applicable'),
+            hcu012AReportStatus: hcu012AReportStatusMeta('not_received'),
             hcu024Status: hcu024StatusMeta('not_applicable'),
         },
         recordsGovernance: {},
@@ -1690,6 +1759,13 @@ function normalizeImagingOrder(imagingOrder, fallback = {}) {
         status:
             normalizeString(safeSource.status ?? safeFallback.status) ||
             defaults.status,
+        resultStatus:
+            normalizeString(
+                safeSource.resultStatus ??
+                    safeSource.result?.status ??
+                    safeFallback.resultStatus ??
+                    safeFallback.result?.status
+            ) || defaults.resultStatus,
         requiredForCurrentPlan:
             safeSource.requiredForCurrentPlan === true ||
             (safeSource.requiredForCurrentPlan === undefined &&
@@ -1771,6 +1847,10 @@ function normalizeImagingOrder(imagingOrder, fallback = {}) {
         cancelReason: normalizeString(
             safeSource.cancelReason ?? safeFallback.cancelReason
         ),
+        result: normalizeImagingReport(
+            safeSource.result ?? safeFallback.result,
+            safeFallback.result
+        ),
         history: normalizeList(safeSource.history ?? safeFallback.history),
         createdAt: normalizeString(
             safeSource.createdAt ?? safeFallback.createdAt
@@ -1798,6 +1878,100 @@ function normalizeImagingOrderSnapshot(snapshot) {
 
 function normalizeImagingOrderSnapshots(items) {
     return normalizeList(items).map(normalizeImagingOrderSnapshot);
+}
+
+function normalizeImagingReport(report, fallback = {}) {
+    const defaults = emptyImagingReport();
+    const safeSource = report && typeof report === 'object' ? report : {};
+    const safeFallback =
+        fallback && typeof fallback === 'object' ? fallback : {};
+
+    return {
+        ...defaults,
+        ...safeFallback,
+        ...safeSource,
+        status:
+            normalizeString(safeSource.status ?? safeFallback.status) ||
+            defaults.status,
+        reportedAt: normalizeString(
+            safeSource.reportedAt ?? safeFallback.reportedAt
+        ),
+        reportedBy: normalizeString(
+            safeSource.reportedBy ?? safeFallback.reportedBy
+        ),
+        receivedBy: normalizeString(
+            safeSource.receivedBy ?? safeFallback.receivedBy
+        ),
+        reportingEstablishment: normalizeString(
+            safeSource.reportingEstablishment ??
+                safeFallback.reportingEstablishment
+        ),
+        reportingService: normalizeString(
+            safeSource.reportingService ?? safeFallback.reportingService
+        ),
+        radiologistProfessionalName: normalizeString(
+            safeSource.radiologistProfessionalName ??
+                safeFallback.radiologistProfessionalName
+        ),
+        radiologistProfessionalRole: normalizeString(
+            safeSource.radiologistProfessionalRole ??
+                safeFallback.radiologistProfessionalRole
+        ),
+        studyPerformedSummary: normalizeString(
+            safeSource.studyPerformedSummary ??
+                safeFallback.studyPerformedSummary
+        ),
+        findings: normalizeString(safeSource.findings ?? safeFallback.findings),
+        diagnosticImpression: normalizeString(
+            safeSource.diagnosticImpression ??
+                safeFallback.diagnosticImpression
+        ),
+        recommendations: normalizeString(
+            safeSource.recommendations ?? safeFallback.recommendations
+        ),
+        followUpIndications: normalizeString(
+            safeSource.followUpIndications ??
+                safeFallback.followUpIndications
+        ),
+        sourceDocumentType: normalizeString(
+            safeSource.sourceDocumentType ?? safeFallback.sourceDocumentType
+        ),
+        sourceReference: normalizeString(
+            safeSource.sourceReference ?? safeFallback.sourceReference
+        ),
+        attachments: normalizeAttachmentList(
+            safeSource.attachments ?? safeFallback.attachments
+        ),
+        history: normalizeList(safeSource.history ?? safeFallback.history),
+        createdAt: normalizeString(
+            safeSource.createdAt ?? safeFallback.createdAt
+        ),
+        updatedAt: normalizeString(
+            safeSource.updatedAt ?? safeFallback.updatedAt
+        ),
+    };
+}
+
+function normalizeImagingReportSnapshot(snapshot) {
+    const source = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    return {
+        ...emptyImagingReportSnapshot(),
+        ...source,
+        imagingOrderId: normalizeString(source.imagingOrderId),
+        imagingOrderStatus: normalizeString(source.imagingOrderStatus),
+        studySelections: normalizeImagingStudySelections(source.studySelections),
+        requestReason: normalizeString(source.requestReason),
+        reportStatus:
+            normalizeString(source.reportStatus || source.report?.status) ||
+            'draft',
+        finalizedAt: normalizeString(source.finalizedAt),
+        snapshotAt: normalizeString(source.snapshotAt),
+        report: normalizeImagingReport(source.report),
+    };
+}
+
+function normalizeImagingReportSnapshots(items) {
+    return normalizeList(items).map(normalizeImagingReportSnapshot);
 }
 
 function normalizeInterconsultation(interconsultation, fallback = {}) {
@@ -2288,6 +2462,7 @@ function evaluateImagingOrder(imagingOrder) {
     const selectedStudies = flattenImagingStudySelections(
         normalized.studySelections
     );
+    const resultEvaluation = evaluateImagingReport(normalized.result);
     const missing = [];
 
     if (!normalizeString(normalized.studyDate)) {
@@ -2334,9 +2509,11 @@ function evaluateImagingOrder(imagingOrder) {
     let status = 'draft';
     if (normalizeString(normalized.status) === 'issued') {
         status =
-            readyToIssue && normalizeString(normalized.issuedAt)
-                ? 'issued'
-                : 'incomplete';
+            resultEvaluation.status === 'received'
+                ? 'received'
+                : readyToIssue && normalizeString(normalized.issuedAt)
+                  ? 'issued'
+                  : 'incomplete';
     } else if (normalizeString(normalized.status) === 'cancelled') {
         status = normalizeString(normalized.cancelledAt)
             ? 'cancelled'
@@ -2349,14 +2526,85 @@ function evaluateImagingOrder(imagingOrder) {
 
     return {
         status,
+        reportStatus: resultEvaluation.status,
         readyToIssue,
         selectedStudiesCount: selectedStudies.length,
         missingFields: Array.from(new Set(missing)),
     };
 }
 
+function evaluateImagingReport(report) {
+    const normalized = normalizeImagingReport(report);
+    const missing = [];
+
+    if (
+        !normalizeString(normalized.reportingEstablishment) &&
+        !normalizeString(normalized.reportingService)
+    ) {
+        missing.push('reporting_service');
+    }
+    if (!normalizeString(normalized.radiologistProfessionalName)) {
+        missing.push('radiologist_professional_name');
+    }
+    if (!normalizeString(normalized.reportedAt)) {
+        missing.push('reported_at');
+    }
+    if (
+        !normalizeString(normalized.findings) &&
+        !normalizeString(normalized.diagnosticImpression)
+    ) {
+        missing.push('findings');
+    }
+    if (
+        !normalizeString(normalized.recommendations) &&
+        !normalizeString(normalized.followUpIndications)
+    ) {
+        missing.push('recommendations');
+    }
+
+    const readyToReceive = missing.length === 0;
+    const hasAnyContent =
+        normalizeString(normalized.reportedAt) ||
+        normalizeString(normalized.reportedBy) ||
+        normalizeString(normalized.receivedBy) ||
+        normalizeString(normalized.reportingEstablishment) ||
+        normalizeString(normalized.reportingService) ||
+        normalizeString(normalized.radiologistProfessionalName) ||
+        normalizeString(normalized.radiologistProfessionalRole) ||
+        normalizeString(normalized.studyPerformedSummary) ||
+        normalizeString(normalized.findings) ||
+        normalizeString(normalized.diagnosticImpression) ||
+        normalizeString(normalized.recommendations) ||
+        normalizeString(normalized.followUpIndications) ||
+        normalizeString(normalized.sourceDocumentType) ||
+        normalizeString(normalized.sourceReference) ||
+        normalized.attachments.length > 0;
+
+    let status = 'not_received';
+    if (normalizeString(normalized.status) === 'received') {
+        status = readyToReceive ? 'received' : 'draft';
+    } else if (readyToReceive) {
+        status = 'ready_to_receive';
+    } else if (hasAnyContent) {
+        status = 'draft';
+    }
+
+    return {
+        status,
+        readyToReceive,
+        missingFields: Array.from(new Set(missing)),
+    };
+}
+
 function hcu012AStatusMeta(status) {
     switch (normalizeString(status)) {
+        case 'received':
+            return {
+                status: 'received',
+                label: 'HCU-012A resultado recibido',
+                summary:
+                    'La solicitud de imagenologia ya fue emitida y su resultado radiologico quedó recibido como respaldo documental.',
+            };
         case 'issued':
             return {
                 status: 'issued',
@@ -2398,6 +2646,46 @@ function hcu012AStatusMeta(status) {
                 label: 'HCU-012A no aplica',
                 summary:
                     'No hay solicitud formal de imagenologia exigible para este episodio.',
+            };
+    }
+}
+
+function hcu012AReportStatusMeta(status) {
+    switch (normalizeString(status)) {
+        case 'received':
+            return {
+                status: 'received',
+                label: 'Resultado radiologico recibido',
+                summary:
+                    'El resultado radiologico ya quedó capturado y anexado al episodio.',
+            };
+        case 'ready_to_receive':
+            return {
+                status: 'ready_to_receive',
+                label: 'Resultado listo para recibir',
+                summary:
+                    'El resultado radiologico ya cubre los campos mínimos para recepción formal.',
+            };
+        case 'draft':
+            return {
+                status: 'draft',
+                label: 'Resultado radiologico en borrador',
+                summary:
+                    'Existe un borrador del resultado radiologico aún sin recepción formal.',
+            };
+        case 'not_received':
+            return {
+                status: 'not_received',
+                label: 'Resultado radiologico no recibido',
+                summary:
+                    'Todavía no se ha recibido resultado radiologico para la solicitud emitida.',
+            };
+        default:
+            return {
+                status: 'not_applicable',
+                label: 'Resultado radiologico no aplica',
+                summary:
+                    'No hay resultado radiologico aplicable para este episodio.',
             };
     }
 }
@@ -3228,6 +3516,7 @@ function normalizeDocuments(documents) {
     );
     const labOrders = normalizeLabOrderSnapshots(source?.labOrders);
     const imagingOrders = normalizeImagingOrderSnapshots(source?.imagingOrders);
+    const imagingReports = normalizeImagingReportSnapshots(source?.imagingReports);
     const consentForms = normalizeConsentFormSnapshots(source?.consentForms);
 
     return {
@@ -3285,6 +3574,7 @@ function normalizeDocuments(documents) {
         interconsultReports,
         labOrders,
         imagingOrders,
+        imagingReports,
         consentForms,
     };
 }
@@ -3530,6 +3820,9 @@ function normalizeLegalReadiness(readiness) {
         ),
         hcu010AStatus: hcu010AStatusMeta(source?.hcu010AStatus?.status),
         hcu012AStatus: hcu012AStatusMeta(source?.hcu012AStatus?.status),
+        hcu012AReportStatus: hcu012AReportStatusMeta(
+            source?.hcu012AReportStatus?.status
+        ),
         hcu024Status: hcu024StatusMeta(source?.hcu024Status?.status),
     };
 }
@@ -4596,7 +4889,7 @@ function buildSummaryCards(review) {
             value: hcu012AStatus.label,
             meta: hcu012AStatus.summary,
             tone:
-                hcu012AStatus.status === 'issued'
+                ['issued', 'received'].includes(hcu012AStatus.status)
                     ? 'success'
                     : ['ready_to_issue', 'incomplete', 'draft'].includes(
                             hcu012AStatus.status
@@ -7806,6 +8099,17 @@ function buildClinicalHistoryImagingOrderSection(review, draft, disabled) {
     const imagingSnapshots = normalizeImagingOrderSnapshots(
         draft.documents.imagingOrders
     );
+    const activeReport = hydratedImagingOrder
+        ? normalizeImagingReport(hydratedImagingOrder.result)
+        : emptyImagingReport();
+    const activeReportStatus = hcu012AReportStatusMeta(
+        hydratedImagingOrder
+            ? evaluateImagingReport(activeReport).status
+            : 'not_received'
+    );
+    const imagingReportSnapshots = normalizeImagingReportSnapshots(
+        draft.documents.imagingReports
+    );
     const diagnoses = hydratedImagingOrder
         ? normalizeInterconsultationDiagnoses(hydratedImagingOrder.diagnoses)
         : normalizeInterconsultationDiagnoses([]);
@@ -7819,10 +8123,57 @@ function buildClinicalHistoryImagingOrderSection(review, draft, disabled) {
         ? normalizeImagingStudySelections(hydratedImagingOrder.studySelections)
         : normalizeImagingStudySelections({});
     const selectedStudies = flattenImagingStudySelections(studySelections);
+    const supportAttachments = normalizeAttachmentList(draft.intake.adjuntos);
+    const selectedAttachmentIds = new Set(
+        normalizeAttachmentList(activeReport.attachments).map((attachment) =>
+            String(attachment.id || '')
+        )
+    );
+    const attachmentSelector =
+        supportAttachments.length > 0
+            ? supportAttachments
+                  .map((attachment) => {
+                      const attachmentId = String(attachment.id || '');
+                      const checked =
+                          attachmentId &&
+                          selectedAttachmentIds.has(attachmentId);
+                      const meta = [
+                          normalizeString(attachment.kind) || 'archivo',
+                          normalizeString(attachment.mime),
+                          attachment.size > 0
+                              ? formatBytes(attachment.size)
+                              : '',
+                      ]
+                          .filter(Boolean)
+                          .join(' • ');
+                      return `
+                            <label class="clinical-history-inline-checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="imaging_report_attachment_ids"
+                                    value="${escapeHtml(attachmentId)}"
+                                    ${checked ? 'checked' : ''}
+                                    ${disabled ? 'disabled' : ''}
+                                />
+                                <span>
+                                    <strong>${escapeHtml(
+                                        attachment.originalName ||
+                                            `Adjunto ${attachmentId}`
+                                    )}</strong>
+                                    <small>${escapeHtml(meta || 'Soporte clínico')}</small>
+                                </span>
+                            </label>
+                        `;
+                  })
+                  .join('')
+            : buildEmptyClinicalCard(
+                  'Sin adjuntos clínicos disponibles',
+                  'Cuando el caso tenga adjuntos de clinical_uploads podrás seleccionarlos como respaldo del informe radiológico.'
+              );
 
     return buildClinicalHistorySection(
         'Imagenologia HCU-form.012A/2008',
-        'Solicitud formal de imagenologia trazable al formulario MSP, con emision y cancelacion documentadas por episodio.',
+        'Solicitud formal de imagenologia trazable al formulario MSP, con emision, cancelacion y recepcion estructurada del resultado radiologico por episodio.',
         `
                 <input
                     type="hidden"
@@ -7835,7 +8186,7 @@ function buildClinicalHistoryImagingOrderSection(review, draft, disabled) {
                         'HCU-012A',
                         activeStatus.label,
                         activeStatus.summary,
-                        activeStatus.status === 'issued'
+                        ['issued', 'received'].includes(activeStatus.status)
                             ? 'success'
                             : ['ready_to_issue', 'incomplete', 'draft'].includes(
                                     activeStatus.status
@@ -7876,12 +8227,28 @@ function buildClinicalHistoryImagingOrderSection(review, draft, disabled) {
                         selectedStudies.length > 0 ? 'success' : 'neutral'
                     )}
                     ${summaryStatCard(
+                        'Resultado',
+                        activeReportStatus.label,
+                        activeReportStatus.summary,
+                        activeReportStatus.status === 'received'
+                            ? 'success'
+                            : ['ready_to_receive', 'draft'].includes(
+                                    activeReportStatus.status
+                                )
+                              ? 'warning'
+                              : 'neutral'
+                    )}
+                    ${summaryStatCard(
                         'Snapshots',
-                        String(imagingSnapshots.length),
-                        imagingSnapshots.length > 0
-                            ? 'Snapshots emitidos o cancelados del HCU-012A.'
+                        String(
+                            imagingSnapshots.length + imagingReportSnapshots.length
+                        ),
+                        imagingSnapshots.length + imagingReportSnapshots.length > 0
+                            ? 'Incluye snapshots emitidos/cancelados y resultados radiologicos recibidos.'
                             : 'Todavia no hay snapshots HCU-012A emitidos.',
-                        imagingSnapshots.length > 0 ? 'success' : 'neutral'
+                        imagingSnapshots.length + imagingReportSnapshots.length > 0
+                            ? 'success'
+                            : 'neutral'
                     )}
                 </div>
                 <div class="toolbar-row clinical-history-actions-row">
@@ -7905,6 +8272,13 @@ function buildClinicalHistoryImagingOrderSection(review, draft, disabled) {
                         ${disabled || !hydratedImagingOrder ? 'disabled' : ''}
                     >
                         Cancelar solicitud
+                    </button>
+                    <button
+                        type="button"
+                        data-clinical-review-action="receive-current-imaging-report"
+                        ${disabled || !hydratedImagingOrder ? 'disabled' : ''}
+                    >
+                        Recibir resultado
                     </button>
                 </div>
                 <div class="toolbar-row clinical-history-actions-row">
@@ -8108,6 +8482,155 @@ function buildClinicalHistoryImagingOrderSection(review, draft, disabled) {
                                     disabled,
                                 }
                             )}
+                            <div class="clinical-history-section-block">
+                                <div class="clinical-history-event-head">
+                                    <strong>Resultado / informe radiologico</strong>
+                                    <span class="clinical-history-mini-chip">${escapeHtml(
+                                        activeReportStatus.label
+                                    )}</span>
+                                </div>
+                                ${buildClinicalHistoryInlineGrid([
+                                    inputField(
+                                        'imaging_report_reported_at',
+                                        'Fecha/hora del informe',
+                                        activeReport.reportedAt,
+                                        { disabled }
+                                    ),
+                                    inputField(
+                                        'imaging_report_reported_by',
+                                        'Cargado por',
+                                        activeReport.reportedBy,
+                                        {
+                                            disabled,
+                                            placeholder:
+                                                'Staff o medico que registra el resultado',
+                                        }
+                                    ),
+                                    inputField(
+                                        'imaging_report_reporting_establishment',
+                                        'Establecimiento respondiente',
+                                        activeReport.reportingEstablishment,
+                                        { disabled }
+                                    ),
+                                    inputField(
+                                        'imaging_report_reporting_service',
+                                        'Servicio respondiente',
+                                        activeReport.reportingService,
+                                        { disabled }
+                                    ),
+                                    inputField(
+                                        'imaging_report_radiologist_professional_name',
+                                        'Profesional/radiologo',
+                                        activeReport.radiologistProfessionalName,
+                                        { disabled }
+                                    ),
+                                    inputField(
+                                        'imaging_report_radiologist_professional_role',
+                                        'Rol del profesional',
+                                        activeReport.radiologistProfessionalRole,
+                                        { disabled }
+                                    ),
+                                ])}
+                                ${textareaField(
+                                    'imaging_report_study_performed_summary',
+                                    'Estudio realizado',
+                                    activeReport.studyPerformedSummary,
+                                    {
+                                        rows: 2,
+                                        placeholder:
+                                            'Describe el estudio efectivamente realizado o la modalidad reportada.',
+                                        disabled,
+                                    }
+                                )}
+                                ${textareaField(
+                                    'imaging_report_findings',
+                                    'Hallazgos',
+                                    activeReport.findings,
+                                    {
+                                        rows: 3,
+                                        placeholder:
+                                            'Hallazgos radiologicos relevantes del informe.',
+                                        disabled,
+                                    }
+                                )}
+                                ${textareaField(
+                                    'imaging_report_diagnostic_impression',
+                                    'Impresion diagnostica',
+                                    activeReport.diagnosticImpression,
+                                    {
+                                        rows: 3,
+                                        placeholder:
+                                            'Criterio o impresion diagnostica del estudio.',
+                                        disabled,
+                                    }
+                                )}
+                                ${textareaField(
+                                    'imaging_report_recommendations',
+                                    'Recomendaciones',
+                                    activeReport.recommendations,
+                                    {
+                                        rows: 3,
+                                        placeholder:
+                                            'Recomendaciones o conducta sugerida desde imagenologia.',
+                                        disabled,
+                                    }
+                                )}
+                                ${textareaField(
+                                    'imaging_report_follow_up_indications',
+                                    'Indicaciones de seguimiento',
+                                    activeReport.followUpIndications,
+                                    {
+                                        rows: 2,
+                                        placeholder:
+                                            'Indicaciones posteriores o hallazgos a vigilar.',
+                                        disabled,
+                                    }
+                                )}
+                                ${buildClinicalHistoryInlineGrid([
+                                    inputField(
+                                        'imaging_report_source_document_type',
+                                        'Tipo de documento fuente',
+                                        activeReport.sourceDocumentType,
+                                        { disabled }
+                                    ),
+                                    inputField(
+                                        'imaging_report_source_reference',
+                                        'Referencia del documento',
+                                        activeReport.sourceReference,
+                                        { disabled }
+                                    ),
+                                    inputField(
+                                        'imaging_report_received_by',
+                                        'Recibido por',
+                                        activeReport.receivedBy,
+                                        { disabled: true }
+                                    ),
+                                ])}
+                                <div class="clinical-history-section-block">
+                                    <div class="clinical-history-event-head">
+                                        <strong>Adjuntos del informe</strong>
+                                        <span class="clinical-history-mini-chip">${escapeHtml(
+                                            String(activeReport.attachments.length)
+                                        )}</span>
+                                    </div>
+                                    <div class="clinical-history-inline-checks">
+                                        ${attachmentSelector}
+                                    </div>
+                                    <small>Reutiliza adjuntos ya cargados por clinical_uploads.</small>
+                                </div>
+                                ${
+                                    activeReportStatus.status === 'received'
+                                        ? `
+                                            <div class="clinical-history-section-block">
+                                                <div class="clinical-history-event-head">
+                                                    <strong>Reconciliacion manual requerida</strong>
+                                                </div>
+                                                <p>Informe recibido: reconciliar manualmente en HCU-005/HCU-024 si aplica.</p>
+                                            </div>
+                                        `
+                                        : ''
+                                }
+                            </div>
                             ${buildClinicalHistoryInlineGrid([
                                 inputField(
                                     'imaging_order_issued_at',
@@ -8166,6 +8689,53 @@ function buildClinicalHistoryImagingOrderSection(review, draft, disabled) {
                                                                         ' • '
                                                                     ) ||
                                                                         'Sin estudios visibles'
+                                                                )}</p>
+                                                            </article>
+                                                        `
+                                                  )
+                                                  .join('')
+                                    }
+                                </div>
+                            </div>
+                            <div class="clinical-history-section-block">
+                                <div class="clinical-history-event-head">
+                                    <strong>Snapshots de resultados radiologicos</strong>
+                                    <span class="clinical-history-mini-chip">${escapeHtml(
+                                        String(imagingReportSnapshots.length)
+                                    )}</span>
+                                </div>
+                                <div class="clinical-history-events">
+                                    ${
+                                        imagingReportSnapshots.length === 0
+                                            ? buildEmptyClinicalCard(
+                                                  'Sin resultados recibidos',
+                                                  'Los resultados radiologicos recibidos quedaran congelados aqui como respaldo documental.'
+                                              )
+                                            : imagingReportSnapshots
+                                                  .map(
+                                                      (snapshot) => `
+                                                            <article class="clinical-history-event-card" data-tone="neutral">
+                                                                <div class="clinical-history-event-head">
+                                                                    <span class="clinical-history-mini-chip">${escapeHtml(
+                                                                        hcu012AReportStatusMeta(
+                                                                            snapshot.reportStatus
+                                                                        ).label
+                                                                    )}</span>
+                                                                    <span class="clinical-history-mini-chip">${escapeHtml(
+                                                                        readableTimestamp(
+                                                                            snapshot.finalizedAt ||
+                                                                                snapshot.snapshotAt
+                                                                        )
+                                                                    )}</span>
+                                                                </div>
+                                                                <p>${escapeHtml(
+                                                                    snapshot.report
+                                                                        ?.studyPerformedSummary ||
+                                                                        snapshot.report
+                                                                            ?.diagnosticImpression ||
+                                                                        snapshot.report
+                                                                            ?.findings ||
+                                                                        'Sin resumen visible'
                                                                 )}</p>
                                                             </article>
                                                         `
@@ -9243,6 +9813,16 @@ function serializeDraftForm(form, baseDraft) {
             imagingOrders[activeImagingOrderIndex],
             snapshot
         );
+        const supportAttachments = normalizeAttachmentList(
+            snapshot.intake.adjuntos
+        );
+        const selectedReportAttachmentIds = Array.from(
+            form.querySelectorAll(
+                'input[name="imaging_report_attachment_ids"]:checked'
+            )
+        )
+            .map((field) => normalizeString(field.value))
+            .filter(Boolean);
         imagingOrders[activeImagingOrderIndex] = normalizeImagingOrder({
             ...baseImagingOrder,
             requestedAt:
@@ -9320,6 +9900,48 @@ function serializeDraftForm(form, baseDraft) {
                 readValue('imaging_order_cancelled_at') ||
                 baseImagingOrder.cancelledAt,
             cancelReason: readValue('imaging_order_cancel_reason'),
+            result: normalizeImagingReport({
+                ...baseImagingOrder.result,
+                reportedAt:
+                    readValue('imaging_report_reported_at') ||
+                    baseImagingOrder.result.reportedAt,
+                reportedBy: readValue('imaging_report_reported_by'),
+                receivedBy: baseImagingOrder.result.receivedBy || '',
+                reportingEstablishment: readValue(
+                    'imaging_report_reporting_establishment'
+                ),
+                reportingService: readValue(
+                    'imaging_report_reporting_service'
+                ),
+                radiologistProfessionalName: readValue(
+                    'imaging_report_radiologist_professional_name'
+                ),
+                radiologistProfessionalRole: readValue(
+                    'imaging_report_radiologist_professional_role'
+                ),
+                studyPerformedSummary: readValue(
+                    'imaging_report_study_performed_summary'
+                ),
+                findings: readValue('imaging_report_findings'),
+                diagnosticImpression: readValue(
+                    'imaging_report_diagnostic_impression'
+                ),
+                recommendations: readValue(
+                    'imaging_report_recommendations'
+                ),
+                followUpIndications: readValue(
+                    'imaging_report_follow_up_indications'
+                ),
+                sourceDocumentType: readValue(
+                    'imaging_report_source_document_type'
+                ),
+                sourceReference: readValue('imaging_report_source_reference'),
+                attachments: supportAttachments.filter((attachment) =>
+                    selectedReportAttachmentIds.includes(
+                        normalizeString(attachment.id)
+                    )
+                ),
+            }),
         });
     }
     snapshot.imagingOrders = imagingOrders;
@@ -10178,6 +10800,11 @@ async function submitImagingOrderAction(action, imagingOrderId = '') {
         } else if (action === 'cancel_imaging_order') {
             createToast(
                 `Solicitud HCU-012A cancelada para ${targetLabel}.`,
+                'success'
+            );
+        } else if (action === 'receive_imaging_report') {
+            createToast(
+                `Resultado radiologico recibido para ${targetLabel}.`,
                 'success'
             );
         }
@@ -11072,6 +11699,11 @@ function bindClinicalHistoryEvents() {
 
         if (action === 'cancel-current-imaging-order') {
             await submitImagingOrderAction('cancel_imaging_order');
+            return;
+        }
+
+        if (action === 'receive-current-imaging-report') {
+            await submitImagingOrderAction('receive_imaging_report');
             return;
         }
 
