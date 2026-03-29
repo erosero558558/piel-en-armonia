@@ -213,6 +213,10 @@
         "dispatch:backend": "node bin/dispatch.js --role backend",
         "dispatch:devops": "node bin/dispatch.js --role devops",
         "dispatch:fullstack": "node bin/dispatch.js --role fullstack",
+        "report": "node bin/report.js",
+        "report:md": "node bin/report.js --write",
+        "gate": "node bin/gate.js",
+
 
 
         "agent:board:resolve-revision": "node bin/resolve-board-revision-conflict.js --file AGENT_BOARD.yaml --json",
