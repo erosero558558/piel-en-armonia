@@ -101,6 +101,93 @@ final class ClinicalMediaService
         ];
     }
 
+    public static function claimPatientCaseUploads(array $store, string $caseId, array $legacyPaths, array $originalNames = []): array
+    {
+        $normalizedCaseId = trim($caseId);
+        if ($normalizedCaseId === '') {
+            return [
+                'store' => $store,
+                'uploadIds' => [],
+                'privatePaths' => [],
+                'uploads' => [],
+            ];
+        }
+
+        $claimedIds = [];
+        $privateMarkers = [];
+        $uploads = [];
+
+        foreach (array_values($legacyPaths) as $index => $legacyPath) {
+            $normalizedPath = trim((string) $legacyPath);
+            if ($normalizedPath === '') {
+                continue;
+            }
+
+            $record = TelemedicineRepository::findClinicalUploadByLegacyPath($store, $normalizedPath);
+            if (!is_array($record)) {
+                $staged = self::stageLegacyUpload(
+                    $store,
+                    [
+                        'path' => $normalizedPath,
+                        'diskPath' => self::resolveLegacyDiskPath($normalizedPath),
+                        'name' => (string) ($originalNames[$index] ?? ''),
+                    ],
+                    ['source' => 'public_preconsultation']
+                );
+                $store = $staged['store'];
+                $record = $staged['upload'];
+            }
+
+            $record['caseId'] = $normalizedCaseId;
+            $record['intakeId'] = null;
+            $record['appointmentId'] = null;
+            $record['kind'] = self::KIND_CASE_PHOTO;
+            $record['storageMode'] = self::STORAGE_PRIVATE_CLINICAL;
+            $record['originalName'] = trim((string) ($record['originalName'] ?? ($originalNames[$index] ?? '')));
+            $record['claimedAt'] = local_date('c');
+
+            $privatePath = trim((string) ($record['privatePath'] ?? ''));
+            if ($privatePath === '') {
+                $privatePath = self::moveToPrivateClinicalStorage($record);
+                $record['privatePath'] = $privatePath;
+            }
+
+            $result = TelemedicineRepository::upsertClinicalUpload($store, $record);
+            $store = $result['store'];
+            $savedUpload = is_array($result['upload'] ?? null) ? $result['upload'] : [];
+
+            $uploadId = (int) ($savedUpload['id'] ?? 0);
+            if ($uploadId > 0) {
+                $claimedIds[] = $uploadId;
+            }
+
+            $savedPrivatePath = trim((string) ($savedUpload['privatePath'] ?? $privatePath));
+            if ($savedPrivatePath !== '') {
+                $privateMarkers[] = 'private://' . $savedPrivatePath;
+            }
+
+            $uploads[] = $savedUpload;
+            self::emitMetric('telemedicine_media_claimed_total', ['kind' => self::KIND_CASE_PHOTO]);
+            audit_log_event('telemedicine.media_claimed', [
+                'uploadId' => $uploadId,
+                'kind' => self::KIND_CASE_PHOTO,
+                'patientCaseId' => $normalizedCaseId,
+                'source' => 'public_preconsultation',
+            ]);
+        }
+
+        return [
+            'store' => $store,
+            'uploadIds' => array_values(array_unique(array_filter($claimedIds, static function ($id): bool {
+                return is_int($id) && $id > 0;
+            }))),
+            'privatePaths' => array_values(array_unique(array_filter($privateMarkers, static function ($path): bool {
+                return is_string($path) && trim($path) !== '';
+            }))),
+            'uploads' => $uploads,
+        ];
+    }
+
     private static function claimCasePhoto(array $store, string $legacyPath, int $intakeId, int $appointmentId, string $originalName = ''): array
     {
         $record = TelemedicineRepository::findClinicalUploadByLegacyPath($store, $legacyPath);

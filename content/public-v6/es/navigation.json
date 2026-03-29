@@ -95,6 +95,12 @@
                 "deck": "Primera cita para entender bien lo que pasa y salir con un plan claro."
             },
             {
+                "label": "Preconsulta digital",
+                "href": "/es/pre-consulta/",
+                "eyebrow": "Entrada clinica",
+                "deck": "Suba fotos y deje el caso listo para que frontdesk responda por WhatsApp con el siguiente paso."
+            },
+            {
                 "label": "Acne y rosacea",
                 "href": "/es/servicios/acne-rosacea/",
                 "eyebrow": "Inflamacion",

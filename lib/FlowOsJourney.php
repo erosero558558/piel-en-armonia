@@ -90,7 +90,9 @@ function flow_os_detect_stage(array $store): string
         ? $store['patient_case_approvals']
         : [];
 
-    $hasOpenCase = false;
+    $hasLeadCaptured = false;
+    $hasIntakeCompleted = false;
+    $hasScheduled = false;
     $hasClosedCase = false;
     $hasCarePlanReady = false;
     $hasFollowUpActive = false;
@@ -105,12 +107,26 @@ function flow_os_detect_stage(array $store): string
             continue;
         }
 
+        if ($status === 'lead_captured') {
+            $hasLeadCaptured = true;
+            continue;
+        }
+
+        if ($status === 'intake_completed') {
+            $hasIntakeCompleted = true;
+            continue;
+        }
+
+        if ($status === 'scheduled' || $status === 'booked') {
+            $hasScheduled = true;
+            continue;
+        }
+
         if (in_array($status, ['resolved', 'closed', 'completed', 'archived'], true)) {
             $hasClosedCase = true;
             continue;
         }
 
-        $hasOpenCase = true;
         if (in_array($status, ['care_plan_ready', 'plan_ready', 'ready_for_plan'], true)) {
             $hasCarePlanReady = true;
         }
@@ -134,20 +150,24 @@ function flow_os_detect_stage(array $store): string
         return 'follow_up_active';
     }
 
-    if ($hasCarePlanReady || $hasOpenCase) {
+    if ($hasCarePlanReady) {
         return 'care_plan_ready';
     }
 
-    if ($appointments !== []) {
+    if ($hasScheduled || $appointments !== []) {
         return 'scheduled';
     }
 
-    if ($callbacks !== []) {
+    if ($hasIntakeCompleted) {
         return 'intake_completed';
     }
 
     if ($hasClosedCase) {
         return 'resolved';
+    }
+
+    if ($hasLeadCaptured || $callbacks !== []) {
+        return 'lead_captured';
     }
 
     return 'lead_captured';

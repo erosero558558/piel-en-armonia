@@ -34,6 +34,7 @@ function register_api_routes(Router $router): void
     $router->add('GET', 'flow-os-manifest', [FlowOsController::class, 'manifest']);
     $router->add('GET', 'flow-os-journey-preview', [FlowOsController::class, 'journeyPreview']);
     $router->add('GET', 'patient-cases', [PatientCaseController::class, 'index']);
+    $router->add('POST', 'patient-cases', [PatientCaseController::class, 'store']);
     $router->add('POST', 'import', [AdminDataController::class, 'import']);
     $router->add('GET', 'telemedicine-intakes', [TelemedicineAdminController::class, 'index']);
     $router->add('PATCH', 'telemedicine-intakes', [TelemedicineAdminController::class, 'patch']);
