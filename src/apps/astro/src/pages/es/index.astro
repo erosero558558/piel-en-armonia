@@ -5,6 +5,7 @@ import HeroShowcaseV6 from '../../components/public-v6/HeroShowcaseV6.astro';
 import NewsStripV6 from '../../components/public-v6/NewsStripV6.astro';
 import EditorialGridV6 from '../../components/public-v6/EditorialGridV6.astro';
 import TrustSignalsV6 from '../../components/public-v6/TrustSignalsV6.astro';
+import GoogleReviewsV6 from '../../components/public-v6/GoogleReviewsV6.astro';
 import CaseStoriesV6 from '../../components/public-v6/CaseStoriesV6.astro';
 import CorporateMatrixV6 from '../../components/public-v6/CorporateMatrixV6.astro';
 import BookingStatusV6 from '../../components/public-v6/BookingStatusV6.astro';
@@ -34,6 +35,7 @@ const navModel = getV6NavigationModel(locale, pathname);
     <NewsStripV6 item={page.newsStrip} navModel={navModel} locale={locale} />
     <EditorialGridV6 section={page.editorial} locale={locale} />
     <TrustSignalsV6 section={page.trustSignals} />
+    <GoogleReviewsV6 section={page.googleReviews} locale={locale} />
     <CaseStoriesV6 locale={locale} />
     <BookingStatusV6 status={page.bookingStatus} locale={locale} />
     <CorporateMatrixV6 section={page.corporateMatrix} locale={locale} />

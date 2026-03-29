@@ -1,0 +1,70 @@
+---
+const { section = {}, locale = 'es' } = Astro.props;
+
+const hasText = (value) => typeof value === 'string' && value.trim().length > 0;
+const normalizeText = (value) => (hasText(value) ? value.trim() : '');
+const safeSection =
+    section && typeof section === 'object' ? section : {};
+const items = (Array.isArray(safeSection.items) ? safeSection.items : [])
+    .map((item, index) => ({
+        id: normalizeText(item?.id) || `google-review-${index + 1}`,
+        name: normalizeText(item?.name),
+        text: normalizeText(item?.text),
+        rating: Number.isFinite(Number(item?.rating))
+            ? Math.max(1, Math.min(5, Math.round(Number(item?.rating))))
+            : 5,
+    }))
+    .filter((item) => item.name);
+const hasSection =
+    normalizeText(safeSection.title) &&
+    normalizeText(safeSection.ctaLabel) &&
+    normalizeText(safeSection.ctaHref) &&
+    items.length > 0;
+const fallbackReviewText =
+    locale === 'en'
+        ? 'Five-star review published on Google Maps.'
+        : 'Resena de cinco estrellas publicada en Google Maps.';
+const starsFor = (rating) => '&#9733;'.repeat(rating);
+---
+
+{
+    hasSection ? (
+        <section class="v6-google-reviews" data-v6-google-reviews>
+            <div class="v6-google-reviews__head">
+                <div>
+                    {normalizeText(safeSection.eyebrow) ? (
+                        <p>{safeSection.eyebrow}</p>
+                    ) : null}
+                    <h2>{safeSection.title}</h2>
+                </div>
+                <a
+                    href={safeSection.ctaHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <span>{safeSection.ctaLabel}</span>
+                    <span aria-hidden="true">{'>'}</span>
+                </a>
+            </div>
+            {normalizeText(safeSection.deck) ? (
+                <p class="v6-google-reviews__deck">{safeSection.deck}</p>
+            ) : null}
+            <div class="v6-google-reviews__grid">
+                {items.map((item) => (
+                    <article class="v6-google-reviews__card" data-v6-google-review>
+                        <div class="v6-google-reviews__meta">
+                            <strong>{item.name}</strong>
+                            <span
+                                class="v6-google-reviews__stars"
+                                aria-label={`${item.rating} de 5`}
+                                set:html={starsFor(item.rating)}
+                            />
+                        </div>
+                        <p>{item.text || fallbackReviewText}</p>
+                        <small>Google Maps</small>
+                    </article>
+                ))}
+            </div>
+        </section>
+    ) : null
+}

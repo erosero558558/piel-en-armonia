@@ -940,6 +940,39 @@ function sanitizeHomeSection(section) {
     };
 }
 
+function sanitizeGoogleReviewItem(item, index) {
+    const name = normalizeText(item?.name);
+    const rating = Number(item?.rating);
+    if (!name) {
+        return null;
+    }
+    return {
+        id: normalizeText(item?.id) || `google-review-${index + 1}`,
+        name,
+        rating:
+            Number.isFinite(rating) && rating >= 1 && rating <= 5
+                ? Math.round(rating)
+                : 5,
+        text: normalizeText(item?.text),
+    };
+}
+
+function sanitizeGoogleReviewsSection(section) {
+    if (!isObject(section)) {
+        return {};
+    }
+    return {
+        eyebrow: normalizeText(section.eyebrow),
+        title: normalizeText(section.title),
+        deck: normalizeText(section.deck),
+        ctaLabel: normalizeText(section.ctaLabel),
+        ctaHref: normalizeHref(section.ctaHref),
+        items: Array.isArray(section.items)
+            ? section.items.map(sanitizeGoogleReviewItem).filter(Boolean)
+            : [],
+    };
+}
+
 function sanitizeHubCard(item) {
     const title = normalizeText(item?.title);
     const href = normalizeHref(item?.href);
@@ -1011,6 +1044,7 @@ function sanitizeHomeData(payload) {
         preloadImage: buildPreloadImageFromHero(hero),
         newsStrip: sanitizeNewsStrip(source.newsStrip),
         editorial: sanitizeHomeSection(source.editorial),
+        googleReviews: sanitizeGoogleReviewsSection(source.googleReviews),
         corporateMatrix: sanitizeHomeSection(source.corporateMatrix),
         bookingStatus: sanitizeBookingStatus(source.bookingStatus),
     };
@@ -2492,9 +2526,7 @@ export function getV6SoftwareNavigationModel(locale, pathname = '/') {
         locale: safeLocale,
         pathname: normalizePath(pathname),
         brand: {
-            logo:
-                normalizeText(softwareBrand.logo) ||
-                'Flow OS',
+            logo: normalizeText(softwareBrand.logo) || 'Flow OS',
             tag:
                 normalizeText(softwareBrand.tag) ||
                 (safeLocale === 'en'

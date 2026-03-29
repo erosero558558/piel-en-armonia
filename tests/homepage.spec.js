@@ -85,4 +85,20 @@ test.describe('Public home V6', () => {
         await waitForBookingStatus(page, 'Online booking under maintenance');
         await expectNoLegacyPublicShell(page);
     });
+
+    test('spanish home exposes the Google Maps reviews block with a clinic listing CTA', async ({
+        page,
+    }) => {
+        await gotoPublicRoute(page, '/es/');
+
+        const section = page.locator('[data-v6-google-reviews]').first();
+        await expect(section).toBeVisible();
+        await expect(section.locator('[data-v6-google-review]')).toHaveCount(4);
+        await expect(section).toContainText('Google Maps');
+        await expect(
+            section.locator(
+                'a[href="https://www.google.com/maps?cid=15768128031462376471"]'
+            )
+        ).toBeVisible();
+    });
 });

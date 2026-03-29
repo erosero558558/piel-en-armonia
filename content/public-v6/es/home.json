@@ -158,6 +158,35 @@
             }
         ]
     },
+    "googleReviews": {
+        "eyebrow": "Google Maps",
+        "title": "Resenas publicas de la ficha de la consulta.",
+        "deck": "Estas reseñas son una muestra breve del perfil publico. Para ver la ficha completa y las resenas mas recientes, abra Google Maps.",
+        "ctaLabel": "Abrir ficha en Google Maps",
+        "ctaHref": "https://www.google.com/maps?cid=15768128031462376471",
+        "items": [
+            {
+                "name": "Jose Gancino",
+                "rating": 5,
+                "text": "Buena atencion, solo faltan los numeros de la oficina y horarios de atencion."
+            },
+            {
+                "name": "Jacqueline Ruiz Torres",
+                "rating": 5,
+                "text": "Excelente atencion y economico."
+            },
+            {
+                "name": "Cris Lema",
+                "rating": 5,
+                "text": ""
+            },
+            {
+                "name": "Camila Escobar",
+                "rating": 5,
+                "text": ""
+            }
+        ]
+    },
     "corporateMatrix": {
         "eyebrow": "Despues de entrar",
         "title": "Despues afine la ruta segun lo que su piel necesita.",
