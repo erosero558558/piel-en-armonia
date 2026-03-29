@@ -19,7 +19,10 @@ import {
     mountTurneroReleaseEvidenceBundleCard,
     renderTurneroReleaseEvidenceBundleCard,
 } from '../../../../../../../../queue-shared/turnero-release-evidence-bundle.js';
-import { mountMultiClinicControlTowerCard } from '../../../../../../../../queue-shared/turnero-release-control-tower.js';
+import {
+    mountMultiClinicControlTowerCard,
+    mountMultiClinicControlTowerCompactCard,
+} from '../../../../../../../../queue-shared/turnero-release-control-tower.js';
 import { mountTurneroReleaseRolloutCommandCenterCard } from '../../../../../../../../queue-shared/turnero-release-rollout-command-center.js';
 import { mountTurneroReleaseExecutivePortfolioStudio } from '../../../../../../../../queue-shared/turnero-release-executive-portfolio-studio.js';
 import { buildTurneroReleaseServiceQualityMetrics } from '../../../../../../../../queue-shared/turnero-release-service-quality-metrics.js';
@@ -46,6 +49,81 @@ import {
 } from '../../../../../../../../queue-shared/flow-os-recovery-freeze.js';
 
 const queueOpsPilotOpenDetailGroupIds = new Set();
+
+function isDetailsElement(element) {
+    if (!element || !element.id) {
+        return false;
+    }
+
+    if (typeof HTMLDetailsElement !== 'undefined') {
+        return element instanceof HTMLDetailsElement;
+    }
+
+    return typeof element.open === 'boolean';
+}
+
+function queryPilotDetailGroups(root) {
+    if (!root || typeof root.querySelectorAll !== 'function') {
+        return [];
+    }
+
+    return Array.from(root.querySelectorAll('.queue-ops-pilot__detail-group'));
+}
+
+function pickFirstNonEmptyArray(...sources) {
+    for (const source of sources) {
+        if (!Array.isArray(source)) {
+            continue;
+        }
+
+        const normalized = source.filter(Boolean);
+        if (normalized.length > 0) {
+            return normalized;
+        }
+    }
+
+    return [];
+}
+
+function buildQueueOpsPilotMultiClinicControlTowerInput(
+    pilot = {},
+    manifest = {},
+    options = {}
+) {
+    const clinicProfile =
+        pilot.clinicProfile ||
+        pilot.turneroClinicProfile ||
+        manifest.clinicProfile ||
+        manifest.turneroClinicProfile ||
+        null;
+    const clinicProfiles = pickFirstNonEmptyArray(
+        pilot.clinicProfiles,
+        pilot.turneroClinicProfiles,
+        manifest.clinicProfiles,
+        manifest.turneroClinicProfiles,
+        pilot.regionalClinics,
+        pilot.turneroRegionalClinics,
+        manifest.regionalClinics,
+        manifest.turneroRegionalClinics
+    );
+
+    return {
+        snapshot: options.snapshot,
+        clinicId: pilot.clinicId,
+        clinicLabel:
+            pilot.clinicName ||
+            pilot.brandName ||
+            clinicProfile?.branding?.name ||
+            pilot.clinicId,
+        clinicProfile,
+        clinicProfiles: clinicProfiles.length
+            ? clinicProfiles
+            : clinicProfile
+              ? [clinicProfile]
+              : [],
+        storage: options.storage,
+    };
+}
 
 function resolvePublicShellDriftOptions(manifest = {}) {
     const config =
@@ -1565,23 +1643,17 @@ async function hydrateQueueOpsPilotReleaseEvidence(
         !freezeMultiClinicControlTower
     ) {
         try {
-            mountMultiClinicControlTowerCard(multiClinicControlTowerHost, {
-                snapshot,
-                clinicId: pilot.clinicId,
-                clinicLabel:
-                    pilot.clinicName ||
-                    pilot.brandName ||
-                    pilot.clinicProfile?.branding?.name ||
-                    pilot.clinicId,
-                clinicProfile:
-                    pilot.clinicProfile || pilot.turneroClinicProfile,
-                clinicProfiles:
-                    pilot.clinicProfiles ||
-                    pilot.turneroClinicProfiles ||
-                    manifest.clinicProfiles ||
-                    manifest.turneroClinicProfiles,
-                storage: options.storage,
-            });
+            mountMultiClinicControlTowerCard(
+                multiClinicControlTowerHost,
+                buildQueueOpsPilotMultiClinicControlTowerInput(
+                    pilot,
+                    manifest,
+                    {
+                        snapshot,
+                        storage: options.storage,
+                    }
+                )
+            );
         } catch (_error) {
             multiClinicControlTowerHost.innerHTML = '';
         }
@@ -1767,13 +1839,8 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
     }
 
     const openDetailGroups = new Set(
-        Array.from(root.querySelectorAll('.queue-ops-pilot__detail-group'))
-            .filter(
-                (element) =>
-                    element instanceof HTMLDetailsElement &&
-                    element.id &&
-                    element.open
-            )
+        queryPilotDetailGroups(root)
+            .filter((element) => isDetailsElement(element) && element.open)
             .map((element) => element.id)
     );
     const detailGroupShouldStayOpen = (id, defaultOpen = false) =>
@@ -2273,6 +2340,11 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
                             )}</p>
                         </section>
                         ${validationGroup}
+                        <div
+                            id="queueMultiClinicControlTowerBasicHost"
+                            class="queue-ops-pilot__multi-clinic-control-tower-host"
+                            aria-live="polite"
+                        ></div>
                         ${advancedGroup}
                     </div>
                     <div class="queue-ops-pilot__status">
@@ -2307,8 +2379,46 @@ export function renderQueueOpsPilotView(manifest, detectedPlatform, deps = {}) {
         `
     );
 
-    root.querySelectorAll('.queue-ops-pilot__detail-group').forEach((element) => {
-        if (!(element instanceof HTMLDetailsElement) || !element.id) {
+    const multiClinicControlTowerBasicHost = document.getElementById(
+        'queueMultiClinicControlTowerBasicHost'
+    );
+    if (multiClinicControlTowerBasicHost instanceof HTMLElement) {
+        try {
+            mountMultiClinicControlTowerCompactCard(
+                multiClinicControlTowerBasicHost,
+                buildQueueOpsPilotMultiClinicControlTowerInput(
+                    pilot,
+                    manifest,
+                    {
+                        storage: window.localStorage,
+                    }
+                ),
+                {
+                    openExpertLabel: 'Abrir vista expert',
+                    onOpenExpert() {
+                        const expertButton = document.getElementById(
+                            'queueAdminViewModeExpert'
+                        );
+                        if (expertButton instanceof HTMLButtonElement) {
+                            expertButton.focus();
+                            expertButton.dispatchEvent(
+                                new MouseEvent('click', {
+                                    bubbles: true,
+                                    cancelable: true,
+                                    composed: true,
+                                })
+                            );
+                        }
+                    },
+                }
+            );
+        } catch (_error) {
+            multiClinicControlTowerBasicHost.innerHTML = '';
+        }
+    }
+
+    queryPilotDetailGroups(root).forEach((element) => {
+        if (!isDetailsElement(element)) {
             return;
         }
 
