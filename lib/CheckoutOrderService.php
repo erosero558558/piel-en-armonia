@@ -13,6 +13,9 @@ final class CheckoutOrderService
     private const BANK_OWNER = 'Titular: Rosero Caiza Javier Alejandro';
     private const MIN_AMOUNT_CENTS = 100;
     private const MAX_AMOUNT_CENTS = 500000;
+    private const CARD_PENDING_DUE_MINUTES = 60;
+    private const OFFLINE_PAYMENT_DUE_HOURS = 72;
+    private const DUE_SOON_WINDOW_HOURS = 72;
 
     public static function publicConfig(): array
     {
@@ -48,6 +51,12 @@ final class CheckoutOrderService
         $order['paymentMethod'] = 'card';
         $order['paymentStatus'] = 'pending_gateway';
         $order['paymentProvider'] = 'stripe';
+        if (trim((string) ($order['dueAt'] ?? '')) === '') {
+            $order['dueAt'] = self::buildDefaultDueAt(
+                (string) ($order['createdAt'] ?? local_date('c')),
+                'card'
+            );
+        }
 
         $idempotencySeed = implode('|', [
             $order['id'],
@@ -170,6 +179,12 @@ final class CheckoutOrderService
         $order['paymentMethod'] = $safeMethod;
         $order['paymentProvider'] = $safeMethod === 'transfer' ? 'manual_transfer' : 'cash_desk';
         $order['paymentStatus'] = $safeMethod === 'transfer' ? 'pending_transfer' : 'pending_cash';
+        if (trim((string) ($order['dueAt'] ?? '')) === '') {
+            $order['dueAt'] = self::buildDefaultDueAt(
+                (string) ($order['createdAt'] ?? local_date('c')),
+                $safeMethod
+            );
+        }
         $order['transferReference'] = truncate_field(
             sanitize_xss(trim((string) ($payload['transferReference'] ?? ''))),
             100
@@ -283,6 +298,7 @@ final class CheckoutOrderService
             'paymentMethodLabel' => self::paymentMethodLabel($method),
             'paymentStatus' => $status,
             'paymentStatusLabel' => self::paymentStatusLabel($status, $order),
+            'dueAt' => self::resolveOrderDueAt($order),
             'payer' => [
                 'name' => (string) ($order['payerName'] ?? ''),
                 'email' => (string) ($order['payerEmail'] ?? ''),
@@ -356,6 +372,7 @@ final class CheckoutOrderService
                 'amountLabel' => (string) ($receipt['amountLabel'] ?? ''),
                 'paymentStatus' => $status,
                 'paymentStatusLabel' => (string) ($receipt['paymentStatusLabel'] ?? ''),
+                'dueAt' => self::resolveOrderDueAt($order),
                 'payerName' => (string) ($order['payerName'] ?? ''),
                 'payerWhatsapp' => (string) ($order['payerWhatsapp'] ?? ''),
                 'payerEmail' => (string) ($order['payerEmail'] ?? ''),
@@ -406,6 +423,245 @@ final class CheckoutOrderService
         ];
     }
 
+    public static function buildAdminAccountMeta(array $store): array
+    {
+        $orders = isset($store['checkout_orders']) && is_array($store['checkout_orders'])
+            ? $store['checkout_orders']
+            : [];
+        $currency = strtoupper(payment_currency());
+        $patients = [];
+        $outstandingCount = 0;
+        $reconciliatingCount = 0;
+        $dueSoonCount = 0;
+        $overdueCount = 0;
+        $outstandingBalanceCents = 0;
+        $reconciliatingBalanceCents = 0;
+        $settledBalanceCents = 0;
+        $now = new \DateTimeImmutable(local_date('c'));
+        $dueSoonWindowTs = $now->modify('+' . self::DUE_SOON_WINDOW_HOURS . ' hours')->getTimestamp();
+
+        foreach ($orders as $order) {
+            if (!is_array($order)) {
+                continue;
+            }
+
+            $amountCents = (int) ($order['amountCents'] ?? 0);
+            if ($amountCents <= 0) {
+                continue;
+            }
+
+            $patientKey = self::buildAccountPatientKey($order);
+            $status = strtolower(trim((string) ($order['paymentStatus'] ?? 'pending')));
+            $receipt = self::buildReceipt($order);
+            $dueAt = self::resolveOrderDueAt($order);
+            $dueTs = self::isoTimestamp($dueAt);
+            $activityAt = self::resolveOrderActivityAt($order);
+            $activityTs = self::isoTimestamp($activityAt);
+            $statusBucket = match ($status) {
+                'paid', 'applied' => 'settled',
+                'verified_transfer' => 'reconciliating',
+                default => 'outstanding',
+            };
+            $dueState = 'none';
+
+            if ($statusBucket === 'outstanding') {
+                $outstandingCount += 1;
+                $outstandingBalanceCents += $amountCents;
+                if ($dueTs > 0) {
+                    if ($dueTs <= $now->getTimestamp()) {
+                        $dueState = 'overdue';
+                        $overdueCount += 1;
+                    } elseif ($dueTs <= $dueSoonWindowTs) {
+                        $dueState = 'due_soon';
+                        $dueSoonCount += 1;
+                    } else {
+                        $dueState = 'scheduled';
+                    }
+                }
+            } elseif ($statusBucket === 'reconciliating') {
+                $reconciliatingCount += 1;
+                $reconciliatingBalanceCents += $amountCents;
+            } else {
+                $settledBalanceCents += $amountCents;
+            }
+
+            if (!isset($patients[$patientKey])) {
+                $patients[$patientKey] = [
+                    'id' => 'acct_' . substr(sha1($patientKey), 0, 12),
+                    'patientKey' => $patientKey,
+                    'patientName' => (string) ($order['payerName'] ?? ''),
+                    'patientEmail' => (string) ($order['payerEmail'] ?? ''),
+                    'patientWhatsapp' => (string) ($order['payerWhatsapp'] ?? ''),
+                    'orderCount' => 0,
+                    'outstandingCount' => 0,
+                    'reconciliatingCount' => 0,
+                    'settledCount' => 0,
+                    'dueSoonCount' => 0,
+                    'overdueCount' => 0,
+                    'outstandingBalanceCents' => 0,
+                    'reconciliatingBalanceCents' => 0,
+                    'settledBalanceCents' => 0,
+                    'nextDueAt' => '',
+                    'lastActivityAt' => '',
+                    'lastActivityTs' => 0,
+                    'orders' => [],
+                ];
+            }
+
+            $patient = &$patients[$patientKey];
+            $patient['orderCount'] += 1;
+            if ($activityTs > (int) ($patient['lastActivityTs'] ?? 0)) {
+                $patient['lastActivityTs'] = $activityTs;
+                $patient['lastActivityAt'] = $activityAt;
+            }
+
+            if ($statusBucket === 'outstanding') {
+                $patient['outstandingCount'] += 1;
+                $patient['outstandingBalanceCents'] += $amountCents;
+                if ($dueState === 'due_soon') {
+                    $patient['dueSoonCount'] += 1;
+                } elseif ($dueState === 'overdue') {
+                    $patient['overdueCount'] += 1;
+                }
+                if (
+                    $dueTs > 0 &&
+                    (
+                        (string) ($patient['nextDueAt'] ?? '') === '' ||
+                        $dueTs < self::isoTimestamp((string) ($patient['nextDueAt'] ?? ''))
+                    )
+                ) {
+                    $patient['nextDueAt'] = $dueAt;
+                }
+            } elseif ($statusBucket === 'reconciliating') {
+                $patient['reconciliatingCount'] += 1;
+                $patient['reconciliatingBalanceCents'] += $amountCents;
+            } else {
+                $patient['settledCount'] += 1;
+                $patient['settledBalanceCents'] += $amountCents;
+            }
+
+            $patient['orders'][] = [
+                'id' => (string) ($order['id'] ?? ''),
+                'receiptNumber' => (string) ($order['receiptNumber'] ?? ''),
+                'concept' => (string) ($order['concept'] ?? ''),
+                'amountCents' => $amountCents,
+                'amountLabel' => (string) ($receipt['amountLabel'] ?? ''),
+                'paymentMethod' => (string) ($receipt['paymentMethod'] ?? ''),
+                'paymentMethodLabel' => (string) ($receipt['paymentMethodLabel'] ?? ''),
+                'paymentStatus' => $status,
+                'paymentStatusLabel' => (string) ($receipt['paymentStatusLabel'] ?? ''),
+                'statusBucket' => $statusBucket,
+                'dueAt' => $dueAt,
+                'dueState' => $dueState,
+                'issuedAt' => (string) ($receipt['issuedAt'] ?? ''),
+                'createdAt' => (string) ($order['createdAt'] ?? ''),
+                'updatedAt' => (string) ($order['updatedAt'] ?? ''),
+                'activityAt' => $activityAt,
+                'transferReference' => (string) ($order['transferReference'] ?? ''),
+            ];
+            unset($patient);
+        }
+
+        $patientList = array_values($patients);
+        foreach ($patientList as &$patient) {
+            usort($patient['orders'], static function (array $left, array $right): int {
+                $statusWeight = static function (string $bucket): int {
+                    return match ($bucket) {
+                        'outstanding' => 0,
+                        'reconciliating' => 1,
+                        'settled' => 2,
+                        default => 3,
+                    };
+                };
+
+                $leftWeight = $statusWeight((string) ($left['statusBucket'] ?? ''));
+                $rightWeight = $statusWeight((string) ($right['statusBucket'] ?? ''));
+                if ($leftWeight !== $rightWeight) {
+                    return $leftWeight <=> $rightWeight;
+                }
+
+                $leftDueTs = self::isoTimestamp((string) ($left['dueAt'] ?? ''));
+                $rightDueTs = self::isoTimestamp((string) ($right['dueAt'] ?? ''));
+                if ($leftWeight === 0 && $leftDueTs !== $rightDueTs) {
+                    if ($leftDueTs === 0) {
+                        return 1;
+                    }
+                    if ($rightDueTs === 0) {
+                        return -1;
+                    }
+                    return $leftDueTs <=> $rightDueTs;
+                }
+
+                return self::isoTimestamp((string) ($right['activityAt'] ?? ''))
+                    <=> self::isoTimestamp((string) ($left['activityAt'] ?? ''));
+            });
+
+            $patient['outstandingBalanceLabel'] = self::formatCurrency(
+                (int) ($patient['outstandingBalanceCents'] ?? 0),
+                $currency
+            );
+            $patient['reconciliatingBalanceLabel'] = self::formatCurrency(
+                (int) ($patient['reconciliatingBalanceCents'] ?? 0),
+                $currency
+            );
+            $patient['settledBalanceLabel'] = self::formatCurrency(
+                (int) ($patient['settledBalanceCents'] ?? 0),
+                $currency
+            );
+            unset($patient['lastActivityTs']);
+        }
+        unset($patient);
+
+        usort($patientList, static function (array $left, array $right): int {
+            $leftOutstanding = (int) ($left['outstandingBalanceCents'] ?? 0);
+            $rightOutstanding = (int) ($right['outstandingBalanceCents'] ?? 0);
+            if ($leftOutstanding !== $rightOutstanding) {
+                return $rightOutstanding <=> $leftOutstanding;
+            }
+
+            $leftDueTs = self::isoTimestamp((string) ($left['nextDueAt'] ?? ''));
+            $rightDueTs = self::isoTimestamp((string) ($right['nextDueAt'] ?? ''));
+            if ($leftDueTs !== $rightDueTs) {
+                if ($leftDueTs === 0) {
+                    return 1;
+                }
+                if ($rightDueTs === 0) {
+                    return -1;
+                }
+                return $leftDueTs <=> $rightDueTs;
+            }
+
+            return self::isoTimestamp((string) ($right['lastActivityAt'] ?? ''))
+                <=> self::isoTimestamp((string) ($left['lastActivityAt'] ?? ''));
+        });
+
+        return [
+            'summary' => [
+                'patientCount' => count($patientList),
+                'outstandingCount' => $outstandingCount,
+                'reconciliatingCount' => $reconciliatingCount,
+                'dueSoonCount' => $dueSoonCount,
+                'overdueCount' => $overdueCount,
+                'outstandingBalanceCents' => $outstandingBalanceCents,
+                'outstandingBalanceLabel' => self::formatCurrency(
+                    $outstandingBalanceCents,
+                    $currency
+                ),
+                'reconciliatingBalanceCents' => $reconciliatingBalanceCents,
+                'reconciliatingBalanceLabel' => self::formatCurrency(
+                    $reconciliatingBalanceCents,
+                    $currency
+                ),
+                'settledBalanceCents' => $settledBalanceCents,
+                'settledBalanceLabel' => self::formatCurrency(
+                    $settledBalanceCents,
+                    $currency
+                ),
+            ],
+            'patients' => $patientList,
+        ];
+    }
+
     private static function normalizeOrderDraft(array $payload): array
     {
         $payerName = truncate_field(sanitize_xss(trim((string) ($payload['name'] ?? ''))), 150);
@@ -440,6 +696,9 @@ final class CheckoutOrderService
                 $payload['amountCents'] ?? null
             ),
             'currency' => strtoupper(payment_currency()),
+            'dueAt' => self::normalizeIsoDateTime(
+                trim((string) ($payload['dueAt'] ?? ''))
+            ),
             'payerName' => $payerName,
             'payerEmail' => $payerEmail,
             'payerWhatsapp' => $payerWhatsapp,
@@ -568,6 +827,126 @@ final class CheckoutOrderService
         ];
 
         return $labels[$status] ?? 'Pendiente';
+    }
+
+    private static function buildAccountPatientKey(array $order): string
+    {
+        $email = strtolower(trim((string) ($order['payerEmail'] ?? '')));
+        if ($email !== '') {
+            return 'email:' . $email;
+        }
+
+        $whatsapp = trim((string) ($order['payerWhatsapp'] ?? ''));
+        if ($whatsapp !== '') {
+            return 'wa:' . $whatsapp;
+        }
+
+        $name = strtolower(trim((string) ($order['payerName'] ?? '')));
+        if ($name !== '') {
+            return 'name:' . $name;
+        }
+
+        return 'order:' . trim((string) ($order['id'] ?? ''));
+    }
+
+    private static function resolveOrderActivityAt(array $order): string
+    {
+        foreach ([
+            (string) ($order['transferAppliedAt'] ?? ''),
+            (string) ($order['paymentPaidAt'] ?? ''),
+            (string) ($order['transferVerifiedAt'] ?? ''),
+            (string) ($order['updatedAt'] ?? ''),
+            (string) ($order['createdAt'] ?? ''),
+        ] as $candidate) {
+            if (trim($candidate) !== '') {
+                return trim($candidate);
+            }
+        }
+
+        return '';
+    }
+
+    private static function resolveOrderDueAt(array $order): string
+    {
+        $dueAt = self::normalizeIsoDateTime((string) ($order['dueAt'] ?? ''));
+        if ($dueAt !== '') {
+            return $dueAt;
+        }
+
+        return self::buildDefaultDueAt(
+            (string) ($order['createdAt'] ?? local_date('c')),
+            strtolower(trim((string) ($order['paymentMethod'] ?? '')))
+        );
+    }
+
+    private static function buildDefaultDueAt(string $createdAt, string $method): string
+    {
+        $createdAt = self::normalizeIsoDateTime($createdAt);
+        if ($createdAt === '') {
+            $createdAt = local_date('c');
+        }
+
+        if ($method === 'card') {
+            return self::addMinutesToIso(
+                $createdAt,
+                self::CARD_PENDING_DUE_MINUTES
+            );
+        }
+
+        return self::addHoursToIso(
+            $createdAt,
+            self::OFFLINE_PAYMENT_DUE_HOURS
+        );
+    }
+
+    private static function addMinutesToIso(string $value, int $minutes): string
+    {
+        try {
+            return (new \DateTimeImmutable($value))
+                ->modify('+' . max(1, $minutes) . ' minutes')
+                ->format('c');
+        } catch (\Throwable $error) {
+            return '';
+        }
+    }
+
+    private static function addHoursToIso(string $value, int $hours): string
+    {
+        try {
+            return (new \DateTimeImmutable($value))
+                ->modify('+' . max(1, $hours) . ' hours')
+                ->format('c');
+        } catch (\Throwable $error) {
+            return '';
+        }
+    }
+
+    private static function normalizeIsoDateTime(string $value): string
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        try {
+            return (new \DateTimeImmutable($trimmed))->format('c');
+        } catch (\Throwable $error) {
+            return '';
+        }
+    }
+
+    private static function isoTimestamp(string $value): int
+    {
+        $normalized = self::normalizeIsoDateTime($value);
+        if ($normalized === '') {
+            return 0;
+        }
+
+        try {
+            return (new \DateTimeImmutable($normalized))->getTimestamp();
+        } catch (\Throwable $error) {
+            return 0;
+        }
     }
 
     private static function assertTransferOrder(array $order): void

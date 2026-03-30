@@ -126,6 +126,7 @@ class AdminDataController
             TelemedicineOpsSnapshot::build($store)
         );
         $store['checkoutReviewMeta'] = CheckoutOrderService::buildAdminReviewMeta($store);
+        $store['paymentAccountMeta'] = CheckoutOrderService::buildAdminAccountMeta($store);
         $store['internalConsoleMeta'] = function_exists('internal_console_readiness_snapshot')
             ? internal_console_readiness_snapshot()
             : null;
