@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 1:13:41 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 1:17:35 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`█████████░░░░░░░░░░░` **46%** completado (98/213)
+`█████████░░░░░░░░░░░` **46%** completado (99/213)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -15,7 +15,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
 | 🎯 Sprint 3 | 54 | 13 | 81% |
-| ⏸ Sprint 4 | 2 | 24 | 8% |
+| ⏸ Sprint 4 | 3 | 23 | 12% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
 | ⏸ Sprint 7 | 5 | 32 | 14% |
@@ -54,22 +54,22 @@ _Sprint completado. 24/24 tareas._
 - **S3-35** `[L]` Factura SRI — integrar con facturación electrónica del SRI E...
 
 ## ⏸ Sprint 4 — Escalar el negocio
-_Esperando que Sprint anterior esté completo. 24 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 23 tareas pendientes._
 
-### 🟢 Disponibles (19)
+### 🟢 Disponibles (18)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S4-03** | `[M]` | Predicción de no-show — modelo basado en: historial de asistencia, hor... |
 | **S4-04** | `[M]` | Resúmenes automáticos — : generar resumen post-consulta para el pacien... |
 | **S4-05** | `[M]` | Scoring de leads — clasificar leads por probabilidad de conversión bas... |
 | **S4-14** | `[M]` | Programa de referidos — : beneficio por paciente referido. CTA: "Compa... |
 | **S4-15** | `[M]` | Promociones — : template para ofertas rotativas. Mes de la piel, Día d... |
-| ... | | _+14 más_ |
+| **S4-17** | `[M]` | Gift cards — : montos predefinidos, generación de código, PDF descarga... |
+| ... | | _+13 más_ |
 
 ### 🔒 En progreso — NO tomar
 
-- **S4-02** `[L]` → _Antigravity_ (expira en 478min)
+- **S4-03** `[M]` → _Antigravity_ (expira en 239min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 

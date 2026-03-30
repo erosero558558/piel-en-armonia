@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Certificado Médico - Aurora Derm</title>
+    <!-- Estilos Inline Monolíticos para Máxima Compatibilidad de Motores PDF -->
+    <style>
+        /* Base tipográfica Notarial/Médica */
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #0f172a; /* Slate 900 (Black tint) */
+            background-color: white;
+            font-size: 14px; /* Un poco más grande para facilitar lectura judicial/RRHH */
+            line-height: 1.8; /* Doble espacio formal */
+        }
+
+        * { box-sizing: border-box; }
+        
+        .pdf-page {
+            max-width: 210mm; 
+            margin: 0 auto;
+            padding: 25mm 25mm; /* Márgenes notariales más anchos */
+            background: white;
+            min-height: 297mm;
+        }
+
+        /* Bloqueo a Impresión en Papel (@media print) */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+            body { 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+            }
+            .pdf-page { margin: 0; padding: 25mm; min-height: auto; box-shadow: none; }
+        }
+
+        /* ---------------------------------
+           1. ENCABEZADO OFICIAL
+        --------------------------------- */
+        .pdf-header {
+            display: table;
+            width: 100%;
+            border-bottom: 4px solid #0f172a; /* Borrón oscuro institucional */
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .pdf-header-cell { display: table-cell; vertical-align: bottom; }
+        .pdf-header-left { width: 50%; text-align: left; }
+        
+        .pdf-header-right { 
+            width: 50%; 
+            text-align: right; 
+            color: #475569; 
+            font-size: 11px; 
+            line-height: 1.5; 
+        }
+
+        /* Branding: Aurora en Dorado/Azul no tan visible acá, más serio */
+        .brand-logo { 
+            font-size: 28px; 
+            font-weight: 800; 
+            color: #0f172a; /* Black */
+            margin: 0; 
+            letter-spacing: -1px; 
+        }
+        .brand-logo span { color: #facc15; /* Detalle de identidad intacto */ }
+        .dept-title { font-size: 10px; font-weight: bold; text-transform: uppercase; color: #64748b; letter-spacing: 1px; margin-top: 5px; }
+
+        /* Document Metadata (Fecha Exp.) */
+        .doc-meta {
+            text-align: right;
+            font-size: 12px;
+            font-weight: bold;
+            color: #0f172a;
+            margin-bottom: 40px;
+        }
+
+        /* ---------------------------------
+           2. TÍTULO Y CUERPO JURÍDICO
+        --------------------------------- */
+        .legal-title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 40px;
+            text-decoration: underline;
+        }
+
+        .legal-body-text {
+            text-align: justify;
+            margin-bottom: 30px;
+        }
+
+        .var-highlight {
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* ---------------------------------
+           3. CAJA FUERTE DE DIAGNÓSTICO
+        --------------------------------- */
+        .diagnosis-vault {
+            background-color: #f8fafc;
+            border: 1px dashed #94a3b8;
+            padding: 20px;
+            margin: 30px 0;
+        }
+
+        .vault-label {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #64748b;
+            display: block;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        
+        .vault-cie10 {
+            display: inline-block;
+            background: #e2e8f0;
+            color: #334155;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .vault-description {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .vault-rest {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #cbd5e1;
+            font-size: 14px;
+            font-weight: bold;
+            color: #b91c1c; /* Red intenso para días de reposo */
+        }
+
+        /* ---------------------------------
+           4. FIRMA Y LEGALIDAD
+        --------------------------------- */
+        .pdf-footer {
+            margin-top: 80px;
+            display: table;
+            width: 100%;
+        }
+
+        .footer-qr { 
+            display: table-cell; 
+            width: 40%; 
+            vertical-align: bottom; 
+            text-align: left;
+        }
+        
+        .qr-placeholder { 
+            width: 90px; height: 90px; 
+            border: 1px solid #cbd5e1; 
+            background: #f1f5f9; 
+            display: inline-block;
+            text-align: center; line-height: 90px; color: #94a3b8; font-size: 10px;
+        }
+        
+        .qr-text { 
+            font-size: 9px; 
+            color: #64748b; 
+            display: block; 
+            margin-top: 5px; 
+            line-height: 1.3;
+        }
+        .qr-text strong { color: #0f172a; }
+
+        .footer-signature {
+            display: table-cell;
+            width: 60%;
+            vertical-align: bottom;
+            text-align: center;
+            position: relative;
+        }
+
+        /* Línea de firma clásica */
+        .signature-line {
+            width: 250px;
+            border-top: 1px solid #0f172a;
+            margin: 0 auto 5px auto;
+        }
+
+        .signature-name { font-weight: bold; color: #0f172a; font-size: 14px; margin:0; text-transform: uppercase; }
+        .signature-msp { font-size: 11px; color: #475569; margin: 0 0 2px 0;}
+        .signature-id { font-size: 10px; color: #94a3b8; margin: 0;}
+
+        /* Sello Simulado */
+        .doctor-stamp {
+            position: absolute;
+            left: 20%;
+            bottom: 25px;
+            width: 90px;
+            height: 90px;
+            border: 3px solid rgba(15, 23, 42, 0.1);
+            border-radius: 50%;
+            color: rgba(15, 23, 42, 0.3);
+            font-size: 10px;
+            text-align: center;
+            font-weight: bold;
+            line-height: 1.2;
+            padding-top: 25px;
+            transform: rotate(-25deg);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="pdf-page">
+
+        <!-- HEADER INSTITUCIONAL -->
+        <div class="pdf-header">
+            <div class="pdf-header-cell pdf-header-left">
+                <h1 class="brand-logo">Aurora<span>.</span></h1>
+                <div class="dept-title">Departamento Médico General</div>
+            </div>
+            <div class="pdf-header-cell pdf-header-right">
+                <strong>Clínica Dermatológica y Cirugía Capilar</strong><br>
+                Av. República de El Salvador y Moscú<br>
+                Edificio D-102, Piso 4.<br>
+                Quito, Ecuador
+            </div>
+        </div>
+
+        <!-- FECHA EN LARGO FORMATO JURÍDICO -->
+        <div class="doc-meta">
+            Quito, {{FECHA_LARGA_EMISION}}
+        </div>
+
+        <!-- TÍTULO OFICIAL -->
+        <div class="legal-title">
+            Certificado Médico
+        </div>
+
+        <!-- CUERPO DECLARATIVO -->
+        <div class="legal-body-text">
+            Por medio y a solicitud de la parte interesada, la suscrita <strong>Dra. Elena Costa Navarro</strong>, médico especialista certifica que el/la paciente de nombres: 
+            <span class="var-highlight">{{PACIENTE_NOMBRE_COMPLETO}}</span>, 
+            portador/a del documento de identidad (C.C.) No. <span class="var-highlight">{{PACIENTE_CI}}</span>, 
+            fue evaluado/a clínica y presencialmente en el consultorio de esta institución de salud el día de la fecha de emisión del presente documento.
+        </div>
+
+        <div class="legal-body-text">
+            Al momento del examen físico e interrogatorio clínico, el/la paciente presenta el siguiente cuadro clínico diagnosticado:
+        </div>
+
+        <!-- CAJA FUERTE DE DIAGNÓSTICO Y REPOSO -->
+        <div class="diagnosis-vault">
+            <span class="vault-label">Diagnóstico Principal:</span>
+            <span class="vault-cie10">CIE-10: {{CIE10_CODIGO}}</span>
+            <p class="vault-description">{{DIAGNOSTICO_DESCRIPCION}}</p>
+            
+            <div class="vault-rest">
+                RECOMENDACIÓN MÉDICA:<br>
+                Se prescribe <span style="text-decoration: underline;">{{DIAS_REPOSO}} Días de reposo absoluto</span> a partir del {{FECHA_INICIO_REPOSO}} y hasta el {{FECHA_FIN_REPOSO}}.
+            </div>
+        </div>
+
+        <!-- CONSTANCIA Y CIERRE -->
+        <div class="legal-body-text">
+            En virtud de lo expuesto, se expide el presente documento para los fines laborales, académicos y personales que el/la paciente considere pertinentes.
+        </div>
+
+        <!-- FIRMAS Y VALIDACIÓN -->
+        <div class="pdf-footer">
+            <div class="footer-qr">
+                <div class="qr-placeholder">[ CÓDIGO QR ]</div>
+                <span class="qr-text">
+                    <strong>Certificado Valido Digitalmente.</strong><br>
+                    ID: #{{CERTIFICADO_ID}}<br>
+                    Puede verificar la autenticidad originaria de esta firma en el Portal Paciente escaneando el código.
+                </span>
+            </div>
+            <div class="footer-signature">
+                <div class="doctor-stamp">
+                    REGISTRO<br>OFICIAL<br>MÉDICO
+                </div>
+                <div class="signature-line"></div>
+                <!-- Nombre y MSP debajo de la línea -->
+                <p class="signature-name">Dra. Elena Costa Navarro</p>
+                <p class="signature-msp">Especialidad: Dermatología</p>
+                <p class="signature-id">Libro 4 Folio 15 - MSP: 17-2015-4589</p>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
