@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 8:07:45 a. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 8:09:31 a. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,7 +7,7 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████████░░░░░░░░░` **54%** completado (137/252)
+`████████░░░░░░░░░░░░` **39%** completado (137/352)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
@@ -21,6 +21,10 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 | ⏸ Sprint 7 | 6 | 31 | 16% |
 | ✅ Sprint UI | 19 | 0 | 100% |
 | ⏸ Sprint UI | 2 | 18 | 10% |
+| ⏸ Sprint 8 | 0 | 17 | 0% |
+| ⏸ Sprint 9 | 0 | 27 | 0% |
+| ⏸ Sprint 10 | 0 | 30 | 0% |
+| ⏸ Sprint 12 | 0 | 26 | 0% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -51,7 +55,7 @@ _Sprint completado. 24/24 tareas._
 ## ⏸ Sprint 4 — Escalar el negocio
 _Esperando que Sprint anterior esté completo. 13 tareas pendientes._
 
-### 🟢 Disponibles (11)
+### 🟢 Disponibles (10)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
@@ -59,8 +63,12 @@ _Esperando que Sprint anterior esté completo. 13 tareas pendientes._
 | **S4-08** | `[S4]` | L |
 | **S4-09** | `[S4]` | L |
 | **S4-12** | `[S4]` | L |
-| **S4-13** | `[S4]` | L |
-| ... | | _+6 más_ |
+| **S4-14** | `[S4]` | M |
+| ... | | _+5 más_ |
+
+### 🔒 En progreso — NO tomar
+
+- **S4-13** `[S4]` → _Codex-erosero558558_ (expira en 479min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
@@ -155,6 +163,62 @@ _Esperando que Sprint anterior esté completo. 18 tareas pendientes._
 | **UI2-04** | `[UI2]` | S |
 | **UI2-05** | `[UI2]` | M |
 | ... | | _+13 más_ |
+
+## ⏸ Sprint 8 — Operación Real, Deuda Desktop y Hardening
+_Esperando que Sprint anterior esté completo. 17 tareas pendientes._
+
+### 🟢 Disponibles (17)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S8-01** | `[S8]` | M |
+| **S8-02** | `[S8]` | M |
+| **S8-03** | `[S8]` | L |
+| **S8-04** | `[S8]` | M |
+| **S8-05** | `[S8]` | M |
+| ... | | _+12 más_ |
+
+## ⏸ Sprint 9 — Portal del Paciente y Motor Comercial
+_Esperando que Sprint anterior esté completo. 27 tareas pendientes._
+
+### 🟢 Disponibles (27)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S9-01** | `[S9]` | M |
+| **S9-02** | `[S9]` | M |
+| **S9-03** | `[S9]` | L |
+| **S9-04** | `[S9]` | M |
+| **S9-05** | `[S9]` | M |
+| ... | | _+22 más_ |
+
+## ⏸ Sprint 10 — OpenClaw, HCE y Clínica Premium
+_Esperando que Sprint anterior esté completo. 30 tareas pendientes._
+
+### 🟢 Disponibles (30)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S10-01** | `[S10]` | M |
+| **S10-02** | `[S10]` | M |
+| **S10-03** | `[S10]` | S |
+| **S10-04** | `[S10]` | M |
+| **S10-05** | `[S10]` | M |
+| ... | | _+25 más_ |
+
+## ⏸ Sprint 12 — Tráfico, Conversión y Autoridad de Marca
+_Esperando que Sprint anterior esté completo. 26 tareas pendientes._
+
+### 🟢 Disponibles (26)
+
+| ID | Tamaño | Tarea |
+|----|--------|-------|
+| **S12-01** | `[S12]` | M |
+| **S12-02** | `[S12]` | M |
+| **S12-03** | `[S12]` | S |
+| **S12-04** | `[S12]` | M |
+| **S12-05** | `[S12]` | M |
+| ... | | _+21 más_ |
 
 ---
 _Este archivo es generado automáticamente. No editarlo a mano._
