@@ -77,6 +77,7 @@ final class PatientPortalController
                 'nextAppointment' => $nextAppointment === []
                     ? null
                     : self::buildAppointmentSummary($nextAppointment, $patient),
+                'treatmentPlan' => self::buildTreatmentPlanSummary($store, $snapshot, $patient, $nextAppointment),
                 'support' => [
                     'bookingUrl' => '/#citas',
                     'historyUrl' => '/es/portal/historial/',
@@ -277,6 +278,260 @@ final class PatientPortalController
             unset($consultation['sortTimestamp']);
             return $consultation;
         }, $consultations));
+    }
+
+    private static function buildTreatmentPlanSummary(
+        array $store,
+        array $snapshot,
+        array $patient,
+        array $nextAppointment
+    ): ?array {
+        $caseIds = self::collectPatientCaseIds($store, $snapshot);
+        $activeDraft = self::findLatestCarePlanDraft($store, $caseIds);
+
+        if (!is_array($activeDraft)) {
+            return null;
+        }
+
+        $documents = is_array($activeDraft['documents'] ?? null) ? $activeDraft['documents'] : [];
+        $carePlan = is_array($documents['carePlan'] ?? null) ? $documents['carePlan'] : [];
+        if (!self::carePlanHasContent($carePlan)) {
+            return null;
+        }
+
+        $planStartedAt = self::recordTimestamp([
+            'updatedAt' => (string) ($carePlan['generatedAt'] ?? ''),
+            'createdAt' => (string) ($activeDraft['updatedAt'] ?? $activeDraft['createdAt'] ?? ''),
+        ]);
+        $sessionMetrics = self::countTreatmentSessions($store, $snapshot, $planStartedAt);
+        $plannedSessions = self::resolvePlannedSessions($carePlan, $sessionMetrics);
+        $completedSessions = (int) ($sessionMetrics['completed'] ?? 0);
+        $scheduledSessions = (int) ($sessionMetrics['scheduled'] ?? 0);
+        $adherencePercent = $plannedSessions > 0
+            ? max(0, min(100, (int) round(($completedSessions / $plannedSessions) * 100)))
+            : 0;
+
+        $caseId = trim((string) ($activeDraft['caseId'] ?? ''));
+        $prescription = self::findLatestPrescriptionForCase($store, $caseId);
+        $tasks = self::buildTreatmentPlanTasks($carePlan, $prescription, $nextAppointment);
+        $nextSession = $nextAppointment === [] ? null : self::buildAppointmentSummary($nextAppointment, $patient);
+
+        return [
+            'status' => trim((string) ($carePlan['status'] ?? 'draft')) ?: 'draft',
+            'diagnosis' => trim((string) ($carePlan['diagnosis'] ?? 'Plan de tratamiento activo')) ?: 'Plan de tratamiento activo',
+            'followUpFrequency' => trim((string) ($carePlan['followUpFrequency'] ?? 'A requerimiento')),
+            'generatedAt' => trim((string) ($carePlan['generatedAt'] ?? '')),
+            'generatedAtLabel' => self::buildDocumentIssuedLabel((string) ($carePlan['generatedAt'] ?? '')),
+            'completedSessions' => $completedSessions,
+            'plannedSessions' => $plannedSessions,
+            'scheduledSessions' => $scheduledSessions,
+            'adherencePercent' => $adherencePercent,
+            'adherenceLabel' => $adherencePercent . '%',
+            'progressLabel' => $completedSessions . ' de ' . $plannedSessions . ' sesiones',
+            'nextSession' => $nextSession,
+            'tasks' => $tasks,
+        ];
+    }
+
+    private static function findLatestCarePlanDraft(array $store, array $caseIds): ?array
+    {
+        $latestDraft = null;
+        $latestTimestamp = 0;
+
+        foreach ($caseIds as $caseId) {
+            foreach (ClinicalHistorySessionRepository::findAllDraftsByCaseId($store, $caseId) as $draft) {
+                $documents = is_array($draft['documents'] ?? null) ? $draft['documents'] : [];
+                $carePlan = is_array($documents['carePlan'] ?? null) ? $documents['carePlan'] : [];
+                if (!self::carePlanHasContent($carePlan)) {
+                    continue;
+                }
+
+                $timestamp = self::recordTimestamp([
+                    'updatedAt' => (string) ($carePlan['generatedAt'] ?? ''),
+                    'createdAt' => (string) ($draft['updatedAt'] ?? $draft['createdAt'] ?? ''),
+                ]);
+                if ($timestamp >= $latestTimestamp) {
+                    $latestTimestamp = $timestamp;
+                    $latestDraft = $draft;
+                }
+            }
+        }
+
+        return is_array($latestDraft) ? $latestDraft : null;
+    }
+
+    private static function carePlanHasContent(array $carePlan): bool
+    {
+        return trim((string) ($carePlan['diagnosis'] ?? '')) !== ''
+            || trim((string) ($carePlan['treatments'] ?? '')) !== ''
+            || trim((string) ($carePlan['followUpFrequency'] ?? '')) !== ''
+            || trim((string) ($carePlan['goals'] ?? '')) !== '';
+    }
+
+    private static function countTreatmentSessions(array $store, array $snapshot, int $planStartedAt): array
+    {
+        $completed = 0;
+        $future = 0;
+        $now = time();
+
+        foreach (($store['appointments'] ?? []) as $appointment) {
+            if (!is_array($appointment) || !self::appointmentMatchesPatient($appointment, $snapshot)) {
+                continue;
+            }
+
+            $timestamp = self::appointmentTimestamp($appointment) ?? self::recordTimestamp($appointment);
+            if ($timestamp > 0 && $planStartedAt > 0 && $timestamp < $planStartedAt) {
+                continue;
+            }
+
+            $status = function_exists('map_appointment_status')
+                ? map_appointment_status((string) ($appointment['status'] ?? 'confirmed'))
+                : strtolower(trim((string) ($appointment['status'] ?? 'confirmed')));
+
+            if ($status === 'cancelled' || $status === 'no_show') {
+                continue;
+            }
+
+            if ($status === 'completed' || ($timestamp > 0 && $timestamp < $now)) {
+                $completed++;
+                continue;
+            }
+
+            $future++;
+        }
+
+        return [
+            'completed' => $completed,
+            'future' => $future,
+            'scheduled' => $completed + $future,
+        ];
+    }
+
+    private static function resolvePlannedSessions(array $carePlan, array $sessionMetrics): int
+    {
+        $parsed = self::parsePlannedSessions(
+            trim((string) ($carePlan['treatments'] ?? '')) . "\n" . trim((string) ($carePlan['goals'] ?? ''))
+        );
+        $scheduled = max(1, (int) ($sessionMetrics['scheduled'] ?? 0));
+
+        if ($parsed !== null && $parsed > 0) {
+            return max($parsed, $scheduled);
+        }
+
+        return $scheduled;
+    }
+
+    private static function parsePlannedSessions(string $text): ?int
+    {
+        if ($text === '') {
+            return null;
+        }
+
+        if (preg_match('/(\d+)\s+sesion(?:es)?/i', $text, $matches) === 1) {
+            return max(1, (int) ($matches[1] ?? 0));
+        }
+
+        return null;
+    }
+
+    private static function findLatestPrescriptionForCase(array $store, string $caseId): ?array
+    {
+        $latestPrescription = null;
+        $latestTimestamp = 0;
+
+        foreach (($store['prescriptions'] ?? []) as $prescriptionId => $prescription) {
+            if (!is_array($prescription) || trim((string) ($prescription['caseId'] ?? '')) !== $caseId) {
+                continue;
+            }
+
+            $prescription['id'] = trim((string) ($prescription['id'] ?? (string) $prescriptionId));
+            $timestamp = self::documentTimestamp($prescription, ['issued_at', 'issuedAt', 'createdAt']);
+            if ($timestamp >= $latestTimestamp) {
+                $latestTimestamp = $timestamp;
+                $latestPrescription = $prescription;
+            }
+        }
+
+        return is_array($latestPrescription) ? $latestPrescription : null;
+    }
+
+    private static function buildTreatmentPlanTasks(
+        array $carePlan,
+        ?array $prescription,
+        array $nextAppointment
+    ): array {
+        $tasks = [];
+        foreach ([
+            self::splitPlanTasks((string) ($carePlan['treatments'] ?? '')),
+            self::splitPlanTasks((string) ($carePlan['goals'] ?? '')),
+        ] as $taskGroup) {
+            foreach ($taskGroup as $label) {
+                self::rememberTask($tasks, $label);
+            }
+        }
+
+        if (is_array($prescription)) {
+            $medications = is_array($prescription['medications'] ?? null) ? $prescription['medications'] : [];
+            $firstMedication = is_array($medications[0] ?? null) ? $medications[0] : [];
+            $medicationName = trim((string) ($firstMedication['medication'] ?? ''));
+            $instructions = trim((string) ($firstMedication['instructions'] ?? ''));
+            $medicationTask = $medicationName !== ''
+                ? 'Tomar ' . $medicationName . ($instructions !== '' ? ' · ' . $instructions : ' según la receta.')
+                : '';
+            self::rememberTask($tasks, $medicationTask);
+        }
+
+        if ($nextAppointment !== []) {
+            $summary = self::buildAppointmentSummary($nextAppointment, []);
+            $nextTask = 'Asistir a tu próxima sesión';
+            $dateLabel = trim((string) ($summary['dateLabel'] ?? ''));
+            $timeLabel = trim((string) ($summary['timeLabel'] ?? ''));
+            if ($dateLabel !== '' || $timeLabel !== '') {
+                $nextTask .= ' el ' . trim($dateLabel . ' ' . $timeLabel);
+            }
+            self::rememberTask($tasks, $nextTask . '.');
+        }
+
+        return array_values(array_slice($tasks, 0, 4));
+    }
+
+    private static function splitPlanTasks(string $text): array
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return [];
+        }
+
+        $normalized = preg_replace('/[•\-]+/u', "\n", $text);
+        $parts = preg_split('/[\n\r;]+/', (string) $normalized) ?: [];
+        $tasks = [];
+
+        foreach ($parts as $part) {
+            $label = trim($part);
+            if ($label === '') {
+                continue;
+            }
+
+            $label = preg_replace('/^\d+\.\s*/', '', $label) ?? $label;
+            $tasks[] = rtrim($label, " .") . '.';
+        }
+
+        return $tasks;
+    }
+
+    private static function rememberTask(array &$tasks, string $label): void
+    {
+        $label = trim($label);
+        if ($label === '') {
+            return;
+        }
+
+        $key = strtolower($label);
+        if (!isset($tasks[$key])) {
+            $tasks[$key] = [
+                'label' => $label,
+            ];
+        }
     }
 
     private static function collectPatientCaseIds(array $store, array $snapshot): array

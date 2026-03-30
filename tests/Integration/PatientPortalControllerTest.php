@@ -231,6 +231,14 @@ final class PatientPortalControllerTest extends TestCase
                     'summary' => 'Reposo por 3 días',
                     'restDays' => 3,
                 ],
+                'carePlan' => [
+                    'status' => 'issued',
+                    'diagnosis' => 'Control integral para dermatitis irritativa',
+                    'treatments' => "Completar 4 sesiones de control.\nTomar Cetirizina 10 mg cada noche por 7 días.",
+                    'followUpFrequency' => 'Control cada 14 días',
+                    'goals' => "Enviar foto de control 48 horas antes.\nMantener hidratación diaria.",
+                    'generatedAt' => '2026-03-01T08:00:00-05:00',
+                ],
             ],
             'updatedAt' => '2026-03-18T18:20:00-05:00',
         ];
@@ -377,6 +385,36 @@ final class PatientPortalControllerTest extends TestCase
         self::assertStringContainsString(
             'https://wa.me/',
             (string) ($dashboard['payload']['data']['nextAppointment']['whatsappUrl'] ?? '')
+        );
+        self::assertSame(
+            'Control integral para dermatitis irritativa',
+            (string) ($dashboard['payload']['data']['treatmentPlan']['diagnosis'] ?? '')
+        );
+        self::assertSame(
+            '2 de 4 sesiones',
+            (string) ($dashboard['payload']['data']['treatmentPlan']['progressLabel'] ?? '')
+        );
+        self::assertSame(
+            50,
+            (int) ($dashboard['payload']['data']['treatmentPlan']['adherencePercent'] ?? 0)
+        );
+        self::assertSame(
+            'jue 2 abr 2099',
+            (string) ($dashboard['payload']['data']['treatmentPlan']['nextSession']['dateLabel'] ?? '')
+        );
+        self::assertSame(
+            '10:30',
+            (string) ($dashboard['payload']['data']['treatmentPlan']['nextSession']['timeLabel'] ?? '')
+        );
+        self::assertCount(
+            4,
+            is_array($dashboard['payload']['data']['treatmentPlan']['tasks'] ?? null)
+                ? $dashboard['payload']['data']['treatmentPlan']['tasks']
+                : []
+        );
+        self::assertSame(
+            'Completar 4 sesiones de control.',
+            (string) ($dashboard['payload']['data']['treatmentPlan']['tasks'][0]['label'] ?? '')
         );
     }
 

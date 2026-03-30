@@ -118,6 +118,25 @@
         `;
     }
 
+    function renderTreatmentPlanSkeleton() {
+        return `
+            <section class="portal-plan-card" data-portal-treatment-plan-skeleton style="opacity:0.8;">
+                <div style="display:grid; gap:12px; width:100%;">
+                    <div class="skeleton" style="width: 36%; height: 14px;"></div>
+                    <div class="skeleton" style="width: 62%; height: 22px;"></div>
+                    <div class="skeleton" style="width: 100%; height: 10px; border-radius: 999px;"></div>
+                    <div class="portal-plan-card__metrics">
+                        <div class="skeleton" style="width: 100%; height: 58px;"></div>
+                        <div class="skeleton" style="width: 100%; height: 58px;"></div>
+                    </div>
+                    <div class="skeleton" style="width: 40%; height: 14px;"></div>
+                    <div class="skeleton" style="width: 100%; height: 44px;"></div>
+                    <div class="skeleton" style="width: 100%; height: 44px;"></div>
+                </div>
+            </section>
+        `;
+    }
+
     function doctorInitials(name) {
         return String(name || '')
             .trim()
@@ -250,8 +269,117 @@
             .join('');
     }
 
+    function progressTone(adherencePercent) {
+        const percent = Number(adherencePercent || 0);
+        if (percent >= 80) {
+            return 'good';
+        }
+        if (percent >= 50) {
+            return 'warning';
+        }
+        return 'attention';
+    }
+
+    function renderTreatmentTasks(tasks) {
+        const safeTasks = Array.isArray(tasks) ? tasks : [];
+        return safeTasks
+            .map((task) => {
+                const safeTask = task && typeof task === 'object' ? task : {};
+                const label = String(safeTask.label || '').trim();
+                if (!label) {
+                    return '';
+                }
+
+                return `
+                    <li class="portal-plan-card__task" data-portal-treatment-task>
+                        <span class="portal-plan-card__task-dot" aria-hidden="true"></span>
+                        <span>${escapeHtml(label)}</span>
+                    </li>
+                `;
+            })
+            .filter(Boolean)
+            .join('');
+    }
+
+    function renderTreatmentPlan(plan) {
+        const safePlan = plan && typeof plan === 'object' ? plan : {};
+        const adherencePercent = Math.max(
+            0,
+            Math.min(100, Number(safePlan.adherencePercent || 0))
+        );
+        const nextSession =
+            safePlan.nextSession && typeof safePlan.nextSession === 'object'
+                ? safePlan.nextSession
+                : null;
+        const tasksHtml = renderTreatmentTasks(safePlan.tasks);
+
+        return `
+            <section class="portal-plan-card" data-portal-treatment-plan-card>
+                <div class="portal-plan-card__header">
+                    <div class="portal-plan-card__info">
+                        <span class="portal-inline-label">Plan activo</span>
+                        <strong data-portal-treatment-diagnosis>${escapeHtml(safePlan.diagnosis || 'Seguimiento activo')}</strong>
+                        <span data-portal-treatment-follow-up>${escapeHtml(safePlan.followUpFrequency || 'A requerimiento')}</span>
+                    </div>
+                    <span class="portal-status-chip portal-status-chip--${escapeHtml(progressTone(adherencePercent))}" data-portal-treatment-adherence>
+                        ${escapeHtml(safePlan.adherenceLabel || `${adherencePercent}%`)}
+                    </span>
+                </div>
+
+                <div class="portal-plan-card__progress">
+                    <div class="portal-plan-card__progress-labels">
+                        <span data-portal-treatment-progress>${escapeHtml(safePlan.progressLabel || '0 de 0 sesiones')}</span>
+                        <span>${escapeHtml(safePlan.adherenceLabel || `${adherencePercent}%`)}</span>
+                    </div>
+                    <div class="portal-plan-card__progress-track" aria-hidden="true">
+                        <span style="width:${adherencePercent}%"></span>
+                    </div>
+                </div>
+
+                <div class="portal-plan-card__metrics">
+                    <article class="portal-plan-card__metric">
+                        <strong>Sesiones realizadas</strong>
+                        <span>${escapeHtml(String(safePlan.completedSessions || 0))}</span>
+                    </article>
+                    <article class="portal-plan-card__metric">
+                        <strong>Próxima sesión</strong>
+                        <span data-portal-treatment-next-session>${escapeHtml(
+                            nextSession
+                                ? `${nextSession.dateLabel || ''} ${nextSession.timeLabel || ''}`.trim() || 'Por confirmar'
+                                : 'Por confirmar'
+                        )}</span>
+                    </article>
+                </div>
+
+                ${
+                    tasksHtml
+                        ? `
+                            <div class="portal-plan-card__tasks">
+                                <span class="portal-inline-label">Tareas pendientes</span>
+                                <ul>${tasksHtml}</ul>
+                            </div>
+                        `
+                        : ''
+                }
+            </section>
+        `;
+    }
+
+    function renderTreatmentPlanEmpty() {
+        return `
+            <section class="portal-plan-card portal-plan-card--empty" data-portal-treatment-plan-empty>
+                <div class="portal-plan-card__info">
+                    <span class="portal-inline-label">Plan en preparación</span>
+                    <strong>Todavía no tenemos un plan activo visible</strong>
+                    <span>Cuando tu especialista publique indicaciones y seguimiento, aparecerán aquí con su progreso real.</span>
+                </div>
+            </section>
+        `;
+    }
+
     async function hydrateDashboard() {
         const nextAppointmentContainer = document.getElementById('portal-next-appointment');
+        const treatmentPlanContainer = document.getElementById('portal-treatment-plan');
         const actionsContainer = document.getElementById('portal-appointment-actions');
         if (!(nextAppointmentContainer instanceof HTMLElement)) {
             return;
@@ -267,6 +395,9 @@
         }
 
         nextAppointmentContainer.innerHTML = renderSkeletonCard();
+        if (treatmentPlanContainer instanceof HTMLElement) {
+            treatmentPlanContainer.innerHTML = renderTreatmentPlanSkeleton();
+        }
         if (actionsContainer instanceof HTMLElement) {
             actionsContainer.innerHTML = renderActionSkeletons();
         }
@@ -295,6 +426,10 @@
                 payload.nextAppointment && typeof payload.nextAppointment === 'object'
                     ? payload.nextAppointment
                     : null;
+            const treatmentPlan =
+                payload.treatmentPlan && typeof payload.treatmentPlan === 'object'
+                    ? payload.treatmentPlan
+                    : null;
             const support = payload.support && typeof payload.support === 'object' ? payload.support : {};
 
             if (portalShell && typeof portalShell.updatePatient === 'function' && patient.name) {
@@ -304,6 +439,11 @@
             nextAppointmentContainer.innerHTML = nextAppointment
                 ? renderNextAppointment(nextAppointment)
                 : renderEmptyState(support);
+            if (treatmentPlanContainer instanceof HTMLElement) {
+                treatmentPlanContainer.innerHTML = treatmentPlan
+                    ? renderTreatmentPlan(treatmentPlan)
+                    : renderTreatmentPlanEmpty();
+            }
 
             if (actionsContainer instanceof HTMLElement) {
                 actionsContainer.innerHTML = renderSupportActions(support);
@@ -311,6 +451,9 @@
         } catch (error) {
             console.error('[portal-dashboard] failed to load next appointment', error);
             nextAppointmentContainer.innerHTML = renderErrorState();
+            if (treatmentPlanContainer instanceof HTMLElement) {
+                treatmentPlanContainer.innerHTML = renderTreatmentPlanEmpty();
+            }
             if (actionsContainer instanceof HTMLElement) {
                 actionsContainer.innerHTML = renderSupportActions({
                     bookingUrl: '/#citas',
