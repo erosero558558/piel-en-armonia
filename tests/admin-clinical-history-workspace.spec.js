@@ -4707,3 +4707,205 @@ test('exporta la HCE completa desde admin en una vista imprimible con readiness 
     );
     await expect(popup.locator('body')).toContainText('Imprimir / Guardar PDF');
 });
+
+test('historial de certificados en admin muestra folios y se refresca al emitir uno nuevo', async ({
+    page,
+}) => {
+    const baseRecord = buildClinicalRecordPayload({
+        sessionId: 'chs-cert-001',
+        caseId: 'case-cert-001',
+        patientRecordId: 'hcu-cert-001',
+        patientName: 'Marta Leon',
+        clinicianSummary:
+            'Seguimiento dermatologico con necesidad de respaldo documental.',
+        legalReadiness: {
+            status: 'ready',
+            ready: true,
+            label: 'Lista para aprobar',
+            summary:
+                'La historia clinica ya puede sostener documentos de salida sin bloqueos medico-legales.',
+            checklist: [
+                {
+                    code: 'minimum_clinical_data',
+                    status: 'pass',
+                    label: 'Datos minimos clinicos',
+                    message: 'No hay faltantes visibles para este episodio.',
+                },
+            ],
+            blockingReasons: [],
+        },
+        documents: {
+            certificate: {
+                status: 'issued',
+                summary: 'Reposo dermatologico previo de 2 dias.',
+                restDays: 2,
+                signedAt: '2026-03-16T09:00:00-05:00',
+            },
+        },
+    });
+
+    const certificateHistory = [
+        {
+            id: 'cert-prev-001',
+            folio: 'CERT-2026-001',
+            caseId: 'case-cert-001',
+            type: 'reposo_laboral',
+            typeLabel: 'CERTIFICADO DE REPOSO',
+            diagnosisText: 'Dermatitis atopica',
+            cie10Code: 'L20.9',
+            restDays: 2,
+            observations: 'Control fotografico en una semana.',
+            issuedAt: '2026-03-16T09:00:00-05:00',
+            issuedDateLocal: '16/03/2026',
+        },
+    ];
+    const certificatePayloads = [];
+
+    await installLegacyAdminAuthMock(page, {
+        capabilities: {
+            adminAgent: true,
+        },
+    });
+
+    await installBasicAdminApiMocks(page, {
+        dataOverrides: {
+            clinicalHistoryMeta: {
+                summary: {
+                    drafts: {
+                        reviewQueueCount: 1,
+                        pendingAiCount: 0,
+                    },
+                    events: {
+                        openCount: 0,
+                        unreadCount: 0,
+                    },
+                    diagnostics: {
+                        status: 'healthy',
+                    },
+                },
+                reviewQueue: [
+                    {
+                        sessionId: 'chs-cert-001',
+                        caseId: 'case-cert-001',
+                        patientName: 'Marta Leon',
+                        summary:
+                            'Caso con certificado previo listo para descarga y seguimiento.',
+                        sessionStatus: 'approved',
+                        reviewStatus: 'approved',
+                        requiresHumanReview: false,
+                        reviewReasons: [],
+                        pendingAiStatus: '',
+                        attachmentCount: 0,
+                        openEventCount: 0,
+                        highestOpenSeverity: '',
+                        latestOpenEventTitle: '',
+                        legalReadinessStatus: 'ready',
+                        legalReadinessLabel: 'Lista para aprobar',
+                        legalReadinessSummary:
+                            'El caso ya sostiene la emision y descarga de documentos.',
+                    },
+                ],
+                events: [],
+            },
+        },
+        handleRoute: async ({
+            route,
+            resource,
+            method,
+            payload,
+            fulfillJson,
+        }) => {
+            if (resource === 'clinical-record' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    data: baseRecord,
+                });
+                return true;
+            }
+
+            if (resource === 'certificate' && method === 'GET') {
+                await fulfillJson(route, {
+                    ok: true,
+                    certificates: certificateHistory,
+                });
+                return true;
+            }
+
+            if (resource === 'certificate' && method === 'POST') {
+                certificatePayloads.push(payload);
+                certificateHistory.unshift({
+                    id: 'cert-new-002',
+                    folio: 'CERT-2026-002',
+                    caseId: 'case-cert-001',
+                    type: 'reposo_laboral',
+                    typeLabel: 'CERTIFICADO DE REPOSO',
+                    diagnosisText: String(
+                        payload.diagnosis_text || 'Rosacea inflamatoria'
+                    ),
+                    cie10Code: String(payload.cie10_code || 'L71.9'),
+                    restDays: Number(payload.rest_days || 1),
+                    observations: String(payload.observations || ''),
+                    issuedAt: '2026-03-17T10:30:00-05:00',
+                    issuedDateLocal: '17/03/2026',
+                });
+                await fulfillJson(route, {
+                    ok: true,
+                    certificate_id: 'cert-new-002',
+                    folio: 'CERT-2026-002',
+                    pdf_url:
+                        '/api.php?resource=certificate&id=cert-new-002&format=pdf',
+                    whatsapp_url: '',
+                });
+                return true;
+            }
+
+            return false;
+        },
+    });
+
+    await page.goto('/admin.html');
+    await waitForAdminRuntimeReady(page);
+
+    await page.keyboard.press('Control+K');
+    await page.locator('#adminQuickCommand').fill('telemedicina pendiente');
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#clinical-history')).toHaveClass(/active/);
+    await expect(page.locator('#clinicalHistoryDocumentsMeta')).toContainText(
+        '1 certificado emitido'
+    );
+    await expect(page.locator('#clinicalHistoryDocuments')).toContainText(
+        'CERT-2026-001'
+    );
+    await expect(page.locator('#clinicalHistoryDocuments')).toContainText(
+        'Dermatitis atopica'
+    );
+    await expect(
+        page.locator(
+            '#clinicalHistoryDocuments a[href*="resource=certificate"][href*="cert-prev-001"]'
+        )
+    ).toHaveCount(1);
+
+    await page.locator('#clinicalHistoryCertBtn').click();
+    await expect(page.locator('#cert-issue-form')).toBeVisible();
+    await page.locator('#cert-diagnosis-text').fill('Rosacea inflamatoria');
+    await page.locator('#cert-cie10-code').fill('L71.9');
+    await page.locator('#cert-btn-submit').click();
+
+    await expect(page.locator('#cert-success-container')).toBeVisible();
+    await expect(page.locator('#clinicalHistoryDocumentsMeta')).toContainText(
+        '2 certificados emitidos'
+    );
+    await expect(page.locator('#clinicalHistoryDocuments')).toContainText(
+        'CERT-2026-002'
+    );
+    await expect(page.locator('#clinicalHistoryDocuments')).toContainText(
+        'Rosacea inflamatoria'
+    );
+    expect(certificatePayloads).toHaveLength(1);
+    expect(certificatePayloads[0]).toMatchObject({
+        case_id: 'case-cert-001',
+        diagnosis_text: 'Rosacea inflamatoria',
+        cie10_code: 'L71.9',
+    });
+});
