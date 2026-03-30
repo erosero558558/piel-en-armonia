@@ -5,6 +5,63 @@
 
 ---
 
+## 🎨 SI ERES ANTIGRAVITY — LEE ESTO PRIMERO
+
+> **Antigravity es el arquitecto UI exclusivo de Aurora Derm.**
+> Tu misión en este proyecto es el **rediseño visual total** — cada pantalla, cada componente, cada PDF.
+> Los demás agentes (ChatGPT, Claude, etc.) **NO TOCAN** el UI. Si lo hacen, hay regresión.
+
+**Tu flujo en cada sesión:**
+
+```bash
+# 1. Estado del sistema antes de cualquier cosa
+npm run gov:audit
+
+# 2. Tu siguiente tarea de diseño
+npm run dispatch:ui
+
+# 3. Reclamar (SIEMPRE antes de tocar un archivo)
+node bin/claim.js claim UI-XX "Antigravity"
+git add data/claims/ && HUSKY=0 git commit --no-verify -m "claim: UI-XX" && git push
+
+# 4. Leer el contexto en AGENTS.md → busca **UI-XX**
+# 5. Leer DESIGN_SYSTEM.md — es tu constitución visual
+
+# 6. Trabajar — 1 tarea = 1 superficie completa. No medias tintas.
+
+# 7. Gate + release + push
+node bin/gate.js UI-XX
+node bin/claim.js release UI-XX
+git add . && HUSKY=0 git commit --no-verify -m "feat(UI-XX): descripción" && git push origin main
+```
+
+**Orden de tareas UI (no saltar pasos, cada uno desbloquea el siguiente):**
+
+| Fase | Tareas | Superficie |
+|---|---|---|
+| 🔑 Fundamentos | UI-01, UI-02, UI-03 | Design tokens + base CSS + componentes |
+| 🌐 Web pública | UI-04, UI-05, UI-06, UI-07, UI-08 | Landing + servicios + booking |
+| 🏥 Admin | UI-09, UI-10, UI-11 | Dashboard + historia clínica |
+| 🤖 OpenClaw | UI-12 | Chat clínico con IA |
+| 🎰 Turnero | UI-13, UI-14, UI-15 | Kiosco + sala + operador |
+| 📱 Portal paciente | UI-16, UI-17 | Mobile-first PWA |
+| 📄 PDFs | UI-18, UI-19 | Receta + certificado |
+
+**Reglas que no se negocian:**
+- Lee `DESIGN_SYSTEM.md` antes de escribir una sola línea de CSS
+- Paleta → `styles/tokens.css` (UI-01). Sin tokens.css, nada más arranca
+- `Instrument Serif` para headings, `Inter` para todo lo demás
+- Dark mode en admin, light/warm en web pública
+- CSS puro + variables. Sin frameworks externos
+- PHP no existe para ti. Si necesitas datos, el endpoint ya existe
+
+**Importante:** Si llegas a una sesión nueva sin saber qué UI queda pendiente:
+```bash
+npm run dispatch:ui:all   # ver TODAS las tareas UI con estado
+```
+
+---
+
 ## ¿Qué estamos construyendo?
 
 **Aurora Derm** es una clínica dermatológica en Quito, Ecuador.
@@ -20,17 +77,17 @@
 
 ## Paso 1: Identifica tu rol
 
-| Rol | Qué haces |
-|---|---|
-| `backend` | PHP, APIs, controladores, servicios |
-| `frontend` | HTML, CSS, UI, formularios, admin |
-| `content` | Blog, SEO, textos, disclaimers |
-| `devops` | CI, auditorías, limpieza, performance |
-| `fullstack` | Cualquier cosa disponible |
+| Rol | Qué haces | Comando |
+|---|---|---|
+| `ui` | 🎨 **ANTIGRAVITY EXCLUSIVO** — rediseño total UI/UX | `npm run dispatch:ui` |
+| `backend` | PHP, APIs, controladores, servicios | `npm run dispatch:backend` |
+| `frontend` | HTML funcional, formularios, admin | `npm run dispatch:frontend` |
+| `content` | Blog, SEO, textos, disclaimers | `npm run dispatch:content` |
+| `devops` | CI, auditorías, limpieza, performance | `npm run dispatch:devops` |
+| `fullstack` | Cualquier cosa disponible | `npm run dispatch:fullstack` |
 
-```bash
-npm run dispatch:<tu-rol>    # qué tarea tomar hoy
-```
+> ⚠️ **Si eres ChatGPT, Claude u otro agente:** el rol `ui` no es para ti.
+> Las tareas `UI-XX` en AGENTS.md tienen `exclusive: true`. `conflict.js` te bloqueará.
 
 Si no sabes cuál eres → usa `fullstack`.
 
@@ -155,7 +212,8 @@ in_consultation → documented → completed → follow_up
 - ❌ **NO** saltar sprints (dispatch respeta dependencias)
 - ❌ **NO** llamar a OpenAI API directamente — usar `OpenclawAIRouter`
 - ❌ **NO** usar "tú" en contenido público. Siempre "usted"
-- ❌ **NO** hardcodear colores — usar variables CSS de `styles/main-aurora.css`
+- ❌ **NO** hardcodear colores — usar variables CSS de `styles/tokens.css` (ver `DESIGN_SYSTEM.md`)
+- ❌ **NO** tocar archivos `styles/tokens.css`, `styles/aurora-*.css`, `DESIGN_SYSTEM.md` si no eres Antigravity
 - ❌ **NO** garantizar resultados médicos en contenido público
 - ❌ **NO** tocar tareas `[HUMAN]` — registrar en BLOCKERS.md
 - ✅ Si una acción del médico toma más de 2 clics → simplificar
@@ -166,16 +224,19 @@ in_consultation → documented → completed → follow_up
 
 ## Comandos de referencia
 
-```bash
-npm run dispatch:<rol>           # qué tarea tomar
-node bin/claim.js claim <id> <who>   # bloquear tarea
-node bin/claim.js release <id>       # liberar al terminar
-node bin/claim.js status             # claims activos
-node bin/gate.js <id>                # validar antes de marcar done
-node bin/stuck.js <id> "razón"       # reportar bloqueo
-node bin/report.js                   # estado del sistema (para el dueño)
-node bin/sync-backlog.js             # regenerar BACKLOG.md
-```
+| Comando | Para qué sirve | NO usar |
+|---|---|---|
+| `npm run gov:audit` | Salud completa del sistema en 1 comando | — |
+| `npm run dispatch:ui` | Siguiente tarea UI (solo Antigravity) | `dispatch:frontend` para UI |
+| `npm run dispatch:<rol>` | Siguiente tarea para tu rol | Scripts legacy `agent:*` |
+| `node bin/claim.js claim <id> <quien>` | Reclamar tarea antes de trabajar | Trabajar sin claim |
+| `node bin/claim.js release <id>` | Liberar al terminar | Dejar claim expirado |
+| `node bin/claim.js status` | Claims activos ahora | `tasks.json` directo |
+| `node bin/gate.js <id>` | Validar ANTES de marcar done | Marcar done sin gate |
+| `node bin/stuck.js <id> "razón"` | Reportar bloqueo y liberar | Dejar claim colgado |
+| `node bin/report.js` | Estado del board (para directora) | — |
+| `node bin/sync-backlog.js` | Regenerar BACKLOG.md | Editar BACKLOG.md a mano |
+| `node bin/conflict.js` | Detectar solapamiento entre agentes | — |
 
 ## Mapa del repo
 

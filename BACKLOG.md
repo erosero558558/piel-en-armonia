@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 11:24:42 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 11:27:32 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -67,11 +67,11 @@ _Sprint completado. 24/24 tareas._
 
 ### 🔒 En progreso — NO tomar
 
-- **S3-56** `[M]` → _antigravity_ (expira en 226min)
+- **S3-27** `[M]` → _Antigravity_ (expira en 238min)
+- **S3-56** `[M]` → _antigravity_ (expira en 223min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
-- **S3-27** `[M]` — necesita: S3-24 primero
 - **S3-31** `[M]` — necesita: S3-29, S3-30 primero
 
 ### 🙋 Requieren respuesta del dueño → ver BLOCKERS.md
