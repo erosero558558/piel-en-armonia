@@ -5,6 +5,7 @@ import { renderClinicalHistorySection } from './clinical-history.js';
 import { renderDashboardSection } from './dashboard.js';
 import { renderQueueSection } from './queue.js';
 import { renderReviewsSection } from './reviews.js';
+import { renderSettingsSection } from './settings.js';
 
 export function renderAllSections() {
     return `
@@ -15,5 +16,6 @@ export function renderAllSections() {
         ${renderAvailabilitySection()}
         ${renderQueueSection()}
         ${renderClinicalHistorySection()}
+        ${renderSettingsSection()}
     `;
 }

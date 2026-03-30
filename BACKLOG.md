@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 10:46:31 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 10:53:55 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,14 +7,14 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`███████░░░░░░░░░░░░░` **37%** completado (62/167)
+`████████░░░░░░░░░░░░` **40%** completado (66/167)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 24 | 34 | 41% |
+| 🎯 Sprint 3 | 28 | 30 | 48% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
 | ⏸ Sprint 6 | 1 | 24 | 4% |
@@ -30,11 +30,10 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (27)
+### 🟢 Disponibles (25)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
-| **S3-37** | `[S]` | Perfil de clínica — nombre clínica, dirección, teléfono, logo (imagen)... |
 | **S3-41** | `[S]` | CIE-10 autocomplete widget — el backend  ya existe. Falta el frontend:... |
 | **S3-43** | `[S]` | Botón "Emitir certificado" en admin — en la vista del caso del pacient... |
 | **S3-44** | `[S]` | Historial de certificados en admin — en el perfil del paciente, pestañ... |
@@ -55,7 +54,6 @@ _Sprint completado. 24/24 tareas._
 | **S3-45** | `[M]` | Gate checks específicos por tarea — ampliar  para verificar artefactos... |
 | **S3-51** | `[M]` | openapi-openclaw.yaml completar — el archivo existe (466 líneas) pero ... |
 | **S3-52** | `[M]` | Custom GPT instructions — crear  con las instrucciones exactas para co... |
-| **S3-12** | `[L]` | Estimación de espera — calcular tiempo estimado basado en: posición en... |
 | **S3-17** | `[L]` | Comparación before/after — en admin: dos fotos side-by-side de misma z... |
 | **S3-30** | `[L]` | Vista de teleconsulta — : sala de espera virtual, video embed (Jitsi/D... |
 | **S3-32** | `[L]` | Checkout integrado — : monto, concepto, métodos (Stripe, transferencia... |
@@ -64,13 +62,11 @@ _Sprint completado. 24/24 tareas._
 
 ### 🔒 En progreso — NO tomar
 
-- **S3-16** `[L]` → _antigravity_ (expira en 477min)
-- **S3-26** `[M]` → _unknown-agent_ (expira en 237min)
-- **S3-36** `[S]` → _Codex-erosero558558_ (expira en 103min)
+- **S3-36** `[S]` → _Codex-erosero558558_ (expira en 96min)
+- **S3-37** `[S]` → _antigravity_ (expira en 120min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 
-- **S3-25** `[M]` — necesita: S3-24 primero
 - **S3-27** `[M]` — necesita: S3-24 primero
 - **S3-31** `[M]` — necesita: S3-29, S3-30 primero
 

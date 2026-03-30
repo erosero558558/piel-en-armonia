@@ -4,6 +4,7 @@ const VALID_SECTIONS = new Set([
     'queue',
     'dashboard',
     'clinical-history',
+    'settings',
     'appointments',
     'callbacks',
     'reviews',

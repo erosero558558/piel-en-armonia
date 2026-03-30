@@ -216,6 +216,116 @@ test.describe('Panel de administracion', () => {
         );
     });
 
+    test('settings guarda el perfil del medico principal y sube la firma digital', async ({
+        page,
+    }) => {
+        const savedProfiles = [];
+        const initialSignature =
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg==';
+
+        await installLegacyAdminAuthMock(page, {
+            csrfToken: 'csrf_test_token',
+        });
+
+        await installBasicAdminApiMocks(page, {
+            dataOverrides: {
+                doctorProfile: {
+                    fullName: 'Dra. Aurora Demo',
+                    specialty: 'Dermatologia clinica',
+                    mspNumber: 'MSP-100200',
+                    signatureImage: initialSignature,
+                    updatedAt: '2026-03-28T10:00:00-05:00',
+                },
+            },
+            handleRoute: async ({
+                route,
+                resource,
+                method,
+                payload,
+                context,
+                fulfillJson,
+            }) => {
+                if (resource === 'doctor-profile' && method === 'GET') {
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: context.data.doctorProfile || {},
+                    });
+                    return true;
+                }
+
+                if (resource === 'doctor-profile' && method === 'POST') {
+                    savedProfiles.push(payload);
+                    context.data.doctorProfile = {
+                        ...payload,
+                        updatedAt: '2026-03-29T15:45:00-05:00',
+                    };
+                    await fulfillJson(route, {
+                        ok: true,
+                        data: context.data.doctorProfile,
+                    });
+                    return true;
+                }
+
+                return false;
+            },
+        });
+
+        await page.goto('/admin.html');
+        await waitForAdminReady(page);
+
+        await page
+            .locator('#adminSidebar .nav-item[data-section="settings"]')
+            .click();
+
+        await expect(page.locator('#settings')).toHaveClass(/active/);
+        await expect(page.locator('#pageTitle')).toHaveText('Perfil medico');
+        await expect(page.locator('#doctorProfileFullName')).toHaveValue(
+            'Dra. Aurora Demo'
+        );
+        await expect(
+            page.locator('#doctorProfileSignaturePreview img')
+        ).toBeVisible();
+
+        await page.locator('#doctorProfileFullName').fill('Dra. Lucia Rosero');
+        await page
+            .locator('#doctorProfileSpecialty')
+            .fill('Dermatologia medico quirurgica');
+        await page.locator('#doctorProfileMspNumber').fill('MSP-445566');
+        await page.locator('#doctorProfileSignatureFile').setInputFiles({
+            name: 'firma.png',
+            mimeType: 'image/png',
+            buffer: Buffer.from(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg==',
+                'base64'
+            ),
+        });
+
+        await expect(page.locator('#doctorProfilePreviewName')).toContainText(
+            'Dra. Lucia Rosero'
+        );
+        await expect(
+            page.locator('#doctorProfileSignaturePreview img')
+        ).toBeVisible();
+
+        await page.locator('#doctorProfileSaveBtn').click();
+
+        await expect.poll(() => savedProfiles.length).toBe(1);
+        expect(savedProfiles[0]).toMatchObject({
+            fullName: 'Dra. Lucia Rosero',
+            specialty: 'Dermatologia medico quirurgica',
+            mspNumber: 'MSP-445566',
+        });
+        expect(String(savedProfiles[0].signatureImage || '')).toMatch(
+            /^data:image\/png;base64,/
+        );
+        await expect(page.locator('#doctorProfileSaveMeta')).toContainText(
+            'Actualizado'
+        );
+        await expect(page.locator('#doctorProfilePreviewMeta')).toContainText(
+            'MSP-445566'
+        );
+    });
+
     test('login legacy de respaldo con contrasena vacia no funciona', async ({
         page,
     }) => {

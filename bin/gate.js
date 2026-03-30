@@ -22,6 +22,12 @@ const { resolve } = require('path');
 const ROOT = resolve(__dirname, '..');
 const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
 
+function syncBacklog() {
+  try {
+    execSync('node bin/sync-backlog.js', { cwd: ROOT, stdio: 'pipe' });
+  } catch { /* non-fatal */ }
+}
+
 const taskId = process.argv[2];
 const fix = process.argv.includes('--fix');
 
@@ -256,6 +262,9 @@ if (failed === 0) {
   console.log(`⚠️  git push origin main ES OBLIGATORIO.`);
   console.log(`   Si no haces push, tu trabajo no existe para nadie más.`);
   console.log(`   El director usa 'npm run merge-ready' para ver ramas listas.\n`);
+  // Auto-sync BACKLOG.md silently so it's always current
+  syncBacklog();
+
   process.exit(0);
 } else {
   console.log(`\n❌ GATE FAILED — Fix the issues above before marking ${taskId} as done\n`);

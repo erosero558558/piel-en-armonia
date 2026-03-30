@@ -24,6 +24,7 @@ const {
   statSync,
 } = require('fs');
 const { resolve, join } = require('path');
+const { execSync } = require('child_process');
 
 const ROOT        = resolve(__dirname, '..');
 const CLAIMS_DIR  = resolve(ROOT, 'data/claims/tasks');    // ← archivos individuales
@@ -32,6 +33,11 @@ const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
 
 // Asegurar directorio
 if (!existsSync(CLAIMS_DIR)) mkdirSync(CLAIMS_DIR, { recursive: true });
+
+// Auto-sync: actualiza BACKLOG.md sin ruido
+function syncBacklog() {
+  try { execSync('node bin/sync-backlog.js', { cwd: ROOT, stdio: 'pipe' }); } catch {}
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -241,6 +247,8 @@ switch (cmd) {
       deleteClaim(arg1);
       console.log(`✅ Released claim on ${arg1}`);
     }
+    // Auto-sync BACKLOG.md silently (closing the last consistency gap)
+    syncBacklog();
     console.log(`
 ⚠️  TU TRABAJO NO EXISTE HASTA QUE HAGAS PUSH.
 
@@ -259,6 +267,7 @@ switch (cmd) {
 `);
     break;
   }
+
 
 
   // ── next ──────────────────────────────────────────────────────────────────

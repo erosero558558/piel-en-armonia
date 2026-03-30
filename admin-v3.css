@@ -2299,6 +2299,149 @@ body.admin-v3-mode .availability-detail-grid > .sony-panel.soft {
     padding: 24px;
 }
 
+body.admin-v3-mode .settings-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    gap: 18px;
+}
+
+body.admin-v3-mode .settings-rail,
+body.admin-v3-mode .settings-form {
+    display: grid;
+    gap: 16px;
+}
+
+body.admin-v3-mode .settings-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+body.admin-v3-mode .settings-field {
+    display: grid;
+    gap: 8px;
+}
+
+body.admin-v3-mode .settings-field span,
+body.admin-v3-mode .settings-preview-eyebrow,
+body.admin-v3-mode .settings-status-list dt {
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .settings-field input {
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--admin3-line);
+    border-radius: 18px;
+    background: var(--admin3-surface);
+    color: var(--admin3-ink);
+    padding: 12px 16px;
+}
+
+body.admin-v3-mode .settings-field small {
+    color: var(--admin3-muted);
+    font-size: 0.8rem;
+}
+
+body.admin-v3-mode .settings-signature-block {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 0.8fr);
+    gap: 16px;
+    align-items: stretch;
+}
+
+body.admin-v3-mode .settings-signature-preview,
+body.admin-v3-mode .settings-preview-signature {
+    min-height: 128px;
+    border: 1px dashed var(--admin3-line);
+    border-radius: 22px;
+    background: var(--admin3-surface-alt);
+    display: grid;
+    place-items: center;
+    padding: 18px;
+}
+
+body.admin-v3-mode .settings-signature-preview img,
+body.admin-v3-mode .settings-preview-signature img {
+    max-width: 100%;
+    max-height: 84px;
+    object-fit: contain;
+}
+
+body.admin-v3-mode .settings-signature-placeholder {
+    color: var(--admin3-muted);
+    text-align: center;
+}
+
+body.admin-v3-mode .settings-signature-meta,
+body.admin-v3-mode .settings-preview-card {
+    display: grid;
+    gap: 10px;
+}
+
+body.admin-v3-mode .settings-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+body.admin-v3-mode .settings-form-actions p,
+body.admin-v3-mode .settings-signature-meta p {
+    color: var(--admin3-muted);
+}
+
+body.admin-v3-mode .settings-primary-btn,
+body.admin-v3-mode .settings-secondary-btn {
+    min-height: 44px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 0 18px;
+}
+
+body.admin-v3-mode .settings-preview-card {
+    padding: 18px;
+    border-radius: 24px;
+    background:
+        linear-gradient(135deg, rgba(22, 26, 31, 0.02), rgba(201, 169, 110, 0.14));
+    border: 1px solid rgba(201, 169, 110, 0.24);
+}
+
+body.admin-v3-mode .settings-preview-card strong {
+    font-size: 1.12rem;
+}
+
+body.admin-v3-mode .settings-status-list {
+    display: grid;
+    gap: 14px;
+}
+
+body.admin-v3-mode .settings-status-list div {
+    display: grid;
+    gap: 4px;
+}
+
+body.admin-v3-mode .settings-status-list dd {
+    margin: 0;
+    color: var(--admin3-ink);
+}
+
+body.admin-v3-mode .settings-completion-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: rgba(21, 26, 31, 0.08);
+    color: var(--admin3-ink);
+    font-size: 0.82rem;
+}
+
 body.admin-v3-mode .availability-calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -3323,5 +3466,11 @@ body.admin-v3-mode .clinical-media-flow-form-grid {
 
     body.admin-v3-mode .dashboard-secondary-links {
         flex-direction: column;
+    }
+
+    body.admin-v3-mode .settings-stage,
+    body.admin-v3-mode .settings-signature-block,
+    body.admin-v3-mode .settings-fields {
+        grid-template-columns: 1fr;
     }
 }

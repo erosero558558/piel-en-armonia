@@ -22,6 +22,7 @@ import {
 } from '../../sections/availability.js';
 import { renderDashboard } from '../../sections/dashboard.js';
 import { renderReviewsSection } from '../../sections/reviews.js';
+import { renderSettingsSection } from '../../sections/settings.js';
 import { renderAdminChrome } from '../../ui/frame.js';
 
 export function refreshHeaderStatus() {
@@ -44,6 +45,7 @@ export function renderAllSections() {
     renderReviewsSection();
     renderAvailabilitySection();
     renderQueuePilotSection(appendQueueActivity);
+    renderSettingsSection();
     refreshHeaderStatus();
     renderAgentPanel();
 }

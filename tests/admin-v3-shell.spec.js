@@ -238,6 +238,9 @@ test.describe('Admin sony_v3 shell', () => {
         await expect(page.locator('#adminSecondaryNav')).toContainText(
             'Historia clinica'
         );
+        await expect(page.locator('#adminSecondaryNav')).toContainText(
+            'Perfil medico'
+        );
         await expect(
             page.locator('#adminPrimaryNav .nav-item').first()
         ).toHaveAttribute('data-section', 'queue');

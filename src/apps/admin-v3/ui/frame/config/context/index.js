@@ -1,5 +1,6 @@
 import { DASHBOARD_CONTEXT } from './dashboard.js';
 import { CLINICAL_HISTORY_CONTEXT } from './clinical-history.js';
+import { SETTINGS_CONTEXT } from './settings.js';
 import { APPOINTMENTS_CONTEXT } from './appointments.js';
 import { CALLBACKS_CONTEXT } from './callbacks.js';
 import { REVIEWS_CONTEXT } from './reviews.js';
@@ -9,6 +10,7 @@ import { QUEUE_CONTEXT } from './queue.js';
 export const SECTION_CONTEXT = {
     dashboard: DASHBOARD_CONTEXT,
     'clinical-history': CLINICAL_HISTORY_CONTEXT,
+    settings: SETTINGS_CONTEXT,
     appointments: APPOINTMENTS_CONTEXT,
     callbacks: CALLBACKS_CONTEXT,
     reviews: REVIEWS_CONTEXT,
