@@ -58,6 +58,15 @@ const CLINICAL_HISTORY_SEX_CHOICES = Object.freeze([
     { value: 'masculino', label: 'Masculino' },
     { value: 'intersexual', label: 'Intersexual' },
 ]);
+const CLINICAL_HISTORY_FITZPATRICK_CHOICES = Object.freeze([
+    { value: '', label: 'Sin dato' },
+    { value: 'I', label: 'I' },
+    { value: 'II', label: 'II' },
+    { value: 'III', label: 'III' },
+    { value: 'IV', label: 'IV' },
+    { value: 'V', label: 'V' },
+    { value: 'VI', label: 'VI' },
+]);
 const CLINICAL_HISTORY_DOCUMENT_TYPE_CHOICES = Object.freeze([
     { value: 'cedula', label: 'Cédula' },
     { value: 'passport', label: 'Pasaporte' },
@@ -193,6 +202,86 @@ function normalizeStringList(value) {
     return normalizeList(value)
         .map((item) => normalizeString(item))
         .filter(Boolean);
+}
+
+function normalizeFitzpatrickValue(value) {
+    const normalized = normalizeString(value).toUpperCase();
+    return ['I', 'II', 'III', 'IV', 'V', 'VI'].includes(normalized)
+        ? normalized
+        : '';
+}
+
+function buildLegacyAntecedentesSummary(personales, familiares, legacy = '') {
+    const legacyValue = normalizeString(legacy);
+    const personalesValue = normalizeString(personales);
+    const familiaresValue = normalizeString(familiares);
+
+    if (!personalesValue && !familiaresValue) {
+        return legacyValue;
+    }
+    if (!personalesValue) {
+        return familiaresValue;
+    }
+    if (!familiaresValue) {
+        return personalesValue;
+    }
+
+    return [
+        `Personales: ${personalesValue}`,
+        `Familiares: ${familiaresValue}`,
+    ].join('\n');
+}
+
+function buildLegacyHabitosSummary(sol, tabaco, legacy = '') {
+    const legacyValue = normalizeString(legacy);
+    const sunValue = normalizeString(sol);
+    const tobaccoValue = normalizeString(tabaco);
+
+    if (!sunValue && !tobaccoValue) {
+        return legacyValue;
+    }
+    if (!sunValue) {
+        return tobaccoValue;
+    }
+    if (!tobaccoValue) {
+        return sunValue;
+    }
+
+    return [`Sol: ${sunValue}`, `Tabaco: ${tobaccoValue}`].join('\n');
+}
+
+function normalizeAnamnesisFields(intakeSource) {
+    const source =
+        intakeSource && typeof intakeSource === 'object' ? intakeSource : {};
+    const legacyAntecedentes = normalizeString(source.antecedentes);
+    const legacyHabitos = normalizeString(source.habitos);
+    const antecedentesPersonales =
+        normalizeString(source.antecedentesPersonales) || legacyAntecedentes;
+    const antecedentesFamiliares = normalizeString(
+        source.antecedentesFamiliares
+    );
+    const habitosSol = normalizeString(source.habitosSol) || legacyHabitos;
+    const habitosTabaco = normalizeString(source.habitosTabaco);
+
+    return {
+        antecedentes: buildLegacyAntecedentesSummary(
+            antecedentesPersonales,
+            antecedentesFamiliares,
+            legacyAntecedentes
+        ),
+        antecedentesPersonales,
+        antecedentesFamiliares,
+        fototipoFitzpatrick: normalizeFitzpatrickValue(
+            source.fototipoFitzpatrick
+        ),
+        habitos: buildLegacyHabitosSummary(
+            habitosSol,
+            habitosTabaco,
+            legacyHabitos
+        ),
+        habitosSol,
+        habitosTabaco,
+    };
 }
 
 function normalizeTextareaList(value) {
@@ -8602,16 +8691,29 @@ function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
                 )}
                 ${buildClinicalHistoryInlineGrid([
                     textareaField(
-                        'intake_antecedentes',
-                        'Antecedentes',
-                        draft.intake.antecedentes,
+                        'intake_antecedentes_personales',
+                        'Antecedentes personales',
+                        draft.intake.antecedentesPersonales,
                         {
                             rows: 4,
                             placeholder:
-                                'Dermatologicos, familiares, cronicos.',
+                                'Dermatologicos, cronicos y personales relevantes.',
                             disabled,
                         }
                     ),
+                    textareaField(
+                        'intake_antecedentes_familiares',
+                        'Antecedentes familiares',
+                        draft.intake.antecedentesFamiliares,
+                        {
+                            rows: 4,
+                            placeholder:
+                                'Familiares relevantes para el motivo de consulta.',
+                            disabled,
+                        }
+                    ),
+                ])}
+                ${buildClinicalHistoryInlineGrid([
                     textareaField(
                         'intake_alergias',
                         'Alergias',
@@ -8634,24 +8736,37 @@ function buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue) {
                             disabled,
                         }
                     ),
-                    textareaField(
-                        'intake_habitos',
-                        'Habitos',
-                        draft.intake.habitos,
+                    selectField(
+                        'intake_fototipo_fitzpatrick',
+                        'Fototipo Fitzpatrick',
+                        draft.intake.fototipoFitzpatrick,
+                        CLINICAL_HISTORY_FITZPATRICK_CHOICES,
                         {
-                            rows: 4,
-                            placeholder: 'Sol, tabaco, alcohol...',
+                            hint: 'Escala I a VI.',
                             disabled,
                         }
                     ),
                 ])}
                 ${buildClinicalHistoryInlineGrid([
-                    inputField(
-                        'intake_fototipo_fitzpatrick',
-                        'Fototipo Fitzpatrick',
-                        draft.intake.fototipoFitzpatrick,
+                    textareaField(
+                        'intake_habitos_sol',
+                        'Habitos de sol',
+                        draft.intake.habitosSol,
                         {
-                            placeholder: 'Ej. III, IV',
+                            rows: 3,
+                            placeholder:
+                                'Exposicion solar, fotoproteccion y trabajo exterior.',
+                            disabled,
+                        }
+                    ),
+                    textareaField(
+                        'intake_habitos_tabaco',
+                        'Habitos de tabaco',
+                        draft.intake.habitosTabaco,
+                        {
+                            rows: 3,
+                            placeholder:
+                                'Consumo actual, previo o exposicion relevante.',
                             disabled,
                         }
                     ),
@@ -11404,7 +11519,7 @@ function buildClinicalHistoryPhotosSection(review, draft, disabled) {
         const url = escapeHtml(asset.url || '');
         return `
             <div class="clinical-photo-card" style="border: 1px solid var(--borderBase); padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: start; gap: 15px; background: var(--bgLayer)">
-                <img src="${url}" alt="Foto Clínica" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px;" />
+                <img class="clinical-photo" data-full-src="${url}" src="${url}" alt="Foto Clínica" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px; cursor: pointer;" />
                 <div style="flex: 1;">
                     <strong style="display:block; color: var(--textStrong);">${escapeHtml(asset.bodyZone || 'Sin zona especificada')}</strong>
                     <span style="font-size: 13px; color: var(--textBase);">${escapeHtml(asset.createdAt || '')}</span>

@@ -408,3 +408,105 @@
     page-break-inside: avoid;
   }
 }
+
+/* ==========================================================================
+   UI3-19 Vanilla Lightbox (.aurora-lightbox-overlay)
+   ========================================================================== */
+.aurora-lightbox-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aurora-lightbox-controls {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  z-index: 100;
+}
+
+.aurora-lightbox-counter {
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+}
+
+.aurora-lightbox-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.aurora-lightbox-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.aurora-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+}
+
+.aurora-lightbox-nav.prev {
+  left: var(--space-4);
+}
+
+.aurora-lightbox-nav.next {
+  right: var(--space-4);
+}
+
+.aurora-lightbox-nav:hover {
+  transform: translateY(-50%) scale(1.1);
+}
+
+.aurora-lightbox-content {
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aurora-lightbox-content img {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease;
+  user-select: none;
+}
+
+.aurora-lightbox-content img.is-zoomed {
+  transform: scale(2);
+  cursor: zoom-out !important;
+}
+
+.clinical-photo {
+  cursor: zoom-in;
+}
