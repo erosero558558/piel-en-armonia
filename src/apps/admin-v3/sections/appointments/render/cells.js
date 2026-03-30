@@ -59,6 +59,8 @@ function buildRowActions(item, paymentStatus, phoneHref) {
     if (TRANSFER_REVIEW_PAYMENT_STATUSES.has(paymentStatus)) {
         actions.push(buildActionButton('Aprobar', 'approve-transfer', id));
         actions.push(buildActionButton('Rechazar', 'reject-transfer', id));
+    } else if (item.status === 'confirmed' || item.status === 'pending') {
+        actions.push(buildActionButton('Marcar llegó', 'mark-arrived', id));
     }
 
     actions.push(buildActionButton('No show', 'mark-no-show', id));

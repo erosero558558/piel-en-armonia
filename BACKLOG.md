@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 30/3/2026, 2:24:06 p. m. | Fuente: AGENTS.md_
+_Generado: 30/3/2026, 2:56:38 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -207,15 +207,18 @@ _Esperando que Sprint anterior esté completo. 18 tareas pendientes._
 ## ⏸ Sprint UI — Fase 3: Los Detalles Que Hacen la Diferencia
 _Esperando que Sprint anterior esté completo. 5 tareas pendientes._
 
-### 🟢 Disponibles (5)
+### 🟢 Disponibles (4)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **UI3-15** | `[UI3]` | M |
 | **UI3-16** | `[UI3]` | M |
 | **UI3-18** | `[UI3]` | S |
-| **UI3-19** | `[UI3]` | M |
 | **UI3-20** | `[UI3]` | M |
+
+### 🔒 En progreso — NO tomar
+
+- **UI3-19** `[UI3]` → _Antigravity UI Agent_ (expira en 240min)
 
 ## ⏸ Sprint 14 — Gobernanza Real, Infraestructura y Deuda de Contrato
 _Esperando que Sprint anterior esté completo. 12 tareas pendientes._

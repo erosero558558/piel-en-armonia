@@ -153,19 +153,60 @@
                 
 
                 <section
-                    id="daily-agenda"
+                    id="appointments"
                     class="admin-section"
-                    data-admin-raw-section="daily-agenda"
+                    data-admin-raw-section="appointments"
                 >
                     <header data-turnero-control-room="raw">
-                        <p>Día en curso</p>
+                        <p>Gestión</p>
                         <h3>Agenda Diaria</h3>
-                        <p>
-                            Pacientes confirmados, estatus, check-in y avisos de overbooking.
-                        </p>
+                        <p>Control de citas del día y confirmaciones de arribo.</p>
                     </header>
-                    <div id="dailyAgendaUI" style="display: grid; gap: 1rem; padding: 1rem; max-width: 1200px;">
-                        <!-- Rendered dynamically -->
+                    <div class="ops-surface" style="padding: 1rem;">
+                        <article class="ops-card ops-summary" style="margin-bottom: 2rem; border-color: var(--ops-border, #ccc);">
+                            <h4 id="appointmentsDeckSummary">Cargando datos...</h4>
+                            <p><strong id="appointmentsDeckChip" class="appointment-pill" data-state="success">Agenda estable</strong></p>
+                            <p id="appointmentsWorkbenchHint">Analizando estado...</p>
+                            <div class="ops-stats" style="display: flex; gap: 2rem; margin-top: 1rem;">
+                                <div><strong id="appointmentsOpsTodayCount">0</strong> <small id="appointmentsOpsTodayMeta">-</small></div>
+                                <div><strong id="appointmentsOpsUpcomingCount">0</strong> <small id="appointmentsOpsUpcomingMeta">-</small></div>
+                                <div><strong id="appointmentsOpsPendingTransfer">0</strong> <small id="appointmentsOpsPendingTransferMeta">-</small></div>
+                                <div><strong id="appointmentsOpsNoShowCount">0</strong> <small id="appointmentsOpsNoShowMeta">-</small></div>
+                            </div>
+                        </article>
+
+                        <article class="ops-card ops-focus" style="margin-bottom: 2rem;">
+                            <h4 id="appointmentsFocusLabel">Detalle</h4>
+                            <p><strong id="appointmentsFocusPatient">Sin paciente</strong></p>
+                            <p id="appointmentsFocusMeta">-</p>
+                            <ul style="list-style: none; padding: 0;">
+                                <li><strong>Ventana:</strong> <span id="appointmentsFocusWindow">-</span></li>
+                                <li><strong>Pago:</strong> <span id="appointmentsFocusPayment">-</span></li>
+                                <li><strong>Estado:</strong> <span id="appointmentsFocusStatus">-</span></li>
+                                <li><strong>Contacto:</strong> <span id="appointmentsFocusContact">-</span></li>
+                            </ul>
+                            <div id="appointmentsFocusTags" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
+                            <p id="appointmentsFocusHint" style="margin-top: 1rem; color: var(--ops-color-secondary, #666);"></p>
+                            
+                            <div id="appointmentsQueueReview" class="is-hidden" style="margin-top: 1rem; border-top: 1px solid var(--ops-border, #eee); padding-top: 1rem;"></div>
+                        </article>
+
+                        <article class="ops-card" style="overflow-x: auto;">
+                            <table class="ops-table" style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr>
+                                        <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid var(--ops-border, #ccc);">Paciente</th>
+                                        <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid var(--ops-border, #ccc);">Servicio</th>
+                                        <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid var(--ops-border, #ccc);">Fecha</th>
+                                        <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid var(--ops-border, #ccc);">Pago</th>
+                                        <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid var(--ops-border, #ccc);">Estado</th>
+                                        <th style="padding: 0.5rem; text-align: left; border-bottom: 2px solid var(--ops-border, #ccc);">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="appointmentsTableBody">
+                                </tbody>
+                            </table>
+                        </article>
                     </div>
                 </section>
 
