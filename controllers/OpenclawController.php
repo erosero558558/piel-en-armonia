@@ -342,21 +342,74 @@ final class OpenclawController
             json_response(['ok' => false, 'error' => 'case_id y medications requeridos'], 400);
         }
 
+        require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryRepository.php';
         require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryService.php';
         $service = new ClinicalHistoryService();
         $rxId    = 'rx-' . bin2hex(random_bytes(8));
 
-        $result = self::mutateStore(static function (array $store) use ($service, $caseId, $medications, $rxId, $payload): array {
-            return $service->savePrescription($store, [
-                'id'          => $rxId,
-                'caseId'      => $caseId,
-                'medications' => $medications,
-                'notes'       => $payload['notes'] ?? '',
-                'source'      => 'openclaw',
-                'status'      => 'active',
-                'createdAt'   => gmdate('c'),
+        $result = self::mutateStore(static function (array $store) use ($service, $caseId, $medications): array {
+            $session = ClinicalHistoryRepository::findSessionByCaseId($store, $caseId);
+            if ($session === null) {
+                return [
+                    'ok' => false,
+                    'store' => $store,
+                    'storeDirty' => false,
+                    'statusCode' => 404,
+                    'error' => 'Sesion clinica no encontrada',
+                ];
+            }
+
+            $draft = ClinicalHistoryRepository::findDraftBySessionId(
+                $store,
+                (string) ($session['sessionId'] ?? '')
+            );
+            $existingItems = ClinicalHistoryRepository::normalizePrescriptionItems(
+                $draft['clinicianDraft']['hcu005']['prescriptionItems']
+                    ?? $draft['documents']['prescription']['items']
+                    ?? []
+            );
+            $incomingItems = self::normalizePrescriptionItemsPayload($medications);
+            $mergedItems = array_values(array_filter(array_merge($existingItems, $incomingItems), static function (array $item): bool {
+                return ClinicalHistoryRepository::prescriptionItemIsStarted($item);
+            }));
+
+            $actionResult = $service->episodeAction($store, [
+                'action' => 'issue_prescription',
+                'caseId' => $caseId,
+                'draft' => [
+                    'clinicianDraft' => [
+                        'hcu005' => [
+                            'prescriptionItems' => $mergedItems,
+                        ],
+                    ],
+                ],
+                'requiresHumanReview' => false,
             ]);
+
+            if (($actionResult['ok'] ?? false) !== true || !isset($actionResult['store']) || !is_array($actionResult['store'])) {
+                return [
+                    'ok' => false,
+                    'store' => $store,
+                    'storeDirty' => false,
+                    'statusCode' => (int) ($actionResult['statusCode'] ?? 500),
+                    'error' => (string) ($actionResult['error'] ?? 'No se pudo guardar la receta'),
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'store' => $actionResult['store'],
+                'storeDirty' => true,
+                'prescriptionItems' => $mergedItems,
+            ];
         });
+
+        if (($result['ok'] ?? false) !== true) {
+            json_response([
+                'ok' => false,
+                'error' => (string) ($result['error'] ?? 'No se pudo guardar la receta'),
+            ], (int) ($result['statusCode'] ?? 500));
+        }
 
         $pdfUrl      = '/api.php?resource=openclaw-prescription&id=' . $rxId . '&format=pdf';
         $patientCtx  = self::readStore()['patients'][$caseId] ?? [];
@@ -432,36 +485,73 @@ final class OpenclawController
         self::requireAuth();
         $payload = require_json_body();
 
-        $proposed = array_map('strtolower', $payload['proposed_medications'] ?? []);
+        $caseId = trim((string) ($payload['case_id'] ?? $payload['caseId'] ?? ''));
+        $proposed = self::normalizeMedicationNameList($payload['proposed_medications'] ?? []);
+
+        if ($caseId === '' || $proposed === []) {
+            json_response(['ok' => false, 'error' => 'case_id y proposed_medications requeridos'], 400);
+        }
+
+        $active = self::normalizeMedicationNameList($payload['active_medications'] ?? []);
+        if ($active === []) {
+            $active = self::resolveActiveMedicationsForCase($caseId);
+        }
 
         // Load interactions DB
         $dbPath = __DIR__ . '/../data/drug-interactions.json';
         if (!file_exists($dbPath)) {
-            json_response(['ok' => true, 'has_interactions' => false, 'interactions' => []]);
+            json_response([
+                'ok' => true,
+                'has_interactions' => false,
+                'active_medications' => $active,
+                'interactions' => [],
+            ]);
         }
 
         $db           = json_decode((string) file_get_contents($dbPath), true) ?? [];
         $interactions = [];
 
         foreach ($db['pairs'] ?? [] as $pair) {
-            $a = strtolower($pair['drug_a'] ?? '');
-            $b = strtolower($pair['drug_b'] ?? '');
-            foreach ($proposed as $med) {
-                $hitA = str_contains($med, $a) || str_contains($a, explode(' ', $med)[0]);
-                $hitB = str_contains($med, $b) || str_contains($b, explode(' ', $med)[0]);
-                if ($hitA || $hitB) {
-                    foreach ($proposed as $med2) {
-                        if ($med === $med2) continue;
-                        $hit2A = str_contains($med2, $a) || str_contains($a, explode(' ', $med2)[0]);
-                        $hit2B = str_contains($med2, $b) || str_contains($b, explode(' ', $med2)[0]);
-                        if (($hitA && $hit2B) || ($hitB && $hit2A)) {
-                            $interactions[] = [
-                                'drug_a'      => $pair['drug_a'],
-                                'drug_b'      => $pair['drug_b'],
-                                'severity'    => $pair['severity'] ?? 'medium',
-                                'description' => $pair['description'] ?? '',
-                            ];
-                        }
+            $pairA = self::normalizeMedicationKey((string) ($pair['drug_a'] ?? ''));
+            $pairB = self::normalizeMedicationKey((string) ($pair['drug_b'] ?? ''));
+            if ($pairA === '' || $pairB === '') {
+                continue;
+            }
+
+            foreach ($proposed as $proposedMedication) {
+                $proposedKey = self::normalizeMedicationKey($proposedMedication);
+                if ($proposedKey === '') {
+                    continue;
+                }
+
+                $proposedMatchesA = self::medicationMatchesInteraction($proposedKey, $pairA);
+                $proposedMatchesB = self::medicationMatchesInteraction($proposedKey, $pairB);
+                if (!$proposedMatchesA && !$proposedMatchesB) {
+                    continue;
+                }
+
+                foreach ($active as $activeMedication) {
+                    $activeKey = self::normalizeMedicationKey($activeMedication);
+                    if ($activeKey === '') {
+                        continue;
+                    }
+
+                    $activeMatchesA = self::medicationMatchesInteraction($activeKey, $pairA);
+                    $activeMatchesB = self::medicationMatchesInteraction($activeKey, $pairB);
+
+                    $isPairMatch =
+                        ($proposedMatchesA && $activeMatchesB) ||
+                        ($proposedMatchesB && $activeMatchesA);
+
+                    if ($isPairMatch) {
+                        $interactions[] = [
+                            'drug_a' => (string) ($pair['drug_a'] ?? ''),
+                            'drug_b' => (string) ($pair['drug_b'] ?? ''),
+                            'severity' => (string) ($pair['severity'] ?? 'medium'),
+                            'description' => (string) ($pair['description'] ?? ''),
+                            'proposed_medication' => $proposedMedication,
+                            'active_medication' => $activeMedication,
+                        ];
                     }
                 }
             }
@@ -472,6 +562,7 @@ final class OpenclawController
         json_response([
             'ok'               => true,
             'has_interactions' => count($interactions) > 0,
+            'active_medications' => $active,
             'interactions'     => $interactions,
         ]);
     }
@@ -573,6 +664,128 @@ final class OpenclawController
         } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    private static function normalizePrescriptionItemsPayload(array $medications): array
+    {
+        require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryRepository.php';
+
+        $items = array_map(static function ($medication): array {
+            if (is_string($medication)) {
+                return [
+                    'medication' => trim($medication),
+                ];
+            }
+
+            if (!is_array($medication)) {
+                return [];
+            }
+
+            return [
+                'medication' => trim((string) ($medication['medication'] ?? $medication['name'] ?? '')),
+                'dose' => trim((string) ($medication['dose'] ?? '')),
+                'frequency' => trim((string) ($medication['frequency'] ?? '')),
+                'duration' => trim((string) ($medication['duration'] ?? '')),
+                'instructions' => trim((string) ($medication['instructions'] ?? $medication['notes'] ?? '')),
+            ];
+        }, $medications);
+
+        return ClinicalHistoryRepository::normalizePrescriptionItems($items);
+    }
+
+    private static function normalizeMedicationNameList($medications): array
+    {
+        if (!is_array($medications)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($medications as $medication) {
+            if (is_string($medication)) {
+                $label = trim($medication);
+            } elseif (is_array($medication)) {
+                $name = trim((string) ($medication['name'] ?? $medication['medication'] ?? ''));
+                $dose = trim((string) ($medication['dose'] ?? ''));
+                $label = trim($name . ($dose !== '' ? ' ' . $dose : ''));
+            } else {
+                $label = '';
+            }
+
+            if ($label !== '') {
+                $normalized[] = $label;
+            }
+        }
+
+        return array_values(array_unique($normalized));
+    }
+
+    private static function resolveActiveMedicationsForCase(string $caseId): array
+    {
+        try {
+            require_once __DIR__ . '/../lib/PatientCaseService.php';
+            require_once __DIR__ . '/../lib/clinical_history/ClinicalHistoryService.php';
+
+            $store = self::readStore();
+            $caseService = new PatientCaseService();
+            $case = $caseService->getCaseById($store, $caseId);
+            if (!is_array($case)) {
+                return [];
+            }
+
+            $patientId = trim((string) ($case['patientId'] ?? ''));
+            if ($patientId === '') {
+                return [];
+            }
+
+            $historyService = new ClinicalHistoryService();
+            $history = $historyService->getPatientHistory($store, $patientId);
+            $prescriptions = is_array($history['prescriptions'] ?? null) ? array_reverse($history['prescriptions']) : [];
+            foreach ($prescriptions as $prescription) {
+                if (trim((string) ($prescription['status'] ?? '')) !== 'active') {
+                    continue;
+                }
+
+                $active = self::normalizeMedicationNameList($prescription['medications'] ?? []);
+                if ($active !== []) {
+                    return $active;
+                }
+            }
+        } catch (Throwable $error) {
+            return [];
+        }
+
+        return [];
+    }
+
+    private static function normalizeMedicationKey(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        $normalized = preg_replace('/[^a-z0-9]+/i', ' ', $normalized) ?? '';
+        return trim((string) $normalized);
+    }
+
+    private static function medicationMatchesInteraction(string $medication, string $interactionDrug): bool
+    {
+        if ($medication === '' || $interactionDrug === '') {
+            return false;
+        }
+
+        if ($medication === $interactionDrug) {
+            return true;
+        }
+
+        if (str_contains($medication, $interactionDrug) || str_contains($interactionDrug, $medication)) {
+            return true;
+        }
+
+        $medicationTokens = array_values(array_filter(explode(' ', $medication)));
+        $interactionTokens = array_values(array_filter(explode(' ', $interactionDrug)));
+        if ($medicationTokens === [] || $interactionTokens === []) {
+            return false;
+        }
+
+        return in_array($interactionTokens[0], $medicationTokens, true)
+            || in_array($medicationTokens[0], $interactionTokens, true);
     }
 
     private static function genericProtocol(string $code): array

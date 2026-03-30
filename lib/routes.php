@@ -100,6 +100,10 @@ function register_api_routes(Router $router): void
     $router->add('POST', 'openclaw-summarize',     [OpenclawController::class, 'summarizeSession']);
     $router->add('GET',  'openclaw-router-status', [OpenclawController::class, 'routerStatus']);
 
+    // Certificados médicos — standalone (lista, crear, PDF)
+    $router->add('GET',  'certificate', [CertificateController::class, 'index']);
+    $router->add('POST', 'certificate', [CertificateController::class, 'store']);
+
     $router->add('GET', 'reviews', [ReviewController::class, 'index']);
     $router->add('POST', 'reviews', [ReviewController::class, 'store']);
 

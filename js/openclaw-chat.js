@@ -21,6 +21,7 @@ const OpenclawChat = (() => {
 
   const CONFIG = {
     apiBase: '/api/openclaw',
+    interactionApiBase: '/api.php?resource=openclaw-interactions',
     streamTimeout: 30000,
     maxPhotoSizeMb: 10,
     voiceLanguage: 'es-EC',
@@ -96,6 +97,8 @@ Contexto del paciente se te dará como sistema de contexto.`,
             <span class="oc-actions-label">Aplicar a la historia clínica:</span>
             <div class="oc-actions-row" id="oc-actions-row"></div>
           </div>
+
+          <div class="oc-alert-banner" id="oc-interaction-banner" data-tone="warning" style="display:none"></div>
 
           <!-- Input area -->
           <div class="oc-input-area">
@@ -235,6 +238,135 @@ Contexto del paciente se te dará como sistema de contexto.`,
       .replace(/^(.+)$/, '<p>$1</p>');
   }
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function normalizeMedicationEntry(entry) {
+    if (typeof entry === 'string') {
+      const label = entry.trim();
+      return label ? { name: label, dose: '' } : null;
+    }
+
+    if (!entry || typeof entry !== 'object') return null;
+
+    const name = String(entry.name || entry.medication || '').trim();
+    const dose = String(entry.dose || '').trim();
+    if (!name) return null;
+
+    return { name, dose };
+  }
+
+  function normalizePatientContext(payload) {
+    if (!payload || payload.ok === false) return null;
+
+    const medications = (Array.isArray(payload.medications) ? payload.medications : payload.medications_active || [])
+      .map(normalizeMedicationEntry)
+      .filter(Boolean);
+
+    const diagnoses = Array.isArray(payload.diagnoses)
+      ? payload.diagnoses
+      : (payload.diagnoses_history || [])
+          .map(item => {
+            if (!item || typeof item !== 'object') return '';
+            const code = String(item.cie10_code || '').trim();
+            const description = String(item.cie10_description || '').trim();
+            return [code, description].filter(Boolean).join(' — ');
+          })
+          .filter(Boolean);
+
+    return {
+      ...payload,
+      medications,
+      diagnoses,
+      lastDx: payload.lastDx || payload.last_dx || null,
+      lastVisitSummary: String(payload.lastVisitSummary || payload.ai_summary || ''),
+      visits: Array.isArray(payload.visits) ? payload.visits : [],
+    };
+  }
+
+  function activeMedicationLabels() {
+    return (state.patientContext?.medications || [])
+      .map(item => [item.name, item.dose].filter(Boolean).join(' ').trim())
+      .filter(Boolean);
+  }
+
+  async function checkMedicationInteractions(value) {
+    const proposed = [];
+    const label = [value?.name, value?.dose].filter(Boolean).join(' ').trim();
+    if (label) proposed.push(label);
+
+    if (!state.caseId || proposed.length === 0) {
+      return { ok: true, has_interactions: false, interactions: [] };
+    }
+
+    const response = await fetch(CONFIG.interactionApiBase, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        case_id: state.caseId,
+        proposed_medications: proposed,
+        active_medications: activeMedicationLabels(),
+      }),
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload) {
+      throw new Error(payload?.error || 'No se pudo verificar interacciones medicamentosas.');
+    }
+
+    return payload;
+  }
+
+  function clearInteractionBanner() {
+    const banner = document.getElementById('oc-interaction-banner');
+    if (!(banner instanceof HTMLElement)) return;
+    banner.innerHTML = '';
+    banner.style.display = 'none';
+  }
+
+  function renderInteractionBanner(payload) {
+    const banner = document.getElementById('oc-interaction-banner');
+    if (!(banner instanceof HTMLElement)) return;
+
+    const interactions = Array.isArray(payload?.interactions) ? payload.interactions : [];
+    if (!(payload?.has_interactions) || interactions.length === 0) {
+      clearInteractionBanner();
+      return;
+    }
+
+    const items = interactions.map(interaction => {
+      const proposedMedication = String(interaction.proposed_medication || interaction.drug_a || '').trim();
+      const activeMedication = String(interaction.active_medication || interaction.drug_b || '').trim();
+      const description = String(interaction.description || '').trim();
+      const severity = String(interaction.severity || 'medium').trim().toUpperCase();
+      return `
+        <li class="oc-alert-item">
+          <strong>${escapeHtml(proposedMedication)}</strong>
+          <span>con</span>
+          <strong>${escapeHtml(activeMedication)}</strong>
+          <span class="oc-alert-severity">${escapeHtml(severity)}</span>
+          <div class="oc-alert-description">${escapeHtml(description)}</div>
+        </li>`;
+    }).join('');
+
+    banner.innerHTML = `
+      <div class="oc-alert-header">
+        <div>
+          <strong>Advertencia de interacciones</strong>
+          <p>Se detectaron posibles interacciones con medicamentos activos del paciente. La alerta no bloquea el guardado.</p>
+        </div>
+        <button type="button" class="oc-alert-dismiss" id="oc-interaction-dismiss" aria-label="Cerrar alerta">×</button>
+      </div>
+      <ul class="oc-alert-list">${items}</ul>`;
+    banner.style.display = 'block';
+  }
+
   // ── Action extraction from AI response ───────────────────────────────────────
 
   function extractActions(text) {
@@ -292,7 +424,7 @@ Contexto del paciente se te dará como sistema de contexto.`,
     try {
       const res = await fetch(`${CONFIG.apiBase}/context?patient_id=${patientId}&case_id=${caseId}`);
       if (!res.ok) return null;
-      return res.json();
+      return normalizePatientContext(await res.json());
     } catch { return null; }
   }
 

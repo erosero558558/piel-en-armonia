@@ -548,6 +548,13 @@ final class PatientCaseService
             }
         }
 
+        $queueTickets = $this->enrichQueueTicketsWithPatientCaseSnapshots(
+            $queueTickets,
+            $cases,
+            $timeline,
+            $approvals
+        );
+
         $store['appointments'] = $appointments;
         $store['callbacks'] = $callbacks;
         $store['queue_tickets'] = $queueTickets;
@@ -982,6 +989,240 @@ final class PatientCaseService
         );
         $this->applyCaseStatus($case, $mappedStatus, $terminalAt);
         $this->touchCase($case, $terminalAt !== '' ? $terminalAt : $createdAt);
+    }
+
+    private function enrichQueueTicketsWithPatientCaseSnapshots(
+        array $queueTickets,
+        array $cases,
+        array $timeline,
+        array $approvals
+    ): array {
+        $timelineByCaseId = [];
+        foreach ($timeline as $event) {
+            if (!is_array($event)) {
+                continue;
+            }
+
+            $caseId = trim((string) ($event['patientCaseId'] ?? ''));
+            if ($caseId === '') {
+                continue;
+            }
+
+            if (!isset($timelineByCaseId[$caseId])) {
+                $timelineByCaseId[$caseId] = [];
+            }
+            $timelineByCaseId[$caseId][] = $event;
+        }
+
+        $approvalsByCaseId = [];
+        foreach ($approvals as $approval) {
+            if (!is_array($approval)) {
+                continue;
+            }
+
+            $caseId = trim((string) ($approval['patientCaseId'] ?? ''));
+            if ($caseId === '') {
+                continue;
+            }
+
+            if (!isset($approvalsByCaseId[$caseId])) {
+                $approvalsByCaseId[$caseId] = [];
+            }
+            $approvalsByCaseId[$caseId][] = $approval;
+        }
+
+        foreach ($queueTickets as $index => $ticket) {
+            if (!is_array($ticket)) {
+                continue;
+            }
+
+            $caseId = trim((string) ($ticket['patientCaseId'] ?? ''));
+            if ($caseId === '' || !isset($cases[$caseId]) || !is_array($cases[$caseId])) {
+                continue;
+            }
+
+            $queueTickets[$index] = $this->attachPatientCaseSnapshotToTicket(
+                $ticket,
+                $cases[$caseId],
+                $timelineByCaseId[$caseId] ?? [],
+                $approvalsByCaseId[$caseId] ?? []
+            );
+        }
+
+        return $queueTickets;
+    }
+
+    private function attachPatientCaseSnapshotToTicket(
+        array $ticket,
+        array $case,
+        array $timelineEvents,
+        array $approvals
+    ): array {
+        $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
+        $referenceAt = $this->firstNonEmptyString([
+            (string) ($ticket['calledAt'] ?? ''),
+            (string) ($ticket['createdAt'] ?? ''),
+            (string) ($case['latestActivityAt'] ?? ''),
+            (string) ($case['openedAt'] ?? ''),
+        ]) ?? local_date('c');
+        [$previousVisitsCount, $lastCompletedVisitAt] = $this->summarizePreviousVisits(
+            $timelineEvents,
+            $referenceAt
+        );
+        $journeyStage = $this->resolveCaseJourneyStage($case);
+
+        $ticket['patientCaseSnapshot'] = [
+            'patientLabel' => $this->firstNonEmptyString([
+                (string) ($summary['patientLabel'] ?? ''),
+                (string) ($ticket['patientLabel'] ?? ''),
+                (string) ($ticket['patientInitials'] ?? ''),
+                (string) ($ticket['ticketCode'] ?? ''),
+            ]) ?? 'Paciente sin nombre',
+            'reasonLabel' => $this->resolveQueueTicketReasonLabel($ticket, $case),
+            'journeyStage' => $journeyStage,
+            'journeyStageLabel' => $this->resolveJourneyStageLabel($journeyStage),
+            'previousVisitsCount' => $previousVisitsCount,
+            'lastCompletedVisitAt' => $lastCompletedVisitAt !== '' ? $lastCompletedVisitAt : null,
+            'alerts' => $this->buildQueueTicketAlerts($ticket, $case, $approvals),
+        ];
+
+        return $ticket;
+    }
+
+    private function summarizePreviousVisits(array $timelineEvents, string $referenceAt): array
+    {
+        $normalizedReferenceAt = $this->normalizeTimestampValue($referenceAt, local_date('c'));
+        $previousVisitsCount = 0;
+        $lastCompletedVisitAt = '';
+
+        foreach ($timelineEvents as $event) {
+            if (!is_array($event)) {
+                continue;
+            }
+
+            if ((string) ($event['type'] ?? '') !== 'visit_completed') {
+                continue;
+            }
+
+            $eventAt = $this->normalizeTimestampValue(
+                (string) ($event['createdAt'] ?? ''),
+                $normalizedReferenceAt
+            );
+            if ($eventAt === '' || strcmp($eventAt, $normalizedReferenceAt) >= 0) {
+                continue;
+            }
+
+            $previousVisitsCount++;
+            if ($lastCompletedVisitAt === '' || strcmp($lastCompletedVisitAt, $eventAt) < 0) {
+                $lastCompletedVisitAt = $eventAt;
+            }
+        }
+
+        return [$previousVisitsCount, $lastCompletedVisitAt];
+    }
+
+    private function resolveCaseJourneyStage(array $case): string
+    {
+        $explicitStage = trim((string) ($case['journeyStage'] ?? ''));
+        if ($explicitStage !== '') {
+            return $explicitStage;
+        }
+
+        $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
+        $status = strtolower(trim((string) ($case['status'] ?? '')));
+        if (in_array($status, ['lead_captured', 'intake_completed', 'scheduled', 'care_plan_ready', 'follow_up_active', 'resolved'], true)) {
+            return $status;
+        }
+        if (in_array($status, ['completed', 'no_show', 'cancelled'], true)) {
+            return 'resolved';
+        }
+        if (
+            trim((string) ($summary['scheduledStart'] ?? '')) !== ''
+            || trim((string) ($summary['latestAppointmentId'] ?? '')) !== ''
+            || trim((string) ($summary['primaryAppointmentId'] ?? '')) !== ''
+        ) {
+            return 'scheduled';
+        }
+
+        return 'lead_captured';
+    }
+
+    private function resolveJourneyStageLabel(string $stage): string
+    {
+        $normalized = strtolower(trim($stage));
+
+        return [
+            'lead_captured' => 'Lead captado',
+            'intake_completed' => 'Preconsulta lista',
+            'scheduled' => 'Consulta agendada',
+            'care_plan_ready' => 'Plan de cuidado listo',
+            'follow_up_active' => 'Seguimiento activo',
+            'resolved' => 'Caso resuelto',
+        ][$normalized] ?? 'Lead captado';
+    }
+
+    private function resolveQueueTicketReasonLabel(array $ticket, array $case): string
+    {
+        $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
+        $visitReasonLabel = trim((string) ($ticket['visitReasonLabel'] ?? ''));
+        if ($visitReasonLabel !== '') {
+            return $visitReasonLabel;
+        }
+
+        $visitReason = strtolower(trim((string) ($ticket['visitReason'] ?? '')));
+        if ($visitReason !== '') {
+            return [
+                'consulta_general' => 'Consulta general',
+                'control' => 'Control',
+                'procedimiento' => 'Procedimiento',
+                'urgencia' => 'Urgencia',
+            ][$visitReason] ?? 'Consulta general';
+        }
+
+        $serviceLine = trim((string) ($summary['serviceLine'] ?? ''));
+        if ($serviceLine !== '') {
+            return $serviceLine;
+        }
+
+        return (string) ($ticket['queueType'] ?? 'walk_in') === 'appointment'
+            ? 'Cita agendada'
+            : 'Consulta general';
+    }
+
+    private function buildQueueTicketAlerts(array $ticket, array $case, array $approvals): array
+    {
+        $summary = isset($case['summary']) && is_array($case['summary']) ? $case['summary'] : [];
+        $alerts = [];
+
+        if (strtolower(trim((string) ($ticket['visitReason'] ?? ''))) === 'urgencia') {
+            $alerts[] = 'Urgencia declarada en check-in.';
+        }
+        if ((bool) ($ticket['needsAssistance'] ?? false) || (int) ($summary['activeHelpRequestId'] ?? 0) > 0) {
+            $alerts[] = 'Paciente con apoyo activo en recepcion.';
+        }
+        if ((bool) ($ticket['specialPriority'] ?? false)) {
+            $alerts[] = 'Prioridad especial activa.';
+        }
+        if ((bool) ($ticket['lateArrival'] ?? false)) {
+            $alerts[] = 'Llegada tardia detectada.';
+        }
+
+        $pendingApprovals = 0;
+        foreach ($approvals as $approval) {
+            if (!is_array($approval)) {
+                continue;
+            }
+            if (strtolower(trim((string) ($approval['status'] ?? 'pending'))) === 'pending') {
+                $pendingApprovals++;
+            }
+        }
+        if ($pendingApprovals > 0) {
+            $alerts[] = $pendingApprovals === 1
+                ? 'Hay 1 aprobacion pendiente.'
+                : 'Hay ' . $pendingApprovals . ' aprobaciones pendientes.';
+        }
+
+        return array_values(array_unique($alerts));
     }
 
     private function applyCaseStatus(array &$case, string $status, string $eventAt): void

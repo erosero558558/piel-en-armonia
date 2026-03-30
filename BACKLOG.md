@@ -1,5 +1,5 @@
 # BACKLOG.md — Tareas Pendientes Aurora Derm
-_Generado: 29/3/2026, 7:31:35 p. m. | Fuente: AGENTS.md_
+_Generado: 29/3/2026, 7:52:09 p. m. | Fuente: AGENTS.md_
 _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 > **Para agentes:** usa `npm run dispatch:<rol>` para obtener tu tarea.
@@ -7,17 +7,17 @@ _Para contexto completo de cada tarea → lee **AGENTS.md**_
 
 ## Estado General
 
-`██████░░░░░░░░░░░░░░` **32%** completado (46/144)
+`███████░░░░░░░░░░░░░` **33%** completado (48/144)
 
 | Sprint | Hecho | Pendiente | % |
 |--------|-------|-----------|---|
 | ⏸ Sprint 0 | 0 | 0 | 0% |
 | ✅ Sprint 1 | 12 | 0 | 100% |
 | ✅ Sprint 2 | 24 | 0 | 100% |
-| 🎯 Sprint 3 | 9 | 26 | 26% |
+| 🎯 Sprint 3 | 10 | 25 | 29% |
 | ⏸ Sprint 4 | 1 | 25 | 4% |
 | ⏸ Sprint 5 | 0 | 22 | 0% |
-| ⏸ Sprint 6 | 0 | 25 | 0% |
+| ⏸ Sprint 6 | 1 | 24 | 4% |
 
 ## ✅ Sprint 0 — Completado
 _Sprint completado. 0/0 tareas._
@@ -30,12 +30,11 @@ _Sprint completado. 24/24 tareas._
 
 ## 🎯 Sprint 3 — Construir Flow OS como plataforma
 
-### 🟢 Disponibles (19)
+### 🟢 Disponibles (18)
 
 | ID | Tamaño | Tarea |
 |----|--------|-------|
 | **S3-14** | `[S]` | Métricas de espera — registrar tiempo real de espera por turno. Regist... |
-| **S3-08** | `[M]` | Selección de motivo en kiosco — en , antes de generar turno: "Consulta... |
 | **S3-10** | `[M]` | Acciones post-consulta — botones en operador: "Agendar siguiente", "En... |
 | **S3-11** | `[M]` | Ticket con QR —  genera ticket con QR que lleva a . Paciente ve su pos... |
 | **S3-13** | `[M]` | Sala inteligente — en , entre llamadas mostrar: tips de cuidado de pie... |
@@ -115,7 +114,7 @@ _Esperando que Sprint anterior esté completo. 22 tareas pendientes._
 - **S5-21** `[M]` — necesita: S5-04 primero
 
 ## ⏸ Sprint 6 — Plataforma SaaS para Clínicas
-_Esperando que Sprint anterior esté completo. 25 tareas pendientes._
+_Esperando que Sprint anterior esté completo. 24 tareas pendientes._
 
 ### 🟢 Disponibles (9)
 
@@ -127,10 +126,6 @@ _Esperando que Sprint anterior esté completo. 25 tareas pendientes._
 | **S6-02** | `[L]` | Perfil de clínica —  completo: nombre, logo, colores, dirección, horar... |
 | **S6-10** | `[L]` | Pricing SaaS — definir y publicar: Free (1 doctor, 50 citas/mes), Star... |
 | ... | | _+4 más_ |
-
-### 🔒 En progreso — NO tomar
-
-- **S6-09** `[S]` → _Codex-erosero558558_ (expira en 88min)
 
 ### 🔗 Bloqueadas (necesitan prerequisito)
 

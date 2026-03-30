@@ -44,6 +44,34 @@ function readHelpRequestContextValue(context, ...keys) {
     return '';
 }
 
+function normalizeTicketPatientCaseSnapshot(raw) {
+    if (!raw || typeof raw !== 'object') {
+        return null;
+    }
+
+    return {
+        patientLabel: String(raw.patientLabel || raw.patient_label || ''),
+        reasonLabel: String(raw.reasonLabel || raw.reason_label || ''),
+        journeyStage: String(raw.journeyStage || raw.journey_stage || ''),
+        journeyStageLabel: String(
+            raw.journeyStageLabel || raw.journey_stage_label || ''
+        ),
+        previousVisitsCount: Math.max(
+            0,
+            Number(raw.previousVisitsCount ?? raw.previous_visits_count ?? 0) ||
+                0
+        ),
+        lastCompletedVisitAt: String(
+            raw.lastCompletedVisitAt || raw.last_completed_visit_at || ''
+        ),
+        alerts: Array.isArray(raw.alerts)
+            ? raw.alerts
+                  .map((value) => String(value || '').trim())
+                  .filter(Boolean)
+            : [],
+    };
+}
+
 export function normalizeTicket(raw, fallbackIndex = 0) {
     const id = Number(raw?.id || raw?.ticket_id || fallbackIndex + 1);
     const assistanceReason = String(
@@ -58,9 +86,17 @@ export function normalizeTicket(raw, fallbackIndex = 0) {
             Number(raw?.appointmentId ?? raw?.appointment_id ?? 0) || null,
         phoneLast4: String(raw?.phoneLast4 || raw?.phone_last4 || ''),
         patientCaseId: String(raw?.patientCaseId || raw?.patient_case_id || ''),
+        patientId: String(raw?.patientId || raw?.patient_id || ''),
         queueType: String(raw?.queueType || raw?.queue_type || 'walk_in'),
         patientInitials: String(
             raw?.patientInitials || raw?.patient_initials || '--'
+        ),
+        visitReason: String(raw?.visitReason || raw?.visit_reason || ''),
+        visitReasonLabel: String(
+            raw?.visitReasonLabel || raw?.visit_reason_label || ''
+        ),
+        patientCaseSnapshot: normalizeTicketPatientCaseSnapshot(
+            raw?.patientCaseSnapshot || raw?.patient_case_snapshot || null
         ),
         priorityClass: String(
             raw?.priorityClass || raw?.priority_class || 'walk_in'
