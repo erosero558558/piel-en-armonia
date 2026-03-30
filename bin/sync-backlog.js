@@ -15,10 +15,13 @@
  *   - Por el workflow /status automáticamente
  */
 
+const { execFileSync } = require('child_process');
 const { readFileSync, writeFileSync, existsSync, readdirSync } = require('fs');
 const { resolve, join } = require('path');
 
-const ROOT        = resolve(__dirname, '..');
+const ROOT        = process.env.AURORA_DERM_ROOT
+  ? resolve(process.env.AURORA_DERM_ROOT)
+  : resolve(__dirname, '..');
 const AGENTS_FILE = resolve(ROOT, 'AGENTS.md');
 const BACKLOG_FILE = resolve(ROOT, 'BACKLOG.md');
 const CLAIMS_DIR  = resolve(ROOT, 'data/claims/tasks'); // v2
@@ -36,12 +39,78 @@ function loadClaims() {
   return claims;
 }
 function isExpired(c) { return c?.expiresAt && new Date(c.expiresAt) < new Date(); }
+function git(args) {
+  return execFileSync('git', args, {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim();
+}
+function isGitRepo() {
+  try {
+    return git(['rev-parse', '--is-inside-work-tree']) === 'true';
+  } catch {
+    return false;
+  }
+}
+function readGitDiff(filePath) {
+  if (!isGitRepo()) return '';
+  try {
+    return git(['diff', '--no-ext-diff', '--unified=0', 'HEAD', '--', filePath]);
+  } catch {
+    return '';
+  }
+}
+function extractDoneTransitions(diffText) {
+  const removed = new Set();
+  const added = new Set();
+
+  for (const line of diffText.split('\n')) {
+    const removedMatch = line.match(/^-- \[ \] \*\*((S\d+|UI\d*)-[A-Z0-9]+)\*\*/);
+    if (removedMatch) {
+      removed.add(removedMatch[1]);
+      continue;
+    }
+
+    const addedMatch = line.match(/^\+- \[x\] \*\*((S\d+|UI\d*)-[A-Z0-9]+)\*\*/);
+    if (addedMatch) {
+      added.add(addedMatch[1]);
+    }
+  }
+
+  return [...added].filter(taskId => removed.has(taskId));
+}
+function hasClaimEvidence(taskId) {
+  const claimPath = join('data', 'claims', 'tasks', `${taskId}.json`);
+  if (existsSync(resolve(ROOT, claimPath))) return true;
+  if (!isGitRepo()) return false;
+
+  try {
+    return git(['diff', '--no-ext-diff', '--name-only', 'HEAD', '--', claimPath]) !== '';
+  } catch {
+    return false;
+  }
+}
+function detectDoneWithoutClaimWarnings() {
+  const completedTaskIds = extractDoneTransitions(readGitDiff('AGENTS.md'));
+  return completedTaskIds.filter(taskId => !hasClaimEvidence(taskId));
+}
+function printDoneWithoutClaimWarnings(taskIds) {
+  if (taskIds.length === 0) return;
+
+  console.log('');
+  console.log(`⚠️  Done sin claim detectado (${taskIds.length}):`);
+  taskIds.forEach(taskId => {
+    console.log(`   - ${taskId} fue marcada [x] en AGENTS.md sin claim asociado en este cambio`);
+  });
+}
 
 const CHECK_MODE = process.argv.includes('--check');
 
 const md = read(AGENTS_FILE);
 const claims = loadClaims();
 const lines = md.split('\n');
+const doneWithoutClaimWarnings = detectDoneWithoutClaimWarnings();
 
 // ── Parse tasks grouped by sprint ─────────────────────────────────────────────
 const sprints = {};
@@ -268,9 +337,11 @@ if (CHECK_MODE) {
   const current = read(BACKLOG_FILE);
   if (current === result) {
     console.log('✅ BACKLOG.md is up to date');
+    printDoneWithoutClaimWarnings(doneWithoutClaimWarnings);
     process.exit(0);
   } else {
     console.log('⚠️  BACKLOG.md is out of date. Run: node bin/sync-backlog.js');
+    printDoneWithoutClaimWarnings(doneWithoutClaimWarnings);
     process.exit(1);
   }
 }
@@ -279,6 +350,7 @@ writeFileSync(BACKLOG_FILE, result, 'utf8');
 console.log(`✅ BACKLOG.md regenerated — ${totalDone}/${totalAll} done (${pct}%)`);
 console.log(`   Active sprint: ${activeSprintName}`);
 console.log(`   Available tasks: ${sprints[activeSprintName]?.tasks.filter(t => !t.human && !t.claimed && t.blocked.length === 0).length || 0}`);
+printDoneWithoutClaimWarnings(doneWithoutClaimWarnings);
 
 // S13-16: Auto-regenerar sitemap.xml después de cada sync
 try {
