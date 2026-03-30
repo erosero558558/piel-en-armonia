@@ -114,18 +114,25 @@ function parseTasks(md) {
 const ROLE_AFFINITY = {
   backend: {
     description: 'PHP, APIs, servicios, lógica de negocio',
-    // Ordenados por impacto en el médico del día 1
     prefer: [
-      'S3-19', // Receta digital — genera PDF con membrete
-      'S3-20', // Evolución clínica — append-only, HCE
-      'S3-25', // Confirmación WhatsApp+email al agendar
-      'S3-27', // Lista de espera de citas
-      'S3-11', // Ticket QR backend (TicketPrinter)
-      'S3-14', // Métricas de espera — QueueAssistantMetricsStore
-      'S3-09', // Vista operador — PatientCaseService::hydrateStore
-      'S3-10', // Acciones post-consulta (backend de botones)
-      'S3-34', // Estado de cuenta por paciente
-      'S3-33', // Verificación de transferencia
+      'S8-05',
+      'S8-06',
+      'S8-07',
+      'S8-12',
+      'S8-20',
+      'S9-08',
+      'S10-06',
+      'S14-13',
+      'S3-19',
+      'S3-20',
+      'S3-25',
+      'S3-27',
+      'S3-11',
+      'S3-14',
+      'S3-09',
+      'S3-10',
+      'S3-34',
+      'S3-33',
     ],
     keywords: [
       'php', 'controller', 'service', 'endpoint', 'api', 'backend',
@@ -140,17 +147,22 @@ const ROLE_AFFINITY = {
   frontend: {
     description: 'HTML, CSS, UI, vistas en admin y público',
     prefer: [
-      'S3-15', // Anamnesis — formulario en admin
-      'S3-09', // Vista operador expandida
-      'S3-28', // Agenda diaria — vista en admin
-      'S3-18', // Plan de tratamiento — template PDF
-      'S3-13', // Sala inteligente (turnos pantalla TV)
-      'S3-17', // Comparación before/after — slider
-      'S3-26', // Reagendamiento self-service (vista pública)
-      'S3-30', // Sala teleconsulta (UI premium)
-      'S3-32', // Checkout integrado
-      'S4-08', // Portal del paciente
-      'S4-13', // App kiosco offline-first
+      'S9-01',
+      'S9-09',
+      'S10-01',
+      'S10-25',
+      'S12-17',
+      'S3-15',
+      'S3-09',
+      'S3-28',
+      'S3-18',
+      'S3-13',
+      'S3-17',
+      'S3-26',
+      'S3-30',
+      'S3-32',
+      'S4-08',
+      'S4-13',
     ],
     keywords: [
       'html', 'css', 'vista', 'página', 'modal', 'form', 'formulario',
@@ -186,12 +198,18 @@ const ROLE_AFFINITY = {
   devops: {
     description: 'CI/CD, limpieza, auditorías, performance, testing',
     prefer: [
-      'S4-21', // Auditoria final pre-launch
-      'S4-22', // Lighthouse score
-      'S4-23', // Cache headers
-      'S4-24', // Security headers
-      'S4-25', // Dead code cleanup
-      'S1-12', // Tests de contrato
+      'S14-00',
+      'S14-02',
+      'S14-06',
+      'S14-07',
+      'S14-09',
+      'S13-04',
+      'S4-21',
+      'S4-22',
+      'S4-23',
+      'S4-24',
+      'S4-25',
+      'S1-12',
     ],
     keywords: [
       'audit', 'limpieza', 'dead code', 'ci', 'pipeline', 'lighthouse',
@@ -289,67 +307,26 @@ function scoreTask(task, role, claims) {
 
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-
-const args    = process.argv.slice(2);
-const roleArg = args.find(a => a.startsWith('--role='))?.split('=')[1]
-  || (args.indexOf('--role') !== -1 ? args[args.indexOf('--role') + 1] : null)
-  || 'fullstack';
-const listAll = args.includes('--all');
-
-if (roleArg === 'list-roles') {
-  console.log('\n🎭 Roles disponibles:\n');
-  Object.entries(ROLE_AFFINITY).forEach(([role, cfg]) => {
-    console.log(`  ${role.padEnd(12)} — ${cfg.description}`);
-  });
-  console.log('\n  Uso: node bin/dispatch.js --role <rol> [--all]\n');
-  process.exit(0);
-}
-
-if (!ROLE_AFFINITY[roleArg]) {
-  console.error(`❌ Rol desconocido: "${roleArg}". Usa: ${Object.keys(ROLE_AFFINITY).join(', ')}`);
-  process.exit(1);
-}
-
-const md     = read(AGENTS_FILE);
-const tasks  = parseTasks(md);
-const claims = loadAllClaims();
-const config = ROLE_AFFINITY[roleArg];
-
-const scored = tasks
-  .map(t => ({ ...t, score: scoreTask(t, roleArg, claims) }))
-  .filter(t => t.score > -500)
-  .sort((a, b) => b.score - a.score);
-
-console.log(`\n🎭 Dispatch — rol: ${roleArg}`);
-console.log(`   ${config.description}`);
-
-// Bloqueadas actualmente
-const blocked = tasks.filter(t => !t.done && t.human);
-if (blocked.length > 0) {
-  console.log(`\n⚠️  Tareas bloqueadas [HUMAN] (${blocked.length}) — el director debe resolverlas:`);
-  blocked.forEach(t => console.log(`   ${t.id} [${t.size}] ${t.description.slice(0, 60)}...`));
-}
-
-if (scored.length === 0) {
+function formatNoTasksMessage(roleArg, tasks) {
   const total   = tasks.length;
   const done    = tasks.filter(t => t.done).length;
   const pending = tasks.filter(t => !t.done && !t.human).length;
   const pct     = Math.round((done / total) * 100);
+  const lines = [];
 
-  console.log(`\n🎉 Sin tareas asignadas para rol "${roleArg}".`);
-  console.log(`   Progreso: ${done}/${total} (${pct}%) — ${pending} pendientes globales\n`);
+  lines.push(`\n🎉 Sin tareas asignadas para rol "${roleArg}".`);
+  lines.push(`   Progreso: ${done}/${total} (${pct}%) — ${pending} pendientes globales\n`);
 
   if (pending === 0 && done >= total) {
-    console.log(`╔══════════════════════════════════════════════════════════════╗`);
-    console.log(`║  🏁  BACKLOG COMPLETADO — INICIO DEL CICLO DE MEJORA        ║`);
-    console.log(`╚══════════════════════════════════════════════════════════════╝\n`);
+    lines.push(`╔══════════════════════════════════════════════════════════════╗`);
+    lines.push(`║  🏁  BACKLOG COMPLETADO — INICIO DEL CICLO DE MEJORA        ║`);
+    lines.push(`╚══════════════════════════════════════════════════════════════╝\n`);
   }
 
-  console.log(`╔══════════════════════════════════════════════════════════════╗`);
-  console.log(`║  QUÉ HACER CUANDO NO HAY TAREAS DISPONIBLES                 ║`);
-  console.log(`╚══════════════════════════════════════════════════════════════╝`);
-  console.log(`
+  lines.push(`╔══════════════════════════════════════════════════════════════╗`);
+  lines.push(`║  QUÉ HACER CUANDO NO HAY TAREAS DISPONIBLES                 ║`);
+  lines.push(`╚══════════════════════════════════════════════════════════════╝`);
+  lines.push(`
   1. Cambiar de rol (si eres fullstack):
        node bin/dispatch.js --role backend
        node bin/dispatch.js --role frontend
@@ -383,44 +360,139 @@ if (scored.length === 0) {
   REGLA DE ORO: un agente nunca está sin trabajo.
   Si no hay tareas asignadas → audita → crea tareas → empuja.
 `);
-  process.exit(0);
+  return lines.join('\n');
 }
 
-const best = scored[0];
-console.log(`\n📋 Tarea recomendada:`);
-console.log(`   ID:      ${best.id}  [${best.size}]${best.critical ? '  🔴 CRÍTICA PARA JUNIO' : ''}`);
-console.log(`   Sprint:  ${best.sprint.replace(/^### /, '')}`);
-console.log(`   Tarea:   ${best.line.replace(/^- \[[ x]\] /, '').slice(0, 130)}`);
+function buildDispatchResult({
+  roleArg = 'fullstack',
+  listAll = false,
+  md = read(AGENTS_FILE),
+  claims = loadAllClaims(),
+} = {}) {
+  if (!ROLE_AFFINITY[roleArg]) {
+    return {
+      ok: false,
+      exitCode: 1,
+      error: `❌ Rol desconocido: "${roleArg}". Usa: ${Object.keys(ROLE_AFFINITY).join(', ')}`,
+    };
+  }
 
-// Lookup full task description in AGENTS.md for context
-const taskSection = (() => {
-  const lines = md.split('\n');
-  const idx   = lines.findIndex(l => l.includes(`**${best.id}**`));
-  if (idx === -1) return '';
-  // Grab up to 3 lines of context
-  return lines.slice(idx, idx + 1).join('\n');
-})();
+  const tasks = parseTasks(md);
+  const config = ROLE_AFFINITY[roleArg];
+  const scored = tasks
+    .map(t => ({ ...t, score: scoreTask(t, roleArg, claims) }))
+    .filter(t => t.score > -500)
+    .sort((a, b) => b.score - a.score);
+  const blocked = tasks.filter(t => !t.done && t.human);
 
-console.log(`\n   ── Flujo completo ──`);
-console.log(`   1. git pull origin main`);
-console.log(`   2. node bin/claim.js claim ${best.id} "<tu-nombre>"`);
-console.log(`   3. git add data/claims/tasks/${best.id}.json && HUSKY=0 git commit --no-verify -m "claim: ${best.id}" && git push`);
-console.log(`   4. Leer AGENTS.md → buscar **${best.id}** para contexto completo`);
-console.log(`   5. Leer PRODUCT.md si es tu primera tarea (entiende el producto)`);
-console.log(`   6. Hacer el trabajo`);
-console.log(`   7. node bin/gate.js ${best.id}     ← validar ANTES de marcar done`);
-console.log(`   8. node bin/claim.js release ${best.id}`);
-console.log(`   9. Marcar [x] en AGENTS.md`);
-console.log(`  10. git add . && HUSKY=0 git commit --no-verify -m "feat(${best.id}): descripción" && git push`);
-console.log(`\n   Si te bloqueas: node bin/stuck.js ${best.id} "razón exacta"\n`);
-
-if (listAll && scored.length > 1) {
-  console.log(`📊 Top 10 para rol "${roleArg}":`);
-  scored.slice(0, 10).forEach((t, i) => {
-    const claimed     = claims[t.id] && !isExpired(claims[t.id]);
-    const status      = claimed ? '🔒' : (t.critical ? '🔴' : '✅');
-    const description = t.line.replace(/^- \[[ x]\] /, '').slice(0, 65);
-    console.log(`   ${i + 1}. ${status} ${t.id} [${t.size}] (${t.score}pts) ${description}...`);
-  });
-  console.log();
+  return {
+    ok: true,
+    exitCode: 0,
+    roleArg,
+    listAll,
+    config,
+    tasks,
+    claims,
+    scored,
+    blocked,
+    best: scored[0] || null,
+  };
 }
+
+function formatDispatchText(result) {
+  if (!result.ok) {
+    return `${result.error}\n`;
+  }
+
+  const { roleArg, config, tasks, claims, blocked, scored, best, listAll } = result;
+  const lines = [];
+
+  lines.push(`\n🎭 Dispatch — rol: ${roleArg}`);
+  lines.push(`   ${config.description}`);
+
+  if (blocked.length > 0) {
+    lines.push(`\n⚠️  Tareas bloqueadas [HUMAN] (${blocked.length}) — el director debe resolverlas:`);
+    blocked.forEach(t => lines.push(`   ${t.id} [${t.size}] ${t.description.slice(0, 60)}...`));
+  }
+
+  if (scored.length === 0) {
+    lines.push(formatNoTasksMessage(roleArg, tasks));
+    return `${lines.join('\n')}\n`;
+  }
+
+  lines.push(`\n📋 Tarea recomendada:`);
+  lines.push(`   ID:      ${best.id}  [${best.size}]${best.critical ? '  🔴 CRÍTICA PARA JUNIO' : ''}`);
+  lines.push(`   Sprint:  ${best.sprint.replace(/^### /, '')}`);
+  lines.push(`   Tarea:   ${best.line.replace(/^- \[[ x]\] /, '').slice(0, 130)}`);
+  lines.push(`\n   ── Flujo completo ──`);
+  lines.push(`   1. git pull origin main`);
+  lines.push(`   2. node bin/claim.js claim ${best.id} "<tu-nombre>"`);
+  lines.push(`   3. git add data/claims/tasks/${best.id}.json && HUSKY=0 git commit --no-verify -m "claim: ${best.id}" && git push`);
+  lines.push(`   4. Leer AGENTS.md → buscar **${best.id}** para contexto completo`);
+  lines.push(`   5. Leer PRODUCT.md si es tu primera tarea (entiende el producto)`);
+  lines.push(`   6. Hacer el trabajo`);
+  lines.push(`   7. node bin/gate.js ${best.id}     ← validar ANTES de marcar done`);
+  lines.push(`   8. node bin/claim.js release ${best.id}`);
+  lines.push(`   9. Marcar [x] en AGENTS.md`);
+  lines.push(`  10. git add . && HUSKY=0 git commit --no-verify -m "feat(${best.id}): descripción" && git push`);
+  lines.push(`\n   Si te bloqueas: node bin/stuck.js ${best.id} "razón exacta"\n`);
+
+  if (listAll && scored.length > 1) {
+    lines.push(`📊 Top 10 para rol "${roleArg}":`);
+    scored.slice(0, 10).forEach((t, i) => {
+      const claimed = claims[t.id] && !isExpired(claims[t.id]);
+      const status = claimed ? '🔒' : (t.critical ? '🔴' : '✅');
+      const description = t.line.replace(/^- \[[ x]\] /, '').slice(0, 65);
+      lines.push(`   ${i + 1}. ${status} ${t.id} [${t.size}] (${t.score}pts) ${description}...`);
+    });
+    lines.push('');
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
+function main(argv = process.argv.slice(2)) {
+  const roleArg = argv.find(a => a.startsWith('--role='))?.split('=')[1]
+    || (argv.indexOf('--role') !== -1 ? argv[argv.indexOf('--role') + 1] : null)
+    || 'fullstack';
+  const listAll = argv.includes('--all');
+
+  if (roleArg === 'list-roles') {
+    console.log('\n🎭 Roles disponibles:\n');
+    Object.entries(ROLE_AFFINITY).forEach(([role, cfg]) => {
+      console.log(`  ${role.padEnd(12)} — ${cfg.description}`);
+    });
+    console.log('\n  Uso: node bin/dispatch.js --role <rol> [--all]\n');
+    return 0;
+  }
+
+  const result = buildDispatchResult({ roleArg, listAll });
+  const output = formatDispatchText(result);
+
+  if (result.ok) {
+    console.log(output.trimEnd());
+  } else {
+    console.error(output.trimEnd());
+  }
+
+  return result.exitCode;
+}
+
+if (require.main === module) {
+  process.exit(main());
+}
+
+module.exports = {
+  AGENTS_FILE,
+  CLAIMS_DIR,
+  LEGACY_FILE,
+  ROLE_AFFINITY,
+  buildDispatchResult,
+  formatDispatchText,
+  isExpired,
+  loadAllClaims,
+  main,
+  parseTasks,
+  read,
+  scoreTask,
+};
