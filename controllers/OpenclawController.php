@@ -642,6 +642,47 @@ final class OpenclawController
         ]);
     }
 
+    public static function getCertificatePdf(array $context): void
+    {
+        self::requireAuth();
+
+        $certId = trim((string) ($_GET['id'] ?? ''));
+        if ($certId === '') {
+            json_response(['ok' => false, 'error' => 'id requerido'], 400);
+        }
+
+        $store = self::readStore();
+        $certificate = $store['certificates'][$certId] ?? null;
+        if (!is_array($certificate)) {
+            json_response(['ok' => false, 'error' => 'Certificado no encontrado'], 404);
+        }
+
+        $caseId = trim((string) ($certificate['caseId'] ?? ''));
+        $patient = [];
+        if ($caseId !== '' && isset($store['patients'][$caseId]) && is_array($store['patients'][$caseId])) {
+            $patient = $store['patients'][$caseId];
+        }
+
+        $html = self::buildCertificatePdfHtml($certificate, $patient);
+        $pdfPath = __DIR__ . '/../vendor/dompdf/dompdf/src/Dompdf.php';
+        if (file_exists($pdfPath)) {
+            require_once $pdfPath;
+            $dompdf = new \Dompdf\Dompdf(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
+            $dompdf->loadHtml($html, 'UTF-8');
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+            $pdfBytes = $dompdf->output();
+        } else {
+            $pdfBytes = self::buildFallbackPdf($html);
+        }
+
+        $fileName = preg_replace('/[^a-zA-Z0-9_-]/', '-', (string) ($certificate['folio'] ?? $certId));
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="certificado-' . $fileName . '.pdf"');
+        echo $pdfBytes;
+        exit;
+    }
+
     // ── checkInteractions ────────────────────────────────────────────────────
 
     public static function checkInteractions(array $context): void
@@ -806,6 +847,95 @@ final class OpenclawController
     private static function requireAuth(): void
     {
         require_admin_auth();
+    }
+
+    private static function buildCertificatePdfHtml(array $certificate, array $patient): string
+    {
+        $issuedDate = (new DateTimeImmutable('now', new DateTimeZone('America/Guayaquil')))->format('d/m/Y H:i');
+        $issuedAt = trim((string) ($certificate['issued_at'] ?? ''));
+        if ($issuedAt !== '') {
+            try {
+                $issuedDate = (new DateTimeImmutable($issuedAt))
+                    ->setTimezone(new DateTimeZone('America/Guayaquil'))
+                    ->format('d/m/Y H:i');
+            } catch (\Throwable $e) {
+            }
+        }
+
+        $patientName = trim((string) ($patient['name'] ?? (($patient['firstName'] ?? '') . ' ' . ($patient['lastName'] ?? ''))));
+        if ($patientName === '') {
+            $patientName = 'Paciente';
+        }
+
+        $patientId = trim((string) ($patient['ci'] ?? $patient['identification'] ?? ''));
+        $typeLabels = [
+            'reposo_laboral' => 'Certificado de reposo',
+            'aptitud_medica' => 'Certificado de aptitud medica',
+            'constancia_tratamiento' => 'Constancia de tratamiento',
+            'control_salud' => 'Constancia de control de salud',
+            'incapacidad_temporal' => 'Certificado de incapacidad temporal',
+        ];
+        $type = trim((string) ($certificate['type'] ?? ''));
+        $typeLabel = $typeLabels[$type] ?? 'Certificado medico';
+        $diagnosis = trim((string) ($certificate['diagnosis_text'] ?? ''));
+        $cie10 = trim((string) ($certificate['cie10_code'] ?? ''));
+        $restDays = (int) ($certificate['rest_days'] ?? 0);
+        $restrictions = trim((string) ($certificate['restrictions'] ?? ''));
+        $observations = trim((string) ($certificate['observations'] ?? ''));
+        $doctor = trim((string) ($certificate['issued_by'] ?? 'Medico tratante'));
+        $folio = trim((string) ($certificate['folio'] ?? $certificate['id'] ?? ''));
+
+        $details = [];
+        if ($diagnosis !== '') {
+            $details[] = '<p><strong>Diagnostico:</strong> ' . htmlspecialchars($diagnosis, ENT_QUOTES, 'UTF-8') . '</p>';
+        }
+        if ($cie10 !== '') {
+            $details[] = '<p><strong>CIE-10:</strong> ' . htmlspecialchars($cie10, ENT_QUOTES, 'UTF-8') . '</p>';
+        }
+        if ($restDays > 0) {
+            $details[] = '<p><strong>Dias de reposo:</strong> ' . $restDays . '</p>';
+        }
+        if ($restrictions !== '') {
+            $details[] = '<p><strong>Restricciones:</strong> ' . htmlspecialchars($restrictions, ENT_QUOTES, 'UTF-8') . '</p>';
+        }
+        if ($observations !== '') {
+            $details[] = '<p><strong>Observaciones:</strong> ' . htmlspecialchars($observations, ENT_QUOTES, 'UTF-8') . '</p>';
+        }
+
+        $patientIdHtml = $patientId !== ''
+            ? '<p><strong>Identificacion:</strong> ' . htmlspecialchars($patientId, ENT_QUOTES, 'UTF-8') . '</p>'
+            : '';
+
+        return "<!DOCTYPE html>
+<html lang=\"es\">
+<head>
+  <meta charset=\"utf-8\">
+  <title>Certificado medico {$folio}</title>
+  <style>
+    body { font-family: DejaVu Sans, Arial, sans-serif; color: #1f2937; margin: 32px; line-height: 1.5; }
+    h1 { font-size: 22px; margin-bottom: 8px; }
+    .meta { color: #4b5563; margin-bottom: 24px; }
+    .card { border: 1px solid #d1d5db; border-radius: 10px; padding: 20px; }
+    .signature { margin-top: 48px; }
+  </style>
+</head>
+<body>
+  <h1>" . htmlspecialchars($typeLabel, ENT_QUOTES, 'UTF-8') . "</h1>
+  <div class=\"meta\">
+    <div><strong>Folio:</strong> " . htmlspecialchars($folio, ENT_QUOTES, 'UTF-8') . "</div>
+    <div><strong>Emitido:</strong> " . htmlspecialchars($issuedDate, ENT_QUOTES, 'UTF-8') . "</div>
+  </div>
+  <div class=\"card\">
+    <p><strong>Paciente:</strong> " . htmlspecialchars($patientName, ENT_QUOTES, 'UTF-8') . "</p>
+    {$patientIdHtml}
+    " . implode("\n    ", $details) . "
+  </div>
+  <div class=\"signature\">
+    <p><strong>" . htmlspecialchars($doctor, ENT_QUOTES, 'UTF-8') . "</strong></p>
+    <p>Flow OS - Copiloto Clinico Aurora Derm</p>
+  </div>
+</body>
+</html>";
     }
 
     private static function readStore(): array

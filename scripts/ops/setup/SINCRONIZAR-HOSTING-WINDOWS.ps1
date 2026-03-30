@@ -52,6 +52,7 @@ if ([string]::IsNullOrWhiteSpace($npmExe)) {
 }
 $generatedSiteRootPath = Join-Path $mirrorRepoPathResolved '.generated\site-root'
 $publicBuildReportPath = Join-Path $runtimePaths.RuntimeRoot 'public-v6-build-report.json'
+$mirrorEnvRuntimeOverridePath = Join-Path $mirrorRepoPathResolved 'data\runtime\hosting\env.runtime-overrides.inc.php'
 $astroBinaryCandidates = @(
     'node_modules\.bin\astro.cmd',
     'node_modules\.bin\astro'
@@ -94,6 +95,36 @@ function Write-Status {
 
     $Payload.timestamp = [DateTimeOffset]::Now.ToString('o')
     Write-HostingJsonFile -Path $statusPathResolved -Payload $Payload
+}
+
+function Apply-MirrorEnvRuntimeOverlay {
+    param(
+        [string]$DestinationPath,
+        [string]$OverridePath
+    )
+
+    if (-not (Test-Path -LiteralPath $OverridePath -PathType Leaf)) {
+        return $false
+    }
+
+    $overrideRaw = Get-Content -LiteralPath $OverridePath -Raw -ErrorAction Stop
+    if ([string]::IsNullOrWhiteSpace($overrideRaw)) {
+        return $false
+    }
+
+    $destinationRaw = ''
+    if (Test-Path -LiteralPath $DestinationPath -PathType Leaf) {
+        $destinationRaw = Get-Content -LiteralPath $DestinationPath -Raw -ErrorAction Stop
+    }
+
+    $normalizedOverride = $overrideRaw.Trim()
+    if (-not [string]::IsNullOrWhiteSpace($destinationRaw) -and $destinationRaw.Contains($normalizedOverride)) {
+        return $false
+    }
+
+    Add-Content -LiteralPath $DestinationPath -Value ([Environment]::NewLine + $normalizedOverride + [Environment]::NewLine) -Encoding ASCII
+    Write-Info ("Aplicado overlay runtime env: {0}" -f $OverridePath)
+    return $true
 }
 
 function Invoke-Git {
@@ -901,7 +932,6 @@ try {
     }
 
     $mirrorEnvHashBefore = Get-HostingFileSha256 -Path $mirrorEnvPath
-    $externalEnvHash = Get-HostingFileSha256 -Path $externalEnvPathResolved
     [void](Get-GitRevisionOrThrow `
         -RepoPath $mirrorRepoPathResolved `
         -Revision $status.desired_commit `
@@ -942,13 +972,14 @@ try {
     }
 
     Copy-Item -LiteralPath $externalEnvPathResolved -Destination $mirrorEnvPath -Force
+    [void](Apply-MirrorEnvRuntimeOverlay -DestinationPath $mirrorEnvPath -OverridePath $mirrorEnvRuntimeOverridePath)
 
     $status.current_commit = Get-GitHeadSafe -RepoPath $mirrorRepoPathResolved
     $status.current_head = $status.current_commit
     $status.head_changed = $status.previous_commit -ne $status.current_commit
 
     $mirrorEnvHashAfter = Get-HostingFileSha256 -Path $mirrorEnvPath
-    $status.env_changed = ($mirrorEnvHashBefore -ne $mirrorEnvHashAfter) -or ($externalEnvHash -ne $mirrorEnvHashBefore)
+    $status.env_changed = $mirrorEnvHashBefore -ne $mirrorEnvHashAfter
     $status.public_artifacts_ok = Test-PublishedGeneratedArtifactsReady -RepoPath $mirrorRepoPathResolved
     $status.public_build_required = $status.cloned -or $status.head_changed -or (-not $status.public_artifacts_ok)
     $status.public_build_report_path = $publicBuildReportPath
