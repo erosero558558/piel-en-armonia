@@ -1076,9 +1076,21 @@ test.describe('Turnero Operador', () => {
                 ticketCode: 'A-1201',
                 queueType: 'appointment',
                 patientInitials: 'ER',
+                patientLabel: 'Elena Rojas',
                 priorityClass: 'appt_overdue',
                 status: 'waiting',
                 assignedConsultorio: null,
+                visitReason: 'procedimiento',
+                visitReasonLabel: 'Procedimiento',
+                priorVisitsCount: 2,
+                journeyStage: 'scheduled',
+                journeyStageLabel: 'Cita programada',
+                journeyDisplayStage: 'scheduled',
+                journeyDisplayStageLabel: 'Agendada',
+                journeyOwnerLabel: 'Agenda',
+                operatorAlerts: ['Ayuda humana', '1 aprobación pendiente'],
+                needsAssistance: true,
+                assistanceReasonLabel: 'Ayuda humana',
                 createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
             },
         ];
@@ -1100,6 +1112,20 @@ test.describe('Turnero Operador', () => {
                     id: 1201,
                     ticketCode: 'A-1201',
                     patientInitials: 'ER',
+                    patientLabel: 'Elena Rojas',
+                    queueType: 'appointment',
+                    priorityClass: 'appt_overdue',
+                    visitReason: 'procedimiento',
+                    visitReasonLabel: 'Procedimiento',
+                    priorVisitsCount: 2,
+                    journeyStage: 'scheduled',
+                    journeyStageLabel: 'Cita programada',
+                    journeyDisplayStage: 'scheduled',
+                    journeyDisplayStageLabel: 'Agendada',
+                    journeyOwnerLabel: 'Agenda',
+                    operatorAlerts: ['Ayuda humana', '1 aprobación pendiente'],
+                    needsAssistance: true,
+                    assistanceReasonLabel: 'Ayuda humana',
                     position: 1,
                 },
             ],
@@ -1137,6 +1163,33 @@ test.describe('Turnero Operador', () => {
         await expect(page.locator('#operatorReadyNumpad')).toContainText(
             /0\/4 teclas listas|0\/4 teclas operativas listas/i
         );
+        await expect(page.locator('#operatorPatientFocusKicker')).toContainText(
+            'Siguiente paciente'
+        );
+        await expect(page.locator('#operatorPatientFocusTicket')).toContainText(
+            'A-1201'
+        );
+        await expect(page.locator('#operatorPatientFocusName')).toContainText(
+            'Elena Rojas'
+        );
+        await expect(page.locator('#operatorPatientFocusReason')).toContainText(
+            'Procedimiento'
+        );
+        await expect(page.locator('#operatorPatientFocusVisits')).toContainText(
+            '2 visitas previas'
+        );
+        await expect(page.locator('#operatorPatientFocusStage')).toContainText(
+            'Agendada'
+        );
+        await expect(page.locator('#operatorPatientFocusStage')).toContainText(
+            'Agenda'
+        );
+        await expect(page.locator('#operatorPatientFocusAlerts')).toContainText(
+            'Ayuda humana'
+        );
+        await expect(page.locator('#operatorPatientFocusAlerts')).toContainText(
+            '1 aprobación pendiente'
+        );
         await expect(page.locator('#queueTableBody')).toContainText('A-1201');
         await expect(page.locator('#queueTableBody')).not.toContainText(
             'Cancelar'
@@ -1146,11 +1199,26 @@ test.describe('Turnero Operador', () => {
         await expect(page.locator('#operatorActionTitle')).toContainText(
             'Ticket A-1201 en curso'
         );
+        await expect(page.locator('#operatorPatientFocusKicker')).toContainText(
+            'Paciente en consultorio'
+        );
+        await expect(page.locator('#operatorPatientFocusTitle')).toContainText(
+            'Ticket en curso'
+        );
         await expect(page.locator('#operatorReadinessTitle')).toContainText(
             /Faltan probar 3 tecla\(s\)|Faltan validar 3 tecla\(s\)|Faltan validar 3 teclas/i
         );
         await expect(page.locator('#operatorReadyNumpad')).toContainText(
             /1\/4 teclas listas|1\/4 teclas operativas listas/i
+        );
+        await expect(page.locator('#operatorPatientFocusName')).toContainText(
+            'Elena Rojas'
+        );
+        await expect(page.locator('#operatorPatientFocusReason')).toContainText(
+            'Procedimiento'
+        );
+        await expect(page.locator('#operatorPatientFocusAlerts')).toContainText(
+            'Ayuda humana'
         );
         await expect(page.locator('#queueC2Now')).toContainText('A-1201');
         await expect(page.locator('#queueWaitingCountAdmin')).toHaveText('0');

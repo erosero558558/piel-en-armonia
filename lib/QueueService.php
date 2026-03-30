@@ -7,6 +7,7 @@ require_once __DIR__ . '/validation.php';
 require_once __DIR__ . '/models.php';
 require_once __DIR__ . '/storage.php';
 require_once __DIR__ . '/PatientCaseService.php';
+require_once __DIR__ . '/FlowOsJourney.php';
 require_once __DIR__ . '/QueueAssistantMetricsStore.php';
 require_once __DIR__ . '/queue/TicketFactory.php';
 require_once __DIR__ . '/queue/TicketPriorityPolicy.php';
@@ -775,9 +776,15 @@ class QueueService
                     $ticket['reprintRequestedAt'] = (string) ($activeRequest['createdAt'] ?? local_date('c'));
                 }
             } else {
-                $ticket['needsAssistance'] = false;
-                $ticket['assistanceRequestStatus'] = '';
-                $ticket['activeHelpRequestId'] = null;
+                $inlineAssistance = ($ticket['needsAssistance'] ?? false) === true
+                    || trim((string) ($ticket['assistanceReason'] ?? '')) !== '';
+                $ticket['needsAssistance'] = $inlineAssistance;
+                $ticket['assistanceRequestStatus'] = $inlineAssistance
+                    ? (string) ($ticket['assistanceRequestStatus'] ?? 'pending')
+                    : '';
+                $ticket['activeHelpRequestId'] = $inlineAssistance
+                    ? ($ticket['activeHelpRequestId'] ?? null)
+                    : null;
                 $ticket['assistanceReason'] = (string) ($ticket['assistanceReason'] ?? '');
             }
 
@@ -884,7 +891,307 @@ class QueueService
 
     private function hydratePatientFlowStore(array $store): array
     {
-        return $this->patientCaseService->hydrateStore($store);
+        $store = $this->patientCaseService->hydrateStore($store);
+        return $this->decorateQueueTicketsWithPatientFlow($store);
+    }
+
+    private function decorateQueueTicketsWithPatientFlow(array $store): array
+    {
+        $tickets = isset($store['queue_tickets']) && is_array($store['queue_tickets'])
+            ? array_values($store['queue_tickets'])
+            : [];
+        if ($tickets === []) {
+            return $store;
+        }
+
+        $cases = isset($store['patient_cases']) && is_array($store['patient_cases'])
+            ? array_values($store['patient_cases'])
+            : [];
+        $casesById = [];
+        foreach ($cases as $case) {
+            if (!is_array($case)) {
+                continue;
+            }
+            $caseId = trim((string) ($case['id'] ?? ''));
+            if ($caseId === '') {
+                continue;
+            }
+            $casesById[$caseId] = $case;
+        }
+
+        $appointmentsByCaseId = $this->groupAppointmentsByCaseId(
+            isset($store['appointments']) && is_array($store['appointments'])
+                ? array_values($store['appointments'])
+                : []
+        );
+        $priorVisitsByCaseId = $this->buildPriorVisitCountByCaseId(
+            $cases,
+            $appointmentsByCaseId
+        );
+        $journeyByCaseId = [];
+        if (function_exists('flow_os_build_store_journey_history')) {
+            $journeyHistory = flow_os_build_store_journey_history($store);
+            foreach (($journeyHistory['cases'] ?? []) as $entry) {
+                if (!is_array($entry)) {
+                    continue;
+                }
+                $caseId = trim((string) ($entry['caseId'] ?? ''));
+                if ($caseId === '') {
+                    continue;
+                }
+                $journeyByCaseId[$caseId] = $entry;
+            }
+        }
+
+        foreach ($tickets as $index => $ticket) {
+            if (!is_array($ticket)) {
+                continue;
+            }
+            $caseId = trim((string) ($ticket['patientCaseId'] ?? ''));
+            $case = $caseId !== '' ? ($casesById[$caseId] ?? null) : null;
+            $journeyEntry = $caseId !== '' ? ($journeyByCaseId[$caseId] ?? null) : null;
+            $tickets[$index] = normalize_queue_ticket(
+                $this->decorateQueueTicketWithPatientFlow(
+                    $ticket,
+                    is_array($case) ? $case : null,
+                    is_array($journeyEntry) ? $journeyEntry : null,
+                    max(0, (int) ($priorVisitsByCaseId[$caseId] ?? 0))
+                )
+            );
+        }
+
+        $store['queue_tickets'] = $tickets;
+        return $store;
+    }
+
+    private function groupAppointmentsByCaseId(array $appointments): array
+    {
+        $grouped = [];
+        foreach ($appointments as $appointment) {
+            if (!is_array($appointment)) {
+                continue;
+            }
+            $caseId = trim((string) ($appointment['patientCaseId'] ?? ''));
+            if ($caseId === '') {
+                continue;
+            }
+            if (!isset($grouped[$caseId])) {
+                $grouped[$caseId] = [];
+            }
+            $grouped[$caseId][] = $appointment;
+        }
+
+        return $grouped;
+    }
+
+    private function buildPriorVisitCountByCaseId(
+        array $cases,
+        array $appointmentsByCaseId
+    ): array {
+        $casesByPatientId = [];
+        foreach ($cases as $case) {
+            if (!is_array($case)) {
+                continue;
+            }
+            $patientId = trim((string) ($case['patientId'] ?? ''));
+            $caseId = trim((string) ($case['id'] ?? ''));
+            if ($patientId === '' || $caseId === '') {
+                continue;
+            }
+            if (!isset($casesByPatientId[$patientId])) {
+                $casesByPatientId[$patientId] = [];
+            }
+            $casesByPatientId[$patientId][] = $case;
+        }
+
+        $counts = [];
+        foreach ($casesByPatientId as $patientCases) {
+            usort($patientCases, [$this, 'compareCasesByOpenedAt']);
+            $completedVisits = 0;
+            foreach ($patientCases as $case) {
+                if (!is_array($case)) {
+                    continue;
+                }
+                $caseId = trim((string) ($case['id'] ?? ''));
+                if ($caseId === '') {
+                    continue;
+                }
+                $counts[$caseId] = $completedVisits;
+                if (
+                    function_exists('flow_os_case_has_completed_visit')
+                        ? flow_os_case_has_completed_visit(
+                            $case,
+                            $appointmentsByCaseId[$caseId] ?? []
+                        )
+                        : strtolower(trim((string) ($case['status'] ?? ''))) === 'completed'
+                ) {
+                    $completedVisits++;
+                }
+            }
+        }
+
+        return $counts;
+    }
+
+    private function compareCasesByOpenedAt(array $left, array $right): int
+    {
+        $leftAt = trim((string) ($left['openedAt'] ?? ($left['latestActivityAt'] ?? '')));
+        $rightAt = trim((string) ($right['openedAt'] ?? ($right['latestActivityAt'] ?? '')));
+        if ($leftAt !== $rightAt) {
+            return strcmp($leftAt, $rightAt);
+        }
+
+        return strcmp(
+            trim((string) ($left['id'] ?? '')),
+            trim((string) ($right['id'] ?? ''))
+        );
+    }
+
+    private function decorateQueueTicketWithPatientFlow(
+        array $ticket,
+        ?array $case,
+        ?array $journeyEntry,
+        int $priorVisitsCount
+    ): array {
+        $summary = isset($case['summary']) && is_array($case['summary'])
+            ? $case['summary']
+            : [];
+        [$visitReason, $visitReasonLabel] = $this->resolveQueueTicketVisitReason(
+            $ticket,
+            $summary
+        );
+        $journeyStage = is_array($journeyEntry)
+            ? trim((string) ($journeyEntry['currentStage'] ?? ''))
+            : '';
+
+        return array_merge($ticket, [
+            'patientLabel' => $this->firstTicketString([
+                $ticket['patientLabel'] ?? '',
+                $summary['patientLabel'] ?? '',
+                $ticket['patientInitials'] ?? '',
+                $ticket['ticketCode'] ?? '',
+            ]),
+            'visitReason' => $visitReason,
+            'visitReasonLabel' => $visitReasonLabel,
+            'priorVisitsCount' => max(0, $priorVisitsCount),
+            'journeyStage' => $journeyStage,
+            'journeyStageLabel' => is_array($journeyEntry)
+                ? trim((string) ($journeyEntry['currentStageLabel'] ?? ''))
+                : '',
+            'journeyDisplayStage' => $journeyStage !== '' && function_exists('flow_os_display_stage_id')
+                ? flow_os_display_stage_id($journeyStage)
+                : '',
+            'journeyDisplayStageLabel' => $journeyStage !== '' && function_exists('flow_os_display_stage_label')
+                ? flow_os_display_stage_label($journeyStage)
+                : '',
+            'journeyOwnerLabel' => is_array($journeyEntry)
+                ? trim((string) ($journeyEntry['ownerLabel'] ?? ''))
+                : '',
+            'operatorAlerts' => $this->buildQueueTicketOperatorAlerts(
+                $ticket,
+                $summary
+            ),
+        ]);
+    }
+
+    private function resolveQueueTicketVisitReason(
+        array $ticket,
+        array $summary
+    ): array {
+        $visitReason = trim((string) ($ticket['visitReason'] ?? ''));
+        $visitReasonLabel = trim((string) ($ticket['visitReasonLabel'] ?? ''));
+        if ($visitReasonLabel !== '') {
+            return [$visitReason, $visitReasonLabel];
+        }
+
+        $summaryVisitReason = trim((string) ($summary['latestVisitReason'] ?? ''));
+        $summaryVisitReasonLabel = trim((string) ($summary['latestVisitReasonLabel'] ?? ''));
+        if ($summaryVisitReasonLabel !== '') {
+            return [
+                $visitReason !== '' ? $visitReason : $summaryVisitReason,
+                $summaryVisitReasonLabel,
+            ];
+        }
+
+        $serviceLine = trim((string) ($summary['serviceLine'] ?? ''));
+        if ($serviceLine !== '') {
+            return [$visitReason, $serviceLine];
+        }
+
+        if ($visitReason !== '' && function_exists('queue_visit_reason_label')) {
+            return [$visitReason, queue_visit_reason_label($visitReason)];
+        }
+
+        return [
+            $visitReason,
+            strtolower(trim((string) ($ticket['queueType'] ?? ''))) === 'appointment'
+                ? 'Consulta agendada'
+                : 'Consulta general',
+        ];
+    }
+
+    private function buildQueueTicketOperatorAlerts(
+        array $ticket,
+        array $summary
+    ): array {
+        $alerts = [];
+        if (($ticket['specialPriority'] ?? false) === true) {
+            $this->pushQueueTicketAlert($alerts, 'Prioridad clínica');
+        }
+        if (($ticket['needsAssistance'] ?? false) === true) {
+            $this->pushQueueTicketAlert(
+                $alerts,
+                trim((string) ($ticket['assistanceReasonLabel'] ?? '')) !== ''
+                    ? (string) ($ticket['assistanceReasonLabel'] ?? '')
+                    : 'Ayuda pendiente'
+            );
+        }
+        if (($ticket['lateArrival'] ?? false) === true) {
+            $this->pushQueueTicketAlert($alerts, 'Llegada tarde');
+        }
+
+        $pendingApprovals = max(0, (int) ($summary['pendingApprovalCount'] ?? 0));
+        if ($pendingApprovals > 0) {
+            $this->pushQueueTicketAlert(
+                $alerts,
+                $pendingApprovals === 1
+                    ? '1 aprobación pendiente'
+                    : $pendingApprovals . ' aprobaciones pendientes'
+            );
+        }
+
+        $openActions = max(0, (int) ($summary['openActionCount'] ?? 0));
+        if ($openActions > 0) {
+            $this->pushQueueTicketAlert(
+                $alerts,
+                $openActions === 1
+                    ? '1 acción abierta'
+                    : $openActions . ' acciones abiertas'
+            );
+        }
+
+        return array_slice($alerts, 0, 4);
+    }
+
+    private function pushQueueTicketAlert(array &$alerts, string $label): void
+    {
+        $normalized = trim($label);
+        if ($normalized === '' || in_array($normalized, $alerts, true)) {
+            return;
+        }
+        $alerts[] = $normalized;
+    }
+
+    private function firstTicketString(array $candidates): string
+    {
+        foreach ($candidates as $candidate) {
+            $value = trim((string) $candidate);
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
     }
 
     private function findTicketRecord(array $store, int $ticketId): ?array

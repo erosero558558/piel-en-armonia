@@ -3950,6 +3950,188 @@ function noteNumpadActivity(event) {
     syncOperatorHeartbeat('numpad');
 }
 
+function resolveOperatorPatientFocusState() {
+    const state = getState();
+    const station = Number(state.queue.stationConsultorio || 1) || 1;
+    const activeTicket = getActiveCalledTicketForStation();
+    const waitingTicket = getWaitingForConsultorio(station);
+
+    if (activeTicket && activeTicket.ticketCode) {
+        return {
+            mode: 'active',
+            station,
+            ticket: activeTicket,
+        };
+    }
+
+    if (waitingTicket && waitingTicket.ticketCode) {
+        return {
+            mode: 'waiting',
+            station,
+            ticket: waitingTicket,
+        };
+    }
+
+    return {
+        mode: 'idle',
+        station,
+        ticket: null,
+    };
+}
+
+function resolveOperatorPatientLabel(ticket) {
+    return (
+        String(
+            ticket?.patientLabel ||
+                ticket?.patientInitials ||
+                ticket?.ticketCode ||
+                'Paciente sin nombre'
+        ).trim() || 'Paciente sin nombre'
+    );
+}
+
+function resolveOperatorVisitReasonLabel(ticket) {
+    const explicit = String(ticket?.visitReasonLabel || '').trim();
+    if (explicit) {
+        return explicit;
+    }
+
+    return String(ticket?.queueType || '').trim() === 'appointment'
+        ? 'Consulta agendada'
+        : 'Consulta general';
+}
+
+function formatOperatorPriorVisits(ticket) {
+    const count = Math.max(0, Number(ticket?.priorVisitsCount || 0) || 0);
+    if (count === 0) {
+        return 'Primera visita';
+    }
+    if (count === 1) {
+        return '1 visita previa';
+    }
+    return `${count} visitas previas`;
+}
+
+function resolveOperatorJourneySummary(ticket) {
+    const stageLabel = String(
+        ticket?.journeyDisplayStageLabel || ticket?.journeyStageLabel || ''
+    ).trim();
+    const ownerLabel = String(ticket?.journeyOwnerLabel || '').trim();
+
+    if (stageLabel && ownerLabel) {
+        return `${stageLabel} · ${ownerLabel}`;
+    }
+    if (stageLabel) {
+        return stageLabel;
+    }
+    if (ownerLabel) {
+        return ownerLabel;
+    }
+    return 'Sin journey';
+}
+
+function resolveOperatorAlertLabels(ticket) {
+    const explicit = Array.isArray(ticket?.operatorAlerts)
+        ? ticket.operatorAlerts
+        : [];
+    const labels = explicit
+        .map((item) => String(item || '').trim())
+        .filter(Boolean);
+
+    if (!labels.length) {
+        if (ticket?.specialPriority) {
+            labels.push('Prioridad clínica');
+        }
+        if (ticket?.needsAssistance) {
+            labels.push(
+                String(ticket?.assistanceReasonLabel || '').trim() ||
+                    'Ayuda pendiente'
+            );
+        }
+        if (ticket?.lateArrival) {
+            labels.push('Llegada tarde');
+        }
+    }
+
+    return Array.from(new Set(labels)).slice(0, 4);
+}
+
+function renderOperatorPatientFocusAlerts(alerts = []) {
+    const host = getById('operatorPatientFocusAlerts');
+    if (!(host instanceof HTMLElement)) {
+        return;
+    }
+
+    host.replaceChildren();
+    const items = alerts.length ? alerts : ['Sin alertas abiertas'];
+    items.forEach((label) => {
+        const chip = document.createElement('li');
+        chip.className = 'queue-operator-focus-card__alert';
+        chip.dataset.state = alerts.length ? 'warning' : 'idle';
+        chip.textContent = label;
+        host.appendChild(chip);
+    });
+}
+
+function renderOperatorPatientFocus() {
+    const card = getById('operatorPatientFocusCard');
+    if (!(card instanceof HTMLElement)) {
+        return;
+    }
+
+    const { mode, station, ticket } = resolveOperatorPatientFocusState();
+    if (!ticket) {
+        card.setAttribute('data-state', 'idle');
+        card.setAttribute('data-alerts', 'false');
+        setText('#operatorPatientFocusKicker', 'Paciente en foco');
+        setText('#operatorPatientFocusTitle', 'Sin ticket activo');
+        setText(
+            '#operatorPatientFocusSummary',
+            'Al llamar un turno, aquí verás el nombre, el motivo, el stage del journey y cualquier alerta operativa.'
+        );
+        setText('#operatorPatientFocusTicket', '--');
+        setText('#operatorPatientFocusName', 'Sin ticket activo');
+        setText('#operatorPatientFocusReason', 'Sin dato');
+        setText('#operatorPatientFocusVisits', 'Primera visita');
+        setText('#operatorPatientFocusStage', 'Sin journey');
+        renderOperatorPatientFocusAlerts([]);
+        return;
+    }
+
+    const patientLabel = resolveOperatorPatientLabel(ticket);
+    const alerts = resolveOperatorAlertLabels(ticket);
+    const stationLabel = getOperatorConsultorioShortLabel(station);
+    const summary =
+        mode === 'active'
+            ? `${patientLabel} ya fue llamado a ${stationLabel}. ${
+                  alerts.length ? 'Revisa las alertas antes de cerrar el caso.' : 'No hay alertas abiertas.'
+              }`
+            : `${patientLabel} está listo para pasar a ${stationLabel}. ${
+                  alerts.length ? 'Llega con alertas para revisar.' : 'Sin alertas abiertas.'
+              }`;
+
+    card.setAttribute('data-state', mode);
+    card.setAttribute('data-alerts', alerts.length > 0 ? 'true' : 'false');
+    setText(
+        '#operatorPatientFocusKicker',
+        mode === 'active' ? 'Paciente en consultorio' : 'Siguiente paciente'
+    );
+    setText(
+        '#operatorPatientFocusTitle',
+        mode === 'active' ? 'Ticket en curso' : 'Listo para llamar'
+    );
+    setText('#operatorPatientFocusSummary', summary);
+    setText('#operatorPatientFocusTicket', String(ticket.ticketCode || '--'));
+    setText('#operatorPatientFocusName', patientLabel);
+    setText(
+        '#operatorPatientFocusReason',
+        resolveOperatorVisitReasonLabel(ticket)
+    );
+    setText('#operatorPatientFocusVisits', formatOperatorPriorVisits(ticket));
+    setText('#operatorPatientFocusStage', resolveOperatorJourneySummary(ticket));
+    renderOperatorPatientFocusAlerts(alerts);
+}
+
 function updateOperatorActionGuide() {
     const state = getState();
     const numpadStatus = buildOperatorNumpadStatus(state.queue);
@@ -4377,6 +4559,7 @@ function updateOperatorChrome({
     updateOperatorRuntimeCard(syncHealth);
     renderQueueSection();
     updateOperatorActionGuide();
+    renderOperatorPatientFocus();
     updateOperatorReadiness();
     updateOperatorGuardState();
     syncOperatorActionAvailability();

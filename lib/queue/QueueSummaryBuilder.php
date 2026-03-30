@@ -65,15 +65,13 @@ final class QueueSummaryBuilder
             if ($consultorio === null || isset($callingNowByConsultorio[$consultorio])) {
                 continue;
             }
-            $callingNowByConsultorio[$consultorio] = [
-                'id' => (int) ($ticket['id'] ?? 0),
-                'ticketCode' => (string) ($ticket['ticketCode'] ?? ''),
-                'patientCaseId' => (string) ($ticket['patientCaseId'] ?? ''),
-                'patientInitials' => (string) ($ticket['patientInitials'] ?? ''),
-                'assignedConsultorio' => $consultorio,
-                'calledAt' => (string) ($ticket['calledAt'] ?? ''),
-                'status' => 'called',
-            ];
+            $callingNowByConsultorio[$consultorio] = $this->buildTicketPayload(
+                $ticket,
+                $helpRequestsByTicketId[(int) ($ticket['id'] ?? 0)] ?? null,
+                null,
+                $consultorio,
+                'called'
+            );
         }
 
         ksort($callingNowByConsultorio);
@@ -89,28 +87,11 @@ final class QueueSummaryBuilder
             }
             $ticketId = (int) ($ticket['id'] ?? 0);
             $activeHelp = $helpRequestsByTicketId[$ticketId] ?? null;
-            $nextTickets[] = [
-                'id' => $ticketId,
-                'ticketCode' => (string) ($ticket['ticketCode'] ?? ''),
-                'patientCaseId' => (string) ($ticket['patientCaseId'] ?? ''),
-                'patientInitials' => (string) ($ticket['patientInitials'] ?? ''),
-                'queueType' => (string) ($ticket['queueType'] ?? 'walk_in'),
-                'priorityClass' => (string) ($ticket['priorityClass'] ?? 'walk_in'),
-                'visitReason' => (string) ($ticket['visitReason'] ?? ''),
-                'visitReasonLabel' => (string) ($ticket['visitReasonLabel'] ?? ''),
-                'position' => $index + 1,
-                'createdAt' => (string) ($ticket['createdAt'] ?? ''),
-                'needsAssistance' => (bool) ($ticket['needsAssistance'] ?? ($activeHelp !== null)),
-                'assistanceRequestStatus' => (string) (
-                    $ticket['assistanceRequestStatus']
-                    ?? ($activeHelp['status'] ?? '')
-                ),
-                'activeHelpRequestId' => isset($activeHelp['id']) ? (int) $activeHelp['id'] : null,
-                'specialPriority' => (bool) ($ticket['specialPriority'] ?? false),
-                'lateArrival' => (bool) ($ticket['lateArrival'] ?? false),
-                'reprintRequestedAt' => (string) ($ticket['reprintRequestedAt'] ?? ''),
-                'estimatedWaitMin' => max(0, ($index + 1) * 8),
-            ];
+            $nextTickets[] = $this->buildTicketPayload(
+                $ticket,
+                $activeHelp,
+                $index + 1
+            );
         }
 
         return [
@@ -332,6 +313,57 @@ final class QueueSummaryBuilder
         }
 
         return '';
+    }
+
+    private function buildTicketPayload(
+        array $ticket,
+        ?array $activeHelp = null,
+        ?int $position = null,
+        ?int $assignedConsultorio = null,
+        ?string $status = null
+    ): array {
+        $payload = [
+            'id' => (int) ($ticket['id'] ?? 0),
+            'ticketCode' => (string) ($ticket['ticketCode'] ?? ''),
+            'patientCaseId' => (string) ($ticket['patientCaseId'] ?? ''),
+            'patientInitials' => (string) ($ticket['patientInitials'] ?? ''),
+            'patientLabel' => (string) ($ticket['patientLabel'] ?? ''),
+            'queueType' => (string) ($ticket['queueType'] ?? 'walk_in'),
+            'priorityClass' => (string) ($ticket['priorityClass'] ?? 'walk_in'),
+            'visitReason' => (string) ($ticket['visitReason'] ?? ''),
+            'visitReasonLabel' => (string) ($ticket['visitReasonLabel'] ?? ''),
+            'priorVisitsCount' => max(0, (int) ($ticket['priorVisitsCount'] ?? 0)),
+            'journeyStage' => (string) ($ticket['journeyStage'] ?? ''),
+            'journeyStageLabel' => (string) ($ticket['journeyStageLabel'] ?? ''),
+            'journeyDisplayStage' => (string) ($ticket['journeyDisplayStage'] ?? ''),
+            'journeyDisplayStageLabel' => (string) ($ticket['journeyDisplayStageLabel'] ?? ''),
+            'journeyOwnerLabel' => (string) ($ticket['journeyOwnerLabel'] ?? ''),
+            'operatorAlerts' => isset($ticket['operatorAlerts']) && is_array($ticket['operatorAlerts'])
+                ? array_values($ticket['operatorAlerts'])
+                : [],
+            'createdAt' => (string) ($ticket['createdAt'] ?? ''),
+            'calledAt' => (string) ($ticket['calledAt'] ?? ''),
+            'status' => $status !== null ? $status : (string) ($ticket['status'] ?? 'waiting'),
+            'assignedConsultorio' => $assignedConsultorio !== null
+                ? $assignedConsultorio
+                : $this->normalizeConsultorio($ticket['assignedConsultorio'] ?? null),
+            'needsAssistance' => (bool) ($ticket['needsAssistance'] ?? ($activeHelp !== null)),
+            'assistanceRequestStatus' => (string) (
+                $ticket['assistanceRequestStatus']
+                ?? ($activeHelp['status'] ?? '')
+            ),
+            'activeHelpRequestId' => isset($activeHelp['id']) ? (int) $activeHelp['id'] : null,
+            'specialPriority' => (bool) ($ticket['specialPriority'] ?? false),
+            'lateArrival' => (bool) ($ticket['lateArrival'] ?? false),
+            'reprintRequestedAt' => (string) ($ticket['reprintRequestedAt'] ?? ''),
+            'estimatedWaitMin' => $position !== null ? max(0, $position * 8) : 0,
+        ];
+
+        if ($position !== null) {
+            $payload['position'] = $position;
+        }
+
+        return $payload;
     }
 
     private function normalizeConsultorio($value): ?int

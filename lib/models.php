@@ -369,6 +369,45 @@ function normalize_queue_ticket(array $ticket): array
         $ticket['assistanceReason']
         ?? ($ticket['assistance_reason'] ?? '')
     ))), 80);
+    $visitReasonLabelRaw = truncate_field(sanitize_xss(trim((string) (
+        $ticket['visitReasonLabel']
+        ?? ($ticket['visit_reason_label'] ?? '')
+    ))), 120);
+    $patientLabel = truncate_field(sanitize_xss(trim((string) (
+        $ticket['patientLabel']
+        ?? ($ticket['patient_label'] ?? '')
+    ))), 120);
+    $priorVisitsCount = isset($ticket['priorVisitsCount'])
+        ? (int) $ticket['priorVisitsCount']
+        : (isset($ticket['prior_visits_count']) ? (int) $ticket['prior_visits_count'] : 0);
+    if ($priorVisitsCount < 0) {
+        $priorVisitsCount = 0;
+    }
+    $journeyStage = truncate_field(trim((string) (
+        $ticket['journeyStage']
+        ?? ($ticket['journey_stage'] ?? '')
+    )), 80);
+    $journeyStageLabel = truncate_field(sanitize_xss(trim((string) (
+        $ticket['journeyStageLabel']
+        ?? ($ticket['journey_stage_label'] ?? '')
+    ))), 120);
+    $journeyDisplayStage = truncate_field(trim((string) (
+        $ticket['journeyDisplayStage']
+        ?? ($ticket['journey_display_stage'] ?? '')
+    )), 80);
+    $journeyDisplayStageLabel = truncate_field(sanitize_xss(trim((string) (
+        $ticket['journeyDisplayStageLabel']
+        ?? ($ticket['journey_display_stage_label'] ?? '')
+    ))), 120);
+    $journeyOwnerLabel = truncate_field(sanitize_xss(trim((string) (
+        $ticket['journeyOwnerLabel']
+        ?? ($ticket['journey_owner_label'] ?? '')
+    ))), 120);
+    $operatorAlerts = normalize_string_list(
+        $ticket['operatorAlerts'] ?? ($ticket['operator_alerts'] ?? []),
+        6,
+        120
+    );
 
     return [
         'id' => isset($ticket['id']) ? (int) $ticket['id'] : (int) round(microtime(true) * 1000),
@@ -401,8 +440,24 @@ function normalize_queue_ticket(array $ticket): array
         'assistanceReasonLabel' => $assistanceReason !== ''
             ? queue_help_request_reason_label($assistanceReason)
             : '',
+        'patientLabel' => $patientLabel,
         'specialPriority' => $specialPriority,
         'lateArrival' => $lateArrival,
+        'visitReason' => $visitReason,
+        'visitReasonLabel' => $visitReasonLabelRaw !== ''
+            ? $visitReasonLabelRaw
+            : (
+                $visitReason !== ''
+                    ? queue_visit_reason_label($visitReason)
+                    : ''
+            ),
+        'priorVisitsCount' => $priorVisitsCount,
+        'journeyStage' => $journeyStage,
+        'journeyStageLabel' => $journeyStageLabel,
+        'journeyDisplayStage' => $journeyDisplayStage,
+        'journeyDisplayStageLabel' => $journeyDisplayStageLabel,
+        'journeyOwnerLabel' => $journeyOwnerLabel,
+        'operatorAlerts' => $operatorAlerts,
         'reprintRequestedAt' => truncate_field(trim((string) (
             $ticket['reprintRequestedAt']
             ?? ($ticket['reprint_requested_at'] ?? '')

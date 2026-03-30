@@ -114,11 +114,9 @@ function buildOperatorQueueState(ticketOrTickets, overrides = {}) {
             no_show: 0,
             cancelled: 0,
         },
-        callingNow: calledTickets,
+        callingNow: calledTickets.map((ticket) => ({ ...ticket })),
         nextTickets: waitingTickets.map((ticket, index) => ({
-            id: ticket.id,
-            ticketCode: ticket.ticketCode,
-            patientInitials: ticket.patientInitials,
+            ...ticket,
             position: index + 1,
         })),
         ...overrides,

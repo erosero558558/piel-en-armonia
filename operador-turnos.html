@@ -446,6 +446,79 @@
                         </div>
                     </div>
 
+                    <section
+                        id="operatorPatientFocusCard"
+                        class="queue-operator-focus-card"
+                        data-state="idle"
+                        data-alerts="false"
+                    >
+                        <div class="queue-operator-focus-card__head">
+                            <div>
+                                <p
+                                    id="operatorPatientFocusKicker"
+                                    class="queue-operator-kicker"
+                                >
+                                    Paciente en foco
+                                </p>
+                                <h4 id="operatorPatientFocusTitle">
+                                    Sin ticket activo
+                                </h4>
+                                <p id="operatorPatientFocusSummary">
+                                    Al llamar un turno, aquí verás el nombre,
+                                    el motivo, el stage del journey y cualquier
+                                    alerta operativa.
+                                </p>
+                            </div>
+                            <span
+                                id="operatorPatientFocusTicket"
+                                class="queue-operator-focus-card__ticket"
+                                >--</span
+                            >
+                        </div>
+
+                        <div class="queue-operator-focus-card__grid">
+                            <article class="queue-operator-focus-card__fact">
+                                <span>Nombre</span>
+                                <strong id="operatorPatientFocusName">
+                                    Sin ticket activo
+                                </strong>
+                            </article>
+                            <article class="queue-operator-focus-card__fact">
+                                <span>Motivo</span>
+                                <strong id="operatorPatientFocusReason">
+                                    Sin dato
+                                </strong>
+                            </article>
+                            <article class="queue-operator-focus-card__fact">
+                                <span>Visitas previas</span>
+                                <strong id="operatorPatientFocusVisits">
+                                    Primera visita
+                                </strong>
+                            </article>
+                            <article class="queue-operator-focus-card__fact">
+                                <span>Journey</span>
+                                <strong id="operatorPatientFocusStage">
+                                    Sin journey
+                                </strong>
+                            </article>
+                        </div>
+
+                        <div class="queue-operator-focus-card__alerts">
+                            <span>Alertas a revisar</span>
+                            <ul
+                                id="operatorPatientFocusAlerts"
+                                class="queue-operator-focus-card__alert-list"
+                            >
+                                <li
+                                    class="queue-operator-focus-card__alert"
+                                    data-state="idle"
+                                >
+                                    Sin alertas abiertas
+                                </li>
+                            </ul>
+                        </div>
+                    </section>
+
                     <div class="sony-grid sony-grid-kpi slim">
                         <article class="sony-kpi">
                             <h4>Espera</h4>

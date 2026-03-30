@@ -248,6 +248,144 @@ qs_assert_equals(
     'control walk-in should be the lowest walk-in priority'
 );
 
+// 3c) Operator-facing ticket summary includes patient flow context
+$operatorStore = qs_base_store();
+$operatorStore['patient_cases'] = [
+    [
+        'id' => 'pc-operator-prev',
+        'tenantId' => 'pielarmonia',
+        'patientId' => 'pt-operator-1',
+        'status' => 'completed',
+        'openedAt' => date('c', strtotime('-30 day')),
+        'latestActivityAt' => date('c', strtotime('-29 day')),
+        'closedAt' => date('c', strtotime('-29 day')),
+        'summary' => [
+            'patientLabel' => 'Elena Rojas',
+            'milestones' => [
+                'completedAt' => date('c', strtotime('-29 day')),
+            ],
+        ],
+    ],
+    [
+        'id' => 'pc-operator-current',
+        'tenantId' => 'pielarmonia',
+        'patientId' => 'pt-operator-1',
+        'status' => 'booked',
+        'openedAt' => date('c', strtotime('-1 day')),
+        'latestActivityAt' => date('c', strtotime('-2 hour')),
+        'summary' => [
+            'patientLabel' => 'Elena Rojas',
+            'serviceLine' => 'Procedimiento',
+            'openActionCount' => 1,
+            'pendingApprovalCount' => 1,
+            'milestones' => [],
+        ],
+    ],
+];
+$operatorStore['appointments'] = [
+    [
+        'id' => 9510,
+        'tenantId' => 'pielarmonia',
+        'patientCaseId' => 'pc-operator-prev',
+        'patientId' => 'pt-operator-1',
+        'name' => 'Elena Rojas',
+        'phone' => '0993334444',
+        'service' => 'Control',
+        'doctor' => 'rosero',
+        'date' => date('Y-m-d', strtotime('-30 day')),
+        'time' => '09:00',
+        'status' => 'completed',
+    ],
+    [
+        'id' => 9511,
+        'tenantId' => 'pielarmonia',
+        'patientCaseId' => 'pc-operator-current',
+        'patientId' => 'pt-operator-1',
+        'name' => 'Elena Rojas',
+        'phone' => '0993334444',
+        'service' => 'Procedimiento',
+        'doctor' => 'rosero',
+        'date' => date('Y-m-d', strtotime('+1 day')),
+        'time' => '12:00',
+        'status' => 'confirmed',
+    ],
+];
+$operatorStore['queue_tickets'][] = normalize_queue_ticket([
+    'id' => 9512,
+    'ticketCode' => 'Z-111',
+    'dailySeq' => 1,
+    'queueType' => 'appointment',
+    'appointmentId' => 9511,
+    'patientCaseId' => 'pc-operator-current',
+    'patientId' => 'pt-operator-1',
+    'patientInitials' => 'ER',
+    'priorityClass' => 'appt_current',
+    'status' => 'called',
+    'assignedConsultorio' => 2,
+    'createdAt' => date('c', strtotime('-20 minute')),
+    'calledAt' => date('c', strtotime('-5 minute')),
+    'needsAssistance' => true,
+    'assistanceReason' => 'human_help',
+]);
+
+$operatorTicket = $service->findTicketById($operatorStore, 9512);
+qs_assert_equals(
+    'Elena Rojas',
+    (string) ($operatorTicket['patientLabel'] ?? ''),
+    'operator ticket should expose patientLabel'
+);
+qs_assert_equals(
+    'Procedimiento',
+    (string) ($operatorTicket['visitReasonLabel'] ?? ''),
+    'operator ticket should expose visitReasonLabel from patient flow'
+);
+qs_assert_equals(
+    1,
+    (int) ($operatorTicket['priorVisitsCount'] ?? -1),
+    'operator ticket should count prior completed visits'
+);
+qs_assert_equals(
+    'scheduled',
+    (string) ($operatorTicket['journeyDisplayStage'] ?? ''),
+    'operator ticket should expose journey display stage'
+);
+qs_assert_equals(
+    'Agendada',
+    (string) ($operatorTicket['journeyDisplayStageLabel'] ?? ''),
+    'operator ticket should expose journey display stage label'
+);
+qs_assert_equals(
+    'Agenda',
+    (string) ($operatorTicket['journeyOwnerLabel'] ?? ''),
+    'operator ticket should expose journey owner label'
+);
+qs_assert_true(
+    in_array('Ayuda humana', $operatorTicket['operatorAlerts'] ?? [], true),
+    'operator ticket should surface assistance alert'
+);
+qs_assert_true(
+    in_array('1 aprobación pendiente', $operatorTicket['operatorAlerts'] ?? [], true),
+    'operator ticket should surface pending approval alert'
+);
+
+$operatorSummary = $service->buildAdminSummary($operatorStore);
+$callingNow = $operatorSummary['callingNowByConsultorio']['2'] ?? [];
+qs_assert_equals(
+    'Elena Rojas',
+    (string) ($callingNow['patientLabel'] ?? ''),
+    'callingNow summary should expose patientLabel'
+);
+qs_assert_equals(
+    'Procedimiento',
+    (string) ($callingNow['visitReasonLabel'] ?? ''),
+    'callingNow summary should expose visitReasonLabel'
+);
+qs_assert_equals(
+    1,
+    (int) ($callingNow['priorVisitsCount'] ?? -1),
+    'callingNow summary should expose prior visits count'
+);
+
 // 4) Patch ticket actions
 $patched = $service->patchTicket(($call2['store'] ?? []), [
     'id' => (int) ($call2['ticket']['id'] ?? 0),

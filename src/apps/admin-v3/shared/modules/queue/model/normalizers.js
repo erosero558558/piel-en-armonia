@@ -25,6 +25,29 @@ export function resolveAssistanceReasonLabel(reason) {
     );
 }
 
+export function resolveVisitReasonLabel(reason) {
+    const normalized = String(reason || '')
+        .trim()
+        .toLowerCase();
+
+    return (
+        {
+            consulta_general: 'Consulta general',
+            control: 'Control',
+            procedimiento: 'Procedimiento',
+            urgencia: 'Urgencia',
+        }[normalized] || ''
+    );
+}
+
+function normalizeStringList(raw, limit = 6) {
+    const source = Array.isArray(raw) ? raw : [];
+    return source
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
+        .slice(0, limit);
+}
+
 function readHelpRequestContextValue(context, ...keys) {
     if (!context || typeof context !== 'object') {
         return '';
@@ -51,6 +74,9 @@ export function normalizeTicket(raw, fallbackIndex = 0) {
     )
         .trim()
         .toLowerCase();
+    const visitReason = String(raw?.visitReason || raw?.visit_reason || '')
+        .trim()
+        .toLowerCase();
     return {
         id,
         ticketCode: String(raw?.ticketCode || raw?.ticket_code || `A-${id}`),
@@ -58,6 +84,7 @@ export function normalizeTicket(raw, fallbackIndex = 0) {
             Number(raw?.appointmentId ?? raw?.appointment_id ?? 0) || null,
         phoneLast4: String(raw?.phoneLast4 || raw?.phone_last4 || ''),
         patientCaseId: String(raw?.patientCaseId || raw?.patient_case_id || ''),
+        patientLabel: String(raw?.patientLabel || raw?.patient_label || ''),
         queueType: String(raw?.queueType || raw?.queue_type || 'walk_in'),
         patientInitials: String(
             raw?.patientInitials || raw?.patient_initials || '--'
@@ -99,8 +126,36 @@ export function normalizeTicket(raw, fallbackIndex = 0) {
                     ? resolveAssistanceReasonLabel(assistanceReason)
                     : '')
         ),
+        visitReason,
+        visitReasonLabel: String(
+            raw?.visitReasonLabel ||
+                raw?.visit_reason_label ||
+                (visitReason ? resolveVisitReasonLabel(visitReason) : '')
+        ),
         specialPriority: Boolean(raw?.specialPriority ?? raw?.special_priority),
         lateArrival: Boolean(raw?.lateArrival ?? raw?.late_arrival),
+        priorVisitsCount: Math.max(
+            0,
+            Number(raw?.priorVisitsCount ?? raw?.prior_visits_count ?? 0) || 0
+        ),
+        journeyStage: String(raw?.journeyStage || raw?.journey_stage || ''),
+        journeyStageLabel: String(
+            raw?.journeyStageLabel || raw?.journey_stage_label || ''
+        ),
+        journeyDisplayStage: String(
+            raw?.journeyDisplayStage || raw?.journey_display_stage || ''
+        ),
+        journeyDisplayStageLabel: String(
+            raw?.journeyDisplayStageLabel ||
+                raw?.journey_display_stage_label ||
+                ''
+        ),
+        journeyOwnerLabel: String(
+            raw?.journeyOwnerLabel || raw?.journey_owner_label || ''
+        ),
+        operatorAlerts: normalizeStringList(
+            raw?.operatorAlerts ?? raw?.operator_alerts
+        ),
         reprintRequestedAt: String(
             raw?.reprintRequestedAt || raw?.reprint_requested_at || ''
         ),
