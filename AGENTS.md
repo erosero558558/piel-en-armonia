@@ -1610,7 +1610,7 @@ git add . && HUSKY=0 git commit --no-verify -m "docs: mark S2-01 done" && git pu
 
 #### 12.2 Reputación y confianza
 
-- [ ] **S12-08** `[M]` `[UI]` Reputation dashboard — vista en admin: total de reseñas, promedio, últimas 5, solicitudes enviadas esta semana, tasa de respuesta. Datos del endpoint de reviews existente (S2-20). Card simple en el admin dashboard.
+- [x] **S12-08** `[M]` `[UI]` Reputation dashboard — vista en admin: total de reseñas, promedio, últimas 5, solicitudes enviadas esta semana, tasa de respuesta. Datos del endpoint de reviews existente (S2-20). Card simple en el admin dashboard.
 - [ ] **S12-09** `[S]` Trust assets library — centralizar en `data/trust/`: logo MSP en PNG, foto oficial de la doctora, dirección con coordenadas, horarios en formato structured data, canales oficiales verificados. Los componentes del design system los consumen como fuente única.
 - [ ] **S12-10** `[M]` Testimonial publishing workflow — `POST /api.php?resource=testimonial`: el paciente da consentimiento vía link firmado, el admin revisa, el equipo publica con clasificación por servicio. Estados: `submitted → approved → published`. Sin este flujo los testimonios son copy-paste sin trazabilidad.
 
