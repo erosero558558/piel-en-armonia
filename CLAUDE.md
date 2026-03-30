@@ -222,12 +222,11 @@ in_consultation → documented → completed → follow_up
 
 ---
 
-## Comandos de referencia
+## Tabla de comandos oficiales
 
 | Comando | Para qué sirve | NO usar |
 |---|---|---|
-| `npm run gov:audit` | Salud completa del sistema en 1 comando | — |
-| `npm run dispatch:ui` | Siguiente tarea UI (solo Antigravity) | `dispatch:frontend` para UI |
+| `npm run status` | Resumen rápido: progreso, claims, merge-ready, velocidad y próxima revisión | Revisar `report`, `velocity` y `merge-ready` por separado sin necesidad |
 | `npm run dispatch:<rol>` | Siguiente tarea para tu rol | Scripts legacy `agent:*` |
 | `node bin/claim.js claim <id> <quien>` | Reclamar tarea antes de trabajar | Trabajar sin claim |
 | `node bin/claim.js release <id>` | Liberar al terminar | Dejar claim expirado |
@@ -235,6 +234,7 @@ in_consultation → documented → completed → follow_up
 | `node bin/gate.js <id>` | Validar ANTES de marcar done | Marcar done sin gate |
 | `node bin/stuck.js <id> "razón"` | Reportar bloqueo y liberar | Dejar claim colgado |
 | `node bin/report.js` | Estado del board (para directora) | — |
+| `node bin/velocity.js` | Ver si el ritmo actual alcanza para junio | Estimar avance “a ojo” |
 | `node bin/sync-backlog.js` | Regenerar BACKLOG.md | Editar BACKLOG.md a mano |
 | `node bin/conflict.js` | Detectar solapamiento entre agentes | — |
 
