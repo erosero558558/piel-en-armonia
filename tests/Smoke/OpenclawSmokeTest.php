@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Smoke;
 
+require_once __DIR__ . '/SmokeTestCase.php';
 require_once __DIR__ . '/../../controllers/OpenclawController.php';
 
 final class OpenclawSmokeTest extends SmokeTestCase

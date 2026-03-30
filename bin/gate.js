@@ -157,6 +157,19 @@ check('PHP Syntax Check (php -l)', () => {
   return true;
 });
 
+check('PHPUnit Smoke Baseline', () => {
+  const changed = run('git diff --name-only HEAD').split('\n')
+    .filter(f => f.endsWith('.php'));
+  if (changed.length > 0) {
+    try {
+      run('php vendor/bin/phpunit --testsuite Smoke --stop-on-failure --no-coverage');
+    } catch (err) {
+      return 'Smoke tests failed. Run `php vendor/bin/phpunit --testsuite Smoke` for details.';
+    }
+  }
+  return true;
+});
+
 // ── Task-specific checks ───────────────────────────────────────────────────────
 
 const taskChecks = {
