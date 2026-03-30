@@ -9,12 +9,25 @@ function fulfillJson(route, payload, status = 200) {
 }
 
 function buildTurneroQueueStatePayload(overrides = {}) {
+    const callingNow = Array.isArray(overrides.callingNow)
+        ? overrides.callingNow
+        : [];
+    const nextTickets = Array.isArray(overrides.nextTickets)
+        ? overrides.nextTickets
+        : [];
+    const waitingCount = Number.isFinite(Number(overrides.waitingCount))
+        ? Number(overrides.waitingCount)
+        : nextTickets.length;
+    const calledCount = Number.isFinite(Number(overrides.calledCount))
+        ? Number(overrides.calledCount)
+        : callingNow.length;
+
     return {
         updatedAt: new Date().toISOString(),
-        waitingCount: 0,
-        calledCount: 0,
-        callingNow: [],
-        nextTickets: [],
+        waitingCount,
+        calledCount,
+        callingNow,
+        nextTickets,
         ...overrides,
     };
 }

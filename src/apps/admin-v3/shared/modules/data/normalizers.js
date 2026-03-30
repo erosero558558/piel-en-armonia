@@ -19,6 +19,28 @@ function normalizeQueueTickets(data) {
     return [];
 }
 
+function normalizeDoctorProfile(data, fallbackState) {
+    const source =
+        data.doctorProfile && typeof data.doctorProfile === 'object'
+            ? data.doctorProfile
+            : fallbackState?.doctorProfile &&
+                typeof fallbackState.doctorProfile === 'object'
+              ? fallbackState.doctorProfile
+              : null;
+
+    if (!source) {
+        return null;
+    }
+
+    return {
+        fullName: String(source.fullName || '').trim(),
+        specialty: String(source.specialty || '').trim(),
+        mspNumber: String(source.mspNumber || '').trim(),
+        signatureImage: String(source.signatureImage || '').trim(),
+        updatedAt: String(source.updatedAt || '').trim(),
+    };
+}
+
 export function normalizeAdminDataPayload(data, healthPayload, fallbackState) {
     return {
         appointments: Array.isArray(data.appointments) ? data.appointments : [],
@@ -32,6 +54,7 @@ export function normalizeAdminDataPayload(data, healthPayload, fallbackState) {
             data.availabilityMeta && typeof data.availabilityMeta === 'object'
                 ? data.availabilityMeta
                 : {},
+        doctorProfile: normalizeDoctorProfile(data, fallbackState),
         queueTickets: normalizeQueueTickets(data),
         queueMeta:
             data.queueMeta && typeof data.queueMeta === 'object'
@@ -121,6 +144,7 @@ export function normalizeAdminStorePayload(payload, currentFunnelMetrics) {
         reviews: payload.reviews || [],
         availability: payload.availability || {},
         availabilityMeta: payload.availabilityMeta || {},
+        doctorProfile: payload.doctorProfile || null,
         queueTickets: payload.queueTickets || [],
         queueMeta: payload.queueMeta || null,
         leadOpsMeta: payload.leadOpsMeta || null,

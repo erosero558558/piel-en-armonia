@@ -11066,6 +11066,51 @@ function buildClinicalHistoryCarePlanSection(draft, disabled) {
         `
     );
 }
+function buildClinicalHistoryPhotosSection(review, draft, disabled) {
+    const assets = Array.isArray(review.caseMediaAssets) ? review.caseMediaAssets : [];
+    
+    const photosList = assets.map(asset => {
+        const url = escapeHtml(asset.url || '');
+        return `
+            <div class="clinical-photo-card" style="border: 1px solid var(--borderBase); padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: start; gap: 15px; background: var(--bgLayer)">
+                <img src="${url}" alt="Foto Clínica" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px;" />
+                <div style="flex: 1;">
+                    <strong style="display:block; color: var(--textStrong);">${escapeHtml(asset.bodyZone || 'Sin zona especificada')}</strong>
+                    <span style="font-size: 13px; color: var(--textBase);">${escapeHtml(asset.createdAt || '')}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <section class="clinical-history-section content-card" style="grid-column: 1 / -1;">
+            <div class="clinical-history-section-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>Fotografías Clínicas</h3>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <select id="clinical_photo_zone" class="clinical-history-picker" ${disabled ? 'disabled' : ''}>
+                        <option value="">Zona corporal...</option>
+                        <option value="Cara">Cara</option>
+                        <option value="Cuello">Cuello</option>
+                        <option value="Torax">Tórax</option>
+                        <option value="Espalda">Espalda</option>
+                        <option value="Brazo Izquierdo">Brazo Izq.</option>
+                        <option value="Brazo Derecho">Brazo Der.</option>
+                        <option value="Pierna Izquierda">Pierna Izq.</option>
+                        <option value="Pierna Derecha">Pierna Der.</option>
+                        <option value="Otra">Otra</option>
+                    </select>
+                    <label class="clinical-history-action-btn ${disabled ? 'disabled' : ''}" style="cursor: pointer; padding: 6px 12px; background: var(--brandBase); color: #fff; border-radius: 4px; font-weight: 600; font-size: 13px; ${disabled ? 'opacity:0.5; pointer-events:none;' : ''}">
+                        Tomar Foto
+                        <input type="file" id="clinical_photo_upload_input" accept="image/*" capture="environment" style="display:none;" />
+                    </label>
+                </div>
+            </div>
+            <div class="clinical-history-section-body">
+                ${assets.length === 0 ? '<p class="clinical-history-empty-text">No hay fotografías registradas.</p>' : `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:15px;">${photosList}</div>`}
+            </div>
+        </section>
+    `;
+}
 
 function buildDraftForm(review, draft, saving) {
     const disabled = saving || normalizeString(draft.sessionId) === '';
@@ -11078,6 +11123,7 @@ function buildDraftForm(review, draft, saving) {
         <div class="clinical-history-form-grid">
             ${buildClinicalHistoryAdmissionSection(review, draft, disabled)}
             ${buildClinicalHistoryIntakeSection(draft, disabled, pregnancyValue)}
+            ${buildClinicalHistoryPhotosSection(review, draft, disabled)}
             ${buildClinicalHistoryHcu005Section(draft, disabled, reviewReasons)}
             ${buildClinicalHistoryInterconsultSection(review, draft, disabled)}
             ${buildClinicalHistoryLabOrderSection(review, draft, disabled)}
@@ -13553,8 +13599,60 @@ function bindClinicalHistoryEvents() {
         }
     });
 
-    root.addEventListener('change', (event) => {
+    root.addEventListener('change', async (event) => {
         const target = event.target;
+
+        if (target.id === 'clinical_photo_upload_input') {
+            const review = currentReviewSource();
+            const caseId = normalizeString(review.session.caseId);
+            const patientId = normalizeString(review.session.patientId);
+            const zoneSelect = document.getElementById('clinical_photo_zone');
+            const bodyZone = zoneSelect ? normalizeString(zoneSelect.value) : '';
+            const file = target.files && target.files.length > 0 ? target.files[0] : null;
+
+            if (!caseId) {
+                createToast('Debes tener un caso activo.', 'warning');
+                target.value = '';
+                return;
+            }
+            if (!bodyZone) {
+                createToast('Por favor, selecciona la zona corporal antes de subir la foto.', 'warning');
+                target.value = '';
+                return;
+            }
+            if (!file) {
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('photo', file);
+                formData.append('caseId', caseId);
+                formData.append('patientId', patientId);
+                formData.append('bodyZone', bodyZone);
+
+                createToast('Subiendo fotografía...', 'info');
+                const response = await fetch('/api.php?resource=clinical-media-upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                if (!response.ok) {
+                    const payload = await response.json().catch(() => ({}));
+                    throw new Error(payload.error || 'No se pudo subir la foto');
+                }
+
+                createToast('Fotografía clínica guardada.', 'success');
+                if (zoneSelect) zoneSelect.value = '';
+                target.value = '';
+                await refreshClinicalHistoryCurrentSession();
+            } catch (error) {
+                createToast(error.message, 'error');
+                target.value = '';
+            }
+            return;
+        }
+
         if (
             target instanceof HTMLInputElement ||
             target instanceof HTMLTextAreaElement ||

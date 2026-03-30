@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../lib/clinical_history/bootstrap.php';
 require_once __DIR__ . '/../lib/InternalConsoleReadiness.php';
+require_once __DIR__ . '/../lib/telemedicine/ClinicalMediaService.php';
 
 final class ClinicalHistoryController
 {
@@ -390,6 +391,142 @@ final class ClinicalHistoryController
         header('Content-Disposition: inline; filename="plan-tratamiento-' . $sessionId . '.pdf"');
         echo $pdfBytes;
         exit;
+    }
+
+    public static function uploadMedia(array $context): void
+    {
+        if (!($context['isAdmin'] ?? false)) {
+            json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+        }
+
+        $caseId = trim((string) ($_POST['caseId'] ?? ''));
+        $patientId = trim((string) ($_POST['patientId'] ?? ''));
+        $bodyZone = trim((string) ($_POST['bodyZone'] ?? ''));
+
+        if ($caseId === '') {
+            json_response(['ok' => false, 'error' => 'caseId es requerido'], 400);
+        }
+
+        if (!isset($_FILES['photo']) || (int) ($_FILES['photo']['error']) !== UPLOAD_ERR_OK) {
+            json_response(['ok' => false, 'error' => 'No se recibio un archivo valido'], 400);
+        }
+
+        $lockResult = with_store_lock(static function () use ($context, $caseId, $patientId, $bodyZone): array {
+            $store = read_store();
+            $tenantId = get_current_tenant_id();
+
+            $maxId = 0;
+            foreach (($store['clinical_uploads'] ?? []) as $upload) {
+                if (is_array($upload)) {
+                    $maxId = max($maxId, (int) ($upload['id'] ?? 0));
+                }
+            }
+            $nextUploadId = $maxId + 1;
+
+            $file = $_FILES['photo'];
+            $tmpName = trim((string) ($file['tmp_name'] ?? ''));
+            $size = (int) ($file['size'] ?? 0);
+
+            if ($size > 5242880) {
+                return ['ok' => false, 'code' => 400, 'error' => 'Cada foto debe pesar maximo 5 MB.'];
+            }
+
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = $finfo ? (string) finfo_file($finfo, $tmpName) : '';
+            if ($finfo) {
+                finfo_close($finfo);
+            }
+
+            $allowed = [
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+            ];
+            if (!isset($allowed[$mime])) {
+                return ['ok' => false, 'code' => 400, 'error' => 'Las fotos deben ser JPG, PNG o WEBP.'];
+            }
+
+            if (!ensure_clinical_media_dir()) {
+                return ['ok' => false, 'code' => 500, 'error' => 'Error preparando almacenamiento.'];
+            }
+
+            $dateFolder = local_date('Y-m-d');
+            $patientSlug = $patientId === '' ? 'general' : preg_replace('/[^a-zA-Z0-9_-]/', '', $patientId);
+            $subFolder = $patientSlug . DIRECTORY_SEPARATOR . $dateFolder;
+            $fullTargetDir = clinical_media_dir_path() . DIRECTORY_SEPARATOR . $subFolder;
+
+            if (!is_dir($fullTargetDir)) {
+                @mkdir($fullTargetDir, 0750, true);
+            }
+
+            $suffix = bin2hex(random_bytes(6));
+            $filename = 'clinical-' . local_date('His') . '-' . $suffix . '.' . $allowed[$mime];
+            $targetDiskPath = $fullTargetDir . DIRECTORY_SEPARATOR . $filename;
+
+            if (is_uploaded_file($tmpName)) {
+                if (!@move_uploaded_file($tmpName, $targetDiskPath)) {
+                    return ['ok' => false, 'code' => 500, 'error' => 'Error guardando archivo fisico.'];
+                }
+            } else {
+                return ['ok' => false, 'code' => 400, 'error' => 'Archivo invalido.'];
+            }
+
+            @chmod($targetDiskPath, 0640);
+            $sha256 = @hash_file('sha256', $targetDiskPath);
+            $originalName = basename((string) ($file['name'] ?? $filename));
+            $safeOriginal = preg_replace('/[^a-zA-Z0-9._ -]/', '_', $originalName);
+
+            $record = [
+                'id' => max(1, $nextUploadId),
+                'tenantId' => $tenantId,
+                'intakeId' => null,
+                'appointmentId' => null,
+                'patientCaseId' => $caseId,
+                'bodyZone' => $bodyZone,
+                'kind' => \ClinicalMediaService::KIND_CASE_PHOTO,
+                'storageMode' => \ClinicalMediaService::STORAGE_PRIVATE_CLINICAL,
+                'privatePath' => 'clinical-media/' . str_replace('\\', '/', $subFolder) . '/' . $filename,
+                'legacyPublicPath' => '',
+                'legacyPublicUrl' => '',
+                'mime' => $mime,
+                'size' => $size,
+                'sha256' => is_string($sha256) ? $sha256 : '',
+                'originalName' => $safeOriginal,
+                'createdAt' => local_date('c'),
+                'updatedAt' => local_date('c'),
+            ];
+
+            $store['clinical_uploads'] = isset($store['clinical_uploads']) && is_array($store['clinical_uploads'])
+                ? array_values($store['clinical_uploads'])
+                : [];
+            
+            $store['clinical_uploads'][] = $record;
+
+            if (!write_store($store, false)) {
+                @unlink($targetDiskPath);
+                return ['ok' => false, 'code' => 500, 'error' => 'No se pudo registrar la subida.'];
+            }
+
+            return ['ok' => true, 'record' => $record, 'store' => $store];
+        });
+
+        if (($lockResult['ok'] ?? false) !== true || (isset($lockResult['result']) && ($lockResult['result']['ok'] ?? false) !== true)) {
+            $result = is_array($lockResult['result'] ?? null) ? $lockResult['result'] : $lockResult;
+            json_response([
+                'ok' => false,
+                'error' => (string) ($result['error'] ?? 'Error desconocido de subida')
+            ], (int) ($result['code'] ?? 500));
+        }
+
+        $uploadRecord = $lockResult['result']['record'] ?? [];
+        json_response([
+            'ok' => true,
+            'data' => [
+                'uploadId' => (int) ($uploadRecord['id'] ?? 0),
+                'privatePath' => (string) ($uploadRecord['privatePath'] ?? ''),
+                'bodyZone' => (string) ($uploadRecord['bodyZone'] ?? '')
+            ]
+        ], 201);
     }
 
     private static function mutateStore(callable $callback): array

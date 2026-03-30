@@ -899,6 +899,7 @@ final class ClinicalHistoryService
             'copyRequests' => $payload['copyRequests'] ?? [],
             'archiveReadiness' => $payload['archiveReadiness'] ?? [],
             'auditSummary' => $payload['auditSummary'] ?? [],
+            'caseMediaAssets' => $payload['caseMediaAssets'] ?? [],
             'legacyBridge' => [
                 'session' => $payload['session'] ?? [],
                 'draft' => $payload['draft'] ?? [],
@@ -1043,6 +1044,23 @@ final class ClinicalHistoryService
             $admission001['history']['changeLog'] ?? []
         );
 
+        $caseMediaAssets = [];
+        $caseId = (string) ($session['caseId'] ?? '');
+        if ($caseId !== '') {
+            foreach (($store['clinical_uploads'] ?? []) as $upload) {
+                if (is_array($upload) && (string) ($upload['patientCaseId'] ?? '') === $caseId) {
+                    $caseMediaAssets[] = [
+                        'uploadId' => (int) ($upload['id'] ?? 0),
+                        'kind' => (string) ($upload['kind'] ?? ''),
+                        'privatePath' => (string) ($upload['privatePath'] ?? ''),
+                        'url' => '/api.php?resource=media-flow-private-asset&assetId=' . urlencode((string) ($upload['assetId'] ?? $upload['privatePath'] ?? '')),
+                        'bodyZone' => (string) ($upload['bodyZone'] ?? ''),
+                        'createdAt' => (string) ($upload['createdAt'] ?? ''),
+                    ];
+                }
+            }
+        }
+
         return [
             'session' => $session,
             'draft' => $draft,
@@ -1128,6 +1146,7 @@ final class ClinicalHistoryService
                 'lastApprovedAt' => (string) ($approval['approvedAt'] ?? ''),
                 'approvalStatus' => (string) ($approval['status'] ?? 'pending'),
             ],
+            'caseMediaAssets' => $caseMediaAssets,
         ];
     }
 

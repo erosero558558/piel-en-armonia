@@ -246,6 +246,22 @@ const checks = {
             printer.includes('buildPublicQueueStatusUrl')
         );
     },
+    'S3-12': () => {
+        const builder = read(resolve(ROOT, 'lib/queue/QueueSummaryBuilder.php'));
+        const kioskHtml = read(resolve(ROOT, 'kiosco-turnos.html'));
+        const kioskRuntime = read(resolve(ROOT, 'src/apps/queue-kiosk/index.js'));
+        const displayRuntime = read(resolve(ROOT, 'src/apps/queue-display/index.js'));
+        return (
+            builder.includes('buildWaitingEstimates') &&
+            builder.includes('activeConsultorios') &&
+            kioskHtml.includes('queueEstimatedWait') &&
+            kioskHtml.includes('queueWaitContext') &&
+            kioskRuntime.includes('formatQueueEstimatedWait') &&
+            kioskRuntime.includes('ticket-wait') &&
+            displayRuntime.includes('formatQueueEstimatedWait') &&
+            displayRuntime.includes('next-wait')
+        );
+    },
     'S3-24': () => fileExists('es/agendar/index.html'),
     'S3-30': () => fileExists('es/telemedicina/consulta/index.html'),
     'S3-32': () => fileExists('es/pago/index.html'),

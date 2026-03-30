@@ -57,6 +57,7 @@ const initialState = {
         reviews: [],
         availability: {},
         availabilityMeta: {},
+        doctorProfile: null,
         queueTickets: [],
         queueMeta: null,
         leadOpsMeta: null,

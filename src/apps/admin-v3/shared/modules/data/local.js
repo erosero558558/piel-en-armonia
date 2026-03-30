@@ -10,6 +10,7 @@ export function persistLocalAdminData(data) {
         LOCAL_DATA_KEYS.availabilityMeta,
         data.availabilityMeta || {}
     );
+    setStorageJson(LOCAL_DATA_KEYS.doctorProfile, data.doctorProfile || null);
     setStorageJson(LOCAL_DATA_KEYS.queueTickets, data.queueTickets || []);
     setStorageJson(LOCAL_DATA_KEYS.queueMeta, data.queueMeta || null);
     setStorageJson(LOCAL_DATA_KEYS.leadOpsMeta, data.leadOpsMeta || null);
@@ -65,6 +66,7 @@ export function loadLocalAdminFallback() {
         reviews: getStorageJson(LOCAL_DATA_KEYS.reviews, []),
         availability: getStorageJson(LOCAL_DATA_KEYS.availability, {}),
         availabilityMeta: getStorageJson(LOCAL_DATA_KEYS.availabilityMeta, {}),
+        doctorProfile: getStorageJson(LOCAL_DATA_KEYS.doctorProfile, null),
         queueTickets: getStorageJson(LOCAL_DATA_KEYS.queueTickets, []),
         queueMeta: getStorageJson(LOCAL_DATA_KEYS.queueMeta, null),
         leadOpsMeta: getStorageJson(LOCAL_DATA_KEYS.leadOpsMeta, null),
